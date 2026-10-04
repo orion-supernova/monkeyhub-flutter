@@ -49,11 +49,16 @@ class ProblemReport {
     return [
       (label: 'Device ID', value: s('deviceId')),
       (label: 'User ID', value: session?.userId ?? '—'),
-      (label: 'Username', value: session?.name ?? '—'),
+      // The handle, which is what the row is called — the display name used
+      // to sit here, which is neither unique nor what support asks for.
+      (label: 'Username', value: session?.username ?? '—'),
       (label: 'App', value: '${s('appVersion')} (${s('appBuild')})'),
       (label: 'Device', value: DeviceReport.describeDevice(d)),
       (label: 'System', value: DeviceReport.describeSystem(d)),
-      (label: 'Display', value: '${s('physW')}x${s('physH')} @${s('dpr')}'),
+      (
+        label: 'Display',
+        value: '${_num(d['physW'])} × ${_num(d['physH'])} @${_num(d['dpr'])}x',
+      ),
       // Three separate lines because they answer three different questions and
       // used to be collapsed into one labelled "Locale" — which read as the app
       // language and was not: it was the handset's. On a Norwegian phone with no
@@ -63,11 +68,25 @@ class ProblemReport {
         label: 'App language',
         value:
             '${appLocale ?? DeviceReport.appLocaleTag ?? '—'}'
-            ' (${override == null ? 'from system' : 'chosen'})',
+            ' (${override == null ? languageFromSystem : languageChosen})',
       ),
       (label: 'System locale', value: s('locale')),
       (label: 'Log', value: '${DiagBuffer.instance.length} events attached'),
     ];
+  }
+
+  /// The 'App language' fact's suffix, in English because the report is read
+  /// by whoever triages it. Named so the screen can swap in the reader's own
+  /// words for display without guessing at the string.
+  static const languageFromSystem = 'from system';
+  static const languageChosen = 'chosen';
+
+  /// A reading without the `.0` a double prints: "2400 × 1800 @3x", not
+  /// "2400.0x1800.0 @3.0".
+  static String _num(Object? v) {
+    if (v is! num) return v?.toString() ?? '—';
+    if (v == v.roundToDouble()) return v.toInt().toString();
+    return v.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
   }
 
   /// One copyable block. What the user pastes if they'd rather hand the details

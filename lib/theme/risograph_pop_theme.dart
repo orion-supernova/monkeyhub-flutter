@@ -47,8 +47,11 @@ class RisographPopTheme implements AppTheme {
   Color get accentInk => const Color(0xFFFAF3DE);
   @override
   Color get accentSoft => accent.withValues(alpha: 0.18);
+  // A true riso red, not another orange: at #C2410C "Leave group" was the
+  // same colour as "Pin" beside it, so destructive read as ordinary. Still
+  // ≥5:1 on the paper.
   @override
-  Color get danger => const Color(0xFFC2410C);
+  Color get danger => const Color(0xFFC81E1E);
   @override
   Color get success => const Color(0xFF1E3A8A);
 

@@ -1,8 +1,19 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
+import 'ios_kit.dart' show groupedMetaStyle, quietFill;
+
+/// The pills' label: the badge step of the scale (13/w600) on the body face.
+/// It was the theme's `monoTiny` — 11pt, and tracked monospace on character
+/// themes, so "Public" read as a typewriter stamp beside a serif room name.
+TextStyle _badgeStyle(AppTheme theme, Color color) =>
+    groupedMetaStyle(theme).copyWith(
+      fontWeight: FontWeight.w600,
+      height: 1.1,
+      color: color,
+    );
 
 /// One pill: a small icon, a short label, a rounded chip around both — and a
 /// sentence, on tap, saying what the pill actually means.
@@ -12,7 +23,7 @@ import 'ios_kit.dart' show quietFill;
 /// name and a preview line is a wall, and the icons carry the meaning once you
 /// can reach the sentence behind them. And the pill measures itself — a grid
 /// slot can be under 90px, and a translated label runs well past that
-/// ("HERKESE AÇIK" needs ~104px), so it drops the words rather than overflow
+/// ("Herkese açık" needs ~100px), so it drops the words rather than overflow
 /// or ellipse two of them into noise.
 ///
 /// Either way the words survive: the tap tooltip spells the state out in full,
@@ -123,7 +134,7 @@ class RoomBadge extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: theme.tooltipDecoration(),
-      textStyle: theme.body.copyWith(fontSize: 12, color: theme.ink),
+      textStyle: groupedMetaStyle(theme).copyWith(color: theme.ink),
       child: pill,
     );
   }
@@ -166,8 +177,8 @@ class VisibilityBadge extends StatelessWidget {
           ? loc.roomBadgePublicTooltip
           : loc.roomBadgePrivateTooltip,
       decoration: theme.chipDecoration(filled: false),
-      textStyle: theme.monoTiny
-          .copyWith(color: invert ? theme.background : theme.inkSoft),
+      textStyle:
+          _badgeStyle(theme, invert ? theme.background : theme.inkSoft),
     );
   }
 }
@@ -197,11 +208,11 @@ class LockedBadge extends StatelessWidget {
       iconOnly: iconOnly,
       explainOnTap: explainOnTap,
       icon: (size) =>
-          Icon(Icons.lock_outline_rounded, size: size, color: theme.inkSoft),
+          Icon(CupertinoIcons.lock, size: size, color: theme.inkSoft),
       label: loc.roomCardLockedBadge,
       tooltip: loc.roomBadgeLockedTooltip,
       decoration: theme.chipDecoration(),
-      textStyle: theme.monoTiny,
+      textStyle: _badgeStyle(theme, theme.inkMuted),
     );
   }
 }
@@ -233,7 +244,7 @@ class JoinedBadge extends StatelessWidget {
       iconOnly: iconOnly,
       explainOnTap: explainOnTap,
       icon: (size) =>
-          Icon(Icons.check_rounded, size: size, color: theme.accent),
+          Icon(CupertinoIcons.checkmark_alt, size: size, color: theme.accent),
       label: loc.enterPublicRoomJoinedBadgeLabel,
       tooltip: loc.roomBadgeJoinedTooltip,
       decoration: BoxDecoration(
@@ -244,7 +255,7 @@ class JoinedBadge extends StatelessWidget {
           width: 0.5,
         ),
       ),
-      textStyle: theme.monoTiny.copyWith(color: theme.accent),
+      textStyle: _badgeStyle(theme, theme.accent),
     );
   }
 }
@@ -301,7 +312,7 @@ class EphemeralBadge extends StatelessWidget {
               width: 1,
             ),
           ),
-      textStyle: theme.monoTiny.copyWith(color: theme.accent),
+      textStyle: _badgeStyle(theme, theme.accent),
     );
   }
 }

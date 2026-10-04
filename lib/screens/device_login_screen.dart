@@ -31,7 +31,7 @@ class DeviceLoginScreen extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 36, 20, 24),
                   child: DeviceLoginPanel(auth: auth, onCancel: onCancel),
                 ),
               ),

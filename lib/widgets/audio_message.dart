@@ -7,12 +7,15 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../backend/chat_api.dart';
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../media/audio_file_cache.dart';
 import '../media/file_url_cache.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'spring_press.dart';
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoIcons;
 
 /// How the bubble is currently rendering.
@@ -255,8 +258,25 @@ class _AudioMessageState extends State<AudioMessage> {
       child: child,
     );
     if (onTap == null) return disc;
-    return GestureDetector(onTap: onTap, child: disc);
+    // A spring and a focus stop like every control (it was a bare
+    // GestureDetector: no press, unreachable by keyboard).
+    return SpringPress(
+      onTap: onTap,
+      scale: PressSpec.scaleSmall,
+      focusShape: FocusRingShape.circle,
+      focusRadius: 17,
+      child: disc,
+    );
   }
+
+  /// The 13pt meta line under the waveform — the body face with tabular
+  /// digits, not the caption slot (tracked mono at 12 on a character theme).
+  TextStyle _metaStyle(AppTheme theme, Color ink) => theme.body.copyWith(
+        fontSize: 13,
+        height: 1.2,
+        color: ink.withValues(alpha: 0.8),
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -286,9 +306,13 @@ class _AudioMessageState extends State<AudioMessage> {
           const SizedBox(width: 10),
           SizedBox(
             width: 120,
-            child: Text(AppLocalizations.of(context).audioMessageRetryHint,
-                style: theme.caption.copyWith(
-                    fontSize: 12, color: ink.withValues(alpha: 0.8))),
+            child: Text(
+              sentenceCaseOf(
+                context,
+                AppLocalizations.of(context).audioMessageRetryHint,
+              ),
+              style: _metaStyle(theme, ink),
+            ),
           ),
         ],
       );
@@ -381,11 +405,7 @@ class _AudioMessageState extends State<AudioMessage> {
                                 ' / ${formatClockDuration(total)}'
                             : AppLocalizations.of(context)
                                 .audioMessageLoadingLabel,
-                        style: theme.caption.copyWith(
-                          fontSize: 12,
-                          color: ink.withValues(alpha: 0.8),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+                        style: _metaStyle(theme, ink),
                       ),
                     ],
                   ),

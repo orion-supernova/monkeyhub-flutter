@@ -1,10 +1,14 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../../diagnostics/diag_event.dart';
 import '../../keyboard/focusable_tap.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/app_toast.dart';
+import '../../widgets/ios_kit.dart'
+    show groupedFill, groupedMetaStyle, groupedRadius, groupedSubtitleStyle;
 import 'diag_collapse.dart';
 import 'diag_palette.dart';
 import 'json_highlight.dart';
@@ -50,12 +54,17 @@ class _DiagEventRowState extends State<DiagEventRow> {
           onTap: () => setState(() => _open = !_open),
           behavior: HitTestBehavior.opaque,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.fromLTRB(8, 7, 10, 8),
             decoration: BoxDecoration(
               color: loud
-                  ? sevColour.withValues(alpha: 0.10)
-                  : theme.surfaceRaised,
-              borderRadius: BorderRadius.circular(theme.radiusSm),
+                  ? Color.alphaBlend(
+                      sevColour.withValues(alpha: 0.10),
+                      groupedFill(theme),
+                    )
+                  : groupedFill(theme),
+              // The grouped plates' corner, so a log row and a settings row
+              // read as the same material.
+              borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
               border: Border(
                 left: BorderSide(color: colour, width: loud ? 3 : 2),
               ),
@@ -68,19 +77,25 @@ class _DiagEventRowState extends State<DiagEventRow> {
                   children: [
                     // The Δ gutter. A strobe is visible in this one column and
                     // nowhere else — a wall of 16ms values IS the finding.
+                    // Mono, and only here and in the payload: these are the
+                    // two columns read as numbers lined up, not as words.
                     SizedBox(
-                      width: 52,
-                      child: Text(
-                        delta == null ? '—' : '+${delta}ms',
-                        textAlign: TextAlign.right,
-                        style: theme.monoTiny.copyWith(
-                          color: (delta != null && delta < 50)
-                              ? theme.danger
-                              : theme.inkMuted,
+                      width: 58,
+                      child: Padding(
+                        // Sits on the event name's baseline, not its cap.
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          delta == null ? '—' : '+${delta}ms',
+                          textAlign: TextAlign.right,
+                          style: _mono(theme, 13).copyWith(
+                            color: (delta != null && delta < 50)
+                                ? theme.danger
+                                : theme.inkMuted,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,18 +104,44 @@ class _DiagEventRowState extends State<DiagEventRow> {
                             children: [
                               if (loud) ...[
                                 Container(
-                                  width: 6,
-                                  height: 6,
+                                  width: 7,
+                                  height: 7,
                                   decoration: BoxDecoration(
                                     color: sevColour,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 6),
                               ],
-                              Text(
-                                '${e.cat.name}/${e.event}',
-                                style: theme.monoTiny.copyWith(color: colour),
+                              // The event in the body face, the category as a
+                              // small label in its own hue in front of it —
+                              // the same hue as the rule on the left, so the
+                              // two read as one thing.
+                              Flexible(
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: '${e.cat.name}  ',
+                                        style: groupedMetaStyle(theme).copyWith(
+                                          color: colour,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: e.event,
+                                        style: theme.body.copyWith(
+                                          fontSize: 15,
+                                          height: 1.3,
+                                          fontWeight: FontWeight.w500,
+                                          color: theme.ink,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               if (widget.group.collapsed) ...[
                                 const SizedBox(width: 6),
@@ -121,19 +162,28 @@ class _DiagEventRowState extends State<DiagEventRow> {
                               ],
                             ],
                           ),
+                          // A function or route name — an identifier, so mono.
                           if (e.name != null)
-                            Text(
-                              e.name!,
-                              style: theme.monoTiny.copyWith(color: theme.ink),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                e.name!,
+                                style: _mono(theme, 13).copyWith(
+                                  color: theme.inkSoft,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           if (e.detail != null)
-                            Text(
-                              e.detail!,
-                              style: theme.bodySoft,
-                              maxLines: _open ? null : 2,
-                              overflow: _open ? null : TextOverflow.ellipsis,
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                e.detail!,
+                                style: groupedSubtitleStyle(theme),
+                                maxLines: _open ? null : 2,
+                                overflow: _open ? null : TextOverflow.ellipsis,
+                              ),
                             ),
                         ],
                       ),
@@ -159,7 +209,7 @@ class _Detail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 8, left: 60),
+      padding: const EdgeInsets.only(top: 8, left: 68),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -168,19 +218,19 @@ class _Detail extends StatelessWidget {
             '${DateTime.fromMillisecondsSinceEpoch(event.tsMs).toIso8601String()}'
             '${event.corrId != null ? ' · corr ${event.corrId}' : ''}'
             '${event.screen != null ? ' · ${event.screen}' : ''}',
-            style: theme.monoTiny.copyWith(color: theme.inkMuted),
+            style: _mono(theme, 13).copyWith(color: theme.inkMuted),
           ),
           if (group.collapsed)
             Text(
               'run: seq ${group.first.seq}–${group.last.seq}, '
               'up ${group.first.upMs}–${group.last.upMs}ms',
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              style: _mono(theme, 13).copyWith(color: theme.inkMuted),
             ),
           if (event.body != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: theme.surfaceSunken,
                 borderRadius: BorderRadius.circular(theme.radiusSm),
@@ -188,17 +238,20 @@ class _Detail extends StatelessWidget {
               child: SelectableText.rich(
                 TextSpan(
                   children: highlightJson(event.prettyBody, theme),
-                  style: theme.monoTiny,
+                  style: _mono(theme, 13).copyWith(height: 1.4),
                 ),
               ),
             ),
             if (event.bodyTruncated)
-              Text(
-                'body truncated at capture',
-                style: theme.monoTiny.copyWith(color: theme.danger),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Body truncated at capture',
+                  style: groupedMetaStyle(theme).copyWith(color: theme.danger),
+                ),
               ),
           ],
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           FocusableTap(
             onTap: () => _copy(context, event),
             radius: theme.radiusSm,
@@ -206,9 +259,29 @@ class _Detail extends StatelessWidget {
             child: GestureDetector(
               onTap: () => _copy(context, event),
               behavior: HitTestBehavior.opaque,
-              child: Text(
-                'copy event',
-                style: theme.monoTiny.copyWith(color: theme.accent),
+              // A 36pt-tall strip, not just the word: this is a thumb target.
+              child: Container(
+                height: 36,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.doc_on_doc,
+                      size: 15,
+                      color: theme.accent,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Copy event',
+                      style: theme.body.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: theme.accent,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -233,12 +306,25 @@ class _Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: colour.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(4),
+        color: colour.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(text, style: theme.monoTiny.copyWith(color: colour)),
+      child: Text(
+        text,
+        style: groupedMetaStyle(theme).copyWith(
+          fontWeight: FontWeight.w600,
+          fontFeatures: const [FontFeature.tabularFigures()],
+          color: colour,
+        ),
+      ),
     );
   }
 }
+
+/// The theme's mono face at an explicit size. Mono is for what is read as
+/// code or as a column of numbers — the Δ gutter, identifiers, payloads,
+/// timestamps — and nothing else on this screen.
+TextStyle _mono(AppTheme theme, double size) =>
+    theme.mono.copyWith(fontSize: size, height: 1.3);

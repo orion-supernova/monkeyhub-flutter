@@ -37,7 +37,6 @@ class _MomentReactorSheet extends StatelessWidget {
     final motion = MotionScope.of(context);
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.reactionDetailsSheetTitle),
-      leading: const SheetCloseButton(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

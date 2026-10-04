@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -1076,11 +1077,11 @@ class _SenderNameLabel extends StatelessWidget {
       padding: EdgeInsets.only(left: left, bottom: 2),
       child: Text(
         name,
-        // Deliberately NOT the uppercased monoTiny that reply indicators
-        // and the composer card use: those are labels, this is a person.
-        // mono has no letter-spacing and enough size to read as a name, and
-        // stays clear of the 9px timestamp below.
-        style: theme.mono.copyWith(
+        // A person's name on the body face at 13/w600 — never the theme's
+        // mono, which on a character theme is a tracked typewriter face.
+        style: theme.bodySoft.copyWith(
+          fontSize: 13,
+          letterSpacing: 0,
           // The 0.95 stays off the speaker ink: that colour was
           // conditioned to clear 4.5:1 against this exact background, and
           // shaving five percent off it would spend contrast the
@@ -1322,7 +1323,7 @@ Widget _missingPicturePlate(AppTheme theme, double width, BorderRadius radius) =
         borderRadius: radius,
       ),
       alignment: Alignment.center,
-      child: Icon(Icons.image_not_supported_outlined, color: theme.inkMuted),
+      child: Icon(CupertinoIcons.photo, color: theme.inkMuted),
     );
 
 /// Builds the inner "bubble body" widget for any message type, applying the
@@ -1579,7 +1580,7 @@ Widget buildMessageContent({
             borderRadius: tileRadius,
           ),
           alignment: Alignment.center,
-          child: Icon(Icons.image_not_supported_outlined, color: theme.inkMuted),
+          child: Icon(CupertinoIcons.photo, color: theme.inkMuted),
         );
       }
       if (!hasCaption) return imageTile;
@@ -2384,16 +2385,28 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _badge(t, seal),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
                     Text(
                       AppLocalizations.of(context)
                           .messageBubbleViewOncePhotoLabel,
-                      style: t.label.copyWith(color: ink, letterSpacing: 0.6),
+                      // The body face at meta size, sentence case — never
+                      // the theme's tracked `label` slot. The tile is a
+                      // fixed height, so the pair stays at 13.
+                      style: t.bodySoft.copyWith(
+                        fontSize: 13,
+                        height: 1.15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0,
+                        color: ink,
+                      ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       _caption(context),
-                      style: t.monoTiny.copyWith(
+                      style: t.bodySoft.copyWith(
+                        fontSize: 13,
+                        height: 1.15,
+                        letterSpacing: 0,
                         color: _spent ? t.inkMuted : t.inkSoft,
                       ),
                     ),
@@ -2800,7 +2813,7 @@ class _UploadingImageTile extends StatelessWidget {
               errorBuilder: (_, _, _) => ColoredBox(
                 color: theme.surfaceSunken,
                 child: Center(
-                  child: Icon(Icons.image_outlined, color: theme.inkMuted),
+                  child: Icon(CupertinoIcons.photo, color: theme.inkMuted),
                 ),
               ),
             ),
@@ -2989,14 +3002,14 @@ class _UploadRetryControls extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _UploadControl(
-              icon: Icons.refresh,
+              icon: CupertinoIcons.arrow_clockwise,
               semanticLabel: AppLocalizations.of(context)
                   .messageBubbleRetrySendingSemanticLabel,
               onTap: onRetry == null ? null : () => onRetry!(),
             ),
             const SizedBox(width: 4),
             _UploadControl(
-              icon: Icons.close,
+              icon: CupertinoIcons.xmark,
               semanticLabel:
                   AppLocalizations.of(context).messageBubbleDiscardSemanticLabel,
               onTap: onDiscard,

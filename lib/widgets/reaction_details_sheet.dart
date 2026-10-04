@@ -11,8 +11,8 @@ import '../models/message_reaction.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import '../theme/motion.dart';
-import 'ios_kit.dart' show quietFill;
+import 'filter_capsule.dart';
+import 'ios_kit.dart';
 import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
@@ -182,36 +182,28 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
         : [...groups.firstWhere((g) => g.emoji == selected).rows])
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    return Container(
-      decoration: BoxDecoration(
-        color: sheetFill(theme),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(sheetTopRadius(theme)),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          16, 4, 16, 18 + MediaQuery.paddingOf(context).bottom),
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.reactionDetailsSheetTitle),
+      // How many people, under the title — the bar's quiet line.
+      subtitle: reactions.isEmpty
+          ? null
+          : l10n.reactionDetailsSheetPeopleCount(people),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetHandle(),
-          const SizedBox(height: 8),
-          Text(
-            sentenceCaseOf(context, l10n.reactionDetailsSheetTitle),
-            textAlign: TextAlign.center,
-            style: theme.bodyEmph.copyWith(color: theme.ink),
-          ),
           if (reactions.isEmpty)
-            _EmptyState(text: l10n.reactionDetailsSheetEmptyState)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 18, 0, 10),
+              child: EmptyState(
+                icon: CupertinoIcons.smiley,
+                title: l10n.reactionDetailsSheetEmptyState,
+                compact: true,
+              ),
+            )
           else ...[
-            const SizedBox(height: 5),
-            Text(
-              l10n.reactionDetailsSheetPeopleCount(people),
-              textAlign: TextAlign.center,
-              style: theme.bodySoft.copyWith(color: theme.inkMuted),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
             // One emoji needs no filter — every row would be in every bucket.
             // It still gets a chip, because the chip is what was long-pressed
             // to get here and echoing it is what makes the sheet feel like it
@@ -229,21 +221,23 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: Row(
                   children: [
-                    _FilterPill(
+                    // THE filter chip — the chat list's facets and these are
+                    // one control. The emoji rides as the label.
+                    FilterCapsule(
+                      key: _pillKeyFor(null),
                       label: l10n.reactionDetailsSheetFilterAll,
                       count: reactions.length,
-                      selected: selected == null,
+                      active: selected == null,
                       onTap: () => _select(null),
-                      pillKey: _pillKeyFor(null),
                     ),
                     for (final g in groups) ...[
                       const SizedBox(width: 6),
-                      _FilterPill(
-                        emoji: g.emoji,
+                      FilterCapsule(
+                        key: _pillKeyFor(g.emoji),
+                        label: g.emoji,
                         count: g.rows.length,
-                        selected: selected == g.emoji,
+                        active: selected == g.emoji,
                         onTap: () => _select(g.emoji),
-                        pillKey: _pillKeyFor(g.emoji),
                       ),
                     ],
                   ],
@@ -345,27 +339,6 @@ class _Emoji extends StatelessWidget {
       );
 }
 
-/// What the sheet shows once the last reaction is taken back while it's open.
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 26, 0, 14),
-      child: Column(
-        children: [
-          Icon(CupertinoIcons.smiley, size: 28, color: theme.inkMuted),
-          const SizedBox(height: 12),
-          Text(text, textAlign: TextAlign.center, style: theme.bodySoft),
-        ],
-      ),
-    );
-  }
-}
-
 /// The header chip for a message carrying exactly one emoji.
 ///
 /// Reads as a statement rather than a control, because there is nothing to
@@ -397,91 +370,6 @@ class _SoloSummary extends StatelessWidget {
                 style: _count(theme).copyWith(color: theme.accent),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Deliberately the same pill language as the reaction chip under the bubble —
-/// accent-tinted when it's the one in play, plain surface otherwise — so the
-/// chip you long-pressed is recognisable as the filter that opened selected.
-class _FilterPill extends StatelessWidget {
-  const _FilterPill({
-    this.emoji,
-    this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-    this.pillKey,
-  });
-
-  final String? emoji;
-  final String? label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  /// Set on the pill the sheet opened on, so it can be scrolled into view.
-  /// Null on every other pill, and on this one once that has happened.
-  final Key? pillKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final ink = selected ? theme.accent : theme.inkSoft;
-    return FocusableTap(
-      onTap: onTap,
-      shape: FocusRingShape.capsule,
-      radius: 999,
-      selected: selected,
-      semanticLabel: '${emoji ?? label} $count',
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // The pill that becomes the filter gives a little bounce — keyed on
-        // [selected], so only the change replays it.
-        child: TweenAnimationBuilder<double>(
-          key: ValueKey(selected),
-          tween: Tween(begin: selected ? 1.12 : 1, end: 1),
-          duration: MotionScope.of(context)
-              .d(const Duration(milliseconds: 460)),
-          curve: Curves.elasticOut,
-          builder: (context, s, child) =>
-              Transform.scale(scale: s, child: child),
-          child: AnimatedContainer(
-            key: pillKey,
-            duration: theme.motionFast,
-            curve: theme.motionCurve,
-            // Taller than the chip it echoes: a control on a sheet, not a
-            // label under a bubble, so a comfortable touch target. Filled,
-            // never outlined — the iOS 26 filter capsule.
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: selected
-                  ? quietFill(theme)
-                  : theme.ink.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (emoji != null)
-                  _Emoji(emoji!, size: 16)
-                else
-                  Text(
-                    sentenceCaseOf(context, label!),
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 15,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                      color: ink,
-                    ),
-                  ),
-                const SizedBox(width: 6),
-                Text('$count', style: _count(theme).copyWith(color: ink)),
-              ],
-            ),
           ),
         ),
       ),
@@ -550,7 +438,7 @@ class _ReactorRowState extends State<_ReactorRow>
                   Flexible(
                     child: Text(
                       widget.user.displayName,
-                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                      style: groupedTitleStyle(theme),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -570,8 +458,7 @@ class _ReactorRowState extends State<_ReactorRow>
                           AppLocalizations.of(context)
                               .reactionDetailsSheetYouBadge,
                         ),
-                        style: theme.caption.copyWith(
-                          fontSize: 12,
+                        style: groupedMetaStyle(theme).copyWith(
                           fontWeight: FontWeight.w600,
                           color: theme.accent,
                         ),
@@ -583,10 +470,7 @@ class _ReactorRowState extends State<_ReactorRow>
               const SizedBox(height: 2),
               Text(
                 '@${widget.user.username}',
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
+                style: groupedSubtitleStyle(theme),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

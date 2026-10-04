@@ -89,13 +89,13 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(host(picker(people: const [])));
-      expect(find.text('no friends yet'), findsOneWidget);
+      expect(find.text('No friends yet'), findsOneWidget);
 
       await tester.pumpWidget(host(picker(people: [_user('ada')])));
       await tester.enterText(find.byType(TextField), 'zzz');
       await tester.pump();
-      expect(find.text('no friends match'), findsOneWidget);
-      expect(find.text('no friends yet'), findsNothing);
+      expect(find.text('No friends match'), findsOneWidget);
+      expect(find.text('No friends yet'), findsNothing);
     });
 
     testWidgets('tapping a row hands the person back', (tester) async {
@@ -193,12 +193,12 @@ void main() {
       await tester.enterText(find.byType(TextField), 'bel');
       await tester.pump(const Duration(milliseconds: 300));
       // Debounce has fired, the request has not answered.
-      expect(find.text('no friends match'), findsNothing);
+      expect(find.text('No friends match'), findsNothing);
       expect(find.byType(CupertinoActivityIndicator), findsWidgets);
 
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('@bela'), findsOneWidget);
-      expect(find.text('no friends match'), findsNothing);
+      expect(find.text('No friends match'), findsNothing);
     });
 
     testWidgets('a slow answer cannot overwrite a newer one', (tester) async {
@@ -248,7 +248,7 @@ void main() {
       // The local match survives, and nothing claims the search came back
       // empty — it never came back at all.
       expect(find.text('@ada'), findsOneWidget);
-      expect(find.text('no friends match'), findsNothing);
+      expect(find.text('No friends match'), findsNothing);
     });
   });
 
@@ -328,7 +328,7 @@ void main() {
       // the whole scroller with a centred "no friends yet" would take that
       // away from them.
       expect(find.text('CREATE A ROOM'), findsOneWidget);
-      expect(find.text('no friends yet'), findsOneWidget);
+      expect(find.text('No friends yet'), findsOneWidget);
     });
   });
 }

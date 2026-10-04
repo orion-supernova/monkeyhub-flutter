@@ -1,7 +1,11 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import '../keyboard/overlay_modal_scope.dart';
+import '../l10n/text_case.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show groupedMetaStyle;
+import 'spring_press.dart';
 
 class ThemeChip extends StatefulWidget {
   const ThemeChip({super.key});
@@ -67,11 +71,12 @@ class _ThemeChipState extends State<ThemeChip> {
                     for (final t in ThemeController.all)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: GestureDetector(
+                        child: SpringPress(
                           onTap: () {
                             controller.theme = t;
                             _close();
                           },
+                          semanticLabel: t.name,
                           child: _SwatchDot(
                             colors: t.swatch,
                             size: 20,
@@ -96,8 +101,13 @@ class _ThemeChipState extends State<ThemeChip> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return GestureDetector(
+    final label = sentenceCaseOf(
+      context,
+      AppLocalizations.of(context).roomGridTileThemeChipLabel,
+    );
+    return SpringPress(
       onTap: _toggle,
+      semanticLabel: label,
       child: AnimatedContainer(
         key: _anchorKey,
         duration: theme.motionMed,
@@ -109,12 +119,22 @@ class _ThemeChipState extends State<ThemeChip> {
           children: [
             _SwatchDot(colors: theme.swatch, size: 14, active: true),
             const SizedBox(width: 8),
-            Text(AppLocalizations.of(context).roomGridTileThemeChipLabel, style: theme.monoTiny),
+            Text(
+              label,
+              style: groupedMetaStyle(theme).copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.inkSoft,
+              ),
+            ),
             const SizedBox(width: 4),
             AnimatedRotation(
               turns: _expanded ? 0.5 : 0.0,
               duration: theme.motionFast,
-              child: Icon(Icons.expand_more, size: 14, color: theme.inkMuted),
+              child: Icon(
+                CupertinoIcons.chevron_down,
+                size: 12,
+                color: theme.inkMuted,
+              ),
             ),
           ],
         ),

@@ -143,9 +143,7 @@ class _ChangeRequestsSheetState extends State<_ChangeRequestsSheet> {
       },
       child: SheetFrame(
         title: l10n.roomChangeRequestsTitle,
-        leading: SheetCloseButton(
-          onTap: () => Navigator.of(context).pop(_anyDecided),
-        ),
+        onClose: () => Navigator.of(context).pop(_anyDecided),
         // One scroller for the whole sheet: the frame does not scroll, and
         // a long queue must never overflow it.
         child: SingleChildScrollView(

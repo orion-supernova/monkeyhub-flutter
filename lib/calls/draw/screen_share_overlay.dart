@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/glass_buttons.dart';
+import '../../widgets/liquid_glass.dart' show GlassTone;
 import '../call_service.dart';
 import '../group_call_service.dart';
 import 'draw_canvas.dart';
@@ -84,41 +87,19 @@ class ScreenShareOverlay extends StatelessWidget {
   }
 }
 
+/// The way out of drawing: the shared media-glass pill (it floats over
+/// whatever screen is being shared, so the neutral dark glass, not the
+/// theme's). Was a Material + InkWell slab in the mono slot.
 class _StopDrawingChip extends StatelessWidget {
   const _StopDrawingChip({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = ThemeScope.of(context);
-    return Material(
-      color: Colors.black.withValues(alpha: 0.72),
-      shape: StadiumBorder(
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
-      ),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
+  Widget build(BuildContext context) => GlassPillButton(
+        tone: GlassTone.media,
+        label: AppLocalizations.of(context).screenShareStopDrawing,
+        icon: CupertinoIcons.pencil_slash,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.draw_outlined, size: 16, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(
-                l10n.screenShareStopDrawing,
-                style: theme.monoTiny.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+      );
 }

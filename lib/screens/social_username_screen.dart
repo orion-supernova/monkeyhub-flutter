@@ -1,12 +1,11 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/social_sign_in.dart';
 import '../data/username_availability_controller.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../platform.dart';
 import '../theme/layout.dart';
@@ -14,10 +13,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/username_status_label.dart';
-import '../widgets/ios_kit.dart' show GlassIconButton, groupedRadius;
-import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton;
-import '../l10n/text_case.dart';
+import '../widgets/ios_kit.dart';
 
 /// Where a first-time Apple/Google sign-in lands, with two ways out.
 ///
@@ -190,25 +186,31 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                   // The way out. This screen is pushed as a fullscreenDialog,
                   // which on iOS also disables swipe-back — without this there is
                   // no gesture and no button that leaves, and a failed attempt
-                  // traps the user on it.
-                  Align(
-                    alignment: Alignment.centerRight,
+                  // traps the user on it. Top-leading, like every ×, in the same
+                  // 52pt bar `IosPage` draws, so the form starts where every
+                  // other page's content does.
+                  SizedBox(
+                    height: 52,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 6, 16, 0),
-                      child: IgnorePointer(
-                        ignoring: _busy,
-                        child: GlassIconButton(
-                          icon: CupertinoIcons.xmark,
-                          iconSize: 17,
-                          semanticLabel: AppLocalizations.of(context)
-                              .audioMessageCancelSemanticLabel,
-                          onTap: () => Navigator.of(context).pop(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: IgnorePointer(
+                          ignoring: _busy,
+                          child: GlassCloseButton(
+                            semanticLabel: AppLocalizations.of(context)
+                                .audioMessageCancelSemanticLabel,
+                            onTap: () => Navigator.of(context).pop(),
+                          ),
                         ),
                       ),
                     ),
                   ),
+                  // Top-aligned, not centred: centring a short form under a
+                  // bar left ~350pt of nothing above the title on a phone.
                   Expanded(
-                    child: Center(
+                    child: Align(
+                      alignment: Alignment.topCenter,
                       child: ConstrainedBox(
                         constraints:
                             const BoxConstraints(maxWidth: ContentWidth.auth),
@@ -236,10 +238,17 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                 style: theme.bodySoft.copyWith(fontSize: 17),
                               ),
                               const SizedBox(height: 28),
-                              ThemedInput(
-                                controller: _username,
-                                hint: AppLocalizations.of(context)
+                              // Labelled fields, not placeholder-only: the
+                              // name arrives prefilled from the provider, and
+                              // with its placeholder gone nothing said which
+                              // box was the username and which the name. The
+                              // label carries the field's name, so the box
+                              // itself stays empty rather than repeat it.
+                              LabeledField(
+                                label: AppLocalizations.of(context)
                                     .audioMessageUsernameHint,
+                                controller: _username,
+                                hint: '',
                                 autocorrect: false,
                                 enableSuggestions: false,
                                 autofocus: isPhysicalKeyboardPlatform,
@@ -249,54 +258,44 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                 onSubmitted: (_) =>
                                     FocusScope.of(context).nextFocus(),
                               ),
+                              // The status label reserves its own 18pt line,
+                              // which is the gap on create — stacking 12 on top
+                              // of it left this pair visibly wider apart.
                               if (creating)
-                                UsernameStatusLabel(controller: _availability),
-                              const SizedBox(height: 12),
+                                UsernameStatusLabel(controller: _availability)
+                              else
+                                const SizedBox(height: 12),
                               if (creating)
-                                ThemedInput(
-                                  controller: _name,
-                                  hint: AppLocalizations.of(context)
+                                LabeledField(
+                                  label: AppLocalizations.of(context)
                                       .audioMessageDisplayNameHint,
+                                  controller: _name,
+                                  hint: '',
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: (_) => _submit(),
                                 )
                               else
                                 PasswordField(
                                   controller: _password,
-                                  hint: AppLocalizations.of(context)
+                                  label: AppLocalizations.of(context)
                                       .audioMessagePasswordHint,
+                                  hint: '',
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: (_) => _submit(),
                                 ),
                               if (_error != null) ...[
                                 const SizedBox(height: 14),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: theme.danger.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(
-                                      groupedRadius(theme) * 0.6,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _error!,
-                                        style: theme.body
-                                            .copyWith(color: theme.danger),
-                                      ),
-                                      if (_offerLink) ...[
-                                        const SizedBox(height: 8),
-                                        _TextLink(
-                                          label: AppLocalizations.of(context)
-                                              .audioMessageSwitchToLinkPrompt,
-                                          onTap: () => _switchTo(_Mode.link),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+                                FormErrorBanner(
+                                  _error!,
+                                  // The whole point of the second mode, offered
+                                  // right where "taken" is said.
+                                  actionLabel: _offerLink
+                                      ? AppLocalizations.of(context)
+                                          .audioMessageSwitchToLinkPrompt
+                                      : null,
+                                  onAction: _offerLink
+                                      ? () => _switchTo(_Mode.link)
+                                      : null,
                                 ),
                               ],
                               const SizedBox(height: 20),
@@ -346,10 +345,16 @@ class _Cta extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => ProminentButton(
-        label: sentenceCaseOf(context, label),
+  Widget build(BuildContext context) => SheetActionButton(
+        label: label,
         busy: busy,
-        onTap: busy ? null : onTap,
+        // The one big commit on the screen: the heavier haptic, played here
+        // instead of the default selection tick.
+        haptic: false,
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          onTap();
+        },
       );
 }
 
@@ -387,34 +392,4 @@ class _SecondaryCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       SheetActionButton(label: label, onTap: onTap, tonal: true);
-}
-
-class _TextLink extends StatelessWidget {
-  const _TextLink({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(
-            label,
-            style: theme.body.copyWith(
-              color: theme.accent,
-              decoration: TextDecoration.underline,
-              decorationColor: theme.accent,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

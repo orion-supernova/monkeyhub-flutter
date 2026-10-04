@@ -2,14 +2,13 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'chat_list_row.dart' show monogramGradient;
-import 'ios_kit.dart' show groupedFill, groupedRadius;
+import 'ios_kit.dart';
 
 import 'approval_gate.dart';
 import 'remote_image.dart';
@@ -35,50 +34,19 @@ class FriendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
+    // The shared person row — callers set these inside one GroupedSection,
+    // the iOS contacts list, rather than each on a floating card.
+    return PersonRow(
+      avatar: UserAvatar(user: user, size: 40, api: api),
+      title: user.displayName,
+      subtitle: '@${user.username}',
+      semanticLabel:
+          l10n.childSetupScreenFriendRowMessageSemanticLabel(user.displayName),
       onTap: onTap,
-      semanticLabel: l10n.childSetupScreenFriendRowMessageSemanticLabel(
-          user.displayName),
-      radius: theme.radiusXl,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          decoration: discoverCardDecoration(theme),
-          child: Row(
-            children: [
-              UserAvatar(user: user, size: 44, api: api),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _name(theme),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '@${user.username}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _meta(theme),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                CupertinoIcons.chat_bubble_fill,
-                size: 18,
-                color: theme.accent,
-              ),
-            ],
-          ),
-        ),
+      trailing: Icon(
+        CupertinoIcons.chat_bubble_fill,
+        size: 18,
+        color: theme.accent,
       ),
     );
   }
@@ -97,10 +65,9 @@ TextStyle _name(AppTheme theme) => theme.bodyEmph.copyWith(
       fontStyle: FontStyle.normal,
     );
 
-TextStyle _meta(AppTheme theme) => theme.caption.copyWith(
-      fontSize: 13,
-      color: theme.inkMuted,
-    );
+/// The body face at meta size — never the theme's caption, which is tracked
+/// monospace on the character themes ("248  members").
+TextStyle _meta(AppTheme theme) => groupedMetaStyle(theme);
 
 class PublicRoomTile extends StatelessWidget {
   const PublicRoomTile({
@@ -130,23 +97,23 @@ class PublicRoomTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final hasDescription =
         room.description != null && room.description!.trim().isNotEmpty;
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
+      haptic: false,
+      scale: PressSpec.scaleSmall,
       semanticLabel: room.name,
-      radius: theme.radiusXl,
-      child: GestureDetector(
-        onTap: onTap,
-        // One block: the room's face, its name, two lines of what it is
-        // about, and a quiet meta line. The old tile spelled visibility,
-        // lifetime and lock out as labelled pills; here they are glyphs in
-        // muted ink, and only "joined" / "waiting" keep a word, because those
-        // are about YOU rather than about the room.
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          decoration: discoverCardDecoration(theme),
+      focusRadius: groupedRadius(theme),
+      // One row: the room's face, its name, two lines of what it is about,
+      // and a quiet meta line. The old tile spelled visibility, lifetime and
+      // lock out as labelled pills; here they are glyphs in muted ink, and
+      // only "joined" / "waiting" keep a word, because those are about YOU
+      // rather than about the room. Callers set rows inside one
+      // GroupedSection rather than each on its own card.
+      child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+          // Centred on the cross axis, as iOS does: top-aligned, the chevron
+          // sat level with the title in the top corner of a three-line row.
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _RoomGlyph(room: room, api: api),
               const SizedBox(width: 12),
@@ -165,11 +132,7 @@ class PublicRoomTile extends StatelessWidget {
                       // Left in the case the owner typed it.
                       Text(
                         room.description!.trim(),
-                        style: theme.bodySoft.copyWith(
-                          fontSize: 15,
-                          height: 1.3,
-                          color: theme.inkMuted,
-                        ),
+                        style: groupedSubtitleStyle(theme),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -236,18 +199,14 @@ class PublicRoomTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Icon(
-                  CupertinoIcons.chevron_forward,
-                  size: 15,
-                  color: theme.inkMuted.withValues(alpha: 0.7),
-                ),
+              Icon(
+                CupertinoIcons.chevron_forward,
+                size: 15,
+                color: theme.inkMuted.withValues(alpha: 0.7),
               ),
             ],
           ),
         ),
-      ),
     );
   }
 }
@@ -289,10 +248,12 @@ class _RoomGlyph extends StatelessWidget {
               trimmed.isEmpty
                   ? '#'
                   : trimmed.characters.first.toUpperCase(),
-              style: const TextStyle(
-                fontFamily: 'CupertinoSystemDisplay',
-                fontSize: 21,
+              // The theme's own emphasis face, not a hard-coded system
+              // family: a character theme's letters stay its own.
+              style: theme.bodyEmph.copyWith(
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
+                fontStyle: FontStyle.normal,
                 height: 1,
                 color: Colors.white,
               ),
@@ -327,11 +288,9 @@ class DiscoverSectionHeader extends StatelessWidget {
           Flexible(
             child: Text(
               sentenceCaseOf(context, label),
-              style: theme.displaySmall.copyWith(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.35,
-              ),
+              // The theme's own section-display size, exactly as the shared
+              // PageSectionHeader draws it — no 22pt override of its own.
+              style: theme.displaySmall.copyWith(color: theme.ink),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -360,52 +319,25 @@ class SeeAllRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: l10n.childSetupScreenSeeAllSemanticLabel(total),
-      radius: theme.radiusXl,
-      child: GestureDetector(
+    // The shared text link — accent, trailing chevron, the iOS "See All".
+    return Center(
+      child: TextLinkButton(
+        label: l10n.childSetupScreenSeeAllLabel(total),
+        icon: CupertinoIcons.chevron_forward,
+        semanticLabel: l10n.childSetupScreenSeeAllSemanticLabel(total),
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // A text link in the accent, the iOS "See All".
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                sentenceCaseOf(context, l10n.childSetupScreenSeeAllLabel(total)),
-                style: theme.body.copyWith(
-                  fontSize: 17,
-                  color: theme.accent,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                CupertinoIcons.chevron_forward,
-                size: 15,
-                color: theme.accent,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
 }
 
+/// A section with nothing in it: the shared one-line empty note.
 class DiscoverEmptyLine extends StatelessWidget {
   const DiscoverEmptyLine(this.text, {super.key});
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
-      child: Text(text, style: theme.bodySoft),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EmptyLine(text, padding: const EdgeInsets.symmetric(vertical: 12));
 }

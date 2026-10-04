@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -13,7 +14,6 @@ import '../widgets/app_brand_mark.dart' show canonicalLogoId;
 import '../widgets/app_icon_picker.dart';
 import '../widgets/appearance_picker.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/prominent_button.dart';
 
 /// The first thing a new install shows, before sign-in: how the app should
 /// look, then which icon it should wear on the home screen.
@@ -138,13 +138,21 @@ class _ThemeOnboardingScreenState extends State<ThemeOnboardingScreen> {
                       20,
                       edgeToEdgeBottom(context, 16),
                     ),
-                    child: ProminentButton(
+                    // The one big commit on the screen: it plays the heavier
+                    // haptic itself instead of the default selection tick.
+                    child: SheetActionButton(
                       label: _step == 0
                           ? l10n.onboardingContinue
                           : l10n.onboardingGetStarted,
-                      onTap: _step == 0
-                          ? () => setState(() => _step = 1)
-                          : _finish,
+                      haptic: false,
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        if (_step == 0) {
+                          setState(() => _step = 1);
+                        } else {
+                          _finish();
+                        }
+                      },
                     ),
                   ),
                 ],
@@ -230,19 +238,34 @@ class _LookStep extends StatelessWidget {
           for (final t in ts) if (!_isEssential(t)) t,
         ];
 
+    // No horizontal padding on the list itself: the theme strips are shelves,
+    // and a shelf runs off the trailing screen edge (App Store, Photos) rather
+    // than stopping dead at the gutter with a sliver of the next card and a
+    // stray "|" of its name. Everything else carries the 20pt gutter itself;
+    // the strips keep it on the leading edge only, so the first card still
+    // lines up with the title above it.
+    Widget gutter(Widget child) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: child,
+        );
+    Widget shelf(Widget strip) => Padding(
+          padding: const EdgeInsets.only(left: 18),
+          child: strip,
+        );
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
       children: [
-        const _BrandEntrance(),
+        gutter(const _BrandEntrance()),
         const SizedBox(height: 20),
-        Text(
+        gutter(Text(
           l10n.onboardingLookTitle,
           style: theme.displayLarge.copyWith(letterSpacing: 0.37),
-        ),
+        )),
         const SizedBox(height: 6),
-        Text(l10n.onboardingLookBody, style: theme.bodySoft),
+        gutter(Text(l10n.onboardingLookBody, style: theme.bodySoft)),
         const SizedBox(height: 22),
-        AppearanceModeSwitch(mode: mode, onChanged: setMode),
+        gutter(AppearanceModeSwitch(mode: mode, onChanged: setMode)),
         const SizedBox(height: 24),
         AnimatedSwitcher(
           duration: MotionScope.of(context).d(theme.motionMed),
@@ -260,56 +283,56 @@ class _LookStep extends StatelessWidget {
                   key: const ValueKey('pair'),
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _StripHeading(
+                    gutter(_StripHeading(
                       title: l10n.onboardingLightMode,
                       now: platform == Brightness.light
                           ? l10n.onboardingNow
                           : null,
-                    ),
-                    ThemeStrip(
+                    )),
+                    shelf(ThemeStrip(
                       themes: ordered(all.where((t) => t.isLight)),
                       selectedId: store.lightThemeId,
                       onSelect: (t) =>
                           store.setSlotTheme(Brightness.light, t.id),
-                    ),
+                    )),
                     const SizedBox(height: 14),
-                    _StripHeading(
+                    gutter(_StripHeading(
                       title: l10n.onboardingDarkMode,
                       now: platform == Brightness.dark
                           ? l10n.onboardingNow
                           : null,
-                    ),
-                    ThemeStrip(
+                    )),
+                    shelf(ThemeStrip(
                       themes: ordered(all.where((t) => !t.isLight)),
                       selectedId: store.darkThemeId,
                       onSelect: (t) =>
                           store.setSlotTheme(Brightness.dark, t.id),
-                    ),
+                    )),
                   ],
                 )
               : Column(
                   key: const ValueKey('fixed'),
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _StripHeading(
+                    gutter(_StripHeading(
                       title: l10n.onboardingEssentials,
                       sub: l10n.onboardingEssentialsSub,
-                    ),
-                    ThemeStrip(
+                    )),
+                    shelf(ThemeStrip(
                       themes: [for (final t in all) if (_isEssential(t)) t],
                       selectedId: theme.id,
                       onSelect: (t) => store.setThemeId(t.id),
-                    ),
+                    )),
                     const SizedBox(height: 14),
-                    _StripHeading(
+                    gutter(_StripHeading(
                       title: l10n.onboardingCharacters,
                       sub: l10n.onboardingCharactersSub,
-                    ),
-                    ThemeStrip(
+                    )),
+                    shelf(ThemeStrip(
                       themes: [for (final t in all) if (!_isEssential(t)) t],
                       selectedId: theme.id,
                       onSelect: (t) => store.setThemeId(t.id),
-                    ),
+                    )),
                   ],
                 ),
         ),
@@ -357,7 +380,7 @@ class _IconStep extends StatelessWidget {
           Text(
             l10n.onboardingIconIosNote,
             textAlign: TextAlign.center,
-            style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+            style: groupedMetaStyle(theme),
           ),
         ],
       ],
@@ -439,10 +462,7 @@ class _StripHeading extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
-          Text(
-            title,
-            style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
-          ),
+          Text(title, style: groupedHeaderStyle(theme)),
           if (sub != null) ...[
             const SizedBox(width: 8),
             Flexible(
@@ -450,25 +470,23 @@ class _StripHeading extends StatelessWidget {
                 sub!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.caption.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
+                style: groupedMetaStyle(theme),
               ),
             ),
           ],
           if (now != null) ...[
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
               decoration: BoxDecoration(
                 color: quietFill(theme),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
                 now!,
-                style: theme.caption.copyWith(
-                  fontSize: 11,
+                // Meta size (13/w600) on the body face — it was 11pt caption,
+                // off the scale and monospace on character themes.
+                style: groupedMetaStyle(theme).copyWith(
                   fontWeight: FontWeight.w600,
                   color: theme.accent,
                 ),

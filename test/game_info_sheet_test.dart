@@ -9,7 +9,7 @@ import 'package:monkeyhub/models/daily_game.dart';
 import 'package:monkeyhub/models/puzzle.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
-import 'package:monkeyhub/widgets/destructive_sheet.dart' show SheetGrabber;
+import 'package:monkeyhub/widgets/sheet_kit.dart' show SheetHandle;
 import 'package:monkeyhub/widgets/game_info_sheet.dart';
 import 'package:monkeyhub/widgets/game_tile.dart';
 import 'package:monkeyhub/widgets/games_strip.dart';
@@ -69,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('The rules'), findsOneWidget);
-    expect(find.text('eight crowns: one in each row, one in each column.'),
+    expect(find.text('Eight crowns: one in each row, one in each column.'),
         findsOneWidget);
     // The whole point of the separate target: the board must not have opened
     // behind the sheet.
@@ -126,7 +126,7 @@ void main() {
     await tester.tap(find.byType(GameInfoButton).at(DailyGame.zip.index + 1));
     await tester.pumpAndSettle();
 
-    expect(find.text('start on 1 and finish on the last number.'),
+    expect(find.text('Start on 1 and finish on the last number.'),
         findsOneWidget);
     expect(opened, 0);
   });
@@ -179,26 +179,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Well below the disc, onto the board itself: on a tile this small the
-    // whole top-right corner has to open the rules or nothing does.
-    final tile = tester.getRect(find.byKey(const ValueKey('strip_zip')));
-    await tester.tapAt(Offset(tile.right - 12, tile.top + 30));
+    // Inside Zip's button box but clear of the disc, which hugs the box's
+    // trailing edge — over the card's own tap region, which would otherwise
+    // win this one and open the board. +1: the code puzzle's tile is first.
+    final box = tester.getRect(
+      find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
+    );
+    await tester.tapAt(Offset(box.left + 3, box.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('start on 1 and finish on the last number.'),
+    expect(find.text('Start on 1 and finish on the last number.'),
         findsOneWidget);
     expect(opened, 0);
   });
-
-  // The disc is meant to hang off the corner of the tile rather than sit
-  // inside it. It is a Stack child painting outside its parent's bounds, which
-  // survives only as long as the Stack stays Clip.none — flip that back and
-  // the overhang is trimmed with nothing else to show for it.
-  Clip clipOf(WidgetTester tester, Finder button) => tester
-      .widget<Stack>(
-        find.ancestor(of: button, matching: find.byType(Stack)).first,
-      )
-      .clipBehavior;
 
   final disc = find.descendant(
     of: find.byType(GameInfoButton),
@@ -242,7 +235,13 @@ void main() {
     expect((glyph.center.dy - name.center.dy).abs(), lessThan(8));
   });
 
-  testWidgets('the Feed band ⓘ hangs off its tile too', (tester) async {
+  // The disc used to hang 5pt off the corner, into the gutter between tiles,
+  // then sat tucked inside the corner — on top of the board art, covering a
+  // cell of today's puzzle. It rides beside the name now, the hub's pattern:
+  // below the board, inside the tile, never spilling into the next one.
+  testWidgets('the Feed band ⓘ sits beside the name, below the board', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       host(
         SizedBox(
@@ -259,26 +258,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final tile = tester.getRect(
-      find.descendant(
-        of: find.byKey(const ValueKey('strip_zip')),
-        matching: find.byType(AspectRatio),
-      ),
+    final strip = find.byKey(const ValueKey('strip_zip'));
+    final tile = tester.getRect(strip);
+    final board = tester.getRect(
+      find.descendant(of: strip, matching: find.byType(AspectRatio)),
     );
     // +1: the code puzzle's own tile is first in the strip.
     final glyph = tester.getRect(disc.at(DailyGame.zip.index + 1));
 
-    expect(glyph.right, greaterThan(tile.right));
-    expect(glyph.top, lessThan(tile.top));
-    // The strip's own gutter is 8.
-    expect(glyph.right - tile.right, lessThan(8));
-    expect(
-      clipOf(
-        tester,
-        find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
-      ),
-      Clip.none,
+    // Wholly inside the tile…
+    expect(glyph.left, greaterThanOrEqualTo(tile.left));
+    expect(glyph.right, lessThanOrEqualTo(tile.right));
+    // …clear of the board…
+    expect(glyph.top, greaterThanOrEqualTo(board.bottom));
+    // …and level with the name and status beside it.
+    final name = tester.getRect(
+      find.descendant(of: strip, matching: find.text('Zip')),
     );
+    expect(glyph.left, greaterThan(name.left));
+    expect(glyph.top, lessThan(name.bottom + 14));
   });
 
   testWidgets('the code puzzle explains its own scoring', (tester) async {
@@ -299,10 +297,10 @@ void main() {
     // It shares the hub with four timed boards but is ranked by guesses, and
     // saying so is the reason the scoring line is per-game rather than shared.
     expect(
-      find.text('scored by how few guesses it takes, not by the clock.'),
+      find.text('Scored by how few guesses it takes, not by the clock.'),
       findsOneWidget,
     );
-    expect(find.textContaining('the clock runs'), findsNothing);
+    expect(find.textContaining('The clock runs'), findsNothing);
   });
 
   // The main button used to read GOT IT and only closed the sheet, which
@@ -369,7 +367,7 @@ void main() {
 
     // From the grabber in the fixed header — the part of the sheet that never
     // scrolls, so the drag is the sheet's and not a scroll view's.
-    final grabber = tester.getRect(find.byType(SheetGrabber));
+    final grabber = tester.getRect(find.byType(SheetHandle));
     await tester.flingFrom(
       Offset(grabber.center.dx, grabber.top + 2),
       const Offset(0, 500),

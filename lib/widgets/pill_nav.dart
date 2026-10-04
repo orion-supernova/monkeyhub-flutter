@@ -1,13 +1,27 @@
 import 'package:flutter/material.dart';
-import '../theme/theme_scope.dart';
+
+import 'filter_capsule.dart';
 
 class PillNavItem {
   const PillNavItem({required this.id, required this.label, this.badge});
   final String id;
   final String label;
+
+  /// A count already formatted for display ("12", "99+"). A plain number
+  /// rides as the capsule's tabular count; anything else is appended to the
+  /// label.
   final String? badge;
 }
 
+/// A row of mutually-exclusive tabs — the shared-content screen's Media /
+/// Files / Voice / Links / Saved strip.
+///
+/// Drawn as THE filter chips ([FilterCapsule]) rather than a private pill
+/// with its own sliding thumb: it is the same control as the chat list's
+/// facets, and the private copy set its labels in the theme's tracked
+/// `label` slot (monospace on a character theme) with no keyboard focus.
+/// The picked tab is scrolled into view whenever it changes, so a strip
+/// wider than the phone never hides the tab you are on.
 class PillNav extends StatefulWidget {
   const PillNav({
     super.key,
@@ -25,16 +39,13 @@ class PillNav extends StatefulWidget {
 }
 
 class _PillNavState extends State<PillNav> {
-  final GlobalKey _rowKey = GlobalKey();
   late List<GlobalKey> _keys;
-  Rect? _activeRect;
-  bool _settled = false;
 
   @override
   void initState() {
     super.initState();
     _keys = List.generate(widget.items.length, (_) => GlobalKey());
-    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
   }
 
   @override
@@ -42,129 +53,43 @@ class _PillNavState extends State<PillNav> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.items.length != widget.items.length) {
       _keys = List.generate(widget.items.length, (_) => GlobalKey());
-      _settled = false;
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    if (oldWidget.activeId != widget.activeId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
+    }
   }
 
-  void _measure() {
+  void _reveal() {
     if (!mounted) return;
     final idx = widget.items.indexWhere((i) => i.id == widget.activeId);
     if (idx < 0 || idx >= _keys.length) return;
-    final itemCtx = _keys[idx].currentContext;
-    final rowCtx = _rowKey.currentContext;
-    if (itemCtx == null || rowCtx == null) return;
-    final itemBox = itemCtx.findRenderObject() as RenderBox?;
-    final rowBox = rowCtx.findRenderObject() as RenderBox?;
-    if (itemBox == null || rowBox == null) return;
-    if (!itemBox.hasSize || !rowBox.hasSize) return;
-    final offset = itemBox.localToGlobal(Offset.zero, ancestor: rowBox);
-    final rect = offset & itemBox.size;
-    if (rect != _activeRect || !_settled) {
-      setState(() {
-        _activeRect = rect;
-        _settled = true;
-      });
-    }
-    // This row sits inside a horizontal SingleChildScrollView (see _tabs in
-    // room_content_screen.dart) that has no controller of its own and always
-    // starts scrolled to its leading edge. A screen pushed straight onto a
-    // tab past the fold — LINKS, and especially SAVED, the last pill — opened
-    // with the highlight off screen and no way to tell what was selected. A
-    // no-op when the pill is already visible, so this never fights a reader
-    // who has scrolled the strip to peek at another tab's badge.
-    Scrollable.ensureVisible(itemCtx);
+    final ctx = _keys[idx].currentContext;
+    if (ctx != null) Scrollable.ensureVisible(ctx, alignment: 0.5);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: theme.chipDecoration(filled: false),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          if (_activeRect != null)
-            AnimatedPositioned(
-              duration: _settled ? theme.motionFast : Duration.zero,
-              curve: Curves.easeOutCubic,
-              left: _activeRect!.left,
-              top: _activeRect!.top,
-              width: _activeRect!.width,
-              height: _activeRect!.height,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: theme.accent,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ),
-          Row(
-            key: _rowKey,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < widget.items.length; i++)
-                _PillItem(
-                  key: _keys[i],
-                  item: widget.items[i],
-                  active: widget.items[i].id == widget.activeId,
-                  onTap: () => widget.onChange(widget.items[i].id),
-                ),
-            ],
-          ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < widget.items.length; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          _chip(i),
         ],
-      ),
+      ],
     );
   }
-}
 
-class _PillItem extends StatelessWidget {
-  const _PillItem({super.key, required this.item, required this.active, required this.onTap});
-  final PillNavItem item;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: AnimatedDefaultTextStyle(
-          duration: theme.motionFast,
-          curve: Curves.easeOutCubic,
-          style: theme.label.copyWith(
-            color: active ? theme.accentInk : theme.inkSoft,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(item.label),
-              if (item.badge != null) ...[
-                const SizedBox(width: 6),
-                AnimatedContainer(
-                  duration: theme.motionFast,
-                  curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: active
-                        ? theme.accentInk.withValues(alpha: 0.18)
-                        : theme.accent.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    item.badge!,
-                    style: theme.monoTiny.copyWith(color: active ? theme.accentInk : theme.accent),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+  Widget _chip(int i) {
+    final item = widget.items[i];
+    final badge = item.badge;
+    final n = badge == null ? null : int.tryParse(badge);
+    return FilterCapsule(
+      key: _keys[i],
+      label: badge != null && n == null ? '${item.label} $badge' : item.label,
+      count: n,
+      active: item.id == widget.activeId,
+      onTap: () => widget.onChange(item.id),
     );
   }
 }

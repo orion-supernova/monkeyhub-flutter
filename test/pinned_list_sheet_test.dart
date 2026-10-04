@@ -4,6 +4,7 @@ import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_message.dart';
+import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/models/room_pin.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -61,7 +62,9 @@ void main() {
     await tester.pumpWidget(sheet([pin('m1', 'deploy at 4pm'), pin('m2', 'b')]));
     await tester.pump();
 
-    expect(find.text('Pinned · 2'), findsOneWidget);
+    // The title, and the count as the bar's quiet second line.
+    expect(find.text('Pinned'), findsOneWidget);
+    expect(find.text('2 messages'), findsOneWidget);
     expect(find.text('alice'), findsNWidgets(2));
   });
 
@@ -75,7 +78,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Pinned'), findsOneWidget);
-    expect(find.text('nothing pinned anymore'), findsOneWidget);
+    expect(find.text('Nothing pinned anymore'), findsOneWidget);
   });
 }
 
@@ -89,6 +92,10 @@ class _FakeRepo extends Fake implements ChatRepository {
 
   @override
   List<RoomPin> pinsFor(String roomId) => pins;
+
+  /// Nobody is in the roster: each row falls back to the sender's name.
+  @override
+  ChatUser? userById(String id) => null;
 
   @override
   void addListener(VoidCallback listener) {}

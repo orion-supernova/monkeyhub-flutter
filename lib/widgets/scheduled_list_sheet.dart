@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,12 +15,8 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
 import 'schedule_message_sheet.dart';
-import 'sheet_buttons.dart';
-import 'ios_kit.dart' show groupedRadius;
-import 'labeled_field.dart' show fieldDecoration;
-import 'meta_text.dart';
-import 'sheet_kit.dart'
-    show SheetHandle, sheetFill, sheetGroupFill, sheetTopRadius;
+import 'ios_kit.dart';
+import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
 
 /// Turns one of the repository's schedule error codes into a sentence.
@@ -89,6 +87,7 @@ class _ScheduledListSheetState extends State<_ScheduledListSheet> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
     // Bounded and scrollable, like its sibling. The display-choice view is
     // three cards each carrying a drawn preview, which is taller than a small
     // phone — and a bottom sheet does not scroll its own contents, so without
@@ -107,29 +106,48 @@ class _ScheduledListSheetState extends State<_ScheduledListSheet> {
             top: Radius.circular(sheetTopRadius(theme)),
           ),
         ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          20 + MediaQuery.of(context).padding.bottom,
-        ),
-        child: SingleChildScrollView(
-          child: AnimatedSize(
-            duration: motion.d(theme.motionMed),
-            curve: motion.c(theme.motionEntrance),
-            alignment: Alignment.bottomCenter,
-            child: _choosing
-                ? _IndicatorView(
-                    key: const ValueKey('choose'),
-                    onBack: () => setState(() => _choosing = false),
-                  )
-                : _ListView(
-                    key: const ValueKey('list'),
-                    repo: widget.repo,
-                    roomId: widget.roomId,
-                    onChooseIndicator: () => setState(() => _choosing = true),
-                  ),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SheetHandle(),
+            // The shared bar, pinned above the scroll. The page turn swaps
+            // its leading × for a back chevron of the same size, so the
+            // header holds still while the view under it changes.
+            SheetBar(
+              title: sentenceCaseOf(
+                context,
+                _choosing ? l10n.scheduledListShowAs : l10n.scheduledListTitle,
+              ),
+              leading: _choosing
+                  ? _BackButton(onTap: () => setState(() => _choosing = false))
+                  : const SheetCloseButton(),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  4,
+                  20,
+                  20 + MediaQuery.of(context).padding.bottom,
+                ),
+                child: AnimatedSize(
+                  duration: motion.d(theme.motionMed),
+                  curve: motion.c(theme.motionEntrance),
+                  alignment: Alignment.bottomCenter,
+                  child: _choosing
+                      ? const _IndicatorView(key: ValueKey('choose'))
+                      : _ListView(
+                          key: const ValueKey('list'),
+                          repo: widget.repo,
+                          roomId: widget.roomId,
+                          onChooseIndicator: () =>
+                              setState(() => _choosing = true),
+                        ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -156,14 +174,10 @@ class _ListView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-          const SheetHandle(),
           Text(
-            sentenceCaseOf(context, l10n.scheduledListTitle),
-            textAlign: TextAlign.center,
-            style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
+            l10n.scheduledListSubtitle,
+            style: groupedFooterStyle(theme),
           ),
-          const SizedBox(height: 8),
-          Text(l10n.scheduledListSubtitle, style: theme.bodySoft),
           const SizedBox(height: 16),
           // The repository is the ChangeNotifier the subscription writes into,
           // so this is the whole of the sheet's liveness.
@@ -171,46 +185,30 @@ class _ListView extends StatelessWidget {
             animation: repo,
             builder: (context, _) {
               final rows = repo.scheduledFor(roomId);
-              if (rows.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 28),
-                  child: Text(
-                    l10n.scheduledListEmpty,
-                    textAlign: TextAlign.center,
-                    style: theme.bodySoft,
-                  ),
-                );
-              }
-              return ConstrainedBox(
-                // Bounded so a long list scrolls inside the sheet rather than
-                // pushing the buttons off the bottom of a short window. Sized
-                // against the viewport, not a constant, because the desktop
-                // popover form is much shorter than a phone sheet.
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.5,
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  itemCount: rows.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) => _ScheduledRow(
-                    key: ValueKey(rows[i].id),
-                    repo: repo,
-                    message: rows[i],
-                  ),
-                ),
+              if (rows.isEmpty) return EmptyLine(l10n.scheduledListEmpty);
+              // A plain column in the sheet's one scroller, not a capped
+              // inner list: the inner list was hard-cut by the footer card
+              // with no fade, and the queue is server-capped anyway
+              // (TOO_MANY_SCHEDULED), so there is never a long list to
+              // virtualise.
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < rows.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    _ScheduledRow(
+                      key: ValueKey(rows[i].id),
+                      repo: repo,
+                      message: rows[i],
+                    ),
+                  ],
+                ],
               );
             },
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 22),
+          // No Cancel under it: the bar's × is the dismiss.
           _ShowAsRow(onTap: onChooseIndicator),
-          const SizedBox(height: 14),
-          SheetSecondaryButton(
-            label: l10n.destructiveSheetCancelButtonLabel,
-            color: theme.inkMuted,
-            onTap: () => Navigator.of(context).pop(),
-          ),
       ],
     );
   }
@@ -224,51 +222,23 @@ class _ShowAsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return AnimatedBuilder(
       animation: SettingsStore.instance,
       builder: (context, _) {
         final current = SettingsStore.instance.scheduledIndicator;
-        return FocusableTap(
-          onTap: onTap,
-          semanticLabel:
-              '${l10n.scheduledListShowAsRow}, ${_indicatorLabel(l10n, current)}',
-          radius: theme.radiusMd,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              decoration: BoxDecoration(
-                color: theme.surfaceRaised,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-                border: Border.all(color: theme.divider),
-              ),
-              child: Row(
-                children: [
-                  Icon(CupertinoIcons.slider_horizontal_3, size: 16, color: theme.inkSoft),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      l10n.scheduledListShowAsRow,
-                      style: theme.body.copyWith(color: theme.ink),
-                    ),
-                  ),
-                  Text(
-                    _indicatorLabel(l10n, current),
-                    style: metaText(theme).copyWith(color: theme.accent),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    CupertinoIcons.chevron_forward,
-                    size: 15,
-                    color: theme.inkMuted,
-                  ),
-                ],
-              ),
+        // A settings row in a group, like every other sheet's — not a
+        // bordered card with its own slider glyph.
+        return SheetGroup(
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.slider_horizontal_3,
+              tone: TileTone.gray,
+              title: l10n.scheduledListShowAsRow,
+              value: _indicatorLabel(l10n, current),
+              onTap: onTap,
             ),
-          ),
+          ],
         );
       },
     );
@@ -296,13 +266,10 @@ String _indicatorSub(AppLocalizations l10n, ScheduledIndicator i) =>
 /// names for our own furniture, and the difference that actually matters
 /// (the badge is invisible until you start typing) is a thing you have to see.
 class _IndicatorView extends StatelessWidget {
-  const _IndicatorView({super.key, required this.onBack});
-
-  final VoidCallback onBack;
+  const _IndicatorView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
     return AnimatedBuilder(
@@ -313,28 +280,8 @@ class _IndicatorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetHandle(),
-            // The sheet's own back affordance. Left-aligned with the title
-            // centred on it, so the header reads as a navigation bar rather
-            // than as a button that happens to sit above a title.
-            Row(
-              children: [
-                _BackButton(onTap: onBack),
-                Expanded(
-                  child: Text(
-                    sentenceCaseOf(context, l10n.scheduledListShowAs),
-                    style: theme.bodyEmph.copyWith(
-                      fontSize: 17,
-                      color: theme.ink,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                // Balances the back button so the title is optically centred.
-                const SizedBox(width: 36),
-              ],
-            ),
-            const SizedBox(height: 16),
+            // The title and back chevron live in the sheet's bar, above.
+            const SizedBox(height: 4),
             for (var i = 0; i < ScheduledIndicator.values.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
               _IndicatorCard(
@@ -351,12 +298,8 @@ class _IndicatorView extends StatelessWidget {
                 },
               ),
             ],
-            const SizedBox(height: 16),
-            SheetSecondaryButton(
-              label: l10n.scheduledBack,
-              color: theme.inkSoft,
-              onTap: onBack,
-            ),
+            // No Back button down here: the bar's chevron is the way back,
+            // and two of them was one too many.
           ],
         );
       },
@@ -364,6 +307,9 @@ class _IndicatorView extends StatelessWidget {
   }
 }
 
+/// The page turn's way back, in the bar's leading slot: the
+/// [SheetCloseButton]'s disc and size with a chevron, so the bar's geometry
+/// is identical in both views.
 class _BackButton extends StatelessWidget {
   const _BackButton({required this.onTap});
 
@@ -372,21 +318,18 @@ class _BackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
-      shape: FocusRingShape.circle,
       semanticLabel: AppLocalizations.of(context).scheduledBack,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: SizedBox(
-          width: 36,
-          height: 28,
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Icon(CupertinoIcons.chevron_back, size: 22, color: theme.accent),
-          ),
+      child: Container(
+        width: kSheetButtonSize,
+        height: kSheetButtonSize,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: theme.ink.withValues(alpha: 0.08),
         ),
+        child: Icon(CupertinoIcons.chevron_back, size: 19, color: theme.ink),
       ),
     );
   }
@@ -439,71 +382,30 @@ class _IndicatorCard extends StatelessWidget {
           child: AnimatedContainer(
             duration: motion.d(theme.motionFast),
             padding: const EdgeInsets.all(14),
+            // Borderless, like every grouped block on a sheet; the check is
+            // the selection, as in an iOS pick-one list.
             decoration: BoxDecoration(
               color: sheetGroupFill(theme),
               borderRadius: BorderRadius.circular(groupedRadius(theme)),
-              border: Border.all(
-                color: active ? theme.accent : theme.ink.withValues(alpha: 0),
-                // Constant width across states: switching between 1 and 1.6
-                // shifts the card's contents by 0.6px on every toggle, which
-                // reads as a twitch. The room-info segments make the same note.
-                width: 1.6,
-              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text(
-                      label,
-                      style: labelText(
-                        theme,
-                        color: active ? theme.accent : theme.ink,
-                      ),
+                    Expanded(
+                      child: Text(label, style: groupedTitleStyle(theme)),
                     ),
-                    const Spacer(),
-                    _SelectionDot(active: active, motion: motion),
+                    const SizedBox(width: 10),
+                    SelectionCheck(picked: active),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(sub, style: metaText(theme)),
+                const SizedBox(height: 2),
+                Text(sub, style: groupedSubtitleStyle(theme)),
                 const SizedBox(height: 12),
                 _IndicatorPreview(indicator: indicator),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SelectionDot extends StatelessWidget {
-  const _SelectionDot({required this.active, required this.motion});
-
-  final bool active;
-  final MotionScope motion;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SizedBox(
-      width: 18,
-      height: 18,
-      child: AnimatedScale(
-        scale: active ? 1 : 0.4,
-        duration: motion.d(theme.motionFast),
-        curve: motion.c(Curves.easeOutBack),
-        child: AnimatedOpacity(
-          opacity: active ? 1 : 0,
-          // Overshoot drives the scale only — easeOutBack on a fade asserts.
-          duration: motion.d(theme.motionFast),
-          curve: motion.c(theme.motionEntrance),
-          child: Container(
-            decoration:
-                BoxDecoration(color: theme.accent, shape: BoxShape.circle),
-            child: Icon(CupertinoIcons.checkmark_alt, size: 12, color: theme.accentInk),
           ),
         ),
       ),
@@ -710,33 +612,48 @@ class _ScheduledRowState extends State<_ScheduledRow> {
       duration: motion.d(theme.motionFast),
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+        // A grouped block like every other sheet's, no outline. A failed
+        // send says so in red text and glyph, not with a red border.
         decoration: BoxDecoration(
-          color: theme.surfaceRaised,
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          border: Border.all(
-            color: failed
-                ? theme.danger.withValues(alpha: 0.55)
-                : theme.divider,
-          ),
+          color: sheetGroupFill(theme),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              // Top-aligned: when a long Turkish "when" wraps, the glyph
+              // belongs to the first line, not floating between the two.
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  failed ? CupertinoIcons.exclamationmark_circle : CupertinoIcons.clock,
-                  size: 13,
-                  color: failed ? theme.danger : theme.accent,
+                Padding(
+                  // Centred on the first line's box, which grows with the
+                  // reader's text size while the 15pt glyph does not.
+                  padding: EdgeInsets.only(
+                    top: math.max(
+                      0,
+                      (_lineHeightOf(context, groupedSubtitleStyle(theme)) -
+                              15) /
+                          2,
+                    ),
+                  ),
+                  child: Icon(
+                    failed
+                        ? CupertinoIcons.exclamationmark_circle_fill
+                        : CupertinoIcons.clock,
+                    size: 15,
+                    color: failed ? theme.danger : theme.accent,
+                  ),
                 ),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text(
-                    _headline(context, l10n, m),
-                    style: metaText(theme).copyWith(
+                    sentenceCaseOf(context, _headline(context, l10n, m)),
+                    style: groupedSubtitleStyle(theme).copyWith(
                       color: failed ? theme.danger : theme.accent,
                     ),
-                    maxLines: 1,
+                    // Two lines: a dated Turkish "when" runs long.
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -745,7 +662,7 @@ class _ScheduledRowState extends State<_ScheduledRow> {
             const SizedBox(height: 8),
             Text(
               m.content,
-              style: theme.body.copyWith(color: theme.ink),
+              style: groupedTitleStyle(theme),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -753,7 +670,7 @@ class _ScheduledRowState extends State<_ScheduledRow> {
               const SizedBox(height: 6),
               Text(
                 scheduleErrorSentence(context, m.failedReason ?? ''),
-                style: theme.bodySoft,
+                style: groupedSubtitleStyle(theme),
               ),
             ],
             const SizedBox(height: 6),
@@ -817,7 +734,8 @@ class _ScheduledRowState extends State<_ScheduledRow> {
   }
 }
 
-/// One word under a queued message.
+/// One word under a queued message: the shared tertiary text action at 15,
+/// so four of them sit on one line on a phone.
 class _RowAction extends StatelessWidget {
   const _RowAction({
     required this.label,
@@ -830,29 +748,12 @@ class _RowAction extends StatelessWidget {
   final bool danger;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final color = danger ? theme.danger : theme.accent;
-    return FocusableTap(
-      onTap: onTap,
-      enabled: onTap != null,
-      semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+  Widget build(BuildContext context) => TextLinkButton(
+        label: label,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Text(
-            label,
-            style: metaText(theme).copyWith(
-              color: onTap == null ? theme.inkMuted : color,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+        destructive: danger,
+        fontSize: 15,
+      );
 }
 
 /// Rewrites a queued message's words. Returns the new text, or null on cancel.
@@ -903,70 +804,37 @@ class _ScheduledEditSheetState extends State<_ScheduledEditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      // The keyboard's inset, which a bottom sheet outside a Scaffold has to
-      // add for itself.
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Container(
-        decoration: BoxDecoration(
-          color: sheetFill(theme),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(sheetTopRadius(theme)),
+    // SheetFrame adds the keyboard's inset, which a bottom sheet outside a
+    // Scaffold has to add for itself.
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.scheduleEditTitle),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SheetTextField(
+            controller: _controller,
+            autofocus: true,
+            minLines: 2,
+            maxLines: 6,
+            onChanged: (_) => setState(() {}),
           ),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          20 + MediaQuery.of(context).padding.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SheetHandle(),
-            Text(
-            sentenceCaseOf(context, l10n.scheduleEditTitle),
-            textAlign: TextAlign.center,
-            style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
+          const SizedBox(height: 16),
+          SheetActionButton(
+            label: l10n.scheduleSheetSaveButton,
+            onTap: _controller.text.trim().isEmpty
+                ? null
+                : () => Navigator.of(context).pop(_controller.text.trim()),
           ),
-            const SizedBox(height: 14),
-            Container(
-              decoration: fieldDecoration(theme),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                style: theme.body.copyWith(color: theme.ink),
-                cursorColor: theme.accent,
-                minLines: 2,
-                maxLines: 6,
-                decoration: const InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SheetPrimaryButton(
-              label: l10n.scheduleSheetSaveButton,
-              onTap: _controller.text.trim().isEmpty
-                  ? null
-                  : () => Navigator.of(context).pop(_controller.text.trim()),
-            ),
-            const SizedBox(height: 4),
-            SheetSecondaryButton(
-              label: l10n.destructiveSheetCancelButtonLabel,
-              color: theme.inkMuted,
-              bordered: false,
-              onTap: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
+
+/// One rendered line of [style] at the reader's text size.
+double _lineHeightOf(BuildContext context, TextStyle style) =>
+    MediaQuery.textScalerOf(context).scale(style.fontSize ?? 15) *
+    (style.height ?? 1.2);

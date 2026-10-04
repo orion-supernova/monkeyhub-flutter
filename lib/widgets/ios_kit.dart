@@ -7,10 +7,19 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import 'action_buttons.dart';
 import 'glass_buttons.dart';
+import 'spring_press.dart';
 import 'teardown_safe.dart';
+import '../l10n/text_case.dart';
 
+export 'action_buttons.dart';
+export 'empty_state.dart';
+export 'fit_label.dart';
 export 'glass_buttons.dart';
+export 'quick_actions.dart';
+export 'segmented_control.dart';
+export 'selection_check.dart';
 export 'spring_press.dart';
 
 // The app's shared iOS vocabulary: a page with a large title, inset grouped
@@ -43,6 +52,7 @@ class IosPage extends StatefulWidget {
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 40),
     this.controller,
     this.onRefresh,
+    this.flatBackground = false,
   });
 
   final String title;
@@ -65,6 +75,12 @@ class IosPage extends StatefulWidget {
   /// Pull-to-refresh, iOS-style: the spinner appears above the large title as
   /// the page is pulled down. Null — most pages — and there is no gesture.
   final Future<void> Function()? onRefresh;
+
+  /// Paints the theme's plain background colour instead of its
+  /// [AppTheme.backgroundLayer]. Off for every ordinary page; on for a screen
+  /// that must not be able to animate under itself — the diagnostics log,
+  /// whose job includes catching a strobing backdrop.
+  final bool flatBackground;
 
   @override
   State<IosPage> createState() => _IosPageState();
@@ -120,7 +136,10 @@ class _IosPageState extends State<IosPage> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          theme.backgroundLayer(context),
+          if (widget.flatBackground)
+            SizedBox.expand(child: ColoredBox(color: theme.background))
+          else
+            theme.backgroundLayer(context),
           SafeArea(
             bottom: false,
             child: Column(
@@ -224,20 +243,7 @@ class GroupedSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (header != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
-              child: Text(
-                header!,
-                // The theme's body face, not its caption: on a character theme
-                // the caption slot is often a tracked monospace, which turns a
-                // sentence of help text into a wall of terminal output.
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
-              ),
-            ),
+          if (header != null) GroupedHeader(header!),
           ClipRRect(
             borderRadius: BorderRadius.circular(groupedRadius(theme)),
             child: ColoredBox(
@@ -263,22 +269,93 @@ class GroupedSection extends StatelessWidget {
           if (footer != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
-              child: Text(
-                footer!,
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
-                  height: 1.35,
-                  color: theme.inkMuted,
-                ),
-              ),
+              child: Text(footer!, style: groupedFooterStyle(theme)),
             ),
         ],
       ),
     );
   }
 
-  static double _dividerInset(Widget row) =>
-      row is GroupedRow && row.icon != null ? 60 : 16;
+  static double _dividerInset(Widget row) => groupedDividerInset(row);
+}
+
+// ── The settings type scale ─────────────────────────────────────────────
+// Every grouped page and sheet reads its sizes from here, never a literal:
+//
+//   section header   17 / w600  ink        [GroupedHeader]
+//   row title        17 / w400  ink        [groupedTitleStyle]
+//   row value        17 / w400  inkMuted   [groupedValueStyle]
+//   row subtitle     15 / w400  inkMuted   [groupedSubtitleStyle]
+//   section footer   15 / 1.35  inkMuted   [groupedFooterStyle]
+//   meta / badge     13         as needed  [groupedMetaStyle]
+//
+// All on the theme's body face, never its caption: on a character theme the
+// caption slot is often a tracked monospace, which turns a sentence of help
+// text into a wall of terminal output.
+
+TextStyle groupedHeaderStyle(AppTheme theme) => theme.bodyEmph.copyWith(
+      fontSize: 17,
+      height: 1.25,
+      color: theme.ink,
+    );
+
+TextStyle groupedTitleStyle(AppTheme theme) =>
+    theme.body.copyWith(fontSize: 17, height: 1.25, color: theme.ink);
+
+TextStyle groupedValueStyle(AppTheme theme) =>
+    theme.body.copyWith(fontSize: 17, height: 1.25, color: theme.inkMuted);
+
+TextStyle groupedSubtitleStyle(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 15,
+      height: 1.3,
+      color: theme.inkMuted,
+    );
+
+TextStyle groupedFooterStyle(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 15,
+      height: 1.35,
+      color: theme.inkMuted,
+    );
+
+TextStyle groupedMetaStyle(AppTheme theme) =>
+    theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted);
+
+/// THE section header, over a [GroupedSection], a [SheetGroup], or anything
+/// laid out like one (a grid of tiles). Sentence case, the theme's ink, an
+/// optional [trailing] action (a reset glyph) on the far edge.
+class GroupedHeader extends StatelessWidget {
+  const GroupedHeader(this.text, {super.key, this.trailing});
+  final String text;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final label = Text(
+      sentenceCaseOf(context, text),
+      style: groupedHeaderStyle(theme),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: trailing == null
+          ? label
+          : Row(
+              children: [
+                Expanded(child: label),
+                trailing!,
+              ],
+            ),
+    );
+  }
+}
+
+/// Where the hairline under [row] starts inside a grouped block: under the
+/// text, past a row's tile or avatar. Shared by [GroupedSection] and
+/// `SheetGroup`.
+double groupedDividerInset(Widget row) {
+  if (row is GroupedRow && row.icon != null) return 60;
+  if (row is PersonRow) return kPersonRowTextInset;
+  return 16;
 }
 
 /// Corner radius of a grouped block. iOS 26 rounds these generously; a theme
@@ -366,7 +443,7 @@ class GroupedRow extends StatefulWidget {
         subtitle: subtitle,
         chevron: false,
         onTap: () => onChanged(!value),
-        trailing: _RowSwitch(value: value, onChanged: onChanged),
+        trailing: RowSwitch(value: value, onChanged: onChanged),
       );
 
   /// One option in a pick-one list, checked when [selected].
@@ -461,81 +538,17 @@ class _GroupedRowState extends State<GroupedRow>
               const SizedBox(width: 16),
             ],
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          w.title,
-                          style: theme.body.copyWith(
-                            color: titleColor,
-                            fontSize: 17,
-                            height: 1.25,
-                          ),
-                        ),
-                      ),
-                      if (w.titleTrailing != null) ...[
-                        const SizedBox(width: 8),
-                        w.titleTrailing!,
-                      ],
-                    ],
-                  ),
-                  if (w.subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      w.subtitle!,
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 13,
-                        height: 1.3,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                  ],
-                ],
+              child: _TitleValue(
+                title: w.title,
+                titleColor: titleColor,
+                titleTrailing: w.titleTrailing,
+                subtitle: w.subtitle,
+                value: w.value,
               ),
             ),
-            if (w.value != null && w.value!.isNotEmpty) ...[
-              const SizedBox(width: 10),
-              // Capped rather than Flexible: a Flexible shares the row's
-              // free space with the Expanded title, which parks the value
-              // mid-row instead of against the chevron.
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 170),
-                child: Text(
-                  w.value!,
-                  style: theme.body.copyWith(
-                    fontSize: 17,
-                    color: theme.inkMuted,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.end,
-                ),
-              ),
-            ],
             if (w.badge > 0) ...[
               const SizedBox(width: 8),
-              Container(
-                constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-                padding: const EdgeInsets.symmetric(horizontal: 7),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.danger,
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Text(
-                  w.badge > 99 ? '99+' : '${w.badge}',
-                  style: theme.caption.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
+              RowBadge(count: w.badge),
             ],
             if (w.trailing != null) ...[
               const SizedBox(width: 10),
@@ -577,8 +590,11 @@ class _GroupedRowState extends State<GroupedRow>
   }
 }
 
-class _RowSwitch extends StatelessWidget {
-  const _RowSwitch({required this.value, required this.onChanged});
+/// THE switch of a settings row ([GroupedRow.toggle] draws it). Public for
+/// the rare row that is not a [GroupedRow] — never a raw `Switch.adaptive`,
+/// whose off-track all but vanishes on a cream or white page.
+class RowSwitch extends StatelessWidget {
+  const RowSwitch({super.key, required this.value, required this.onChanged});
   final bool value;
   final ValueChanged<bool> onChanged;
 
@@ -590,6 +606,11 @@ class _RowSwitch extends StatelessWidget {
       onChanged: onChanged,
       activeTrackColor: theme.success,
       activeThumbColor: Colors.white,
+      // The off track in the theme's own ink: the platform grey disappears
+      // on cream (Risograph) and on Daylight's white plates.
+      inactiveTrackColor: theme.ink.withValues(alpha: 0.16),
+      inactiveThumbColor: Colors.white,
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
     );
   }
 }
@@ -608,6 +629,352 @@ class _Check extends StatelessWidget {
       duration: motion.d(const Duration(milliseconds: 380)),
       curve: selected ? Curves.elasticOut : Curves.easeIn,
       child: Icon(CupertinoIcons.checkmark_alt, size: 20, color: theme.accent),
+    );
+  }
+}
+
+/// A [GroupedRow]'s title (with its subtitle) and value, laid out the way
+/// iOS Settings does it.
+///
+/// The title keeps its natural width — it is the row's name. The value gets
+/// what is left, and at least ~45% of the row, ellipsizing inside that; when
+/// even that leaves the title no room on one line ("Speaker colours" beside
+/// "Auto · Risograph Pop" in Turkish at 1.3×), the value drops under the
+/// title instead, the large-text layout of a UIKit value cell. The old cap
+/// (value ≤ 170pt, title Expanded) let the value win and the title wrap to
+/// "Linked / accounts".
+class _TitleValue extends StatelessWidget {
+  const _TitleValue({
+    required this.title,
+    required this.titleColor,
+    required this.titleTrailing,
+    required this.subtitle,
+    required this.value,
+  });
+
+  final String title;
+  final Color titleColor;
+  final Widget? titleTrailing;
+  final String? subtitle;
+  final String? value;
+
+  static const _gap = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final titleStyle = groupedTitleStyle(theme).copyWith(color: titleColor);
+    final valueStyle = groupedValueStyle(theme);
+
+    Widget titleColumn({String? below}) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Flexible(child: Text(title, style: titleStyle)),
+                if (titleTrailing != null) ...[
+                  const SizedBox(width: 8),
+                  titleTrailing!,
+                ],
+              ],
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(subtitle!, style: groupedSubtitleStyle(theme)),
+            ],
+            if (below != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                below,
+                style: valueStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        );
+
+    final v = value;
+    if (v == null || v.isEmpty) return titleColumn();
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        final total = box.maxWidth;
+        final scaler = MediaQuery.textScalerOf(context);
+        final dir = Directionality.of(context);
+        double measure(String text, TextStyle style) {
+          final p = TextPainter(
+            text: TextSpan(text: text, style: style),
+            textDirection: dir,
+            textScaler: scaler,
+            maxLines: 1,
+          )..layout();
+          final w = p.width;
+          p.dispose();
+          return w.ceilToDouble() + 1;
+        }
+
+        final valueWidth = measure(v, valueStyle);
+        // A tag after the title is a widget we cannot measure; budget a
+        // short word's worth for it rather than pretending it is not there.
+        final titleWidth =
+            measure(title, titleStyle) + (titleTrailing == null ? 0 : 78);
+        final room = total - titleWidth - _gap;
+        final floor = total * 0.45;
+        if (room >= valueWidth || room >= floor) {
+          return Row(
+            children: [
+              Expanded(child: titleColumn()),
+              const SizedBox(width: _gap),
+              ConstrainedBox(
+                // A cap, not a width: the value still sizes to its own
+                // text, so a measurement taken before a web/Google font
+                // finished loading can never clip a short value.
+                constraints: BoxConstraints(
+                  maxWidth: room > floor ? room : floor,
+                ),
+                child: Text(
+                  v,
+                  style: valueStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                ),
+              ),
+            ],
+          );
+        }
+        return titleColumn(below: v);
+      },
+    );
+  }
+}
+
+/// THE red count pill of a row — unread requests, pending approvals: solid
+/// danger, white 13/w600 tabular figures on the body face. Renders nothing
+/// at zero.
+class RowBadge extends StatelessWidget {
+  const RowBadge({super.key, required this.count, this.max = 99});
+  final int count;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+
+      decoration: BoxDecoration(
+        color: theme.danger,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(
+          count > max ? '$max+' : '$count',
+          style: groupedMetaStyle(theme).copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            height: 1.1,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Width of the avatar slot in a [PersonRow].
+const double kPersonRowAvatar = 40;
+
+/// Where a [PersonRow]'s text starts — and so where the hairline under it
+/// starts in a [GroupedSection] / [SheetGroup].
+const double kPersonRowTextInset = 16 + kPersonRowAvatar + 12;
+
+/// THE row for a person or a room: a 40pt avatar, the name at 17 regular, an
+/// optional 15pt subtitle (handle, member count, last seen) and a trailing
+/// slot ([SelectionCheck], [RowPillButton], a value). Pickers, friend lists,
+/// request lists, search results, forward/share targets.
+///
+/// No chevron of its own: tapping a destination row picks it, it does not
+/// navigate — pass one in [trailing] if this row really opens a page.
+/// Inside a [GroupedSection] or [SheetGroup] its hairline starts under the
+/// text, past the avatar, the Contacts list's rule.
+class PersonRow extends StatelessWidget {
+  const PersonRow({
+    super.key,
+    required this.avatar,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.titleTrailing,
+    this.onTap,
+    this.onLongPress,
+    this.enabled = true,
+    this.semanticLabel,
+  });
+
+  /// Sized to [kPersonRowAvatar] by the row; pass the avatar widget at 40.
+  final Widget avatar;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  /// A tag right after the name — "You", "Admin", a verified glyph.
+  final Widget? titleTrailing;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  /// False dims the row (already a member, can't be picked) and drops taps.
+  final bool enabled;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final row = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 56),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 14, 8),
+        child: Row(
+          children: [
+            SizedBox.square(dimension: kPersonRowAvatar, child: avatar),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: groupedTitleStyle(theme),
+                        ),
+                      ),
+                      if (titleTrailing != null) ...[
+                        const SizedBox(width: 6),
+                        titleTrailing!,
+                      ],
+                    ],
+                  ),
+                  if (subtitle != null && subtitle!.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: groupedSubtitleStyle(theme),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 10),
+              trailing!,
+            ],
+          ],
+        ),
+      ),
+    );
+    final body = Opacity(opacity: enabled ? 1 : 0.45, child: row);
+    if (onTap == null && onLongPress == null) {
+      return Semantics(label: semanticLabel, child: body);
+    }
+    return SpringPress(
+      onTap: enabled ? onTap ?? () {} : null,
+      onLongPress: enabled ? onLongPress : null,
+      scale: 0.98,
+      haptic: false,
+      semanticLabel: semanticLabel ?? title,
+      child: ColoredBox(color: Colors.transparent, child: body),
+    );
+  }
+}
+
+/// THE header of a page-level section — Feed's "Moments", Discover's
+/// "People": the theme's `displaySmall` (each theme's own ~20–22pt display
+/// face), with an optional accent text action ("See all") on the far edge.
+///
+/// For grouped settings-style blocks use [GroupedHeader]; this is the bigger
+/// voice of a content page, where a section is a shelf, not a form.
+class PageSectionHeader extends StatelessWidget {
+  const PageSectionHeader(
+    this.title, {
+    super.key,
+    this.actionLabel,
+    this.onAction,
+    this.padding = const EdgeInsets.fromLTRB(4, 18, 4, 8),
+  });
+
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: padding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(
+                sentenceCaseOf(context, title),
+                style: theme.displaySmall.copyWith(color: theme.ink),
+              ),
+            ),
+          ),
+          if (actionLabel != null && onAction != null)
+            TextLinkButton(label: actionLabel!, onTap: onAction),
+        ],
+      ),
+    );
+  }
+}
+
+/// The "or" between two ways of doing the same thing (scan a code / use a
+/// password): two hairlines and a muted word.
+class OrDivider extends StatelessWidget {
+  const OrDivider({super.key, required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final line = Expanded(
+      child: Container(
+        height: 1 / MediaQuery.devicePixelRatioOf(context),
+        color: theme.ink.withValues(alpha: 0.14),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          line,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              sentenceCaseOf(context, label),
+              style: groupedMetaStyle(theme),
+            ),
+          ),
+          line,
+        ],
+      ),
     );
   }
 }

@@ -5,7 +5,9 @@ import '../backend/connection_health.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show groupedMetaStyle;
 
 /// Thin top-of-screen strip reflecting [ConnectionHealth]. Lives in the
 /// safe-area inset so it never collides with the status bar or notch.
@@ -72,18 +74,28 @@ class _Strip extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final stalled = phase == ConnectionPhase.stalled;
+    // A floating status capsule, iOS-style — not the bordered card with a
+    // hard ledge shadow it used to be. Solid rather than glass on purpose: it
+    // arrives inside an AnimatedSize, and a BackdropFilter must never animate.
+    // The danger state is a tint of the fill, not a red outline.
     final body = Container(
-      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      padding: const EdgeInsets.fromLTRB(12, 7, 14, 7),
       decoration: BoxDecoration(
-        color: theme.surfaceRaised,
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-        border: Border.all(color: stalled ? theme.danger : theme.divider),
+        color: stalled
+            ? Color.alphaBlend(
+                theme.danger.withValues(alpha: 0.12),
+                theme.surfaceRaised,
+              )
+            : theme.surfaceRaised,
+        borderRadius: BorderRadius.circular(20),
+        // A float shadow, kept close on light themes: a deep offset there
+        // reads as a hard ledge under the capsule rather than lift.
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: theme.isLight ? 0.08 : 0.28),
+            blurRadius: theme.isLight ? 12 : 18,
+            offset: Offset(0, theme.isLight ? 2 : 4),
           ),
         ],
       ),
@@ -103,15 +115,28 @@ class _Strip extends StatelessWidget {
                 color: stalled ? theme.danger : theme.accent,
               ),
             ),
-          const SizedBox(width: 10),
-          Text(
-            stalled
-                ? (health.isRetrying
-                      ? l10n.attachmentMenuConnectionRetrying
-                      : l10n.attachmentMenuConnectionCantReachServer)
-                : l10n.attachmentMenuConnectionReconnecting,
-            style: theme.monoTiny.copyWith(
-              color: stalled ? theme.ink : theme.inkSoft,
+          const SizedBox(width: 8),
+          // Flexible + two lines: in Turkish the stalled copy is wider than
+          // the screen, and an unflexed Text in a min-size Row overflowed it.
+          // Meta on the body face, never the theme's mono — this is a
+          // sentence, and on character themes mono is a typewriter.
+          Flexible(
+            child: Text(
+              stalled
+                  ? (health.isRetrying
+                        ? l10n.attachmentMenuConnectionRetrying
+                        : l10n.attachmentMenuConnectionCantReachServer)
+                  : l10n.attachmentMenuConnectionReconnecting,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              // Start, not centre: when it wraps, a centred ragged block
+              // floats away from the dot it belongs to. On one line the
+              // capsule still hugs the text, so nothing changes there.
+              textAlign: TextAlign.start,
+              style: groupedMetaStyle(theme).copyWith(
+                fontWeight: FontWeight.w600,
+                color: stalled ? theme.danger : theme.inkSoft,
+              ),
             ),
           ),
         ],
@@ -125,7 +150,7 @@ class _Strip extends StatelessWidget {
     // keyboard binding and semantics that a raw detector lacks.
     return FocusableTap(
       onTap: health.retryNow,
-      radius: theme.radiusMd,
+      radius: 20,
       semanticLabel: l10n.attachmentMenuConnectionRetrySemanticLabel,
       // BOTH handlers are required, and this is not belt-and-braces.
       // FocusableTap registers NO gesture recognizer — it binds onTap to

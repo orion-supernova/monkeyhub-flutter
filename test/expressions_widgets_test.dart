@@ -76,7 +76,7 @@ void main() {
         ephemeral: false,
         onSend: () {},
       )));
-      expect(find.byIcon(Icons.emoji_emotions_outlined), findsNothing);
+      expect(find.byIcon(CupertinoIcons.smiley), findsNothing);
 
       await tester.pumpWidget(host(ChatComposerLiquid(
         controller: TextEditingController(),
@@ -84,7 +84,7 @@ void main() {
         onSend: () {},
         onExpressions: () => toggles++,
       )));
-      await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
+      await tester.tap(find.byIcon(CupertinoIcons.smiley));
       expect(toggles, 1);
 
       await tester.pumpWidget(host(ChatComposerLiquid(
@@ -94,7 +94,7 @@ void main() {
         onExpressions: () {},
         expressionsOpen: true,
       )));
-      expect(find.byIcon(Icons.keyboard_alt_outlined), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.keyboard), findsOneWidget);
     });
   });
 
@@ -233,7 +233,7 @@ void main() {
       onSend: (_, {query}) {},
       height: 320,
     )));
-    await tester.tap(find.byIcon(CupertinoIcons.chevron_down));
+    await tester.tap(find.byIcon(CupertinoIcons.xmark));
     expect(c.isOpen, isFalse);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
@@ -447,7 +447,18 @@ void main() {
       await tester.tap(find.byTooltip('Sticker packs'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       expect(find.text('More packs'), findsOneWidget);
-      await tester.ensureVisible(find.text('Add'));
+      // The store's rows are built lazily, and the first one up for adding
+      // sits under the section header — scroll the store's own list to it.
+      await tester.scrollUntilVisible(
+        find.text('Add'),
+        80,
+        scrollable: find
+            .ancestor(
+              of: find.text('More packs'),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       await tester.tap(find.text('Add'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));

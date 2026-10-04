@@ -185,7 +185,7 @@ void main() {
       );
       await pump(t, [text]);
       expect(find.text('Murat suggested a new name'), findsOneWidget);
-      expect(find.text('REVIEW'), findsOneWidget);
+      expect(find.text('Review'), findsOneWidget);
       expect(
         t.getSize(find.byType(RoomSuggestionsBanner)).height,
         kSuggestionsBannerHeight,

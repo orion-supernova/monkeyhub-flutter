@@ -887,7 +887,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomInfoScreenDescriptionLabel => '説明';
 
   @override
-  String get roomInfoScreenDescriptionHint => 'ルームについて一言…';
+  String get roomInfoScreenDescriptionHint => 'ルームについて一言';
 
   @override
   String get roomInfoScreenVisibilityLabel => '公開設定';
@@ -936,10 +936,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このルームはパスワードで保護されています。セキュリティ上の理由により、既存のパスフレーズは表示されません。置き換えるには新しいパスフレーズを入力してください。';
 
   @override
-  String get roomInfoScreenReplacePasswordHint => 'パスフレーズを置き換え…';
+  String get roomInfoScreenReplacePasswordHint => 'パスフレーズを置き換え';
 
   @override
-  String get roomInfoScreenSetPasswordHint => 'パスフレーズでロック…';
+  String get roomInfoScreenSetPasswordHint => 'パスフレーズでロック';
 
   @override
   String get roomInfoScreenRemovePasswordButton => 'パスワードを削除';
@@ -1232,8 +1232,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get childPolicyScreenRemoveLabel => '削除';
 
   @override
-  String childPolicyScreenRoomMemberCount(Object count) {
-    return '$count人';
+  String childPolicyScreenRoomMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1713,7 +1718,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get friendRequestDraftScreenHintWhisperFades => 'ささやき・自動で消える';
 
   @override
-  String get friendRequestDraftScreenHintStartWith => '何か話しかけてみよう…';
+  String get friendRequestDraftScreenHintStartWith => '何か話しかけてみよう';
 
   @override
   String get friendRequestDraftScreenApproveButton => '承認してルームを開く';
@@ -1939,10 +1944,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeShellEmptySettingHint => '設定を選んでください';
 
   @override
-  String get searchScreenHintPeople => 'ユーザーを検索…';
+  String get searchScreenHintPeople => 'ユーザーを検索';
 
   @override
-  String get searchScreenHintRooms => 'ルームを検索…';
+  String get searchScreenHintRooms => 'ルームを検索';
 
   @override
   String get searchScreenPeoplePromptChild => '新しい人を探すには、ユーザー名をすべて入力してね';
@@ -2182,10 +2187,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get groupCallScreenMuteLabel => 'ミュート';
 
   @override
-  String get groupCallScreenCamOnLabel => 'カメラオン';
+  String get groupCallScreenCamOnLabel => 'カメラON';
 
   @override
-  String get groupCallScreenCamOffLabel => 'カメラオフ';
+  String get groupCallScreenCamOffLabel => 'カメラOFF';
 
   @override
   String get groupCallScreenFlipLabel => '切替';
@@ -2281,13 +2286,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get createRoomSheetNameLabel => '名前';
 
   @override
-  String get createRoomSheetNameHint => '正直な名前をつけて…';
+  String get createRoomSheetNameHint => '正直な名前をつけて';
 
   @override
   String get createRoomSheetDescriptionLabel => '説明・任意';
 
   @override
-  String get createRoomSheetDescriptionHint => 'ルームについて一言…';
+  String get createRoomSheetDescriptionHint => 'ルームについて一言';
 
   @override
   String get createRoomSheetVisibilityLabel => '公開設定';
@@ -2341,7 +2346,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get createRoomSheetPasswordLabel => 'パスワード・任意';
 
   @override
-  String get createRoomSheetPasswordHint => '合言葉でロック…';
+  String get createRoomSheetPasswordHint => '合言葉でロック';
 
   @override
   String get createRoomSheetNameRequiredError => '名前を入力してください';
@@ -2991,10 +2996,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => '送信';
 
   @override
-  String get deepOceanThemeEphemeralHint => 'ささやいて…';
+  String get deepOceanThemeEphemeralHint => 'ささやいて';
 
   @override
-  String get deepOceanThemeDefaultHint => 'なにか話そう…';
+  String get deepOceanThemeDefaultHint => 'なにか話そう';
 
   @override
   String get deepOceanThemeMessageHint => 'メッセージ';
@@ -3697,7 +3702,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get groupCallBannerPasswordFieldLabel => 'パスワード';
 
   @override
-  String get groupCallBannerPasswordHint => 'パスフレーズ…';
+  String get groupCallBannerPasswordHint => 'パスフレーズ';
 
   @override
   String get groupCallBannerJoinRoomButtonSemanticLabel => '参加';
@@ -3721,7 +3726,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Googleで続ける';
 
   @override
-  String get discoverListsPeopleTitle => 'あなたの友だち。';
+  String get discoverListsPeopleTitle => 'あなたの友だち';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3734,7 +3739,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => '友だちを絞り込む…';
+  String get discoverListsFilterHint => '友だちを絞り込む';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'フィルターをクリア';
@@ -3748,7 +3753,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'あなたのルーム。';
+  String get discoverListsRoomsTitle => 'あなたのルーム';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3761,7 +3766,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'ルームを絞り込む…';
+  String get discoverListsFilterRoomsHint => 'ルームを絞り込む';
 
   @override
   String get discoverListsNoRoomsYet => 'まだルームがありません';
@@ -4448,7 +4453,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reportProblemDescribeLabel => '何が起きたか';
 
   @override
-  String get reportProblemDescribeHint => '画面がちらつく、ボタンが反応しない…';
+  String get reportProblemDescribeHint => '画面がちらつく、ボタンが反応しない';
 
   @override
   String get reportProblemScreenshotsLabel => 'スクリーンショット';
@@ -4982,7 +4987,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get momentTagNpcHint => '頭が完全にオフ';
 
   @override
-  String get momentComposerTitle => '何があった？';
+  String get momentComposerTitle => '新しいハイライト';
 
   @override
   String get momentComposerCaptionHint => 'ひとこと添えて';
@@ -5036,7 +5041,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String momentActivityScored(Object name, Object tag) {
-    return '$nameが$tagを獲得';
+    return '$nameがポイント獲得：$tag';
   }
 
   @override
@@ -5163,7 +5168,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String momentActivityScoredSelf(Object tag) {
-    return '$tagを獲得しました';
+    return 'ポイント獲得：$tag';
   }
 
   @override
@@ -5583,7 +5588,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get pullRevealSearchHint => 'チャットを検索…';
+  String get pullRevealSearchHint => 'チャットを検索';
 
   @override
   String get pullRevealCollapseSemanticLabel => '検索とアーカイブ済みチャットを非表示';
@@ -6057,7 +6062,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String scheduleSendsAtSentence(String when) {
-    return '$whenに送信されます。';
+    return '$whenに送信されます';
   }
 
   @override
@@ -6335,7 +6340,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get serverSiteUrlExplain =>
-      'ほとんどのサーバーは 1 つのアドレスですべてに応答します。HTTP アクションを別のアドレスで提供している場合のみ入力してください。';
+      'ほとんどのサーバーは 1 つのアドレスですべてに応答します。http アクションを別のアドレスで提供している場合のみ入力してください。';
 
   @override
   String get serverSiteUrlHint => '上と同じ';
@@ -6442,7 +6447,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get loginScreenSignInWithPhone => 'sign in with your phone';
 
   @override
-  String get loginScreenUsePasswordInstead => 'use a password instead';
+  String get loginScreenUsePasswordInstead => 'パスワードを使う';
 
   @override
   String get deviceLoginScreenHeroMuted => 'Scan to\n';
@@ -6452,23 +6457,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+      'スマホでMonkeyHubを開き、プロフィールの「スキャンしてサインイン」をタップして、カメラをここに向けてください。下のコードを入力することもできます。';
 
   @override
-  String get deviceLoginScreenWaiting => 'waiting for approval…';
+  String get deviceLoginScreenWaiting => '承認を待っています…';
 
   @override
-  String get deviceLoginScreenApproved => 'approved — signing you in…';
+  String get deviceLoginScreenApproved => '承認されました。サインインしています…';
 
   @override
-  String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
+  String get deviceLoginScreenDenied => 'スマホでサインインのリクエストが拒否されました';
 
   @override
-  String get deviceLoginScreenGenericError =>
-      'something went wrong — try a new code';
+  String get deviceLoginScreenGenericError => '問題が発生しました。新しいコードでお試しください';
 
   @override
-  String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
+  String get profileScreenScanToSignInLabel => 'スキャンしてサインイン';
 
   @override
   String get deviceLoginScanScreenHeroMuted => 'Scan to\n';
@@ -6477,43 +6481,40 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deviceLoginScanScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScanScreenIntro =>
-      'Point your camera at the code shown on your computer, or type it in below.';
+  String get deviceLoginScanScreenIntro => 'パソコンに表示されたコードにカメラを向けるか、下に入力してください。';
 
   @override
-  String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
+  String get deviceLoginScanScreenScanButtonLabel => 'コードをスキャン';
 
   @override
-  String get deviceLoginScanScreenConfirmTitle => 'sign in on this device?';
+  String get deviceLoginScanScreenConfirmTitle => 'このデバイスでサインインしますか？';
 
   @override
   String deviceLoginScanScreenConfirmBody(Object deviceInfo) {
-    return '$deviceInfo wants to sign in as you. Only approve this if it’s you, right now.';
+    return '$deviceInfo があなたとしてサインインしようとしています。今あなた自身が操作している場合だけ承認してください。';
   }
 
   @override
-  String get deviceLoginScanScreenApproveButton => 'APPROVE';
+  String get deviceLoginScanScreenApproveButton => '承認';
 
   @override
-  String get deviceLoginScanScreenDenyButton => 'DENY';
+  String get deviceLoginScanScreenDenyButton => '拒否';
 
   @override
-  String get deviceLoginScanScreenSuccess => 'signed in on your other device';
+  String get deviceLoginScanScreenSuccess => 'もう一方のデバイスでサインインしました';
 
   @override
-  String get deviceLoginScanScreenGenericError =>
-      'couldn’t approve — try again';
+  String get deviceLoginScanScreenGenericError => '承認できませんでした。もう一度お試しください';
 
   @override
-  String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
+  String get authErrorDeviceLoginInvalid => 'このコードは正しくありません。';
 
   @override
   String get authErrorDeviceLoginExpired =>
-      'That code has expired — get a new one on the other device.';
+      'このコードは期限切れです。もう一方のデバイスで新しいコードを表示してください。';
 
   @override
-  String get deviceLoginScanScreenDeniedConfirmation =>
-      'sign-in request denied';
+  String get deviceLoginScanScreenDeniedConfirmation => 'サインインのリクエストを拒否しました';
 
   @override
   String get roomAdminRoleAdmin => '管理者';
@@ -8024,7 +8025,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get newChatMenuSearchHint => '友だちを検索';
 
   @override
-  String get newChatMenuNoFriendsYet => 'まだ友だちがいません —\\n「見つける」で探してみよう';
+  String get newChatMenuNoFriendsYet => 'まだ友だちがいません — 「見つける」で探してみよう';
 
   @override
   String get newChatMenuNoFriendsMatch => '該当する友だちがいません';
@@ -10020,4 +10021,130 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSearchKwAccount => 'アカウント, サインアウト, 削除, メール';
+
+  @override
+  String get childPolicyScreenContactStateAllowedTalking => '会話中';
+
+  @override
+  String get childPolicyScreenContactStateTalking => '承認済み';
+
+  @override
+  String get childPolicyScreenContactStateAllowedNotAdded => '未追加';
+
+  @override
+  String get profileScreenSignOutConfirmTitle => 'このデバイスからサインアウトしますか？';
+
+  @override
+  String get profileScreenDeleteAccountConfirmTitle => 'アカウントを削除しますか？';
+
+  @override
+  String get profileScreenDeleteAccountConfirmBody =>
+      'メッセージ、写真、ルーム、フレンドがすべて削除され、ユーザー名は誰でも使えるようになります。';
+
+  @override
+  String get glassPresetNameFrosted => 'すりガラス';
+
+  @override
+  String get glassPresetNameClear => 'クリア';
+
+  @override
+  String settingsScreenDiagnosticsCountdown(int count) {
+    return '診断まであと$count…';
+  }
+
+  @override
+  String pairingCodeTitlePair(String name) {
+    return '$nameとペアリング';
+  }
+
+  @override
+  String pairingCodeTitleRelease(String name) {
+    return '$nameを解除';
+  }
+
+  @override
+  String archivedChatsSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のチャット',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String pinnedListSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のメッセージ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceRecorderScreenTitle => 'ボイスメッセージ';
+
+  @override
+  String get chatTargetSearchHint => '検索';
+
+  @override
+  String get marloweBrainTierSwiftDetail => 'すばやい応答、いちばん軽いダウンロード';
+
+  @override
+  String get marloweBrainTierBalancedDetail => '速さと深さのバランス型';
+
+  @override
+  String get marloweBrainTierDeepDetail => 'いちばん思慮深く、容量も最大';
+
+  @override
+  String get reportFactDeviceId => 'デバイスID';
+
+  @override
+  String get reportFactUserId => 'ユーザーID';
+
+  @override
+  String get reportFactUsername => 'ユーザー名';
+
+  @override
+  String get reportFactApp => 'アプリ';
+
+  @override
+  String get reportFactDevice => 'デバイス';
+
+  @override
+  String get reportFactSystem => 'システム';
+
+  @override
+  String get reportFactDisplay => 'ディスプレイ';
+
+  @override
+  String get reportFactAppLanguage => 'アプリの言語';
+
+  @override
+  String get reportFactSystemLocale => 'システムの地域';
+
+  @override
+  String get reportFactLog => 'ログ';
+
+  @override
+  String reportFactLogValue(int count) {
+    return '$count件のイベントを添付';
+  }
+
+  @override
+  String reportProblemScreenshotN(int n) {
+    return 'スクリーンショット$n';
+  }
+
+  @override
+  String reportProblemRemoveScreenshot(int n) {
+    return 'スクリーンショット$nを削除';
+  }
+
+  @override
+  String get reportFactLanguageFromSystem => 'システム設定';
+
+  @override
+  String get reportFactLanguageChosen => '手動で選択';
 }

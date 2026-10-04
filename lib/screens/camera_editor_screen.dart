@@ -10,12 +10,14 @@ import 'package:flutter/services.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../media/editor_geometry.dart';
 import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_chrome.dart';
+import '../widgets/spring_press.dart';
 import 'review_route.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
@@ -864,15 +866,15 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     final l10n = AppLocalizations.of(context);
     return Row(
       children: [
-        GlassIconButton(
+        // An ×, not a back chevron, even where this is pushed plainly: it
+        // discards the photo (or the crop), which is an act, not navigation.
+        GlassCloseButton(
           tone: GlassTone.media,
-          icon: CupertinoIcons.xmark,
           semanticLabel: cropping
               ? l10n.cameraEditorScreenCancelCropSemanticLabel
               : l10n.cameraEditorScreenDiscardPhotoSemanticLabel,
-          onTap: _saving
-              ? null
-              : () => cropping ? _cancelCrop() : Navigator.of(context).pop(),
+          enabled: !_saving,
+          onTap: () => cropping ? _cancelCrop() : Navigator.of(context).pop(),
         ),
         const Spacer(),
         // Undo and redo earn their place only once there is history to move
@@ -940,9 +942,11 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
           heic
               ? l10n.cameraEditorScreenHeicUnsupportedMessage
               : l10n.cameraEditorScreenImageLoadFailedMessage,
-          style: const TextStyle(
+          textAlign: TextAlign.center,
+          style: ThemeScope.of(context).body.copyWith(
             color: MediaGlass.inkDim,
-            fontSize: 14,
+            fontSize: 15,
+            height: 1.35,
             decoration: TextDecoration.none,
           ),
         ),
@@ -1141,27 +1145,32 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        LiquidGlass(
-          tone: GlassTone.media,
-          shape: LiquidGlassShape.rounded,
-          radius: 22,
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final preset in _AspectPreset.values)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _Chip(
-                      label: _presetLabel(preset),
-                      selected: preset == _preset,
-                      accent: theme.accent,
-                      accentInk: theme.accentInk,
-                      onTap: _saving ? null : () => _selectPreset(preset),
+        // Scaled down, never clipped, when a translation's presets ("Serbest",
+        // "Orijinal") outgrow a narrow phone.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: LiquidGlass(
+            tone: GlassTone.media,
+            shape: LiquidGlassShape.rounded,
+            radius: 22,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final preset in _AspectPreset.values)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _Chip(
+                        label: _presetLabel(preset),
+                        selected: preset == _preset,
+                        accent: theme.accent,
+                        accentInk: theme.accentInk,
+                        onTap: _saving ? null : () => _selectPreset(preset),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1194,23 +1203,30 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         // Only while armed — in crop mode the rail means "commit the frame",
         // and a note about sending would answer a question the user isn't
         // asking yet.
-        if (_viewOnce) _viewOnceNote(theme),
+        if (_viewOnce)
+          _note(
+            CupertinoIcons.flame_fill,
+            l10n.cameraEditorScreenViewOnceNote,
+            theme,
+          ),
         // Only when HD is armed. The compressed default needs no caption —
         // it is what every photo has always looked like to the recipient, and
         // narrating it would turn a good default into a decision.
-        if (_hd && !_viewOnce) _hdNote(theme),
+        if (_hd && !_viewOnce)
+          _note(CupertinoIcons.sparkles, l10n.cameraEditorScreenHdNote, theme),
         if (_penArmed) _penTray(theme),
         Row(
           children: [
             // Small and icon-only: it is the way back, not one of three equal
             // choices, which is what the old full-width RETAKE button implied.
+            // The camera, not a counter-clockwise arrow, which read as
+            // "rotate" under the rotate control. Every rail button is 40pt,
+            // the Send pill's height, so the rail sits on one line.
             if (widget.canRetake) ...[
               GlassIconButton(
                 tone: GlassTone.media,
-                icon: CupertinoIcons.arrow_counterclockwise,
+                icon: CupertinoIcons.camera,
                 semanticLabel: l10n.cameraEditorScreenRetakeSemanticLabel,
-                size: 38,
-                iconSize: 17,
                 onTap: _saving
                     ? null
                     : () => Navigator.of(context).pop(const EditorRetake()),
@@ -1224,8 +1240,6 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                 semanticLabel: _penArmed
                     ? l10n.cameraEditorScreenPenPutAwaySemanticLabel
                     : l10n.cameraEditorScreenPenDrawSemanticLabel,
-                size: 38,
-                iconSize: 18,
                 tint: _penArmed ? theme.accent : null,
                 color: _penArmed ? theme.accentInk : null,
                 onTap: _saving ? null : _togglePen,
@@ -1277,63 +1291,17 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     unawaited(SettingsStore.instance.setPhotoHd(_hd));
   }
 
-  Widget _hdNote(AppTheme theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: LiquidGlass(
-        tone: GlassTone.media,
-        shape: LiquidGlassShape.capsule,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.sparkles, size: 12, color: theme.accent),
-              const SizedBox(width: 6),
-              Text(
-                AppLocalizations.of(context).cameraEditorScreenHdNote,
-                style: const TextStyle(
-                  color: MediaGlass.inkDim,
-                  fontSize: 11.5,
-                  letterSpacing: 0.2,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ],
-          ),
+  /// A one-line note above the rail ("Sends in full resolution", "Opens
+  /// once") on the shared media capsule — it was two identical 11.5pt
+  /// tracked copies.
+  Widget _note(IconData icon, String text, AppTheme theme) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: MediaNoteCapsule(
+          icon: icon,
+          iconColor: theme.accent,
+          text: sentenceCaseOf(context, text),
         ),
-      ),
-    );
-  }
-
-  Widget _viewOnceNote(AppTheme theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: LiquidGlass(
-        tone: GlassTone.media,
-        shape: LiquidGlassShape.capsule,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.flame_fill, size: 12, color: theme.accent),
-              const SizedBox(width: 6),
-              Text(
-                AppLocalizations.of(context).cameraEditorScreenViewOnceNote,
-                style: const TextStyle(
-                  color: MediaGlass.inkDim,
-                  fontSize: 11.5,
-                  letterSpacing: 0.2,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+      );
 
   /// Colours and brush size — hidden until the pen is out, which is the point:
   /// the old screen showed the whole palette permanently, to a user who most of
@@ -1380,8 +1348,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                     semanticLabel: AppLocalizations.of(
                       context,
                     ).cameraEditorScreenClearDrawingSemanticLabel,
-                    size: 32,
-                    iconSize: 15,
+                    iconSize: 17,
                     onTap: _strokes.isEmpty || _saving ? null : _clearStrokes,
                   ),
                 ],
@@ -1619,7 +1586,10 @@ class _CropOverlayPainter extends CustomPainter {
 
 // ------------------------------------------------------------------- controls
 
-/// Aspect-ratio chip in the crop rail.
+/// Aspect-ratio chip in the crop rail: a media-glass capsule (the theme's
+/// filter capsule would be a slab of page colour over the photo), lit with
+/// the accent when picked. 13pt, sentence case, untracked — it was 11pt
+/// caps with 1pt tracking.
 class _Chip extends StatelessWidget {
   const _Chip({
     required this.label,
@@ -1637,30 +1607,31 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FocusableTap(
+    final text = sentenceCaseOf(context, label);
+    return SpringPress(
       onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected ? accent : MediaGlass.fill,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? accentInk : MediaGlass.ink,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-              decoration: TextDecoration.none,
-            ),
+      semanticLabel: text,
+      scale: PressSpec.scaleSmall,
+      focusShape: FocusRingShape.capsule,
+      haptic: false,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+        constraints: const BoxConstraints(minHeight: 34),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? accent : MediaGlass.fill,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          text,
+          style: ThemeScope.of(context).body.copyWith(
+            color: selected ? accentInk : MediaGlass.ink,
+            fontSize: 13,
+            height: 1.2,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.none,
           ),
         ),
       ),
@@ -1686,34 +1657,32 @@ class _Swatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       semanticLabel: AppLocalizations.of(
         context,
       ).cameraEditorScreenInkColorSemanticLabel,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 38,
-          height: 34,
-          child: Center(
-            // The selected swatch grows and gains a ring, rather than only
-            // changing its border weight — at 28pt a 1px border difference is
-            // not a signal anyone reads.
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeOutBack,
-              width: selected ? 30 : 24,
-              height: selected ? 30 : 24,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? MediaGlass.ink : MediaGlass.stroke,
-                  width: selected ? 2.5 : 1,
-                ),
+      scale: PressSpec.scaleSmall,
+      focusShape: FocusRingShape.circle,
+      haptic: false,
+      child: SizedBox(
+        width: 38,
+        height: 34,
+        child: Center(
+          // The selected swatch grows and gains a ring, rather than only
+          // changing its border weight — at 28pt a 1px border difference is
+          // not a signal anyone reads.
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutBack,
+            width: selected ? 30 : 24,
+            height: selected ? 30 : 24,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected ? MediaGlass.ink : MediaGlass.stroke,
+                width: selected ? 2.5 : 1,
               ),
             ),
           ),

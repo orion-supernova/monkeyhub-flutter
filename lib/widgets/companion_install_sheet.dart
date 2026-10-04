@@ -33,16 +33,21 @@ import 'package:flutter/material.dart';
 import '../companions/brain_manager.dart';
 import '../companions/brain_spec.dart';
 import '../companions/companion.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
-import 'ios_kit.dart' show GroupedRow, TileTone;
-import 'sheet_kit.dart'
-    show SheetActionButton, SheetGroup, SheetHandle, sheetFill, sheetTopRadius;
+import 'ios_kit.dart'
+    show
+        GroupedRow,
+        GroupedSection,
+        TextLinkButton,
+        TileTone,
+        groupedFooterStyle;
+import 'sheet_kit.dart' show SheetActionButton, SheetFrame, SheetGroup;
 
 /// Offers to install [companion]'s brain, and stays open until it is done.
 ///
@@ -90,37 +95,24 @@ class _CompanionInstallSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: sheetFill(theme),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(sheetTopRadius(theme)),
-        ),
-      ),
+    // A hero sheet: the companion's NAME in the bar like every sheet (×
+    // leading), the mark and the download ring as the hero in the body.
+    return SheetFrame(
+      title: companion.displayName,
+      showClose: true,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SheetHandle(),
-            const SizedBox(height: 14),
-            CompanionInstallPanel(
-              companion: companion,
-              brain: brain,
-              // The introduction, which is the entire reason this is a sheet
-              // and not just the panel. Off on the settings screen, which has
-              // already made it.
-              showIdentity: true,
-              // Closing the sheet once the brain has landed, after a beat long
-              // enough for the ring to be seen completing. A several-minute
-              // download that ends in a flicker reads as a failure.
-              onInstalled: () => Navigator.of(context).maybePop(true),
-            ),
-          ],
-        ),
+      child: CompanionInstallPanel(
+        companion: companion,
+        brain: brain,
+        // The introduction, which is the entire reason this is a sheet
+        // and not just the panel. Off on the settings screen, which has
+        // already made it.
+        showIdentity: true,
+        onSheet: true,
+        // Closing the sheet once the brain has landed, after a beat long
+        // enough for the ring to be seen completing. A several-minute
+        // download that ends in a flicker reads as a failure.
+        onInstalled: () => Navigator.of(context).maybePop(true),
       ),
     );
   }
@@ -139,6 +131,7 @@ class CompanionInstallPanel extends StatefulWidget {
     required this.companion,
     required this.brain,
     this.showIdentity = false,
+    this.onSheet = false,
     this.onInstalled,
   });
 
@@ -149,6 +142,13 @@ class CompanionInstallPanel extends StatefulWidget {
   /// sheet, where the user may be meeting this companion for the first time;
   /// false on the companion's own screen, which has said all of it already.
   final bool showIdentity;
+
+  /// Which grouped block the assurances sit in. On the sheet it is the
+  /// sheet's own [SheetGroup]; on a page (Sebastian's screen) it is the
+  /// page's [GroupedSection], or the block reads as a second visual system
+  /// beside the page's "Storage" section — grey on white on Daylight, nearly
+  /// the page colour on Risograph.
+  final bool onSheet;
 
   /// Fired once the brain is installed. The sheet closes itself with it; the
   /// settings screen passes null, because it has somewhere to stay.
@@ -195,6 +195,23 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
     final motion = MotionScope.of(context);
     final state = _manager.stateOf(widget.brain);
     final installed = state.status == BrainStatus.installed;
+    final assurances = [
+      GroupedRow(
+        icon: CupertinoIcons.device_phone_portrait,
+        tone: TileTone.blue,
+        title: l10n.companionAssuranceOnDevice,
+      ),
+      GroupedRow(
+        icon: CupertinoIcons.lock_fill,
+        tone: TileTone.gray,
+        title: l10n.companionAssurancePrivate,
+      ),
+      GroupedRow(
+        icon: CupertinoIcons.wifi_slash,
+        tone: TileTone.indigo,
+        title: l10n.companionAssuranceOffline,
+      ),
+    ];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -209,14 +226,9 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
               progress: state.isBusy ? state.fraction : (installed ? 1 : null),
             ),
           ),
-          const SizedBox(height: 18),
-          Center(
-            child: Text(
-              widget.companion.displayName,
-              style: theme.bodyEmph.copyWith(fontSize: 22, color: theme.ink),
-            ),
-          ),
-          const SizedBox(height: 8),
+          // The name is in the sheet's bar now; the hero is the mark and
+          // the blurb under it.
+          const SizedBox(height: 16),
           Text(
             widget.companion.blurb(l10n),
             textAlign: TextAlign.center,
@@ -232,25 +244,10 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
         ],
         // Present in every state including mid-download, because the download
         // is exactly when somebody wonders what they agreed to.
-        SheetGroup(
-          children: [
-            GroupedRow(
-              icon: CupertinoIcons.device_phone_portrait,
-              tone: TileTone.blue,
-              title: l10n.companionAssuranceOnDevice,
-            ),
-            GroupedRow(
-              icon: CupertinoIcons.lock_fill,
-              tone: TileTone.gray,
-              title: l10n.companionAssurancePrivate,
-            ),
-            GroupedRow(
-              icon: CupertinoIcons.wifi_slash,
-              tone: TileTone.indigo,
-              title: l10n.companionAssuranceOffline,
-            ),
-          ],
-        ),
+        if (widget.onSheet)
+          SheetGroup(children: assurances)
+        else
+          GroupedSection(margin: EdgeInsets.zero, children: assurances),
         const SizedBox(height: 22),
         _action(context, theme, l10n, state),
       ],
@@ -276,8 +273,7 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
           children: [
             _StatusLine(theme: theme, text: l10n.companionInstallQueued),
             const SizedBox(height: 10),
-            _TextButton(
-              theme: theme,
+            TextLinkButton(
               label: l10n.companionInstallCancel,
               onTap: () => _manager.cancel(widget.brain),
             ),
@@ -302,8 +298,7 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
             // PAUSE is the primary stop, because it is the reversible one.
             // Cancel lives one step further in, on the paused state, where
             // the amount about to be thrown away is written next to it.
-            _TextButton(
-              theme: theme,
+            TextLinkButton(
               label: l10n.companionInstallPause,
               onTap: () => _manager.pause(widget.brain),
             ),
@@ -322,16 +317,17 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
               ),
             ),
             const SizedBox(height: 14),
-            _PrimaryButton(
-              theme: theme,
+            SheetActionButton(
               label: l10n.companionInstallResume,
               onTap: () => _manager.install(widget.brain),
             ),
             const SizedBox(height: 4),
-            _TextButton(
-              theme: theme,
-              label: l10n.companionInstallDiscard,
-              onTap: () => _manager.cancel(widget.brain),
+            Center(
+              child: TextLinkButton(
+                label: l10n.companionInstallDiscard,
+                destructive: true,
+                onTap: () => _manager.cancel(widget.brain),
+              ),
             ),
           ],
         );
@@ -343,11 +339,10 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
             Text(
               _failureText(l10n, state.failure),
               textAlign: TextAlign.center,
-              style: theme.caption.copyWith(color: theme.danger),
+              style: groupedFooterStyle(theme).copyWith(color: theme.danger),
             ),
             const SizedBox(height: 14),
-            _PrimaryButton(
-              theme: theme,
+            SheetActionButton(
               label: l10n.companionInstallRetry,
               // Awaited: acknowledging re-reads the disk, and a failed
               // download usually still HAS its bytes — a dropped connection
@@ -369,16 +364,15 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _PrimaryButton(
-              theme: theme,
+            SheetActionButton(
               label: l10n.companionInstallAction(widget.brain.sizeLabel),
               onTap: () => _manager.install(widget.brain),
             ),
             const SizedBox(height: 10),
             Text(
-              l10n.companionInstallOneTime,
+              sentenceCaseOf(context, l10n.companionInstallOneTime),
               textAlign: TextAlign.center,
-              style: theme.caption.copyWith(color: theme.inkMuted),
+              style: groupedFooterStyle(theme),
             ),
           ],
         );
@@ -555,53 +549,4 @@ class _StatusLine extends StatelessWidget {
           fontWeight: accent ? FontWeight.w600 : null,
         ),
       );
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({
-    required this.theme,
-    required this.label,
-    required this.onTap,
-  });
-
-  final AppTheme theme;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) =>
-      SheetActionButton(label: label, onTap: onTap);
-}
-
-class _TextButton extends StatelessWidget {
-  const _TextButton({
-    required this.theme,
-    required this.label,
-    required this.onTap,
-  });
-
-  final AppTheme theme;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
-      onTap: onTap,
-      shape: FocusRingShape.rounded,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: theme.body.copyWith(fontSize: 17, color: theme.accent),
-          ),
-        ),
-      ),
-    );
-  }
 }

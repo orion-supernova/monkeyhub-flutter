@@ -10,10 +10,12 @@ import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../media/preview_luminance.dart';
 import '../media/video_poster.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
+import '../widgets/spring_press.dart';
 import 'room_items.dart' show formatClockDuration;
 import '../widgets/teardown_safe.dart';
 import '../widgets/liquid_glass.dart';
@@ -1140,10 +1142,10 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: ThemeScope.of(context).body.copyWith(
             color: MediaGlass.inkDim,
-            fontSize: 14,
-            height: 1.5,
+            fontSize: 15,
+            height: 1.45,
             decoration: TextDecoration.none,
           ),
         ),
@@ -1162,15 +1164,13 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
           top: 8,
           child: Row(
             children: [
-              GlassIconButton(
+              GlassCloseButton(
                 tone: GlassTone.media,
-                icon: CupertinoIcons.xmark,
                 semanticLabel: AppLocalizations.of(
                   context,
                 ).cameraScreenCloseButtonLabel,
-                onTap: _capturing || _recording
-                    ? null
-                    : () => Navigator.of(context).pop(),
+                enabled: !_capturing && !_recording,
+                onTap: () => Navigator.of(context).pop(),
               ),
               const Spacer(),
               if (_recording) ...[
@@ -1196,9 +1196,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                           context,
                         ).cameraScreenLowLightBoostOffLabel,
                   onTap: _capturing ? null : _toggleBoost,
-                  tint: _boost
-                      ? const Color(0xFF7FA8FF).withValues(alpha: 0.85)
-                      : null,
+                  tint: _boost ? _boostTint : null,
                   color: _boost ? Colors.black : null,
                 ),
                 const SizedBox(width: 8),
@@ -1218,9 +1216,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                     context,
                   ).cameraScreenFlashStatusLabel(_flash.name),
                   onTap: _capturing ? null : _cycleFlash,
-                  tint: _flash == FlashMode.off
-                      ? null
-                      : const Color(0xFFFFC531).withValues(alpha: 0.85),
+                  tint: _flash == FlashMode.off ? null : _flashTint,
                   color: _flash == FlashMode.off ? null : Colors.black,
                 ),
             ],
@@ -1281,8 +1277,6 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                                   semanticLabel: AppLocalizations.of(
                                     context,
                                   ).cameraScreenChooseFromLibraryLabel,
-                                  size: 38,
-                                  iconSize: 17,
                                   onTap: _capturing
                                       ? null
                                       : () => _pop(CameraPickLibrary<T>()),
@@ -1329,26 +1323,30 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     );
   }
 
+  /// The zoom readout that fades in under a pinch. A flat media scrim, not
+  /// glass: it fades in and out on every pinch, and a fading BackdropFilter
+  /// re-samples the live preview every frame of the fade.
   Widget _zoomPill() {
     return AnimatedOpacity(
       opacity: _zoomPillVisible ? 1 : 0,
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       child: IgnorePointer(
-        child: LiquidGlass(
-          tone: GlassTone.media,
-          shape: LiquidGlassShape.capsule,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Text(
-              '${_zoom.toStringAsFixed(1)}×',
-              style: const TextStyle(
-                color: MediaGlass.ink,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-                decoration: TextDecoration.none,
-              ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: kMediaScrim,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            '${_zoom.toStringAsFixed(1)}×',
+            style: ThemeScope.of(context).body.copyWith(
+              color: MediaGlass.ink,
+              fontSize: 13,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.none,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ),
@@ -1511,6 +1509,13 @@ class _FocusReticleState extends State<_FocusReticle>
 /// The red every recording affordance on this screen shares.
 const _recordRed = Color(0xFFFF3B30);
 
+/// The lit fills of the two lighting toggles — the low-light boost's moonlit
+/// blue and the flash's amber — named once rather than inlined at the call
+/// sites. Fixed on every theme, like the rest of the media glass: they sit
+/// over a live viewfinder, not over the theme.
+final _boostTint = const Color(0xFF7FA8FF).withValues(alpha: 0.85);
+final _flashTint = const Color(0xFFFFC531).withValues(alpha: 0.85);
+
 /// PHOTO | VIDEO, the two-position control above the shutter.
 ///
 /// Labels rather than icons, and a segmented pill rather than the swipeable
@@ -1536,25 +1541,33 @@ class _ModeSwitch extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _segment(_CaptureMode.photo, l10n.cameraScreenPhotoModeLabel),
-            _segment(_CaptureMode.video, l10n.cameraScreenVideoModeLabel),
+            _segment(
+              context,
+              _CaptureMode.photo,
+              l10n.cameraScreenPhotoModeLabel,
+            ),
+            _segment(
+              context,
+              _CaptureMode.video,
+              l10n.cameraScreenVideoModeLabel,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _segment(_CaptureMode value, String label) {
+  Widget _segment(BuildContext context, _CaptureMode value, String label) {
     final selected = mode == value;
-    return FocusableTap(
-      onTap: onChanged == null || selected ? null : () => onChanged!(value),
-      semanticLabel: label,
+    final text = sentenceCaseOf(context, label);
+    return Semantics(
       selected: selected,
-      shape: FocusRingShape.capsule,
-      radius: 16,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: SpringPress(
         onTap: onChanged == null || selected ? null : () => onChanged!(value),
+        semanticLabel: text,
+        scale: PressSpec.scaleSmall,
+        focusShape: FocusRingShape.capsule,
+        focusRadius: 16,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           curve: Curves.easeOut,
@@ -1565,13 +1578,15 @@ class _ModeSwitch extends StatelessWidget {
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
           ),
+          // 13pt sentence case on the body face — it was 11.5pt caps
+          // tracked 1.6, the camera's one shouting label.
           child: Text(
-            label,
-            style: TextStyle(
+            text,
+            style: ThemeScope.of(context).body.copyWith(
               color: selected ? MediaGlass.ink : MediaGlass.inkDim,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.6,
+              fontSize: 13,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
               decoration: TextDecoration.none,
             ),
           ),
@@ -1625,12 +1640,13 @@ class _RecordingBadge extends StatelessWidget {
                       context,
                     ).composerCaptureTimeLeft(seconds)
                   : formatClockDuration(elapsed),
-              style: TextStyle(
+              style: ThemeScope.of(context).body.copyWith(
                 color: counting ? _recordRed : MediaGlass.ink,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
+                fontSize: 13,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
                 decoration: TextDecoration.none,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],

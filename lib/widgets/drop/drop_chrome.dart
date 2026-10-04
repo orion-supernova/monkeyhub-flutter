@@ -338,66 +338,72 @@ class _VerdictChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = dropToneColor(theme, message.tone);
     final refuse = message.tone == DropTone.refuse;
+    // No blur: the chip fades and scales with the drag on every pointer
+    // frame, and an animated BackdropFilter re-samples the window each
+    // time. At 0.92 the blur was barely visible anyway; the raised
+    // surface is now simply opaque.
     return ClipRRect(
       borderRadius: BorderRadius.circular(13),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 268),
-          padding: const EdgeInsets.fromLTRB(11, 8, 13, 8),
-          decoration: BoxDecoration(
-            color: theme.surfaceRaised.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: accent.withValues(alpha: 0.42)),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF000000).withValues(alpha: 0.24),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(
-                switch (message.tone) {
-                  DropTone.accept => CupertinoIcons.arrow_down_circle_fill,
-                  DropTone.caution => CupertinoIcons.info_circle_fill,
-                  DropTone.refuse => CupertinoIcons.xmark_circle_fill,
-                },
-                size: 16,
-                color: accent,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 268),
+        padding: const EdgeInsets.fromLTRB(11, 8, 13, 8),
+        decoration: BoxDecoration(
+          color: theme.surfaceRaised,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: accent.withValues(alpha: 0.42)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF000000).withValues(alpha: 0.24),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              switch (message.tone) {
+                DropTone.accept => CupertinoIcons.arrow_down_circle_fill,
+                DropTone.caution => CupertinoIcons.info_circle_fill,
+                DropTone.refuse => CupertinoIcons.xmark_circle_fill,
+              },
+              size: 16,
+              color: accent,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.headline,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.bodyEmph.copyWith(
+                      color: refuse ? theme.danger : theme.ink,
+                    ),
+                  ),
+                  if (message.detail != null) ...[
+                    const SizedBox(height: 1),
                     Text(
-                      message.headline,
-                      maxLines: 1,
+                      message.detail!,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.bodyEmph.copyWith(
-                        color: refuse ? theme.danger : theme.ink,
+                      style: theme.body.copyWith(
+                        fontSize: 13,
+                        height: 1.25,
+                        color: theme.inkSoft,
+                        decoration: TextDecoration.none,
                       ),
                     ),
-                    if (message.detail != null) ...[
-                      const SizedBox(height: 1),
-                      Text(
-                        message.detail!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.caption.copyWith(color: theme.inkSoft),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

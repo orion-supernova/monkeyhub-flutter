@@ -405,7 +405,7 @@ class _CallScreenState extends State<CallScreen> {
     final pending = svc.screenSharePending;
     return [
       CallTrayAction(
-        icon: s.localMuted ? Icons.mic_off : Icons.mic,
+        icon: s.localMuted ? CallGlyphs.micOff : CallGlyphs.mic,
         active: s.localMuted,
         onTap: widget.service.toggleMute,
         label: s.localMuted
@@ -413,7 +413,7 @@ class _CallScreenState extends State<CallScreen> {
             : l10n.callScreenControlMute,
       ),
       CallTrayAction(
-        icon: svc.localCamActive ? Icons.videocam : Icons.videocam_off,
+        icon: svc.localCamActive ? CallGlyphs.camera : CallGlyphs.cameraOff,
         active: !svc.localCamActive,
         onTap: () => unawaited(widget.service.toggleVideo()),
         label: svc.localCamActive
@@ -421,16 +421,14 @@ class _CallScreenState extends State<CallScreen> {
             : l10n.callScreenControlCamOn,
       ),
       CallTrayAction(
-        icon: s.speakerOn ? Icons.volume_up : Icons.phone_in_talk,
+        icon: s.speakerOn ? CallGlyphs.speakerOn : CallGlyphs.speakerOff,
         active: s.speakerOn,
         onTap: widget.service.toggleSpeaker,
         label: l10n.callScreenControlSpeaker,
       ),
       if (_shareSupported)
         CallTrayAction(
-          icon: ownScreen
-              ? Icons.stop_screen_share_outlined
-              : Icons.screen_share_outlined,
+          icon: ownScreen ? CallGlyphs.stopShare : CallGlyphs.share,
           active: ownScreen,
           // Disabled while the peer holds the stage, and while our own
           // share is being set up (the picker, the countdown) — a second
@@ -445,19 +443,19 @@ class _CallScreenState extends State<CallScreen> {
         ),
       if (stage)
         CallTrayAction(
-          icon: Icons.draw_outlined,
+          icon: CallGlyphs.draw,
           active: svc.drawArmed.value,
           onTap: () => svc.drawArmed.value = !svc.drawArmed.value,
           label: l10n.callScreenControlDraw,
         ),
       if (svc.localCamActive && isMobileCallPlatform)
         CallTrayAction(
-          icon: Icons.cameraswitch_outlined,
+          icon: CallGlyphs.flip,
           onTap: widget.service.switchCamera,
           label: l10n.callScreenControlFlip,
         ),
       CallTrayAction(
-        icon: Icons.tune,
+        icon: CallGlyphs.more,
         onTap: () => showAdaptiveSheet(
           context,
           builder: (_) => CallOptionsSheet(
@@ -468,7 +466,7 @@ class _CallScreenState extends State<CallScreen> {
         label: l10n.callScreenControlOptions,
       ),
       CallTrayAction(
-        icon: Icons.keyboard_arrow_down_rounded,
+        icon: CallGlyphs.hide,
         onTap: _hide,
         label: l10n.callScreenControlMinimize,
       ),
@@ -724,8 +722,8 @@ class _CallScreenState extends State<CallScreen> {
                             if (s.peerState.audioMuted) ...[
                               const SizedBox(width: 10),
                               const Icon(
-                                Icons.mic_off,
-                                size: 14,
+                                CallGlyphs.micOff,
+                                size: 15,
                                 color: Colors.white70,
                               ),
                             ],
@@ -813,7 +811,7 @@ class _CallScreenState extends State<CallScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: CallTray(
                         actions: trayActions,
-                        endIcon: Icons.call_end,
+                        endIcon: CallGlyphs.end,
                         endLabel: l10n.callScreenControlEnd,
                         endColor: theme.danger,
                         onEnd: () => widget.service.endCall(),
@@ -868,7 +866,7 @@ class _ShareStage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.screen_share_outlined,
+              CallGlyphs.share,
               size: 40,
               color: theme.accent.withValues(alpha: 0.9),
             ),
@@ -905,24 +903,10 @@ class _ShareStage extends StatelessWidget {
           Positioned(
             left: 16,
             top: topInset,
-            child: IgnorePointer(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.55),
-                  borderRadius: BorderRadius.circular(999),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                ),
-                child: Text(
-                  caption,
-                  style: theme.monoTiny.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+            right: 16,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: IgnorePointer(child: CallCaptionPill(text: caption)),
             ),
           ),
       ],

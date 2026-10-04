@@ -1,5 +1,4 @@
-import 'package:flutter/cupertino.dart'
-    show CupertinoIcons, CupertinoSlidingSegmentedControl;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,7 +8,6 @@ import '../models/chat_room.dart';
 import '../models/room_mute.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import '../theme/theme_preference.dart';
 import 'sheet_kit.dart';
 import 'ios_kit.dart';
 import '../l10n/text_case.dart';
@@ -205,7 +203,6 @@ class _MuteRoomSheetState extends State<_MuteRoomSheet> {
     // footnote under it, and one button. The × in the bar is the way out.
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.muteSheetTitle),
-      leading: const SheetCloseButton(),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -215,10 +212,7 @@ class _MuteRoomSheetState extends State<_MuteRoomSheet> {
               child: Text(
                 l10n.muteSheetSubtitle,
                 textAlign: TextAlign.center,
-                style: theme.body.copyWith(
-                  fontSize: 15,
-                  color: theme.inkMuted,
-                ),
+                style: groupedFooterStyle(theme),
               ),
             ),
             SheetRise(
@@ -244,52 +238,19 @@ class _MuteRoomSheetState extends State<_MuteRoomSheet> {
               ),
             ),
             const SizedBox(height: 22),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                sentenceCaseOf(context, l10n.muteSheetDurationLabel),
-                style: theme.caption.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
-              ),
-            ),
+            GroupedHeader(l10n.muteSheetDurationLabel),
             SheetRise(
               index: 1,
-              child: SizedBox(
-                width: double.infinity,
-                child: CupertinoSlidingSegmentedControl<MuteDuration>(
-                  groupValue: _duration,
-                  backgroundColor: theme.ink.withValues(alpha: 0.08),
-                  thumbColor: theme.isLight
-                      ? Colors.white
-                      : Color.alphaBlend(
-                          theme.ink.withValues(alpha: 0.12),
-                          theme.surfaceRaised,
-                        ),
-                  onValueChanged: (d) {
-                    if (d == null) return;
-                    HapticFeedback.selectionClick();
-                    setState(() => _duration = d);
-                  },
-                  children: {
-                    for (final d in MuteDuration.values)
-                      d: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          _durationLabel(l10n, d),
-                          maxLines: 1,
-                          style: theme.body.copyWith(
-                            fontSize: 14,
-                            fontWeight: _duration == d
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: _duration == d ? theme.ink : theme.inkSoft,
-                          ),
-                        ),
-                      ),
-                  },
-                ),
+              // THE segmented control: labels wrap, then shrink, never clip —
+              // the private copy cut Turkish "Her zaman" to "Her".
+              child: IosSegmentedControl<MuteDuration>(
+                value: _duration,
+                // The control ticks its own selection haptic.
+                onChanged: (d) => setState(() => _duration = d),
+                segments: [
+                  for (final d in MuteDuration.values)
+                    IosSegment(value: d, label: _durationLabel(l10n, d)),
+                ],
               ),
             ),
             // The running sentence: what this combination does, and when it
@@ -305,11 +266,7 @@ class _MuteRoomSheetState extends State<_MuteRoomSheet> {
                       ? _summary(l10n)
                       : '${_summary(l10n)} $deadline',
                   key: ValueKey('$_notifications$_badges$_duration'),
-                  style: theme.caption.copyWith(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: theme.inkMuted,
-                  ),
+                  style: groupedFooterStyle(theme),
                 ),
               ),
             ),

@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
@@ -7,9 +8,11 @@ import 'package:video_player/video_player.dart';
 import '../backend/chat_api.dart';
 import '../media/file_url_cache.dart';
 import '../media/video_file_cache.dart';
-import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import 'glass_buttons.dart';
+import 'liquid_glass.dart';
+import 'photo_chrome.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
 
@@ -108,7 +111,7 @@ class VideoMessage extends StatelessWidget {
       backdrop = Container(
         color: theme.surfaceSunken,
         alignment: Alignment.center,
-        child: Icon(Icons.videocam_off_outlined, color: theme.inkMuted),
+        child: Icon(CupertinoIcons.slash_circle, color: theme.inkMuted),
       );
     } else {
       final poster = posterStorageId;
@@ -116,8 +119,7 @@ class VideoMessage extends StatelessWidget {
           ? Container(
               color: theme.surfaceSunken,
               alignment: Alignment.center,
-              child: Icon(Icons.movie_creation_outlined,
-                  size: 28, color: theme.inkMuted),
+              child: Icon(CupertinoIcons.film, size: 28, color: theme.inkMuted),
             )
           : RemoteImage(storageId: poster, api: api, fit: BoxFit.cover);
       if (heroTag != null) still = SteadyHero(tag: heroTag!, child: still);
@@ -143,48 +145,18 @@ class VideoMessage extends StatelessWidget {
             ),
             child: SizedBox(width: tileW, height: tileH, child: backdrop),
           ),
-          if (id != null)
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow, color: Colors.white, size: 28),
-            ),
+          // The shared play mark and duration badge (photo_chrome), so a
+          // bubble, a grid tile and a viewer draw one recipe.
+          if (id != null) const MediaPlayDisc(),
           if (id != null && durationMs != null)
             Positioned(
               right: 6,
               bottom: 6,
-              child: _DurationBadge(durationMs!),
+              child: MediaDurationBadge(
+                duration: Duration(milliseconds: durationMs!),
+              ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _DurationBadge extends StatelessWidget {
-  const _DurationBadge(this.ms);
-  final int ms;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        formatClockDuration(Duration(milliseconds: ms)),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          height: 1,
-        ),
       ),
     );
   }
@@ -418,16 +390,18 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
 
     if (_phase == _SurfacePhase.unavailable) {
       return _plate(
-        const Icon(Icons.videocam_off_outlined, color: Colors.white, size: 36),
+        const Icon(CupertinoIcons.slash_circle, color: Colors.white, size: 36),
         scrim: 0.45,
       );
     }
 
     if (_phase == _SurfacePhase.failed) {
       return _plate(
-        GestureDetector(
+        GlassIconButton(
+          tone: GlassTone.media,
+          icon: CupertinoIcons.arrow_clockwise,
+          semanticLabel: MaterialLocalizations.of(context).refreshIndicatorSemanticLabel,
           onTap: _retry,
-          child: const Icon(Icons.refresh, color: Colors.white, size: 36),
         ),
         scrim: 0.45,
       );
@@ -461,32 +435,77 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
           alignment: Alignment.center,
           children: [
             VideoPlayer(c),
-            if (!c.value.isPlaying)
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.55),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.play_arrow, color: Colors.white, size: 36),
-              ),
+            if (!c.value.isPlaying) const MediaPlayDisc(size: 64),
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
-              child: VideoProgressIndicator(
-                c,
-                allowScrubbing: true,
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-                colors: VideoProgressColors(
-                  playedColor: theme.accent,
-                  bufferedColor: Colors.white.withValues(alpha: 0.35),
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                ),
-              ),
+              child: _Scrubber(controller: c),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The player's bottom rail: elapsed time, the scrub track, time left —
+/// Photos' layout, on a soft scrim (not glass: it repaints with every
+/// position tick, and a blur under a ticking widget is a frame budget spent
+/// on a hairline). Only this rail listens to the controller's ticks.
+class _Scrubber extends StatelessWidget {
+  const _Scrubber({required this.controller});
+  final VideoPlayerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final style = theme.body.copyWith(
+      fontSize: 13,
+      height: 1.2,
+      fontWeight: FontWeight.w600,
+      color: MediaGlass.ink,
+      decoration: TextDecoration.none,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Color(0x73000000), Color(0x00000000)],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
+        child: ValueListenableBuilder<VideoPlayerValue>(
+          valueListenable: controller,
+          builder: (context, v, _) {
+            final left = v.duration - v.position;
+            return Row(
+              children: [
+                Text(MediaDurationBadge.format(v.position), style: style),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: VideoProgressIndicator(
+                    controller,
+                    allowScrubbing: true,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    colors: VideoProgressColors(
+                      playedColor: MediaGlass.ink,
+                      bufferedColor: Colors.white.withValues(alpha: 0.35),
+                      backgroundColor: Colors.white.withValues(alpha: 0.18),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '−${MediaDurationBadge.format(left.isNegative ? Duration.zero : left)}',
+                  style: style,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

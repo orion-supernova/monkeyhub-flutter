@@ -8,9 +8,9 @@ import '../../games/game_play_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../models/game_record.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/game_result_actions.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/game_celebration.dart';
 import '../../widgets/game_layout_shell.dart';
@@ -97,7 +97,7 @@ class GameScaffold extends StatelessWidget {
             // Rounded like the hub's tile of the same board, so opening a
             // game reads as that card growing to fill the screen.
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
               child: board,
             ),
             // Fades rather than popping, so pausing reads as the board
@@ -115,15 +115,12 @@ class GameScaffold extends StatelessWidget {
       ),
       if (controller.errorCode != null) ...[
         const SizedBox(height: 12),
-        Text(
-          switch (controller.errorCode) {
-            'NOT_SOLVED' => l10n.gameErrorNotSolved,
-            'ALREADY_FINISHED' => l10n.gameErrorAlreadyFinished,
-            'NO_HINT' => l10n.gameErrorNoHint,
-            _ => l10n.gameErrorGeneric,
-          },
-          style: theme.bodySoft.copyWith(color: theme.danger),
-        ),
+        FormErrorBanner(switch (controller.errorCode) {
+          'NOT_SOLVED' => l10n.gameErrorNotSolved,
+          'ALREADY_FINISHED' => l10n.gameErrorAlreadyFinished,
+          'NO_HINT' => l10n.gameErrorNoHint,
+          _ => l10n.gameErrorGeneric,
+        }),
       ],
       const SizedBox(height: 16),
       // One row of equal tool buttons, the iOS bottom-toolbar shape; a board
@@ -402,44 +399,35 @@ class _ResultCard extends StatelessWidget {
                   l10n.gameHintCount(controller.hintsUsed),
               ].join(' · '),
               textAlign: TextAlign.center,
-              style: theme.bodySoft.copyWith(
-                fontSize: 13,
-                color: theme.inkMuted,
-              ),
+              style: groupedMetaStyle(theme),
             ),
           ],
           if (onShare != null || onTellFriends != null) ...[
             const SizedBox(height: 18),
-            Row(
-              children: [
+            GameResultActions(
+              actions: [
                 if (onShare != null)
-                  Expanded(
-                    child: _CardAction(
-                      icon: CupertinoIcons.doc_on_doc,
-                      label: sentenceCaseOf(context, l10n.gameShare),
-                      onTap: onShare,
-                    ),
+                  GameResultAction(
+                    icon: CupertinoIcons.doc_on_doc,
+                    label: sentenceCaseOf(context, l10n.gameShare),
+                    onTap: onShare,
                   ),
-                if (onShare != null && onTellFriends != null)
-                  const SizedBox(width: 10),
                 // Retired once used — the server allows one send per result,
                 // so an action that stayed put would be a button whose only
                 // remaining outcome is an error.
                 if (onTellFriends != null)
-                  Expanded(
-                    child: controller.shared
-                        ? _CardAction(
-                            icon: CupertinoIcons.checkmark_alt,
-                            label: sentenceCaseOf(context, l10n.gameToldFriends),
-                            onTap: null,
-                          )
-                        : _CardAction(
-                            icon: CupertinoIcons.bell_fill,
-                            label: sentenceCaseOf(context, l10n.gameTellFriends),
-                            onTap: onTellFriends,
-                            prominent: true,
-                          ),
-                  ),
+                  controller.shared
+                      ? GameResultAction(
+                          icon: CupertinoIcons.checkmark_alt,
+                          label: sentenceCaseOf(context, l10n.gameToldFriends),
+                          onTap: null,
+                        )
+                      : GameResultAction(
+                          icon: CupertinoIcons.bell_fill,
+                          label: sentenceCaseOf(context, l10n.gameTellFriends),
+                          onTap: onTellFriends,
+                          prominent: true,
+                        ),
               ],
             ),
           ],
@@ -468,72 +456,6 @@ class _ResultCard extends StatelessWidget {
             child: GameCelebration(origin: Alignment(0, 0.1)),
           ),
       ],
-    );
-  }
-}
-
-/// One tappable action on the result card.
-///
-/// Extracted when the card grew a second one: the original was a `FocusableTap`
-/// wrapping a `GestureDetector` wrapping a `Row`, and a second hand-rolled copy
-/// of that is a second place for the keyboard affordance to be forgotten.
-class _CardAction extends StatelessWidget {
-  const _CardAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.prominent = false,
-  });
-
-  final IconData icon;
-  final String label;
-
-  /// Null shows the action as done rather than hiding it.
-  final VoidCallback? onTap;
-
-  /// The filled one — the action the card is offering first.
-  final bool prominent;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final done = onTap == null;
-    final fill = prominent
-        ? theme.bubbleFill(isMine: true)
-        : theme.ink.withValues(alpha: done ? 0.05 : 0.08);
-    final ink = prominent
-        ? theme.accentInk
-        : (done ? theme.inkMuted : theme.ink);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: fill,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: ink),
-            const SizedBox(width: 7),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.body.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: ink,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -567,28 +489,12 @@ class GameStandingsList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  sentenceCaseOf(context, l10n.gameStandingsLabel),
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    color: theme.inkMuted,
-                  ),
-                ),
-              ),
-              // Today's times answer "who won today"; this is one tap from
-              // "is that actually good?".
-              AllTimeLink(game: RecordGame.of(game), viewerId: viewerId),
-            ],
-          ),
+        // The shared section header. Today's times answer "who won today";
+        // the trailing link is one tap from "is that actually good?".
+        GroupedHeader(
+          l10n.gameStandingsLabel,
+          trailing: AllTimeLink(game: RecordGame.of(game), viewerId: viewerId),
         ),
-        const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(groupedRadius(theme)),
           child: ColoredBox(
@@ -597,13 +503,7 @@ class GameStandingsList extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
         if (rows.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Text(
-              sentenceCaseOf(context, l10n.gameStandingsEmpty),
-              style: theme.bodySoft.copyWith(color: theme.inkMuted),
-            ),
-          )
+          EmptyLine(l10n.gameStandingsEmpty)
         else
           for (var i = 0; i < shown; i++)
             TweenAnimationBuilder<double>(
@@ -713,7 +613,7 @@ class _StandingRow extends StatelessWidget {
               padding: const EdgeInsets.only(right: 8),
               child: Icon(
                 CupertinoIcons.lightbulb,
-                size: 14,
+                size: 15,
                 color: theme.inkMuted,
               ),
             ),
@@ -722,7 +622,7 @@ class _StandingRow extends StatelessWidget {
                 ? formatGameTime(row.durationMs)
                 : sentenceCaseOf(context, l10n.gameStatusGaveUp),
             style: theme.body.copyWith(
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: FontWeight.w600,
               color: row.solved ? theme.ink : theme.inkMuted,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -787,19 +687,20 @@ class GameTool extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(
             color: fill,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 20, color: ink),
               const SizedBox(height: 4),
-              Text(
+              // Meta size, on the scale; shrinks to fit rather than cutting
+              // a tool's name off ("Auto-cro…").
+              FitLabel(
                 sentenceCaseOf(context, label),
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: theme.body.copyWith(
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: ink,
                 ),

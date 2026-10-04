@@ -11,7 +11,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
-import 'sheet_surface.dart';
+import 'sheet_kit.dart';
 import 'skeleton_rows.dart';
 import 'ios_kit.dart';
 import 'meta_text.dart';
@@ -47,33 +47,12 @@ class AllTimeLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    void open() => showRecordsSheet(context, game: game, viewerId: viewerId);
-    return FocusableTap(
-      onTap: open,
-      semanticLabel: l10n.recordsLabel,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        onTap: open,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.rosette, size: 15, color: theme.accent),
-              const SizedBox(width: 4),
-              Text(
-                sentenceCaseOf(context, l10n.recordsLabel),
-                style: theme.body.copyWith(fontSize: 15, color: theme.accent),
-              ),
-              const SizedBox(width: 2),
-              Icon(CupertinoIcons.chevron_forward, size: 13, color: theme.accent),
-            ],
-          ),
-        ),
-      ),
+    // The shared text link — accent, trailing chevron, the iOS "See all".
+    return TextLinkButton(
+      label: l10n.recordsLabel,
+      icon: CupertinoIcons.chevron_forward,
+      onTap: () => showRecordsSheet(context, game: game, viewerId: viewerId),
     );
   }
 }
@@ -104,13 +83,7 @@ class RecordsSection extends StatelessWidget {
         } else if (!store.answered) {
           body = _Retry(onRetry: () => store.load(viewerId, force: true));
         } else if (board.isEmpty) {
-          body = Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(
-              sentenceCaseOf(context, l10n.recordsEmpty),
-              style: theme.bodySoft.copyWith(color: theme.inkMuted),
-            ),
-          );
+          body = EmptyLine(l10n.recordsEmpty);
         } else {
           body = ClipRRect(
             borderRadius: BorderRadius.circular(groupedRadius(theme)),
@@ -141,21 +114,17 @@ class RecordsSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Icon(CupertinoIcons.rosette, size: 18, color: theme.accent),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    sentenceCaseOf(context, l10n.recordsLabel),
-                    style: theme.displaySmall.copyWith(color: theme.ink),
-                  ),
-                ),
-              ],
+            // The page's shared shelf header, like the hub's other sections.
+            PageSectionHeader(
+              l10n.recordsLabel,
+              padding: const EdgeInsets.only(bottom: 4),
             ),
-            const SizedBox(height: 6),
-            Text(l10n.recordsBlurb, style: theme.caption),
+            // Body face, never the theme's caption (tracked mono on the
+            // character themes).
+            Text(
+              sentenceCaseOf(context, l10n.recordsBlurb),
+              style: groupedFooterStyle(theme),
+            ),
             const SizedBox(height: 12),
             AnimatedSwitcher(
               duration: theme.motionFast,
@@ -194,8 +163,9 @@ class _SectionRow extends StatelessWidget {
         : (holder.userId == viewerId ? l10n.momentRailYouLabel : holder.name);
     void open() => showRecordsSheet(context, game: game, viewerId: viewerId);
 
-    return FocusableTap(
+    return SpringPress(
       onTap: open,
+      scale: PressSpec.scaleSmall,
       semanticLabel: holder == null
           ? '$name: ${l10n.recordsNoneYet}'
           : l10n.recordsHolderSemantic(
@@ -203,31 +173,31 @@ class _SectionRow extends StatelessWidget {
               game.formatBest(holder.best),
               holderName!,
             ),
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: open,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      focusRadius: theme.radiusMd,
+      child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
           child: Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: theme.bodyEmph.copyWith(fontSize: 15)),
+                    Text(
+                      sentenceCaseOf(context, name),
+                      style: groupedTitleStyle(theme),
+                    ),
                     const SizedBox(height: 3),
                     if (holder == null)
                       Text(
-                        l10n.recordsNoneYet,
-                        style: metaText(theme, color: theme.inkMuted),
+                        sentenceCaseOf(context, l10n.recordsNoneYet),
+                        style: groupedSubtitleStyle(theme),
                       )
                     else
                       Row(
                         children: [
                           Icon(
                             CupertinoIcons.rosette,
-                            size: 12,
+                            size: 13,
                             color: theme.accent,
                           ),
                           const SizedBox(width: 4),
@@ -236,7 +206,7 @@ class _SectionRow extends StatelessWidget {
                               holderName!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: theme.caption.copyWith(
+                              style: groupedSubtitleStyle(theme).copyWith(
                                 color: holder.userId == viewerId
                                     ? theme.accent
                                     : theme.inkSoft,
@@ -259,10 +229,7 @@ class _SectionRow extends StatelessWidget {
                   if (holder != null)
                     Text(
                       game.formatBest(holder.best),
-                      style: theme.monoLarge.copyWith(
-                        fontSize: 17,
-                        color: theme.ink,
-                      ),
+                      style: _bestStyle(theme, theme.ink),
                     ),
                   // Your own best, when the record is somebody else's — the
                   // number worth chasing is the gap between the two.
@@ -275,15 +242,25 @@ class _SectionRow extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(width: 4),
-              Icon(CupertinoIcons.chevron_forward, size: 16, color: theme.inkMuted),
+              const SizedBox(width: 6),
+              Icon(CupertinoIcons.chevron_forward, size: 15, color: theme.inkMuted),
             ],
           ),
         ),
-      ),
     );
   }
 }
+
+/// A record time or guess count: the body face at 17 with tabular figures, so
+/// the column lines up without the theme's monospace (tracked terminal digits
+/// on the character themes).
+TextStyle _bestStyle(AppTheme theme, Color color) => theme.bodyEmph.copyWith(
+      fontSize: 17,
+      fontWeight: FontWeight.w600,
+      fontStyle: FontStyle.normal,
+      color: color,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
 /// Every friend's best at [game], with the reactions on each.
 ///
@@ -337,82 +314,81 @@ class _RecordsSheetState extends State<_RecordsSheet> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
-    return SheetSurface(
-      child: AnimatedBuilder(
-        animation: RecordsStore.instance,
-        builder: (context, _) {
-          final store = RecordsStore.instance;
-          final rows = store.board.rowsFor(widget.game);
-          final Widget body;
-          if (!store.answered && store.error == null) {
-            body = const SkeletonRows(count: 4, avatarSize: 28, circular: false);
-          } else if (!store.answered) {
-            body = _Retry(
-              onRetry: () => store.load(widget.viewerId, force: true),
-            );
-          } else if (rows.isEmpty) {
-            body = Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              child: Text(
-                l10n.recordsEmpty,
-                textAlign: TextAlign.center,
-                style: theme.bodySoft.copyWith(color: theme.inkMuted),
-              ),
-            );
-          } else {
-            body = ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: maxHeight),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                itemCount: rows.length,
-                separatorBuilder: (_, i) =>
-                    Divider(height: 1, color: theme.divider),
-                itemBuilder: (context, i) => _RecordRow(
-                  row: rows[i],
-                  game: widget.game,
-                  viewerId: widget.viewerId,
-                  palette: store.board.palette,
-                  picking: _picking == rows[i].recordId,
-                  onTogglePicker: () => setState(() {
-                    _picking =
-                        _picking == rows[i].recordId ? null : rows[i].recordId;
-                  }),
-                  onReact: (emoji) => _react(rows[i], emoji),
-                ),
-              ),
-            );
-          }
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(CupertinoIcons.rosette,
-                      size: 16, color: theme.accent),
-                  const SizedBox(width: 6),
-                  Text(
-                    sentenceCaseOf(context, l10n.recordsLabel),
-                    style: labelText(theme).copyWith(color: theme.accent),
+    // The game's name in the bar like every sheet's title, "All-time" under
+    // it, the shared × leading.
+    return SheetFrame(
+      title: sentenceCaseOf(context, recordGameName(l10n, widget.game)),
+      subtitle: sentenceCaseOf(context, l10n.recordsLabel),
+      showClose: true,
+      padding: EdgeInsets.zero,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: AnimatedBuilder(
+          animation: RecordsStore.instance,
+          builder: (context, _) {
+            final store = RecordsStore.instance;
+            final rows = store.board.rowsFor(widget.game);
+            final Widget body;
+            if (!store.answered && store.error == null) {
+              body = const SkeletonRows(count: 4, avatarSize: 28, circular: false);
+            } else if (!store.answered) {
+              body = _Retry(
+                onRetry: () => store.load(widget.viewerId, force: true),
+              );
+            } else if (rows.isEmpty) {
+              body = EmptyLine(l10n.recordsEmpty);
+            } else {
+              body = ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: rows.length,
+                  // A hairline from the name, past the rank column.
+                  separatorBuilder: (_, i) => Padding(
+                    padding: const EdgeInsets.only(left: 28),
+                    child: Container(
+                      height: 1 / MediaQuery.devicePixelRatioOf(context),
+                      color: theme.ink.withValues(alpha: 0.10),
+                    ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                recordGameName(l10n, widget.game),
-                style: theme.displaySmall,
-              ),
-              const SizedBox(height: 14),
-              AnimatedSize(
-                duration: theme.motionFast,
-                curve: theme.motionEntrance,
-                alignment: Alignment.topCenter,
-                child: body,
-              ),
-            ],
-          );
-        },
+                  itemBuilder: (context, i) => _RecordRow(
+                    row: rows[i],
+                    game: widget.game,
+                    viewerId: widget.viewerId,
+                    palette: store.board.palette,
+                    picking: _picking == rows[i].recordId,
+                    onTogglePicker: () => setState(() {
+                      _picking =
+                          _picking == rows[i].recordId ? null : rows[i].recordId;
+                    }),
+                    onReact: (emoji) => _react(rows[i], emoji),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  sentenceCaseOf(context, l10n.recordsBlurb),
+                  style: groupedFooterStyle(theme),
+                ),
+                const SizedBox(height: 10),
+                AnimatedSize(
+                  duration: theme.motionFast,
+                  curve: theme.motionEntrance,
+                  alignment: Alignment.topCenter,
+                  child: body,
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -446,7 +422,10 @@ class _RecordRow extends StatelessWidget {
     final date = DateTime.tryParse(row.dayKey);
     final details = [
       if (date != null)
-        l10n.recordsSetOn(MaterialLocalizations.of(context).formatMediumDate(date)),
+        // The full date, spelled out: the medium one abbreviates both the
+        // weekday and the month ("1 Eki Per") and reads as a stamp. The meta
+        // line wraps to two lines, so the long form has the room.
+        l10n.recordsSetOn(MaterialLocalizations.of(context).formatFullDate(date)),
       l10n.recordsSolves(row.solves),
     ].join(' · ');
 
@@ -461,7 +440,7 @@ class _RecordRow extends StatelessWidget {
                 width: 28,
                 child: row.rank == 1
                     ? Icon(CupertinoIcons.rosette, size: 18, color: theme.accent)
-                    : Text('${row.rank}', style: metaText(theme)),
+                    : Text('${row.rank}', style: groupedMetaStyle(theme)),
               ),
               Expanded(
                 child: Column(
@@ -476,11 +455,13 @@ class _RecordRow extends StatelessWidget {
                           : theme.body,
                     ),
                     const SizedBox(height: 2),
+                    // Two lines before it gives up: in Turkish at large text
+                    // one line cut the solve count to "12 ç…".
                     Text(
                       details,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: metaText(theme, color: theme.inkMuted),
+                      style: groupedMetaStyle(theme),
                     ),
                   ],
                 ),
@@ -488,9 +469,9 @@ class _RecordRow extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 game.formatBest(row.best),
-                style: theme.monoLarge.copyWith(
-                  fontSize: 17,
-                  color: row.rank == 1 ? theme.ink : theme.inkSoft,
+                style: _bestStyle(
+                  theme,
+                  row.rank == 1 ? theme.ink : theme.inkSoft,
                 ),
               ),
               // Friends' rows only: your own record is for them to cheer.
@@ -502,7 +483,8 @@ class _RecordRow extends StatelessWidget {
                   onTap: onTogglePicker,
                 )
               else
-                const SizedBox(width: 12),
+                // The same slot, empty, so every time sits in one column.
+                const SizedBox(width: _kReactSlot),
             ],
           ),
           if (row.reactionCount > 0)
@@ -560,9 +542,9 @@ class _ReactionSummary extends StatelessWidget {
             ),
             child: Text(
               '${r.emoji} ${r.count}',
-              style: metaText(theme).copyWith(
-                fontSize: compact ? 10 : 11,
+              style: groupedMetaStyle(theme).copyWith(
                 color: theme.inkSoft,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -581,12 +563,15 @@ class _ReactionSummary extends StatelessWidget {
           ].join('  ·  '),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: metaText(theme, color: theme.inkMuted),
+          style: groupedMetaStyle(theme),
         ),
       ],
     );
   }
 }
+
+/// Width of the react button's slot at the end of a record row.
+const double _kReactSlot = 44;
 
 class _ReactButton extends StatelessWidget {
   const _ReactButton({
@@ -604,17 +589,15 @@ class _ReactButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
+    return Semantics(
       selected: active,
-      shape: FocusRingShape.circle,
-      radius: 18,
-      child: GestureDetector(
+      child: SpringPress(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
+        semanticLabel: semanticLabel,
+        focusShape: FocusRingShape.circle,
+        focusRadius: 18,
         child: SizedBox(
-          width: 44,
+          width: _kReactSlot,
           height: 40,
           child: Center(
             child: AnimatedContainer(
@@ -664,15 +647,13 @@ class _Palette extends StatelessWidget {
       runSpacing: 6,
       children: [
         for (final emoji in palette)
-          FocusableTap(
-            onTap: () => onPick(emoji),
-            semanticLabel: emoji,
+          Semantics(
             selected: emoji == mine,
-            shape: FocusRingShape.circle,
-            radius: 20,
-            child: GestureDetector(
+            child: SpringPress(
               onTap: () => onPick(emoji),
-              behavior: HitTestBehavior.opaque,
+              semanticLabel: emoji,
+              focusShape: FocusRingShape.circle,
+              focusRadius: 20,
               child: AnimatedContainer(
                 duration: theme.motionFast,
                 width: 40,
@@ -705,41 +686,12 @@ class _Retry extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            l10n.recordsLoadFailed,
-            style: theme.bodySoft.copyWith(color: theme.inkMuted),
+            sentenceCaseOf(context, l10n.recordsLoadFailed),
+            style: groupedSubtitleStyle(theme),
           ),
         ),
-        _TextAction(label: l10n.gamesRetry, onTap: onRetry, theme: theme),
+        TextLinkButton(label: l10n.gamesRetry, onTap: onRetry),
       ],
     );
   }
-}
-
-class _TextAction extends StatelessWidget {
-  const _TextAction({
-    required this.label,
-    required this.onTap,
-    required this.theme,
-  });
-  final String label;
-  final VoidCallback onTap;
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) => FocusableTap(
-        onTap: onTap,
-        semanticLabel: label,
-        radius: theme.radiusSm,
-        child: GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(
-              sentenceCaseOf(context, label),
-              style: labelText(theme).copyWith(color: theme.accent),
-            ),
-          ),
-        ),
-      );
 }

@@ -6,9 +6,8 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/account_kit.dart';
+import '../widgets/account_kit.dart' show readableSlivers;
 import '../widgets/ios_kit.dart';
 import '../widgets/user_avatar.dart';
 
@@ -80,92 +79,31 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
           )
         else if (_blocked.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 60),
-            child: Column(
-              children: [
-                Icon(
-                  CupertinoIcons.hand_raised,
-                  size: 44,
-                  color: theme.inkMuted.withValues(alpha: 0.6),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.acctBlockedEmpty,
-                  textAlign: TextAlign.center,
-                  style: theme.bodySoft,
-                ),
-              ],
+            padding: const EdgeInsets.only(top: 40),
+            child: EmptyState(
+              icon: CupertinoIcons.hand_raised,
+              title: l10n.acctBlockedEmpty,
             ),
           )
         else
-          InsetGroup(
-            dividerInset: 66,
-            children: [
-              for (final u in _blocked) _row(theme, l10n, u),
-            ],
+          GroupedSection(
+            children: [for (final u in _blocked) _row(l10n, u)],
           ),
       ]),
     );
   }
 
-  Widget _row(AppTheme theme, AppLocalizations l10n, ChatUser u) {
-    final busy = _pendingUnblock == u.id;
-    return PressRow(
-      padding: const EdgeInsets.fromLTRB(14, 9, 12, 9),
-      child: Row(
-        children: [
-          UserAvatar(user: u, size: 38, api: widget.api, showStatus: false),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  u.displayName,
-                  style: theme.body.copyWith(color: theme.ink),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '@${u.username}',
-                  style: theme.caption.copyWith(color: theme.inkMuted),
-                ),
-              ],
-            ),
-          ),
-          busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CupertinoActivityIndicator(
-                    radius: 9,
-                    color: theme.inkMuted,
-                  ),
-                )
-              : SpringPress(
-                  onTap: () => _unblock(u),
-                  semanticLabel: l10n.acctUnblock,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: quietFill(theme),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      l10n.acctUnblock,
-                      style: theme.body.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: theme.accent,
-                      ),
-                    ),
-                  ),
-                ),
-        ],
-      ),
-    );
-  }
+  /// A blocked person: face, name, handle, and the shared inline Unblock —
+  /// which keeps its gap from a long, truncated name and draws its own
+  /// spinner while the unblock is in flight.
+  Widget _row(AppLocalizations l10n, ChatUser u) => PersonRow(
+        avatar: UserAvatar(user: u, size: 40, api: widget.api, showStatus: false),
+        title: u.displayName,
+        subtitle: '@${u.username}',
+        trailing: RowPillButton(
+          label: l10n.acctUnblock,
+          busy: _pendingUnblock == u.id,
+          onTap: () => _unblock(u),
+        ),
+      );
 }

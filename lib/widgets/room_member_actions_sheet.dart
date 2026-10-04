@@ -125,12 +125,15 @@ class _MemberActionsSheet extends StatelessWidget {
     final hasModeration = canPromote || canDemote || canTransfer || canRemove;
     void pick(RoomMemberAction a) => Navigator.of(context).pop(a);
 
-    // A contact card, the iOS shape: the person large and centred, the
-    // everyday things you do with them as a row of quick-action tiles, and
-    // moderation in its own grouped block below — the destructive half never
-    // a thumb-width from "voice call".
+    // A contact card, the iOS shape: the name in the bar like every sheet's
+    // title (a lone × over an untitled bar read as unfinished), the face
+    // large and centred under it, the everyday things you do with them as a
+    // row of quick-action tiles, and moderation in its own grouped block
+    // below — the destructive half never a thumb-width from "voice call".
     return SheetFrame(
-      leading: const SheetCloseButton(),
+      title: isSelf
+          ? '${member.displayName} (${l10n.roomAdminYouSuffix})'
+          : member.displayName,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -140,34 +143,36 @@ class _MemberActionsSheet extends StatelessWidget {
               member: member,
               memberRole: memberRole,
               api: api,
-              isSelf: isSelf,
             ),
           ),
           if (contactable || !isSelf) ...[
             const SizedBox(height: 20),
             SheetRise(
               index: 1,
-              child: Row(
-                children: [
+              // The shared tiles: 13pt labels that wrap to two lines and
+              // then shrink — Turkish "Görüntülü ara" used to end "Görünt…".
+              child: SheetQuickActions(
+                onSheet: true,
+                actions: [
                   if (contactable) ...[
-                    _QuickAction(
+                    QuickAction(
                       icon: CupertinoIcons.chat_bubble_fill,
                       label: l10n.roomAdminActionMessage,
                       onTap: () => pick(RoomMemberAction.message),
                     ),
-                    _QuickAction(
+                    QuickAction(
                       icon: CupertinoIcons.phone_fill,
                       label: l10n.roomAdminActionVoiceCall,
                       onTap: () => pick(RoomMemberAction.voiceCall),
                     ),
-                    _QuickAction(
+                    QuickAction(
                       icon: CupertinoIcons.video_camera_solid,
                       label: l10n.roomAdminActionVideoCall,
                       onTap: () => pick(RoomMemberAction.videoCall),
                     ),
                   ],
                   if (!isSelf)
-                    _QuickAction(
+                    QuickAction(
                       icon: CupertinoIcons.person_crop_circle_fill,
                       label: l10n.roomAdminActionViewProfile,
                       onTap: () => pick(RoomMemberAction.openProfile),
@@ -227,57 +232,31 @@ class _MemberActionsSheet extends StatelessWidget {
   }
 }
 
-/// Who this sheet is about, stated once and large: the contact card's face,
-/// name and handle, centred, with the role beneath.
+/// Who this sheet is about: the contact card's face, large and centred, the
+/// handle and the role under it. The name itself is the sheet's title, in
+/// the bar.
 class _Header extends StatelessWidget {
   const _Header({
     required this.member,
     required this.memberRole,
     required this.api,
-    required this.isSelf,
   });
 
   final ChatUser member;
   final RoomRole memberRole;
   final ChatApi api;
-  final bool isSelf;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         UserAvatar(user: member, size: 76, api: api),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                member.displayName,
-                style: theme.displaySmall.copyWith(
-                  fontSize: 22,
-                  color: theme.ink,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (isSelf) ...[
-              const SizedBox(width: 6),
-              Text(
-                '(${l10n.roomAdminYouSuffix})',
-                style: theme.bodySoft.copyWith(color: theme.inkMuted),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 10),
         Text(
           '@${member.username}',
-          style: theme.bodySoft.copyWith(fontSize: 15, color: theme.inkMuted),
+          style: groupedSubtitleStyle(theme),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -325,7 +304,7 @@ class RoleChip extends StatelessWidget {
           if (isOwner) ...[
             Icon(
               CupertinoIcons.rosette,
-              size: dense ? 12 : 13,
+              size: 13,
               color: theme.accent,
             ),
             const SizedBox(width: 3),
@@ -333,71 +312,13 @@ class RoleChip extends StatelessWidget {
           Text(
             sentenceCaseOf(context, l10n.roomAdminRoleAdmin),
             style: theme.bodySoft.copyWith(
-              fontSize: dense ? 12 : 13,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               letterSpacing: 0,
               color: theme.inkSoft,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// One of the contact card's quick actions: a glyph over a word on a soft
-/// tile, equal widths across the row — iOS Contacts' Message / Call / Video.
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: SpringPress(
-          onTap: onTap,
-          scale: 0.92,
-          semanticLabel: label,
-          child: Container(
-            height: 66,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: sheetGroupFill(theme),
-              borderRadius: BorderRadius.circular(
-                (groupedRadius(theme) * 0.7).clamp(6.0, 16.0),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 22, color: theme.accent),
-                const SizedBox(height: 5),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0,
-                    color: theme.accent,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

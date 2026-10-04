@@ -1,12 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
+import 'ios_kit.dart' show FitLabel, PressSpec, SpringPress, quietFill;
 import '../l10n/text_case.dart';
 
 /// What a toast is *about*, which decides its glyph and its accent.
@@ -201,9 +202,9 @@ class _ToastSpec {
   IconData get glyph =>
       icon ??
       switch (tone) {
-        ToastTone.success => Icons.check_rounded,
-        ToastTone.danger => Icons.error_outline_rounded,
-        ToastTone.neutral => Icons.info_outline_rounded,
+        ToastTone.success => CupertinoIcons.checkmark_alt,
+        ToastTone.danger => CupertinoIcons.exclamationmark,
+        ToastTone.neutral => CupertinoIcons.info,
       };
 }
 
@@ -496,19 +497,16 @@ class _Pill extends StatelessWidget {
           // pill sits ON the screen, and a wide soft one so it reads as
           // floating well above it. A single blur can do one or the other.
           //
-          // On a light page both are lifted and softened: there the tight
-          // dark contact shadow read as a hard lip under the banner (worst on
-          // Risograph's paper), where on a dark page it is what separates it.
+          // On a light page it is ONE soft float shadow and no contact shadow
+          // at all: there even a lifted 3pt contact blur read as a hard grey
+          // lip under the pill (worst on Risograph's paper), where on a dark
+          // page it is what separates it.
           boxShadow: light
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 3,
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.14),
-                    blurRadius: 30,
-                    offset: const Offset(0, 8),
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 24,
+                    offset: const Offset(0, 6),
                   ),
                 ]
               : [
@@ -603,32 +601,40 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FocusableTap(
+    final theme = ThemeScope.of(context);
+    final text = sentenceCaseOf(context, label);
+    return SpringPress(
       onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
+      scale: PressSpec.scaleSmall,
+      semanticLabel: text,
+      focusShape: FocusRingShape.capsule,
+      focusRadius: 999,
+      // Capped, so a long translation ("Yeniden dene", "Rückgängig machen")
+      // can never squeeze the message beside it down to nothing. Past the
+      // cap the label wraps, then shrinks — a button is never ellipsized.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 128),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: quietFill(ThemeScope.of(context)),
+            color: quietFill(theme),
             borderRadius: BorderRadius.circular(999),
           ),
-          child: Text(
-            sentenceCaseOf(context, label),
-            style: TextStyle(
+          child: FitLabel(
+            text,
+            maxLines: 2,
+            minFontSize: 13,
+            style: theme.body.copyWith(
               color: accent,
               fontSize: 15,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.2,
+              height: 1.15,
               // Explicit: see the DefaultTextStyle note above. Anything under
               // an OverlayEntry that does not state this can fall back to the
               // debug style.
               decoration: TextDecoration.none,
             ),
-            maxLines: 1,
           ),
         ),
       ),

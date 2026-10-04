@@ -11,9 +11,11 @@ import '../theme/theme_scope.dart';
 import '../widgets/media_filmstrip.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/photo_backdrop.dart';
+import '../widgets/photo_chrome.dart' show MediaPlayDisc;
 import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
+import '../widgets/spring_press.dart';
 import '../widgets/steady_hero.dart';
 import 'fullscreen_video_viewer.dart';
 import '../widgets/glass_buttons.dart';
@@ -445,8 +447,8 @@ class _Thumb extends StatelessWidget {
         thumb,
         const Center(
           child: Icon(
-            Icons.play_arrow,
-            size: 18,
+            CupertinoIcons.play_fill,
+            size: 16,
             color: Colors.white,
             shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
           ),
@@ -745,9 +747,9 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
   }
 }
 
-/// The play affordance, at the same weight `VideoMessage` gives a video bubble
-/// and `VideoPlayerSurface` gives a paused one — one glyph for "this is a video
-/// and it is not playing" wherever the app draws it.
+/// The play affordance: the shared [MediaPlayDisc] at viewer size — one mark
+/// for "this is a video and it is not playing" wherever the app draws it —
+/// made pressable here with a spring and a focus stop.
 class _PlayDisc extends StatelessWidget {
   const _PlayDisc({required this.onTap, required this.semanticLabel});
 
@@ -755,30 +757,13 @@ class _PlayDisc extends StatelessWidget {
   final String semanticLabel;
 
   @override
-  Widget build(BuildContext context) {
-    // `FocusableTap` registers no gesture recognizer of its own, so the bare
-    // `GestureDetector` inside is what actually receives the pointer. Both
-    // carry the handler. Never an InkWell — this app draws no ink anywhere.
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      shape: FocusRingShape.circle,
-      radius: 999,
-      child: GestureDetector(
+  Widget build(BuildContext context) => SpringPress(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.55),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.play_arrow, color: Colors.white, size: 36),
-        ),
-      ),
-    );
-  }
+        semanticLabel: semanticLabel,
+        focusShape: FocusRingShape.circle,
+        focusRadius: 32,
+        child: const MediaPlayDisc(size: 64),
+      );
 }
 
 /// The pager's top bar: the shared viewer chrome, with who sent it and where

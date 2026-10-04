@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -20,13 +21,12 @@ import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 import 'muted_badge.dart';
 import 'pinned_badge.dart';
-import 'remote_image.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
-import 'user_avatar.dart';
 import 'visibility_badge.dart';
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
-import 'ios_kit.dart' show quietFill;
+import 'chat_list_row.dart' show ChatRoomAvatar;
+import 'ios_kit.dart' show groupedMetaStyle;
 
 import 'teardown_safe.dart';
 import '../l10n/text_case.dart';
@@ -768,7 +768,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                     room.lastMessageTime != null
                         ? roomTimeAgo(context, room.lastMessageTime!)
                         : l10n.roomCardStartedAgo(roomTimeAgo(context, room.createdAt)),
-                    style: theme.monoTiny,
+                    style: groupedMetaStyle(theme),
                   ),
                 ],
               ),
@@ -813,19 +813,27 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
             height: _previewFooterRowH,
             child: Row(
               children: [
-                if (!room.isDm) Text(l10n.roomCardMemberCount(room.memberCount), style: theme.caption),
+                // Meta on the body face — never the tracked mono. No "↗ enter"
+                // any more: the menu's own Open row is the way in.
+                if (!room.isDm)
+                  Text(
+                    l10n.roomCardMemberCount(room.memberCount),
+                    style: groupedMetaStyle(theme),
+                  ),
                 const Spacer(),
                 if (room.isEphemeral)
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      theme.hourglassIcon(size: 12, color: theme.accent),
+                      theme.hourglassIcon(size: 13, color: theme.accent),
                       const SizedBox(width: 6),
-                      Text(l10n.roomCardMessagesFadeLabel, style: theme.monoTiny.copyWith(color: theme.accent)),
+                      Text(
+                        sentenceCaseOf(context, l10n.roomCardMessagesFadeLabel),
+                        style:
+                            groupedMetaStyle(theme).copyWith(color: theme.accent),
+                      ),
                     ],
-                  )
-                else
-                  Text(l10n.roomCardEnterLabel, style: theme.monoTiny),
+                  ),
               ],
             ),
           ),
@@ -834,48 +842,14 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
     );
   }
 
-  Widget _avatar(AppTheme theme) {
-    final room = widget.room;
-    final dmUser = widget.dmUser;
-    final api = widget.api;
-    const size = _previewAvatarSize;
-    if (room.isSavedMessages) {
-      return Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: quietFill(theme), shape: BoxShape.circle),
-        child: Icon(CupertinoIcons.bookmark_fill, size: 20, color: theme.accent),
+  /// The chat list's own face for the room, so a group reads the same here
+  /// as in the row that was long-pressed — not a Material "#" in a disc.
+  Widget _avatar(AppTheme theme) => ChatRoomAvatar(
+        room: widget.room,
+        dmUser: widget.dmUser,
+        api: widget.api,
+        size: _previewAvatarSize,
       );
-    }
-    if (dmUser != null) {
-      return UserAvatar(user: dmUser, size: size, api: api);
-    }
-    if (room.avatarStorageId != null && api != null) {
-      return ClipOval(
-        child: RemoteImage(
-          storageId: room.avatarStorageId!,
-          api: api,
-          width: size,
-          height: size,
-          borderRadius: BorderRadius.circular(size / 2),
-        ),
-      );
-    }
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        shape: BoxShape.circle,
-        border: Border.all(color: theme.divider),
-      ),
-      child: room.isEphemeral
-          ? theme.hourglassIcon(size: 22, color: theme.accent)
-          : Icon(Icons.tag, size: 22, color: theme.accent),
-    );
-  }
 
   /// Typing beats everything else here, same priority [RoomCard] gives it:
   /// someone mid-sentence right now is more current than anything already
@@ -978,7 +952,10 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Text(
                           m.senderName,
-                          style: theme.caption.copyWith(fontWeight: FontWeight.w700, color: theme.accent),
+                          style: groupedMetaStyle(theme).copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.accent,
+                          ),
                         ),
                       ),
                     Text(messagePreviewLine(m), style: textStyle, maxLines: 3, overflow: TextOverflow.ellipsis),
@@ -1032,45 +1009,51 @@ class _ChatRowActionRowState extends State<_ChatRowActionRow>
     final (icon, label) = _spec(AppLocalizations.of(context));
     // The iOS context-menu row: label on the left in body type, the glyph on
     // the right, a hairline between rows. Fixed at the overlay's row height
-    // so its placement maths stays exact.
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
+    // so its placement maths stays exact. FocusableTap so a keyboard reaches
+    // it; the pointer keeps the flat wash below.
+    return FocusableTap(
       onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: _pressed ? Duration.zero : const Duration(milliseconds: 200),
-        height: _ChatRowActionMenuOverlayState._rowHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: _pressed ? theme.ink.withValues(alpha: 0.08) : null,
-          border: widget.divider
-              ? Border(
-                  bottom: BorderSide(
-                    color: theme.ink.withValues(alpha: 0.10),
-                    width: 1 / MediaQuery.devicePixelRatioOf(context),
+      semanticLabel: sentenceCaseOf(context, label),
+      radius: 0,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: _pressed ? Duration.zero : const Duration(milliseconds: 200),
+          height: _ChatRowActionMenuOverlayState._rowHeight,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: _pressed ? theme.ink.withValues(alpha: 0.08) : null,
+            border: widget.divider
+                ? Border(
+                    bottom: BorderSide(
+                      color: theme.ink.withValues(alpha: 0.10),
+                      width: 1 / MediaQuery.devicePixelRatioOf(context),
+                    ),
+                  )
+                : null,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  sentenceCaseOf(context, label),
+                  style: theme.body.copyWith(
+                    fontSize: 17,
+                    color: theme.ink,
+                    letterSpacing: -0.3,
                   ),
-                )
-              : null,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                sentenceCaseOf(context, label),
-                style: theme.body.copyWith(
-                  fontSize: 17,
-                  color: theme.ink,
-                  letterSpacing: -0.3,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(width: 12),
-            Icon(icon, size: 19, color: theme.ink),
-          ],
+              const SizedBox(width: 12),
+              Icon(icon, size: 19, color: theme.ink),
+            ],
+          ),
         ),
       ),
     );

@@ -69,7 +69,6 @@ class _PasswordPromptSheetState extends State<_PasswordPromptSheet> {
     // field it was opened to fill is never under the keyboard.
     return SheetFrame(
       title: sentenceCaseOf(context, widget.title),
-      leading: const SheetCloseButton(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

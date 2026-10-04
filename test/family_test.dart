@@ -195,7 +195,7 @@ void main() {
         });
         expect(c.isWhitelisted, isTrue);
         expect(c.connected, isFalse);
-        expect(c.stateLabel, 'allowed · not added yet');
+        expect(c.state, ChildContactState.allowedNotAdded);
       },
     );
 
@@ -209,7 +209,7 @@ void main() {
         'connected': true,
       });
       expect(c.isWhitelisted, isFalse);
-      expect(c.stateLabel, 'talking');
+      expect(c.state, ChildContactState.talking);
     });
 
     test('whitelisted and connected are independent, not exclusive', () {
@@ -222,7 +222,7 @@ void main() {
       });
       expect(c.isWhitelisted, isTrue);
       expect(c.connected, isTrue);
-      expect(c.stateLabel, 'allowed · talking');
+      expect(c.state, ChildContactState.allowedTalking);
     });
 
     test('grants decode a mixed list', () {

@@ -47,8 +47,10 @@ class ChatStyleScreen extends StatelessWidget {
                 ),
               ],
             ),
+            // Two notes, not one run-on line: what the picked option does,
+            // then — on its own line — what the page is for.
             GroupedFooter(
-              '${current == ChatStyle.classic ? l10n.chatStyleClassicSub : l10n.chatStyleCompactSub} '
+              '${current == ChatStyle.classic ? l10n.chatStyleClassicSub : l10n.chatStyleCompactSub}\n'
               '${l10n.chatStylePageFooter}',
             ),
           ],

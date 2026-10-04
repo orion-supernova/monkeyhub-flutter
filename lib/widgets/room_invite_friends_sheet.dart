@@ -16,7 +16,6 @@ import 'ios_kit.dart';
 import 'sheet_kit.dart';
 import 'search_field.dart';
 import 'user_avatar.dart';
-import '../l10n/text_case.dart';
 
 /// "Add a friend to this group" — the picker, and the invites it sends.
 ///
@@ -149,10 +148,8 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
 
     return SheetFrame(
       title: l10n.roomInviteFriendsTitle,
-      leading: SheetCloseButton(
-        onTap: () => Navigator.of(context).pop(_anySent),
-      ),
-      trailing: SheetConfirmButton(
+      onClose: () => Navigator.of(context).pop(_anySent),
+      confirm: SheetConfirm(
         label: l10n.roomInviteFriendsDone,
         onTap: () => Navigator.of(context).pop(_anySent),
       ),
@@ -167,7 +164,7 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 14),
               child: Text(
                 l10n.roomInviteFriendsBlurb,
-                style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                style: groupedFooterStyle(theme),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -185,18 +182,17 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
                 child: Center(child: CupertinoActivityIndicator()),
               )
             else if (visible.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 30),
-                child: Text(
-                  // Two different empties. "No friends left to invite" is a
-                  // finished state and reads as success; "nothing matches
-                  // that" is a search result. Showing the first while someone
-                  // is typing would be a lie.
-                  _search.text.trim().isEmpty
-                      ? l10n.roomInviteFriendsEmpty
-                      : l10n.roomInviteFriendsNoMatch,
-                  style: theme.bodySoft,
-                  textAlign: TextAlign.center,
+              // Two different empties. "No friends left to invite" is a
+              // finished state and reads as success; "nothing matches that"
+              // is a search result. Showing the first while someone is typing
+              // would be a lie.
+              EmptyLine(
+                _search.text.trim().isEmpty
+                    ? l10n.roomInviteFriendsEmpty
+                    : l10n.roomInviteFriendsNoMatch,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 30,
                 ),
               )
             else
@@ -251,13 +247,7 @@ class _FriendRow extends StatelessWidget {
         key: const ValueKey('sent'),
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            l10n.roomInviteFriendsSent,
-            style: theme.bodySoft.copyWith(
-              fontSize: 14,
-              color: theme.inkMuted,
-            ),
-          ),
+          Text(l10n.roomInviteFriendsSent, style: groupedMetaStyle(theme)),
           const SizedBox(width: 6),
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
@@ -274,73 +264,23 @@ class _FriendRow extends StatelessWidget {
           ),
         ],
       );
-    } else if (sending) {
-      trailing = const SizedBox(
-        key: ValueKey('sending'),
-        width: 44,
-        child: Center(child: CupertinoActivityIndicator()),
-      );
     } else {
-      trailing = SpringPress(
+      // THE inline row action, with its own same-width spinner while the
+      // invite is on the wire.
+      trailing = RowPillButton(
         key: const ValueKey('invite'),
+        label: l10n.roomInviteFriendsInviteButton,
+        busy: sending,
         onTap: onInvite,
-        semanticLabel: l10n.roomInviteFriendsInviteButton,
-        scale: 0.93,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 32),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.ink.withValues(alpha: 0.09),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            sentenceCaseOf(context, l10n.roomInviteFriendsInviteButton),
-            style: theme.bodySoft.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0,
-              color: theme.accent,
-            ),
-          ),
-        ),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 9, 12, 9),
-      child: Row(
-        children: [
-          UserAvatar(user: user, size: 40, api: api),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.displayName,
-                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '@${user.username}',
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    color: theme.inkMuted,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          AnimatedSwitcher(
-            duration: MotionScope.of(context)
-                .d(const Duration(milliseconds: 200)),
-            child: trailing,
-          ),
-        ],
+    return PersonRow(
+      avatar: UserAvatar(user: user, size: kPersonRowAvatar, api: api),
+      title: user.displayName,
+      subtitle: '@${user.username}',
+      trailing: AnimatedSwitcher(
+        duration: MotionScope.of(context).d(const Duration(milliseconds: 200)),
+        child: trailing,
       ),
     );
   }

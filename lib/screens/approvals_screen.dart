@@ -207,29 +207,19 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
   }
 }
 
+/// Nothing waiting: the shared empty state, lifted a little off centre the
+/// way iOS's ContentUnavailableView sits.
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.only(bottom: 80),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AvatarPop(
-              child: Icon(
-                CupertinoIcons.checkmark_seal_fill,
-                size: 52,
-                color: theme.success,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(loc.apprEmptyTitle, style: theme.displaySmall),
-            const SizedBox(height: 4),
-            Text(loc.apprEmptySub, style: theme.bodySoft),
-          ],
+        child: EmptyState(
+          icon: CupertinoIcons.checkmark_seal_fill,
+          title: loc.apprEmptyTitle,
+          message: loc.apprEmptySub,
         ),
       ),
     );
@@ -355,18 +345,14 @@ class _QueueCard extends StatelessWidget {
                       children: [
                         Text(
                           _headline(loc),
-                          style: theme.bodyEmph.copyWith(
-                            fontSize: 16,
-                            color: theme.ink,
-                          ),
+                          style: groupedTitleStyle(theme)
+                              .copyWith(fontWeight: FontWeight.w600),
                         ),
                         if (subject != null) ...[
                           const SizedBox(height: 1),
                           Text(
                             '@${subject.username}',
-                            style: theme.caption.copyWith(
-                              color: theme.inkMuted,
-                            ),
+                            style: groupedSubtitleStyle(theme),
                           ),
                         ],
                       ],
@@ -385,52 +371,34 @@ class _QueueCard extends StatelessWidget {
                   ),
                   child: Text(
                     item.note,
-                    style: theme.body.copyWith(fontSize: 15, color: theme.ink),
+                    style: groupedTitleStyle(theme),
                   ),
                 ),
               ],
               const SizedBox(height: 10),
               Text(
                 _consequence(loc),
-                style: theme.caption.copyWith(
-                  fontSize: 13,
-                  height: 1.35,
-                  color: theme.inkMuted,
-                ),
+                style: groupedFooterStyle(theme),
               ),
               const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
-                    child: SheetButton(
+                    child: SheetActionButton(
                       label: loc.apprNotYet,
+                      tonal: true,
                       onTap: busy ? null : () => onDecide(false),
                     ),
                   ),
                   const SizedBox(width: 10),
+                  // Busy is a state of the button — same size, its own
+                  // spinner — not a hand-built placeholder swapped in.
                   Expanded(
-                    child: busy
-                        ? Container(
-                            height: 50,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: quietFill(theme),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CupertinoActivityIndicator(
-                                radius: 8,
-                                color: theme.accentInk,
-                              ),
-                            ),
-                          )
-                        : SheetButton(
-                            label: loc.apprAllow,
-                            filled: true,
-                            onTap: () => onDecide(true),
-                          ),
+                    child: SheetActionButton(
+                      label: loc.apprAllow,
+                      busy: busy,
+                      onTap: () => onDecide(true),
+                    ),
                   ),
                 ],
               ),

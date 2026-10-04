@@ -10,6 +10,7 @@ import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
+import 'skeleton_rows.dart' show SkeletonBox, SkeletonSweep;
 
 import 'teardown_safe.dart';
 import '../l10n/text_case.dart';
@@ -330,7 +331,7 @@ class _HeroImage extends StatelessWidget {
       errorWidget: (_, _, _) => Container(
         color: tone.surface,
         alignment: Alignment.center,
-        child: Icon(Icons.image_not_supported_outlined,
+        child: Icon(CupertinoIcons.photo,
             color: tone.inkMuted, size: 22),
       ),
       placeholder: (_, _) => Container(
@@ -391,7 +392,7 @@ class _CompactLayout extends StatelessWidget {
                 ),
               ),
               alignment: Alignment.center,
-              child: Icon(Icons.link_rounded,
+              child: Icon(CupertinoIcons.link,
                   size: 22, color: theme.accentInk),
             ),
             Expanded(
@@ -463,7 +464,7 @@ class _BareLayout extends StatelessWidget {
                     AppLocalizations.of(context).linkPreviewCardLinkLabel,
                   ),
                   style: theme.bodySoft.copyWith(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: tone.inkMuted,
                   ),
@@ -479,7 +480,7 @@ class _BareLayout extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Icon(Icons.arrow_outward_rounded, size: 14, color: theme.accent),
+          Icon(CupertinoIcons.arrow_up_right, size: 15, color: theme.accent),
         ],
       ),
     );
@@ -515,7 +516,7 @@ class _InfoBlock extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // SITE NAME row: theme.accent dot + mono caps.
+        // Site-name row: an accent dot and the name at meta size.
         Row(
           children: [
             Container(
@@ -531,7 +532,7 @@ class _InfoBlock extends StatelessWidget {
               child: Text(
                 siteTag,
                 style: theme.bodySoft.copyWith(
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: tone.inkMuted,
                 ),
@@ -548,7 +549,7 @@ class _InfoBlock extends StatelessWidget {
             style: theme.bodyEmph.copyWith(
               color: tone.ink,
               height: 1.22,
-              fontSize: dense ? 14 : 15.5,
+              fontSize: 15,
             ),
             maxLines: dense ? 1 : 2,
             overflow: TextOverflow.ellipsis,
@@ -561,7 +562,7 @@ class _InfoBlock extends StatelessWidget {
             style: theme.bodySoft.copyWith(
               color: tone.inkMuted,
               height: 1.32,
-              fontSize: 12.5,
+              fontSize: 13,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -574,7 +575,7 @@ class _InfoBlock extends StatelessWidget {
               child: Text(
                 domain,
                 style: theme.bodySoft.copyWith(
-                  fontSize: 12,
+                  fontSize: 13,
                   color: tone.inkSoft,
                 ),
                 maxLines: 1,
@@ -582,7 +583,7 @@ class _InfoBlock extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            Icon(Icons.arrow_outward_rounded, size: 12, color: theme.accent),
+            Icon(CupertinoIcons.arrow_up_right, size: 13, color: theme.accent),
           ],
         ),
       ],
@@ -608,147 +609,47 @@ class _Skeleton extends StatefulWidget {
   State<_Skeleton> createState() => _SkeletonState();
 }
 
-class _SkeletonState extends State<_Skeleton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _sweep;
-
-  @override
-  void initState() {
-    super.initState();
-    _sweep = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _sweep.dispose();
-    super.dispose();
-  }
-
+class _SkeletonState extends State<_Skeleton> {
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final tone = _CardTones.of(theme, widget.isMine, widget.insideBubble);
-
-    // Base = a midtone splitting the difference between the card surface
-    // and a slightly sunken color, so the skeleton reads as "card with
-    // placeholders" instead of "solid dark rectangle". Highlight rides
-    // brighter so the sweep is unmistakable.
-    final base = Color.alphaBlend(
-      theme.surfaceSunken.withValues(alpha: 0.45),
-      tone.surface,
-    );
-    final highlight = Color.alphaBlend(
-      theme.surfaceRaised.withValues(alpha: 0.95),
-      base,
-    );
-
+    // THE skeleton: boxes under one shared sweep, the language every other
+    // placeholder in the app speaks — not a private controller and its own
+    // colour maths.
     return Container(
       decoration: BoxDecoration(
         color: tone.surface,
-        border: Border.all(color: tone.border, width: 1),
         borderRadius: BorderRadius.circular(theme.radiusMd),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.hasImage)
-            AspectRatio(
-              aspectRatio: 1.91,
-              child: _SweepFill(
-                sweep: _sweep,
-                base: base,
-                highlight: highlight,
+      child: SkeletonSweep(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.hasImage)
+              const AspectRatio(
+                aspectRatio: 1.91,
+                child: SkeletonBox(height: double.infinity, radius: 0),
+              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(width: 64, height: 8, radius: 2),
+                  SizedBox(height: 10),
+                  SkeletonBox(height: 11, radius: 2),
+                  SizedBox(height: 6),
+                  SkeletonBox(width: 180, height: 11, radius: 2),
+                  SizedBox(height: 10),
+                  SkeletonBox(width: 100, height: 8, radius: 2),
+                ],
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _SweepBar(sweep: _sweep, base: base, highlight: highlight,
-                    width: 64, height: 8),
-                const SizedBox(height: 10),
-                _SweepBar(sweep: _sweep, base: base, highlight: highlight,
-                    width: double.infinity, height: 11),
-                const SizedBox(height: 6),
-                _SweepBar(sweep: _sweep, base: base, highlight: highlight,
-                    width: 180, height: 11),
-                const SizedBox(height: 10),
-                _SweepBar(sweep: _sweep, base: base, highlight: highlight,
-                    width: 100, height: 8),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Solid-color fill with a `base → highlight → base` linear gradient
-/// sweeping across it left-to-right on a 1.4s loop. The endpoints sit
-/// fully off-screen at the start/end of the cycle so the loop wraps
-/// invisibly.
-class _SweepFill extends StatelessWidget {
-  const _SweepFill({
-    required this.sweep,
-    required this.base,
-    required this.highlight,
-  });
-
-  final Animation<double> sweep;
-  final Color base;
-  final Color highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: sweep,
-      builder: (context, _) {
-        final t = sweep.value;
-        return ShaderMask(
-          blendMode: BlendMode.srcATop,
-          shaderCallback: (bounds) => LinearGradient(
-            begin: Alignment(-3 + 4 * t, 0),
-            end: Alignment(-1 + 4 * t, 0),
-            colors: [base, highlight, base],
-            stops: const [0.0, 0.5, 1.0],
-          ).createShader(bounds),
-          child: Container(color: base),
-        );
-      },
-    );
-  }
-}
-
-class _SweepBar extends StatelessWidget {
-  const _SweepBar({
-    required this.sweep,
-    required this.base,
-    required this.highlight,
-    required this.width,
-    required this.height,
-  });
-
-  final Animation<double> sweep;
-  final Color base;
-  final Color highlight;
-  final double width;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(2),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: _SweepFill(sweep: sweep, base: base, highlight: highlight),
+          ],
+        ),
       ),
     );
   }

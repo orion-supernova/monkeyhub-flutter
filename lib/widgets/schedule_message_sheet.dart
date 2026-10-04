@@ -266,12 +266,8 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
           context,
           _picking ? l10n.scheduleTimePickerTitle : l10n.scheduleSheetTitle,
         ),
-        // Cancel at the top left, always — the iOS sheet's own escape, so it
-        // is there on the calendar page as much as on the quick choices.
-        leading: _TextAction(
-          label: sentenceCaseOf(context, l10n.destructiveSheetCancelButtonLabel),
-          onTap: () => Navigator.of(context).pop(),
-        ),
+        // The × top-left, always — the same escape every sheet has, on the
+        // calendar page as much as on the quick choices.
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -280,7 +276,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
               Text(
                 l10n.scheduleSheetSubtitle,
                 textAlign: TextAlign.center,
-                style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                style: groupedFooterStyle(theme),
               ),
               if (preview != null && preview.isNotEmpty) ...[
                 const SizedBox(height: 14),
@@ -319,9 +315,8 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _TextAction(
+                          TextLinkButton(
                             label: l10n.scheduleTimePickerBack,
-                            leadingIcon: CupertinoIcons.chevron_back,
                             onTap: () => setState(() => _picking = false),
                           ),
                           const SizedBox(height: 8),
@@ -337,8 +332,14 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
               _Summary(
                 theme: theme,
                 motion: motion,
-                sentence: l10n.scheduleSendsAtSentence(
-                  scheduleWhenPhrase(context, _resolved, now: _openedAt),
+                // Raised here, not in the ARB: the "when" phrase is a mid-
+                // sentence fragment ("today at 9:00"), and in Turkish it
+                // opens the sentence ("bugün saat 9:00'da gönderilecek").
+                sentence: sentenceCaseOf(
+                  context,
+                  l10n.scheduleSendsAtSentence(
+                    scheduleWhenPhrase(context, _resolved, now: _openedAt),
+                  ),
                 ),
                 warning: _isValid ? null : l10n.scheduleErrorOutOfRange,
               ),
@@ -508,45 +509,6 @@ class _Summary extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// A text button in the sheet's bar or above the calendar, in the accent —
-/// the iOS "Cancel" / "‹ Back".
-class _TextAction extends StatelessWidget {
-  const _TextAction({
-    required this.label,
-    required this.onTap,
-    this.leadingIcon,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final IconData? leadingIcon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (leadingIcon != null) ...[
-              Icon(leadingIcon, size: 17, color: theme.accent),
-              const SizedBox(width: 3),
-            ],
-            Text(
-              label,
-              style: theme.body.copyWith(fontSize: 17, color: theme.accent),
-            ),
-          ],
-        ),
       ),
     );
   }

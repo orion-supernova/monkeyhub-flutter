@@ -217,7 +217,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SkeletonBubbles), findsOneWidget);
-      expect(find.text('room gone'), findsNothing);
+      expect(find.text('Room gone'), findsNothing);
 
       // Tear down before the ticker and the give-up timer outlive the test.
       await tester.pumpWidget(const SizedBox.shrink());
@@ -232,7 +232,7 @@ void main() {
 
       // The room's own chrome, which only the non-null branch builds.
       expect(find.text('The Room'), findsAtLeastNWidgets(1));
-      expect(find.text('room gone'), findsNothing);
+      expect(find.text('Room gone'), findsNothing);
       // A skeleton is still on screen here and that is correct — it is the
       // TRANSCRIPT's placeholder now, not this branch's. The screen has gone
       // from "we don't know what this room is" to "we know, and its messages
@@ -249,7 +249,7 @@ void main() {
       // The server answered, and r1 is not in what it said.
       await deliverRooms(tester, [_roomWire('other')]);
 
-      expect(find.text('room gone'), findsOneWidget);
+      expect(find.text('Room gone'), findsOneWidget);
       expect(find.byType(SkeletonBubbles), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -265,7 +265,7 @@ void main() {
 
       await tester.pump(const Duration(seconds: 9));
 
-      expect(find.text('room gone'), findsOneWidget);
+      expect(find.text('Room gone'), findsOneWidget);
       expect(find.byType(SkeletonBubbles), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -355,7 +355,7 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text('room gone'),
+        find.text('Room gone'),
         findsNothing,
         reason: 'a room absent from a snapshot written before it existed is '
             'not a room that has been deleted',

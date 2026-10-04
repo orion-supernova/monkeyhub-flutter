@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'sheet_kit.dart';
-import '../l10n/text_case.dart';
 
 /// The call-to-action pair every sheet in this family ends with.
 ///
@@ -19,7 +17,11 @@ import '../l10n/text_case.dart';
 /// regression gets attributed to the wrong edit. Migrating it later is a
 /// two-line change.
 
-/// The heavy option: a full-width filled slab, sentence case — the iOS
+/// Both are thin aliases now: [SheetPrimaryButton] is [SheetActionButton],
+/// [SheetSecondaryButton] is its `tonal` variant or a [TextLinkButton]. New
+/// code uses those directly.
+
+/// The heavy option: a full-width accent capsule, sentence case — the iOS
 /// sheet's primary button. Drawn by [SheetActionButton].
 ///
 /// A null [onTap] renders disabled rather than hiding the button — a dead
@@ -40,7 +42,7 @@ class SheetPrimaryButton extends StatelessWidget {
       SheetActionButton(label: label, onTap: onTap);
 }
 
-/// The lighter option: a soft tinted slab, or bare text for a dismissal.
+/// The lighter option: a soft tinted capsule, or bare text for a dismissal.
 class SheetSecondaryButton extends StatelessWidget {
   const SheetSecondaryButton({
     super.key,
@@ -72,25 +74,6 @@ class SheetSecondaryButton extends StatelessWidget {
         destructive: destructive,
       );
     }
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          alignment: Alignment.center,
-          child: Text(
-            sentenceCaseOf(context, label),
-            style: theme.body.copyWith(
-              fontSize: 17,
-              color: destructive ? theme.danger : theme.accent,
-            ),
-          ),
-        ),
-      ),
-    );
+    return TextLinkButton(label: label, onTap: onTap, destructive: destructive);
   }
 }

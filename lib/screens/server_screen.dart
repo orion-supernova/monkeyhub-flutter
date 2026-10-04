@@ -11,19 +11,14 @@ import '../backend/server_probe.dart';
 import '../backend/server_store.dart';
 import '../backend/server_switch.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
-import '../keyboard/focusable_tap.dart';
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
+import '../widgets/account_kit.dart' show SoftNote;
 import '../widgets/labeled_field.dart';
 import '../widgets/server_role_sheet.dart';
-import '../widgets/ios_kit.dart'
-    show GlassBackButton, groupedFill, groupedRadius;
-import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton;
-import '../l10n/text_case.dart';
+import '../widgets/ios_kit.dart';
 
 /// Where this install connects: the deployment it shipped with, or one the user
 /// runs themselves.
@@ -240,133 +235,131 @@ class _ServerScreenState extends State<ServerScreen> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final switching = ServerSwitch.instance.busy;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: DismissKeyboardOnTap(
-        child: Stack(
-          children: [
-            theme.backgroundLayer(context),
-            // See home_screen: the bottom inset leaves a dead strip of
-            // background under the scroller, which reads as a solid bar. The
-            // list clears the home indicator with its own padding instead.
-            SafeArea(
-              bottom: false,
-              child: AdaptivePageBody(
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    6,
-                    16,
-                    edgeToEdgeBottom(context, 48),
-                  ),
+    // Pushed from Settings it wears the back chevron; opened as a
+    // full-screen modal (the login screen's server chip) it wears the ×
+    // instead; during onboarding there is nothing behind it at all.
+    final modal = ModalRoute.of(context)?.fullscreenDialog ?? false;
+    final Widget? leading = widget.onboarding
+        ? null
+        : IgnorePointer(
+            ignoring: switching,
+            child: modal ? const GlassCloseButton() : const GlassBackButton(),
+          );
+    return DismissKeyboardOnTap(
+      child: Stack(
+        children: [
+          IosPage(
+            title: widget.onboarding
+                ? l10n.serverOnboardingTitleIos
+                : l10n.serverTitleIos,
+            subtitle: widget.onboarding
+                ? l10n.serverOnboardingSubtitle
+                : l10n.serverScreenSubtitle,
+            leading: leading,
+            showBack: !widget.onboarding,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 48),
+            children: [
+              // Where things stand right now. Skipped during onboarding —
+              // there is no "now" yet, and a card reading "Not connected"
+              // above an empty form describes a problem rather than the task.
+              if (!widget.onboarding) ...[
+                _ActiveServerCard(health: widget._health),
+                const SizedBox(height: 24),
+              ],
+
+              if (_hasBundled)
+                GroupedSection(
+                  margin: const EdgeInsets.only(bottom: 20),
                   children: [
-                    if (!widget.onboarding)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: IgnorePointer(
-                          ignoring: switching,
-                          child: const GlassBackButton(),
-                        ),
-                      )
-                    else
-                      const SizedBox(height: 8),
-                    const SizedBox(height: 14),
-                    Text(
-                      widget.onboarding
-                          ? l10n.serverOnboardingTitleIos
-                          : l10n.serverTitleIos,
-                      style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+                    _choiceRow(
+                      label: l10n.serverChoiceCloud,
+                      // Says "temporarily on the homeserver" rather than naming
+                      // an address: a follow is still THIS choice, just being
+                      // served from somewhere else for a while.
+                      sub: ServerStore.instance.role == ServerRole.homeserver
+                          ? l10n.serverChoiceCloudSubHomeserver
+                          : l10n.serverChoiceCloudSub,
+                      selected: _choice == _Choice.bundled,
+                      inUse: !ServerStore.instance.isSelfHosted,
+                      inUseLabel: l10n.serverActiveNowLabel,
+                      onTap: switching
+                          ? null
+                          : () => setState(() => _choice = _Choice.bundled),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      sentenceCaseOf(
-                        context,
-                        widget.onboarding
-                            ? l10n.serverOnboardingSubtitle
-                            : l10n.serverScreenSubtitle,
-                      ),
-                      style: theme.bodySoft,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Where things stand right now. Skipped during onboarding —
-                    // there is no "now" yet, and a card reading NOT CONNECTED
-                    // above an empty form describes a problem rather than the
-                    // task.
-                    if (!widget.onboarding) ...[
-                      _ActiveServerCard(health: widget._health),
-                      const SizedBox(height: 24),
-                    ],
-
-                    if (_hasBundled) ...[
-                      _ChoiceCard(
-                        label: l10n.serverChoiceCloud,
-                        // Says "temporarily on the homeserver" rather than naming
-                        // an address: a follow is still THIS choice, just being
-                        // served from somewhere else for a while.
-                        sub: ServerStore.instance.role == ServerRole.homeserver
-                            ? l10n.serverChoiceCloudSubHomeserver
-                            : l10n.serverChoiceCloudSub,
-                        host: '',
-                        selected: _choice == _Choice.bundled,
-                        inUse: !ServerStore.instance.isSelfHosted,
-                        inUseLabel: l10n.serverActiveNowLabel,
-                        onTap: switching
-                            ? null
-                            : () => setState(() => _choice = _Choice.bundled),
-                      ),
-                      const SizedBox(height: 12),
-                      _ChoiceCard(
-                        label: l10n.serverChoiceOwn,
-                        sub: l10n.serverChoiceOwnSub,
-                        host: ServerStore.instance.isSelfHosted
-                            ? ServerStore.instance.host
-                            : '',
-                        selected: _choice == _Choice.own,
-                        inUse: ServerStore.instance.isSelfHosted,
-                        inUseLabel: l10n.serverActiveNowLabel,
-                        onTap: switching
-                            ? null
-                            : () => setState(() => _choice = _Choice.own),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    if (_choice == _Choice.own)
-                      ..._ownServerForm(theme, l10n, switching)
-                    else
-                      ..._bundledForm(l10n, switching),
-
-                    if (_switchError != null) ...[
-                      const SizedBox(height: 18),
-                      _Notice(
-                        icon: Icons.error_outline,
-                        tone: theme.danger,
-                        title: l10n.serverSwitchRolledBackTitle,
-                        body: _switchError!,
-                      ),
-                    ],
-
-                    ..._recentSection(l10n, switching),
-
-                    const SizedBox(height: 24),
-                    _Notice(
-                      icon: Icons.swap_horiz,
-                      tone: theme.inkMuted,
-                      title: l10n.serverSwitchWarningTitle,
-                      body: l10n.serverSwitchWarningBody,
+                    _choiceRow(
+                      label: l10n.serverChoiceOwn,
+                      sub: ServerStore.instance.isSelfHosted
+                          ? ServerStore.instance.host
+                          : l10n.serverChoiceOwnSub,
+                      selected: _choice == _Choice.own,
+                      inUse: ServerStore.instance.isSelfHosted,
+                      inUseLabel: l10n.serverActiveNowLabel,
+                      onTap: switching
+                          ? null
+                          : () => setState(() => _choice = _Choice.own),
                     ),
                   ],
                 ),
+
+              if (_choice == _Choice.own)
+                ..._ownServerForm(theme, l10n, switching)
+              else
+                ..._bundledForm(l10n, switching),
+
+              if (_switchError != null) ...[
+                const SizedBox(height: 18),
+                SoftNote(
+                  icon: CupertinoIcons.exclamationmark_circle,
+                  tone: theme.danger,
+                  title: l10n.serverSwitchRolledBackTitle,
+                  text: _switchError!,
+                ),
+              ],
+
+              ..._recentSection(l10n, switching),
+
+              const SizedBox(height: 24),
+              SoftNote(
+                icon: CupertinoIcons.arrow_right_arrow_left,
+                tone: theme.inkMuted,
+                title: l10n.serverSwitchWarningTitle,
+                text: l10n.serverSwitchWarningBody,
               ),
-            ),
-            // A half-applied switch is the one state with no sensible UI: the
-            // session is gone, the socket is mid-rebuild, and every screen
-            // underneath is describing a server that is no longer there. So the
-            // whole screen is taken until it settles.
-            if (switching) const _SwitchScrim(),
-          ],
-        ),
+            ],
+          ),
+          // A half-applied switch is the one state with no sensible UI: the
+          // session is gone, the socket is mid-rebuild, and every screen
+          // underneath is describing a server that is no longer there. So the
+          // whole screen is taken until it settles.
+          if (switching) const _SwitchScrim(),
+        ],
+      ),
+    );
+  }
+
+  /// One side of the bundled / own choice: a pick-one row with what it is
+  /// underneath, "In use" on the side that is live, and the checkmark on the
+  /// side the form below is showing.
+  Widget _choiceRow({
+    required String label,
+    required String sub,
+    required bool selected,
+    required bool inUse,
+    required String inUseLabel,
+    required VoidCallback? onTap,
+  }) {
+    final theme = ThemeScope.of(context);
+    return GroupedRow(
+      title: label,
+      subtitle: sub,
+      value: inUse ? inUseLabel : null,
+      chevron: false,
+      onTap: onTap,
+      trailing: AnimatedScale(
+        scale: selected ? 1 : 0,
+        duration: const Duration(milliseconds: 380),
+        curve: selected ? Curves.elasticOut : Curves.easeIn,
+        child: Icon(CupertinoIcons.checkmark_alt, size: 20, color: theme.accent),
       ),
     );
   }
@@ -379,7 +372,7 @@ class _ServerScreenState extends State<ServerScreen> {
     // button that undoes something nobody did.
     if (!ServerStore.instance.isSelfHosted) return const [];
     return [
-      _PrimaryButton(
+      SheetActionButton(
         label: l10n.serverUseDefaultCta,
         onTap: switching ? null : () => _connect(null),
       ),
@@ -410,22 +403,17 @@ class _ServerScreenState extends State<ServerScreen> {
         textInputAction: TextInputAction.done,
         onChanged: _onAddressChanged,
         onSubmitted: (_) => _test(),
-        trailing: FocusableTap(
+        trailing: SpringPress(
           onTap: switching ? null : _paste,
-          radius: 8,
           semanticLabel: l10n.serverAddressPaste,
-          child: GestureDetector(
-            onTap: switching ? null : _paste,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              child: Text(
-                sentenceCaseOf(context, l10n.serverAddressPaste),
-                style: theme.body.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: theme.accent,
-                ),
+          focusShape: FocusRingShape.capsule,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            child: Text(
+              l10n.serverAddressPaste,
+              style: groupedSubtitleStyle(theme).copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.accent,
               ),
             ),
           ),
@@ -441,15 +429,15 @@ class _ServerScreenState extends State<ServerScreen> {
         Row(
           children: [
             Icon(
-              Icons.subdirectory_arrow_right,
-              size: 12,
+              CupertinoIcons.arrow_turn_down_right,
+              size: 13,
               color: theme.inkMuted,
             ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
                 check.url!,
-                style: theme.monoTiny.copyWith(color: theme.inkSoft),
+                style: groupedMetaStyle(theme).copyWith(color: theme.inkSoft),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -460,7 +448,7 @@ class _ServerScreenState extends State<ServerScreen> {
         const SizedBox(height: 8),
         Text(
           _problemText(l10n, check.problem!),
-          style: theme.monoTiny.copyWith(color: theme.danger),
+          style: groupedFooterStyle(theme).copyWith(color: theme.danger),
         ),
       ],
       // Not a refusal. Desktop and web builds can reach a plain-http server
@@ -469,20 +457,24 @@ class _ServerScreenState extends State<ServerScreen> {
       // address never connects, and it is invisible without being said.
       if (check.url != null && !Uri.parse(check.url!).isScheme('https')) ...[
         const SizedBox(height: 10),
-        _Notice(
-          icon: Icons.lock_open_outlined,
+        SoftNote(
+          icon: CupertinoIcons.lock_open,
           tone: theme.danger,
           title: l10n.serverInsecureTitle,
-          body: l10n.serverInsecureBody,
+          text: l10n.serverInsecureBody,
         ),
       ],
 
       const SizedBox(height: 14),
-      _TestButton(
+      // The secondary action: tonal, so the filled Connect below stays the
+      // one obvious primary — and the same capsule as it, not a rounded
+      // rectangle stacked over a pill.
+      SheetActionButton(
+        label: l10n.serverTestCta,
+        semanticLabel: _testing ? l10n.serverTestingLabel : null,
+        tonal: true,
         busy: _testing,
-        enabled: !switching && check.url != null,
-        label: _testing ? l10n.serverTestingLabel : l10n.serverTestCta,
-        onTap: _test,
+        onTap: !switching && check.url != null ? _test : null,
       ),
       if (result != null) ...[
         const SizedBox(height: 14),
@@ -499,7 +491,7 @@ class _ServerScreenState extends State<ServerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.serverSiteUrlExplain, style: theme.bodySoft),
+              Text(l10n.serverSiteUrlExplain, style: groupedFooterStyle(theme)),
               const SizedBox(height: 10),
               ThemedInput(
                 controller: _siteAddress,
@@ -517,7 +509,7 @@ class _ServerScreenState extends State<ServerScreen> {
       ),
 
       const SizedBox(height: 18),
-      _PrimaryButton(
+      SheetActionButton(
         label: unchanged
             ? l10n.serverAlreadyConnectedCta
             : (result != null && !result.ok
@@ -548,13 +540,15 @@ class _ServerScreenState extends State<ServerScreen> {
     if (recent.isEmpty) return const [];
     return [
       const SizedBox(height: 28),
-      _SectionHeader(label: l10n.serverSectionRecent),
-      const SizedBox(height: 12),
-      for (final e in recent) ...[
-        _RecentRow(
-          endpoint: e,
-          forgetLabel: l10n.serverRecentForget,
-          onTap: switching
+      GroupedSection(
+        header: l10n.serverSectionRecent,
+        margin: EdgeInsets.zero,
+        children: [
+          for (final e in recent)
+            _recentRow(
+              endpoint: e,
+              forgetLabel: l10n.serverRecentForget,
+              onTap: switching
               ? null
               : () {
                   // Fills the form rather than connecting. One tap away from a
@@ -570,9 +564,38 @@ class _ServerScreenState extends State<ServerScreen> {
                 },
           onForget: switching ? null : () => ServerStore.instance.forget(e),
         ),
-        const SizedBox(height: 10),
-      ],
+        ],
+      ),
     ];
+  }
+
+  /// A server used before: tapping fills the form, the ⓧ forgets it.
+  Widget _recentRow({
+    required ServerEndpoint endpoint,
+    required String forgetLabel,
+    required VoidCallback? onTap,
+    required VoidCallback? onForget,
+  }) {
+    final theme = ThemeScope.of(context);
+    return GroupedRow(
+      title: endpoint.host,
+      chevron: false,
+      onTap: onTap,
+      trailing: SpringPress(
+        onTap: onForget,
+        semanticLabel: forgetLabel,
+        focusShape: FocusRingShape.circle,
+        scale: 0.86,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            CupertinoIcons.xmark_circle_fill,
+            size: 20,
+            color: theme.inkMuted.withValues(alpha: 0.6),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -615,30 +638,22 @@ class _ActiveServerCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                sentenceCaseOf(
-                  context,
-                  online
-                      ? l10n.serverStatusConnected
-                      : l10n.serverStatusDisconnected,
-                ),
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
+                online
+                    ? l10n.serverStatusConnected
+                    : l10n.serverStatusDisconnected,
+                style: groupedMetaStyle(theme).copyWith(
                   fontWeight: FontWeight.w600,
                   color: tone,
                 ),
               ),
               const Spacer(),
               Text(
-                sentenceCaseOf(
-                  context,
-                  switch (store.role) {
-                    ServerRole.selfHosted => l10n.serverBadgeSelfHosted,
-                    ServerRole.homeserver => l10n.serverValueHomeserver,
-                    ServerRole.primary => l10n.serverBadgeDefault,
-                  },
-                ),
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
+                switch (store.role) {
+                  ServerRole.selfHosted => l10n.serverBadgeSelfHosted,
+                  ServerRole.homeserver => l10n.serverValueHomeserver,
+                  ServerRole.primary => l10n.serverBadgeDefault,
+                },
+                style: groupedMetaStyle(theme).copyWith(
                   color: store.announcesRole ? theme.accent : theme.inkMuted,
                 ),
               ),
@@ -653,7 +668,7 @@ class _ActiveServerCard extends StatelessWidget {
               ServerRole.homeserver => l10n.serverValueHomeserver,
               ServerRole.primary => l10n.serverValueDefault,
             },
-            style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
+            style: groupedHeaderStyle(theme),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -665,118 +680,17 @@ class _ActiveServerCard extends StatelessWidget {
           // the host and is where somebody asking "which server am I on?"
           // already goes. Only on the two roles that have anything to explain.
           if (store.announcesRole) ...[
-            const SizedBox(height: 12),
-            FocusableTap(
-              onTap: () => showServerRoleInfo(context),
-              shape: FocusRingShape.rounded,
-              child: GestureDetector(
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextLinkButton(
+                label: l10n.serverRoleExplainAction,
+                icon: CupertinoIcons.info_circle,
                 onTap: () => showServerRoleInfo(context),
-                behavior: HitTestBehavior.opaque,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.info_circle, size: 15, color: theme.accent),
-                    const SizedBox(width: 7),
-                    Text(
-                      l10n.serverRoleExplainAction,
-                      style: theme.body.copyWith(color: theme.accent),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _ChoiceCard extends StatelessWidget {
-  const _ChoiceCard({
-    required this.label,
-    required this.sub,
-    required this.host,
-    required this.selected,
-    required this.inUse,
-    required this.inUseLabel,
-    required this.onTap,
-  });
-
-  final String label;
-  final String sub;
-  final String host;
-  final bool selected;
-  final bool inUse;
-  final String inUseLabel;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      enabled: onTap != null,
-      radius: theme.radiusLg,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.all(16),
-          // A grouped option: the surface fill, and a checkmark that springs
-          // in for the chosen one — never a glowing border.
-          decoration: BoxDecoration(
-            color: groupedFill(theme),
-            borderRadius: BorderRadius.circular(groupedRadius(theme)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      sentenceCaseOf(context, label),
-                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      host.isEmpty ? sub : host,
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 13,
-                        color: theme.inkMuted,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              if (inUse) ...[
-                Text(
-                  sentenceCaseOf(context, inUseLabel),
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    color: theme.inkMuted,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              AnimatedScale(
-                scale: selected ? 1 : 0,
-                duration: const Duration(milliseconds: 380),
-                curve: selected ? Curves.elasticOut : Curves.easeIn,
-                child: Icon(
-                  CupertinoIcons.checkmark_alt,
-                  size: 20,
-                  color: theme.accent,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -835,7 +749,7 @@ class _ProbeReport extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               result.detail!,
-              style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
+              style: groupedFooterStyle(theme),
             ),
           ],
           const SizedBox(height: 10),
@@ -847,8 +761,7 @@ class _ProbeReport extends StatelessWidget {
               if (reachable)
                 Text(
                   '${result.roundTrip.inMilliseconds} ms',
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
+                  style: groupedMetaStyle(theme).copyWith(
                     color: theme.inkSoft,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
@@ -857,8 +770,7 @@ class _ProbeReport extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(
                   'convex ${result.backendVersion}',
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
+                  style: groupedMetaStyle(theme).copyWith(
                     color: theme.inkSoft,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
@@ -892,112 +804,11 @@ class _Rung extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           label,
-          style: theme.bodySoft.copyWith(
-            fontSize: 15,
+          style: groupedSubtitleStyle(theme).copyWith(
             color: ok ? theme.ink : theme.inkMuted,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _TestButton extends StatelessWidget {
-  const _TestButton({
-    required this.busy,
-    required this.enabled,
-    required this.label,
-    required this.onTap,
-  });
-  final bool busy;
-  final bool enabled;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final live = enabled && !busy;
-    if (busy) {
-      return Container(
-        constraints: const BoxConstraints(minHeight: 52),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: theme.ink.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(
-            (theme.radiusXl * 0.8).clamp(6.0, 16.0),
-          ),
-        ),
-        child: const CupertinoActivityIndicator(),
-      );
-    }
-    // The secondary action: tinted, so the filled save below stays the one
-    // obvious primary.
-    return SheetActionButton(
-      label: label,
-      tonal: true,
-      onTap: live ? onTap : null,
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) =>
-      ProminentButton(label: sentenceCaseOf(context, label), onTap: onTap);
-}
-
-/// A boxed sentence with an icon — used for the http warning, the switch
-/// warning and a failed switch. One widget for all three so they cannot drift
-/// into three different-looking kinds of caution.
-class _Notice extends StatelessWidget {
-  const _Notice({
-    required this.icon,
-    required this.tone,
-    required this.title,
-    required this.body,
-  });
-  final IconData icon;
-  final Color tone;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: tone.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: tone),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  sentenceCaseOf(context, title),
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: tone,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(body, style: theme.bodySoft),
-        ],
-      ),
     );
   }
 }
@@ -1020,18 +831,18 @@ class _AdvancedDisclosure extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FocusableTap(
-          onTap: onToggle,
-          radius: theme.radiusSm,
-          semanticLabel: label,
-          child: GestureDetector(
+        Align(
+          alignment: Alignment.centerLeft,
+          child: SpringPress(
             onTap: onToggle,
-            behavior: HitTestBehavior.opaque,
+            semanticLabel: label,
+            focusShape: FocusRingShape.capsule,
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  sentenceCaseOf(context, label),
-                  style: theme.body.copyWith(fontSize: 15, color: theme.accent),
+                  label,
+                  style: groupedTitleStyle(theme).copyWith(color: theme.accent),
                 ),
                 const SizedBox(width: 4),
                 AnimatedRotation(
@@ -1049,91 +860,6 @@ class _AdvancedDisclosure extends StatelessWidget {
         ),
         if (open) child,
       ],
-    );
-  }
-}
-
-class _RecentRow extends StatelessWidget {
-  const _RecentRow({
-    required this.endpoint,
-    required this.forgetLabel,
-    required this.onTap,
-    required this.onForget,
-  });
-  final ServerEndpoint endpoint;
-  final String forgetLabel;
-  final VoidCallback? onTap;
-  final VoidCallback? onForget;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: FocusableTap(
-              onTap: onTap,
-              enabled: onTap != null,
-              radius: theme.radiusMd,
-              semanticLabel: endpoint.host,
-              child: GestureDetector(
-                onTap: onTap,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
-                  child: Text(
-                    endpoint.host,
-                    style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          FocusableTap(
-            onTap: onForget,
-            enabled: onForget != null,
-            radius: theme.radiusSm,
-            semanticLabel: forgetLabel,
-            child: GestureDetector(
-              onTap: onForget,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 14, 14, 14),
-                child: Icon(
-                  CupertinoIcons.xmark_circle_fill,
-                  size: 20,
-                  color: theme.inkMuted.withValues(alpha: 0.6),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // The iOS grouped-section header: small, muted, sentence case.
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Text(
-        sentenceCaseOf(context, label),
-        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
-      ),
     );
   }
 }

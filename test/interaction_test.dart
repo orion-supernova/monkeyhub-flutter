@@ -149,7 +149,7 @@ void main() {
       // poll whose body has not landed still says what it asked.
       expect(find.text('pizza or curry?'), findsOneWidget);
       // And it says what KIND it is, which is also on the message.
-      expect(find.text('POLL'), findsOneWidget);
+      expect(find.text('Poll'), findsOneWidget);
     });
 
     testWidgets('the body landing does not change the prompt or the height much',
@@ -474,7 +474,7 @@ void main() {
       await tester.pumpWidget(host(card(pollMessage(), anon)));
       await tester.pumpAndSettle();
 
-      expect(find.text('ANONYMOUS'), findsOneWidget);
+      expect(find.text('Anonymous'), findsOneWidget);
       expect(find.text('100%'), findsOneWidget);
       // No name line under the option, because there are none to draw.
       expect(find.textContaining('+'), findsNothing);
@@ -494,7 +494,7 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(find.text('CLOSED'), findsOneWidget);
+      expect(find.text('Closed'), findsOneWidget);
       await tester.tap(find.text('curry'));
       await tester.pumpAndSettle();
       expect(taps, 0, reason: 'a closed poll takes no answers');
@@ -543,7 +543,7 @@ void main() {
         poll(quiz: true, respondentCount: 1),
       )));
       await tester.pumpAndSettle();
-      expect(find.text('QUIZ'), findsOneWidget);
+      expect(find.text('Quiz'), findsOneWidget);
       expect(find.text('Correct'), findsNothing);
       expect(find.text('Not quite'), findsNothing);
 
@@ -579,7 +579,7 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(find.text('CHECKLIST'), findsOneWidget);
+      expect(find.text('Checklist'), findsOneWidget);
       expect(find.text('1 of 2 done'), findsOneWidget);
       expect(find.text('bea'), findsOneWidget);
       // A checklist row draws no percentage — a bar behind one task would read
@@ -610,7 +610,7 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(find.text('EVENT'), findsOneWidget);
+      expect(find.text('Event'), findsOneWidget);
       expect(find.text('dinner'), findsOneWidget);
       expect(find.text('the usual'), findsOneWidget);
       expect(find.text('bea, cal'), findsOneWidget);

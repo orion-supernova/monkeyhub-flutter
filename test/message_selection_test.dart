@@ -155,10 +155,10 @@ void main() {
         canSelect: true,
       );
 
-      expect(find.text('SELECT'), findsOneWidget);
-      expect(find.text('FORWARD'), findsNothing);
+      expect(find.text('Select'), findsOneWidget);
+      expect(find.text('Forward'), findsNothing);
 
-      await tester.tap(find.text('SELECT'));
+      await tester.tap(find.text('Select'));
       await tester.pumpAndSettle();
       expect((await result)?.action, MessageAction.select);
     });
@@ -171,8 +171,8 @@ void main() {
         canSelect: true,
       );
 
-      expect(find.text('FORWARD'), findsOneWidget);
-      await tester.tap(find.text('FORWARD'));
+      expect(find.text('Forward'), findsOneWidget);
+      await tester.tap(find.text('Forward'));
       await tester.pumpAndSettle();
       expect((await result)?.action, MessageAction.forward);
     });
@@ -186,13 +186,13 @@ void main() {
         canSelect: false,
       );
 
-      expect(find.text('FORWARD'), findsNothing);
-      expect(find.text('SELECT'), findsNothing);
+      expect(find.text('Forward'), findsNothing);
+      expect(find.text('Select'), findsNothing);
 
       // Resolved through a row that IS offered, so the overlay entry doesn't
       // outlive the test — and so the two absences above are read against a
       // menu that was genuinely built, not one that failed to open.
-      await tester.tap(find.text('COPY'));
+      await tester.tap(find.text('Copy'));
       await tester.pumpAndSettle();
       expect((await result)?.action, MessageAction.copy);
     });

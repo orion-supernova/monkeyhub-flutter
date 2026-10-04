@@ -18,7 +18,8 @@ import '../../models/sticker_pack.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
-import '../search_field.dart' show searchFieldDecoration;
+import '../search_field.dart'
+    show searchFieldDecoration, searchFieldHPadding, searchFieldIconSize;
 import '../reaction_picker_sheet.dart' show EmojiSearchBar, EmojiSearchView;
 import 'expression_media.dart';
 import 'expression_sheet.dart';
@@ -27,7 +28,9 @@ import 'klipy_attribution.dart';
 import 'sticker_pack_store.dart';
 import 'sticker_search.dart';
 import '../teardown_safe.dart';
-import '../spring_press.dart';
+import '../ios_kit.dart';
+import '../sheet_kit.dart' show SheetCloseButton, SheetHandle;
+import '../skeleton_rows.dart' show SkeletonBox, SkeletonSweep;
 
 /// The composer's expression panel — emoji, GIFs and stickers — shown in place
 /// of the keyboard.
@@ -197,20 +200,34 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: _Segmented(
-                            tabs: [
-                              (_Tab.emoji, l10n.expressionTabEmoji),
+                          // THE segmented control — one track, one thumb,
+                          // one label size app-wide.
+                          child: IosSegmentedControl<_Tab>(
+                            segments: [
+                              IosSegment(
+                                value: _Tab.emoji,
+                                label: l10n.expressionTabEmoji,
+                              ),
                               if (gifsAvailable)
-                                (_Tab.gifs, l10n.expressionTabGifs),
-                              (_Tab.stickers, l10n.expressionTabStickers),
+                                IosSegment(
+                                  value: _Tab.gifs,
+                                  label: l10n.expressionTabGifs,
+                                ),
+                              IosSegment(
+                                value: _Tab.stickers,
+                                label: l10n.expressionTabStickers,
+                              ),
                             ],
-                            selected: tab,
-                            onSelect: _select,
+                            value: tab,
+                            onChanged: _select,
                           ),
                         ),
+                        // Puts the panel away without bringing the keyboard
+                        // back — THE sheet ×, flat (never glass: this panel
+                        // slides, and a sliding blur re-rasterises).
                         if (widget.controller != null) ...[
                           const SizedBox(width: 10),
-                          _CloseButton(onTap: widget.controller!.hide),
+                          SheetCloseButton(onTap: widget.controller!.hide),
                         ],
                       ],
                     ),
@@ -260,7 +277,6 @@ class _DragHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     if (c == null) {
       return Padding(padding: const EdgeInsets.only(top: 6), child: child);
@@ -282,164 +298,15 @@ class _DragHeader extends StatelessWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: c.toggleExpanded,
-              child: SizedBox(
+              // THE grabber, with a wider catch area around it.
+              child: const SizedBox(
                 width: 72,
-                height: 18,
-                child: Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.inkMuted.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
+                child: SheetHandle(),
               ),
             ),
           ),
           child,
         ],
-      ),
-    );
-  }
-}
-
-/// Puts the panel away without bringing the keyboard back — for someone who
-/// has finished picking and wants the conversation, not the keys. The drag,
-/// a tap on the conversation and the composer's own toggle all still work;
-/// this is the one that needs no discovering.
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final label = MaterialLocalizations.of(context).closeButtonLabel;
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: Container(
-          width: 32,
-          height: 32,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: theme.ink.withValues(alpha: 0.08),
-          ),
-          child: Icon(CupertinoIcons.chevron_down,
-              size: 16, color: theme.inkSoft),
-        ),
-      ),
-    );
-  }
-}
-
-/// The iOS segmented control: a soft track with a raised thumb that slides
-/// to the chosen segment on a spring. Neutral, never accent-washed — the
-/// thumb is the selection.
-class _Segmented extends StatelessWidget {
-  const _Segmented({
-    required this.tabs,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final List<(_Tab, String)> tabs;
-  final _Tab selected;
-  final ValueChanged<_Tab> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final motion = MotionScope.of(context);
-    final light = theme.background.computeLuminance() > 0.5;
-    final index = math.max(0, tabs.indexWhere((t) => t.$1 == selected));
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: theme.ink.withValues(alpha: light ? 0.06 : 0.10),
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final w = box.maxWidth / tabs.length;
-          return Stack(
-            children: [
-              AnimatedPositioned(
-                duration: motion.d(const Duration(milliseconds: 420)),
-                curve: Curves.easeOutBack,
-                left: w * index,
-                top: 0,
-                bottom: 0,
-                width: w,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: light
-                        ? Colors.white
-                        : theme.ink.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(7),
-                    boxShadow: light
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.10),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  for (final t in tabs)
-                    Expanded(
-                      child: FocusableTap(
-                        onTap: () => onSelect(t.$1),
-                        semanticLabel: t.$2,
-                        selected: t.$1 == selected,
-                        radius: 7,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            if (t.$1 != selected) {
-                              HapticFeedback.selectionClick();
-                            }
-                            onSelect(t.$1);
-                          },
-                          child: Center(
-                            child: Text(
-                              t.$2,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.bodySoft.copyWith(
-                                fontSize: 13,
-                                fontWeight: t.$1 == selected
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                                color: theme.ink,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          );
-        },
       ),
     );
   }
@@ -810,12 +677,19 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
           child: Container(
-            height: 36,
+            height: 40,
+            // SearchField's own measure — pill, 12pt inset, 18pt magnifier —
+            // hand-drawn only because this box carries a scope tag and runs
+            // its query on the Search key, two slots SearchField lacks.
             decoration: searchFieldDecoration(theme),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: searchFieldHPadding),
             child: Row(
               children: [
-                Icon(CupertinoIcons.search, size: 15, color: theme.inkMuted),
+                Icon(
+                  CupertinoIcons.search,
+                  size: searchFieldIconSize,
+                  color: theme.inkMuted,
+                ),
                 const SizedBox(width: 8),
                 // Which of KLIPY's catalogues this box searches. The
                 // placeholder itself has to stay "Search KLIPY", so the
@@ -851,10 +725,12 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
                   ),
                 ),
                 if (_query.text.isNotEmpty)
-                  GestureDetector(
+                  SpringPress(
                     onTap: () => _showSection(_KlipySection.trending),
+                    haptic: false,
+                    semanticLabel: l10n.pullRevealClearSearchSemanticLabel,
                     child: Icon(CupertinoIcons.clear_circled_solid,
-                        size: 16, color: theme.inkMuted),
+                        size: searchFieldIconSize, color: theme.inkMuted),
                   ),
                 if (_focus.hasFocus) HideKeyboardButton(focus: _focus),
               ],
@@ -945,7 +821,7 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(message,
-                style: theme.caption.copyWith(color: theme.inkMuted),
+                style: groupedFooterStyle(theme),
                 textAlign: TextAlign.center),
             if (_error != null)
               Padding(
@@ -1049,7 +925,7 @@ class _ScopeTag extends StatelessWidget {
       ),
       child: Text(label,
           style: theme.bodySoft.copyWith(
-              fontSize: 12,
+              fontSize: 13,
               color: theme.inkSoft,
               fontWeight: FontWeight.w600)),
     );
@@ -1173,67 +1049,44 @@ class _PressableTileState extends State<_PressableTile>
 }
 
 /// The grid's one sweeping skeleton while a first page is in flight.
-class _GridSkeleton extends StatefulWidget {
+/// The picture grid's placeholder: justified rows of boxes under ONE shared
+/// sweep — the skeleton language every list in the app speaks, not a
+/// private pulse with its own controller and colour maths.
+class _GridSkeleton extends StatelessWidget {
   const _GridSkeleton();
 
   @override
-  State<_GridSkeleton> createState() => _GridSkeletonState();
-}
-
-class _GridSkeletonState extends State<_GridSkeleton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, _) {
-        final color =
-            theme.inkMuted.withValues(alpha: 0.10 + 0.10 * _c.value);
-        return LayoutBuilder(builder: (context, constraints) {
-          const widths = [1.3, 0.9, 1.1, 1.0, 1.4, 0.8];
-          final rows = justifiedRows(
-            [for (var i = 0; i < 12; i++) RowInput.picture(widths[i % 6])],
-            maxWidth: constraints.maxWidth - 16,
-          );
-          return ListView(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            children: [
-              for (final row in rows)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < row.count; i++) ...[
-                        if (i > 0) const SizedBox(width: 4),
-                        Container(
-                          width: row.widths[i],
-                          height: row.height,
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ],
+    return SkeletonSweep(
+      child: LayoutBuilder(builder: (context, constraints) {
+        const widths = [1.3, 0.9, 1.1, 1.0, 1.4, 0.8];
+        final rows = justifiedRows(
+          [for (var i = 0; i < 12; i++) RowInput.picture(widths[i % 6])],
+          maxWidth: constraints.maxWidth - 16,
+        );
+        return ListView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          children: [
+            for (final row in rows)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < row.count; i++) ...[
+                      if (i > 0) const SizedBox(width: 4),
+                      SkeletonBox(
+                        width: row.widths[i],
+                        height: row.height,
+                        radius: 8,
+                      ),
                     ],
-                  ),
+                  ],
                 ),
-            ],
-          );
-        });
-      },
+              ),
+          ],
+        );
+      }),
     );
   }
 }
@@ -1451,7 +1304,7 @@ class _StickersTabState extends State<_StickersTab> {
           body = Center(
             child: Text(
               l10n.expressionNoStickers,
-              style: theme.caption.copyWith(color: theme.inkMuted),
+              style: groupedFooterStyle(theme),
               textAlign: TextAlign.center,
             ),
           );

@@ -18,6 +18,7 @@ import '../widgets/photo_chrome.dart';
 import 'camera_editor_screen.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
+import '../widgets/sheet_kit.dart' show kSheetButtonSize;
 
 /// The most photographs one send may carry.
 ///
@@ -401,9 +402,7 @@ class _PhotoTrayScreenState extends State<PhotoTrayScreen> {
               // where a stray tap on SEND or on a thumbnail would either start
               // a second export or reorder the one already running.
               Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {},
+                child: AbsorbPointer(
                   child: ColoredBox(
                     color: Colors.black.withValues(alpha: 0.45),
                     child: Center(
@@ -433,12 +432,12 @@ class _TopRail extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Row(
       children: [
-        GlassIconButton(
+        // A pushed page (see [PhotoTrayScreen.open]), so a back chevron,
+        // not an × — going back still discards the tray.
+        GlassBackButton(
           tone: GlassTone.media,
-          icon: CupertinoIcons.xmark,
           semanticLabel: l10n.photoTrayDiscardSemanticLabel,
-          size: 38,
-          iconSize: 17,
+          enabled: onDiscard != null,
           onTap: onDiscard,
         ),
         const Spacer(),
@@ -449,11 +448,13 @@ class _TopRail extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Text(
               l10n.photoTrayCountLabel(count),
-              style: const TextStyle(
+              // The body face at 15, untracked — at 12.5 with 1.1 tracking
+              // "3 fotoğraf" read letter-spaced.
+              style: ThemeScope.of(context).body.copyWith(
                 color: MediaGlass.ink,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
+                fontSize: 15,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
                 // Explicit, not inherited: this chrome floats over a photo and
                 // must never fall back to Flutter's debug text style, which
                 // paints yellow underlines.
@@ -463,9 +464,9 @@ class _TopRail extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        // Balances the X so the count sits on the screen's centre line rather
-        // than 19pt to the right of it.
-        const SizedBox(width: 38),
+        // Balances the back button so the count sits on the screen's centre
+        // line — the button's own 40pt, not a stale 38.
+        const SizedBox(width: kSheetButtonSize),
       ],
     );
   }
@@ -541,8 +542,6 @@ class _BottomRail extends StatelessWidget {
                 tone: GlassTone.media,
                 icon: CupertinoIcons.crop_rotate,
                 semanticLabel: l10n.photoTrayEditSemanticLabel,
-                size: 38,
-                iconSize: 17,
                 onTap: onEdit,
               ),
               const SizedBox(width: 8),

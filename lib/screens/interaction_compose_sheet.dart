@@ -11,7 +11,8 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/sheet_kit.dart';
-import '../widgets/ios_kit.dart' show groupedFill, groupedRadius;
+import '../widgets/ios_kit.dart'
+    show RowSwitch, SpringPress, groupedRadius, groupedSubtitleStyle;
 import '../l10n/text_case.dart';
 
 /// Everything the compose sheet collected, ready for `interactions:create`.
@@ -323,8 +324,9 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
     });
   }
 
-  /// The iOS date-and-time wheel in a bottom popup with Cancel and Done.
-  /// Null when cancelled or dismissed.
+  /// The iOS date-and-time wheel in THE sheet: × leading backs out, ✓
+  /// trailing commits — not a raw Cupertino popup with opacity-press Cancel
+  /// and Done text buttons. Null when cancelled or dismissed.
   Future<DateTime?> _pickDateTime(
     DateTime initial,
     DateTime first,
@@ -333,60 +335,37 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     var value = initial;
-    return showCupertinoModalPopup<DateTime>(
-      context: context,
-      builder: (ctx) => CupertinoTheme(
-        data: CupertinoThemeData(
-          brightness: theme.isLight ? Brightness.light : Brightness.dark,
-          primaryColor: theme.accent,
-          textTheme: CupertinoTextThemeData(
-            dateTimePickerTextStyle: TextStyle(
-              fontSize: 21,
-              color: theme.ink,
-            ),
-          ),
+    return showAdaptiveSheet<DateTime>(
+      context,
+      builder: (ctx) => SheetFrame(
+        title: sentenceCaseOf(ctx, l10n.interactionComposeWhenLabel),
+        confirm: SheetConfirm(
+          label: l10n.roomFilterDrawerPanelDone,
+          onTap: () => Navigator.of(ctx).pop(value),
         ),
-        child: Container(
-          height: 300 + MediaQuery.paddingOf(ctx).bottom,
-          padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(ctx).bottom),
-          decoration: BoxDecoration(
-            color: groupedFill(theme),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: Text(
-                      sentenceCaseOf(ctx, l10n.roomContentScreenCancelTooltip),
-                      style: theme.body.copyWith(color: theme.accent),
-                    ),
-                  ),
-                  CupertinoButton(
-                    onPressed: () => Navigator.of(ctx).pop(value),
-                    child: Text(
-                      sentenceCaseOf(ctx, l10n.roomFilterDrawerPanelDone),
-                      style: theme.bodyEmph.copyWith(color: theme.accent),
-                    ),
-                  ),
-                ],
-              ),
-              Expanded(
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.dateAndTime,
-                  initialDateTime: initial,
-                  minimumDate: first,
-                  maximumDate: last,
-                  use24hFormat: MediaQuery.alwaysUse24HourFormatOf(ctx),
-                  onDateTimeChanged: (v) => value = v,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: SizedBox(
+          height: 216,
+          child: CupertinoTheme(
+            data: CupertinoThemeData(
+              brightness: theme.isLight ? Brightness.light : Brightness.dark,
+              primaryColor: theme.accent,
+              textTheme: CupertinoTextThemeData(
+                // The wheel's own iOS size; it is a picker, not chrome.
+                dateTimePickerTextStyle: TextStyle(
+                  fontSize: 21,
+                  color: theme.ink,
                 ),
               ),
-            ],
+            ),
+            child: CupertinoDatePicker(
+              mode: CupertinoDatePickerMode.dateAndTime,
+              initialDateTime: initial,
+              minimumDate: first,
+              maximumDate: last,
+              use24hFormat: MediaQuery.alwaysUse24HourFormatOf(ctx),
+              onDateTimeChanged: (v) => value = v,
+            ),
           ),
         ),
       ),
@@ -398,132 +377,65 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return Material(
-      type: MaterialType.transparency,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: SafeArea(
-          top: false,
-          bottom: false,
-          child: Padding(
-            padding: EdgeInsets.zero,
-            // Attached to the bottom edge like every iOS 26 sheet, not a
-            // floating card with a margin round it.
-            child: Container(
-              decoration: BoxDecoration(
-                color: sheetFill(theme),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(sheetTopRadius(theme)),
-                ),
+    final (title, tagline) = _titles(l10n);
+    // The shared bar — × leading, the title centred, the tagline as its
+    // quiet line — pinned above the scroll so the × never scrolls away.
+    // SheetFrame adds the keyboard and home-indicator insets.
+    return SheetFrame(
+      title: sentenceCaseOf(context, title),
+      subtitle: sentenceCaseOf(context, tagline),
+      padding: EdgeInsets.zero,
+      child: DefaultTextStyle(
+        style: theme.body.copyWith(color: theme.ink),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              LabeledField(
+                label: _promptLabel(l10n),
+                controller: _prompt,
+                hint: _promptHint(l10n),
+                autofocus: true,
+                maxLines: 3,
+                minLines: 1,
+                textInputAction: TextInputAction.next,
               ),
-              padding: EdgeInsets.fromLTRB(
-                16,
-                0,
-                16,
-                16 + MediaQuery.paddingOf(context).bottom,
-              ),
-              child: DefaultTextStyle(
-                style: theme.body.copyWith(color: theme.ink),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SheetHandle(),
-                      _title(theme, l10n),
-                      const SizedBox(height: 18),
-                      LabeledField(
-                        label: _promptLabel(l10n),
-                        controller: _prompt,
-                        hint: _promptHint(l10n),
-                        autofocus: true,
-                        maxLines: 3,
-                        minLines: 1,
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 20),
-                      if (_isEvent)
-                        ..._eventFields(theme, l10n)
-                      else
-                        ..._lineFields(theme, l10n),
-                      const SizedBox(height: 20),
-                      ..._switches(theme, l10n),
-                      if (_error != null) ...[
-                        const SizedBox(height: 14),
-                        Container(
-                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                          decoration: BoxDecoration(
-                            color: theme.danger.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _error!,
-                            style: theme.body.copyWith(color: theme.danger),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      _cta(theme, l10n),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+              const SizedBox(height: 20),
+              if (_isEvent)
+                ..._eventFields(theme, l10n)
+              else
+                ..._lineFields(theme, l10n),
+              const SizedBox(height: 20),
+              ..._switches(theme, l10n),
+              if (_error != null) ...[
+                const SizedBox(height: 14),
+                FormErrorBanner(_error!),
+              ],
+              const SizedBox(height: 24),
+              _cta(theme, l10n),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _title(AppTheme theme, AppLocalizations l10n) {
-    final (title, tagline) = switch (widget.kind) {
-      MessageType.checklist => (
-          l10n.interactionComposeChecklistTitle,
-          l10n.interactionComposeChecklistTagline,
-        ),
-      MessageType.event => (
-          l10n.interactionComposeEventTitle,
-          l10n.interactionComposeEventTagline,
-        ),
-      _ => (
-          l10n.interactionComposePollTitle,
-          l10n.interactionComposePollTagline,
-        ),
-    };
-    // The sheet bar: glass close on the left, the title centred, the tagline
-    // as a quiet line under it — the shape every other sheet now has.
-    return Column(
-      children: [
-        SizedBox(
-          height: 52,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 54),
-                child: Text(
-                  sentenceCaseOf(context, title),
-                  style: theme.bodyEmph.copyWith(color: theme.ink),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: SheetCloseButton(),
-              ),
-            ],
+  (String, String) _titles(AppLocalizations l10n) => switch (widget.kind) {
+        MessageType.checklist => (
+            l10n.interactionComposeChecklistTitle,
+            l10n.interactionComposeChecklistTagline,
           ),
-        ),
-        Text(
-          sentenceCaseOf(context, tagline),
-          textAlign: TextAlign.center,
-          style: theme.bodySoft.copyWith(color: theme.inkMuted),
-        ),
-      ],
-    );
-  }
+        MessageType.event => (
+            l10n.interactionComposeEventTitle,
+            l10n.interactionComposeEventTagline,
+          ),
+        _ => (
+            l10n.interactionComposePollTitle,
+            l10n.interactionComposePollTagline,
+          ),
+      };
 
   String _promptLabel(AppLocalizations l10n) => switch (widget.kind) {
         MessageType.checklist => l10n.interactionComposeTitleLabel,
@@ -787,12 +699,14 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                 ),
               ),
               if (onClear != null)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                SpringPress(
                   onTap: onClear,
+                  haptic: false,
+                  semanticLabel: AppLocalizations.of(context)
+                      .pullRevealClearSearchSemanticLabel,
                   child: Icon(
                     CupertinoIcons.xmark_circle_fill,
-                    size: 16,
+                    size: 17,
                     color: theme.inkMuted,
                   ),
                 ),
@@ -918,20 +832,20 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
                       const SizedBox(height: 2),
                       Text(
                         sentenceCaseOf(context, sub),
-                        style: theme.bodySoft.copyWith(
-                          fontSize: 13,
-                          color: theme.inkMuted,
-                        ),
+                        style: groupedSubtitleStyle(theme),
                       ),
                     ],
                   ),
                 ),
-                // Cupertino's switch, not Material's: it is what every other
-                // toggle in this app uses, and it carries no ink ripple.
-                CupertinoSwitch(
-                  value: value,
-                  onChanged: enabled ? (v) => onChanged(v) : null,
-                  activeTrackColor: theme.success,
+                // THE row switch — the one every grouped row in the app
+                // wears, visible off-track included. Dimmed and inert when
+                // this option doesn't apply.
+                IgnorePointer(
+                  ignoring: !enabled,
+                  child: Opacity(
+                    opacity: enabled ? 1 : 0.4,
+                    child: RowSwitch(value: value, onChanged: onChanged),
+                  ),
                 ),
               ],
             ),

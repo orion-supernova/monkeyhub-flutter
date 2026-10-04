@@ -3,9 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/theme_scope.dart';
+import '../widgets/fit_label.dart';
 import 'call_models.dart';
 import 'call_service.dart';
 import 'group_call_service.dart';
@@ -68,7 +67,6 @@ class _InCallPillState extends State<InCallPill> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final call = widget.call;
     final group = widget.group;
@@ -98,167 +96,74 @@ class _InCallPillState extends State<InCallPill> {
       alignment: Alignment.topCenter,
       child: !visible
           ? const SizedBox(width: double.infinity, height: 0)
-          : Material(
-              color: Colors.transparent,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(theme.radiusLg),
-                      gradient: LinearGradient(
-                        // Two OPAQUE stops. accentSoft is the accent at
-                        // 18% alpha — as a gradient end it left the right
-                        // half of the banner see-through.
-                        colors: [
-                          theme.accent,
-                          Color.alphaBlend(
-                            Colors.white.withValues(alpha: 0.16),
-                            theme.accent,
+          : SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: CallStatusBanner(
+                  icon: sharing ? CallGlyphs.share : CallGlyphs.voice,
+                  title: title,
+                  meta: Row(
+                    // Top-aligned so a wrapped sharing label hangs under its
+                    // own first line, with the timer level with that line.
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (start != null)
+                        ElapsedLabel(
+                          start: start,
+                          style: CallStatusBanner.metaStyle(
+                            context,
+                            CallBannerTone.accent,
                           ),
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.accent.withValues(alpha: 0.32),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
+                        ),
+                      if (sharing) ...[
+                        if (start != null) const Text('  ·  '),
+                        // Wraps, then shrinks — never "Ekranını
+                        // paylaşıyor…". The pill is narrowest exactly while
+                        // sharing (draw + stop sit beside Return), so this is
+                        // the line that runs out of room first.
+                        Flexible(
+                          child: FitLabel(
+                            l10n.inCallPillSharing,
+                            style: CallStatusBanner.metaStyle(
+                              context,
+                              CallBannerTone.accent,
+                            ),
+                            minFontSize: 11,
+                            textAlign: TextAlign.start,
+                          ),
                         ),
                       ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            sharing
-                                ? Icons.screen_share_outlined
-                                : Icons.call_rounded,
-                            size: 18,
-                            color: theme.accentInk,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  title,
-                                  style: theme.body.copyWith(
-                                    color: theme.accentInk,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Row(
-                                  children: [
-                                    if (start != null)
-                                      ElapsedLabel(
-                                        start: start,
-                                        style: theme.monoTiny.copyWith(
-                                          color: theme.accentInk.withValues(
-                                            alpha: 0.82,
-                                          ),
-                                        ),
-                                      ),
-                                    if (sharing) ...[
-                                      if (start != null)
-                                        Text(
-                                          '  ·  ',
-                                          style: theme.monoTiny.copyWith(
-                                            color: theme.accentInk.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                          ),
-                                        ),
-                                      Flexible(
-                                        child: Text(
-                                          l10n.inCallPillSharing,
-                                          style: theme.monoTiny.copyWith(
-                                            color: theme.accentInk.withValues(
-                                              alpha: 0.82,
-                                            ),
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (sharing && armed != null) ...[
-                            const SizedBox(width: 6),
-                            _RoundAction(
-                              icon: Icons.draw_outlined,
-                              active: armed.value,
-                              semanticLabel: l10n.inCallPillDrawSemanticLabel,
-                              onTap: () => armed.value = !armed.value,
-                            ),
-                            const SizedBox(width: 6),
-                            _RoundAction(
-                              icon: Icons.stop_rounded,
-                              semanticLabel:
-                                  l10n.inCallPillStopSharingSemanticLabel,
-                              onTap: () => unawaited(
-                                oneToOne
-                                    ? call.stopScreenShare()
-                                    : group!.stopScreenShare(),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(width: 8),
-                          FocusableTap(
-                            onTap: () => _reopen(oneToOne),
-                            shape: FocusRingShape.capsule,
-                            semanticLabel: l10n.inCallPillReturn,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => _reopen(oneToOne),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.accentInk.withValues(alpha: 0.20),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      l10n.inCallPillReturn,
-                                      style: theme.monoTiny.copyWith(
-                                        color: theme.accentInk,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.keyboard_arrow_up_rounded,
-                                      size: 14,
-                                      color: theme.accentInk,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
+                  actions: [
+                    if (sharing && armed != null) ...[
+                      CallBannerAction(
+                        icon: CallGlyphs.draw,
+                        active: armed.value,
+                        semanticLabel: l10n.inCallPillDrawSemanticLabel,
+                        onTap: () => armed.value = !armed.value,
+                      ),
+                      CallBannerAction(
+                        icon: CallGlyphs.stopShare,
+                        semanticLabel: l10n.inCallPillStopSharingSemanticLabel,
+                        onTap: () => unawaited(
+                          oneToOne
+                              ? call.stopScreenShare()
+                              : group!.stopScreenShare(),
+                        ),
+                      ),
+                    ],
+                    // With the pen and the stop beside it, Return drops its
+                    // word for the glyph: three labelled controls left the
+                    // title and the timer two letters each in Turkish.
+                    CallBannerAction(
+                      icon: CallGlyphs.back,
+                      label: sharing ? null : l10n.inCallPillReturn,
+                      semanticLabel: l10n.inCallPillReturn,
+                      onTap: () => _reopen(oneToOne),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -271,48 +176,5 @@ class _InCallPillState extends State<InCallPill> {
     } else {
       widget.group?.reopenTick.value++;
     }
-  }
-}
-
-class _RoundAction extends StatelessWidget {
-  const _RoundAction({
-    required this.icon,
-    required this.onTap,
-    required this.semanticLabel,
-    this.active = false,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final String semanticLabel;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      shape: FocusRingShape.circle,
-      semanticLabel: semanticLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: active
-                ? theme.accentInk
-                : theme.accentInk.withValues(alpha: 0.20),
-          ),
-          child: Icon(
-            icon,
-            size: 16,
-            color: active ? theme.accent : theme.accentInk,
-          ),
-        ),
-      ),
-    );
   }
 }

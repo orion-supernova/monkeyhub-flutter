@@ -29,11 +29,14 @@ class VideoQualityScreen extends StatelessWidget {
                 SettingsStore.instance.setVideoQualityTier(tier);
               },
             );
-        return SettingsPage(
+        // The explanation is a sentence, so it sits under the large title as
+        // the page's subtitle — set as a 17pt section header it wrapped to
+        // two bold lines.
+        return IosPage(
           title: l10n.videoQualityScreenTitle,
+          subtitle: l10n.videoQualityScreenSubtitle,
           children: [
             GroupedSection(
-              header: l10n.videoQualityScreenSubtitle,
               footer: l10n.videoQualityScreenFootnote,
               children: [
                 option(

@@ -23,6 +23,8 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/feed_depth_field.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/meta_text.dart';
 import '../widgets/games_strip.dart';
 import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
@@ -40,7 +42,6 @@ import 'games/tango_screen.dart';
 import 'games/zip_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/tab_reselect.dart';
-import '../l10n/text_case.dart';
 
 /// TODAY — the friends-activity board.
 ///
@@ -389,15 +390,15 @@ class _FeedScreenState extends State<FeedScreen>
           label: l10n.feedBoardHighlightsLabel,
           // Highlights leave friends' boards after a day but are kept
           // forever — without a way in, that promise was invisible.
-          action: _HeaderAction(
-            icon: CupertinoIcons.archivebox,
-            label: l10n.feedBoardOpenArchive,
-            onTap: _openArchive,
-          ),
+          actionLabel: l10n.feedBoardOpenArchive,
+          onAction: _openArchive,
           body: store.loaded && store.highlights.isEmpty && !_canCapture
               // A supervised account with media switched off has no way to
               // fill this, so offer the explanation rather than a dead rail.
-              ? _EmptyLine(l10n.feedBoardHighlightsEmpty)
+              ? EmptyLine(
+                  l10n.feedBoardHighlightsEmpty,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                )
               : MomentRail(
                   moments: store.highlights,
                   api: widget.api,
@@ -420,11 +421,8 @@ class _FeedScreenState extends State<FeedScreen>
           // above this one — it's a daily game exactly like the other four,
           // and giving it its own differently-shaped section was the
           // inconsistency, not this shelf.
-          action: _HeaderAction(
-            icon: CupertinoIcons.chevron_forward,
-            label: l10n.feedBoardGamesOpen,
-            onTap: _openGamesHub,
-          ),
+          actionLabel: l10n.feedBoardGamesOpen,
+          onAction: _openGamesHub,
           body: GamesStrip(
             boards: GamesStore.instance.boards,
             results: store.games,
@@ -441,11 +439,8 @@ class _FeedScreenState extends State<FeedScreen>
           // The concept is new enough that the header carries its own
           // explainer — this is not a feed of photos with a score attached, it
           // is a game, and nobody arrives knowing that.
-          action: _HeaderAction(
-            icon: CupertinoIcons.question_circle,
-            label: l10n.pointsExplainerOpen,
-            onTap: () => showPointsExplainer(context),
-          ),
+          actionLabel: l10n.pointsExplainerOpen,
+          onAction: () => showPointsExplainer(context),
           body: PointsBoard(
             points: store.points,
             viewerId: widget.repo.userId ?? '',
@@ -461,7 +456,10 @@ class _FeedScreenState extends State<FeedScreen>
           body: store.moments.isEmpty && widget.repo.friends.isEmpty
               // Distinct from "quiet today": someone with no friends yet needs
               // to know what would fill this, not that nothing happened.
-              ? _EmptyLine(l10n.feedBoardActivityNoFriends)
+              ? EmptyLine(
+                  l10n.feedBoardActivityNoFriends,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                )
               : MomentActivity(
                   moments: store.moments,
                   viewerId: widget.repo.userId ?? '',
@@ -715,10 +713,8 @@ class _MastheadState extends State<_Masthead>
 
 /// The colophon's day count, and the one tap that explains what it counts.
 ///
-/// Its own widget so the tap handler is written once. `FocusableTap` registers
-/// no gesture recognizer of its own, so the bare `GestureDetector` inside is
-/// what actually receives the pointer and both have to carry the handler —
-/// which spelled inline was the same three-line closure twice.
+/// Its own widget so the tap handler is written once; [SpringPress] carries
+/// both the press and the keyboard focus ring.
 class _EditionStamp extends StatelessWidget {
   const _EditionStamp({required this.label, required this.hint});
 
@@ -729,86 +725,65 @@ class _EditionStamp extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     void explain() => showAppToast(context, hint);
-    return FocusableTap(
+    return SpringPress(
       onTap: explain,
       semanticLabel: hint,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: explain,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: theme.ink.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(999),
+      focusShape: FocusRingShape.capsule,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: quietFill(theme),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        // The body face, not the theme's caption: on character themes that
+        // slot is tracked monospace.
+        child: Text(
+          label,
+          style: metaText(theme, color: theme.inkSoft).copyWith(
+            fontWeight: FontWeight.w600,
           ),
-          child: Text(
-            label,
-            style: theme.caption.copyWith(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: theme.inkSoft,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-            maxLines: 1,
-          ),
+          maxLines: 1,
         ),
       ),
     );
   }
 }
 
-/// One band of the board: an all-caps label, a hairline rule, and a body.
+/// One band of the board: the shared page-section header (the theme's
+/// display face, sentence case, an optional accent text link on the same
+/// baseline — the App Store / Music shape) over its body.
 ///
-/// Mirrors `DiscoverSectionHeader`'s geometry so the two screens read as the
-/// same app. Not reusing that widget directly because it takes a `count` string
-/// this board has no use for yet — the phases that add real counts should
-/// revisit whether these should merge.
+/// The header is [PageSectionHeader], the same one Discover uses, so the two
+/// tabs cannot drift apart. No rule — the air above separates the bands.
 class _SectionShell extends StatelessWidget {
   const _SectionShell({
     required this.label,
     required this.body,
-    this.action,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String label;
   final Widget body;
 
-  /// Optional trailing control on the band — currently only the points
-  /// explainer. Sits after the rule so the rule still separates label from
-  /// content at every width.
-  final Widget? action;
+  /// Optional trailing text link on the band: the archive, all games, the
+  /// points explainer. Plain accent text, no glyph — one shape for all three.
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // An iOS section: a bold sentence-case title with its link trailing on
-    // the same baseline, the App Store / Music shape. No rule — the air above
-    // separates the bands.
     return Padding(
       padding: const EdgeInsets.only(bottom: 30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  sentenceCaseOf(context, label),
-                  style: theme.displaySmall.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.35,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (action != null) ...[const SizedBox(width: 8), action!],
-            ],
+          PageSectionHeader(
+            label,
+            actionLabel: actionLabel,
+            onAction: onAction,
+            padding: const EdgeInsets.only(bottom: 6),
           ),
-          const SizedBox(height: 10),
           body,
         ],
       ),
@@ -816,71 +791,9 @@ class _SectionShell extends StatelessWidget {
   }
 }
 
-/// A small trailing control on a section band — the archive link, the points
-/// explainer. One widget so the two cannot drift apart visually.
-class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // A text link in the accent with its glyph, the iOS "See All".
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                sentenceCaseOf(context, label),
-                style: theme.body.copyWith(
-                  fontSize: 15,
-                  color: theme.accent,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(icon, size: 15, color: theme.accent),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A single muted line standing in for a section with nothing in it.
-///
-/// Matches `DiscoverEmptyLine`'s register: lowercase, conversational, and
-/// stating what would put something here rather than merely reporting absence.
-class _EmptyLine extends StatelessWidget {
-  const _EmptyLine(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Text(text, style: theme.bodySoft.copyWith(color: theme.inkMuted));
-  }
-}
-
 /// The board could not be loaded at all.
 ///
-/// Deliberately louder than [_EmptyLine] — muted grey is the vocabulary this
+/// Deliberately louder than [EmptyLine] — muted grey is the vocabulary this
 /// board uses for "nothing happened today", and a broken subscription wearing
 /// that same colour is what made a hard failure invisible for a whole day.
 class _BoardTrouble extends StatelessWidget {
@@ -896,7 +809,11 @@ class _BoardTrouble extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline, size: 15, color: theme.danger),
+          Icon(
+            CupertinoIcons.exclamationmark_circle,
+            size: 15,
+            color: theme.danger,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

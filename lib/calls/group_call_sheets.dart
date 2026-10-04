@@ -1,16 +1,10 @@
 import 'package:flutter/cupertino.dart'
-    show
-        CupertinoActivityIndicator,
-        CupertinoIcons,
-        CupertinoSlidingSegmentedControl;
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
-import '../theme/motion.dart';
-import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
@@ -19,7 +13,6 @@ import '../widgets/sheet_kit.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'group_call_service.dart';
-import '../l10n/text_case.dart';
 
 /// Entry point for starting a group call from a room header: bottom sheet
 /// with voice/video choice and "call everyone" vs "choose people".
@@ -35,7 +28,6 @@ Future<void> showStartGroupCallSheet(
   required String myUserId,
   CallMediaKind initialKind = CallMediaKind.audio,
 }) async {
-  final theme = ThemeScope.of(context);
   var kind = initialKind;
 
   await showAdaptiveSheet<void>(
@@ -46,68 +38,27 @@ Future<void> showStartGroupCallSheet(
           final l10n = AppLocalizations.of(sheetCtx);
           return SheetFrame(
             title: l10n.linkedAccountsScreenCallSheetTitle,
-            leading: const SheetCloseButton(),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Voice or video as a native segmented control — one
+                // Voice or video as the shared segmented control — one
                 // decision, two answers, the iOS shape for it.
-                SizedBox(
-                  width: double.infinity,
-                  child: CupertinoSlidingSegmentedControl<CallMediaKind>(
-                    groupValue: kind,
-                    backgroundColor: theme.ink.withValues(alpha: 0.08),
-                    thumbColor: theme.isLight
-                        ? Colors.white
-                        : Color.alphaBlend(
-                            theme.ink.withValues(alpha: 0.12),
-                            theme.surfaceRaised,
-                          ),
-                    onValueChanged: (k) {
-                      if (k == null) return;
-                      HapticFeedback.selectionClick();
-                      setSheetState(() => kind = k);
-                    },
-                    children: {
-                      for (final (k, icon, label) in [
-                        (
-                          CallMediaKind.audio,
-                          CupertinoIcons.phone_fill,
-                          l10n.linkedAccountsScreenCallSheetVoiceLabel,
-                        ),
-                        (
-                          CallMediaKind.video,
-                          CupertinoIcons.video_camera_solid,
-                          l10n.linkedAccountsScreenCallSheetVideoLabel,
-                        ),
-                      ])
-                        k: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                icon,
-                                size: 16,
-                                color: kind == k ? theme.ink : theme.inkSoft,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                sentenceCaseOf(sheetCtx, label),
-                                style: theme.body.copyWith(
-                                  fontSize: 14,
-                                  fontWeight: kind == k
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                  color: kind == k ? theme.ink : theme.inkSoft,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    },
-                  ),
+                IosSegmentedControl<CallMediaKind>(
+                  value: kind,
+                  onChanged: (k) => setSheetState(() => kind = k),
+                  segments: [
+                    IosSegment(
+                      value: CallMediaKind.audio,
+                      icon: CupertinoIcons.phone_fill,
+                      label: l10n.linkedAccountsScreenCallSheetVoiceLabel,
+                    ),
+                    IosSegment(
+                      value: CallMediaKind.video,
+                      icon: CupertinoIcons.video_camera_solid,
+                      label: l10n.linkedAccountsScreenCallSheetVideoLabel,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 SheetGroup(
@@ -123,8 +74,10 @@ Future<void> showStartGroupCallSheet(
                         _startCall(context, service, roomId, kind, null);
                       },
                     ),
+                    // Not the check glyph: that is the picker's "selected"
+                    // mark one screen later, and here nothing is picked yet.
                     GroupedRow(
-                      icon: CupertinoIcons.checkmark_circle_fill,
+                      icon: CupertinoIcons.person_crop_circle_badge_plus,
                       tone: TileTone.blue,
                       title: l10n.linkedAccountsScreenCallSheetChoosePeopleTitle,
                       subtitle:
@@ -215,7 +168,6 @@ Future<List<String>?> _pickMembers(
                   .pop(selected.toList(growable: false));
           return SheetFrame(
             title: l10n.linkedAccountsScreenCallSheetInviteTitle,
-            leading: const SheetCloseButton(),
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(sheetCtx).size.height * 0.7,
@@ -230,14 +182,7 @@ Future<List<String>?> _pickMembers(
                       child: Center(child: CupertinoActivityIndicator()),
                     )
                   else if (list.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        l10n.linkedAccountsScreenCallSheetNoOtherMembers,
-                        style: theme.body.copyWith(color: theme.inkMuted),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
+                    EmptyLine(l10n.linkedAccountsScreenCallSheetNoOtherMembers)
                   else
                     // Messages-style picker: one grouped block that scrolls
                     // on its own, a check that springs in per person.
@@ -251,8 +196,12 @@ Future<List<String>?> _pickMembers(
                             shrinkWrap: true,
                             padding: EdgeInsets.zero,
                             itemCount: list.length,
+                            // The hairline starts at the text, as SheetGroup
+                            // draws it under a PersonRow.
                             separatorBuilder: (_, _) => Padding(
-                              padding: const EdgeInsets.only(left: 66),
+                              padding: const EdgeInsets.only(
+                                left: kPersonRowTextInset,
+                              ),
                               child: Container(
                                 height: 1 /
                                     MediaQuery.devicePixelRatioOf(sheetCtx),
@@ -299,8 +248,8 @@ Future<List<String>?> _pickMembers(
   );
 }
 
-/// One person in the call picker: face, name, and a round check that springs
-/// in when chosen — the Messages "New Group" picker.
+/// One person in the call picker: face, name, and the shared selection
+/// circle — the Messages "New Group" picker, on [PersonRow].
 class _PickRow extends StatelessWidget {
   const _PickRow({
     required this.user,
@@ -315,53 +264,11 @@ class _PickRow extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final motion = MotionScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: user.displayName,
-      scale: 0.98,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
-        child: Row(
-          children: [
-            UserAvatar(user: user, api: api, size: 40, showStatus: false),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                user.displayName,
-                style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            SizedBox(
-              width: 26,
-              height: 26,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    CupertinoIcons.circle,
-                    size: 26,
-                    color: theme.inkMuted.withValues(alpha: 0.6),
-                  ),
-                  AnimatedScale(
-                    scale: on ? 1 : 0,
-                    duration: motion.d(const Duration(milliseconds: 380)),
-                    curve: on ? Curves.elasticOut : Curves.easeIn,
-                    child: Icon(
-                      CupertinoIcons.checkmark_circle_fill,
-                      size: 26,
-                      color: theme.accent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PersonRow(
+        avatar: UserAvatar(user: user, api: api, size: 40, showStatus: false),
+        title: user.displayName,
+        semanticLabel: user.displayName,
+        trailing: SelectionCheck(picked: on),
+        onTap: onTap,
+      );
 }

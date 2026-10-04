@@ -1,5 +1,4 @@
-import 'package:flutter/cupertino.dart'
-    show CupertinoIcons, CupertinoSliverRefreshControl;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,7 +11,6 @@ import '../../models/daily_game.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/game_tile.dart';
 import '../../widgets/ios_kit.dart';
@@ -103,177 +101,146 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
     final store = GamesStore.instance;
     final left = FeedStore.instance.gamesLeft;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // `bottom: false`, with the inset moved onto the list below — see
-          // [edgeToEdgeBottom].
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              // The tile grid below already grows past 3 columns once there's
-              // room for it — the default readable column caps that growth at
-              // exactly the width mobile already used, which is the shape this
-              // screen looked like before this widened.
+    // The shared pushed page: back chevron, large title and subtitle at the
+    // standard inset, iOS pull-to-refresh above the title.
+    return IosPage(
+      title: l10n.gamesHubTitle,
+      subtitle: l10n.gamesHubSubtitle,
+      // Tiles, not grouped rows: they line up with the title's 20pt inset.
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+      onRefresh: () {
+        HapticFeedback.lightImpact();
+        return Future.wait([
+          GamesStore.instance.load(widget.userId, force: true),
+          RecordsStore.instance.load(widget.userId, force: true),
+        ]);
+      },
+      children: [
+        // The tile grid below already grows past 3 columns once there's room
+        // for it — the default readable column caps that growth at exactly
+        // the width mobile already used, which is the shape this screen
+        // looked like before this widened.
+        Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
               maxWidth: context.isExpanded
                   ? ContentWidth.wide
                   : ContentWidth.readable,
-              child: CustomScrollView(
-                // iOS pull-to-refresh: the bounce is what reveals the
-                // spinner, so it is asked for on every platform here.
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                slivers: [
-                  CupertinoSliverRefreshControl(
-                    onRefresh: () {
-                      HapticFeedback.lightImpact();
-                      return Future.wait([
-                        GamesStore.instance.load(widget.userId, force: true),
-                        RecordsStore.instance.load(widget.userId, force: true),
-                      ]);
-                    },
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: StatusChip(
+                      label: sentenceCaseOf(context, l10n.gamesRemaining(left)),
+                      tone: left == 0 ? theme.success : theme.accent,
+                      icon: left == 0
+                          ? CupertinoIcons.checkmark_seal_fill
+                          : CupertinoIcons.game_controller_solid,
+                    ),
                   ),
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      4,
-                      16,
-                      edgeToEdgeBottom(context),
-                    ),
-                    sliver: SliverList.list(children: [
-                    if (Navigator.of(context).canPop())
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: GlassBackButton(),
-                      ),
-                    const SizedBox(height: 14),
-                    Text(
-                      l10n.gamesHubTitle,
-                      style: theme.displayLarge.copyWith(letterSpacing: 0.37),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.gamesHubSubtitle,
-                      style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: StatusChip(
-                        label: sentenceCaseOf(context, l10n.gamesRemaining(left)),
-                        tone: left == 0 ? theme.success : theme.accent,
-                        icon: left == 0
-                            ? CupertinoIcons.checkmark_seal_fill
-                            : CupertinoIcons.game_controller_solid,
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    if (store.error != null && !store.boards.ready)
-                      _Trouble(
-                        onRetry: () =>
-                            GamesStore.instance.load(widget.userId, force: true),
-                      )
-                    else
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          // Two columns on a phone, growing with the width
-                          // there's actually room for — the tiles are square
-                          // boards, so a fixed count would either crush them on
-                          // a handset or leave a wide desktop pane stuck at the
-                          // same 3 phone-size tiles it started with. Capped at
-                          // 5: that's every tile this screen has, so a 6th
-                          // column would only ever be empty.
-                          const gap = 12.0;
-                          const tileTarget = 150.0;
-                          final columns = ((constraints.maxWidth + gap) /
-                                  (tileTarget + gap))
-                              .floor()
-                              .clamp(2, 5);
-                          final width =
-                              (constraints.maxWidth - gap * (columns - 1)) /
-                              columns;
-                          // The code puzzle leads, ahead of the four boards.
-                          //
-                          // It is the game this app had first and the one the
-                          // daily nudge names, so the tile a person lands on
-                          // after tapping that notification should be the first
-                          // thing under their thumb rather than the last. It is
-                          // also the order the Feed's own games strip already
-                          // used (see GamesStrip) — the shelf and the hub
-                          // disagreeing about which game comes first was the
-                          // inconsistency, and this settles it in the strip's
-                          // favour.
-                          final tiles = <Widget>[
-                            CodePuzzleTile(
-                              key: const ValueKey('tile_code'),
-                              puzzle: FeedStore.instance.puzzle,
-                              width: width,
-                              onTap: () => _open(
-                                PuzzleScreen(
-                                  feedApi: widget.feedApi,
-                                  userId: widget.userId,
-                                ),
+                  const SizedBox(height: 22),
+                  if (store.error != null && !store.boards.ready)
+                    _Trouble(
+                      onRetry: () =>
+                          GamesStore.instance.load(widget.userId, force: true),
+                    )
+                  else
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Two columns on a phone, growing with the width
+                        // there's actually room for — the tiles are square
+                        // boards, so a fixed count would either crush them on
+                        // a handset or leave a wide desktop pane stuck at the
+                        // same 3 phone-size tiles it started with. Capped at
+                        // 5: that's every tile this screen has, so a 6th
+                        // column would only ever be empty.
+                        const gap = 12.0;
+                        const tileTarget = 150.0;
+                        final columns = ((constraints.maxWidth + gap) /
+                                (tileTarget + gap))
+                            .floor()
+                            .clamp(2, 5);
+                        final width =
+                            (constraints.maxWidth - gap * (columns - 1)) /
+                            columns;
+                        // The code puzzle leads, ahead of the four boards.
+                        //
+                        // It is the game this app had first and the one the
+                        // daily nudge names, so the tile a person lands on
+                        // after tapping that notification should be the first
+                        // thing under their thumb rather than the last. It is
+                        // also the order the Feed's own games strip already
+                        // used (see GamesStrip) — the shelf and the hub
+                        // disagreeing about which game comes first was the
+                        // inconsistency, and this settles it in the strip's
+                        // favour.
+                        final tiles = <Widget>[
+                          CodePuzzleTile(
+                            key: const ValueKey('tile_code'),
+                            puzzle: FeedStore.instance.puzzle,
+                            width: width,
+                            onTap: () => _open(
+                              PuzzleScreen(
+                                feedApi: widget.feedApi,
+                                userId: widget.userId,
                               ),
                             ),
-                            for (final game in DailyGame.values)
-                              GameTile(
-                                key: ValueKey('tile_${game.wire}'),
-                                game: game,
-                                boards: store.boards,
-                                result: FeedStore.instance.games[game],
-                                rank: store.standings.rankOf(
-                                  game,
-                                  widget.userId,
-                                ),
-                                width: width,
-                                onTap: () => _openGame(game),
+                          ),
+                          for (final game in DailyGame.values)
+                            GameTile(
+                              key: ValueKey('tile_${game.wire}'),
+                              game: game,
+                              boards: store.boards,
+                              result: FeedStore.instance.games[game],
+                              rank: store.standings.rankOf(
+                                game,
+                                widget.userId,
                               ),
-                          ];
-                          return Wrap(
-                            spacing: gap,
-                            runSpacing: gap,
-                            children: [
-                              for (var i = 0; i < tiles.length; i++)
-                                TweenAnimationBuilder<double>(
-                                  key: tiles[i].key,
-                                  tween: Tween(begin: 0, end: 1),
-                                  duration: motion.stagger(
-                                    theme.motionMed,
-                                    i,
-                                    strideMs: 60,
-                                  ),
-                                  // Pops in on an overshoot, one after the
-                                  // other — the shelf being dealt out.
-                                  curve: motion.c(Curves.easeOutBack),
-                                  builder: (context, v, child) =>
-                                      Transform.scale(
-                                        scale: 0.86 + 0.14 * v,
-                                        child: Opacity(
-                                          opacity: v.clamp(0.0, 1.0),
-                                          child: child,
-                                        ),
-                                      ),
-                                  child: tiles[i],
+                              width: width,
+                              onTap: () => _openGame(game),
+                            ),
+                        ];
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (var i = 0; i < tiles.length; i++)
+                              TweenAnimationBuilder<double>(
+                                key: tiles[i].key,
+                                tween: Tween(begin: 0, end: 1),
+                                duration: motion.stagger(
+                                  theme.motionMed,
+                                  i,
+                                  strideMs: 60,
                                 ),
-                            ],
-                          );
-                        },
-                      ),
-                    // Below the shelf: today's games first, then how everyone
-                    // has ever done at them.
-                    const SizedBox(height: 30),
-                    RecordsSection(viewerId: widget.userId),
-                  ]),
-                  ),
-                ],
-              ),
+                                // Pops in on an overshoot, one after the
+                                // other — the shelf being dealt out.
+                                curve: motion.c(Curves.easeOutBack),
+                                builder: (context, v, child) =>
+                                    Transform.scale(
+                                      scale: 0.86 + 0.14 * v,
+                                      child: Opacity(
+                                        opacity: v.clamp(0.0, 1.0),
+                                        child: child,
+                                      ),
+                                    ),
+                                child: tiles[i],
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  // Below the shelf: today's games first, then how everyone
+                  // has ever done at them.
+                  const SizedBox(height: 30),
+                  RecordsSection(viewerId: widget.userId),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

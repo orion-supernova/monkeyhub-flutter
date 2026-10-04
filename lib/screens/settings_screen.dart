@@ -9,6 +9,7 @@ import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
 import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
+import '../data/glass_config.dart' show glassPresetName;
 import '../companions/brain_manager.dart';
 import '../companions/companion.dart';
 import '../data/settings_store.dart';
@@ -232,9 +233,10 @@ class _SettingsScreenState extends State<SettingsScreen>
     if (id == null) return l10n.settingsScreenValueCustom;
     for (final p in store.glassPresets) {
       if (p.id == id) {
+        final name = glassPresetName(l10n, p);
         return store.glass == p.profile
-            ? p.name
-            : l10n.settingsScreenValueEdited(p.name);
+            ? name
+            : l10n.settingsScreenValueEdited(name);
       }
     }
     return l10n.settingsScreenValueCustom;
@@ -1273,33 +1275,29 @@ class _ProfileCardState extends State<_ProfileCard>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // On the settings scale, not a 20pt one-off: the 60pt
+                    // face already makes this the biggest thing on the page.
                     Text(
                       u.displayName,
-                      style: theme.displaySmall.copyWith(
-                        fontSize: 20,
-                        color: theme.ink,
-                      ),
+                      style: groupedHeaderStyle(theme),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '@${u.username}',
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 15,
-                        color: theme.inkSoft,
-                      ),
+                      style: groupedSubtitleStyle(theme)
+                          .copyWith(color: theme.inkSoft),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
+                    // Two lines before it gives up: at 1.3× and in Turkish
+                    // the list of what lives inside cut off mid-word.
                     Text(
                       widget.hint,
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 13,
-                        color: theme.inkMuted,
-                      ),
-                      maxLines: 1,
+                      style: groupedMetaStyle(theme),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -1307,7 +1305,7 @@ class _ProfileCardState extends State<_ProfileCard>
               ),
               if (widget.pending > 0) ...[
                 const SizedBox(width: 8),
-                _RedBadge(count: widget.pending),
+                RowBadge(count: widget.pending),
               ],
               const SizedBox(width: 8),
               _Chevron(),
@@ -1335,34 +1333,6 @@ class _Chevron extends StatelessWidget {
       CupertinoIcons.chevron_forward,
       size: 15,
       color: theme.inkMuted.withValues(alpha: 0.7),
-    );
-  }
-}
-
-class _RedBadge extends StatelessWidget {
-  const _RedBadge({required this.count});
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-      padding: const EdgeInsets.symmetric(horizontal: 7),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: theme.danger,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Text(
-        count > 99 ? '99+' : '$count',
-        style: theme.caption.copyWith(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
     );
   }
 }
@@ -1448,20 +1418,13 @@ class _HubRowState extends State<GroupedRow>
               Text(
                 w.title,
                 maxLines: 1,
-                style: theme.body.copyWith(
-                  fontSize: 17,
-                  height: 1.25,
-                  color: theme.ink,
-                ),
+                style: groupedTitleStyle(theme),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   w.value ?? '',
-                  style: theme.body.copyWith(
-                    fontSize: 17,
-                    color: theme.inkMuted,
-                  ),
+                  style: groupedValueStyle(theme),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.end,
@@ -1684,7 +1647,7 @@ abstract final class _CallDeliveryRows {
           title: title,
           trailing: Text(
             l10n.settingsCallDeliveryStatusOff,
-            style: theme.body.copyWith(fontSize: 15, color: theme.danger),
+            style: groupedValueStyle(theme).copyWith(color: theme.danger),
           ),
           chevron: true,
           onTap: onTap,
@@ -1762,10 +1725,8 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
               : (available
                     ? Text(
                         l10n.settingsHubUpdateAvailable,
-                        style: theme.body.copyWith(
-                          fontSize: 15,
-                          color: theme.accent,
-                        ),
+                        style: groupedValueStyle(theme)
+                            .copyWith(color: theme.accent),
                       )
                     : null),
           chevron: true,
@@ -1829,7 +1790,8 @@ class _VersionStampState extends State<_VersionStamp> {
     if (_taps >= 3 && mounted) {
       showAppToast(
         context,
-        'Diagnostics in ${_tapsNeeded - _taps}…',
+        AppLocalizations.of(context)
+            .settingsScreenDiagnosticsCountdown(_tapsNeeded - _taps),
         duration: const Duration(milliseconds: 600),
       );
     }
@@ -1854,7 +1816,7 @@ class _VersionStampState extends State<_VersionStamp> {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
         child: Text(
           _stamp ?? 'MonkeyHub',
-          style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+          style: groupedMetaStyle(theme),
         ),
       ),
     );

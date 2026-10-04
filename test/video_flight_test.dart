@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -165,11 +166,11 @@ void main() {
       );
       // Scoped to the page, not the whole route: the thumbnail rail marks the
       // video with the same glyph so you can pick it out of forty photographs,
-      // which is a second (correct) play_arrow on screen.
+      // which is a second (correct) play glyph on screen.
       expect(
         find.descendant(
           of: find.byType(PageView),
-          matching: find.byIcon(Icons.play_arrow),
+          matching: find.byIcon(CupertinoIcons.play_fill),
         ),
         findsOneWidget,
       );
@@ -276,7 +277,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(SteadyHero),
-          matching: find.byIcon(Icons.play_arrow),
+          matching: find.byIcon(CupertinoIcons.play_fill),
         ),
         findsNothing,
         reason: 'the play glyph belongs to the tile, not to the video — '

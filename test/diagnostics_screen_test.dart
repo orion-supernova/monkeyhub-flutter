@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,7 +13,7 @@ import 'package:monkeyhub/l10n/text_case.dart';
 
 /// The viewer's category row, as somebody reading a flooded log uses it.
 ///
-/// The header's `shown/total` is the assertion throughout: it counts exactly
+/// The subtitle's `shown of total` is the assertion throughout: it counts exactly
 /// the events the list is showing, whatever collapsing does to the rows.
 void main() {
   final buf = DiagBuffer.instance;
@@ -65,6 +66,27 @@ void main() {
         matching: find.text(label),
       );
 
+  /// Brings a chip into view first: the row scrolls sideways, and the test
+  /// font's square glyphs make every label wider than the real face would.
+  Future<Finder> visible(WidgetTester t, String label) async {
+    final f = chip(label);
+    await t.ensureVisible(f);
+    await t.pump();
+    return f;
+  }
+
+  /// The page subtitle's `shown of total` — it shares its line with the
+  /// build string once that resolves, hence `textContaining`.
+  Finder shown(String n) => find.textContaining('$n of 11 events');
+
+  /// Delete all lives in the ⋯ menu, behind a confirm.
+  Future<void> openDeleteConfirm(WidgetTester t) async {
+    await t.tap(find.byIcon(CupertinoIcons.ellipsis));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Delete all'));
+    await t.pumpAndSettle();
+  }
+
   /// Ends the test cleanly: toasts live for seconds, and the viewer's ticker
   /// runs until the screen is gone.
   Future<void> close(WidgetTester t) async {
@@ -78,7 +100,7 @@ void main() {
       (t) async {
     await open(t);
 
-    expect(find.text('4/11'), findsOneWidget,
+    expect(shown('4'), findsOneWidget,
         reason: '3 api + 1 connection');
 
     await close(t);
@@ -88,13 +110,13 @@ void main() {
     await hide(t, {'subscription', 'frame'});
     await open(t);
 
-    await t.tap(chip('frame'));
+    await t.tap(await visible(t, 'frame'));
     await t.pump();
-    expect(find.text('2/11'), findsOneWidget);
+    expect(shown('2'), findsOneWidget);
 
-    await t.tap(chip('All'));
+    await t.tap(await visible(t, 'All'));
     await t.pump();
-    expect(find.text('4/11'), findsOneWidget);
+    expect(shown('4'), findsOneWidget);
 
     await close(t);
   });
@@ -104,17 +126,17 @@ void main() {
     await hide(t, {'subscription', 'frame'});
     await open(t);
 
-    await t.longPress(chip('frame'));
+    await t.longPress(await visible(t, 'frame'));
     await t.pump();
 
-    expect(find.text('6/11'), findsOneWidget);
+    expect(shown('6'), findsOneWidget);
     expect(find.text('frame back in All'), findsOneWidget);
     expect(SettingsStore.instance.diagHiddenCategories, {'subscription'});
 
     // The next visit starts from the choice, not the default.
     await close(t);
     await open(t);
-    expect(find.text('6/11'), findsOneWidget);
+    expect(shown('6'), findsOneWidget);
 
     await close(t);
   });
@@ -123,15 +145,15 @@ void main() {
     await hide(t, {'subscription', 'frame'});
     await open(t);
 
-    await t.longPress(chip('api'));
+    await t.longPress(await visible(t, 'api'));
     await t.pump();
-    expect(find.text('1/11'), findsOneWidget);
+    expect(shown('1'), findsOneWidget);
 
     // The toast springs down from the top; let it land before tapping it.
     await t.pump(const Duration(milliseconds: 600));
     await t.tap(find.text('Undo'));
     await t.pump();
-    expect(find.text('4/11'), findsOneWidget);
+    expect(shown('4'), findsOneWidget);
     expect(SettingsStore.instance.diagHiddenCategories,
         {'subscription', 'frame'});
 
@@ -141,8 +163,7 @@ void main() {
   testWidgets('delete all empties the log, after a confirm', (t) async {
     await open(t);
 
-    await t.tap(find.byIcon(Icons.delete_outline));
-    await t.pumpAndSettle();
+    await openDeleteConfirm(t);
     await t.tap(find.text('Delete'));
     await t.pumpAndSettle();
 
@@ -155,8 +176,7 @@ void main() {
   testWidgets('backing out of the confirm keeps everything', (t) async {
     await open(t);
 
-    await t.tap(find.byIcon(Icons.delete_outline));
-    await t.pumpAndSettle();
+    await openDeleteConfirm(t);
     final l10n = AppLocalizations.of(t.element(find.text('Delete')));
     // The iOS action sheet sets its labels in sentence case.
     await t.tap(find.text(sentenceCase(l10n.destructiveSheetCancelButtonLabel)));

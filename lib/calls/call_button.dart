@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -116,11 +117,11 @@ class CallButton extends StatelessWidget {
   final l10n = AppLocalizations.of(context);
   return switch (kind) {
     CallMediaKind.audio => (
-        icon: Icons.call_outlined,
+        icon: CupertinoIcons.phone,
         tooltip: l10n.callButtonVoiceCallTooltip
       ),
     CallMediaKind.video => (
-        icon: Icons.videocam_outlined,
+        icon: CupertinoIcons.video_camera,
         tooltip: l10n.callButtonVideoCallTooltip
       ),
   };
@@ -153,7 +154,7 @@ class _ClassicCallButton extends StatelessWidget {
         shape: LiquidGlassShape.circle,
         size: const Size(40, 40),
         onTap: onTap,
-        child: Icon(face.icon, color: color, size: 18),
+        child: Icon(face.icon, color: color, size: 20),
       ),
     );
   }
@@ -179,11 +180,13 @@ class _LiquidCallButton extends StatelessWidget {
     final face = _face(context, kind);
     return Tooltip(
       message: face.tooltip,
+      // 44pt to match the liquid header's own back button and capsule
+      // (room_screen `_controlSize`); both move to 40 together.
       child: LiquidGlass(
         shape: LiquidGlassShape.circle,
         size: const Size(44, 44),
         onTap: onTap,
-        child: Icon(face.icon, size: 18, color: color),
+        child: Icon(face.icon, size: 20, color: color),
       ),
     );
   }

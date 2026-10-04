@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/companions/brain_spec.dart';
@@ -103,7 +104,7 @@ void main() {
 
     expect(find.text(BrainCatalog.sebastianBrains.first.sizeLabel),
         findsNothing);
-    expect(find.byIcon(Icons.block), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.nosign), findsOneWidget);
   });
 
   testWidgets('a large device is offered both, with no reason line', (
@@ -113,7 +114,7 @@ void main() {
     await pumpShelf(tester);
 
     expect(find.textContaining('GB of memory'), findsNothing);
-    expect(find.byIcon(Icons.block), findsNothing);
+    expect(find.byIcon(CupertinoIcons.nosign), findsNothing);
     for (final brain in BrainCatalog.sebastianBrains) {
       expect(find.text(brain.sizeLabel), findsWidgets, reason: brain.id);
     }

@@ -18,6 +18,7 @@ import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'composer_format_toolbar.dart';
 import 'haptic_ramp.dart';
+import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 
 /// How long a press has to last before the hold ring is allowed to appear.
@@ -179,7 +180,9 @@ class _SendButtonState extends State<_SendButton>
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final size = widget.classic ? 38.0 : 44.0;
+    // 40 in the liquid composer, like every chrome button; its slot stays
+    // 44 so the disc centres on the 44pt field beside it.
+    final size = widget.classic ? 38.0 : 40.0;
 
     // A solid disc in the outgoing-bubble colour on both composers, not
     // tinted glass and not a glowing accent button: send is the one control on
@@ -194,7 +197,7 @@ class _SendButtonState extends State<_SendButton>
             ),
             child: Icon(
               CupertinoIcons.arrow_up,
-              size: widget.classic ? 19 : 21,
+              size: widget.classic ? 19 : 20,
               color: theme.accentInk,
             ),
           );
@@ -358,10 +361,15 @@ class _ScheduledBadge extends StatelessWidget {
           // Past nine the number stops being the point and the badge is just
           // saying "several" — which is what the pill above spells out.
           count > 9 ? '9+' : '$count',
-          style: theme.monoTiny.copyWith(
+          // The badge token — 13/w600 tabular on the body face, never the
+          // theme's tracked mono at an off-scale 9.
+          style: theme.bodySoft.copyWith(
             color: theme.accent,
-            fontSize: 9,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            height: 1.0,
             letterSpacing: 0,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ),
@@ -488,7 +496,7 @@ class _ExpressionsToggle extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsetsDirectional.only(start: 8),
           child: Icon(
-            open ? Icons.keyboard_alt_outlined : Icons.emoji_emotions_outlined,
+            open ? CupertinoIcons.keyboard : CupertinoIcons.smiley,
             size: 22,
             color: open ? theme.accent : theme.inkMuted,
           ),
@@ -921,13 +929,20 @@ class ChatComposerLiquid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (onAttach != null) ...[
-            LiquidGlass(
-              shape: LiquidGlassShape.circle,
-              size: const Size(44, 44),
-              onTap: onAttach,
-              // The Messages "+": a glyph in the label colour on glass. The
-              // accent is kept for the one control that sends.
-              child: Icon(CupertinoIcons.plus, size: 21, color: theme.ink),
+            // The Messages "+": a glyph in the label colour on glass. The
+            // accent is kept for the one control that sends. THE 40pt chrome
+            // button, centred in a 44pt slot so it sits level with the field.
+            SizedBox.square(
+              dimension: 44,
+              child: Center(
+                child: GlassIconButton(
+                  icon: CupertinoIcons.plus,
+                  iconSize: 20,
+                  onTap: onAttach,
+                  semanticLabel: AppLocalizations.of(context)
+                      .deepOceanThemeAttachButtonLabel,
+                ),
+              ),
             ),
             const SizedBox(width: 10),
           ],
@@ -996,30 +1011,42 @@ class ChatComposerLiquid extends StatelessWidget {
                   .d(const Duration(milliseconds: 420)),
               reverseDuration: MotionScope.of(context)
                   .d(const Duration(milliseconds: 140)),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: animation,
-                  curve: const Interval(0, 0.4),
-                ),
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.4, end: 1.0).animate(
-                    CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.elasticOut,
-                      reverseCurve: Curves.easeIn,
-                    ),
-                  ),
-                  child: child,
-                ),
-              ),
+              // Only the send disc springs: it is a solid fill. The camera
+              // beside it is glass, and a BackdropFilter that fades or scales
+              // re-rasterises its blur every frame — it simply swaps.
+              transitionBuilder: (child, animation) =>
+                  child.key != const ValueKey('send')
+                      ? child
+                      : FadeTransition(
+                          opacity: CurvedAnimation(
+                            parent: animation,
+                            curve: const Interval(0, 0.4),
+                          ),
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.4, end: 1.0).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.elasticOut,
+                                reverseCurve: Curves.easeIn,
+                              ),
+                            ),
+                            child: child,
+                          ),
+                        ),
               child: hasText
-                  ? _SendButton(
+                  ? SizedBox.square(
                       key: const ValueKey('send'),
-                      onSend: onSend,
-                      semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
-                      classic: false,
-                      onSchedule: onSchedule,
-                      scheduledCount: scheduledCount,
+                      dimension: 44,
+                      child: Center(
+                        child: _SendButton(
+                          onSend: onSend,
+                          semanticLabel: AppLocalizations.of(context)
+                              .deepOceanThemeSendButtonLabel,
+                          classic: false,
+                          onSchedule: onSchedule,
+                          scheduledCount: scheduledCount,
+                        ),
+                      ),
                     )
                   : modeButton != null
                       ? SizedBox(
@@ -1029,15 +1056,17 @@ class ChatComposerLiquid extends StatelessWidget {
                           child: modeButton,
                         )
                       : onCamera != null
-                          ? LiquidGlass(
+                          ? SizedBox.square(
                               key: const ValueKey('camera'),
-                              shape: LiquidGlassShape.circle,
-                              size: const Size(44, 44),
-                              onTap: onCamera,
-                              child: Icon(
-                                CupertinoIcons.camera,
-                                size: 21,
-                                color: theme.ink,
+                              dimension: 44,
+                              child: Center(
+                                child: GlassIconButton(
+                                  icon: CupertinoIcons.camera,
+                                  iconSize: 20,
+                                  onTap: onCamera,
+                                  semanticLabel: AppLocalizations.of(context)
+                                      .deepOceanThemeCameraButtonLabel,
+                                ),
                               ),
                             )
                           : const SizedBox(

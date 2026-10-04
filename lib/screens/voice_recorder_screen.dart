@@ -12,9 +12,10 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import 'room_items.dart' show formatClockDuration;
-import '../widgets/ios_kit.dart' show GlassIconButton, SpringPress, quietFill;
+import '../widgets/ios_kit.dart'
+    show GlassBackButton, SheetActionButton, SpringPress, groupedSubtitleStyle;
+import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import '../l10n/text_case.dart';
 
 /// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
@@ -156,6 +157,7 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -168,38 +170,41 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        GlassIconButton(
-                          icon: CupertinoIcons.xmark,
-                          semanticLabel: MaterialLocalizations.of(
-                            context,
-                          ).closeButtonTooltip,
-                          onTap: _discardAndExit,
-                        ),
-                        const Spacer(),
-                        Text(
-                          sentenceCaseOf(context, _recording
-                              ? AppLocalizations.of(
-                                  context,
-                                ).voiceRecorderScreenStatusRecording
-                              : (_recorded
-                                    ? AppLocalizations.of(
-                                        context,
-                                      ).voiceRecorderScreenStatusReady
-                                    : AppLocalizations.of(
-                                        context,
-                                      ).voiceRecorderScreenStatusTapToStart)),
-                          style: theme.bodySoft.copyWith(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: _recording ? theme.danger : theme.inkMuted,
+                    // A titled bar like every pushed page: the back chevron
+                    // leading, "Voice message" centred on the screen. The
+                    // status used to float opposite the chevron with no
+                    // title at all; it now reads under the clock.
+                    SizedBox(
+                      height: 40,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 52),
+                            child: Text(
+                              sentenceCaseOf(
+                                context,
+                                l10n.voiceRecorderScreenTitle,
+                              ),
+                              style: sheetTitleStyle(theme),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
+                          // A pushed page (a plain MaterialPageRoute), so a
+                          // back chevron, not an × — leaving still discards
+                          // the take.
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: GlassBackButton(onTap: _discardAndExit),
+                          ),
+                        ],
+                      ),
                     ),
                     const Spacer(),
-                    // Amplitude meter
+                    // Amplitude meter: rings around nothing, so the record
+                    // button below is the only round thing to press.
                     _Meter(level: _level, recording: _recording),
                     const SizedBox(height: 28),
                     Text(
@@ -210,6 +215,22 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                         fontSize: 52,
                         fontWeight: FontWeight.w300,
                         fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      sentenceCaseOf(
+                        context,
+                        _recording
+                            ? l10n.voiceRecorderScreenStatusRecording
+                            : (_recorded
+                                ? l10n.voiceRecorderScreenStatusReady
+                                : l10n.voiceRecorderScreenStatusTapToStart),
+                      ),
+                      textAlign: TextAlign.center,
+                      style: groupedSubtitleStyle(theme).copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: _recording ? theme.danger : theme.inkMuted,
                       ),
                     ),
                     const Spacer(flex: 2),
@@ -228,14 +249,12 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                       )
                     else
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: _Capsule(
-                              label: sentenceCaseOf(
-                                context,
-                                AppLocalizations.of(context).voiceRecorderScreenReRecordButton,
-                              ),
-                              filled: false,
+                            child: SheetActionButton(
+                              label: l10n.voiceRecorderScreenReRecordButton,
+                              tonal: true,
                               onTap: () {
                                 setState(() {
                                   _recorded = false;
@@ -247,12 +266,8 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _Capsule(
-                              label: sentenceCaseOf(
-                                context,
-                                AppLocalizations.of(context).voiceRecorderScreenSendButton,
-                              ),
-                              filled: true,
+                            child: SheetActionButton(
+                              label: l10n.voiceRecorderScreenSendButton,
                               onTap: _confirm,
                             ),
                           ),
@@ -269,6 +284,9 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
   }
 }
 
+/// The level, as three rings breathing out from the middle — no disc and
+/// no glyph. It used to be an accent disc with a mic in it, a second big
+/// round "button" above the real one that did nothing when pressed.
 class _Meter extends StatelessWidget {
   const _Meter({required this.level, required this.recording});
   final double level;
@@ -277,43 +295,30 @@ class _Meter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final radius = 60.0 + level * 80;
+    final tone = recording ? theme.danger : theme.accent;
     return SizedBox(
       width: 240,
       height: 240,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            width: radius * 2,
-            height: radius * 2,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: theme.accent.withValues(alpha: recording ? 0.15 : 0.06),
-            ),
-          ),
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: recording ? theme.danger : theme.accent,
-              boxShadow: [
-                BoxShadow(
-                  color: (recording ? theme.danger : theme.accent).withValues(
-                    alpha: 0.6,
-                  ),
-                  blurRadius: 28,
+          for (final (base, reach, alpha) in const [
+            (56.0, 30.0, 0.55),
+            (80.0, 50.0, 0.32),
+            (104.0, 70.0, 0.16),
+          ])
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              width: (base + (recording ? level : 0) * reach) * 2,
+              height: (base + (recording ? level : 0) * reach) * 2,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: tone.withValues(alpha: recording ? alpha : alpha / 2),
+                  width: 2,
                 ),
-              ],
+              ),
             ),
-            child: Icon(
-              recording ? Icons.stop : Icons.mic,
-              size: 38,
-              color: theme.accentInk,
-            ),
-          ),
         ],
       ),
     );
@@ -375,45 +380,6 @@ class _RecordButton extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// A full-width capsule action: filled for the primary (Send), tinted for the
-/// secondary (Re-record).
-class _Capsule extends StatelessWidget {
-  const _Capsule({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Container(
-        height: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled ? theme.accent : quietFill(theme),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: theme.body.copyWith(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: filled ? theme.accentInk : theme.accent,
-          ),
-        ),
-      ),
     );
   }
 }

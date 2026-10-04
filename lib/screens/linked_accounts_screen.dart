@@ -6,10 +6,10 @@ import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/social_sign_in.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/labeled_field.dart' show FormErrorBanner;
 import '../widgets/password_prompt_sheet.dart';
 import '../widgets/social_sign_in_buttons.dart';
 
@@ -138,7 +138,6 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final providers = SocialSignInButtons.available;
     return IosPage(
@@ -147,10 +146,10 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
       slivers: readableSlivers(context, [
         if (providers.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              l10n.linkedAccountsScreenEmptyState,
-              style: theme.body.copyWith(color: theme.inkMuted),
+            padding: const EdgeInsets.only(top: 24),
+            child: EmptyState(
+              icon: CupertinoIcons.link,
+              title: l10n.linkedAccountsScreenEmptyState,
             ),
           )
         else
@@ -162,14 +161,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
               anyBusy: _busy != null,
               onToggle: () => _toggle(provider),
             ),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              _error!,
-              style: theme.body.copyWith(color: theme.danger),
-            ),
-          ),
+        if (_error != null) FormErrorBanner(_error!),
       ]),
     );
   }
@@ -219,7 +211,8 @@ class _ProviderCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   provider.label,
-                  style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
+                  style: groupedTitleStyle(theme)
+                      .copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
               _StatusPill(linked: linked),
@@ -236,19 +229,23 @@ class _ProviderCard extends StatelessWidget {
             false => AppLocalizations.of(
               context,
             ).linkedAccountsScreenStatusNotLinked(provider.label),
-          }, style: theme.caption.copyWith(fontSize: 14, color: theme.inkMuted)),
+          }, style: groupedSubtitleStyle(theme)),
           const SizedBox(height: 14),
           if (linked == null)
             const SizedBox.shrink()
           else if (isLinked)
-            _UnlinkButton(
+            // The shared capsule, tonal red, with its own same-size spinner
+            // while the unlink runs.
+            SheetActionButton(
               label: AppLocalizations.of(
                 context,
               ).laUnlinkProvider(provider.label),
+              tonal: true,
+              destructive: true,
               busy: busy,
-              enabled: !anyBusy,
-              onTap: onToggle,
-              theme: theme,
+              // A busy button ignores taps itself; only the OTHER card is
+              // greyed while one provider is mid-flight.
+              onTap: anyBusy && !busy ? null : onToggle,
             )
           else
             // Apple's own widget, never restyled. See SocialSignInButtons.
@@ -295,52 +292,11 @@ class _StatusPill extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           on ? l10n.laLinked : l10n.laNotLinked,
-          style: theme.caption.copyWith(
-            fontSize: 14,
+          style: groupedSubtitleStyle(theme).copyWith(
             color: on ? theme.success : theme.inkMuted,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _UnlinkButton extends StatelessWidget {
-  const _UnlinkButton({
-    required this.label,
-    required this.busy,
-    required this.enabled,
-    required this.onTap,
-    required this.theme,
-  });
-
-  final String label;
-  final bool busy;
-  final bool enabled;
-  final VoidCallback onTap;
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    if (busy) {
-      return Container(
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: theme.ink.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CupertinoActivityIndicator(radius: 9, color: theme.inkSoft),
-        ),
-      );
-    }
-    return SheetButton(
-      label: label,
-      danger: true,
-      onTap: enabled ? onTap : null,
     );
   }
 }

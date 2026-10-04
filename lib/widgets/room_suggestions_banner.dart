@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../models/room_admin.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
@@ -116,7 +118,7 @@ class _Strip extends StatelessWidget {
               headline,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.body.copyWith(color: theme.ink, fontSize: 14),
+              style: theme.body.copyWith(color: theme.ink, fontSize: 15),
             ),
           ),
           const SizedBox(width: 6),
@@ -199,7 +201,8 @@ class _Lead extends StatelessWidget {
         children: [
           Center(
             child: Icon(
-              Icons.published_with_changes_outlined,
+              // The glyph room info's suggested-changes row wears.
+              CupertinoIcons.arrow_2_squarepath,
               size: 18,
               color: theme.accent,
             ),
@@ -218,11 +221,14 @@ class _Lead extends StatelessWidget {
                 child: Text(
                   count > 9 ? '9+' : '$count',
                   textAlign: TextAlign.center,
-                  style: theme.monoTiny.copyWith(
+                  // The badge token — 13/w600 tabular on the body face.
+                  style: theme.bodySoft.copyWith(
                     color: theme.accentInk,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    height: 1.0,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
@@ -241,19 +247,22 @@ class _ReviewPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // RowPillButton's filled look, drawn static: the whole strip is the tap
+    // target, so this is a label shaped like the action, not a second button.
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.accent,
-        borderRadius: BorderRadius.circular(theme.radiusSm),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         child: Text(
-          label,
-          style: theme.caption.copyWith(
+          sentenceCaseOf(context, label),
+          style: theme.bodySoft.copyWith(
+            fontSize: 15,
             color: theme.accentInk,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
           ),
         ),
       ),

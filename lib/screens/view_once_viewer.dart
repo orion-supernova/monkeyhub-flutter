@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
+import '../theme/theme_scope.dart';
 import '../widgets/capture_shield.dart';
+import '../widgets/liquid_glass.dart';
 import '../widgets/photo_backdrop.dart';
 import '../l10n/text_case.dart';
 import '../widgets/viewer_chrome.dart';
@@ -95,11 +97,14 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
   @override
   Widget build(BuildContext context) {
     // Material + DefaultTextStyle so nothing here can fall back to Flutter's
-    // debug text rendering.
+    // debug text rendering — on the theme's body face, not a bare style with
+    // no family (which dropped to boxes in the preview and the system
+    // fallback on device).
+    final theme = ThemeScope.of(context);
     return Material(
       type: MaterialType.transparency,
       child: DefaultTextStyle(
-        style: const TextStyle(
+        style: theme.body.copyWith(
           color: Colors.white,
           fontSize: 13,
           decoration: TextDecoration.none,
@@ -168,57 +173,55 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
 }
 
 /// "1 · view once" marker, so it is unambiguous what is being looked at and why
-/// it will not be here again.
+/// it will not be here again. On the media glass capsule every note over a
+/// photo wears ([MediaNoteCapsule]'s material), not a flat white wash.
 class _ViewOnceBadge extends StatelessWidget {
   const _ViewOnceBadge();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 5, 12, 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.85),
-                width: 1.4,
+    final theme = ThemeScope.of(context);
+    final style = theme.body.copyWith(
+      color: MediaGlass.ink,
+      fontSize: 13,
+      height: 1.2,
+      fontWeight: FontWeight.w600,
+      decoration: TextDecoration.none,
+    );
+    return LiquidGlass(
+      tone: GlassTone.media,
+      shape: LiquidGlassShape.capsule,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 6, 13, 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: MediaGlass.ink.withValues(alpha: 0.85),
+                  width: 1.4,
+                ),
+              ),
+              child: Text(
+                '1',
+                style: style.copyWith(height: 1, fontWeight: FontWeight.w700),
               ),
             ),
-            child: const Text(
-              '1',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                height: 1,
-                decoration: TextDecoration.none,
+            const SizedBox(width: 8),
+            Text(
+              sentenceCaseOf(
+                context,
+                AppLocalizations.of(context).viewOnceViewerBadgeLabel,
               ),
+              style: style,
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            sentenceCaseOf(
-              context,
-              AppLocalizations.of(context).viewOnceViewerBadgeLabel,
-            ),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              decoration: TextDecoration.none,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

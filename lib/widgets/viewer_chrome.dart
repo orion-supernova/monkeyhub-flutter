@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
@@ -58,40 +57,58 @@ class ViewerTopBar extends StatelessWidget {
                     ),
                   ),
                   if (subtitle != null)
+                    // The body face at 13 in near-white — the caption slot
+                    // was tracked mono at low contrast on a character
+                    // theme, nearly gone over a bright sky.
                     Text(
                       subtitle!,
-                      style: theme.caption.copyWith(
+                      maxLines: 1,
+                      style: theme.body.copyWith(
                         fontSize: 13,
-                        color: MediaGlass.inkDim,
+                        height: 1.25,
+                        color: MediaGlass.ink.withValues(alpha: 0.85),
                         decoration: TextDecoration.none,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                 ],
               ));
+    // The title is centred on the SCREEN, like a sheet bar's: inset by the
+    // wider side's chrome on both sides, so two trailing actions no longer
+    // shove it left of centre.
+    final side = _button * (actions.isEmpty ? 1 : actions.length) + 8;
 
     return Stack(
       children: [
         MediaScrim(height: pad.top + 62, fromTop: true),
         Padding(
           padding: EdgeInsets.fromLTRB(8, pad.top + 6, 8, 10),
-          child: Row(
-            children: [
-              GlassIconButton(
-                tone: GlassTone.media,
-                size: _button,
-                icon: CupertinoIcons.xmark,
-                semanticLabel: closeLabel ??
-                    MaterialLocalizations.of(context).closeButtonTooltip,
-                onTap: onClose,
-              ),
-              Expanded(child: Center(child: middle)),
-              // Balances the close so the title sits on the screen's centre.
-              if (actions.isEmpty)
-                const SizedBox(width: _button)
-              else
-                Row(mainAxisSize: MainAxisSize.min, children: actions),
-            ],
+          child: SizedBox(
+            height: _button,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (middle != null)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: side),
+                    child: middle,
+                  ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  // The shared media ×, 17pt glyph like every close.
+                  child: GlassCloseButton(
+                    tone: GlassTone.media,
+                    semanticLabel: closeLabel,
+                    onTap: onClose,
+                  ),
+                ),
+                if (actions.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+                  ),
+              ],
+            ),
           ),
         ),
       ],

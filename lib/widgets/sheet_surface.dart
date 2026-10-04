@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
-import 'sheet_kit.dart' show sheetTopRadius;
+import 'sheet_kit.dart' show SheetHandle, sheetTopRadius;
 
 /// The panel every group-administration sheet is drawn on.
 ///
 /// **Deliberately identical to the shell `destructive_sheet.dart` already
 /// uses** — `theme.surface`, rounded on the top corners only, flush to the
-/// bottom and both sides, [SheetGrabber] on top. These four sheets sit
+/// bottom and both sides, [SheetHandle] on top. These four sheets sit
 /// alongside the block sheet, the mute sheet and the confirm sheet, and a
 /// bottom sheet shaped differently from its neighbours reads as a bug no
 /// matter how nice it looks in isolation.
@@ -78,7 +77,10 @@ class SheetSurface extends StatelessWidget {
           // The grabber stays put; only the content below it scrolls. A handle
           // that scrolls away is a handle you cannot reach to drag the sheet
           // shut.
-          const SheetGrabber(),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: SheetHandle(),
+          ),
           // Flexible, not Expanded: the sheet still shrink-wraps short content
           // (a four-row member menu should not become full height), and only
           // starts scrolling once it would otherwise run off the screen.

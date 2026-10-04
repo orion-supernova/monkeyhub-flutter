@@ -134,17 +134,7 @@ class CodePuzzleTile extends StatelessWidget {
       ),
       semanticLabel: l10n.gameCodeName,
       title: l10n.gameCodeName,
-      preview: Center(
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: [
-            for (var s = 0; s < kPuzzleSymbolCount; s++)
-              PuzzleSymbol(index: s, size: 16, accent: theme.accent),
-          ],
-        ),
-      ),
+      preview: const _CodeGridPreview(),
       status: mine == null || !mine.started
           ? StatusChip(
               label: sentenceCaseOf(context, l10n.gameStatusUnplayed),
@@ -228,14 +218,16 @@ class _TileShell extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(left: 4),
-                      child: Text(
+                      // Shrinks to fit rather than truncating a game's name.
+                      child: FitLabel(
                         sentenceCaseOf(context, title),
                         style: theme.bodyEmph.copyWith(
                           fontSize: 17,
                           color: theme.ink,
                         ),
                         maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        minFontSize: 13,
+                        textAlign: TextAlign.start,
                       ),
                     ),
                   ),
@@ -250,6 +242,71 @@ class _TileShell extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The code puzzle's thumbnail: a small guess grid — four columns, six rows,
+/// the first two filled with symbols — the same board language the puzzle
+/// screen draws, so the tile is a picture of the game beside four real boards
+/// rather than a near-empty card with a few loose glyphs on it.
+///
+/// Decorative only: the symbols are in index order and the cells carry no
+/// right/wrong tint, so it hints at nothing about today's code.
+class _CodeGridPreview extends StatelessWidget {
+  const _CodeGridPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    const cols = kPuzzleSlots;
+    const rows = kPuzzleMaxGuesses;
+    const filled = 2;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final gap = (c.maxWidth * 0.035).clamp(2.0, 6.0);
+        final cell = ((c.maxHeight - gap * (rows - 1)) / rows)
+            .clamp(0.0, (c.maxWidth - gap * (cols - 1)) / cols);
+        return ColoredBox(
+          color: theme.ink.withValues(alpha: 0.03),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var r = 0; r < rows; r++) ...[
+                  if (r > 0) SizedBox(height: gap),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var col = 0; col < cols; col++) ...[
+                        if (col > 0) SizedBox(width: gap),
+                        Container(
+                          width: cell,
+                          height: cell,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: theme.ink.withValues(
+                              alpha: r < filled ? 0.10 : 0.06,
+                            ),
+                            borderRadius: BorderRadius.circular(cell * 0.26),
+                          ),
+                          child: r < filled
+                              ? PuzzleSymbol(
+                                  index: (r * cols + col) % kPuzzleSymbolCount,
+                                  size: cell * 0.56,
+                                  accent: theme.accent,
+                                )
+                              : null,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -332,8 +389,10 @@ class StatusChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 12, color: tone),
-            const SizedBox(width: 3),
+            Icon(icon, size: 13, color: tone),
+            // 5, not 3: at 3 the glyph touched the first letter in Turkish
+            // at large text ("Bugün 4 tane kaldı").
+            const SizedBox(width: 5),
           ],
           Flexible(
             child: Text(

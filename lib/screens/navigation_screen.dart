@@ -45,8 +45,10 @@ class NavigationScreen extends StatelessWidget {
                 ),
               ],
             ),
+            // Two notes, not one run-on line: what the picked option does,
+            // then — on its own line — what the page is for.
             GroupedFooter(
-              '${current == NavStyle.pill ? l10n.navTabBarSub : l10n.navOrbSub} '
+              '${current == NavStyle.pill ? l10n.navTabBarSub : l10n.navOrbSub}\n'
               '${l10n.navigationPageFooter}',
             ),
           ],

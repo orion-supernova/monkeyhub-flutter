@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show MaterialLocalizations;
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -6,6 +7,7 @@ import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
+import 'spring_press.dart';
 import 'expressions/expression_media.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
@@ -119,12 +121,19 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // The name as written, never `toUpperCase()`d — Dart's
+                          // invariant mapping turns Turkish "i" into "I", not
+                          // "İ" — on the body face, never the tracked mono.
                           Text(
                             AppLocalizations.of(context)
                                 .composerReplyCardReplyingToLabel(
-                              m.senderName.toUpperCase(),
+                              m.senderName,
                             ),
-                            style: theme.monoTiny.copyWith(color: nameInk),
+                            style: theme.bodySoft.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: nameInk,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -171,9 +180,13 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                     ),
                   ],
                   const SizedBox(width: 4),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  // THE press — a spring, a keyboard focus stop and a
+                  // spoken name — on an inline dismisser.
+                  SpringPress(
                     onTap: widget.onCancel,
+                    haptic: false,
+                    semanticLabel:
+                        MaterialLocalizations.of(context).closeButtonLabel,
                     child: Container(
                       width: 28,
                       height: 28,

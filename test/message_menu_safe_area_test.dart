@@ -135,7 +135,7 @@ void main() {
 
   Future<void> openMenu(WidgetTester tester, GlobalKey anchor) async {
     await tester.tap(find.byKey(anchor), warnIfMissed: false);
-    await pumpUntil(tester, find.text('REPLY'));
+    await pumpUntil(tester, find.text('Reply'));
   }
 
   /// Everything the menu shows has to be inside the band, not just its box:
@@ -147,7 +147,7 @@ void main() {
     required double bandBottom,
   }) {
     final pill = cardAround(tester, '👍');
-    final list = cardAround(tester, 'REPLY');
+    final list = cardAround(tester, 'Reply');
     expect(pill.top, greaterThanOrEqualTo(bandTop - 0.5),
         reason: 'the reaction pill is under the island');
     expect(pill.bottom, lessThanOrEqualTo(bandBottom + 0.5),
@@ -407,7 +407,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     expectMenuInBand(tester, bandTop: 0, bandBottom: 393.0 - 190.0);
-    for (final rect in [cardAround(tester, '👍'), cardAround(tester, 'REPLY')]) {
+    for (final rect in [cardAround(tester, '👍'), cardAround(tester, 'Reply')]) {
       expect(rect.left, greaterThanOrEqualTo(islandTop - 0.5),
           reason: 'a leading edge under the sensor housing');
       expect(rect.right, lessThanOrEqualTo(852.0 - islandTop + 0.5));

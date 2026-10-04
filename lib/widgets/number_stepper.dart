@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -162,7 +163,7 @@ class _NumberStepperState extends State<NumberStepper> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _Arrow(
-              icon: Icons.keyboard_arrow_down_rounded,
+              icon: CupertinoIcons.minus,
               label: widget.decreaseLabel,
               enabled: _canDecrease,
               onTap: () => _tap(-1),
@@ -180,8 +181,11 @@ class _NumberStepperState extends State<NumberStepper> {
                     _text(_value),
                     key: ValueKey(_value),
                     textAlign: TextAlign.center,
-                    style: theme.mono.copyWith(
-                      fontSize: 16,
+                    // Body face at 17, tabular so the width holds as the
+                    // digits change — not the theme's mono, which is a
+                    // typewriter on character themes.
+                    style: theme.body.copyWith(
+                      fontSize: 17,
                       fontWeight: FontWeight.w600,
                       color: theme.ink,
                       fontFeatures: const [FontFeature.tabularFigures()],
@@ -191,7 +195,7 @@ class _NumberStepperState extends State<NumberStepper> {
               ),
             ),
             _Arrow(
-              icon: Icons.keyboard_arrow_up_rounded,
+              icon: CupertinoIcons.plus,
               label: widget.increaseLabel,
               enabled: _canIncrease,
               onTap: () => _tap(1),
@@ -282,7 +286,7 @@ class _ArrowState extends State<_Arrow>
                 ),
                 child: Icon(
                   widget.icon,
-                  size: 22,
+                  size: 17,
                   color: enabled
                       ? theme.accent
                       : theme.inkMuted.withValues(alpha: 0.4),

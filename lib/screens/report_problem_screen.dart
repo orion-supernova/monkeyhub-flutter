@@ -5,16 +5,15 @@ import 'package:image_picker/image_picker.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
+import '../diagnostics/diag_buffer.dart';
 import '../diagnostics/problem_report.dart';
-import '../keyboard/focusable_tap.dart';
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../media/upload_service.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/prominent_button.dart';
-import '../l10n/text_case.dart';
 
 /// Lets any user describe a problem and send it, with the identifiers that make
 /// it actionable already filled in.
@@ -150,16 +149,18 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
 
     return IosPage(
       title: l10n.reportProblemRowLabel,
-      subtitle: l10n.reportProblemIntro,
       children: [
+        // The explanation as the first section's footer, not a four-line
+        // paragraph crammed under the large title.
         GroupedSection(
-          header: sentenceCaseOf(context, l10n.reportProblemDescribeLabel),
+          header: l10n.reportProblemDescribeLabel,
+          footer: l10n.reportProblemIntro,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: TextField(
                 controller: _description,
-                style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                style: groupedTitleStyle(theme),
                 minLines: 4,
                 maxLines: 8,
                 maxLength: 2000,
@@ -167,22 +168,22 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   border: InputBorder.none,
                   counterText: '',
                   hintText: l10n.reportProblemDescribeHint,
-                  hintStyle: theme.bodySoft.copyWith(fontSize: 17),
+                  hintStyle: groupedValueStyle(theme),
                 ),
               ),
             ),
           ],
         ),
         GroupedSection(
-          header: sentenceCaseOf(context, l10n.reportProblemScreenshotsLabel),
+          header: l10n.reportProblemScreenshotsLabel,
           children: [
             for (var i = 0; i < _shots.length; i++)
               GroupedRow(
                 icon: CupertinoIcons.photo_fill,
                 tone: TileTone.blue,
-                title: 'Screenshot ${i + 1}',
+                title: l10n.reportProblemScreenshotN(i + 1),
                 trailing: _RemoveButton(
-                  label: 'Screenshot ${i + 1}',
+                  label: l10n.reportProblemRemoveScreenshot(i + 1),
                   onTap: () => setState(() => _shots.removeAt(i)),
                 ),
               ),
@@ -196,43 +197,16 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
           ],
         ),
         GroupedSection(
-          header: sentenceCaseOf(context, l10n.reportProblemDetailsLabel),
+          header: l10n.reportProblemDetailsLabel,
           children: [
+            // The GroupedRow shape — the name in ink, the value muted on the
+            // right — but built here because the value must stay selectable
+            // and wrap rather than ellipsize: a device id is read over the
+            // phone a chunk at a time.
             for (final f in _facts)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      // Wide enough for "System locale", the longest label —
-                      // a narrower column wraps it onto two lines and knocks
-                      // the whole block out of alignment.
-                      width: 120,
-                      child: Text(
-                        f.label,
-                        style: theme.body.copyWith(
-                          fontSize: 15,
-                          color: theme.inkMuted,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      // Selectable so somebody reading their id over the phone
-                      // can pick out one chunk of it rather than copying the
-                      // whole block.
-                      child: SelectableText(
-                        f.value,
-                        textAlign: TextAlign.end,
-                        style: theme.body.copyWith(
-                          fontSize: 15,
-                          color: theme.ink,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              _FactRow(
+                label: _factLabel(l10n, f.label),
+                value: _factValue(l10n, f),
               ),
             GroupedRow(
               icon: CupertinoIcons.doc_on_doc_fill,
@@ -243,15 +217,126 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
             ),
           ],
         ),
-        ProminentButton(
+        SheetActionButton(
           label: l10n.reportProblemSend,
           busy: _sending,
-          onTap: _sending ? null : _send,
+          onTap: _send,
         ),
       ],
     );
   }
 }
+
+/// A fact's value as the reader sees it. The log count and the app
+/// language's "(from system)" are words, so they are said in the reader's
+/// language; every other value is an id, a version or a measurement.
+String _factValue(AppLocalizations l10n, ({String label, String value}) f) {
+  if (f.label == 'Log') {
+    return l10n.reportFactLogValue(DiagBuffer.instance.length);
+  }
+  if (f.label == 'App language') {
+    return f.value
+        .replaceFirst(
+          '(${ProblemReport.languageFromSystem})',
+          '(${l10n.reportFactLanguageFromSystem})',
+        )
+        .replaceFirst(
+          '(${ProblemReport.languageChosen})',
+          '(${l10n.reportFactLanguageChosen})',
+        );
+  }
+  return f.value;
+}
+
+/// One fact: the name in ink, the value muted beside it — the GroupedRow
+/// shape — but built here because the value must stay selectable: a device
+/// id is read over the phone a chunk at a time.
+///
+/// When the value will not fit on one line beside the name it drops under
+/// it, full width, the way [GroupedRow] stacks a long value. Wrapping it in
+/// the leftover column broke a UUID into a lone "-" and a stray "0" on lines
+/// of their own at large text.
+class _FactRow extends StatelessWidget {
+  const _FactRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final labelStyle = groupedTitleStyle(theme);
+    final valueStyle = groupedValueStyle(theme).copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final scaler = MediaQuery.textScalerOf(context);
+    final dir = Directionality.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          double widthOf(String text, TextStyle style) {
+            final p = TextPainter(
+              text: TextSpan(text: text, style: style),
+              textDirection: dir,
+              textScaler: scaler,
+              maxLines: 1,
+            )..layout();
+            final w = p.width;
+            p.dispose();
+            return w;
+          }
+
+          const gap = 12.0;
+          final side = widthOf(label, labelStyle) +
+                  gap +
+                  widthOf(value, valueStyle) <=
+              box.maxWidth;
+          final valueText = SelectableText(
+            value,
+            textAlign: side ? TextAlign.end : TextAlign.start,
+            style: valueStyle,
+          );
+          if (!side) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(label, style: labelStyle),
+                const SizedBox(height: 2),
+                valueText,
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: labelStyle),
+              const SizedBox(width: gap),
+              Expanded(child: valueText),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The facts' labels in the reader's language. The report body keeps the
+/// English ones — it is read by whoever triages it — so the screen maps them
+/// here rather than [ProblemReport.facts] changing what it sends.
+String _factLabel(AppLocalizations l10n, String label) => switch (label) {
+      'Device ID' => l10n.reportFactDeviceId,
+      'User ID' => l10n.reportFactUserId,
+      'Username' => l10n.reportFactUsername,
+      'App' => l10n.reportFactApp,
+      'Device' => l10n.reportFactDevice,
+      'System' => l10n.reportFactSystem,
+      'Display' => l10n.reportFactDisplay,
+      'App language' => l10n.reportFactAppLanguage,
+      'System locale' => l10n.reportFactSystemLocale,
+      'Log' => l10n.reportFactLog,
+      _ => label,
+    };
 
 /// The minus a removable screenshot row ends in — iOS's red delete disc.
 class _RemoveButton extends StatelessWidget {
@@ -262,20 +347,17 @@ class _RemoveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
-      shape: FocusRingShape.circle,
-      semanticLabel: 'remove $label',
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Icon(
-            CupertinoIcons.minus_circle_fill,
-            size: 22,
-            color: theme.danger,
-          ),
+      focusShape: FocusRingShape.circle,
+      semanticLabel: label,
+      scale: 0.86,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Icon(
+          CupertinoIcons.minus_circle_fill,
+          size: 22,
+          color: theme.danger,
         ),
       ),
     );

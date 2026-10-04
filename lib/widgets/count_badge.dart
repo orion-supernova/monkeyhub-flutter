@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
+import 'ios_kit.dart' show groupedMetaStyle, quietFill;
 
 /// The small accent pill that carries a pending count.
 ///
@@ -19,9 +19,23 @@ class CountBadge extends StatelessWidget {
     this.onAccent = false,
     this.max = 99,
     this.mention = false,
-  });
+  }) : tab = false;
+
+  /// THE tab-bar badge: a solid danger capsule, white 13/w600 tabular digits
+  /// in the system face whatever the theme — the iOS tab badge, which reads
+  /// the same on every theme because it belongs to the chrome, not the page.
+  const CountBadge.tab({
+    super.key,
+    required this.count,
+    this.max = 99,
+  })  : onAccent = false,
+        mention = false,
+        tab = true;
 
   final int count;
+
+  /// The tab-bar style (see [CountBadge.tab]).
+  final bool tab;
 
   /// True when at least one of the counted messages named this user with an
   /// `@`. The pill fills in and grows an `@` in front of the number.
@@ -44,6 +58,37 @@ class CountBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
+    final digits = count > max ? '$max+' : '$count';
+    if (tab) {
+      return Container(
+        constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+  
+        decoration: BoxDecoration(
+          color: theme.danger,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Center(
+          widthFactor: 1,
+          heightFactor: 1,
+          child: Text(
+            digits,
+            // Fixed system face on purpose (the one exception to "the theme's
+            // body face"): a badge is OS chrome, and a display serif or a mono
+            // makes "3" read as decoration.
+            style: const TextStyle(
+              fontFamily: 'CupertinoSystemText',
+              fontSize: 13,
+              height: 1.1,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFFFFFFF),
+              decoration: TextDecoration.none,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      );
+    }
     // Filled rather than tinted when you were named. The tinted pill has to
     // stay quiet enough to sit beside a dozen others in a room list; a mention
     // is the one that has earned the right to be read first.
@@ -66,16 +111,27 @@ class CountBadge extends StatelessWidget {
         // accent. A 28% accent wash read as a navy pill on a dark page.
         : (onAccent ? theme.accent : quietFill(theme));
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-      constraints: const BoxConstraints(minWidth: 16),
-      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      constraints: const BoxConstraints(minWidth: 20),
+
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        '${mention ? '@' : ''}${count > max ? '$max+' : '$count'}',
-        style: theme.monoTiny.copyWith(color: fg),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(
+          '${mention ? '@' : ''}$digits',
+          // Meta on the body face with tabular digits — never the mono slot,
+          // which on a character theme set the count in tracked typewriter.
+          style: groupedMetaStyle(theme).copyWith(
+            color: fg,
+            fontWeight: FontWeight.w600,
+            height: 1.2,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
       ),
     );
   }

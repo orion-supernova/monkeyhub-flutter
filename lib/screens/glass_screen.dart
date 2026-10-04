@@ -1,10 +1,4 @@
-import 'package:flutter/cupertino.dart'
-    show
-        CupertinoAlertDialog,
-        CupertinoDialogAction,
-        CupertinoIcons,
-        CupertinoTextField,
-        showCupertinoDialog;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../data/glass_config.dart';
@@ -21,7 +15,6 @@ import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
 import 'navigation/native_tab_bar.dart' show NativeChrome;
 import 'navigation/pill_bottom_nav.dart';
-import '../l10n/text_case.dart';
 
 /// Live tuning for every glass surface, plus named slots to keep looks in.
 ///
@@ -186,8 +179,9 @@ class _GlassScreenState extends State<GlassScreen> {
   String get _baselineName {
     final id = _store.glassPresetId;
     if (id == null) return '';
+    final l10n = AppLocalizations.of(context);
     for (final p in _store.glassPresets) {
-      if (p.id == id) return p.name;
+      if (p.id == id) return glassPresetName(l10n, p);
     }
     return '';
   }
@@ -232,38 +226,68 @@ class _GlassScreenState extends State<GlassScreen> {
   /// accumulate at the top — all four ended up stacked under the preview,
   /// eating 184pt of screen and never handing over, so nothing downstream could
   /// tell which panel was actually being read.
+  ///
+  /// [lead] sits above the rows on the page itself (a note, the look list,
+  /// an action); [dials] are the sliders, drawn as one inset grouped plate —
+  /// the same 16pt gutter and rounded block as every other settings page —
+  /// but still built lazily, one sliver item per dial.
   Widget _panel(
     AppTheme theme,
     _Panel panel, {
     String? note,
     VoidCallback? onReset,
-    required List<Widget> rows,
+    List<Widget> lead = const [],
+    List<Widget> dials = const [],
   }) => SliverMainAxisGroup(
     slivers: [
       SliverPersistentHeader(
         pinned: true,
         delegate: _PinnedLabel(
           signature: Object.hash(panel, onReset != null, theme.accent),
-          child: _Header(
+          child: GroupedHeader(
+            _panelLabel(panel),
             key: _panelKeys[panel],
-            label: _panelLabel(panel),
-            theme: theme,
-            onReset: onReset,
+            trailing: onReset == null
+                ? null
+                : _MiniAction(
+                    key: glassPanelResetKey(_panelLabel(panel)),
+                    icon: CupertinoIcons.arrow_counterclockwise,
+                    tip: AppLocalizations.of(
+                      context,
+                    ).glassScreenResetTooltip(_panelLabel(panel)),
+                    onTap: onReset,
+                  ),
           ),
         ),
       ),
+      // Nothing above the dials: no padding either, or the header sits a
+      // further 16pt off its plate than every other header on the page.
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+        padding: note == null && lead.isEmpty
+            ? EdgeInsets.zero
+            : EdgeInsets.fromLTRB(16, 0, 16, dials.isEmpty ? 28 : 12),
         sliver: SliverList.list(
           children: [
             if (note != null) ...[
-              Text(note, style: theme.bodySoft),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(note, style: groupedFooterStyle(theme)),
+              ),
               const SizedBox(height: 12),
             ],
-            ...rows,
+            ...lead,
           ],
         ),
       ),
+      if (dials.isNotEmpty)
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+          sliver: SliverList.builder(
+            itemCount: dials.length,
+            itemBuilder: (context, i) =>
+                _PlateItem(first: i == 0, last: i == dials.length - 1, child: dials[i]),
+          ),
+        ),
     ],
   );
 
@@ -330,15 +354,33 @@ class _GlassScreenState extends State<GlassScreen> {
                                 if (Navigator.of(context).canPop())
                                   const GlassBackButton(),
                                 const SizedBox(height: 14),
-                                Text(
-                                  AppLocalizations.of(context).glassScreenHeading,
-                                  style: theme.displayLarge
-                                      .copyWith(letterSpacing: 0.37),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  AppLocalizations.of(context).glassScreenLead,
-                                  style: theme.bodySoft,
+                                // IosPage's title gutter: 20pt, so the large
+                                // title lands where it does on every other
+                                // settings page — the back button keeps 16.
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        ).glassScreenHeading,
+                                        style: theme.displayLarge
+                                            .copyWith(letterSpacing: 0.37),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        ).glassScreenLead,
+                                        style: theme.bodySoft,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                                 if (NativeChrome.supported) ...[
                                   const SizedBox(height: 22),
@@ -383,11 +425,16 @@ class _GlassScreenState extends State<GlassScreen> {
                         _panel(
                           theme,
                           _Panel.looks,
-                          rows: [
-                            ..._presetRows(theme, activeId, dirty),
-                            const SizedBox(height: 10),
+                          lead: [
+                            // One grouped list, the chosen look checked —
+                            // not a stack of separate cards.
+                            GroupedSection(
+                              margin: EdgeInsets.zero,
+                              children: _presetRows(theme, activeId, dirty),
+                            ),
+                            const SizedBox(height: 16),
                             _ActionRow(
-                              icon: Icons.add,
+                              icon: CupertinoIcons.plus,
                               label: _store.glassSlotsFull
                                   ? AppLocalizations.of(
                                       context,
@@ -400,7 +447,7 @@ class _GlassScreenState extends State<GlassScreen> {
                             ),
                             const SizedBox(height: 8),
                             _ActionRow(
-                              icon: Icons.restart_alt,
+                              icon: CupertinoIcons.arrow_counterclockwise,
                               label: base == const GlassProfile()
                                   ? AppLocalizations.of(
                                       context,
@@ -428,7 +475,7 @@ class _GlassScreenState extends State<GlassScreen> {
                           onReset: profile.nav == base.nav
                               ? null
                               : () => _edit(profile.copyWith(nav: base.nav)),
-                          rows: _knobRows(
+                          dials: _knobRows(
                             theme,
                             glassKnobs,
                             profile.nav,
@@ -446,7 +493,7 @@ class _GlassScreenState extends State<GlassScreen> {
                           onReset: profile.app == base.app
                               ? null
                               : () => _edit(profile.copyWith(app: base.app)),
-                          rows: [
+                          lead: [
                             // The two configs are separate because these
                             // surfaces sit over text rather than over scrolling
                             // content, so they usually want more fill. But once
@@ -454,7 +501,7 @@ class _GlassScreenState extends State<GlassScreen> {
                             // next thought, and hand-matching eight dials to get
                             // there is miserable.
                             _ActionRow(
-                              icon: Icons.sync_alt,
+                              icon: CupertinoIcons.arrow_right_arrow_left,
                               label: AppLocalizations.of(
                                 context,
                               ).glassScreenMatchBottomBar,
@@ -462,15 +509,15 @@ class _GlassScreenState extends State<GlassScreen> {
                               onTap: () =>
                                   _edit(profile.copyWith(app: profile.nav)),
                             ),
-                            const SizedBox(height: 18),
-                            ..._knobRows(
-                              theme,
-                              glassKnobs,
-                              profile.app,
-                              base.app,
-                              (c) => _edit(profile.copyWith(app: c)),
-                            ),
+                            const SizedBox(height: 4),
                           ],
+                          dials: _knobRows(
+                            theme,
+                            glassKnobs,
+                            profile.app,
+                            base.app,
+                            (c) => _edit(profile.copyWith(app: c)),
+                          ),
                         ),
 
                         _panel(
@@ -481,7 +528,7 @@ class _GlassScreenState extends State<GlassScreen> {
                               : () => _edit(
                                   profile.copyWith(geometry: base.geometry),
                                 ),
-                          rows: _knobRows(
+                          dials: _knobRows(
                             theme,
                             navGeometryKnobs,
                             profile.geometry,
@@ -511,7 +558,7 @@ class _GlassScreenState extends State<GlassScreen> {
     GlassConfig base,
     ValueChanged<GlassConfig> onChanged,
   ) => [
-    for (final k in knobs) ...[
+    for (final k in knobs)
       _KnobRow(
         knob: k,
         config: config,
@@ -519,13 +566,11 @@ class _GlassScreenState extends State<GlassScreen> {
         onChanged: (v) => onChanged(config.set(k, v)),
         onReset: () => onChanged(_resetKnob(config, base, k)),
       ),
-      const SizedBox(height: 4),
-    ],
   ];
 
   List<Widget> _presetRows(AppTheme theme, String? activeId, bool dirty) => [
-    for (final p in _store.glassPresets) ...[
-      _PresetRow(
+    for (final p in _store.glassPresets)
+      _presetRow(
         preset: p,
         active: p.id == activeId,
         // Only on the row you are actually wearing, and only once it has
@@ -539,12 +584,10 @@ class _GlassScreenState extends State<GlassScreen> {
         onOverwrite: p.builtIn ? null : () => _store.updateGlassSlot(p.id),
         onDelete: p.builtIn ? null : () => _confirmDelete(p),
       ),
-      const SizedBox(height: 8),
-    ],
     // Only reachable by deleting the slot you were wearing, which keeps the
     // look on screen and just stops calling it by name.
     if (activeId == null)
-      _PresetRow(
+      _presetRow(
         preset: GlassPreset(
           id: '',
           name: AppLocalizations.of(context).glassScreenCustomPresetName,
@@ -555,6 +598,53 @@ class _GlassScreenState extends State<GlassScreen> {
         onTap: null,
       ),
   ];
+
+  /// One look in the list: its name, a line only when it has drifted, the
+  /// checkmark on the one you are wearing, and — on a slot you saved — the
+  /// overwrite / rename / delete glyphs. No "Built in" line under the shipped
+  /// two: every row saying it was the same nothing as no row saying it.
+  Widget _presetRow({
+    required GlassPreset preset,
+    required bool active,
+    required VoidCallback? onTap,
+    String? subtitle,
+    VoidCallback? onRename,
+    VoidCallback? onOverwrite,
+    VoidCallback? onDelete,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final name = glassPresetName(l10n, preset);
+    return GroupedRow(
+      title: name,
+      subtitle: subtitle,
+      chevron: false,
+      onTap: onTap,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Tick(on: active),
+          if (onOverwrite != null)
+            _MiniAction(
+              icon: CupertinoIcons.tray_arrow_down,
+              tip: l10n.glassScreenOverwriteTooltip(name),
+              onTap: onOverwrite,
+            ),
+          if (onRename != null)
+            _MiniAction(
+              icon: CupertinoIcons.pencil,
+              tip: l10n.glassScreenRenameTooltip(name),
+              onTap: onRename,
+            ),
+          if (onDelete != null)
+            _MiniAction(
+              icon: CupertinoIcons.trash,
+              tip: l10n.glassScreenDeleteTooltip(name),
+              onTap: onDelete,
+            ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _promptSave() async {
     final name = await _askName(
@@ -582,11 +672,11 @@ class _GlassScreenState extends State<GlassScreen> {
     // Cancel apart — like every other confirmation in the app.
     final yes = await showIosActionSheet<bool>(
       context,
-      title: sentenceCaseOf(context, l10n.glassScreenDeleteConfirmTitle(p.name)),
-      message: sentenceCaseOf(context, l10n.glassScreenDeleteConfirmBody),
+      title: l10n.glassScreenDeleteConfirmTitle(p.name),
+      message: l10n.glassScreenDeleteConfirmBody,
       actions: [
         IosSheetAction(
-          label: sentenceCaseOf(context, l10n.glassScreenDeleteButton),
+          label: l10n.glassScreenDeleteButton,
           value: true,
           destructive: true,
         ),
@@ -596,38 +686,45 @@ class _GlassScreenState extends State<GlassScreen> {
   }
 
   /// "Name this look", the iOS way: a centred alert with a text field and
-  /// Cancel / Save — what Photos and Notes ask a name with.
-  Future<String?> _askName({required String title, String initial = ''}) {
+  /// Cancel / Save — what Photos and Notes ask a name with. The app's own
+  /// themed alert, not `CupertinoAlertDialog`, whose stock purple-tinted
+  /// buttons ignored the theme entirely.
+  Future<String?> _askName({required String title, String initial = ''}) async {
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: initial);
-    return showCupertinoDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => CupertinoAlertDialog(
-        title: Text(sentenceCaseOf(ctx, title)),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: CupertinoTextField(
-            controller: controller,
-            autofocus: true,
-            maxLength: kMaxSlotNameLength,
-            placeholder: sentenceCaseOf(ctx, l10n.glassScreenNameHint),
-            onSubmitted: (v) => Navigator.of(ctx).pop(v),
-          ),
+    try {
+      final save = await showIosAlert<bool>(
+        context,
+        title: title,
+        field: IosAlertField(
+          controller: controller,
+          hint: l10n.glassScreenNameHint,
+          maxLength: kMaxSlotNameLength,
         ),
         actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(sentenceCaseOf(ctx, l10n.glassScreenCancelButton)),
+          IosAlertAction(
+            label: l10n.glassScreenCancelButton,
+            value: false,
+            cancel: true,
           ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: Text(sentenceCaseOf(ctx, l10n.glassScreenSaveButton)),
+          IosAlertAction(
+            label: l10n.glassScreenSaveButton,
+            value: true,
+            preferred: true,
           ),
         ],
-      ),
-    ).whenComplete(controller.dispose);
+      );
+      return save == true ? controller.text : null;
+    } finally {
+      // After the alert's exit transition, not on the pop: the field is
+      // still mounted while it fades.
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => Future<void>.delayed(
+          const Duration(milliseconds: 400),
+          controller.dispose,
+        ),
+      );
+    }
   }
 
   void _toast(String message) => showAppToast(context, message);
@@ -731,15 +828,12 @@ class _GlassPreview extends StatelessWidget {
                 tween: _GlassProfileTween(end: SettingsStore.instance.glass),
                 duration: _glassMotion,
                 curve: Curves.easeOutCubic,
-                builder: (context, profile, _) => AnimatedSwitcher(
-                  duration: _glassMotion,
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeOutCubic,
-                  child: shows == _Shows.bar
-                      // Its own Stack: PillBottomNav returns a Positioned, and
-                      // AnimatedSwitcher wraps whatever it is given in a
-                      // FadeTransition — which leaves that Positioned with no
-                      // Stack to attach its parent data to.
+                // A straight swap between the bar and the other surfaces, not
+                // a crossfade: fading a glass surface animates a
+                // BackdropFilter, the one thing this app never does.
+                builder: (context, profile, _) => shows == _Shows.bar
+                      // Its own Stack: PillBottomNav returns a Positioned,
+                      // which needs a Stack to attach its parent data to.
                       ? Stack(
                           key: const ValueKey(_Shows.bar),
                           children: [
@@ -755,12 +849,12 @@ class _GlassPreview extends StatelessWidget {
                           key: const ValueKey(_Shows.surfaces),
                           config: profile.app,
                         ),
-                ),
               ),
             ),
+            // On the page's 16pt gutter, like every other control.
             Positioned(
-              top: 6,
-              right: 8,
+              top: 8,
+              right: 16,
               child: _PreviewToggle(expanded: expanded, onTap: onToggle),
             ),
           ],
@@ -834,7 +928,7 @@ class _SurfacesPreview extends StatelessWidget {
                   size: const Size(38, 38),
                   config: config,
                   child: Icon(
-                    Icons.call_outlined,
+                    CupertinoIcons.phone,
                     size: 17,
                     color: theme.inkSoft,
                   ),
@@ -843,7 +937,11 @@ class _SurfacesPreview extends StatelessWidget {
                 LiquidGlass(
                   size: const Size(38, 38),
                   config: config,
-                  child: Icon(Icons.more_horiz, size: 17, color: theme.inkSoft),
+                  child: Icon(
+                    CupertinoIcons.ellipsis,
+                    size: 17,
+                    color: theme.inkSoft,
+                  ),
                 ),
               ],
             ),
@@ -854,7 +952,7 @@ class _SurfacesPreview extends StatelessWidget {
               LiquidGlass(
                 size: const Size(38, 38),
                 config: config,
-                child: const Icon(Icons.add, size: 18),
+                child: Icon(CupertinoIcons.plus, size: 18, color: theme.ink),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -883,7 +981,7 @@ class _SurfacesPreview extends StatelessWidget {
                 config: config,
                 tinted: true,
                 child: Icon(
-                  Icons.arrow_upward,
+                  CupertinoIcons.arrow_up,
                   size: 18,
                   color: theme.accentInk,
                 ),
@@ -908,17 +1006,15 @@ class _PreviewToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
+    return SpringPress(
       key: glassPreviewToggleKey,
       onTap: onTap,
       semanticLabel: expanded
           ? l10n.glassScreenPreviewCollapseLabel
           : l10n.glassScreenPreviewExpandLabel,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
+      focusShape: FocusRingShape.capsule,
+      scale: 0.94,
+      child: Container(
           padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
           decoration: ShapeDecoration(
             // Reads over whatever is behind it, which here is deliberately the
@@ -939,9 +1035,8 @@ class _PreviewToggle extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                sentenceCapsOf(context, l10n.glassScreenPreviewBadge),
-                style: theme.caption.copyWith(
-                  fontSize: 13,
+                l10n.glassScreenPreviewBadge,
+                style: groupedMetaStyle(theme).copyWith(
                   fontWeight: FontWeight.w600,
                   color: theme.inkSoft,
                 ),
@@ -951,14 +1046,13 @@ class _PreviewToggle extends StatelessWidget {
                 turns: expanded ? 0 : 0.5,
                 duration: theme.motionFast,
                 child: Icon(
-                  Icons.keyboard_arrow_up,
-                  size: 15,
+                  CupertinoIcons.chevron_up,
+                  size: 13,
                   color: theme.inkSoft,
                 ),
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -987,8 +1081,12 @@ class _PinnedLabel extends SliverPersistentHeaderDelegate {
     return Container(
       // Opaque, or the dial rows scroll visibly through the title.
       color: theme.background,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      alignment: Alignment.centerLeft,
+      // The page's 16pt gutter; [GroupedHeader] adds its own 16 inside, so
+      // the title lines up with the plates' text below it.
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // Bottom, not centre: the header's own 8pt is then the whole gap to
+      // its plate, as in a [GroupedSection]; the slack goes above it.
+      alignment: Alignment.bottomLeft,
       child: child,
     );
   }
@@ -1151,7 +1249,8 @@ class _Row extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               name.characters.first.toUpperCase(),
-              style: theme.label.copyWith(
+              style: groupedMetaStyle(theme).copyWith(
+                fontWeight: FontWeight.w600,
                 color: group ? theme.accentInk : theme.accent,
               ),
             ),
@@ -1176,6 +1275,18 @@ class _Row extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Languages that write a decimal comma. The dial values are plain
+/// fixed-point numbers, so swapping the separator is all the localizing they
+/// need — "0,45" in Turkish rather than "0.45".
+const _decimalCommaLanguages = {'tr', 'es', 'fr', 'pt', 'sv'};
+
+String _localNumber(BuildContext context, String fixed) {
+  final lang = Localizations.maybeLocaleOf(context)?.languageCode;
+  return _decimalCommaLanguages.contains(lang)
+      ? fixed.replaceAll('.', ',')
+      : fixed;
 }
 
 class _KnobRow extends StatelessWidget {
@@ -1212,19 +1323,17 @@ class _KnobRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                sentenceCapsOf(context, label),
-                style: theme.body.copyWith(fontSize: 15, color: theme.ink),
-              ),
+              Text(label, style: groupedTitleStyle(theme)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  knob.format(value),
+                  _localNumber(context, knob.format(value)),
                   textAlign: TextAlign.right,
-                  style: theme.monoTiny.copyWith(
+                  style: groupedSubtitleStyle(theme).copyWith(
                     // Standard values stay quiet so the dials you have actually
                     // moved are findable at a glance in a panel of seventeen.
                     color: standard ? theme.inkMuted : theme.accent,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
@@ -1236,7 +1345,7 @@ class _KnobRow extends StatelessWidget {
                 child: standard
                     ? null
                     : _MiniAction(
-                        icon: Icons.undo,
+                        icon: CupertinoIcons.arrow_uturn_left,
                         tip: l10n.glassScreenResetTooltip(label),
                         onTap: onReset,
                       ),
@@ -1251,111 +1360,12 @@ class _KnobRow extends StatelessWidget {
           if (glassKnobHint(l10n, knob).isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
-              child: Text(glassKnobHint(l10n, knob), style: theme.bodySoft),
+              child: Text(
+                glassKnobHint(l10n, knob),
+                style: groupedSubtitleStyle(theme),
+              ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _PresetRow extends StatelessWidget {
-  const _PresetRow({
-    required this.preset,
-    required this.active,
-    required this.onTap,
-    this.subtitle,
-    this.onRename,
-    this.onOverwrite,
-    this.onDelete,
-  });
-
-  final GlassPreset preset;
-  final bool active;
-  final VoidCallback? onTap;
-  final String? subtitle;
-  final VoidCallback? onRename;
-  final VoidCallback? onOverwrite;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: preset.name,
-      selected: active,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // A grouped-list row: the surface fill and nothing else at rest,
-        // and a checkmark that springs in for the chosen look — not a
-        // glowing border.
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 11, 8, 11),
-          decoration: BoxDecoration(
-            color: groupedFill(theme),
-            borderRadius: BorderRadius.circular(groupedRadius(theme)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      preset.name,
-                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(sentenceCaseOf(context, subtitle!), style: theme.bodySoft),
-                    ] else if (preset.builtIn) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        sentenceCaseOf(context, l10n.glassScreenBuiltInLabel),
-                        style: theme.bodySoft,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              AnimatedScale(
-                scale: active ? 1 : 0,
-                duration: const Duration(milliseconds: 380),
-                curve: active ? Curves.elasticOut : Curves.easeIn,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Icon(
-                    CupertinoIcons.checkmark_alt,
-                    size: 20,
-                    color: theme.accent,
-                  ),
-                ),
-              ),
-              if (onOverwrite != null)
-                _MiniAction(
-                  icon: CupertinoIcons.tray_arrow_down,
-                  tip: l10n.glassScreenOverwriteTooltip(preset.name),
-                  onTap: onOverwrite!,
-                ),
-              if (onRename != null)
-                _MiniAction(
-                  icon: CupertinoIcons.pencil,
-                  tip: l10n.glassScreenRenameTooltip(preset.name),
-                  onTap: onRename!,
-                ),
-              if (onDelete != null)
-                _MiniAction(
-                  icon: CupertinoIcons.trash,
-                  tip: l10n.glassScreenDeleteTooltip(preset.name),
-                  onTap: onDelete!,
-                ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1376,24 +1386,22 @@ class _MiniAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       semanticLabel: tip,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Icon(icon, size: 16, color: theme.inkSoft),
-        ),
+      focusShape: FocusRingShape.circle,
+      scale: 0.86,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, size: 17, color: theme.inkSoft),
       ),
     );
   }
 }
 
-/// A full-width outlined action. Dims rather than disappearing when it has
-/// nothing to do, so the panel does not reflow as you tune.
+/// A full-width secondary action: the shared tonal capsule. Dims rather
+/// than disappearing when it has nothing to do, so the panel does not reflow
+/// as you tune.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({
     required this.icon,
@@ -1408,87 +1416,57 @@ class _ActionRow extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final colour = enabled ? theme.accent : theme.inkMuted;
-    return FocusableTap(
-      onTap: enabled ? onTap : null,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
+  Widget build(BuildContext context) => SheetActionButton(
+        label: label,
+        icon: icon,
+        tonal: true,
         onTap: enabled ? onTap : null,
-        behavior: HitTestBehavior.opaque,
-        // A soft tinted capsule — the iOS 26 secondary button — rather than
-        // an outlined box.
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            color: colour.withValues(alpha: enabled ? 0.14 : 0.08),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 17, color: colour),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  sentenceCapsOf(context, label),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.body.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: colour,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+      );
 }
 
-class _Header extends StatelessWidget {
-  const _Header({
-    super.key,
-    required this.label,
-    required this.theme,
-    this.onReset,
+/// One dial in a panel's grouped plate: the plate's fill, its rounded ends
+/// on the first and last dial, and the inset hairline between dials. Drawn
+/// per item so the dials stay a lazy sliver list.
+class _PlateItem extends StatelessWidget {
+  const _PlateItem({
+    required this.first,
+    required this.last,
+    required this.child,
   });
 
-  final String label;
-  final AppTheme theme;
-
-  /// Null when the panel below is already all standard, which both hides the
-  /// control and says at a glance that there is nothing to undo down there.
-  final VoidCallback? onReset;
+  final bool first;
+  final bool last;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    // The iOS grouped-list section title: sentence case, the theme's own ink,
-    // with the reset as a quiet glyph at the far end.
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            sentenceCapsOf(context, label),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
-            style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
-          ),
+    final theme = ThemeScope.of(context);
+    final r = Radius.circular(groupedRadius(theme));
+    return ClipRRect(
+      borderRadius: BorderRadius.vertical(
+        top: first ? r : Radius.zero,
+        bottom: last ? r : Radius.zero,
+      ),
+      child: ColoredBox(
+        color: groupedFill(theme),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!first)
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Container(
+                  height: 1 / MediaQuery.devicePixelRatioOf(context),
+                  color: theme.ink.withValues(alpha: 0.10),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+              child: child,
+            ),
+          ],
         ),
-        if (onReset != null)
-          _MiniAction(
-            key: glassPanelResetKey(label),
-            icon: CupertinoIcons.arrow_counterclockwise,
-            tip: AppLocalizations.of(context).glassScreenResetTooltip(label),
-            onTap: onReset!,
-          ),
-      ],
+      ),
     );
   }
 }
@@ -1543,8 +1521,7 @@ class _GlassStyleChooser extends StatelessWidget {
             ),
             child: Text(
               l10n.glassStyleRecommended,
-              style: theme.caption.copyWith(
-                fontSize: 12,
+              style: groupedMetaStyle(theme).copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.accent,
               ),

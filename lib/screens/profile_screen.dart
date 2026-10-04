@@ -28,17 +28,18 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../platform.dart';
 import '../theme/app_theme.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
+import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/ios_kit.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_prompt_sheet.dart';
 import '../widgets/recovery_banner.dart';
+import '../widgets/sheet_kit.dart';
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/steady_hero.dart';
@@ -108,7 +109,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _changingAvatar = false;
   bool _signingOut = false;
   bool _deletingAccount = false;
-  bool _confirmDelete = false;
 
   bool get _isMe => widget.repo?.userId == widget.user.id;
   ChatUser get _u => _user ?? widget.user;
@@ -477,7 +477,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final linked = _linkedProviders;
     if (linked == null) return '';
     if (linked.isEmpty) return AppLocalizations.of(context).profileScreenLinkedAccountsNone;
-    return linked.map((p) => p.label.toLowerCase()).join(' · ');
+    // Brand names as the brands write them — "Apple · Google", never
+    // lowercased for the sake of a quiet value.
+    return linked.map((p) => p.label).join(' · ');
   }
 
   String get _familyLabel {
@@ -578,6 +580,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Opens the edit sheet — behind a warning first only when [confirmBody]
+  /// has something to warn about.
+  ///
+  /// Only the username has one. Name and email are reversible in one tap and
+  /// need no explanation, so they go straight to the sheet: a bare "Edit
+  /// name? / Not now / Change" gate in front of them made every edit a
+  /// double confirmation for nothing. A handle change moves the login
+  /// credential, releases the old name and locks the field for a month, and
+  /// none of that is guessable from a title reading "change username?".
   Future<void> _confirmAndEdit({
     required String title,
     required String currentValue,
@@ -587,11 +598,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String? confirmBody,
     bool checksAvailability = false,
   }) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => _ConfirmEditDialog(title: title, body: confirmBody),
-    );
-    if (ok != true || !mounted) return;
+    if (confirmBody != null) {
+      final l10n = AppLocalizations.of(context);
+      final ok = await showIosAlert<bool>(
+        context,
+        title: title,
+        message: confirmBody,
+        actions: [
+          IosAlertAction(label: l10n.acctNotNow, value: false, cancel: true),
+          IosAlertAction(label: l10n.acctChange, value: true, preferred: true),
+        ],
+      );
+      if (ok != true || !mounted) return;
+    }
     await _editFieldSheet(
       title: title,
       currentValue: currentValue,
@@ -637,6 +656,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _signOut() async {
     final auth = widget.auth;
     if (auth == null || _busy) return;
+    // Asked first, as iOS does: one stray tap at the bottom of a long page
+    // shouldn't cost someone their session on this device.
+    final l10n = AppLocalizations.of(context);
+    final go = await showIosActionSheet<bool>(
+      context,
+      title: l10n.profileScreenSignOutConfirmTitle,
+      actions: [
+        IosSheetAction(label: l10n.acctSignOut, value: true, destructive: true),
+      ],
+    );
+    if (go != true || !mounted || _busy) return;
     setState(() {
       _busy = true;
       _signingOut = true;
@@ -665,6 +695,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _deleteAccount() async {
     final auth = widget.auth;
     if (auth == null || _busy) return;
+    // The shared destructive confirm, which also says it cannot be undone.
+    // It replaced a "tap again within 4s" label swap that no other screen
+    // used and that a second accidental tap could satisfy.
+    final confirmL10n = AppLocalizations.of(context);
+    final ok = await showConfirmSheet(
+      context,
+      headline: confirmL10n.profileScreenDeleteAccountConfirmTitle,
+      body: confirmL10n.profileScreenDeleteAccountConfirmBody,
+      confirmLabel: confirmL10n.acctDeleteAccount,
+    );
+    if (!ok || !mounted || _busy) return;
     setState(() {
       _busy = true;
       _deletingAccount = true;
@@ -1135,7 +1176,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 14),
           RiseIn(
             index: 1,
-            child: GestureDetector(
+            // A spring under the finger is the only sign these lines are
+            // editable, so they get the same press as every other control.
+            child: SpringPress(
               onTap: canEditMe
                   ? () => _confirmAndEdit(
                       title: _u.name.trim().isNotEmpty
@@ -1146,7 +1189,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onSave: _updateName,
                     )
                   : null,
-              behavior: HitTestBehavior.opaque,
+              scale: 0.97,
+              haptic: false,
               child: Text(
                 _u.displayName,
                 textAlign: TextAlign.center,
@@ -1159,7 +1203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             index: 2,
             child: Column(
               children: [
-                GestureDetector(
+                SpringPress(
                   onTap: _canRenameUsername
                       ? () => _confirmAndEdit(
                           title: l10n.acctChangeUsernameTitle,
@@ -1170,13 +1214,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onSave: _updateUsername,
                         )
                       : null,
-                  behavior: HitTestBehavior.opaque,
+                  scale: 0.97,
+                  haptic: false,
                   child: Text(
                     '@${_u.username}',
-                    style: theme.body.copyWith(
-                      fontSize: 16,
-                      color: theme.inkMuted,
-                    ),
+                    style: groupedValueStyle(theme),
                   ),
                 ),
                 // Only while the handle is actually locked. Saying "changeable
@@ -1189,7 +1231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       MaterialLocalizations.of(context)
                           .formatMediumDate(_usernameUnlocksAt!),
                     ),
-                    style: theme.caption.copyWith(color: theme.inkMuted),
+                    style: groupedMetaStyle(theme),
                   ),
                 ],
                 if (canEditMe) ...[
@@ -1311,7 +1353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _emailLine(AppTheme theme) {
     final l10n = AppLocalizations.of(context);
     final has = _u.email?.isNotEmpty ?? false;
-    return GestureDetector(
+    return SpringPress(
       onTap: () => _confirmAndEdit(
         title: has ? l10n.acctEditEmailTitle : l10n.acctAddEmail,
         currentValue: _u.email ?? '',
@@ -1321,7 +1363,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         keyboardType: TextInputType.emailAddress,
         onSave: _updateEmail,
       ),
-      behavior: HitTestBehavior.opaque,
+      scale: 0.97,
+      haptic: false,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1334,8 +1377,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Flexible(
             child: Text(
               has ? _u.email! : l10n.acctAddEmail,
-              style: theme.body.copyWith(
-                fontSize: 15,
+              style: groupedSubtitleStyle(theme).copyWith(
                 color: has ? theme.inkSoft : theme.accent,
               ),
               overflow: TextOverflow.ellipsis,
@@ -1370,11 +1412,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (presence != null)
           StatusDotLine(color: presence.$1, label: presence.$2),
         if (presence != null)
-          Text('·', style: theme.caption.copyWith(color: theme.inkMuted)),
+          Text('·', style: groupedSubtitleStyle(theme)),
         Text(
           relation,
-          style: theme.caption.copyWith(
-            fontSize: 14,
+          style: groupedSubtitleStyle(theme).copyWith(
             color: _u.friendshipStatus == FriendshipStatus.incomingPending
                 ? theme.accent
                 : theme.inkMuted,
@@ -1398,18 +1439,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final (IconData icon, String label) = _heldByGrownUp
         ? (CupertinoIcons.hourglass, l10n.acctActionPending)
         : closed
-        ? (CupertinoIcons.person_crop_circle_badge_xmark, l10n.acctActionNotAccepting)
+        ? (
+            CupertinoIcons.person_crop_circle_fill_badge_xmark,
+            l10n.acctActionNotAccepting,
+          )
         : switch (status) {
             FriendshipStatus.none => (
-              CupertinoIcons.person_badge_plus,
+              CupertinoIcons.person_badge_plus_fill,
               l10n.acctActionAddFriend,
             ),
             FriendshipStatus.outgoingPending => (
-              CupertinoIcons.clock,
+              CupertinoIcons.clock_fill,
               l10n.acctActionRequested,
             ),
             FriendshipStatus.incomingPending => (
-              CupertinoIcons.checkmark_alt_circle,
+              CupertinoIcons.checkmark_alt_circle_fill,
               l10n.acctActionAccept,
             ),
             FriendshipStatus.friend => (
@@ -1417,50 +1461,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
               l10n.acctActionMessage,
             ),
           };
-    return ProfileActionBar(
-      tiles: [
-        ProfileActionTile(
+    // One tint rule, filled glyphs. Block and Report are not tiles: they
+    // sit in their own red section below, the iOS Contacts arrangement —
+    // a row of red tiles beside Message read as the page's main actions.
+    return SheetQuickActions(
+      actions: [
+        QuickAction(
           icon: icon,
           label: label,
-          emphasis: status != FriendshipStatus.outgoingPending,
           busy: _busy,
           onTap: primaryBlocked ? null : _friendshipAction,
         ),
         if (status == FriendshipStatus.friend)
-          ProfileActionTile(
-            icon: CupertinoIcons.person_badge_minus,
+          QuickAction(
+            icon: CupertinoIcons.person_badge_minus_fill,
             label: l10n.acctActionUnfriend,
             onTap: _busy ? null : _removeFriend,
           ),
-        ProfileActionTile(
-          icon: CupertinoIcons.hand_raised_fill,
-          label: l10n.acctActionBlock,
-          danger: true,
-          onTap: _busy ? null : _confirmBlock,
-        ),
-        ProfileActionTile(
-          icon: CupertinoIcons.exclamationmark_bubble_fill,
-          label: l10n.acctActionReport,
-          danger: true,
-          onTap: _busy ? null : _confirmReport,
-        ),
       ],
     );
   }
 
   List<Widget> _readSections(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
     final email = _u.email;
-    if (email == null || email.isEmpty) return const [];
     return [
-      GroupedSection(
-        children: [
-          GroupedRow(
-            title: email,
-            icon: CupertinoIcons.envelope_fill,
-            tone: TileTone.blue,
-          ),
-        ],
-      ),
+      if (email != null && email.isNotEmpty)
+        GroupedSection(
+          children: [
+            GroupedRow(
+              title: email,
+              icon: CupertinoIcons.envelope_fill,
+              tone: TileTone.blue,
+            ),
+          ],
+        ),
+      if (widget.repo != null)
+        GroupedSection(
+          children: [
+            GroupedRow(
+              title: l10n.acctActionBlock,
+              destructive: true,
+              onTap: _busy ? null : _confirmBlock,
+            ),
+            GroupedRow(
+              title: l10n.acctActionReport,
+              destructive: true,
+              onTap: _busy ? null : _confirmReport,
+            ),
+          ],
+        ),
     ];
   }
 
@@ -1488,8 +1538,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         GroupedSection(
           header: l10n.acctSectionPrivacy,
           children: [
+            // Not the eye: Screen capture just below wears that one.
             GroupedRow(
-              icon: CupertinoIcons.eye_fill,
+              icon: CupertinoIcons.person_crop_circle_fill,
               tone: TileTone.blue,
               title: l10n.acctRowVisibility,
               onTap: () => Navigator.of(context).push(
@@ -1529,7 +1580,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 tone: TileTone.green,
                 title: l10n.acctSectionFamily,
                 value: _familyLabel,
-                badge: family.pendingCount,
+                // No badge here: the count belongs to Approvals, right
+                // below — the same "2" on both rows read as four requests.
+                // Without children there is no Approvals row, and nothing
+                // can be pending either.
                 onTap: _openFamily,
               ),
               // No children, nothing to approve — the row would be a
@@ -1541,9 +1595,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: l10n.acctRowApprovals,
                   value: family.pendingCount == 0
                       ? l10n.acctNothingWaiting
-                      : l10n.profileScreenApprovalsCountWaiting(
-                          family.pendingCount,
-                        ),
+                      : null,
+                  badge: family.pendingCount,
                   onTap: _openApprovals,
                 ),
             ],
@@ -1585,30 +1638,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (canAccount)
         GroupedSection(
           children: [
+            // Red, as iOS's own Sign Out is: it ends something.
             GroupedRow(
               title: l10n.acctSignOut,
+              destructive: true,
               trailing: _signingOut ? _spinner(theme) : null,
               chevron: false,
               onTap: _busy ? null : _signOut,
             ),
             GroupedRow(
-              title: _confirmDelete
-                  ? l10n.acctConfirmDelete
-                  : l10n.acctDeleteAccount,
+              title: l10n.acctDeleteAccount,
               destructive: true,
               trailing: _deletingAccount ? _spinner(theme) : null,
-              onTap: _deletingAccount
-                  ? null
-                  : () {
-                      if (!_confirmDelete) {
-                        setState(() => _confirmDelete = true);
-                        Future.delayed(const Duration(seconds: 4), () {
-                          if (mounted) setState(() => _confirmDelete = false);
-                        });
-                      } else {
-                        _deleteAccount();
-                      }
-                    },
+              onTap: _deletingAccount ? null : _deleteAccount,
             ),
           ],
         ),
@@ -1671,87 +1713,6 @@ class _GuardiansRow extends StatelessWidget {
   }
 }
 
-/// The body of [_ProfileScreenState._confirmAndEdit]'s "are you sure"
-/// dialog — pulled out of the inline `builder:` closure to match
-/// [_EditFieldSheet] below.
-class _ConfirmEditDialog extends StatelessWidget {
-  const _ConfirmEditDialog({required this.title, this.body});
-
-  final String title;
-
-  /// Optional prose between the title and the buttons.
-  ///
-  /// Only the username uses it. Name and email are reversible in one tap and
-  /// need no explanation; a handle change moves the login credential, releases
-  /// the old name and locks the field for a month, and none of that is
-  /// guessable from a title reading "change username?".
-  final String? body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final body = this.body;
-    // The iOS 26 alert: generously rounded, centred, capsule buttons.
-    return Dialog(
-      backgroundColor: theme.surfaceRaised,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 36),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(theme.radiusXl.clamp(14.0, 30.0)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
-            ),
-            if (body != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                body,
-                textAlign: TextAlign.center,
-                style: theme.bodySoft.copyWith(height: 1.35),
-              ),
-            ],
-            const SizedBox(height: 20),
-            // IntrinsicHeight + stretch: a longer label on one side (a
-            // translation can run much longer than English) wraps to two
-            // lines while its sibling stays on one, and Expanded only
-            // equalizes width — without this the two buttons end up visibly
-            // different heights.
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: _Action(
-                      label: AppLocalizations.of(context).acctNotNow,
-                      filled: false,
-                      onTap: () => Navigator.of(context).pop(false),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _Action(
-                      label: AppLocalizations.of(context).acctChange,
-                      filled: true,
-                      onTap: () => Navigator.of(context).pop(true),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// The body of [_ProfileScreenState._editFieldSheet].
 ///
 /// Owns its [TextEditingController] as `State`, not as a local in the
@@ -1773,39 +1734,15 @@ class _RenameProviderSheet extends StatelessWidget {
   final List<SocialProvider> providers;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      decoration: theme.sheetDecoration(),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (context.isCompact)
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: theme.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          Text(
-            AppLocalizations.of(context).profileScreenUsernameProviderTitle,
-            style: theme.displaySmall,
-          ),
-          const SizedBox(height: 18),
-          SocialSignInButtons(
-            only: providers,
-            dividerLabel: null,
-            onProvider: (p) => Navigator.of(context).pop(p),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SheetFrame(
+        title: AppLocalizations.of(context).profileScreenUsernameProviderTitle,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: SocialSignInButtons(
+          only: providers,
+          dividerLabel: null,
+          onProvider: (p) => Navigator.of(context).pop(p),
+        ),
+      );
 }
 
 class _EditFieldSheet extends StatefulWidget {
@@ -1844,34 +1781,20 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
     super.dispose();
   }
 
+  // The × (leading) cancels and the ✓ (trailing) saves — the iOS 26 sheet
+  // bar, which also lifts the sheet over the keyboard itself.
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+  Widget build(BuildContext context) => SheetFrame(
+        title: widget.title,
+        confirm: SheetConfirm(
+          onTap: () => Navigator.of(context).pop(_controller.text),
+          label: AppLocalizations.of(context).acctSave,
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Meaningless once dismiss-by-drag isn't a thing — the desktop
-            // popover closes via barrier tap / Esc, not a drag gesture.
-            if (context.isCompact)
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(color: theme.divider, borderRadius: BorderRadius.circular(2)),
-              ),
-            Text(
-              widget.title,
-              textAlign: TextAlign.center,
-              style: theme.bodyEmph.copyWith(fontSize: 17, color: theme.ink),
-            ),
-            const SizedBox(height: 16),
             ThemedInput(
               controller: _controller,
               hint: widget.hint,
@@ -1881,47 +1804,9 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
             ),
             if (widget.availability != null)
               UsernameStatusLabel(controller: widget.availability!),
-            const SizedBox(height: 16),
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: _Action(
-                      label: AppLocalizations.of(context).acctCancel,
-                      filled: false,
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _Action(
-                      label: AppLocalizations.of(context).acctSave,
-                      filled: true,
-                      onTap: () => Navigator.of(context).pop(_controller.text),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// A dialog or sheet button — the shared capsule, kept under this name so the
-/// call sites read the same as before.
-class _Action extends StatelessWidget {
-  const _Action({required this.label, required this.filled, required this.onTap});
-  final String label;
-  final bool filled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) =>
-      SheetButton(label: label, filled: filled, onTap: onTap);
+      );
 }
 
 enum AvatarAction { download, capture, library }
@@ -1930,87 +1815,32 @@ Future<AvatarAction?> showAvatarActionSheet(
   BuildContext context, {
   required bool hasAvatar,
 }) {
-  return showAdaptiveSheet<AvatarAction>(
+  final l10n = AppLocalizations.of(context);
+  // The iOS action sheet: three choices, Cancel apart below them.
+  return showIosActionSheet<AvatarAction>(
     context,
-    builder: (ctx) {
-      final theme = ThemeScope.of(ctx);
-      final l10n = AppLocalizations.of(ctx);
-      return SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: Container(
-            decoration: theme.sheetDecoration().copyWith(
-              color: theme.background,
-              borderRadius: BorderRadius.circular(
-                theme.radiusXl.clamp(14.0, 32.0),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Meaningless once dismiss-by-drag isn't a thing — the
-                // desktop popover closes via barrier tap / Esc.
-                if (ctx.isCompact)
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 5,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: theme.inkMuted.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                Text(
-                  l10n.acctProfilePhoto,
-                  textAlign: TextAlign.center,
-                  style: theme.bodyEmph.copyWith(color: theme.ink),
-                ),
-                const SizedBox(height: 14),
-                GroupedSection(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  children: [
-                    // Not in a browser: `gal` writes to the system photo
-                    // library and ships no web implementation, so the row
-                    // would throw MissingPluginException the moment it was
-                    // tapped.
-                    if (hasAvatar && !kIsWeb)
-                      GroupedRow(
-                        icon: CupertinoIcons.arrow_down_to_line,
-                        tone: TileTone.blue,
-                        title: l10n.acctSaveToPhotos,
-                        chevron: false,
-                        onTap: () => Navigator.of(ctx).pop(AvatarAction.download),
-                      ),
-                    GroupedRow(
-                      icon: CupertinoIcons.camera_fill,
-                      tone: TileTone.gray,
-                      title: l10n.acctTakeSelfie,
-                      chevron: false,
-                      onTap: () => Navigator.of(ctx).pop(AvatarAction.capture),
-                    ),
-                    GroupedRow(
-                      icon: CupertinoIcons.photo_fill_on_rectangle_fill,
-                      tone: TileTone.orange,
-                      title: l10n.acctChooseFromLibrary,
-                      chevron: false,
-                      onTap: () => Navigator.of(ctx).pop(AvatarAction.library),
-                    ),
-                  ],
-                ),
-                SheetButton(
-                  label: l10n.acctCancel,
-                  onTap: () => Navigator.of(ctx).pop(),
-                ),
-              ],
-            ),
-          ),
+    title: l10n.acctProfilePhoto,
+    actions: [
+      // Not in a browser: `gal` writes to the system photo library and ships
+      // no web implementation, so the choice would throw
+      // MissingPluginException the moment it was tapped.
+      if (hasAvatar && !kIsWeb)
+        IosSheetAction(
+          label: l10n.acctSaveToPhotos,
+          value: AvatarAction.download,
+          icon: CupertinoIcons.arrow_down_to_line,
         ),
-      );
-    },
+      IosSheetAction(
+        label: l10n.acctTakeSelfie,
+        value: AvatarAction.capture,
+        icon: CupertinoIcons.camera_fill,
+      ),
+      IosSheetAction(
+        label: l10n.acctChooseFromLibrary,
+        value: AvatarAction.library,
+        icon: CupertinoIcons.photo_fill_on_rectangle_fill,
+      ),
+    ],
+    cancelLabel: l10n.acctCancel,
   );
 }

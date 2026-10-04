@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -93,11 +94,11 @@ void main() {
 
     testWidgets('a tap moves one step each way', (t) async {
       final changes = await pumpStepper(t);
-      await t.tap(find.byIcon(Icons.keyboard_arrow_up_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.plus));
       await t.pump();
-      await t.tap(find.byIcon(Icons.keyboard_arrow_down_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.minus));
       await t.pump();
-      await t.tap(find.byIcon(Icons.keyboard_arrow_down_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.minus));
       await t.pump();
       expect(changes, [6, 5, 4]);
       expect(find.text('4'), findsOneWidget);
@@ -105,12 +106,12 @@ void main() {
 
     testWidgets('it stops at the bounds instead of wrapping', (t) async {
       final changes = await pumpStepper(t, value: 1, min: 1, max: 2);
-      await t.tap(find.byIcon(Icons.keyboard_arrow_down_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.minus));
       await t.pump();
       expect(changes, isEmpty);
-      await t.tap(find.byIcon(Icons.keyboard_arrow_up_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.plus));
       await t.pump();
-      await t.tap(find.byIcon(Icons.keyboard_arrow_up_rounded));
+      await t.tap(find.byIcon(CupertinoIcons.plus));
       await t.pump();
       expect(changes, [2]);
     });
@@ -118,7 +119,7 @@ void main() {
     testWidgets('holding runs, gathers speed, and stops at the end', (t) async {
       final changes = await pumpStepper(t, value: 1, min: 1, max: 1000);
       final gesture = await t.startGesture(
-        t.getCenter(find.byIcon(Icons.keyboard_arrow_up_rounded)),
+        t.getCenter(find.byIcon(CupertinoIcons.plus)),
       );
       // Past the long-press threshold and a few seconds of repeats.
       for (var i = 0; i < 80; i++) {
@@ -180,7 +181,7 @@ void main() {
     }
 
     Finder upIn(int index) =>
-        find.byIcon(Icons.keyboard_arrow_up_rounded).at(index);
+        find.byIcon(CupertinoIcons.plus).at(index);
 
     /// Lets the "link created" toast finish, so no timer outlives the test.
     Future<void> settleToast(WidgetTester t) async {
@@ -224,7 +225,7 @@ void main() {
       expect(find.text('72 hours'), findsOneWidget);
 
       // 71 hours back in days rounds UP to 3: an expiry must never come early.
-      await t.tap(find.byIcon(Icons.keyboard_arrow_down_rounded).first);
+      await t.tap(find.byIcon(CupertinoIcons.minus).first);
       await t.pump();
       await t.tap(find.text('Days'));
       await t.pumpAndSettle();

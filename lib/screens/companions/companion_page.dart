@@ -7,6 +7,7 @@
 /// machine would drift from this one within a release.
 library;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../companions/brain_manager.dart';
@@ -15,8 +16,8 @@ import '../../companions/companion.dart';
 import '../../companions/device_capability.dart';
 import '../../companions/sebastian.dart';
 import '../../data/settings_store.dart';
-import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/text_case.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/account_kit.dart';
@@ -44,49 +45,6 @@ class CompanionPage extends StatelessWidget {
         subtitle: subtitle,
         slivers: readableSlivers(context, children),
       );
-}
-
-class CompanionCard extends StatelessWidget {
-  const CompanionCard({super.key, required this.children, this.padding});
-
-  final List<Widget> children;
-  final EdgeInsets? padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // A grouped block: the theme's grouped fill, no border.
-    return Container(
-      padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-}
-
-/// All-caps section label, matching Settings' own.
-class CompanionSectionLabel extends StatelessWidget {
-  const CompanionSectionLabel(this.label, {super.key});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // An inset-grouped section header: sentence case, small, muted.
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
-      child: Text(
-        label,
-        style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
-      ),
-    );
-  }
 }
 
 /// The human tier name for one of Marlowe's brains.
@@ -127,14 +85,16 @@ class CompanionStorageLine extends StatelessWidget {
     final bytes = BrainManager.instance.installedBytes;
     return Row(
       children: [
-        Icon(Icons.sd_storage_outlined, size: 14, color: theme.inkMuted),
+        Icon(CupertinoIcons.tray_full, size: 15, color: theme.inkMuted),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             bytes == 0
                 ? l10n.companionStorageEmpty
                 : l10n.companionStorageUsed(companionByteLabel(bytes)),
-            style: theme.caption.copyWith(color: theme.inkMuted),
+            // The footer step on the body face — the caption slot is
+            // tracked typewriter on a character theme.
+            style: groupedFooterStyle(theme),
           ),
         ),
       ],
@@ -347,167 +307,159 @@ class BrainRow extends StatelessWidget {
         final state = manager.stateOf(brain);
         final isSelected = selected ?? false;
         final unavailable = unavailableReason != null;
+        final selectable =
+            !unavailable && state.status == BrainStatus.installed;
 
-        return GestureDetector(
-          onTap: !unavailable && state.status == BrainStatus.installed
-              ? onSelect
-              : null,
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-            decoration: BoxDecoration(
-              color: isSelected && !unavailable
-                  ? quietFill(theme)
-                  : theme.surface,
-              border: Border.all(
-                color: isSelected
-                    ? theme.accent.withValues(alpha: 0.4)
-                    : theme.divider,
+        // A row of a grouped block (the caller supplies the block — see
+        // [GroupedSection]), not a bordered card of its own: the shelf used
+        // to be the one stack of outlined cards on a page of grouped
+        // blocks. Leading selection circle, 17pt name, 15pt detail,
+        // trailing action pill; notes under it at the meta step.
+        final row = Padding(
+          padding: const EdgeInsets.fromLTRB(16, 11, 14, 11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (selected != null) ...[
+                    // A brain that isn't installed can't be chosen, and the
+                    // circle says so rather than looking like an option
+                    // that refuses to respond.
+                    SelectionCheck(
+                      picked: isSelected,
+                      enabled: state.status == BrainStatus.installed,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                name,
+                                style: groupedTitleStyle(theme).copyWith(
+                                  color: unavailable ? theme.inkMuted : null,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            // Beside the NAME rather than in the trailing
+                            // slot, which belongs to the action. A badge
+                            // that sat where REMOVE sits would be a label
+                            // in a column of buttons, and would push the
+                            // one affordance the row has off the edge on a
+                            // narrow screen.
+                            if (isSelected &&
+                                state.status == BrainStatus.installed) ...[
+                              const SizedBox(width: 8),
+                              _InUseBadge(
+                                theme: theme,
+                                label: l10n.companionBrainInUse,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          // The reason instead of the size. What this row is
+                          // for, on a device that cannot run it, is saying
+                          // why — the download figure is answering a
+                          // question nobody can act on.
+                          unavailableReason ?? detail,
+                          style: groupedSubtitleStyle(theme),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  if (unavailable)
+                    Icon(CupertinoIcons.nosign, size: 17, color: theme.inkMuted)
+                  else
+                    _Trailing(
+                      theme: theme,
+                      l10n: l10n,
+                      brain: brain,
+                      state: state,
+                      onRemove: onRemove,
+                    ),
+                ],
               ),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              if (sharedWith.isNotEmpty &&
+                  state.status == BrainStatus.installed) ...[
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (selected != null) ...[
-                      _SelectionDot(
-                        theme: theme,
-                        on: isSelected,
-                        dimmed: state.status != BrainStatus.installed,
-                      ),
-                      const SizedBox(width: 12),
-                    ],
+                    Icon(CupertinoIcons.link, size: 13, color: theme.inkMuted),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  name,
-                                  style: unavailable
-                                      ? theme.bodyEmph
-                                          .copyWith(color: theme.inkMuted)
-                                      : theme.bodyEmph,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              // Beside the NAME rather than in the trailing
-                              // slot, which belongs to the action. A badge
-                              // that sat where REMOVE sits would be a label
-                              // in a column of buttons, and would push the
-                              // one affordance the row has off the edge on a
-                              // narrow screen.
-                              if (isSelected &&
-                                  state.status == BrainStatus.installed) ...[
-                                const SizedBox(width: 8),
-                                _InUseBadge(theme: theme, label: l10n.companionBrainInUse),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            // The reason instead of the size. What this row is
-                            // for, on a device that cannot run it, is saying
-                            // why — the download figure is answering a
-                            // question nobody can act on.
-                            unavailableReason ?? detail,
-                            style: theme.caption
-                                .copyWith(color: theme.inkMuted),
-                          ),
-                        ],
+                      child: Text(
+                        l10n.companionBrainAlsoUsedBy(
+                          sharedWith.first.displayName,
+                        ),
+                        style: groupedMetaStyle(theme),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    if (unavailable)
-                      Icon(Icons.block, size: 16, color: theme.inkMuted)
-                    else
-                      _Trailing(
-                        theme: theme,
-                        l10n: l10n,
-                        brain: brain,
-                        state: state,
-                        onRemove: onRemove,
-                      ),
                   ],
                 ),
-                if (sharedWith.isNotEmpty &&
-                    state.status == BrainStatus.installed) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.link, size: 12, color: theme.inkMuted),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          l10n.companionBrainAlsoUsedBy(
-                            sharedWith.first.displayName,
-                          ),
-                          style:
-                              theme.caption.copyWith(color: theme.inkMuted),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (state.status == BrainStatus.downloading ||
-                    state.status == BrainStatus.paused) ...[
-                  const SizedBox(height: 12),
-                  _ProgressLine(theme: theme, fraction: state.fraction),
-                ],
-                if (state.status == BrainStatus.paused) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.companionInstallPausedAt(
-                            _mib(state.receivedBytes),
-                            _mib(state.totalBytes),
-                          ),
-                          style: theme.caption.copyWith(color: theme.inkMuted),
-                        ),
-                      ),
-                      // The destructive option, offered only HERE — beside the
-                      // number it destroys. On a running download it would be
-                      // an invitation to lose progress by mis-tapping.
-                      GestureDetector(
-                        onTap: () => BrainManager.instance.cancel(brain),
-                        behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 8),
-                          child: Text(
-                            l10n.companionInstallDiscard,
-                            style: theme.caption.copyWith(color: theme.danger),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (state.status == BrainStatus.failed) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    switch (state.failure) {
-                      BrainInstallFailure.storage =>
-                        l10n.companionInstallFailedStorage,
-                      BrainInstallFailure.network =>
-                        l10n.companionInstallFailedNetwork,
-                      BrainInstallFailure.integrity =>
-                        l10n.companionInstallFailedIntegrity,
-                      _ => l10n.companionInstallFailedUnknown,
-                    },
-                    style: theme.caption.copyWith(color: theme.danger),
-                  ),
-                ],
               ],
-            ),
+              if (state.status == BrainStatus.downloading ||
+                  state.status == BrainStatus.paused) ...[
+                const SizedBox(height: 12),
+                _ProgressLine(theme: theme, fraction: state.fraction),
+              ],
+              if (state.status == BrainStatus.paused) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.companionInstallPausedAt(
+                          _mib(state.receivedBytes),
+                          _mib(state.totalBytes),
+                        ),
+                        style: groupedMetaStyle(theme),
+                      ),
+                    ),
+                    // The destructive option, offered only HERE — beside the
+                    // number it destroys. On a running download it would be
+                    // an invitation to lose progress by mis-tapping.
+                    TextLinkButton(
+                      label: l10n.companionInstallDiscard,
+                      destructive: true,
+                      fontSize: 15,
+                      onTap: () => BrainManager.instance.cancel(brain),
+                    ),
+                  ],
+                ),
+              ],
+              if (state.status == BrainStatus.failed) ...[
+                const SizedBox(height: 8),
+                Text(
+                  switch (state.failure) {
+                    BrainInstallFailure.storage =>
+                      l10n.companionInstallFailedStorage,
+                    BrainInstallFailure.network =>
+                      l10n.companionInstallFailedNetwork,
+                    BrainInstallFailure.integrity =>
+                      l10n.companionInstallFailedIntegrity,
+                    _ => l10n.companionInstallFailedUnknown,
+                  },
+                  style: groupedMetaStyle(theme).copyWith(color: theme.danger),
+                ),
+              ],
+            ],
           ),
+        );
+        if (!selectable || onSelect == null) return row;
+        return SpringPress(
+          onTap: onSelect,
+          semanticLabel: name,
+          scale: 0.98,
+          child: row,
         );
       },
     );
@@ -535,13 +487,18 @@ class _Trailing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final manager = BrainManager.instance;
+    // Every action is the shared row pill (15/w600 on a quiet capsule) —
+    // it was a private `_SmallAction` in the caption slot.
     switch (state.status) {
       case BrainStatus.installed:
         if (onRemove == null) {
-          return Icon(Icons.check_circle, size: 18, color: theme.accent);
+          return Icon(
+            CupertinoIcons.checkmark_circle_fill,
+            size: 20,
+            color: theme.accent,
+          );
         }
-        return _SmallAction(
-          theme: theme,
+        return RowPillButton(
           label: l10n.companionBrainRemove,
           onTap: onRemove,
           destructive: true,
@@ -552,30 +509,25 @@ class _Trailing extends StatelessWidget {
         // the reversible one — cancel is still reachable, from the paused
         // state, where the consequence ("throw away 104 MB") is legible
         // because the number is on screen next to it.
-        return _SmallAction(
-          theme: theme,
+        return RowPillButton(
           label: l10n.companionInstallPause,
           onTap: () => manager.pause(brain),
         );
 
       case BrainStatus.queued:
-        return _SmallAction(
-          theme: theme,
+        return RowPillButton(
           label: l10n.companionInstallCancel,
           onTap: () => manager.cancel(brain),
         );
 
       case BrainStatus.paused:
-        return _SmallAction(
-          theme: theme,
+        return RowPillButton(
           label: l10n.companionInstallResume,
           onTap: manager.isInstallingAny ? null : () => manager.install(brain),
-          leading: Icons.play_arrow,
         );
 
       case BrainStatus.failed:
-        return _SmallAction(
-          theme: theme,
+        return RowPillButton(
           label: l10n.companionInstallRetry,
           onTap: () async {
             await manager.acknowledgeFailure(brain);
@@ -589,75 +541,19 @@ class _Trailing extends StatelessWidget {
         // "wait your turn", which is what is actually happening. See
         // [BrainManager.install] for why installs are serialised.
         final busy = manager.isInstallingAny;
-        return _SmallAction(
-          theme: theme,
+        return RowPillButton(
           label: brain.sizeLabel,
+          semanticLabel: l10n.companionInstallAction(brain.sizeLabel),
           onTap: busy ? null : () => manager.install(brain),
-          leading: Icons.arrow_downward,
         );
     }
   }
 }
 
-class _SmallAction extends StatelessWidget {
-  const _SmallAction({
-    required this.theme,
-    required this.label,
-    required this.onTap,
-    this.leading,
-    this.destructive = false,
-  });
-
-  final AppTheme theme;
-  final String label;
-  final VoidCallback? onTap;
-  final IconData? leading;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final ink = !enabled
-        ? theme.inkMuted.withValues(alpha: 0.45)
-        : (destructive ? theme.danger : theme.accent);
-    return FocusableTap(
-      onTap: onTap,
-      shape: FocusRingShape.capsule,
-      radius: 999,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: ink.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (leading != null) ...[
-                Icon(leading, size: 13, color: ink),
-                const SizedBox(width: 5),
-              ],
-              Text(
-                label,
-                style: theme.caption.copyWith(
-                  color: ink,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The all-caps chip on the row that is actually running.
+/// The chip on the row that is actually running: an accent capsule at the
+/// meta step (13/w600 on the body face, sentence case).
 ///
-/// Same shape and register as `LanguageScreen`'s ACTIVE badge, deliberately —
+/// Same shape and register as `LanguageScreen`'s active badge, deliberately —
 /// this is the identical question ("which of these is live?") and answering it
 /// two different ways in two settings screens is how an app stops feeling like
 /// one app.
@@ -670,48 +566,18 @@ class _InUseBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: theme.accent,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        label,
-        style: theme.monoTiny.copyWith(
+        sentenceCaseOf(context, label),
+        style: groupedMetaStyle(theme).copyWith(
           color: theme.accentInk,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ),
-    );
-  }
-}
-
-class _SelectionDot extends StatelessWidget {
-  const _SelectionDot({
-    required this.theme,
-    required this.on,
-    required this.dimmed,
-  });
-
-  final AppTheme theme;
-  final bool on;
-
-  /// A brain that isn't installed can't be chosen, and the dot says so rather
-  /// than looking like an option that refuses to respond.
-  final bool dimmed;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = dimmed ? theme.inkMuted.withValues(alpha: 0.4) : theme.accent;
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: on ? color : theme.inkMuted, width: 1.5),
-        color: on ? color : Colors.transparent,
-      ),
-      child: on ? Icon(Icons.check, size: 10, color: theme.accentInk) : null,
     );
   }
 }

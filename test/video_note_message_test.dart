@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -111,7 +112,7 @@ void main() {
       // it scrolls — the regression `video_message.dart`'s header documents
       // having already been fixed once for plain videos.
       expect(playback.loads, 0);
-      expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.play_fill), findsOneWidget);
       expect(find.text('0:08'), findsOneWidget);
     });
 
@@ -126,7 +127,7 @@ void main() {
       expect(playback.loads, 1);
       expect(playback.isPlaying, isTrue);
       // Playing: no glyph over the picture, just the countdown.
-      expect(find.byIcon(Icons.play_arrow), findsNothing);
+      expect(find.byIcon(CupertinoIcons.play_fill), findsNothing);
     });
 
     testWidgets('a second tap pauses, a third resumes', (tester) async {
@@ -140,7 +141,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(playback.isPlaying, isFalse);
-      expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.play_fill), findsOneWidget);
 
       await tester.tap(find.byType(VideoNoteMessage));
       await tester.pumpAndSettle();
@@ -172,7 +173,7 @@ void main() {
 
       playback.complete();
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.play_fill), findsOneWidget);
       expect(find.text('0:08'), findsOneWidget);
 
       await tester.tap(find.byType(VideoNoteMessage));
@@ -192,8 +193,8 @@ void main() {
       await tester.tap(find.byType(VideoNoteMessage));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.videocam_off_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.refresh), findsNothing,
+      expect(find.byIcon(CupertinoIcons.slash_circle), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.arrow_clockwise), findsNothing,
           reason: 'a burned or swept blob cannot be retried into existence');
     });
 
@@ -205,12 +206,12 @@ void main() {
 
       await tester.tap(find.byType(VideoNoteMessage));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.refresh), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.arrow_clockwise), findsOneWidget);
       expect(find.text(l10n.videoNoteMessageRetryHint), findsOneWidget);
 
       await tester.tap(find.byType(VideoNoteMessage));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.refresh), findsNothing);
+      expect(find.byIcon(CupertinoIcons.arrow_clockwise), findsNothing);
       expect(playback.isPlaying, isTrue);
     });
 
@@ -225,7 +226,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byType(VideoNoteMessage));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.videocam_off_outlined), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.slash_circle), findsOneWidget);
     });
   });
 }

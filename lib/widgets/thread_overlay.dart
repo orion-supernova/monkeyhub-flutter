@@ -22,6 +22,7 @@ import '../screens/profile_screen.dart';
 import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
+import 'app_toast.dart';
 import 'anchored_scroll.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_recorder.dart';
@@ -221,11 +222,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
   /// [EphemeralMessageBubble.now].
   final ValueNotifier<DateTime> _fadeNow = ValueNotifier(DateTime.now());
 
-  /// In-overlay toast. A SnackBar can't be used here: ScaffoldMessenger
-  /// renders inside the Scaffold's subtree, which sits *below* this root
-  /// overlay entry and behind the blurred scrim.
-  String? _toast;
-  Timer? _toastTimer;
 
   @override
   void initState() {
@@ -286,7 +282,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
   void dispose() {
     _tick?.cancel();
     _fadeNow.dispose();
-    _toastTimer?.cancel();
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeThread(widget.rootId);
     _scroll.dispose();
@@ -569,12 +564,14 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   // ───────────── composing ─────────────
 
+  /// THE toast. A SnackBar can't be used here — ScaffoldMessenger renders
+  /// inside the Scaffold's subtree, below this root overlay entry and behind
+  /// the scrim — but [AppToast] inserts into the root overlay itself, above
+  /// this entry, so the thread speaks with the same voice as the room. (It
+  /// had its own blurred, accent-bordered copy that popped in and out.)
   void _showToast(String message) {
-    _toastTimer?.cancel();
-    setState(() => _toast = message);
-    _toastTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _toast = null);
-    });
+    if (!mounted) return;
+    AppToast.of(context).show(message);
   }
 
   /// What the thread's composer may capture.
@@ -1384,9 +1381,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
               ),
             ),
             // Close button — the other dismiss affordance besides scrim tap.
-            Positioned(
+            // Top-leading, like every ×.
+            PositionedDirectional(
               top: 0,
-              right: 16,
+              start: 16,
               child: SafeArea(
                 child: AnimatedBuilder(
                   animation: curved,
@@ -1407,13 +1405,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 ),
               ),
             ),
-            if (_toast != null)
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: bottomInset + 96,
-                child: IgnorePointer(child: _Toast(message: _toast!)),
-              ),
             ],
           ),
         ),
@@ -1615,37 +1606,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 onSearchFocusChanged: _expressions.setSearching,
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Toast extends StatelessWidget {
-  const _Toast({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Center(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: theme.surface.withValues(alpha: 0.72),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: theme.accent.withValues(alpha: 0.30)),
-            ),
-            child: Text(
-              message,
-              style: theme.bodySoft.copyWith(color: theme.ink),
-              textAlign: TextAlign.center,
-            ),
-          ),
         ),
       ),
     );

@@ -1,19 +1,18 @@
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../auth/auth_errors.dart';
 import '../auth/recovery_phrase.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/account_kit.dart';
-import '../widgets/ios_kit.dart' show groupedFill, quietFill;
+import '../widgets/ios_kit.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/labeled_field.dart' show FormErrorBanner;
 import '../widgets/password_field.dart';
 
 /// Why this screen is being shown, which decides where it starts and what the
@@ -194,18 +193,54 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
             children: [
               theme.backgroundLayer(context),
               SafeArea(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints:
-                        const BoxConstraints(maxWidth: ContentWidth.auth),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: _body(theme),
+                child: Column(
+                  children: [
+                    // A full-screen modal's way out is a × top-leading, never
+                    // a text link under twelve words where it sat below the
+                    // fold at load. Drawn only where leaving costs nothing
+                    // (see `_backLabel`); the hard gate gets no chrome at all.
+                    SizedBox(
+                      height: 52,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: _backLabel(AppLocalizations.of(context)) ==
+                                  null
+                              ? null
+                              : IgnorePointer(
+                                  ignoring: _busy,
+                                  child: GlassCloseButton(
+                                    semanticLabel: _backLabel(
+                                      AppLocalizations.of(context),
+                                    ),
+                                    onTap: () =>
+                                        Navigator.of(context).pop(false),
+                                  ),
+                                ),
+                        ),
                       ),
                     ),
-                  ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(maxWidth: ContentWidth.auth),
+                          // 20pt gutters like every other page: at 28 the
+                          // content was 337pt on a 393pt phone, three short of
+                          // the two-column word grid.
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: _body(theme),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -244,21 +279,16 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       ),
       if (_error != null) ...[
         const SizedBox(height: 14),
-        _ErrorBanner(_error!),
+        FormErrorBanner(_error!),
       ],
       const SizedBox(height: 20),
-      _Cta(
+      // No "Not now" link under it any more: the × in the bar is the way out
+      // of a dismissible gate, and a second dismissal is just noise.
+      SheetActionButton(
         label: l10n.rpContinue,
         busy: _busy,
         onTap: _submitPassword,
       ),
-      if (widget.dismissible) ...[
-        const SizedBox(height: 16),
-        _TextLink(
-          label: l10n.acctNotNow,
-          onTap: () => Navigator.of(context).pop(false),
-        ),
-      ],
     ];
   }
 
@@ -290,36 +320,37 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       const SizedBox(height: 24),
       _PhraseGrid(words: widget.phrase.words),
       const SizedBox(height: 16),
-      _OutlineCta(label: l10n.rpCopy, onTap: _copy),
+      SheetActionButton(
+        label: l10n.rpCopy,
+        tonal: true,
+        icon: CupertinoIcons.doc_on_doc,
+        onTap: _copy,
+      ),
       const SizedBox(height: 10),
       Text(
         // Honest rather than reassuring: on mobile the clipboard is readable
         // by other apps. We deliberately do NOT try to clear it afterwards —
         // that can't be done reliably and it would break the paste.
         l10n.recoveryPhraseScreenPaperHint,
-        style: theme.caption.copyWith(color: theme.inkMuted),
+        // Footer copy on the body face — the theme's caption is tracked
+        // monospace on character themes, and this is a sentence.
+        style: groupedFooterStyle(theme),
       ),
       if (_error != null) ...[
         const SizedBox(height: 14),
-        _ErrorBanner(_error!),
+        FormErrorBanner(_error!),
       ],
       const SizedBox(height: 24),
-      _Cta(
+      SheetActionButton(
         label: l10n.rpSaved,
         busy: _busy,
         onTap: _save,
       ),
-      if (_backLabel(l10n) != null) ...[
-        const SizedBox(height: 16),
-        _TextLink(
-          label: _backLabel(l10n)!,
-          onTap: () => Navigator.of(context).pop(false),
-        ),
-      ],
     ];
   }
 
-  /// The escape hatch, offered only where leaving costs the user nothing.
+  /// The escape hatch — the × in the bar, and this is its spoken label —
+  /// offered only where leaving costs the user nothing.
   ///
   ///  * setup — no account exists yet, so backing out loses nothing at all.
   ///  * rotate — the OLD phrase stays valid right up until onCommit succeeds.
@@ -349,8 +380,11 @@ class _PhraseGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Below this a two-column row squeezes the longer words (8 characters
-        // plus a two-digit index) into an ellipsis.
-        final twoUp = constraints.maxWidth >= 340;
+        // plus a two-digit index) into an ellipsis. 300 fits them with room
+        // to spare and keeps every phone from the SE up on two columns — at
+        // 340, a 393pt phone with 28pt gutters (337pt of content) fell to one
+        // column of twelve rows with the CTA under the fold.
+        final twoUp = constraints.maxWidth >= 300;
         if (!twoUp) {
           return Column(
             children: [
@@ -394,20 +428,29 @@ class _WordCell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
       ),
       child: Row(
         children: [
+          // The index column scales with the text: a fixed 20 fits "24" at
+          // 1.0× but wraps "10" onto two lines at 1.3×, which grows that cell
+          // and knocks the two columns out of line.
           SizedBox(
-            width: 20,
+            width: MediaQuery.textScalerOf(context).scale(20),
             child: Text(
               '${index + 1}',
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              softWrap: false,
+              maxLines: 1,
+              style: groupedMetaStyle(theme).copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
           const SizedBox(width: 6),
           // Plain Text, never SelectableText: partial selection of a recovery
           // phrase is a footgun, and there is exactly one honest copy action.
+          // Mono on purpose — the one place it belongs: a word you copy by
+          // hand, where "l" and "1" must never be confused.
           Expanded(
             child: Text(
               word,
@@ -430,8 +473,9 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return RichText(
-      text: TextSpan(
+    // `Text.rich`, not `RichText`: the latter ignores the text scale.
+    return Text.rich(
+      TextSpan(
         style: theme.displayHero,
         children: [
           TextSpan(
@@ -440,94 +484,6 @@ class _Hero extends StatelessWidget {
           ),
           TextSpan(text: ink),
         ],
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner(this.message);
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      decoration: BoxDecoration(
-        color: theme.danger.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(message, style: theme.body.copyWith(color: theme.danger)),
-    );
-  }
-}
-
-/// Filled primary action. Mirrors `_SubmitButton` in login_screen.dart — a bare
-/// GestureDetector inside a FocusableTap. Never an InkWell; this app draws no
-/// ink anywhere.
-class _Cta extends StatelessWidget {
-  const _Cta({required this.label, required this.busy, required this.onTap});
-  final String label;
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    if (busy) {
-      return Container(
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: quietFill(theme),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CupertinoActivityIndicator(radius: 9, color: theme.accentInk),
-        ),
-      );
-    }
-    return SheetButton(label: label, filled: true, onTap: onTap);
-  }
-}
-
-class _OutlineCta extends StatelessWidget {
-  const _OutlineCta({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => SheetButton(label: label, onTap: onTap);
-}
-
-class _TextLink extends StatelessWidget {
-  const _TextLink({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Center(
-      child: FocusableTap(
-        onTap: onTap,
-        enabled: onTap != null,
-        semanticLabel: label,
-        radius: theme.radiusMd,
-        child: GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            child: Text(
-              label,
-              style: theme.body.copyWith(fontSize: 16, color: theme.accent),
-            ),
-          ),
-        ),
       ),
     );
   }

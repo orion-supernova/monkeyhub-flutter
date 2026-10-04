@@ -1,6 +1,5 @@
 import 'package:camera/camera.dart' show CameraLensDirection;
-import 'package:flutter/cupertino.dart'
-    show CupertinoActivityIndicator, CupertinoIcons;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -14,12 +13,13 @@ import '../../media/image_raster.dart';
 import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../models/moment.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/meta_text.dart';
+import '../../widgets/photo_chrome.dart' show MediaOverlayChip;
+import '../../widgets/sheet_kit.dart';
 
 import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
@@ -325,14 +325,11 @@ class _PointComposerState extends State<_PointComposer> {
     final l10n = AppLocalizations.of(context);
     final remaining = _maxNote - _note.text.characters.length;
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        18,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      decoration: theme.sheetDecoration(),
+    // The shared bar (× leading, title centred); SheetFrame adds the
+    // keyboard's inset under the scroller.
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.pointComposerTitle),
+      padding: EdgeInsets.zero,
       // Scrolls, and is bounded — the same fix the highlight composer already
       // carries. An unscrollable Column in an `isScrollControlled` sheet simply
       // clips whatever runs past the viewport, and with the keyboard up and a
@@ -343,25 +340,17 @@ class _PointComposerState extends State<_PointComposer> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.82,
         ),
         child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      sentenceCaseOf(context, l10n.pointComposerTitle),
-                      style: theme.displaySmall.copyWith(color: theme.ink),
-                    ),
-                  ),
-                  // The concept needs explaining — "kerizlik points" is not a thing
-                  // anyone has met before. One tap, right where the question
-                  // occurs to you.
-                  _WhatIsThis(onTap: () => showPointsExplainer(context)),
-                ],
-              ),
-              const SizedBox(height: 16),
+              // The concept needs explaining — "kerizlik points" is not a thing
+              // anyone has met before. One tap, right where the question
+              // occurs to you: first thing under the bar, whose trailing slot
+              // is reserved for a ✓.
+              _WhatIsThis(onTap: () => showPointsExplainer(context)),
+              const SizedBox(height: 14),
               _TagGrid(
                 selected: _tag,
                 enabled: !_busy,
@@ -371,22 +360,18 @@ class _PointComposerState extends State<_PointComposer> {
                 },
               ),
               const SizedBox(height: 16),
-              TextField(
+              // The shared composer field: a filled rounded box with the
+              // theme's accent caret, so the note reads as a place to type
+              // rather than floating text.
+              SheetTextField(
                 controller: _note,
                 focusNode: _focus,
                 maxLines: 4,
                 minLines: 2,
                 enabled: !_busy,
-                style: theme.body,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: _tag == null
-                      ? l10n.pointComposerNoteHint
-                      : MomentTagChip.exampleFor(l10n, _tag!),
-                  hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
-                  border: InputBorder.none,
-                  isDense: true,
-                ),
+                hint: _tag == null
+                    ? l10n.pointComposerNoteHint
+                    : MomentTagChip.exampleFor(l10n, _tag!),
               ),
               if (_image != null) ...[
                 const SizedBox(height: 12),
@@ -413,16 +398,16 @@ class _PointComposerState extends State<_PointComposer> {
                           // Only when the original bytes were kept — a re-crop
                           // has to start from those, never from the export.
                           if (_imageSource != null) ...[
-                            _PhotoChip(
+                            MediaOverlayChip(
                               icon: CupertinoIcons.crop,
-                              label: l10n.momentComposerEditPhoto,
+                              semanticLabel: l10n.momentComposerEditPhoto,
                               onTap: _busy ? null : _editImage,
                             ),
                             const SizedBox(width: 6),
                           ],
-                          _PhotoChip(
+                          MediaOverlayChip(
                             icon: CupertinoIcons.xmark,
-                            label: l10n.momentComposerRemovePhoto,
+                            semanticLabel: l10n.momentComposerRemovePhoto,
                             onTap: _busy
                                 ? null
                                 : () => setState(() {
@@ -438,13 +423,13 @@ class _PointComposerState extends State<_PointComposer> {
               ],
               if (_errorCode != null) ...[
                 const SizedBox(height: 12),
-                Text(switch (_errorCode) {
+                FormErrorBanner(switch (_errorCode) {
                   'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
                   'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
                   'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
                   'PICK_FAILED' => l10n.mediaPickFailedMessage,
                   _ => l10n.momentComposerErrorGeneric,
-                }, style: theme.bodySoft.copyWith(color: theme.danger)),
+                }),
               ],
               const SizedBox(height: 14),
               Row(
@@ -479,10 +464,12 @@ class _PointComposerState extends State<_PointComposer> {
                 ],
               ),
               const SizedBox(height: 14),
-              _AddButton(
-                enabled: _canPost && remaining >= 0,
+              // The shared primary, with its own same-size spinner while the
+              // point is being written.
+              SheetActionButton(
+                label: l10n.pointComposerAdd,
                 busy: _busy,
-                onTap: _post,
+                onTap: _canPost && remaining >= 0 ? _post : null,
               ),
             ],
           ),
@@ -512,89 +499,49 @@ class _SourceButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       semanticLabel: label,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Opacity(
-          // Matches the rail's capture tile: show the control dimmed rather
-          // than hiding it, so the surface still makes sense while it is busy.
-          opacity: onTap == null ? 0.45 : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.ink.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 15, color: theme.accent),
-                const SizedBox(width: 6),
-                Text(
-                  sentenceCaseOf(context, label),
-                  style: metaText(theme, color: theme.ink),
-                  maxLines: 1,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A small circular control floating over the chosen picture — re-crop, remove.
-///
-/// A near-twin of the highlight composer's `_SlotChip`, and deliberately so:
-/// the two composers put the same two controls in the same corner of the same
-/// preview, and a 5pt-vs-6pt difference between them is the kind of drift
-/// nobody notices and everybody feels.
-class _PhotoChip extends StatelessWidget {
-  const _PhotoChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // A dark translucent disc over the photo — the Photos edit control —
-        // so it reads on any picture, light or dark.
+      focusShape: FocusRingShape.capsule,
+      child: Opacity(
+        // Matches the rail's capture tile: show the control dimmed rather
+        // than hiding it, so the surface still makes sense while it is busy.
+        opacity: onTap == null ? 0.45 : 1,
         child: Container(
-          padding: const EdgeInsets.all(7),
-          decoration: const BoxDecoration(
-            color: Color(0x8C000000),
-            shape: BoxShape.circle,
+          constraints: const BoxConstraints(minHeight: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: quietFill(theme),
+            borderRadius: BorderRadius.circular(999),
           ),
-          child: Icon(icon, size: 15, color: Colors.white),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 17, color: theme.accent),
+              const SizedBox(width: 6),
+              Text(
+                sentenceCaseOf(context, label),
+                style: groupedSubtitleStyle(theme).copyWith(color: theme.ink),
+                maxLines: 1,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// The five categories as a two-row grid.
+/// The five categories as an equal-width grid.
 ///
 /// A grid rather than the highlight composer's scrolling chip row: here the
 /// category is the FIRST decision, not an afterthought, so every option has to
 /// be visible at once. A horizontal scroller hides two of five behind a swipe
 /// nobody performs.
+///
+/// Two equal columns, each row as tall as its taller cell, and the odd fifth
+/// spanning the full width. A content-sized Wrap gave five different widths
+/// and a ragged right edge that swung wildly between languages.
 class _TagGrid extends StatelessWidget {
   const _TagGrid({
     required this.selected,
@@ -609,20 +556,36 @@ class _TagGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final t in MomentTag.values)
-          _TagChoice(
-            key: ValueKey(t.wire),
-            tag: t,
-            label: MomentTagChip.labelFor(l10n, t),
-            hint: MomentTagChip.hintFor(l10n, t),
-            active: selected == t,
-            onTap: enabled ? () => onPick(t) : null,
+    Widget cell(MomentTag t) => _TagChoice(
+          key: ValueKey(t.wire),
+          tag: t,
+          label: MomentTagChip.labelFor(l10n, t),
+          hint: MomentTagChip.hintFor(l10n, t),
+          active: selected == t,
+          onTap: enabled ? () => onPick(t) : null,
+        );
+    const tags = MomentTag.values;
+    final rows = <Widget>[];
+    for (var i = 0; i < tags.length; i += 2) {
+      if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
+      rows.add(
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: cell(tags[i])),
+              if (i + 1 < tags.length) ...[
+                const SizedBox(width: 8),
+                Expanded(child: cell(tags[i + 1])),
+              ],
+            ],
           ),
-      ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
     );
   }
 }
@@ -646,43 +609,42 @@ class _TagChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: '$label — $hint',
+    return Semantics(
       selected: active,
-      radius: theme.radiusMd,
-      child: GestureDetector(
+      child: SpringPress(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
+        semanticLabel: '$label — $hint',
+        focusRadius: theme.radiusMd,
         child: AnimatedContainer(
           duration: theme.motionFast,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: active
-                ? theme.bubbleFill(isMine: true)
-                : theme.ink.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(14),
+            // The accent, not bubbleFill: a picked option is a control state,
+            // not a message.
+            color: active ? theme.accent : quietFill(theme),
+            borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     MomentTagChip.iconFor(tag),
-                    size: 13,
+                    size: 15,
                     // accentInk on an accent fill, never white — NeonNight's
                     // accent is pure yellow and Graphite's is near-white.
                     color: active ? theme.accentInk : theme.accent,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    sentenceCaseOf(context, label),
-                    style: labelText(
-                      theme,
-                      color: active ? theme.accentInk : theme.ink,
+                  Expanded(
+                    child: Text(
+                      sentenceCaseOf(context, label),
+                      style: labelText(
+                        theme,
+                        color: active ? theme.accentInk : theme.ink,
+                      ),
                     ),
                   ),
                 ],
@@ -715,82 +677,27 @@ class _WhatIsThis extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       semanticLabel: l10n.pointsExplainerOpen,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: quietFill(theme),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.question_circle, size: 14, color: theme.accent),
-              const SizedBox(width: 5),
-              Text(
-                sentenceCaseOf(context, l10n.pointsExplainerOpen),
-                style: metaText(theme, color: theme.accent),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  const _AddButton({
-    required this.enabled,
-    required this.busy,
-    required this.onTap,
-  });
-
-  final bool enabled;
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return SpringPress(
-      onTap: enabled ? onTap : null,
-      semanticLabel: l10n.pointComposerAdd,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        width: double.infinity,
-        height: 52,
+      focusShape: FocusRingShape.capsule,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: enabled
-              ? theme.bubbleFill(isMine: true)
-              : theme.ink.withValues(alpha: 0.08),
+          color: quietFill(theme),
           borderRadius: BorderRadius.circular(999),
         ),
-        alignment: Alignment.center,
-        child: busy
-            ? SizedBox(
-                width: 18,
-                height: 18,
-                child: CupertinoActivityIndicator(
-                  radius: 9,
-                  color: theme.accentInk,
-                ),
-              )
-            : Text(
-                sentenceCaseOf(context, l10n.pointComposerAdd),
-                style: theme.body.copyWith(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: enabled ? theme.accentInk : theme.inkMuted,
-                ),
-              ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.question_circle, size: 15, color: theme.accent),
+            const SizedBox(width: 5),
+            Text(
+              sentenceCaseOf(context, l10n.pointsExplainerOpen),
+              style: metaText(theme, color: theme.accent),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -14,9 +14,9 @@ import '../models/puzzle.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show SheetGrabber;
 import 'puzzle_symbol.dart';
-import 'meta_text.dart';
+import 'sheet_kit.dart' show SheetBar, SheetCloseButton, SheetHandle, sheetFill, sheetTopRadius;
+import 'ios_kit.dart';
 import '../l10n/text_case.dart';
 
 /// What a daily game is, in the plainest words the rules allow.
@@ -157,38 +157,35 @@ class GameInfoButton extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final box = tapSize < size ? size : tapSize;
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       semanticLabel: l10n.gameInfoOpen,
-      shape: FocusRingShape.circle,
-      radius: box / 2,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: box,
-          height: box,
-          child: Align(
-            alignment: glyphAlignment,
-            child: Transform.translate(
-              offset: glyphOffset,
-              child: Container(
-                width: size * 0.72,
-                height: size * 0.72,
-                decoration: BoxDecoration(
-                  // Solid, not a tint. It is painted onto a board of eight
-                  // region colours and across the tile's own outline, and a
-                  // translucent disc would carry that border line through its
-                  // middle.
-                  color: theme.ink.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  CupertinoIcons.question,
-                  size: size * 0.40,
-                  color: theme.inkSoft,
-                ),
+      focusShape: FocusRingShape.circle,
+      focusRadius: box / 2,
+      scale: PressSpec.scaleSmall,
+      child: SizedBox(
+        width: box,
+        height: box,
+        child: Align(
+          alignment: glyphAlignment,
+          child: Transform.translate(
+            offset: glyphOffset,
+            child: Container(
+              width: size * 0.72,
+              height: size * 0.72,
+              decoration: BoxDecoration(
+                // Solid, not a tint. It is painted onto a board of eight
+                // region colours and across the tile's own outline, and a
+                // translucent disc would carry that border line through its
+                // middle.
+                color: theme.ink.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                CupertinoIcons.question,
+                size: size * 0.40,
+                color: theme.inkSoft,
               ),
             ),
           ),
@@ -226,132 +223,150 @@ class _GameInfoSheet extends StatelessWidget {
     // nothing to flex against and throw.
     return LayoutBuilder(
       builder: (context, constraints) => Container(
-      decoration: theme.sheetDecoration(),
+      decoration: BoxDecoration(
+        color: sheetFill(theme),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(sheetTopRadius(theme)),
+        ),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Fixed, above the scroll view: this is the part a thumb grabs to
           // swipe the sheet away, and a grabber or a close button that scrolls
-          // off with the rules is one nobody can reach.
-          SizedBox(
-            height: 44,
-            child: Stack(
+          // off with the rules is one nobody can reach. The game's name is the
+          // bar's title, like every sheet's; the example board and the goal
+          // are the hero in the body.
+          const SheetHandle(),
+          SheetBar(
+            title: sentenceCaseOf(context, copy.name),
+            leading: SheetCloseButton(
+              onTap: () => Navigator.of(context).maybePop(false),
+            ),
+          ),
+          _flexIfBounded(
+            constraints,
+            // A soft fade at the foot of the rules, so text running on under
+            // the pinned button reads as "more below" rather than being cut
+            // off hard.
+            Stack(
               children: [
-                // Given its own 16pt so the bar sits at the top of the header
-                // rather than centred in it — the grabber pads itself below.
-                const Positioned(
-                  top: 10,
-                  left: 0,
-                  right: 0,
-                  height: 16,
-                  child: SheetGrabber(),
+                // Clamping, not the platform's bounce: when the rules overflow
+                // a short screen, a pull down at the top should read as the
+                // sheet being dragged, not as the text inside it stretching.
+                SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // An example board rather than an icon. The words
+                          // below are about crowns and colour regions and a
+                          // line through squares, and every one of them is
+                          // easier to read next to the thing it describes.
+                          SizedBox(
+                            width: 86,
+                            height: 86,
+                            child: _Example(game: game, theme: theme),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  sentenceCaseOf(context, l10n.gameInfoLabel),
+                                  style: groupedMetaStyle(theme).copyWith(
+                                    color: theme.accent,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  sentenceCaseOf(context, copy.goal),
+                                  style: groupedTitleStyle(theme).copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+                      Text(
+                        sentenceCaseOf(context, l10n.gameInfoRulesLabel),
+                        style: groupedHeaderStyle(theme),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final rule in copy.rules) ...[
+                        _Bullet(text: rule),
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 12),
+                      Text(
+                        sentenceCaseOf(context, l10n.gameInfoControlsLabel),
+                        style: groupedHeaderStyle(theme),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        sentenceCaseOf(context, copy.controls),
+                        style: groupedSubtitleStyle(theme).copyWith(
+                          color: theme.inkSoft,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      // One footer voice for both closing lines.
+                      Text(
+                        sentenceCaseOf(context, copy.scoring),
+                        style: groupedFooterStyle(theme),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        sentenceCaseOf(context, l10n.gameInfoSameForEveryone),
+                        style: groupedFooterStyle(theme),
+                      ),
+                    ],
+                  ),
                 ),
                 Positioned(
-                  top: 6,
-                  right: 8,
-                  child: _CloseButton(
-                    label: l10n.photoChromeCloseSemanticLabel,
-                    onTap: () => Navigator.of(context).maybePop(false),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 20,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            sheetFill(theme).withValues(alpha: 0),
+                            sheetFill(theme),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          _flexIfBounded(
-            constraints,
-            // Clamping, not the platform's bounce: when the rules overflow a
-            // short screen, a pull down at the top should read as the sheet
-            // being dragged, not as the text inside it stretching away.
-            SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(22, 0, 22, 4),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // An example board rather than an icon. The words below
-                      // are about crowns and colour regions and a line through
-                      // squares, and every one of them is easier to read next
-                      // to the thing it is describing.
-                      SizedBox(
-                        width: 86,
-                        height: 86,
-                        child: _Example(game: game, theme: theme),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              sentenceCaseOf(context, l10n.gameInfoLabel),
-                              style: metaText(theme, color: theme.accent),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              sentenceCaseOf(context, copy.name),
-                              style: theme.displayMedium,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              sentenceCaseOf(context, copy.goal),
-                              style: theme.bodySoft,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    sentenceCaseOf(context, l10n.gameInfoRulesLabel),
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      color: theme.inkMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  for (final rule in copy.rules) ...[
-                    _Bullet(text: rule),
-                    const SizedBox(height: 8),
-                  ],
-                  const SizedBox(height: 10),
-                  Text(
-                    sentenceCaseOf(context, l10n.gameInfoControlsLabel),
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      color: theme.inkMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    sentenceCaseOf(context, copy.controls),
-                    style: theme.bodySoft,
-                  ),
-                  const SizedBox(height: 22),
-                  Text(
-                    copy.scoring,
-                    style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    sentenceCaseOf(context, l10n.gameInfoSameForEveryone),
-                    style: metaText(theme, color: theme.inkMuted),
-                  ),
-                ],
-              ),
-            ),
-          ),
           // Pinned under the scroll view, so on a short screen the way in is
           // on screen from the first frame instead of below the rules.
+          // Autofocused, so a keyboard user lands on the way in.
           Padding(
-            padding: EdgeInsets.fromLTRB(22, 16, 22, 18 + bottomInset),
-            child: _PlayButton(
+            padding: EdgeInsets.fromLTRB(22, 8, 22, 18 + bottomInset),
+            child: SheetActionButton(
               label: action,
+              icon: CupertinoIcons.play_fill,
+              autofocus: true,
+              haptic: false,
               onTap: () => Navigator.of(context).maybePop(true),
             ),
           ),
@@ -363,102 +378,6 @@ class _GameInfoSheet extends StatelessWidget {
 
   static Widget _flexIfBounded(BoxConstraints c, Widget child) =>
       c.hasBoundedHeight ? Flexible(child: child) : child;
-}
-
-/// The main button. Autofocused, so a keyboard user lands on the way in.
-class _PlayButton extends StatelessWidget {
-  const _PlayButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      autofocus: true,
-      semanticLabel: label,
-      radius: 999,
-      // A plain detector rather than SpringPress: this button is autofocused,
-      // and SpringPress brings a focus stop of its own — two stops for one
-      // button is a keyboard user pressing Tab for nothing.
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: double.infinity,
-          height: 52,
-          decoration: BoxDecoration(
-            color: theme.bubbleFill(isMine: true),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(CupertinoIcons.play_fill, size: 18, color: theme.accentInk),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  sentenceCaseOf(context, label),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: labelText(theme).copyWith(
-                    fontSize: 17,
-                    color: theme.accentInk,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The X. A plain disc rather than [GlassCloseButton]: a bottom sheet slides
-/// in, and a blur inside it would re-rasterize on every frame of that — the
-/// jank `sheet_surface.dart` documents.
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.circle,
-      radius: 16,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // 32pt drawn, 40pt to a thumb.
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Center(
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: theme.surfaceRaised,
-                shape: BoxShape.circle,
-                border: Border.all(color: theme.divider),
-              ),
-              alignment: Alignment.center,
-              child: Icon(CupertinoIcons.xmark, size: 17, color: theme.inkSoft),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// A small worked example of the board being described.
@@ -511,14 +430,33 @@ class _Example extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (game == null) {
+      // The code as a 2×2 board of cells, the way the real grid draws a
+      // guess. A loose Wrap of four bare glyphs broke 3+1 and looked broken.
+      Widget cell(int i) => Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.ink.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: PuzzleSymbol(index: i, size: 20, accent: theme.accent),
+          );
       return Center(
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            for (var s = 0; s < kPuzzleSlots; s++)
-              PuzzleSymbol(index: s, size: 18, accent: theme.accent),
+            for (var r = 0; r < kPuzzleSlots ~/ 2; r++) ...[
+              if (r > 0) const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  cell(r * 2),
+                  const SizedBox(width: 6),
+                  cell(r * 2 + 1),
+                ],
+              ),
+            ],
           ],
         ),
       );
@@ -567,7 +505,10 @@ class _Bullet extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Text(text, style: theme.bodySoft.copyWith(color: theme.inkSoft)),
+          child: Text(
+            sentenceCaseOf(context, text),
+            style: groupedSubtitleStyle(theme).copyWith(color: theme.inkSoft),
+          ),
         ),
       ],
     );

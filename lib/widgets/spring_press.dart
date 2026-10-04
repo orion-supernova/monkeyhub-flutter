@@ -40,6 +40,8 @@ class SpringPress extends StatefulWidget {
     this.semanticLabel,
     this.focusShape = FocusRingShape.rounded,
     this.focusRadius,
+    this.autofocus = false,
+    this.onLongPress,
   })  : passive = false,
         assert(child != null || builder != null);
 
@@ -53,7 +55,9 @@ class SpringPress extends StatefulWidget {
         haptic = false,
         semanticLabel = null,
         focusShape = FocusRingShape.rounded,
-        focusRadius = null;
+        focusRadius = null,
+        autofocus = false,
+        onLongPress = null;
 
   final VoidCallback? onTap;
   final Widget? child;
@@ -66,6 +70,14 @@ class SpringPress extends StatefulWidget {
   final FocusRingShape focusShape;
   final double? focusRadius;
   final bool passive;
+
+  /// Takes keyboard focus when it first builds — the Cancel of a destructive
+  /// prompt, so Enter on a freshly opened one never destroys anything.
+  final bool autofocus;
+
+  /// A secondary gesture on the same control (a row's context menu). The
+  /// spring answers it like a tap; keyboard activation stays [onTap].
+  final VoidCallback? onLongPress;
 
   @override
   State<SpringPress> createState() => _SpringPressState();
@@ -118,6 +130,7 @@ class _SpringPressState extends State<SpringPress>
     final enabled = widget.onTap != null;
     return FocusableTap(
       onTap: enabled ? _activateFromKeyboard : null,
+      autofocus: widget.autofocus,
       semanticLabel: widget.semanticLabel,
       shape: widget.focusShape,
       radius: widget.focusRadius ?? 14,
@@ -127,6 +140,7 @@ class _SpringPressState extends State<SpringPress>
         onTapUp: enabled ? (_) => _set(false) : null,
         onTapCancel: enabled ? () => _set(false) : null,
         onTap: enabled ? _tap : null,
+        onLongPress: enabled ? widget.onLongPress : null,
         child: _spring(context, content),
       ),
     );

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
@@ -103,7 +104,7 @@ void main() {
       // The whole point: nothing resolves a URL for a picture already in memory.
       expect(find.byType(RemoteImage), findsNothing);
       // And it is emphatically not the "no bytes and no id" error plate.
-      expect(find.byIcon(Icons.image_not_supported_outlined), findsNothing);
+      expect(find.byIcon(CupertinoIcons.photo), findsNothing);
     });
 
     testWidgets('caps the decode so one big send cannot evict the image cache', (
@@ -154,8 +155,8 @@ void main() {
 
       await tester.pumpWidget(host(bubble(outgoing(up: up))));
 
-      expect(find.byIcon(Icons.refresh), findsNothing);
-      expect(find.byIcon(Icons.close), findsNothing);
+      expect(find.byIcon(CupertinoIcons.arrow_clockwise), findsNothing);
+      expect(find.byIcon(CupertinoIcons.xmark), findsNothing);
     });
   });
 
@@ -176,11 +177,11 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.refresh));
+      await tester.tap(find.byIcon(CupertinoIcons.arrow_clockwise));
       await tester.pump();
       expect(retried, 1);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(CupertinoIcons.xmark));
       await tester.pump();
       expect(discarded, 1);
     });
@@ -212,7 +213,7 @@ void main() {
       expect(find.byType(RemoteImage), findsNothing);
       // And it is recognisably the sealed tile, mid-send.
       expect(find.text('Photo'), findsOneWidget);
-      expect(find.text('sending…'), findsOneWidget);
+      expect(find.text('Sending…'), findsOneWidget);
     });
 
     testWidgets('a failed armed send offers retry, still without the picture', (
@@ -233,9 +234,9 @@ void main() {
 
       expect(find.byType(Image), findsNothing);
       expect(find.byType(RemoteImage), findsNothing);
-      expect(find.text('failed'), findsOneWidget);
+      expect(find.text('Failed'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.refresh));
+      await tester.tap(find.byIcon(CupertinoIcons.arrow_clockwise));
       await tester.pump();
       expect(retried, 1);
     });
@@ -269,7 +270,7 @@ void main() {
       await tester.pumpWidget(host(bubble(outgoingOf(MessageType.audio, up))));
 
       expect(find.text('[audio missing]'), findsNothing);
-      expect(find.text('sending…'), findsOneWidget);
+      expect(find.text('Sending…'), findsOneWidget);
     });
 
     testWidgets('a failed voice note offers retry', (tester) async {
@@ -286,8 +287,8 @@ void main() {
         ),
       );
 
-      expect(find.text('failed'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.refresh));
+      expect(find.text('Failed'), findsOneWidget);
+      await tester.tap(find.byIcon(CupertinoIcons.arrow_clockwise));
       await tester.pump();
       expect(retried, 1);
     });

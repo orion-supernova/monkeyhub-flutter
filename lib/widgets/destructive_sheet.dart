@@ -5,7 +5,6 @@ import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
-import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart';
 import 'remote_image.dart';
@@ -19,8 +18,10 @@ import '../l10n/text_case.dart';
 
 /// The drag handle every bottom sheet in this family opens with.
 ///
-/// Kept as a name for the sheets that already place it; it now draws the
-/// iOS 26 capsule from [SheetHandle], with its own spacing below.
+/// Not a second grabber: it IS [SheetHandle], plus 8pt below for the hand-
+/// placed panels (`SheetSurface`, the child-policy sheet) that have no bar
+/// under it. New sheets use [SheetFrame], which places the handle itself.
+@Deprecated('Use SheetHandle (or SheetFrame, which places it).')
 class SheetGrabber extends StatelessWidget {
   const SheetGrabber({super.key});
 
@@ -93,65 +94,55 @@ class ChoiceTile extends StatelessWidget {
     // A grouped row, iOS-style: the outcome's colour lives in the icon tile
     // and the title, not in a ring around the whole thing. The heavier choice
     // gets a soft wash of its colour behind it rather than a thicker border.
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       autofocus: autofocus,
       semanticLabel: title,
-      radius: groupedRadius(theme),
-      child: SpringPress(
-        onTap: onTap,
-        scale: 0.98,
-        haptic: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          decoration: BoxDecoration(
-            color: filled
-                ? Color.alphaBlend(
-                    color.withValues(alpha: 0.12),
-                    sheetGroupFill(theme),
-                  )
-                : sheetGroupFill(theme),
-            borderRadius: BorderRadius.circular(groupedRadius(theme)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(icon, size: 19, color: Colors.white),
+      focusRadius: groupedRadius(theme),
+      scale: 0.98,
+      haptic: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: filled
+              ? Color.alphaBlend(
+                  color.withValues(alpha: 0.12),
+                  sheetGroupFill(theme),
+                )
+              : sheetGroupFill(theme),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(9),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      sentenceCaseOf(context, title),
-                      style: theme.bodyEmph.copyWith(
-                        color: color,
-                        fontSize: 17,
-                        fontStyle: FontStyle.normal,
-                      ),
+              child: Icon(icon, size: 19, color: Colors.white),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    sentenceCaseOf(context, title),
+                    style: theme.bodyEmph.copyWith(
+                      color: color,
+                      fontSize: 17,
+                      fontStyle: FontStyle.normal,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sub,
-                      style: theme.caption.copyWith(
-                        fontSize: 13,
-                        height: 1.3,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(sub, style: groupedSubtitleStyle(theme)),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -202,15 +193,13 @@ class SharedRoomRow extends StatelessWidget {
           Expanded(
             child: Text(
               room.name,
-              style: theme.body,
+              style: groupedTitleStyle(theme).copyWith(fontSize: 15),
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             '${room.memberCount}',
-            style: theme.caption.copyWith(
-              fontSize: 13,
-              color: theme.inkMuted,
+            style: groupedMetaStyle(theme).copyWith(
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -270,27 +259,18 @@ class _SharedRoomsPanelState extends State<SharedRoomsPanel> {
                 ),
               ),
             ),
-            GestureDetector(
+            TextLinkButton(
               onTap: () => setState(() => _expanded = !_expanded),
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: Text(
-                  sentenceCaseOf(
-                    context,
-                    _expanded
-                        ? AppLocalizations.of(context).destructiveSheetHideLabel
-                        : AppLocalizations.of(context).destructiveSheetViewLabel,
-                  ),
-                  style: theme.body.copyWith(fontSize: 15, color: theme.accent),
-                ),
-              ),
+              fontSize: 15,
+              label: _expanded
+                  ? AppLocalizations.of(context).destructiveSheetHideLabel
+                  : AppLocalizations.of(context).destructiveSheetViewLabel,
             ),
           ]),
           const SizedBox(height: 4),
           Text(
             widget.note,
-            style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+            style: groupedFooterStyle(theme),
           ),
           AnimatedSize(
             duration: theme.motionFast,

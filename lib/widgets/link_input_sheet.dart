@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
@@ -69,15 +70,20 @@ class _LinkInputSheetState extends State<_LinkInputSheet> {
     // An iOS edit sheet: × on the left, the title, a ✓ on the right that
     // applies — and the field, autofocused, as a filled rounded box. Removing
     // an existing link is the one other thing to do here, as a red button.
+    // Rebuilt as the field changes, so the ✓ lights the moment there is a
+    // link to apply. The field keeps its state: same place in the tree.
+    return ListenableBuilder(
+      listenable: _url,
+      builder: (context, _) => _frame(context, theme, l10n),
+    );
+  }
+
+  Widget _frame(BuildContext context, AppTheme theme, AppLocalizations l10n) {
     return SheetFrame(
-      leading: const SheetCloseButton(),
       title: sentenceCaseOf(context, l10n.linkInputSheetTitle),
-      trailing: AnimatedBuilder(
-        animation: _url,
-        builder: (context, _) => SheetConfirmButton(
-          label: l10n.linkInputSheetApplyLabel,
-          onTap: _url.text.trim().isEmpty ? null : _apply,
-        ),
+      confirm: SheetConfirm(
+        label: l10n.linkInputSheetApplyLabel,
+        onTap: _url.text.trim().isEmpty ? null : _apply,
       ),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Column(

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
@@ -26,7 +27,7 @@ class RoomLayoutScreen extends StatelessWidget {
         return SettingsPage(
           title: l10n.settingsHubChatList,
           children: [
-            _Header(l10n.chatListPageLayoutHeader),
+            GroupedHeader(l10n.chatListPageLayoutHeader),
             PreviewChoiceTiles<RoomLayout>(
               selected: layout,
               onChanged: (v) {
@@ -57,7 +58,7 @@ class RoomLayoutScreen extends StatelessWidget {
               RoomLayout.grid => l10n.chatListPageGridSub,
             }),
 
-            _Header(l10n.chatListPageFiltersHeader),
+            GroupedHeader(l10n.chatListPageFiltersHeader),
             PreviewChoiceTiles<FilterStyle>(
               selected: filter,
               aspectRatio: 1.15,
@@ -111,25 +112,6 @@ class RoomLayoutScreen extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-/// A section header for content that is not a [GroupedSection], matching its
-/// header exactly.
-class _Header extends StatelessWidget {
-  const _Header(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
-      child: Text(
-        text,
-        style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
-      ),
     );
   }
 }
@@ -305,7 +287,7 @@ class _FilterPreview extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    Icons.tune_rounded,
+                    CupertinoIcons.slider_horizontal_3,
                     size: 10,
                     color: theme.inkSoft,
                   ),

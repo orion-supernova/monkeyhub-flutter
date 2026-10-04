@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'ios_kit.dart' show groupedRadius, quietFill;
-import 'sheet_kit.dart' show SheetActionButton;
+import 'ios_kit.dart'
+    show groupedFooterStyle, groupedHeaderStyle, groupedMetaStyle, quietFill;
+import 'sheet_kit.dart' show SheetActionButton, SheetFrame;
 import '../l10n/text_case.dart';
 
 // The guard error codes and `isChildGateError` live in models/family.dart so
@@ -52,122 +53,72 @@ class _ApprovalGateSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // Wrapped so nothing here renders with Flutter's debug yellow underlines
-    // when the sheet sits outside a Material ancestor.
-    return Material(
-      type: MaterialType.transparency,
+    final l10n = AppLocalizations.of(context);
+    final asking = canAsk && !alreadyAsked;
+    // An optional prompt: titled, with the × leading as the way out — which
+    // is why there is no "Not now" button any more; it was a second ×. The
+    // shield glyph rides in the body as the hero, the name of the sheet in
+    // the bar like every other sheet. SheetFrame's Material keeps Flutter's
+    // debug yellow underlines away.
+    return SheetFrame(
+      title: alreadyAsked
+          ? l10n.approvalGateAlreadyAskedLabel
+          : l10n.approvalGateAskGrownUpLabel,
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
       child: DefaultTextStyle(
         style: theme.body,
-        child: SafeArea(
-          top: false,
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-            // An iOS sheet platter: the surface, rounded, and no outline.
-            decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: BorderRadius.circular(groupedRadius(theme) + 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              CupertinoIcons.checkmark_shield_fill,
+              size: 44,
+              color: theme.accent,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      CupertinoIcons.checkmark_shield_fill,
-                      size: 18,
-                      color: theme.accent,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      sentenceCaseOf(
-                        context,
-                        alreadyAsked
-                            ? AppLocalizations.of(context)
-                                .approvalGateAlreadyAskedLabel
-                            : AppLocalizations.of(context)
-                                .approvalGateAskGrownUpLabel,
-                      ),
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: theme.accent,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  alreadyAsked
-                      ? AppLocalizations.of(context)
-                          .approvalGateAlreadyAskedBody(what)
-                      : canAsk
-                          ? AppLocalizations.of(context)
-                              .approvalGateNeedApprovalBody(what)
-                          : AppLocalizations.of(context)
-                              .approvalGateDisabledBody,
-                  style: theme.bodyEmph.copyWith(
-                    fontSize: 20,
-                    height: 1.25,
-                    color: theme.ink,
-                  ),
-                ),
-                if (detail != null && detail!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(detail!, style: theme.bodySoft),
-                ],
-                const SizedBox(height: 8),
-                Text(
-                  alreadyAsked
-                      ? AppLocalizations.of(context)
-                          .approvalGateAlreadyAskedFooter
-                      : canAsk
-                          ? AppLocalizations.of(context)
-                              .approvalGateWillNotifyFooter
-                          : AppLocalizations.of(context)
-                              .approvalGateTalkToThemFooter,
-                  style: theme.bodySoft,
-                ),
-                const SizedBox(height: 22),
-                if (canAsk && !alreadyAsked)
-                  _GateButton(
-                    label: AppLocalizations.of(context).approvalGateAskIos,
-                    filled: true,
-                    onTap: () => Navigator.of(context).pop(true),
-                  ),
-                if (canAsk && !alreadyAsked) const SizedBox(height: 10),
-                _GateButton(
-                  label: canAsk && !alreadyAsked
-                      ? AppLocalizations.of(context).approvalGateNotNowButton
-                      : AppLocalizations.of(context).approvalGateOkButton,
-                  filled: false,
-                  onTap: () => Navigator.of(context).pop(false),
-                ),
-              ],
+            const SizedBox(height: 14),
+            Text(
+              alreadyAsked
+                  ? l10n.approvalGateAlreadyAskedBody(what)
+                  : canAsk
+                      ? l10n.approvalGateNeedApprovalBody(what)
+                      : l10n.approvalGateDisabledBody,
+              textAlign: TextAlign.center,
+              // The question, at the sheet-title step (17/w600) — it was 20,
+              // off the scale and louder than the title above it.
+              style: groupedHeaderStyle(theme),
             ),
-          ),
+            if (detail != null && detail!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                detail!,
+                textAlign: TextAlign.center,
+                style: groupedFooterStyle(theme),
+              ),
+            ],
+            const SizedBox(height: 6),
+            Text(
+              alreadyAsked
+                  ? l10n.approvalGateAlreadyAskedFooter
+                  : canAsk
+                      ? l10n.approvalGateWillNotifyFooter
+                      : l10n.approvalGateTalkToThemFooter,
+              textAlign: TextAlign.center,
+              style: groupedFooterStyle(theme),
+            ),
+            const SizedBox(height: 22),
+            // One action: the ask when there is one to make, otherwise the
+            // acknowledgement. Either way the × is the "not now".
+            SheetActionButton(
+              label: asking ? l10n.approvalGateAskIos : l10n.approvalGateOkButton,
+              tonal: !asking,
+              onTap: () => Navigator.of(context).pop(asking),
+            ),
+          ],
         ),
       ),
     );
   }
-}
-
-/// The sheet's two buttons: the ask as the filled primary, everything else
-/// as the tinted secondary — the iOS sheet pair.
-class _GateButton extends StatelessWidget {
-  const _GateButton({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) =>
-      SheetActionButton(label: label, onTap: onTap, tonal: !filled);
 }
 
 /// The inline "waiting for a grown-up" pill, for rows the child has already
@@ -193,12 +144,12 @@ class WaitingPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(CupertinoIcons.hourglass, size: 12, color: theme.accent),
+          Icon(CupertinoIcons.hourglass, size: 13, color: theme.accent),
           const SizedBox(width: 5),
           Text(
             sentenceCaseOf(context, resolvedLabel),
-            style: theme.bodySoft.copyWith(
-              fontSize: 12,
+            // Meta (13/w600) — 12 was off the scale.
+            style: groupedMetaStyle(theme).copyWith(
               fontWeight: FontWeight.w600,
               color: theme.accent,
             ),

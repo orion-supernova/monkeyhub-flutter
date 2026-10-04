@@ -5,6 +5,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/models/scheduled_message.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart';
 import 'package:monkeyhub/widgets/schedule_message_sheet.dart';
 import 'package:monkeyhub/widgets/schedule_time_picker.dart';
 
@@ -181,7 +182,8 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.tap(_label(en.destructiveSheetCancelButtonLabel));
+    // The × every sheet wears, top-leading — it replaced a text Cancel.
+    await tester.tap(find.byType(SheetCloseButton));
     await tester.pumpAndSettle();
 
     expect(completed, isTrue);

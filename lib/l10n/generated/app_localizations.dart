@@ -126,7 +126,7 @@ abstract class AppLocalizations {
   /// All-caps label shown when the app fails to connect to the backend on launch.
   ///
   /// In en, this message translates to:
-  /// **'CAN’T REACH SERVER'**
+  /// **'Can’t reach server'**
   String get bootErrorTitle;
 
   /// Explanatory line under the boot-error title. 'Convex' is the backend platform's proper noun — keep untranslated.
@@ -138,7 +138,7 @@ abstract class AppLocalizations {
   /// All-caps button label to retry connecting to the server after a boot error.
   ///
   /// In en, this message translates to:
-  /// **'RETRY'**
+  /// **'Retry'**
   String get bootErrorRetry;
 
   /// Title of the OS/browser notification shown for an incoming 1:1 call.
@@ -222,7 +222,7 @@ abstract class AppLocalizations {
   /// SnackBar shown when the child-guard approval request itself fails to send (network/API error) after tapping ASK.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t ask right now — try again'**
+  /// **'Couldn’t ask right now — try again'**
   String get roomScreenAskGrownUpFailedSnack;
 
   /// The 'what' fragment passed to the shared approval-gate sheet when a send is blocked by a family/child guard; the sheet embeds it into a sentence like 'You need a grown-up to say yes before you can {what}.'
@@ -240,13 +240,13 @@ abstract class AppLocalizations {
   /// SnackBar shown when the user tries to select more messages than the multi-select cap allows. {max} is the numeric cap.
   ///
   /// In en, this message translates to:
-  /// **'up to {max} at a time'**
+  /// **'Up to {max} at a time'**
   String roomScreenMaxSelectionSnack(Object max);
 
   /// All-caps headline of the confirm-sheet shown before bulk-deleting selected messages. {count} is how many messages are selected.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{DELETE MESSAGE} other{DELETE {count} MESSAGES}}'**
+  /// **'{count, plural, one{Delete message} other{Delete {count} messages}}'**
   String roomScreenDeleteMessageHeadline(num count);
 
   /// Body copy of the confirm-sheet warning before a bulk delete-for-everyone.
@@ -258,13 +258,13 @@ abstract class AppLocalizations {
   /// All-caps destructive confirm button label on the bulk-delete confirm sheet.
   ///
   /// In en, this message translates to:
-  /// **'DELETE FOR EVERYONE'**
+  /// **'Delete for everyone'**
   String get roomScreenDeleteConfirmButton;
 
   /// SnackBar shown when the app cannot locate/scroll to a message the user tried to jump to (via reply tether, pin, or room-info result), e.g. it was deleted or is offline.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t jump to that message'**
+  /// **'Couldn’t jump to that message'**
   String get roomScreenJumpFailedSnack;
 
   /// All-caps label on the divider marking the first unread message when the room screen opens onto a backlog — shown once, above the messages that are new since the reader's last visit.
@@ -276,67 +276,67 @@ abstract class AppLocalizations {
   /// SnackBar shown when trying to reopen a view-once photo that was already viewed by this user.
   ///
   /// In en, this message translates to:
-  /// **'you’ve already opened this photo.'**
+  /// **'You’ve already opened this photo.'**
   String get roomScreenViewOnceAlreadyViewed;
 
   /// SnackBar shown when a view-once photo has been deleted from the server before it could be viewed.
   ///
   /// In en, this message translates to:
-  /// **'this photo is no longer available.'**
+  /// **'This photo is no longer available.'**
   String get roomScreenViewOnceGone;
 
   /// SnackBar shown when fetching a view-once photo fails due to a network error.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t load that photo.'**
+  /// **'Couldn’t load that photo.'**
   String get roomScreenViewOnceNetworkError;
 
   /// SnackBar shown when reading the bytes of a file picked from the OS file browser fails.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t read that file'**
+  /// **'Couldn’t read that file'**
   String get roomScreenFileReadFailedSnack;
 
   /// SnackBar shown when a picked file exceeds the max upload size. {size} is a pre-formatted human-readable size string like '25 MB'.
   ///
   /// In en, this message translates to:
-  /// **'files are capped at {size}'**
+  /// **'Files are capped at {size}'**
   String roomScreenFileSizeCapSnack(Object size);
 
   /// Fallback body text shown in place of the whole chat screen when the room can no longer be found (e.g. it expired or was deleted).
   ///
   /// In en, this message translates to:
-  /// **'room gone'**
+  /// **'Room gone'**
   String get roomScreenRoomGone;
 
   /// SnackBar confirming a message's text was copied to the clipboard from the long-press action menu.
   ///
   /// In en, this message translates to:
-  /// **'copied'**
+  /// **'Copied'**
   String get roomScreenCopiedSnack;
 
   /// SnackBar confirming a file's name was copied to the clipboard from the long-press action menu.
   ///
   /// In en, this message translates to:
-  /// **'name copied'**
+  /// **'Name copied'**
   String get roomScreenNameCopiedSnack;
 
   /// SnackBar shown when pinning a message fails because the room already has the maximum number of pinned messages.
   ///
   /// In en, this message translates to:
-  /// **'too many pins — unpin one first'**
+  /// **'Too many pins — unpin one first'**
   String get roomScreenPinLimitSnack;
 
   /// SnackBar shown for any other (non-limit) failure to pin a message.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t pin that'**
+  /// **'Couldn’t pin that'**
   String get roomScreenPinFailedSnack;
 
   /// SnackBar confirming a message report was submitted, reassuring the reporter it's confidential.
   ///
   /// In en, this message translates to:
-  /// **'report sent privately. they won’t be notified.'**
+  /// **'Report sent privately. They won’t be notified.'**
   String get roomScreenReportSentSnack;
 
   /// Screen-reader semantic label for a selected message row's tap target while multi-select is active (tapping again deselects it).
@@ -378,13 +378,13 @@ abstract class AppLocalizations {
   /// Lowercase caption in the room intro card for ephemeral rooms, explaining the message lifetime. {ttl} is a pre-formatted duration string like '10 minutes'.
   ///
   /// In en, this message translates to:
-  /// **'this room is ephemeral. messages dissolve after {ttl}, read or unread.'**
+  /// **'This room is ephemeral. Messages dissolve after {ttl}, read or unread.'**
   String roomScreenEphemeralNotice(Object ttl);
 
   /// All-caps label on the thread-fold chip showing how many loaded messages are folded/collapsed into it.
   ///
   /// In en, this message translates to:
-  /// **'{count} MESSAGES'**
+  /// **'{count} messages'**
   String roomScreenThreadFoldCount(Object count);
 
   /// Title heading of the empty-state welcome card shown at the top of a brand-new ephemeral room's transcript.
@@ -456,55 +456,55 @@ abstract class AppLocalizations {
   /// Screen-reader semantic label for tapping a DM peer's avatar in the liquid-style header to open it fullscreen.
   ///
   /// In en, this message translates to:
-  /// **'view profile picture'**
+  /// **'View profile picture'**
   String get roomScreenViewProfilePictureSemantic;
 
   /// Screen-reader semantic label for tapping a group room's avatar in the liquid-style header to open it fullscreen.
   ///
   /// In en, this message translates to:
-  /// **'view room picture'**
+  /// **'View room picture'**
   String get roomScreenViewRoomPictureSemantic;
 
   /// Fallback display name for an outgoing file attachment when the file has no name (message_bubble.dart, OutboundFileRow's fileName).
   ///
   /// In en, this message translates to:
-  /// **'document'**
+  /// **'Document'**
   String get messageBubbleFileFallbackName;
 
   /// Short status word shown under a sending attachment (view-once photo tile caption, and outbound voice-note row) when the send failed.
   ///
   /// In en, this message translates to:
-  /// **'failed'**
+  /// **'Failed'**
   String get messageBubbleAttachmentStatusFailed;
 
   /// Short status word shown under an attachment still uploading (view-once photo tile caption, and outbound voice-note row).
   ///
   /// In en, this message translates to:
-  /// **'sending…'**
+  /// **'Sending…'**
   String get messageBubbleAttachmentStatusSending;
 
   /// Caption on a view-once photo tile once its single view has been spent (shown to both sender and viewer).
   ///
   /// In en, this message translates to:
-  /// **'opened'**
+  /// **'Opened'**
   String get messageBubbleViewOnceOpened;
 
   /// Caption on a view-once photo tile for the recipient once it burned without ever being opened.
   ///
   /// In en, this message translates to:
-  /// **'expired'**
+  /// **'Expired'**
   String get messageBubbleViewOnceExpired;
 
   /// Caption on the sender's own copy of an unopened view-once photo tile.
   ///
   /// In en, this message translates to:
-  /// **'view once'**
+  /// **'View once'**
   String get messageBubbleViewOnceLabel;
 
   /// Caption on a still-openable view-once photo tile, shown to the recipient.
   ///
   /// In en, this message translates to:
-  /// **'tap to view'**
+  /// **'Tap to view'**
   String get messageBubbleViewOnceTapToView;
 
   /// Small label word under the wax-seal badge on a sealed view-once photo tile.
@@ -516,19 +516,19 @@ abstract class AppLocalizations {
   /// Screen-reader semantic label for the tappable sealed view-once photo tile.
   ///
   /// In en, this message translates to:
-  /// **'view once photo, tap to view'**
+  /// **'View once photo, tap to view'**
   String get messageBubbleViewOnceSemanticLabel;
 
   /// Screen-reader semantic label for the retry (refresh icon) control on a failed outgoing attachment.
   ///
   /// In en, this message translates to:
-  /// **'retry sending'**
+  /// **'Retry sending'**
   String get messageBubbleRetrySendingSemanticLabel;
 
   /// Screen-reader semantic label for the discard (close icon) control that deletes a failed outgoing attachment.
   ///
   /// In en, this message translates to:
-  /// **'discard'**
+  /// **'Discard'**
   String get messageBubbleDiscardSemanticLabel;
 
   /// All-caps section header on the own-profile screen, above sign-out/delete/recovery-phrase rows.
@@ -798,7 +798,7 @@ abstract class AppLocalizations {
   /// LINKED ACCOUNTS row value shown when no social provider is linked to the account.
   ///
   /// In en, this message translates to:
-  /// **'nothing linked'**
+  /// **'Nothing linked'**
   String get profileScreenLinkedAccountsNone;
 
   /// All-caps card title on a child's account listing their guardians.
@@ -834,7 +834,7 @@ abstract class AppLocalizations {
   /// Muted label under the @handle during the 30-day cooldown, replacing the tap-to-change affordance.
   ///
   /// In en, this message translates to:
-  /// **'changeable again on {date}'**
+  /// **'Changeable again on {date}'**
   String profileScreenUsernameLockedUntil(String date);
 
   /// Title of the password sheet raised before a username change on a password account.
@@ -1062,127 +1062,127 @@ abstract class AppLocalizations {
   /// All-caps chip label in the crop-ratio rail selecting an unconstrained (freeform) crop.
   ///
   /// In en, this message translates to:
-  /// **'FREE'**
+  /// **'Free'**
   String get cameraEditorScreenCropPresetFree;
 
   /// All-caps chip label in the crop-ratio rail selecting the photo's original aspect ratio.
   ///
   /// In en, this message translates to:
-  /// **'ORIG'**
+  /// **'Original'**
   String get cameraEditorScreenCropPresetOriginal;
 
   /// Screen-reader label for the top-left X button while in crop mode; it discards the in-progress crop and returns to the draw tool.
   ///
   /// In en, this message translates to:
-  /// **'cancel crop'**
+  /// **'Cancel crop'**
   String get cameraEditorScreenCancelCropSemanticLabel;
 
   /// Screen-reader label for the top-left X button outside crop mode; it closes the editor without sending the photo.
   ///
   /// In en, this message translates to:
-  /// **'discard photo'**
+  /// **'Discard photo'**
   String get cameraEditorScreenDiscardPhotoSemanticLabel;
 
   /// Screen-reader label for the undo button that removes the last drawn stroke.
   ///
   /// In en, this message translates to:
-  /// **'undo'**
+  /// **'Undo'**
   String get cameraEditorScreenUndoSemanticLabel;
 
   /// Screen-reader label for the redo button that restores the last undone stroke.
   ///
   /// In en, this message translates to:
-  /// **'redo'**
+  /// **'Redo'**
   String get cameraEditorScreenRedoSemanticLabel;
 
   /// Screen-reader label for the button that resets the crop back to the full, uncropped frame.
   ///
   /// In en, this message translates to:
-  /// **'reset crop'**
+  /// **'Reset crop'**
   String get cameraEditorScreenResetCropSemanticLabel;
 
   /// Screen-reader label for the button that rotates the photo 90 degrees.
   ///
   /// In en, this message translates to:
-  /// **'rotate'**
+  /// **'Rotate'**
   String get cameraEditorScreenRotateSemanticLabel;
 
   /// Screen-reader label for the button that enters crop mode.
   ///
   /// In en, this message translates to:
-  /// **'crop'**
+  /// **'Crop'**
   String get cameraEditorScreenCropSemanticLabel;
 
   /// Error message shown in place of the photo when a web browser cannot decode a HEIC image.
   ///
   /// In en, this message translates to:
-  /// **'this browser can’t open HEIC photos'**
+  /// **'This browser can’t open HEIC photos'**
   String get cameraEditorScreenHeicUnsupportedMessage;
 
   /// Generic error message shown in place of the photo when it fails to decode for a reason other than HEIC-on-web.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t open that image'**
+  /// **'Couldn’t open that image'**
   String get cameraEditorScreenImageLoadFailedMessage;
 
   /// All-caps pill button that confirms the crop and exits crop mode back to the draw tool.
   ///
   /// In en, this message translates to:
-  /// **'DONE'**
+  /// **'Done'**
   String get cameraEditorScreenCropDoneButton;
 
   /// Screen-reader label for the icon button that discards this photo and reopens the camera.
   ///
   /// In en, this message translates to:
-  /// **'retake'**
+  /// **'Retake'**
   String get cameraEditorScreenRetakeSemanticLabel;
 
   /// Screen-reader label for the pen toggle button when the drawing tool is currently armed (tapping disarms it).
   ///
   /// In en, this message translates to:
-  /// **'put the pen away'**
+  /// **'Put the pen away'**
   String get cameraEditorScreenPenPutAwaySemanticLabel;
 
   /// Screen-reader label for the pen toggle button when the drawing tool is off (tapping arms it).
   ///
   /// In en, this message translates to:
-  /// **'draw on the photo'**
+  /// **'Draw on the photo'**
   String get cameraEditorScreenPenDrawSemanticLabel;
 
   /// All-caps pill button label shown while the photo is being exported/sent.
   ///
   /// In en, this message translates to:
-  /// **'SENDING…'**
+  /// **'Sending…'**
   String get cameraEditorScreenSendingButton;
 
   /// All-caps pill button label that sends the edited photo.
   ///
   /// In en, this message translates to:
-  /// **'SEND'**
+  /// **'Send'**
   String get cameraEditorScreenSendButton;
 
   /// Small caption shown above the send bar explaining that view-once is armed for this photo.
   ///
   /// In en, this message translates to:
-  /// **'disappears after it’s opened once'**
+  /// **'Disappears after it’s opened once'**
   String get cameraEditorScreenViewOnceNote;
 
   /// Screen-reader label for the trash icon in the pen tray that clears all drawn strokes.
   ///
   /// In en, this message translates to:
-  /// **'clear drawing'**
+  /// **'Clear drawing'**
   String get cameraEditorScreenClearDrawingSemanticLabel;
 
   /// Screen-reader label for the circled-1 view-once toggle when it is currently enabled.
   ///
   /// In en, this message translates to:
-  /// **'view once: on'**
+  /// **'View once: on'**
   String get cameraEditorScreenViewOnceOnSemanticLabel;
 
   /// Screen-reader label for the circled-1 view-once toggle when it is currently disabled.
   ///
   /// In en, this message translates to:
-  /// **'view once: off'**
+  /// **'View once: off'**
   String get cameraEditorScreenViewOnceOffSemanticLabel;
 
   /// Screen-reader label for the HD toggle in the photo editor when it is on (the photo will be sent at source resolution).
@@ -1200,37 +1200,37 @@ abstract class AppLocalizations {
   /// Small caption shown above the send bar explaining that HD is armed, so this photo goes out uncompressed.
   ///
   /// In en, this message translates to:
-  /// **'sending at full resolution'**
+  /// **'Sending at full resolution'**
   String get cameraEditorScreenHdNote;
 
   /// Screen-reader label for each color swatch in the pen tray's color picker.
   ///
   /// In en, this message translates to:
-  /// **'ink colour'**
+  /// **'Ink colour'**
   String get cameraEditorScreenInkColorSemanticLabel;
 
   /// All-caps sticky-header title for the 'looks' (presets) panel on the glass tuning screen.
   ///
   /// In en, this message translates to:
-  /// **'LOOKS'**
+  /// **'Looks'**
   String get glassScreenPanelLooks;
 
   /// All-caps sticky-header title for the bottom-nav-bar dials panel on the glass tuning screen.
   ///
   /// In en, this message translates to:
-  /// **'BOTTOM BAR'**
+  /// **'Bottom bar'**
   String get glassScreenPanelBottomBar;
 
   /// All-caps sticky-header title for the composer/headers/call-buttons dials panel.
   ///
   /// In en, this message translates to:
-  /// **'OTHER SURFACES'**
+  /// **'Other surfaces'**
   String get glassScreenPanelOtherSurfaces;
 
   /// All-caps sticky-header title for the bottom-bar geometry/layout dials panel.
   ///
   /// In en, this message translates to:
-  /// **'BAR LAYOUT'**
+  /// **'Bar layout'**
   String get glassScreenPanelBarLayout;
 
   /// Lowercase display heading at the top of the glass tuning screen, matching the app's other picker-screen headings.
@@ -1248,43 +1248,43 @@ abstract class AppLocalizations {
   /// All-caps disabled-state label on the save-look button when every preset slot is used; {max} is the max slot count constant.
   ///
   /// In en, this message translates to:
-  /// **'ALL {max} SLOTS FULL'**
+  /// **'All {max} slots full'**
   String glassScreenSaveSlotsFull(Object max);
 
   /// All-caps button label prompting the user to save the current glass tuning as a new named look.
   ///
   /// In en, this message translates to:
-  /// **'SAVE CURRENT AS…'**
+  /// **'Save current as…'**
   String get glassScreenSaveCurrentAs;
 
   /// All-caps reset-button label shown when there is no active preset, resetting every slider to the untuned recipe.
   ///
   /// In en, this message translates to:
-  /// **'RESET EVERY DIAL'**
+  /// **'Reset every dial'**
   String get glassScreenResetEveryDial;
 
   /// All-caps reset-button label shown when an active preset exists; {name} is the (already-uppercased) preset name.
   ///
   /// In en, this message translates to:
-  /// **'RESET TO {name}'**
+  /// **'Reset to {name}'**
   String glassScreenResetToPreset(Object name);
 
   /// Explanatory note under the 'other surfaces' panel header describing which UI elements those dials affect.
   ///
   /// In en, this message translates to:
-  /// **'the composer, headers, call buttons — anything that sits over text rather than over scrolling content'**
+  /// **'The composer, headers, call buttons — anything that sits over text rather than over scrolling content'**
   String get glassScreenSurfacesNote;
 
   /// All-caps button label that copies the bottom bar's glass tuning onto the other-surfaces config.
   ///
   /// In en, this message translates to:
-  /// **'MATCH THE BOTTOM BAR'**
+  /// **'Match the bottom bar'**
   String get glassScreenMatchBottomBar;
 
   /// Subtitle under the active preset row once its dials have drifted from the preset's saved values.
   ///
   /// In en, this message translates to:
-  /// **'edited — save it as a new look, or reset it'**
+  /// **'Edited — save it as a new look, or reset it'**
   String get glassScreenPresetEditedSubtitle;
 
   /// Display name for the synthetic 'no preset selected' row shown when the tuning has no name yet.
@@ -1296,67 +1296,67 @@ abstract class AppLocalizations {
   /// Subtitle under the synthetic 'Custom' preset row explaining the tuning isn't saved yet.
   ///
   /// In en, this message translates to:
-  /// **'unsaved — give it a name to keep it'**
+  /// **'Unsaved — give it a name to keep it'**
   String get glassScreenUnsavedSubtitle;
 
   /// Lowercase dialog title prompting for a name when saving the current glass tuning as a new preset.
   ///
   /// In en, this message translates to:
-  /// **'save this look as'**
+  /// **'Save this look as'**
   String get glassScreenSaveDialogTitle;
 
   /// Snackbar message shown when trying to save a new preset but all slots are full.
   ///
   /// In en, this message translates to:
-  /// **'no room — delete a look first'**
+  /// **'No room — delete a look first'**
   String get glassScreenNoRoomToast;
 
   /// Lowercase dialog title prompting for a new name when renaming an existing preset.
   ///
   /// In en, this message translates to:
-  /// **'rename'**
+  /// **'Rename'**
   String get glassScreenRenameDialogTitle;
 
   /// Confirmation dialog title before deleting a saved glass preset; {name} is the preset's (user-given) name.
   ///
   /// In en, this message translates to:
-  /// **'delete {name}?'**
+  /// **'Delete {name}?'**
   String glassScreenDeleteConfirmTitle(Object name);
 
   /// Body text in the delete-preset confirmation dialog explaining the tuning itself isn't lost.
   ///
   /// In en, this message translates to:
-  /// **'the look stays on screen — it just stops having a name.'**
+  /// **'The look stays on screen — it just stops having a name.'**
   String get glassScreenDeleteConfirmBody;
 
   /// Lowercase button label to cancel deleting a preset and keep it.
   ///
   /// In en, this message translates to:
-  /// **'keep'**
+  /// **'Keep'**
   String get glassScreenKeepButton;
 
   /// Lowercase button label to confirm deleting a preset.
   ///
   /// In en, this message translates to:
-  /// **'delete'**
+  /// **'Delete'**
   String get glassScreenDeleteButton;
 
   /// Example placeholder hint text in the text field used to name a new saved glass look.
   ///
   /// In en, this message translates to:
-  /// **'late night'**
+  /// **'Late night'**
   String get glassScreenNameHint;
 
   /// Lowercase button label to dismiss the name-entry dialog without saving.
   ///
   /// In en, this message translates to:
-  /// **'cancel'**
+  /// **'Cancel'**
   String get glassScreenCancelButton;
 
   /// Lowercase button label to confirm the entered name and save it.
   ///
   /// In en, this message translates to:
-  /// **'save'**
+  /// **'Save'**
   String get glassScreenSaveButton;
 
   /// Sample room/channel name shown in the surfaces preview's fake chat header, used only to demonstrate the glass header/composer look.
@@ -1392,37 +1392,37 @@ abstract class AppLocalizations {
   /// All-caps tag on the floating preview toggle control, labelling the pinned area above it as a preview.
   ///
   /// In en, this message translates to:
-  /// **'PREVIEW'**
+  /// **'Preview'**
   String get glassScreenPreviewBadge;
 
   /// Lowercase subtitle under a built-in (non-deletable, non-renameable) glass preset's name.
   ///
   /// In en, this message translates to:
-  /// **'built in'**
+  /// **'Built in'**
   String get glassScreenBuiltInLabel;
 
   /// Screen-reader/tooltip label on a preset row's save icon that overwrites the saved preset with the current tuning; {name} is the preset's name.
   ///
   /// In en, this message translates to:
-  /// **'overwrite {name}'**
+  /// **'Overwrite {name}'**
   String glassScreenOverwriteTooltip(Object name);
 
   /// Screen-reader/tooltip label on a preset row's edit icon that opens the rename dialog; {name} is the preset's name.
   ///
   /// In en, this message translates to:
-  /// **'rename {name}'**
+  /// **'Rename {name}'**
   String glassScreenRenameTooltip(Object name);
 
   /// Screen-reader/tooltip label on a preset row's delete icon; {name} is the preset's name.
   ///
   /// In en, this message translates to:
-  /// **'delete {name}'**
+  /// **'Delete {name}'**
   String glassScreenDeleteTooltip(Object name);
 
   /// Screen-reader/tooltip label on a small undo/reset icon button, used both for a single dial's reset (label = the dial's name) and for a whole panel's reset (label = the panel's title).
   ///
   /// In en, this message translates to:
-  /// **'reset {label}'**
+  /// **'Reset {label}'**
   String glassScreenResetTooltip(Object label);
 
   /// Sample chat-message body in the glass screen's scrolling backdrop preview, used only to show glass blur over realistic content.
@@ -1506,79 +1506,79 @@ abstract class AppLocalizations {
   /// Fallback text snippet shown in a reply quote when the quoted parent message is a view-once photo (no persistent thumbnail available).
   ///
   /// In en, this message translates to:
-  /// **'photo · view once'**
+  /// **'Photo · view once'**
   String get replyIndicatorViewOnceLabel;
 
   /// Fallback text snippet shown in a reply quote when the quoted parent message is an audio/voice note (no thumbnail exists for audio).
   ///
   /// In en, this message translates to:
-  /// **'voice message'**
+  /// **'Voice message'**
   String get replyIndicatorVoiceMessageLabel;
 
   /// Fallback text snippet shown in a reply quote when the quoted parent message is a file/document attachment.
   ///
   /// In en, this message translates to:
-  /// **'document'**
+  /// **'Document'**
   String get replyIndicatorDocumentLabel;
 
   /// Italic muted caption shown in place of the quoted text/media when the parent message being replied to has been deleted. Reused identically across all four reply-style designs (phantom echo, sticky note, comic tail, classic quote).
   ///
   /// In en, this message translates to:
-  /// **'message removed'**
+  /// **'Message removed'**
   String get replyIndicatorMessageRemoved;
 
   /// Toast shown in the thread overlay when jumping to a reply's parent (via tether tap) or hopping back along the jump-back trail fails because the target message isn't in this thread.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t find that message in this thread'**
+  /// **'Couldn’t find that message in this thread'**
   String get threadOverlayMessageNotFound;
 
   /// Toast shown in the thread overlay if sending fails because no valid reply target could be resolved in the current thread.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t find the thread to reply to'**
+  /// **'Couldn’t find the thread to reply to'**
   String get threadOverlayReplyTargetNotFound;
 
   /// Toast shown when the user tries to reply to a message that is itself still a pending/unsent (optimistic) message in the thread overlay.
   ///
   /// In en, this message translates to:
-  /// **'still sending — try again in a second'**
+  /// **'Still sending — try again in a second'**
   String get threadOverlayStillSending;
 
   /// Toast shown in the thread overlay after copying a message's text content to the clipboard via the long-press action menu.
   ///
   /// In en, this message translates to:
-  /// **'copied'**
+  /// **'Copied'**
   String get threadOverlayCopiedToast;
 
   /// Toast shown in the thread overlay after copying a file message's file name to the clipboard via the long-press action menu.
   ///
   /// In en, this message translates to:
-  /// **'name copied'**
+  /// **'Name copied'**
   String get threadOverlayNameCopiedToast;
 
   /// Toast shown in the thread overlay after copying a location message's coordinates to the clipboard via the long-press action menu.
   ///
   /// In en, this message translates to:
-  /// **'coordinates copied'**
+  /// **'Coordinates copied'**
   String get threadOverlayCoordinatesCopiedToast;
 
   /// Toast shown in the thread overlay when pinning a message fails because the room has hit its pin limit (backend returns PIN_LIMIT_REACHED).
   ///
   /// In en, this message translates to:
-  /// **'too many pins — unpin one first'**
+  /// **'Too many pins — unpin one first'**
   String get threadOverlayPinLimitToast;
 
   /// Generic toast shown in the thread overlay when pinning a message fails for any reason other than the pin limit.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t pin that'**
+  /// **'Couldn’t pin that'**
   String get threadOverlayPinFailedToast;
 
   /// Toast shown in the thread overlay after successfully submitting a report on a message via the long-press action menu's report sheet.
   ///
   /// In en, this message translates to:
-  /// **'reported'**
+  /// **'Reported'**
   String get threadOverlayReportedToast;
 
   /// Body text shown centered in the thread overlay when the thread has finished loading but turned out to be empty/unavailable (e.g. root message deleted or expired).
@@ -1590,73 +1590,73 @@ abstract class AppLocalizations {
   /// Inline error under the room-info form when the room name field is left empty on save, and the same message shown for the server-side ROOM_NAME_REQUIRED error.
   ///
   /// In en, this message translates to:
-  /// **'name is required'**
+  /// **'Name is required'**
   String get roomInfoScreenNameRequiredError;
 
   /// Snackbar shown after removing a room's password.
   ///
   /// In en, this message translates to:
-  /// **'password cleared'**
+  /// **'Password cleared'**
   String get roomInfoScreenPasswordClearedSnackbar;
 
   /// Title of the confirmation dialog before a user leaves a room.
   ///
   /// In en, this message translates to:
-  /// **'leave room?'**
+  /// **'Leave room?'**
   String get roomInfoScreenLeaveConfirmTitle;
 
   /// Body text of the leave-room confirmation dialog.
   ///
   /// In en, this message translates to:
-  /// **'you can rejoin if it stays open.'**
+  /// **'You can rejoin if it stays open.'**
   String get roomInfoScreenLeaveConfirmBody;
 
   /// All-caps confirm button label in the leave-room confirmation dialog.
   ///
   /// In en, this message translates to:
-  /// **'LEAVE'**
+  /// **'Leave'**
   String get roomInfoScreenLeaveConfirmButton;
 
   /// Title of the confirmation dialog before the room owner deletes the room.
   ///
   /// In en, this message translates to:
-  /// **'delete room?'**
+  /// **'Delete room?'**
   String get roomInfoScreenDeleteConfirmTitle;
 
   /// Body text of the delete-room confirmation dialog, warning the action is irreversible.
   ///
   /// In en, this message translates to:
-  /// **'every message in here goes with it. this is permanent.'**
+  /// **'Every message in here goes with it. This is permanent.'**
   String get roomInfoScreenDeleteConfirmBody;
 
   /// All-caps confirm button label in the delete-room confirmation dialog.
   ///
   /// In en, this message translates to:
-  /// **'DELETE'**
+  /// **'Delete'**
   String get roomInfoScreenDeleteConfirmButton;
 
   /// Title of the confirmation dialog before either participant ends (deletes) a 1:1 DM.
   ///
   /// In en, this message translates to:
-  /// **'end this conversation?'**
+  /// **'End this conversation?'**
   String get roomInfoScreenEndConversationConfirmTitle;
 
   /// Body text of the end-conversation confirmation dialog for a DM, warning that deleting it removes it for the other participant as well.
   ///
   /// In en, this message translates to:
-  /// **'{peerName} loses this conversation too — every message disappears for both of you. this is permanent.'**
+  /// **'{peerName} loses this conversation too — every message disappears for both of you. This is permanent.'**
   String roomInfoScreenEndConversationConfirmBody(String peerName);
 
   /// All-caps confirm button label in the end-conversation (DM delete) confirmation dialog.
   ///
   /// In en, this message translates to:
-  /// **'END'**
+  /// **'End'**
   String get roomInfoScreenEndConversationConfirmButton;
 
   /// Fallback used in place of the peer's name in the end-conversation dialog body when the DM peer hasn't loaded yet.
   ///
   /// In en, this message translates to:
-  /// **'the other person'**
+  /// **'The other person'**
   String get roomInfoScreenEndConversationPeerFallback;
 
   /// All-caps cancel button label shared by the leave/delete confirmation dialogs on this screen.
@@ -1668,31 +1668,31 @@ abstract class AppLocalizations {
   /// Error message shown when saving a room name that collides with an existing room (server ROOM_EXISTS error).
   ///
   /// In en, this message translates to:
-  /// **'a room with that name already exists'**
+  /// **'A room with that name already exists'**
   String get roomInfoScreenErrorRoomExists;
 
   /// Error message shown when a non-owner attempts an owner-only action (server NOT_OWNER error).
   ///
   /// In en, this message translates to:
-  /// **'only the owner can do that'**
+  /// **'Only the owner can do that'**
   String get roomInfoScreenErrorNotOwner;
 
   /// Error message shown for a generic permission failure (server NOT_AUTHORIZED error).
   ///
   /// In en, this message translates to:
-  /// **'you don’t have permission'**
+  /// **'You don’t have permission'**
   String get roomInfoScreenErrorNotAuthorized;
 
   /// Error message shown when an action targets a room that no longer exists (server ROOM_NOT_FOUND error).
   ///
   /// In en, this message translates to:
-  /// **'this room is gone'**
+  /// **'This room is gone'**
   String get roomInfoScreenErrorRoomNotFound;
 
   /// Body text shown as the entire screen content when the room being viewed can no longer be found.
   ///
   /// In en, this message translates to:
-  /// **'room gone'**
+  /// **'Room gone'**
   String get roomInfoScreenRoomGone;
 
   /// All-caps field label above the room name text input.
@@ -1704,7 +1704,7 @@ abstract class AppLocalizations {
   /// Placeholder hint text inside the room name text input.
   ///
   /// In en, this message translates to:
-  /// **'room name'**
+  /// **'Room name'**
   String get roomInfoScreenNameHint;
 
   /// All-caps field label above the room description text input.
@@ -1716,7 +1716,7 @@ abstract class AppLocalizations {
   /// Placeholder hint text inside the room description text input.
   ///
   /// In en, this message translates to:
-  /// **'one line about the room…'**
+  /// **'One line about the room'**
   String get roomInfoScreenDescriptionHint;
 
   /// All-caps section label above the public/private visibility toggle.
@@ -1800,13 +1800,13 @@ abstract class AppLocalizations {
   /// Placeholder hint text in the password field when the room already has a password (entering one replaces it).
   ///
   /// In en, this message translates to:
-  /// **'replace passphrase…'**
+  /// **'Replace passphrase'**
   String get roomInfoScreenReplacePasswordHint;
 
   /// Placeholder hint text in the password field when the room has no password yet.
   ///
   /// In en, this message translates to:
-  /// **'lock with a passphrase…'**
+  /// **'Lock with a passphrase'**
   String get roomInfoScreenSetPasswordHint;
 
   /// All-caps button label to clear the room's existing password.
@@ -1878,25 +1878,25 @@ abstract class AppLocalizations {
   /// Screen-reader semantic label on the tappable DM peer avatar that opens it fullscreen.
   ///
   /// In en, this message translates to:
-  /// **'view profile picture'**
+  /// **'View profile picture'**
   String get roomInfoScreenViewProfilePictureSemantic;
 
   /// Screen-reader semantic label on the tappable room avatar that opens it fullscreen.
   ///
   /// In en, this message translates to:
-  /// **'view room picture'**
+  /// **'View room picture'**
   String get roomInfoScreenViewRoomPictureSemantic;
 
   /// Screen-reader semantic label on the camera badge button when the room already has a picture.
   ///
   /// In en, this message translates to:
-  /// **'change room picture'**
+  /// **'Change room picture'**
   String get roomInfoScreenChangeRoomPictureSemantic;
 
   /// Screen-reader semantic label on the camera badge button when the room has no picture yet.
   ///
   /// In en, this message translates to:
-  /// **'add room picture'**
+  /// **'Add room picture'**
   String get roomInfoScreenAddRoomPictureSemantic;
 
   /// All-caps small badge shown next to the room creator's name in the member list.
@@ -1914,67 +1914,67 @@ abstract class AppLocalizations {
   /// Body text shown on the camera screen when the OS has denied camera permission. Two-line, lowercase sentence-fragment style; 'Settings' refers to the device's system Settings app.
   ///
   /// In en, this message translates to:
-  /// **'camera access is off.\nturn it on in Settings to take a photo.'**
+  /// **'Camera access is off.\nTurn it on in Settings to take a photo.'**
   String get cameraScreenAccessDeniedMessage;
 
   /// Transient status text shown for a fraction of a second while the in-app camera screen falls back to the OS's native camera picker (hardware unavailable or failed to start).
   ///
   /// In en, this message translates to:
-  /// **'opening the system camera…'**
+  /// **'Opening the system camera…'**
   String get cameraScreenOpeningSystemCamera;
 
   /// Screen-reader semanticLabel for the X button that dismisses the in-app camera screen.
   ///
   /// In en, this message translates to:
-  /// **'close camera'**
+  /// **'Close camera'**
   String get cameraScreenCloseButtonLabel;
 
   /// Screen-reader semanticLabel for the moon-icon toggle button, when the exposure boost for dark scenes is currently enabled.
   ///
   /// In en, this message translates to:
-  /// **'low-light boost: on'**
+  /// **'Low-light boost: on'**
   String get cameraScreenLowLightBoostOnLabel;
 
   /// Screen-reader semanticLabel for the moon-icon toggle button, when the exposure boost for dark scenes is currently disabled.
   ///
   /// In en, this message translates to:
-  /// **'low-light boost: off'**
+  /// **'Low-light boost: off'**
   String get cameraScreenLowLightBoostOffLabel;
 
   /// Screen-reader semanticLabel for the flash-mode button. {mode} is the raw FlashMode enum name (off/auto/always), deliberately left untranslated per enum .name convention, so it is interpolated as-is into the localized 'flash:' prefix.
   ///
   /// In en, this message translates to:
-  /// **'flash: {mode}'**
+  /// **'Flash: {mode}'**
   String cameraScreenFlashStatusLabel(Object mode);
 
   /// Screen-reader semanticLabel for the photo-library icon button that lets the user pick an existing photo instead of taking a new one.
   ///
   /// In en, this message translates to:
-  /// **'choose from library'**
+  /// **'Choose from library'**
   String get cameraScreenChooseFromLibraryLabel;
 
   /// Screen-reader semanticLabel for the button that flips between the front and back camera lens.
   ///
   /// In en, this message translates to:
-  /// **'switch camera'**
+  /// **'Switch camera'**
   String get cameraScreenSwitchCameraLabel;
 
   /// Screen-reader semanticLabel for the main circular shutter button that captures a photo.
   ///
   /// In en, this message translates to:
-  /// **'take photo'**
+  /// **'Take photo'**
   String get cameraScreenTakePhotoLabel;
 
   /// Default all-caps button label under the allowed-contacts list to add someone by their username.
   ///
   /// In en, this message translates to:
-  /// **'ADD BY USERNAME'**
+  /// **'Add by username'**
   String get childPolicyScreenAddByUsernameLabel;
 
   /// All-caps CTA button label on the add-a-grown-up prompt sheet.
   ///
   /// In en, this message translates to:
-  /// **'ADD'**
+  /// **'Add'**
   String get childPolicyScreenAddCta;
 
   /// Explanatory body text on the add-a-grown-up prompt sheet; {name} is the child's display name.
@@ -1986,19 +1986,19 @@ abstract class AppLocalizations {
   /// All-caps heading of the add-a-grown-up prompt sheet; also reused as the ADD BY USERNAME-style button label in the GROWN-UPS section.
   ///
   /// In en, this message translates to:
-  /// **'ADD A GROWN-UP'**
+  /// **'Add a grown-up'**
   String get childPolicyScreenAddGuardianHeading;
 
   /// Text-field placeholder hint on the add-a-grown-up prompt sheet.
   ///
   /// In en, this message translates to:
-  /// **'their username'**
+  /// **'Their username'**
   String get childPolicyScreenAddGuardianHint;
 
   /// All-caps CTA button label on the allow-a-contact-by-username sheet.
   ///
   /// In en, this message translates to:
-  /// **'ALLOW'**
+  /// **'Allow'**
   String get childPolicyScreenAllowCta;
 
   /// Explanatory body text on the allow-a-contact-by-username sheet; {childName} is the child's display name, used twice.
@@ -2010,55 +2010,55 @@ abstract class AppLocalizations {
   /// All-caps heading of the allow-a-contact-by-username sheet.
   ///
   /// In en, this message translates to:
-  /// **'ALLOW SOMEONE'**
+  /// **'Allow someone'**
   String get childPolicyScreenAllowSomeoneHeading;
 
   /// All-caps toggle label for the child-can-request-new-contacts permission.
   ///
   /// In en, this message translates to:
-  /// **'ASK TO ADD'**
+  /// **'Ask to add'**
   String get childPolicyScreenAskToAddLabel;
 
   /// Toggle sub-description shown when the ASK TO ADD permission is off.
   ///
   /// In en, this message translates to:
-  /// **'family only — no new requests'**
+  /// **'Family only — no new requests'**
   String get childPolicyScreenAskToAddOffDesc;
 
   /// Toggle sub-description shown when the ASK TO ADD permission is on.
   ///
   /// In en, this message translates to:
-  /// **'they can ask you about new people'**
+  /// **'They can ask you about new people'**
   String get childPolicyScreenAskToAddOnDesc;
 
   /// Note under the WHEN THEY'RE DONE section header for a guardian who is not the sole guardian; references the GROWN-UPS section by its translated name.
   ///
   /// In en, this message translates to:
-  /// **'Both of these are final. Stepping away instead is up in GROWN-UPS.'**
+  /// **'Both of these are final. To step away instead, use Grown-ups above.'**
   String get childPolicyScreenBothFinalNote;
 
   /// All-caps toggle label for the child's calling permission.
   ///
   /// In en, this message translates to:
-  /// **'CALLS'**
+  /// **'Calls'**
   String get childPolicyScreenCallsLabel;
 
   /// Toggle sub-description shown when the CALLS permission is off.
   ///
   /// In en, this message translates to:
-  /// **'messages only'**
+  /// **'Messages only'**
   String get childPolicyScreenCallsOffDesc;
 
   /// Toggle sub-description shown when the CALLS permission is on.
   ///
   /// In en, this message translates to:
-  /// **'voice + video with people they’re allowed'**
+  /// **'Voice + video with people they’re allowed'**
   String get childPolicyScreenCallsOnDesc;
 
   /// All-caps Cancel button label, shared by the add-contact and add-guardian/graduate prompt sheets.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL'**
+  /// **'Cancel'**
   String get childPolicyScreenCancelLabel;
 
   /// Screen-reader semantic label for the Cancel button on the prompt sheet (heading style, not all-caps).
@@ -2070,31 +2070,31 @@ abstract class AppLocalizations {
   /// Snackbar shown after allowing a contact by username, when the friend request is sent immediately.
   ///
   /// In en, this message translates to:
-  /// **'added — the request is on its way'**
+  /// **'Added — the request is on its way'**
   String get childPolicyScreenContactAddedRequestSent;
 
   /// Snackbar shown after allowing a contact by username, when the request is deferred (not sent immediately).
   ///
   /// In en, this message translates to:
-  /// **'added to the allowed list'**
+  /// **'Added to the allowed list'**
   String get childPolicyScreenContactAddedToList;
 
   /// All-caps toggle label for the child's ability to create their own rooms.
   ///
   /// In en, this message translates to:
-  /// **'MAKE ROOMS'**
+  /// **'Make rooms'**
   String get childPolicyScreenCreateRoomsLabel;
 
   /// Toggle sub-description shown when the MAKE ROOMS permission is off.
   ///
   /// In en, this message translates to:
-  /// **'they can’t start rooms'**
+  /// **'They can’t start rooms'**
   String get childPolicyScreenCreateRoomsOffDesc;
 
   /// Toggle sub-description shown when the MAKE ROOMS permission is on.
   ///
   /// In en, this message translates to:
-  /// **'they can start their own private rooms'**
+  /// **'They can start their own private rooms'**
   String get childPolicyScreenCreateRoomsOnDesc;
 
   /// Body text of the confirmation sheet before permanently deleting the child's account.
@@ -2106,13 +2106,13 @@ abstract class AppLocalizations {
   /// Snackbar shown when deleting the child's account fails.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t delete the account — try again'**
+  /// **'Couldn’t delete the account — try again'**
   String get childPolicyScreenDeleteAccountFailed;
 
   /// All-caps headline of the confirmation sheet before deleting the child's account; {name} is already upper-cased by the caller.
   ///
   /// In en, this message translates to:
-  /// **'DELETE {name}’S ACCOUNT?'**
+  /// **'Delete {name}’s account?'**
   String childPolicyScreenDeleteAccountHeadline(Object name);
 
   /// Detail line under the DELETE ACCOUNT danger-zone button.
@@ -2124,55 +2124,55 @@ abstract class AppLocalizations {
   /// All-caps danger-zone button label to delete the child's account; {name} is already upper-cased by the caller.
   ///
   /// In en, this message translates to:
-  /// **'DELETE {name}’S ACCOUNT'**
+  /// **'Delete {name}’s account'**
   String childPolicyScreenDeleteDangerLabel(Object name);
 
   /// All-caps confirm button label on the delete-account confirmation sheet.
   ///
   /// In en, this message translates to:
-  /// **'DELETE FOREVER'**
+  /// **'Delete forever'**
   String get childPolicyScreenDeleteForeverCta;
 
   /// Fallback error snackbar when adding a contact by username fails for an unrecognized reason.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t add them — try again'**
+  /// **'Couldn’t add them — try again'**
   String get childPolicyScreenErrorAddContactGeneric;
 
   /// Error snackbar when the guardian tries to add the child's own username as a contact.
   ///
   /// In en, this message translates to:
-  /// **'that’s their own username'**
+  /// **'That’s their own username'**
   String get childPolicyScreenErrorCannotAddSelf;
 
   /// Error snackbar when trying to add a child account as a guardian.
   ///
   /// In en, this message translates to:
-  /// **'a child can’t be a grown-up'**
+  /// **'A child can’t be a grown-up'**
   String get childPolicyScreenErrorChildNotAllowed;
 
   /// Fallback error snackbar for guardian-management actions (add/remove) that fail for an unrecognized reason.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t do that — try again'**
+  /// **'Couldn’t do that — try again'**
   String get childPolicyScreenErrorGenericGuardian;
 
   /// Error snackbar when trying to remove the child's only remaining guardian.
   ///
   /// In en, this message translates to:
-  /// **'someone has to look after them — add another grown-up first'**
+  /// **'Someone has to look after them — add another grown-up first'**
   String get childPolicyScreenErrorLastGuardian;
 
   /// Error snackbar when the current user isn't authorized to make this change (used for both add-contact and guardian actions).
   ///
   /// In en, this message translates to:
-  /// **'that’s not yours to change'**
+  /// **'That’s not yours to change'**
   String get childPolicyScreenErrorNotYours;
 
   /// Error snackbar when a username entered (for a new contact or new guardian) doesn't match any account.
   ///
   /// In en, this message translates to:
-  /// **'no account with that username'**
+  /// **'No account with that username'**
   String get childPolicyScreenErrorUserNotFound;
 
   /// Explanatory body text on the graduate-child-to-adult-account prompt sheet.
@@ -2184,7 +2184,7 @@ abstract class AppLocalizations {
   /// All-caps CTA button label on the graduate-child prompt sheet.
   ///
   /// In en, this message translates to:
-  /// **'GRADUATE'**
+  /// **'Graduate'**
   String get childPolicyScreenGraduateCta;
 
   /// Detail line under the GRADUATE TO A FULL ACCOUNT danger-zone button.
@@ -2196,25 +2196,25 @@ abstract class AppLocalizations {
   /// All-caps danger-zone button label to graduate the child to a normal adult account.
   ///
   /// In en, this message translates to:
-  /// **'GRADUATE TO A FULL ACCOUNT'**
+  /// **'Graduate to a full account'**
   String get childPolicyScreenGraduateDangerLabel;
 
   /// Snackbar shown when graduating the child to an adult account fails.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t graduate them — try again'**
+  /// **'Couldn’t graduate them — try again'**
   String get childPolicyScreenGraduateFailed;
 
   /// All-caps headline of the graduate-child prompt sheet; {name} is already upper-cased by the caller.
   ///
   /// In en, this message translates to:
-  /// **'GRADUATE {name}'**
+  /// **'Graduate {name}'**
   String childPolicyScreenGraduateHeading(Object name);
 
   /// Password-field placeholder hint on the graduate-child prompt sheet.
   ///
   /// In en, this message translates to:
-  /// **'a password for them'**
+  /// **'A password for them'**
   String get childPolicyScreenGraduateHint;
 
   /// Footnote under the ROOMS YOU'VE ALLOWED list explaining what revoking does.
@@ -2232,7 +2232,7 @@ abstract class AppLocalizations {
   /// Snackbar shown after successfully adding a new guardian.
   ///
   /// In en, this message translates to:
-  /// **'added — they can look after them now'**
+  /// **'Added — they can look after them now'**
   String get childPolicyScreenGuardianAdded;
 
   /// Snackbar shown after successfully removing another guardian; {name} is that guardian's display name.
@@ -2250,37 +2250,37 @@ abstract class AppLocalizations {
   /// Placeholder text shown while the allowed-contacts/rooms grants list is loading.
   ///
   /// In en, this message translates to:
-  /// **'loading…'**
+  /// **'Loading…'**
   String get childPolicyScreenLoading;
 
   /// Small all-caps badge next to a fixed (non-toggleable) policy note, e.g. PUBLIC ROOMS.
   ///
   /// In en, this message translates to:
-  /// **'LOCKED'**
+  /// **'Locked'**
   String get childPolicyScreenLockedLabel;
 
   /// All-caps toggle label for the child's ability to send photos/video/voice notes.
   ///
   /// In en, this message translates to:
-  /// **'PHOTOS + VOICE'**
+  /// **'Photos + voice'**
   String get childPolicyScreenMediaLabel;
 
   /// Toggle sub-description shown when the PHOTOS + VOICE permission is off.
   ///
   /// In en, this message translates to:
-  /// **'text only'**
+  /// **'Text only'**
   String get childPolicyScreenMediaOffDesc;
 
   /// Toggle sub-description shown when the PHOTOS + VOICE permission is on.
   ///
   /// In en, this message translates to:
-  /// **'they can send pictures, video and voice notes'**
+  /// **'They can send pictures, video and voice notes'**
   String get childPolicyScreenMediaOnDesc;
 
   /// Empty-state placeholder shown when the child has no allowed rooms.
   ///
   /// In en, this message translates to:
-  /// **'no rooms yet'**
+  /// **'No rooms yet'**
   String get childPolicyScreenNoRoomsYet;
 
   /// Explanatory text under the PEOPLE YOU'VE ALLOWED section header.
@@ -2298,7 +2298,7 @@ abstract class AppLocalizations {
   /// All-caps label for the fixed (locked) public-rooms policy note.
   ///
   /// In en, this message translates to:
-  /// **'PUBLIC ROOMS'**
+  /// **'Public rooms'**
   String get childPolicyScreenPublicRoomsLabel;
 
   /// Body text of the confirmation sheet before removing another guardian; {guardian} is that guardian's name, {child} is the child's name.
@@ -2310,67 +2310,67 @@ abstract class AppLocalizations {
   /// All-caps headline of the confirmation sheet before removing another guardian; {name} is already upper-cased by the caller.
   ///
   /// In en, this message translates to:
-  /// **'REMOVE {name}?'**
+  /// **'Remove {name}?'**
   String childPolicyScreenRemoveGuardianHeadline(Object name);
 
   /// All-caps action label — both the confirm button when removing a guardian and the inline row action for a guardian who isn't the current user.
   ///
   /// In en, this message translates to:
-  /// **'REMOVE'**
+  /// **'Remove'**
   String get childPolicyScreenRemoveLabel;
 
   /// Short subtitle on an allowed-room row showing how many members are in it.
   ///
   /// In en, this message translates to:
-  /// **'{count} in'**
-  String childPolicyScreenRoomMemberCount(Object count);
+  /// **'{count, plural, =1{1 member} other{{count} members}}'**
+  String childPolicyScreenRoomMemberCount(int count);
 
   /// All-caps section header listing the child's guardians.
   ///
   /// In en, this message translates to:
-  /// **'GROWN-UPS'**
+  /// **'Grown-ups'**
   String get childPolicyScreenSectionGrownUps;
 
   /// All-caps section header listing contacts pre-approved for the child.
   ///
   /// In en, this message translates to:
-  /// **'PEOPLE YOU’VE ALLOWED'**
+  /// **'People you’ve allowed'**
   String get childPolicyScreenSectionPeopleAllowed;
 
   /// All-caps section header listing rooms pre-approved for the child.
   ///
   /// In en, this message translates to:
-  /// **'ROOMS YOU’VE ALLOWED'**
+  /// **'Rooms you’ve allowed'**
   String get childPolicyScreenSectionRoomsAllowed;
 
   /// All-caps section header over the child's permission toggles.
   ///
   /// In en, this message translates to:
-  /// **'WHAT THEY CAN DO'**
+  /// **'What they can do'**
   String get childPolicyScreenSectionWhatTheyCanDo;
 
   /// All-caps section header over the graduate/delete danger-zone actions.
   ///
   /// In en, this message translates to:
-  /// **'WHEN THEY’RE DONE'**
+  /// **'When they’re done'**
   String get childPolicyScreenSectionWhenDone;
 
   /// Sub-description on the allow-contact sheet's send-now toggle, shown when send-now is off.
   ///
   /// In en, this message translates to:
-  /// **'nothing happens until someone adds the other'**
+  /// **'Nothing happens until someone adds the other'**
   String get childPolicyScreenSendNowOffDesc;
 
   /// Sub-description on the allow-contact sheet's send-now toggle, shown when send-now is on.
   ///
   /// In en, this message translates to:
-  /// **'they get asked straight away'**
+  /// **'They get asked straight away'**
   String get childPolicyScreenSendNowOnDesc;
 
   /// All-caps label for the send-request-now toggle on the allow-contact sheet.
   ///
   /// In en, this message translates to:
-  /// **'SEND THE REQUEST NOW'**
+  /// **'Send the request now'**
   String get childPolicyScreenSendRequestNowLabel;
 
   /// Note under WHEN THEY'RE DONE shown when the current guardian is the child's only guardian; {name} is the child's display name.
@@ -2382,7 +2382,7 @@ abstract class AppLocalizations {
   /// All-caps inline row action label for the current user to remove themself as guardian.
   ///
   /// In en, this message translates to:
-  /// **'STEP AWAY'**
+  /// **'Step away'**
   String get childPolicyScreenStepAwayLabel;
 
   /// Body text of the confirmation sheet when the current guardian removes themself; {name} is the child's display name.
@@ -2394,67 +2394,67 @@ abstract class AppLocalizations {
   /// All-caps confirm button label when the current guardian removes themself.
   ///
   /// In en, this message translates to:
-  /// **'STOP SUPERVISING'**
+  /// **'Stop supervising'**
   String get childPolicyScreenStopSupervisingCta;
 
   /// All-caps headline of the confirmation sheet when the current guardian removes themself.
   ///
   /// In en, this message translates to:
-  /// **'STOP SUPERVISING?'**
+  /// **'Stop supervising?'**
   String get childPolicyScreenStopSupervisingHeadline;
 
   /// Snackbar shown when revoking a contact or room grant fails.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t take them back — try again'**
+  /// **'Couldn’t take them back — try again'**
   String get childPolicyScreenTakeBackFailed;
 
   /// Default all-caps inline row action label to revoke an allowed contact or room.
   ///
   /// In en, this message translates to:
-  /// **'TAKE BACK'**
+  /// **'Take back'**
   String get childPolicyScreenTakeBackLabel;
 
   /// Text-field placeholder hint on the allow-contact-by-username sheet.
   ///
   /// In en, this message translates to:
-  /// **'username'**
+  /// **'Username'**
   String get childPolicyScreenUsernameHint;
 
   /// Placeholder name used for the current guardian in the guardian-removed snackbar; in practice this branch is unreachable today since removing yourself navigates away instead of showing the snackbar, but is localized for correctness.
   ///
   /// In en, this message translates to:
-  /// **'you'**
+  /// **'You'**
   String get childPolicyScreenYou;
 
   /// Fallback name used when a shared file message has no file name — shown as the row title/badge source and passed as the saved file's name.
   ///
   /// In en, this message translates to:
-  /// **'document'**
+  /// **'Document'**
   String get roomContentScreenDefaultDocumentName;
 
   /// Snackbar shown when tapping a shared file to save/open it fails.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t open that file'**
+  /// **'Couldn’t open that file'**
   String get roomContentScreenCouldntOpenFile;
 
   /// Snackbar shown when sharing the selected items via the OS share sheet fails.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t share those'**
+  /// **'Couldn’t share those'**
   String get roomContentScreenCouldntShare;
 
   /// Snackbar confirming link URL(s) were copied to the clipboard from the LINKS tab; count is how many links were copied.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{copied} other{copied {count} links}}'**
+  /// **'{count, plural, one{Copied} other{Copied {count} links}}'**
   String roomContentScreenLinksCopied(num count);
 
   /// All-caps headline of the destructive confirm sheet before deleting the selected shared message(s); count is how many are selected.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{DELETE MESSAGE} other{DELETE {count} MESSAGES}}'**
+  /// **'{count, plural, one{Delete message} other{Delete {count} messages}}'**
   String roomContentScreenDeleteHeadline(num count);
 
   /// Body copy of the destructive confirm sheet, warning that deleting removes the message(s) for everyone in the room and can't be undone.
@@ -2466,7 +2466,7 @@ abstract class AppLocalizations {
   /// All-caps confirm button label on the destructive sheet for permanently deleting the selected shared message(s) for everyone in the room.
   ///
   /// In en, this message translates to:
-  /// **'DELETE FOR EVERYONE'**
+  /// **'Delete for everyone'**
   String get roomContentScreenDeleteForEveryone;
 
   /// Tooltip for the header's close (X) icon button, shown while multi-select mode is active.
@@ -2484,67 +2484,67 @@ abstract class AppLocalizations {
   /// All-caps small header eyebrow label shown while multi-select mode is active on the shared-content browser.
   ///
   /// In en, this message translates to:
-  /// **'SELECTING'**
+  /// **'Selecting'**
   String get roomContentScreenSelectingLabel;
 
   /// All-caps small header eyebrow label for the shared-content browser screen, shown when not selecting.
   ///
   /// In en, this message translates to:
-  /// **'SHARED CONTENT'**
+  /// **'Shared content'**
   String get roomContentScreenSharedContentLabel;
 
   /// Header subtitle shown in multi-select mode reporting how many shared items are currently picked; count is the number selected.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0{nothing picked} other{{count} selected}}'**
+  /// **'{count, plural, =0{Nothing picked} other{{count} selected}}'**
   String roomContentScreenSelectionCount(num count);
 
   /// All-caps header pill button label to enter multi-select mode on the shared-content browser.
   ///
   /// In en, this message translates to:
-  /// **'SELECT'**
+  /// **'Select'**
   String get roomContentScreenSelectAllLabel;
 
   /// All-caps header pill button label to select every item on screen, shown once multi-select mode is already active.
   ///
   /// In en, this message translates to:
-  /// **'ALL'**
+  /// **'All'**
   String get roomContentScreenSelectAllActiveLabel;
 
   /// Empty-state copy for the MEDIA tab of the shared-content browser when the room has nothing shared yet.
   ///
   /// In en, this message translates to:
-  /// **'no photos or videos yet'**
+  /// **'No photos or videos yet'**
   String get roomContentScreenEmptyMedia;
 
   /// Empty-state copy for the FILES tab of the shared-content browser when the room has nothing shared yet.
   ///
   /// In en, this message translates to:
-  /// **'no files yet'**
+  /// **'No files yet'**
   String get roomContentScreenEmptyFiles;
 
   /// Empty-state copy for the VOICE tab of the shared-content browser when the room has nothing shared yet.
   ///
   /// In en, this message translates to:
-  /// **'no voice notes yet'**
+  /// **'No voice notes yet'**
   String get roomContentScreenEmptyVoice;
 
   /// Empty-state copy for the LINKS tab of the shared-content browser when the room has nothing shared yet.
   ///
   /// In en, this message translates to:
-  /// **'no links yet'**
+  /// **'No links yet'**
   String get roomContentScreenEmptyLinks;
 
   /// Empty-state copy for the SAVED tab of the shared-content browser. Longer than the other four on purpose: this is where a reader is most likely to be wondering what the list is, so it names the gesture that fills it AND states the thing they must not guess wrong — saved is private to them, pinned is what everyone sees. 'SAVE' refers to messageActionMenuSaveLabel; keep the two identical.
   ///
   /// In en, this message translates to:
-  /// **'nothing saved yet. hold a message and choose SAVE.\n\nwhat you keep here is private to you — a pinned message is what the whole room sees.'**
+  /// **'Nothing saved yet. Hold a message and choose Save.\n\nWhat you keep here is private to you — a pinned message is what the whole room sees.'**
   String get roomContentScreenEmptySaved;
 
   /// Empty-state copy shown in place of the tab's normal empty message when loading the shared-content list failed.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t load that'**
+  /// **'Couldn’t load that'**
   String get roomContentScreenLoadFailed;
 
   /// Semantic/accessibility label for a voice-note row in the VOICE tab, naming who sent it; {name} is the sender's display name.
@@ -2556,49 +2556,49 @@ abstract class AppLocalizations {
   /// All-caps bulk-action bar button label to forward the selected shared items to another room.
   ///
   /// In en, this message translates to:
-  /// **'FORWARD'**
+  /// **'Forward'**
   String get roomContentScreenForwardAction;
 
   /// All-caps bulk-action bar button label to copy the selected link URLs to the clipboard, shown only on the LINKS tab.
   ///
   /// In en, this message translates to:
-  /// **'COPY'**
+  /// **'Copy'**
   String get roomContentScreenCopyAction;
 
   /// All-caps bulk-action bar button label to save the selected photos/videos to the device's photo library.
   ///
   /// In en, this message translates to:
-  /// **'SAVE'**
+  /// **'Save'**
   String get roomContentScreenSaveAction;
 
   /// All-caps bulk-action bar button label to share the selected shared items via the OS share sheet.
   ///
   /// In en, this message translates to:
-  /// **'SHARE'**
+  /// **'Share'**
   String get roomContentScreenShareAction;
 
   /// All-caps bulk-action bar button label to jump to the single selected item in the chat transcript.
   ///
   /// In en, this message translates to:
-  /// **'IN CHAT'**
+  /// **'In chat'**
   String get roomContentScreenInChatAction;
 
   /// All-caps bulk-action bar button label to delete the selected shared message(s) for everyone in the room.
   ///
   /// In en, this message translates to:
-  /// **'DELETE'**
+  /// **'Delete'**
   String get roomContentScreenDeleteAction;
 
   /// All-caps row label in the long-press message action menu; replies to the selected message.
   ///
   /// In en, this message translates to:
-  /// **'REPLY'**
+  /// **'Reply'**
   String get messageActionMenuReplyLabel;
 
   /// All-caps row label in the long-press message action menu; shown only on the viewer's own text messages inside the 15-minute edit window. Reopens the message in the composer so its text can be rewritten.
   ///
   /// In en, this message translates to:
-  /// **'EDIT'**
+  /// **'Edit'**
   String get messageActionMenuEditLabel;
 
   /// Lowercase word shown inside a chat bubble's timestamp cluster, directly before the time (as in 'edited 14:32'), on messages whose author rewrote them after sending. Keep it short — it shares a line with the message text.
@@ -2610,7 +2610,7 @@ abstract class AppLocalizations {
   /// All-caps title of the banner that sits above the composer while the user is rewriting one of their own messages; the line under it shows the message's original text.
   ///
   /// In en, this message translates to:
-  /// **'EDIT MESSAGE'**
+  /// **'Edit message'**
   String get composerEditCardTitle;
 
   /// Accessibility label on the dust veil covering spoiler text in a chat bubble. Sighted users wipe the veil with a finger; screen-reader activation reveals the whole hidden text at once.
@@ -2700,19 +2700,19 @@ abstract class AppLocalizations {
   /// All-caps headline of the confirmation sheet shown when tapping text that carries a hidden link (formatted link text, where the visible words differ from the URL). The sheet shows the real destination before opening it.
   ///
   /// In en, this message translates to:
-  /// **'OPEN THIS LINK?'**
+  /// **'Open this link?'**
   String get linkConfirmSheetTitle;
 
   /// All-caps confirm button in the link confirmation sheet; opens the shown URL in the browser.
   ///
   /// In en, this message translates to:
-  /// **'OPEN LINK'**
+  /// **'Open link'**
   String get linkConfirmSheetOpenLabel;
 
   /// All-caps cancel button in the link confirmation sheet; closes the sheet without opening the URL.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL'**
+  /// **'Cancel'**
   String get linkConfirmSheetCancelLabel;
 
   /// Snackbar shown when an edit is refused because the server's 15-minute edit window closed while the user was typing.
@@ -2730,67 +2730,67 @@ abstract class AppLocalizations {
   /// All-caps row label in the long-press message action menu; forwards the selected message to another chat/room.
   ///
   /// In en, this message translates to:
-  /// **'FORWARD'**
+  /// **'Forward'**
   String get messageActionMenuForwardLabel;
 
   /// All-caps row label in the long-press message action menu, shown when the message has a parent/thread; opens the reply thread for the message.
   ///
   /// In en, this message translates to:
-  /// **'VIEW THREAD'**
+  /// **'View thread'**
   String get messageActionMenuViewThreadLabel;
 
   /// All-caps row label in the long-press message action menu; copies the message's text body to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'COPY'**
+  /// **'Copy'**
   String get messageActionMenuCopyLabel;
 
   /// All-caps row label in the long-press message action menu, shown only for document bubbles; copies the document's filename to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'COPY NAME'**
+  /// **'Copy name'**
   String get messageActionMenuCopyNameLabel;
 
   /// All-caps row label in the long-press message action menu, shown only for location bubbles (including a running live share); copies the location's latitude/longitude to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'COPY COORDINATES'**
+  /// **'Copy coordinates'**
   String get messageActionMenuCopyCoordinatesLabel;
 
   /// All-caps row label in the long-press message action menu; pins the message to the room. Shown only when the message is not already pinned.
   ///
   /// In en, this message translates to:
-  /// **'PIN'**
+  /// **'Pin'**
   String get messageActionMenuPinLabel;
 
   /// All-caps row label in the long-press message action menu; unpins an already-pinned message. Shown only when the message is currently pinned.
   ///
   /// In en, this message translates to:
-  /// **'UNPIN'**
+  /// **'Unpin'**
   String get messageActionMenuUnpinLabel;
 
   /// All-caps row label in the long-press message action menu; enters multi-select mode on the transcript with this message already picked.
   ///
   /// In en, this message translates to:
-  /// **'SELECT'**
+  /// **'Select'**
   String get messageActionMenuSelectLabel;
 
   /// All-caps row label in the long-press message action menu, shown on other people's messages; opens the sender's profile.
   ///
   /// In en, this message translates to:
-  /// **'PROFILE'**
+  /// **'Profile'**
   String get messageActionMenuProfileLabel;
 
   /// All-caps destructive row label in the long-press message action menu, shown on the current user's own messages; deletes the message.
   ///
   /// In en, this message translates to:
-  /// **'DELETE'**
+  /// **'Delete'**
   String get messageActionMenuDeleteLabel;
 
   /// All-caps destructive row label in the long-press message action menu, shown on other people's messages; reports the message.
   ///
   /// In en, this message translates to:
-  /// **'REPORT'**
+  /// **'Report'**
   String get messageActionMenuReportLabel;
 
   /// Lowercase display heading at the top of the theme picker screen.
@@ -2946,97 +2946,97 @@ abstract class AppLocalizations {
   /// Status word used only as a fallback path (the active call state normally shows a live elapsed-time timer instead of this text).
   ///
   /// In en, this message translates to:
-  /// **'connected'**
+  /// **'Connected'**
   String get callScreenStatusConnected;
 
   /// Status line shown briefly when a call ends, used only if no more specific error message is available.
   ///
   /// In en, this message translates to:
-  /// **'call ended'**
+  /// **'Call ended'**
   String get callScreenStatusEnded;
 
   /// Status line shown briefly when a call fails, used only if no more specific error message is available.
   ///
   /// In en, this message translates to:
-  /// **'call failed'**
+  /// **'Call failed'**
   String get callScreenStatusFailed;
 
   /// Status text (both as the status line and as a floating overlay chip) shown while the call is being handed off/renegotiated to another device.
   ///
   /// In en, this message translates to:
-  /// **'switching device…'**
+  /// **'Switching device…'**
   String get callScreenStatusSwitching;
 
   /// Status line shown briefly right before the call screen closes because the call moved to another of the user's devices.
   ///
   /// In en, this message translates to:
-  /// **'moved'**
+  /// **'Moved'**
   String get callScreenStatusMoved;
 
   /// Floating overlay chip text shown while the call connection is being re-established (ICE restart recovery).
   ///
   /// In en, this message translates to:
-  /// **'reconnecting…'**
+  /// **'Reconnecting…'**
   String get callScreenStatusReconnecting;
 
   /// Floating overlay chip text shown when the live call-quality monitor reports a poor connection.
   ///
   /// In en, this message translates to:
-  /// **'poor connection'**
+  /// **'Poor connection'**
   String get callScreenPoorConnectionLabel;
 
   /// Floating overlay chip text shown when the live call-quality monitor reports a weak (but not fully poor) connection.
   ///
   /// In en, this message translates to:
-  /// **'weak connection'**
+  /// **'Weak connection'**
   String get callScreenWeakConnectionLabel;
 
   /// Small label under the mic control button in the call screen's bottom control bar, shown when the call is currently muted (tapping unmutes).
   ///
   /// In en, this message translates to:
-  /// **'unmute'**
+  /// **'Unmute'**
   String get callScreenControlUnmute;
 
   /// Small label under the mic control button in the call screen's bottom control bar, shown when the call is currently unmuted (tapping mutes).
   ///
   /// In en, this message translates to:
-  /// **'mute'**
+  /// **'Mute'**
   String get callScreenControlMute;
 
   /// Small label under the camera control button, shown when the local camera is off (tapping turns it on).
   ///
   /// In en, this message translates to:
-  /// **'cam on'**
+  /// **'Camera on'**
   String get callScreenControlCamOn;
 
   /// Small label under the camera control button, shown when the local camera is on (tapping turns it off).
   ///
   /// In en, this message translates to:
-  /// **'cam off'**
+  /// **'Camera off'**
   String get callScreenControlCamOff;
 
   /// Small label under the camera-switch (front/back) control button in the call screen's bottom control bar.
   ///
   /// In en, this message translates to:
-  /// **'flip'**
+  /// **'Flip'**
   String get callScreenControlFlip;
 
   /// Small label under the speaker/earpiece toggle control button in the call screen's bottom control bar.
   ///
   /// In en, this message translates to:
-  /// **'speaker'**
+  /// **'Speaker'**
   String get callScreenControlSpeaker;
 
   /// Small label under the red hang-up (end call) button in the call screen's bottom control bar.
   ///
   /// In en, this message translates to:
-  /// **'end'**
+  /// **'End'**
   String get callScreenControlEnd;
 
   /// All-caps mono badge shown above the domain in the bare/failed link-preview card (link_preview_card.dart), when a URL preview has no title/description to show.
   ///
   /// In en, this message translates to:
-  /// **'LINK'**
+  /// **'Link'**
   String get linkPreviewCardLinkLabel;
 
   /// Snackbar shown when the other person accepts a friend request; {name} is their display name
@@ -3048,43 +3048,43 @@ abstract class AppLocalizations {
   /// Snackbar shown to the receiver when the sender withdrew/cancelled their friend request while this screen was open
   ///
   /// In en, this message translates to:
-  /// **'that request was withdrawn'**
+  /// **'That request was withdrawn'**
   String get friendRequestDraftScreenWithdrawnSnackbar;
 
   /// Snackbar shown to the sender when the friend request was declined
   ///
   /// In en, this message translates to:
-  /// **'request declined'**
+  /// **'Request declined'**
   String get friendRequestDraftScreenDeclinedSnackbar;
 
   /// Error snackbar when trying to message someone you've blocked, in the friend request draft composer
   ///
   /// In en, this message translates to:
-  /// **'you blocked this user — unblock first.'**
+  /// **'You blocked this user — unblock first.'**
   String get friendRequestDraftScreenErrorBlocked;
 
   /// Error snackbar when the target user currently has friend requests disabled
   ///
   /// In en, this message translates to:
-  /// **'they\'re not accepting friend requests right now.'**
+  /// **'They\'re not accepting friend requests right now.'**
   String get friendRequestDraftScreenErrorNotAccepting;
 
   /// Generic fallback error snackbar when sending a draft message/request fails
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t send. try again.'**
+  /// **'Couldn\'t send. Try again.'**
   String get friendRequestDraftScreenErrorSendFailed;
 
   /// All-caps header label shown above an incoming friend request draft thread
   ///
   /// In en, this message translates to:
-  /// **'INCOMING REQUEST'**
+  /// **'Incoming request'**
   String get friendRequestDraftScreenIncomingRequestLabel;
 
   /// All-caps header label shown above a new outgoing friend request draft thread
   ///
   /// In en, this message translates to:
-  /// **'NEW REQUEST'**
+  /// **'New request'**
   String get friendRequestDraftScreenNewRequestLabel;
 
   /// Intro card text shown to the receiver of a friend request; {name} is the sender's display name
@@ -3102,31 +3102,31 @@ abstract class AppLocalizations {
   /// Secondary intro card text explaining the draft thread is ephemeral until the request is approved
   ///
   /// In en, this message translates to:
-  /// **'nothing here lives anywhere permanent until both sides agree.'**
+  /// **'Nothing here lives anywhere permanent until both sides agree.'**
   String get friendRequestDraftScreenIntroFooter;
 
   /// All-caps section label above the room-type picker chips when composing a new friend request
   ///
   /// In en, this message translates to:
-  /// **'ROOM TYPE'**
+  /// **'Room type'**
   String get friendRequestDraftScreenRoomTypeLabel;
 
   /// All-caps chip label for the self-destructing/secret room type option
   ///
   /// In en, this message translates to:
-  /// **'EPHEMERAL'**
+  /// **'Ephemeral'**
   String get friendRequestDraftScreenRoomTypeEphemeral;
 
   /// All-caps chip label for the regular (non-ephemeral) room type option
   ///
   /// In en, this message translates to:
-  /// **'STANDARD'**
+  /// **'Standard'**
   String get friendRequestDraftScreenRoomTypeStandard;
 
   /// All-caps label above the message-lifetime chips shown when ephemeral room type is selected
   ///
   /// In en, this message translates to:
-  /// **'LIFETIME'**
+  /// **'Lifetime'**
   String get friendRequestDraftScreenLifetimeLabel;
 
   /// Compact duration display for a lifetime under a minute, e.g. '30s' — shown on lifetime chips/labels
@@ -3150,55 +3150,55 @@ abstract class AppLocalizations {
   /// Composer hint text when composing a fresh ephemeral/secret friend request with an optional first message
   ///
   /// In en, this message translates to:
-  /// **'whisper a first line · optional'**
+  /// **'Whisper a first line · optional'**
   String get friendRequestDraftScreenHintWhisperOptional;
 
   /// Composer hint text when composing a fresh standard friend request with an optional first message
   ///
   /// In en, this message translates to:
-  /// **'add a first message · optional'**
+  /// **'Add a first message · optional'**
   String get friendRequestDraftScreenHintFirstMessageOptional;
 
   /// Composer hint text for an ephemeral/secret draft thread once the request already exists
   ///
   /// In en, this message translates to:
-  /// **'whisper · auto-fades'**
+  /// **'Whisper · auto-fades'**
   String get friendRequestDraftScreenHintWhisperFades;
 
   /// Composer hint text for a standard draft thread once the request already exists
   ///
   /// In en, this message translates to:
-  /// **'something to start with…'**
+  /// **'Something to start with'**
   String get friendRequestDraftScreenHintStartWith;
 
   /// All-caps primary button label to approve an incoming friend request and open the resulting room
   ///
   /// In en, this message translates to:
-  /// **'APPROVE & OPEN ROOM'**
+  /// **'Approve & open room'**
   String get friendRequestDraftScreenApproveButton;
 
   /// All-caps secondary button label to decline an incoming friend request
   ///
   /// In en, this message translates to:
-  /// **'DECLINE'**
+  /// **'Decline'**
   String get friendRequestDraftScreenDeclineButton;
 
   /// All-caps text button to cancel an outgoing friend request that's still pending
   ///
   /// In en, this message translates to:
-  /// **'CANCEL REQUEST'**
+  /// **'Cancel request'**
   String get friendRequestDraftScreenCancelRequestButton;
 
   /// All-caps primary CTA label shown instead of Send Request when the current user is a supervised child account
   ///
   /// In en, this message translates to:
-  /// **'ASK A GROWN-UP'**
+  /// **'Ask a grown-up'**
   String get friendRequestDraftScreenAskGrownUpButton;
 
   /// All-caps primary CTA button label to send a fresh friend request
   ///
   /// In en, this message translates to:
-  /// **'SEND REQUEST'**
+  /// **'Send request'**
   String get friendRequestDraftScreenSendRequestButton;
 
   /// Discover screen's large page heading, lowercase sentence-fragment style.
@@ -3228,103 +3228,103 @@ abstract class AppLocalizations {
   /// All-caps section band label marking the start of the people world.
   ///
   /// In en, this message translates to:
-  /// **'PEOPLE'**
+  /// **'People'**
   String get discoverScreenPeopleBandLabel;
 
   /// All-caps section band label marking the start of the rooms world.
   ///
   /// In en, this message translates to:
-  /// **'ROOMS'**
+  /// **'Rooms'**
   String get discoverScreenRoomsBandLabel;
 
   /// Title of the door row/button that opens people search.
   ///
   /// In en, this message translates to:
-  /// **'find people'**
+  /// **'Find people'**
   String get discoverScreenFindPeopleTitle;
 
   /// Subtitle under 'find people' shown to a child account, explaining they must type a full exact username.
   ///
   /// In en, this message translates to:
-  /// **'type a whole username'**
+  /// **'Type a whole username'**
   String get discoverScreenFindPeopleSubtitleChild;
 
   /// Subtitle under 'find people' shown to a non-child account, explaining search options.
   ///
   /// In en, this message translates to:
-  /// **'search by @username or name'**
+  /// **'Search by @username or name'**
   String get discoverScreenFindPeopleSubtitleAdult;
 
   /// All-caps section header label for the friend requests section.
   ///
   /// In en, this message translates to:
-  /// **'REQUESTS'**
+  /// **'Requests'**
   String get discoverScreenRequestsSectionLabel;
 
   /// Empty-state line shown when there are no incoming friend requests.
   ///
   /// In en, this message translates to:
-  /// **'inbox quiet'**
+  /// **'Inbox quiet'**
   String get discoverScreenInboxQuiet;
 
   /// Empty-state line shown when there are no outgoing friend requests.
   ///
   /// In en, this message translates to:
-  /// **'nothing pending'**
+  /// **'Nothing pending'**
   String get discoverScreenNothingPending;
 
   /// All-caps section header label above the friends list.
   ///
   /// In en, this message translates to:
-  /// **'YOUR PEOPLE'**
+  /// **'Your people'**
   String get discoverScreenYourPeopleLabel;
 
   /// Empty-state line for the friends list when people search is available, pointing up at the search door.
   ///
   /// In en, this message translates to:
-  /// **'no one yet — find people above'**
+  /// **'No one yet — find people above'**
   String get discoverScreenNoFriendsYetWithHint;
 
   /// Empty-state line for the friends list when people search is not available (no hint to search).
   ///
   /// In en, this message translates to:
-  /// **'no one yet'**
+  /// **'No one yet'**
   String get discoverScreenNoFriendsYet;
 
   /// Title of the door row/button that opens public room search.
   ///
   /// In en, this message translates to:
-  /// **'search rooms'**
+  /// **'Search rooms'**
   String get discoverScreenSearchRoomsTitle;
 
   /// Subtitle under 'search rooms' explaining what the search does.
   ///
   /// In en, this message translates to:
-  /// **'find a public room by name'**
+  /// **'Find a public room by name'**
   String get discoverScreenSearchRoomsSubtitle;
 
   /// All-caps section header label above the preview of group chats the viewer already belongs to.
   ///
   /// In en, this message translates to:
-  /// **'YOUR ROOMS'**
+  /// **'Your rooms'**
   String get discoverScreenYourRoomsLabel;
 
   /// Empty-state line shown when the viewer isn't a member of any group chat yet.
   ///
   /// In en, this message translates to:
-  /// **'no rooms yet'**
+  /// **'No rooms yet'**
   String get discoverScreenNoRoomsYet;
 
   /// Lowercase label for the incoming-requests segment control tab, also spoken as part of its accessibility label ('incoming, {count}').
   ///
   /// In en, this message translates to:
-  /// **'incoming'**
+  /// **'Incoming'**
   String get discoverScreenIncomingLabel;
 
   /// Lowercase label for the outgoing-requests segment control tab, also spoken as part of its accessibility label ('outgoing, {count}').
   ///
   /// In en, this message translates to:
-  /// **'outgoing'**
+  /// **'Outgoing'**
   String get discoverScreenOutgoingLabel;
 
   /// Pre-uppercased display text for the incoming segment tab (e.g. 'INCOMING · 3'). Kept as a separate already-cased value rather than derived via .toUpperCase() at runtime, since Dart's default case mapping is not locale-aware and would mis-case Turkish dotted-i words.
@@ -3342,13 +3342,13 @@ abstract class AppLocalizations {
   /// Label on the small chip button that jumps the page down to the PEOPLE world.
   ///
   /// In en, this message translates to:
-  /// **'people'**
+  /// **'People'**
   String get discoverScreenJumpPeopleLabel;
 
   /// Label on the small chip button that jumps the page down to the ROOMS world.
   ///
   /// In en, this message translates to:
-  /// **'rooms'**
+  /// **'Rooms'**
   String get discoverScreenJumpRoomsLabel;
 
   /// Screen-reader accessibility label for a world-jump chip button, where {label} is the already-localized world name ('people'/'rooms').
@@ -3360,49 +3360,49 @@ abstract class AppLocalizations {
   /// Default top-bar title on the image crop screen (avatar/photo cropper), used when no custom title is passed in.
   ///
   /// In en, this message translates to:
-  /// **'adjust'**
+  /// **'Adjust'**
   String get imageCropScreenDefaultTitle;
 
   /// Default label on the confirm (all-caps pill) button of the image crop screen, used when no custom confirmLabel is passed in.
   ///
   /// In en, this message translates to:
-  /// **'USE PHOTO'**
+  /// **'Use photo'**
   String get imageCropScreenDefaultConfirmLabel;
 
   /// All-caps confirm-button label shown on the image crop screen while the crop is being processed/uploaded.
   ///
   /// In en, this message translates to:
-  /// **'SAVING…'**
+  /// **'Saving…'**
   String get imageCropScreenSavingButton;
 
   /// All-caps cancel button label on the image crop screen, closes the screen without saving.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL'**
+  /// **'Cancel'**
   String get imageCropScreenCancelButton;
 
   /// Error copy shown in place of the photo on the crop screen when running on web and the picked image is an unsupported HEIC file.
   ///
   /// In en, this message translates to:
-  /// **'this browser can\'t open HEIC photos'**
+  /// **'This browser can\'t open HEIC photos'**
   String get imageCropScreenHeicUnsupported;
 
   /// Generic error copy shown in place of the photo on the crop screen when the image failed to decode for any other reason.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t open that image'**
+  /// **'Couldn\'t open that image'**
   String get imageCropScreenLoadFailed;
 
   /// Small caption hint under the crop window when cropping to a circle (avatar), explaining the pan/zoom gesture.
   ///
   /// In en, this message translates to:
-  /// **'drag to move, pinch to zoom'**
+  /// **'Drag to move, pinch to zoom'**
   String get imageCropScreenHintCircle;
 
   /// Small caption hint under the crop window when cropping to a rectangle, explaining the pan/zoom gesture.
   ///
   /// In en, this message translates to:
-  /// **'drag and pinch to frame'**
+  /// **'Drag and pinch to frame'**
   String get imageCropScreenHintRect;
 
   /// Sign-in screen headline, muted (first-line) fragment. Pairs with loginScreenSignInHeroInk to read as one two-line phrase (e.g. English: welcome / back.).
@@ -3612,19 +3612,19 @@ abstract class AppLocalizations {
   /// Search screen: TextField hint text when searching for people (SearchMode.people).
   ///
   /// In en, this message translates to:
-  /// **'search people…'**
+  /// **'Search people'**
   String get searchScreenHintPeople;
 
   /// Search screen: TextField hint text when searching for public rooms (SearchMode.rooms).
   ///
   /// In en, this message translates to:
-  /// **'search rooms…'**
+  /// **'Search rooms'**
   String get searchScreenHintRooms;
 
   /// People-search empty state (query not yet typed) shown to a child account, explaining that only an exact full username finds someone new.
   ///
   /// In en, this message translates to:
-  /// **'type a whole username to find someone new'**
+  /// **'Type a whole username to find someone new'**
   String get searchScreenPeoplePromptChild;
 
   /// People-search empty state (query not yet typed) shown to a regular (non-child) account.
@@ -3636,55 +3636,55 @@ abstract class AppLocalizations {
   /// People-search no-results state for a child account; explains new people need the exact full username. Contains a literal newline (\n) for a two-line message — preserve it.
   ///
   /// In en, this message translates to:
-  /// **'no one matches — new people need their\nwhole username, spelled exactly'**
+  /// **'No one matches — new people need their\nwhole username, spelled exactly'**
   String get searchScreenNoMatchChild;
 
   /// People-search no-results state for a regular (non-child) account.
   ///
   /// In en, this message translates to:
-  /// **'no one matches'**
+  /// **'No one matches'**
   String get searchScreenNoMatchDefault;
 
   /// Rooms-search empty state shown when there are no public rooms at all (empty query, no results).
   ///
   /// In en, this message translates to:
-  /// **'no public rooms yet'**
+  /// **'No public rooms yet'**
   String get searchScreenNoRoomsYet;
 
   /// Rooms-search empty state shown when the typed query matches no public rooms.
   ///
   /// In en, this message translates to:
-  /// **'no public rooms match'**
+  /// **'No public rooms match'**
   String get searchScreenNoRoomsMatch;
 
   /// All-caps pill button label on a person row: for a child account, sends a friend-add request through their grown-up for approval rather than directly.
   ///
   /// In en, this message translates to:
-  /// **'ASK TO ADD'**
+  /// **'Ask to add'**
   String get searchScreenActionAskToAdd;
 
   /// All-caps pill button label on a person row: sends a direct friend request (non-child account, no existing relationship).
   ///
   /// In en, this message translates to:
-  /// **'SEND REQUEST'**
+  /// **'Send request'**
   String get searchScreenActionSendRequest;
 
   /// All-caps pill button label on a person row: cancels an outgoing (already-sent) friend request.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL'**
+  /// **'Cancel'**
   String get searchScreenActionCancel;
 
   /// All-caps pill button label on a person row: approves an incoming pending friend request.
   ///
   /// In en, this message translates to:
-  /// **'APPROVE'**
+  /// **'Approve'**
   String get searchScreenActionApprove;
 
   /// All-caps pill button label on a person row: opens the existing direct-message room with a friend.
   ///
   /// In en, this message translates to:
-  /// **'OPEN DM'**
+  /// **'Open DM'**
   String get searchScreenActionOpenDm;
 
   /// Small pill label on a public room row shown when a child has already asked their grown-up to join that room this session (WaitingPill label).
@@ -3918,13 +3918,13 @@ abstract class AppLocalizations {
   /// SnackBar message shown after the user taps COPY and the recovery phrase is copied to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'copied — paste it somewhere safe'**
+  /// **'Copied — paste it somewhere safe'**
   String get recoveryPhraseScreenCopiedSnackbar;
 
   /// Muted (dim) first line of the two-line hero heading on the password-confirmation step, paired with recoveryPhraseScreenConfirmHeroInk on the next line.
   ///
   /// In en, this message translates to:
-  /// **'confirm\n'**
+  /// **'Confirm\n'**
   String get recoveryPhraseScreenConfirmHeroMuted;
 
   /// Ink (emphasized) second line of the hero heading on the password-confirmation step, following recoveryPhraseScreenConfirmHeroMuted.
@@ -3942,7 +3942,7 @@ abstract class AppLocalizations {
   /// Hint text inside the password text field on the confirmation step.
   ///
   /// In en, this message translates to:
-  /// **'password'**
+  /// **'Password'**
   String get recoveryPhraseScreenPasswordHint;
 
   /// All-caps primary button label to move from the password step to the show-recovery-words step.
@@ -3966,7 +3966,7 @@ abstract class AppLocalizations {
   /// Muted (dim) first line of the two-line hero heading on the show-recovery-words step, paired with recoveryPhraseScreenSaveHeroInk on the next line.
   ///
   /// In en, this message translates to:
-  /// **'save\n'**
+  /// **'Save\n'**
   String get recoveryPhraseScreenSaveHeroMuted;
 
   /// Ink (emphasized) second line of the hero heading on the show-recovery-words step, following recoveryPhraseScreenSaveHeroMuted.
@@ -4032,7 +4032,7 @@ abstract class AppLocalizations {
   /// Lowercase empty-state message shown on the home screen when the signed-in user has zero rooms at all (genuinely empty account, not just filtered down to nothing).
   ///
   /// In en, this message translates to:
-  /// **'no rooms yet — create one'**
+  /// **'No rooms yet — create one'**
   String get homeScreenEmptyRoomsMessage;
 
   /// Header title on the group call screen when the call is a video call.
@@ -4056,49 +4056,49 @@ abstract class AppLocalizations {
   /// Lowercase status chip shown at the top of the group call screen when any participant's connection is recovering.
   ///
   /// In en, this message translates to:
-  /// **'reconnecting…'**
+  /// **'Reconnecting…'**
   String get groupCallScreenReconnecting;
 
   /// Label under the mic control button in the call tray, shown when the local user is currently muted (tapping unmutes).
   ///
   /// In en, this message translates to:
-  /// **'unmute'**
+  /// **'Unmute'**
   String get groupCallScreenUnmuteLabel;
 
   /// Label under the mic control button in the call tray, shown when the local user is currently unmuted (tapping mutes).
   ///
   /// In en, this message translates to:
-  /// **'mute'**
+  /// **'Mute'**
   String get groupCallScreenMuteLabel;
 
   /// Label under the camera control button in the call tray, shown when local video is off (tapping turns it on).
   ///
   /// In en, this message translates to:
-  /// **'cam on'**
+  /// **'Camera on'**
   String get groupCallScreenCamOnLabel;
 
   /// Label under the camera control button in the call tray, shown when local video is on (tapping turns it off).
   ///
   /// In en, this message translates to:
-  /// **'cam off'**
+  /// **'Camera off'**
   String get groupCallScreenCamOffLabel;
 
   /// Label under the camera-flip control button in the call tray (switches front/back camera).
   ///
   /// In en, this message translates to:
-  /// **'flip'**
+  /// **'Flip'**
   String get groupCallScreenFlipLabel;
 
   /// Label under the speaker toggle control button in the call tray.
   ///
   /// In en, this message translates to:
-  /// **'speaker'**
+  /// **'Speaker'**
   String get groupCallScreenSpeakerLabel;
 
   /// Label under the red end-call control button in the call tray.
   ///
   /// In en, this message translates to:
-  /// **'leave'**
+  /// **'Leave'**
   String get groupCallScreenLeaveLabel;
 
   /// Name label shown on the local participant's own video tile in the group call grid.
@@ -4134,37 +4134,37 @@ abstract class AppLocalizations {
   /// Lowercase terse text label of the tappable 'clear' control next to the active-filter summary pill (ActiveFilterCue).
   ///
   /// In en, this message translates to:
-  /// **'clear'**
+  /// **'Clear'**
   String get roomFilterDrawerClearLabel;
 
   /// All-caps section header in the filter panel above the 'dms/groups' facet group (FacetDimension.type).
   ///
   /// In en, this message translates to:
-  /// **'TYPE'**
+  /// **'Type'**
   String get roomFilterDrawerDimensionType;
 
   /// All-caps section header in the filter panel above the 'public/private/secret/locked' facet group (FacetDimension.nature).
   ///
   /// In en, this message translates to:
-  /// **'NATURE'**
+  /// **'Nature'**
   String get roomFilterDrawerDimensionNature;
 
   /// All-caps section header in the filter panel above the 'unread/mentions' facet group (FacetDimension.status).
   ///
   /// In en, this message translates to:
-  /// **'STATUS'**
+  /// **'Status'**
   String get roomFilterDrawerDimensionStatus;
 
   /// All-caps button label in the filter panel footer that clears all selected facets; disabled (greyed out) when nothing is selected.
   ///
   /// In en, this message translates to:
-  /// **'CLEAR'**
+  /// **'Clear'**
   String get roomFilterDrawerPanelClear;
 
   /// All-caps filled button label in the filter panel footer that collapses the panel back down.
   ///
   /// In en, this message translates to:
-  /// **'DONE'**
+  /// **'Done'**
   String get roomFilterDrawerPanelDone;
 
   /// Screen-reader label for one facet row in the filter panel (e.g. a 'locked' or 'unread' toggle), stating the facet name and how many chats currently match it. {label} comes from the RoomFacet enum's display label (shared data model, left untranslated here).
@@ -4176,7 +4176,7 @@ abstract class AppLocalizations {
   /// Lowercase sentence-fragment heading shown when an active filter leaves zero rooms (FilteredEmptyState). {summary} is the generated active-filter summary string.
   ///
   /// In en, this message translates to:
-  /// **'nothing matches {summary}'**
+  /// **'Nothing matches {summary}'**
   String roomFilterDrawerEmptyStateTitle(Object summary);
 
   /// Screen-reader label for the escape-hatch chip in FilteredEmptyState that clears the filter and shows every room again.
@@ -4188,115 +4188,115 @@ abstract class AppLocalizations {
   /// Lowercase visible text of the escape-hatch chip in FilteredEmptyState that clears the filter and shows every room again.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{show all {count} chat} other{show all {count} chats}}'**
+  /// **'{count, plural, one{Show all {count} chat} other{Show all {count} chats}}'**
   String roomFilterDrawerShowAllLabel(num count);
 
   /// Large lowercase heading title at the top of the create-room bottom sheet.
   ///
   /// In en, this message translates to:
-  /// **'new room'**
+  /// **'New room'**
   String get createRoomSheetTitle;
 
   /// All-caps tracked-letter tagline under the heading, shown when the ephemeral/secret room type is selected.
   ///
   /// In en, this message translates to:
-  /// **'NOTHING WILL BE KEPT'**
+  /// **'Nothing will be kept'**
   String get createRoomSheetTaglineSecret;
 
   /// All-caps tracked-letter tagline under the heading, shown when the standard/regular room type is selected.
   ///
   /// In en, this message translates to:
-  /// **'A SPACE THAT STAYS'**
+  /// **'A space that stays'**
   String get createRoomSheetTaglineRegular;
 
   /// All-caps field label above the room name text input.
   ///
   /// In en, this message translates to:
-  /// **'NAME'**
+  /// **'Name'**
   String get createRoomSheetNameLabel;
 
   /// Placeholder hint text inside the room name input field.
   ///
   /// In en, this message translates to:
-  /// **'name it something honest…'**
+  /// **'Name it something honest'**
   String get createRoomSheetNameHint;
 
   /// All-caps field label above the optional room description text input.
   ///
   /// In en, this message translates to:
-  /// **'DESCRIPTION · OPTIONAL'**
+  /// **'Description · optional'**
   String get createRoomSheetDescriptionLabel;
 
   /// Placeholder hint text inside the room description input field.
   ///
   /// In en, this message translates to:
-  /// **'one line about the room…'**
+  /// **'One line about the room'**
   String get createRoomSheetDescriptionHint;
 
   /// All-caps section label above the public/private visibility segmented picker.
   ///
   /// In en, this message translates to:
-  /// **'VISIBILITY'**
+  /// **'Visibility'**
   String get createRoomSheetVisibilityLabel;
 
   /// Title text on the 'public' segment of the visibility picker.
   ///
   /// In en, this message translates to:
-  /// **'public'**
+  /// **'Public'**
   String get createRoomSheetVisibilityPublicTitle;
 
   /// Subtitle text explaining the 'public' visibility option.
   ///
   /// In en, this message translates to:
-  /// **'anyone can find it'**
+  /// **'Anyone can find it'**
   String get createRoomSheetVisibilityPublicSub;
 
   /// Title text on the 'private' segment of the visibility picker.
   ///
   /// In en, this message translates to:
-  /// **'private'**
+  /// **'Private'**
   String get createRoomSheetVisibilityPrivateTitle;
 
   /// Subtitle text explaining the 'private' visibility option.
   ///
   /// In en, this message translates to:
-  /// **'invite only'**
+  /// **'Invite only'**
   String get createRoomSheetVisibilityPrivateSub;
 
   /// All-caps section label above the room-type segmented picker (standard vs ephemeral).
   ///
   /// In en, this message translates to:
-  /// **'TYPE'**
+  /// **'Type'**
   String get createRoomSheetTypeLabel;
 
   /// Title text on the 'standard' segment of the room-type picker.
   ///
   /// In en, this message translates to:
-  /// **'standard'**
+  /// **'Standard'**
   String get createRoomSheetTypeStandardTitle;
 
   /// Subtitle text explaining the 'standard' room type (messages are not auto-deleted).
   ///
   /// In en, this message translates to:
-  /// **'messages persist'**
+  /// **'Messages persist'**
   String get createRoomSheetTypeStandardSub;
 
   /// Title text on the 'ephemeral' segment of the room-type picker.
   ///
   /// In en, this message translates to:
-  /// **'ephemeral'**
+  /// **'Ephemeral'**
   String get createRoomSheetTypeEphemeralTitle;
 
   /// Subtitle text explaining the 'ephemeral' room type (messages self-destruct).
   ///
   /// In en, this message translates to:
-  /// **'auto-deletes'**
+  /// **'Auto-deletes'**
   String get createRoomSheetTypeEphemeralSub;
 
   /// All-caps label above the message-lifetime (TTL) chip picker, shown only for ephemeral rooms.
   ///
   /// In en, this message translates to:
-  /// **'MESSAGE LIFE'**
+  /// **'Message life'**
   String get createRoomSheetMessageLifeLabel;
 
   /// Compact duration label for a message lifetime under a minute, e.g. '30s' / '30sn'.
@@ -4320,19 +4320,19 @@ abstract class AppLocalizations {
   /// All-caps field label above the optional room password input.
   ///
   /// In en, this message translates to:
-  /// **'PASSWORD · OPTIONAL'**
+  /// **'Password · optional'**
   String get createRoomSheetPasswordLabel;
 
   /// Placeholder hint text inside the room password input field.
   ///
   /// In en, this message translates to:
-  /// **'lock with a passphrase…'**
+  /// **'Lock with a passphrase'**
   String get createRoomSheetPasswordHint;
 
   /// Inline error message shown when the user tries to create a room without entering a name.
   ///
   /// In en, this message translates to:
-  /// **'name is required'**
+  /// **'Name is required'**
   String get createRoomSheetNameRequiredError;
 
   /// Screen-reader accessibility label for the submit button that creates and opens the room.
@@ -4344,7 +4344,7 @@ abstract class AppLocalizations {
   /// All-caps label on the submit button that creates the room and navigates into it.
   ///
   /// In en, this message translates to:
-  /// **'OPEN THE ROOM'**
+  /// **'Open the room'**
   String get createRoomSheetOpenRoomButton;
 
   /// All-caps header title on the Family dashboard screen, next to the back arrow.
@@ -4434,13 +4434,13 @@ abstract class AppLocalizations {
   /// All-caps section header at the top of the reaction-details bottom sheet (long-press a reaction chip to see who reacted).
   ///
   /// In en, this message translates to:
-  /// **'REACTIONS'**
+  /// **'Reactions'**
   String get reactionDetailsSheetTitle;
 
   /// Empty-state copy shown in the reaction-details sheet when every reaction on the message has since been taken back.
   ///
   /// In en, this message translates to:
-  /// **'nothing here anymore'**
+  /// **'Nothing here anymore'**
   String get reactionDetailsSheetEmptyState;
 
   /// Subtitle under the REACTIONS header in the reaction-details sheet, counting distinct people who reacted to the message.
@@ -4452,13 +4452,13 @@ abstract class AppLocalizations {
   /// All-caps label on the first filter pill in the reaction-details sheet, showing every reactor regardless of which emoji they used.
   ///
   /// In en, this message translates to:
-  /// **'ALL'**
+  /// **'All'**
   String get reactionDetailsSheetFilterAll;
 
   /// All-caps badge next to the current user's own name in the reaction-details sheet's list of reactors.
   ///
   /// In en, this message translates to:
-  /// **'YOU'**
+  /// **'You'**
   String get reactionDetailsSheetYouBadge;
 
   /// Room Layout settings screen — main heading (lowercase sentence-fragment display style)
@@ -4644,19 +4644,19 @@ abstract class AppLocalizations {
   /// Shown when the backend has no URL for the audio file (e.g. burned view-once note or swept blob) — no retry is offered.
   ///
   /// In en, this message translates to:
-  /// **'audio unavailable'**
+  /// **'Audio unavailable'**
   String get audioMessageUnavailableLabel;
 
   /// Caption next to the retry disc/icon when an audio note fails to load.
   ///
   /// In en, this message translates to:
-  /// **'tap to retry'**
+  /// **'Tap to retry'**
   String get audioMessageRetryHint;
 
   /// Placeholder shown instead of the elapsed/total duration readout while an audio note's duration is not yet known.
   ///
   /// In en, this message translates to:
-  /// **'loading…'**
+  /// **'Loading…'**
   String get audioMessageLoadingLabel;
 
   /// Inline form error on the social sign-up/link screen when the username field is submitted empty.
@@ -4716,19 +4716,19 @@ abstract class AppLocalizations {
   /// Hint text for the username text field on the social username screen.
   ///
   /// In en, this message translates to:
-  /// **'username'**
+  /// **'Username'**
   String get audioMessageUsernameHint;
 
   /// Hint text for the optional display-name field shown in create-account mode.
   ///
   /// In en, this message translates to:
-  /// **'display name (optional)'**
+  /// **'Display name (optional)'**
   String get audioMessageDisplayNameHint;
 
   /// Hint text for the password field shown in link-existing-account mode.
   ///
   /// In en, this message translates to:
-  /// **'password'**
+  /// **'Password'**
   String get audioMessagePasswordHint;
 
   /// Link shown under a 'username taken' error, offering to switch into link-existing-account mode.
@@ -4740,7 +4740,7 @@ abstract class AppLocalizations {
   /// All-caps primary CTA button label in create-account mode.
   ///
   /// In en, this message translates to:
-  /// **'CREATE ACCOUNT'**
+  /// **'Create account'**
   String get audioMessageCreateAccountButton;
 
   /// All-caps primary CTA button label in link-existing-account mode; {provider} is the social provider name. The whole result is uppercased in code afterward to force the provider name to caps too, so keep this value already fully uppercase.
@@ -4866,37 +4866,37 @@ abstract class AppLocalizations {
   /// Fallback title for a DM in the forward-target list when the peer's profile isn't cached yet.
   ///
   /// In en, this message translates to:
-  /// **'direct message'**
+  /// **'Direct message'**
   String get approvalsScreenForwardDirectMessageFallback;
 
   /// All-caps sheet title showing how many messages are about to be forwarded.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{FORWARD MESSAGE} other{FORWARD {count} MESSAGES}}'**
+  /// **'{count, plural, one{Forward message} other{Forward {count} messages}}'**
   String approvalsScreenForwardTitle(num count);
 
   /// Empty-state text in the forward-target list when the user has no other chats to forward into.
   ///
   /// In en, this message translates to:
-  /// **'no other chats yet'**
+  /// **'No other chats yet'**
   String get approvalsScreenForwardNoChatsYet;
 
   /// Empty-state text in the forward-target list when the search query matches no chats.
   ///
   /// In en, this message translates to:
-  /// **'nothing matches'**
+  /// **'Nothing matches'**
   String get approvalsScreenForwardNoMatches;
 
   /// Caption shown once the max number of forward targets is picked, explaining the cap. {max} is the numeric limit.
   ///
   /// In en, this message translates to:
-  /// **'up to {max} chats at a time'**
+  /// **'Up to {max} chats at a time'**
   String approvalsScreenForwardMaxTargetsHint(Object max);
 
   /// Hint text in the forward-target sheet's search field.
   ///
   /// In en, this message translates to:
-  /// **'search chats'**
+  /// **'Search chats'**
   String get approvalsScreenForwardSearchHint;
 
   /// Screen-reader semantic label for a room row that is currently selected as a forward target. {title} is the room/chat title.
@@ -4914,7 +4914,7 @@ abstract class AppLocalizations {
   /// All-caps tiny badge on a room row marking it as an ephemeral/self-destructing room.
   ///
   /// In en, this message translates to:
-  /// **'FADES'**
+  /// **'Fades'**
   String get approvalsScreenForwardFadesBadge;
 
   /// Screen-reader semantic label for the forward sheet's send button.
@@ -4926,7 +4926,7 @@ abstract class AppLocalizations {
   /// All-caps send button label in the forward sheet, showing how many chats are selected as targets.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0{SEND} other{SEND TO {count}}}'**
+  /// **'{count, plural, =0{Send} other{Send to {count}}}'**
   String approvalsScreenForwardSendButton(num count);
 
   /// All-caps screen header on the Linked Accounts screen, next to the back button.
@@ -5022,13 +5022,13 @@ abstract class AppLocalizations {
   /// All-caps chip label choosing an audio-only group call in the start-call bottom sheet.
   ///
   /// In en, this message translates to:
-  /// **'VOICE'**
+  /// **'Voice'**
   String get linkedAccountsScreenCallSheetVoiceLabel;
 
   /// All-caps chip label choosing a video group call in the start-call bottom sheet.
   ///
   /// In en, this message translates to:
-  /// **'VIDEO'**
+  /// **'Video'**
   String get linkedAccountsScreenCallSheetVideoLabel;
 
   /// Title of the bottom sheet used to start a group call from a room header.
@@ -5160,7 +5160,7 @@ abstract class AppLocalizations {
   /// Lowercase tappable label under the live QR scanner preview that cancels scanning and returns to the scan button.
   ///
   /// In en, this message translates to:
-  /// **'stop scanning'**
+  /// **'Stop scanning'**
   String get childPairScreenStopScanning;
 
   /// All-caps primary submit button label on the child pairing screen, tapped to redeem the six-digit code.
@@ -5256,7 +5256,7 @@ abstract class AppLocalizations {
   /// All-caps chip on an incoming friend request card marking a non-ephemeral (standard) room, shown opposite the ephemeral/secret badge.
   ///
   /// In en, this message translates to:
-  /// **'STANDARD'**
+  /// **'Standard'**
   String get fileMessageStandardBadge;
 
   /// Row on an incoming friend request card hinting there are multiple draft messages attached; tapping the card opens them.
@@ -5268,19 +5268,19 @@ abstract class AppLocalizations {
   /// All-caps primary button on an incoming friend request card that accepts the request.
   ///
   /// In en, this message translates to:
-  /// **'APPROVE'**
+  /// **'Approve'**
   String get fileMessageApproveButton;
 
   /// All-caps secondary button on an incoming friend request card that rejects the request.
   ///
   /// In en, this message translates to:
-  /// **'DECLINE'**
+  /// **'Decline'**
   String get fileMessageDeclineButton;
 
   /// All-caps label on an outgoing friend request card; {ago} is an already-uppercased relative time like '5M AGO' / '5DK ÖNCE'. Turkish reorders it so the verb comes last, matching natural word order.
   ///
   /// In en, this message translates to:
-  /// **'SENT {ago}'**
+  /// **'Sent {ago}'**
   String fileMessageSentAgoLabel(Object ago);
 
   /// Row on an outgoing friend request card showing how many draft messages are still waiting to be delivered once the request is accepted.
@@ -5292,7 +5292,7 @@ abstract class AppLocalizations {
   /// All-caps button on an outgoing friend request card that withdraws the pending request.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL REQUEST'**
+  /// **'Cancel request'**
   String get fileMessageCancelRequestButton;
 
   /// Subtitle under the destructive action tile in the generic "are you sure?" confirm bottom sheet (lib/widgets/destructive_sheet.dart, _ConfirmSheet), warning the action is irreversible.
@@ -5358,19 +5358,19 @@ abstract class AppLocalizations {
   /// Lowercase status line shown under the code once its countdown reaches zero.
   ///
   /// In en, this message translates to:
-  /// **'this code has expired'**
+  /// **'This code has expired'**
   String get destructiveSheetPairingCodeExpired;
 
   /// Countdown status line shown under the code while it is still valid; {time} is a formatted mm:ss string (e.g. "4:59").
   ///
   /// In en, this message translates to:
-  /// **'expires in {time}'**
+  /// **'Expires in {time}'**
   String destructiveSheetPairingExpiresIn(Object time);
 
   /// All-caps button label to mint a fresh pairing/release code.
   ///
   /// In en, this message translates to:
-  /// **'NEW CODE'**
+  /// **'New code'**
   String get destructiveSheetPairingNewCodeButton;
 
   /// Small footnote under the NEW CODE button explaining code semantics.
@@ -5400,13 +5400,13 @@ abstract class AppLocalizations {
   /// TextField hintText shown in the chat composer when composing an ephemeral (self-destructing) message; used in both ChatComposerClassic and ChatComposerLiquid. Both cap the hint at one line, so keep translations about as short as the default hint.
   ///
   /// In en, this message translates to:
-  /// **'whisper something…'**
+  /// **'Whisper something'**
   String get deepOceanThemeEphemeralHint;
 
   /// TextField hintText shown in ChatComposerClassic for a normal (non-ephemeral) message.
   ///
   /// In en, this message translates to:
-  /// **'say something…'**
+  /// **'Say something'**
   String get deepOceanThemeDefaultHint;
 
   /// TextField hintText shown in ChatComposerLiquid for a normal (non-ephemeral) message; terser than the classic composer's hint to fit the glass-pill input style.
@@ -5424,13 +5424,13 @@ abstract class AppLocalizations {
   /// Shown centered in the fullscreen media pager page when a message's media attachment has no storage id, i.e. the file is missing or unavailable.
   ///
   /// In en, this message translates to:
-  /// **'this file is gone'**
+  /// **'This file is gone'**
   String get photoChromeMediaGoneLabel;
 
   /// Fallback sender-name label at the top of the fullscreen media pager, shown when the message's senderName is empty (the viewer's own message).
   ///
   /// In en, this message translates to:
-  /// **'you'**
+  /// **'You'**
   String get photoChromeMediaYouLabel;
 
   /// Accessibility/semantic label for the circular close (X) button in the fullscreen media pager's top chrome bar.
@@ -5466,43 +5466,43 @@ abstract class AppLocalizations {
   /// Accessibility label for the X button that leaves the multi-photo tray without sending anything.
   ///
   /// In en, this message translates to:
-  /// **'discard these photos'**
+  /// **'Discard these photos'**
   String get photoTrayDiscardSemanticLabel;
 
   /// Accessibility label for the small dismiss badge on a thumbnail in the multi-photo tray, which drops that one picture from the send.
   ///
   /// In en, this message translates to:
-  /// **'remove this photo'**
+  /// **'Remove this photo'**
   String get photoTrayRemoveSemanticLabel;
 
   /// Accessibility label for the button in the multi-photo tray that opens the photo editor on the picture currently being previewed.
   ///
   /// In en, this message translates to:
-  /// **'crop or draw on this photo'**
+  /// **'Crop or draw on this photo'**
   String get photoTrayEditSemanticLabel;
 
   /// Accessibility label for the trailing + tile on the multi-photo tray's thumbnail rail, which reopens the system picker and appends to the selection.
   ///
   /// In en, this message translates to:
-  /// **'add more photos'**
+  /// **'Add more photos'**
   String get photoTrayAddMoreSemanticLabel;
 
   /// SnackBar shown when the user tries to add more pictures to the multi-photo tray than one send allows. {count} is the cap.
   ///
   /// In en, this message translates to:
-  /// **'you can send {count} photos at a time'**
+  /// **'You can send {count} photos at a time'**
   String photoTrayLimitSnack(Object count);
 
   /// SnackBar shown when one or more chosen pictures could not be read back from the device, so they were skipped.
   ///
   /// In en, this message translates to:
-  /// **'some of those photos couldn’t be opened'**
+  /// **'Some of those photos couldn’t be opened'**
   String get photoTrayLoadFailedSnack;
 
   /// Error line shown when the OS picker itself refused to hand over what the user chose — typically an iOS photo still in iCloud. Covers photos and videos, one or many, so keep it about 'that' rather than naming a count or a kind.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t open that — try picking it again'**
+  /// **'Couldn’t open that — try picking it again'**
   String get mediaPickFailedMessage;
 
   /// Typing indicator label (room header, typing row, compact pill) when exactly one person is typing; {name} is the typist's display name.
@@ -5530,43 +5530,43 @@ abstract class AppLocalizations {
   /// Fallback shown in place of the caller's name on the incoming-call screen when the peer's display name is unknown.
   ///
   /// In en, this message translates to:
-  /// **'incoming call'**
+  /// **'Incoming call'**
   String get typingIndicatorUnknownCallerFallbackName;
 
   /// All-caps pill label on the incoming call screen identifying the call as video. Value is already upper-cased in the ARB itself (code no longer calls .toUpperCase() on it) because Dart's String.toUpperCase() isn't locale-aware and would mangle the Turkish dotted İ.
   ///
   /// In en, this message translates to:
-  /// **'INCOMING VIDEO CALL'**
+  /// **'Incoming video call'**
   String get typingIndicatorIncomingVideoCallLabel;
 
   /// All-caps pill label on the incoming call screen identifying the call as voice/audio. Same pre-uppercased treatment as the video-call label, for the same Turkish-casing reason.
   ///
   /// In en, this message translates to:
-  /// **'INCOMING VOICE CALL'**
+  /// **'Incoming voice call'**
   String get typingIndicatorIncomingVoiceCallLabel;
 
   /// Caption under the red hang-up button on the incoming call screen, idle/tappable state.
   ///
   /// In en, this message translates to:
-  /// **'decline'**
+  /// **'Decline'**
   String get typingIndicatorDeclineButtonLabel;
 
   /// Caption under the red hang-up button while the reject action is in flight (button disabled).
   ///
   /// In en, this message translates to:
-  /// **'declining…'**
+  /// **'Declining…'**
   String get typingIndicatorDeclineButtonDeclining;
 
   /// Caption under the green accept button on the incoming call screen, idle/tappable state.
   ///
   /// In en, this message translates to:
-  /// **'accept'**
+  /// **'Accept'**
   String get typingIndicatorAcceptButtonLabel;
 
   /// Caption under the green accept button while the accept action is in flight (button disabled).
   ///
   /// In en, this message translates to:
-  /// **'connecting…'**
+  /// **'Connecting…'**
   String get typingIndicatorAcceptButtonConnecting;
 
   /// Lowercase display heading at the top of the navigation-style picker screen (NavigationScreen).
@@ -5668,49 +5668,49 @@ abstract class AppLocalizations {
   /// SnackBar message shown when the user denies microphone permission while trying to start a voice recording.
   ///
   /// In en, this message translates to:
-  /// **'microphone permission denied'**
+  /// **'Microphone permission denied'**
   String get voiceRecorderScreenMicPermissionDeniedSnackbar;
 
   /// All-caps status label at the top of the voice recorder screen shown while actively recording.
   ///
   /// In en, this message translates to:
-  /// **'RECORDING'**
+  /// **'Recording'**
   String get voiceRecorderScreenStatusRecording;
 
   /// All-caps status label at the top of the voice recorder screen shown after a recording has finished and is ready to send.
   ///
   /// In en, this message translates to:
-  /// **'READY'**
+  /// **'Ready'**
   String get voiceRecorderScreenStatusReady;
 
   /// All-caps status label at the top of the voice recorder screen shown before recording has started.
   ///
   /// In en, this message translates to:
-  /// **'TAP TO START'**
+  /// **'Tap to start'**
   String get voiceRecorderScreenStatusTapToStart;
 
   /// All-caps secondary button label letting the user discard the current recording and record again.
   ///
   /// In en, this message translates to:
-  /// **'RE-RECORD'**
+  /// **'Re-record'**
   String get voiceRecorderScreenReRecordButton;
 
   /// All-caps primary action button label shown while recording, to stop the recording.
   ///
   /// In en, this message translates to:
-  /// **'STOP'**
+  /// **'Stop'**
   String get voiceRecorderScreenStopButton;
 
   /// All-caps primary action button label shown after recording, to send the voice note.
   ///
   /// In en, this message translates to:
-  /// **'SEND'**
+  /// **'Send'**
   String get voiceRecorderScreenSendButton;
 
   /// All-caps primary action button label shown before recording starts, to begin recording.
   ///
   /// In en, this message translates to:
-  /// **'RECORD'**
+  /// **'Record'**
   String get voiceRecorderScreenRecordButton;
 
   /// Title of the special row in the @-mention picker (mention_picker.dart) that lets the user tag the whole room with @everyone.
@@ -5908,19 +5908,19 @@ abstract class AppLocalizations {
   /// All-caps header of the pinned-messages bottom sheet when there are currently zero pins in the room.
   ///
   /// In en, this message translates to:
-  /// **'PINNED'**
+  /// **'Pinned'**
   String get activeCallPillPinnedHeader;
 
   /// All-caps header of the pinned-messages bottom sheet showing how many messages are pinned in this room, e.g. 'PINNED · 3'.
   ///
   /// In en, this message translates to:
-  /// **'PINNED · {count}'**
+  /// **'Pinned · {count}'**
   String activeCallPillPinnedHeaderCount(Object count);
 
   /// Lowercase empty-state sentence fragment shown inside the pinned-messages sheet if the last pin gets removed while the sheet is still open.
   ///
   /// In en, this message translates to:
-  /// **'nothing pinned anymore'**
+  /// **'Nothing pinned anymore'**
   String get activeCallPillNothingPinned;
 
   /// Accessibility semanticLabel on a tappable row in the pinned-messages sheet; tapping scrolls the chat transcript to that pinned message. {name} is the sender's display name.
@@ -5938,25 +5938,25 @@ abstract class AppLocalizations {
   /// SnackBar message in CallButton._friendlyError when the callee is busy on another call (backend error contains BUSY).
   ///
   /// In en, this message translates to:
-  /// **'busy on another call'**
+  /// **'Busy on another call'**
   String get callButtonErrorBusy;
 
   /// SnackBar message in CallButton._friendlyError when the backend reports CALL_FAILED.
   ///
   /// In en, this message translates to:
-  /// **'could not start call'**
+  /// **'Could not start call'**
   String get callButtonErrorCallFailed;
 
   /// SnackBar message in CallButton._friendlyError when the backend reports NOT_A_MEMBER.
   ///
   /// In en, this message translates to:
-  /// **'not a member of this room'**
+  /// **'Not a member of this room'**
   String get callButtonErrorNotMember;
 
   /// Fallback SnackBar message in CallButton._friendlyError for any unrecognized call-start error.
   ///
   /// In en, this message translates to:
-  /// **'could not start call'**
+  /// **'Could not start call'**
   String get callButtonErrorGeneric;
 
   /// Reason shown (via SnackBar) when the user taps a disabled CallButton while already in a call on this device.
@@ -5974,13 +5974,13 @@ abstract class AppLocalizations {
   /// Tooltip on the direct audio-call icon button/circle in the room header (CallButton _face helper).
   ///
   /// In en, this message translates to:
-  /// **'voice call'**
+  /// **'Voice call'**
   String get callButtonVoiceCallTooltip;
 
   /// Tooltip on the direct video-call icon button/circle in the room header (CallButton _face helper).
   ///
   /// In en, this message translates to:
-  /// **'video call'**
+  /// **'Video call'**
   String get callButtonVideoCallTooltip;
 
   /// Tooltip on the combined call-picker icon button/circle (opens a Voice/Video call chooser) shown on narrow headers.
@@ -6172,7 +6172,7 @@ abstract class AppLocalizations {
   /// Lowercase status-pill text shown on a public-room tile in Discover when a child has already asked a grown-up for approval to join that room.
   ///
   /// In en, this message translates to:
-  /// **'asked'**
+  /// **'Asked'**
   String get childSetupScreenWaitingPillAskedLabel;
 
   /// Short all-caps unit label next to the numeric member count on a public-room tile in Discover (e.g. '42 IN'). Translated as the Turkish word for 'member' since a literal preposition doesn't read naturally as a compact badge unit in Turkish.
@@ -6184,7 +6184,7 @@ abstract class AppLocalizations {
   /// Lowercase visible label on the trailing row of a capped preview list in Discover (e.g. friends/rooms), showing the full count; {count} is the total number of items.
   ///
   /// In en, this message translates to:
-  /// **'see all {count}'**
+  /// **'See all {count}'**
   String childSetupScreenSeeAllLabel(Object count);
 
   /// Screen-reader semantic label for the same 'see all' row in Discover's capped preview list; {count} is the total number of items.
@@ -6358,13 +6358,13 @@ abstract class AppLocalizations {
   /// Recency caption in the remove-contact sheet when the pair's last shared message was sent under an hour ago.
   ///
   /// In en, this message translates to:
-  /// **'last message just now'**
+  /// **'Last message just now'**
   String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow;
 
   /// Recency caption in the remove-contact sheet when the last message was sent 1-23 hours ago; {hours} is the whole-hour count.
   ///
   /// In en, this message translates to:
-  /// **'last message {hours}h ago'**
+  /// **'Last message {hours}h ago'**
   String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
     Object hours,
   );
@@ -6372,13 +6372,13 @@ abstract class AppLocalizations {
   /// Recency caption in the remove-contact sheet when the last message was sent exactly one day ago.
   ///
   /// In en, this message translates to:
-  /// **'last message yesterday'**
+  /// **'Last message yesterday'**
   String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday;
 
   /// Recency caption in the remove-contact sheet when the last message was sent 2-29 days ago; {days} is the day count.
   ///
   /// In en, this message translates to:
-  /// **'last message {days} days ago'**
+  /// **'Last message {days} days ago'**
   String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
     Object days,
   );
@@ -6386,19 +6386,19 @@ abstract class AppLocalizations {
   /// Recency caption in the remove-contact sheet when the last shared message is 30+ days old.
   ///
   /// In en, this message translates to:
-  /// **'last message a while ago'**
+  /// **'Last message a while ago'**
   String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo;
 
   /// All-caps eyebrow label at the top of the remove-contact confirmation sheet; also reused verbatim as the destructive choice tile's title when there are no shared chats to delete.
   ///
   /// In en, this message translates to:
-  /// **'TAKE BACK'**
+  /// **'Take back'**
   String get incomingGroupCallScreenRemoveContactSheetTitleBadge;
 
   /// Lowercase confirmation headline in the remove-contact sheet; {contactName} is the contact being removed, {childName} is the child they're being removed from. IMPORTANT for the merge/codegen step: since no ARB placeholder metadata is declared, flutter gen-l10n alphabetizes undeclared placeholders for the generated method's positional parameter order — for this message that means the generated signature is (childName, contactName), i.e. 'childName' first because it sorts before 'contactName'. The call site in remove_contact_sheet.dart already passes arguments in that (childName, contactName) order — keep it that way after merge.
   ///
   /// In en, this message translates to:
-  /// **'take {contactName} away from {childName}?'**
+  /// **'Take {contactName} away from {childName}?'**
   String incomingGroupCallScreenRemoveContactSheetHeadline(
     Object childName,
     Object contactName,
@@ -6407,13 +6407,13 @@ abstract class AppLocalizations {
   /// Explanatory body text in the remove-contact sheet, shown when the pair has shared chats that will be deleted.
   ///
   /// In en, this message translates to:
-  /// **'they won’t be able to reach each other, and their conversation goes with it.'**
+  /// **'They won’t be able to reach each other, and their conversation goes with it.'**
   String get incomingGroupCallScreenRemoveContactSheetBodyWithChats;
 
   /// Explanatory body text in the remove-contact sheet, shown when the pair has no shared chats to delete; {contactName} is the contact being removed.
   ///
   /// In en, this message translates to:
-  /// **'they won’t be able to reach each other. {contactName} won’t be told.'**
+  /// **'They won’t be able to reach each other. {contactName} won’t be told.'**
   String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
     Object contactName,
   );
@@ -6430,13 +6430,13 @@ abstract class AppLocalizations {
   /// Fine-print detail line under the deletion summary in the remove-contact sheet's destructive-warning box.
   ///
   /// In en, this message translates to:
-  /// **'gone for both of them, including photos and voice notes. this can’t be undone.'**
+  /// **'Gone for both of them, including photos and voice notes. This can’t be undone.'**
   String get incomingGroupCallScreenRemoveContactSheetDeletionDetail;
 
   /// Headline over the panel listing group rooms the pair still shares after the contact is removed (these rooms are NOT deleted by this action); {count} is how many rooms.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{they also share {count} room} other{they also share {count} rooms}}'**
+  /// **'{count, plural, one{They also share {count} room} other{They also share {count} rooms}}'**
   String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
     num count,
   );
@@ -6444,19 +6444,19 @@ abstract class AppLocalizations {
   /// Note under the shared-rooms panel explaining that shared group rooms survive this action; 'ROOMS'/'ODALAR' refers to the app's Rooms list/tab label elsewhere in the UI.
   ///
   /// In en, this message translates to:
-  /// **'these stay. take the room back from the ROOMS list below if you want them out of it.'**
+  /// **'These stay. Take the room back from the Rooms list below if you want them out of it.'**
   String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote;
 
   /// All-caps title of the destructive confirm button in the remove-contact sheet, shown when removing the contact also wipes shared chat history.
   ///
   /// In en, this message translates to:
-  /// **'TAKE BACK & DELETE'**
+  /// **'Take back & delete'**
   String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete;
 
   /// Subtitle under the destructive confirm button when there is chat history to wipe; {contactName} is the contact being removed, {messages} is the pre-formatted message-count phrase. 'contactName' sorts before 'messages' alphabetically so call order matches text order.
   ///
   /// In en, this message translates to:
-  /// **'removes {contactName} and wipes {messages}.'**
+  /// **'Removes {contactName} and wipes {messages}.'**
   String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
     Object contactName,
     Object messages,
@@ -6465,7 +6465,7 @@ abstract class AppLocalizations {
   /// Subtitle under the destructive confirm button when there is no chat history to wipe; {contactName} is the contact being removed.
   ///
   /// In en, this message translates to:
-  /// **'removes {contactName} from the allowed list.'**
+  /// **'Removes {contactName} from the allowed list.'**
   String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
     Object contactName,
   );
@@ -6479,7 +6479,7 @@ abstract class AppLocalizations {
   /// All-caps visible label of the cancel button at the bottom of the remove-contact sheet.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL'**
+  /// **'Cancel'**
   String get incomingGroupCallScreenRemoveContactSheetCancelButton;
 
   /// Snackbar error shown in the group call banner when the user tries to join a call that has reached its 6-person cap.
@@ -6527,13 +6527,13 @@ abstract class AppLocalizations {
   /// All-caps label on the pill button in the group call banner that joins the ongoing call.
   ///
   /// In en, this message translates to:
-  /// **'JOIN'**
+  /// **'Join'**
   String get groupCallBannerJoinButtonLabel;
 
   /// All-caps section header at the top of the join-room confirmation bottom sheet.
   ///
   /// In en, this message translates to:
-  /// **'JOIN ROOM'**
+  /// **'Join room'**
   String get groupCallBannerJoinRoomSheetTitle;
 
   /// Member count shown under the room name in the join-room confirmation sheet, e.g. "12 members".
@@ -6545,13 +6545,13 @@ abstract class AppLocalizations {
   /// All-caps field label above the password input in the join-room sheet for locked rooms.
   ///
   /// In en, this message translates to:
-  /// **'PASSWORD'**
+  /// **'Password'**
   String get groupCallBannerPasswordFieldLabel;
 
   /// Placeholder hint text inside the password field on the join-room sheet.
   ///
   /// In en, this message translates to:
-  /// **'passphrase…'**
+  /// **'Passphrase'**
   String get groupCallBannerPasswordHint;
 
   /// Screen-reader semantic label for the confirm-join button on the join-room sheet.
@@ -6563,7 +6563,7 @@ abstract class AppLocalizations {
   /// All-caps label on the main confirm button in the join-room sheet.
   ///
   /// In en, this message translates to:
-  /// **'JOIN'**
+  /// **'Join'**
   String get groupCallBannerJoinRoomButtonLabel;
 
   /// Screen-reader semantic label for the dismiss/cancel button on the join-room sheet.
@@ -6575,13 +6575,13 @@ abstract class AppLocalizations {
   /// Lowercase text button that dismisses the join-room sheet without joining.
   ///
   /// In en, this message translates to:
-  /// **'cancel'**
+  /// **'Cancel'**
   String get groupCallBannerCancelButtonLabel;
 
   /// All-caps badge label in the fullscreen view-once photo viewer, shown beside a '1' marker, telling the user this photo can only be viewed once and will not be shown again.
   ///
   /// In en, this message translates to:
-  /// **'VIEW ONCE'**
+  /// **'View once'**
   String get viewOnceViewerBadgeLabel;
 
   /// Divider word between the Apple and Google 'continue with' buttons on sign-in/login screens (default value of SocialSignInButtons.dividerLabel when the caller doesn't override it).
@@ -6599,7 +6599,7 @@ abstract class AppLocalizations {
   /// Lowercase fragment-style heading at the top of the full people list screen (opened from Discover's "see all" row).
   ///
   /// In en, this message translates to:
-  /// **'your people.'**
+  /// **'Your people'**
   String get discoverListsPeopleTitle;
 
   /// Caption under the people-list title showing how many friends the user has, e.g. "12 people".
@@ -6611,7 +6611,7 @@ abstract class AppLocalizations {
   /// Hint text in the search/filter TextField on the full people list screen.
   ///
   /// In en, this message translates to:
-  /// **'filter your people…'**
+  /// **'Filter your people'**
   String get discoverListsFilterHint;
 
   /// Screen-reader semantic label for the small close/clear icon button that resets the people-list filter field.
@@ -6623,19 +6623,19 @@ abstract class AppLocalizations {
   /// Empty-state line shown on the people list when the user has zero friends.
   ///
   /// In en, this message translates to:
-  /// **'no one yet'**
+  /// **'No one yet'**
   String get discoverListsNoOneYet;
 
   /// Empty-state line shown when the user's filter text on the people list matches no friends; {query} is the text they typed.
   ///
   /// In en, this message translates to:
-  /// **'no one matches \"{query}\"'**
+  /// **'No one matches \"{query}\"'**
   String discoverListsNoMatches(Object query);
 
   /// Lowercase fragment-style heading at the top of the full rooms list screen (opened from Discover's "see all" row).
   ///
   /// In en, this message translates to:
-  /// **'your rooms.'**
+  /// **'Your rooms'**
   String get discoverListsRoomsTitle;
 
   /// Caption under the rooms-list title showing how many group chats the user belongs to, e.g. "12 rooms".
@@ -6647,19 +6647,19 @@ abstract class AppLocalizations {
   /// Hint text in the search/filter TextField on the full rooms list screen.
   ///
   /// In en, this message translates to:
-  /// **'filter your rooms…'**
+  /// **'Filter your rooms'**
   String get discoverListsFilterRoomsHint;
 
   /// Empty-state line shown on the rooms list when the user isn't a member of any group chat.
   ///
   /// In en, this message translates to:
-  /// **'no rooms yet'**
+  /// **'No rooms yet'**
   String get discoverListsNoRoomsYet;
 
   /// Empty-state line shown when the user's filter text on the rooms list matches no group chats; {query} is the text they typed.
   ///
   /// In en, this message translates to:
-  /// **'no rooms match \"{query}\"'**
+  /// **'No rooms match \"{query}\"'**
   String discoverListsNoRoomsMatch(Object query);
 
   /// All-caps action row label in the call-kind picker popover (choose voice vs video call).
@@ -6677,13 +6677,13 @@ abstract class AppLocalizations {
   /// All-caps header badge in the approval-gate sheet when the child has already sent an approval request for this action.
   ///
   /// In en, this message translates to:
-  /// **'ALREADY ASKED'**
+  /// **'Already asked'**
   String get approvalGateAlreadyAskedLabel;
 
   /// All-caps header badge in the approval-gate sheet prompting the child to ask a guardian before proceeding.
   ///
   /// In en, this message translates to:
-  /// **'ASK A GROWN-UP'**
+  /// **'Ask a grown-up'**
   String get approvalGateAskGrownUpLabel;
 
   /// Main body sentence in the approval-gate sheet when a request is already pending; {what} is the localized action phrase passed by the caller (e.g. "send messages").
@@ -6725,7 +6725,7 @@ abstract class AppLocalizations {
   /// All-caps primary button label in the approval-gate sheet that sends the approval request.
   ///
   /// In en, this message translates to:
-  /// **'ASK'**
+  /// **'Ask'**
   String get approvalGateAskButton;
 
   /// All-caps secondary button label in the approval-gate sheet that dismisses without sending a request, shown alongside the ASK button.
@@ -6743,7 +6743,7 @@ abstract class AppLocalizations {
   /// Default lowercase caption on the small inline WaitingPill chip shown on a room/person row the child already asked about, used when the caller doesn't supply a more specific label.
   ///
   /// In en, this message translates to:
-  /// **'waiting for a grown-up'**
+  /// **'Waiting for a grown-up'**
   String get approvalGateWaitingPillLabel;
 
   /// All-caps small label at the top of the report sheet (report_sheet.dart).
@@ -6845,13 +6845,13 @@ abstract class AppLocalizations {
   /// All-caps title in update_sheet.dart shown when the running build is below minimum supported version (mandatory update).
   ///
   /// In en, this message translates to:
-  /// **'UPDATE REQUIRED'**
+  /// **'Update required'**
   String get reportSheetUpdateRequiredTitle;
 
   /// All-caps title in update_sheet.dart shown for an optional app update.
   ///
   /// In en, this message translates to:
-  /// **'UPDATE AVAILABLE'**
+  /// **'Update available'**
   String get reportSheetUpdateAvailableTitle;
 
   /// Body copy in the mandatory update sheet explaining why the update can't be skipped.
@@ -6878,37 +6878,37 @@ abstract class AppLocalizations {
   /// All-caps primary button label in the update sheet.
   ///
   /// In en, this message translates to:
-  /// **'UPDATE'**
+  /// **'Update'**
   String get reportSheetUpdateButtonTitle;
 
   /// Subtext under the UPDATE button describing where it sends the user (TestFlight channel). TestFlight is Apple's product name, kept untranslated.
   ///
   /// In en, this message translates to:
-  /// **'opens TestFlight'**
+  /// **'Opens TestFlight'**
   String get reportSheetUpdateActionOpensTestflight;
 
   /// Subtext under the UPDATE button for the App Store release channel. App Store is Apple's product name, kept untranslated.
   ///
   /// In en, this message translates to:
-  /// **'opens the App Store'**
+  /// **'Opens the App Store'**
   String get reportSheetUpdateActionOpensAppStore;
 
   /// Subtext under the UPDATE button for the Google Play release channel. Google Play is the product name, kept untranslated.
   ///
   /// In en, this message translates to:
-  /// **'opens Google Play'**
+  /// **'Opens Google Play'**
   String get reportSheetUpdateActionOpensGooglePlay;
 
   /// Subtext under the UPDATE button for APK/DMG/Windows/Linux release channels.
   ///
   /// In en, this message translates to:
-  /// **'opens the download page'**
+  /// **'Opens the download page'**
   String get reportSheetUpdateActionOpensDownloadPage;
 
   /// Subtext under the UPDATE button for the web release channel.
   ///
   /// In en, this message translates to:
-  /// **'reloads with the new version'**
+  /// **'Reloads with the new version'**
   String get reportSheetUpdateActionReloads;
 
   /// Screen-reader semanticLabel for the update sheet's dismiss/skip action.
@@ -6920,13 +6920,13 @@ abstract class AppLocalizations {
   /// All-caps label on the update sheet's secondary 'not now' button.
   ///
   /// In en, this message translates to:
-  /// **'LATER'**
+  /// **'Later'**
   String get reportSheetUpdateLaterButton;
 
   /// Label on the reset chip in RoomFilterBar (lib/widgets/room_filter_bar.dart) that clears all facet filters and shows every room; reads as active whenever no facet is selected.
   ///
   /// In en, this message translates to:
-  /// **'all'**
+  /// **'All'**
   String get roomFilterBarAllChipLabel;
 
   /// Screen-reader semanticLabel for a facet chip in RoomFilterBar that has a room count attached (e.g. 'unread, 3 chats'); combines the facet's own display label with how many chats match it.
@@ -6938,13 +6938,13 @@ abstract class AppLocalizations {
   /// All-caps small label shown above the composer's reply-preview card, identifying whose message is being replied to. {name} is the sender's display name, already uppercased by the caller (Dart passes m.senderName.toUpperCase() as the argument), so no case-suffix is appended to the placeholder in either language.
   ///
   /// In en, this message translates to:
-  /// **'REPLYING TO {name}'**
+  /// **'Replying to {name}'**
   String composerReplyCardReplyingToLabel(Object name);
 
   /// All-caps chip badge on a room card indicating the room requires a password to join.
   ///
   /// In en, this message translates to:
-  /// **'LOCKED'**
+  /// **'Locked'**
   String get roomCardLockedBadge;
 
   /// Terse relative-time label on a room card when the last message was sent less than 30 seconds ago.
@@ -6986,7 +6986,7 @@ abstract class AppLocalizations {
   /// Timestamp on a room card that has no messages yet, e.g. 'started 3d ago'. {ago} is a pre-formatted relative time from the roomCardTimeAgo* strings.
   ///
   /// In en, this message translates to:
-  /// **'started {ago}'**
+  /// **'Started {ago}'**
   String roomCardStartedAgo(Object ago);
 
   /// Room card footer showing how many members are currently in a (non-DM) room, e.g. '5 inside' (count is an int).
@@ -6998,13 +6998,13 @@ abstract class AppLocalizations {
   /// Small tag next to an hourglass icon on an ephemeral room's card, indicating messages disappear over time.
   ///
   /// In en, this message translates to:
-  /// **'messages fade'**
+  /// **'Messages fade'**
   String get roomCardMessagesFadeLabel;
 
   /// Terse call-to-action label at the bottom-right of a (non-ephemeral) room card, tap to enter the room.
   ///
   /// In en, this message translates to:
-  /// **'↗ enter'**
+  /// **'↗ Enter'**
   String get roomCardEnterLabel;
 
   /// All-caps header title on the Blocked Users screen listing people the current user has blocked.
@@ -7028,49 +7028,49 @@ abstract class AppLocalizations {
   /// Label under the photo/gallery icon in the attachment picker sheet (attachment_menu.dart).
   ///
   /// In en, this message translates to:
-  /// **'photo'**
+  /// **'Photo'**
   String get attachmentMenuPhotoLabel;
 
   /// Label under the video icon in the attachment picker sheet (attachment_menu.dart).
   ///
   /// In en, this message translates to:
-  /// **'video'**
+  /// **'Video'**
   String get attachmentMenuVideoLabel;
 
   /// Label under the camera icon in the attachment picker sheet (attachment_menu.dart).
   ///
   /// In en, this message translates to:
-  /// **'camera'**
+  /// **'Camera'**
   String get attachmentMenuCameraLabel;
 
   /// Label under the voice-recording icon in the attachment picker sheet (attachment_menu.dart); tile is hidden on web.
   ///
   /// In en, this message translates to:
-  /// **'voice'**
+  /// **'Voice'**
   String get attachmentMenuVoiceLabel;
 
   /// Label under the file icon in the attachment picker sheet (attachment_menu.dart).
   ///
   /// In en, this message translates to:
-  /// **'file'**
+  /// **'File'**
   String get attachmentMenuFileLabel;
 
   /// Status text in the top-of-screen connection banner while a reconnect attempt is in flight (connection_banner.dart).
   ///
   /// In en, this message translates to:
-  /// **'retrying…'**
+  /// **'Retrying…'**
   String get attachmentMenuConnectionRetrying;
 
   /// Status text in the connection banner when the socket is stalled and not currently retrying; tapping the banner retries (connection_banner.dart).
   ///
   /// In en, this message translates to:
-  /// **'can’t reach server · tap to retry'**
+  /// **'Can’t reach the server · Tap to retry'**
   String get attachmentMenuConnectionCantReachServer;
 
   /// Status text in the connection banner during the general reconnecting phase (not yet stalled) (connection_banner.dart).
   ///
   /// In en, this message translates to:
-  /// **'reconnecting…'**
+  /// **'Reconnecting…'**
   String get attachmentMenuConnectionReconnecting;
 
   /// Screen-reader semantic label for the tappable connection banner in its stalled state (connection_banner.dart).
@@ -7088,7 +7088,7 @@ abstract class AppLocalizations {
   /// Short all-caps label following the numeric member count on a (non-DM) room grid tile, e.g. '5 IN'.
   ///
   /// In en, this message translates to:
-  /// **'IN'**
+  /// **'In'**
   String get roomGridTileMemberCountLabel;
 
   /// All-caps label on the theme-picker chip (theme_chip.dart) that opens a swatch popover.
@@ -7100,31 +7100,31 @@ abstract class AppLocalizations {
   /// All-caps button label to dismiss the transcript multi-select bar without acting on the selection.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL'**
+  /// **'Cancel'**
   String get bulkActionBarCancelLabel;
 
   /// All-caps placeholder shown in the multi-select bar's center when no messages are picked yet.
   ///
   /// In en, this message translates to:
-  /// **'SELECT MESSAGES'**
+  /// **'Select messages'**
   String get bulkActionBarSelectMessagesLabel;
 
   /// All-caps counter shown in the multi-select bar once at least one message is picked; {count} is the number selected.
   ///
   /// In en, this message translates to:
-  /// **'{count} SELECTED'**
+  /// **'{count} selected'**
   String bulkActionBarSelectedCountLabel(num count);
 
   /// All-caps button label to forward the selected messages elsewhere.
   ///
   /// In en, this message translates to:
-  /// **'FORWARD'**
+  /// **'Forward'**
   String get bulkActionBarForwardLabel;
 
   /// All-caps destructive button label to delete the selected messages.
   ///
   /// In en, this message translates to:
-  /// **'DELETE'**
+  /// **'Delete'**
   String get bulkActionBarDeleteLabel;
 
   /// All-caps pill label letting the reader jump back one hop to the message they jumped away from (single hop, no depth shown).
@@ -7154,73 +7154,73 @@ abstract class AppLocalizations {
   /// First sentence of the block-confirmation sheet's subtitle, always shown regardless of friend status.
   ///
   /// In en, this message translates to:
-  /// **'they won’t be notified.'**
+  /// **'They won’t be notified.'**
   String get bulkActionBarBlockSheetNotNotifiedNote;
 
   /// Second sentence of the block-confirmation sheet's subtitle, shown when the target is currently a friend.
   ///
   /// In en, this message translates to:
-  /// **'you’re currently friends — blocking removes the friendship, so to reconnect later you’d have to send a new friend request.'**
+  /// **'You’re currently friends — blocking removes the friendship, so to reconnect later you’d have to send a new friend request.'**
   String get bulkActionBarBlockSheetFriendWarning;
 
   /// Second sentence of the block-confirmation sheet's subtitle, shown when the target is not currently a friend.
   ///
   /// In en, this message translates to:
-  /// **'they’ll disappear from your search and can’t message you.'**
+  /// **'They’ll disappear from your search and can’t message you.'**
   String get bulkActionBarBlockSheetStrangerWarning;
 
   /// All-caps small section label at the top of the block-confirmation sheet, above the title.
   ///
   /// In en, this message translates to:
-  /// **'BLOCK'**
+  /// **'Block'**
   String get bulkActionBarBlockSheetHeaderLabel;
 
   /// Lowercase-fragment-style headline on the block-confirmation sheet asking the user to confirm; {name} is the target person's display name.
   ///
   /// In en, this message translates to:
-  /// **'block {name}?'**
+  /// **'Block {name}?'**
   String bulkActionBarBlockSheetTitle(Object name);
 
   /// Headline of the shared-rooms warning panel on the block-confirmation sheet; {count} is the number of group rooms shared with the target.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{you share {count} room with them} other{you share {count} rooms with them}}'**
+  /// **'{count, plural, one{You share {count} room with them} other{You share {count} rooms with them}}'**
   String bulkActionBarBlockSheetSharedRoomsHeadline(num count);
 
   /// Body note under the shared-rooms warning panel on the block-confirmation sheet.
   ///
   /// In en, this message translates to:
-  /// **'these rooms stay untouched. you can leave any of them yourself from each room’s settings.'**
+  /// **'These rooms stay untouched. You can leave any of them yourself from each room’s settings.'**
   String get bulkActionBarBlockSheetSharedRoomsNote;
 
   /// All-caps title of the first choice tile on the block-confirmation sheet — block without deleting the DM.
   ///
   /// In en, this message translates to:
-  /// **'BLOCK'**
+  /// **'Block'**
   String get bulkActionBarBlockChoiceTileTitle;
 
   /// Subtitle of the block-only choice tile, shown when the target is currently a friend.
   ///
   /// In en, this message translates to:
-  /// **'remove friendship and block. existing chat history stays in your archive.'**
+  /// **'Remove friendship and block. Existing chat history stays in your archive.'**
   String get bulkActionBarBlockChoiceTileFriendSub;
 
   /// Subtitle of the block-only choice tile, shown when the target is not currently a friend.
   ///
   /// In en, this message translates to:
-  /// **'they’re hidden from search and can’t reach you.'**
+  /// **'They’re hidden from search and can’t reach you.'**
   String get bulkActionBarBlockChoiceTileStrangerSub;
 
   /// All-caps title of the second choice tile on the block-confirmation sheet, shown only when a DM with the target exists — blocks and wipes the DM.
   ///
   /// In en, this message translates to:
-  /// **'BLOCK & DELETE DM'**
+  /// **'Block & delete DM'**
   String get bulkActionBarBlockDeleteDmTitle;
 
   /// Subtitle of the block-and-delete-DM choice tile.
   ///
   /// In en, this message translates to:
-  /// **'also wipes your DM with them — every message, reaction, and media file is gone.'**
+  /// **'Also wipes your DM with them — every message, reaction, and media file is gone.'**
   String get bulkActionBarBlockDeleteDmSub;
 
   /// Screen-reader label for the cancel control at the bottom of the block-confirmation sheet.
@@ -7232,7 +7232,7 @@ abstract class AppLocalizations {
   /// All-caps visible label for the cancel control at the bottom of the block-confirmation sheet.
   ///
   /// In en, this message translates to:
-  /// **'CANCEL'**
+  /// **'Cancel'**
   String get bulkActionBarBlockSheetCancelLabel;
 
   /// Title of the Android pre-prompt dialog asking the user to enable full-screen-intent notifications for incoming calls.
@@ -7286,25 +7286,25 @@ abstract class AppLocalizations {
   /// All-caps header at the top of the emoji reaction picker bottom sheet (reaction_picker_sheet.dart), reached via the + button on the floating reaction pill.
   ///
   /// In en, this message translates to:
-  /// **'REACT'**
+  /// **'React'**
   String get reactionBubblePickerTitle;
 
   /// Lowercase placeholder shown in the emoji picker's Recents tab when the user hasn't picked any emoji yet (reaction_picker_sheet.dart).
   ///
   /// In en, this message translates to:
-  /// **'no recents yet'**
+  /// **'No recents yet'**
   String get reactionBubbleNoRecentsPlaceholder;
 
   /// Lowercase hint text on the emoji picker's search field (reaction_picker_sheet.dart). Shown both on the resting search bar under the emoji grid and inside the field once search is open.
   ///
   /// In en, this message translates to:
-  /// **'search emoji'**
+  /// **'Search emoji'**
   String get reactionBubbleSearchHint;
 
   /// Lowercase placeholder shown in the emoji picker's search results strip when the typed query matches no emoji (reaction_picker_sheet.dart).
   ///
   /// In en, this message translates to:
-  /// **'no matches'**
+  /// **'No matches'**
   String get reactionBubbleSearchEmptyPlaceholder;
 
   /// Screen-reader semantic label for the back chevron that closes emoji search and returns to the category grid (reaction_picker_sheet.dart).
@@ -7328,7 +7328,7 @@ abstract class AppLocalizations {
   /// SnackBar shown to a child when their request to ask a guardian for permission to join a room fails to submit.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t ask right now — try again'**
+  /// **'Couldn\'t ask right now — try again'**
   String get enterPublicRoomAskFailedMessage;
 
   /// SnackBar shown when joining a password-protected public room fails because the entered password was wrong.
@@ -7358,13 +7358,13 @@ abstract class AppLocalizations {
   /// All-caps band label for the Feed section showing photos and videos friends captured today — a good sunset, a stray cat, anything worth a look.
   ///
   /// In en, this message translates to:
-  /// **'HIGHLIGHTS'**
+  /// **'Highlights'**
   String get feedBoardHighlightsLabel;
 
   /// Muted single line shown under the HIGHLIGHTS band when nobody, including the viewer, has posted a highlight today. Lowercase and conversational to match the app's other empty states.
   ///
   /// In en, this message translates to:
-  /// **'nothing captured yet today'**
+  /// **'Nothing captured yet today'**
   String get feedBoardHighlightsEmpty;
 
   /// All-caps band label for the Feed section holding the once-a-day logic puzzle and everyone's scores.
@@ -7382,19 +7382,19 @@ abstract class AppLocalizations {
   /// All-caps band label for the Feed section tallying the points friends award themselves for real-world moments.
   ///
   /// In en, this message translates to:
-  /// **'LIFE POINTS'**
+  /// **'Life points'**
   String get feedBoardStandingsLabel;
 
   /// Muted single line shown under the STANDINGS band when nobody has awarded themselves a point today.
   ///
   /// In en, this message translates to:
-  /// **'no points on the board today'**
+  /// **'No points on the board today'**
   String get feedBoardStandingsEmpty;
 
   /// All-caps band label for the Feed's chronological list of everything friends did today.
   ///
   /// In en, this message translates to:
-  /// **'ACTIVITY'**
+  /// **'Activity'**
   String get feedBoardActivityLabel;
 
   /// Muted single line shown under the ACTIVITY band when the viewer has friends but none of them have done anything today.
@@ -7406,37 +7406,37 @@ abstract class AppLocalizations {
   /// Muted single line shown under the ACTIVITY band when the viewer has no friends yet — explains what would fill the section, rather than only reporting that it is empty.
   ///
   /// In en, this message translates to:
-  /// **'add a friend and their day shows up here'**
+  /// **'Add a friend and their day shows up here'**
   String get feedBoardActivityNoFriends;
 
   /// Board-level failure line shown above every section when the feed subscription errored and no payload ever arrived. Deliberately distinct from the per-section empty states, which mean 'nothing happened today' rather than 'this did not load'.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t load the board — try again in a moment'**
+  /// **'Couldn\'t load the board — try again in a moment'**
   String get feedBoardLoadFailed;
 
   /// All-caps badge label shown on a room card/chip when the room is public (widgets/visibility_badge.dart).
   ///
   /// In en, this message translates to:
-  /// **'PUBLIC'**
+  /// **'Public'**
   String get enterPublicRoomVisibilityPublicLabel;
 
   /// All-caps badge label shown on a room card/chip when the room is private (widgets/visibility_badge.dart).
   ///
   /// In en, this message translates to:
-  /// **'PRIVATE'**
+  /// **'Private'**
   String get enterPublicRoomVisibilityPrivateLabel;
 
   /// All-caps badge on a room card in Discover/search marking a room the viewer is already a member of.
   ///
   /// In en, this message translates to:
-  /// **'JOINED'**
+  /// **'Joined'**
   String get enterPublicRoomJoinedBadgeLabel;
 
   /// Non-dense badge label for an ephemeral room, e.g. 'EPHEMERAL · 5m'. {duration} is a pre-formatted short string produced by enterPublicRoomEphemeralSecondsShort/MinutesShort/HoursShort.
   ///
   /// In en, this message translates to:
-  /// **'EPHEMERAL · {duration}'**
+  /// **'Ephemeral · {duration}'**
   String enterPublicRoomEphemeralBadgeLabel(Object duration);
 
   /// Compact duration suffix for an ephemeral room's remaining time-to-live in seconds, e.g. '45s'. Also used standalone in the dense badge variant.
@@ -7496,13 +7496,13 @@ abstract class AppLocalizations {
   /// Stands in for the description in the room info sheet when the room's owner never wrote one. Quiet, lowercase.
   ///
   /// In en, this message translates to:
-  /// **'no description yet'**
+  /// **'No description yet'**
   String get roomInfoSheetNoDescription;
 
   /// Label on the room info sheet line whose body is the date the room was created. Rendered in caps.
   ///
   /// In en, this message translates to:
-  /// **'CREATED'**
+  /// **'Created'**
   String get roomInfoSheetCreatedLabel;
 
   /// All-caps section label above the capture-protection toggle row in settings (lib/widgets/capture_protection_toggle.dart).
@@ -7580,7 +7580,7 @@ abstract class AppLocalizations {
   /// Body copy inside the same recovery-phrase warning banner, lowercase sentence-fragment style, telling the user they risk permanent lockout without a recovery phrase set.
   ///
   /// In en, this message translates to:
-  /// **'no recovery phrase — you could not get back in.'**
+  /// **'No recovery phrase — you could not get back in.'**
   String get linkOpenerRecoveryBannerMessage;
 
   /// Nav label for the Chat section, shown under the icon in the bottom pill / side rail.
@@ -7850,25 +7850,25 @@ abstract class AppLocalizations {
   /// Short paragraph at the top of the problem-report screen explaining what will be sent.
   ///
   /// In en, this message translates to:
-  /// **'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing — that\'s what helps us find the cause.'**
+  /// **'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing — that’s what helps us find the cause.'**
   String get reportProblemIntro;
 
   /// All-caps section header above the free-text field where the user describes the problem.
   ///
   /// In en, this message translates to:
-  /// **'WHAT HAPPENED'**
+  /// **'What happened'**
   String get reportProblemDescribeLabel;
 
   /// Placeholder text inside the problem description field, giving examples of useful detail.
   ///
   /// In en, this message translates to:
-  /// **'The screen flickers, buttons don\'t respond…'**
+  /// **'The screen flickers, buttons don’t respond'**
   String get reportProblemDescribeHint;
 
   /// All-caps section header above the optional screenshot attachments.
   ///
   /// In en, this message translates to:
-  /// **'SCREENSHOTS'**
+  /// **'Screenshots'**
   String get reportProblemScreenshotsLabel;
 
   /// Button that opens the photo picker to attach a screenshot to the report.
@@ -7880,7 +7880,7 @@ abstract class AppLocalizations {
   /// All-caps section header above the read-only device and account identifiers included in the report.
   ///
   /// In en, this message translates to:
-  /// **'YOUR DETAILS'**
+  /// **'Your details'**
   String get reportProblemDetailsLabel;
 
   /// Button that copies the device and account identifiers to the clipboard.
@@ -7910,13 +7910,13 @@ abstract class AppLocalizations {
   /// Shown when sending the problem report failed for a technical reason, e.g. no connection.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t send the report. Check your connection and try again.'**
+  /// **'Couldn’t send the report. Check your connection and try again.'**
   String get reportProblemSendFailed;
 
   /// Shown when this device has filed too many problem reports in a short time and has to wait.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve sent a lot of reports just now. Please try again a bit later.'**
+  /// **'You’ve sent a lot of reports just now. Please try again a bit later.'**
   String get reportProblemTooMany;
 
   /// Title of the sheet that appears when the user shakes the device, offering to open the problem-report screen.
@@ -8426,193 +8426,193 @@ abstract class AppLocalizations {
   /// All-caps name of the 'frost' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'FROST'**
+  /// **'Frost'**
   String get glassKnobLabelFrost;
 
   /// One-line caption under the 'frost' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'how much white sits on the glass. down for see-through'**
+  /// **'How much white sits on the glass. Down for see-through'**
   String get glassKnobHintFrost;
 
   /// All-caps name of the 'blur' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'BLUR'**
+  /// **'Blur'**
   String get glassKnobLabelBlur;
 
   /// One-line caption under the 'blur' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'frosted at the top of the range, clear glass at the bottom'**
+  /// **'Frosted at the top of the range, clear glass at the bottom'**
   String get glassKnobHintBlur;
 
   /// All-caps name of the 'colour bleed' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'COLOUR BLEED'**
+  /// **'Colour bleed'**
   String get glassKnobLabelSaturation;
 
   /// One-line caption under the 'colour bleed' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'how much colour survives the blur. past 2 it posterizes'**
+  /// **'How much colour survives the blur. Past 2 it posterizes'**
   String get glassKnobHintSaturation;
 
   /// All-caps name of the 'rim' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'RIM'**
+  /// **'Rim'**
   String get glassKnobLabelRimOpacity;
 
   /// One-line caption under the 'rim' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'the accent outline. zero for a borderless surface'**
+  /// **'The accent outline. Zero for a borderless surface'**
   String get glassKnobHintRimOpacity;
 
   /// All-caps name of the 'rim width' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'RIM WIDTH'**
+  /// **'Rim width'**
   String get glassKnobLabelRimWidth;
 
   /// One-line caption under the 'rim width' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'thickness of that outline'**
+  /// **'Thickness of that outline'**
   String get glassKnobHintRimWidth;
 
   /// All-caps name of the 'shadow' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'SHADOW'**
+  /// **'Shadow'**
   String get glassKnobLabelShadowOpacity;
 
   /// One-line caption under the 'shadow' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'how far the surface floats above what is behind it'**
+  /// **'How far the surface floats above what is behind it'**
   String get glassKnobHintShadowOpacity;
 
   /// All-caps name of the 'shadow spread' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'SHADOW SPREAD'**
+  /// **'Shadow spread'**
   String get glassKnobLabelShadowBlur;
 
   /// One-line caption under the 'shadow spread' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'soft and wide, or tight and hard'**
+  /// **'Soft and wide, or tight and hard'**
   String get glassKnobHintShadowBlur;
 
   /// All-caps name of the 'shadow drop' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'SHADOW DROP'**
+  /// **'Shadow drop'**
   String get glassKnobLabelShadowY;
 
   /// One-line caption under the 'shadow drop' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'how far below the surface it falls'**
+  /// **'How far below the surface it falls'**
   String get glassKnobHintShadowY;
 
   /// All-caps name of the 'side margin' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'SIDE MARGIN'**
+  /// **'Side margin'**
   String get glassKnobLabelBarMargin;
 
   /// One-line caption under the 'side margin' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'gap between the bar and the edge of the screen'**
+  /// **'Gap between the bar and the edge of the screen'**
   String get glassKnobHintBarMargin;
 
   /// All-caps name of the 'bottom gap' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'BOTTOM GAP'**
+  /// **'Bottom gap'**
   String get glassKnobLabelBarBottom;
 
   /// One-line caption under the 'bottom gap' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'how high the bar floats off the bottom'**
+  /// **'How high the bar floats off the bottom'**
   String get glassKnobHintBarBottom;
 
   /// All-caps name of the 'end padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'END PADDING'**
+  /// **'End padding'**
   String get glassKnobLabelShellPadH;
 
   /// One-line caption under the 'end padding' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'bar edge to the first pill. small, or the ends look marooned'**
+  /// **'Bar edge to the first pill. Small, or the ends look marooned'**
   String get glassKnobHintShellPadH;
 
   /// All-caps name of the 'top padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'TOP PADDING'**
+  /// **'Top padding'**
   String get glassKnobLabelShellPadV;
 
   /// One-line caption under the 'top padding' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'bar edge to the top of the pill'**
+  /// **'Bar edge to the top of the pill'**
   String get glassKnobHintShellPadV;
 
   /// All-caps name of the 'pill inset' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'PILL INSET'**
+  /// **'Pill inset'**
   String get glassKnobLabelIndicatorInset;
 
   /// One-line caption under the 'pill inset' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'how far the selection pill sits inside its slot'**
+  /// **'How far the selection pill sits inside its slot'**
   String get glassKnobHintIndicatorInset;
 
   /// All-caps name of the 'row padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'ROW PADDING'**
+  /// **'Row padding'**
   String get glassKnobLabelSegmentPadV;
 
   /// One-line caption under the 'row padding' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'air above and below the icon and its label'**
+  /// **'Air above and below the icon and its label'**
   String get glassKnobHintSegmentPadV;
 
   /// All-caps name of the 'icon gap' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'ICON GAP'**
+  /// **'Icon gap'**
   String get glassKnobLabelIconLabelGap;
 
   /// One-line caption under the 'icon gap' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'space between an icon and the word under it'**
+  /// **'Space between an icon and the word under it'**
   String get glassKnobHintIconLabelGap;
 
   /// All-caps name of the 'icon size' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'ICON SIZE'**
+  /// **'Icon size'**
   String get glassKnobLabelIconSize;
 
   /// All-caps name of the 'label size' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///
   /// In en, this message translates to:
-  /// **'LABEL SIZE'**
+  /// **'Label size'**
   String get glassKnobLabelLabelSize;
 
   /// All-caps option label for Spanish in the language picker. This is the language's own autonym (how it names itself), conventionally shown the same way regardless of the active UI language — same string in every ARB file, never translated.
@@ -8756,13 +8756,13 @@ abstract class AppLocalizations {
   /// Value on the Settings MOTION row when the user follows the device setting AND the device currently allows animation. The '·' separates the mode from what it currently resolves to.
   ///
   /// In en, this message translates to:
-  /// **'Match device · full'**
+  /// **'Match device · Full'**
   String get settingsScreenValueMotionSystemFull;
 
   /// Value on the Settings MOTION row when the user follows the device setting AND the device currently requests reduced motion. The '·' separates the mode from what it currently resolves to.
   ///
   /// In en, this message translates to:
-  /// **'Match device · calm'**
+  /// **'Match device · Calm'**
   String get settingsScreenValueMotionSystemCalm;
 
   /// Lowercase page title of the motion settings screen, with a full stop. Matches the house style of the other settings sub-screens ('language.', 'theme.').
@@ -8822,13 +8822,13 @@ abstract class AppLocalizations {
   /// All-caps label on the leading tile of the Feed highlights rail, which opens the composer to capture or pick a photo.
   ///
   /// In en, this message translates to:
-  /// **'CAPTURE'**
+  /// **'Capture'**
   String get momentRailCaptureLabel;
 
   /// Lowercase author label under a card in the Feed highlights rail when the moment is the viewer's own, shown instead of their name.
   ///
   /// In en, this message translates to:
-  /// **'you'**
+  /// **'You'**
   String get momentRailYouLabel;
 
   /// Screen-reader label for a card in the Feed highlights rail. {author} is the person's display name, {caption} is the text they wrote. NOTE: parameters are emitted in ALPHABETICAL order (author, caption), which here matches reading order.
@@ -8840,25 +8840,25 @@ abstract class AppLocalizations {
   /// All-caps name of the scoring category for an improbable coincidence — running into your dentist abroad, spotting a celebrity. 'What are the odds', with no benefit implied.
   ///
   /// In en, this message translates to:
-  /// **'FATE'**
+  /// **'Fate'**
   String get momentTagFate;
 
   /// All-caps name of the scoring category for doing something reasonable and having the timing make it pointless — washing the car and then it rains. Translates the Turkish 'kerizlik': the universe mocking your effort. NOT 'silly' or 'goofy'; the point is self-inflicted bad timing.
   ///
   /// In en, this message translates to:
-  /// **'JINX'**
+  /// **'Jinx'**
   String get momentTagJinx;
 
   /// All-caps name of the scoring category for things going your way — catching the train with seconds to spare, finding parking outside. The mirror of JINX.
   ///
   /// In en, this message translates to:
-  /// **'LUCK'**
+  /// **'Luck'**
   String get momentTagLuck;
 
   /// All-caps name of the scoring category for predicting something out loud that then happened.
   ///
   /// In en, this message translates to:
-  /// **'CALLED IT'**
+  /// **'Called it'**
   String get momentTagCalledIt;
 
   /// All-caps name of the scoring category for a total autopilot moment — saying 'you too' to a waiter, putting the cereal in the fridge. From the gaming term for a non-player character who acts on a script; keep it untranslated if the term is used as-is in your language.
@@ -8870,43 +8870,43 @@ abstract class AppLocalizations {
   /// One-line explanation under the FATE category in the moment composer's picker.
   ///
   /// In en, this message translates to:
-  /// **'what are the odds'**
+  /// **'What are the odds'**
   String get momentTagFateHint;
 
   /// One-line explanation under the JINX category in the moment composer's picker — the bad timing was a consequence of your own action.
   ///
   /// In en, this message translates to:
-  /// **'you did it to yourself'**
+  /// **'You did it to yourself'**
   String get momentTagJinxHint;
 
   /// One-line explanation under the LUCK category in the moment composer's picker.
   ///
   /// In en, this message translates to:
-  /// **'that went your way'**
+  /// **'That went your way'**
   String get momentTagLuckHint;
 
   /// One-line explanation under the CALLED IT category in the moment composer's picker.
   ///
   /// In en, this message translates to:
-  /// **'you saw it coming'**
+  /// **'You saw it coming'**
   String get momentTagCalledItHint;
 
   /// One-line explanation under the NPC category in the moment composer's picker — acting on autopilot, not thinking.
   ///
   /// In en, this message translates to:
-  /// **'brain fully off'**
+  /// **'Brain fully off'**
   String get momentTagNpcHint;
 
   /// Lowercase title at the top of the sheet for composing a new Feed moment. Conversational, inviting the user to share something from their day.
   ///
   /// In en, this message translates to:
-  /// **'what happened?'**
+  /// **'New highlight'**
   String get momentComposerTitle;
 
   /// Placeholder text in the caption field of the moment composer.
   ///
   /// In en, this message translates to:
-  /// **'say something about it'**
+  /// **'Say something about it'**
   String get momentComposerCaptionHint;
 
   /// Small hint above the row of scoring categories in the moment composer, explaining that picking one is optional and makes the moment count on the standings board.
@@ -8918,79 +8918,79 @@ abstract class AppLocalizations {
   /// Label on the button in the moment composer that opens the in-app camera.
   ///
   /// In en, this message translates to:
-  /// **'camera'**
+  /// **'Camera'**
   String get momentComposerCapture;
 
   /// Label on the button in the moment composer that opens the device photo library.
   ///
   /// In en, this message translates to:
-  /// **'library'**
+  /// **'Library'**
   String get momentComposerLibrary;
 
   /// Screen-reader label for the X button that clears the chosen photo in the moment composer.
   ///
   /// In en, this message translates to:
-  /// **'remove photo'**
+  /// **'Remove photo'**
   String get momentComposerRemovePhoto;
 
   /// All-caps label on the button that publishes the moment in the composer.
   ///
   /// In en, this message translates to:
-  /// **'POST'**
+  /// **'Post'**
   String get momentComposerPost;
 
   /// Error under the composer when the user has already awarded themselves the daily maximum (20) of one scoring category. Light-hearted; the cap exists so the standings board stays meaningful, not as a punishment.
   ///
   /// In en, this message translates to:
-  /// **'that\'s five of those today — save some for tomorrow'**
+  /// **'That\'s five of those today — save some for tomorrow'**
   String get momentComposerErrorDailyCap;
 
   /// Error under the composer when a supervised (child) account tries to post a photo but their guardian has disabled media.
   ///
   /// In en, this message translates to:
-  /// **'a guardian has turned photo sharing off'**
+  /// **'A guardian has turned photo sharing off'**
   String get momentComposerErrorNotAllowed;
 
   /// Error under the composer when the caption exceeds 280 characters.
   ///
   /// In en, this message translates to:
-  /// **'that\'s a bit long — trim it down'**
+  /// **'That\'s a bit long — trim it down'**
   String get momentComposerErrorTooLong;
 
   /// Error under the composer when the user tries to post with neither a photo nor any text.
   ///
   /// In en, this message translates to:
-  /// **'add a photo or a few words'**
+  /// **'Add a photo or a few words'**
   String get momentComposerErrorEmpty;
 
   /// Generic error under the composer when publishing fails for an unrecognised reason.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t post that — try again'**
+  /// **'Couldn\'t post that — try again'**
   String get momentComposerErrorGeneric;
 
   /// Label on the action that permanently removes the viewer's own moment from the Feed, shown only on moments they wrote.
   ///
   /// In en, this message translates to:
-  /// **'delete'**
+  /// **'Delete'**
   String get momentViewerDelete;
 
   /// Headline of the confirmation sheet shown before a moment is permanently deleted from the Feed. Lowercase, matching the board's register.
   ///
   /// In en, this message translates to:
-  /// **'delete this?'**
+  /// **'Delete this?'**
   String get momentViewerDeleteConfirmHeadline;
 
   /// Body line of the delete-confirmation sheet, spelling out the blast radius: the moment goes from friends' boards AND from the author's own archive, and cannot be recovered.
   ///
   /// In en, this message translates to:
-  /// **'it leaves everyone\'s board and your archive, for good'**
+  /// **'It leaves everyone\'s board and your archive, for good'**
   String get momentViewerDeleteConfirmBody;
 
   /// Toast shown when deleting a moment from the viewer fails (network/API error). Lowercase, matching momentComposerErrorGeneric.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t delete that — try again'**
+  /// **'Couldn\'t delete that — try again'**
   String get momentViewerDeleteFailed;
 
   /// Activity-river line for an untagged moment. {who} is a display name, or the localized word for 'you' when it is the viewer's own.
@@ -9002,7 +9002,7 @@ abstract class AppLocalizations {
   /// Activity-river line for a moment that scored. {name} is a display name (or 'you'); {tag} is the localized category name such as JINX or FATE. 'took a' is idiomatic for earning a point in this game. NOTE: gen-l10n emits parameters in ALPHABETICAL order (name, tag), which here matches reading order.
   ///
   /// In en, this message translates to:
-  /// **'{name} took a {tag}'**
+  /// **'{name} logged a point: {tag}'**
   String momentActivityScored(Object name, Object tag);
 
   /// Compact timestamp on an activity row for something that happened less than a minute ago. Keep it very short — it sits in a narrow column beside a name.
@@ -9038,55 +9038,55 @@ abstract class AppLocalizations {
   /// One-line subtitle under the puzzle screen's title, next to a short accent rule. States the rules in the fewest possible words.
   ///
   /// In en, this message translates to:
-  /// **'four symbols, six tries'**
+  /// **'Four symbols, six tries'**
   String get puzzleScreenSubtitle;
 
   /// All-caps label on the button that submits the composed row of symbols.
   ///
   /// In en, this message translates to:
-  /// **'GUESS'**
+  /// **'Guess'**
   String get puzzleSubmit;
 
   /// Screen-reader label for the backspace key on the puzzle keypad.
   ///
   /// In en, this message translates to:
-  /// **'delete last symbol'**
+  /// **'Delete last symbol'**
   String get puzzleBackspace;
 
   /// Screen-reader label for a symbol key on the puzzle keypad. {number} is its position in the alphabet, 1-6. The symbols are abstract shapes with no names, so they are identified by number.
   ///
   /// In en, this message translates to:
-  /// **'symbol {number}'**
+  /// **'Symbol {number}'**
   String puzzleSymbolSemanticLabel(Object number);
 
   /// Headline shown when the player has cracked the code. {count} is how many guesses it took.
   ///
   /// In en, this message translates to:
-  /// **'solved in {count}'**
+  /// **'Solved in {count}'**
   String puzzleSolvedTitle(Object count);
 
   /// Headline shown when the player has used all six tries without solving the puzzle.
   ///
   /// In en, this message translates to:
-  /// **'out of guesses'**
+  /// **'Out of guesses'**
   String get puzzleFailedTitle;
 
   /// All-caps label above the revealed answer, shown only after the player has run out of guesses.
   ///
   /// In en, this message translates to:
-  /// **'THE CODE WAS'**
+  /// **'The code was'**
   String get puzzleAnswerWas;
 
   /// All-caps label on the action that copies the shareable emoji grid to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'COPY RESULT'**
+  /// **'Copy result'**
   String get puzzleShare;
 
   /// Confirmation shown after the puzzle result grid is copied to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'copied — paste it to a friend'**
+  /// **'Copied — paste it to a friend'**
   String get puzzleShareCopied;
 
   /// First line of the copied puzzle result, above the emoji grid. {edition} is the day number; {score} is the number of guesses used, or the letter X if unsolved. 'MonkeyHub' is a proper noun — keep it identical across locales. NOTE: parameters are emitted in ALPHABETICAL order (edition, score), which here matches reading order.
@@ -9098,31 +9098,31 @@ abstract class AppLocalizations {
   /// Error shown if a guess is submitted after the puzzle has been solved — normally only reachable from a stale screen.
   ///
   /// In en, this message translates to:
-  /// **'you already solved today\'s'**
+  /// **'You already solved today\'s'**
   String get puzzleErrorAlreadySolved;
 
   /// Error shown if a guess is submitted after all six tries have been used.
   ///
   /// In en, this message translates to:
-  /// **'no guesses left today'**
+  /// **'No guesses left today'**
   String get puzzleErrorOutOfGuesses;
 
   /// Generic error when submitting a puzzle guess fails for an unrecognised reason.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t send that guess — try again'**
+  /// **'Couldn\'t send that guess — try again'**
   String get puzzleErrorGeneric;
 
   /// All-caps band label above the list of friends who have finished today's puzzle.
   ///
   /// In en, this message translates to:
-  /// **'TODAY\'S SCORES'**
+  /// **'Today\'s scores'**
   String get puzzleScoreboardLabel;
 
   /// Muted line shown under TODAY'S SCORES when no friend, including the viewer, has completed the puzzle.
   ///
   /// In en, this message translates to:
-  /// **'nobody has finished yet today'**
+  /// **'Nobody has finished yet today'**
   String get puzzleScoreboardEmpty;
 
   /// Label on the Feed board's puzzle tile when the viewer has not started today's puzzle.
@@ -9188,31 +9188,31 @@ abstract class AppLocalizations {
   /// Label on the button in the moment composer that picks a video from the device library.
   ///
   /// In en, this message translates to:
-  /// **'video'**
+  /// **'Video'**
   String get momentComposerVideo;
 
   /// Error under the composer when a picked video exceeds the 20 MB upload limit. Shown at pick time, before any upload starts.
   ///
   /// In en, this message translates to:
-  /// **'that video\'s too large — 20 MB max'**
+  /// **'That video\'s too large — 20 MB max'**
   String get momentComposerErrorTooBig;
 
   /// Activity-river line for the VIEWER'S OWN untagged moment. Separate from momentActivityPostedHighlight (which names another person) because languages with verb agreement — Turkish, Japanese, Korean and others — cannot conjugate correctly from an interpolated name. Write this in the second person.
   ///
   /// In en, this message translates to:
-  /// **'you posted a highlight'**
+  /// **'You posted a highlight'**
   String get momentActivityPostedHighlightSelf;
 
   /// Activity-river line for the VIEWER'S OWN point. {tag} is the localized category name such as JINX. Second person; see momentActivityPostedHighlightSelf for why this is a separate key.
   ///
   /// In en, this message translates to:
-  /// **'you took a {tag}'**
+  /// **'You logged a point: {tag}'**
   String momentActivityScoredSelf(Object tag);
 
   /// Compact header above your own point on the points board. {tag} is the localized category name. Very short — the sentence underneath is the actual content.
   ///
   /// In en, this message translates to:
-  /// **'you · {tag}'**
+  /// **'You · {tag}'**
   String pointLineSelf(Object tag);
 
   /// Compact header above someone else's point on the points board. {name} is their display name, {tag} the localized category. NOTE: parameters are emitted in ALPHABETICAL order (name, tag), matching reading order here.
@@ -9224,19 +9224,19 @@ abstract class AppLocalizations {
   /// Title of the sheet for logging a point. Conversational — a point is a small story, not a form.
   ///
   /// In en, this message translates to:
-  /// **'what happened?'**
+  /// **'What happened?'**
   String get pointComposerTitle;
 
   /// Placeholder in the point composer's text field before a category has been chosen.
   ///
   /// In en, this message translates to:
-  /// **'pick one above, then tell the story'**
+  /// **'Pick one above, then tell the story'**
   String get pointComposerNoteHint;
 
   /// All-caps label on the button that logs the point.
   ///
   /// In en, this message translates to:
-  /// **'ADD POINT'**
+  /// **'Add a point'**
   String get pointComposerAdd;
 
   /// Label on the optional photo button in the point composer. Optional is the point: most points are just a sentence.
@@ -9248,19 +9248,19 @@ abstract class AppLocalizations {
   /// All-caps label on the button under the points board that opens the point composer.
   ///
   /// In en, this message translates to:
-  /// **'ADD A POINT'**
+  /// **'Add a point'**
   String get pointsBoardAdd;
 
   /// Label on the small chip that opens the explainer for the points game. Appears on the POINTS section header and in the composer.
   ///
   /// In en, this message translates to:
-  /// **'what\'s this?'**
+  /// **'What\'s this?'**
   String get pointsExplainerOpen;
 
   /// Title of the sheet explaining what the points board is.
   ///
   /// In en, this message translates to:
-  /// **'the points game'**
+  /// **'The points game'**
   String get pointsExplainerTitle;
 
   /// Opening paragraph of the points explainer. Sets up that this is a game friends play about real life, not a social feed.
@@ -9290,43 +9290,43 @@ abstract class AppLocalizations {
   /// All-caps label on the button that dismisses the points explainer.
   ///
   /// In en, this message translates to:
-  /// **'GOT IT'**
+  /// **'Got it'**
   String get pointsExplainerGotIt;
 
   /// Concrete example under the FATE category, and the composer's placeholder once FATE is picked. Should read like something a real person typed.
   ///
   /// In en, this message translates to:
-  /// **'ran into my dentist in another country'**
+  /// **'Ran into my dentist in another country'**
   String get momentTagFateExample;
 
   /// Concrete example under the JINX category. This is the canonical case: you did a reasonable thing and the timing made it pointless.
   ///
   /// In en, this message translates to:
-  /// **'washed the car, it rained at four'**
+  /// **'Washed the car, it rained at four'**
   String get momentTagJinxExample;
 
   /// Concrete example under the LUCK category.
   ///
   /// In en, this message translates to:
-  /// **'caught the train with two seconds to spare'**
+  /// **'Caught the train with two seconds to spare'**
   String get momentTagLuckExample;
 
   /// Concrete example under the CALLED IT category.
   ///
   /// In en, this message translates to:
-  /// **'said the sequel would flop, it flopped'**
+  /// **'Said the sequel would flop, it flopped'**
   String get momentTagCalledItExample;
 
   /// Concrete example under the NPC category. Uses curly quotes deliberately, matching the app's typography.
   ///
   /// In en, this message translates to:
-  /// **'said ‘you too’ to the waiter'**
+  /// **'Said ‘you too’ to the waiter'**
   String get momentTagNpcExample;
 
   /// Explains the № stamp in the Feed masthead when tapped. {number} is how many days the feed has been running.
   ///
   /// In en, this message translates to:
-  /// **'day {number} of the feed'**
+  /// **'Day {number} of the feed'**
   String feedBoardEditionHint(Object number);
 
   /// Sub-line under the HIGHLIGHTS band clarifying that this section is media, as distinct from the points board below it.
@@ -9350,97 +9350,97 @@ abstract class AppLocalizations {
   /// Screen-reader label for the crop button over the chosen photo in the composer, which re-opens the cropper on the original image.
   ///
   /// In en, this message translates to:
-  /// **'edit crop'**
+  /// **'Edit crop'**
   String get momentComposerEditPhoto;
 
   /// Lowercase title of the screen showing every moment the user has kept, grouped by day.
   ///
   /// In en, this message translates to:
-  /// **'your archive'**
+  /// **'Your archive'**
   String get archiveScreenTitle;
 
   /// Muted line at the bottom of the archive once every page has loaded.
   ///
   /// In en, this message translates to:
-  /// **'that\'s everything'**
+  /// **'That\'s everything'**
   String get archiveScreenEnd;
 
   /// Title of the archive's empty state for the viewer's own archive.
   ///
   /// In en, this message translates to:
-  /// **'nothing kept yet'**
+  /// **'Nothing kept yet'**
   String get archiveScreenEmptyTitle;
 
   /// Body of the archive's empty state for the viewer's own archive. Explains what the archive is for.
   ///
   /// In en, this message translates to:
-  /// **'moments leave your friends\' boards after a day, but they stay here for you.'**
+  /// **'Moments leave your friends\' boards after a day, but they stay here for you.'**
   String get archiveScreenEmptyBody;
 
   /// Title of the archive's empty state when viewing a friend who has kept nothing.
   ///
   /// In en, this message translates to:
-  /// **'nothing here'**
+  /// **'Nothing here'**
   String get archiveScreenEmptyFriendTitle;
 
   /// Body of the archive's empty state when viewing a friend who has kept nothing.
   ///
   /// In en, this message translates to:
-  /// **'they haven\'t posted anything you can see yet.'**
+  /// **'They haven\'t posted anything you can see yet.'**
   String get archiveScreenEmptyFriendBody;
 
   /// Title shown when a friend has not opened their history to friends.
   ///
   /// In en, this message translates to:
-  /// **'their past is private'**
+  /// **'Their past is private'**
   String get archiveScreenPrivateTitle;
 
   /// Body shown when a friend's history is private. Reassures that today is unaffected.
   ///
   /// In en, this message translates to:
-  /// **'you can still see what they post today.'**
+  /// **'You can still see what they post today.'**
   String get archiveScreenPrivateBody;
 
   /// Title shown when trying to view the archive of someone who is no longer a friend.
   ///
   /// In en, this message translates to:
-  /// **'not friends'**
+  /// **'Not friends'**
   String get archiveScreenNotFriendTitle;
 
   /// Body shown when trying to view a non-friend's archive.
   ///
   /// In en, this message translates to:
-  /// **'you can only look back through a friend\'s days.'**
+  /// **'You can only look back through a friend\'s days.'**
   String get archiveScreenNotFriendBody;
 
   /// Title of the archive's generic error state.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t load that'**
+  /// **'Couldn\'t load that'**
   String get archiveScreenErrorTitle;
 
   /// Body of the archive's generic error state.
   ///
   /// In en, this message translates to:
-  /// **'check your connection and try again.'**
+  /// **'Check your connection and try again.'**
   String get archiveScreenErrorBody;
 
   /// Label on the control in the HIGHLIGHTS section header that opens the user's own archive of kept moments.
   ///
   /// In en, this message translates to:
-  /// **'archive'**
+  /// **'Archive'**
   String get feedBoardOpenArchive;
 
   /// All-caps band label for the Feed section holding today's four logic games (Queens, Tango, Zip, Mini Sudoku) as small board thumbnails.
   ///
   /// In en, this message translates to:
-  /// **'THE GAMES'**
+  /// **'The games'**
   String get feedBoardGamesLabel;
 
   /// Label on the control in the THE GAMES section header that opens the games hub, where all of today's boards and everyone's times live.
   ///
   /// In en, this message translates to:
-  /// **'all games'**
+  /// **'All games'**
   String get feedBoardGamesOpen;
 
   /// Lowercase page title of the games hub, with a full stop, matching the house style of the other sub-screens ('the puzzle.', 'language.').
@@ -9464,31 +9464,31 @@ abstract class AppLocalizations {
   /// Shown on the games hub when today's boards could not be fetched at all — a network failure, not an empty day.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t load today\'s games'**
+  /// **'Couldn\'t load today\'s games'**
   String get gamesLoadFailed;
 
   /// All-caps action under the games hub's load-failure message; refetches today's boards.
   ///
   /// In en, this message translates to:
-  /// **'TRY AGAIN'**
+  /// **'Try again'**
   String get gamesRetry;
 
   /// Name of the Queens daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game is about placing crowns on a coloured grid.
   ///
   /// In en, this message translates to:
-  /// **'queens'**
+  /// **'Queens'**
   String get gameQueensName;
 
   /// Queens' rules in one line, under its title. Exactly one crown goes in each row, each column and each coloured region, and no two crowns may be adjacent, including diagonally.
   ///
   /// In en, this message translates to:
-  /// **'one crown per row, column and colour — never touching'**
+  /// **'One crown per row, column and colour — never touching'**
   String get gameQueensRule;
 
   /// Name of the Tango daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game fills a grid with suns and moons.
   ///
   /// In en, this message translates to:
-  /// **'tango'**
+  /// **'Tango'**
   String get gameTangoName;
 
   /// Tango's rules in one line, under its title. Each row and column holds three of each symbol, and the same symbol may never appear three times consecutively.
@@ -9500,7 +9500,7 @@ abstract class AppLocalizations {
   /// Name of the Zip daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game draws a single line through every square of a grid.
   ///
   /// In en, this message translates to:
-  /// **'zip'**
+  /// **'Zip'**
   String get gameZipName;
 
   /// Zip's rules in one line, under its title. One unbroken line must pass through every square exactly once while visiting the numbered dots in ascending order.
@@ -9512,7 +9512,7 @@ abstract class AppLocalizations {
   /// Name of the Mini Sudoku daily game, shown on its tile and as the title of its board screen. Lowercase, house style. A 6x6 sudoku rather than the usual 9x9.
   ///
   /// In en, this message translates to:
-  /// **'mini sudoku'**
+  /// **'Mini sudoku'**
   String get gameSudokuName;
 
   /// Mini Sudoku's rules in one line, under its title. The grid is 6x6 and its boxes are two rows tall by three columns wide.
@@ -9524,25 +9524,25 @@ abstract class AppLocalizations {
   /// Name of the symbol-code puzzle on its tile in the games hub, where it sits beside the four newer boards. It is the same game the dedicated puzzle screen calls 'the puzzle.'; here it needs a shorter name that distinguishes it from its four neighbours.
   ///
   /// In en, this message translates to:
-  /// **'the code'**
+  /// **'The code'**
   String get gameCodeName;
 
   /// Status on a game tile the viewer has not opened today.
   ///
   /// In en, this message translates to:
-  /// **'not played'**
+  /// **'Not played'**
   String get gameStatusUnplayed;
 
   /// Status on a game tile the viewer has started but not finished today.
   ///
   /// In en, this message translates to:
-  /// **'in progress'**
+  /// **'In progress'**
   String get gameStatusUnfinished;
 
   /// Status shown in place of a time, on a tile or a leaderboard row, when the player asked to see the answer instead of solving the board.
   ///
   /// In en, this message translates to:
-  /// **'gave up'**
+  /// **'Gave up'**
   String get gameStatusGaveUp;
 
   /// Small badge next to a solved time on a game tile. {rank} is the viewer's 1-based place among friends who have finished that board today.
@@ -9554,31 +9554,31 @@ abstract class AppLocalizations {
   /// Tooltip on the pause control in a game board's top bar. Stops the stopwatch and hides the board.
   ///
   /// In en, this message translates to:
-  /// **'pause'**
+  /// **'Pause'**
   String get gamePause;
 
   /// Tooltip on the same control while a game board is paused. Restarts the stopwatch and uncovers the board.
   ///
   /// In en, this message translates to:
-  /// **'resume'**
+  /// **'Resume'**
   String get gameResume;
 
   /// Headline on the card that covers a game board while it is paused.
   ///
   /// In en, this message translates to:
-  /// **'paused'**
+  /// **'Paused'**
   String get gamePausedTitle;
 
   /// Explains the pause card. The board is deliberately covered as well as the clock stopped, so pausing cannot be used as free thinking time.
   ///
   /// In en, this message translates to:
-  /// **'the clock is stopped and the board is hidden'**
+  /// **'The clock is stopped and the board is hidden'**
   String get gamePausedBody;
 
   /// Label on the tool that takes back the last move on a game board.
   ///
   /// In en, this message translates to:
-  /// **'undo'**
+  /// **'Undo'**
   String get gameUndo;
 
   /// Label on the tool that wipes a game board back to empty. Only Zip has one, where it erases the whole drawn line.
@@ -9590,7 +9590,7 @@ abstract class AppLocalizations {
   /// Label on the tool that reveals one correct square. Counted against the player and shown beside their result.
   ///
   /// In en, this message translates to:
-  /// **'hint'**
+  /// **'Hint'**
   String get gameHint;
 
   /// Label on the Mini Sudoku toggle that makes the keypad write small pencil marks instead of answers.
@@ -9608,55 +9608,55 @@ abstract class AppLocalizations {
   /// Label on the Queens toggle that faintly crosses out every square a placed crown rules out, so the player does not have to track it by hand.
   ///
   /// In en, this message translates to:
-  /// **'auto-cross'**
+  /// **'Auto-cross'**
   String get gameAutoCross;
 
   /// Label on the tool that ends today's board and shows its answer.
   ///
   /// In en, this message translates to:
-  /// **'give up'**
+  /// **'Give up'**
   String get gameGiveUp;
 
   /// Title of the confirmation asked before a player gives up on a board.
   ///
   /// In en, this message translates to:
-  /// **'show the answer?'**
+  /// **'Show the answer?'**
   String get gameGiveUpTitle;
 
   /// Body of the give-up confirmation. States both consequences: the board can no longer be played today, and the result is recorded as a failure.
   ///
   /// In en, this message translates to:
-  /// **'today\'s board closes and it goes down as unsolved.'**
+  /// **'Today\'s board closes and it goes down as unsolved.'**
   String get gameGiveUpBody;
 
   /// All-caps dismissal on the give-up confirmation; returns to the board.
   ///
   /// In en, this message translates to:
-  /// **'KEEP TRYING'**
+  /// **'Keep trying'**
   String get gameGiveUpCancel;
 
   /// All-caps confirmation on the give-up dialog; ends the board and reveals the answer.
   ///
   /// In en, this message translates to:
-  /// **'SHOW IT'**
+  /// **'Show it'**
   String get gameGiveUpConfirm;
 
   /// Headline on the result card once a board is solved. {time} is a stopwatch reading such as 2:41, already formatted and never localized — digits and a colon read the same everywhere and the leaderboard compares them side by side.
   ///
   /// In en, this message translates to:
-  /// **'solved in {time}'**
+  /// **'Solved in {time}'**
   String gameSolvedTitle(Object time);
 
   /// Headline on the result card when the player gave up and the board is showing the solution instead of their own work.
   ///
   /// In en, this message translates to:
-  /// **'today\'s answer'**
+  /// **'Today\'s answer'**
   String get gameGaveUpTitle;
 
   /// Shown under a result instead of a rank when nobody else has finished that board yet. Avoids reporting a podium of one.
   ///
   /// In en, this message translates to:
-  /// **'first one in today'**
+  /// **'First one in today'**
   String get gameFirstInToday;
 
   /// Shown under a result. {place} is the viewer's 1-based position and {total} how many friends have finished that board today. 'so far' because more people will finish later and the position can slip. NOTE: parameters are emitted in ALPHABETICAL order (place, total), which here matches reading order.
@@ -9680,25 +9680,25 @@ abstract class AppLocalizations {
   /// All-caps header above the per-game leaderboard of friends who have finished that board today, fastest first.
   ///
   /// In en, this message translates to:
-  /// **'TODAY\'S TIMES'**
+  /// **'Today\'s times'**
   String get gameStandingsLabel;
 
   /// Muted line where a game's leaderboard would be, when no friend — and not the viewer either — has completed that board today.
   ///
   /// In en, this message translates to:
-  /// **'nobody\'s finished this one yet'**
+  /// **'Nobody\'s finished this one yet'**
   String get gameStandingsEmpty;
 
   /// All-caps action on a finished game's result card; copies a one-line result to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'COPY RESULT'**
+  /// **'Copy result'**
   String get gameShare;
 
   /// Confirmation shown after a game result is copied to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'copied — paste it to a friend'**
+  /// **'Copied — paste it to a friend'**
   String get gameShareCopied;
 
   /// The whole copied game result, one line. {name} is the game's own localized name, {number} the day's edition number, {time} a stopwatch reading or the localized 'gave up'. 'MonkeyHub' is a proper noun — keep it identical across locales. NOTE: parameters are emitted in ALPHABETICAL order (name, number, time), which here matches reading order.
@@ -9710,127 +9710,127 @@ abstract class AppLocalizations {
   /// Tooltip on the back arrow in a game board's top bar, which returns to the games hub.
   ///
   /// In en, this message translates to:
-  /// **'all games'**
+  /// **'All games'**
   String get gameBackToHub;
 
   /// Screen-reader label for the running stopwatch in a game board's top bar.
   ///
   /// In en, this message translates to:
-  /// **'elapsed time'**
+  /// **'Elapsed time'**
   String get gameElapsedSemantic;
 
   /// Error shown when a submitted game board does not actually satisfy its rules — normally only reachable from a stale screen.
   ///
   /// In en, this message translates to:
-  /// **'that board isn\'t finished yet'**
+  /// **'That board isn\'t finished yet'**
   String get gameErrorNotSolved;
 
   /// Error shown when an action arrives for a board the player has already completed or given up on today.
   ///
   /// In en, this message translates to:
-  /// **'you already finished today\'s'**
+  /// **'You already finished today\'s'**
   String get gameErrorAlreadyFinished;
 
   /// Error shown when a hint is asked for on a board that has none. Zip is the case: any line covering every square in order wins, so there is no single next-correct move to point at.
   ///
   /// In en, this message translates to:
-  /// **'no hint for this one'**
+  /// **'No hint for this one'**
   String get gameErrorNoHint;
 
   /// Generic error when a daily-game action fails for an unrecognised reason.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t reach the games — try again'**
+  /// **'Couldn\'t reach the games — try again'**
   String get gameErrorGeneric;
 
   /// Screen-reader label and tooltip for the small question-mark button on a game tile, which opens the sheet explaining that game.
   ///
   /// In en, this message translates to:
-  /// **'how to play'**
+  /// **'How to play'**
   String get gameInfoOpen;
 
   /// All-caps eyebrow above the game's name at the top of the how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'HOW TO PLAY'**
+  /// **'How to play'**
   String get gameInfoLabel;
 
   /// All-caps header above the bulleted rules in the how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'THE RULES'**
+  /// **'The rules'**
   String get gameInfoRulesLabel;
 
   /// All-caps header above the line explaining what to tap or drag, in the how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'CONTROLS'**
+  /// **'Controls'**
   String get gameInfoControlsLabel;
 
   /// Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard.
   ///
   /// In en, this message translates to:
-  /// **'the clock runs while the board is on screen and stops when you pause or leave. finish fastest and you top today\'s list.'**
+  /// **'The clock runs while the board is on screen and stops when you pause or leave. Finish fastest and you top today\'s list.'**
   String get gameInfoScoringTimed;
 
   /// Closing line of the how-to-play sheet for the symbol-code puzzle — the one game on the hub that is ranked by guesses rather than by time.
   ///
   /// In en, this message translates to:
-  /// **'scored by how few guesses it takes, not by the clock.'**
+  /// **'Scored by how few guesses it takes, not by the clock.'**
   String get gameInfoScoringGuesses;
 
   /// Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful.
   ///
   /// In en, this message translates to:
-  /// **'everyone gets the same board today.'**
+  /// **'Everyone gets the same board today.'**
   String get gameInfoSameForEveryone;
 
   /// One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'place one crown in every row, column and colour.'**
+  /// **'Place one crown in every row, column and colour.'**
   String get gameInfoQueensGoal;
 
   /// First rule bullet in the Queens how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'eight crowns: one in each row, one in each column.'**
+  /// **'Eight crowns: one in each row, one in each column.'**
   String get gameInfoQueensRule1;
 
   /// Second rule bullet in the Queens how-to-play sheet. The board is divided into coloured regions and each holds exactly one crown.
   ///
   /// In en, this message translates to:
-  /// **'each colour block gets exactly one crown too.'**
+  /// **'Each colour block gets exactly one crown too.'**
   String get gameInfoQueensRule2;
 
   /// Third rule bullet in the Queens how-to-play sheet. Crowns may not be adjacent horizontally, vertically or diagonally.
   ///
   /// In en, this message translates to:
-  /// **'no two crowns may touch — not even at a corner.'**
+  /// **'No two crowns may touch — not even at a corner.'**
   String get gameInfoQueensRule3;
 
   /// Explains the Queens board's controls: a tap cycles a square through empty, the player's own cross, and a crown.
   ///
   /// In en, this message translates to:
-  /// **'tap a square once for a cross to rule it out, again for a crown, again to clear it.'**
+  /// **'Tap a square once for a cross to rule it out, again for a crown, again to clear it.'**
   String get gameInfoQueensControls;
 
   /// One-sentence description of what the player is trying to do in Tango, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'fill the grid with suns and moons.'**
+  /// **'Fill the grid with suns and moons.'**
   String get gameInfoTangoGoal;
 
   /// First rule bullet in the Tango how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'every row and column holds three suns and three moons.'**
+  /// **'Every row and column holds three suns and three moons.'**
   String get gameInfoTangoRule1;
 
   /// Second rule bullet in the Tango how-to-play sheet. No run of three identical symbols horizontally or vertically.
   ///
   /// In en, this message translates to:
-  /// **'never three of the same next to each other, across or down.'**
+  /// **'Never three of the same next to each other, across or down.'**
   String get gameInfoTangoRule2;
 
   /// Third rule bullet in the Tango how-to-play sheet. Explains the two operators printed on the edges between adjacent squares. Keep the '=' and '×' symbols as they are.
@@ -9842,97 +9842,97 @@ abstract class AppLocalizations {
   /// Explains the Tango board's controls. 'printed squares' are the ones the puzzle starts with, which cannot be changed.
   ///
   /// In en, this message translates to:
-  /// **'tap a square for a sun, again for a moon, again to clear. printed squares don\'t move.'**
+  /// **'Tap a square for a sun, again for a moon, again to clear. Printed squares don\'t move.'**
   String get gameInfoTangoControls;
 
   /// One-sentence description of what the player is trying to do in Zip, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'draw one line that goes through every square.'**
+  /// **'Draw one line that goes through every square.'**
   String get gameInfoZipGoal;
 
   /// First rule bullet in the Zip how-to-play sheet. The board has numbered dots and the line must begin at 1 and end at the highest one.
   ///
   /// In en, this message translates to:
-  /// **'start on 1 and finish on the last number.'**
+  /// **'Start on 1 and finish on the last number.'**
   String get gameInfoZipRule1;
 
   /// Second rule bullet in the Zip how-to-play sheet. The numbered dots must be visited in ascending order.
   ///
   /// In en, this message translates to:
-  /// **'touch the numbers in order along the way.'**
+  /// **'Touch the numbers in order along the way.'**
   String get gameInfoZipRule2;
 
   /// Third rule bullet in the Zip how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'every square gets used exactly once.'**
+  /// **'Every square gets used exactly once.'**
   String get gameInfoZipRule3;
 
   /// Explains the Zip board's controls. The line is drawn with a drag and retracts when the finger moves back along it.
   ///
   /// In en, this message translates to:
-  /// **'drag your finger to draw. drag back over the line to rub it out.'**
+  /// **'Drag your finger to draw. Drag back over the line to rub it out.'**
   String get gameInfoZipControls;
 
   /// One-sentence description of what the player is trying to do in Mini Sudoku, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'fill the grid with the digits 1 to 6.'**
+  /// **'Fill the grid with the digits 1 to 6.'**
   String get gameInfoSudokuGoal;
 
   /// First rule bullet in the Mini Sudoku how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'each row uses 1 to 6, once each.'**
+  /// **'Each row uses 1 to 6, once each.'**
   String get gameInfoSudokuRule1;
 
   /// Second rule bullet in the Mini Sudoku how-to-play sheet. Reads as a continuation of the row rule immediately above it.
   ///
   /// In en, this message translates to:
-  /// **'so does each column.'**
+  /// **'So does each column.'**
   String get gameInfoSudokuRule2;
 
   /// Third rule bullet in the Mini Sudoku how-to-play sheet. The 6x6 grid is divided into boxes two rows tall and three columns wide.
   ///
   /// In en, this message translates to:
-  /// **'and so does each 2x3 box.'**
+  /// **'And so does each 2x3 box.'**
   String get gameInfoSudokuRule3;
 
   /// Explains the Mini Sudoku board's controls, including the notes toggle that switches the keypad to writing small pencil marks.
   ///
   /// In en, this message translates to:
-  /// **'tap a square, then a digit. tap the same digit again to clear it. notes writes small pencil marks instead.'**
+  /// **'Tap a square, then a digit. Tap the same digit again to clear it. Notes writes small pencil marks instead.'**
   String get gameInfoSudokuControls;
 
   /// One-sentence description of what the player is trying to do in the symbol-code puzzle, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'work out the hidden four-symbol code.'**
+  /// **'Work out the hidden four-symbol code.'**
   String get gameInfoCodeGoal;
 
   /// First rule bullet in the symbol-code puzzle's how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'six tries, and the code never repeats a symbol.'**
+  /// **'Six tries, and the code never repeats a symbol.'**
   String get gameInfoCodeRule1;
 
   /// Second rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a correctly-placed symbol is shown in.
   ///
   /// In en, this message translates to:
-  /// **'green means right symbol, right place.'**
+  /// **'Green means right symbol, right place.'**
   String get gameInfoCodeRule2;
 
   /// Third rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a misplaced symbol is shown in.
   ///
   /// In en, this message translates to:
-  /// **'yellow means right symbol, wrong place.'**
+  /// **'Yellow means right symbol, wrong place.'**
   String get gameInfoCodeRule3;
 
   /// Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback.
   ///
   /// In en, this message translates to:
-  /// **'tap symbols to build a guess, then send it. the board tells you how close you were.'**
+  /// **'Tap symbols to build a guess, then send it. The board tells you how close you were.'**
   String get gameInfoCodeControls;
 
   /// Room-list display name for the self-chat room every account has (name starting with 'dm:self:'), shown in place of a friend's display name in RoomCard/RoomGridTile.
@@ -9950,7 +9950,7 @@ abstract class AppLocalizations {
   /// Hint text in the search field revealed by pulling down at the top of the chat list.
   ///
   /// In en, this message translates to:
-  /// **'search chats…'**
+  /// **'Search chats'**
   String get pullRevealSearchHint;
 
   /// Accessibility label for the chevron that collapses the pull-reveal panel (search field + Archived Chats row) back to hidden.
@@ -9980,19 +9980,19 @@ abstract class AppLocalizations {
   /// All-caps header of the Archived Chats sheet when there are currently zero archived rooms (only reachable if the last one is unarchived while the sheet is open).
   ///
   /// In en, this message translates to:
-  /// **'ARCHIVED CHATS'**
+  /// **'Archived chats'**
   String get archivedChatsSheetTitle;
 
   /// All-caps header of the Archived Chats sheet showing how many rooms are archived, e.g. 'ARCHIVED CHATS · 3'.
   ///
   /// In en, this message translates to:
-  /// **'ARCHIVED CHATS · {count}'**
+  /// **'Archived chats · {count}'**
   String archivedChatsSheetTitleCount(Object count);
 
   /// Lowercase empty-state sentence shown inside the Archived Chats sheet if the last archived room is unarchived while the sheet is still open.
   ///
   /// In en, this message translates to:
-  /// **'nothing archived anymore'**
+  /// **'Nothing archived anymore'**
   String get archivedChatsSheetEmptyMessage;
 
   /// All-caps pill badge label (and tooltip) shown on a chat-list row the viewer has pinned, matching the VisibilityBadge/LockedBadge style. Per-viewer state, so it never appears for anyone but the person who pinned it.
@@ -10004,61 +10004,61 @@ abstract class AppLocalizations {
   /// All-caps row label in the chat-list long-press action menu that pins the chat, matching messageActionMenuPinLabel's style.
   ///
   /// In en, this message translates to:
-  /// **'PIN CHAT'**
+  /// **'Pin chat'**
   String get chatRowActionMenuPinLabel;
 
   /// All-caps row label in the chat-list long-press action menu that unpins an already-pinned chat.
   ///
   /// In en, this message translates to:
-  /// **'UNPIN CHAT'**
+  /// **'Unpin chat'**
   String get chatRowActionMenuUnpinLabel;
 
   /// All-caps row label in the chat-list long-press action menu that archives the chat, removing it from the main list.
   ///
   /// In en, this message translates to:
-  /// **'ARCHIVE CHAT'**
+  /// **'Archive chat'**
   String get chatRowActionMenuArchiveLabel;
 
   /// All-caps row label in the chat-list long-press action menu (and inside the Archived Chats sheet) that restores an archived chat to the main list.
   ///
   /// In en, this message translates to:
-  /// **'UNARCHIVE CHAT'**
+  /// **'Unarchive chat'**
   String get chatRowActionMenuUnarchiveLabel;
 
   /// All-caps row label in the long-press message action menu; bookmarks the message for this reader alone, where it is. Shown only when the message is not already saved. Distinct from forwarding a copy into the personal Saved Messages chat (savedMessagesTitle) — this copies nothing and is visible to nobody else.
   ///
   /// In en, this message translates to:
-  /// **'SAVE'**
+  /// **'Save'**
   String get messageActionMenuSaveLabel;
 
   /// All-caps row label in the long-press message action menu that removes this reader's own bookmark from an already-saved message. Counterpart to messageActionMenuSaveLabel.
   ///
   /// In en, this message translates to:
-  /// **'UNSAVE'**
+  /// **'Unsave'**
   String get messageActionMenuUnsaveLabel;
 
   /// SnackBar shown when saving a message fails because this reader has already saved the maximum number of messages in this room (backend returns SAVE_LIMIT_REACHED). Lowercase, matching roomScreenPinLimitSnack.
   ///
   /// In en, this message translates to:
-  /// **'too many saved here — unsave one first'**
+  /// **'Too many saved here — unsave one first'**
   String get roomScreenSaveLimitSnack;
 
   /// SnackBar shown for any other (non-limit) failure to save a message. Lowercase, matching roomScreenPinFailedSnack.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t save that'**
+  /// **'Couldn’t save that'**
   String get roomScreenSaveFailedSnack;
 
   /// Toast shown in the thread overlay when saving a message fails because this reader has hit the per-room save limit (backend returns SAVE_LIMIT_REACHED).
   ///
   /// In en, this message translates to:
-  /// **'too many saved here — unsave one first'**
+  /// **'Too many saved here — unsave one first'**
   String get threadOverlaySaveLimitToast;
 
   /// Generic toast shown in the thread overlay when saving a message fails for any reason other than the save limit.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t save that'**
+  /// **'Couldn’t save that'**
   String get threadOverlaySaveFailedToast;
 
   /// Caption under the SHARED CONTENT group in room info, explaining the SAVED row that sits in it. The contrast with pinning is the whole point of the sentence — saved is per-reader, pinned is room state — so keep both halves.
@@ -10088,7 +10088,7 @@ abstract class AppLocalizations {
   /// All-caps headline of the bottom sheet that silences one chat.
   ///
   /// In en, this message translates to:
-  /// **'MUTE CHAT'**
+  /// **'Mute chat'**
   String get muteSheetTitle;
 
   /// One line under the mute sheet's headline explaining that the user picks both what is silenced and for how long.
@@ -10124,7 +10124,7 @@ abstract class AppLocalizations {
   /// All-caps field label above the row of mute-duration choices.
   ///
   /// In en, this message translates to:
-  /// **'FOR HOW LONG'**
+  /// **'For how long'**
   String get muteSheetDurationLabel;
 
   /// Mute duration choice: sixty minutes.
@@ -10154,19 +10154,19 @@ abstract class AppLocalizations {
   /// All-caps button that applies a new mute to the chat.
   ///
   /// In en, this message translates to:
-  /// **'MUTE'**
+  /// **'Mute'**
   String get muteSheetConfirmButton;
 
   /// All-caps button that applies changes to a chat that is ALREADY muted, shown instead of the mute button.
   ///
   /// In en, this message translates to:
-  /// **'SAVE'**
+  /// **'Save'**
   String get muteSheetSaveButton;
 
   /// All-caps button that ends a mute early and restores notifications and counts.
   ///
   /// In en, this message translates to:
-  /// **'UNMUTE'**
+  /// **'Unmute'**
   String get muteSheetUnmuteButton;
 
   /// Sentence in the mute sheet when BOTH switches are on, stating that neither notifications nor unread counts will reach the user.
@@ -10220,13 +10220,13 @@ abstract class AppLocalizations {
   /// All-caps row in the chat-list long-press menu that opens the mute sheet.
   ///
   /// In en, this message translates to:
-  /// **'MUTE CHAT'**
+  /// **'Mute chat'**
   String get chatRowActionMenuMuteLabel;
 
   /// All-caps row in the chat-list long-press menu that lifts an existing mute immediately.
   ///
   /// In en, this message translates to:
-  /// **'UNMUTE CHAT'**
+  /// **'Unmute chat'**
   String get chatRowActionMenuUnmuteLabel;
 
   /// All-caps field label above the mute row in the room info screen.
@@ -10244,7 +10244,7 @@ abstract class AppLocalizations {
   /// Label under the location icon in the attachment picker sheet (attachment_menu.dart); tile is hidden on web.
   ///
   /// In en, this message translates to:
-  /// **'location'**
+  /// **'Location'**
   String get attachmentMenuLocationLabel;
 
   /// Title of the first row in the location sheet, which sends one fixed position (location_share_sheet.dart).
@@ -10262,7 +10262,7 @@ abstract class AppLocalizations {
   /// Small all-caps heading above the three live-sharing duration rows in the location sheet (location_share_sheet.dart).
   ///
   /// In en, this message translates to:
-  /// **'SHARE LIVE'**
+  /// **'Share live'**
   String get locationSheetLiveHeading;
 
   /// Subtitle repeated under every live-sharing duration row, promising the share ends by itself (location_share_sheet.dart).
@@ -10460,13 +10460,13 @@ abstract class AppLocalizations {
   /// Description shown under the location toggle when it is ON, in the guardian’s child-policy screen (child_policy_screen.dart).
   ///
   /// In en, this message translates to:
-  /// **'Can share where they are, including live for up to 8 hours'**
+  /// **'They can share where they are, including live for up to 8 hours'**
   String get childPolicyScreenLocationOnDesc;
 
   /// Description shown under the location toggle when it is OFF, in the guardian’s child-policy screen (child_policy_screen.dart).
   ///
   /// In en, this message translates to:
-  /// **'Cannot share where they are'**
+  /// **'They can’t share where they are'**
   String get childPolicyScreenLocationOffDesc;
 
   /// All-caps section label in room info, above this reader's saved messages from this room. Matches the style of roomInfoScreenSharedContentLabel directly above it.
@@ -10676,73 +10676,73 @@ abstract class AppLocalizations {
   /// Semantic label of a circular video-note bubble that is paused or has not started; tapping plays it.
   ///
   /// In en, this message translates to:
-  /// **'play video note'**
+  /// **'Play video note'**
   String get videoNoteMessagePlayLabel;
 
   /// Semantic label of a circular video-note bubble that is playing; tapping pauses it.
   ///
   /// In en, this message translates to:
-  /// **'pause video note'**
+  /// **'Pause video note'**
   String get videoNoteMessagePauseLabel;
 
   /// Semantic label of a circular video-note bubble while its source is being resolved and opened.
   ///
   /// In en, this message translates to:
-  /// **'loading video note'**
+  /// **'Loading video note'**
   String get videoNoteMessageLoadingLabel;
 
   /// Semantic label of a circular video-note bubble whose blob the backend no longer has — nothing a retry can fix, so no retry is offered.
   ///
   /// In en, this message translates to:
-  /// **'video note unavailable'**
+  /// **'Video note unavailable'**
   String get videoNoteMessageUnavailableLabel;
 
   /// Semantic label of a failed circular video-note bubble, and of the retry control on a failed outgoing one.
   ///
   /// In en, this message translates to:
-  /// **'retry video note'**
+  /// **'Retry video note'**
   String get videoNoteMessageRetryLabel;
 
   /// Small caption drawn under the refresh glyph inside a failed circular video-note bubble.
   ///
   /// In en, this message translates to:
-  /// **'tap to retry'**
+  /// **'Tap to retry'**
   String get videoNoteMessageRetryHint;
 
   /// Semantic label of the discard control on a failed outgoing circular video note, which throws the send away.
   ///
   /// In en, this message translates to:
-  /// **'discard video note'**
+  /// **'Discard video note'**
   String get videoNoteMessageDiscardLabel;
 
   /// Label under the video-note icon in the attachment picker sheet (attachment_menu.dart); the non-gesture route to the composer's video-note mode. Hidden on web.
   ///
   /// In en, this message translates to:
-  /// **'video note'**
+  /// **'Video note'**
   String get attachmentMenuVideoNoteLabel;
 
   /// All-caps label of the PHOTO position in the in-app camera's photo/video mode switch (camera_screen.dart).
   ///
   /// In en, this message translates to:
-  /// **'PHOTO'**
+  /// **'Photo'**
   String get cameraScreenPhotoModeLabel;
 
   /// All-caps label of the VIDEO position in the in-app camera's photo/video mode switch (camera_screen.dart).
   ///
   /// In en, this message translates to:
-  /// **'VIDEO'**
+  /// **'Video'**
   String get cameraScreenVideoModeLabel;
 
   /// Semantic label of the in-app camera's shutter while it is in video mode and idle.
   ///
   /// In en, this message translates to:
-  /// **'start recording'**
+  /// **'Start recording'**
   String get cameraScreenStartRecordingLabel;
 
   /// Semantic label of the in-app camera's shutter while a video recording is running.
   ///
   /// In en, this message translates to:
-  /// **'stop recording'**
+  /// **'Stop recording'**
   String get cameraScreenStopRecordingLabel;
 
   /// Message shown when the in-app camera's video recording could not be started or produced nothing usable.
@@ -10754,7 +10754,7 @@ abstract class AppLocalizations {
   /// Title of the sheet that opens on a long press of the composer's send button, where a message is queued for later delivery.
   ///
   /// In en, this message translates to:
-  /// **'SCHEDULE MESSAGE'**
+  /// **'Schedule message'**
   String get scheduleSheetTitle;
 
   /// One-line explanation under the schedule sheet's title.
@@ -10766,7 +10766,7 @@ abstract class AppLocalizations {
   /// Section label above the row of one-tap delay choices in the schedule sheet.
   ///
   /// In en, this message translates to:
-  /// **'WHEN'**
+  /// **'When'**
   String get scheduleSheetWhenLabel;
 
   /// Quick choice in the schedule sheet: send one hour from now.
@@ -10808,19 +10808,19 @@ abstract class AppLocalizations {
   /// Primary button of the schedule sheet, which queues the message. Upper case in languages that have it, matching the app's other sheet buttons.
   ///
   /// In en, this message translates to:
-  /// **'SCHEDULE'**
+  /// **'Schedule'**
   String get scheduleSheetConfirmButton;
 
   /// Primary button of the schedule sheet when it was opened to change an already-queued message's time rather than to queue a new one.
   ///
   /// In en, this message translates to:
-  /// **'SAVE'**
+  /// **'Save'**
   String get scheduleSheetSaveButton;
 
   /// Running confirmation line in the schedule sheet stating when the message will go out. {when} is one of scheduleWhenToday, scheduleWhenTomorrow or scheduleWhenDated, already assembled and already localized.
   ///
   /// In en, this message translates to:
-  /// **'Sends {when}.'**
+  /// **'Sends {when}'**
   String scheduleSendsAtSentence(String when);
 
   /// Says a send time that falls later today. {time} is the platform-formatted clock time, which already honours the reader's 12/24-hour setting — translate only the wording around it.
@@ -10844,7 +10844,7 @@ abstract class AppLocalizations {
   /// Title shown when the schedule sheet switches from its quick choices to the full date and time picker.
   ///
   /// In en, this message translates to:
-  /// **'PICK A DATE & TIME'**
+  /// **'Pick a date & time'**
   String get scheduleTimePickerTitle;
 
   /// Button that returns from the date and time picker to the sheet's quick choices.
@@ -10892,7 +10892,7 @@ abstract class AppLocalizations {
   /// Title of the sheet listing this chat's messages that are waiting to send.
   ///
   /// In en, this message translates to:
-  /// **'SCHEDULED'**
+  /// **'Scheduled'**
   String get scheduledListTitle;
 
   /// Reassurance under the scheduled list's title: nobody else in the chat can see a message before it sends.
@@ -10988,7 +10988,7 @@ abstract class AppLocalizations {
   /// Title of the sheet that edits the wording of a message already waiting to send.
   ///
   /// In en, this message translates to:
-  /// **'EDIT MESSAGE'**
+  /// **'Edit message'**
   String get scheduleEditTitle;
 
   /// Screen-reader and keyboard action name for the long press on the composer's send button that opens the schedule sheet.
@@ -11006,7 +11006,7 @@ abstract class AppLocalizations {
   /// Label above the control in the scheduled-messages sheet that chooses how a room announces it is holding messages waiting to send.
   ///
   /// In en, this message translates to:
-  /// **'SHOW AS'**
+  /// **'Show as'**
   String get scheduledListShowAs;
 
   /// One choice of that control: a tappable pill above the message box.
@@ -11072,7 +11072,7 @@ abstract class AppLocalizations {
   /// Small caption under the server screen heading, saying what the setting decides.
   ///
   /// In en, this message translates to:
-  /// **'where your account and messages live'**
+  /// **'Where your account and messages live'**
   String get serverScreenSubtitle;
 
   /// Heading shown at first launch on a build that ships without a server configured. Lowercase with a trailing full stop, like the other headings.
@@ -11084,31 +11084,31 @@ abstract class AppLocalizations {
   /// Caption under the onboarding heading, explaining that this build has no bundled server.
   ///
   /// In en, this message translates to:
-  /// **'this build didn\'t come with one — point it at yours'**
+  /// **'This build didn\'t come with one — point it at yours'**
   String get serverOnboardingSubtitle;
 
   /// All-caps status label on the server screen when the app is connected to the server.
   ///
   /// In en, this message translates to:
-  /// **'CONNECTED'**
+  /// **'Connected'**
   String get serverStatusConnected;
 
   /// All-caps status label on the server screen when the app is not connected to the server.
   ///
   /// In en, this message translates to:
-  /// **'NOT CONNECTED'**
+  /// **'Not connected'**
   String get serverStatusDisconnected;
 
   /// All-caps tag on the server card meaning the app is using the server it shipped with.
   ///
   /// In en, this message translates to:
-  /// **'DEFAULT'**
+  /// **'Default'**
   String get serverBadgeDefault;
 
   /// All-caps tag meaning the app is using a server the user runs themselves. Also the text on the corner ribbon.
   ///
   /// In en, this message translates to:
-  /// **'SELF-HOSTED'**
+  /// **'Self-hosted'**
   String get serverBadgeSelfHosted;
 
   /// Shown in place of a server address when none has been chosen yet.
@@ -11120,7 +11120,7 @@ abstract class AppLocalizations {
   /// All-caps tag on whichever of the two server choices is the one currently in use.
   ///
   /// In en, this message translates to:
-  /// **'IN USE'**
+  /// **'In use'**
   String get serverActiveNowLabel;
 
   /// Name of the first server choice: the deployment the app ships pointed at. 'MonkeyHub' is the app's proper noun — do not translate it.
@@ -11156,7 +11156,7 @@ abstract class AppLocalizations {
   /// Small all-caps button inside the address field that pastes the clipboard into it.
   ///
   /// In en, this message translates to:
-  /// **'PASTE'**
+  /// **'Paste'**
   String get serverAddressPaste;
 
   /// Error under the address field when the text cannot be read as a web address at all.
@@ -11186,7 +11186,7 @@ abstract class AppLocalizations {
   /// All-caps warning label shown when the typed address uses plain http.
   ///
   /// In en, this message translates to:
-  /// **'NOT ENCRYPTED'**
+  /// **'Not encrypted'**
   String get serverInsecureTitle;
 
   /// Body of the plain-http warning. States the platform fact (iOS and Android block cleartext by default) rather than refusing the address.
@@ -11198,7 +11198,7 @@ abstract class AppLocalizations {
   /// All-caps button that checks the typed address before anything is saved.
   ///
   /// In en, this message translates to:
-  /// **'TEST CONNECTION'**
+  /// **'Test connection'**
   String get serverTestCta;
 
   /// Label on the test button while the check is running.
@@ -11258,37 +11258,37 @@ abstract class AppLocalizations {
   /// All-caps primary button that switches the app to the typed server.
   ///
   /// In en, this message translates to:
-  /// **'CONNECT'**
+  /// **'Connect'**
   String get serverConnectCta;
 
   /// Label the primary button takes when the connection test failed but the user may still insist.
   ///
   /// In en, this message translates to:
-  /// **'CONNECT ANYWAY'**
+  /// **'Connect anyway'**
   String get serverConnectAnywayCta;
 
   /// Label the primary button takes when the typed address is the server already in use, so there is nothing to do.
   ///
   /// In en, this message translates to:
-  /// **'ALREADY CONNECTED'**
+  /// **'Already connected'**
   String get serverAlreadyConnectedCta;
 
   /// All-caps button that returns the app to the server it shipped with.
   ///
   /// In en, this message translates to:
-  /// **'USE THE DEFAULT SERVER'**
+  /// **'Use the default server'**
   String get serverUseDefaultCta;
 
   /// All-caps button on the boot-error screen that opens the server screen — the escape hatch when a bad address stops the app connecting at all.
   ///
   /// In en, this message translates to:
-  /// **'CHANGE SERVER'**
+  /// **'Change server'**
   String get serverChangeCta;
 
   /// All-caps disclosure toggle on the server screen that reveals the HTTP-actions address override.
   ///
   /// In en, this message translates to:
-  /// **'ADVANCED'**
+  /// **'Advanced'**
   String get serverAdvancedLabel;
 
   /// Explanation above the optional second address field. 'HTTP actions' is a Convex term for endpoints served over plain HTTP.
@@ -11306,7 +11306,7 @@ abstract class AppLocalizations {
   /// All-caps section header above the list of servers this device has used before.
   ///
   /// In en, this message translates to:
-  /// **'RECENT'**
+  /// **'Recent'**
   String get serverSectionRecent;
 
   /// Accessibility label for the button that removes one entry from the recent-servers list.
@@ -11318,7 +11318,7 @@ abstract class AppLocalizations {
   /// All-caps heading of the notice explaining what changing servers costs.
   ///
   /// In en, this message translates to:
-  /// **'SWITCHING SIGNS YOU OUT'**
+  /// **'Switching signs you out'**
   String get serverSwitchWarningTitle;
 
   /// Body of the switch warning. Says plainly what is lost locally and what is not lost remotely.
@@ -11330,7 +11330,7 @@ abstract class AppLocalizations {
   /// All-caps heading shown after a switch failed and the app returned to the previous server.
   ///
   /// In en, this message translates to:
-  /// **'COULDN\'T CONNECT'**
+  /// **'Couldn\'t connect'**
   String get serverSwitchRolledBackTitle;
 
   /// Body shown after a failed switch. {host} is the address that did not answer. Says the session is gone regardless, because sign-out already happened.
@@ -11486,7 +11486,7 @@ abstract class AppLocalizations {
   /// Lowercase link on the device-login (QR) screen that switches back to the ordinary username/password sign-in form.
   ///
   /// In en, this message translates to:
-  /// **'use a password instead'**
+  /// **'Use a password instead'**
   String get loginScreenUsePasswordInstead;
 
   /// First line of the hero heading on the desktop/web device-login screen, rendered in a muted color above 'sign in'; mirrors the two-part hero pattern used elsewhere in auth. Includes a trailing newline.
@@ -11504,37 +11504,37 @@ abstract class AppLocalizations {
   /// Body copy under the hero heading on the desktop/web device-login screen, explaining how to approve this sign-in from a phone.
   ///
   /// In en, this message translates to:
-  /// **'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.'**
+  /// **'Open MonkeyHub on your phone, go to your profile, tap “Scan to sign in” and point the camera here — or type the code below.'**
   String get deviceLoginScreenIntro;
 
   /// Lowercase status line on the desktop/web device-login screen while the request is still pending on the phone.
   ///
   /// In en, this message translates to:
-  /// **'waiting for approval…'**
+  /// **'Waiting for approval…'**
   String get deviceLoginScreenWaiting;
 
   /// Lowercase status line on the desktop/web device-login screen the moment the phone approves the request, while the session exchange is in flight.
   ///
   /// In en, this message translates to:
-  /// **'approved — signing you in…'**
+  /// **'Approved — signing you in…'**
   String get deviceLoginScreenApproved;
 
   /// Status line on the desktop/web device-login screen when the phone explicitly declines the request.
   ///
   /// In en, this message translates to:
-  /// **'sign-in request denied on your phone'**
+  /// **'Sign-in request denied on your phone'**
   String get deviceLoginScreenDenied;
 
   /// Fallback status line on the desktop/web device-login screen for an unrecognized failure (expired, invalid, or a network error), directing the user to mint a fresh code.
   ///
   /// In en, this message translates to:
-  /// **'something went wrong — try a new code'**
+  /// **'Something went wrong — try a new code'**
   String get deviceLoginScreenGenericError;
 
   /// All-caps label on the Profile row (mobile only) that opens the device-login scan screen, for approving a QR/short-code sign-in shown on another device. Doubles as the header title on that screen.
   ///
   /// In en, this message translates to:
-  /// **'SCAN TO SIGN IN'**
+  /// **'Scan to sign in'**
   String get profileScreenScanToSignInLabel;
 
   /// First line of the hero heading on the phone's device-login scan screen; mirrors the desktop screen's hero. Includes a trailing newline.
@@ -11558,13 +11558,13 @@ abstract class AppLocalizations {
   /// All-caps label on the button that opens the QR scanner on the phone's device-login scan screen.
   ///
   /// In en, this message translates to:
-  /// **'SCAN CODE'**
+  /// **'Scan code'**
   String get deviceLoginScanScreenScanButtonLabel;
 
   /// Lowercase heading on the confirmation step of the phone's device-login scan screen, shown after a QR or code is recognized and before APPROVE/DENY.
   ///
   /// In en, this message translates to:
-  /// **'sign in on this device?'**
+  /// **'Sign in on this device?'**
   String get deviceLoginScanScreenConfirmTitle;
 
   /// Body copy on the confirmation step of the phone's device-login scan screen. {deviceInfo} is the OS/browser string the requesting desktop or web client reported (e.g. 'Chrome on Windows'), and is the whole of this flow's phishing resistance — read carefully before changing.
@@ -11576,25 +11576,25 @@ abstract class AppLocalizations {
   /// All-caps confirm button on the phone's device-login scan screen.
   ///
   /// In en, this message translates to:
-  /// **'APPROVE'**
+  /// **'Approve'**
   String get deviceLoginScanScreenApproveButton;
 
   /// All-caps decline button on the phone's device-login scan screen.
   ///
   /// In en, this message translates to:
-  /// **'DENY'**
+  /// **'Deny'**
   String get deviceLoginScanScreenDenyButton;
 
   /// Lowercase confirmation message on the phone's device-login scan screen after APPROVE succeeds.
   ///
   /// In en, this message translates to:
-  /// **'signed in on your other device'**
+  /// **'Signed in on your other device'**
   String get deviceLoginScanScreenSuccess;
 
   /// Fallback error message on the phone's device-login scan screen for an unrecognized failure.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t approve — try again'**
+  /// **'Couldn’t approve — try again'**
   String get deviceLoginScanScreenGenericError;
 
   /// deviceLogin.ERR_CODE_INVALID / ERR_REQUEST_INVALID — the typed code or scanned QR doesn't match any live sign-in request.
@@ -11612,13 +11612,13 @@ abstract class AppLocalizations {
   /// Confirmation message on the phone's device-login scan screen after DENY succeeds — deliberately not the same 'on your phone' wording the desktop side shows, since that phrase would read oddly on the phone that just did the denying.
   ///
   /// In en, this message translates to:
-  /// **'sign-in request denied'**
+  /// **'Sign-in request denied'**
   String get deviceLoginScanScreenDeniedConfirmation;
 
   /// Badge on a member promoted to admin.
   ///
   /// In en, this message translates to:
-  /// **'ADMIN'**
+  /// **'Admin'**
   String get roomAdminRoleAdmin;
 
   /// First row of the member-action sheet — opens the tapped member's profile.
@@ -11702,7 +11702,7 @@ abstract class AppLocalizations {
   /// Confirm button for transferring group ownership.
   ///
   /// In en, this message translates to:
-  /// **'TRANSFER'**
+  /// **'Transfer'**
   String get roomAdminTransferConfirmCta;
 
   /// Confirmation-sheet headline before removing a member. {name} is their display name.
@@ -11720,7 +11720,7 @@ abstract class AppLocalizations {
   /// Confirm button for removing a member from the group.
   ///
   /// In en, this message translates to:
-  /// **'REMOVE'**
+  /// **'Remove'**
   String get roomAdminRemoveConfirmCta;
 
   /// Fallback message when a group-administration action fails for a reason we have no specific copy for.
@@ -11786,19 +11786,19 @@ abstract class AppLocalizations {
   /// Button that issues the group's first invite link.
   ///
   /// In en, this message translates to:
-  /// **'CREATE LINK'**
+  /// **'Create link'**
   String get roomInviteCreateButton;
 
   /// Button that issues a replacement link, killing the current one.
   ///
   /// In en, this message translates to:
-  /// **'NEW LINK'**
+  /// **'New link'**
   String get roomInviteRegenerateButton;
 
   /// Button that kills the current link without issuing a replacement.
   ///
   /// In en, this message translates to:
-  /// **'REVOKE LINK'**
+  /// **'Revoke link'**
   String get roomInviteRevokeButton;
 
   /// Small button under the code that copies the full invite URL.
@@ -11846,7 +11846,7 @@ abstract class AppLocalizations {
   /// Confirm button for rotating the invite link.
   ///
   /// In en, this message translates to:
-  /// **'NEW LINK'**
+  /// **'New link'**
   String get roomInviteRegenerateConfirm;
 
   /// Confirmation headline before killing the link without a replacement.
@@ -11864,13 +11864,13 @@ abstract class AppLocalizations {
   /// Confirm button for revoking the invite link.
   ///
   /// In en, this message translates to:
-  /// **'REVOKE'**
+  /// **'Revoke'**
   String get roomInviteRevokeConfirm;
 
   /// All-caps sub-heading above the expiry and max-uses choices in the invite sheet.
   ///
   /// In en, this message translates to:
-  /// **'LIMITS'**
+  /// **'Limits'**
   String get roomInviteLimitsLabel;
 
   /// Label above the row of expiry choices for the next link.
@@ -11924,7 +11924,7 @@ abstract class AppLocalizations {
   /// All-caps sub-heading above the two room-policy switches in the invite sheet.
   ///
   /// In en, this message translates to:
-  /// **'PERMISSIONS'**
+  /// **'Permissions'**
   String get roomInvitePermissionsLabel;
 
   /// Switch label: whether plain members may send invites, or only admins.
@@ -11966,7 +11966,7 @@ abstract class AppLocalizations {
   /// Second half of the status line for a link with an expiry. {date} is a short date.
   ///
   /// In en, this message translates to:
-  /// **'expires {date}'**
+  /// **'Expires {date}'**
   String roomInviteExpiresOn(Object date);
 
   /// Shown in place of the status line when the admin's current link is past its expiry.
@@ -12014,7 +12014,7 @@ abstract class AppLocalizations {
   /// Per-row button that sends a group invite to that friend.
   ///
   /// In en, this message translates to:
-  /// **'INVITE'**
+  /// **'Invite'**
   String get roomInviteFriendsInviteButton;
 
   /// Replaces the per-row button once the invite has been sent.
@@ -12038,7 +12038,7 @@ abstract class AppLocalizations {
   /// Closes the friend picker.
   ///
   /// In en, this message translates to:
-  /// **'DONE'**
+  /// **'Done'**
   String get roomInviteFriendsDone;
 
   /// Title of the admin sheet listing people who used the link and are waiting to be let in.
@@ -12080,7 +12080,7 @@ abstract class AppLocalizations {
   /// Shown instead of the handle on an invited row that is still held for a guardian's approval, so the silence reads as supervision rather than a snub.
   ///
   /// In en, this message translates to:
-  /// **'waiting on a parent'**
+  /// **'Waiting on a parent'**
   String get roomInfoScreenInviteAwaitingGuardian;
 
   /// Small button that takes back an invite that has not been answered.
@@ -12092,25 +12092,25 @@ abstract class AppLocalizations {
   /// Second line of an incoming group-invite card. {inviter} is who invited you, {members} is the group's size.
   ///
   /// In en, this message translates to:
-  /// **'from {inviter} · {members} members'**
+  /// **'From {inviter} · {members} members'**
   String roomInvitationCardFrom(Object inviter, Object members);
 
   /// Accept button on an incoming group-invite card.
   ///
   /// In en, this message translates to:
-  /// **'JOIN'**
+  /// **'Join'**
   String get roomInvitationCardJoin;
 
   /// Discover row that opens the screen for entering an invite code by hand.
   ///
   /// In en, this message translates to:
-  /// **'join with a code'**
+  /// **'Join with a code'**
   String get discoverScreenJoinByCodeTitle;
 
   /// Sub-line under the join-with-a-code row in Discover.
   ///
   /// In en, this message translates to:
-  /// **'open a group someone shared with you'**
+  /// **'Open a group someone shared with you'**
   String get discoverScreenJoinByCodeSubtitle;
 
   /// Title of the screen a tapped invite link lands on, and where a code is typed.
@@ -12152,7 +12152,7 @@ abstract class AppLocalizations {
   /// Button that looks up a typed invite code.
   ///
   /// In en, this message translates to:
-  /// **'CONTINUE'**
+  /// **'Continue'**
   String get joinInviteLookupButton;
 
   /// Shown when the invite lookup fails for a network or server reason.
@@ -12170,13 +12170,13 @@ abstract class AppLocalizations {
   /// Confirmation button on a room whose link admits people outright.
   ///
   /// In en, this message translates to:
-  /// **'JOIN GROUP'**
+  /// **'Join group'**
   String get joinInviteJoinButton;
 
   /// Confirmation button on a room whose link files a request for an admin.
   ///
   /// In en, this message translates to:
-  /// **'ASK TO JOIN'**
+  /// **'Ask to join'**
   String get joinInviteRequestButton;
 
   /// Note under the join button for a room that admits by link.
@@ -12194,7 +12194,7 @@ abstract class AppLocalizations {
   /// Button shown when you are already a member of the room behind the link.
   ///
   /// In en, this message translates to:
-  /// **'OPEN GROUP'**
+  /// **'Open group'**
   String get joinInviteOpenRoom;
 
   /// Headline shown after asking to join a room that requires approval.
@@ -12400,7 +12400,7 @@ abstract class AppLocalizations {
   /// Small label after your own name in the member list and the member sheet, marking which row is yours.
   ///
   /// In en, this message translates to:
-  /// **'you'**
+  /// **'You'**
   String get roomAdminYouSuffix;
 
   /// Button that applies a typed room password. The one explicit commit left on the room info screen.
@@ -12484,19 +12484,19 @@ abstract class AppLocalizations {
   /// Sub-line under 'Join with a code'.
   ///
   /// In en, this message translates to:
-  /// **'Open a group someone shared with you'**
+  /// **'Open a group shared with you'**
   String get newChatMenuJoinSub;
 
   /// All-caps title of the sheet that asks which chat an incoming system share should go to. Shown when the user picked the app icon in the OS share sheet rather than one of the app's own suggested chats.
   ///
   /// In en, this message translates to:
-  /// **'SHARE TO'**
+  /// **'Share to'**
   String get shareSheetTitle;
 
   /// All-caps heading above the friends who have no chat yet, listed under the recent chats in the share destination sheet.
   ///
   /// In en, this message translates to:
-  /// **'SUGGESTED'**
+  /// **'Suggested'**
   String get shareSheetSuggestedHeading;
 
   /// Names what is about to be shared when there is no filename to show — several photos, or a single attachment the OS gave no name for.
@@ -12808,61 +12808,61 @@ abstract class AppLocalizations {
   /// Label under the poll icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles.
   ///
   /// In en, this message translates to:
-  /// **'poll'**
+  /// **'Poll'**
   String get attachmentMenuPollLabel;
 
   /// Label under the checklist icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles.
   ///
   /// In en, this message translates to:
-  /// **'checklist'**
+  /// **'Checklist'**
   String get attachmentMenuChecklistLabel;
 
   /// Label under the event icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles.
   ///
   /// In en, this message translates to:
-  /// **'event'**
+  /// **'Event'**
   String get attachmentMenuEventLabel;
 
   /// All-caps kind label in the header strip of a poll card in the transcript. Stored upper case because Dart's toUpperCase is locale-insensitive.
   ///
   /// In en, this message translates to:
-  /// **'POLL'**
+  /// **'Poll'**
   String get interactionKindPoll;
 
   /// All-caps kind label in the header strip of a poll card that is in quiz mode (one right answer). Replaces the POLL label.
   ///
   /// In en, this message translates to:
-  /// **'QUIZ'**
+  /// **'Quiz'**
   String get interactionKindQuiz;
 
   /// All-caps kind label in the header strip of a checklist card in the transcript.
   ///
   /// In en, this message translates to:
-  /// **'CHECKLIST'**
+  /// **'Checklist'**
   String get interactionKindChecklist;
 
   /// All-caps kind label in the header strip of an event card in the transcript.
   ///
   /// In en, this message translates to:
-  /// **'EVENT'**
+  /// **'Event'**
   String get interactionKindEvent;
 
   /// Small all-caps badge on a poll card meaning nobody, including the author, will be shown who voted for what.
   ///
   /// In en, this message translates to:
-  /// **'ANONYMOUS'**
+  /// **'Anonymous'**
   String get interactionBadgeAnonymous;
 
   /// Small all-caps badge on a poll card meaning a voter may pick more than one option. Keep it very short: it sits beside up to two other badges on one line.
   ///
   /// In en, this message translates to:
-  /// **'MULTI'**
+  /// **'Multi'**
   String get interactionBadgeMultiple;
 
   /// Small all-caps badge on a poll, checklist or event card meaning it takes no further answers.
   ///
   /// In en, this message translates to:
-  /// **'CLOSED'**
+  /// **'Closed'**
   String get interactionBadgeClosed;
 
   /// The share of the vote an option received, shown at the right-hand end of that option's row on a poll card.
@@ -12970,19 +12970,19 @@ abstract class AppLocalizations {
   /// All-caps header of the sheet naming everybody who voted in a poll.
   ///
   /// In en, this message translates to:
-  /// **'WHO VOTED'**
+  /// **'Who voted'**
   String get interactionRespondentsTitlePoll;
 
   /// All-caps header of the sheet naming who ticked which item of a checklist.
   ///
   /// In en, this message translates to:
-  /// **'WHO TICKED'**
+  /// **'Who ticked'**
   String get interactionRespondentsTitleChecklist;
 
   /// All-caps header of the sheet naming who chose going, maybe or can't on an event.
   ///
   /// In en, this message translates to:
-  /// **'WHO REPLIED'**
+  /// **'Who replied'**
   String get interactionRespondentsTitleEvent;
 
   /// Shown in the who-answered sheet when the list could not be fetched — offline, a deleted message, or a poll that turns out to be anonymous.
@@ -13000,7 +13000,7 @@ abstract class AppLocalizations {
   /// All-caps label on the first filter pill in the who-answered sheet, showing everybody regardless of what they picked.
   ///
   /// In en, this message translates to:
-  /// **'ALL'**
+  /// **'All'**
   String get interactionFilterAll;
 
   /// The first of an event's three RSVP answers: this person intends to come.
@@ -13024,97 +13024,97 @@ abstract class AppLocalizations {
   /// Title at the top of the sheet for composing a poll. Lower case, matching the app's other sheet titles.
   ///
   /// In en, this message translates to:
-  /// **'new poll'**
+  /// **'New poll'**
   String get interactionComposePollTitle;
 
   /// All-caps tagline under the poll compose sheet's title.
   ///
   /// In en, this message translates to:
-  /// **'ASK THE ROOM'**
+  /// **'Ask the room'**
   String get interactionComposePollTagline;
 
   /// Title at the top of the sheet for composing a checklist. Lower case, matching the app's other sheet titles.
   ///
   /// In en, this message translates to:
-  /// **'new checklist'**
+  /// **'New checklist'**
   String get interactionComposeChecklistTitle;
 
   /// All-caps tagline under the checklist compose sheet's title.
   ///
   /// In en, this message translates to:
-  /// **'A LIST EVERYONE CAN TICK'**
+  /// **'A list everyone can tick'**
   String get interactionComposeChecklistTagline;
 
   /// Title at the top of the sheet for composing an event. Lower case, matching the app's other sheet titles.
   ///
   /// In en, this message translates to:
-  /// **'new event'**
+  /// **'New event'**
   String get interactionComposeEventTitle;
 
   /// All-caps tagline under the event compose sheet's title.
   ///
   /// In en, this message translates to:
-  /// **'SEE WHO IS COMING'**
+  /// **'See who is coming'**
   String get interactionComposeEventTagline;
 
   /// All-caps field label above the poll's question in the compose sheet.
   ///
   /// In en, this message translates to:
-  /// **'QUESTION'**
+  /// **'Question'**
   String get interactionComposeQuestionLabel;
 
   /// Placeholder in the poll question field. Lower case, matching the app's other hints.
   ///
   /// In en, this message translates to:
-  /// **'what are you asking?'**
+  /// **'What are you asking?'**
   String get interactionComposeQuestionHint;
 
   /// All-caps field label above the checklist's title in the compose sheet.
   ///
   /// In en, this message translates to:
-  /// **'TITLE'**
+  /// **'Title'**
   String get interactionComposeTitleLabel;
 
   /// Placeholder in the checklist title field. Lower case, matching the app's other hints.
   ///
   /// In en, this message translates to:
-  /// **'what is this list for?'**
+  /// **'What is this list for?'**
   String get interactionComposeTitleHint;
 
   /// All-caps field label above the event's name in the compose sheet.
   ///
   /// In en, this message translates to:
-  /// **'EVENT'**
+  /// **'Event'**
   String get interactionComposeEventNameLabel;
 
   /// Placeholder in the event name field. Lower case, matching the app's other hints.
   ///
   /// In en, this message translates to:
-  /// **'what\'s happening?'**
+  /// **'What\'s happening?'**
   String get interactionComposeEventNameHint;
 
   /// All-caps field label above the list of typed poll options in the compose sheet.
   ///
   /// In en, this message translates to:
-  /// **'OPTIONS'**
+  /// **'Options'**
   String get interactionComposeOptionsLabel;
 
   /// All-caps field label above the list of typed checklist items in the compose sheet.
   ///
   /// In en, this message translates to:
-  /// **'ITEMS'**
+  /// **'Items'**
   String get interactionComposeItemsLabel;
 
   /// Placeholder in one empty poll option field, numbered by its position.
   ///
   /// In en, this message translates to:
-  /// **'option {index}'**
+  /// **'Option {index}'**
   String interactionComposeOptionHint(int index);
 
   /// Placeholder in one empty checklist item field, numbered by its position.
   ///
   /// In en, this message translates to:
-  /// **'item {index}'**
+  /// **'Item {index}'**
   String interactionComposeItemHint(int index);
 
   /// Button under the poll options that appends another empty option field.
@@ -13144,85 +13144,85 @@ abstract class AppLocalizations {
   /// Title of the compose-sheet switch that lets one voter pick several options. Lower case, matching the app's other switch titles.
   ///
   /// In en, this message translates to:
-  /// **'multiple answers'**
+  /// **'Multiple answers'**
   String get interactionComposeMultipleTitle;
 
   /// Subtitle under the multiple-answers switch, saying what it does.
   ///
   /// In en, this message translates to:
-  /// **'pick more than one'**
+  /// **'Pick more than one'**
   String get interactionComposeMultipleSub;
 
   /// Title of the compose-sheet switch that hides who voted for what. Off by default.
   ///
   /// In en, this message translates to:
-  /// **'anonymous'**
+  /// **'Anonymous'**
   String get interactionComposeAnonymousTitle;
 
   /// Subtitle under the anonymous switch while it is OFF — which is the default. Says what leaving it alone means, not what the setting is called.
   ///
   /// In en, this message translates to:
-  /// **'everyone sees who voted'**
+  /// **'Everyone sees who voted'**
   String get interactionComposeAnonymousOffSub;
 
   /// Subtitle under the anonymous switch while it is ON.
   ///
   /// In en, this message translates to:
-  /// **'nobody sees who voted'**
+  /// **'Nobody sees who voted'**
   String get interactionComposeAnonymousOnSub;
 
   /// Title of the compose-sheet switch that turns a poll into a quiz with one right answer.
   ///
   /// In en, this message translates to:
-  /// **'quiz mode'**
+  /// **'Quiz mode'**
   String get interactionComposeQuizTitle;
 
   /// Subtitle under the quiz-mode switch, saying what it does.
   ///
   /// In en, this message translates to:
-  /// **'one right answer, no changing it'**
+  /// **'One right answer, no changing it'**
   String get interactionComposeQuizSub;
 
   /// All-caps field label above the optional note a quiz shows once somebody has answered.
   ///
   /// In en, this message translates to:
-  /// **'EXPLANATION'**
+  /// **'Explanation'**
   String get interactionComposeExplanationLabel;
 
   /// Placeholder in the quiz explanation field.
   ///
   /// In en, this message translates to:
-  /// **'shown after answering (optional)'**
+  /// **'Shown after answering (optional)'**
   String get interactionComposeExplanationHint;
 
   /// Title of the compose-sheet switch that lets people other than the author tick a checklist's items. On by default.
   ///
   /// In en, this message translates to:
-  /// **'anyone can tick'**
+  /// **'Anyone can tick'**
   String get interactionComposeOthersMayCheckTitle;
 
   /// Subtitle under the anyone-can-tick switch.
   ///
   /// In en, this message translates to:
-  /// **'not just you'**
+  /// **'Not just you'**
   String get interactionComposeOthersMayCheckSub;
 
   /// Title of the compose-sheet switch that lets people other than the author add items to a checklist later. On by default.
   ///
   /// In en, this message translates to:
-  /// **'anyone can add'**
+  /// **'Anyone can add'**
   String get interactionComposeOthersMayAddTitle;
 
   /// Subtitle under the anyone-can-add switch.
   ///
   /// In en, this message translates to:
-  /// **'the list can grow later'**
+  /// **'The list can grow later'**
   String get interactionComposeOthersMayAddSub;
 
   /// All-caps field label above the event's date and time pickers in the compose sheet.
   ///
   /// In en, this message translates to:
-  /// **'WHEN'**
+  /// **'When'**
   String get interactionComposeWhenLabel;
 
   /// Placeholder on the event compose sheet's start-time row, before a date has been chosen.
@@ -13240,31 +13240,31 @@ abstract class AppLocalizations {
   /// All-caps field label above the event's optional location, which is free text rather than a map pin.
   ///
   /// In en, this message translates to:
-  /// **'PLACE'**
+  /// **'Place'**
   String get interactionComposePlaceLabel;
 
   /// Placeholder in the event place field.
   ///
   /// In en, this message translates to:
-  /// **'where? (optional)'**
+  /// **'Where? (optional)'**
   String get interactionComposePlaceHint;
 
   /// All-caps text of the button that posts the composed poll to the room.
   ///
   /// In en, this message translates to:
-  /// **'SEND POLL'**
+  /// **'Send poll'**
   String get interactionComposeSendPoll;
 
   /// All-caps text of the button that posts the composed checklist to the room.
   ///
   /// In en, this message translates to:
-  /// **'SEND CHECKLIST'**
+  /// **'Send checklist'**
   String get interactionComposeSendChecklist;
 
   /// All-caps text of the button that posts the composed event to the room.
   ///
   /// In en, this message translates to:
-  /// **'SEND EVENT'**
+  /// **'Send event'**
   String get interactionComposeSendEvent;
 
   /// Error under the compose sheet when the question, checklist title or event name is empty.
@@ -13318,7 +13318,7 @@ abstract class AppLocalizations {
   /// All-caps title of the message-info screen, dragged in from the side of your own chat bubble: when the message was sent, and when it reached and was read by each member.
   ///
   /// In en, this message translates to:
-  /// **'MESSAGE INFO'**
+  /// **'Message info'**
   String get messageReceiptsScreenTitle;
 
   /// Line under the message on the read-receipts screen. {read} is how many other members have read it, {total} is how many other members the room has.
@@ -13330,43 +13330,43 @@ abstract class AppLocalizations {
   /// Shown on the read-receipts screen for a room whose only member is the reader, so there is nobody a receipt could come from.
   ///
   /// In en, this message translates to:
-  /// **'nobody else is in this room yet'**
+  /// **'Nobody else is in this room yet'**
   String get messageReceiptsEmptyState;
 
   /// All-caps section heading on the read-receipts screen over the people who have read the message.
   ///
   /// In en, this message translates to:
-  /// **'READ'**
+  /// **'Read'**
   String get messageReceiptsSectionRead;
 
   /// All-caps section heading on the read-receipts screen over the people whose device has the message but who have not read it.
   ///
   /// In en, this message translates to:
-  /// **'DELIVERED'**
+  /// **'Delivered'**
   String get messageReceiptsSectionDelivered;
 
   /// All-caps section heading on the read-receipts screen over the people the message has not reached yet.
   ///
   /// In en, this message translates to:
-  /// **'SENT'**
+  /// **'Sent'**
   String get messageReceiptsSectionSent;
 
   /// All-caps section heading on the read-receipts screen over the people who have turned SEND READ RECEIPTS off, so nothing can be said about them either way.
   ///
   /// In en, this message translates to:
-  /// **'NO RECEIPTS'**
+  /// **'No receipts'**
   String get messageReceiptsSectionHidden;
 
   /// Shown in place of a timestamp on the read-receipts screen for someone who does not share read receipts.
   ///
   /// In en, this message translates to:
-  /// **'not shared'**
+  /// **'Not shared'**
   String get messageReceiptsStateHidden;
 
   /// Shown in place of a timestamp on the read-receipts screen for someone the message has not reached yet.
   ///
   /// In en, this message translates to:
-  /// **'waiting'**
+  /// **'Waiting'**
   String get messageReceiptsStateWaiting;
 
   /// Screen-reader label for one row of the read-receipts screen. {name} is the person, {day} is a day label such as TODAY, {time} is a 24h clock time.
@@ -13456,7 +13456,7 @@ abstract class AppLocalizations {
   /// Note under the install button explaining the download happens once.
   ///
   /// In en, this message translates to:
-  /// **'one-time download, kept until you remove it'**
+  /// **'One-time download, kept until you remove it'**
   String get companionInstallOneTime;
 
   /// Download progress line. {received} and {total} are already-formatted sizes, e.g. '104 MB' and '328 MB'.
@@ -13582,13 +13582,13 @@ abstract class AppLocalizations {
   /// All-caps section label on a companion's detail screen.
   ///
   /// In en, this message translates to:
-  /// **'GENERAL'**
+  /// **'General'**
   String get companionSectionGeneral;
 
   /// All-caps section label above the download/remove row on a companion's detail screen.
   ///
   /// In en, this message translates to:
-  /// **'STORAGE'**
+  /// **'Storage'**
   String get companionSectionStorage;
 
   /// Small button that deletes a downloaded companion model from the device.
@@ -13618,7 +13618,7 @@ abstract class AppLocalizations {
   /// All-caps destructive button that confirms deleting a companion download.
   ///
   /// In en, this message translates to:
-  /// **'REMOVE'**
+  /// **'Remove'**
   String get companionRemoveConfirm;
 
   /// Label of the switch that turns Sebastian on. 'Sebastian' is a proper noun and is never translated.
@@ -13636,7 +13636,7 @@ abstract class AppLocalizations {
   /// All-caps section label above the target-language picker on Sebastian's screen.
   ///
   /// In en, this message translates to:
-  /// **'TRANSLATE INTO'**
+  /// **'Translate into'**
   String get sebastianLanguageSection;
 
   /// First row of the target-language picker: follow whatever language the app itself is displayed in.
@@ -13672,7 +13672,7 @@ abstract class AppLocalizations {
   /// All-caps section label above Marlowe's list of downloadable models. 'Brain' is this app's user-facing word for a model.
   ///
   /// In en, this message translates to:
-  /// **'BRAIN'**
+  /// **'Brain'**
   String get marloweBrainsSection;
 
   /// Caption above Marlowe's list of downloadable models, explaining the size trade-off.
@@ -13732,13 +13732,13 @@ abstract class AppLocalizations {
   /// All-caps row in the message long-press menu that translates the message.
   ///
   /// In en, this message translates to:
-  /// **'TRANSLATE'**
+  /// **'Translate'**
   String get messageActionMenuTranslateLabel;
 
   /// All-caps row in the message long-press menu that hides a translation and shows what was actually written.
   ///
   /// In en, this message translates to:
-  /// **'SHOW ORIGINAL'**
+  /// **'Show original'**
   String get messageActionMenuShowOriginalLabel;
 
   /// Row in Room Info that turns on translation for every message in the chat.
@@ -13798,19 +13798,19 @@ abstract class AppLocalizations {
   /// Lowercase SnackBar shown when a message tapped for translation is already in the reader's language. {language} is written in that language itself.
   ///
   /// In en, this message translates to:
-  /// **'already in {language}'**
+  /// **'Already in {language}'**
   String roomScreenAlreadyInLanguageSnack(Object language);
 
   /// Lowercase SnackBar offering to translate the whole chat after the first single message was translated.
   ///
   /// In en, this message translates to:
-  /// **'translate the rest of this chat too?'**
+  /// **'Translate the rest of this chat too?'**
   String get roomScreenTranslateRoomOffer;
 
   /// All-caps SnackBar action that accepts the offer to translate the whole chat.
   ///
   /// In en, this message translates to:
-  /// **'TRANSLATE ALL'**
+  /// **'Translate all'**
   String get roomScreenTranslateRoomOfferAction;
 
   /// Value column of the Companions settings row when no companion is active.
@@ -13840,7 +13840,7 @@ abstract class AppLocalizations {
   /// All-caps badge on the downloaded model a companion is currently running. Mirrors the ACTIVE badge on the language picker.
   ///
   /// In en, this message translates to:
-  /// **'IN USE'**
+  /// **'In use'**
   String get companionBrainInUse;
 
   /// Status line under a companion's name naming the downloaded model it runs on. {name} is a tier name, e.g. 'Balanced'.
@@ -13912,25 +13912,25 @@ abstract class AppLocalizations {
   /// All-caps row in the message long-press menu that discards a translation and asks the companion again. Offered alongside SHOW ORIGINAL when a translation is showing.
   ///
   /// In en, this message translates to:
-  /// **'TRANSLATE AGAIN'**
+  /// **'Translate again'**
   String get messageActionMenuTranslateAgainLabel;
 
   /// Label under the share-screen control in the call tray. Lowercase like its neighbours (mute, speaker, leave).
   ///
   /// In en, this message translates to:
-  /// **'share'**
+  /// **'Share'**
   String get groupCallScreenShareLabel;
 
   /// Label under the share-screen control while this device is sharing; tapping ends the share.
   ///
   /// In en, this message translates to:
-  /// **'stop share'**
+  /// **'Stop sharing'**
   String get groupCallScreenStopShareLabel;
 
   /// Label under the share-screen control from the tap until the platform is actually sending the screen — on iOS, until the system broadcast has started. Lowercase like its neighbours.
   ///
   /// In en, this message translates to:
-  /// **'starting…'**
+  /// **'Starting…'**
   String get groupCallScreenShareStartingLabel;
 
   /// Caption under a dimmed participant who was invited to the group call and has not picked up yet.
@@ -13954,13 +13954,13 @@ abstract class AppLocalizations {
   /// Label under the control that puts the call screen away while the call keeps going.
   ///
   /// In en, this message translates to:
-  /// **'hide'**
+  /// **'Hide'**
   String get groupCallScreenMinimizeLabel;
 
   /// Label under the pen control that lets the user draw on a shared screen.
   ///
   /// In en, this message translates to:
-  /// **'draw'**
+  /// **'Draw'**
   String get groupCallScreenDrawLabel;
 
   /// Label under the 1:1 call tray's share-screen button.
@@ -14098,19 +14098,19 @@ abstract class AppLocalizations {
   /// All-caps action on a finished game's result card; sends a push notification with this result to the player's friends. Distinct from gameShare, which only copies text.
   ///
   /// In en, this message translates to:
-  /// **'TELL FRIENDS'**
+  /// **'Tell friends'**
   String get gameTellFriends;
 
   /// Replaces the TELL FRIENDS action once it has been used. The server allows one send per result.
   ///
   /// In en, this message translates to:
-  /// **'friends told'**
+  /// **'Friends told'**
   String get gameToldFriends;
 
   /// Title of the confirmation asked before notifying every friend about a game result.
   ///
   /// In en, this message translates to:
-  /// **'tell your friends?'**
+  /// **'Tell your friends?'**
   String get gameTellFriendsTitle;
 
   /// Body of that confirmation. States both facts: friends receive a notification, and it can only be sent once.
@@ -14122,31 +14122,31 @@ abstract class AppLocalizations {
   /// All-caps dismissal on the tell-friends confirmation; sends nothing.
   ///
   /// In en, this message translates to:
-  /// **'NOT NOW'**
+  /// **'Not now'**
   String get gameTellFriendsCancel;
 
   /// All-caps confirmation on the tell-friends dialog; sends the notification.
   ///
   /// In en, this message translates to:
-  /// **'SEND IT'**
+  /// **'Send it'**
   String get gameTellFriendsConfirm;
 
   /// Toast shown after a game result was pushed to the player's friends.
   ///
   /// In en, this message translates to:
-  /// **'sent — they know'**
+  /// **'Sent — they know'**
   String get gameTellFriendsSent;
 
   /// Toast shown when the send was refused because the player's own daily-score visibility is set to nobody, so friends could not see the result anyway. The fix is a setting they own.
   ///
   /// In en, this message translates to:
-  /// **'your daily scores are private, so nobody would see this'**
+  /// **'Your daily scores are private, so nobody would see this'**
   String get gameTellFriendsPrivate;
 
   /// Toast shown when the send failed for any other reason — offline, or the server refused.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t send that'**
+  /// **'Couldn’t send that'**
   String get gameTellFriendsFailed;
 
   /// All-caps label of the per-device switch for notifications about what friends post and finish.
@@ -14170,79 +14170,79 @@ abstract class AppLocalizations {
   /// Shown in place of an action button when a request between the viewer and this person is still parked at the VIEWER'S OWN guardian. Never shown for the other side's guardian — that would reveal that the other person is a child.
   ///
   /// In en, this message translates to:
-  /// **'WITH A GROWN-UP'**
+  /// **'With a grown-up'**
   String get searchScreenActionWithGrownUp;
 
   /// Hint in the new-chat sheet's search bar.
   ///
   /// In en, this message translates to:
-  /// **'search your friends'**
+  /// **'Search your friends'**
   String get newChatMenuSearchHint;
 
   /// Empty state in the new-chat sheet when the account has no friends at all.
   ///
   /// In en, this message translates to:
-  /// **'no friends yet —\\nfind people in Discover'**
+  /// **'No friends yet — find people in Discover'**
   String get newChatMenuNoFriendsYet;
 
   /// Empty state in the new-chat sheet when the search filtered everyone out.
   ///
   /// In en, this message translates to:
-  /// **'no friends match'**
+  /// **'No friends match'**
   String get newChatMenuNoFriendsMatch;
 
   /// Toast shown when opening a DM from the new-chat sheet fails.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t open that chat — try again'**
+  /// **'Couldn’t open that chat — try again'**
   String get newChatMenuOpenDmFailed;
 
   /// Outline button on the child settings screen that opens the person picker.
   ///
   /// In en, this message translates to:
-  /// **'PICK FROM YOUR PEOPLE'**
+  /// **'Pick from your people'**
   String get childPolicyScreenAddSomeoneLabel;
 
   /// Hint in the guardian's person picker.
   ///
   /// In en, this message translates to:
-  /// **'search a name or username'**
+  /// **'Search a name or username'**
   String get childPolicyScreenPickPersonHint;
 
   /// Shown when every one of the guardian's own friends is already allowed.
   ///
   /// In en, this message translates to:
-  /// **'no one left to add from your friends —\\nsearch for anyone else'**
+  /// **'No one left to add from your friends —\\nsearch for anyone else'**
   String get childPolicyScreenPickPersonEmpty;
 
   /// Shown when the guardian's person search found nobody.
   ///
   /// In en, this message translates to:
-  /// **'no one matches'**
+  /// **'No one matches'**
   String get childPolicyScreenPickPersonNoMatch;
 
   /// Heading over the guardian's own friends in the person picker.
   ///
   /// In en, this message translates to:
-  /// **'YOUR FRIENDS'**
+  /// **'Your friends'**
   String get childPolicyScreenPickPersonFriendsHeader;
 
   /// Heading over search results beyond the guardian's own friends.
   ///
   /// In en, this message translates to:
-  /// **'EVERYONE ELSE'**
+  /// **'Everyone else'**
   String get childPolicyScreenPickPersonEveryoneHeader;
 
   /// Outline button on the child settings screen that opens the room picker.
   ///
   /// In en, this message translates to:
-  /// **'ADD A ROOM'**
+  /// **'Add a room'**
   String get childPolicyScreenAddRoomLabel;
 
   /// Heading of the guardian's room picker sheet.
   ///
   /// In en, this message translates to:
-  /// **'ADD A ROOM'**
+  /// **'Add a room'**
   String get childPolicyScreenPickRoomHeading;
 
   /// See the string.
@@ -14254,19 +14254,19 @@ abstract class AppLocalizations {
   /// Hint in the guardian's room picker.
   ///
   /// In en, this message translates to:
-  /// **'search your rooms'**
+  /// **'Search your rooms'**
   String get childPolicyScreenPickRoomHint;
 
   /// Shown when every room the guardian is in has already been granted to this child.
   ///
   /// In en, this message translates to:
-  /// **'no rooms of yours left to add'**
+  /// **'No rooms of yours left to add'**
   String get childPolicyScreenPickRoomEmpty;
 
   /// Shown when the room filter matched nothing.
   ///
   /// In en, this message translates to:
-  /// **'no rooms match'**
+  /// **'No rooms match'**
   String get childPolicyScreenPickRoomNoMatch;
 
   /// See the string.
@@ -14278,25 +14278,25 @@ abstract class AppLocalizations {
   /// Generic failure adding a room to a child.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t add that room — try again'**
+  /// **'Couldn’t add that room — try again'**
   String get childPolicyScreenErrorAddRoomGeneric;
 
   /// Refused because the target is a DM or a system room.
   ///
   /// In en, this message translates to:
-  /// **'that room can’t be added this way'**
+  /// **'That room can’t be added this way'**
   String get childPolicyScreenErrorRoomNotAllowed;
 
   /// Refused because the room was deleted between opening the picker and tapping.
   ///
   /// In en, this message translates to:
-  /// **'that room no longer exists'**
+  /// **'That room no longer exists'**
   String get childPolicyScreenErrorRoomGone;
 
   /// Heading over the friends list in the new-chat sheet, drawn below the create/join rows so the list does not run straight on from them.
   ///
   /// In en, this message translates to:
-  /// **'FRIENDS'**
+  /// **'Friends'**
   String get newChatMenuFriendsHeader;
 
   /// Error shown when a suggested room change can no longer be found — usually because another admin already answered it.
@@ -14380,7 +14380,7 @@ abstract class AppLocalizations {
   /// Stands in for an empty proposed description — the suggestion is to remove it altogether.
   ///
   /// In en, this message translates to:
-  /// **'nothing — take it off'**
+  /// **'Nothing — take it off'**
   String get roomChangeRequestsClearedValue;
 
   /// Attribution line above a suggested change. {name} is the member's display name.
@@ -14398,13 +14398,13 @@ abstract class AppLocalizations {
   /// Line under the editable name and description rows, for a member whose edit becomes a suggestion instead of a change.
   ///
   /// In en, this message translates to:
-  /// **'an admin has to approve this'**
+  /// **'An admin has to approve this'**
   String get roomInfoScreenSuggestNote;
 
   /// Caption under the group picture, for a member whose picture tap files a suggestion instead of setting it.
   ///
   /// In en, this message translates to:
-  /// **'an admin approves new pictures'**
+  /// **'An admin approves new pictures'**
   String get roomInfoScreenSuggestAvatarNote;
 
   /// Accessibility label for the picture button when tapping it suggests a group picture rather than setting one.
@@ -14464,13 +14464,13 @@ abstract class AppLocalizations {
   /// Status line under a pending suggestion, saying it is waiting on an admin.
   ///
   /// In en, this message translates to:
-  /// **'waiting on an admin'**
+  /// **'Waiting on an admin'**
   String get roomInfoScreenSuggestionPending;
 
   /// Button on a pending suggestion that takes it back.
   ///
   /// In en, this message translates to:
-  /// **'TAKE BACK'**
+  /// **'Take back'**
   String get roomInfoScreenSuggestionWithdraw;
 
   /// Admin-only strip at the top of a group chat when a member has suggested a new group picture. {name} is the member's display name.
@@ -14500,7 +14500,7 @@ abstract class AppLocalizations {
   /// Action on the admin suggestion strip that opens the review sheet.
   ///
   /// In en, this message translates to:
-  /// **'REVIEW'**
+  /// **'Review'**
   String get roomSuggestionBannerReview;
 
   /// Screen-reader label for the admin suggestion strip as a whole.
@@ -14512,19 +14512,19 @@ abstract class AppLocalizations {
   /// Main button of the how-to-play sheet for a game not started today. Closes the sheet and opens the game.
   ///
   /// In en, this message translates to:
-  /// **'PLAY'**
+  /// **'Play'**
   String get gameInfoPlay;
 
   /// Main button of the how-to-play sheet for a game started but not finished today. Closes the sheet and reopens the game.
   ///
   /// In en, this message translates to:
-  /// **'CONTINUE'**
+  /// **'Continue'**
   String get gameInfoContinue;
 
   /// Main button of the how-to-play sheet for a game already finished today. Closes the sheet and opens the finished board.
   ///
   /// In en, this message translates to:
-  /// **'SEE YOUR RESULT'**
+  /// **'See your result'**
   String get gameInfoSeeResult;
 
   /// Second line of the message-info header, under the read count: how many of the other members' devices the message has reached. Reaching a device includes everyone who has read it.
@@ -14536,7 +14536,7 @@ abstract class AppLocalizations {
   /// Tiny label on the message card of the message-info screen, before the day and time the message was sent.
   ///
   /// In en, this message translates to:
-  /// **'SENT'**
+  /// **'Sent'**
   String get messageReceiptsSentLabel;
 
   /// Screen-reader sentence for one member on the message-info screen when both their delivery and read times are known.
@@ -14554,13 +14554,13 @@ abstract class AppLocalizations {
   /// Lower-case label beside the time a member read your message, in their row on the message-info screen.
   ///
   /// In en, this message translates to:
-  /// **'read'**
+  /// **'Read'**
   String get messageReceiptsStampRead;
 
   /// Lower-case label beside the time your message reached a member's device, in their row on the message-info screen.
   ///
   /// In en, this message translates to:
-  /// **'delivered'**
+  /// **'Delivered'**
   String get messageReceiptsStampDelivered;
 
   /// Last chip in each invite-link limit row; opens a stepper for a value the preset chips don't offer.
@@ -14614,25 +14614,25 @@ abstract class AppLocalizations {
   /// Section label on the games hub and link beside each game's standings: everyone's all-time best scores.
   ///
   /// In en, this message translates to:
-  /// **'ALL-TIME'**
+  /// **'All-time'**
   String get recordsLabel;
 
   /// One line under the ALL-TIME label on the games hub.
   ///
   /// In en, this message translates to:
-  /// **'the best anyone has ever done — you and your friends'**
+  /// **'The best anyone has ever done — you and your friends'**
   String get recordsBlurb;
 
   /// Under a game's record holder on the games hub: the viewer's own all-time best at that game. {value} is a time like 1:42 or a guess count like 3/6.
   ///
   /// In en, this message translates to:
-  /// **'yours {value}'**
+  /// **'Yours {value}'**
   String recordsYourBest(Object value);
 
   /// In place of a record holder, for a game nobody among you and your friends has solved yet.
   ///
   /// In en, this message translates to:
-  /// **'nobody yet'**
+  /// **'Nobody yet'**
   String get recordsNoneYet;
 
   /// Shown on a records surface when neither you nor any friend has solved anything yet.
@@ -14650,7 +14650,7 @@ abstract class AppLocalizations {
   /// When an all-time best was set, on its row. {date} is a localized date.
   ///
   /// In en, this message translates to:
-  /// **'set {date}'**
+  /// **'Set {date}'**
   String recordsSetOn(Object date);
 
   /// Screen-reader label of the button that opens the reaction choices on a friend's all-time record.
@@ -14662,13 +14662,13 @@ abstract class AppLocalizations {
   /// Toast when a reaction to a record could not be saved.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t react to that'**
+  /// **'Couldn’t react to that'**
   String get recordsReactFailed;
 
   /// Shown when the all-time records could not be fetched; a TRY AGAIN action follows.
   ///
   /// In en, this message translates to:
-  /// **'couldn’t load the records'**
+  /// **'Couldn’t load the records'**
   String get recordsLoadFailed;
 
   /// Screen-reader line for one game's row in the ALL-TIME section: who holds the record and with what.
@@ -14680,7 +14680,7 @@ abstract class AppLocalizations {
   /// Section label above the choice between following the device's light/dark mode and one fixed theme.
   ///
   /// In en, this message translates to:
-  /// **'APPEARANCE'**
+  /// **'Appearance'**
   String get appearanceLabel;
 
   /// Option: the app's theme follows the device's light and dark mode.
@@ -14692,7 +14692,7 @@ abstract class AppLocalizations {
   /// Line under 'Match device'.
   ///
   /// In en, this message translates to:
-  /// **'light by day, dark by night — with your phone'**
+  /// **'Light by day, dark by night — with your phone'**
   String get appearanceMatchDeviceSub;
 
   /// Option: one fixed theme regardless of the device's light/dark mode.
@@ -14704,31 +14704,31 @@ abstract class AppLocalizations {
   /// Line under 'One theme'.
   ///
   /// In en, this message translates to:
-  /// **'the same look all day'**
+  /// **'The same look all day'**
   String get appearanceOneThemeSub;
 
   /// Label of the theme used while the device is in light mode.
   ///
   /// In en, this message translates to:
-  /// **'LIGHT MODE'**
+  /// **'Light mode'**
   String get appearanceLightSlot;
 
   /// Label of the theme used while the device is in dark mode.
   ///
   /// In en, this message translates to:
-  /// **'DARK MODE'**
+  /// **'Dark mode'**
   String get appearanceDarkSlot;
 
   /// Badge on whichever of the light/dark themes is showing right now.
   ///
   /// In en, this message translates to:
-  /// **'NOW'**
+  /// **'Now'**
   String get appearanceNow;
 
   /// Value of the THEME row in Settings while the theme follows the device. {name} is the theme showing right now.
   ///
   /// In en, this message translates to:
-  /// **'auto · {name}'**
+  /// **'Auto · {name}'**
   String appearanceAutoValue(Object name);
 
   /// Hint at the top of the theme screen while the theme follows the device.
@@ -14788,61 +14788,61 @@ abstract class AppLocalizations {
   /// Verdict chip shown while files are dragged over the window but not over anything that can receive them (desktop/web drag-and-drop).
   ///
   /// In en, this message translates to:
-  /// **'drop on a chat to send'**
+  /// **'Drop on a chat to send'**
   String get dropHintNoTarget;
 
   /// Verdict chip shown when a drag carries only things this app cannot send at all and no more specific reason applies.
   ///
   /// In en, this message translates to:
-  /// **'nothing here can be sent'**
+  /// **'Nothing here can be sent'**
   String get dropNothingToSend;
 
   /// Verdict chip headline while dragging pictures over a chat. {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{send photo} other{send {count} photos}}'**
+  /// **'{count, plural, one{Send photo} other{Send {count} photos}}'**
   String dropSendPhotos(num count);
 
   /// Verdict chip headline while dragging videos over a chat. {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{send video} other{send {count} videos}}'**
+  /// **'{count, plural, one{Send video} other{Send {count} videos}}'**
   String dropSendVideos(num count);
 
   /// Verdict chip headline while dragging audio files over a chat. {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{send audio} other{send {count} audio files}}'**
+  /// **'{count, plural, one{Send audio} other{Send {count} audio files}}'**
   String dropSendAudio(num count);
 
   /// Verdict chip headline while dragging documents over a chat. {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{send file} other{send {count} files}}'**
+  /// **'{count, plural, one{Send file} other{Send {count} files}}'**
   String dropSendFiles(num count);
 
   /// Verdict chip headline while dragging a MIX of kinds over a chat. {count} is the total.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{send item} other{send {count} items}}'**
+  /// **'{count, plural, one{Send item} other{Send {count} items}}'**
   String dropSendItems(num count);
 
   /// Verdict chip headline while dragging selected text over a chat — it becomes composer contents rather than a message.
   ///
   /// In en, this message translates to:
-  /// **'add to message'**
+  /// **'Add to message'**
   String get dropSendText;
 
   /// Verdict chip headline while dragging a link or a browser tab over a chat — it becomes composer contents rather than a message.
   ///
   /// In en, this message translates to:
-  /// **'add link'**
+  /// **'Add link'**
   String get dropSendLink;
 
   /// Second line of the verdict chip naming which chat the drop would go to. {name} is the chat or person's name.
   ///
   /// In en, this message translates to:
-  /// **'to {name}'**
+  /// **'To {name}'**
   String dropTargetTo(String name);
 
   /// Verdict-chip caveat and post-drop notice: some dragged files are over the upload cap. {count} is how many, {size} is the pre-formatted cap like '20 MB'.
@@ -14854,31 +14854,31 @@ abstract class AppLocalizations {
   /// Verdict-chip caveat and post-drop notice: a folder was dragged in. This app cannot archive or upload directories.
   ///
   /// In en, this message translates to:
-  /// **'folders can’t be sent'**
+  /// **'Folders can’t be sent'**
   String get dropNoticeFolder;
 
   /// Verdict-chip caveat and post-drop notice: zero-byte files in the drag are skipped. {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{skipping an empty file} other{skipping {count} empty files}}'**
+  /// **'{count, plural, one{Skipping an empty file} other{Skipping {count} empty files}}'**
   String dropNoticeEmpty(num count);
 
   /// Verdict-chip caveat shown over a chat where a guardian policy forbids attachments.
   ///
   /// In en, this message translates to:
-  /// **'attachments aren’t allowed here'**
+  /// **'Attachments aren’t allowed here'**
   String get dropNoticeNotAllowed;
 
   /// Verdict-chip caveat and post-drop notice: media this app cannot draw or play (a .mkv, a .psd) still sends, as a plain document. {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{will be sent as a file} other{{count} will be sent as files}}'**
+  /// **'{count, plural, one{Will be sent as a file} other{{count} will be sent as files}}'**
   String dropNoticeAsFile(num count);
 
   /// Verdict-chip caveat and post-drop notice: media that sends as media but which some devices or browsers will not render (HEIC, FLAC). {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{may not preview everywhere} other{{count} may not preview everywhere}}'**
+  /// **'{count, plural, one{May not preview everywhere} other{{count} may not preview everywhere}}'**
   String dropNoticeFragile(num count);
 
   /// One-word label on a drag preview card standing for a picture, used where the platform withholds the filename (every browser drag).
@@ -15034,7 +15034,7 @@ abstract class AppLocalizations {
   /// Screen-reader hint for the long-press action on a GIF or sticker tile (lowercase verb phrase).
   ///
   /// In en, this message translates to:
-  /// **'show options'**
+  /// **'Show options'**
   String get expressionOptionsHint;
 
   /// Credit line for a sticker pack. {author} is who made the art, {license} its licence name such as CC BY 4.0.
@@ -15622,19 +15622,19 @@ abstract class AppLocalizations {
   /// Presence word next to a green dot under someone's name.
   ///
   /// In en, this message translates to:
-  /// **'online'**
+  /// **'Online'**
   String get acctPresenceOnline;
 
   /// Presence word next to an amber dot under someone's name.
   ///
   /// In en, this message translates to:
-  /// **'away'**
+  /// **'Away'**
   String get acctPresenceAway;
 
   /// Presence word next to a grey dot under someone's name.
   ///
   /// In en, this message translates to:
-  /// **'offline'**
+  /// **'Offline'**
   String get acctPresenceOffline;
 
   /// Title of the sheet for changing or saving your profile photo.
@@ -15826,7 +15826,7 @@ abstract class AppLocalizations {
   /// Title of Settings > App icon. Title case like iOS Settings pages.
   ///
   /// In en, this message translates to:
-  /// **'App Icon'**
+  /// **'App icon'**
   String get appIconScreenTitle;
 
   /// Footnote explaining the Match theme icon option in Settings > App icon.
@@ -15988,7 +15988,7 @@ abstract class AppLocalizations {
   /// Second line under the other person's name in a DM's header while they are online, like the status under a name in WhatsApp/Telegram. Lowercase.
   ///
   /// In en, this message translates to:
-  /// **'online'**
+  /// **'Online'**
   String get roomHeaderStatusOnline;
 
   /// Second line under a group's name in the conversation header: how many people are in it. Lowercase, like Telegram's 'N members'.
@@ -16864,13 +16864,13 @@ abstract class AppLocalizations {
   /// Status line under the other person's name in a DM header while they type. Their name is already right above it, so just the verb with an ellipsis, like Telegram's 'typing…'.
   ///
   /// In en, this message translates to:
-  /// **'typing…'**
+  /// **'Typing…'**
   String get roomHeaderStatusTyping;
 
   /// One line under the large Glass title in Settings > Glass, sentence case.
   ///
   /// In en, this message translates to:
-  /// **'How much of what\'s behind comes through.'**
+  /// **'How much of what’s behind comes through.'**
   String get glassScreenLead;
 
   /// Small centred pill above the first message of today in a conversation, like Telegram's/iMessage's day separators. Sentence case.
@@ -17530,7 +17530,7 @@ abstract class AppLocalizations {
   /// Shown when a Settings search matches nothing. {query} is what was typed.
   ///
   /// In en, this message translates to:
-  /// **'No results for \"{query}\"'**
+  /// **'No results for “{query}”'**
   String settingsSearchNoResults(String query);
 
   /// Breadcrumb root for settings that live in the account (profile) page, e.g. 'Account › Devices'.
@@ -17754,6 +17754,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'account, sign out, delete, email, username'**
   String get settingsSearchKwAccount;
+
+  /// Child-policy contact row: pre-approved by a guardian AND connected.
+  ///
+  /// In en, this message translates to:
+  /// **'Talking'**
+  String get childPolicyScreenContactStateAllowedTalking;
+
+  /// Child-policy contact row: connected through the normal approval flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get childPolicyScreenContactStateTalking;
+
+  /// Child-policy contact row: pre-approved, but the two are not connected yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not added yet'**
+  String get childPolicyScreenContactStateAllowedNotAdded;
+
+  /// Title of the action sheet that confirms signing out from the profile page.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out on this device?'**
+  String get profileScreenSignOutConfirmTitle;
+
+  /// Title of the destructive confirm before deleting your own account.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get profileScreenDeleteAccountConfirmTitle;
+
+  /// Body of the destructive confirm before deleting your own account; the sheet appends "This cannot be undone".
+  ///
+  /// In en, this message translates to:
+  /// **'Your messages, photos, rooms and friends all go, and your username is freed for anyone else.'**
+  String get profileScreenDeleteAccountConfirmBody;
+
+  /// Display name of the built-in "frosted" glass look.
+  ///
+  /// In en, this message translates to:
+  /// **'Frosted'**
+  String get glassPresetNameFrosted;
+
+  /// Display name of the built-in "clear" (see-through) glass look.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get glassPresetNameClear;
+
+  /// Toast while tapping the version stamp five times to open Diagnostics; count is the taps left.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics in {count}…'**
+  String settingsScreenDiagnosticsCountdown(int count);
+
+  /// Large title of the parent's pairing-code page; name is the child's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair {name}'**
+  String pairingCodeTitlePair(String name);
+
+  /// Large title of the parent's release-code page (frees the child's device); name is the child's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Release {name}'**
+  String pairingCodeTitleRelease(String name);
+
+  /// Quiet second line under the Archived chats sheet title: how many chats are archived.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} chat} other{{count} chats}}'**
+  String archivedChatsSheetCount(int count);
+
+  /// Quiet second line under the Pinned sheet title: how many messages are pinned in this room.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} message} other{{count} messages}}'**
+  String pinnedListSheetCount(int count);
+
+  /// Title of the voice-message recorder screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get voiceRecorderScreenTitle;
+
+  /// Hint in the search bar of the forward and share-to sheets, which filter the list of chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get chatTargetSearchHint;
+
+  /// Marlowe brain shelf: what the Swift tier is for (shown under the tier name before it is downloaded).
+  ///
+  /// In en, this message translates to:
+  /// **'Quick answers, the lightest download'**
+  String get marloweBrainTierSwiftDetail;
+
+  /// Marlowe brain shelf: what the Balanced tier is for.
+  ///
+  /// In en, this message translates to:
+  /// **'A good mix of speed and depth'**
+  String get marloweBrainTierBalancedDetail;
+
+  /// Marlowe brain shelf: what the Deep tier is for.
+  ///
+  /// In en, this message translates to:
+  /// **'The most thoughtful, needs the most space'**
+  String get marloweBrainTierDeepDetail;
+
+  /// Report-a-problem details row label.
+  ///
+  /// In en, this message translates to:
+  /// **'Device ID'**
+  String get reportFactDeviceId;
+
+  /// Report-a-problem details row label.
+  ///
+  /// In en, this message translates to:
+  /// **'User ID'**
+  String get reportFactUserId;
+
+  /// Report-a-problem details row label.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get reportFactUsername;
+
+  /// Report-a-problem details row label: app version.
+  ///
+  /// In en, this message translates to:
+  /// **'App'**
+  String get reportFactApp;
+
+  /// Report-a-problem details row label: device model.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get reportFactDevice;
+
+  /// Report-a-problem details row label: OS version.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get reportFactSystem;
+
+  /// Report-a-problem details row label: screen size.
+  ///
+  /// In en, this message translates to:
+  /// **'Display'**
+  String get reportFactDisplay;
+
+  /// Report-a-problem details row label.
+  ///
+  /// In en, this message translates to:
+  /// **'App language'**
+  String get reportFactAppLanguage;
+
+  /// Report-a-problem details row label.
+  ///
+  /// In en, this message translates to:
+  /// **'System locale'**
+  String get reportFactSystemLocale;
+
+  /// Report-a-problem details row label: the attached event log.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get reportFactLog;
+
+  /// Report-a-problem details value: how many log events are attached.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} events attached'**
+  String reportFactLogValue(int count);
+
+  /// Row title for an attached screenshot in Report a problem.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot {n}'**
+  String reportProblemScreenshotN(int n);
+
+  /// Accessibility label of the remove control on an attached screenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove screenshot {n}'**
+  String reportProblemRemoveScreenshot(int n);
+
+  /// Shown in brackets after the app language on the Report a problem screen when the language follows the phone's setting, e.g. 'en (from system)'.
+  ///
+  /// In en, this message translates to:
+  /// **'from system'**
+  String get reportFactLanguageFromSystem;
+
+  /// Shown in brackets after the app language on the Report a problem screen when the user picked the language in the app, e.g. 'tr (chosen)'.
+  ///
+  /// In en, this message translates to:
+  /// **'chosen'**
+  String get reportFactLanguageChosen;
 }
 
 class _AppLocalizationsDelegate

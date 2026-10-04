@@ -21,10 +21,14 @@ import '../../widgets/photo_backdrop.dart';
 import '../../widgets/photo_dismiss_area.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/route_landing.dart';
+import '../../widgets/sheet_kit.dart'
+    show SheetBar, SheetCloseButton, SheetHandle;
 
 import '../../widgets/steady_hero.dart';
 import '../fullscreen_video_viewer.dart';
-import '../../widgets/ios_kit.dart' show quietFill;
+import '../../widgets/ios_kit.dart'
+    show quietFill, SpringPress, TextLinkButton;
+import '../../widgets/reaction_picker_sheet.dart' show showReactionPicker;
 import '../../l10n/text_case.dart';
 import '../../widgets/liquid_glass.dart';
 
@@ -299,6 +303,77 @@ class _ReactionBook {
   }
 }
 
+/// Reacts to [m] with any emoji from the full picker — the same sheet chat
+/// uses. The quick row is four one-tap shortcuts; this is the way past them.
+Future<void> _reactWithAny(
+  BuildContext context,
+  _ReactionBook book,
+  Moment m,
+) async {
+  final emoji = await showReactionPicker(context);
+  if (emoji == null || emoji.isEmpty) return;
+  // Picking one you already sent would otherwise take it back, which is not
+  // what choosing it from a picker means.
+  if (book.of(m).mine.contains(emoji)) return;
+  await book.toggle(m, emoji);
+}
+
+/// The last pill in a reaction row: a smiley-plus that opens the picker.
+class _MoreReactionsPill extends StatelessWidget {
+  const _MoreReactionsPill({required this.onTap, required this.overPhoto});
+  final VoidCallback onTap;
+
+  /// Glass over a photograph; the card's quiet pill otherwise.
+  final bool overPhoto;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final label = AppLocalizations.of(context).stickerMakerMoreEmoji;
+    // Sized to the emoji pills' content box, so every pill in the row is the
+    // same height.
+    final glyph = SizedBox(
+      height: _kPillContent,
+      child: Icon(
+        CupertinoIcons.smiley,
+        size: 17,
+        color: overPhoto ? MediaGlass.ink : theme.inkSoft,
+      ),
+    );
+    if (overPhoto) {
+      return Semantics(
+        button: true,
+        label: label,
+        child: LiquidGlass(
+          tone: GlassTone.media,
+          shape: LiquidGlassShape.capsule,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: glyph,
+          ),
+        ),
+      );
+    }
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+          color: quietFill(theme),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: glyph,
+      ),
+    );
+  }
+}
+
+/// The height of every reaction pill's content (emoji + count, or the
+/// smiley), so the emoji pills and the add-reaction pill line up exactly.
+const double _kPillContent = 20;
+
 /// The emoji this surface offers for [m]: its tag's quick set, plus anything
 /// anyone actually reacted with that is outside it.
 ///
@@ -539,6 +614,7 @@ class _MomentStageState extends State<_MomentStage> with RouteLanding {
                   moment: _current,
                   reactions: _book.of(_current),
                   onReact: (e) => _book.toggle(_current, e),
+                  onMore: () => _reactWithAny(context, _book, _current),
                   onShowReactors: (e) => _showReactors(_current, e),
                 ),
               ),
@@ -934,13 +1010,10 @@ class _StageTopBar extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(10, pad.top + (count > 1 ? 16 : 8), 10, 12),
           child: Row(
             children: [
-              GlassIconButton(
+              GlassCloseButton(
                 tone: GlassTone.media,
-                icon: CupertinoIcons.xmark,
                 semanticLabel: l10n.photoChromeCloseSemanticLabel,
                 onTap: onClose,
-                size: 38,
-                iconSize: 17,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1096,12 +1169,14 @@ class _StageFooter extends StatelessWidget {
     required this.moment,
     required this.reactions,
     required this.onReact,
+    required this.onMore,
     required this.onShowReactors,
   });
 
   final Moment moment;
   final _Reactions reactions;
   final void Function(String emoji) onReact;
+  final VoidCallback onMore;
   final void Function(String emoji) onShowReactors;
 
   @override
@@ -1157,6 +1232,7 @@ class _StageFooter extends StatelessWidget {
               reactions: reactions,
               onTap: onReact,
               onLongPress: onShowReactors,
+              onMore: onMore,
             ),
           ],
         ),
@@ -1176,6 +1252,7 @@ class _GlassReactionRail extends StatelessWidget {
     required this.reactions,
     required this.onTap,
     required this.onLongPress,
+    required this.onMore,
   });
 
   final List<String> emojis;
@@ -1183,11 +1260,15 @@ class _GlassReactionRail extends StatelessWidget {
   final void Function(String emoji) onTap;
   final void Function(String emoji) onLongPress;
 
+  /// Opens the full emoji picker: the quick set is a shortcut, not a limit.
+  final VoidCallback onMore;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final total = reactions.total;
 
+    // No grand total at the end of the row: an orphan number beside the pills
+    // read as noise. Each pill carries its own count; a long-press says who.
     return Row(
       children: [
         Expanded(
@@ -1213,17 +1294,14 @@ class _GlassReactionRail extends StatelessWidget {
                       onLongPress: () => onLongPress(e),
                     ),
                   ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _MoreReactionsPill(onTap: onMore, overPhoto: true),
+                ),
               ],
             ),
           ),
         ),
-        if (total > 0) ...[
-          const SizedBox(width: 10),
-          Text(
-            '$total',
-            style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()], color: MediaGlass.inkDim),
-          ),
-        ],
       ],
     );
   }
@@ -1280,7 +1358,9 @@ class _GlassReactionPill extends StatelessWidget {
           tint: active ? accent : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
+            child: SizedBox(
+              height: _kPillContent,
+              child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
@@ -1299,14 +1379,16 @@ class _GlassReactionPill extends StatelessWidget {
                       // accentInk on an accent fill, never white — NeonNight's
                       // accent is pure yellow and Graphite's is near-white.
                       color: active ? accentInk : MediaGlass.ink,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                       height: 1.1,
                       decoration: TextDecoration.none,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
               ],
+            ),
             ),
           ),
         ),
@@ -1601,7 +1683,7 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 460),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(bottom: 16),
       decoration: theme.roomCardDecoration(ephemeral: false, active: false),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1610,100 +1692,56 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
           // The only thing on the card that says the card can be pulled away.
           // Decorative to a screen reader, which has the close button and the
           // route's own dismiss action already.
-          ExcludeSemantics(
-            child: Center(
-              child: Container(
-                width: 34,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: theme.divider,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
+          const ExcludeSemantics(child: SheetHandle()),
+          // The sheet bar every other card and sheet wears: the flat × leading
+          // (never glass on a solid card — a blur here was nearly invisible
+          // white-on-white in Daylight), who posted it centred, when under it.
+          // Kept now that the card can be swiped away, because a gesture is
+          // not an affordance — this is still the only *visible* way out.
+          SheetBar(
+            title: m.mine ? sentenceCaseOf(context, l10n.momentRailYouLabel) : m.authorName,
+            subtitle: _StageTopBar._ago(l10n, m.createdAt),
+            leading: SheetCloseButton(
+              onTap: () => Navigator.of(context).maybePop(),
             ),
           ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      m.mine ? l10n.momentRailYouLabel : m.authorName,
-                      style: theme.displaySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _StageTopBar._ago(l10n, m.createdAt),
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 13,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                  ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (m.tag != null) ...[
+                  const SizedBox(height: 6),
+                  MomentTagChip(tag: m.tag!),
+                ],
+                if (m.caption?.isNotEmpty == true) ...[
+                  const SizedBox(height: 12),
+                  // The line of text IS the point, so it gets the readable
+                  // style and the room. Everything above it is metadata.
+                  Text(m.caption!, style: theme.body),
+                ],
+                const SizedBox(height: 16),
+                _CardReactionRow(
+                  emojis: _emojisFor(m, reactions),
+                  reactions: reactions,
+                  onTap: (e) => _book.toggle(m, e),
+                  onLongPress: _showReactors,
+                  onMore: () => _reactWithAny(context, _book, m),
                 ),
-              ),
-              // Pinned to the card rather than floating in the outer Stack: the
-              // card is vertically centred and its height follows its content,
-              // so a fixed top-right Positioned would sometimes land on the
-              // text and sometimes in empty space. Kept now that the card can
-              // be swiped away, because a gesture is not an affordance — this
-              // is still the only *visible* way out.
-              GlassCloseButton(
-                onTap: () => Navigator.of(context).maybePop(),
-                semanticLabel: l10n.photoChromeCloseSemanticLabel,
-                size: 34,
-              ),
-            ],
-          ),
-          if (m.tag != null) ...[
-            const SizedBox(height: 14),
-            MomentTagChip(tag: m.tag!),
-          ],
-          if (m.caption?.isNotEmpty == true) ...[
-            const SizedBox(height: 12),
-            // The line of text IS the point, so it gets the readable style and
-            // the room. Everything above it is metadata.
-            Text(m.caption!, style: theme.body),
-          ],
-          const SizedBox(height: 16),
-          _CardReactionRow(
-            emojis: _emojisFor(m, reactions),
-            reactions: reactions,
-            onTap: (e) => _book.toggle(m, e),
-            onLongPress: _showReactors,
-          ),
-          if (m.mine) ...[
-            const SizedBox(height: 14),
-            FocusableTap(
-              onTap: _delete,
-              semanticLabel: l10n.momentViewerDelete,
-              radius: theme.radiusMd,
-              child: GestureDetector(
-                onTap: _delete,
-                behavior: HitTestBehavior.opaque,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.trash, size: 15, color: theme.danger),
-                    const SizedBox(width: 6),
-                    Text(
-                      sentenceCaseOf(context, l10n.momentViewerDelete),
-                      style: theme.body.copyWith(
-                        fontSize: 15,
-                        color: theme.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                if (m.mine) ...[
+                  const SizedBox(height: 6),
+                  // The shared tertiary action in red; it confirms through the
+                  // destructive sheet before anything is removed.
+                  TextLinkButton(
+                    label: l10n.momentViewerDelete,
+                    destructive: true,
+                    onTap: _delete,
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -1716,6 +1754,7 @@ class _CardReactionRow extends StatelessWidget {
     required this.reactions,
     required this.onTap,
     required this.onLongPress,
+    required this.onMore,
   });
 
   final List<String> emojis;
@@ -1725,10 +1764,11 @@ class _CardReactionRow extends StatelessWidget {
   /// Long-press a pill to see who's behind it.
   final void Function(String emoji) onLongPress;
 
+  /// Opens the full emoji picker: the quick set is a shortcut, not a limit.
+  final VoidCallback onMore;
+
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final total = reactions.total;
     return Row(
       children: [
         Expanded(
@@ -1752,14 +1792,14 @@ class _CardReactionRow extends StatelessWidget {
                       onLongPress: () => onLongPress(e),
                     ),
                   ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _MoreReactionsPill(onTap: onMore, overPhoto: false),
+                ),
               ],
             ),
           ),
         ),
-        if (total > 0) ...[
-          const SizedBox(width: 8),
-          Text('$total', style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()])),
-        ],
       ],
     );
   }
@@ -1805,18 +1845,25 @@ class _CardReactionPill extends StatelessWidget {
                 (instance) => instance.onLongPress = onLongPress,
               ),
         },
-        child: AnimatedContainer(
+        // No outline either way — the same flat capsule as the add-reaction
+        // pill beside it; yours is the accent wash with an accent count. The
+        // passive spring is the press feedback the custom recognizers above
+        // cannot give on their own (a flat fill, so scaling it is cheap).
+        child: SpringPress.passive(
+          child: AnimatedContainer(
           duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          height: _kPillContent + 14,
+          padding: const EdgeInsets.symmetric(horizontal: 11),
           decoration: BoxDecoration(
-            color: active ? quietFill(theme) : theme.surfaceSunken,
+            color: active
+                ? theme.accent.withValues(alpha: 0.18)
+                : quietFill(theme),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: active ? theme.accent : theme.divider),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(emoji, style: theme.body.copyWith(fontSize: 15)),
+              Text(emoji, style: theme.body.copyWith(fontSize: 15, height: 1.1)),
               if (count > 0) ...[
                 const SizedBox(width: 5),
                 // AnimatedSwitcher keyed on the value so the number rolls
@@ -1838,12 +1885,18 @@ class _CardReactionPill extends StatelessWidget {
                   child: Text(
                     '$count',
                     key: ValueKey(count),
-                    style: theme.bodySoft.copyWith(fontSize: 13, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()]),
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: active ? theme.accent : theme.inkSoft,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ),
               ],
             ],
           ),
+        ),
         ),
       ),
     );

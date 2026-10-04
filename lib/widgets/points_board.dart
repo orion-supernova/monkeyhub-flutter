@@ -1,16 +1,14 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/moment.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
+import 'ios_kit.dart' show EmptyLine, PressSpec, SheetActionButton, SpringPress;
 import 'moment_rail.dart';
 import 'odometer_number.dart';
 import 'meta_text.dart';
-import '../l10n/text_case.dart';
 
 /// The points board: what happened to everyone today, and who is winning.
 ///
@@ -54,9 +52,9 @@ class PointsBoard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (tallies.isEmpty)
-          Text(
+          EmptyLine(
             l10n.feedBoardStandingsEmpty,
-            style: theme.bodySoft.copyWith(color: theme.inkMuted),
+            padding: const EdgeInsets.symmetric(vertical: 8),
           )
         else ...[
           _Leaderboard(tallies: tallies, points: points, viewerId: viewerId),
@@ -186,14 +184,23 @@ class _LeaderRow extends StatelessWidget {
               padding: const EdgeInsets.only(left: 5),
               child: Icon(
                 MomentTagChip.iconFor(tag),
-                size: 11,
+                size: 13,
                 color: theme.inkMuted,
               ),
             ),
         const SizedBox(width: 10),
         OdometerNumber(
           value: tally.total,
-          style: theme.monoLarge.copyWith(fontSize: 15),
+          // Body face with tabular figures, so the digits roll in place
+          // without the theme's monospace — tracked terminal digits on the
+          // character themes.
+          style: theme.bodyEmph.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            fontStyle: FontStyle.normal,
+            color: theme.ink,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
           semanticLabel: '$name: ${tally.total}',
         ),
       ],
@@ -246,14 +253,13 @@ class _PointLine extends StatelessWidget {
         offset: Offset(0, (1 - v) * 8),
         child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
       ),
-      child: FocusableTap(
+      child: SpringPress(
         onTap: open,
         semanticLabel: headline,
-        radius: theme.radiusSm,
-        child: GestureDetector(
-          onTap: open,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
+        haptic: false,
+        scale: PressSpec.scaleSmall,
+        focusRadius: theme.radiusSm,
+        child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 7),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +299,7 @@ class _PointLine extends StatelessWidget {
                       if (moment.caption?.isNotEmpty == true) ...[
                         const SizedBox(height: 2),
                         // The line of text IS the point. It gets the readable
-                        // style; the "X took a JINX" header above is metadata.
+                        // style; the "X · Jinx" header above is metadata.
                         Text(
                           moment.caption!,
                           style: theme.body,
@@ -316,7 +322,6 @@ class _PointLine extends StatelessWidget {
               ],
             ),
           ),
-        ),
       ),
     );
   }
@@ -329,35 +334,14 @@ class _AddPointButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
+    // The shared secondary capsule — the same shape as the composer's commit
+    // button it opens, so the two read as one action.
+    return SheetActionButton(
+      label: l10n.pointsBoardAdd,
+      icon: CupertinoIcons.add,
+      tonal: true,
       onTap: onTap,
-      semanticLabel: l10n.pointsBoardAdd,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            color: quietFill(theme),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(CupertinoIcons.add, size: 15, color: theme.accent),
-              const SizedBox(width: 7),
-              Text(
-                sentenceCaseOf(context, l10n.pointsBoardAdd),
-                style: labelText(theme).copyWith(color: theme.accent),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

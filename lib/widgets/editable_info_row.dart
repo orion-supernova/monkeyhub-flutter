@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show groupedMetaStyle;
 
 /// A field that reads as content until you touch it.
 ///
@@ -194,7 +195,7 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
         children: [
           Text(
             widget.label,
-            style: theme.caption.copyWith(fontSize: 13, color: theme.accent),
+            style: groupedMetaStyle(theme).copyWith(color: theme.accent),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -251,7 +252,7 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
       padding: const EdgeInsets.only(top: 2),
       child: Text(
         note,
-        style: theme.caption.copyWith(color: theme.inkMuted),
+        style: groupedMetaStyle(theme),
       ),
     );
   }
@@ -270,7 +271,7 @@ class _EditableInfoRowState extends State<EditableInfoRow> {
         children: [
           Text(
             widget.label,
-            style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+            style: groupedMetaStyle(theme),
           ),
           const SizedBox(height: 3),
           Row(

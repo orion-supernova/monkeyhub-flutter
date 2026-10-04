@@ -66,50 +66,77 @@ class GlassIconButton extends StatelessWidget {
 /// The back control every pushed page wears: a glass circle with a chevron,
 /// iOS 26's toolbar treatment.
 class GlassBackButton extends StatelessWidget {
-  const GlassBackButton({super.key, this.onTap, this.tone = GlassTone.app});
+  const GlassBackButton({
+    super.key,
+    this.onTap,
+    this.tone = GlassTone.app,
+    this.semanticLabel,
+    this.enabled = true,
+  });
 
   final VoidCallback? onTap;
   final GlassTone tone;
+  final String? semanticLabel;
+
+  /// False draws it dimmed and inert (a capture in flight, say).
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => GlassIconButton(
         icon: CupertinoIcons.chevron_back,
         iconSize: 20,
         tone: tone,
-        semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
-        onTap: onTap ?? () => Navigator.of(context).maybePop(),
+        semanticLabel: semanticLabel ??
+            MaterialLocalizations.of(context).backButtonTooltip,
+        onTap: enabled
+            ? onTap ?? () => Navigator.of(context).maybePop()
+            : null,
       );
 }
 
 /// The close control of a full-screen surface: a glass circle with an ×.
+///
+/// One size app-wide (40pt, 17pt glyph — the [GlassBackButton]'s), and it
+/// sits top-LEADING, like a sheet's ×. A pushed page has no ×; it has a
+/// back chevron.
 class GlassCloseButton extends StatelessWidget {
   const GlassCloseButton({
     super.key,
-    required this.onTap,
-    required this.semanticLabel,
-    this.size = 40,
+    this.onTap,
+    this.semanticLabel,
     this.tone = GlassTone.app,
+    this.enabled = true,
   });
 
-  final VoidCallback onTap;
-  final String semanticLabel;
-  final double size;
+  /// Defaults to popping the route.
+  final VoidCallback? onTap;
+  final String? semanticLabel;
   final GlassTone tone;
+
+  /// False draws it dimmed and inert (a save in flight, say) — a null
+  /// [onTap] cannot say that, since it means "pop".
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => GlassIconButton(
         icon: CupertinoIcons.xmark,
-        iconSize: size * 0.42,
-        size: size,
+        iconSize: 17,
         tone: tone,
-        semanticLabel: semanticLabel,
-        onTap: onTap,
+        semanticLabel: semanticLabel ??
+            MaterialLocalizations.of(context).closeButtonLabel,
+        onTap: enabled
+            ? onTap ?? () => Navigator.of(context).maybePop()
+            : null,
       );
 }
 
 /// A glass capsule with a label — the commit action floating over content
 /// (Send, Done, Use photo). Pass [tint] (usually the accent) for the primary
 /// action. Labels authored in capitals are read in sentence case.
+///
+/// 40pt tall by default, the height of every glass icon button, so a pill
+/// and the buttons beside it sit on one line (the editor's 44pt Send stood
+/// proud of its 38/40pt neighbours). Label 17/w600, the button scale.
 class GlassPillButton extends StatelessWidget {
   const GlassPillButton({
     super.key,
@@ -119,7 +146,7 @@ class GlassPillButton extends StatelessWidget {
     this.tint,
     this.tone = GlassTone.app,
     this.semanticLabel,
-    this.height = 44,
+    this.height = 40,
   });
 
   final String label;
@@ -164,7 +191,7 @@ class GlassPillButton extends StatelessWidget {
                   sentenceCaseOf(context, label),
                   style: TextStyle(
                     color: ink,
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.2,
                     // Explicit, not inherited: this chrome can float over a
@@ -175,7 +202,7 @@ class GlassPillButton extends StatelessWidget {
                 ),
                 if (icon != null) ...[
                   const SizedBox(width: 7),
-                  Icon(icon, size: 16, color: ink),
+                  Icon(icon, size: 17, color: ink),
                 ],
               ],
             ),

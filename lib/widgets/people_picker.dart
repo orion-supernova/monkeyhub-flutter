@@ -6,11 +6,10 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart';
 import 'search_field.dart';
 
 import 'user_avatar.dart';
-import 'teardown_safe.dart';
-import '../l10n/text_case.dart';
 
 /// A search bar over a list of people, with the list virtualised underneath.
 ///
@@ -182,6 +181,7 @@ class _PeoplePickerState extends State<PeoplePicker> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
     final local = _localMatches;
     final needle = _query.trim();
 
@@ -260,25 +260,40 @@ class _PeoplePickerState extends State<PeoplePicker> {
               if (child != null) return child;
               final u = row.user;
               if (u == null) {
+                // THE section header, so "Friends" reads like every other
+                // heading over a group — not a private 13pt caption that
+                // turns into tracked mono on a character theme.
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 18, 0, 4),
-                  child: Text(
-                    sentenceCaseOf(context, row.header!),
-                    style: theme.caption.copyWith(
-                      fontSize: 13,
-                      color: theme.inkMuted,
-                    ),
-                  ),
+                  padding: const EdgeInsets.only(top: 14),
+                  child: GroupedHeader(row.header!),
                 );
               }
-              return _PersonTile(
+              // A hairline between people, starting at the text — the
+              // Contacts rule — and none under the last one in a run.
+              final next = i + 1 < rows.length ? rows[i + 1] : null;
+              final ruled = next != null && next.user != null;
+              return Stack(
                 // Keyed by identity: the list is re-filtered on every
                 // keystroke, and an unkeyed row would let the framework
                 // reuse one person's element for another's data.
                 key: ValueKey(u.id),
-                user: u,
-                api: widget.api,
-                onTap: () => widget.onPick(u),
+                children: [
+                  _PersonTile(
+                    user: u,
+                    api: widget.api,
+                    onTap: () => widget.onPick(u),
+                  ),
+                  if (ruled)
+                    Positioned(
+                      left: kPersonRowTextInset,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        height: hairline,
+                        color: theme.ink.withValues(alpha: 0.10),
+                      ),
+                    ),
+                ],
               );
             },
           ),
@@ -302,24 +317,17 @@ class _Row {
 /// "Nobody here" — only ever built once a lookup has actually answered. A
 /// search still in flight must not report "no one matches": that is an answer,
 /// and we do not have one yet. The caller enforces that; see the `_searching`
-/// guard where this row is appended.
+/// guard where this row is appended. Drawn by the shared [EmptyLine].
 class _Empty extends StatelessWidget {
   const _Empty({required this.label});
 
   final String label;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 34),
-      child: Text(
+  Widget build(BuildContext context) => EmptyLine(
         label,
-        style: theme.bodySoft,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 34),
+      );
 }
 
 class _Searching extends StatelessWidget {
@@ -341,9 +349,12 @@ class _Searching extends StatelessWidget {
   }
 }
 
-class _PersonTile extends StatefulWidget {
+/// A contact row the way Messages draws one: face, name, handle under it in
+/// muted ink. No chevron — tapping a person starts the chat, it does not
+/// drill into anything. The shared [PersonRow] draws it (17 regular title,
+/// 15 handle, SpringPress); the list above adds the hairlines.
+class _PersonTile extends StatelessWidget {
   const _PersonTile({
-    super.key,
     required this.user,
     required this.api,
     required this.onTap,
@@ -354,84 +365,10 @@ class _PersonTile extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_PersonTile> createState() => _PersonTileState();
-}
-
-/// A contact row the way Messages draws one: face, name, handle under it in
-/// muted ink, a hairline that starts at the text. No chevron — tapping a
-/// person starts the chat, it does not drill into anything.
-class _PersonTileState extends State<_PersonTile>
-    with TeardownSafe<_PersonTile> {
-  bool _down = false;
-
-  void _set(bool v) {
-    if (_down != v) setState(() => _down = v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final user = widget.user;
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => _set(true),
-      onTapUp: (_) => _set(false),
-      onTapCancel: () => _set(false),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: _down ? Duration.zero : const Duration(milliseconds: 240),
-        decoration: BoxDecoration(
-          color: _down ? theme.ink.withValues(alpha: 0.07) : null,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Row(
-          children: [
-            UserAvatar(user: user, size: 42, api: widget.api),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 11),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: theme.ink.withValues(alpha: 0.08),
-                      width: 1 / MediaQuery.devicePixelRatioOf(context),
-                    ),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      user.displayName,
-                      style: theme.bodyEmph.copyWith(
-                        color: theme.ink,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                        fontStyle: FontStyle.normal,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '@${user.username}',
-                      style: theme.caption.copyWith(
-                        fontSize: 13,
-                        color: theme.inkMuted,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PersonRow(
+        avatar: UserAvatar(user: user, size: kPersonRowAvatar, api: api),
+        title: user.displayName,
+        subtitle: '@${user.username}',
+        onTap: onTap,
+      );
 }

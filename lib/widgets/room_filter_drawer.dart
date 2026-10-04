@@ -10,7 +10,8 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 
-import 'ios_kit.dart' show groupedFill, groupedRadius, quietFill;
+import 'ios_kit.dart'
+    show EmptyState, RowPillButton, groupedFill, groupedRadius, quietFill;
 import '../l10n/text_case.dart';
 
 /// The header affordance for [FilterStyle.drawer].
@@ -258,7 +259,9 @@ class RoomFilterPanel extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        _PanelAction(
+                        // THE inline pills: the commit filled, Clear quiet
+                        // (and greyed when there is nothing to clear).
+                        RowPillButton(
                           label: l10n.roomFilterDrawerPanelClear,
                           // Nothing to clear reads as disabled rather than
                           // silently doing nothing.
@@ -269,8 +272,7 @@ class RoomFilterPanel extends StatelessWidget {
                                   onChanged(RoomFilter.empty);
                                 },
                         ),
-                        const SizedBox(width: 8),
-                        _PanelAction(
+                        RowPillButton(
                           label: l10n.roomFilterDrawerPanelDone,
                           filled: true,
                           onTap: onDone,
@@ -395,53 +397,6 @@ class _Tick extends StatelessWidget {
   }
 }
 
-class _PanelAction extends StatelessWidget {
-  const _PanelAction({
-    required this.label,
-    required this.onTap,
-    this.filled = false,
-  });
-
-  final String label;
-  final VoidCallback? onTap;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final disabled = onTap == null;
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // Capsules: the commit filled, the secondary a soft tint.
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: filled
-                ? theme.bubbleFill(isMine: true)
-                : theme.ink.withValues(alpha: disabled ? 0.04 : 0.08),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            sentenceCaseOf(context, label),
-            style: theme.body.copyWith(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: filled
-                  ? theme.accentInk
-                  : (disabled ? theme.inkMuted : theme.ink),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Shared by both filter styles: what the list says when a filter is on and
 /// nothing matches. Distinct from "no rooms yet" — the rooms exist, they're
 /// just hidden, and saying so with a one-tap way out is the whole reason a
@@ -462,49 +417,22 @@ class FilteredEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    // THE empty state: glyph, the sentence, and the one-tap way out as its
+    // tonal capsule action.
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Column(
-        children: [
-          Text(
-            sentenceCaseOf(
-              context,
-              l10n.roomFilterDrawerEmptyStateTitle(filter.summary(l10n)),
-            ),
-            style: theme.bodySoft.copyWith(color: theme.inkMuted),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 14),
-          FocusableTap(
-            onTap: onClear,
-            semanticLabel: l10n.roomFilterDrawerShowAllSemanticLabel(total),
-            radius: theme.radiusMd,
-            child: GestureDetector(
-              onTap: onClear,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: quietFill(theme),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  sentenceCaseOf(context, l10n.roomFilterDrawerShowAllLabel(total)),
-                  style: theme.body.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: theme.accent,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Semantics(
+        // The visible action reads "Show all 12 chats"; the screen-reader
+        // label spells out what it does to the filter.
+        hint: l10n.roomFilterDrawerShowAllSemanticLabel(total),
+        child: EmptyState(
+          icon: CupertinoIcons.line_horizontal_3_decrease,
+          title: l10n.roomFilterDrawerEmptyStateTitle(filter.summary(l10n)),
+          actionLabel: l10n.roomFilterDrawerShowAllLabel(total),
+          onAction: onClear,
+          compact: true,
+        ),
       ),
     );
   }

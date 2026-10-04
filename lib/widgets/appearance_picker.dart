@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
-import 'teardown_safe.dart';
+import 'ios_kit.dart' show groupedMetaStyle, groupedTitleStyle;
 import 'spring_press.dart';
 
 /// The pieces the first-launch picker and the theme screen are both built
@@ -145,9 +145,11 @@ class ThemeMiniPreview extends StatelessWidget {
             position: DecorationPosition.foreground,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radius),
+              // A full point, not a half: at 0.5 the light previews (Ivory,
+              // Paper, Bloom) still vanished into a cream or white page.
               border: Border.all(
-                color: outer.ink.withValues(alpha: 0.10),
-                width: 0.5,
+                color: outer.ink.withValues(alpha: 0.12),
+                width: 1,
               ),
             ),
             child: screen,
@@ -198,8 +200,7 @@ class ThemeMiniPreview extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: outer.caption.copyWith(
-              fontSize: 13,
+            style: groupedMetaStyle(outer).copyWith(
               color: selected ? outer.ink : outer.inkSoft,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
@@ -214,47 +215,12 @@ class ThemeMiniPreview extends StatelessWidget {
       semanticLabel: t.name,
       selected: selected,
       radius: radius,
-      child: _Springy(onTap: onTap!, child: labelled),
-    );
-  }
-}
-
-/// Dip on press, overshoot on release — the tile feels like it has mass.
-class _Springy extends StatefulWidget {
-  const _Springy({required this.onTap, required this.child});
-  final VoidCallback onTap;
-  final Widget child;
-
-  @override
-  State<_Springy> createState() => _SpringyState();
-}
-
-class _SpringyState extends State<_Springy>
-    with TeardownSafe<_Springy> {
-  bool _down = false;
-
-  void _set(bool v) {
-    if (_down != v) setState(() => _down = v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final motion = MotionScope.of(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _set(true),
-      onTapUp: (_) => _set(false),
-      onTapCancel: () => _set(false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _down ? 0.94 : 1,
-        duration: motion.d(
-          _down
-              ? const Duration(milliseconds: 90)
-              : const Duration(milliseconds: 460),
-        ),
-        curve: _down ? PressSpec.downCurve : PressSpec.releaseCurve,
-        child: widget.child,
+      // The shared spring, watching the pointer; the tap stays this
+      // detector's, inside the focus ring that carries `selected`.
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SpringPress.passive(scale: 0.94, child: labelled),
       ),
     );
   }
@@ -364,11 +330,10 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: outer.caption.copyWith(
+        style: groupedMetaStyle(outer).copyWith(
           color: outer.accentInk,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
+          fontWeight: FontWeight.w600,
+          height: 1.1,
         ),
       ),
     );
@@ -496,16 +461,14 @@ class _ModeCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 title,
-                style: theme.bodyEmph.copyWith(fontSize: 16, color: theme.ink),
+                style: groupedTitleStyle(theme).copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 3),
               Text(
                 sub,
-                style: theme.caption.copyWith(
-                  fontSize: 13,
-                  height: 1.3,
-                  color: theme.inkMuted,
-                ),
+                style: groupedMetaStyle(theme).copyWith(height: 1.3),
               ),
             ],
           ),
@@ -546,14 +509,17 @@ class ThemeSlotPair extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  isLight ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                  size: 13,
+                  isLight ? CupertinoIcons.sun_max : CupertinoIcons.moon,
+                  size: 14,
                   color: theme.inkSoft,
                 ),
                 const SizedBox(width: 5),
                 Text(
                   isLight ? l10n.appearanceLightSlot : l10n.appearanceDarkSlot,
-                  style: theme.label.copyWith(letterSpacing: 1.6),
+                  style: groupedMetaStyle(theme).copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.inkSoft,
+                  ),
                 ),
               ],
             ),

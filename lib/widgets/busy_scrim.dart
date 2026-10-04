@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart'
+    show Material, MaterialType;
 import 'package:flutter/widgets.dart';
 
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show groupedFooterStyle;
 import 'photo_chrome.dart';
 
 /// A dim over the whole surface with one spinner in it, for the stretch of a
@@ -20,14 +23,21 @@ import 'photo_chrome.dart';
 /// theme is the backdrop, so it reads from the theme. Putting it there would
 /// have made that file's central claim false.
 ///
-/// No text, and that is not an omission — a bare spinner is what the avatar
-/// flow in `ProfileScreen` already uses, and it needs no translating. Anyone
-/// adding a label should know this widget is mounted inside a route's own
-/// `Stack`, not an `OverlayEntry`: hoist it into an overlay and the [Text] would
-/// have no [DefaultTextStyle] above it and Flutter would paint its debug
-/// fallback — yellow underlines on double-struck red.
+/// No text by default — a bare spinner is what the avatar flow in
+/// `ProfileScreen` uses, and it needs no translating. An optional [label] goes
+/// under the spinner for a longer sequence that is worth naming (switching
+/// servers). The label carries its own [DefaultTextStyle] and a transparent
+/// [Material], so it never paints Flutter's debug fallback — yellow underlines
+/// — even when the scrim is hoisted into an overlay.
 class BusyScrim extends StatelessWidget {
-  const BusyScrim({super.key});
+  const BusyScrim({super.key, this.label, this.opacity = 0.72});
+
+  /// One quiet line under the spinner. Null for the bare spinner.
+  final String? label;
+
+  /// How much of the page shows through. 0.72 by default; a destructive
+  /// sequence that wants the page out of the way entirely goes higher.
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +50,29 @@ class BusyScrim extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () {},
       child: ColoredBox(
-        color: theme.background.withValues(alpha: 0.72),
-        child: Center(child: PhotoSpinner(color: theme.accent)),
+        color: theme.background.withValues(alpha: opacity),
+        child: Center(
+          child: label == null
+              ? PhotoSpinner(color: theme.accent)
+              : Material(
+                  type: MaterialType.transparency,
+                  child: DefaultTextStyle(
+                    style: groupedFooterStyle(theme),
+                    textAlign: TextAlign.center,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          PhotoSpinner(color: theme.accent),
+                          const SizedBox(height: 16),
+                          Text(label!),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+        ),
       ),
     );
   }

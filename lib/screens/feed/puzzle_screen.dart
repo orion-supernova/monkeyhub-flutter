@@ -13,12 +13,15 @@ import '../../theme/app_theme.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/game_result_actions.dart';
 import '../../widgets/app_toast.dart';
 import '../games/game_scaffold.dart' show confirmTellFriends;
 import '../../widgets/game_layout_shell.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/game_celebration.dart';
+import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/ios_kit.dart';
+import '../../widgets/labeled_field.dart' show FormErrorBanner;
 import '../../widgets/puzzle_symbol.dart';
 import '../../l10n/text_case.dart';
 
@@ -210,35 +213,47 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     // pinned under the board, and it's one more thing off the vertical stack
     // that used to force a scroll. `done` drops it either way — a finished
     // board has an outcome card to show, not keys to press.
-    final game = <Widget>[
-      _Grid(attempt: attempt, draft: _draft),
+    // On a phone the keypad is pinned to the bottom edge, outside the
+    // scroller: in the board column it sat under the home indicator on an
+    // iPhone 16 Pro, and Guess — the one action that matters — needed a
+    // scroll to reach. The grid and the scores scroll above it.
+    final pinnedKeypad = !done && !context.isExpanded;
+
+    List<Widget> game(double? gridWidth) => [
+      _Grid(attempt: attempt, draft: _draft, maxWidth: gridWidth),
       if (_errorCode != null) ...[
         const SizedBox(height: 12),
-        Text(
-          switch (_errorCode) {
-            'ALREADY_SOLVED' => l10n.puzzleErrorAlreadySolved,
-            'OUT_OF_GUESSES' => l10n.puzzleErrorOutOfGuesses,
-            _ => l10n.puzzleErrorGeneric,
-          },
-          style: theme.bodySoft.copyWith(color: theme.danger),
-        ),
+        FormErrorBanner(switch (_errorCode) {
+          'ALREADY_SOLVED' => l10n.puzzleErrorAlreadySolved,
+          'OUT_OF_GUESSES' => l10n.puzzleErrorOutOfGuesses,
+          _ => l10n.puzzleErrorGeneric,
+        }),
       ],
-      const SizedBox(height: 20),
-      if (done)
+      if (done) ...[
+        const SizedBox(height: 20),
         _Outcome(
           attempt: attempt!,
           onShare: () => _share(attempt),
           onTellFriends: _telling ? null : _tellFriends,
-        )
-      else if (!context.isExpanded)
-        _Keypad(
-          draft: _draft,
-          busy: _busy,
-          onPush: _push,
-          onPop: _pop,
-          onSubmit: _submit,
         ),
+      ],
     ];
+
+    Widget shell(double? gridWidth) => GameLayoutShell(
+      header: header,
+      board: game(gridWidth),
+      boardWidth: 440,
+      leading: done
+          ? null
+          : _SideKeypad(
+              draft: _draft,
+              busy: _busy,
+              onPush: _push,
+              onPop: _pop,
+              onSubmit: _submit,
+            ),
+      sidebar: _Scoreboard(state: state, viewerId: widget.userId),
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -249,20 +264,40 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           // scroller — see [edgeToEdgeBottom].
           SafeArea(
             bottom: false,
-            child: GameLayoutShell(
-              header: header,
-              board: game,
-              boardWidth: 440,
-              leading: done
-                  ? null
-                  : _SideKeypad(
-                      draft: _draft,
-                      busy: _busy,
-                      onPush: _push,
-                      onPop: _pop,
-                      onSubmit: _submit,
+            child: Column(
+              children: [
+                Expanded(
+                  child: pinnedKeypad
+                      ? LayoutBuilder(
+                          builder: (context, box) => _FadeAbovePinned(
+                            child: shell(
+                              _fitGridWidth(context, box.maxHeight, theme),
+                            ),
+                          ),
+                        )
+                      : shell(null),
+                ),
+                if (pinnedKeypad)
+                  AdaptivePageBody(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        10,
+                        20,
+                        // Clears the home indicator, with a floor so a phone
+                        // without one still gets breathing room.
+                        math.max(MediaQuery.paddingOf(context).bottom, 16),
+                      ),
+                      child: _Keypad(
+                        draft: _draft,
+                        busy: _busy,
+                        onPush: _push,
+                        onPop: _pop,
+                        onSubmit: _submit,
+                      ),
                     ),
-              sidebar: _Scoreboard(state: state, viewerId: widget.userId),
+                  ),
+              ],
             ),
           ),
         ],
@@ -271,13 +306,67 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 }
 
+/// The grid width at which all six guess rows fit in [viewport] under the
+/// header, so on a phone the last row isn't cut off by the pinned keypad.
+/// Wordle does the same: the tiles shrink to the screen, the board never
+/// scrolls. Estimated from the header's own type sizes through the text
+/// scaler; [_FadeAbovePinned] covers whatever the estimate misses (a wrapped
+/// subtitle in Turkish at large text, an error banner).
+double _fitGridWidth(BuildContext context, double viewport, AppTheme theme) {
+  final scaler = MediaQuery.textScalerOf(context);
+  double line(TextStyle style) =>
+      scaler.scale((style.fontSize ?? 17) * (style.height ?? 1.2));
+  final header =
+      8 + // the shell's top padding
+      (Navigator.of(context).canPop() ? 40 : 0) +
+      14 +
+      line(theme.displayLarge) +
+      4 +
+      line(theme.bodySoft) +
+      6 +
+      20; // the shell's header-to-board gap
+  // Air for the fade to land in: with the last row's own 8pt gap this clears
+  // the 20pt mask, so the fade sits under the board, not across its last row.
+  final rows = viewport - header - 16;
+  final cell = (rows / kPuzzleMaxGuesses) - 8; // each row's bottom gap
+  return (cell * kPuzzleSlots + 6 * (kPuzzleSlots - 1)).clamp(200.0, 440.0);
+}
+
+/// A short fade at the foot of the scroller, above the pinned keypad, so a
+/// board that still runs on under it reads as "more below" instead of being
+/// sliced by a hard edge. A mask, not a gradient in the background colour:
+/// themes paint patterned backgrounds that a flat colour wouldn't match.
+class _FadeAbovePinned extends StatelessWidget {
+  const _FadeAbovePinned({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [Colors.white, Colors.white, Colors.transparent],
+        stops: [0, 1 - 20 / math.max(bounds.height, 20), 1],
+      ).createShader(bounds),
+      child: child,
+    );
+  }
+}
+
 /// Six rows of five slots: the guesses so far, the row being composed, then
 /// empty outlines for what remains.
 class _Grid extends StatelessWidget {
-  const _Grid({required this.attempt, required this.draft});
+  const _Grid({required this.attempt, required this.draft, this.maxWidth});
 
   final PuzzleAttempt? attempt;
   final List<int> draft;
+
+  /// Caps the grid so all six rows fit above a pinned keypad — see
+  /// [_fitGridWidth]. Null lets it fill the board column.
+  final double? maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +375,7 @@ class _Grid extends StatelessWidget {
     final feedback = attempt?.feedback ?? const <PuzzlePegs>[];
     final draftRow = played.length;
 
-    return Column(
+    final grid = Column(
       children: [
         for (var row = 0; row < kPuzzleMaxGuesses; row++)
           Padding(
@@ -302,6 +391,13 @@ class _Grid extends StatelessWidget {
             ),
           ),
       ],
+    );
+    if (maxWidth == null) return grid;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth!),
+        child: grid,
+      ),
     );
   }
 }
@@ -335,11 +431,14 @@ class _Row extends StatelessWidget {
 
     return Row(
       children: [
-        for (var i = 0; i < kPuzzleSlots; i++)
+        for (var i = 0; i < kPuzzleSlots; i++) ...[
+          // Gaps are their own boxes BETWEEN the cells, not padding inside
+          // one: padding on all but the last made every `Expanded` the same
+          // width but the last cell 6pt wider, and `AspectRatio` then made it
+          // 6pt taller too, so the grid's right edge stepped out.
+          if (i > 0) const SizedBox(width: 6),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: AspectRatio(
+            child: AspectRatio(
                 aspectRatio: 1,
                 child: TweenAnimationBuilder<double>(
                   // Sequential flip: each slot turns a beat after the one
@@ -389,8 +488,8 @@ class _Row extends StatelessWidget {
                       : null,
                 ),
               ),
-            ),
           ),
+        ],
       ],
     );
   }
@@ -422,31 +521,34 @@ class _Keypad extends StatelessWidget {
       children: [
         Row(
           children: [
-            for (var s = 0; s < kPuzzleSymbolCount; s++)
+            for (var s = 0; s < kPuzzleSymbolCount; s++) ...[
+              // Gaps between the keys, never inside one — see [_Row].
+              if (s > 0) const SizedBox(width: 6),
               Expanded(
-                child: Padding(
-                  key: ValueKey('key_$s'),
-                  padding: const EdgeInsets.only(right: 6),
-                  child: _Key(
-                    onTap: busy ? null : () => onPush(s),
-                    semanticLabel: l10n.puzzleSymbolSemanticLabel(s + 1),
-                    child: PuzzleSymbol(
-                      index: s,
-                      size: 22,
-                      accent: theme.accent,
-                    ),
+                key: ValueKey('key_$s'),
+                child: _Key(
+                  onTap: busy ? null : () => onPush(s),
+                  semanticLabel: l10n.puzzleSymbolSemanticLabel(s + 1),
+                  child: PuzzleSymbol(
+                    index: s,
+                    size: 22,
+                    accent: theme.accent,
                   ),
                 ),
               ),
+            ],
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
+              // A capsule like Guess beside it — two shapes side by side
+              // read as two different kinds of control.
               child: _Key(
                 onTap: busy || draft.isEmpty ? null : onPop,
                 semanticLabel: l10n.puzzleBackspace,
+                capsule: true,
                 child: Icon(
                   CupertinoIcons.delete_left,
                   size: 20,
@@ -457,10 +559,10 @@ class _Keypad extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               flex: 3,
-              child: _SubmitButton(
-                enabled: full && !busy,
-                label: sentenceCaseOf(context, l10n.puzzleSubmit),
-                onTap: onSubmit,
+              child: SheetActionButton(
+                label: l10n.puzzleSubmit,
+                haptic: false,
+                onTap: full && !busy ? onSubmit : null,
               ),
             ),
           ],
@@ -523,10 +625,10 @@ class _SideKeypad extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _SubmitButton(
-          enabled: full && !busy,
-          label: sentenceCaseOf(context, l10n.puzzleSubmit),
-          onTap: onSubmit,
+        SheetActionButton(
+          label: l10n.puzzleSubmit,
+          haptic: false,
+          onTap: full && !busy ? onSubmit : null,
         ),
       ],
     );
@@ -538,11 +640,15 @@ class _Key extends StatelessWidget {
     required this.onTap,
     required this.semanticLabel,
     required this.child,
+    this.capsule = false,
   });
 
   final VoidCallback? onTap;
   final String semanticLabel;
   final Widget child;
+
+  /// The backspace beside Guess takes the button's capsule shape.
+  final bool capsule;
 
   @override
   Widget build(BuildContext context) {
@@ -559,53 +665,10 @@ class _Key extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 52),
           decoration: BoxDecoration(
             color: theme.ink.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(capsule ? 999 : theme.radiusMd),
           ),
           alignment: Alignment.center,
           child: child,
-        ),
-      ),
-    );
-  }
-}
-
-/// The guess button: a capsule in the outgoing-bubble colour once the row is
-/// full, a quiet one until then.
-class _SubmitButton extends StatelessWidget {
-  const _SubmitButton({
-    required this.enabled,
-    required this.label,
-    required this.onTap,
-  });
-
-  final bool enabled;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: enabled ? onTap : null,
-      semanticLabel: label,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        height: 52,
-        decoration: BoxDecoration(
-          color: enabled
-              ? theme.bubbleFill(isMine: true)
-              : theme.ink.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: theme.body.copyWith(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: enabled ? theme.accentInk : theme.inkMuted,
-          ),
         ),
       ),
     );
@@ -695,32 +758,27 @@ class _Outcome extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _OutcomeAction(
-                  icon: CupertinoIcons.doc_on_doc,
-                  label: sentenceCaseOf(context, l10n.puzzleShare),
-                  onTap: onShare,
-                ),
+          GameResultActions(
+            actions: [
+              GameResultAction(
+                icon: CupertinoIcons.doc_on_doc,
+                label: sentenceCaseOf(context, l10n.puzzleShare),
+                onTap: onShare,
               ),
-              const SizedBox(width: 10),
               // Retired once used: the server allows one send per result, so
               // a button that stayed would only ever answer with an error.
-              Expanded(
-                child: attempt.shared
-                    ? _OutcomeAction(
-                        icon: CupertinoIcons.checkmark_alt,
-                        label: sentenceCaseOf(context, l10n.gameToldFriends),
-                        onTap: null,
-                      )
-                    : _OutcomeAction(
-                        icon: CupertinoIcons.bell_fill,
-                        label: sentenceCaseOf(context, l10n.gameTellFriends),
-                        onTap: onTellFriends,
-                        prominent: true,
-                      ),
-              ),
+              attempt.shared
+                  ? GameResultAction(
+                      icon: CupertinoIcons.checkmark_alt,
+                      label: sentenceCaseOf(context, l10n.gameToldFriends),
+                      onTap: null,
+                    )
+                  : GameResultAction(
+                      icon: CupertinoIcons.bell_fill,
+                      label: sentenceCaseOf(context, l10n.gameTellFriends),
+                      onTap: onTellFriends,
+                      prominent: true,
+                    ),
             ],
           ),
         ],
@@ -750,64 +808,6 @@ class _Outcome extends StatelessWidget {
   }
 }
 
-/// One tappable action on the outcome card.
-class _OutcomeAction extends StatelessWidget {
-  const _OutcomeAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.prominent = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-  final bool prominent;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final on = onTap != null;
-    final fill = prominent && on
-        ? theme.bubbleFill(isMine: true)
-        : theme.ink.withValues(alpha: on ? 0.08 : 0.05);
-    final ink = prominent && on
-        ? theme.accentInk
-        : (on ? theme.ink : theme.inkMuted);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: fill,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: ink),
-            const SizedBox(width: 7),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.body.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: ink,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Everyone who has finished today, best first.
 class _Scoreboard extends StatelessWidget {
   const _Scoreboard({required this.state, required this.viewerId});
@@ -826,24 +826,10 @@ class _Scoreboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  sentenceCaseOf(context, l10n.puzzleScoreboardLabel),
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    color: theme.inkMuted,
-                  ),
-                ),
-              ),
-              AllTimeLink(game: RecordGame.code, viewerId: viewerId),
-            ],
-          ),
+        GroupedHeader(
+          l10n.puzzleScoreboardLabel,
+          trailing: AllTimeLink(game: RecordGame.code, viewerId: viewerId),
         ),
-        const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(groupedRadius(theme)),
           child: ColoredBox(
@@ -852,13 +838,7 @@ class _Scoreboard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (scores.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      sentenceCaseOf(context, l10n.puzzleScoreboardEmpty),
-                      style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                    ),
-                  )
+                  EmptyLine(l10n.puzzleScoreboardEmpty)
                 else
                   for (var i = 0; i < scores.length; i++) ...[
                     Container(
@@ -907,7 +887,7 @@ class _Scoreboard extends StatelessWidget {
                                 ? '${scores[i].guessCount}/$kPuzzleMaxGuesses'
                                 : 'X/$kPuzzleMaxGuesses',
                             style: theme.body.copyWith(
-                              fontSize: 16,
+                              fontSize: 17,
                               fontWeight: FontWeight.w600,
                               color: scores[i].solved
                                   ? theme.ink

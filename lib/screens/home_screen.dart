@@ -33,7 +33,8 @@ import '../widgets/archived_chats_sheet.dart';
 import '../widgets/chat_list_row.dart';
 import '../widgets/chat_row_action_menu.dart';
 import '../widgets/chat_row_swipe.dart';
-import '../widgets/liquid_glass.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/glass_buttons.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/pull_reveal_panel.dart';
 import '../widgets/room_card.dart';
@@ -769,18 +770,10 @@ class _Header extends StatelessWidget {
                 // actually has, and a locked-down child account still starts
                 // chats with people its guardian approved.
                 if (onCreateTap != null)
-                  Semantics(
-                    button: true,
-                    label: l10n.homeScreenNewRoomSemanticLabel,
-                    child: LiquidGlass(
-                      size: const Size(40, 40),
-                      onTap: onCreateTap,
-                      child: Icon(
-                        CupertinoIcons.square_pencil,
-                        size: 19,
-                        color: theme.ink,
-                      ),
-                    ),
+                  GlassIconButton(
+                    icon: CupertinoIcons.square_pencil,
+                    onTap: onCreateTap,
+                    semanticLabel: l10n.homeScreenNewRoomSemanticLabel,
                   ),
               ],
             ),
@@ -930,13 +923,14 @@ class _RoomsPanelState extends State<_RoomsPanel> {
           // when the real list replaces them.
           child: SkeletonRows(count: 7, avatarSize: 44, circular: false),
         ),
+        // THE empty state — glyph, centred title — not a lone left-wrapping
+        // line of text.
         empty: (context) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: Text(
-              AppLocalizations.of(context).homeScreenEmptyRoomsMessage,
-              style: theme.bodySoft,
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: EmptyState(
+            icon: CupertinoIcons.chat_bubble_2,
+            title: AppLocalizations.of(context).homeScreenEmptyRoomsMessage,
+            compact: true,
           ),
         ),
       );
@@ -945,15 +939,13 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     if (rooms.isEmpty) {
       if (searching) {
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: Text(
-              AppLocalizations.of(
-                context,
-              ).homeScreenNoSearchResults(widget.searchQuery.trim()),
-              style: theme.bodySoft,
-              textAlign: TextAlign.center,
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: EmptyState(
+            icon: CupertinoIcons.search,
+            title: AppLocalizations.of(
+              context,
+            ).homeScreenNoSearchResults(widget.searchQuery.trim()),
+            compact: true,
           ),
         );
       }

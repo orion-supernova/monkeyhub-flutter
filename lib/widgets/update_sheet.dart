@@ -1,30 +1,30 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/app_release.dart';
 import '../theme/theme_scope.dart';
 import '../update/release_channel.dart';
 import '../update/update_destination.dart';
 import 'adaptive_sheet.dart';
-import 'destructive_sheet.dart' show ChoiceTile;
+import 'ios_kit.dart'
+    show groupedFooterStyle, groupedMetaStyle, groupedSubtitleStyle;
 import 'meta_text.dart';
-import 'sheet_kit.dart'
-    show SheetHandle, SheetRise, sheetFill, sheetTopRadius;
-import '../l10n/text_case.dart';
+import 'sheet_kit.dart' show SheetActionButton, SheetFrame, SheetRise;
 
-/// "A newer version is out" — LATER and UPDATE.
+/// "A newer version is out" — the title in the bar, the × as "later", and one
+/// Update button.
 ///
-/// Deliberately built on the same furniture as the destructive sheets
-/// (`SheetGrabber`, `ChoiceTile`, the plain text secondary action) so it can't
-/// drift visually from the rest of the sheet family. The one inversion: here the
-/// *primary* tile autofocuses, because unlike a delete confirmation the loud
-/// option is the safe one.
+/// Built on the shared sheet furniture ([SheetFrame], [SheetActionButton]) so
+/// it can't drift from the rest of the sheet family. The × replaced a "Later"
+/// text button: the two said the same thing, and every other optional prompt
+/// has only the ×. The primary button autofocuses, because unlike a delete
+/// confirmation the loud option is the safe one.
 ///
-/// When [mandatory], LATER is gone and the sheet can't be dismissed by tapping
-/// outside, dragging it down, Android back, or Esc — the running build is below
-/// the channel's `minSupported` and can't be trusted to keep working.
+/// When [mandatory], the × and the handle are gone and the sheet can't be
+/// dismissed by tapping outside, dragging it down, Android back, or Esc — the
+/// running build is below the channel's `minSupported` and can't be trusted
+/// to keep working.
 Future<void> showUpdateSheet(
   BuildContext context, {
   required AppRelease release,
@@ -87,40 +87,30 @@ class _UpdateSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final notes = release.notes?.trim();
+    final sub = _actionSub(context);
 
     return PopScope(
       // Blocks Android back and desktop Esc for a mandatory update. The
       // tap-outside and drag routes are closed by showAdaptiveSheet's
       // isDismissible/enableDrag.
       canPop: !mandatory,
-      child: Container(
-        decoration: BoxDecoration(
-          color: sheetFill(theme),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(sheetTopRadius(theme)),
-          ),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          20 + MediaQuery.of(context).padding.bottom,
-        ),
+      child: SheetFrame(
+        title: mandatory
+            ? l10n.reportSheetUpdateRequiredTitle
+            : l10n.reportSheetUpdateAvailableTitle,
+        // An optional update is an optional prompt: the × is the "later".
+        // A mandatory one has no way out — no ×, and nothing to drag away.
+        showClose: !mandatory,
+        handle: !mandatory,
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Nothing to drag away when the update is mandatory, so don't
-            // suggest otherwise.
-            if (!mandatory)
-              const SheetHandle()
-            else
-              const SizedBox(height: 14),
-            const SizedBox(height: 8),
-            // The App Store's update card: the app's own icon tile, a
-            // centred title, a line of why, and the version change in a
-            // quiet capsule.
+            // The App Store's update card: the app's own icon tile as the
+            // hero, a line of why, and the version change in a quiet capsule.
             Center(
               child: SheetRise(
                 child: Container(
@@ -152,24 +142,11 @@ class _UpdateSheet extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              sentenceCaseOf(
-                context,
-                mandatory
-                    ? AppLocalizations.of(context).reportSheetUpdateRequiredTitle
-                    : AppLocalizations.of(
-                        context,
-                      ).reportSheetUpdateAvailableTitle,
-              ),
-              textAlign: TextAlign.center,
-              style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
-            ),
-            const SizedBox(height: 6),
-            Text(
               mandatory
-                  ? AppLocalizations.of(context).reportSheetUpdateMandatoryBody
-                  : AppLocalizations.of(context).reportSheetUpdateAvailableBody,
+                  ? l10n.reportSheetUpdateMandatoryBody
+                  : l10n.reportSheetUpdateAvailableBody,
               textAlign: TextAlign.center,
-              style: theme.bodySoft.copyWith(color: theme.inkMuted),
+              style: groupedFooterStyle(theme),
             ),
             const SizedBox(height: 12),
             Center(
@@ -183,7 +160,7 @@ class _UpdateSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  AppLocalizations.of(context).reportSheetUpdateVersionArrow(
+                  l10n.reportSheetUpdateVersionArrow(
                     currentVersion,
                     release.version,
                   ),
@@ -193,17 +170,23 @@ class _UpdateSheet extends StatelessWidget {
             ),
             if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 14),
-              Text(notes, style: theme.bodySoft),
+              // Centred with everything else on the card.
+              Text(
+                notes,
+                textAlign: TextAlign.center,
+                style: groupedSubtitleStyle(theme).copyWith(
+                  color: theme.inkSoft,
+                ),
+              ),
             ],
-            const SizedBox(height: 20),
-            ChoiceTile(
-              color: theme.accent,
+            const SizedBox(height: 22),
+            SheetActionButton(
+              label: l10n.reportSheetUpdateButtonTitle,
               icon: CupertinoIcons.arrow_down_circle_fill,
-              title: AppLocalizations.of(context).reportSheetUpdateButtonTitle,
-              sub: _actionSub(context),
-              filled: true,
-              // Inverted from the destructive sheets: the loud option here is
-              // the safe one, so Enter on a freshly-opened sheet updates.
+              destructive: mandatory,
+              // The loud option here is the safe one, so Enter on a
+              // freshly-opened sheet updates — the inverse of a delete
+              // confirmation.
               autofocus: true,
               onTap: () {
                 // Close first on an optional update so the user isn't left
@@ -218,32 +201,14 @@ class _UpdateSheet extends StatelessWidget {
                 );
               },
             ),
-            if (!mandatory) ...[
-              const SizedBox(height: 10),
-              FocusableTap(
-                onTap: () => Navigator.of(context).pop(),
-                semanticLabel: AppLocalizations.of(
-                  context,
-                ).reportSheetUpdateLaterSemanticLabel,
-                radius: theme.radiusMd,
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    alignment: Alignment.center,
-                    child: Text(
-                      sentenceCaseOf(
-                        context,
-                        AppLocalizations.of(context).reportSheetUpdateLaterButton,
-                      ),
-                      style: theme.body.copyWith(
-                        fontSize: 17,
-                        color: theme.accent,
-                      ),
-                    ),
-                  ),
-                ),
+            // Where the button is about to send them — the button is only
+            // honest if it says so.
+            if (sub.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                sub,
+                textAlign: TextAlign.center,
+                style: groupedMetaStyle(theme),
               ),
             ],
           ],

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../diagnostics/diag_event.dart';
-import '../../keyboard/focusable_tap.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/ios_kit.dart' show quietFill;
+import '../../widgets/adaptive_sheet.dart';
+import '../../widgets/ios_kit.dart';
+import '../../widgets/search_field.dart';
+import '../../widgets/sheet_kit.dart';
 
 /// What the viewer is currently showing.
 ///
@@ -67,11 +69,10 @@ class DiagFilterSheet extends StatefulWidget {
   final DiagFilter initial;
 
   static Future<DiagFilter?> show(BuildContext context, DiagFilter initial) {
-    final theme = ThemeScope.of(context);
-    return showModalBottomSheet<DiagFilter>(
-      context: context,
-      backgroundColor: theme.surfaceRaised,
-      isScrollControlled: true,
+    return showAdaptiveSheet<DiagFilter>(
+      context,
+      // Tall enough to reach the status bar on a phone.
+      useSafeArea: true,
       builder: (_) => DiagFilterSheet(initial: initial),
     );
   }
@@ -92,156 +93,107 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
     super.dispose();
   }
 
+  /// `warn` reads as a level in a log and as a typo in a sentence; the rows
+  /// say what each floor lets through instead.
+  static String _sevTitle(DiagSev s) => switch (s) {
+    DiagSev.trace => 'Trace',
+    DiagSev.debug => 'Debug',
+    DiagSev.info => 'Info',
+    DiagSev.warn => 'Warning',
+    DiagSev.error => 'Error',
+  };
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          16 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Filter', style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _search,
-              style: theme.body,
-              decoration: InputDecoration(
-                hintText: 'Search name, detail, body…',
-                hintStyle: theme.bodySoft,
-                isDense: true,
-              ),
-              onChanged: (v) => setState(() => _f = _f.copyWith(query: v)),
-            ),
-            const SizedBox(height: 14),
-            Text('Category', style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final c in DiagCat.values)
-                  _Chip(
-                    label: c.name,
-                    on: _f.cats.contains(c),
-                    onTap: () => setState(() {
-                      final next = {..._f.cats};
-                      next.contains(c) ? next.remove(c) : next.add(c);
-                      _f = _f.copyWith(cats: next);
-                    }),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            // The same switch as a long press on a chip in the row above the
-            // timeline — here so it can be found without knowing the gesture.
-            Text('Hidden from All', style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final c in DiagCat.values)
-                  _Chip(
-                    label: c.name,
-                    on: _f.hidden.contains(c),
-                    onTap: () => setState(() {
-                      final next = {..._f.hidden};
-                      next.contains(c) ? next.remove(c) : next.add(c);
-                      _f = _f.copyWith(hidden: next);
-                    }),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text('Minimum severity', style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              children: [
-                for (final s in DiagSev.values)
-                  _Chip(
-                    label: s.name,
-                    on: _f.minSev == s,
-                    onTap: () => setState(() => _f = _f.copyWith(minSev: s)),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _Chip(
-              label: 'collapse repeats',
-              on: _f.collapse,
-              onTap: () =>
-                  setState(() => _f = _f.copyWith(collapse: !_f.collapse)),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                _Chip(
-                  label: 'reset',
-                  on: false,
-                  // Resets the view, not the preference: what All leaves out
-                  // is a standing choice, and has its own section above.
-                  onTap: () => setState(() {
-                    _f = DiagFilter(hidden: _f.hidden);
-                    _search.clear();
+    // Category PICKING is not here: the chip row over the timeline does it,
+    // counts and all, and a second list of the same eleven names under this
+    // one read as the same control twice. A pick made there survives this
+    // sheet untouched — it rides along in [_f].
+    return SheetFrame(
+      title: 'Filter',
+      confirm: SheetConfirm(
+        label: 'Apply',
+        onTap: () => Navigator.of(context).pop(_f),
+      ),
+      // Pinned, so the sheet does not jump as the keyboard comes and goes,
+      // and so its rows scroll inside it rather than off the top.
+      maxHeightFraction: 0.9,
+      padding: EdgeInsets.zero,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        children: [
+          SearchField(
+            controller: _search,
+            hintText: 'Search name, detail, body',
+            onChanged: (v) => setState(() => _f = _f.copyWith(query: v)),
+          ),
+          const SizedBox(height: 24),
+          SheetGroup(
+            header: 'Minimum severity',
+            children: [
+              for (final s in DiagSev.values)
+                GroupedRow.choice(
+                  title: _sevTitle(s),
+                  subtitle: s == DiagSev.trace ? 'Everything' : null,
+                  selected: _f.minSev == s,
+                  onTap: () => setState(() => _f = _f.copyWith(minSev: s)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // The same switch as a long press on a chip in the row above the
+          // timeline — here so it can be found without knowing the gesture.
+          SheetGroup(
+            header: 'Hidden from All',
+            children: [
+              for (final c in DiagCat.values)
+                GroupedRow.toggle(
+                  title: c.name,
+                  value: _f.hidden.contains(c),
+                  onChanged: (on) => setState(() {
+                    final next = {..._f.hidden};
+                    on ? next.add(c) : next.remove(c);
+                    _f = _f.copyWith(hidden: next);
                   }),
                 ),
-                const Spacer(),
-                _Chip(
-                  label: 'apply',
-                  on: true,
-                  onTap: () => Navigator.of(context).pop(_f),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.on, required this.onTap});
-  final String label;
-  final bool on;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // Bare GestureDetector plus FocusableTap, never a Material chip — this app
-    // registers no ink or ripple anywhere.
-    return FocusableTap(
-      onTap: onTap,
-      radius: theme.radiusSm,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          // Filled capsules, the chat list's filter chips — no outline.
-          decoration: BoxDecoration(
-            color: on
-                ? quietFill(theme)
-                : theme.ink.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(999),
+            ],
           ),
-          child: Text(
-            label,
-            style: theme.monoTiny.copyWith(
-              color: on ? theme.accent : theme.inkSoft,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
+            child: Text(
+              'Left out of All until picked on the chip row. Long-press a '
+              'chip there for the same switch.',
+              style: groupedFooterStyle(theme),
             ),
           ),
-        ),
+          const SizedBox(height: 24),
+          SheetGroup(
+            children: [
+              GroupedRow.toggle(
+                title: 'Collapse repeats',
+                subtitle: 'Fold a run of the same event into one row',
+                value: _f.collapse,
+                onChanged: (v) => setState(() => _f = _f.copyWith(collapse: v)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SheetGroup(
+            children: [
+              GroupedRow(
+                title: 'Reset filter',
+                chevron: false,
+                // Resets the view, not the preference: what All leaves out
+                // is a standing choice, and has its own section above.
+                onTap: () => setState(() {
+                  _f = DiagFilter(hidden: _f.hidden);
+                  _search.clear();
+                }),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

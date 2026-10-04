@@ -20,6 +20,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/audio_message.dart';
@@ -518,70 +519,73 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
         final l10n = AppLocalizations.of(context);
         final picked = _selected.length;
         final selecting = _selection.active;
+        // An iOS navigation bar: the back chevron (an × while selecting,
+        // which is a mode to leave, not a page to pop) leading, the title
+        // centred at 17/w600, the Select text action trailing — Photos'
+        // shape. No tracked mono eyebrow over a 21pt left-aligned title.
         return Container(
-          padding: const EdgeInsets.fromLTRB(6, 6, 14, 12),
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: theme.divider)),
+            border: Border(
+              bottom: BorderSide(
+                color: theme.divider,
+                width: 1 / MediaQuery.devicePixelRatioOf(context),
+              ),
+            ),
           ),
-          child: Row(
+          child: Stack(
+            alignment: Alignment.center,
             children: [
               Padding(
-                padding: const EdgeInsets.only(left: 6, right: 4),
-                child: GlassIconButton(
-                  icon: selecting
-                      ? CupertinoIcons.xmark
-                      : CupertinoIcons.chevron_back,
-                  iconSize: 20,
-                  semanticLabel: selecting
-                      ? l10n.roomContentScreenCancelTooltip
-                      : l10n.roomContentScreenBackTooltip,
-                  onTap: () {
-                    if (selecting) {
-                      _selection.clear();
-                    } else {
-                      Navigator.of(context).pop();
-                    }
-                  },
+                // Clear of the 40pt button and the text action on each side.
+                padding: const EdgeInsets.symmetric(horizontal: 96),
+                child: Text(
+                  selecting
+                      ? l10n.roomContentScreenSelectionCount(picked)
+                      : _tab.headerLabel(context),
+                  style: sheetTitleStyle(theme).copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selecting
-                          ? l10n.roomContentScreenSelectingLabel
-                          : l10n.roomContentScreenSharedContentLabel,
-                      style: theme.monoTiny.copyWith(letterSpacing: 2.2),
+              Row(
+                children: [
+                  if (selecting)
+                    GlassCloseButton(
+                      semanticLabel: l10n.roomContentScreenCancelTooltip,
+                      onTap: _selection.clear,
+                    )
+                  else
+                    GlassBackButton(
+                      semanticLabel: l10n.roomContentScreenBackTooltip,
+                      onTap: () => Navigator.of(context).pop(),
                     ),
-                    Text(
-                      selecting
-                          ? l10n.roomContentScreenSelectionCount(picked)
-                          : _tab.headerLabel(context),
-                      style: theme.displayMedium.copyWith(fontSize: 21),
-                    ),
-                  ],
-                ),
-              ),
-              // The primary way in on every platform. Long-press is a phone
-              // shortcut on top of this, not the only door — desktop has no
-              // long-press idiom and this app defines no right-click menu.
-              _HeaderAction(
-                theme: theme,
-                label: selecting
-                    ? l10n.roomContentScreenSelectAllActiveLabel
-                    : l10n.roomContentScreenSelectAllLabel,
-                onTap: () {
-                  if (!selecting) {
-                    _selection.begin();
-                    return;
-                  }
-                  _selection.selectAll(
-                    _tab == RoomContentTab.links
-                        ? {for (final l in _c.links) l.message.id}
-                        : [for (final m in _c.items) m.id],
-                  );
-                },
+                  const Spacer(),
+                  // The primary way in on every platform. Long-press is a
+                  // phone shortcut on top of this, not the only door —
+                  // desktop has no long-press idiom and this app defines no
+                  // right-click menu.
+                  TextLinkButton(
+                    label: selecting
+                        ? l10n.roomContentScreenSelectAllActiveLabel
+                        : l10n.roomContentScreenSelectAllLabel,
+                    onTap: () {
+                      if (!selecting) {
+                        _selection.begin();
+                        return;
+                      }
+                      _selection.selectAll(
+                        _tab == RoomContentTab.links
+                            ? {for (final l in _c.links) l.message.id}
+                            : [for (final m in _c.items) m.id],
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -846,7 +850,7 @@ class _DayHeader extends StatelessWidget {
       // two screens group the same messages by the same days.
       child: Text(
         transcriptDay(context, at),
-        style: theme.caption.copyWith(
+        style: theme.bodySoft.copyWith(
           fontSize: 13,
           fontWeight: FontWeight.w600,
           letterSpacing: 0,
@@ -903,10 +907,18 @@ class _EmptyState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Text(
-          failed ? l10n.roomContentScreenLoadFailed : what,
-          textAlign: TextAlign.center,
-          style: theme.bodySoft,
+        child: EmptyState(
+          icon: failed
+              ? CupertinoIcons.exclamationmark_circle
+              : switch (tab) {
+                  RoomContentTab.media => CupertinoIcons.photo_on_rectangle,
+                  RoomContentTab.file => CupertinoIcons.doc,
+                  RoomContentTab.voice => CupertinoIcons.waveform,
+                  RoomContentTab.links => CupertinoIcons.link,
+                  RoomContentTab.saved => CupertinoIcons.bookmark,
+                },
+          title: failed ? l10n.roomContentScreenLoadFailed : what,
+          compact: true,
         ),
       ),
     );
@@ -966,7 +978,13 @@ class _ContentRow extends StatelessWidget {
         ),
         child: Text(
           fileTypeBadge(name),
-          style: theme.monoTiny.copyWith(color: theme.accent, fontSize: 9.5),
+          // A file-type token ("PDF") on the body face, not tracked mono.
+          style: groupedMetaStyle(theme).copyWith(
+            fontWeight: FontWeight.w700,
+            color: theme.accent,
+            letterSpacing: 0,
+          ),
+          maxLines: 1,
         ),
       ),
       title: name,
@@ -998,7 +1016,7 @@ class _ContentRow extends StatelessWidget {
             message.senderName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.caption.copyWith(color: theme.inkMuted),
+            style: groupedSubtitleStyle(theme),
           ),
           const SizedBox(height: 4),
           // Deaf to the pointer while selecting, so a tap anywhere on the row
@@ -1160,7 +1178,9 @@ class _SavedRow extends StatelessWidget {
               // in the conversation they are being sent.
               Text(
                 formatClockTime(m.createdAt),
-                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                style: groupedMetaStyle(theme).copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),
@@ -1169,7 +1189,7 @@ class _SavedRow extends StatelessWidget {
             messagePreviewLine(m, hasThumbnail: hasThumb),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.caption.copyWith(color: theme.inkMuted),
+            style: groupedSubtitleStyle(theme),
           ),
         ],
       ),
@@ -1299,7 +1319,7 @@ class _SelectableRow extends StatelessWidget {
                           subtitle ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.caption.copyWith(color: theme.inkMuted),
+                          style: groupedSubtitleStyle(theme),
                         ),
                       ],
                     ),
@@ -1329,42 +1349,6 @@ class _SelectableRow extends StatelessWidget {
                 ),
               ],
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({
-    required this.theme,
-    required this.label,
-    required this.onTap,
-  });
-
-  final AppTheme theme;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: theme.chipDecoration(filled: false),
-          child: Text(
-            label,
-            style: theme.monoTiny.copyWith(
-              color: theme.accent,
-              letterSpacing: 1.6,
-            ),
           ),
         ),
       ),

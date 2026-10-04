@@ -79,13 +79,13 @@ void main() {
 
     testWidgets('unopened reads "tap to view"', (tester) async {
       await tester.pumpWidget(host(bubble(photo())));
-      expect(find.text('tap to view'), findsOneWidget);
+      expect(find.text('Tap to view'), findsOneWidget);
     });
 
     testWidgets('spent reads "opened"', (tester) async {
       await tester.pumpWidget(host(bubble(photo(opened: true))));
-      expect(find.text('opened'), findsOneWidget);
-      expect(find.text('tap to view'), findsNothing);
+      expect(find.text('Opened'), findsOneWidget);
+      expect(find.text('Tap to view'), findsNothing);
     });
 
     testWidgets('burned without ever being opened reads "expired"', (
@@ -94,7 +94,7 @@ void main() {
       await tester.pumpWidget(
         host(bubble(photo(burnedAt: DateTime(2026, 3, 15)))),
       );
-      expect(find.text('expired'), findsOneWidget);
+      expect(find.text('Expired'), findsOneWidget);
     });
 
     testWidgets('the sender sees the same tile, not their own photo', (
@@ -105,8 +105,8 @@ void main() {
       await tester.pumpWidget(host(bubble(photo(), currentUserId: 'alice')));
       expect(find.byType(RemoteImage), findsNothing);
       expect(find.text('Photo'), findsOneWidget);
-      expect(find.text('view once'), findsOneWidget);
-      expect(find.text('tap to view'), findsNothing);
+      expect(find.text('View once'), findsOneWidget);
+      expect(find.text('Tap to view'), findsNothing);
     });
   });
 

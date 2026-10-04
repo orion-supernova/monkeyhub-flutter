@@ -178,8 +178,8 @@ void main() {
   });
 
   testWidgets('an empty section is one quiet line', (tester) async {
-    await tester.pumpWidget(host(const DiscoverEmptyLine('inbox quiet')));
-    expect(find.text('inbox quiet'), findsOneWidget);
+    await tester.pumpWidget(host(const DiscoverEmptyLine('Inbox quiet')));
+    expect(find.text('Inbox quiet'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

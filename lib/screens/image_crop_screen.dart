@@ -1,20 +1,22 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/liquid_glass.dart';
+import '../widgets/glass_buttons.dart';
+import '../widgets/ios_kit.dart' show groupedFooterStyle;
 import '../widgets/photo_chrome.dart';
+import '../widgets/sheet_kit.dart' show SheetActionButton, sheetTitleStyle;
 import 'review_route.dart';
-import '../widgets/teardown_safe.dart';
 
 /// Shape of the crop window. [circle] is for avatars — every avatar display
 /// site clips to a circle, so the ghost ring shows exactly what will survive.
@@ -386,36 +388,52 @@ class _ImageCropScreenState extends State<ImageCropScreen>
   }
 
   Widget _topBar(AppTheme theme) {
+    // A full-screen modal's bar: × leading (it discards — the crop is not
+    // navigation), the title centred on the SCREEN like a sheet's, rotate
+    // trailing. The title was the theme's label slot — lowercase, muted,
+    // tracked mono on a character theme.
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(
-        children: [
-          LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: const Size(38, 38),
-            onTap: _saving ? null : () => Navigator.of(context).pop(),
-            child: Icon(Icons.close, size: 18, color: theme.ink),
-          ),
-          Expanded(
-            child: Center(
+      child: SizedBox(
+        height: 40,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 52),
               child: Text(
-                widget.title ??
-                    AppLocalizations.of(context).imageCropScreenDefaultTitle,
-                style: theme.label,
+                sentenceCaseOf(
+                  context,
+                  widget.title ??
+                      AppLocalizations.of(context).imageCropScreenDefaultTitle,
+                ),
+                style: sheetTitleStyle(theme),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
-          ),
-          LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: const Size(38, 38),
-            onTap: _image == null || _saving ? null : _rotate90,
-            child: Icon(
-              Icons.rotate_90_degrees_ccw_outlined,
-              size: 18,
-              color: _image == null || _saving ? theme.inkMuted : theme.ink,
+            Align(
+              alignment: Alignment.centerLeft,
+              // The shared ×, inert while the crop is saving.
+              child: GlassCloseButton(
+                enabled: !_saving,
+                onTap: () => Navigator.of(context).pop(),
+              ),
             ),
-          ),
-        ],
+            Align(
+              alignment: Alignment.centerRight,
+              // The editor's rotate glyph, so the two croppers agree.
+              child: GlassIconButton(
+                icon: CupertinoIcons.rotate_left,
+                semanticLabel:
+                    AppLocalizations.of(context)
+                        .cameraEditorScreenRotateSemanticLabel,
+                onTap: _image == null || _saving ? null : _rotate90,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -534,42 +552,24 @@ class _ImageCropScreenState extends State<ImageCropScreen>
             widget.shape == CropShape.circle
                 ? AppLocalizations.of(context).imageCropScreenHintCircle
                 : AppLocalizations.of(context).imageCropScreenHintRect,
-            style: theme.caption.copyWith(color: theme.inkMuted),
+            style: groupedFooterStyle(theme),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          // Capped and centered so the pair stays a comfortable button width
-          // on a wide desktop window instead of each stretching to fill
-          // half of it — inert on a phone, where this ceiling is never
-          // reached.
+          // One commit, no Cancel slab: the × above already discards.
+          // Capped and centred so it stays a comfortable width on a wide
+          // desktop window — inert on a phone, where this ceiling is never
+          // reached. Busy shows the spinner in place of the label.
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _CropButton(
-                      label: AppLocalizations.of(
-                        context,
-                      ).imageCropScreenCancelButton,
-                      onTap: _saving ? null : () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _CropButton(
-                      label: _saving
-                          ? AppLocalizations.of(
-                              context,
-                            ).imageCropScreenSavingButton
-                          : (widget.confirmLabel ??
-                                AppLocalizations.of(
-                                  context,
-                                ).imageCropScreenDefaultConfirmLabel),
-                      filled: true,
-                      onTap: ready ? _confirm : null,
-                    ),
-                  ),
-                ],
+              child: SheetActionButton(
+                label: widget.confirmLabel ??
+                    AppLocalizations.of(
+                      context,
+                    ).imageCropScreenDefaultConfirmLabel,
+                busy: _saving,
+                onTap: ready ? _confirm : null,
               ),
             ),
           ),
@@ -647,66 +647,4 @@ class _CropMaskPainter extends CustomPainter {
   @override
   bool shouldRepaint(_CropMaskPainter old) =>
       old.shape != shape || old.dim != dim || old.stroke != stroke;
-}
-
-/// CANCEL / USE PHOTO. Bare GestureDetector + FocusableTap — this app renders
-/// no ink anywhere.
-class _CropButton extends StatefulWidget {
-  const _CropButton({
-    required this.label,
-    required this.onTap,
-    this.filled = false,
-  });
-
-  final String label;
-  final VoidCallback? onTap;
-  final bool filled;
-
-  @override
-  State<_CropButton> createState() => _CropButtonState();
-}
-
-class _CropButtonState extends State<_CropButton>
-    with TeardownSafe<_CropButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final enabled = widget.onTap != null;
-    final fg = widget.filled
-        ? theme.accentInk
-        : (enabled ? theme.ink : theme.inkMuted);
-    return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: widget.label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
-        onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedScale(
-          scale: _pressed ? 0.96 : 1.0,
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOut,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: widget.filled
-                  ? theme.accent.withValues(alpha: enabled ? 1 : 0.4)
-                  : theme.surface,
-              border: Border.all(
-                color: widget.filled ? Colors.transparent : theme.divider,
-              ),
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-            ),
-            child: Text(widget.label, style: theme.label.copyWith(color: fg)),
-          ),
-        ),
-      ),
-    );
-  }
 }

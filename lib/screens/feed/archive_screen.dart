@@ -1,22 +1,23 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart'
     show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../backend/chat_api.dart';
 import '../../backend/feed_api.dart';
-import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/moment.dart';
 import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/steady_hero.dart';
+import '../../widgets/filter_capsule.dart';
 import '../../widgets/ios_kit.dart';
-import '../../widgets/meta_text.dart';
+import '../../widgets/photo_chrome.dart' show MediaPlayDisc;
 
 import 'moment_viewer.dart';
 import '../../l10n/text_case.dart';
@@ -208,167 +209,201 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // grid clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              // Wider than the default reading column: this screen is a photo
-              // grid, not text, so an expanded window should show more tiles
-              // per row instead of the same 3-wide mobile grid parked in the
-              // middle of the page — see `_DaySection`'s `LayoutBuilder`.
-              maxWidth: context.isExpanded
-                  ? ContentWidth.wide
-                  : ContentWidth.readable,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (Navigator.of(context).canPop())
-                          const GlassBackButton(),
-                        const SizedBox(height: 12),
-                        Text(
-                          sentenceCaseOf(
-                            context,
-                            widget.title ?? l10n.archiveScreenTitle,
-                          ),
-                          style: theme.displayLarge.copyWith(
-                            letterSpacing: 0.37,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
+    // The shared pushed page: back chevron, large title at the standard
+    // inset, and the page's own scroll controller so pagination still hangs
+    // off it.
+    return IosPage(
+      title: sentenceCaseOf(context, widget.title ?? l10n.archiveScreenTitle),
+      controller: _scroll,
+      slivers: [
+        SliverLayoutBuilder(
+          builder: (context, constraints) {
+            // Wider than the default reading column: this screen is a photo
+            // grid, not text, so an expanded window shows more tiles per row
+            // instead of the same 3-wide mobile grid parked in the middle of
+            // the page — see `_DaySection`'s `LayoutBuilder`.
+            final maxWidth =
+                context.isExpanded ? ContentWidth.wide : ContentWidth.readable;
+            final side = ((constraints.crossAxisExtent - maxWidth) / 2)
+                .clamp(0.0, double.infinity);
+            return SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: side),
+              sliver: SliverMainAxisGroup(
+                slivers: [
                   if (_dayKeys.isNotEmpty)
-                    _DateRail(
-                      dayKeys: _dayKeys,
-                      counts: {
-                        for (final e in _byDay.entries) e.key: e.value.length,
-                      },
-                      selected: _selectedDay,
-                      onTap: _jumpTo,
+                    // Pinned under the bar: the rail is how you jump between
+                    // days, so it has to be there wherever you have scrolled.
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _RailHeader(
+                        height: MediaQuery.textScalerOf(context)
+                            .scale(34)
+                            .clamp(34.0, 60.0) + 16,
+                        fill: theme.background,
+                        child: _DateRail(
+                          dayKeys: _dayKeys,
+                          selected: _selectedDay,
+                          onTap: _jumpTo,
+                        ),
+                      ),
                     ),
-                  Expanded(child: _body(theme, l10n)),
+                  ..._body(theme, l10n),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
+            );
+          },
+        ),
+      ],
     );
   }
 
-  Widget _body(dynamic theme, AppLocalizations l10n) {
+  List<Widget> _body(AppTheme theme, AppLocalizations l10n) {
     if (_loading) {
-      return Center(
-        child: CupertinoActivityIndicator(color: theme.inkMuted),
-      );
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: CupertinoActivityIndicator(color: theme.inkMuted),
+          ),
+        ),
+      ];
     }
     if (_errorCode != null && _dayKeys.isEmpty) {
-      return _Empty(
-        icon: CupertinoIcons.lock_fill,
-        title: switch (_errorCode) {
-          'HISTORY_PRIVATE' => l10n.archiveScreenPrivateTitle,
-          'NOT_A_FRIEND' => l10n.archiveScreenNotFriendTitle,
-          _ => l10n.archiveScreenErrorTitle,
-        },
-        body: switch (_errorCode) {
-          'HISTORY_PRIVATE' => l10n.archiveScreenPrivateBody,
-          'NOT_A_FRIEND' => l10n.archiveScreenNotFriendBody,
-          _ => l10n.archiveScreenErrorBody,
-        },
-      );
-    }
-    if (_dayKeys.isEmpty) {
-      return _Empty(
-        icon: CupertinoIcons.camera_fill,
-        title: widget.ofUserId == null
-            ? l10n.archiveScreenEmptyTitle
-            : l10n.archiveScreenEmptyFriendTitle,
-        body: widget.ofUserId == null
-            ? l10n.archiveScreenEmptyBody
-            : l10n.archiveScreenEmptyFriendBody,
-      );
-    }
-
-    return ListView.builder(
-      controller: _scroll,
-      padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context)),
-      // One extra row for the tail spinner / end marker.
-      itemCount: _dayKeys.length + 1,
-      itemBuilder: (context, i) {
-        if (i == _dayKeys.length) {
-          if (_loadingMore) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: CupertinoActivityIndicator(color: theme.inkMuted),
-              ),
-            );
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                sentenceCaseOf(context, l10n.archiveScreenEnd),
-                style: metaText(theme),
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 80),
+              child: EmptyState(
+                icon: CupertinoIcons.lock_fill,
+                title: switch (_errorCode) {
+                  'HISTORY_PRIVATE' => l10n.archiveScreenPrivateTitle,
+                  'NOT_A_FRIEND' => l10n.archiveScreenNotFriendTitle,
+                  _ => l10n.archiveScreenErrorTitle,
+                },
+                message: switch (_errorCode) {
+                  'HISTORY_PRIVATE' => l10n.archiveScreenPrivateBody,
+                  'NOT_A_FRIEND' => l10n.archiveScreenNotFriendBody,
+                  _ => l10n.archiveScreenErrorBody,
+                },
               ),
             ),
-          );
-        }
-        final day = _dayKeys[i];
-        return _DaySection(
-          key: _sectionKeys.putIfAbsent(day, GlobalKey.new),
-          dayKey: day,
-          moments: _byDay[day] ?? const [],
-          api: widget.api,
-          onOpen: (m) => showMomentViewer(
-            context,
-            moment: m,
-            api: widget.api,
-            feedApi: widget.feedApi,
-            userId: widget.userId,
-            // The whole day is the run, so a picture opened from the grid can
-            // be swiped through like the gallery it visually already is. The
-            // tile is showing the picture, so it flies — on the same tag the
-            // feed rail uses, which is safe because the two are never in the
-            // same route.
-            siblings: _byDay[day] ?? const [],
           ),
-        );
-      },
-    );
+        ),
+      ];
+    }
+    if (_dayKeys.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 80),
+              child: EmptyState(
+                icon: CupertinoIcons.camera,
+                title: widget.ofUserId == null
+                    ? l10n.archiveScreenEmptyTitle
+                    : l10n.archiveScreenEmptyFriendTitle,
+                message: widget.ofUserId == null
+                    ? l10n.archiveScreenEmptyBody
+                    : l10n.archiveScreenEmptyFriendBody,
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return [
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context)),
+        sliver: SliverList.builder(
+          // One extra row for the tail spinner / end marker.
+          itemCount: _dayKeys.length + 1,
+          itemBuilder: (context, i) {
+            if (i == _dayKeys.length) {
+              if (_loadingMore) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: CupertinoActivityIndicator(color: theme.inkMuted),
+                  ),
+                );
+              }
+              return EmptyLine(l10n.archiveScreenEnd);
+            }
+            final day = _dayKeys[i];
+            return _DaySection(
+              key: _sectionKeys.putIfAbsent(day, GlobalKey.new),
+              dayKey: day,
+              moments: _byDay[day] ?? const [],
+              api: widget.api,
+              onOpen: (m) => showMomentViewer(
+                context,
+                moment: m,
+                api: widget.api,
+                feedApi: widget.feedApi,
+                userId: widget.userId,
+                // The whole day is the run, so a picture opened from the grid
+                // can be swiped through like the gallery it visually already
+                // is. The tile is showing the picture, so it flies — on the
+                // same tag the feed rail uses, which is safe because the two
+                // are never in the same route.
+                siblings: _byDay[day] ?? const [],
+              ),
+            );
+          },
+        ),
+      ),
+    ];
   }
+}
+
+/// Pins the date rail under the page bar, on a solid page fill once the grid
+/// scrolls underneath, so it never shows through the chips.
+class _RailHeader extends SliverPersistentHeaderDelegate {
+  _RailHeader({required this.height, required this.fill, required this.child});
+
+  final double height;
+  final Color fill;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+
+  // Transparent at rest, so the theme's backdrop runs unbroken behind the
+  // chips; the solid fill only arrives once the grid is scrolling under them.
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
+      ColoredBox(
+        color: overlaps ? fill : fill.withValues(alpha: 0),
+        child: child,
+      );
+
+  @override
+  bool shouldRebuild(_RailHeader old) =>
+      old.height != height || old.fill != fill || old.child != child;
 }
 
 /// A dayKey ("YYYY-MM-DD") as a localized date that always carries its year.
 ///
-/// `formatFullDate` — "Friday, August 28, 2026" — is what the section headers
-/// used, and on a phone it ellipsized: the part that fell off the end was the
-/// year, which is the one thing a reader browsing an ARCHIVE cannot infer from
-/// context. `formatMediumDate` is short enough to survive but drops the year
-/// entirely, so the two are composed.
+/// `formatFullDate` — "Friday, August 28, 2026", "28 Ağustos 2026 Cuma" — the
+/// long form, spelled out. It once ellipsized in a one-line header beside a
+/// rule, losing the year, which is the one thing a reader browsing an ARCHIVE
+/// cannot infer from context; so for a while this composed the medium date
+/// with the year instead. That read as a stamp ("4 Eki Paz · 2026"), and the
+/// header now wraps to two lines, so the full date has room to be a date.
 ///
-/// Composed rather than formatted through `intl`, which is only a transitive
+/// `MaterialLocalizations` rather than `intl`, which is only a transitive
 /// dependency here and is not worth promoting to a direct one for a date
-/// string. `MaterialLocalizations` supplies both halves already localized.
+/// string.
 String archiveDayLabel(BuildContext context, String dayKey) {
   final date = archiveDay(dayKey);
   if (date == null) return dayKey;
-  final l = MaterialLocalizations.of(context);
-  return '${l.formatMediumDate(date)} · ${l.formatYear(date)}';
+  return MaterialLocalizations.of(context).formatFullDate(date);
 }
 
 /// Parses a dayKey, or null when it is not one.
@@ -382,137 +417,49 @@ DateTime? archiveDay(String dayKey) {
 class _DateRail extends StatelessWidget {
   const _DateRail({
     required this.dayKeys,
-    required this.counts,
     required this.selected,
     required this.onTap,
   });
 
   final List<String> dayKeys;
-  final Map<String, int> counts;
   final String? selected;
   final void Function(String dayKey) onTap;
 
   @override
   Widget build(BuildContext context) {
-    // Scaled and clamped: a horizontal list imposes its cross-axis height as a
-    // hard constraint, so a flat number clips the label at accessibility sizes.
-    // Base accounts for the chip's three text lines (day/month/count, ~58px
-    // at 1.4x line-height) plus its own padding, border and the rail's own
-    // padding (~30px overhead) — 92 is that budget with a few px to spare.
-    final height = MediaQuery.textScalerOf(context).scale(92).clamp(92.0, 124.0);
-    return SizedBox(
-      height: height,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        // Vertical room for FocusableTap's ring, which paints outside its
-        // child's bounds and is otherwise clipped by this scroll view.
-        padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
-        itemCount: dayKeys.length,
-        itemBuilder: (context, i) => Padding(
-          key: ValueKey(dayKeys[i]),
-          padding: const EdgeInsets.only(right: 8),
-          child: _DayChip(
-            dayKey: dayKeys[i],
-            count: counts[dayKeys[i]] ?? 0,
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      // Vertical room for the focus ring, which paints outside its child's
+      // bounds and is otherwise clipped by this scroll view.
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      itemCount: dayKeys.length,
+      itemBuilder: (context, i) => Padding(
+        key: ValueKey(dayKeys[i]),
+        padding: const EdgeInsets.only(right: 8),
+        child: Center(
+          child: FilterCapsule(
+            label: _chipLabel(context, dayKeys[i]),
             active: dayKeys[i] == selected,
             onTap: () => onTap(dayKeys[i]),
+            // Spoken, not spelled: "2026-08-28" is read out as digits.
+            semanticLabel: archiveDayLabel(context, dayKeys[i]),
           ),
         ),
       ),
     );
   }
-}
 
-class _DayChip extends StatelessWidget {
-  const _DayChip({
-    required this.dayKey,
-    required this.count,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String dayKey;
-  final int count;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final parts = dayKey.split('-');
-    // Rendered from the key's own digits rather than parsed into a DateTime
-    // and formatted: the day chip is a compact D/M stamp, and every locale
-    // reads two numbers the same way. The full localized date is on the
-    // section header below, where there is room for it.
-    final dayNum = parts.length == 3 ? parts[2] : dayKey;
-    // Month and year share the second line, so the chip stays three lines tall.
-    // An archive that runs back years was offering "28 / 08" and no way to tell
-    // which August that was.
-    final year = parts.isEmpty || parts[0].length != 4
-        ? ''
-        : parts[0].substring(2);
-    final stamp = parts.length == 3 ? '${parts[1]}.$year' : '';
-
-    return FocusableTap(
-      onTap: onTap,
-      // Spoken, not spelled: "2026-08-28" is read out as a string of digits.
-      semanticLabel: archiveDayLabel(context, dayKey),
-      selected: active,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          // Two more points than before, for the ".26" the stamp grew.
-          width: 56,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          // The Calendar app's day pill: a soft fill at rest, solid when
-          // it's the day you're on, no outline either way.
-          decoration: BoxDecoration(
-            color: active
-                ? theme.bubbleFill(isMine: true)
-                : theme.ink.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                dayNum,
-                style: theme.body.copyWith(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  // accentInk on an accent fill, never white.
-                  color: active ? theme.accentInk : theme.ink,
-                ),
-              ),
-              Text(
-                stamp,
-                maxLines: 1,
-                style: metaText(
-                  theme,
-                  color: active ? theme.accentInk : theme.inkMuted,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$count',
-                style: metaText(
-                  theme,
-                  color: active
-                      ? theme.accentInk.withValues(alpha: 0.75)
-                      : theme.inkMuted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  /// One line, localized: "Oct 4" this year, the medium date (which carries
+  /// the year) for any other. The old three-line "04 / 10.26 / 9" stamp was
+  /// hard to read, and its count only repeated the section header's.
+  static String _chipLabel(BuildContext context, String dayKey) {
+    final date = archiveDay(dayKey);
+    if (date == null) return dayKey;
+    final l = MaterialLocalizations.of(context);
+    return date.year == DateTime.now().year
+        ? l.formatShortMonthDay(date)
+        : l.formatMediumDate(date);
   }
 }
 
@@ -550,12 +497,11 @@ class _DaySection extends StatelessWidget {
                 child: Text(
                   sentenceCaseOf(context, label),
                   style: theme.displaySmall.copyWith(color: theme.ink),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
               const SizedBox(width: 8),
-              Text('${moments.length}', style: metaText(theme)),
+              Text('${moments.length}', style: groupedMetaStyle(theme)),
             ],
           ),
           const SizedBox(height: 12),
@@ -623,14 +569,13 @@ class _ArchiveTile extends StatelessWidget {
       curve: motion.c(theme.motionEntrance),
       builder: (context, v, child) =>
           Opacity(opacity: v.clamp(0.0, 1.0), child: child),
-      child: FocusableTap(
+      child: SpringPress(
         onTap: onTap,
+        haptic: false,
+        scale: PressSpec.scaleSmall,
         semanticLabel: moment.caption ?? '',
-        radius: theme.radiusMd,
-        child: GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          child: Stack(
+        focusRadius: theme.radiusMd,
+        child: Stack(
             fit: StackFit.expand,
             children: [
               if (thumbId != null)
@@ -653,32 +598,57 @@ class _ArchiveTile extends StatelessWidget {
                   ),
                 )
               else
+                // Words only: the tag rides INLINE above the caption, never
+                // floated over it — pinned to the corner it sat on the first
+                // letters of every caption ("W̶ashed", "R̶an").
                 Container(
                   decoration: BoxDecoration(
                     color: groupedFill(theme),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(theme.radiusMd),
                   ),
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   alignment: Alignment.topLeft,
-                  child: Text(
-                    moment.caption ?? '',
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      color: theme.inkSoft,
-                    ),
-                    maxLines: 5,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (moment.tag != null) ...[
+                        MomentTagChip(tag: moment.tag!, dense: true),
+                        const SizedBox(height: 6),
+                      ],
+                      // As many whole lines as the tile has room for, then an
+                      // ellipsis. `TextOverflow.fade` with no line cap never
+                      // faded vertically here: the last line was sliced
+                      // through the middle by the tile's bottom edge.
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, box) {
+                            final style = groupedMetaStyle(theme).copyWith(
+                              color: theme.inkSoft,
+                            );
+                            final line = MediaQuery.textScalerOf(context)
+                                .scale(
+                                  (style.fontSize ?? 13) *
+                                      (style.height ?? 1.25),
+                                );
+                            return Text(
+                              moment.caption ?? '',
+                              style: style,
+                              maxLines: math.max(
+                                1,
+                                (box.maxHeight / line).floor(),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               if (moment.mediaKind == MomentMedia.video)
-                Center(
-                  child: Icon(
-                    CupertinoIcons.play_circle_fill,
-                    size: 26,
-                    color: theme.ink.withValues(alpha: 0.85),
-                  ),
-                ),
-              if (moment.tag != null)
+                const Center(child: MediaPlayDisc(size: 36)),
+              // Over a picture the corner is free, so the badge stays there.
+              if (moment.tag != null && thumbId != null)
                 Positioned(
                   left: 4,
                   top: 4,
@@ -686,57 +656,6 @@ class _ArchiveTile extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The shape every empty and refused state on this screen takes.
-class _Empty extends StatelessWidget {
-  const _Empty({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: quietFill(theme),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, size: 28, color: theme.accent),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              sentenceCaseOf(context, title),
-              style: theme.displaySmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              sentenceCaseOf(context, body),
-              style: theme.bodySoft.copyWith(color: theme.inkMuted),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -14,8 +14,8 @@ import '../app_toast.dart';
 import 'expression_media.dart';
 import 'klipy_attribution.dart';
 import '../meta_text.dart';
-import '../search_field.dart' show searchFieldDecoration;
-import '../../l10n/text_case.dart';
+import '../ios_kit.dart';
+import '../search_field.dart';
 
 String _bare(String s) => s.replaceAll('️', '').trim();
 
@@ -211,7 +211,7 @@ class _StickerPackStoreState extends State<StickerPackStore> {
                     child: Text(
                       l10n.expressionNoPacksFound,
                       textAlign: TextAlign.center,
-                      style: theme.caption.copyWith(color: theme.inkMuted),
+                      style: groupedFooterStyle(theme),
                     ),
                   ),
                 ]
@@ -268,7 +268,7 @@ class _StickerPackStoreState extends State<StickerPackStore> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                 child: Text(l10n.expressionAllPacksAdded,
-                    style: theme.caption.copyWith(color: theme.inkMuted)),
+                    style: groupedFooterStyle(theme)),
               )
             else
               for (final p in more) row(p),
@@ -303,49 +303,22 @@ class _StickerPackStoreState extends State<StickerPackStore> {
 
         return Column(
           children: [
+            // THE search bar: pill, 18pt magnifier, clear button. Search
+            // filters as you type; the key just puts the keyboard away.
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
-              child: Container(
-                height: 36,
-                decoration: searchFieldDecoration(theme),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  children: [
-                    Icon(CupertinoIcons.search, size: 15, color: theme.inkMuted),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _query,
-                        focusNode: _focus,
-                        onChanged: _onQuery,
-                        textInputAction: TextInputAction.search,
-                        // Search filters as you type; the key just puts the
-                        // keyboard away so the matches have the room.
-                        onSubmitted: (_) => _focus.unfocus(),
-                        style: theme.body.copyWith(color: theme.ink),
-                        cursorColor: theme.accent,
-                        decoration: InputDecoration(
-                          isCollapsed: true,
-                          border: InputBorder.none,
-                          hintText: l10n.expressionPackSearchHint,
-                          hintStyle:
-                              theme.body.copyWith(color: theme.inkMuted),
-                          hintMaxLines: 1,
-                        ),
-                      ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SearchField(
+                      controller: _query,
+                      focusNode: _focus,
+                      hintText: l10n.expressionPackSearchHint,
+                      onChanged: _onQuery,
                     ),
-                    if (searching)
-                      GestureDetector(
-                        onTap: () {
-                          _query.clear();
-                          _onQuery('');
-                        },
-                        child: Icon(CupertinoIcons.clear_circled_solid,
-                            size: 16, color: theme.inkMuted),
-                      ),
-                    if (_focus.hasFocus) HideKeyboardButton(focus: _focus),
-                  ],
-                ),
+                  ),
+                  if (_focus.hasFocus) HideKeyboardButton(focus: _focus),
+                ],
               ),
             ),
             Expanded(
@@ -403,7 +376,7 @@ class _KlipyCategoryTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: theme.caption.copyWith(color: theme.inkSoft),
+                style: groupedMetaStyle(theme).copyWith(color: theme.inkSoft),
               ),
             ],
           ),
@@ -448,26 +421,16 @@ class _KlipySearchRow extends StatelessWidget {
   }
 }
 
+/// A section header in the store — THE one, 17/w600 ink.
 class _Header extends StatelessWidget {
   const _Header(this.label);
   final String label;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-      child: Semantics(
-        header: true,
-        child: Text(sentenceCaseOf(context, label),
-            style: theme.bodySoft.copyWith(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: theme.inkMuted,
-            )),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Semantics(header: true, child: GroupedHeader(label)),
+      );
 }
 
 class _PackRow extends StatelessWidget {
@@ -552,7 +515,7 @@ class _PackRow extends StatelessWidget {
                         ],
                       ),
                     ),
-                    _PillButton(
+                    RowPillButton(
                       label: installed
                           ? l10n.expressionPackRemove
                           : l10n.expressionPackAdd,
@@ -584,46 +547,6 @@ class _PackRow extends StatelessWidget {
             ),
           Divider(height: 1, color: theme.divider),
         ],
-      ),
-    );
-  }
-}
-
-class _PillButton extends StatelessWidget {
-  const _PillButton({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: 999,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: filled ? theme.accent : theme.ink.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            style: labelText(
-              theme,
-              color: filled ? theme.accentInk : theme.accent,
-            ),
-          ),
-        ),
       ),
     );
   }

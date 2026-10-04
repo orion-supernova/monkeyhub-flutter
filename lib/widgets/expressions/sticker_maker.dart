@@ -15,8 +15,9 @@ import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../theme/theme_scope.dart';
 import '../app_toast.dart';
+import '../ios_kit.dart';
+import '../sheet_kit.dart' show sheetTitleStyle;
 import '../reaction_picker_sheet.dart';
-import '../meta_text.dart';
 
 /// How a photo becomes a sticker when its subject is not lifted out.
 enum StickerShape { circle, rounded, original }
@@ -294,64 +295,25 @@ class _StickerMakerScreenState extends State<StickerMakerScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 12, 4),
+                padding: const EdgeInsets.fromLTRB(16, 8, 12, 4),
                 child: Row(
                   children: [
-                    FocusableTap(
+                    GlassCloseButton(
                       onTap: () => Navigator.of(context).pop(false),
-                      semanticLabel:
-                          MaterialLocalizations.of(context).closeButtonLabel,
-                      shape: FocusRingShape.circle,
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).pop(false),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(CupertinoIcons.xmark,
-                              size: 20, color: theme.ink),
-                        ),
-                      ),
                     ),
                     Expanded(
                       child: Text(
                         l10n.stickerMakerTitle,
                         textAlign: TextAlign.center,
-                        style: theme.bodyEmph,
+                        style: sheetTitleStyle(theme),
                       ),
                     ),
-                    FocusableTap(
+                    // The commit, top-trailing as a tinted glass pill —
+                    // the full-screen modal shape: × leading, commit trailing.
+                    GlassPillButton(
+                      label: l10n.stickerMakerSave,
+                      tint: theme.accent,
                       onTap: ready && !_saving ? _save : null,
-                      semanticLabel: l10n.stickerMakerSave,
-                      radius: 999,
-                      child: GestureDetector(
-                        onTap: ready && !_saving ? _save : null,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: ready
-                                ? theme.accent
-                                : theme.ink.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: _saving
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CupertinoActivityIndicator(
-                                    color: theme.accentInk,
-                                    radius: 8,
-                                  ),
-                                )
-                              : Text(
-                                  l10n.stickerMakerSave,
-                                  style: labelText(theme).copyWith(
-                                    color: ready
-                                        ? theme.accentInk
-                                        : theme.inkMuted,
-                                  ),
-                                ),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -388,9 +350,8 @@ class _StickerMakerScreenState extends State<StickerMakerScreen> {
               if (_cutoutAvailable)
                 _OptionRow(
                   label: l10n.stickerMakerRemoveBackground,
-                  child: CupertinoSwitch(
+                  child: RowSwitch(
                     value: _useCutout,
-                    activeTrackColor: theme.accent,
                     onChanged: (v) {
                       setState(() => _useCutout = v);
                       _render();
@@ -400,35 +361,42 @@ class _StickerMakerScreenState extends State<StickerMakerScreen> {
               if (!_useCutout)
                 _OptionRow(
                   label: l10n.stickerMakerShape,
-                  child: CupertinoSlidingSegmentedControl<StickerShape>(
-                    groupValue: _shape,
-                    onValueChanged: (s) {
-                      if (s == null) return;
-                      setState(() => _shape = s);
-                      _render();
-                    },
-                    children: {
-                      StickerShape.circle: Icon(CupertinoIcons.circle,
-                          size: 18, color: theme.ink,
-                          semanticLabel: l10n.stickerMakerShapeCircle),
-                      StickerShape.rounded: Icon(CupertinoIcons.app,
-                          size: 18, color: theme.ink,
-                          semanticLabel: l10n.stickerMakerShapeRounded),
-                      StickerShape.original: Icon(CupertinoIcons.crop,
-                          size: 18, color: theme.ink,
-                          semanticLabel: l10n.stickerMakerShapeOriginal),
-                    },
+                  // THE segmented control, glyph-only segments (each one
+                  // still named for a screen reader).
+                  child: SizedBox(
+                    width: 168,
+                    child: IosSegmentedControl<StickerShape>(
+                      value: _shape,
+                      onChanged: (s) {
+                        setState(() => _shape = s);
+                        _render();
+                      },
+                      segments: [
+                        IosSegment(
+                          value: StickerShape.circle,
+                          label: '',
+                          icon: CupertinoIcons.circle,
+                          semanticLabel: l10n.stickerMakerShapeCircle,
+                        ),
+                        IosSegment(
+                          value: StickerShape.rounded,
+                          label: '',
+                          icon: CupertinoIcons.app,
+                          semanticLabel: l10n.stickerMakerShapeRounded,
+                        ),
+                        IosSegment(
+                          value: StickerShape.original,
+                          label: '',
+                          icon: CupertinoIcons.crop,
+                          semanticLabel: l10n.stickerMakerShapeOriginal,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    l10n.stickerMakerEmojiLabel,
-                    style: theme.caption.copyWith(color: theme.inkMuted),
-                  ),
-                ),
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                child: GroupedHeader(l10n.stickerMakerEmojiLabel),
               ),
               SizedBox(
                 height: 52,
@@ -476,7 +444,7 @@ class _OptionRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: theme.body)),
+          Expanded(child: Text(label, style: groupedTitleStyle(theme))),
           child,
         ],
       ),

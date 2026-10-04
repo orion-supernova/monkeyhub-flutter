@@ -7,23 +7,19 @@ import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/family.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
 import '../widgets/people_picker.dart';
 import '../widgets/search_field.dart';
-import '../widgets/labeled_field.dart';
+import '../widgets/labeled_field.dart' show SheetTextField;
 import '../widgets/password_field.dart';
 import '../widgets/remove_contact_sheet.dart';
 import '../widgets/user_avatar.dart';
-import '../widgets/ios_kit.dart'
-    show GlassBackButton, groupedFill, groupedRadius;
-import '../widgets/sheet_kit.dart' show SheetActionButton;
-import '../widgets/ios_kit.dart' show quietFill;
-import '../l10n/text_case.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/sheet_kit.dart'
+    show SheetConfirm, SheetFrame, SheetGroup;
 
 /// Per-child controls, plus the list of what they've already been granted.
 ///
@@ -442,9 +438,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       context,
       headline: isMe
           ? l10n.childPolicyScreenStopSupervisingHeadline
-          : l10n.childPolicyScreenRemoveGuardianHeadline(
-              guardian.displayName.toUpperCase(),
-            ),
+          : l10n.childPolicyScreenRemoveGuardianHeadline(guardian.displayName),
       body: isMe
           ? l10n.childPolicyScreenStopSupervisingBody(_child.user.displayName)
           : l10n.childPolicyScreenRemoveGuardianBody(
@@ -504,9 +498,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     final password = await showAdaptiveSheet<String>(
       context,
       builder: (_) => _PromptSheet(
-        heading: l10n.childPolicyScreenGraduateHeading(
-          _child.user.displayName.toUpperCase(),
-        ),
+        heading: l10n.childPolicyScreenGraduateHeading(_child.user.displayName),
         blurb: l10n.childPolicyScreenGraduateBlurb,
         hint: l10n.childPolicyScreenGraduateHint,
         ctaLabel: l10n.childPolicyScreenGraduateCta,
@@ -539,7 +531,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     final name = _child.user.displayName;
     final ok = await showConfirmSheet(
       context,
-      headline: l10n.childPolicyScreenDeleteAccountHeadline(name.toUpperCase()),
+      headline: l10n.childPolicyScreenDeleteAccountHeadline(name),
       body: l10n.childPolicyScreenDeleteAccountBody,
       confirmLabel: l10n.childPolicyScreenDeleteForeverCta,
     );
@@ -562,270 +554,235 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     }
   }
 
+  /// A switch flip with the tap a native switch gives; `Switch.adaptive` has
+  /// none.
+  ValueChanged<bool> _flip(void Function(bool) apply) => (v) {
+        HapticFeedback.lightImpact();
+        apply(v);
+      };
+
+  String _stateLabel(ChildContact c, AppLocalizations l10n) =>
+      switch (c.state) {
+        ChildContactState.allowedTalking =>
+          l10n.childPolicyScreenContactStateAllowedTalking,
+        ChildContactState.talking => l10n.childPolicyScreenContactStateTalking,
+        ChildContactState.allowedNotAdded =>
+          l10n.childPolicyScreenContactStateAllowedNotAdded,
+      };
+
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final grants = _grants;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-                    child: Row(
-                      children: [
-                        const GlassBackButton(),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            widget.child.user.displayName,
-                            style: theme.bodyEmph.copyWith(color: theme.ink),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        4,
-                        16,
-                        edgeToEdgeBottom(context, 40),
-                      ),
-                      children: [
-                        _SectionHeader(
-                          l10n.childPolicyScreenSectionWhatTheyCanDo,
-                        ),
-                        const SizedBox(height: 12),
-                        // Public rooms used to be a toggle here. It is now fixed
-                        // off for every kid and cannot be switched on, so it is a
-                        // statement rather than a control — but it still has to
-                        // be SAID. A guardian who saw the switch before would
-                        // otherwise assume the setting was lost or reset, and one
-                        // who never did deserves to know the limit exists.
-                        _FixedNote(
-                          label: l10n.childPolicyScreenPublicRoomsLabel,
-                          body: l10n.childPolicyScreenPublicRoomsBody,
-                        ),
-                        const SizedBox(height: 10),
-                        _Toggle(
-                          label: l10n.childPolicyScreenAskToAddLabel,
-                          on: _policy.canRequestContacts,
-                          onDesc: l10n.childPolicyScreenAskToAddOnDesc,
-                          offDesc: l10n.childPolicyScreenAskToAddOffDesc,
-                          onChanged: (v) => _set(canRequestContacts: v),
-                        ),
-                        const SizedBox(height: 10),
-                        _Toggle(
-                          label: l10n.childPolicyScreenCallsLabel,
-                          on: _policy.callsEnabled,
-                          onDesc: l10n.childPolicyScreenCallsOnDesc,
-                          offDesc: l10n.childPolicyScreenCallsOffDesc,
-                          onChanged: (v) => _set(callsEnabled: v),
-                        ),
-                        const SizedBox(height: 10),
-                        _Toggle(
-                          label: l10n.childPolicyScreenMediaLabel,
-                          on: _policy.mediaEnabled,
-                          onDesc: l10n.childPolicyScreenMediaOnDesc,
-                          offDesc: l10n.childPolicyScreenMediaOffDesc,
-                          onChanged: (v) => _set(mediaEnabled: v),
-                        ),
-                        const SizedBox(height: 10),
-                        _Toggle(
-                          label: l10n.childPolicyScreenCreateRoomsLabel,
-                          on: _policy.canCreateRooms,
-                          onDesc: l10n.childPolicyScreenCreateRoomsOnDesc,
-                          offDesc: l10n.childPolicyScreenCreateRoomsOffDesc,
-                          onChanged: (v) => _set(canCreateRooms: v),
-                        ),
-                        const SizedBox(height: 10),
-                        // The only switch on this screen that starts OFF, and
-                        // its own switch rather than part of MEDIA — see
-                        // `LOCATION_POLICY_FLAG` in childGuard.ts. Allowing
-                        // photos is not the same decision as allowing a child
-                        // to tell a room where they physically are.
-                        _Toggle(
-                          label: l10n.childPolicyScreenLocationLabel,
-                          on: _policy.locationSharingEnabled,
-                          onDesc: l10n.childPolicyScreenLocationOnDesc,
-                          offDesc: l10n.childPolicyScreenLocationOffDesc,
-                          onChanged: (v) => _set(locationSharingEnabled: v),
-                        ),
-
-                        const SizedBox(height: 30),
-                        _SectionHeader(
-                          l10n.childPolicyScreenSectionPeopleAllowed,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          l10n.childPolicyScreenPeopleAllowedDesc,
-                          style: theme.bodySoft,
-                        ),
-                        const SizedBox(height: 12),
-                        if (grants == null)
-                          _Placeholder(l10n.childPolicyScreenLoading)
-                        else ...[
-                          for (final c in grants.contacts)
-                            _GrantRow(
-                              title: c.user.displayName,
-                              subtitle: '@${c.user.username} · ${c.stateLabel}',
-                              leading: UserAvatar(
-                                user: c.user,
-                                size: 32,
-                                api: widget.api,
-                              ),
-                              onRevoke: () => _takeBack(c),
-                            ),
-                          // Two doors, on purpose. The picker is the one
-                          // almost everyone wants — the person is already in
-                          // your own friends, or one search away — and typing
-                          // a handle stays for the case where they are
-                          // neither, and for anyone who simply prefers it.
-                          _AddByUsernameButton(
-                            icon: Icons.person_search_outlined,
-                            label: l10n.childPolicyScreenAddSomeoneLabel,
-                            onTap: _addContactFromFriends,
-                          ),
-                          _AddByUsernameButton(onTap: _addContactByUsername),
-                        ],
-
-                        const SizedBox(height: 30),
-                        _SectionHeader(
-                          l10n.childPolicyScreenSectionRoomsAllowed,
-                        ),
-                        const SizedBox(height: 12),
-                        if (grants == null)
-                          _Placeholder(l10n.childPolicyScreenLoading)
-                        else ...[
-                          if (grants.rooms.isEmpty)
-                            _Placeholder(l10n.childPolicyScreenNoRoomsYet)
-                          else
-                            for (final r in grants.rooms)
-                              _GrantRow(
-                                title: r.name,
-                                subtitle: l10n.childPolicyScreenRoomMemberCount(
-                                  r.memberCount,
-                                ),
-                                leading: Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: quietFill(theme),
-                                    borderRadius: BorderRadius.circular(
-                                      theme.radiusMd,
-                                    ),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Icon(
-                                    Icons.tag,
-                                    size: 13,
-                                    color: theme.accent,
-                                  ),
-                                ),
-                                onRevoke: () => _revokeRoom(r),
-                              ),
-                          // The section could only ever take rooms AWAY before
-                          // this. See [_addRoom].
-                          _AddByUsernameButton(
-                            icon: Icons.add_circle_outline,
-                            label: l10n.childPolicyScreenAddRoomLabel,
-                            onTap: _addRoom,
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        Text(
-                          l10n.childPolicyScreenGrantsFooterNote,
-                          style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
-                        ),
-
-                        const SizedBox(height: 30),
-                        _SectionHeader(l10n.childPolicyScreenSectionGrownUps),
-                        const SizedBox(height: 12),
-                        Text(
-                          l10n.childPolicyScreenGrownUpsDesc,
-                          style: theme.bodySoft,
-                        ),
-                        const SizedBox(height: 12),
-                        for (final g in _child.guardians)
-                          _GrantRow(
-                            title: g.id == widget.guardianId
-                                ? l10n.childPolicyScreenGuardianYouSuffix(
-                                    g.displayName,
-                                  )
-                                : g.displayName,
-                            subtitle: '@${g.username}',
-                            leading: UserAvatar(
-                              user: g,
-                              size: 32,
-                              api: widget.api,
-                            ),
-                            // The last grown-up standing can't step away — the
-                            // account would be stranded with nobody able to
-                            // re-adopt or delete it. Graduate or delete instead.
-                            onRevoke: _child.isSoleGuardian
-                                ? null
-                                : () => _removeGuardian(g),
-                            revokeLabel: g.id == widget.guardianId
-                                ? l10n.childPolicyScreenStepAwayLabel
-                                : l10n.childPolicyScreenRemoveLabel,
-                          ),
-                        _AddByUsernameButton(
-                          label: l10n.childPolicyScreenAddGuardianHeading,
-                          onTap: _addGuardian,
-                        ),
-
-                        const SizedBox(height: 30),
-                        _SectionHeader(l10n.childPolicyScreenSectionWhenDone),
-                        const SizedBox(height: 12),
-                        if (_child.isSoleGuardian)
-                          Text(
-                            l10n.childPolicyScreenSoleGuardianNote(
-                              _child.user.displayName,
-                            ),
-                            style: theme.bodySoft,
-                          )
-                        else
-                          Text(
-                            l10n.childPolicyScreenBothFinalNote,
-                            style: theme.bodySoft,
-                          ),
-                        const SizedBox(height: 12),
-                        _DangerAction(
-                          label: l10n.childPolicyScreenGraduateDangerLabel,
-                          detail: l10n.childPolicyScreenGraduateDangerDetail,
-                          onTap: _graduate,
-                        ),
-                        const SizedBox(height: 10),
-                        _DangerAction(
-                          label: l10n.childPolicyScreenDeleteDangerLabel(
-                            _child.user.displayName.toUpperCase(),
-                          ),
-                          detail: l10n.childPolicyScreenDeleteDangerDetail,
-                          filled: true,
-                          onTap: _deleteChild,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+    return IosPage(
+      title: _child.user.displayName,
+      children: [
+        GroupedSection(
+          header: l10n.childPolicyScreenSectionWhatTheyCanDo,
+          children: [
+            // Public rooms used to be a toggle here. It is now fixed off for
+            // every kid and cannot be switched on, so it is a statement
+            // rather than a control — but it still has to be SAID. A
+            // guardian who saw the switch before would otherwise assume the
+            // setting was lost or reset, and one who never did deserves to
+            // know the limit exists.
+            //
+            // No disabled Switch on purpose. A greyed-out control still says
+            // "this is a setting, and someone could turn it on"; the point
+            // here is the opposite — so the row wears a lock and the word.
+            GroupedRow(
+              title: l10n.childPolicyScreenPublicRoomsLabel,
+              subtitle: l10n.childPolicyScreenPublicRoomsBody,
+              trailing: _LockedTag(label: l10n.childPolicyScreenLockedLabel),
             ),
-          ),
-        ],
-      ),
+            GroupedRow.toggle(
+              title: l10n.childPolicyScreenAskToAddLabel,
+              subtitle: _policy.canRequestContacts
+                  ? l10n.childPolicyScreenAskToAddOnDesc
+                  : l10n.childPolicyScreenAskToAddOffDesc,
+              value: _policy.canRequestContacts,
+              onChanged: _flip((v) => _set(canRequestContacts: v)),
+            ),
+            GroupedRow.toggle(
+              title: l10n.childPolicyScreenCallsLabel,
+              subtitle: _policy.callsEnabled
+                  ? l10n.childPolicyScreenCallsOnDesc
+                  : l10n.childPolicyScreenCallsOffDesc,
+              value: _policy.callsEnabled,
+              onChanged: _flip((v) => _set(callsEnabled: v)),
+            ),
+            GroupedRow.toggle(
+              title: l10n.childPolicyScreenMediaLabel,
+              subtitle: _policy.mediaEnabled
+                  ? l10n.childPolicyScreenMediaOnDesc
+                  : l10n.childPolicyScreenMediaOffDesc,
+              value: _policy.mediaEnabled,
+              onChanged: _flip((v) => _set(mediaEnabled: v)),
+            ),
+            GroupedRow.toggle(
+              title: l10n.childPolicyScreenCreateRoomsLabel,
+              subtitle: _policy.canCreateRooms
+                  ? l10n.childPolicyScreenCreateRoomsOnDesc
+                  : l10n.childPolicyScreenCreateRoomsOffDesc,
+              value: _policy.canCreateRooms,
+              onChanged: _flip((v) => _set(canCreateRooms: v)),
+            ),
+            // The only switch on this screen that starts OFF, and its own
+            // switch rather than part of MEDIA — see `LOCATION_POLICY_FLAG`
+            // in childGuard.ts. Allowing photos is not the same decision as
+            // allowing a child to tell a room where they physically are.
+            GroupedRow.toggle(
+              title: l10n.childPolicyScreenLocationLabel,
+              subtitle: _policy.locationSharingEnabled
+                  ? l10n.childPolicyScreenLocationOnDesc
+                  : l10n.childPolicyScreenLocationOffDesc,
+              value: _policy.locationSharingEnabled,
+              onChanged: _flip((v) => _set(locationSharingEnabled: v)),
+            ),
+          ],
+        ),
+
+        GroupedSection(
+          header: l10n.childPolicyScreenSectionPeopleAllowed,
+          footer: l10n.childPolicyScreenPeopleAllowedDesc,
+          children: [
+            if (grants == null)
+              EmptyLine(l10n.childPolicyScreenLoading)
+            else ...[
+              for (final c in grants.contacts)
+                PersonRow(
+                  avatar: UserAvatar(user: c.user, size: 40, api: widget.api),
+                  title: c.user.displayName,
+                  // The state alone: it is what this row adds. Handle and
+                  // state together ellipsized the state away ("@zeynep ·
+                  // All…") at large text and in Turkish, and PersonRow's
+                  // subtitle is one line. The labels are short for the same
+                  // reason, and drop the "Allowed ·" the section header
+                  // already says. The handle stays for VoiceOver.
+                  subtitle: _stateLabel(c, l10n),
+                  semanticLabel: '${c.user.displayName}, @${c.user.username}, '
+                      '${_stateLabel(c, l10n)}',
+                  trailing: RowPillButton(
+                    label: l10n.childPolicyScreenTakeBackLabel,
+                    destructive: true,
+                    onTap: () => _takeBack(c),
+                  ),
+                ),
+              // Two doors, on purpose. The picker is the one almost
+              // everyone wants — the person is already in your own friends,
+              // or one search away — and typing a handle stays for the case
+              // where they are neither, and for anyone who simply prefers it.
+              // Distinct glyphs, because the same row shape fronts four
+              // different actions on this page.
+              GroupedRow(
+                title: l10n.childPolicyScreenAddSomeoneLabel,
+                icon: CupertinoIcons.person_2_fill,
+                chevron: false,
+                onTap: _addContactFromFriends,
+              ),
+              GroupedRow(
+                title: l10n.childPolicyScreenAddByUsernameLabel,
+                icon: CupertinoIcons.at,
+                chevron: false,
+                onTap: _addContactByUsername,
+              ),
+            ],
+          ],
+        ),
+
+        GroupedSection(
+          header: l10n.childPolicyScreenSectionRoomsAllowed,
+          footer: l10n.childPolicyScreenGrantsFooterNote,
+          children: [
+            if (grants == null)
+              EmptyLine(l10n.childPolicyScreenLoading)
+            else ...[
+              if (grants.rooms.isEmpty)
+                EmptyLine(l10n.childPolicyScreenNoRoomsYet)
+              else
+                for (final r in grants.rooms)
+                  PersonRow(
+                    avatar: const _RoomGlyph(),
+                    title: r.name,
+                    subtitle:
+                        l10n.childPolicyScreenRoomMemberCount(r.memberCount),
+                    trailing: RowPillButton(
+                      label: l10n.childPolicyScreenTakeBackLabel,
+                      destructive: true,
+                      onTap: () => _revokeRoom(r),
+                    ),
+                  ),
+              // The section could only ever take rooms AWAY before this. See
+              // [_addRoom].
+              GroupedRow(
+                title: l10n.childPolicyScreenAddRoomLabel,
+                icon: CupertinoIcons.plus,
+                chevron: false,
+                onTap: _addRoom,
+              ),
+            ],
+          ],
+        ),
+
+        GroupedSection(
+          header: l10n.childPolicyScreenSectionGrownUps,
+          footer: l10n.childPolicyScreenGrownUpsDesc,
+          children: [
+            for (final g in _child.guardians)
+              PersonRow(
+                avatar: UserAvatar(user: g, size: 40, api: widget.api),
+                title: g.id == widget.guardianId
+                    ? l10n.childPolicyScreenGuardianYouSuffix(g.displayName)
+                    : g.displayName,
+                subtitle: '@${g.username}',
+                // The last grown-up standing can't step away — the account
+                // would be stranded with nobody able to re-adopt or delete
+                // it. Graduate or delete instead.
+                trailing: _child.isSoleGuardian
+                    ? null
+                    : RowPillButton(
+                        label: g.id == widget.guardianId
+                            ? l10n.childPolicyScreenStepAwayLabel
+                            : l10n.childPolicyScreenRemoveLabel,
+                        destructive: true,
+                        onTap: () => _removeGuardian(g),
+                      ),
+              ),
+            GroupedRow(
+              title: l10n.childPolicyScreenAddGuardianHeading,
+              icon: CupertinoIcons.person_badge_plus_fill,
+              chevron: false,
+              onTap: _addGuardian,
+            ),
+          ],
+        ),
+
+        // Spelled out in full, with what each one costs underneath: these end
+        // an account rather than trim a list, so they are heavier than the
+        // inline "Take back" pills above.
+        GroupedSection(
+          header: l10n.childPolicyScreenSectionWhenDone,
+          footer: _child.isSoleGuardian
+              ? l10n.childPolicyScreenSoleGuardianNote(_child.user.displayName)
+              : l10n.childPolicyScreenBothFinalNote,
+          children: [
+            GroupedRow(
+              title: l10n.childPolicyScreenGraduateDangerLabel,
+              subtitle: l10n.childPolicyScreenGraduateDangerDetail,
+              destructive: true,
+              onTap: _graduate,
+            ),
+            GroupedRow(
+              title: l10n.childPolicyScreenDeleteDangerLabel(
+                _child.user.displayName,
+              ),
+              subtitle: l10n.childPolicyScreenDeleteDangerDetail,
+              destructive: true,
+              onTap: _deleteChild,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -837,112 +794,40 @@ class _AddContactResult {
   final bool sendNow;
 }
 
-class _AddByUsernameButton extends StatelessWidget {
-  const _AddByUsernameButton({required this.onTap, this.label, this.icon});
-  final VoidCallback onTap;
-
-  /// Null falls back to the default "ADD BY USERNAME" copy; callers that
-  /// reuse this button for a different action (e.g. adding a grown-up, or
-  /// opening one of the pickers) override it.
-  final String? label;
-
-  /// Likewise for the glyph — the same outline button now fronts four
-  /// different actions, and four identical person-plus icons would make them
-  /// indistinguishable at a glance.
-  final IconData? icon;
+/// The trailing "🔒 Locked" of a rule that is stated rather than offered.
+class _LockedTag extends StatelessWidget {
+  const _LockedTag({required this.label});
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final resolvedLabel =
-        label ??
-        AppLocalizations.of(context).childPolicyScreenAddByUsernameLabel;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      // A tinted capsule — the iOS secondary action — not an outlined box.
-      child: Container(
-        margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: quietFill(theme),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon ?? CupertinoIcons.person_badge_plus,
-              size: 17,
-              color: theme.accent,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                sentenceCaseOf(context, resolvedLabel),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.body.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: theme.accent,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(CupertinoIcons.lock_fill, size: 13, color: theme.inkMuted),
+        const SizedBox(width: 3),
+        Text(label, style: groupedMetaStyle(theme)),
+      ],
     );
   }
 }
 
-/// A full-width, spelled-out destructive action. Heavier than [_GrantRow]'s
-/// inline "TAKE BACK" because these end an account rather than trim a list.
-class _DangerAction extends StatelessWidget {
-  const _DangerAction({
-    required this.label,
-    required this.detail,
-    required this.onTap,
-    this.filled = false,
-  });
-  final String label;
-  final String detail;
-  final VoidCallback onTap;
-  final bool filled;
+/// A room's stand-in avatar: the # on a quiet rounded tile, at the 40pt a
+/// [PersonRow] expects.
+class _RoomGlyph extends StatelessWidget {
+  const _RoomGlyph();
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: filled
-              ? theme.danger.withValues(alpha: 0.12)
-              : groupedFill(theme),
-          borderRadius: BorderRadius.circular(groupedRadius(theme)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              sentenceCaseOf(context, label),
-              style: theme.body.copyWith(fontSize: 17, color: theme.danger),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              detail,
-              style: theme.bodySoft.copyWith(
-                fontSize: 13,
-                color: theme.inkMuted,
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: quietFill(theme),
+        borderRadius: BorderRadius.circular(theme.radiusMd),
       ),
+      alignment: Alignment.center,
+      child: Icon(CupertinoIcons.number, size: 18, color: theme.accent),
     );
   }
 }
@@ -965,10 +850,19 @@ class _AddContactSheetState extends State<_AddContactSheet> {
   bool _sendNow = true;
 
   @override
+  void initState() {
+    super.initState();
+    // The ✓ wakes up as soon as there is something to submit.
+    _username.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _username.dispose();
     super.dispose();
   }
+
+  bool get _valid => _username.text.trim().isNotEmpty;
 
   void _submit() {
     final u = _username.text.trim();
@@ -980,128 +874,61 @@ class _AddContactSheetState extends State<_AddContactSheet> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Material(
-      type: MaterialType.transparency,
-      child: DefaultTextStyle(
-        style: theme.body,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+    return SheetFrame(
+      title: l10n.childPolicyScreenAllowSomeoneHeading,
+      confirm: SheetConfirm(
+        onTap: _valid ? _submit : null,
+        label: l10n.childPolicyScreenAllowCta,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.childPolicyScreenAllowSomeoneBlurb(widget.childName),
+            style: groupedFooterStyle(theme),
+            textAlign: TextAlign.center,
           ),
-          child: SafeArea(
-            top: false,
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-              // An iOS sheet platter: surface, generous corners, no outline.
-              decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(groupedRadius(theme) + 8),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    sentenceCaseOf(
-                      context,
-                      l10n.childPolicyScreenAllowSomeoneHeading,
-                    ),
-                    style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    l10n.childPolicyScreenAllowSomeoneBlurb(widget.childName),
-                    style: theme.bodySoft,
-                  ),
-                  const SizedBox(height: 18),
-                  ThemedInput(
-                    controller: _username,
-                    hint: l10n.childPolicyScreenUsernameHint,
-                    autofocus: true,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    onSubmitted: (_) => _submit(),
-                  ),
-                  const SizedBox(height: 14),
-                  GestureDetector(
-                    onTap: () => setState(() => _sendNow = !_sendNow),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                      decoration: BoxDecoration(
-                        color: groupedFill(theme),
-                        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  sentenceCaseOf(
-                                    context,
-                                    l10n.childPolicyScreenSendRequestNowLabel,
-                                  ),
-                                  style: theme.body.copyWith(
-                                    fontSize: 17,
-                                    color: theme.ink,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _sendNow
-                                      ? l10n.childPolicyScreenSendNowOnDesc
-                                      : l10n.childPolicyScreenSendNowOffDesc,
-                                  style: theme.bodySoft,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Switch.adaptive(
-                            value: _sendNow,
-                            onChanged: (v) {
-                              HapticFeedback.lightImpact();
-                              setState(() => _sendNow = v);
-                            },
-                            activeTrackColor: theme.success,
-                            activeThumbColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SheetActionButton(
-                    label: l10n.childPolicyScreenAllowCta,
-                    onTap: _submit,
-                  ),
-                  const SizedBox(height: 10),
-                  SheetActionButton(
-                    label: l10n.childPolicyScreenCancelLabel,
-                    tonal: true,
-                    onTap: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
+          const SizedBox(height: 16),
+          SheetTextField(
+            controller: _username,
+            hint: l10n.childPolicyScreenUsernameHint,
+            autofocus: true,
+            keyboardType: TextInputType.visiblePassword,
+            textCapitalization: TextCapitalization.none,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
           ),
-        ),
+          const SizedBox(height: 16),
+          SheetGroup(
+            children: [
+              GroupedRow.toggle(
+                title: l10n.childPolicyScreenSendRequestNowLabel,
+                subtitle: _sendNow
+                    ? l10n.childPolicyScreenSendNowOnDesc
+                    : l10n.childPolicyScreenSendNowOffDesc,
+                value: _sendNow,
+                onChanged: (v) {
+                  HapticFeedback.lightImpact();
+                  setState(() => _sendNow = v);
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-/// One-field sheet: a heading, a line of explanation, an input, a CTA.
+/// One-field sheet: a title, a line of explanation, an input, the ✓.
 ///
 /// Same chrome as [_AddContactSheet] above, which is the reason it exists —
 /// adding a grown-up and setting a graduation password are both "type one
 /// thing and confirm", and three near-identical copies of that layout would
 /// drift.
 ///
-/// Pops the trimmed value, or null on cancel. [minLength] gates the CTA.
+/// Pops the trimmed value, or null on ×. [minLength] gates the ✓.
 class _PromptSheet extends StatefulWidget {
   const _PromptSheet({
     required this.heading,
@@ -1148,319 +975,43 @@ class _PromptSheetState extends State<_PromptSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Material(
-      type: MaterialType.transparency,
-      child: DefaultTextStyle(
-        style: theme.body,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SafeArea(
-            top: false,
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-              // An iOS sheet platter: surface, generous corners, no outline.
-              decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(groupedRadius(theme) + 8),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    sentenceCaseOf(context, widget.heading),
-                    style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(widget.blurb, style: theme.bodySoft),
-                  const SizedBox(height: 18),
-                  // Obscured prompts are passwords (the graduate-child flow),
-                  // so they get the show/hide toggle; plain prompts stay a
-                  // bare input.
-                  if (widget.obscure)
-                    PasswordField(
-                      controller: _value,
-                      hint: widget.hint,
-                      autofocus: true,
-                      onSubmitted: (_) => _submit(),
-                    )
-                  else
-                    ThemedInput(
-                      controller: _value,
-                      hint: widget.hint,
-                      autofocus: true,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      onSubmitted: (_) => _submit(),
-                    ),
-                  const SizedBox(height: 20),
-                  SheetActionButton(
-                    label: widget.ctaLabel,
-                    onTap: _valid ? _submit : null,
-                  ),
-                  const SizedBox(height: 10),
-                  SheetActionButton(
-                    label: l10n.childPolicyScreenCancelLabel,
-                    tonal: true,
-                    onTap: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // The iOS grouped-section header: small, muted, sentence case.
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Text(
-        sentenceCaseOf(context, label),
-        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
-      ),
-    );
-  }
-}
-
-/// A rule that is stated rather than offered — same shape as [_Toggle] so it
-/// reads as part of the same list, minus the switch and minus the tap target.
-///
-/// No disabled Switch on purpose. A greyed-out control still says "this is a
-/// setting, and someone could turn it on"; the point here is the opposite.
-class _FixedNote extends StatelessWidget {
-  const _FixedNote({required this.label, required this.body});
-
-  final String label;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
+    return SheetFrame(
+      title: widget.heading,
+      confirm: SheetConfirm(
+        onTap: _valid ? _submit : null,
+        label: widget.ctaLabel,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Flexible(
-                child: Text(
-                  sentenceCaseOf(context, label),
-                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(CupertinoIcons.lock_fill, size: 13, color: theme.inkMuted),
-              const SizedBox(width: 3),
-              Text(
-                sentenceCaseOf(
-                  context,
-                  AppLocalizations.of(context).childPolicyScreenLockedLabel,
-                ),
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
           Text(
-            body,
-            style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
+            widget.blurb,
+            style: groupedFooterStyle(theme),
+            textAlign: TextAlign.center,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Toggle extends StatelessWidget {
-  const _Toggle({
-    required this.label,
-    required this.on,
-    required this.onDesc,
-    required this.offDesc,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool on;
-  final String onDesc;
-  final String offDesc;
-  final ValueChanged<bool> onChanged;
-
-  /// With the tap a native switch gives; `Switch.adaptive` has none.
-  void _flip(bool v) {
-    HapticFeedback.lightImpact();
-    onChanged(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: () => _flip(!on),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        decoration: BoxDecoration(
-          color: groupedFill(theme),
-          borderRadius: BorderRadius.circular(groupedRadius(theme)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    sentenceCaseOf(context, label),
-                    style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    on ? onDesc : offDesc,
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      color: theme.inkMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Switch.adaptive(
-              value: on,
-              onChanged: _flip,
-              activeTrackColor: theme.success,
-              activeThumbColor: Colors.white,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GrantRow extends StatelessWidget {
-  const _GrantRow({
-    required this.title,
-    required this.subtitle,
-    required this.leading,
-    required this.onRevoke,
-    this.revokeLabel,
-  });
-
-  final String title;
-  final String subtitle;
-  final Widget leading;
-
-  /// Null renders the row without an action — used for the last remaining
-  /// guardian, who isn't allowed to step away.
-  final VoidCallback? onRevoke;
-
-  /// Null falls back to the default "TAKE BACK" copy; callers that reuse
-  /// this row for a different action (e.g. removing a grown-up) override it.
-  final String? revokeLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final resolvedRevokeLabel =
-        revokeLabel ??
-        AppLocalizations.of(context).childPolicyScreenTakeBackLabel;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
-      child: Row(
-        children: [
-          leading,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  subtitle,
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    color: theme.inkMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (onRevoke != null)
-            GestureDetector(
-              onTap: onRevoke,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                // The red pill iOS uses for an inline destructive action.
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.danger.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    sentenceCaseOf(context, resolvedRevokeLabel),
-                    style: theme.body.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: theme.danger,
-                    ),
-                  ),
-                ),
-              ),
+          const SizedBox(height: 16),
+          // Obscured prompts are passwords (the graduate-child flow), so they
+          // get the show/hide toggle; plain prompts stay a bare input.
+          if (widget.obscure)
+            PasswordField(
+              controller: _value,
+              hint: widget.hint,
+              autofocus: true,
+              onSubmitted: (_) => _submit(),
+            )
+          else
+            SheetTextField(
+              controller: _value,
+              hint: widget.hint,
+              autofocus: true,
+              keyboardType: TextInputType.visiblePassword,
+              textCapitalization: TextCapitalization.none,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
             ),
         ],
       ),
-    );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(text, style: theme.bodySoft),
     );
   }
 }
@@ -1478,11 +1029,9 @@ class _Placeholder extends StatelessWidget {
 /// in height read as a glitch.
 const double _pickerHeightFraction = 0.78;
 
-/// Chrome shared by both pickers: the panel, the grabber, a heading, a blurb,
-/// and a bounded body. Written once because the two sheets are the same
-/// object with a different list in it, and because the padding arithmetic
-/// below (keyboard, home indicator) is the kind that gets subtly wrong on the
-/// second copy.
+/// Chrome shared by both pickers: the standard sheet with its title in the
+/// bar, a blurb, and a bounded body. Written once because the two sheets are
+/// the same object with a different list in it.
 class _PickerShell extends StatelessWidget {
   const _PickerShell({
     required this.heading,
@@ -1497,49 +1046,23 @@ class _PickerShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final media = MediaQuery.of(context);
-    return Material(
-      type: MaterialType.transparency,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(theme.radiusLg),
+    return SheetFrame(
+      title: heading,
+      maxHeightFraction: _pickerHeightFraction,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            blurb,
+            style: groupedFooterStyle(theme),
+            textAlign: TextAlign.center,
           ),
-        ),
-        constraints: BoxConstraints(
-          maxHeight: media.size.height * _pickerHeightFraction,
-        ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          // `viewInsets` and `padding` are never both non-zero — raising the
-          // keyboard zeroes the second — so one expression covers a sheet at
-          // rest and a sheet being typed into.
-          12 + media.padding.bottom + media.viewInsets.bottom,
-        ),
-        child: DefaultTextStyle(
-          style: theme.body,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SheetGrabber(),
-              Text(
-                sentenceCaseOf(context, heading),
-                style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
-              ),
-              const SizedBox(height: 10),
-              Text(blurb, style: theme.bodySoft),
-              const SizedBox(height: 16),
-              // Flexible rather than Expanded so the heading and blurb above
-              // are laid out first and the list takes what is left. The sheet
-              // height itself is fixed on purpose — see [_pickerHeightFraction].
-              Flexible(child: child),
-            ],
-          ),
-        ),
+          const SizedBox(height: 14),
+          // The list takes what is left under the blurb. The sheet height
+          // itself is fixed on purpose — see [_pickerHeightFraction].
+          Expanded(child: child),
+        ],
       ),
     );
   }
@@ -1575,7 +1098,10 @@ class _PickPersonSheet extends StatelessWidget {
       heading: l10n.childPolicyScreenAllowSomeoneHeading,
       blurb: l10n.childPolicyScreenAllowSomeoneBlurb(childName),
       child: loading
-          ? _Placeholder(l10n.childPolicyScreenLoading)
+          ? Align(
+              alignment: Alignment.topCenter,
+              child: EmptyLine(l10n.childPolicyScreenLoading),
+            )
           : PeoplePicker(
               people: people,
               api: api,
@@ -1636,7 +1162,6 @@ class _PickRoomSheetState extends State<_PickRoomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final visible = _visible;
     final searching = _query.trim().isNotEmpty;
@@ -1644,7 +1169,10 @@ class _PickRoomSheetState extends State<_PickRoomSheet> {
       heading: l10n.childPolicyScreenPickRoomHeading,
       blurb: l10n.childPolicyScreenPickRoomBlurb(widget.childName),
       child: widget.loading
-          ? _Placeholder(l10n.childPolicyScreenLoading)
+          ? Align(
+              alignment: Alignment.topCenter,
+              child: EmptyLine(l10n.childPolicyScreenLoading),
+            )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1657,29 +1185,36 @@ class _PickRoomSheetState extends State<_PickRoomSheet> {
                 const SizedBox(height: 10),
                 Expanded(
                   child: visible.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 30),
-                            child: Text(
-                              searching
-                                  ? l10n.childPolicyScreenPickRoomNoMatch
-                                  : l10n.childPolicyScreenPickRoomEmpty,
-                              style: theme.bodySoft,
-                              textAlign: TextAlign.center,
+                      ? Align(
+                          alignment: Alignment.topCenter,
+                          child: EmptyLine(
+                            searching
+                                ? l10n.childPolicyScreenPickRoomNoMatch
+                                : l10n.childPolicyScreenPickRoomEmpty,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 30,
                             ),
                           ),
                         )
+                      // Bare rows, no plate: the person picker in this same
+                      // shell is the shared PeoplePicker, which lists bare
+                      // rows, and the two pickers should read as one.
                       : ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(
                             parent: BouncingScrollPhysics(),
                           ),
                           padding: EdgeInsets.zero,
                           itemCount: visible.length,
-                          itemBuilder: (_, i) {
+                          itemBuilder: (context, i) {
                             final r = visible[i];
-                            return _RoomTile(
+                            return PersonRow(
                               key: ValueKey(r.id),
-                              room: r,
+                              avatar: const _RoomGlyph(),
+                              title: r.name,
+                              subtitle: l10n.childPolicyScreenRoomMemberCount(
+                                r.memberCount,
+                              ),
                               onTap: () => Navigator.of(context).pop(r),
                             );
                           },
@@ -1687,68 +1222,6 @@ class _PickRoomSheetState extends State<_PickRoomSheet> {
                 ),
               ],
             ),
-    );
-  }
-}
-
-class _RoomTile extends StatelessWidget {
-  const _RoomTile({super.key, required this.room, required this.onTap});
-
-  final RoomBrief room;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: quietFill(theme),
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              alignment: Alignment.center,
-              child: Icon(Icons.tag, size: 15, color: theme.accent),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    room.name,
-                    style: theme.body,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.childPolicyScreenRoomMemberCount(room.memberCount),
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      color: theme.inkMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              CupertinoIcons.chevron_forward,
-              size: 14,
-              color: theme.inkMuted.withValues(alpha: 0.7),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

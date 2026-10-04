@@ -8,6 +8,8 @@ import '../models/moment.dart';
 import '../theme/motion.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'meta_text.dart';
+import 'photo_chrome.dart' show MediaPlayDisc;
 import 'remote_image.dart';
 import 'steady_hero.dart';
 
@@ -174,13 +176,13 @@ class _CaptureTile extends StatelessWidget {
               Text(
                 sentenceCaseOf(context, l10n.momentRailCaptureLabel),
                 textAlign: TextAlign.center,
-                style: theme.caption.copyWith(
-                  fontSize: 13,
+                // The body face at meta size — never the theme's caption, which
+                // is tracked monospace on character themes. Wraps, then
+                // shrinks: a tile label never ellipsizes.
+                style: metaText(theme, color: theme.ink).copyWith(
                   fontWeight: FontWeight.w600,
-                  color: theme.ink,
                 ),
                 maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -294,12 +296,8 @@ class _MomentCard extends StatelessWidget {
                           moment.mine
                               ? l10n.momentRailYouLabel
                               : moment.authorName,
-                          style: theme.caption.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: 0,
-                          ),
+                          style: metaText(theme, color: Colors.white)
+                              .copyWith(fontWeight: FontWeight.w600),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -386,13 +384,7 @@ class _Thumb extends StatelessWidget {
             ),
           ),
         if (moment.mediaKind == MomentMedia.video)
-          Center(
-            child: Icon(
-              CupertinoIcons.play_circle_fill,
-              size: 30,
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-          ),
+          const Center(child: MediaPlayDisc(size: 36)),
         if (moment.tag != null)
           Positioned(
             left: 4,
@@ -457,16 +449,17 @@ class MomentTagChip extends StatelessWidget {
 
   /// The glyph for each category.
   ///
-  /// Material icons rather than emoji on purpose: emoji render in the system
+  /// Drawn glyphs rather than emoji on purpose: emoji render in the system
   /// font at a size and colour this app cannot control, which breaks against
   /// thirteen palettes — four of them light — and looks pasted-on next to the
-  /// theme's own drawn marks.
+  /// theme's own drawn marks. Cupertino, like every other glyph in the app.
   static IconData iconFor(MomentTag tag) => switch (tag) {
-    MomentTag.fate => Icons.auto_awesome_outlined,
-    MomentTag.jinx => Icons.bolt_outlined,
-    MomentTag.luck => Icons.workspace_premium_outlined,
-    MomentTag.calledIt => Icons.visibility_outlined,
-    MomentTag.npc => Icons.smart_toy_outlined,
+    MomentTag.fate => CupertinoIcons.sparkles,
+    MomentTag.jinx => CupertinoIcons.bolt_fill,
+    MomentTag.luck => CupertinoIcons.rosette,
+    MomentTag.calledIt => CupertinoIcons.eye,
+    // "Brain fully off."
+    MomentTag.npc => CupertinoIcons.zzz,
   };
 
   /// The localized name of a category.
@@ -517,7 +510,7 @@ class MomentTagChip extends StatelessWidget {
         children: [
           Icon(
             iconFor(tag),
-            size: dense ? 10 : 12,
+            size: dense ? 11 : 13,
             // accentInk, never a literal white: NeonNight's accent is pure
             // #FFFF00 and Graphite's is near-white, so white-on-accent is
             // unreadable in both.
@@ -527,7 +520,11 @@ class MomentTagChip extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               labelFor(l10n, tag),
-              style: theme.monoTiny.copyWith(color: theme.accentInk),
+              // Body face at meta size: the theme's mono read as a terminal
+              // stamp on every character theme.
+              style: metaText(theme, color: theme.accentInk).copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ],

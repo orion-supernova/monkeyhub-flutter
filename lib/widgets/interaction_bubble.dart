@@ -323,16 +323,13 @@ class _Header extends StatelessWidget {
         Icon(icon, size: 14, color: theme.accent),
         const SizedBox(width: 6),
         Text(
-          // Uppercased in the ARB, not here. `String.toUpperCase()` is
-          // locale-INSENSITIVE in Dart, so it turns Turkish "i" into "I"
-          // rather than "İ" — a wrong word in one of the twelve languages this
-          // ships in. Every other all-caps label in the app is stored that way
-          // for the same reason (see `createRoomSheetNameLabel`).
+          // Sentence case, as stored in the ARB — never `toUpperCase()`d
+          // (Dart's invariant mapping turns Turkish "i" into "I", not "İ") —
+          // and on the body face, never the theme's tracked mono.
           label,
-          style: theme.monoTiny.copyWith(
+          style: _meta(theme).copyWith(
             color: theme.accent,
-            letterSpacing: 1.1,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const Spacer(),
@@ -378,12 +375,11 @@ class _Badge extends StatelessWidget {
           borderRadius: BorderRadius.circular(theme.radiusSm),
         ),
         child: Text(
-          // Stored uppercase in the ARB — see the note in [_Header].
+          // Sentence case from the ARB — see the note in [_Header].
           text,
-          style: theme.monoTiny.copyWith(
+          style: _meta(theme).copyWith(
             color: emphatic ? theme.accentInk : theme.inkMuted,
-            letterSpacing: 0.8,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -441,7 +437,7 @@ class _EventWhen extends StatelessWidget {
             Flexible(
               child: Text(
                 past ? l10n.interactionEventPast(when) : when,
-                style: theme.caption.copyWith(
+                style: _meta(theme).copyWith(
                   color: past ? theme.inkMuted : theme.inkSoft,
                 ),
               ),
@@ -457,7 +453,7 @@ class _EventWhen extends StatelessWidget {
               Flexible(
                 child: Text(
                   interaction.place!,
-                  style: theme.caption.copyWith(color: theme.inkSoft),
+                  style: _meta(theme).copyWith(color: theme.inkSoft),
                 ),
               ),
             ],
@@ -735,7 +731,7 @@ class _ChoiceRow extends StatelessWidget {
               if (showsBar)
                 Text(
                   l10n.interactionPercent((fraction * 100).round()),
-                  style: theme.monoTiny.copyWith(
+                  style: _meta(theme).copyWith(
                     color: theme.inkMuted,
                     fontWeight: FontWeight.w700,
                   ),
@@ -901,7 +897,7 @@ class _RespondentLine extends StatelessWidget {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: theme.monoTiny.copyWith(color: theme.inkMuted),
+      style: _meta(theme).copyWith(color: theme.inkMuted),
     );
     if (onTap == null) return line;
     return FocusableTap(
@@ -975,7 +971,7 @@ class _QuizVerdict extends StatelessWidget {
                 if (answered)
                   Text(
                     right ? l10n.interactionQuizRight : l10n.interactionQuizWrong,
-                    style: theme.caption.copyWith(
+                    style: _meta(theme).copyWith(
                       color: tone,
                       fontWeight: FontWeight.w700,
                     ),
@@ -985,7 +981,7 @@ class _QuizVerdict extends StatelessWidget {
                     padding: EdgeInsets.only(top: answered ? 2 : 0),
                     child: Text(
                       note,
-                      style: theme.caption.copyWith(color: theme.inkSoft),
+                      style: _meta(theme).copyWith(color: theme.inkSoft),
                     ),
                   ),
               ],
@@ -1145,7 +1141,7 @@ class _Footer extends StatelessWidget {
                   _countLine(it),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                  style: _meta(theme).copyWith(color: theme.inkMuted),
                 ),
               ),
             const Spacer(),
@@ -1194,7 +1190,7 @@ class _Footer extends StatelessWidget {
           },
           child: Text(
             label,
-            style: theme.monoTiny.copyWith(
+            style: _meta(theme).copyWith(
               color: theme.accent,
               fontWeight: FontWeight.w700,
             ),
@@ -1202,3 +1198,12 @@ class _Footer extends StatelessWidget {
         ),
       );
 }
+
+/// Meta text on a poll/checklist/event card — badges, percentages, the
+/// "who answered" line, times and places: the body face at 13 with tabular
+/// figures, never the theme's tracked mono or caption slot.
+TextStyle _meta(AppTheme theme) => theme.bodySoft.copyWith(
+      fontSize: 13,
+      letterSpacing: 0,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );

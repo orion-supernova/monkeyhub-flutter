@@ -420,6 +420,19 @@ class PendingApproval {
       );
 }
 
+/// The three ways a person can sit on a child's allowed list — see
+/// [ChildContact.state].
+enum ChildContactState {
+  /// Pre-approved by a guardian, and the two are connected.
+  allowedTalking,
+
+  /// Connected through the normal approval flow; no standing pre-approval.
+  talking,
+
+  /// Pre-approved, but nobody has added the other yet.
+  allowedNotAdded,
+}
+
 /// A person on a child's allowed list.
 ///
 /// Two independent things, which the dashboard has to keep distinct: whether
@@ -446,11 +459,13 @@ class ChildContact {
 
   bool get isWhitelisted => approvalId != null;
 
-  /// What the row should say about this person's state.
-  String get stateLabel {
-    if (connected && isWhitelisted) return 'allowed · talking';
-    if (connected) return 'talking';
-    return 'allowed · not added yet';
+  /// Where this person stands, for the row to put into words. The model
+  /// names the state and the widget localizes it — a hard-coded English
+  /// label here used to leak into every language.
+  ChildContactState get state {
+    if (connected && isWhitelisted) return ChildContactState.allowedTalking;
+    if (connected) return ChildContactState.talking;
+    return ChildContactState.allowedNotAdded;
   }
 
   factory ChildContact.fromJson(Map<String, dynamic> j) => ChildContact(

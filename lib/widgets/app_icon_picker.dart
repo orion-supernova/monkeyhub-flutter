@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'app_brand_mark.dart' show canonicalLogoId;
@@ -13,6 +12,9 @@ import 'brand_icon_canvas.dart';
 import 'monkey_collection.dart';
 import '../services/launcher_icon_names.dart' show kBorrowedIconThemeIds;
 import 'teardown_safe.dart';
+import 'fit_label.dart';
+import 'ios_kit.dart'
+    show GroupedHeader, groupedFill, groupedMetaStyle, groupedRadius;
 import 'spring_press.dart';
 
 /// The choice that means "let the icon follow the theme" ([LogoMode.auto]).
@@ -132,22 +134,32 @@ class AppIconPicker extends StatelessWidget {
           spec(t.id, t.name, (s) => BrandIconCanvas(theme: t, size: s)),
     ];
 
-    Widget grid(List<_IconSpec> specs) => _IconGrid(
-          specs: specs,
-          selected: selected,
-          current: current,
-          onSelect: onSelect,
+    // Each group of icons on its own inset plate under a [GroupedHeader] —
+    // the grouped-list shape every other settings page has, so this one
+    // doesn't read as a loose sheet of icons.
+    Widget grid(List<_IconSpec> specs) => Container(
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
+          decoration: BoxDecoration(
+            color: groupedFill(theme),
+            borderRadius: BorderRadius.circular(groupedRadius(theme)),
+          ),
+          child: _IconGrid(
+            specs: specs,
+            selected: selected,
+            current: current,
+            onSelect: onSelect,
+          ),
         );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         grid(top),
-        const SizedBox(height: 22),
-        _Heading(text: l10n.appIconSectionCollection, theme: theme),
+        const SizedBox(height: 28),
+        GroupedHeader(l10n.appIconSectionCollection),
         grid(collection),
-        const SizedBox(height: 22),
-        _Heading(text: l10n.appIconSectionThemes, theme: theme),
+        const SizedBox(height: 28),
+        GroupedHeader(l10n.appIconSectionThemes),
         grid(themes),
       ],
     );
@@ -165,21 +177,6 @@ class _IconSpec {
   final String label;
   final Widget Function(double size) art;
   final IconData? badge;
-}
-
-class _Heading extends StatelessWidget {
-  const _Heading({required this.text, required this.theme});
-  final String text;
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
-        child: Text(
-          text,
-          style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
-        ),
-      );
 }
 
 /// Four columns, like a phone's home screen.
@@ -201,7 +198,7 @@ class _IconGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const cols = 4;
-        const gap = 14.0;
+        const gap = 10.0;
         final cell = (constraints.maxWidth - gap * (cols - 1)) / cols;
         return Wrap(
           spacing: gap,
@@ -249,6 +246,12 @@ class AppIconTile extends StatefulWidget {
 
   @override
   State<AppIconTile> createState() => _AppIconTileState();
+}
+
+/// Whether a label has somewhere to wrap: a space, or a hyphen inside it.
+bool _breakable(String label) {
+  final t = label.trim();
+  return t.contains(' ') || t.contains('-');
 }
 
 class _AppIconTileState extends State<AppIconTile>
@@ -364,25 +367,34 @@ class _AppIconTileState extends State<AppIconTile>
               ),
             ),
             const SizedBox(height: 6),
-            Text(
+            // Wraps to a second line, then shrinks — never "Monkey H…":
+            // the collection's names differ only in their second word.
+            // A hyphen is a break point too ("Bio-/Organic"). A name with
+            // no break at all shrinks rather than wraps — two lines would
+            // split it mid-word ("MonkeyHu / b") — and may go a step
+            // smaller than the rest: on risograph's wide serif "MonkeyHub"
+            // did not fit a cell at 10.
+            FitLabel(
               widget.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: theme.caption.copyWith(
-                fontSize: 12,
+              maxLines: _breakable(widget.label) ? 2 : 1,
+              minFontSize: _breakable(widget.label) ? 10 : 8,
+              // Merged over the ambient DefaultTextStyle so FitLabel measures
+              // what Text will actually paint: unmerged, anything the
+              // ambient style adds (risograph's tracking) was missing from
+              // the measurement, and "MonkeyHub" "fit" yet painted clipped.
+              style: DefaultTextStyle.of(context).style.merge(
+                groupedMetaStyle(theme),
+              ).copyWith(
+                height: 1.2,
                 color: widget.selected ? theme.ink : theme.inkSoft,
                 fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
             if (widget.current)
-              Text(
+              FitLabel(
                 l10n.appIconCurrent,
                 maxLines: 1,
-                style: theme.caption.copyWith(
-                  fontSize: 11,
-                  color: theme.inkMuted,
-                ),
+                style: groupedMetaStyle(theme),
               ),
           ],
         );

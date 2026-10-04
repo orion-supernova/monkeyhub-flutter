@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -111,7 +112,7 @@ void main() {
     await settle(tester);
 
     expect(
-      tester.getSize(find.byIcon(Icons.videocam_off_outlined)),
+      tester.getSize(find.byIcon(CupertinoIcons.slash_circle)),
       const Size(36, 36),
       reason: 'the unavailable glyph is subject to the same expand',
     );

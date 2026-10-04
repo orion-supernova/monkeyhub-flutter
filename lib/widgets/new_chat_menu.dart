@@ -121,7 +121,6 @@ class _NewChatMenuState extends State<_NewChatMenu> {
     // list never resizes under the finger as the filter narrows.
     return SheetFrame(
       title: l10n.newChatMenuTitle,
-      leading: const SheetCloseButton(),
       maxHeightFraction: 0.92,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: PeoplePicker(

@@ -32,7 +32,6 @@ void main() {
   /// formatting; nothing else.
   const allowed = <String, String>{
     'lib/screens/login_screen.dart': 'the legal links under the sign-in form',
-    'lib/screens/social_username_screen.dart': 'a tappable link label',
     'lib/widgets/composer_format_toolbar.dart':
         'the U button, which has to look like what it does',
     'lib/widgets/mention_text_controller.dart':

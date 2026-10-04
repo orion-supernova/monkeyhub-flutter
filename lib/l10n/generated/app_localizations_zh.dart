@@ -873,7 +873,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoScreenDescriptionLabel => '描述';
 
   @override
-  String get roomInfoScreenDescriptionHint => '用一句话介绍这个房间…';
+  String get roomInfoScreenDescriptionHint => '用一句话介绍这个房间';
 
   @override
   String get roomInfoScreenVisibilityLabel => '可见性';
@@ -922,10 +922,10 @@ class AppLocalizationsZh extends AppLocalizations {
       '此聊天室已设密码保护。出于安全原因,系统不会显示当前密码——输入新密码即可替换。';
 
   @override
-  String get roomInfoScreenReplacePasswordHint => '替换密码…';
+  String get roomInfoScreenReplacePasswordHint => '替换密码';
 
   @override
-  String get roomInfoScreenSetPasswordHint => '设置密码以锁定…';
+  String get roomInfoScreenSetPasswordHint => '设置密码以锁定';
 
   @override
   String get roomInfoScreenRemovePasswordButton => '移除密码';
@@ -1212,8 +1212,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPolicyScreenRemoveLabel => '移除';
 
   @override
-  String childPolicyScreenRoomMemberCount(Object count) {
-    return '$count 人';
+  String childPolicyScreenRoomMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1686,7 +1691,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get friendRequestDraftScreenHintWhisperFades => '悄悄话 · 自动消失';
 
   @override
-  String get friendRequestDraftScreenHintStartWith => '先说点什么…';
+  String get friendRequestDraftScreenHintStartWith => '先说点什么';
 
   @override
   String get friendRequestDraftScreenApproveButton => '接受请求并打开房间';
@@ -1912,10 +1917,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeShellEmptySettingHint => '选一项设置';
 
   @override
-  String get searchScreenHintPeople => '搜索用户…';
+  String get searchScreenHintPeople => '搜索用户';
 
   @override
-  String get searchScreenHintRooms => '搜索聊天室…';
+  String get searchScreenHintRooms => '搜索聊天室';
 
   @override
   String get searchScreenPeoplePromptChild => '输入完整用户名才能找到新朋友';
@@ -2251,13 +2256,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createRoomSheetNameLabel => '名称';
 
   @override
-  String get createRoomSheetNameHint => '起个诚实的名字…';
+  String get createRoomSheetNameHint => '起个诚实的名字';
 
   @override
   String get createRoomSheetDescriptionLabel => '描述 · 选填';
 
   @override
-  String get createRoomSheetDescriptionHint => '用一句话介绍一下…';
+  String get createRoomSheetDescriptionHint => '用一句话介绍一下';
 
   @override
   String get createRoomSheetVisibilityLabel => '可见性';
@@ -2311,7 +2316,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createRoomSheetPasswordLabel => '密码 · 选填';
 
   @override
-  String get createRoomSheetPasswordHint => '用密码把它锁上…';
+  String get createRoomSheetPasswordHint => '用密码把它锁上';
 
   @override
   String get createRoomSheetNameRequiredError => '名称不能为空';
@@ -2953,10 +2958,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => '发送';
 
   @override
-  String get deepOceanThemeEphemeralHint => '说点悄悄话…';
+  String get deepOceanThemeEphemeralHint => '说点悄悄话';
 
   @override
-  String get deepOceanThemeDefaultHint => '说点什么…';
+  String get deepOceanThemeDefaultHint => '说点什么';
 
   @override
   String get deepOceanThemeMessageHint => '消息';
@@ -3650,7 +3655,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get groupCallBannerPasswordFieldLabel => '密码';
 
   @override
-  String get groupCallBannerPasswordHint => '暗号…';
+  String get groupCallBannerPasswordHint => '暗号';
 
   @override
   String get groupCallBannerJoinRoomButtonSemanticLabel => '加入';
@@ -3674,7 +3679,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get socialButtonGoogleContinue => '通过 Google 继续';
 
   @override
-  String get discoverListsPeopleTitle => '你的好友。';
+  String get discoverListsPeopleTitle => '你的好友';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3687,7 +3692,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => '筛选你的好友…';
+  String get discoverListsFilterHint => '筛选你的好友';
 
   @override
   String get discoverListsClearFilterSemanticLabel => '清除筛选';
@@ -3701,7 +3706,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => '你的房间。';
+  String get discoverListsRoomsTitle => '你的房间';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3714,7 +3719,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => '筛选你的房间…';
+  String get discoverListsFilterRoomsHint => '筛选你的房间';
 
   @override
   String get discoverListsNoRoomsYet => '还没有房间';
@@ -4391,7 +4396,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportProblemDescribeLabel => '发生了什么';
 
   @override
-  String get reportProblemDescribeHint => '屏幕闪烁、按钮没反应……';
+  String get reportProblemDescribeHint => '屏幕闪烁、按钮没反应';
 
   @override
   String get reportProblemScreenshotsLabel => '截图';
@@ -4917,7 +4922,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get momentTagNpcHint => '大脑完全关机';
 
   @override
-  String get momentComposerTitle => '发生什么了？';
+  String get momentComposerTitle => '新瞬间';
 
   @override
   String get momentComposerCaptionHint => '说点什么';
@@ -4971,7 +4976,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String momentActivityScored(Object name, Object tag) {
-    return '$name 拿到一个 $tag';
+    return '$name 得了一分：$tag';
   }
 
   @override
@@ -5097,7 +5102,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String momentActivityScoredSelf(Object tag) {
-    return '你拿到一个 $tag';
+    return '你得了一分：$tag';
   }
 
   @override
@@ -5117,7 +5122,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pointComposerNoteHint => '先在上面选一个，然后讲讲';
 
   @override
-  String get pointComposerAdd => '添加积分';
+  String get pointComposerAdd => '添加一个积分';
 
   @override
   String get pointComposerAddPhoto => '添加照片';
@@ -5512,7 +5517,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get pullRevealSearchHint => '搜索聊天…';
+  String get pullRevealSearchHint => '搜索聊天';
 
   @override
   String get pullRevealCollapseSemanticLabel => '隐藏搜索和已归档的聊天';
@@ -5788,10 +5793,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPolicyScreenLocationLabel => '位置';
 
   @override
-  String get childPolicyScreenLocationOnDesc => '可以共享所在位置，包括最长 8 小时的实时共享';
+  String get childPolicyScreenLocationOnDesc => '他们可以共享所在位置，包括最长 8 小时的实时共享';
 
   @override
-  String get childPolicyScreenLocationOffDesc => '不能共享所在位置';
+  String get childPolicyScreenLocationOffDesc => '他们不能共享所在位置';
 
   @override
   String get roomInfoScreenSavedMessagesLabel => '保存的消息';
@@ -5983,7 +5988,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String scheduleSendsAtSentence(String when) {
-    return '将在$when发送。';
+    return '将在$when发送';
   }
 
   @override
@@ -6364,7 +6369,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginScreenSignInWithPhone => 'sign in with your phone';
 
   @override
-  String get loginScreenUsePasswordInstead => 'use a password instead';
+  String get loginScreenUsePasswordInstead => '改用密码';
 
   @override
   String get deviceLoginScreenHeroMuted => 'Scan to\n';
@@ -6374,23 +6379,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+      '在手机上打开 MonkeyHub，进入个人资料，点按“扫码登录”，然后将相机对准这里——也可以输入下方的代码。';
 
   @override
-  String get deviceLoginScreenWaiting => 'waiting for approval…';
+  String get deviceLoginScreenWaiting => '正在等待确认…';
 
   @override
-  String get deviceLoginScreenApproved => 'approved — signing you in…';
+  String get deviceLoginScreenApproved => '已确认，正在登录…';
 
   @override
-  String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
+  String get deviceLoginScreenDenied => '已在手机上拒绝登录请求';
 
   @override
-  String get deviceLoginScreenGenericError =>
-      'something went wrong — try a new code';
+  String get deviceLoginScreenGenericError => '出了点问题，请换个新码再试';
 
   @override
-  String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
+  String get profileScreenScanToSignInLabel => '扫码登录';
 
   @override
   String get deviceLoginScanScreenHeroMuted => 'Scan to\n';
@@ -6399,43 +6403,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceLoginScanScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScanScreenIntro =>
-      'Point your camera at the code shown on your computer, or type it in below.';
+  String get deviceLoginScanScreenIntro => '将相机对准电脑上显示的代码，或在下方输入。';
 
   @override
-  String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
+  String get deviceLoginScanScreenScanButtonLabel => '扫码';
 
   @override
-  String get deviceLoginScanScreenConfirmTitle => 'sign in on this device?';
+  String get deviceLoginScanScreenConfirmTitle => '要在此设备上登录吗？';
 
   @override
   String deviceLoginScanScreenConfirmBody(Object deviceInfo) {
-    return '$deviceInfo wants to sign in as you. Only approve this if it’s you, right now.';
+    return '$deviceInfo 想以你的身份登录。只有此刻是你本人在操作时才批准。';
   }
 
   @override
-  String get deviceLoginScanScreenApproveButton => 'APPROVE';
+  String get deviceLoginScanScreenApproveButton => '批准';
 
   @override
-  String get deviceLoginScanScreenDenyButton => 'DENY';
+  String get deviceLoginScanScreenDenyButton => '拒绝';
 
   @override
-  String get deviceLoginScanScreenSuccess => 'signed in on your other device';
+  String get deviceLoginScanScreenSuccess => '已在你的另一台设备上登录';
 
   @override
-  String get deviceLoginScanScreenGenericError =>
-      'couldn’t approve — try again';
+  String get deviceLoginScanScreenGenericError => '无法批准，请重试';
 
   @override
-  String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
+  String get authErrorDeviceLoginInvalid => '这个代码不对。';
 
   @override
-  String get authErrorDeviceLoginExpired =>
-      'That code has expired — get a new one on the other device.';
+  String get authErrorDeviceLoginExpired => '这个代码已过期，请在另一台设备上获取新码。';
 
   @override
-  String get deviceLoginScanScreenDeniedConfirmation =>
-      'sign-in request denied';
+  String get deviceLoginScanScreenDeniedConfirmation => '已拒绝登录请求';
 
   @override
   String get roomAdminRoleAdmin => '管理员';
@@ -6906,7 +6906,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newChatMenuJoinTitle => '用口令码加入';
 
   @override
-  String get newChatMenuJoinSub => '打开别人分享给你的群组';
+  String get newChatMenuJoinSub => '打开分享给你的群组';
 
   @override
   String get shareSheetTitle => '分享到';
@@ -7932,7 +7932,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newChatMenuSearchHint => '搜索你的好友';
 
   @override
-  String get newChatMenuNoFriendsYet => '还没有好友 —\\n去发现页找找人';
+  String get newChatMenuNoFriendsYet => '还没有好友 — 去发现页找找人';
 
   @override
   String get newChatMenuNoFriendsMatch => '没有匹配的好友';
@@ -9919,4 +9919,130 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsSearchKwAccount => '账户, 退出, 删除, 邮箱';
+
+  @override
+  String get childPolicyScreenContactStateAllowedTalking => '正在聊天';
+
+  @override
+  String get childPolicyScreenContactStateTalking => '已批准';
+
+  @override
+  String get childPolicyScreenContactStateAllowedNotAdded => '尚未添加';
+
+  @override
+  String get profileScreenSignOutConfirmTitle => '要在此设备上退出登录吗？';
+
+  @override
+  String get profileScreenDeleteAccountConfirmTitle => '要删除你的账户吗？';
+
+  @override
+  String get profileScreenDeleteAccountConfirmBody =>
+      '你的消息、照片、房间和好友都会被删除，用户名也会释放给其他人使用。';
+
+  @override
+  String get glassPresetNameFrosted => '磨砂';
+
+  @override
+  String get glassPresetNameClear => '透明';
+
+  @override
+  String settingsScreenDiagnosticsCountdown(int count) {
+    return '还差 $count 次进入诊断…';
+  }
+
+  @override
+  String pairingCodeTitlePair(String name) {
+    return '配对 $name';
+  }
+
+  @override
+  String pairingCodeTitleRelease(String name) {
+    return '归还 $name';
+  }
+
+  @override
+  String archivedChatsSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个聊天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String pinnedListSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条消息',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceRecorderScreenTitle => '语音消息';
+
+  @override
+  String get chatTargetSearchHint => '搜索';
+
+  @override
+  String get marloweBrainTierSwiftDetail => '回答快，下载最小';
+
+  @override
+  String get marloweBrainTierBalancedDetail => '速度与深度兼顾';
+
+  @override
+  String get marloweBrainTierDeepDetail => '思考最深入，占用空间最大';
+
+  @override
+  String get reportFactDeviceId => '设备 ID';
+
+  @override
+  String get reportFactUserId => '用户 ID';
+
+  @override
+  String get reportFactUsername => '用户名';
+
+  @override
+  String get reportFactApp => '应用';
+
+  @override
+  String get reportFactDevice => '设备';
+
+  @override
+  String get reportFactSystem => '系统';
+
+  @override
+  String get reportFactDisplay => '显示屏';
+
+  @override
+  String get reportFactAppLanguage => '应用语言';
+
+  @override
+  String get reportFactSystemLocale => '系统区域';
+
+  @override
+  String get reportFactLog => '日志';
+
+  @override
+  String reportFactLogValue(int count) {
+    return '已附加 $count 个事件';
+  }
+
+  @override
+  String reportProblemScreenshotN(int n) {
+    return '截图 $n';
+  }
+
+  @override
+  String reportProblemRemoveScreenshot(int n) {
+    return '移除截图 $n';
+  }
+
+  @override
+  String get reportFactLanguageFromSystem => '跟随系统';
+
+  @override
+  String get reportFactLanguageChosen => '手动选择';
 }

@@ -888,7 +888,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomInfoScreenDescriptionLabel => '설명';
 
   @override
-  String get roomInfoScreenDescriptionHint => '방에 대한 한 줄 소개…';
+  String get roomInfoScreenDescriptionHint => '방에 대한 한 줄 소개';
 
   @override
   String get roomInfoScreenVisibilityLabel => '공개 범위';
@@ -937,10 +937,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 방은 비밀번호로 보호되어 있어요. 보안을 위해 기존 비밀번호는 표시되지 않으니, 새 비밀번호를 입력하면 교체돼요.';
 
   @override
-  String get roomInfoScreenReplacePasswordHint => '새 비밀번호로 교체…';
+  String get roomInfoScreenReplacePasswordHint => '새 비밀번호로 교체';
 
   @override
-  String get roomInfoScreenSetPasswordHint => '비밀번호로 잠그기…';
+  String get roomInfoScreenSetPasswordHint => '비밀번호로 잠그기';
 
   @override
   String get roomInfoScreenRemovePasswordButton => '비밀번호 삭제';
@@ -1233,8 +1233,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPolicyScreenRemoveLabel => '삭제하기';
 
   @override
-  String childPolicyScreenRoomMemberCount(Object count) {
-    return '$count명';
+  String childPolicyScreenRoomMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1715,7 +1720,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get friendRequestDraftScreenHintWhisperFades => '속삭임 · 자동으로 사라짐';
 
   @override
-  String get friendRequestDraftScreenHintStartWith => '무슨 말이든 좋아요…';
+  String get friendRequestDraftScreenHintStartWith => '무슨 말이든 좋아요';
 
   @override
   String get friendRequestDraftScreenApproveButton => '받은 요청 수락하고 채팅방 열기';
@@ -1941,10 +1946,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeShellEmptySettingHint => '설정을 선택하세요';
 
   @override
-  String get searchScreenHintPeople => '사람 검색…';
+  String get searchScreenHintPeople => '사람 검색';
 
   @override
-  String get searchScreenHintRooms => '방 검색…';
+  String get searchScreenHintRooms => '방 검색';
 
   @override
   String get searchScreenPeoplePromptChild => '새로운 사람을 찾으려면 아이디 전체를 정확히 입력하세요';
@@ -2286,13 +2291,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get createRoomSheetNameLabel => '이름';
 
   @override
-  String get createRoomSheetNameHint => '솔직한 이름을 지어보세요…';
+  String get createRoomSheetNameHint => '솔직한 이름을 지어보세요';
 
   @override
   String get createRoomSheetDescriptionLabel => '설명 · 선택사항';
 
   @override
-  String get createRoomSheetDescriptionHint => '방을 한 줄로 소개해보세요…';
+  String get createRoomSheetDescriptionHint => '방을 한 줄로 소개해보세요';
 
   @override
   String get createRoomSheetVisibilityLabel => '공개 범위';
@@ -2346,7 +2351,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get createRoomSheetPasswordLabel => '비밀번호 · 선택사항';
 
   @override
-  String get createRoomSheetPasswordHint => '암호로 잠가보세요…';
+  String get createRoomSheetPasswordHint => '암호로 잠가보세요';
 
   @override
   String get createRoomSheetNameRequiredError => '이름을 입력해주세요';
@@ -3000,10 +3005,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => '보내기';
 
   @override
-  String get deepOceanThemeEphemeralHint => '속삭여보세요…';
+  String get deepOceanThemeEphemeralHint => '속삭여보세요';
 
   @override
-  String get deepOceanThemeDefaultHint => '아무 말이나 해보세요…';
+  String get deepOceanThemeDefaultHint => '아무 말이나 해보세요';
 
   @override
   String get deepOceanThemeMessageHint => '메시지';
@@ -3709,7 +3714,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get groupCallBannerPasswordFieldLabel => '비밀번호';
 
   @override
-  String get groupCallBannerPasswordHint => '암호…';
+  String get groupCallBannerPasswordHint => '암호';
 
   @override
   String get groupCallBannerJoinRoomButtonSemanticLabel => '참가';
@@ -3733,7 +3738,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Google로 계속하기';
 
   @override
-  String get discoverListsPeopleTitle => '내 사람들.';
+  String get discoverListsPeopleTitle => '내 사람들';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3746,7 +3751,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => '내 사람들 검색…';
+  String get discoverListsFilterHint => '내 사람들 검색';
 
   @override
   String get discoverListsClearFilterSemanticLabel => '필터 지우기';
@@ -3760,7 +3765,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => '내 채팅방.';
+  String get discoverListsRoomsTitle => '내 채팅방';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3773,7 +3778,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => '내 채팅방 검색…';
+  String get discoverListsFilterRoomsHint => '내 채팅방 검색';
 
   @override
   String get discoverListsNoRoomsYet => '아직 채팅방이 없어요';
@@ -4462,7 +4467,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportProblemDescribeLabel => '무슨 일이 있었나요';
 
   @override
-  String get reportProblemDescribeHint => '화면이 깜빡여요, 버튼이 반응하지 않아요…';
+  String get reportProblemDescribeHint => '화면이 깜빡여요, 버튼이 반응하지 않아요';
 
   @override
   String get reportProblemScreenshotsLabel => '스크린샷';
@@ -4999,7 +5004,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get momentTagNpcHint => '머리가 완전히 꺼짐';
 
   @override
-  String get momentComposerTitle => '무슨 일이 있었나요?';
+  String get momentComposerTitle => '새 하이라이트';
 
   @override
   String get momentComposerCaptionHint => '한마디 남겨보세요';
@@ -5053,7 +5058,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String momentActivityScored(Object name, Object tag) {
-    return '$name님이 $tag를 받았어요';
+    return '$name님이 점수를 얻었어요: $tag';
   }
 
   @override
@@ -5180,7 +5185,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String momentActivityScoredSelf(Object tag) {
-    return '$tag를 받았어요';
+    return '점수를 얻었어요: $tag';
   }
 
   @override
@@ -5200,7 +5205,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pointComposerNoteHint => '위에서 하나 고르고 이야기해 주세요';
 
   @override
-  String get pointComposerAdd => '점수 추가';
+  String get pointComposerAdd => '점수 추가하기';
 
   @override
   String get pointComposerAddPhoto => '사진 추가';
@@ -5601,7 +5606,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get pullRevealSearchHint => '채팅 검색…';
+  String get pullRevealSearchHint => '채팅 검색';
 
   @override
   String get pullRevealCollapseSemanticLabel => '검색과 보관된 채팅 숨기기';
@@ -5879,10 +5884,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenLocationOnDesc =>
-      '현재 위치를 공유할 수 있습니다(최대 8시간 실시간 공유 포함)';
+      '현재 위치를 공유할 수 있어요(최대 8시간 실시간 공유 포함)';
 
   @override
-  String get childPolicyScreenLocationOffDesc => '현재 위치를 공유할 수 없습니다';
+  String get childPolicyScreenLocationOffDesc => '현재 위치를 공유할 수 없어요';
 
   @override
   String get roomInfoScreenSavedMessagesLabel => '저장한 메시지';
@@ -6076,7 +6081,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String scheduleSendsAtSentence(String when) {
-    return '$when에 보냅니다.';
+    return '$when에 보냅니다';
   }
 
   @override
@@ -6355,7 +6360,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get serverSiteUrlExplain =>
-      '대부분의 서버는 한 주소에서 모두 응답합니다. HTTP 액션을 다른 주소에서 제공할 때만 입력하세요.';
+      '대부분의 서버는 한 주소에서 모두 응답합니다. http 액션을 다른 주소에서 제공할 때만 입력하세요.';
 
   @override
   String get serverSiteUrlHint => '위와 동일';
@@ -6462,7 +6467,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get loginScreenSignInWithPhone => 'sign in with your phone';
 
   @override
-  String get loginScreenUsePasswordInstead => 'use a password instead';
+  String get loginScreenUsePasswordInstead => '비밀번호로 로그인';
 
   @override
   String get deviceLoginScreenHeroMuted => 'Scan to\n';
@@ -6472,23 +6477,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+      '휴대폰에서 MonkeyHub를 열고 프로필에서 ‘스캔해서 로그인’을 누른 뒤 카메라를 여기에 비추세요. 아래 코드를 입력해도 돼요.';
 
   @override
-  String get deviceLoginScreenWaiting => 'waiting for approval…';
+  String get deviceLoginScreenWaiting => '승인을 기다리는 중…';
 
   @override
-  String get deviceLoginScreenApproved => 'approved — signing you in…';
+  String get deviceLoginScreenApproved => '승인됐어요 — 로그인하는 중…';
 
   @override
-  String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
+  String get deviceLoginScreenDenied => '휴대폰에서 로그인 요청을 거부했어요';
 
   @override
-  String get deviceLoginScreenGenericError =>
-      'something went wrong — try a new code';
+  String get deviceLoginScreenGenericError => '문제가 생겼어요 — 새 코드로 다시 해 보세요';
 
   @override
-  String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
+  String get profileScreenScanToSignInLabel => '스캔해서 로그인';
 
   @override
   String get deviceLoginScanScreenHeroMuted => 'Scan to\n';
@@ -6497,43 +6501,39 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deviceLoginScanScreenHeroInk => 'sign in';
 
   @override
-  String get deviceLoginScanScreenIntro =>
-      'Point your camera at the code shown on your computer, or type it in below.';
+  String get deviceLoginScanScreenIntro => '컴퓨터에 표시된 코드에 카메라를 비추거나 아래에 입력하세요.';
 
   @override
-  String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
+  String get deviceLoginScanScreenScanButtonLabel => '코드 스캔';
 
   @override
-  String get deviceLoginScanScreenConfirmTitle => 'sign in on this device?';
+  String get deviceLoginScanScreenConfirmTitle => '이 기기에서 로그인할까요?';
 
   @override
   String deviceLoginScanScreenConfirmBody(Object deviceInfo) {
-    return '$deviceInfo wants to sign in as you. Only approve this if it’s you, right now.';
+    return '$deviceInfo에서 내 계정으로 로그인하려고 해요. 지금 직접 하는 경우에만 승인하세요.';
   }
 
   @override
-  String get deviceLoginScanScreenApproveButton => 'APPROVE';
+  String get deviceLoginScanScreenApproveButton => '승인';
 
   @override
-  String get deviceLoginScanScreenDenyButton => 'DENY';
+  String get deviceLoginScanScreenDenyButton => '거부';
 
   @override
-  String get deviceLoginScanScreenSuccess => 'signed in on your other device';
+  String get deviceLoginScanScreenSuccess => '다른 기기에서 로그인했어요';
 
   @override
-  String get deviceLoginScanScreenGenericError =>
-      'couldn’t approve — try again';
+  String get deviceLoginScanScreenGenericError => '승인하지 못했어요 — 다시 시도해 주세요';
 
   @override
-  String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
+  String get authErrorDeviceLoginInvalid => '코드가 올바르지 않아요.';
 
   @override
-  String get authErrorDeviceLoginExpired =>
-      'That code has expired — get a new one on the other device.';
+  String get authErrorDeviceLoginExpired => '코드가 만료됐어요 — 다른 기기에서 새 코드를 받으세요.';
 
   @override
-  String get deviceLoginScanScreenDeniedConfirmation =>
-      'sign-in request denied';
+  String get deviceLoginScanScreenDeniedConfirmation => '로그인 요청을 거부했어요';
 
   @override
   String get roomAdminRoleAdmin => '관리자';
@@ -7010,7 +7010,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get newChatMenuJoinTitle => '코드로 참여';
 
   @override
-  String get newChatMenuJoinSub => '누군가 공유한 그룹을 열어요';
+  String get newChatMenuJoinSub => '공유받은 그룹을 열어요';
 
   @override
   String get shareSheetTitle => '보낼 대상';
@@ -8046,7 +8046,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get newChatMenuSearchHint => '친구 검색';
 
   @override
-  String get newChatMenuNoFriendsYet => '아직 친구가 없어요 —\\n탐색에서 사람을 찾아보세요';
+  String get newChatMenuNoFriendsYet => '아직 친구가 없어요 — 탐색에서 사람을 찾아보세요';
 
   @override
   String get newChatMenuNoFriendsMatch => '일치하는 친구가 없어요';
@@ -9932,7 +9932,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String settingsSearchNoResults(String query) {
-    return '\"$query\"에 대한 결과 없음';
+    return '“$query”에 대한 결과 없음';
   }
 
   @override
@@ -10045,4 +10045,130 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsSearchKwAccount => '계정, 로그아웃, 삭제, 이메일';
+
+  @override
+  String get childPolicyScreenContactStateAllowedTalking => '대화 중';
+
+  @override
+  String get childPolicyScreenContactStateTalking => '승인됨';
+
+  @override
+  String get childPolicyScreenContactStateAllowedNotAdded => '아직 추가 안 됨';
+
+  @override
+  String get profileScreenSignOutConfirmTitle => '이 기기에서 로그아웃할까요?';
+
+  @override
+  String get profileScreenDeleteAccountConfirmTitle => '계정을 삭제할까요?';
+
+  @override
+  String get profileScreenDeleteAccountConfirmBody =>
+      '메시지, 사진, 방, 친구가 모두 사라지고, 사용자 이름은 다른 사람이 사용할 수 있게 돼요.';
+
+  @override
+  String get glassPresetNameFrosted => '프로스티드';
+
+  @override
+  String get glassPresetNameClear => '투명';
+
+  @override
+  String settingsScreenDiagnosticsCountdown(int count) {
+    return '진단까지 $count…';
+  }
+
+  @override
+  String pairingCodeTitlePair(String name) {
+    return '$name 페어링';
+  }
+
+  @override
+  String pairingCodeTitleRelease(String name) {
+    return '$name 반납';
+  }
+
+  @override
+  String archivedChatsSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String pinnedListSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '메시지 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceRecorderScreenTitle => '음성 메시지';
+
+  @override
+  String get chatTargetSearchHint => '검색';
+
+  @override
+  String get marloweBrainTierSwiftDetail => '빠른 답변, 가장 가벼운 다운로드';
+
+  @override
+  String get marloweBrainTierBalancedDetail => '속도와 깊이의 균형';
+
+  @override
+  String get marloweBrainTierDeepDetail => '가장 깊이 생각하고, 공간도 가장 많이 필요';
+
+  @override
+  String get reportFactDeviceId => '기기 ID';
+
+  @override
+  String get reportFactUserId => '사용자 ID';
+
+  @override
+  String get reportFactUsername => '사용자 이름';
+
+  @override
+  String get reportFactApp => '앱';
+
+  @override
+  String get reportFactDevice => '기기';
+
+  @override
+  String get reportFactSystem => '시스템';
+
+  @override
+  String get reportFactDisplay => '디스플레이';
+
+  @override
+  String get reportFactAppLanguage => '앱 언어';
+
+  @override
+  String get reportFactSystemLocale => '시스템 지역';
+
+  @override
+  String get reportFactLog => '로그';
+
+  @override
+  String reportFactLogValue(int count) {
+    return '이벤트 $count개 첨부됨';
+  }
+
+  @override
+  String reportProblemScreenshotN(int n) {
+    return '스크린샷 $n';
+  }
+
+  @override
+  String reportProblemRemoveScreenshot(int n) {
+    return '스크린샷 $n 삭제';
+  }
+
+  @override
+  String get reportFactLanguageFromSystem => '시스템 설정';
+
+  @override
+  String get reportFactLanguageChosen => '직접 선택';
 }

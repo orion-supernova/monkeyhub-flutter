@@ -2,7 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
-import '../keyboard/focusable_tap.dart';
+import 'filter_capsule.dart';
+import 'ios_kit.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -164,37 +165,18 @@ class _InteractionRespondentsSheetState
           if (selected == null || r.choiceId == selected) r,
     ]..sort((a, b) => b.at.compareTo(a.at));
 
-    return Container(
-      decoration: BoxDecoration(
-        color: sheetFill(theme),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(sheetTopRadius(theme)),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          16, 4, 16, 18 + MediaQuery.paddingOf(context).bottom),
+    return SheetFrame(
+      title: sentenceCaseOf(context, _title(l10n, it.kind)),
+      subtitle: it.kind == MessageType.event
+          ? l10n.interactionRsvpCount(it.respondentCount)
+          : l10n.interactionVoteCount(it.respondentCount),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetHandle(),
-          const SizedBox(height: 8),
-          Text(
-            sentenceCaseOf(context, _title(l10n, it.kind)),
-            textAlign: TextAlign.center,
-            style: theme.bodyEmph.copyWith(color: theme.ink),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            it.kind == MessageType.event
-                ? l10n.interactionRsvpCount(it.respondentCount)
-                : l10n.interactionVoteCount(it.respondentCount),
-            textAlign: TextAlign.center,
-            style: _meta(theme),
-          ),
-          const SizedBox(height: 16),
           if (_failed)
-            _Notice(theme: theme, text: l10n.interactionRespondentsFailed)
+            EmptyLine(l10n.interactionRespondentsFailed)
           else if (rows == null)
             // A real spinner here, unlike the card's skeleton: this is a round
             // trip somebody explicitly asked for by opening the sheet, and it
@@ -205,7 +187,7 @@ class _InteractionRespondentsSheetState
               child: Center(child: CupertinoActivityIndicator()),
             )
           else if (rows.isEmpty)
-            _Notice(theme: theme, text: l10n.interactionRespondentsEmpty)
+            EmptyLine(l10n.interactionRespondentsEmpty)
           else ...[
             // One choice with answers needs no filter — every row is in the
             // only bucket there is.
@@ -218,21 +200,19 @@ class _InteractionRespondentsSheetState
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: Row(
                   children: [
-                    _FilterPill(
-                      theme: theme,
+                    FilterCapsule(
                       label: l10n.interactionFilterAll,
                       count: rows.length,
-                      selected: selected == null,
+                      active: selected == null,
                       onTap: () => _select(null),
                     ),
                     for (final c in it.choices)
                       if (c.count > 0) ...[
                         const SizedBox(width: 6),
-                        _FilterPill(
-                          theme: theme,
+                        FilterCapsule(
                           label: interactionChoiceLabel(l10n, it.kind, c),
                           count: c.count,
-                          selected: selected == c.id,
+                          active: selected == c.id,
                           onTap: () => _select(c.id),
                         ),
                       ],
@@ -288,90 +268,6 @@ class _InteractionRespondentsSheetState
 
 }
 
-class _Notice extends StatelessWidget {
-  const _Notice({required this.theme, required this.text});
-
-  final AppTheme theme;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 12),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: theme.caption.copyWith(color: theme.inkMuted),
-        ),
-      );
-}
-
-class _FilterPill extends StatelessWidget {
-  const _FilterPill({
-    required this.theme,
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AppTheme theme;
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
-      onTap: onTap,
-      radius: theme.radiusLg,
-      selected: selected,
-      semanticLabel: label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          curve: theme.motionCurve,
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-          decoration: BoxDecoration(
-            color: selected ? theme.accent : theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                // A poll option can be a sentence; a pill cannot. Clipped
-                // rather than wrapped, because a pill row that grew a second
-                // line would push the list of people off the sheet.
-                constraints: const BoxConstraints(maxWidth: 140),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.caption.copyWith(
-                    color: selected ? theme.accentInk : theme.inkSoft,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$count',
-                style: _meta(theme).copyWith(
-                  color: selected ? theme.accentInk : theme.inkMuted,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _RespondentRow extends StatelessWidget {
   const _RespondentRow({
     required this.theme,
@@ -397,48 +293,13 @@ class _RespondentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     // Tapping your own row would open your own profile from inside a sheet
     // about a poll, which is a place nobody meant to go.
-    final tap = isMe ? null : () => onOpenProfile(user);
-    return FocusableTap(
-      onTap: tap,
-      enabled: tap != null,
-      radius: theme.radiusMd,
+    return PersonRow(
+      avatar: UserAvatar(user: user, size: kPersonRowAvatar, api: api),
+      title: name,
+      subtitle: choiceLabel,
+      trailing: Text(time, style: _meta(theme)),
       semanticLabel: name,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: tap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
-          child: Row(
-            children: [
-              UserAvatar(user: user, size: 34, api: api),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.body.copyWith(color: theme.ink),
-                    ),
-                    if (choiceLabel != null)
-                      Text(
-                        choiceLabel!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: _meta(theme).copyWith(color: theme.inkMuted),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(time, style: _meta(theme).copyWith(color: theme.inkMuted)),
-            ],
-          ),
-        ),
-      ),
+      onTap: isMe ? null : () => onOpenProfile(user),
     );
   }
 }

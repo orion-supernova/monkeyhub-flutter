@@ -139,7 +139,13 @@ import '../models/expression_item.dart';
 import '../widgets/expressions/expression_panel.dart';
 import '../widgets/expressions/sticker_maker.dart';
 import '../widgets/expressions/sticker_suggestions.dart';
-import '../widgets/ios_kit.dart' show quietFill;
+import '../widgets/ios_kit.dart'
+    show
+        GlassBackButton,
+        groupedMetaStyle,
+        groupedSubtitleStyle,
+        groupedTitleStyle,
+        quietFill;
 import 'room_content_actions.dart';
 import 'fullscreen_image_viewer.dart';
 import 'media_pager_screen.dart';
@@ -5431,16 +5437,9 @@ class _Header extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
           child: Row(
             children: [
-              LiquidGlass(
-                shape: LiquidGlassShape.circle,
-                size: const Size(40, 40),
-                onTap: () => _roomBack(context),
-                child: Icon(
-                  CupertinoIcons.chevron_back,
-                  size: 20,
-                  color: theme.ink,
-                ),
-              ),
+              // THE back control — the same 40pt chevron the liquid header
+              // wears, so the two chat styles can't drift apart.
+              GlassBackButton(onTap: () => _roomBack(context)),
               const SizedBox(width: 10),
               if (room.isSavedMessages)
                 Container(
@@ -5458,36 +5457,49 @@ class _Header extends StatelessWidget {
                   ),
                 )
               else if (dmUser != null)
-                GestureDetector(
+                FocusableTap(
                   onTap: onTapPeer,
-                  child: UserAvatar(user: dmUser!, size: 36, api: api),
+                  semanticLabel: AppLocalizations.of(context)
+                      .roomScreenViewProfilePictureSemantic,
+                  shape: FocusRingShape.circle,
+                  child: GestureDetector(
+                    onTap: onTapPeer,
+                    child: UserAvatar(user: dmUser!, size: 36, api: api),
+                  ),
                 )
               else
                 _RoomAvatar(room: room, api: api, size: 36),
               const SizedBox(width: 10),
               Expanded(
-                child: GestureDetector(
+                child: FocusableTap(
                   onTap: onOpenInfo,
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        room.isSavedMessages
-                            ? AppLocalizations.of(context).savedMessagesTitle
-                            : (dmUser?.displayName ?? room.name),
-                        style: theme.body.copyWith(
-                          fontSize: 17,
-                          height: 1.2,
-                          fontWeight: FontWeight.w600,
-                          color: theme.ink,
+                  semanticLabel: room.isSavedMessages
+                      ? AppLocalizations.of(context).savedMessagesTitle
+                      : (dmUser?.displayName ?? room.name),
+                  radius: theme.radiusSm,
+                  child: GestureDetector(
+                    onTap: onOpenInfo,
+                    behavior: HitTestBehavior.opaque,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          room.isSavedMessages
+                              ? AppLocalizations.of(context).savedMessagesTitle
+                              : (dmUser?.displayName ?? room.name),
+                          style: theme.body.copyWith(
+                            fontSize: 17,
+                            height: 1.2,
+                            fontWeight: FontWeight.w600,
+                            color: theme.ink,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      ?status,
-                    ],
+                        ?status,
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -5573,7 +5585,9 @@ class _RoomIntro extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showDescription) ...[
-            Text('"${room.description!.toLowerCase()}"', style: theme.bodyEmph),
+            // As the owner wrote it — no runtime lowercasing of someone
+            // else's words.
+            Text('"${room.description!}"', style: theme.bodyEmph),
             const SizedBox(height: 14),
           ],
           if (showEphemeral) ...[
@@ -5586,7 +5600,9 @@ class _RoomIntro extends StatelessWidget {
                     AppLocalizations.of(context).roomScreenEphemeralNotice(
                       _fmtTtl(context, room.messageLifetime!),
                     ),
-                    style: theme.caption.copyWith(color: theme.accent),
+                    style: groupedSubtitleStyle(theme).copyWith(
+                      color: theme.accent,
+                    ),
                   ),
                 ),
               ],
@@ -5677,9 +5693,9 @@ class _ThreadFoldChip extends StatelessWidget {
                   // is how many *loaded* messages are folded right here.
                   AppLocalizations.of(context)
                       .roomScreenThreadFoldCount(fold.count),
-                  style: theme.monoTiny.copyWith(
+                  style: groupedMetaStyle(theme).copyWith(
+                    fontWeight: FontWeight.w600,
                     color: theme.inkSoft,
-                    letterSpacing: 1.4,
                   ),
                 ),
               ],
@@ -5720,7 +5736,7 @@ class _DateChipContent extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return Text(
       label,
-      style: theme.caption.copyWith(
+      style: theme.bodySoft.copyWith(
         fontSize: 13,
         height: 1.2,
         fontWeight: FontWeight.w600,
@@ -5800,7 +5816,7 @@ class _UnreadDivider extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         AppLocalizations.of(context).roomScreenUnreadDivider,
-        style: theme.caption.copyWith(
+        style: theme.bodySoft.copyWith(
           fontSize: 13,
           color: theme.accent,
           letterSpacing: 0,
@@ -5983,10 +5999,13 @@ class _PrivateFeatureCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: theme.caption.copyWith(color: theme.ink, fontWeight: FontWeight.w600),
+                      style: groupedTitleStyle(theme).copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: theme.caption.copyWith(color: theme.inkMuted, fontSize: 11)),
+                    Text(subtitle, style: groupedMetaStyle(theme)),
                   ],
                 ),
               ),
@@ -5999,13 +6018,16 @@ class _PrivateFeatureCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 title,
-                style: theme.caption.copyWith(color: theme.ink, fontWeight: FontWeight.w600),
+                style: groupedTitleStyle(theme).copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: theme.caption.copyWith(color: theme.inkMuted, fontSize: 11),
+                style: groupedMetaStyle(theme),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -6073,8 +6095,10 @@ Widget? roomHeaderStatus(
 }) {
   final theme = ThemeScope.of(context);
   final l10n = AppLocalizations.of(context);
-  final base = theme.caption.copyWith(
-    fontSize: 12.5,
+  // 13 on the body face: the caption slot is tracked mono on a character
+  // theme, and "typing…" read as terminal output under the name.
+  final base = theme.bodySoft.copyWith(
+    fontSize: 13,
     height: 1.2,
     letterSpacing: 0,
   );
@@ -6163,7 +6187,9 @@ class _LiquidHeader extends StatelessWidget {
   static const _avatarSize = 34.0;
 
   /// Diameter of the round glass controls either side of the title.
-  static const _controlSize = 44.0;
+  /// Every chrome button is 40pt — the back, and the width reserved for a
+  /// missing call control so the title capsule stays centred.
+  static const _controlSize = 40.0;
 
   /// Gap between the two call controls. Tighter than the 12 that separates
   /// them from the title capsule, so the pair reads as one group rather than
@@ -6291,14 +6317,9 @@ class _LiquidHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: const Size(_controlSize, _controlSize),
-            onTap: () => _roomBack(context),
-            // The iOS 26 toolbar back: a chevron in the label colour. The
-            // accent arrow was Material's.
-            child: Icon(CupertinoIcons.chevron_back, size: 21, color: theme.ink),
-          ),
+          // The iOS 26 toolbar back — THE shared one, 40pt, a chevron in the
+          // label colour (the accent arrow was Material's).
+          GlassBackButton(onTap: () => _roomBack(context)),
           const SizedBox(width: 12),
           Expanded(
             // LiquidGlass shrink-wraps its content, so the capsule is as wide
@@ -6324,7 +6345,7 @@ class _LiquidHeader extends StatelessWidget {
                           Text(
                             title,
                             style: theme.body.copyWith(
-                              fontSize: 16,
+                              fontSize: 17,
                               height: 1.2,
                               fontWeight: FontWeight.w600,
                               color: theme.ink,

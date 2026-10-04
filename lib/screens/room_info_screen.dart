@@ -1461,13 +1461,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             const SizedBox(height: 4),
             RiseIn(
               index: 2,
-              child: Text(
-                subtitle,
-                style: theme.body.copyWith(
-                  fontSize: 16,
-                  color: theme.inkMuted,
-                ),
-              ),
+              child: Text(subtitle, style: groupedSubtitleStyle(theme)),
             ),
           ],
           const SizedBox(height: 20),
@@ -1713,7 +1707,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             const SizedBox(height: 8),
             Text(
               AppLocalizations.of(context).roomInfoScreenSuggestAvatarNote,
-              style: theme.caption.copyWith(color: theme.inkMuted),
+              style: groupedMetaStyle(theme),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1826,7 +1820,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 ),
                 Text(
                   l10n.roomInfoScreenSuggestionPending,
-                  style: theme.caption.copyWith(color: theme.inkMuted),
+                  style: groupedSubtitleStyle(theme),
                 ),
               ],
             ),
@@ -1841,30 +1835,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               ),
             )
           else
-            FocusableTap(
-              onTap: () => _withdrawSuggestion(s),
+            RowPillButton(
+              label: l10n.riTakeBack,
               semanticLabel: l10n.roomInfoScreenSuggestionWithdraw,
-              radius: theme.radiusSm,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _withdrawSuggestion(s),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.ink.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    l10n.riTakeBack,
-                    style: theme.body.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: theme.accent,
-                    ),
-                  ),
-                ),
-              ),
+              onTap: () => _withdrawSuggestion(s),
             ),
         ],
       ),
@@ -1972,14 +1946,14 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                       const SizedBox(width: 6),
                       Text(
                         AppLocalizations.of(context).roomAdminYouSuffix,
-                        style: theme.caption.copyWith(color: theme.inkMuted),
+                        style: groupedSubtitleStyle(theme),
                       ),
                     ],
                   ],
                 ),
                 Text(
                   '@${m.username}',
-                  style: theme.caption.copyWith(color: theme.inkMuted),
+                  style: groupedSubtitleStyle(theme),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2030,36 +2004,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                   inv.awaitingGuardian
                       ? l10n.roomInfoScreenInviteAwaitingGuardian
                       : '@${inv.invitee.username}',
-                  style: theme.caption.copyWith(color: theme.inkMuted),
+                  style: groupedSubtitleStyle(theme),
                 ),
               ],
             ),
           ),
           if (inv.canCancel)
-            FocusableTap(
+            RowPillButton(
+              label: l10n.riWithdraw,
+              destructive: true,
               onTap: () => _cancelInvite(inv),
-              semanticLabel: l10n.riWithdraw,
-              radius: 999,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _cancelInvite(inv),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.danger.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    l10n.riWithdraw,
-                    style: theme.body.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: theme.danger,
-                    ),
-                  ),
-                ),
-              ),
             ),
         ],
       ),
@@ -2349,23 +2303,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             ),
           ),
           if (badge != null && badge > 0) ...[
-            Container(
-              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-              padding: const EdgeInsets.symmetric(horizontal: 7),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.danger,
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Text(
-                '$badge',
-                style: theme.caption.copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+            RowBadge(count: badge),
             const SizedBox(width: 8),
           ],
           Icon(

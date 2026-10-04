@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/user_device.dart';
 import '../push/device_identity.dart';
@@ -267,7 +266,6 @@ class _DeviceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final seen = _seen(context, device);
     return GroupedRow(
@@ -279,46 +277,16 @@ class _DeviceRow extends StatelessWidget {
         if (!device.reachable) l10n.acctNoNotifications,
       ].join(' · '),
       chevron: false,
+      // The shared inline row action: press feedback, its own spinner, and
+      // the gap that keeps it off a long device name.
       trailing: device.isThis
           ? null
-          : busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CupertinoActivityIndicator(
-                    radius: 9,
-                    color: theme.inkMuted,
-                  ),
-                )
-              : FocusableTap(
-                  onTap: enabled ? onRemove : null,
-                  semanticLabel: l10n.acctRemove,
-                  radius: 999,
-                  child: GestureDetector(
-                    onTap: enabled ? onRemove : null,
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.danger.withValues(
-                          alpha: enabled ? 0.12 : 0.05,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        l10n.acctRemove,
-                        style: theme.body.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: enabled ? theme.danger : theme.inkMuted,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+          : RowPillButton(
+              label: l10n.acctRemove,
+              destructive: true,
+              busy: busy,
+              onTap: enabled ? onRemove : null,
+            ),
     );
   }
 

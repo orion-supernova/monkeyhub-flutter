@@ -239,7 +239,7 @@ void main() {
       reason: 'nothing clamps it a second time',
     );
 
-    await tester.tap(find.text('COPY NAME'));
+    await tester.tap(find.text('Copy name'));
     await tester.pumpAndSettle();
     expect(picked?.action, MessageAction.copyName);
   });
@@ -281,8 +281,8 @@ void main() {
 
     await tester.tap(find.byKey(anchor), warnIfMissed: false);
     await tester.pumpAndSettle();
-    expect(find.text('COPY NAME'), findsNothing);
-    expect(find.text('COPY'), findsOneWidget);
+    expect(find.text('Copy name'), findsNothing);
+    expect(find.text('Copy'), findsOneWidget);
   });
 
   // The menu is the tallest thing this app puts on screen, and the filename
@@ -367,11 +367,11 @@ void main() {
     // REPORT, the last row and the first casualty, comes into the band when you
     // reach for it.
     expect(find.byType(RawScrollbar), findsOneWidget);
-    expect(tester.getRect(find.text('REPLY')).bottom,
+    expect(tester.getRect(find.text('Reply')).bottom,
         lessThanOrEqualTo(bandBottom + 0.5));
     await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -400));
     await tester.pumpAndSettle();
-    final report = tester.getRect(find.text('REPORT'));
+    final report = tester.getRect(find.text('Report'));
     expect(report.bottom, lessThanOrEqualTo(bandBottom + 0.5));
     expect(report.top, greaterThanOrEqualTo(list.top - 0.5));
 

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,9 +12,12 @@ import '../models/friend_request.dart';
 import '../models/room_admin.dart';
 import '../screens/friend_request_draft_screen.dart';
 import '../screens/navigation/open_room.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../l10n/text_case.dart';
 import 'app_toast.dart';
 import 'approval_gate.dart';
+import 'ios_kit.dart';
 import 'remote_image.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
@@ -95,8 +99,11 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final req = widget.req;
-    return GestureDetector(
+    return SpringPress(
       onTap: _openDraft,
+      haptic: false,
+      scale: PressSpec.scaleSmall,
+      semanticLabel: req.user.displayName,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -125,7 +132,7 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
                               '@${req.user.username}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: theme.mono.copyWith(color: theme.inkMuted),
+                              style: groupedSubtitleStyle(theme),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -143,8 +150,13 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
                               ),
                               decoration: theme.chipDecoration(),
                               child: Text(
-                                l10n.fileMessageStandardBadge,
-                                style: theme.monoTiny,
+                                sentenceCaseOf(
+                                  context,
+                                  l10n.fileMessageStandardBadge,
+                                ),
+                                style: _metaStyle(theme).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                         ],
@@ -152,55 +164,67 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
                     ],
                   ),
                 ),
-                Text(requestAgo(context, req.createdAt), style: theme.monoTiny),
+                Text(
+                  requestAgo(context, req.createdAt),
+                  style: _metaStyle(theme),
+                ),
               ],
             ),
             if (req.initialMessage.isNotEmpty) ...[
               const SizedBox(height: 12),
+              // A quiet quote, not a black slab with an accent bar: the
+              // words are the point, the box only says "they wrote this".
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                 decoration: BoxDecoration(
-                  color: theme.surfaceSunken,
+                  color: quietFill(theme),
                   borderRadius: BorderRadius.circular(theme.radiusMd),
-                  border: Border(
-                    left: BorderSide(color: theme.accent, width: 2),
-                  ),
                 ),
-                child: Text('"${req.initialMessage}"', style: theme.bodyEmph),
+                child: Text(
+                  '“${req.initialMessage}”',
+                  style: theme.body.copyWith(color: theme.ink),
+                ),
               ),
             ],
             if (req.messageCount > 1) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.forum_outlined, size: 12, color: theme.accent),
+                  Icon(
+                    CupertinoIcons.chat_bubble_2,
+                    size: 15,
+                    color: theme.accent,
+                  ),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       l10n.fileMessageDraftMessagesTapToView(req.messageCount),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.monoTiny.copyWith(color: theme.accent),
+                      style: _metaStyle(theme).copyWith(color: theme.accent),
                     ),
                   ),
                 ],
               ),
             ],
             const SizedBox(height: 14),
+            // The shared capsules: solid to accept, tonal to decline, a
+            // same-size spinner on the one in flight.
             Row(
               children: [
                 Expanded(
-                  child: RequestAction(
-                    label: _busy ? '…' : l10n.fileMessageApproveButton,
-                    filled: true,
+                  child: SheetActionButton(
+                    label: l10n.fileMessageApproveButton,
+                    busy: _busy,
                     onTap: _busy ? null : _accept,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: RequestAction(
+                  child: SheetActionButton(
                     label: l10n.fileMessageDeclineButton,
-                    filled: false,
+                    tonal: true,
                     onTap: _busy ? null : _reject,
                   ),
                 ),
@@ -302,10 +326,10 @@ class _RoomInvitationCardState extends State<RoomInvitationCard> {
                   height: 42,
                   child: inv.avatarStorageId == null
                       ? Container(
-                          color: theme.surfaceSunken,
+                          color: quietFill(theme),
                           alignment: Alignment.center,
                           child: Icon(
-                            Icons.groups_outlined,
+                            CupertinoIcons.person_3_fill,
                             size: 20,
                             color: theme.inkMuted,
                           ),
@@ -335,43 +359,47 @@ class _RoomInvitationCardState extends State<RoomInvitationCard> {
                         inv.inviter.displayName,
                         inv.memberCount,
                       ),
-                      style: theme.mono.copyWith(color: theme.inkMuted),
-                      maxLines: 2,
+                      style: groupedSubtitleStyle(theme),
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              Text(requestAgo(context, inv.createdAt), style: theme.monoTiny),
+              const SizedBox(width: 8),
+              Text(
+                requestAgo(context, inv.createdAt),
+                style: _metaStyle(theme),
+              ),
             ],
           ),
           if ((inv.description ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               decoration: BoxDecoration(
-                color: theme.surfaceSunken,
+                color: quietFill(theme),
                 borderRadius: BorderRadius.circular(theme.radiusMd),
-                border: Border(left: BorderSide(color: theme.accent, width: 2)),
               ),
-              child: Text(inv.description!, style: theme.bodySoft),
+              child: Text(inv.description!, style: groupedSubtitleStyle(theme)),
             ),
           ],
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
-                child: RequestAction(
-                  label: _busy ? '…' : l10n.roomInvitationCardJoin,
-                  filled: true,
+                child: SheetActionButton(
+                  label: l10n.roomInvitationCardJoin,
+                  busy: _busy,
                   onTap: _busy ? null : () => _respond(true),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: RequestAction(
+                child: SheetActionButton(
                   label: l10n.fileMessageDeclineButton,
-                  filled: false,
+                  tonal: true,
                   onTap: _busy ? null : () => _respond(false),
                 ),
               ),
@@ -442,16 +470,22 @@ class _OutgoingRequestCardState extends State<OutgoingRequestCard> {
                       '@${req.user.username}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.mono.copyWith(color: theme.inkMuted),
+                      style: groupedSubtitleStyle(theme),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              // Sentence case comes from the string itself — no runtime
+              // uppercasing (which also broke Turkish's dotted İ).
               Text(
-                l10n.fileMessageSentAgoLabel(
-                  requestAgo(context, req.createdAt).toUpperCase(),
+                sentenceCaseOf(
+                  context,
+                  l10n.fileMessageSentAgoLabel(
+                    requestAgo(context, req.createdAt),
+                  ),
                 ),
-                style: theme.monoTiny,
+                style: _metaStyle(theme),
               ),
             ],
           ),
@@ -466,13 +500,14 @@ class _OutgoingRequestCardState extends State<OutgoingRequestCard> {
             const SizedBox(height: 12),
             Text(
               l10n.fileMessageMessagesPending(req.messageCount),
-              style: theme.bodySoft,
+              style: groupedSubtitleStyle(theme),
             ),
           ],
           const SizedBox(height: 14),
-          RequestAction(
-            label: _busy ? '…' : l10n.fileMessageCancelRequestButton,
-            filled: false,
+          SheetActionButton(
+            label: l10n.fileMessageCancelRequestButton,
+            tonal: true,
+            busy: _busy,
             onTap: _busy ? null : _cancel,
           ),
         ],
@@ -481,43 +516,8 @@ class _OutgoingRequestCardState extends State<OutgoingRequestCard> {
   }
 }
 
-/// The flat CTA both request cards use.
-class RequestAction extends StatelessWidget {
-  const RequestAction({
-    super.key,
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-  final String label;
-  final bool filled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled
-              ? (onTap == null ? theme.accentSoft : theme.accent)
-              : Colors.transparent,
-          border: Border.all(
-            color: filled ? theme.accent : theme.divider,
-            width: 1.2,
-          ),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Text(
-          label,
-          style: theme.label.copyWith(
-            color: filled ? theme.accentInk : theme.ink,
-          ),
-        ),
-      ),
+/// Meta text on a request card — the time, the badge, the draft count: the
+/// body face at 13 with tabular figures, never the theme's mono.
+TextStyle _metaStyle(AppTheme theme) => groupedMetaStyle(theme).copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
     );
-  }
-}

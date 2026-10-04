@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import 'group_call_service.dart';
+import 'widgets/call_chrome.dart';
 
 /// "Ongoing call" banner for a room: green pulse + who's in + a Join pill.
 /// Renders nothing when no call is active in the room, or when this device
@@ -120,7 +119,6 @@ class _GroupCallBannerState extends State<GroupCallBanner>
         (svc.inCall && svc.groupCallId == call['groupCallId'].toString())) {
       return const SizedBox.shrink();
     }
-    final theme = ThemeScope.of(context);
     final parts = ((call['participants'] as List?) ?? const [])
         .map((e) => (e as Map).cast<String, dynamic>())
         // Only heartbeating participants count — a joined row whose app
@@ -139,91 +137,28 @@ class _GroupCallBannerState extends State<GroupCallBanner>
     final extra = parts.length > 2 ? ' +${parts.length - 2}' : '';
     final isVideo = call['type'] == 'video';
 
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        // Opaque themed card — a translucent green wash reads as a glitch on
-        // dark themes. Green stays on the pulse icon and the JOIN pill only.
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.divider),
-        ),
-        child: Row(
-          children: [
-            FadeTransition(
-              opacity: Tween(begin: 0.35, end: 1.0).animate(_pulse),
-              child: Icon(
-                isVideo ? Icons.videocam : Icons.call,
-                size: 18,
-                color: const Color(0xFF17C964),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isVideo
-                        ? AppLocalizations.of(
-                            context,
-                          ).groupCallBannerOngoingVideoCall
-                        : AppLocalizations.of(
-                            context,
-                          ).groupCallBannerOngoingVoiceCall,
-                    style: theme.body.copyWith(
-                      color: theme.ink,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    ).groupCallBannerParticipantsInCall(extra, names),
-                    style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            FocusableTap(
-              onTap: svc.inCall ? null : _join,
-              enabled: !svc.inCall,
-              semanticLabel: AppLocalizations.of(
-                context,
-              ).groupCallBannerJoinCallSemanticLabel,
-              shape: FocusRingShape.capsule,
-              child: GestureDetector(
-                onTap: svc.inCall ? null : _join,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF17C964),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context).groupCallBannerJoinButtonLabel,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      // The shared call banner, neutral: a call you are not in yet. Green
+      // stays on the pulsing glyph and the Join action only.
+      child: CallStatusBanner(
+        tone: CallBannerTone.neutral,
+        icon: isVideo ? CallGlyphs.camera : CallGlyphs.voice,
+        iconOpacity: Tween(begin: 0.35, end: 1.0).animate(_pulse),
+        title: isVideo
+            ? l10n.groupCallBannerOngoingVideoCall
+            : l10n.groupCallBannerOngoingVoiceCall,
+        meta: Text(l10n.groupCallBannerParticipantsInCall(extra, names)),
+        actions: [
+          CallBannerAction(
+            icon: isVideo ? CallGlyphs.camera : CallGlyphs.voice,
+            label: l10n.groupCallBannerJoinButtonLabel,
+            semanticLabel: l10n.groupCallBannerJoinCallSemanticLabel,
+            prominent: true,
+            onTap: svc.inCall ? null : _join,
+          ),
+        ],
       ),
     );
   }

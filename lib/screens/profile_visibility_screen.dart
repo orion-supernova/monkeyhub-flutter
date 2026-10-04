@@ -9,11 +9,10 @@ import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
-import '../theme/motion.dart';
-import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/labeled_field.dart' show FormErrorBanner;
 
 /// Visibility & privacy preferences, grouped into PROFILE / MESSAGES / PEOPLE.
 ///
@@ -165,8 +164,8 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                 SoftNote(
                   icon: CupertinoIcons.shield_lefthalf_fill,
                   tone: theme.accent,
-                  text: '${l10n.pvSupervisedTitle}. '
-                      '${l10n.profileVisibilityScreenSupervisedBody}',
+                  title: l10n.pvSupervisedTitle,
+                  text: l10n.profileVisibilityScreenSupervisedBody,
                 ),
                 const SizedBox(height: 24),
               ],
@@ -201,6 +200,9 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
               ),
               InsetGroup(
                 header: l10n.pvSectionMessages,
+                // What the read-receipts switch costs, under the section as
+                // iOS puts such notes — not wedged inside the plate.
+                footer: l10n.pvShowReceiptsHint,
                 children: [
                   _Row(
                     theme: theme,
@@ -210,14 +212,15 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                     onChanged: (v) => _patch(seen: v),
                     enabled: !ro,
                   ),
-                  _RowBool(
-                    theme: theme,
-                    label: l10n.pvShowReceipts,
-                    desc: l10n.pvShowReceiptsDesc,
-                    hint: l10n.pvShowReceiptsHint,
+                  // On or off is a switch, not a two-segment control.
+                  GroupedRow.toggle(
+                    title: l10n.pvShowReceipts,
+                    subtitle: l10n.pvShowReceiptsDesc,
                     value: SettingsStore.instance.viewReadReceipts,
-                    onChanged: (v) =>
-                        SettingsStore.instance.setViewReadReceipts(v),
+                    onChanged: (v) {
+                      HapticFeedback.lightImpact();
+                      SettingsStore.instance.setViewReadReceipts(v);
+                    },
                   ),
                 ],
               ),
@@ -271,14 +274,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                   ),
                 ],
               ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    _error!,
-                    style: theme.body.copyWith(color: theme.danger),
-                  ),
-                ),
+              if (_error != null) FormErrorBanner(_error!),
             ]),
     );
   }
@@ -290,13 +286,11 @@ class _Field extends StatelessWidget {
     required this.label,
     required this.desc,
     required this.child,
-    this.hint,
   });
   final AppTheme theme;
   final String label;
   final String desc;
   final Widget child;
-  final String? hint;
 
   @override
   Widget build(BuildContext context) {
@@ -307,22 +301,15 @@ class _Field extends StatelessWidget {
         children: [
           Text(
             label,
-            style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+            style: groupedTitleStyle(theme),
           ),
           const SizedBox(height: 2),
           Text(
             desc,
-            style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+            style: groupedSubtitleStyle(theme),
           ),
           const SizedBox(height: 10),
           child,
-          if (hint != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              hint!,
-              style: theme.caption.copyWith(color: theme.inkMuted),
-            ),
-          ],
         ],
       ),
     );
@@ -366,42 +353,6 @@ class _Row extends StatelessWidget {
   }
 }
 
-class _RowBool extends StatelessWidget {
-  const _RowBool({
-    required this.theme,
-    required this.label,
-    required this.desc,
-    required this.value,
-    required this.onChanged,
-    this.hint,
-  });
-  final AppTheme theme;
-  final String label;
-  final String desc;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final String? hint;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Field(
-      theme: theme,
-      label: label,
-      desc: desc,
-      hint: hint,
-      child: _Seg<bool>(
-        theme: theme,
-        options: [
-          (true, AppLocalizations.of(context).pvOn),
-          (false, AppLocalizations.of(context).pvOff),
-        ],
-        value: value,
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
 class _RowBinary extends StatelessWidget {
   const _RowBinary({
     required this.theme,
@@ -427,7 +378,8 @@ class _RowBinary extends StatelessWidget {
       child: _Seg<FieldVisibility>(
         theme: theme,
         options: [
-          (FieldVisibility.public, AppLocalizations.of(context).pvAnyone),
+          // "Everyone", the same word the other rows use for the same idea.
+          (FieldVisibility.public, AppLocalizations.of(context).pvEveryone),
           (FieldVisibility.nobody, AppLocalizations.of(context).pvNobody),
         ],
         value: value == FieldVisibility.friends ? FieldVisibility.public : value,
@@ -482,8 +434,9 @@ class _RowFeed extends StatelessWidget {
   }
 }
 
-/// The iOS segmented control: a recessed track and a raised thumb that slides
-/// to the chosen option on a spring.
+/// The rows' choice control: THE shared segmented control, fed this
+/// screen's `(value, label)` pairs. [enabled] false (a supervised child)
+/// still shows what is set, but only a grown-up can move it.
 class _Seg<T> extends StatelessWidget {
   const _Seg({
     required this.theme,
@@ -496,92 +449,18 @@ class _Seg<T> extends StatelessWidget {
   final List<(T, String)> options;
   final T value;
   final ValueChanged<T> onChanged;
-
-  /// False for a supervised child: the control still shows what is set, but
-  /// only a grown-up can move it.
   final bool enabled;
 
   @override
-  Widget build(BuildContext context) {
-    final motion = MotionScope.of(context);
-    final index = options.indexWhere((o) => o.$1 == value).clamp(0, 99);
-    final n = options.length;
-    final thumb = theme.isLight
-        ? Colors.white
-        : Color.alphaBlend(
-            Colors.white.withValues(alpha: 0.16),
-            groupedFill(theme),
-          );
-    return Opacity(
-      opacity: enabled ? 1 : 0.45,
-      child: Container(
-        height: 34,
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: theme.ink.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(9),
-        ),
-        child: Stack(
-          children: [
-            AnimatedAlign(
-              alignment: Alignment(n == 1 ? 0 : -1 + index * 2 / (n - 1), 0),
-              duration: motion.d(const Duration(milliseconds: 380)),
-              curve: Curves.easeOutBack,
-              child: FractionallySizedBox(
-                widthFactor: 1 / n,
-                heightFactor: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: thumb,
-                    borderRadius: BorderRadius.circular(7),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                for (final o in options)
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: enabled && o.$1 != value
-                          ? () {
-                              HapticFeedback.selectionClick();
-                              onChanged(o.$1);
-                            }
-                          : null,
-                      behavior: HitTestBehavior.opaque,
-                      child: Center(
-                        child: AnimatedDefaultTextStyle(
-                          duration: theme.motionFast,
-                          style: theme.body.copyWith(
-                            fontSize: 13,
-                            letterSpacing: 0,
-                            fontWeight: o.$1 == value
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: o.$1 == value ? theme.ink : theme.inkSoft,
-                          ),
-                          child: Text(
-                            o.$2,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => IosSegmentedControl<T>(
+        segments: [
+          for (final o in options) IosSegment<T>(value: o.$1, label: o.$2),
+        ],
+        value: value,
+        onChanged: enabled
+            ? (v) {
+                if (v != value) onChanged(v);
+              }
+            : null,
+      );
 }

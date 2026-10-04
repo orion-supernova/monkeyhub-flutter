@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -19,9 +20,9 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/remote_image.dart';
-import '../widgets/sheet_buttons.dart';
+import '../widgets/sheet_kit.dart' show FormErrorBanner, SheetActionButton;
 import 'room_screen.dart';
-import '../widgets/ios_kit.dart' show GlassBackButton;
+import '../widgets/ios_kit.dart';
 
 /// Where a tapped invite link lands, and where a typed code is entered.
 ///
@@ -269,62 +270,20 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _header(theme, l10n),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        22,
-                        8,
-                        22,
-                        edgeToEdgeBottom(context, 32),
-                      ),
-                      child: _body(theme, l10n),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    // THE pushed page: glass back, a large title that hands off to the bar
+    // as it scrolls — not a hand-built back-and-title row.
+    return IosPage(
+      title: l10n.joinInviteTitle,
+      padding: const EdgeInsets.fromLTRB(22, 0, 22, 32),
+      children: [AdaptivePageBody(child: _body(theme, l10n))],
     );
   }
-
-  Widget _header(AppTheme theme, AppLocalizations l10n) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 6, 22, 6),
-        child: Row(
-          children: [
-            const GlassBackButton(),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.joinInviteTitle,
-                style: theme.bodyEmph.copyWith(color: theme.ink),
-              ),
-            ),
-          ],
-        ),
-      );
 
   Widget _body(AppTheme theme, AppLocalizations l10n) {
     final foreign = _foreignServer;
     if (foreign != null) {
       return _Notice(
-        icon: Icons.dns_outlined,
+        icon: CupertinoIcons.exclamationmark_triangle,
         tone: theme.danger,
         headline: l10n.joinInviteWrongServerHeadline,
         body: l10n.joinInviteWrongServerBody(foreign),
@@ -335,7 +294,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.joinInviteCodeBlurb, style: theme.bodySoft),
+          Text(l10n.joinInviteCodeBlurb, style: groupedFooterStyle(theme)),
           const SizedBox(height: 18),
           LabeledField(
             label: l10n.joinInviteCodeLabel,
@@ -343,10 +302,9 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
             hint: l10n.joinInviteCodeHint,
           ),
           const SizedBox(height: 8),
-          if (_error != null)
-            Text(_error!, style: theme.bodySoft.copyWith(color: theme.danger)),
+          if (_error != null) FormErrorBanner(_error!),
           const SizedBox(height: 14),
-          SheetPrimaryButton(
+          SheetActionButton(
             label: l10n.joinInviteLookupButton,
             onTap: _loading
                 ? null
@@ -383,7 +341,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
     final preview = _preview;
     if (preview == null) {
       return _Notice(
-        icon: Icons.link_off,
+        icon: CupertinoIcons.link,
         tone: theme.danger,
         headline: l10n.joinInviteBadLinkHeadline,
         body: _error ?? l10n.joinInviteBadLinkBody,
@@ -393,7 +351,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
     // A dead link has no room to show, so the whole screen is the explanation.
     if (preview.roomId == null) {
       return _Notice(
-        icon: Icons.link_off,
+        icon: CupertinoIcons.link,
         tone: theme.danger,
         headline: _problemHeadline(l10n, preview.problem),
         body: _problemBody(l10n, preview.problem),
@@ -410,13 +368,13 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
         const SizedBox(height: 22),
         if (pending)
           _Notice(
-            icon: Icons.hourglass_top,
+            icon: CupertinoIcons.hourglass,
             tone: theme.accent,
             headline: l10n.joinInvitePendingHeadline,
             body: l10n.joinInvitePendingBody,
           )
         else if (already)
-          SheetPrimaryButton(
+          SheetActionButton(
             label: l10n.joinInviteOpenRoom,
             onTap: () => _leaveForRoom(preview.roomId!),
           )
@@ -424,14 +382,14 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
         // `pending` notice above, because from here they are the same wait.
         else if (_waiting)
           _Notice(
-            icon: Icons.hourglass_top,
+            icon: CupertinoIcons.hourglass,
             tone: theme.accent,
             headline: l10n.approvalGateAlreadyAskedLabel,
             body: l10n.approvalGateAlreadyAskedFooter,
           )
         else ...[
           if (_error != null) ...[
-            Text(_error!, style: theme.bodySoft.copyWith(color: theme.danger)),
+            FormErrorBanner(_error!),
             const SizedBox(height: 12),
           ],
           // The button says what will actually happen. Under the approval
@@ -439,7 +397,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
           // "Join" is the kind of small dishonesty that makes a product feel
           // untrustworthy. For a child it is an ask, whatever the room's own
           // policy says, because the grown-up answers first either way.
-          SheetPrimaryButton(
+          SheetActionButton(
             label: _mustAsk
                 ? l10n.approvalGateAskButton
                 : preview.joinPolicy == RoomJoinPolicy.approval
@@ -454,7 +412,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
                 : preview.joinPolicy == RoomJoinPolicy.approval
                     ? l10n.joinInviteApprovalNote
                     : l10n.joinInviteOpenNote,
-            style: theme.monoTiny,
+            style: groupedFooterStyle(theme),
             textAlign: TextAlign.center,
           ),
         ],
@@ -506,7 +464,7 @@ class _RoomCard extends StatelessWidget {
                       color: theme.surface,
                       alignment: Alignment.center,
                       child: Icon(
-                        Icons.groups_outlined,
+                        CupertinoIcons.person_3,
                         size: 36,
                         color: theme.inkMuted,
                       ),
@@ -528,7 +486,7 @@ class _RoomCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             l10n.joinInviteMemberCount(preview.memberCount),
-            style: theme.monoTiny,
+            style: groupedSubtitleStyle(theme),
           ),
           if ((preview.description ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -562,18 +520,26 @@ class _Notice extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
+      // A grouped block, no tinted outline: the glyph carries the tone.
       decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        borderRadius: BorderRadius.circular(theme.radiusLg),
-        border: Border.all(color: tone.withValues(alpha: 0.4), width: 1.2),
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
       ),
       child: Column(
         children: [
           Icon(icon, size: 30, color: tone),
           const SizedBox(height: 12),
-          Text(headline, style: theme.bodyEmph, textAlign: TextAlign.center),
+          Text(
+            headline,
+            style: groupedHeaderStyle(theme),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 6),
-          Text(body, style: theme.bodySoft, textAlign: TextAlign.center),
+          Text(
+            body,
+            style: groupedFooterStyle(theme),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

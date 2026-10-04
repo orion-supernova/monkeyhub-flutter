@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
-import '../keyboard/focusable_tap.dart';
+import 'spring_press.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -50,7 +50,7 @@ class BulkActionButton extends StatelessWidget {
             builder: (context) => Text(
               sentenceCaseOf(context, label),
               style: theme.bodySoft.copyWith(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: ink,
               ),
@@ -60,15 +60,11 @@ class BulkActionButton extends StatelessWidget {
       ),
     );
     if (!enabled) return body;
-    return FocusableTap(
+    // THE press: a spring under the finger, its own focus stop for a keyboard.
+    return SpringPress(
       onTap: onTap,
       semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: body,
-      ),
+      child: body,
     );
   }
 }

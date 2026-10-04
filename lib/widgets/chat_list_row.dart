@@ -5,6 +5,7 @@ import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../theme/motion.dart';
@@ -87,57 +88,65 @@ class _ChatListRowState extends State<ChatListRow>
         : (widget.dmUser?.displayName ?? room.name);
     final stamp = room.lastMessageTime ?? room.createdAt;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    // FocusableTap so a keyboard can reach the row (Tab, then Enter); the
+    // pointer press stays the flat table-cell fill below, not a spring — a
+    // whole row scaling would read as the list wobbling.
+    return FocusableTap(
       onTap: widget.onTap,
-      onTapDown: (_) => _setPressed(true),
-      onTapUp: (_) => _setPressed(false),
-      onTapCancel: () => _setPressed(false),
-      child: AnimatedContainer(
-        duration: _pressed ? Duration.zero : theme.motionFast,
-        curve: Curves.easeOut,
-        decoration: BoxDecoration(
-          color: _pressed ? theme.ink.withValues(alpha: 0.06) : null,
-          borderRadius: BorderRadius.circular(theme.radiusLg),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _avatar(theme),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _titleLine(context, theme, title, stamp, unread),
-                          const SizedBox(height: 3),
-                          _previewLine(context, theme),
-                        ],
+      semanticLabel: title,
+      radius: theme.radiusLg,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        onTapDown: (_) => _setPressed(true),
+        onTapUp: (_) => _setPressed(false),
+        onTapCancel: () => _setPressed(false),
+        child: AnimatedContainer(
+          duration: _pressed ? Duration.zero : theme.motionFast,
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: _pressed ? theme.ink.withValues(alpha: 0.06) : null,
+            borderRadius: BorderRadius.circular(theme.radiusLg),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _avatar(theme),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _titleLine(context, theme, title, stamp, unread),
+                            const SizedBox(height: 3),
+                            _previewLine(context, theme),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (widget.showDivider)
-                Positioned(
-                  left: kChatRowTextInset,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    // One physical pixel, the iOS separator — 0.5pt is
-                    // 1.5px on a 3x phone and reads as a drawn line.
-                    height: 1 / MediaQuery.devicePixelRatioOf(context),
-                    color: _hairline(theme),
+                    ],
                   ),
                 ),
-            ],
+                if (widget.showDivider)
+                  Positioned(
+                    left: kChatRowTextInset,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      // One physical pixel, the iOS separator — 0.5pt is
+                      // 1.5px on a 3x phone and reads as a drawn line.
+                      height: 1 / MediaQuery.devicePixelRatioOf(context),
+                      color: _hairline(theme),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -149,53 +158,12 @@ class _ChatListRowState extends State<ChatListRow>
   Color _hairline(AppTheme theme) =>
       Color.alphaBlend(theme.ink.withValues(alpha: 0.05), theme.divider);
 
-  Widget _avatar(AppTheme theme) {
-    final room = widget.room;
-    final api = widget.api;
-    if (room.isSavedMessages) {
-      return Container(
-        width: kChatRowAvatar,
-        height: kChatRowAvatar,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.lerp(theme.accent, Colors.white, 0.18)!,
-              theme.accent,
-            ],
-          ),
-        ),
-        child: Icon(
-          CupertinoIcons.bookmark_fill,
-          size: 22,
-          color: theme.accentInk,
-        ),
+  Widget _avatar(AppTheme theme) => ChatRoomAvatar(
+        room: widget.room,
+        dmUser: widget.dmUser,
+        api: widget.api,
+        size: kChatRowAvatar,
       );
-    }
-    final dm = widget.dmUser;
-    if (dm != null) {
-      return UserAvatar(user: dm, size: kChatRowAvatar, api: api);
-    }
-    if (room.avatarStorageId != null && api != null) {
-      return ClipOval(
-        child: RemoteImage(
-          storageId: room.avatarStorageId!,
-          api: api,
-          width: kChatRowAvatar,
-          height: kChatRowAvatar,
-          borderRadius: BorderRadius.circular(kChatRowAvatar / 2),
-        ),
-      );
-    }
-    return MonogramAvatar(
-      label: room.name,
-      seed: room.id,
-      size: kChatRowAvatar,
-    );
-  }
 
   Widget _titleLine(
     BuildContext context,
@@ -240,10 +208,12 @@ class _ChatListRowState extends State<ChatListRow>
           ),
         ),
         const SizedBox(width: 8),
+        // The body face at 15, never the caption slot: on a character theme
+        // that is tracked mono, and "Yesterday" read as terminal output.
         Text(
           chatListStamp(context, stamp),
-          style: theme.caption.copyWith(
-            fontSize: 14,
+          style: theme.bodySoft.copyWith(
+            fontSize: 15,
             color: unread && !room.isMuted ? theme.accent : theme.inkMuted,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
@@ -364,13 +334,77 @@ class _ChatListRowState extends State<ChatListRow>
     return const SizedBox.shrink();
   }
 
-  TextStyle _pipStyle(AppTheme theme) => theme.caption.copyWith(
+  TextStyle _pipStyle(AppTheme theme) => theme.bodySoft.copyWith(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         height: 1.0,
         letterSpacing: 0,
         fontFeatures: const [FontFeature.tabularFigures()],
       );
+}
+
+/// A room's face at any size: Saved Messages' bookmark disc, a DM peer's
+/// avatar, the room's own picture, or its monogram — the one rule the chat
+/// list, the forward sheet and the share sheet all draw by, so a group never
+/// turns into a generic people glyph in one of them.
+class ChatRoomAvatar extends StatelessWidget {
+  const ChatRoomAvatar({
+    super.key,
+    required this.room,
+    required this.size,
+    this.dmUser,
+    this.api,
+  });
+
+  final ChatRoom room;
+  final double size;
+  final ChatUser? dmUser;
+  final ChatApi? api;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final api = this.api;
+    if (room.isSavedMessages) {
+      return Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.lerp(theme.accent, Colors.white, 0.18)!,
+              theme.accent,
+            ],
+          ),
+        ),
+        child: Icon(
+          CupertinoIcons.bookmark_fill,
+          size: size * 0.4,
+          color: theme.accentInk,
+        ),
+      );
+    }
+    final dm = dmUser;
+    if (dm != null) {
+      return UserAvatar(user: dm, size: size, api: api);
+    }
+    if (room.avatarStorageId != null && api != null) {
+      return ClipOval(
+        child: RemoteImage(
+          storageId: room.avatarStorageId!,
+          api: api,
+          width: size,
+          height: size,
+          borderRadius: BorderRadius.circular(size / 2),
+        ),
+      );
+    }
+    return MonogramAvatar(label: room.name, seed: room.id, size: size);
+  }
 }
 
 /// The capsule a count sits in: at least a circle, growing sideways for more

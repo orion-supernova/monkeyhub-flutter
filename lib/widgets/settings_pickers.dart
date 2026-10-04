@@ -185,7 +185,7 @@ class _ChoiceTile<T> extends StatelessWidget {
           Text(
             choice.label,
             textAlign: TextAlign.center,
-            style: theme.body.copyWith(fontSize: 15, color: theme.ink),
+            style: groupedSubtitleStyle(theme).copyWith(color: theme.ink),
           ),
           const SizedBox(height: 8),
           RadioCheck(selected: selected),
@@ -330,11 +330,7 @@ class GroupedFooter extends StatelessWidget {
           width: double.infinity,
           child: Text(
             text,
-            style: theme.bodySoft.copyWith(
-              fontSize: 13,
-              height: 1.35,
-              color: theme.inkMuted,
-            ),
+            style: groupedFooterStyle(theme),
           ),
         ),
       ),

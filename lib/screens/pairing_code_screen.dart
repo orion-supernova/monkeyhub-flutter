@@ -10,10 +10,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton;
-import '../l10n/text_case.dart';
+import '../widgets/labeled_field.dart' show FormErrorBanner;
 
 /// URI the QR encodes. The child app also accepts the bare six digits, so a
 /// parent reading them down the phone works just as well as a scan.
@@ -123,130 +121,108 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final code = _code;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          SafeArea(
+    final name = widget.child.displayName;
+    // A pushed page: `IosPage`'s back chevron and large title, in place of a
+    // hand-built back+title row that capitalised "PAIR" and glued the name on.
+    return IosPage(
+      title: _releasing
+          ? l10n.pairingCodeTitleRelease(name)
+          : l10n.pairingCodeTitlePair(name),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _Header(
-                  name: widget.child.displayName,
-                  title: _releasing
+                Text(
+                  _releasing
                       ? AppLocalizations.of(
                           context,
-                        ).destructiveSheetPairingReleaseTitle
+                        ).destructiveSheetPairingReleaseInstructions(
+                          widget.child.displayName,
+                        )
                       : AppLocalizations.of(
                           context,
-                        ).destructiveSheetPairingPairTitle,
+                        ).destructiveSheetPairingPairInstructions(
+                          widget.child.displayName,
+                        ),
+                  style: theme.bodySoft.copyWith(fontSize: 17),
                 ),
-                Expanded(
-                  child: AdaptivePageBody(
-                    maxWidth: ContentWidth.auth,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            _releasing
-                                ? AppLocalizations.of(
-                                    context,
-                                  ).destructiveSheetPairingReleaseInstructions(
-                                    widget.child.displayName,
-                                  )
-                                : AppLocalizations.of(
-                                    context,
-                                  ).destructiveSheetPairingPairInstructions(
-                                    widget.child.displayName,
-                                  ),
-                            style: theme.bodySoft.copyWith(fontSize: 17),
-                          ),
-                          const SizedBox(height: 28),
-                          if (code == null)
-                            SizedBox(
-                              height: 220,
-                              child: Center(
-                                child: CupertinoActivityIndicator(color: theme.inkMuted),
-                              ),
-                            )
-                          else ...[
-                            // No QR when releasing — the child's release screen
-                            // is a numeric field, and a scannable release code
-                            // is a code that can be grabbed off a screen.
-                            if (!_releasing) ...[
-                              _QrPanel(
-                                data: pairingUri(code),
-                                dimmed: _expired,
-                              ),
-                              const SizedBox(height: 24),
-                            ],
-                            _CodeDigits(code: code, dimmed: _expired),
-                            const SizedBox(height: 18),
-                            Center(
-                              child: Text(
-                                _expired
-                                    ? AppLocalizations.of(
-                                        context,
-                                      ).destructiveSheetPairingCodeExpired
-                                    : AppLocalizations.of(
-                                        context,
-                                      ).destructiveSheetPairingExpiresIn(
-                                        _fmt(_remaining),
-                                      ),
-                                style: theme.bodySoft.copyWith(
-                                  fontSize: 15,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
-                                  color: _expired
-                                      ? theme.danger
-                                      : theme.inkMuted,
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (_error != null) ...[
-                            const SizedBox(height: 16),
-                            Text(
-                              _error!,
-                              style: theme.body.copyWith(color: theme.danger),
-                            ),
-                          ],
-                          const SizedBox(height: 26),
-                          // Filled once the code has run out — it is then the
-                          // only useful thing on the screen — and tinted while
-                          // a live code is still showing.
-                          SheetActionButton(
-                            label: AppLocalizations.of(
+                const SizedBox(height: 28),
+                if (code == null)
+                  SizedBox(
+                    height: 220,
+                    child: Center(
+                      child: CupertinoActivityIndicator(color: theme.inkMuted),
+                    ),
+                  )
+                else ...[
+                  // No QR when releasing — the child's release screen
+                  // is a numeric field, and a scannable release code
+                  // is a code that can be grabbed off a screen.
+                  if (!_releasing) ...[
+                    _QrPanel(
+                      data: pairingUri(code),
+                      dimmed: _expired,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  _CodeDigits(code: code, dimmed: _expired),
+                  const SizedBox(height: 18),
+                  Center(
+                    child: Text(
+                      _expired
+                          ? AppLocalizations.of(
                               context,
-                            ).destructiveSheetPairingNewCodeButton,
-                            tonal: !_expired,
-                            onTap: _busy ? null : _mint,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            AppLocalizations.of(
+                            ).destructiveSheetPairingCodeExpired
+                          : AppLocalizations.of(
                               context,
-                            ).destructiveSheetPairingOneUseNote,
-                            style: theme.bodySoft.copyWith(
-                              fontSize: 13,
-                              color: theme.inkMuted,
+                            ).destructiveSheetPairingExpiresIn(
+                              _fmt(_remaining),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
+                      style: groupedFooterStyle(theme).copyWith(
+                        fontFeatures: const [
+                          FontFeature.tabularFigures(),
                         ],
+                        color: _expired
+                            ? theme.danger
+                            : theme.inkMuted,
                       ),
                     ),
                   ),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  FormErrorBanner(_error!),
+                ],
+                const SizedBox(height: 26),
+                // Filled once the code has run out — it is then the
+                // only useful thing on the screen — and tinted while
+                // a live code is still showing.
+                SheetActionButton(
+                  label: AppLocalizations.of(
+                    context,
+                  ).destructiveSheetPairingNewCodeButton,
+                  tonal: !_expired,
+                  onTap: _busy ? null : _mint,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  ).destructiveSheetPairingOneUseNote,
+                  style: groupedFooterStyle(theme),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -319,7 +295,7 @@ class _CodeDigits extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: groupedFill(theme),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
               ),
               child: Text(
                 d,
@@ -331,33 +307,6 @@ class _CodeDigits extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.name, required this.title});
-  final String name;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
-      child: Row(
-        children: [
-          const GlassBackButton(),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '${sentenceCaseOf(context, title)} $name',
-              style: theme.bodyEmph.copyWith(color: theme.ink),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
         ],
       ),
     );

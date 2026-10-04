@@ -7,6 +7,7 @@ import 'package:monkeyhub/drop/drop_controller.dart';
 import 'package:monkeyhub/drop/drop_item.dart';
 import 'package:monkeyhub/drop/drop_zone.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/l10n/text_case.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/drop/drop_cards.dart';
@@ -155,7 +156,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 240));
 
     expect(find.text(l10n.dropSendPhotos(1)), findsOneWidget);
-    expect(find.text(l10n.dropKindPhoto), findsWidgets);
+    // The nameless card titles itself with the kind word, cased as a title
+    // (the ARB keeps it lowercase for mid-sentence use), and once only.
+    expect(find.text(sentenceCase(l10n.dropKindPhoto)), findsOneWidget);
+    expect(find.text(l10n.dropKindPhoto), findsNothing);
   });
 
   testWidgets('a caution outranks the target name on the one spare line',

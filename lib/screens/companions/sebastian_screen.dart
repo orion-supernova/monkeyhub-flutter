@@ -10,6 +10,7 @@
 /// entitled to see.
 library;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -25,7 +26,8 @@ import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/companion_install_sheet.dart';
 import '../../widgets/destructive_sheet.dart';
-import '../../widgets/ios_kit.dart' show quietFill;
+import '../../widgets/account_kit.dart' show SoftNote;
+import '../../widgets/ios_kit.dart';
 import 'companion_page.dart';
 
 class SebastianScreen extends StatefulWidget {
@@ -159,13 +161,9 @@ class _SebastianScreenState extends State<SebastianScreen> {
         const SizedBox(height: 24),
 
         if (!available)
-          CompanionCard(
-            children: [
-              Text(
-                l10n.companionUnsupportedPlatform,
-                style: theme.body.copyWith(color: theme.inkSoft),
-              ),
-            ],
+          SoftNote(
+            icon: CupertinoIcons.info_circle,
+            text: l10n.companionUnsupportedPlatform,
           )
         else if (!installed) ...[
           // The panel, NOT the sheet. This screen has already drawn the
@@ -183,24 +181,26 @@ class _SebastianScreenState extends State<SebastianScreen> {
           // one their phone can hold. The panel offers whichever one they are
           // getting; this says what the other is and why it is not on offer.
           const SizedBox(height: 24),
-          CompanionSectionLabel(l10n.compStorage),
-          ..._shelf(l10n),
+          GroupedSection(header: l10n.compStorage, children: _shelf(l10n)),
         ] else ...[
-          CompanionSectionLabel(l10n.compGeneral),
-          CompanionCard(
-            padding: EdgeInsets.zero,
+          // Grouped blocks throughout, like every settings page — the
+          // switch, the languages and the shelf were bordered cards of
+          // their own (thirty of them for the languages).
+          GroupedSection(
+            header: l10n.compGeneral,
             children: [
-              _SwitchRow(
-                theme: theme,
-                label: l10n.sebastianEnableLabel,
-                detail: l10n.sebastianEnableDetail,
+              GroupedRow.toggle(
+                title: l10n.sebastianEnableLabel,
+                subtitle: l10n.sebastianEnableDetail,
                 value: _sebastian.isEnabled,
-                onChanged: _setEnabled,
+                onChanged: (v) {
+                  // The tap a native switch gives.
+                  HapticFeedback.lightImpact();
+                  _setEnabled(v);
+                },
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          CompanionSectionLabel(l10n.compTranslateInto),
           _LanguagePicker(
             current: SettingsStore.instance.translationTarget,
             resolved: _sebastian.targetLanguage,
@@ -209,9 +209,11 @@ class _SebastianScreenState extends State<SebastianScreen> {
             brain: _sebastian.brain,
             onPick: _setLanguage,
           ),
-          const SizedBox(height: 24),
-          CompanionSectionLabel(l10n.compStorage),
-          ..._shelf(l10n),
+          GroupedSection(
+            header: l10n.compStorage,
+            margin: const EdgeInsets.only(bottom: 4),
+            children: _shelf(l10n),
+          ),
           _CacheLine(theme: theme, l10n: l10n, onCleared: _onChange),
         ],
       ],
@@ -254,55 +256,6 @@ class _Portrait extends StatelessWidget {
   }
 }
 
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.theme,
-    required this.label,
-    required this.detail,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final AppTheme theme;
-  final String label;
-  final String detail;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: theme.body),
-                const SizedBox(height: 2),
-                Text(
-                  detail,
-                  style: theme.caption.copyWith(color: theme.inkMuted),
-                ),
-              ],
-            ),
-          ),
-          Switch.adaptive(
-            value: value,
-            onChanged: (v) {
-              // The tap a native switch gives; `Switch.adaptive` has none.
-              HapticFeedback.lightImpact();
-              onChanged(v);
-            },
-            activeTrackColor: theme.accent,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Target-language picker.
 ///
 /// Opens with a "follow the app" row, exactly like [LanguageScreen]'s SYSTEM
@@ -332,101 +285,33 @@ class _LanguagePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Column(
+    // One grouped block of choice rows — the flag leads the autonym as a
+    // landmark, the check marks the pick. Not routed through the language
+    // screen's own rows: these carry a per-brain warning.
+    return GroupedSection(
+      header: l10n.compTranslateInto,
       children: [
-        _LanguageRow(
-          theme: theme,
-          flag: resolved.flag,
-          label: l10n.sebastianLanguageFollowApp,
-          detail: resolved.autonym,
+        GroupedRow.choice(
+          title: '${resolved.flag}  ${l10n.sebastianLanguageFollowApp}',
+          subtitle: resolved.autonym,
           selected: current == null,
           onTap: () => onPick(null),
         ),
         for (final lang in kTranslationLanguages)
-          _LanguageRow(
-            theme: theme,
-            flag: lang.flag,
-            label: lang.autonym,
+          GroupedRow.choice(
+            title: '${lang.flag}  ${lang.autonym}',
             // Named, not hidden. A language this brain does not publish is
             // still offered — see [BrainSpec.languages] for why removing it
             // would be the worse regression — but somebody choosing it is
             // entitled to know before they wonder why the results read oddly.
-            detail: brain.covers(lang.code)
+            subtitle: brain.covers(lang.code)
                 ? null
                 : l10n.sebastianLanguageUnlisted,
             selected: current == lang.code,
             onTap: () => onPick(lang.code),
           ),
       ],
-    );
-  }
-}
-
-class _LanguageRow extends StatelessWidget {
-  const _LanguageRow({
-    required this.theme,
-    required this.flag,
-    required this.label,
-    required this.detail,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AppTheme theme;
-
-  /// A landmark, never the thing naming the language — see
-  /// [TranslationLanguage.flag]. The autonym beside it does the identifying.
-  final String flag;
-  final String label;
-  final String? detail;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
-        decoration: BoxDecoration(
-          color: selected ? quietFill(theme) : theme.surface,
-          border: Border.all(
-            color: selected ? theme.accent.withValues(alpha: 0.4) : theme.divider,
-          ),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Row(
-          children: [
-            // Fixed width so thirty rows of flags line up into a column the
-            // eye can run down. Emoji vary in advance width, and ragged
-            // landmarks are worse than no landmarks.
-            SizedBox(
-              width: 26,
-              child: Text(flag, style: theme.body),
-            ),
-            Expanded(child: Text(label, style: theme.body)),
-            if (detail != null) ...[
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  detail!,
-                  style: theme.caption.copyWith(color: theme.inkMuted),
-                  textAlign: TextAlign.right,
-                  maxLines: 2,
-                ),
-              ),
-            ],
-            if (selected) ...[
-              const SizedBox(width: 8),
-              Icon(Icons.check, size: 15, color: theme.accent),
-            ],
-          ],
-        ),
-      ),
     );
   }
 }
@@ -467,34 +352,27 @@ class _CacheLineState extends State<_CacheLine> {
     final l10n = widget.l10n;
     final count = TranslationCache.instance.count;
     if (count == 0) return const SizedBox.shrink();
+    // A footer under the shelf: the count in footer type, the shared text
+    // action to drop it.
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.fromLTRB(16, 0, 4, 0),
       child: Row(
         children: [
           Expanded(
             child: Text(
               l10n.sebastianCacheCount(count),
-              style: theme.caption.copyWith(color: theme.inkMuted),
+              style: groupedFooterStyle(theme),
             ),
           ),
-          GestureDetector(
+          TextLinkButton(
+            label: l10n.sebastianCacheClear,
+            fontSize: 15,
             onTap: () async {
               await TranslationCache.instance.clear();
               await Sebastian.instance.reset();
               if (mounted) setState(() {});
               widget.onCleared();
             },
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-              child: Text(
-                l10n.sebastianCacheClear,
-                style: theme.caption.copyWith(
-                  color: theme.accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
           ),
         ],
       ),

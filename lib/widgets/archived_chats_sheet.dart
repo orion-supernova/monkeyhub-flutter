@@ -13,6 +13,7 @@ import 'mute_room_sheet.dart';
 import '../screens/navigation/open_room.dart';
 import 'sheet_kit.dart';
 import 'chat_list_row.dart';
+import 'empty_state.dart';
 import '../l10n/text_case.dart';
 
 /// Every room the viewer has archived. Reached by pulling down at the top of
@@ -53,37 +54,20 @@ class ArchivedChatsSheet extends StatelessWidget {
     final maxH = MediaQuery.sizeOf(context).height * 0.7;
 
     // The same rows the chat list draws, in a sheet with a × and a centred
-    // title — Telegram's archive, opened in place.
+    // title — Telegram's archive, opened in place. The count is the bar's
+    // quiet second line, not a "· 2" bolted onto the title.
     return SheetFrame(
-      leading: const SheetCloseButton(),
-      title: rooms.isEmpty
-          ? sentenceCaseOf(context, l10n.archivedChatsSheetTitle)
-          : sentenceCaseOf(
-              context,
-              l10n.archivedChatsSheetTitleCount(rooms.length),
-            ),
+      title: sentenceCaseOf(context, l10n.archivedChatsSheetTitle),
+      subtitle:
+          rooms.isEmpty ? null : l10n.archivedChatsSheetCount(rooms.length),
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       child: rooms.isEmpty
           ? Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    CupertinoIcons.archivebox,
-                    size: 40,
-                    color: theme.inkMuted.withValues(alpha: 0.6),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.archivedChatsSheetEmptyMessage,
-                    textAlign: TextAlign.center,
-                    style: theme.body.copyWith(
-                      fontSize: 15,
-                      color: theme.inkMuted,
-                    ),
-                  ),
-                ],
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: EmptyState(
+                icon: CupertinoIcons.archivebox,
+                title: l10n.archivedChatsSheetEmptyMessage,
+                compact: true,
               ),
             )
           : ConstrainedBox(

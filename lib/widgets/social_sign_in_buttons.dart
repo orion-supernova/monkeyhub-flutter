@@ -11,6 +11,7 @@ import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import 'ios_kit.dart' show OrDivider;
 
 /// "Continue with Apple / Google", plus the three rules about the pair.
 ///
@@ -102,7 +103,6 @@ class SocialSignInButtons extends StatelessWidget {
         : available.where(only!.contains).toList();
     if (providers.isEmpty) return const SizedBox.shrink();
 
-    final theme = ThemeScope.of(context);
     // One at a time — a second tap while a native sheet is up would stack two.
     final live = enabled && busyProvider == null;
     final resolvedDividerLabel = dividerLabel == _autoDividerLabel
@@ -113,18 +113,11 @@ class SocialSignInButtons extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (resolvedDividerLabel != null) ...[
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(child: Divider(color: theme.divider, height: 1)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(resolvedDividerLabel, style: theme.caption),
-              ),
-              Expanded(child: Divider(color: theme.divider, height: 1)),
-            ],
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 6),
+          // The shared "or" rule — meta on the body face; it was the theme's
+          // caption, monospace on character themes.
+          OrDivider(label: resolvedDividerLabel),
+          const SizedBox(height: 2),
         ],
         for (final provider in providers) ...[
           if (provider == SocialProvider.apple)

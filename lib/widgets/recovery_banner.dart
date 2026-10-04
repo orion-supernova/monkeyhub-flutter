@@ -1,17 +1,16 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/theme_scope.dart';
+import 'ios_kit.dart';
 
 /// "This account has no recovery phrase" — shown until it has one.
 ///
 /// One widget with two hosts (settings and profile) so the copy and the
 /// severity cannot drift apart between them.
 ///
-/// Styled on the "limited view" pill in profile_screen.dart, but in
-/// [AppTheme.danger] rather than accent: an account with no recovery phrase is
-/// one forgotten password away from being gone for good, which is not an
+/// Red ([TileTone.red]) rather than accent: an account with no recovery phrase
+/// is one forgotten password away from being gone for good, which is not an
 /// informational state.
 ///
 /// Callers are responsible for only rendering this when
@@ -24,37 +23,25 @@ class RecoveryPhraseBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: l10n.linkOpenerRecoveryBannerSemanticLabel,
-      radius: theme.radiusMd,
-      // Never an InkWell — this app draws no ink anywhere.
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          decoration: BoxDecoration(
-            color: theme.surfaceSunken,
-            border: Border(left: BorderSide(color: theme.danger, width: 2)),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+    // A warning row the way Settings draws one: a red tile, the sentence, a
+    // chevron — a grouped block of one. It was a sunken card with a 2pt red
+    // stripe down the left and monospace copy, which read as a terminal
+    // alert rather than part of the page around it.
+    return Semantics(
+      container: true,
+      label: l10n.linkOpenerRecoveryBannerSemanticLabel,
+      child: GroupedSection(
+        margin: EdgeInsets.zero,
+        children: [
+          GroupedRow(
+            icon: CupertinoIcons.exclamationmark_shield_fill,
+            tone: TileTone.red,
+            title: l10n.linkOpenerRecoveryBannerMessage,
+            chevron: true,
+            onTap: onTap,
           ),
-          child: Row(
-            children: [
-              Icon(Icons.key_off_outlined, size: 14, color: theme.danger),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  l10n.linkOpenerRecoveryBannerMessage,
-                  style: theme.monoTiny.copyWith(color: theme.danger),
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 14, color: theme.danger),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

@@ -1,8 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
@@ -27,11 +26,10 @@ import '../widgets/app_icon_picker.dart';
 import '../widgets/device_login_panel.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
-import '../widgets/prominent_button.dart';
 import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/username_status_label.dart';
-import '../widgets/ios_kit.dart' show quietFill;
+import '../widgets/ios_kit.dart';
 import 'child_pair_screen.dart';
 import 'device_login_screen.dart';
 import 'recovery_phrase_screen.dart';
@@ -406,60 +404,65 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// The password form plus its pinned footer. Shared by the single-column
-  /// layout and the left side of the desktop side-by-side layout — see
-  /// `build`.
+  /// The password form plus its footer. Shared by the single-column layout
+  /// and the left side of the desktop side-by-side layout — see `build`.
+  ///
+  /// One scroll view holds BOTH. The footer used to be pinned under an
+  /// `Expanded` scroll area, which on a short screen (sign-up's five fields,
+  /// or 1.3× text) sliced the CTA in half against it with no keyboard in
+  /// sight. `SliverFillRemaining(hasScrollBody: false)` keeps the old look
+  /// when everything fits — form centred, footer on the floor — and lets the
+  /// footer scroll away under the form when it doesn't.
   Widget _formColumn({required bool showPhoneLink}) {
-    return Column(
-      children: [
-        // Form fills the space above the footer and stays vertically
-        // centred in it until it grows tall enough to need scrolling
-        // (sign-up expanded, or keyboard open).
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(28, 36, 28, 12),
-              child: ConstrainedBox(
-                // Never negative: the keyboard can shrink the
-                // viewport below the padding we subtract.
-                constraints: BoxConstraints(
-                  minHeight: math.max(
-                    0,
-                    constraints.maxHeight - 48,
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 36, 28, 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _Hero(mode: _mode),
+                      const SizedBox(height: 30),
+                      ..._fields(),
+                      if (_error != null) ...[
+                        const SizedBox(height: 14),
+                        FormErrorBanner(_error!),
+                      ],
+                      const SizedBox(height: 20),
+                      // The one big commit on the screen, so it plays the
+                      // heavier haptic itself (see ProminentButton, which this
+                      // replaced) instead of the default selection tick.
+                      SheetActionButton(
+                        busy: _busy,
+                        haptic: false,
+                        label: _mode.cta(context),
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          _submit();
+                        },
+                      ),
+                      // Not on `reset`: a recovery phrase resets a
+                      // password, and these accounts may not have one.
+                      if (_mode != _AuthMode.reset)
+                        SocialSignInButtons(
+                          onProvider: _socialSignIn,
+                          busyProvider: _socialBusy,
+                          enabled: !_busy,
+                        ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _Hero(mode: _mode),
-                    const SizedBox(height: 30),
-                    ..._fields(),
-                    if (_error != null) ...[
-                      const SizedBox(height: 14),
-                      _ErrorBanner(_error!),
-                    ],
-                    const SizedBox(height: 20),
-                    ProminentButton(
-                      busy: _busy,
-                      label: _mode.cta(context),
-                      onTap: _submit,
-                    ),
-                    // Not on `reset`: a recovery phrase resets a
-                    // password, and these accounts may not have one.
-                    if (_mode != _AuthMode.reset)
-                      SocialSignInButtons(
-                        onProvider: _socialSignIn,
-                        busyProvider: _socialBusy,
-                        enabled: !_busy,
-                      ),
-                  ],
-                ),
               ),
-            ),
+              _footer(showPhoneLink: showPhoneLink),
+            ],
           ),
         ),
-        _footer(showPhoneLink: showPhoneLink),
       ],
     );
   }
@@ -489,10 +492,14 @@ class _LoginScreenState extends State<LoginScreen> {
         onChanged: _mode == _AuthMode.signUp ? _availability.onChanged : null,
         onSubmitted: (_) => _next(),
       ),
+      // The status label always reserves its own 18pt line (so the field
+      // below never hops when a verdict arrives) — that line IS the gap on
+      // sign-up, rather than stacking the usual 12 on top of it and leaving
+      // username→password visibly wider than every other pair.
       if (_mode == _AuthMode.signUp)
         UsernameStatusLabel(controller: _availability),
       if (_mode != _AuthMode.reset) ...[
-        const SizedBox(height: 12),
+        if (_mode != _AuthMode.signUp) const SizedBox(height: 12),
         PasswordField(
           controller: _password,
           hint: l10n.loginPasswordField,
@@ -503,7 +510,10 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ],
       if (_mode == _AuthMode.signUp) ...[
-        const SizedBox(height: 12),
+        // 18 on sign-up, matching the status label's reserved line above, so
+        // the four fields keep one rhythm instead of one wide gap and two
+        // narrow ones.
+        const SizedBox(height: 18),
         PasswordField(
           controller: _confirmPassword,
           hint: l10n.loginConfirmPasswordField,
@@ -514,7 +524,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // with email (now gone — nothing ever sent any) and a freehand
         // recovery phrase (now generated, not typed). With one optional field
         // left, a disclosure toggle is theatre.
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         ThemedInput(
           controller: _name,
           hint: l10n.loginNameField,
@@ -567,7 +577,7 @@ class _LoginScreenState extends State<LoginScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_mode == _AuthMode.reset)
-            _TextLink(
+            TextLinkButton(
               label: l10n.loginBackToSignIn,
               onTap: () => _switchTo(_AuthMode.signIn),
             )
@@ -578,14 +588,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 _mode == _AuthMode.signUp ? _AuthMode.signIn : _AuthMode.signUp,
               ),
             ),
+            // No spacers between the links: each is a 44pt touch target
+            // already, which is the rhythm.
             if (_mode == _AuthMode.signIn) ...[
-              const SizedBox(height: 10),
-              _TextLink(
+              TextLinkButton(
                 label: l10n.loginForgotPassword,
                 onTap: () => _switchTo(_AuthMode.reset),
               ),
-              const SizedBox(height: 10),
-              _TextLink(
+              TextLinkButton(
                 label: l10n.loginChildAccount,
                 onTap: () => setState(() => _pairing = true),
               ),
@@ -595,8 +605,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // will have a paired phone to scan with. Suppressed when the
               // panel itself is already showing beside the form (`build`).
               if (isWebOrDesktop && showPhoneLink) ...[
-                const SizedBox(height: 10),
-                _TextLink(
+                TextLinkButton(
                   label: l10n.loginWithPhone,
                   onTap: () => setState(() => _deviceLogin = true),
                 ),
@@ -621,7 +630,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // also what makes self-hosting reachable at all on a handset that has
           // never signed in — otherwise the feature would need an account on
           // the very server you were trying not to use.
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const _ServerChip(),
         ],
       ),
@@ -666,39 +675,42 @@ class _ServerChip extends StatelessWidget {
           ),
         );
         return Center(
-          child: FocusableTap(
+          child: SpringPress(
             onTap: open,
-            radius: 999,
-            shape: FocusRingShape.capsule,
+            scale: PressSpec.scaleSmall,
+            focusShape: FocusRingShape.capsule,
+            focusRadius: 999,
             semanticLabel: l10n.serverChipSemantics(label),
-            child: GestureDetector(
-              onTap: open,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-                decoration: BoxDecoration(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+              decoration: BoxDecoration(
+                color: marked
+                    ? quietFill(theme)
+                    : Colors.transparent,
+                border: Border.all(
                   color: marked
-                      ? quietFill(theme)
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: marked
-                        ? theme.accent.withValues(alpha: 0.45)
-                        : theme.divider,
-                  ),
-                  borderRadius: BorderRadius.circular(999),
+                      ? theme.accent.withValues(alpha: 0.45)
+                      : theme.divider,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.dns_outlined, size: 12, color: tone),
-                    const SizedBox(width: 7),
-                    Text(
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.globe, size: 13, color: tone),
+                  const SizedBox(width: 6),
+                  // Meta on the body face, never the theme's caption: on a
+                  // character theme that is tracked monospace, and this is a
+                  // sentence about where your password goes, not a payload.
+                  Flexible(
+                    child: Text(
                       label,
-                      style: theme.caption.copyWith(fontSize: 12, color: tone),
+                      style: groupedMetaStyle(theme).copyWith(color: tone),
                       maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -720,11 +732,7 @@ class _LegalNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final base = theme.caption.copyWith(
-      fontSize: 12,
-      height: 1.4,
-      color: theme.inkMuted,
-    );
+    final base = groupedMetaStyle(theme).copyWith(height: 1.4);
     final link = base.copyWith(
       color: theme.inkSoft,
       decoration: TextDecoration.underline,
@@ -856,40 +864,6 @@ class _BrandTile extends StatelessWidget {
   }
 }
 
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner(this.message);
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: theme.danger.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            CupertinoIcons.exclamationmark_circle_fill,
-            size: 18,
-            color: theme.danger,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: theme.body.copyWith(fontSize: 15, color: theme.danger),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// The two-tone "no account? open one" / "already here? sign in" switch.
 class _ModeToggle extends StatelessWidget {
   const _ModeToggle({required this.mode, required this.onTap});
@@ -901,28 +875,39 @@ class _ModeToggle extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final isSignUp = mode == _AuthMode.signUp;
+    final prompt = isSignUp
+        ? l10n.loginHaveAccountPrompt
+        : l10n.loginNoAccountPrompt;
+    final link = isSignUp ? l10n.loginSignInLink : l10n.loginCreateAccountLink;
+    // `Text.rich`, not `RichText`: the latter ignores the text scale, so at
+    // 1.3× this line stayed small while every sibling grew.
     return Center(
-      child: GestureDetector(
+      child: SpringPress(
         onTap: onTap,
-        child: RichText(
-          text: TextSpan(
-            style: theme.bodySoft.copyWith(color: theme.inkMuted),
-            children: [
+        scale: PressSpec.scaleSmall,
+        semanticLabel: '$prompt$link',
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Center(
+            widthFactor: 1,
+            child: Text.rich(
               TextSpan(
-                text: isSignUp
-                    ? l10n.loginHaveAccountPrompt
-                    : l10n.loginNoAccountPrompt,
+                // 17, the step the text links under it use, so the footer
+                // reads as one column rather than two sizes.
+                style: groupedValueStyle(theme),
+                children: [
+                  TextSpan(text: prompt),
+                  TextSpan(
+                    text: link,
+                    style: groupedValueStyle(theme).copyWith(
+                      color: theme.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              TextSpan(
-                text: isSignUp
-                    ? l10n.loginSignInLink
-                    : l10n.loginCreateAccountLink,
-                style: theme.bodySoft.copyWith(
-                  color: theme.accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ),
@@ -947,36 +932,9 @@ class _WordCounter extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         AppLocalizations.of(context).loginScreenWordCounter(count),
-        style: theme.caption.copyWith(
-          fontSize: 13,
+        style: groupedMetaStyle(theme).copyWith(
           color: complete ? theme.accent : theme.inkMuted,
           fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
-    );
-  }
-}
-
-class _TextLink extends StatelessWidget {
-  const _TextLink({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Center(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(
-            label,
-            style: theme.bodySoft.copyWith(
-              fontSize: 15,
-              color: theme.inkSoft,
-            ),
-          ),
         ),
       ),
     );

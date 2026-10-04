@@ -91,7 +91,7 @@ void main() {
     await pumpStalled(tester);
     final before = probe.retries;
 
-    await tester.tap(find.text('can’t reach server · tap to retry'));
+    await tester.tap(find.text('Can’t reach the server · Tap to retry'));
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(

@@ -222,7 +222,7 @@ void main() {
     // The camera is offered in a voice call — that is how it becomes a video
     // call — and every control is genuinely tappable (FocusableTap adds no
     // recognizer; the GestureDetector inside is what does).
-    expect(find.text('cam on'), findsOneWidget);
+    expect(find.text('Camera on'), findsOneWidget);
     for (final control in find.byType(CallControlButton).evaluate()) {
       expect(
         find.descendant(
@@ -254,7 +254,7 @@ void main() {
     expect(svc.hasAnyVideo, isTrue);
     expect(find.byType(GridView), findsOneWidget);
     expect(find.byType(ParticipantOrb), findsNothing);
-    expect(find.text('cam off'), findsOneWidget);
+    expect(find.text('Camera off'), findsOneWidget);
 
     await tester.runAsync(() async {
       await svc.toggleVideo();
@@ -325,7 +325,7 @@ void main() {
     expect(find.byType(GridView), findsNothing);
     expect(find.text('Bea is sharing their screen'), findsOneWidget);
     // The pen appears with the stage.
-    expect(find.text('draw'), findsOneWidget);
+    expect(find.text('Draw'), findsOneWidget);
 
     await tester.runAsync(() async {
       _deliver(api, 'b', 'state', {

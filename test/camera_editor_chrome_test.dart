@@ -162,12 +162,12 @@ void main() {
     (tester) async {
       await settle(tester, host(photo, canRetake: true));
       expect(
-        find.byIcon(CupertinoIcons.arrow_counterclockwise),
+        find.byIcon(CupertinoIcons.camera),
         findsOneWidget,
       );
 
       await settle(tester, host(photo));
-      expect(find.byIcon(CupertinoIcons.arrow_counterclockwise), findsNothing);
+      expect(find.byIcon(CupertinoIcons.camera), findsNothing);
     },
   );
 

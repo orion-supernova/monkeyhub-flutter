@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show MaterialLocalizations;
 
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../models/chat_message.dart';
 import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
+import 'spring_press.dart';
 
 /// Sits above the composer while the user is rewriting one of their own
 /// messages — [ComposerReplyCard]'s sibling, with the arrow swapped for a
@@ -103,8 +106,15 @@ class _ComposerEditCardState extends State<ComposerEditCard>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            AppLocalizations.of(context).composerEditCardTitle,
-                            style: theme.monoTiny.copyWith(color: theme.accent),
+                            sentenceCaseOf(
+                              context,
+                              AppLocalizations.of(context).composerEditCardTitle,
+                            ),
+                            style: theme.bodySoft.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: theme.accent,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -124,9 +134,13 @@ class _ComposerEditCardState extends State<ComposerEditCard>
                     ),
                   ),
                   const SizedBox(width: 4),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  // THE press — a spring, a keyboard focus stop and a
+                  // spoken name — on an inline dismisser.
+                  SpringPress(
                     onTap: widget.onCancel,
+                    haptic: false,
+                    semanticLabel:
+                        MaterialLocalizations.of(context).closeButtonLabel,
                     child: Container(
                       width: 28,
                       height: 28,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'call_service.dart';
+import 'widgets/call_chrome.dart';
 
 /// Global premium-feel pill rendered at the top of every screen when there
 /// is an active call on ANOTHER of my devices. Tap to transfer the call to
@@ -84,127 +84,25 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
       alignment: Alignment.topCenter,
       child: !visible
           ? const SizedBox(width: double.infinity, height: 0)
-          : Material(
-              color: Colors.transparent,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                  // Bare GestureDetector, never InkWell — this app's tappables
-                  // register no ink and no ripple (see FocusableTap's doc).
-                  child: FocusableTap(
-                    onTap: _moveHere,
-                    radius: theme.radiusLg,
-                    semanticLabel: l10n.activeCallPillMoveHereSemanticLabel,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _moveHere,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(theme.radiusLg),
-                          gradient: LinearGradient(
-                            // Two OPAQUE stops. accentSoft is the accent at
-                        // 18% alpha — as a gradient end it left the right
-                        // half of the banner see-through.
-                        colors: [
-                          theme.accent,
-                          Color.alphaBlend(
-                            Colors.white.withValues(alpha: 0.16),
-                            theme.accent,
-                          ),
-                        ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.accent.withValues(alpha: 0.32),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          child: Row(
-                            children: [
-                              _LiveDot(color: theme.accentInk),
-                              const SizedBox(width: 10),
-                              Icon(
-                                isVideo
-                                    ? Icons.videocam_rounded
-                                    : Icons.call_rounded,
-                                size: 18,
-                                color: theme.accentInk,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      l10n.activeCallPillCallWith(peerName),
-                                      style: theme.body.copyWith(
-                                        color: theme.accentInk,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      l10n.activeCallPillOnDevice(label),
-                                      style: theme.monoTiny.copyWith(
-                                        color: theme.accentInk.withValues(
-                                          alpha: 0.82,
-                                        ),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.accentInk.withValues(
-                                    alpha: 0.20,
-                                  ),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      l10n.activeCallPillMoveHereLabel,
-                                      style: theme.monoTiny.copyWith(
-                                        color: theme.accentInk,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.arrow_forward_rounded,
-                                      size: 14,
-                                      color: theme.accentInk,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+          : SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                // The whole banner is the target; "Move here" is its label.
+                child: CallStatusBanner(
+                  onTap: _moveHere,
+                  semanticLabel: l10n.activeCallPillMoveHereSemanticLabel,
+                  leading: _LiveDot(color: theme.accentInk),
+                  icon: isVideo ? CallGlyphs.camera : CallGlyphs.voice,
+                  title: l10n.activeCallPillCallWith(peerName),
+                  meta: Text(l10n.activeCallPillOnDevice(label)),
+                  actions: [
+                    CallBannerAction(
+                      icon: CallGlyphs.moveHere,
+                      label: l10n.activeCallPillMoveHereLabel,
+                      semanticLabel: l10n.activeCallPillMoveHereSemanticLabel,
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

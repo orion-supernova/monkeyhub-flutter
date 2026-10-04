@@ -1,17 +1,14 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
-import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/search_field.dart' show searchFieldDecoration;
+import '../widgets/search_field.dart' show SearchField;
 
 import 'navigation/open_room.dart';
 import '../l10n/text_case.dart';
@@ -113,7 +110,6 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final total = widget.repo.friends.length;
     final visible = _visible;
@@ -122,48 +118,12 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
       caption: l10n.discoverListsPeopleCount(total),
       children: [
         if (total > 0) ...[
-          Container(
-            decoration: searchFieldDecoration(theme),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                Icon(CupertinoIcons.search, color: theme.inkMuted, size: 17),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _q,
-                    onChanged: (v) => setState(() => _query = v),
-                    style: theme.body,
-                    cursorColor: theme.accent,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 11),
-                      hintText: sentenceCaseOf(context, l10n.discoverListsFilterHint),
-                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                    ),
-                  ),
-                ),
-                if (_query.isNotEmpty)
-                  FocusableTap(
-                    onTap: () {
-                      _q.clear();
-                      setState(() => _query = '');
-                    },
-                    semanticLabel: l10n.discoverListsClearFilterSemanticLabel,
-                    shape: FocusRingShape.circle,
-                    radius: 999,
-                    child: GestureDetector(
-                      onTap: () {
-                        _q.clear();
-                        setState(() => _query = '');
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: Icon(Icons.close, size: 16, color: theme.inkMuted),
-                    ),
-                  ),
-              ],
-            ),
+          // THE search bar: pill, magnifier, clear button, accent caret.
+          SearchField(
+            controller: _q,
+            hintText: sentenceCaseOf(context, l10n.discoverListsFilterHint),
+            onChanged: (v) => setState(() => _query = v),
+            onClear: () => setState(() => _query = ''),
           ),
           const SizedBox(height: 18),
         ],
@@ -172,13 +132,18 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
         else if (visible.isEmpty)
           DiscoverEmptyLine(l10n.discoverListsNoMatches(_query))
         else
-          for (final f in visible)
-            FriendRow(
-              key: ValueKey(f.id),
-              user: f,
-              api: widget.api,
-              onTap: () => _openDm(f),
-            ),
+          // One grouped block, the iOS contacts list.
+          GroupedSection(
+            children: [
+              for (final f in visible)
+                FriendRow(
+                  key: ValueKey(f.id),
+                  user: f,
+                  api: widget.api,
+                  onTap: () => _openDm(f),
+                ),
+            ],
+          ),
       ],
     );
   }
@@ -236,7 +201,6 @@ class _RoomsListScreenState extends State<RoomsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final myRooms = _myRooms;
     final total = myRooms.length;
@@ -246,51 +210,12 @@ class _RoomsListScreenState extends State<RoomsListScreen> {
       caption: l10n.discoverListsRoomsCount(total),
       children: [
         if (total > 0) ...[
-          Container(
-            decoration: searchFieldDecoration(theme),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                Icon(CupertinoIcons.search, color: theme.inkMuted, size: 17),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _q,
-                    onChanged: (v) => setState(() => _query = v),
-                    style: theme.body,
-                    cursorColor: theme.accent,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 11),
-                      hintText: sentenceCaseOf(
-                        context,
-                        l10n.discoverListsFilterRoomsHint,
-                      ),
-                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                    ),
-                  ),
-                ),
-                if (_query.isNotEmpty)
-                  FocusableTap(
-                    onTap: () {
-                      _q.clear();
-                      setState(() => _query = '');
-                    },
-                    semanticLabel: l10n.discoverListsClearFilterSemanticLabel,
-                    shape: FocusRingShape.circle,
-                    radius: 999,
-                    child: GestureDetector(
-                      onTap: () {
-                        _q.clear();
-                        setState(() => _query = '');
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: Icon(Icons.close, size: 16, color: theme.inkMuted),
-                    ),
-                  ),
-              ],
-            ),
+          // THE search bar: pill, magnifier, clear button, accent caret.
+          SearchField(
+            controller: _q,
+            hintText: sentenceCaseOf(context, l10n.discoverListsFilterRoomsHint),
+            onChanged: (v) => setState(() => _query = v),
+            onClear: () => setState(() => _query = ''),
           ),
           const SizedBox(height: 18),
         ],
@@ -299,14 +224,18 @@ class _RoomsListScreenState extends State<RoomsListScreen> {
         else if (visible.isEmpty)
           DiscoverEmptyLine(l10n.discoverListsNoRoomsMatch(_query))
         else
-          for (final r in visible)
-            PublicRoomTile(
-              key: ValueKey(r.id),
-              room: r,
-              api: widget.api,
-              joined: true,
-              onTap: () => _openRoom(r),
-            ),
+          GroupedSection(
+            children: [
+              for (final r in visible)
+                PublicRoomTile(
+                  key: ValueKey(r.id),
+                  room: r,
+                  api: widget.api,
+                  joined: true,
+                  onTap: () => _openRoom(r),
+                ),
+            ],
+          ),
       ],
     );
   }

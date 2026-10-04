@@ -8,15 +8,13 @@ import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/device_login_link.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/prominent_button.dart';
-import '../widgets/sheet_kit.dart' show SheetActionButton;
-import '../l10n/text_case.dart';
+import '../widgets/labeled_field.dart' show FormErrorBanner;
 
 enum _Stage { entry, confirm, done }
 
@@ -212,82 +210,43 @@ class _DeviceLoginScanScreenState extends State<DeviceLoginScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: DismissKeyboardOnTap(
-        child: Stack(
-          children: [
-            theme.backgroundLayer(context),
-            // See home_screen: the bottom inset leaves a dead strip of
-            // background under the scroller, which reads as a solid bar. The
-            // list clears the home indicator with its own padding instead.
-            SafeArea(
-              bottom: false,
-              child: AdaptivePageBody(
-                child: Column(
-                  children: [
-                    _Header(onClose: () => Navigator.of(context).maybePop()),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(
-                          28,
-                          8,
-                          28,
-                          edgeToEdgeBottom(context, 32),
-                        ),
-                        child: switch (_stage) {
-                          _Stage.entry => _EntryBody(
-                              scanning: _scanning,
-                              scanner: _scanner,
-                              busy: _busy,
-                              error: _error,
-                              manual: _manual,
-                              onDetect: _onDetect,
-                              onStartScanning: _startScanning,
-                              onStopScanning: _stopScanning,
-                              onManualComplete: (code) => _peek(code: code),
-                            ),
-                          _Stage.confirm => _ConfirmBody(
-                              deviceInfo: _deviceInfo ?? '',
-                              busy: _busy,
-                              error: _error,
-                              onApprove: () => _respond(true),
-                              onDeny: () => _respond(false),
-                            ),
-                          _Stage.done => _DoneBody(approved: _approved, onScanAnother: _reset),
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.onClose});
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
-      child: Row(
+    final l10n = AppLocalizations.of(context);
+    // A pushed page, so `IosPage`: back chevron, large title that hands off to
+    // the inline one on scroll. The hand-built header this replaced printed
+    // the title twice — once small (and in capitals) in the bar, once large
+    // right under it.
+    return DismissKeyboardOnTap(
+      child: IosPage(
+        title: _stage == _Stage.confirm
+            ? l10n.deviceLoginConfirmTitleIos
+            : l10n.deviceLoginScanTitleIos,
+        padding: EdgeInsets.fromLTRB(20, 0, 20, edgeToEdgeBottom(context, 32)),
         children: [
-          GlassBackButton(onTap: onClose),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              AppLocalizations.of(context).profileScreenScanToSignInLabel,
-              style: theme.bodyEmph.copyWith(color: theme.ink),
-              overflow: TextOverflow.ellipsis,
+          // Readable width on a desktop window; a phone is never this wide.
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: ContentWidth.readable),
+              child: switch (_stage) {
+                _Stage.entry => _EntryBody(
+                    scanning: _scanning,
+                    scanner: _scanner,
+                    busy: _busy,
+                    error: _error,
+                    manual: _manual,
+                    onDetect: _onDetect,
+                    onStartScanning: _startScanning,
+                    onStopScanning: _stopScanning,
+                    onManualComplete: (code) => _peek(code: code),
+                  ),
+                _Stage.confirm => _ConfirmBody(
+                    deviceInfo: _deviceInfo ?? '',
+                    busy: _busy,
+                    error: _error,
+                    onApprove: () => _respond(true),
+                    onDeny: () => _respond(false),
+                  ),
+                _Stage.done => _DoneBody(approved: _approved, onScanAnother: _reset),
+              },
             ),
           ),
         ],
@@ -327,11 +286,6 @@ class _EntryBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          l10n.deviceLoginScanTitleIos,
-          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
-        ),
-        const SizedBox(height: 8),
-        Text(
           l10n.deviceLoginScanScreenIntro,
           style: theme.bodySoft.copyWith(fontSize: 17),
         ),
@@ -339,10 +293,13 @@ class _EntryBody extends StatelessWidget {
         if (scanning && scanner != null)
           _ScannerPanel(controller: scanner!, onDetect: onDetect, onCancel: onStopScanning)
         else
-          GestureDetector(
+          SpringPress(
             onTap: busy ? null : onStartScanning,
-            behavior: HitTestBehavior.opaque,
+            focusShape: FocusRingShape.rounded,
+            focusRadius: groupedRadius(theme),
+            semanticLabel: l10n.deviceLoginScanScreenScanButtonLabel,
             child: Container(
+              width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 26),
               decoration: BoxDecoration(
                 color: quietFill(theme),
@@ -357,34 +314,17 @@ class _EntryBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    sentenceCaseOf(
-                      context,
-                      l10n.deviceLoginScanScreenScanButtonLabel,
-                    ),
-                    style: theme.bodyEmph.copyWith(color: theme.accent),
+                    l10n.deviceLoginScanScreenScanButtonLabel,
+                    style: actionButtonLabelStyle(theme)
+                        .copyWith(color: theme.accent),
                   ),
                 ],
               ),
             ),
           ),
-        const SizedBox(height: 22),
-        Row(
-          children: [
-            Expanded(child: Container(height: 1, color: theme.divider)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                l10n.childPairScreenOrDivider,
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
-              ),
-            ),
-            Expanded(child: Container(height: 1, color: theme.divider)),
-          ],
-        ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 8),
+        OrDivider(label: l10n.childPairScreenOrDivider),
+        const SizedBox(height: 8),
         CodeField(controller: manual, onCompleted: onManualComplete, enabled: !busy),
         if (busy) ...[
           const SizedBox(height: 20),
@@ -392,7 +332,7 @@ class _EntryBody extends StatelessWidget {
         ],
         if (error != null) ...[
           const SizedBox(height: 16),
-          _ErrorBanner(error!),
+          FormErrorBanner(error!),
         ],
       ],
     );
@@ -433,16 +373,10 @@ class _ScannerPanel extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        GestureDetector(
+        const SizedBox(height: 4),
+        TextLinkButton(
+          label: AppLocalizations.of(context).childPairScreenStopScanning,
           onTap: onCancel,
-          child: Text(
-            sentenceCaseOf(
-              context,
-              AppLocalizations.of(context).childPairScreenStopScanning,
-            ),
-            style: theme.body.copyWith(fontSize: 15, color: theme.accent),
-          ),
         ),
       ],
     );
@@ -476,12 +410,7 @@ class _ConfirmBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 12),
-        Text(
-          l10n.deviceLoginConfirmTitleIos,
-          style: theme.displayLarge.copyWith(letterSpacing: 0.37),
-        ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 4),
         // The device exactly as it described itself — the one thing the
         // person has to read, so it gets a grouped row of its own.
         GroupedSection(
@@ -499,18 +428,22 @@ class _ConfirmBody extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             l10n.deviceLoginScanScreenConfirmBody(deviceInfo),
-            style: theme.bodySoft.copyWith(
-              fontSize: 13,
-              height: 1.35,
-              color: theme.inkMuted,
-            ),
+            style: groupedFooterStyle(theme),
           ),
         ),
         const SizedBox(height: 28),
-        ProminentButton(
-          label: sentenceCaseOf(context, l10n.deviceLoginScanScreenApproveButton),
+        // The one big commit on the screen: the heavier haptic, played here
+        // instead of the default selection tick.
+        SheetActionButton(
+          label: l10n.deviceLoginScanScreenApproveButton,
           busy: busy,
-          onTap: busy ? null : onApprove,
+          haptic: false,
+          onTap: busy
+              ? null
+              : () {
+                  HapticFeedback.mediumImpact();
+                  onApprove();
+                },
         ),
         const SizedBox(height: 10),
         SheetActionButton(
@@ -520,7 +453,7 @@ class _ConfirmBody extends StatelessWidget {
         ),
         if (error != null) ...[
           const SizedBox(height: 16),
-          _ErrorBanner(error!),
+          FormErrorBanner(error!),
         ],
       ],
     );
@@ -552,38 +485,17 @@ class _DoneBody extends StatelessWidget {
           approved
               ? l10n.deviceLoginScanScreenSuccess
               : l10n.deviceLoginScanScreenDeniedConfirmation,
-          style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
+          style: theme.displaySmall.copyWith(color: theme.ink),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         Center(
-          child: GestureDetector(
+          child: TextLinkButton(
+            label: l10n.deviceLoginScanScreenScanButtonLabel,
             onTap: onScanAnother,
-            child: Text(
-              sentenceCaseOf(context, l10n.deviceLoginScanScreenScanButtonLabel),
-              style: theme.body.copyWith(fontSize: 15, color: theme.accent),
-            ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner(this.message);
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      decoration: BoxDecoration(
-        color: theme.danger.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
-      ),
-      child: Text(message, style: theme.body.copyWith(color: theme.danger)),
     );
   }
 }

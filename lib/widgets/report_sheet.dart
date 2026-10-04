@@ -101,7 +101,6 @@ class _ReportSheetState extends State<_ReportSheet> {
     String sc(String x) => sentenceCaseOf(context, x);
     return SheetFrame(
       title: sc(l10n.reportSheetTitle),
-      leading: const SheetCloseButton(),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,

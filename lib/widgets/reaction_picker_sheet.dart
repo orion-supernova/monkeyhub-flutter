@@ -13,7 +13,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../theme/motion.dart';
 import 'adaptive_sheet.dart';
-import 'search_field.dart' show searchFieldDecoration;
+import 'search_field.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
 
@@ -143,16 +143,15 @@ class ReactionPickerSheet extends StatelessWidget {
             // Meaningless once dismiss-by-drag isn't a thing — the desktop
             // popover closes via barrier tap / Esc, not a drag gesture.
             const SheetHandle(),
-            const SizedBox(height: 6),
-            Text(
-              sentenceCaseOf(
+            // Titled like every sheet, so it wears the × like every sheet —
+            // tapping an emoji answers it, the × backs out without one.
+            SheetBar(
+              title: sentenceCaseOf(
                 context,
                 AppLocalizations.of(context).reactionBubblePickerTitle,
               ),
-              textAlign: TextAlign.center,
-              style: theme.bodyEmph.copyWith(color: theme.ink),
+              leading: const SheetCloseButton(),
             ),
-            const SizedBox(height: 10),
             SizedBox(
               height: totalPickerH,
               child: EmojiPicker(
@@ -208,6 +207,20 @@ class ReactionPickerSheet extends StatelessWidget {
                     dividerColor: theme.divider,
                     tabBarHeight: 40,
                     initCategory: Category.SMILEYS,
+                    // Cupertino glyphs, not the package's Material defaults —
+                    // every other glyph in the app is SF-shaped. There is no
+                    // Cupertino burger, so food is the basket.
+                    categoryIcons: const CategoryIcons(
+                      recentIcon: CupertinoIcons.clock,
+                      smileyIcon: CupertinoIcons.smiley,
+                      animalIcon: CupertinoIcons.paw,
+                      foodIcon: CupertinoIcons.cart,
+                      activityIcon: CupertinoIcons.sportscourt,
+                      travelIcon: CupertinoIcons.car_detailed,
+                      objectIcon: CupertinoIcons.lightbulb,
+                      symbolIcon: CupertinoIcons.heart,
+                      flagIcon: CupertinoIcons.flag,
+                    ),
                   ),
                   // The package only ever opens search from this bar, so
                   // disabling it (as this sheet used to) left 1,900 emoji
@@ -271,17 +284,25 @@ class EmojiSearchBar extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
+          // Drawn to [SearchField]'s exact measure — pill, 18pt magnifier,
+          // 17pt hint — because it is a door to one: tapping it should feel
+          // like focusing the field, not like opening something else.
           child: Container(
-            height: 36,
+            height: 40,
             decoration: searchFieldDecoration(theme),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding:
+                const EdgeInsets.symmetric(horizontal: searchFieldHPadding),
             child: Row(
               children: [
-                Icon(CupertinoIcons.search, size: 15, color: theme.inkMuted),
+                Icon(
+                  CupertinoIcons.search,
+                  size: searchFieldIconSize,
+                  color: theme.inkMuted,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   hint,
-                  style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                  style: theme.body.copyWith(color: theme.inkMuted),
                 ),
               ],
             ),
@@ -317,11 +338,21 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
   /// who has simply never reacted before.
   String _query = '';
 
+  /// [SearchField] wants a controller to drive its clear button; the
+  /// package's state owns only the focus node.
+  final _controller = TextEditingController();
+
   Locale? _locale;
   Future<EmojiSearchIndex>? _index;
 
   /// Guards against an older query's index load landing after a newer one's.
   int _generation = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -448,8 +479,8 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
                       behavior: HitTestBehavior.opaque,
                       onTap: widget.showEmojiView,
                       child: SizedBox(
-                        width: 36,
-                        height: 36,
+                        width: 40,
+                        height: 40,
                         child: Icon(
                           CupertinoIcons.chevron_left,
                           size: 18,
@@ -458,38 +489,14 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
                       ),
                     ),
                   ),
+                  // THE search bar, with its clear button — not a second
+                  // hand-rolled pill at a different glyph size.
                   Expanded(
-                    child: Container(
-                      decoration: searchFieldDecoration(theme),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.search,
-                            size: 15,
-                            color: theme.inkMuted,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              focusNode: focusNode,
-                              onChanged: onTextInputChanged,
-                              style: theme.body.copyWith(color: theme.ink),
-                              cursorColor: theme.accent,
-                              textInputAction: TextInputAction.search,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                hintText: loc.reactionBubbleSearchHint,
-                                hintStyle: theme.bodySoft
-                                    .copyWith(color: theme.inkMuted),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: SearchField(
+                      controller: _controller,
+                      focusNode: focusNode,
+                      hintText: loc.reactionBubbleSearchHint,
+                      onChanged: onTextInputChanged,
                     ),
                   ),
                 ],

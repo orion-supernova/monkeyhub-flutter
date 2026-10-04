@@ -2,15 +2,13 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/cupertino.dart'
-    show CupertinoActivityIndicator, CupertinoIcons;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../backend/chat_api.dart';
 import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
-import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/file_meta.dart';
 import '../../media/image_raster.dart';
@@ -18,11 +16,11 @@ import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../media/video_poster.dart';
 import '../../models/moment.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/meta_text.dart';
+import '../../widgets/photo_chrome.dart' show MediaOverlayChip, MediaPlayDisc;
 import '../../widgets/sheet_kit.dart';
 import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
@@ -372,16 +370,12 @@ class _MomentComposerState extends State<_MomentComposer> {
     final l10n = AppLocalizations.of(context);
     final remaining = _maxCaption - _caption.text.characters.length;
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        18,
-        20,
-        // Lift clear of the keyboard: this sheet's whole content is a text
-        // field and a button, and both must stay reachable while typing.
-        20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      decoration: theme.sheetDecoration(),
+    // The shared bar (× leading, title centred). SheetFrame lifts the body
+    // clear of the keyboard: this sheet's whole content is a text field and a
+    // button, and both must stay reachable while typing.
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.momentComposerTitle),
+      padding: EdgeInsets.zero,
       // Scrolls, and is bounded. A 9:16 photo previewed at full aspect ratio
       // is taller than the viewport on its own, which pushed POST off the
       // bottom of an unscrollable sheet with no way to reach it. Both halves
@@ -392,22 +386,11 @@ class _MomentComposerState extends State<_MomentComposer> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.82,
         ),
         child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Center(child: SheetHandle()),
-              const SizedBox(height: 10),
-              Center(
-                child: Text(
-                  sentenceCaseOf(context, l10n.momentComposerTitle),
-                  style: theme.bodyEmph.copyWith(
-                    fontSize: 17,
-                    color: theme.ink,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
               _MediaSlot(
                 image: _image,
                 video: _video,
@@ -423,19 +406,13 @@ class _MomentComposerState extends State<_MomentComposer> {
                 }),
               ),
               const SizedBox(height: 16),
-              TextField(
+              // The shared composer field: filled, rounded, accent caret.
+              SheetTextField(
                 controller: _caption,
                 maxLines: 3,
                 minLines: 1,
                 enabled: !_busy,
-                style: theme.body,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: l10n.momentComposerCaptionHint,
-                  hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
-                  border: InputBorder.none,
-                  isDense: true,
-                ),
+                hint: l10n.momentComposerCaptionHint,
               ),
               const SizedBox(height: 6),
               Row(
@@ -456,16 +433,15 @@ class _MomentComposerState extends State<_MomentComposer> {
               ),
               if (_errorCode != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _errorText(l10n),
-                  style: theme.bodySoft.copyWith(color: theme.danger),
-                ),
+                FormErrorBanner(_errorText(l10n)),
               ],
               const SizedBox(height: 18),
-              _PostButton(
-                enabled: _canPost && remaining >= 0,
+              // The shared primary; its spinner holds the button's size while
+              // the upload runs.
+              SheetActionButton(
+                label: l10n.momentComposerPost,
                 busy: _busy,
-                onTap: _post,
+                onTap: _canPost && remaining >= 0 ? _post : null,
               ),
             ],
           ),
@@ -520,24 +496,16 @@ class _MediaSlot extends StatelessWidget {
                   : ColoredBox(color: theme.surfaceSunken),
             ),
           ),
-          Positioned.fill(
-            child: Center(
-              child: Icon(
-                CupertinoIcons.play_circle_fill,
-                size: 34,
-                // On web and desktop there is no poster at all — video_thumbnail
-                // has no implementation there — so this glyph over a flat
-                // surface is the designed state, not a loading placeholder.
-                color: theme.ink.withValues(alpha: 0.85),
-              ),
-            ),
-          ),
+          // On web and desktop there is no poster at all — video_thumbnail
+          // has no implementation there — so this mark over a flat surface is
+          // the designed state, not a loading placeholder.
+          const Positioned.fill(child: Center(child: MediaPlayDisc(size: 46))),
           Positioned(
             right: 8,
             top: 8,
-            child: _SlotChip(
+            child: MediaOverlayChip(
               icon: CupertinoIcons.xmark,
-              label: l10n.momentComposerRemovePhoto,
+              semanticLabel: l10n.momentComposerRemovePhoto,
               onTap: busy ? null : onClear,
             ),
           ),
@@ -569,16 +537,16 @@ class _MediaSlot extends StatelessWidget {
             child: Row(
               children: [
                 if (onEdit != null) ...[
-                  _SlotChip(
+                  MediaOverlayChip(
                     icon: CupertinoIcons.crop,
-                    label: l10n.momentComposerEditPhoto,
+                    semanticLabel: l10n.momentComposerEditPhoto,
                     onTap: busy ? null : onEdit,
                   ),
                   const SizedBox(width: 6),
                 ],
-                _SlotChip(
+                MediaOverlayChip(
                   icon: CupertinoIcons.xmark,
-                  label: l10n.momentComposerRemovePhoto,
+                  semanticLabel: l10n.momentComposerRemovePhoto,
                   onTap: busy ? null : onClear,
                 ),
               ],
@@ -618,42 +586,6 @@ class _MediaSlot extends StatelessWidget {
   }
 }
 
-/// A small circular control floating over the media preview.
-class _SlotChip extends StatelessWidget {
-  const _SlotChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        // A dark translucent disc over the photo — the Photos edit control —
-        // so it reads on any picture, light or dark.
-        child: Container(
-          padding: const EdgeInsets.all(7),
-          decoration: const BoxDecoration(
-            color: Color(0x8C000000),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 15, color: Colors.white),
-        ),
-      ),
-    );
-  }
-}
-
 class _SlotButton extends StatelessWidget {
   const _SlotButton({
     required this.icon,
@@ -678,8 +610,8 @@ class _SlotButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
           decoration: BoxDecoration(
-            color: theme.ink.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(18),
+            color: quietFill(theme),
+            borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
           child: Column(
             children: [
@@ -688,72 +620,20 @@ class _SlotButton extends StatelessWidget {
                 height: 42,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: quietFill(theme),
+                  color: theme.accent.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 20, color: theme.accent),
               ),
               const SizedBox(height: 8),
-              Text(
+              // Wraps, then shrinks — never an ellipsis on a tile label.
+              FitLabel(
                 sentenceCaseOf(context, label),
-                style: metaText(theme, color: theme.ink),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                style: groupedSubtitleStyle(theme).copyWith(color: theme.ink),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PostButton extends StatelessWidget {
-  const _PostButton({
-    required this.enabled,
-    required this.busy,
-    required this.onTap,
-  });
-
-  final bool enabled;
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return SpringPress(
-      onTap: enabled ? onTap : null,
-      semanticLabel: l10n.momentComposerPost,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        width: double.infinity,
-        height: 52,
-        decoration: BoxDecoration(
-          color: enabled
-              ? theme.bubbleFill(isMine: true)
-              : theme.ink.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        alignment: Alignment.center,
-        child: busy
-            ? SizedBox(
-                width: 18,
-                height: 18,
-                child: CupertinoActivityIndicator(
-                  radius: 9,
-                  color: theme.accentInk,
-                ),
-              )
-            : Text(
-                sentenceCaseOf(context, l10n.momentComposerPost),
-                style: theme.body.copyWith(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: enabled ? theme.accentInk : theme.inkMuted,
-                ),
-              ),
       ),
     );
   }

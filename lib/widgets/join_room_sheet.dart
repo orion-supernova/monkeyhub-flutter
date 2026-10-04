@@ -142,135 +142,127 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
     ];
 
     final trimmedName = room.name.trim();
-    return Padding(
-      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
-      child: SheetFrame(
-        leading: const SheetCloseButton(),
-        title: sentenceCaseOf(context, l10n.groupCallBannerJoinRoomSheetTitle),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // The room's own account of itself scrolls; the join button never
-            // does, so a room with a lot to say can't push the only action off
-            // the bottom.
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: maxStory + 120),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 4),
-                    Center(
-                      child: SheetRise(
-                        child: hasAvatar
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(22),
-                                child: RemoteImage(
-                                  storageId: room.avatarStorageId!,
-                                  api: widget.api,
-                                  width: 84,
-                                  height: 84,
-                                ),
-                              )
-                            : Container(
+    // SheetFrame adds the keyboard inset itself; padding for it here as well
+    // lifted the Join button twice the keyboard's height.
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.groupCallBannerJoinRoomSheetTitle),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The room's own account of itself scrolls; the join button never
+          // does, so a room with a lot to say can't push the only action off
+          // the bottom.
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxStory + 120),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 4),
+                  Center(
+                    child: SheetRise(
+                      child: hasAvatar
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
+                              child: RemoteImage(
+                                storageId: room.avatarStorageId!,
+                                api: widget.api,
                                 width: 84,
                                 height: 84,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  gradient: monogramGradient(
-                                    theme,
-                                    room.id.hashCode,
-                                  ),
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: room.isEphemeral
-                                    ? theme.hourglassIcon(
-                                        size: 34,
-                                        color: Colors.white,
-                                      )
-                                    : Text(
-                                        trimmedName.isEmpty
-                                            ? '#'
-                                            : trimmedName.characters.first
-                                                .toUpperCase(),
-                                        style: const TextStyle(
-                                          fontFamily: 'CupertinoSystemDisplay',
-                                          fontSize: 38,
-                                          fontWeight: FontWeight.w600,
-                                          height: 1,
-                                          color: Colors.white,
-                                        ),
-                                      ),
                               ),
-                      ),
+                            )
+                          : Container(
+                              width: 84,
+                              height: 84,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                gradient: monogramGradient(
+                                  theme,
+                                  room.id.hashCode,
+                                ),
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                              child: room.isEphemeral
+                                  ? theme.hourglassIcon(
+                                      size: 34,
+                                      color: Colors.white,
+                                    )
+                                  : Text(
+                                      trimmedName.isEmpty
+                                          ? '#'
+                                          : trimmedName.characters.first
+                                              .toUpperCase(),
+                                      style: const TextStyle(
+                                        fontFamily: 'CupertinoSystemDisplay',
+                                        fontSize: 38,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
                     ),
-                    const SizedBox(height: 14),
-                    // No maxLines anywhere in this sheet: a name too long for
-                    // the rows is exactly the name someone came here to read.
-                    Text(
-                      room.name,
-                      textAlign: TextAlign.center,
-                      style: theme.displayMedium.copyWith(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  ),
+                  const SizedBox(height: 14),
+                  // No maxLines anywhere in this sheet: a name too long for
+                  // the rows is exactly the name someone came here to read.
+                  Text(
+                    room.name,
+                    textAlign: TextAlign.center,
+                    // The theme's own display size, not a literal 24: the
+                    // name is this sheet's hero.
+                    style: theme.displayMedium.copyWith(color: theme.ink),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.groupCallBannerMemberCount(room.memberCount),
+                    textAlign: TextAlign.center,
+                    style: groupedSubtitleStyle(theme),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    description.isEmpty
+                        ? l10n.roomInfoSheetNoDescription
+                        : description,
+                    textAlign: TextAlign.center,
+                    style: groupedFooterStyle(theme).copyWith(
+                      color: description.isEmpty
+                          ? theme.inkMuted
+                          : theme.inkSoft,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.groupCallBannerMemberCount(room.memberCount),
-                      textAlign: TextAlign.center,
-                      style: theme.body.copyWith(
-                        fontSize: 15,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      description.isEmpty
-                          ? l10n.roomInfoSheetNoDescription
-                          : description,
-                      textAlign: TextAlign.center,
-                      style: theme.body.copyWith(
-                        fontSize: 15,
-                        height: 1.35,
-                        color: description.isEmpty
-                            ? theme.inkMuted
-                            : theme.inkSoft,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SheetRise(
-                      index: 1,
-                      child: SheetGroup(children: facts),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  SheetRise(
+                    index: 1,
+                    child: SheetGroup(children: facts),
+                  ),
+                ],
               ),
             ),
-            if (room.hasPassword) ...[
-              const SizedBox(height: 18),
-              FieldLabel(l10n.groupCallBannerPasswordFieldLabel),
-              PasswordField(
-                controller: _password,
-                hint: l10n.groupCallBannerPasswordHint,
-                autofocus: true,
-                onChanged: (_) => setState(() {}),
-                // Enter must not do what the dimmed Join button says it can't.
-                onSubmitted: (_) => _canJoin ? _join() : null,
-              ),
-            ],
+          ),
+          if (room.hasPassword) ...[
             const SizedBox(height: 18),
-            Semantics(
-              label: l10n.groupCallBannerJoinRoomButtonSemanticLabel,
-              child: SheetActionButton(
-                label: l10n.groupCallBannerJoinRoomButtonLabel,
-                onTap: _canJoin ? _join : null,
-              ),
+            FieldLabel(l10n.groupCallBannerPasswordFieldLabel),
+            PasswordField(
+              controller: _password,
+              hint: l10n.groupCallBannerPasswordHint,
+              autofocus: true,
+              onChanged: (_) => setState(() {}),
+              // Enter must not do what the dimmed Join button says it can't.
+              onSubmitted: (_) => _canJoin ? _join() : null,
             ),
           ],
-        ),
+          const SizedBox(height: 18),
+          Semantics(
+            label: l10n.groupCallBannerJoinRoomButtonSemanticLabel,
+            child: SheetActionButton(
+              label: l10n.groupCallBannerJoinRoomButtonLabel,
+              onTap: _canJoin ? _join : null,
+            ),
+          ),
+        ],
       ),
     );
   }

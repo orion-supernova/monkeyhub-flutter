@@ -1,4 +1,8 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'spring_press.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
@@ -198,4 +202,212 @@ String _hintText(BuildContext context, String hint) {
       hint.contains('@') ||
       RegExp(r'^[a-z0-9_.-]+\.[a-z]{2,}', caseSensitive: false).hasMatch(hint);
   return literal ? hint : sentenceCaseOf(context, hint);
+}
+
+/// THE text input inside a sheet (and anywhere a form field has no label
+/// row above it): a soft filled rounded field, 17pt ink, the hint in the
+/// muted subtitle ink, an accent cursor.
+///
+/// The composers drew bare floating text with no field shape and the default
+/// cursor colour; this is the shape [ThemedInput] already has on pages, with
+/// the knobs a sheet needs (multi-line growth, a character limit, a leading
+/// glyph). Hints are sentence-cased like every label.
+class SheetTextField extends StatelessWidget {
+  const SheetTextField({
+    super.key,
+    required this.controller,
+    this.hint,
+    this.focusNode,
+    this.autofocus = false,
+    this.obscure = false,
+    this.minLines,
+    this.maxLines = 1,
+    this.maxLength,
+    this.keyboardType,
+    this.textInputAction,
+    this.textCapitalization = TextCapitalization.sentences,
+    this.enabled = true,
+    this.onChanged,
+    this.onSubmitted,
+    this.leadingIcon,
+    this.trailing,
+    this.fill,
+  });
+
+  final TextEditingController controller;
+  final String? hint;
+  final FocusNode? focusNode;
+  final bool autofocus;
+  final bool obscure;
+  final int? minLines;
+
+  /// 1 by default; null grows without bound (a composer), clamped by the
+  /// sheet's own height.
+  final int? maxLines;
+
+  /// Enforced, but no counter is drawn — a caller that wants one shows it.
+  final int? maxLength;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
+  final bool enabled;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+
+  /// A glyph before the text (Cupertino, 18pt, muted).
+  final IconData? leadingIcon;
+
+  /// After the text, inside the field — a visibility toggle, a clear button.
+  final Widget? trailing;
+
+  /// Overrides the field's fill (rare: a field on a photo).
+  final Color? fill;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final field = TextField(
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      obscureText: obscure,
+      minLines: obscure ? null : minLines,
+      maxLines: obscure ? 1 : maxLines,
+      maxLength: maxLength,
+      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      textCapitalization: textCapitalization,
+      enabled: enabled,
+      style: theme.body.copyWith(color: theme.ink, fontSize: 17, height: 1.3),
+      cursorColor: theme.accent,
+      decoration: InputDecoration(
+        isCollapsed: true,
+        border: InputBorder.none,
+        counterText: '',
+        hintText: hint == null ? null : _hintText(context, hint!),
+        hintStyle: _hintStyle(theme),
+        contentPadding: const EdgeInsets.symmetric(vertical: 13),
+      ),
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+    );
+    final deco = fieldDecoration(theme);
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        decoration: fill == null ? deco : deco.copyWith(color: fill),
+        padding: EdgeInsets.only(
+          left: leadingIcon == null ? 14 : 11,
+          right: trailing == null ? 14 : 6,
+        ),
+        child: Row(
+          crossAxisAlignment: (maxLines ?? 2) > 1
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.center,
+          children: [
+            if (leadingIcon != null) ...[
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: (maxLines ?? 2) > 1 ? 13 : 0,
+                ),
+                child: Icon(leadingIcon, size: 18, color: theme.inkMuted),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(child: field),
+            ?trailing,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The hint of a [SheetTextField]: the muted subtitle ink at the field's own
+/// 17pt, so the placeholder sits exactly where the text will.
+TextStyle _hintStyle(AppTheme theme) =>
+    theme.body.copyWith(fontSize: 17, height: 1.3, color: theme.inkMuted);
+
+/// THE error under (or above) a form: a red-washed rounded block with an
+/// exclamation glyph and a 15pt sentence — and, optionally, the one thing to
+/// do about it ("Try again", "Use password instead").
+///
+/// Replaces five private banners that had drifted to three radii and two
+/// icon treatments (login, recovery, device scan, social username, device
+/// panel).
+class FormErrorBanner extends StatelessWidget {
+  const FormErrorBanner(
+    this.message, {
+    super.key,
+    this.actionLabel,
+    this.onAction,
+    this.icon = CupertinoIcons.exclamationmark_circle_fill,
+  });
+
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final radius = (theme.radiusXl.clamp(6.0, 26.0)) * 0.6;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 11, 14, 11),
+        decoration: BoxDecoration(
+          color: theme.danger.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(icon, size: 18, color: theme.danger),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message,
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 15,
+                      height: 1.3,
+                      color: theme.danger,
+                    ),
+                  ),
+                  if (actionLabel != null && onAction != null)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: SpringPress(
+                        onTap: onAction,
+                        scale: PressSpec.scaleSmall,
+                        semanticLabel: actionLabel,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 6, bottom: 2),
+                          child: Text(
+                            sentenceCaseOf(context, actionLabel!),
+                            style: theme.bodySoft.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: theme.danger,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

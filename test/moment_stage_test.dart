@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -7,6 +8,7 @@ import 'package:monkeyhub/models/moment.dart';
 import 'package:monkeyhub/screens/feed/moment_viewer.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/reaction_picker_sheet.dart';
 
 /// What this pins: which surface a moment opens on, and that the run comes with
 /// it.
@@ -167,5 +169,29 @@ void main() {
 
     expect(find.text('no picture, just words'), findsNothing);
     expect(find.text('the sunset'), findsOneWidget);
+  });
+
+  // Four quick reactions were the whole vocabulary; the full picker is one
+  // tap past them on both surfaces.
+  testWidgets('both surfaces offer the full emoji picker', (tester) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset')),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(CupertinoIcons.smiley), findsOneWidget);
+
+    await tester.tap(find.byIcon(CupertinoIcons.smiley));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReactionPickerSheet), findsOneWidget);
+  });
+
+  testWidgets('a point card has the picker too', (tester) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'p1', caption: 'npc behaviour', tag: MomentTag.npc)),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(CupertinoIcons.smiley), findsOneWidget);
   });
 }

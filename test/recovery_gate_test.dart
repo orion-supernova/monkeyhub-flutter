@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/auth/recovery_phrase.dart';
 import 'package:monkeyhub/screens/recovery_phrase_screen.dart';
+import 'package:monkeyhub/widgets/glass_buttons.dart' show GlassCloseButton;
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
@@ -108,7 +109,9 @@ void main() {
       roomToBreathe(tester);
       await tester.pumpWidget(host(gate()));
 
-      expect(find.text('Back'), findsOneWidget);
+      // The way back is the × top-leading, spoken as "Back".
+      expect(find.byType(GlassCloseButton), findsOneWidget);
+      expect(find.bySemanticsLabel('Back'), findsOneWidget);
     });
 
     testWidgets('a dismissible repair offers "not now"', (tester) async {
@@ -119,7 +122,11 @@ void main() {
         knownPassword: 'pw',
       )));
 
-      expect(find.text('Not now — keep my current phrase'), findsOneWidget);
+      expect(find.byType(GlassCloseButton), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Not now — keep my current phrase'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a non-dismissible repair offers nothing but the CTA',
@@ -130,8 +137,7 @@ void main() {
         knownPassword: 'pw',
       )));
 
-      expect(find.text('Not now — keep my current phrase'), findsNothing);
-      expect(find.text('Back'), findsNothing);
+      expect(find.byType(GlassCloseButton), findsNothing);
       expect(find.text('I saved them'), findsOneWidget);
     });
   });

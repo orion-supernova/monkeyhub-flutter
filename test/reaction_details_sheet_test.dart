@@ -107,7 +107,7 @@ void main() {
     expect(find.text('Lin'), findsOneWidget);
 
     // No filter to offer when every row is in the same bucket.
-    expect(find.text('ALL'), findsNothing);
+    expect(find.text('All'), findsNothing);
   });
 
   testWidgets('every row is badged while a filter is applied', (tester) async {
@@ -142,7 +142,7 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('ALL'));
+    await tester.tap(find.text('All'));
     await tester.pumpAndSettle();
 
     // Three rows now, and the badge follows the reaction rather than the
@@ -172,7 +172,7 @@ void main() {
     await tester.pumpWidget(host(sheet(reactions: [], initialEmoji: '😂')));
     await tester.pumpAndSettle();
 
-    expect(find.text('nothing here anymore'), findsOneWidget);
+    expect(find.text('Nothing here anymore'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

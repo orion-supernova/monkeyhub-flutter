@@ -576,7 +576,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: CallTray(
                         actions: trayActions,
-                        endIcon: Icons.call_end,
+                        endIcon: CallGlyphs.end,
                         endLabel: l10n.groupCallScreenLeaveLabel,
                         endColor: theme.danger,
                         onEnd: () => unawaited(svc.leaveCall()),
@@ -601,7 +601,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     final someoneElseSharing = !sharing && svc.presentingPeer != null;
     return [
       CallTrayAction(
-        icon: svc.localMuted ? Icons.mic_off : Icons.mic,
+        icon: svc.localMuted ? CallGlyphs.micOff : CallGlyphs.mic,
         active: svc.localMuted,
         onTap: svc.toggleMute,
         label: svc.localMuted
@@ -609,7 +609,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
             : l10n.groupCallScreenMuteLabel,
       ),
       CallTrayAction(
-        icon: svc.localCamActive ? Icons.videocam : Icons.videocam_off,
+        icon: svc.localCamActive ? CallGlyphs.camera : CallGlyphs.cameraOff,
         active: !svc.localCamActive,
         onTap: () => unawaited(svc.toggleVideo()),
         label: svc.localCamActive
@@ -617,16 +617,14 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
             : l10n.groupCallScreenCamOnLabel,
       ),
       CallTrayAction(
-        icon: svc.speakerOn ? Icons.volume_up : Icons.phone_in_talk,
+        icon: svc.speakerOn ? CallGlyphs.speakerOn : CallGlyphs.speakerOff,
         active: svc.speakerOn,
         onTap: () => unawaited(svc.toggleSpeaker()),
         label: l10n.groupCallScreenSpeakerLabel,
       ),
       if (_shareSupported)
         CallTrayAction(
-          icon: sharing
-              ? Icons.stop_screen_share_outlined
-              : Icons.screen_share_outlined,
+          icon: sharing ? CallGlyphs.stopShare : CallGlyphs.share,
           active: sharing,
           // Disabled while someone else holds the stage, and while our own
           // share is being set up (the picker, the countdown) — a second
@@ -641,19 +639,19 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
         ),
       if (layout == _Layout.stage)
         CallTrayAction(
-          icon: Icons.draw_outlined,
+          icon: CallGlyphs.draw,
           active: svc.drawArmed.value,
           onTap: () => svc.drawArmed.value = !svc.drawArmed.value,
           label: l10n.groupCallScreenDrawLabel,
         ),
       if (svc.localCamActive && isMobileCallPlatform)
         CallTrayAction(
-          icon: Icons.cameraswitch_outlined,
+          icon: CallGlyphs.flip,
           onTap: () => unawaited(svc.switchCamera()),
           label: l10n.groupCallScreenFlipLabel,
         ),
       CallTrayAction(
-        icon: Icons.keyboard_arrow_down_rounded,
+        icon: CallGlyphs.hide,
         onTap: _hide,
         label: l10n.groupCallScreenMinimizeLabel,
       ),
@@ -956,17 +954,20 @@ class _Tile extends StatelessWidget {
             child: Row(
               children: [
                 if (muted) ...[
-                  const Icon(Icons.mic_off, size: 12, color: Colors.white70),
+                  const Icon(CallGlyphs.micOff, size: 13, color: Colors.white70),
                   const SizedBox(width: 4),
                 ],
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(
+                    // The call caption face, like every other name over a
+                    // call — not a raw 11pt style of its own.
+                    style: callCaptionStyle(ThemeScope.of(context)).copyWith(
                       color: Colors.white,
-                      fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
+                      shadows: const [
+                        Shadow(blurRadius: 6, color: Colors.black87),
+                      ],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1076,7 +1077,7 @@ class _ShareStage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.screen_share_outlined,
+                        CallGlyphs.share,
                         size: 40,
                         color: theme.accent.withValues(alpha: 0.9),
                       ),
@@ -1096,7 +1097,11 @@ class _ShareStage extends StatelessWidget {
           Positioned(
             left: 16,
             top: topInset,
-            child: _CaptionPill(text: caption, theme: theme),
+            right: 16,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: CallCaptionPill(text: caption),
+            ),
           ),
         Positioned(
           left: 0,
@@ -1108,7 +1113,7 @@ class _ShareStage extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               children: [
-                _Chip(
+                _StripTile(
                   label: l10n.groupCallScreenYouLabel,
                   muted: service.localMuted,
                   level: levels.levelOf(AudioLevelMonitor.me),
@@ -1126,7 +1131,7 @@ class _ShareStage extends StatelessWidget {
                       : null,
                 ),
                 for (final p in peers)
-                  _Chip(
+                  _StripTile(
                     label: p.name,
                     muted: p.mediaState.audioMuted,
                     dimmed: !p.connected || p.reconnecting,
@@ -1160,37 +1165,10 @@ class _ShareStage extends StatelessWidget {
   }
 }
 
-class _CaptionPill extends StatelessWidget {
-  const _CaptionPill({required this.text, required this.theme});
-  final String text;
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-      ),
-      child: Text(
-        text,
-        style: callCaptionStyle(theme).copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-}
-
 /// A participant in the strip under a shared screen: a small tile with
 /// their camera or their face, the presenter marked with the accent.
-class _Chip extends StatelessWidget {
-  const _Chip({
+class _StripTile extends StatelessWidget {
+  const _StripTile({
     required this.label,
     required this.level,
     required this.accent,

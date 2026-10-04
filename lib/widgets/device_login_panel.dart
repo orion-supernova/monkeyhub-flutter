@@ -12,9 +12,8 @@ import '../backend/convex_client.dart' show Subscription;
 import '../l10n/generated/app_localizations.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show groupedFill, groupedRadius;
-import 'sheet_kit.dart' show SheetActionButton;
-import '../l10n/text_case.dart';
+import 'ios_kit.dart';
+import 'labeled_field.dart' show FormErrorBanner;
 
 enum _Phase { minting, waiting, exchanging, denied, error }
 
@@ -215,8 +214,7 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
         Center(
           child: Text(
             _statusLine(l10n, expired: expired),
-            style: theme.bodySoft.copyWith(
-              fontSize: 15,
+            style: groupedFooterStyle(theme).copyWith(
               fontFeatures: const [FontFeature.tabularFigures()],
               color: (_phase == _Phase.denied || _phase == _Phase.error || expired)
                   ? theme.danger
@@ -226,14 +224,7 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
         ),
         if (_error != null && _phase == _Phase.error) ...[
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-            decoration: BoxDecoration(
-              color: theme.danger.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
-            ),
-            child: Text(_error!, style: theme.body.copyWith(color: theme.danger)),
-          ),
+          FormErrorBanner(_error!),
         ],
         if (expired || _phase == _Phase.denied || _phase == _Phase.error) ...[
           const SizedBox(height: 20),
@@ -243,14 +234,11 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
           ),
         ],
         if (widget.onCancel != null) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Center(
-            child: GestureDetector(
+            child: TextLinkButton(
+              label: l10n.loginScreenUsePasswordInstead,
               onTap: widget.onCancel,
-              child: Text(
-                sentenceCaseOf(context, l10n.loginScreenUsePasswordInstead),
-                style: theme.body.copyWith(fontSize: 15, color: theme.accent),
-              ),
             ),
           ),
         ],
@@ -292,7 +280,6 @@ class _DeviceLoginBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final dimmed = expired || phase == _Phase.denied || phase == _Phase.error;
     if (code == null || requestId == null) {
       return const SizedBox(
@@ -303,24 +290,9 @@ class _DeviceLoginBody extends StatelessWidget {
     return Column(
       children: [
         _QrPanel(data: deviceLoginUri(requestId!), dimmed: dimmed),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(child: Container(height: 1, color: theme.divider)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                AppLocalizations.of(context).childPairScreenOrDivider,
-                style: theme.bodySoft.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
-              ),
-            ),
-            Expanded(child: Container(height: 1, color: theme.divider)),
-          ],
-        ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 6),
+        OrDivider(label: AppLocalizations.of(context).childPairScreenOrDivider),
+        const SizedBox(height: 6),
         _CodeDigits(code: code!, dimmed: dimmed),
       ],
     );
@@ -386,12 +358,13 @@ class _CodeDigits extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: groupedFill(theme),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
               ),
               child: Text(
                 d,
+                // 20: the display step of the scale (22 was off it).
                 style: theme.displaySmall.copyWith(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.w600,
                   color: theme.ink,
                   fontFeatures: const [FontFeature.tabularFigures()],

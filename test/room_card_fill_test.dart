@@ -107,7 +107,14 @@ void main() {
       await store.setRoomMonogram(true);
       await tester.pumpWidget(host(tile(room())));
       expect(find.byType(RoomMonogram), findsOneWidget);
-      expect(find.text('D'), findsOneWidget, reason: 'the room initial');
+      expect(
+        find.descendant(
+          of: find.byType(RoomMonogram),
+          matching: find.text('D'),
+        ),
+        findsOneWidget,
+        reason: 'the room initial',
+      );
     });
 
     testWidgets('keeps out of a tile that has something to say', (tester) async {

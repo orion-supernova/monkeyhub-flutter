@@ -237,8 +237,9 @@ void main() {
       expect(SettingsStore.instance.scheduledIndicator,
           ScheduledIndicator.both);
 
-      // Back returns to the list rather than closing the sheet.
-      await tester.tap(find.text(en.scheduledBack));
+      // Back — the bar's chevron, the one way back — returns to the list
+      // rather than closing the sheet.
+      await tester.tap(find.bySemanticsLabel(en.scheduledBack));
       await tester.pumpAndSettle();
       // The title reads in sentence case; the string is stored in capitals.
       expect(

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 
 import '../theme/layout.dart';
@@ -186,6 +185,10 @@ class RiseIn extends StatelessWidget {
 
 /// One tile in a profile's action row — icon over a short label on a rounded
 /// surface tile, equal widths, the Telegram / iOS Contacts arrangement.
+///
+/// Now drawn by [QuickActionTile]: one tint rule (accent, red for [danger]),
+/// labels that wrap to two lines and shrink rather than ellipsize. New code
+/// uses [SheetQuickActions] directly.
 class ProfileActionTile extends StatelessWidget {
   const ProfileActionTile({
     super.key,
@@ -205,79 +208,33 @@ class ProfileActionTile extends StatelessWidget {
   final bool danger;
   final bool busy;
 
-  /// The one action the page is for (Message, Add friend): accent glyph.
+  /// Kept for callers; every tile is accent now (one tint rule per row —
+  /// "Add" in accent beside "Mute" in ink read as two different controls).
   final bool emphasis;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final enabled = onTap != null && !busy;
-    final tint = danger
-        ? theme.danger
-        : (emphasis ? theme.accent : theme.ink);
-    final ink = enabled ? tint : theme.inkMuted.withValues(alpha: 0.6);
-    return SpringPress(
-      onTap: enabled ? onTap : null,
-      semanticLabel: label,
-      scale: 0.92,
-      child: Container(
-        height: 64,
-        decoration: BoxDecoration(
-          color: groupedFill(theme),
-          borderRadius: BorderRadius.circular(
-            (groupedRadius(theme) * 0.7).clamp(6.0, 16.0),
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (busy)
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CupertinoActivityIndicator(color: tint),
-              )
-            else
-              Icon(icon, size: 22, color: ink),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: theme.caption.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0,
-                color: ink,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => QuickActionTile(
+        icon: icon,
+        label: label,
+        onTap: onTap,
+        destructive: danger,
+        busy: busy,
+      );
 }
 
-/// A row of [ProfileActionTile]s, equal widths with an 8pt gap.
+/// A row of [ProfileActionTile]s, equal widths with an 8pt gap, all as tall
+/// as the tallest label needs.
 class ProfileActionBar extends StatelessWidget {
   const ProfileActionBar({super.key, required this.tiles});
   final List<Widget> tiles;
 
   @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          for (var i = 0; i < tiles.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
-            Expanded(child: tiles[i]),
-          ],
-        ],
-      );
+  Widget build(BuildContext context) => QuickTileRow(tiles: tiles);
 }
 
-/// The full-width buttons of a sheet or dialog: a quiet one and a filled one,
-/// both capsules, the iOS 26 alert/sheet button shape.
+/// The full-width buttons of a sheet or dialog — now a thin alias of
+/// [SheetActionButton]: [filled] is the accent capsule, otherwise tonal.
+/// New code uses [SheetActionButton] directly.
 class SheetButton extends StatelessWidget {
   const SheetButton({
     super.key,
@@ -285,46 +242,23 @@ class SheetButton extends StatelessWidget {
     required this.onTap,
     this.filled = false,
     this.danger = false,
+    this.busy = false,
   });
 
   final String label;
   final VoidCallback? onTap;
   final bool filled;
   final bool danger;
+  final bool busy;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final tone = danger ? theme.danger : theme.accent;
-    final bg = filled
-        ? (onTap == null ? tone.withValues(alpha: 0.35) : tone)
-        : theme.ink.withValues(alpha: 0.08);
-    final fg = filled
-        ? (danger ? Colors.white : theme.accentInk)
-        : (danger ? theme.danger : theme.ink);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 50),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: theme.bodyEmph.copyWith(
-            fontSize: 17,
-            letterSpacing: 0,
-            color: fg,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SheetActionButton(
+        label: label,
+        onTap: onTap,
+        tonal: !filled,
+        destructive: danger,
+        busy: busy,
+      );
 }
 
 /// A small status line under a hero name: a coloured dot and a word.
@@ -347,7 +281,7 @@ class StatusDotLine extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: theme.caption.copyWith(fontSize: 14, color: theme.inkMuted),
+          style: groupedSubtitleStyle(theme),
         ),
       ],
     );
@@ -362,11 +296,16 @@ class SoftNote extends StatelessWidget {
     required this.icon,
     required this.text,
     this.tone,
+    this.title,
   });
 
   final IconData icon;
   final String text;
   final Color? tone;
+
+  /// A bold first line above [text] — a notice with a name ("Server
+  /// unreachable"), replacing the server screen's private `_Notice`.
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
@@ -387,13 +326,25 @@ class SoftNote extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
-              style: theme.caption.copyWith(
-                fontSize: 14,
-                height: 1.35,
-                color: theme.inkSoft,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title != null) ...[
+                  Text(
+                    title!,
+                    style: groupedFooterStyle(theme).copyWith(
+                      color: theme.ink,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                ],
+                Text(
+                  text,
+                  style:
+                      groupedFooterStyle(theme).copyWith(color: theme.inkSoft),
+                ),
+              ],
             ),
           ),
         ],
@@ -433,17 +384,7 @@ class InsetGroup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (header != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
-              child: Text(
-                header!,
-                style: theme.caption.copyWith(
-                  fontSize: 13,
-                  color: theme.inkMuted,
-                ),
-              ),
-            ),
+          if (header != null) GroupedHeader(header!),
           ClipRRect(
             borderRadius: BorderRadius.circular(groupedRadius(theme)),
             child: ColoredBox(
@@ -469,14 +410,7 @@ class InsetGroup extends StatelessWidget {
           if (footer != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
-              child: Text(
-                footer!,
-                style: theme.caption.copyWith(
-                  fontSize: 13,
-                  height: 1.35,
-                  color: theme.inkMuted,
-                ),
-              ),
+              child: Text(footer!, style: groupedFooterStyle(theme)),
             ),
         ],
       ),

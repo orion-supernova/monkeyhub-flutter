@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/glass_config.dart';
@@ -439,9 +440,10 @@ void main() {
       await pumpScreen(tester);
       final before = tester.getRect(find.byType(PillBottomNav));
 
-      // Far enough to bury the preview several times over — there are 17
-      // dials below it.
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1500));
+      // Far enough to bury the preview several times over, while staying in
+      // the panels that preview the bar — further down, the surfaces panel
+      // swaps the bar out of the preview on purpose.
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1000));
       await tester.pumpAndSettle();
 
       expect(
@@ -519,7 +521,7 @@ void main() {
       // On a freshly selected preset nothing is "modified" — edits are marked
       // against the look you picked, not against the untuned recipe.
       await pumpScreen(tester);
-      expect(find.byIcon(Icons.undo), findsNothing);
+      expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
 
       final page = find.byType(Scrollable).first;
       // No `.first` on the target: scrollUntilVisible probes the finder while
@@ -527,7 +529,7 @@ void main() {
       // reporting empty.
       await tester.scrollUntilVisible(find.text('Blur'), 140, scrollable: page);
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.undo), findsNothing);
+      expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
 
       store.setGlassProfile(
         store.glass.copyWith(nav: store.glass.nav.set(kBlur, 2)),
@@ -536,8 +538,8 @@ void main() {
       store.flushGlassWrites();
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.undo), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.undo));
+      expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsOneWidget);
+      await tester.tap(find.byIcon(CupertinoIcons.arrow_uturn_left));
       await tester.pumpAndSettle();
 
       expect(
@@ -545,7 +547,7 @@ void main() {
         10,
         reason: 'undo goes back to Frosted, not to the raw recipe',
       );
-      expect(find.byIcon(Icons.undo), findsNothing);
+      expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
     });
 
     testWidgets('a panel reset clears only its own dials', (tester) async {
@@ -562,7 +564,7 @@ void main() {
 
       // By key, not by index into find.byIcon: the dial rows live in a lazy
       // sliver, so which controls exist depends on where the list is scrolled.
-      final target = find.byKey(glassPanelResetKey('BOTTOM BAR'));
+      final target = find.byKey(glassPanelResetKey('Bottom bar'));
       await tester.scrollUntilVisible(
         target,
         140,
@@ -608,7 +610,7 @@ void main() {
       // Nothing edited yet, so nothing to undo — the control that read as a
       // bug when it stayed lit on a freshly picked preset.
       expect(find.text('Reset to Clear'), findsOneWidget);
-      expect(find.byIcon(Icons.undo), findsNothing);
+      expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
 
       store.setGlassProfile(
         store.glass.copyWith(nav: store.glass.nav.set(kBlur, 25)),
@@ -666,6 +668,14 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).first,
       );
+      // "Visible" means built, which for a full-height capsule can still be
+      // its last few points under the bottom edge — park it in the lower
+      // part of the viewport, clear of both the edge and the pinned preview.
+      await tester.runAsync(() => Scrollable.ensureVisible(
+            tester.element(target),
+            alignment: 0.75,
+          ));
+      await tester.pumpAndSettle();
       await tester.tap(target);
       await tester.pumpAndSettle();
 

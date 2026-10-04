@@ -216,10 +216,8 @@ class _ChildCard extends StatelessWidget {
                         children: [
                           Text(
                             summary.user.displayName,
-                            style: theme.bodyEmph.copyWith(
-                              fontSize: 17,
-                              color: theme.ink,
-                            ),
+                            style: groupedTitleStyle(theme)
+                                .copyWith(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 3),
                           StatusDotLine(
@@ -229,27 +227,7 @@ class _ChildCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (summary.pendingCount > 0)
-                      Container(
-                        constraints: const BoxConstraints(
-                          minWidth: 22,
-                          minHeight: 22,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 7),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: theme.danger,
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        child: Text(
-                          '${summary.pendingCount}',
-                          style: theme.caption.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                    RowBadge(count: summary.pendingCount),
                     const SizedBox(width: 8),
                     Icon(
                       CupertinoIcons.chevron_forward,
@@ -261,20 +239,23 @@ class _ChildCard extends StatelessWidget {
               ),
             ],
           ),
-          ProfileActionBar(
-            tiles: [
-              ProfileActionTile(
+          // One tint rule across the three, outline glyphs — the qrcode and
+          // slider have no filled cut, so the third matches them. Release hands
+          // the phone back, so it wears the leave-a-device glyph — not the
+          // reply arrow it used to borrow.
+          SheetQuickActions(
+            actions: [
+              QuickAction(
                 icon: CupertinoIcons.qrcode,
                 label: l10n.famPair,
-                emphasis: true,
                 onTap: onPair,
               ),
-              ProfileActionTile(
-                icon: CupertinoIcons.arrow_turn_up_left,
+              QuickAction(
+                icon: CupertinoIcons.square_arrow_right,
                 label: l10n.famRelease,
                 onTap: onRelease,
               ),
-              ProfileActionTile(
+              QuickAction(
                 icon: CupertinoIcons.slider_horizontal_3,
                 label: l10n.famSettings,
                 onTap: onOpen,
@@ -290,26 +271,14 @@ class _ChildCard extends StatelessWidget {
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
-      child: Column(
-        children: [
-          Icon(
-            CupertinoIcons.person_3_fill,
-            size: 48,
-            color: theme.inkMuted.withValues(alpha: 0.6),
-          ),
-          const SizedBox(height: 12),
-          Text(l10n.famEmptyTitle, style: theme.displaySmall),
-          const SizedBox(height: 6),
-          Text(
-            l10n.familyScreenEmptyStateBody,
-            style: theme.bodySoft,
-            textAlign: TextAlign.center,
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: 16),
+      child: EmptyState(
+        icon: CupertinoIcons.person_3_fill,
+        title: l10n.famEmptyTitle,
+        message: l10n.familyScreenEmptyStateBody,
+        compact: true,
       ),
     );
   }

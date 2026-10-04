@@ -10,7 +10,6 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../family/family_service.dart';
 import '../theme/layout.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
@@ -21,8 +20,7 @@ import 'profile_screen.dart';
 import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
 
-import '../widgets/ios_kit.dart' show SpringPress;
-import '../l10n/text_case.dart';
+import '../widgets/ios_kit.dart';
 
 /// Which half of search this screen is.
 ///
@@ -331,7 +329,6 @@ class _Header extends StatelessWidget {
   final VoidCallback onClose;
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       child: Row(
@@ -349,20 +346,11 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          // The iOS search bar's Cancel, in the accent.
-          GestureDetector(
+          // The iOS search bar's Cancel, in the accent — THE tertiary text
+          // action, so it springs and takes keyboard focus like every other.
+          TextLinkButton(
+            label: MaterialLocalizations.of(context).cancelButtonLabel,
             onTap: onClose,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
-              child: Text(
-                sentenceCaseOf(
-                  context,
-                  MaterialLocalizations.of(context).cancelButtonLabel,
-                ),
-                style: theme.body.copyWith(fontSize: 17, color: theme.accent),
-              ),
-            ),
           ),
         ],
       ),
@@ -476,7 +464,10 @@ class _PersonRowState extends State<_PersonRow> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return GestureDetector(
+    return SpringPress(
+      scale: 0.98,
+      haptic: false,
+      semanticLabel: widget.user.displayName,
       // Also awaited: a request sent from the profile screen has to land back
       // here, for the same reason the button's own push does.
       onTap: () async {
@@ -516,10 +507,7 @@ class _PersonRowState extends State<_PersonRow> {
                   const SizedBox(height: 1),
                   Text(
                     '@${widget.user.username}',
-                    style: theme.caption.copyWith(
-                      fontSize: 13,
-                      color: theme.inkMuted,
-                    ),
+                    style: groupedSubtitleStyle(theme),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -527,38 +515,14 @@ class _PersonRowState extends State<_PersonRow> {
               ),
             ),
             const SizedBox(width: 8),
-            // The App Store "Get" capsule: filled when it does something
-            // new, tinted when it undoes something, grey when a grown-up
-            // holds it.
-            SpringPress(
-              onTap: (_busy || _heldByGrownUp) ? null : _act,
-              child: AnimatedContainer(
-                duration: theme.motionFast,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: _heldByGrownUp
-                      ? theme.ink.withValues(alpha: 0.07)
-                      : _filled
-                          ? (_busy
-                              ? theme.accent.withValues(alpha: 0.4)
-                              : theme.bubbleFill(isMine: true))
-                          : theme.ink.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  sentenceCaseOf(context, _actionLabel()),
-                  style: theme.body.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: _heldByGrownUp
-                        ? theme.inkMuted
-                        : (_filled ? theme.accentInk : theme.accent),
-                  ),
-                ),
-              ),
+            // The App Store "Get" capsule — THE inline row pill: filled when
+            // it does something new, quiet when it undoes something, greyed
+            // when a grown-up holds it; its own spinner while it works.
+            RowPillButton(
+              label: _actionLabel(),
+              filled: _filled,
+              busy: _busy,
+              onTap: _heldByGrownUp ? null : _act,
             ),
           ],
         ),

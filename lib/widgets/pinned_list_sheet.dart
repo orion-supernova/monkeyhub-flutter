@@ -4,17 +4,19 @@ import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
 import '../models/room_pin.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'ios_kit.dart';
 import 'sheet_kit.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'remote_image.dart';
+import 'user_avatar.dart';
 import '../l10n/text_case.dart';
 
 /// Every message pinned in this room, oldest first.
@@ -85,58 +87,35 @@ class PinnedListSheet extends StatelessWidget {
     // stops reading as a sheet.
     final maxH = MediaQuery.sizeOf(context).height * 0.6;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: sheetFill(theme),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(sheetTopRadius(theme)),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          22, 4, 22, 22 + MediaQuery.paddingOf(context).bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SheetHandle(),
-          const SizedBox(height: 8),
-          Text(
-            sentenceCaseOf(
-              context,
-              pins.isEmpty
-                  ? l10n.activeCallPillPinnedHeader
-                  : l10n.activeCallPillPinnedHeaderCount(pins.length),
-            ),
-            textAlign: TextAlign.center,
-            style: theme.bodyEmph.copyWith(color: theme.ink),
-          ),
-          const SizedBox(height: 14),
-          if (pins.isEmpty)
-            // The last pin went while this was open. Say so and let the reader
-            // dismiss — popping a sheet out from under a finger is worse.
-            Text(
-              l10n.activeCallPillNothingPinned,
-              textAlign: TextAlign.center,
-              style: theme.bodySoft,
-            )
-          else
-            ConstrainedBox(
+    // A grouped block of rows, each led by the sender's face (or the photo
+    // itself) — the archived sheet's shape, not bare lines of text.
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.activeCallPillPinnedHeader),
+      subtitle: pins.isEmpty
+          ? null
+          : l10n.pinnedListSheetCount(pins.length),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: pins.isEmpty
+          // The last pin went while this was open. Say so and let the reader
+          // dismiss — popping a sheet out from under a finger is worse.
+          ? EmptyLine(l10n.activeCallPillNothingPinned)
+          : ConstrainedBox(
               constraints: BoxConstraints(maxHeight: maxH),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                itemCount: pins.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 2),
-                itemBuilder: (_, i) => _PinRow(
-                  pin: pins[i],
-                  api: api,
-                  onTap: () => _jump(context, pins[i]),
-                  onUnpin: () => _unpin(pins[i]),
+              child: SingleChildScrollView(
+                child: SheetGroup(
+                  children: [
+                    for (final pin in pins)
+                      _PinRow(
+                        pin: pin,
+                        repo: repo,
+                        api: api,
+                        onTap: () => _jump(context, pin),
+                        onUnpin: () => _unpin(pin),
+                      ),
+                  ],
                 ),
               ),
             ),
-        ],
-      ),
     );
   }
 }
@@ -144,12 +123,14 @@ class PinnedListSheet extends StatelessWidget {
 class _PinRow extends StatelessWidget {
   const _PinRow({
     required this.pin,
+    required this.repo,
     required this.api,
     required this.onTap,
     required this.onUnpin,
   });
 
   final RoomPin pin;
+  final ChatRepository repo;
   final ChatApi api;
   final VoidCallback onTap;
   final VoidCallback onUnpin;
@@ -164,123 +145,53 @@ class _PinRow extends StatelessWidget {
     final hasThumb = !m.viewOnce &&
         m.mediaStorageId != null &&
         (m.type == MessageType.image || m.type == MessageType.video);
+    final sender = repo.userById(m.senderId) ??
+        ChatUser(
+          id: m.senderId,
+          username: '',
+          name: m.senderName,
+          lastSeen: m.createdAt,
+        );
 
-    return Row(
-      children: [
-        Expanded(
-          child: _Tappable(
-            onTap: onTap,
-            semanticLabel: l10n.activeCallPillJumpToMessageSemanticLabel(
-              m.senderName,
-            ),
-            radius: theme.radiusMd,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (hasThumb) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(theme.radiusSm),
-                      child: SizedBox(
-                        width: 38,
-                        height: 38,
-                        child: RemoteImage(
-                          storageId: m.mediaStorageId!,
-                          api: api,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                m.senderName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.bodyEmph,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              formatClockTime(m.createdAt),
-                              style: _meta(theme).copyWith(
-                                color: theme.inkMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          messagePreviewLine(m, hasThumbnail: hasThumb),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.bodySoft.copyWith(color: theme.inkSoft),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+    return PersonRow(
+      avatar: hasThumb
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(theme.radiusSm),
+              child: RemoteImage(
+                storageId: m.mediaStorageId!,
+                api: api,
+                width: kPersonRowAvatar,
+                height: kPersonRowAvatar,
+                fit: BoxFit.cover,
               ),
+            )
+          : UserAvatar(
+              user: sender,
+              size: kPersonRowAvatar,
+              api: api,
+              showStatus: false,
             ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        _Tappable(
-          onTap: onUnpin,
-          semanticLabel: l10n.activeCallPillUnpinMessageSemanticLabel(
-            m.senderName,
-          ),
-          radius: theme.radiusSm,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Icon(
-              CupertinoIcons.pin_slash,
-              size: 18,
-              color: theme.inkMuted,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// [FocusableTap] registers no gesture recognizer of its own, so the bare
-/// [GestureDetector] inside is what actually receives the pointer. Both carry
-/// the handler; wrapping alone would render a row that does nothing.
-///
-/// Never an InkWell — this app draws no ink anywhere.
-class _Tappable extends StatelessWidget {
-  const _Tappable({
-    required this.onTap,
-    required this.semanticLabel,
-    required this.radius,
-    required this.child,
-  });
-
-  final VoidCallback onTap;
-  final String semanticLabel;
-  final double radius;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
+      title: m.senderName,
+      titleTrailing: Text(formatClockTime(m.createdAt), style: _meta(theme)),
+      subtitle: messagePreviewLine(m, hasThumbnail: hasThumb),
+      semanticLabel: l10n.activeCallPillJumpToMessageSemanticLabel(
+        m.senderName,
+      ),
       onTap: onTap,
-      radius: radius,
-      semanticLabel: semanticLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: child,
+      trailing: SpringPress(
+        onTap: onUnpin,
+        haptic: false,
+        semanticLabel: l10n.activeCallPillUnpinMessageSemanticLabel(
+          m.senderName,
+        ),
+        child: SizedBox.square(
+          dimension: 40,
+          child: Icon(
+            CupertinoIcons.pin_slash,
+            size: 19,
+            color: theme.inkMuted,
+          ),
+        ),
       ),
     );
   }

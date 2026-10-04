@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
@@ -138,25 +139,27 @@ class _SettingsSearchFieldState extends State<SettingsSearchField> {
                     textInputAction: TextInputAction.search,
                     autocorrect: false,
                     cursorColor: theme.accent,
-                    style: theme.body.copyWith(fontSize: 17, color: theme.ink),
+                    style: groupedTitleStyle(theme),
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
                       hintText: l10n.settingsSearchHint,
-                      hintStyle: theme.body.copyWith(
-                        fontSize: 17,
-                        color: theme.inkMuted,
-                      ),
+                      hintStyle: groupedValueStyle(theme),
                     ),
                   ),
                 ),
                 if (widget.controller.text.isNotEmpty)
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  SpringPress(
                     onTap: () {
                       widget.controller.clear();
                       widget.onChanged('');
                     },
+                    semanticLabel: MaterialLocalizations.of(
+                      context,
+                    ).deleteButtonTooltip,
+                    focusShape: FocusRingShape.circle,
+                    scale: 0.86,
+                    haptic: false,
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: Icon(
@@ -175,18 +178,11 @@ class _SettingsSearchFieldState extends State<SettingsSearchField> {
           duration: motion.d(const Duration(milliseconds: 260)),
           curve: Curves.easeOutCubic,
           child: searching
-              ? GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _cancel,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: Text(
-                      l10n.acctCancel,
-                      style: theme.body.copyWith(
-                        fontSize: 17,
-                        color: theme.accent,
-                      ),
-                    ),
+              ? Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: TextLinkButton(
+                    label: l10n.acctCancel,
+                    onTap: _cancel,
                   ),
                 )
               : const SizedBox.shrink(),
@@ -220,7 +216,7 @@ class SettingsSearchResults extends StatelessWidget {
         child: Text(
           l10n.settingsSearchNoResults(query.trim()),
           textAlign: TextAlign.center,
-          style: theme.bodySoft.copyWith(fontSize: 17, color: theme.inkMuted),
+          style: groupedValueStyle(theme),
         ),
       );
     }

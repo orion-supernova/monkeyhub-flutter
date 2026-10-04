@@ -9,19 +9,17 @@ import '../auth/auth_errors.dart';
 import '../invites/room_admin_errors.dart';
 import '../data/chat_repository.dart';
 import '../invites/invite_link.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/room_admin.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
-import 'sheet_surface.dart';
 import 'destructive_sheet.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'number_stepper.dart';
-import 'sheet_buttons.dart';
 import 'sheet_kit.dart';
+import 'filter_capsule.dart';
 import 'ios_kit.dart';
 import '../l10n/text_case.dart';
 
@@ -303,17 +301,20 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
     final l10n = AppLocalizations.of(context);
     final link = _link;
 
-    return SheetSurface(
-      child: Column(
+    // The bar stays put above the scroller — QR, code, limits and switches
+    // overflow a phone, and a header that scrolls away takes the × with it.
+    return SheetFrame(
+      title: sentenceCaseOf(context, l10n.roomInviteSheetTitle),
+      padding: EdgeInsets.zero,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 2, 20, 20),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              sentenceCaseOf(context, l10n.roomInviteSheetTitle),
-              textAlign: TextAlign.center,
-              style: theme.bodyEmph.copyWith(fontSize: 20, color: theme.ink),
-            ),
-            const SizedBox(height: 6),
             Text(
               sentenceCaseOf(context, l10n.roomInviteSheetBlurb),
               textAlign: TextAlign.center,
@@ -347,27 +348,24 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
               // below the limits and the permission switches reads as a
               // footer, and on a phone it sat below the fold entirely, which
               // is why it was reported missing.
-              Row(children: [
-                Expanded(
-                  child: SheetSecondaryButton(
-                    label: l10n.roomInviteRevokeButton,
-                    color: theme.danger,
-                    onTap: _busy ? () {} : _revoke,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SheetPrimaryButton(
-                    label: l10n.roomInviteRegenerateButton,
-                    onTap: _busy ? null : () => _rotate(hasExisting: true),
-                  ),
-                ),
-              ]),
+              // Stacked rather than side by side: in Turkish at 1.3× the
+              // pair wrapped and squeezed. The renewal is the common act, so
+              // it leads; revoking is the tonal red one under it.
+              SheetActionButton(
+                label: l10n.roomInviteRegenerateButton,
+                onTap: _busy ? null : () => _rotate(hasExisting: true),
+              ),
+              const SizedBox(height: 10),
+              SheetActionButton(
+                label: l10n.roomInviteRevokeButton,
+                tonal: true,
+                destructive: true,
+                onTap: _busy ? null : _revoke,
+              ),
               const SizedBox(height: 22),
             ],
             if (!_loading) ...[
-              _SectionLabel(l10n.roomInviteLimitsLabel),
-              const SizedBox(height: 8),
+              GroupedHeader(l10n.roomInviteLimitsLabel),
               _ChoiceRow<Duration?>(
                 label: l10n.roomInviteExpiryLabel,
                 value: _pendingExpiry,
@@ -424,24 +422,35 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                 style: _meta(theme),
               ),
               const SizedBox(height: 20),
-              _SectionLabel(l10n.roomInvitePermissionsLabel),
-              const SizedBox(height: 8),
-              _SwitchRow(
-                label: l10n.roomInviteMembersCanInviteLabel,
-                sub: l10n.roomInviteMembersCanInviteSub,
-                value: _membersCanInvite,
-                onChanged: (v) => _setPolicy(membersCanInvite: v),
-              ),
-              _SwitchRow(
-                label: l10n.roomInviteApprovalLabel,
-                sub: l10n.roomInviteApprovalSub,
-                value: _joinPolicy == RoomJoinPolicy.approval,
-                onChanged: (v) => _setPolicy(
-                  policy: v ? RoomJoinPolicy.approval : RoomJoinPolicy.open,
-                ),
+              SheetGroup(
+                header: l10n.roomInvitePermissionsLabel,
+                children: [
+                  GroupedRow.toggle(
+                    title: l10n.roomInviteMembersCanInviteLabel,
+                    subtitle: l10n.roomInviteMembersCanInviteSub,
+                    value: _membersCanInvite,
+                    onChanged: (v) {
+                      HapticFeedback.lightImpact();
+                      _setPolicy(membersCanInvite: v);
+                    },
+                  ),
+                  GroupedRow.toggle(
+                    title: l10n.roomInviteApprovalLabel,
+                    subtitle: l10n.roomInviteApprovalSub,
+                    value: _joinPolicy == RoomJoinPolicy.approval,
+                    onChanged: (v) {
+                      HapticFeedback.lightImpact();
+                      _setPolicy(
+                        policy:
+                            v ? RoomJoinPolicy.approval : RoomJoinPolicy.open,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ],
+        ),
       ),
     );
   }
@@ -518,13 +527,13 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _Chip(
+                FilterCapsule(
                   label: l10n.roomInviteUnitHours,
                   active: unit == _ExpiryUnit.hours,
                   onTap: () => _setUnit(_ExpiryUnit.hours),
                 ),
                 const SizedBox(width: 6),
-                _Chip(
+                FilterCapsule(
                   label: l10n.roomInviteUnitDays,
                   active: unit == _ExpiryUnit.days,
                   onTap: () => _setUnit(_ExpiryUnit.days),
@@ -538,7 +547,7 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
         // when?" — so nobody has to count forward from today in their head.
         Text(
           l10n.roomInviteExpiresOn(
-            '${_shortDate(until)} ${formatClockTime(until)}',
+            '${_shortDate(context, until)} ${formatClockTime(until)}',
           ),
           style: _meta(theme).copyWith(color: theme.inkMuted),
         ),
@@ -572,12 +581,12 @@ class _NoLinkYet extends StatelessWidget {
           ),
           child: Text(
             sentenceCaseOf(context, l10n.roomInviteNoLinkYet),
-            style: theme.bodySoft.copyWith(color: theme.inkMuted),
+            style: groupedFooterStyle(theme),
             textAlign: TextAlign.center,
           ),
         ),
         const SizedBox(height: 14),
-        SheetPrimaryButton(label: l10n.roomInviteCreateButton, onTap: onCreate),
+        SheetActionButton(label: l10n.roomInviteCreateButton, onTap: onCreate),
       ],
     );
   }
@@ -606,8 +615,10 @@ class _LinkCard extends StatelessWidget {
     final dead = !link.isUsable;
 
     // A grouped block on the sheet, no outline — a dead link says so with a
-    // faint red wash instead of a red border.
-    return Container(
+    // faint red wash instead of a red border. The three actions sit under
+    // it as the shared quick-action tiles: inside the block, a tile on the
+    // block's own fill had no edge at all.
+    final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: dead
@@ -690,40 +701,39 @@ class _LinkCard extends StatelessWidget {
             )
           else
             Text(
-              _statusLine(l10n, link),
+              _statusLine(context, l10n, link),
               style: _meta(theme),
               textAlign: TextAlign.center,
             ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _MiniButton(
-                  icon: CupertinoIcons.link,
-                  label: l10n.roomInviteCopyLink,
-                  onTap: dead ? null : onCopyLink,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _MiniButton(
-                  icon: CupertinoIcons.number,
-                  label: l10n.roomInviteCopyCode,
-                  onTap: dead ? null : onCopyCode,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _MiniButton(
-                  icon: CupertinoIcons.square_arrow_up,
-                  label: l10n.roomInviteShare,
-                  onTap: dead ? null : onShare,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        const SizedBox(height: 10),
+        SheetQuickActions(
+          onSheet: true,
+          actions: [
+            QuickAction(
+              icon: CupertinoIcons.link,
+              label: l10n.roomInviteCopyLink,
+              onTap: dead ? null : onCopyLink,
+            ),
+            QuickAction(
+              icon: CupertinoIcons.number,
+              label: l10n.roomInviteCopyCode,
+              onTap: dead ? null : onCopyCode,
+            ),
+            QuickAction(
+              icon: CupertinoIcons.square_arrow_up_fill,
+              label: l10n.roomInviteShare,
+              onTap: dead ? null : onShare,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -736,84 +746,25 @@ class _LinkCard extends StatelessWidget {
 
   /// One line covering both limits, because they are almost always both
   /// absent and two separate "unlimited" rows would be noise.
-  String _statusLine(AppLocalizations l10n, RoomInviteLink link) {
+  String _statusLine(
+    BuildContext context,
+    AppLocalizations l10n,
+    RoomInviteLink link,
+  ) {
     final uses = link.maxUses == null
         ? l10n.roomInviteUsesCount(link.useCount)
         : l10n.roomInviteUsesOfMax(link.maxUses!, link.useCount);
     if (link.expiresAt == null) return uses;
-    return '$uses · ${l10n.roomInviteExpiresOn(_shortDate(link.expiresAt!))}';
+    final until = _shortDate(context, link.expiresAt!);
+    return '$uses · ${l10n.roomInviteExpiresOn(until)}';
   }
 
 }
 
-String _shortDate(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
-
-class _MiniButton extends StatelessWidget {
-  const _MiniButton({required this.icon, required this.label, required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final enabled = onTap != null;
-    final tint = enabled ? theme.ink : theme.inkMuted;
-    // The iOS action tile: a soft filled square, glyph over a short label,
-    // springing under the finger. SpringPress is the whole control — its own
-    // focus stop and tap — so nothing here wraps it in a second one.
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        decoration: BoxDecoration(
-          color: theme.ink.withValues(alpha: enabled ? 0.08 : 0.04),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 20, color: enabled ? theme.accent : tint),
-            const SizedBox(height: 4),
-            Text(
-              sentenceCaseOf(context, label),
-              style: theme.bodySoft.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: tint,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // NOT `.toUpperCase()`. Dart uppercases per the invariant locale, so a
-    // Turkish "i" becomes "I" rather than "İ" — the same reason
-    // `incoming_call_screen.dart` spells its labels out in caps in the ARB.
-    // Every string that reaches here is already in its locale's final casing.
-    // The grouped-list section header: sentence case, footnote size.
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        sentenceCaseOf(context, text),
-        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
-      ),
-    );
-  }
-}
+/// The reader's own date format — "Oct 10, 2026", "10 Eki 2026" — not a
+/// dotted day.month.year that reads as nonsense in an English locale.
+String _shortDate(BuildContext context, DateTime d) =>
+    MaterialLocalizations.of(context).formatMediumDate(d);
 
 /// A horizontal strip of mutually-exclusive chips. Used for both limits, so
 /// the two rows cannot drift apart visually the way two hand-built rows would.
@@ -847,9 +798,14 @@ class _ChoiceRow<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          sentenceCaseOf(context, label),
-          style: theme.body.copyWith(fontSize: 15, color: theme.ink),
+        // A sub-label under the section's GroupedHeader, so one step
+        // quieter than it — it used to out-shout "Limits" above it.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            sentenceCaseOf(context, label),
+            style: groupedSubtitleStyle(theme),
+          ),
         ),
         const SizedBox(height: 8),
         // Wrapped, not scrolled sideways: on a phone the last chips of a
@@ -860,83 +816,24 @@ class _ChoiceRow<T> extends StatelessWidget {
           runSpacing: 6,
           children: [
             for (final c in choices)
-              _Chip(
+              FilterCapsule(
                 label: labelFor(c),
                 active: !customActive && c == value,
                 onTap: () => onChanged(c),
               ),
-            _Chip(
+            FilterCapsule(
               label: customLabel,
-              icon: CupertinoIcons.slider_horizontal_3,
+              leading: Icon(
+                CupertinoIcons.slider_horizontal_3,
+                size: 14,
+                color: customActive ? theme.accentInk : theme.inkSoft,
+              ),
               active: customActive,
               onTap: onCustom,
             ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({
-    required this.label,
-    required this.active,
-    required this.onTap,
-    this.icon,
-  });
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  /// Marks a chip that opens something rather than picking a value.
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          // Filled capsules, the same language as the chat list's filter
-          // chips: tinted accent when chosen, a quiet fill otherwise.
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: active
-                ? quietFill(theme)
-                : theme.ink.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 14,
-                  color: active ? theme.accent : theme.inkSoft,
-                ),
-                const SizedBox(width: 5),
-              ],
-              Text(
-                label,
-                style: theme.bodySoft.copyWith(
-                  fontSize: 15,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  color: active ? theme.accent : theme.inkSoft,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -962,67 +859,6 @@ class _CustomPanel extends StatelessWidget {
               child: child,
             )
           : const SizedBox(width: double.infinity, height: 0),
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.label,
-    required this.sub,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String sub;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  /// With the tap a native switch gives; `Switch.adaptive` has none.
-  void _flip(bool v) {
-    HapticFeedback.lightImpact();
-    onChanged(v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: () => _flip(!value),
-      semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _flip(!value),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(sub, style: _meta(theme)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Switch.adaptive(
-                value: value,
-                onChanged: _flip,
-                activeTrackColor: theme.success,
-                activeThumbColor: Colors.white,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

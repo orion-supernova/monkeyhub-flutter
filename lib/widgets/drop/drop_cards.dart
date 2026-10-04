@@ -5,6 +5,7 @@ import '../../drop/drop_classifier.dart';
 import '../../drop/drop_copy.dart';
 import '../../drop/drop_item.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/text_case.dart';
 import '../../media/file_meta.dart';
 import '../../theme/app_theme.dart';
 import 'drop_glow.dart' show dropToneColor;
@@ -54,6 +55,7 @@ class DropCard extends StatelessWidget {
     final refused = !assessment.accepted;
     final accent = dropToneColor(theme, tone);
     final ink = refused ? theme.inkMuted : theme.ink;
+    final subtitle = _subtitle(context);
 
     return Container(
       width: widthFor(assessment),
@@ -95,7 +97,14 @@ class DropCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name ?? dropKindWord(l10n, assessment.kind),
+                  // The kind word is shared with mid-sentence copy ("a photo
+                  // and 2 files"), so it is lowercase at the source; standing
+                  // alone as the card's title it is cased here, not in the ARB.
+                  name ??
+                      sentenceCaseOf(
+                        context,
+                        dropKindWord(l10n, assessment.kind),
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   softWrap: false,
@@ -113,16 +122,22 @@ class DropCard extends StatelessWidget {
                     decorationColor: refused ? theme.danger : null,
                   ),
                 ),
-                const SizedBox(height: 1),
-                Text(
-                  _subtitle(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.monoTiny.copyWith(
-                    color: refused ? theme.danger : theme.inkSoft,
-                    letterSpacing: 0.6,
+                if (subtitle != null) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    // The body face at the meta step — the mono slot is tracked
+                    // typewriter on a character theme.
+                    style: theme.body.copyWith(
+                      fontSize: 13,
+                      height: 1.25,
+                      color: refused ? theme.danger : theme.inkSoft,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -141,11 +156,13 @@ class DropCard extends StatelessWidget {
 
   /// The second line: a size where one is known, otherwise the word for what
   /// this will become. Never both — the card is 58pt tall and the filename is
-  /// the thing worth the space.
-  String _subtitle() {
+  /// the thing worth the space. Null when the card has no name: the kind word
+  /// is already the title, and "Photo / photo" read as a bug.
+  String? _subtitle(BuildContext context) {
     switch (assessment.refusal) {
       case DropRefusal.folder:
-        return dropKindWord(l10n, DropKind.folder);
+        // A whole line on its own, so cased like one.
+        return sentenceCaseOf(context, dropKindWord(l10n, DropKind.folder));
       case DropRefusal.tooLarge:
         final size = assessment.candidate.size;
         return size == null
@@ -172,6 +189,7 @@ class DropCard extends StatelessWidget {
     if (name != null && fileExtensionOf(name).isNotEmpty) {
       return fileTypeBadge(name);
     }
+    if (assessment.candidate.displayName == null) return null;
     return dropKindWord(l10n, assessment.kind);
   }
 }
@@ -206,15 +224,24 @@ class _KindGlyph extends StatelessWidget {
         color: accent.withValues(alpha: refused ? 0.12 : 0.16),
         borderRadius: BorderRadius.circular(10),
       ),
+      // The file-type badge ("PDF", "DOCX") on the body face, 11pt bold
+      // and scaled down only to fit the tile — it dropped to 8pt mono.
       child: badge != null
-          ? Text(
-              badge,
-              maxLines: 1,
-              style: theme.monoTiny.copyWith(
-                color: accent,
-                fontSize: badge.length > 3 ? 8 : 9.5,
-                letterSpacing: 0.2,
-                height: 1,
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  badge,
+                  maxLines: 1,
+                  style: theme.body.copyWith(
+                    color: accent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
               ),
             )
           : Icon(_icon, size: 17, color: accent),
@@ -266,10 +293,13 @@ class _OverflowPip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: theme.monoTiny.copyWith(
+        style: theme.body.copyWith(
           color: accent,
-          letterSpacing: 0.2,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
           height: 1.15,
+          decoration: TextDecoration.none,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );

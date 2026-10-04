@@ -10,7 +10,9 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/message_capabilities.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../keyboard/focusable_tap.dart';
 import '../keyboard/overlay_modal_scope.dart';
+import '../l10n/text_case.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'glass_surface.dart';
@@ -413,6 +415,27 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
       menuTop = groupTop + pillH + gap;
     }
 
+    // When the stack had to be clamped over the bubble — a long menu on a
+    // phone — the message being acted on vanished under it. iOS moves the
+    // preview instead: the lifted bubble glides clear of the stack, to
+    // whichever side has more room, and glides back on dismiss. A bubble
+    // taller than that room still yields as far as it can.
+    var liftDy = 0.0;
+    if (!split) {
+      final groupTop = pillTop;
+      final groupBottom = menuTop + menuH;
+      if (bubble.top < groupBottom && bubble.bottom > groupTop) {
+        final roomAbove = groupTop - gap - bandTop;
+        final roomBelow = bandBottom - (groupBottom + gap);
+        if (roomAbove >= roomBelow) {
+          final top = math.max(bandTop, groupTop - gap - bubble.height);
+          liftDy = top - bubble.top;
+        } else {
+          liftDy = (groupBottom + gap) - bubble.top;
+        }
+      }
+    }
+
     // Both entries slide in from the bubble's side, so each reads as growing
     // out of the message rather than arriving from off-screen. Derived from
     // where they actually landed, not from where they were asked to go.
@@ -453,6 +476,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           _LiftedBubble(
             t: curved,
             rect: bubble,
+            dy: liftDy,
             isMine: widget.isMine,
             // A still photograph, not a live bubble. `_LiftedBubble` forces
             // this into the rect the real one occupied at press time, so
@@ -576,11 +600,15 @@ class _LiftedBubble extends StatelessWidget {
     required this.rect,
     required this.isMine,
     required this.child,
+    this.dy = 0,
   });
   final Animation<double> t;
   final Rect rect;
   final bool isMine;
   final Widget child;
+
+  /// How far the bubble travels, at full lift, to clear a stacked menu.
+  final double dy;
 
   @override
   Widget build(BuildContext context) {
@@ -596,19 +624,17 @@ class _LiftedBubble extends StatelessWidget {
             // Lifts toward 1.03 — the long-press "pick up", subtle enough
             // that the bubble reads as raised rather than zoomed.
             final scale = 1 + 0.03 * t.value;
-            return Transform.scale(
-              scale: scale,
-              alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.14 * t.value),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
+            return Transform.translate(
+              offset: Offset(0, dy * t.value),
+              child: Transform.scale(
+                scale: scale,
+                alignment:
+                    isMine ? Alignment.centerRight : Alignment.centerLeft,
+                // No drop shadow. [rect] is the bubble's whole row — stamp,
+                // gutter and all — not its rounded shape, and every theme
+                // draws a different shape (tails, square Risograph corners),
+                // so a shadow here is a square grey slab under a round
+                // bubble. The scrim already lifts the bubble off the chat.
                 child: c,
               ),
             );
@@ -701,21 +727,28 @@ class _PillEmojiState extends State<_PillEmoji>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
+    // FocusableTap so a keyboard can reach it; the pointer keeps its own
+    // press below.
+    return FocusableTap(
       onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _pressed ? 1.22 : 1.0,
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutBack,
-        child: Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          child: Text(widget.emoji, style: const TextStyle(fontSize: 22)),
+      semanticLabel: widget.emoji,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? 1.22 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutBack,
+          child: Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            child: Text(widget.emoji, style: const TextStyle(fontSize: 22)),
+          ),
         ),
       ),
     );
@@ -737,26 +770,33 @@ class _PillMoreState extends State<_PillMore>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
+    // FocusableTap so a keyboard can reach it; the pointer keeps its own
+    // press below.
+    return FocusableTap(
       onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _pressed ? 1.15 : 1.0,
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutBack,
-        child: Container(
-          width: 38,
-          height: 38,
-          margin: const EdgeInsets.only(left: 2),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: quietFill(widget.theme),
-            shape: BoxShape.circle,
+      semanticLabel: MaterialLocalizations.of(context).moreButtonTooltip,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? 1.15 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutBack,
+          child: Container(
+            width: 38,
+            height: 38,
+            margin: const EdgeInsets.only(left: 2),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: quietFill(widget.theme),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(CupertinoIcons.plus, size: 16, color: widget.theme.accent),
           ),
-          child: Icon(CupertinoIcons.plus, size: 16, color: widget.theme.accent),
         ),
       ),
     );
@@ -806,7 +846,11 @@ class _ActionList extends StatelessWidget {
 
     for (final spec in specs) {
       if (rows.isNotEmpty) {
-        rows.add(Container(height: 1, color: theme.divider.withValues(alpha: 0.5)));
+        // A hairline at ink 0.10, the SheetGroup rule — not a 1pt grey bar.
+        rows.add(Container(
+          height: 1 / MediaQuery.devicePixelRatioOf(context),
+          color: theme.ink.withValues(alpha: 0.10),
+        ));
       }
       rows.add(_ActionRow(spec: spec, onTap: () => onAction(spec.action)));
     }
@@ -1116,31 +1160,49 @@ class _ActionRowState extends State<_ActionRow>
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final color = widget.spec.destructive ? theme.danger : theme.ink;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
+    // FocusableTap so a keyboard can reach it; the pointer keeps its own
+    // press below.
+    return FocusableTap(
       onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        color: _pressed
-            ? (widget.spec.destructive
-                ? theme.danger.withValues(alpha: 0.14)
-                : theme.accentSoft)
-            : Colors.transparent,
-        child: Row(
-          children: [
-            Icon(widget.spec.icon, size: 18, color: color),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                widget.spec.label,
-                style: theme.label.copyWith(color: color),
+      semanticLabel: sentenceCaseOf(context, widget.spec.label),
+      radius: 0,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        // The iOS context-menu row, the same one the chat list's long-press
+        // menu draws: the label in 17pt body type and sentence case on the
+        // left, the glyph on the right, a neutral wash under the finger. It
+        // was tracked caps with a leading icon — a second dialect of the same
+        // menu. Fixed at [rowH] less the hairline so the placement maths in
+        // the overlay stays exact.
+        child: AnimatedContainer(
+          duration: _pressed ? Duration.zero : const Duration(milliseconds: 200),
+          height: 47,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          color: _pressed
+              ? theme.ink.withValues(alpha: 0.08)
+              : Colors.transparent,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  sentenceCaseOf(context, widget.spec.label),
+                  style: theme.body.copyWith(
+                    fontSize: 17,
+                    color: color,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Icon(widget.spec.icon, size: 19, color: color),
+            ],
+          ),
         ),
       ),
     );

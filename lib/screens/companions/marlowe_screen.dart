@@ -22,6 +22,7 @@
 /// is one no companion can make on the user's behalf.
 library;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../../companions/brain_manager.dart';
@@ -29,9 +30,10 @@ import '../../companions/brain_spec.dart';
 import '../../companions/companion.dart';
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/account_kit.dart' show SoftNote;
 import '../../widgets/destructive_sheet.dart';
+import '../../widgets/ios_kit.dart' show GroupedSection;
 import 'companion_page.dart';
 
 class MarloweScreen extends StatefulWidget {
@@ -134,64 +136,51 @@ class _MarloweScreenState extends State<MarloweScreen> {
         const SizedBox(height: 18),
         // Said once, plainly, at the top — not as a badge on every row and not
         // buried at the bottom where somebody would find it after downloading
-        // two gigabytes.
-        _ComingSoonNote(theme: theme, l10n: l10n),
-        const SizedBox(height: 26),
-        CompanionSectionLabel(l10n.compBrain),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 14, left: 2, right: 2),
-          child: Text(
-            l10n.marloweBrainsCaption,
-            style: theme.caption.copyWith(color: theme.inkMuted),
-          ),
+        // two gigabytes. The shared notice, not a bordered card of its own.
+        SoftNote(
+          icon: CupertinoIcons.clock,
+          text: l10n.marloweSkillsComingSoon,
         ),
-        for (final brain in BrainCatalog.marloweBrains)
-          BrainRow(
-            brain: brain,
-            name: marloweTierName(l10n, brain),
-            // The one place in the app that admits what the brain really is.
-            // Small type, under a human-readable tier, for the reader who
-            // came looking — see the note at the top of
-            // [showCompanionInstallSheet] for why it is nowhere else.
-            detail: '${brain.sizeLabel} · ${brain.technicalName} · ${brain.license}',
-            selected: active?.id == brain.id,
-            onSelect: () => SettingsStore.instance.setMarloweBrainId(brain.id),
-            onRemove: () => _remove(brain),
-            sharedWith: _sharedWith(brain),
-          ),
+        const SizedBox(height: 26),
+        // One grouped block, like every settings page: the header, the three
+        // tiers as rows, the trade-off as its footer.
+        GroupedSection(
+          header: l10n.compBrain,
+          footer: l10n.marloweBrainsCaption,
+          children: [
+            for (final brain in BrainCatalog.marloweBrains)
+              BrainRow(
+                brain: brain,
+                name: marloweTierName(l10n, brain),
+                // Before the download: what the tier is FOR — the size is
+                // already on the download pill beside it, and printing it
+                // here too put the same figure on the row twice. Once it is
+                // on disk: the one place in the app that admits what the
+                // brain really is, for the reader who came looking — see the
+                // note at the top of [showCompanionInstallSheet] for why it
+                // is nowhere else.
+                detail: BrainManager.instance.isInstalled(brain)
+                    ? '${brain.sizeLabel} · ${brain.technicalName} · '
+                        '${brain.license}'
+                    : _tierPurpose(l10n, brain),
+                selected: active?.id == brain.id,
+                onSelect: () =>
+                    SettingsStore.instance.setMarloweBrainId(brain.id),
+                onRemove: () => _remove(brain),
+                sharedWith: _sharedWith(brain),
+              ),
+          ],
+        ),
       ],
     );
   }
-}
 
-class _ComingSoonNote extends StatelessWidget {
-  const _ComingSoonNote({required this.theme, required this.l10n});
-
-  final AppTheme theme;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.schedule, size: 15, color: theme.inkMuted),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              l10n.marloweSkillsComingSoon,
-              style: theme.caption.copyWith(color: theme.inkSoft),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  /// What each tier is for, in a line — the reason to pick one over another.
+  String _tierPurpose(AppLocalizations l10n, BrainSpec brain) =>
+      switch (brain.id) {
+        'qwen3-1.7b-int4' => l10n.marloweBrainTierSwiftDetail,
+        'gemma-4-e2b' => l10n.marloweBrainTierBalancedDetail,
+        'qwen3.5-4b-int4' => l10n.marloweBrainTierDeepDetail,
+        _ => brain.sizeLabel,
+      };
 }

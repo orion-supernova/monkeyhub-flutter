@@ -5,7 +5,6 @@ import '../games/queens_board_art.dart';
 import '../games/sudoku_board_art.dart';
 import '../games/tango_board_art.dart';
 import '../games/zip_board_art.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/daily_game.dart';
 import '../models/puzzle.dart';
@@ -74,37 +73,40 @@ class GamesStrip extends StatelessWidget {
     // enough is every launch, not an edge case.
     const gap = 8.0;
     const maxTile = 180.0;
+    // Below this a tile cannot carry a 13pt name and status — five across a
+    // phone was ~60pt each, and every status truncated ("Not play…").
+    const minReadable = 96.0;
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = DailyGame.values.length + 1;
-        final tile = ((constraints.maxWidth - gap * (count - 1)) / count)
-            .clamp(0.0, maxTile);
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        double widthFor(int perRow) =>
+            ((constraints.maxWidth - gap * (perRow - 1)) / perRow)
+                .clamp(0.0, maxTile);
+        // All five in one row when they fit at a readable size; otherwise two
+        // rows (three over two, centred) — every board still visible at once,
+        // never a scroller hiding some behind a swipe nobody performs.
+        final perRow =
+            widthFor(count) >= minReadable ? count : (count + 1) ~/ 2;
+        final tile = widthFor(perRow);
+        return Wrap(
+          alignment: WrapAlignment.center,
+          spacing: gap,
+          runSpacing: 14,
           children: [
-            Padding(
+            SizedBox(
               key: const ValueKey('strip_code'),
-              padding: const EdgeInsets.only(right: gap),
-              child: SizedBox(
-                width: tile,
-                child: _PuzzleStripTile(state: puzzle, onTap: onOpenPuzzle),
-              ),
+              width: tile,
+              child: _PuzzleStripTile(state: puzzle, onTap: onOpenPuzzle),
             ),
             for (final game in DailyGame.values)
-              Padding(
+              SizedBox(
                 key: ValueKey('strip_${game.wire}'),
-                padding: EdgeInsets.only(
-                  right: game == DailyGame.values.last ? 0 : gap,
-                ),
-                child: SizedBox(
-                  width: tile,
-                  child: _StripTile(
-                    game: game,
-                    boards: boards,
-                    result: results[game],
-                    onTap: () => onOpen(game),
-                  ),
+                width: tile,
+                child: _StripTile(
+                  game: game,
+                  boards: boards,
+                  result: results[game],
+                  onTap: () => onOpen(game),
                 ),
               ),
           ],
@@ -115,8 +117,8 @@ class GamesStrip extends StatelessWidget {
 }
 
 /// The card shell every strip tile shares: a square preview with a rounded,
-/// optionally accented frame; the info glyph hanging off its corner; a name
-/// and a one-line status underneath. [_StripTile] and [_PuzzleStripTile] only
+/// optionally accented frame; a name and a one-line status underneath, with
+/// the info glyph beside them. [_StripTile] and [_PuzzleStripTile] only
 /// differ in what they hand this for [preview], [title] and [status].
 class _StripCard extends StatelessWidget {
   const _StripCard({
@@ -140,76 +142,73 @@ class _StripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
       semanticLabel: semanticLabel,
-      radius: theme.radiusLg,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Column(
+      focusRadius: theme.radiusLg,
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              // The disc hangs over the tile's corner, into the gutter between
-              // tiles and the 12pt under the section rule.
-              clipBehavior: Clip.none,
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                // Borderless at rest; a solved board gets a success ring so
+                // "how am I doing today" is a thing you see rather than read
+                // — a ring, not a glow.
+                decoration: BoxDecoration(
+                  color: groupedFill(theme),
+                  borderRadius: BorderRadius.circular(groupedRadius(theme)),
+                  border: accent
+                      ? Border.all(color: theme.success, width: 2)
+                      : null,
+                ),
+                child: preview,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // The rules glyph rides beside the name and status, centred on
+            // the pair like a row accessory — the hub tile's pattern. Tucked
+            // into the preview's corner it sat ON the board art (Queens'
+            // coloured cells, a sudoku digit), and hung off the corner it
+            // overlapped the gutter into the next tile.
+            Row(
               children: [
-                AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    // Borderless at rest; a solved board gets a success ring
-                    // so "how am I doing today" is a thing you see rather
-                    // than read — a ring, not a glow.
-                    decoration: BoxDecoration(
-                      color: groupedFill(theme),
-                      borderRadius: BorderRadius.circular(
-                        groupedRadius(theme),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Meta size (13), on the scale; shrinks rather than
+                      // truncating.
+                      FitLabel(
+                        sentenceCaseOf(context, title),
+                        style: metaText(theme, color: theme.ink).copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        textAlign: TextAlign.start,
                       ),
-                      border: accent
-                          ? Border.all(color: theme.success, width: 2)
-                          : null,
-                    ),
-                    child: preview,
+                      const SizedBox(height: 1),
+                      status,
+                    ],
                   ),
                 ),
-                // The whole top-right corner of the tile opens the rules. On
-                // a phone the tile is barely wider than a thumb, so the glyph
-                // has to stay small — but the box around it does not, and it
-                // has to sit inside the tile rather than overhang it, because
-                // a tap outside a Stack's bounds never reaches the child
-                // under it.
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: GameInfoButton(
-                    onTap: onInfo,
-                    // A step under the hub's, like everything else on the
-                    // band, and hanging 5pt off the corner it is pinned to.
-                    size: 32,
-                    // Short of the 44 the hub tile can afford: past this, the
-                    // corner starts eating the taps meant to open the board.
-                    tapSize: 40,
-                    glyphAlignment: Alignment.topRight,
-                    glyphOffset: const Offset(5, -5),
-                  ),
+                GameInfoButton(
+                  onTap: onInfo,
+                  // A step under the hub's, like everything else on the
+                  // band. The box stops short of 44 so the name keeps room
+                  // on a 96pt tile; the glyph hugs the trailing edge so it
+                  // lines up with the preview's right side.
+                  size: 30,
+                  tapSize: 36,
+                  glyphAlignment: Alignment.centerRight,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              sentenceCaseOf(context, title),
-              style: theme.bodyEmph.copyWith(fontSize: 12),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 1),
-            status,
           ],
         ),
-      ),
     );
   }
 }
@@ -246,7 +245,7 @@ class _StripTile extends StatelessWidget {
       accent: done && (row?.solved ?? false),
       preview: _preview(theme),
       title: _name(l10n),
-      status: Text(
+      status: FitLabel(
         row == null
             ? sentenceCaseOf(context, l10n.gameStatusUnplayed)
             : !row.finished
@@ -254,6 +253,8 @@ class _StripTile extends StatelessWidget {
             : row.solved
             ? formatGameTime(row.durationMs)
             : sentenceCaseOf(context, l10n.gameStatusGaveUp),
+        maxLines: 1,
+        textAlign: TextAlign.start,
         style: metaText(theme).copyWith(
           color: row != null && row.solved
               ? theme.success
@@ -261,8 +262,6 @@ class _StripTile extends StatelessWidget {
               ? theme.accent
               : theme.inkMuted,
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -333,7 +332,7 @@ class _PuzzleStripTile extends StatelessWidget {
       accent: done && mine!.solved,
       preview: _symbolGrid(theme),
       title: l10n.gameCodeName,
-      status: Text(
+      status: FitLabel(
         mine == null || !mine.started
             ? sentenceCaseOf(context, l10n.gameStatusUnplayed)
             : done
@@ -341,6 +340,8 @@ class _PuzzleStripTile extends StatelessWidget {
                   ? '${mine.guesses.length}/$kPuzzleMaxGuesses'
                   : sentenceCaseOf(context, l10n.gameStatusGaveUp))
             : sentenceCaseOf(context, l10n.gameStatusUnfinished),
+        maxLines: 1,
+        textAlign: TextAlign.start,
         style: metaText(theme).copyWith(
           color: mine != null && done
               ? (mine.solved ? theme.success : theme.inkMuted)
@@ -348,8 +349,6 @@ class _PuzzleStripTile extends StatelessWidget {
               ? theme.accent
               : theme.inkMuted,
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
       ),
     );
   }

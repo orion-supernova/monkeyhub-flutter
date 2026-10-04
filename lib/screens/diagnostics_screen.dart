@@ -1,6 +1,7 @@
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
@@ -11,15 +12,18 @@ import '../diagnostics/device_report.dart';
 import '../diagnostics/diag_buffer.dart';
 import '../diagnostics/diag_event.dart';
 import '../diagnostics/diag_export.dart';
-import '../keyboard/focusable_tap.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
+import '../widgets/ios_kit.dart';
+import '../widgets/search_field.dart';
+import '../widgets/sheet_kit.dart';
 import 'diagnostics/diag_collapse.dart';
 import 'diagnostics/diag_event_row.dart';
 import 'diagnostics/diag_filter_sheet.dart';
 import 'diagnostics/diag_palette.dart';
+import '../widgets/filter_capsule.dart';
 
 /// The captured timeline.
 ///
@@ -35,10 +39,19 @@ class DiagnosticsScreen extends StatefulWidget {
   State<DiagnosticsScreen> createState() => _DiagnosticsScreenState();
 }
 
+enum _More { share, copy, delete }
+
 class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   // Created here and disposed below. The reference implementation builds one
   // inside `build` and never disposes it, leaking a controller per rebuild.
   final ScrollController _scroll = ScrollController();
+  late final TextEditingController _search = TextEditingController(
+    text: _filter.query,
+  );
+
+  /// The ⋯ button, for anchoring the share popover on iPad and macOS — the
+  /// action sheet it opens is gone by the time the share sheet needs a rect.
+  final GlobalKey _moreKey = GlobalKey();
 
   /// What **All** leaves out until somebody says otherwise: the two categories
   /// that bury everything else. In a real session `subscription` was 66% of
@@ -85,6 +98,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     _tick?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -153,11 +167,57 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     showAppToast(context, 'Summary copied', tone: ToastTone.success);
   }
 
+  /// The ⋯ menu: the three things you do with a log once you have found what
+  /// you were looking for. Destructive last and in red, the iOS order.
+  Future<void> _openMore() async {
+    // Read now: the anchor is the button, and it has to be measured while the
+    // page is the thing on screen.
+    final box = _moreKey.currentContext?.findRenderObject() as RenderBox?;
+    final origin = box == null || !box.hasSize
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+    final pick = await showIosActionSheet<_More>(
+      context,
+      actions: const [
+        IosSheetAction(
+          label: 'Share log',
+          value: _More.share,
+          icon: CupertinoIcons.square_arrow_up,
+        ),
+        IosSheetAction(
+          label: 'Copy summary',
+          value: _More.copy,
+          icon: CupertinoIcons.doc_on_doc,
+        ),
+        IosSheetAction(
+          label: 'Delete all',
+          value: _More.delete,
+          icon: CupertinoIcons.trash,
+          destructive: true,
+        ),
+      ],
+    );
+    if (!mounted) return;
+    switch (pick) {
+      case _More.share:
+        await _shareLog(origin: origin);
+      case _More.copy:
+        await _copySummary();
+      case _More.delete:
+        await _deleteAll();
+      case null:
+        break;
+    }
+  }
+
   Future<void> _openFilter() async {
     final next = await DiagFilterSheet.show(context, _filter);
     if (next == null || !mounted) return;
     final hiddenChanged = !setEquals(next.hidden, _filter.hidden);
     setState(() => _filter = next);
+    // The sheet has a search of its own; keep the page's field telling the
+    // truth about what the list is filtered by.
+    if (_search.text != next.query) _search.text = next.query;
     if (hiddenChanged) _saveHidden(next.hidden);
   }
 
@@ -217,39 +277,77 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     showAppToast(context, 'Log deleted', tone: ToastTone.success);
   }
 
+  /// Anything the sheet narrows by that the page itself does not show — the
+  /// severity floor and the collapse switch. Lights the Filter button, so a
+  /// list that looks short for no visible reason has a visible reason.
+  bool get _sheetFiltering =>
+      _filter.minSev != DiagSev.trace || !_filter.collapse;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final events = _events;
     final groups = collapseEvents(events, enabled: _filter.collapse);
     final buf = DiagBuffer.instance;
+    final dropped = buf.dropped;
 
-    return Scaffold(
-      backgroundColor: theme.surface,
-      // Deliberately a flat surface rather than `theme.backgroundLayer` — the
+    final page = IosPage(
+      title: 'Diagnostics',
+      // Which binary this is, under the counts. The question it answers ("am
+      // I even looking at the build I just shipped?") comes up before any
+      // question the timeline below can answer, and every other signal a
+      // tester has — window chrome, Dock icon, app name — reads the same for
+      // an iOS build on an Apple silicon Mac as for the real macOS one.
+      subtitle: '${events.length} of ${buf.length} events'
+          '${_follow ? '' : ' · paused'}'
+          '${_busy ? ' · preparing log…' : ''}'
+          '${_build == null ? '' : '\n$_build'}',
+      // Deliberately a flat colour rather than `theme.backgroundLayer` — the
       // themed backdrops include shader and gradient layers, and several of
       // them are themselves suspects for the strobe this screen exists to
       // diagnose. The screen you debug a flicker with must not be able to
       // flicker.
-      body: SafeArea(
-        child: AdaptivePageBody(
-          child: Column(
-            children: [
-              _Header(
-                buildLine: _build,
-                total: buf.length,
-                shown: events.length,
-                dropped: buf.dropped,
-                following: _follow,
-                busy: _busy,
-                onFilter: _openFilter,
-                onShare: _shareLog,
-                onCopy: _copySummary,
-                onDelete: _deleteAll,
-                onClose: () => Navigator.of(context).pop(),
+      flatBackground: true,
+      controller: _scroll,
+      actions: [
+        GlassIconButton(
+          icon: CupertinoIcons.line_horizontal_3_decrease,
+          semanticLabel: 'Filter',
+          tint: _sheetFiltering ? theme.accent : null,
+          onTap: _openFilter,
+        ),
+        GlassIconButton(
+          key: _moreKey,
+          icon: CupertinoIcons.ellipsis,
+          semanticLabel: 'More',
+          // Share is the slow one; a second tap mid-export would race it.
+          onTap: _busy ? null : _openMore,
+        ),
+      ],
+      slivers: [
+        // A non-zero dropped count means the log starts mid-story, which
+        // changes how you read everything below it — so it is its own line,
+        // in red, rather than a clause in the subtitle.
+        if (dropped > 0)
+          _Readable(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            sliver: SliverToBoxAdapter(
+              child: Text(
+                '$dropped earlier events dropped — the log starts mid-story',
+                style: groupedMetaStyle(theme).copyWith(color: theme.danger),
               ),
-              _SearchBar(
-                query: _filter.query,
+            ),
+          ),
+        // Search and the category row stay pinned under the bar: a live log
+        // is read from its bottom, and a filter you have to scroll three
+        // thousand rows up to reach is not one anybody uses.
+        PinnedHeaderSliver(
+          child: ColoredBox(
+            color: theme.background,
+            child: _Toolbar(
+              search: SearchField(
+                controller: _search,
+                hintText: 'Search name, detail, body',
                 onChanged: (q) =>
                     setState(() => _filter = _filter.copyWith(query: q)),
               ),
@@ -257,13 +355,13 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               // clear, tap several to combine; long-press to hide it from All.
               // Each chip carries its live count.
               //
-              // Not a duplicate of the filter sheet — it exists because of what
-              // a real capture actually looks like. In the first session off
-              // this build, `subscription` was 247 of 352 events, so the useful
-              // move is almost always "show me just layout and connection", and
-              // burying that behind a modal was the wrong call. Only measuring
-              // it showed that.
-              _QuickCats(
+              // Not a duplicate of the filter sheet — it exists because of
+              // what a real capture actually looks like. In the first session
+              // off this build, `subscription` was 247 of 352 events, so the
+              // useful move is almost always "show me just layout and
+              // connection", and burying that behind a modal was the wrong
+              // call. Only measuring it showed that.
+              cats: _QuickCats(
                 counts: _countsByCat(buf.snapshot()),
                 selected: _filter.cats,
                 hidden: _filter.hidden,
@@ -276,46 +374,131 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 onAll: () =>
                     setState(() => _filter = _filter.copyWith(cats: const {})),
               ),
-              Expanded(
-                child: groups.isEmpty
-                    ? _Empty(
-                        captured: buf.length,
-                        // Only hiding stands between the log and the screen —
-                        // no pick, no search, no severity floor.
-                        onlyHidden: _filter.cats.isEmpty &&
-                            _filter.query.isEmpty &&
-                            _filter.minSev == DiagSev.trace,
-                      )
-                    : Stack(
-                        children: [
-                          ListView.builder(
-                            controller: _scroll,
-                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
-                            itemCount: groups.length,
-                            itemBuilder: (context, i) => DiagEventRow(
-                              group: groups[i],
-                              previous: i == 0 ? null : groups[i - 1].last,
-                            ),
-                          ),
-                          // Only while paused. Scrolling up in a live log
-                          // parks the follow, and without this the way back
-                          // is a long flick through however many events
-                          // arrived meanwhile.
-                          if (!_follow)
-                            Positioned(
-                              right: 12,
-                              bottom: 12,
-                              child: _JumpToEnd(onTap: _resumeFollow),
-                            ),
-                        ],
-                      ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (groups.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _Empty(
+              captured: buf.length,
+              // Only hiding stands between the log and the screen — no pick,
+              // no search, no severity floor.
+              onlyHidden: _filter.cats.isEmpty &&
+                  _filter.query.isEmpty &&
+                  _filter.minSev == DiagSev.trace,
+            ),
+          )
+        else
+          // Built lazily, row by row: a flooded session is thousands of
+          // events, and only the dozen on screen are ever laid out.
+          _Readable(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              4,
+              16,
+              // Room for the Latest pill over the last row, plus the home
+              // indicator — the page leaves the bottom inset to its slivers.
+              72 + MediaQuery.paddingOf(context).bottom,
+            ),
+            sliver: SliverList.builder(
+              itemCount: groups.length,
+              itemBuilder: (context, i) => DiagEventRow(
+                group: groups[i],
+                previous: i == 0 ? null : groups[i - 1].last,
+              ),
+            ),
+          ),
+      ],
+    );
+
+    return Stack(
+      children: [
+        page,
+        // Only while paused. Scrolling up in a live log parks the follow, and
+        // without this the way back is a long flick through however many
+        // events arrived meanwhile. A floating pill rather than a bar button —
+        // it belongs next to the content it moves, and only exists while it
+        // is useful.
+        if (!_follow && groups.isNotEmpty)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 16 + MediaQuery.paddingOf(context).bottom,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GlassPillButton(
+                  label: 'Latest',
+                  icon: CupertinoIcons.arrow_down,
+                  semanticLabel: 'Jump to latest',
+                  height: 40,
+                  onTap: _resumeFollow,
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
+}
+
+/// A sliver kept to a readable column on a wide window, with [padding] inside
+/// it. On a phone it is just the padding.
+///
+/// Measured from the sliver's own cross extent rather than the window, so it
+/// is right in a desktop detail pane too.
+class _Readable extends StatelessWidget {
+  const _Readable({required this.sliver, required this.padding});
+  final Widget sliver;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) => SliverLayoutBuilder(
+        builder: (context, c) {
+          final side = _readableInset(c.crossAxisExtent);
+          return SliverPadding(
+            padding: padding + EdgeInsets.symmetric(horizontal: side),
+            sliver: sliver,
+          );
+        },
+      );
+}
+
+double _readableInset(double width) =>
+    math.max(0, (width - ContentWidth.readable) / 2);
+
+/// The pinned block under the bar: search, then the category row.
+///
+/// The row runs full-bleed and carries the gutter as scroll padding, so chips
+/// slide off the screen edge rather than vanishing at an invisible wall 16pt
+/// in — the chat list's filter row does the same.
+class _Toolbar extends StatelessWidget {
+  const _Toolbar({required this.search, required this.cats});
+  final Widget search;
+  final Widget cats;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, c) {
+          final side = _readableInset(c.maxWidth);
+          return Padding(
+            padding: EdgeInsets.fromLTRB(side, 4, side, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: search,
+                ),
+                const SizedBox(height: 10),
+                cats,
+              ],
+            ),
+          );
+        },
+      );
 }
 
 /// Shown when the list has nothing in it, and it distinguishes the reasons.
@@ -333,7 +516,6 @@ class _Empty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final nothingAtAll = captured == 0;
     final String title;
     final String hint;
@@ -350,173 +532,19 @@ class _Empty extends StatelessWidget {
     }
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              nothingAtAll
-                  ? Icons.hourglass_empty
-                  : onlyHidden
-                  ? Icons.visibility_off_outlined
-                  : Icons.filter_alt_off,
-              size: 30,
-              color: theme.inkMuted,
-            ),
-            const SizedBox(height: 12),
-            Text(title, style: theme.bodyEmph, textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            Text(hint, style: theme.bodySoft, textAlign: TextAlign.center),
-          ],
+        padding: const EdgeInsets.only(bottom: 64),
+        child: EmptyState(
+          icon: nothingAtAll
+              ? CupertinoIcons.hourglass
+              : onlyHidden
+              ? CupertinoIcons.eye_slash
+              : CupertinoIcons.line_horizontal_3_decrease,
+          title: title,
+          message: hint,
+          compact: true,
         ),
       ),
     );
-  }
-}
-
-/// Back to live. Deliberately a floating pill rather than a header button — it
-/// belongs next to the content it moves, and only exists while it is useful.
-class _JumpToEnd extends StatelessWidget {
-  const _JumpToEnd({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      shape: FocusRingShape.capsule,
-      semanticLabel: 'Jump to latest',
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
-          decoration: BoxDecoration(
-            color: theme.accent,
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.22),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.arrow_downward, size: 14, color: theme.accentInk),
-              const SizedBox(width: 6),
-              Text(
-                'Latest',
-                style: theme.monoTiny.copyWith(color: theme.accentInk),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Always-visible search, collapsed to a hint until tapped.
-///
-/// Search lived only inside the filter sheet at first, which meant finding one
-/// function name cost two taps and a modal. On a screen whose whole job is
-/// finding a needle, that was the wrong place for it.
-class _SearchBar extends StatefulWidget {
-  const _SearchBar({required this.query, required this.onChanged});
-
-  final String query;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_SearchBar> createState() => _SearchBarState();
-}
-
-class _SearchBarState extends State<_SearchBar> {
-  late final TextEditingController _c = TextEditingController(
-    text: widget.query,
-  );
-  bool _open = false;
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    if (!_open && _c.text.isEmpty) {
-      return FocusableTap(
-        onTap: () => setState(() => _open = true),
-        radius: theme.radiusSm,
-        semanticLabel: 'Search',
-        child: GestureDetector(
-          onTap: () => setState(() => _open = true),
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            color: theme.surface,
-            child: Row(
-              children: [
-                Icon(Icons.search, size: 15, color: theme.inkMuted),
-                const SizedBox(width: 8),
-                Text(
-                  'Search…',
-                  style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    return Container(
-      color: theme.surface,
-      padding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
-      child: Row(
-        children: [
-          Icon(Icons.search, size: 15, color: theme.inkSoft),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: _c,
-              autofocus: true,
-              style: theme.monoTiny,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              onChanged: widget.onChanged,
-            ),
-          ),
-          FocusableTap(
-            onTap: _clear,
-            shape: FocusRingShape.circle,
-            semanticLabel: 'Clear search',
-            child: GestureDetector(
-              onTap: _clear,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Icon(Icons.close, size: 15, color: theme.inkMuted),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _clear() {
-    _c.clear();
-    widget.onChanged('');
-    setState(() => _open = false);
   }
 }
 
@@ -568,26 +596,31 @@ class _QuickCats extends StatelessWidget {
         .where((e) => !hidden.contains(e.key))
         .fold<int>(0, (a, e) => a + e.value);
 
-    return Container(
-      color: theme.surface,
-      padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+    // The chat list's filter row sizes its chips the same way: scaled with the
+    // text so a large type setting never clips a label, capped so it never
+    // eats the log.
+    final height =
+        MediaQuery.textScalerOf(context).scale(32).clamp(32.0, 56.0);
+    return SizedBox(
+      height: height,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        physics: const BouncingScrollPhysics(),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _CatChip(
               label: 'All',
               count: total,
-              colour: theme.accent,
               on: selected.isEmpty,
               onTap: onAll,
             ),
             // A rule, so All reads as the reset it is rather than as one more
             // category sitting alongside the others.
             Container(
-              width: 1,
-              height: 18,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
+              width: 0.5,
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               color: theme.divider,
             ),
             for (final e in present) ...[
@@ -609,22 +642,28 @@ class _QuickCats extends StatelessWidget {
   }
 }
 
+/// One capsule of the category row — the chat list's filter chip (soft
+/// neutral at rest, solid accent when chosen, 15pt body label, 13pt count),
+/// plus the two things only this row needs: the category's hue as a dot, and
+/// a dimmed, crossed-eye state for a category hidden from All.
 class _CatChip extends StatelessWidget {
   const _CatChip({
     required this.label,
     required this.count,
-    required this.colour,
     required this.on,
     required this.onTap,
+    this.colour,
     this.hidden = false,
     this.onLongPress,
   });
 
   final String label;
   final int count;
-  final Color colour;
   final bool on;
   final VoidCallback onTap;
+
+  /// The category's hue. Null on All, which is no category.
+  final Color? colour;
 
   /// Left out of All. Dimmed until picked; the eye stays either way, since a
   /// picked hidden category is still hidden the moment All is back.
@@ -634,232 +673,37 @@ class _CatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    final c = colour;
+    return FilterCapsule(
+      label: label,
+      active: on,
       onTap: onTap,
-      shape: FocusRingShape.capsule,
+      onLongPress: onLongPress,
+      count: count,
+      showZeroCount: true,
+      faded: hidden,
       semanticLabel: '$label $count${hidden ? ', hidden from All' : ''}',
-      child: GestureDetector(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 120),
-          opacity: hidden && !on ? 0.5 : 1,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
-            decoration: BoxDecoration(
-              color: on
-                  ? colour.withValues(alpha: 0.18)
-                  : theme.ink.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The dot is what makes the row scannable, and it is the same
-                // hue the timeline uses for that category — so a chip and the
-                // rows it selects are visibly the same thing. A hidden category
-                // keeps the hue on a crossed-out eye instead.
-                if (hidden)
-                  Icon(Icons.visibility_off, size: 10, color: colour)
-                else
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: colour,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: theme.monoTiny.copyWith(
-                    color: on ? theme.ink : theme.inkSoft,
+      // The dot is what makes the row scannable, and it is the same hue the
+      // timeline uses for that category — so a chip and the rows it selects
+      // are visibly the same thing. A hidden category keeps the hue on a
+      // crossed-out eye instead.
+      leading: c == null
+          ? null
+          : hidden
+              ? Icon(CupertinoIcons.eye_slash_fill, size: 13, color: c)
+              : Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: c,
+                    shape: BoxShape.circle,
+                    // On the accent fill a hue can sit too close to it to
+                    // read; a hairline of the chip's ink keeps it a dot.
+                    border: on
+                        ? Border.all(color: theme.accentInk, width: 1)
+                        : null,
                   ),
                 ),
-                const SizedBox(width: 5),
-                Text(
-                  '$count',
-                  style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.buildLine,
-    required this.total,
-    required this.shown,
-    required this.dropped,
-    required this.following,
-    required this.busy,
-    required this.onFilter,
-    required this.onShare,
-    required this.onCopy,
-    required this.onDelete,
-    required this.onClose,
-  });
-
-  /// Which binary this is. Null while it is still being gathered.
-  final String? buildLine;
-  final int total;
-  final int shown;
-  final int dropped;
-  final bool following;
-  final bool busy;
-  final VoidCallback onFilter;
-  final void Function({Rect? origin}) onShare;
-  final VoidCallback onCopy;
-  final VoidCallback onDelete;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: theme.surfaceRaised,
-        border: Border(bottom: BorderSide(color: theme.divider)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Diagnostics',
-                style: theme.bodyEmph.copyWith(color: theme.ink),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '$shown/$total'
-                  '${dropped > 0 ? ' · $dropped dropped' : ''}'
-                  '${following ? '' : ' · paused'}',
-                  style: theme.monoTiny.copyWith(
-                    // A non-zero dropped count means the log starts mid-story,
-                    // which changes how you read everything above it.
-                    color: dropped > 0 ? theme.danger : theme.inkMuted,
-                  ),
-                ),
-              ),
-              _Action(
-                icon: Icons.filter_list,
-                label: 'Filter',
-                onTap: onFilter,
-              ),
-              _Action(
-                icon: Icons.copy_all_outlined,
-                label: 'Copy summary',
-                onTap: onCopy,
-              ),
-              _ShareAction(busy: busy, onShare: onShare),
-              _Action(
-                icon: Icons.delete_outline,
-                label: 'Delete all',
-                onTap: onDelete,
-              ),
-              _Action(icon: Icons.close, label: 'Close', onTap: onClose),
-            ],
-          ),
-          // Which binary this is, under the counts. The question it answers
-          // ("am I even looking at the build I just shipped?") comes up before
-          // any question the timeline below can answer, and every other signal
-          // a tester has — window chrome, Dock icon, app name — reads the same
-          // for an iOS build on an Apple silicon Mac as for the real macOS one.
-          if (buildLine != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              buildLine!,
-              style: theme.monoTiny.copyWith(color: theme.inkMuted),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Action extends StatelessWidget {
-  const _Action({required this.icon, required this.label, required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // BOTH wrappers, per FocusableTap's doc comment: it binds Enter/Space and
-    // the semantics but registers no gesture recognizer, so the bare detector
-    // is what makes this answer a touch at all.
-    return FocusableTap(
-      onTap: onTap,
-      shape: FocusRingShape.circle,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Icon(icon, size: 18, color: theme.inkSoft),
-        ),
-      ),
-    );
-  }
-}
-
-/// Share needs the button's global rect for iPad/macOS popover anchoring, so it
-/// cannot use the plain [_Action] shape.
-class _ShareAction extends StatelessWidget {
-  const _ShareAction({required this.busy, required this.onShare});
-  final bool busy;
-  final void Function({Rect? origin}) onShare;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Builder(
-      builder: (context) {
-        void go() {
-          final box = context.findRenderObject() as RenderBox?;
-          final origin = box == null
-              ? null
-              : box.localToGlobal(Offset.zero) & box.size;
-          onShare(origin: origin);
-        }
-
-        return FocusableTap(
-          onTap: busy ? null : go,
-          shape: FocusRingShape.circle,
-          semanticLabel: 'Share log',
-          child: GestureDetector(
-            onTap: busy ? null : go,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: busy
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CupertinoActivityIndicator(
-                        radius: 9,
-                        color: theme.inkMuted,
-                      ),
-                    )
-                  : Icon(Icons.ios_share, size: 18, color: theme.accent),
-            ),
-          ),
-        );
-      },
     );
   }
 }

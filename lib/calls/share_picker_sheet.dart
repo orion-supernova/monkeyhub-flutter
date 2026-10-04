@@ -10,7 +10,6 @@ import '../widgets/adaptive_sheet.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart';
 import 'screen_share.dart';
-import '../l10n/text_case.dart';
 
 /// The desktop question a phone never asks: which screen?
 ///
@@ -53,7 +52,6 @@ class _SharePickerSheetState extends State<_SharePickerSheet> {
     final windows = sources?.where((s) => s.isWindow).toList() ?? const [];
     return SheetFrame(
       title: l10n.screenSharePickerTitle,
-      leading: const SheetCloseButton(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +67,7 @@ class _SharePickerSheetState extends State<_SharePickerSheet> {
               child: Center(
                 child: Text(
                   l10n.screenSharePickerEmpty,
-                  style: theme.bodySoft,
+                  style: groupedFooterStyle(theme),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -81,34 +79,17 @@ class _SharePickerSheetState extends State<_SharePickerSheet> {
                 shrinkWrap: true,
                 children: [
                   if (screens.isNotEmpty) ...[
-                    _Header(l10n.screenSharePickerScreens),
+                    GroupedHeader(l10n.screenSharePickerScreens),
                     _Grid(sources: screens),
                   ],
                   if (windows.isNotEmpty) ...[
-                    _Header(l10n.screenSharePickerWindows),
+                    GroupedHeader(l10n.screenSharePickerWindows),
                     _Grid(sources: windows),
                   ],
                 ],
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, top: 8, bottom: 8),
-      child: Text(
-        sentenceCaseOf(context, text),
-        style: theme.bodySoft.copyWith(fontSize: 13, color: theme.inkMuted),
       ),
     );
   }
@@ -160,10 +141,7 @@ class _Grid extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     s.name,
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      color: theme.inkSoft,
-                    ),
+                    style: groupedMetaStyle(theme),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

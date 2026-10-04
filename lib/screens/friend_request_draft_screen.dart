@@ -19,13 +19,13 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/filter_capsule.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'room_screen.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/labeled_field.dart' show fieldDecoration;
 import '../widgets/ios_kit.dart';
-import '../l10n/text_case.dart';
 
 /// The draft chat that runs BEFORE a friend request is approved.
 ///
@@ -483,13 +483,13 @@ class _Header extends StatelessWidget {
                 Row(children: [
                   Flexible(
                     child: Text(
-                      sentenceCaseOf(
-                        context,
-                        isIncoming
-                            ? l10n.friendRequestDraftScreenIncomingRequestLabel
-                            : l10n.friendRequestDraftScreenNewRequestLabel,
+                      isIncoming
+                          ? l10n.friendRequestDraftScreenIncomingRequestLabel
+                          : l10n.friendRequestDraftScreenNewRequestLabel,
+                      style: groupedMetaStyle(theme).copyWith(
+                        color: theme.accent,
+                        fontWeight: FontWeight.w500,
                       ),
-                      style: _small(theme).copyWith(color: theme.accent),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -525,19 +525,16 @@ class _Intro extends StatelessWidget {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(
-            sentenceCaseOf(
-              context,
-              isIncoming
-                  ? loc.friendRequestDraftScreenIntroIncoming(
-                      otherUser.displayName,
-                    )
-                  : loc.friendRequestDraftIntroOutgoingSentence,
-            ),
+            isIncoming
+                ? loc.friendRequestDraftScreenIntroIncoming(
+                    otherUser.displayName,
+                  )
+                : loc.friendRequestDraftIntroOutgoingSentence,
             style: theme.bodyEmph.copyWith(color: theme.ink),
           ),
           const SizedBox(height: 6),
           Text(
-            sentenceCaseOf(context, loc.friendRequestDraftScreenIntroFooter),
+            loc.friendRequestDraftScreenIntroFooter,
             style: theme.bodySoft.copyWith(color: theme.inkMuted),
           ),
         ]),
@@ -577,28 +574,28 @@ class _ComposeConfig extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section headers on the iOS scale (17/w600 ink) — not
+          // GroupedHeader itself, whose 16pt inset is for a header over a
+          // grouped block; these sit flush with the capsules on the gutter.
           Text(
-            sentenceCaseOf(context, loc.friendRequestDraftScreenRoomTypeLabel),
-            style: _small(theme).copyWith(color: theme.inkMuted),
+            loc.friendRequestDraftScreenRoomTypeLabel,
+            style: groupedHeaderStyle(theme),
           ),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final t in RoomType.values)
-              _Capsule(
-                selected: roomType == t,
+              FilterCapsule(
+                active: roomType == t,
                 onTap: () => onRoomType(t),
                 leading: t == RoomType.secret
                     ? theme.hourglassIcon(
-                        size: 12,
+                        size: 13,
                         color: roomType == t ? theme.accent : theme.inkSoft,
                       )
                     : null,
-                label: sentenceCaseOf(
-                  context,
-                  t == RoomType.secret
-                      ? loc.friendRequestDraftScreenRoomTypeEphemeral
-                      : loc.friendRequestDraftScreenRoomTypeStandard,
-                ),
+                label: t == RoomType.secret
+                    ? loc.friendRequestDraftScreenRoomTypeEphemeral
+                    : loc.friendRequestDraftScreenRoomTypeStandard,
               ),
           ]),
           // Grows in under the type when disappearing messages are on, rather
@@ -616,26 +613,27 @@ class _ComposeConfig extends StatelessWidget {
                       children: [
                         Row(children: [
                           Text(
-                            sentenceCaseOf(
-                              context,
-                              loc.friendRequestDraftScreenLifetimeLabel,
-                            ),
-                            style: _small(theme).copyWith(color: theme.inkMuted),
+                            loc.friendRequestDraftScreenLifetimeLabel,
+                            style: groupedHeaderStyle(theme),
                           ),
                           const SizedBox(width: 8),
+                          // The chosen value, beside its header in the
+                          // accent; tabular so it doesn't jitter as it changes.
                           Text(
                             _fmt(context, ttl),
-                            style: _small(theme).copyWith(
+                            style: groupedHeaderStyle(theme).copyWith(
                               color: theme.accent,
-                              fontWeight: FontWeight.w600,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                         ]),
                         const SizedBox(height: 8),
                         Wrap(spacing: 8, runSpacing: 8, children: [
                           for (final t in ttls)
-                            _Capsule(
-                              selected: ttl == t,
+                            FilterCapsule(
+                              active: ttl == t,
                               onTap: () => onTtl(t),
                               label: _fmt(context, t),
                             ),
@@ -645,51 +643,6 @@ class _ComposeConfig extends StatelessWidget {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// A pick-one capsule: tinted accent when chosen, a quiet fill otherwise —
-/// the app's filter-chip language. Bounces when it becomes the choice.
-class _Capsule extends StatelessWidget {
-  const _Capsule({
-    required this.selected,
-    required this.onTap,
-    required this.label,
-    this.leading,
-  });
-  final bool selected;
-  final VoidCallback onTap;
-  final String label;
-  final Widget? leading;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected
-              ? quietFill(theme)
-              : theme.ink.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (leading != null) ...[leading!, const SizedBox(width: 6)],
-          Text(
-            label,
-            style: theme.bodySoft.copyWith(
-              fontSize: 15,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? theme.accent : theme.inkSoft,
-            ),
-          ),
-        ]),
       ),
     );
   }
@@ -712,7 +665,7 @@ class _Composer extends StatelessWidget {
   final Duration ttl;
   final bool busy;
   /// True when this composer is in fresh-outgoing-request mode. Adjusts the
-  /// hint so the user understands a message is optional (the SEND REQUEST
+  /// hint so the user understands a message is optional (the "Send request"
   /// button above already fires without one).
   final bool requestMode;
 
@@ -749,16 +702,13 @@ class _Composer extends StatelessWidget {
                   decoration: InputDecoration(
                     isCollapsed: true,
                     border: InputBorder.none,
-                    hintText: sentenceCaseOf(
-                      context,
-                      requestMode
-                          ? (ephemeral
-                              ? loc.friendRequestDraftScreenHintWhisperOptional
-                              : loc.friendRequestDraftScreenHintFirstMessageOptional)
-                          : (ephemeral
-                              ? loc.friendRequestDraftScreenHintWhisperFades
-                              : loc.friendRequestDraftScreenHintStartWith),
-                    ),
+                    hintText: requestMode
+                        ? (ephemeral
+                            ? loc.friendRequestDraftScreenHintWhisperOptional
+                            : loc.friendRequestDraftScreenHintFirstMessageOptional)
+                        : (ephemeral
+                            ? loc.friendRequestDraftScreenHintWhisperFades
+                            : loc.friendRequestDraftScreenHintStartWith),
                     hintStyle: theme.body.copyWith(
                       color: theme.inkMuted,
                       fontSize: 17,
@@ -809,23 +759,28 @@ class _ApproveBar extends StatelessWidget {
     final loc = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: SheetActionButton(
-              label: loc.friendRequestDraftScreenApproveButton,
-              onTap: onApprove,
+      // Equal heights: when the longer label wraps (Turkish at large text),
+      // a lone two-line capsule beside a one-line one reads as a mistake.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: SheetActionButton(
+                label: loc.friendRequestDraftScreenApproveButton,
+                onTap: onApprove,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: SheetActionButton(
-              label: loc.friendRequestDraftScreenDeclineButton,
-              tonal: true,
-              onTap: onReject,
+            const SizedBox(width: 10),
+            Expanded(
+              child: SheetActionButton(
+                label: loc.friendRequestDraftScreenDeclineButton,
+                tonal: true,
+                onTap: onReject,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -836,25 +791,12 @@ class _CancelBar extends StatelessWidget {
   final VoidCallback onCancel;
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final label = sentenceCaseOf(
-      context,
-      AppLocalizations.of(context).friendRequestDraftScreenCancelRequestButton,
-    );
+    final label =
+        AppLocalizations.of(context).friendRequestDraftScreenCancelRequestButton;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       alignment: Alignment.center,
-      child: SpringPress(
-        onTap: onCancel,
-        semanticLabel: label,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Text(
-            label,
-            style: theme.body.copyWith(fontSize: 17, color: theme.danger),
-          ),
-        ),
-      ),
+      child: TextLinkButton(label: label, destructive: true, onTap: onCancel),
     );
   }
 }
@@ -869,40 +811,14 @@ class _SendRequestBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final label = FamilyService.maybeInstance?.isChild == true
         ? AppLocalizations.of(context).friendRequestDraftScreenAskGrownUpButton
         : AppLocalizations.of(context).friendRequestDraftScreenSendRequestButton;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-      child: busy
-          // The button's own slab, holding a spinner while the request goes.
-          ? Container(
-              height: 52,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.ink.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(
-                  (theme.radiusXl * 0.8).clamp(6.0, 16.0),
-                ),
-              ),
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CupertinoActivityIndicator(
-                  radius: 9,
-                  color: theme.inkMuted,
-                ),
-              ),
-            )
-          : SheetActionButton(label: label, onTap: onSend),
+      // The button holds its own spinner, at its own size, while the request
+      // goes — nothing under it moves.
+      child: SheetActionButton(label: label, busy: busy, onTap: onSend),
     );
   }
 }
-
-/// Footnote-size text in the theme's body face.
-TextStyle _small(AppTheme theme) => theme.bodySoft.copyWith(
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );

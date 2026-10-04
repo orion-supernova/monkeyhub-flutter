@@ -92,10 +92,8 @@ import 'widgets/connection_banner.dart';
 import 'widgets/self_host_badge.dart';
 import 'widgets/share_target_sheet.dart';
 import 'widgets/shake_to_report.dart';
-import 'widgets/ios_kit.dart' show groupedFill, groupedRadius;
-import 'widgets/prominent_button.dart';
+import 'widgets/ios_kit.dart' show groupedFill, groupedMetaStyle, groupedRadius;
 import 'widgets/sheet_kit.dart' show SheetActionButton;
-import 'l10n/text_case.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".
@@ -2419,7 +2417,7 @@ class _BootError extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Padding(
-                  padding: const EdgeInsets.all(28),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2431,10 +2429,7 @@ class _BootError extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        sentenceCaseOf(
-                          context,
-                          AppLocalizations.of(context).bootErrorTitle,
-                        ),
+                        AppLocalizations.of(context).bootErrorTitle,
                         style: theme.displayLarge.copyWith(letterSpacing: 0.37),
                       ),
                       const SizedBox(height: 6),
@@ -2462,11 +2457,8 @@ class _BootError extends StatelessWidget {
                       // cause, and that button signs the user out. It has to
                       // be here, but it should not be the first thing a hand
                       // reaches for.
-                      ProminentButton(
-                        label: sentenceCaseOf(
-                          context,
-                          AppLocalizations.of(context).bootErrorRetry,
-                        ),
+                      SheetActionButton(
+                        label: AppLocalizations.of(context).bootErrorRetry,
                         onTap: onRetry,
                       ),
                       const SizedBox(height: 10),
@@ -2481,10 +2473,7 @@ class _BootError extends StatelessWidget {
                       // appears when the app cannot get past this screen.
                       Text(
                         ServerStore.instance.host,
-                        style: theme.bodySoft.copyWith(
-                          fontSize: 13,
-                          color: theme.inkMuted,
-                        ),
+                        style: groupedMetaStyle(theme),
                       ),
                     ],
                   ),

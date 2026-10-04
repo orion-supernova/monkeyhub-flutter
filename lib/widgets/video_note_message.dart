@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'dart:async';
 import 'dart:io' show File;
 import 'dart:math' as math;
@@ -9,11 +10,15 @@ import 'package:video_player/video_player.dart';
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../media/file_url_cache.dart';
 import '../media/video_file_cache.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'glass_buttons.dart';
+import 'liquid_glass.dart' show GlassTone;
+import 'photo_chrome.dart';
 import 'remote_image.dart';
 
 /// How the circular bubble is currently rendering.
@@ -485,8 +490,11 @@ class _VideoNoteMessageState extends State<VideoNoteMessage> {
     final l10n = AppLocalizations.of(context);
     if (_phase == VideoNotePhase.unavailable) {
       return Center(
-        child: Icon(Icons.videocam_off_outlined,
-            color: Colors.white.withValues(alpha: 0.9), size: 30),
+        child: Icon(
+          CupertinoIcons.slash_circle,
+          color: Colors.white.withValues(alpha: 0.9),
+          size: 30,
+        ),
       );
     }
     if (_phase == VideoNotePhase.failed) {
@@ -494,11 +502,23 @@ class _VideoNoteMessageState extends State<VideoNoteMessage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.refresh, color: Colors.white, size: 30),
+            const Icon(
+              CupertinoIcons.arrow_clockwise,
+              color: Colors.white,
+              size: 28,
+            ),
             const SizedBox(height: 4),
+            // The body face at 13 — the mono slot is tracked typewriter
+            // on a character theme.
             Text(
-              l10n.videoNoteMessageRetryHint,
-              style: theme.monoTiny.copyWith(color: Colors.white),
+              sentenceCaseOf(context, l10n.videoNoteMessageRetryHint),
+              style: theme.body.copyWith(
+                fontSize: 13,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                decoration: TextDecoration.none,
+              ),
             ),
           ],
         ),
@@ -516,18 +536,7 @@ class _VideoNoteMessageState extends State<VideoNoteMessage> {
 
     return Stack(
       children: [
-        if (!display.playing)
-          Center(
-            child: Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.45),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow, color: Colors.white, size: 26),
-            ),
-          ),
+        if (!display.playing) const Center(child: MediaPlayDisc(size: 46)),
         // Bottom of the circle rather than dead centre, so it never sits on the
         // face — the one thing a video note always has in the middle of it.
         Positioned(
@@ -535,23 +544,7 @@ class _VideoNoteMessageState extends State<VideoNoteMessage> {
           right: 0,
           bottom: widget.diameter * 0.11,
           child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                formatClockDuration(display.remaining),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  height: 1,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ),
+            child: MediaDurationBadge(duration: display.remaining),
           ),
         ),
       ],
@@ -669,7 +662,7 @@ class OutboundVideoNote extends StatelessWidget {
                 children: [
                   if (onRetry != null)
                     _circleAction(
-                      icon: Icons.refresh,
+                      icon: CupertinoIcons.arrow_clockwise,
                       label: l10n.videoNoteMessageRetryLabel,
                       onTap: () => onRetry!(),
                     ),
@@ -677,7 +670,7 @@ class OutboundVideoNote extends StatelessWidget {
                     const SizedBox(width: 10),
                   if (onDiscard != null)
                     _circleAction(
-                      icon: Icons.close,
+                      icon: CupertinoIcons.xmark,
                       label: l10n.videoNoteMessageDiscardLabel,
                       onTap: onDiscard!,
                     ),
@@ -689,27 +682,18 @@ class OutboundVideoNote extends StatelessWidget {
     );
   }
 
+  /// Retry / discard over a failed upload: the shared 40pt media glass
+  /// button (it was a 36pt GestureDetector disc with no press and no focus).
   Widget _circleAction({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
   }) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.55),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 20),
-        ),
-      ),
+    return GlassIconButton(
+      tone: GlassTone.media,
+      icon: icon,
+      semanticLabel: label,
+      onTap: onTap,
     );
   }
 }

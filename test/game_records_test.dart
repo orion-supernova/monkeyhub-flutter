@@ -174,9 +174,9 @@ void main() {
 
       expect(find.text('Ada'), findsOneWidget);
       expect(find.text('1:01'), findsOneWidget);
-      expect(find.text('yours 1:15'), findsOneWidget);
+      expect(find.text('Yours 1:15'), findsOneWidget);
       // Every game has a row, solved or not.
-      expect(find.text('nobody yet'), findsNWidgets(RecordGame.values.length - 1));
+      expect(find.text('Nobody yet'), findsNWidgets(RecordGame.values.length - 1));
     });
   });
 

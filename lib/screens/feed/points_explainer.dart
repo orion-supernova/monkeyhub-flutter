@@ -3,13 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/moment.dart';
-import '../../theme/layout.dart';
-import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/moment_rail.dart';
-import '../../widgets/sheet_kit.dart';
 import '../../l10n/text_case.dart';
 
 /// Explains what the points board actually is.
@@ -45,137 +41,67 @@ class PointsExplainerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // See home_screen: the bottom inset leaves a dead strip of
-          // background under the scroller, which reads as a solid bar. The
-          // list clears the home indicator with its own padding instead.
-          SafeArea(
-            bottom: false,
-            child: AdaptivePageBody(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Pinned, so the way out is reachable from any scroll
-                  // position rather than only from the very bottom.
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            sentenceCaseOf(context, l10n.pointsExplainerTitle),
-                            style: theme.displayLarge.copyWith(
-                              letterSpacing: 0.37,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // An X, not the archive's back arrow: this is a modal
-                        // explainer you dismiss, not a place you navigated to.
-                        GlassCloseButton(
-                          onTap: () => Navigator.of(context).maybePop(),
-                          semanticLabel: l10n.photoChromeCloseSemanticLabel,
-                          size: 34,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        20,
-                        16,
-                        20,
-                        edgeToEdgeBottom(context, 40),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.pointsExplainerIntro,
-                            style: theme.body.copyWith(color: theme.inkSoft),
-                          ),
-                          const SizedBox(height: 22),
-                          // One grouped block, a coloured tile per kind —
-                          // the iOS Settings list, which is the shape a
-                          // reference card like this reads best in.
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                              groupedRadius(theme),
-                            ),
-                            child: ColoredBox(
-                              color: groupedFill(theme),
-                              child: Column(
-                                children: [
-                          for (var i = 0; i < MomentTag.values.length; i++)
-                            TweenAnimationBuilder<double>(
-                              key: ValueKey(MomentTag.values[i].wire),
-                              tween: Tween(begin: 0, end: 1),
-                              duration: motion.stagger(
-                                theme.motionMed,
-                                i,
-                                strideMs: 55,
-                              ),
-                              curve: motion.c(theme.motionEntrance),
-                              builder: (context, v, child) =>
-                                  Transform.translate(
-                                    offset: Offset(0, (1 - v) * 10),
-                                    child: Opacity(
-                                      opacity: v.clamp(0.0, 1.0),
-                                      child: child,
-                                    ),
-                                  ),
-                              child: _TagExplainer(
-                                tag: MomentTag.values[i],
-                                tone: _tones[i % _tones.length],
-                                last: i == MomentTag.values.length - 1,
-                              ),
-                            ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          _Rule(
-                            icon: CupertinoIcons.hand_thumbsup_fill,
-                            text: l10n.pointsExplainerRuleHonour,
-                          ),
-                          const SizedBox(height: 12),
-                          _Rule(
-                            icon: CupertinoIcons.sunrise_fill,
-                            text: l10n.pointsExplainerRuleToday,
-                          ),
-                          const SizedBox(height: 12),
-                          _Rule(
-                            icon: CupertinoIcons.number_circle_fill,
-                            text: l10n.pointsExplainerRuleCap,
-                          ),
-                          const SizedBox(height: 28),
-                          SheetActionButton(
-                            label: sentenceCaseOf(
-                              context,
-                              l10n.pointsExplainerGotIt,
-                            ),
-                            onTap: () => Navigator.of(context).maybePop(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    // The shared pushed page: back chevron top-leading (a plain
+    // MaterialPageRoute goes back, it is not dismissed), the large title at
+    // the same inset as every other page, and the bar pinned so the way out
+    // is reachable from any scroll position.
+    return IosPage(
+      title: sentenceCaseOf(context, l10n.pointsExplainerTitle),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 22),
+          child: Text(
+            l10n.pointsExplainerIntro,
+            style: theme.body.copyWith(color: theme.inkSoft),
           ),
-        ],
-      ),
+        ),
+        // One grouped block, a coloured tile per kind — the iOS Settings
+        // list, which is the shape a reference card like this reads best in.
+        // The example rides under the rule in quotes: it is the part that
+        // makes it click. An abstract definition of "jinx" teaches nobody;
+        // "washed the car, it rained at four" teaches everybody.
+        GroupedSection(
+          margin: const EdgeInsets.only(bottom: 24),
+          children: [
+            for (var i = 0; i < MomentTag.values.length; i++)
+              GroupedRow(
+                key: ValueKey(MomentTag.values[i].wire),
+                icon: MomentTagChip.iconFor(MomentTag.values[i]),
+                tone: _tones[i % _tones.length],
+                title: sentenceCaseOf(
+                  context,
+                  MomentTagChip.labelFor(l10n, MomentTag.values[i]),
+                ),
+                subtitle:
+                    '${sentenceCaseOf(context, MomentTagChip.hintFor(l10n, MomentTag.values[i]))}\n'
+                    '“${MomentTagChip.exampleFor(l10n, MomentTag.values[i])}”',
+                chevron: false,
+              ),
+          ],
+        ),
+        _Rule(
+          icon: CupertinoIcons.hand_thumbsup_fill,
+          text: l10n.pointsExplainerRuleHonour,
+        ),
+        const SizedBox(height: 12),
+        _Rule(
+          icon: CupertinoIcons.sunrise_fill,
+          text: l10n.pointsExplainerRuleToday,
+        ),
+        const SizedBox(height: 12),
+        _Rule(
+          icon: CupertinoIcons.number_circle_fill,
+          text: l10n.pointsExplainerRuleCap,
+        ),
+        const SizedBox(height: 28),
+        SheetActionButton(
+          label: l10n.pointsExplainerGotIt,
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+      ],
     );
   }
 }
@@ -190,86 +116,6 @@ const _tones = [
   TileTone.gray,
 ];
 
-class _TagExplainer extends StatelessWidget {
-  const _TagExplainer({
-    required this.tag,
-    required this.tone,
-    required this.last,
-  });
-
-  final MomentTag tag;
-  final TileTone tone;
-  final bool last;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: tileColor(theme, tone),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  MomentTagChip.iconFor(tag),
-                  size: 17,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      sentenceCaseOf(context, MomentTagChip.labelFor(l10n, tag)),
-                      style: theme.bodyEmph.copyWith(color: theme.ink),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sentenceCaseOf(context, MomentTagChip.hintFor(l10n, tag)),
-                      style: theme.body.copyWith(color: theme.inkSoft),
-                    ),
-                    const SizedBox(height: 4),
-                    // The example is the part that makes it click. An
-                    // abstract definition of "jinx" teaches nobody; "washed
-                    // the car, it rained at four" teaches everybody.
-                    Text(
-                      '“${MomentTagChip.exampleFor(l10n, tag)}”',
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 14,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (!last)
-          Padding(
-            padding: const EdgeInsets.only(left: 58),
-            child: Container(
-              height: 1 / MediaQuery.devicePixelRatioOf(context),
-              color: theme.ink.withValues(alpha: 0.10),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
 class _Rule extends StatelessWidget {
   const _Rule({required this.icon, required this.text});
 
@@ -279,20 +125,23 @@ class _Rule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 1, right: 12),
-          child: Icon(icon, size: 20, color: theme.accent),
-        ),
-        Expanded(
-          child: Text(
-            text,
-            style: theme.bodySoft.copyWith(color: theme.inkSoft),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1, right: 12),
+            child: Icon(icon, size: 20, color: theme.accent),
           ),
-        ),
-      ],
+          Expanded(
+            child: Text(
+              sentenceCaseOf(context, text),
+              style: groupedFooterStyle(theme).copyWith(color: theme.inkSoft),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

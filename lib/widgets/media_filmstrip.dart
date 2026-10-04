@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
+import 'photo_chrome.dart' show MediaOverlayChip;
+import 'spring_press.dart';
 
 /// The rail of thumbnails that sits under a full-bleed picture.
 ///
@@ -267,77 +268,39 @@ class _Tile extends StatelessWidget {
       ),
     );
 
-    return FocusableTap(
+    // The shared press: a small spring and a focus stop (it was a bare
+    // FocusableTap + GestureDetector, which never moved under a finger).
+    return SpringPress(
       onTap: onTap,
       semanticLabel: semanticLabel,
-      radius: 9,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: onRemove == null
+      scale: PressSpec.scaleSmall,
+      focusRadius: 9,
+      haptic: false,
+      child: onRemove == null
             ? tile
             : Stack(
                 clipBehavior: Clip.none,
                 children: [
                   tile,
+                  // Its own tap target rather than a long-press on the
+                  // tile: removing a photo from a send is a one-tap decision
+                  // everywhere else people have met it, and a gesture with
+                  // no visible affordance is a feature only the person who
+                  // wrote it knows about. The shared overlay chip, centred
+                  // where the old private badge was, a few points over the
+                  // corner so it stays off the face in the thumbnail.
                   Positioned(
-                    top: -5,
-                    right: -5,
-                    child: _RemoveBadge(
-                      onTap: onRemove!,
-                      semanticLabel: removeSemanticLabel,
+                    top: -7,
+                    right: -7,
+                    child: MediaOverlayChip(
+                      icon: CupertinoIcons.xmark,
+                      size: 24,
+                      onTap: onRemove,
+                      semanticLabel: removeSemanticLabel ?? '',
                     ),
                   ),
                 ],
               ),
-      ),
-    );
-  }
-}
-
-/// The dismiss badge on a tray tile.
-///
-/// Its own tap target rather than a long-press on the tile: removing a photo
-/// from a send is a one-tap decision everywhere else people have met it, and a
-/// gesture with no visible affordance is a feature only the person who wrote it
-/// knows about.
-class _RemoveBadge extends StatelessWidget {
-  const _RemoveBadge({required this.onTap, required this.semanticLabel});
-
-  final VoidCallback onTap;
-  final String? semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    // `FocusableTap` registers no gesture recognizer of its own, so the bare
-    // `GestureDetector` inside is what actually receives the pointer. Both
-    // carry the handler. Never an InkWell — this app draws no ink anywhere.
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      shape: FocusRingShape.circle,
-      radius: 999,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: 20,
-          height: 20,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: Color(0xE6000000),
-            shape: BoxShape.circle,
-            border: Border.fromBorderSide(
-              BorderSide(color: Color(0x59FFFFFF), width: 0.8),
-            ),
-          ),
-          child: const Icon(
-            CupertinoIcons.xmark,
-            size: 11,
-            color: MediaGlass.ink,
-          ),
-        ),
-      ),
     );
   }
 }

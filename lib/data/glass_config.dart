@@ -583,6 +583,27 @@ const kBuiltInGlassPresets = <GlassPreset>[
   ),
 ];
 
+/// The name to show for [preset]: the reader's word for a shipped look, or
+/// the user's own name for a slot they saved.
+///
+/// [GlassPreset.name] on a built-in stays the English id-ish label — it is a
+/// `const` table, and it is what persisted slot JSON has always carried —
+/// so the two shipped looks are localized here, at the one seam where a name
+/// is displayed, the same way [glassKnobLabel] does for the dials. Without it
+/// "Frosted" sat untranslated in the Turkish hub and in "Frosted olarak
+/// sıfırla".
+String glassPresetName(AppLocalizations l10n, GlassPreset preset) {
+  if (!preset.builtIn) return preset.name;
+  switch (preset.id) {
+    case 'frosted':
+      return l10n.glassPresetNameFrosted;
+    case 'clear':
+      return l10n.glassPresetNameClear;
+    default:
+      return preset.name;
+  }
+}
+
 /// The preset a fresh install starts on.
 const kDefaultGlassPresetId = 'frosted';
 

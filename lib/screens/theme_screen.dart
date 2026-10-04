@@ -5,12 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/chat_list_row.dart' show MonogramAvatar;
 import '../widgets/ios_kit.dart';
+import '../widgets/liquid_glass.dart';
 import '../widgets/settings_pickers.dart';
 
 /// The calm, native palettes. Everything else is a Character.
@@ -24,7 +28,8 @@ const List<String> _essentials = [
 
 /// The theme picker: follow the device or keep one theme, then every theme as
 /// a tiny phone drawn in its own colours — the Essentials first, the
-/// Characters after. A tap applies; touch and hold opens the full-screen
+/// Characters after. A tap applies; the expand glyph on a tile's corner, the
+/// Preview action over each section, or touch and hold opens the full-screen
 /// preview, which swipes through all of them.
 class ThemeScreen extends StatefulWidget {
   const ThemeScreen({super.key});
@@ -93,6 +98,34 @@ class _ThemeScreenState extends State<ThemeScreen> {
               _openCarousel(context, indexOf(t.id), themes, apply),
         );
 
+    /// A section's header, with Preview on its far edge — iOS's "See All"
+    /// slot. It opens on the theme in use when that theme lives in this
+    /// section, otherwise on the section's first, so the swipe starts where
+    /// the eye already is.
+    Widget header(String label, List<AppTheme> set) => GroupedHeader(
+          label,
+          trailing: _HeaderAction(
+            label: sentenceCaseOf(context, l10n.glassScreenPreviewBadge),
+            onTap: () => _openCarousel(
+              context,
+              indexOf(
+                set.any((t) => t.id == theme.id) ? theme.id : set.first.id,
+              ),
+              themes,
+              apply,
+            ),
+          ),
+        );
+
+    final essentials = [
+      for (final t in themes)
+        if (_essentials.contains(t.id)) t,
+    ];
+    final characters = [
+      for (final t in themes)
+        if (!_essentials.contains(t.id)) t,
+    ];
+
     return SettingsPage(
       title: l10n.settingsHubTheme,
       children: [
@@ -140,11 +173,11 @@ class _ThemeScreenState extends State<ThemeScreen> {
             ],
           ],
         ),
-        _SectionLabel(l10n.themePageEssentials),
-        grid([for (final t in themes) if (_essentials.contains(t.id)) t]),
+        header(l10n.themePageEssentials, essentials),
+        grid(essentials),
         GroupedFooter(l10n.themePageEssentialsFooter),
-        _SectionLabel(l10n.themePageCharacters),
-        grid([for (final t in themes) if (!_essentials.contains(t.id)) t]),
+        header(l10n.themePageCharacters, characters),
+        grid(characters),
         GroupedFooter(l10n.themePageCharactersFooter),
       ],
     );
@@ -173,7 +206,12 @@ class _ThemeScreenState extends State<ThemeScreen> {
     final dst = Offset.zero & media;
     final src = ValueNotifier<Rect>(_rectForId(themes[initialIndex].id, media));
 
-    Navigator.of(context).push(
+    // The root navigator, always. On desktop this page lives in the settings
+    // pane's nested navigator, which sits inside the shell that a theme
+    // change remounts — a carousel pushed there would be torn down by its
+    // own APPLY. The root also makes the tile's global rect the right frame
+    // for the zoom.
+    Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.transparent,
@@ -216,22 +254,29 @@ class _ThemeScreenState extends State<ThemeScreen> {
               final t = curved.value.clamp(0.0, 1.0);
               final rect = Rect.lerp(src.value, dst, t)!;
               final radius = ui.lerpDouble(18.0, 0.0, t)!;
-              return Positioned.fromRect(
-                rect: rect,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(radius),
-                  child: OverflowBox(
-                    alignment: Alignment.topLeft,
-                    minWidth: media.width,
-                    maxWidth: media.width,
-                    minHeight: media.height,
-                    maxHeight: media.height,
-                    child: Transform.translate(
-                      offset: Offset(-rect.left, -rect.top),
-                      child: child,
+              // A Stack of its own: a route's transition is not laid out
+              // inside one, and a bare Positioned there is a parent-data
+              // error that kills the zoom on its first frame.
+              return Stack(
+                children: [
+                  Positioned.fromRect(
+                    rect: rect,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(radius),
+                      child: OverflowBox(
+                        alignment: Alignment.topLeft,
+                        minWidth: media.width,
+                        maxWidth: media.width,
+                        minHeight: media.height,
+                        maxHeight: media.height,
+                        child: Transform.translate(
+                          offset: Offset(-rect.left, -rect.top),
+                          child: child,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               );
             },
           );
@@ -241,19 +286,26 @@ class _ThemeScreenState extends State<ThemeScreen> {
   }
 }
 
-/// A grouped-list header for content that is not a [GroupedSection].
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
+/// The text action on a [GroupedHeader]'s far edge: accent ink, the row
+/// value's size, a hit area taller than the words.
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 7),
-      child: Text(
-        text,
-        style: theme.caption.copyWith(fontSize: 13, color: theme.inkMuted),
+    return SpringPress(
+      onTap: onTap,
+      haptic: false,
+      semanticLabel: label,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Text(
+          label,
+          style: groupedValueStyle(theme).copyWith(color: theme.accent),
+        ),
       ),
     );
   }
@@ -364,9 +416,24 @@ class _ThemeTile extends StatelessWidget {
               ),
               child: AspectRatio(
                 aspectRatio: 0.62,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
-                  child: _MiniPhone(t: candidate),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: _MiniPhone(t: candidate),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: _ExpandBadge(
+                        t: candidate,
+                        semanticLabel:
+                            '${candidate.name}, ${sentenceCaseOf(context, l10n.glassScreenPreviewBadge)}',
+                        onTap: onPreview,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -375,7 +442,7 @@ class _ThemeTile extends StatelessWidget {
               candidate.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: outer.body.copyWith(fontSize: 13, color: outer.ink),
+              style: groupedMetaStyle(outer).copyWith(color: outer.ink),
             ),
             const SizedBox(height: 4),
             SizedBox(
@@ -421,13 +488,60 @@ class _SlotBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: theme.caption.copyWith(
-              fontSize: 12,
+            style: groupedMetaStyle(theme).copyWith(
               fontWeight: FontWeight.w600,
               color: theme.accentInk,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The way into the full-screen preview from a tile: a small expand glyph on
+/// the phone's top corner, drawn in the theme's OWN colours so it reads as
+/// part of that phone, not as chrome laid over the grid. The visible half of
+/// what touch-and-hold does; the hit area runs past the 22pt disc to a
+/// thumb-sized 36.
+class _ExpandBadge extends StatelessWidget {
+  const _ExpandBadge({
+    required this.t,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+  final AppTheme t;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpringPress(
+      onTap: onTap,
+      haptic: false,
+      semanticLabel: semanticLabel,
+      focusShape: FocusRingShape.circle,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Align(
+          alignment: const Alignment(0.35, -0.35),
+          child: Container(
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: t.surfaceRaised.withValues(alpha: 0.92),
+              shape: BoxShape.circle,
+              border: Border.all(color: t.ink.withValues(alpha: 0.14), width: 0.5),
+            ),
+            child: Icon(
+              CupertinoIcons.arrow_up_left_arrow_down_right,
+              size: 11,
+              color: t.ink,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -492,7 +606,9 @@ class _MiniPhone extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // The theme's own page, texture and all.
+        // The theme's own page, texture and all — over its flat colour, for
+        // the frames before a textured page's image has decoded.
+        ColoredBox(color: t.background),
         ThemeScope(
           controller: ThemeController(t),
           child: Builder(builder: (context) => t.backgroundLayer(context)),
@@ -537,9 +653,26 @@ class _ThemePreviewCarousel extends StatefulWidget {
   State<_ThemePreviewCarousel> createState() => _ThemePreviewCarouselState();
 }
 
+
 class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
   late final PageController _pc;
   late int _index;
+
+  /// One controller per theme, made once: the chrome and the page for a
+  /// theme share it, and a fresh one per build would be a fresh notifier
+  /// every frame of a swipe.
+  final Map<String, ThemeController> _scopes = {};
+
+  ThemeController _scopeFor(AppTheme t) =>
+      _scopes.putIfAbsent(t.id, () => ThemeController(t));
+
+  /// The route's own animation, watched so the glass chrome only exists
+  /// while the page is at rest. The zoom moves and clips the whole route, and
+  /// a BackdropFilter riding that transform re-samples every frame — the one
+  /// thing glass must never do — so the close button, title and APPLY appear
+  /// once the page has landed and vanish the moment it starts to retreat.
+  Animation<double>? _route;
+  bool _settled = false;
 
   @override
   void initState() {
@@ -549,8 +682,28 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context)?.animation;
+    if (identical(route, _route)) return;
+    _route?.removeStatusListener(_onRouteStatus);
+    _route = route?..addStatusListener(_onRouteStatus);
+    _settled = route == null || route.status == AnimationStatus.completed;
+  }
+
+  void _onRouteStatus(AnimationStatus status) {
+    final settled = status == AnimationStatus.completed;
+    if (settled == _settled || !mounted) return;
+    setState(() => _settled = settled);
+  }
+
+  @override
   void dispose() {
+    _route?.removeStatusListener(_onRouteStatus);
     _pc.dispose();
+    for (final c in _scopes.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -561,8 +714,16 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
     if (mounted) nav.maybePop();
   }
 
+  // The label reads the store (which half of the device-following pair a
+  // theme already is), and an APPLY that files a theme under the mode NOT
+  // showing changes no ThemeScope — so this listens to the store itself.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _buildListening(context),
+      );
+
+  Widget _buildListening(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final themes = ThemeController.all;
     final activeId = ThemeScope.of(context).id;
@@ -595,78 +756,110 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
               HapticFeedback.selectionClick();
               widget.onPageSettle(i);
             },
-            itemBuilder: (_, i) {
-              final t = themes[i];
-              return ThemeScope(
-                controller: ThemeController(t),
-                child: _PreviewPage(t: t),
-              );
-            },
+            itemBuilder: (_, i) => ThemeScope(
+              controller: _scopeFor(themes[i]),
+              child: _PreviewPage(t: themes[i]),
+            ),
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: Row(
+          // The chrome wears the theme being shown, so its glass, ink and
+          // APPLY are that theme's — a dark close button over Daylight would
+          // be a preview of the wrong app.
+          if (_settled)
+            ThemeScope(
+              controller: _scopeFor(shown),
+              child: Positioned.fill(
+                child: Stack(
                   children: [
-                    _CloseButton(theme: shown),
-                    const Spacer(),
-                    _Dots(count: themes.length, index: _index, theme: shown),
-                    const Spacer(),
-                    const SizedBox(width: 40),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const GlassCloseButton(),
+                              Expanded(
+                                child: Center(
+                                  child: _PagerTitle(
+                                    name: shown.name,
+                                    count: themes.length,
+                                    index: _index,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 40),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                      child: SafeArea(
+                        top: false,
+                        child: Center(
+                          child: GlassPillButton(
+                            label: label,
+                            height: 50,
+                            icon: isActive ? CupertinoIcons.checkmark_alt : null,
+                            tint: isActive ? null : shown.accent,
+                            onTap: isActive
+                                ? () => Navigator.of(context).maybePop()
+                                : () => _apply(context, shown),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 24,
-            child: SafeArea(
-              top: false,
-              child: SpringPress(
-                onTap: isActive
-                    ? () => Navigator.of(context).maybePop()
-                    : () => _apply(context, shown),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  height: 54,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? shown.ink.withValues(alpha: 0.10)
-                        : shown.bubbleFill(isMine: true),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isActive) ...[
-                        Icon(
-                          CupertinoIcons.checkmark_alt,
-                          size: 18,
-                          color: shown.ink,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Text(
-                        label,
-                        style: shown.bodyEmph.copyWith(
-                          fontSize: 17,
-                          color: isActive ? shown.ink : shown.accentInk,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The theme's name over a row of page dots, on one capsule of glass — the
+/// iOS wallpaper picker's title, readable over any page because the glass,
+/// not the page, is what the dots sit on.
+class _PagerTitle extends StatelessWidget {
+  const _PagerTitle({
+    required this.name,
+    required this.count,
+    required this.index,
+  });
+  final String name;
+  final int count;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return LiquidGlass(
+      shape: LiquidGlassShape.capsule,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: groupedMetaStyle(theme).copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.ink,
+              decoration: TextDecoration.none,
             ),
           ),
+          const SizedBox(height: 5),
+          _Dots(count: count, index: index),
         ],
       ),
     );
@@ -674,25 +867,25 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
 }
 
 class _Dots extends StatelessWidget {
-  const _Dots({required this.count, required this.index, required this.theme});
+  const _Dots({required this.count, required this.index});
   final int count;
   final int index;
-  final AppTheme theme;
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < count; i++)
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 3),
+            margin: const EdgeInsets.symmetric(horizontal: 2.5),
             width: i == index ? 14 : 6,
             height: 6,
             decoration: BoxDecoration(
               color: i == index
                   ? theme.ink
-                  : theme.inkMuted.withValues(alpha: 0.6),
+                  : theme.ink.withValues(alpha: 0.28),
               borderRadius: BorderRadius.circular(999),
             ),
           ),
@@ -701,31 +894,11 @@ class _Dots extends StatelessWidget {
   }
 }
 
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.theme});
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return SpringPress(
-      onTap: () => Navigator.of(context).maybePop(),
-      semanticLabel: MaterialLocalizations.of(context).closeButtonTooltip,
-      child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: theme.ink.withValues(alpha: 0.10),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(CupertinoIcons.xmark, size: 17, color: theme.ink),
-      ),
-    );
-  }
-}
-
-/// One theme, full screen: the chat list as it would look — large title, a
-/// few rows — and a short exchange, in the theme's own type and colours.
+/// One theme, full screen, as the app would actually draw it: its page
+/// texture, the chat list's large title and rows, then an open room — the
+/// header, a short run of bubbles in the theme's real transcript shape, and
+/// the composer. Plain boxes in the theme's own type and colours; no glass,
+/// so a swipe moves nothing but paint.
 class _PreviewPage extends StatelessWidget {
   const _PreviewPage({required this.t});
   final AppTheme t;
@@ -742,48 +915,41 @@ class _PreviewPage extends StatelessWidget {
   Widget _buildListening(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final style = SettingsStore.instance.bubbleStyle;
     final rows = [
       (l10n.themeScreenPreviewRoomOneName, l10n.themeScreenPreviewRoomOneSub, 2),
       (l10n.themeScreenPreviewRoomTwoName, l10n.themeScreenPreviewRoomTwoSub, 0),
     ];
     return Stack(
       children: [
-        theme.backgroundLayer(context),
+        // The flat page colour under the layer: a textured theme (Paper)
+        // draws its page from an image, and until that decodes the page
+        // would otherwise be the route's black.
+        Positioned.fill(child: ColoredBox(color: theme.background)),
+        Positioned.fill(child: theme.backgroundLayer(context)),
         SafeArea(
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 64, 20, 110),
+          child: Padding(
+            // Clear of the floating chrome: the close button and title above,
+            // APPLY below.
+            padding: const EdgeInsets.fromLTRB(16, 64, 16, 82),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  theme.name,
-                  style: theme.caption.copyWith(color: theme.inkMuted),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(l10n.homeScreenTitle, style: theme.displayLarge),
                 ),
-                const SizedBox(height: 2),
-                Text(l10n.homeScreenTitle, style: theme.displayLarge),
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
                 for (var i = 0; i < rows.length; i++)
                   _mockRow(
                     theme,
                     name: rows[i].$1,
                     sub: rows[i].$2,
                     unread: rows[i].$3,
-                    seed: i * 9 + 4,
                     divider: i < rows.length - 1,
                   ),
-                const SizedBox(height: 28),
-                _bubble(
-                  theme,
-                  text: l10n.themeScreenPreviewBubbleQuestion,
-                  mine: false,
-                ),
-                const SizedBox(height: 6),
-                _bubble(
-                  theme,
-                  text: l10n.themeScreenPreviewBubbleAnswer,
-                  mine: true,
-                ),
+                const SizedBox(height: 14),
+                Expanded(child: _room(context, theme, l10n, style)),
               ],
             ),
           ),
@@ -792,17 +958,154 @@ class _PreviewPage extends StatelessWidget {
     );
   }
 
+  /// An open room on the theme's raised surface: header, transcript pinned
+  /// to the bottom like a real one (a short screen clips the oldest first),
+  /// composer.
+  Widget _room(
+    BuildContext context,
+    AppTheme theme,
+    AppLocalizations l10n,
+    BubbleStyle style,
+  ) {
+    final hairline = theme.ink.withValues(alpha: 0.10);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(groupedRadius(theme)),
+      child: ColoredBox(
+        color: groupedFill(theme).withValues(alpha: 0.55),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: hairline, width: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  MonogramAvatar(
+                    label: l10n.glassScreenPreviewRoomName.replaceAll('#', ''),
+                    seed: 'balcony',
+                    size: 32,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.glassScreenPreviewRoomName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodyEmph.copyWith(color: theme.ink),
+                        ),
+                        Text(
+                          l10n.glassScreenPreviewOnlineCount,
+                          style: groupedMetaStyle(theme),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ClipRect(
+                child: SingleChildScrollView(
+                  reverse: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                  child: Column(
+                    children: [
+                      _bubble(
+                        theme,
+                        style,
+                        text: l10n.themeScreenPreviewGreeting,
+                        mine: false,
+                        first: true,
+                        last: false,
+                      ),
+                      const SizedBox(height: 2),
+                      _bubble(
+                        theme,
+                        style,
+                        text: l10n.themeScreenPreviewBubbleQuestion,
+                        mine: false,
+                        first: false,
+                        last: true,
+                      ),
+                      const SizedBox(height: 8),
+                      _bubble(
+                        theme,
+                        style,
+                        text: l10n.themeScreenPreviewBubbleAnswer,
+                        mine: true,
+                        first: true,
+                        last: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            _composer(theme, l10n),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _composer(AppTheme theme, AppLocalizations l10n) {
+    Widget disc(IconData icon, {required Color fill, required Color ink}) =>
+        Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
+          child: Icon(icon, size: 18, color: ink),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+      child: Row(
+        children: [
+          disc(
+            CupertinoIcons.plus,
+            fill: theme.ink.withValues(alpha: 0.08),
+            ink: theme.inkMuted,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              alignment: Alignment.centerLeft,
+              // The theme's own field: Basic's sunken pill, Risograph's
+              // inked slab.
+              decoration: theme.inputDecoration(),
+              child: Text(
+                l10n.glassScreenPreviewMessageHint,
+                style: theme.body.copyWith(color: theme.inkMuted),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          disc(
+            CupertinoIcons.arrow_up,
+            fill: theme.accent,
+            ink: theme.accentInk,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _mockRow(
     AppTheme theme, {
     required String name,
     required String sub,
     required int unread,
-    required int seed,
     required bool divider,
   }) {
-    final hue = theme.avatarGradient(seed).first;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.fromLTRB(4, 9, 4, 9),
       decoration: BoxDecoration(
         border: divider
             ? Border(
@@ -815,31 +1118,8 @@ class _PreviewPage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color.lerp(hue, Colors.white, 0.22)!,
-                  Color.lerp(hue, Colors.black, 0.12)!,
-                ],
-              ),
-            ),
-            child: Text(
-              name.characters.first.toUpperCase(),
-              style: const TextStyle(
-                fontFamily: 'CupertinoSystemDisplay',
-                fontSize: 21,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
+          // The chat list's own lettered face.
+          MonogramAvatar(label: name, seed: name, size: 50),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -866,8 +1146,7 @@ class _PreviewPage extends StatelessWidget {
               ),
               child: Text(
                 '$unread',
-                style: theme.caption.copyWith(
-                  fontSize: 13,
+                style: groupedMetaStyle(theme).copyWith(
                   fontWeight: FontWeight.w600,
                   color: theme.accentInk,
                 ),
@@ -878,18 +1157,28 @@ class _PreviewPage extends StatelessWidget {
     );
   }
 
-  Widget _bubble(AppTheme theme, {required String text, required bool mine}) {
+  Widget _bubble(
+    AppTheme theme,
+    BubbleStyle style, {
+    required String text,
+    required bool mine,
+    required bool first,
+    required bool last,
+  }) {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 260),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        // The real transcript shape, so the preview is what the theme will
-        // actually look like in a room.
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        // The real transcript shape — the chosen bubble style, tails on the
+        // last of a run — so the preview is what the theme will actually
+        // look like in a room.
         decoration: theme.bubbleDecoration(
           isMine: mine,
           ephemeral: false,
-          style: SettingsStore.instance.bubbleStyle,
+          style: style,
+          firstInRun: first,
+          lastInRun: last,
         ),
         child: Text(
           text,

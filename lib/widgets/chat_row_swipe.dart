@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart' show SpringDescription, SpringSimulation;
 import 'package:flutter/services.dart';
 
+import '../keyboard/focusable_tap.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 
@@ -272,39 +273,47 @@ class _ActionStrip extends StatelessWidget {
           margin: EdgeInsets.only(left: w > 0 ? gap : 0),
           child: w < 1
               ? const SizedBox.shrink()
-              : GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+              : FocusableTap(
                   onTap: () => onTap(a),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: a.color,
-                      borderRadius: BorderRadius.circular(
-                        math.min(18, w / 2),
+                  semanticLabel: a.label,
+                  radius: math.min(18, w / 2),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onTap(a),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: a.color,
+                        borderRadius: BorderRadius.circular(
+                          math.min(18, w / 2),
+                        ),
                       ),
-                    ),
-                    alignment: Alignment.center,
-                    child: ClipRect(
-                      child: OverflowBox(
-                        maxWidth: double.infinity,
-                        child: Opacity(
-                          opacity: ((w - 28) / 30).clamp(0.0, 1.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(a.icon, size: 20, color: Colors.white),
-                              if (w > 56) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  a.label,
-                                  maxLines: 1,
-                                  style: theme.caption.copyWith(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                      alignment: Alignment.center,
+                      child: ClipRect(
+                        child: OverflowBox(
+                          maxWidth: double.infinity,
+                          child: Opacity(
+                            opacity: ((w - 28) / 30).clamp(0.0, 1.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(a.icon, size: 20, color: Colors.white),
+                                if (w > 56) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    a.label,
+                                    maxLines: 1,
+                                    // 13 on the body face — the caption slot
+                                    // is tracked mono on character themes.
+                                    style: theme.bodySoft.copyWith(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                       ),

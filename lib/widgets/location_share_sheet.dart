@@ -71,7 +71,10 @@ class _LocationSheet extends StatelessWidget {
       Navigator.of(context).pop(c);
     }
 
+    // Titled like every sheet, so it carries the × too — it used to open as
+    // a bare group with no way out but a swipe.
     return SheetFrame(
+      title: sentenceCaseOf(context, l10n.attachmentMenuLocationLabel),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

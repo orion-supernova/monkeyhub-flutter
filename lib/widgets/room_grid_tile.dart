@@ -7,7 +7,9 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
+import '../l10n/text_case.dart';
+import 'chat_list_row.dart' show MonogramAvatar;
+import 'ios_kit.dart' show SpringPress, groupedMetaStyle, quietFill;
 import 'count_badge.dart';
 import 'muted_badge.dart';
 import 'pinned_badge.dart';
@@ -56,8 +58,14 @@ class RoomGridTile extends StatelessWidget {
         quiet &&
         dmUser == null &&
         (room.avatarStorageId == null || api == null);
-    return GestureDetector(
+    // THE press: a spring under the finger and a keyboard focus stop.
+    return SpringPress(
       onTap: onTap,
+      scale: 0.97,
+      haptic: false,
+      semanticLabel: room.isSavedMessages
+          ? AppLocalizations.of(context).savedMessagesTitle
+          : (dmUser?.displayName ?? room.name),
       child: Container(
         decoration: decoration,
         child: ClipRRect(
@@ -111,19 +119,20 @@ class RoomGridTile extends StatelessWidget {
                 ),
               )
             else
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.surfaceSunken,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: theme.divider),
-                ),
-                child: room.isEphemeral
-                    ? theme.hourglassIcon(size: 20, color: theme.accent)
-                    : Icon(Icons.tag, size: 20, color: theme.accent),
-              ),
+              // The chat list's lettered face, not a Material "#" in a disc;
+              // a secret room keeps its hourglass.
+              room.isEphemeral
+                  ? Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: quietFill(theme),
+                        shape: BoxShape.circle,
+                      ),
+                      child: theme.hourglassIcon(size: 20, color: theme.accent),
+                    )
+                  : MonogramAvatar(label: room.name, seed: room.id, size: 40),
             const SizedBox(width: 10),
             Expanded(
               child: SingleChildScrollView(
@@ -200,8 +209,9 @@ class RoomGridTile extends StatelessWidget {
                 room.isSavedMessages
                     ? AppLocalizations.of(context).savedMessagesTitle
                     : (dmUser?.displayName ?? room.name),
-                style: theme.displaySmall.copyWith(
-                  fontSize: 16,
+                style: theme.bodyEmph.copyWith(
+                  fontSize: 17,
+                  color: theme.ink,
                   fontWeight: room.hasUnread ? FontWeight.w700 : null,
                 ),
                 maxLines: 1,
@@ -214,12 +224,12 @@ class RoomGridTile extends StatelessWidget {
                     : Text(
                         subtitle.text,
                         style: switch (subtitle.kind) {
-                          RoomSubtitleKind.message => theme.body.copyWith(fontSize: 12),
+                          RoomSubtitleKind.message => theme.body.copyWith(fontSize: 13),
                           // The room's own words, not a placeholder: quieter
                           // than a message, but not greyed out to nothing.
                           RoomSubtitleKind.description =>
-                              theme.bodySoft.copyWith(fontSize: 12, height: 1.35),
-                          RoomSubtitleKind.empty => theme.bodySoft.copyWith(fontSize: 12),
+                              theme.bodySoft.copyWith(fontSize: 13, height: 1.35),
+                          RoomSubtitleKind.empty => theme.bodySoft.copyWith(fontSize: 13),
                         },
                         maxLines: subtitle.kind == RoomSubtitleKind.description ? 2 : 1,
                         overflow: TextOverflow.ellipsis,
@@ -232,9 +242,24 @@ class RoomGridTile extends StatelessWidget {
         // the friend's name and avatar already say who's here.
         if (!room.isDm)
           Row(children: [
-            Text('${room.memberCount}', style: theme.monoLarge.copyWith(fontSize: 16)),
+            // A count and its word at meta size on the body face — not a
+            // tracked mono numeral the size of the room's name.
+            Text(
+              '${room.memberCount}',
+              style: groupedMetaStyle(theme).copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.ink,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
             const SizedBox(width: 4),
-            Text(AppLocalizations.of(context).roomGridTileMemberCountLabel, style: theme.monoTiny),
+            Text(
+              sentenceCaseOf(
+                context,
+                AppLocalizations.of(context).roomGridTileMemberCountLabel,
+              ),
+              style: groupedMetaStyle(theme),
+            ),
           ]),
       ],
     );

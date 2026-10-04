@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -55,7 +56,11 @@ class GroupCallButton extends StatelessWidget {
     final service = GroupCallService.maybeInstance;
     final busy = (service?.inCall ?? false) ||
         (CallService.maybeInstance?.inCall ?? false);
-    final icon = kind == CallMediaKind.video ? Icons.videocam : Icons.call;
+    // Outlined, the classic header's glyphs — a DM header wore outlined
+    // handsets while a group header wore filled ones.
+    final icon = kind == CallMediaKind.video
+        ? CupertinoIcons.video_camera
+        : CupertinoIcons.phone;
     final tooltip = switch (kind) {
       CallMediaKind.audio => l10n.callButtonVoiceCallTooltip,
       CallMediaKind.video => l10n.callButtonVideoCallTooltip,
@@ -63,13 +68,15 @@ class GroupCallButton extends StatelessWidget {
     if (liquid) {
       return Tooltip(
         message: tooltip,
+        // 44pt to match the liquid header's own back button and capsule
+        // (room_screen `_controlSize`); both move to 40 together.
         child: LiquidGlass(
           shape: LiquidGlassShape.circle,
           size: const Size(44, 44),
           onTap: busy ? null : () => _open(context),
           child: Icon(
             icon,
-            size: 18,
+            size: 20,
             color: busy ? theme.inkMuted : theme.accent,
           ),
         ),
@@ -86,7 +93,7 @@ class GroupCallButton extends StatelessWidget {
         child: Icon(
           icon,
           color: busy ? theme.inkMuted : theme.inkSoft,
-          size: 18,
+          size: 20,
         ),
       ),
     );

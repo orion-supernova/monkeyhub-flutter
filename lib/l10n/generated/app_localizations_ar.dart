@@ -941,7 +941,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomInfoScreenDescriptionLabel => 'الوصف';
 
   @override
-  String get roomInfoScreenDescriptionHint => 'سطر واحد عن الغرفة…';
+  String get roomInfoScreenDescriptionHint => 'سطر واحد عن الغرفة';
 
   @override
   String get roomInfoScreenVisibilityLabel => 'الظهور';
@@ -990,10 +990,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'هذه الغرفة محمية بكلمة مرور. لا تُعرض كلمة المرور الحالية لأسباب أمنية — أدخل كلمة جديدة لاستبدالها.';
 
   @override
-  String get roomInfoScreenReplacePasswordHint => 'استبدال كلمة المرور…';
+  String get roomInfoScreenReplacePasswordHint => 'استبدال كلمة المرور';
 
   @override
-  String get roomInfoScreenSetPasswordHint => 'أقفل بكلمة مرور…';
+  String get roomInfoScreenSetPasswordHint => 'أقفل بكلمة مرور';
 
   @override
   String get roomInfoScreenRemovePasswordButton => 'إزالة كلمة المرور';
@@ -1297,8 +1297,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get childPolicyScreenRemoveLabel => 'إزالة';
 
   @override
-  String childPolicyScreenRoomMemberCount(Object count) {
-    return '$count فيها';
+  String childPolicyScreenRoomMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count عضو',
+      many: '$count عضوًا',
+      few: '$count أعضاء',
+      two: 'عضوان',
+      one: 'عضو واحد',
+      zero: 'لا أعضاء',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1798,7 +1808,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'همسة · تتلاشى تلقائيًا';
 
   @override
-  String get friendRequestDraftScreenHintStartWith => 'شيء لتبدأ به…';
+  String get friendRequestDraftScreenHintStartWith => 'شيء لتبدأ به';
 
   @override
   String get friendRequestDraftScreenApproveButton =>
@@ -2032,10 +2042,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeShellEmptySettingHint => 'اختر إعدادًا';
 
   @override
-  String get searchScreenHintPeople => 'ابحث عن أشخاص…';
+  String get searchScreenHintPeople => 'ابحث عن أشخاص';
 
   @override
-  String get searchScreenHintRooms => 'ابحث عن غرف…';
+  String get searchScreenHintRooms => 'ابحث عن غرف';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2402,13 +2412,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get createRoomSheetNameLabel => 'الاسم';
 
   @override
-  String get createRoomSheetNameHint => 'سمّها باسم صادق…';
+  String get createRoomSheetNameHint => 'سمّها باسم صادق';
 
   @override
   String get createRoomSheetDescriptionLabel => 'الوصف · اختياري';
 
   @override
-  String get createRoomSheetDescriptionHint => 'سطر واحد عن الغرفة…';
+  String get createRoomSheetDescriptionHint => 'سطر واحد عن الغرفة';
 
   @override
   String get createRoomSheetVisibilityLabel => 'الظهور';
@@ -2462,7 +2472,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get createRoomSheetPasswordLabel => 'كلمة المرور · اختياري';
 
   @override
-  String get createRoomSheetPasswordHint => 'اقفلها بعبارة مرور…';
+  String get createRoomSheetPasswordHint => 'اقفلها بعبارة مرور';
 
   @override
   String get createRoomSheetNameRequiredError => 'الاسم مطلوب';
@@ -3157,10 +3167,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deepOceanThemeSendButtonLabel => 'إرسال';
 
   @override
-  String get deepOceanThemeEphemeralHint => 'اهمس بشيء…';
+  String get deepOceanThemeEphemeralHint => 'اهمس بشيء';
 
   @override
-  String get deepOceanThemeDefaultHint => 'قل شيئًا…';
+  String get deepOceanThemeDefaultHint => 'قل شيئًا';
 
   @override
   String get deepOceanThemeMessageHint => 'رسالة';
@@ -3903,7 +3913,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get groupCallBannerPasswordFieldLabel => 'كلمة المرور';
 
   @override
-  String get groupCallBannerPasswordHint => 'عبارة المرور…';
+  String get groupCallBannerPasswordHint => 'عبارة المرور';
 
   @override
   String get groupCallBannerJoinRoomButtonSemanticLabel => 'انضمام';
@@ -3927,7 +3937,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get socialButtonGoogleContinue => 'المتابعة باستخدام Google';
 
   @override
-  String get discoverListsPeopleTitle => 'أشخاصك.';
+  String get discoverListsPeopleTitle => 'أشخاصك';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3945,7 +3955,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'تصفية أشخاصك…';
+  String get discoverListsFilterHint => 'تصفية أشخاصك';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'مسح التصفية';
@@ -3959,7 +3969,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'غرفك.';
+  String get discoverListsRoomsTitle => 'غرفك';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3977,7 +3987,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'تصفية غرفك…';
+  String get discoverListsFilterRoomsHint => 'تصفية غرفك';
 
   @override
   String get discoverListsNoRoomsYet => 'لا غرف بعد';
@@ -4702,7 +4712,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportProblemDescribeLabel => 'ماذا حدث';
 
   @override
-  String get reportProblemDescribeHint => 'الشاشة ترتجف، الأزرار لا تستجيب…';
+  String get reportProblemDescribeHint => 'الشاشة ترتجف، الأزرار لا تستجيب';
 
   @override
   String get reportProblemScreenshotsLabel => 'لقطات الشاشة';
@@ -5264,7 +5274,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get momentTagNpcHint => 'العقل مغلق تمامًا';
 
   @override
-  String get momentComposerTitle => 'ماذا حدث؟';
+  String get momentComposerTitle => 'لحظة جديدة';
 
   @override
   String get momentComposerCaptionHint => 'قل شيئًا عنه';
@@ -5320,7 +5330,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String momentActivityScored(Object name, Object tag) {
-    return '$name حصل على $tag';
+    return '$name سجّل نقطة: $tag';
   }
 
   @override
@@ -5454,7 +5464,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String momentActivityScoredSelf(Object tag) {
-    return 'حصلت على $tag';
+    return 'سجّلت نقطة: $tag';
   }
 
   @override
@@ -5474,7 +5484,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pointComposerNoteHint => 'اختر واحدة أعلاه ثم احكِ';
 
   @override
-  String get pointComposerAdd => 'إضافة نقطة';
+  String get pointComposerAdd => 'أضف نقطة';
 
   @override
   String get pointComposerAddPhoto => 'إضافة صورة';
@@ -5885,7 +5895,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get pullRevealSearchHint => 'ابحث عن محادثات…';
+  String get pullRevealSearchHint => 'ابحث عن محادثات';
 
   @override
   String get pullRevealCollapseSemanticLabel =>
@@ -6174,10 +6184,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get childPolicyScreenLocationOnDesc =>
-      'يمكنه مشاركة مكانه، بما في ذلك مباشرةً حتى 8 ساعات';
+      'يمكنهم مشاركة مكانهم، بما في ذلك مباشرةً حتى 8 ساعات';
 
   @override
-  String get childPolicyScreenLocationOffDesc => 'لا يمكنه مشاركة مكانه';
+  String get childPolicyScreenLocationOffDesc => 'لا يمكنهم مشاركة مكانهم';
 
   @override
   String get roomInfoScreenSavedMessagesLabel => 'الرسائل المحفوظة';
@@ -6377,7 +6387,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String scheduleSendsAtSentence(String when) {
-    return 'تُرسَل $when.';
+    return 'تُرسَل $when';
   }
 
   @override
@@ -6681,7 +6691,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get serverSiteUrlExplain =>
-      'معظم الخوادم تجيب على كل شيء من عنوان واحد. املأ هذا فقط إذا كان خادمك يقدّم إجراءات HTTP من مكان آخر.';
+      'معظم الخوادم تجيب على كل شيء من عنوان واحد. املأ هذا فقط إذا كان خادمك يقدّم إجراءات http من مكان آخر.';
 
   @override
   String get serverSiteUrlHint => 'نفس ما سبق';
@@ -6793,7 +6803,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginScreenSignInWithPhone => 'sign in with your phone';
 
   @override
-  String get loginScreenUsePasswordInstead => 'use a password instead';
+  String get loginScreenUsePasswordInstead => 'استخدم كلمة مرور بدلاً من ذلك';
 
   @override
   String get deviceLoginScreenHeroMuted => 'Scan to\n';
@@ -6803,23 +6813,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+      'افتح MonkeyHub على هاتفك، وانتقل إلى ملفك الشخصي، واضغط «امسح لتسجيل الدخول» ثم وجّه الكاميرا إلى هنا — أو اكتب الرمز أدناه.';
 
   @override
-  String get deviceLoginScreenWaiting => 'waiting for approval…';
+  String get deviceLoginScreenWaiting => 'بانتظار الموافقة…';
 
   @override
-  String get deviceLoginScreenApproved => 'approved — signing you in…';
+  String get deviceLoginScreenApproved => 'تمت الموافقة — جارٍ تسجيل دخولك…';
 
   @override
-  String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
+  String get deviceLoginScreenDenied => 'رُفض طلب تسجيل الدخول على هاتفك';
 
   @override
-  String get deviceLoginScreenGenericError =>
-      'something went wrong — try a new code';
+  String get deviceLoginScreenGenericError => 'حدث خطأ ما — جرّب رمزًا جديدًا';
 
   @override
-  String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
+  String get profileScreenScanToSignInLabel => 'امسح لتسجيل الدخول';
 
   @override
   String get deviceLoginScanScreenHeroMuted => 'Scan to\n';
@@ -6829,42 +6838,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deviceLoginScanScreenIntro =>
-      'Point your camera at the code shown on your computer, or type it in below.';
+      'وجّه الكاميرا إلى الرمز الظاهر على حاسوبك، أو اكتبه أدناه.';
 
   @override
-  String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
+  String get deviceLoginScanScreenScanButtonLabel => 'مسح الرمز';
 
   @override
-  String get deviceLoginScanScreenConfirmTitle => 'sign in on this device?';
+  String get deviceLoginScanScreenConfirmTitle =>
+      'تسجيل الدخول على هذا الجهاز؟';
 
   @override
   String deviceLoginScanScreenConfirmBody(Object deviceInfo) {
-    return '$deviceInfo wants to sign in as you. Only approve this if it’s you, right now.';
+    return 'يريد $deviceInfo تسجيل الدخول باسمك. وافق فقط إذا كنت أنت، الآن.';
   }
 
   @override
-  String get deviceLoginScanScreenApproveButton => 'APPROVE';
+  String get deviceLoginScanScreenApproveButton => 'موافقة';
 
   @override
-  String get deviceLoginScanScreenDenyButton => 'DENY';
+  String get deviceLoginScanScreenDenyButton => 'رفض';
 
   @override
-  String get deviceLoginScanScreenSuccess => 'signed in on your other device';
+  String get deviceLoginScanScreenSuccess => 'تم تسجيل الدخول على جهازك الآخر';
 
   @override
   String get deviceLoginScanScreenGenericError =>
-      'couldn’t approve — try again';
+      'تعذّرت الموافقة — حاول مرة أخرى';
 
   @override
-  String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
+  String get authErrorDeviceLoginInvalid => 'هذا الرمز غير صحيح.';
 
   @override
   String get authErrorDeviceLoginExpired =>
-      'That code has expired — get a new one on the other device.';
+      'انتهت صلاحية هذا الرمز — احصل على رمز جديد من الجهاز الآخر.';
 
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
-      'sign-in request denied';
+      'تم رفض طلب تسجيل الدخول';
 
   @override
   String get roomAdminRoleAdmin => 'مشرف';
@@ -7355,7 +7365,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get newChatMenuJoinTitle => 'الانضمام برمز';
 
   @override
-  String get newChatMenuJoinSub => 'افتح مجموعة شاركها أحدهم معك';
+  String get newChatMenuJoinSub => 'افتح مجموعة شوركت معك';
 
   @override
   String get shareSheetTitle => 'مشاركة مع';
@@ -8458,7 +8468,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get newChatMenuNoFriendsYet =>
-      'لا أصدقاء بعد —\\nابحث عن أشخاص في الاستكشاف';
+      'لا أصدقاء بعد — ابحث عن أشخاص في الاستكشاف';
 
   @override
   String get newChatMenuNoFriendsMatch => 'لا يوجد صديق مطابق';
@@ -10478,7 +10488,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String settingsSearchNoResults(String query) {
-    return 'لا نتائج لـ \"$query\"';
+    return 'لا نتائج لـ “$query”';
   }
 
   @override
@@ -10595,4 +10605,143 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsSearchKwAccount => 'حساب، تسجيل الخروج، حذف، بريد';
+
+  @override
+  String get childPolicyScreenContactStateAllowedTalking => 'يتحدثان';
+
+  @override
+  String get childPolicyScreenContactStateTalking => 'تمت الموافقة';
+
+  @override
+  String get childPolicyScreenContactStateAllowedNotAdded =>
+      'لم تتم الإضافة بعد';
+
+  @override
+  String get profileScreenSignOutConfirmTitle =>
+      'هل تريد تسجيل الخروج على هذا الجهاز؟';
+
+  @override
+  String get profileScreenDeleteAccountConfirmTitle => 'هل تريد حذف حسابك؟';
+
+  @override
+  String get profileScreenDeleteAccountConfirmBody =>
+      'تُحذف رسائلك وصورك وغرفك وأصدقاؤك، ويصبح اسم المستخدم متاحًا لأي شخص آخر.';
+
+  @override
+  String get glassPresetNameFrosted => 'مُصنفَر';
+
+  @override
+  String get glassPresetNameClear => 'شفاف';
+
+  @override
+  String settingsScreenDiagnosticsCountdown(int count) {
+    return 'التشخيص بعد $count…';
+  }
+
+  @override
+  String pairingCodeTitlePair(String name) {
+    return 'إقران $name';
+  }
+
+  @override
+  String pairingCodeTitleRelease(String name) {
+    return 'تحرير $name';
+  }
+
+  @override
+  String archivedChatsSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة',
+      many: '$count محادثة',
+      few: '$count محادثات',
+      two: 'محادثتان',
+      one: 'محادثة واحدة',
+      zero: 'لا محادثات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String pinnedListSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة',
+      many: '$count رسالة',
+      few: '$count رسائل',
+      two: 'رسالتان',
+      one: 'رسالة واحدة',
+      zero: '$count رسالة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get voiceRecorderScreenTitle => 'رسالة صوتية';
+
+  @override
+  String get chatTargetSearchHint => 'بحث';
+
+  @override
+  String get marloweBrainTierSwiftDetail => 'إجابات سريعة، وأخف تنزيل';
+
+  @override
+  String get marloweBrainTierBalancedDetail => 'توازن جيد بين السرعة والعمق';
+
+  @override
+  String get marloweBrainTierDeepDetail =>
+      'الأعمق تفكيرًا، ويحتاج إلى أكبر مساحة';
+
+  @override
+  String get reportFactDeviceId => 'معرّف الجهاز';
+
+  @override
+  String get reportFactUserId => 'معرّف المستخدم';
+
+  @override
+  String get reportFactUsername => 'اسم المستخدم';
+
+  @override
+  String get reportFactApp => 'التطبيق';
+
+  @override
+  String get reportFactDevice => 'الجهاز';
+
+  @override
+  String get reportFactSystem => 'النظام';
+
+  @override
+  String get reportFactDisplay => 'الشاشة';
+
+  @override
+  String get reportFactAppLanguage => 'لغة التطبيق';
+
+  @override
+  String get reportFactSystemLocale => 'لغة النظام';
+
+  @override
+  String get reportFactLog => 'السجل';
+
+  @override
+  String reportFactLogValue(int count) {
+    return '$count حدثًا مرفقًا';
+  }
+
+  @override
+  String reportProblemScreenshotN(int n) {
+    return 'لقطة الشاشة $n';
+  }
+
+  @override
+  String reportProblemRemoveScreenshot(int n) {
+    return 'إزالة لقطة الشاشة $n';
+  }
+
+  @override
+  String get reportFactLanguageFromSystem => 'من النظام';
+
+  @override
+  String get reportFactLanguageChosen => 'مختارة';
 }

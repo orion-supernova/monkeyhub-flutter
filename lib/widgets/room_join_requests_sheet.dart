@@ -7,7 +7,6 @@ import '../data/chat_repository.dart';
 import '../invites/room_admin_errors.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/room_admin.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
@@ -137,9 +136,7 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
       },
       child: SheetFrame(
         title: l10n.roomJoinRequestsTitle,
-        leading: SheetCloseButton(
-          onTap: () => Navigator.of(context).pop(_anyDecided),
-        ),
+        onClose: () => Navigator.of(context).pop(_anyDecided),
         // One scroller for the whole sheet: the frame does not scroll, and
         // a long queue must never overflow it.
         child: SingleChildScrollView(
@@ -151,7 +148,7 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
                 child: Text(
                   l10n.roomJoinRequestsBlurb,
-                  style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                  style: groupedFooterStyle(theme),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -161,12 +158,11 @@ class _JoinRequestsSheetState extends State<_JoinRequestsSheet> {
                   child: Center(child: CupertinoActivityIndicator()),
                 )
               else if (_requests.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 30),
-                  child: Text(
-                    l10n.roomJoinRequestsEmpty,
-                    style: theme.bodySoft,
-                    textAlign: TextAlign.center,
+                EmptyLine(
+                  l10n.roomJoinRequestsEmpty,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 30,
                   ),
                 )
               else
@@ -211,44 +207,16 @@ class _RequestRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
-      child: Row(
-        children: [
-          UserAvatar(user: request.user, size: 40, api: api),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  request.user.displayName,
-                  style: theme.body.copyWith(fontSize: 17, color: theme.ink),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '@${request.user.username}',
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    color: theme.inkMuted,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          DecisionCapsules(
-            busy: busy,
-            approveLabel: l10n.joinRequestAllowIos,
-            onApprove: onApprove,
-            onReject: onReject,
-          ),
-        ],
+    return PersonRow(
+      avatar: UserAvatar(user: request.user, size: kPersonRowAvatar, api: api),
+      title: request.user.displayName,
+      subtitle: '@${request.user.username}',
+      trailing: DecisionCapsules(
+        busy: busy,
+        approveLabel: l10n.joinRequestAllowIos,
+        onApprove: onApprove,
+        onReject: onReject,
       ),
     );
   }
@@ -276,7 +244,6 @@ class DecisionCapsules extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     if (busy) {
       return const SizedBox(
@@ -284,65 +251,21 @@ class DecisionCapsules extends StatelessWidget {
         child: Center(child: CupertinoActivityIndicator()),
       );
     }
+    // THE inline row pills: a quiet red Decline and a filled accent Allow.
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _Capsule(
+        RowPillButton(
           label: l10n.requestDeclineIos,
-          fill: theme.ink.withValues(alpha: 0.09),
-          ink: theme.danger,
+          destructive: true,
           onTap: onReject,
         ),
-        const SizedBox(width: 6),
-        _Capsule(
+        RowPillButton(
           label: approveLabel,
-          fill: theme.bubbleFill(isMine: true),
-          ink: theme.accentInk,
+          filled: true,
           onTap: onApprove,
         ),
       ],
-    );
-  }
-}
-
-class _Capsule extends StatelessWidget {
-  const _Capsule({
-    required this.label,
-    required this.fill,
-    required this.ink,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color fill;
-  final Color ink;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      scale: 0.93,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 32),
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: fill,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: theme.bodySoft.copyWith(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-            color: ink,
-          ),
-        ),
-      ),
     );
   }
 }

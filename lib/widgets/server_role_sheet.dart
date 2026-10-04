@@ -58,8 +58,12 @@ class _ServerRoleSheet extends StatelessWidget {
     // sentence below it.
     final note = homeserver ? ServerDirectory.instance.last?.note : null;
     final tone = homeserver ? TileTone.indigo : TileTone.teal;
+    // The name in the bar like every sheet; the big tile stays in the body
+    // as the hero, with the address and the explanation under it.
     return SheetFrame(
-      leading: const SheetCloseButton(),
+      title: homeserver
+          ? l10n.serverRoleHomeserverTitle
+          : l10n.serverRoleSelfHostedTitle,
       // Scrolls rather than overflows. Not defensive padding — the first render
       // of this sheet overflowed by 20px at a plain 390x620, and the two things
       // that make it taller are exactly the two nobody controls from here: the
@@ -71,7 +75,7 @@ class _ServerRoleSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // An info card in the App Store shape: the subject as a large
-            // tile, its name centred under it.
+            // tile.
             Center(
               child: Container(
                 width: 64,
@@ -90,14 +94,6 @@ class _ServerRoleSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            Text(
-              homeserver
-                  ? l10n.serverRoleHomeserverTitle
-                  : l10n.serverRoleSelfHostedTitle,
-              style: theme.displaySmall.copyWith(fontSize: 22, color: theme.ink),
-              textAlign: TextAlign.center,
-            ),
             // The address, for the one server whose address is the user's.
             //
             // It is the fact underneath every sentence here and the only one
@@ -109,14 +105,11 @@ class _ServerRoleSheet extends StatelessWidget {
             // the reader nothing they can act on. Every other surface already
             // withholds it (see [serverMarkLabels]); this sheet was the one
             // place still publishing it.
-            if (!homeserver) ...[
-              const SizedBox(height: 4),
+            if (!homeserver && store.host.isNotEmpty) ...[
+              const SizedBox(height: 10),
               Text(
                 store.host,
-                style: theme.bodySoft.copyWith(
-                  fontSize: 15,
-                  color: theme.inkMuted,
-                ),
+                style: groupedSubtitleStyle(theme),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -222,8 +215,7 @@ class _Point extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 text,
-                style: theme.bodySoft.copyWith(
-                  fontSize: 15,
+                style: groupedSubtitleStyle(theme).copyWith(
                   color: theme.inkSoft,
                 ),
               ),

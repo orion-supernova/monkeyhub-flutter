@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/room_filter.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
+import 'filter_capsule.dart';
 
 /// The always-visible control for [FilterStyle.chips].
 ///
@@ -124,77 +124,18 @@ class _Chip extends StatelessWidget {
   final int? count;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final empty = count == 0;
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: FocusableTap(
-        onTap: onTap,
-        semanticLabel: count == null
-            ? label
-            : AppLocalizations.of(
-                context,
-              ).roomFilterBarChipCountSemanticLabel(count!, label),
-        selected: active,
-        shape: FocusRingShape.capsule,
-        radius: 999,
-        inset: 2,
-        child: GestureDetector(
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: FilterCapsule(
+          label: sentenceCaseOf(context, label),
+          active: active,
           onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: theme.motionFast,
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            alignment: Alignment.center,
-            // Soft neutral capsules at rest, the chosen one solid accent —
-            // the Apple Music filter treatment. The chosen chip used to be a
-            // 18% accent wash, which on a dark page is a navy blob.
-            decoration: BoxDecoration(
-              color: active
-                  ? theme.accent
-                  : theme.ink.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedDefaultTextStyle(
-                  duration: theme.motionFast,
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 15,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                    letterSpacing: -0.2,
-                    color: active
-                        ? theme.accentInk
-                        // A facet matching nothing is dimmed rather than
-                        // hidden — the row would otherwise reshuffle itself
-                        // every time a room was read or archived.
-                        : (empty ? theme.inkMuted : theme.inkSoft),
-                  ),
-                  child: Text(sentenceCaseOf(context, label)),
-                ),
-                if (count != null && count! > 0) ...[
-                  const SizedBox(width: 5),
-                  Text(
-                    '$count',
-                    style: theme.caption.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      color: active
-                          ? theme.accentInk.withValues(alpha: 0.75)
-                          : theme.inkMuted,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          count: count,
+          semanticLabel: count == null
+              ? label
+              : AppLocalizations.of(
+                  context,
+                ).roomFilterBarChipCountSemanticLabel(count!, label),
         ),
-      ),
-    );
-  }
+      );
 }

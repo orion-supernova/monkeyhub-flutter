@@ -546,7 +546,12 @@ Widget _smallAvatar({
       preview.senderName.isEmpty
           ? '?'
           : preview.senderName.characters.first.toUpperCase(),
-      style: theme.monoTiny.copyWith(color: accentTone, height: 1.0),
+      style: theme.bodySoft.copyWith(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: accentTone,
+        height: 1.0,
+      ),
     ),
   );
 }
@@ -653,7 +658,7 @@ class _BranchButton extends StatelessWidget {
 /// The quoted author's name, in every reply style: sentence case, semibold,
 /// untracked. It was tracked-out monospace capitals, which shouted the one
 /// word in the quote that matters least.
-TextStyle replyNameStyle(AppTheme theme) => theme.caption.copyWith(
+TextStyle replyNameStyle(AppTheme theme) => theme.bodySoft.copyWith(
       fontSize: 13,
       fontWeight: FontWeight.w600,
       letterSpacing: 0,
@@ -1566,7 +1571,7 @@ class InlineReplyQuote extends StatelessWidget {
         ? AppLocalizations.of(context).replyIndicatorMessageRemoved
         : _previewLabel(context, preview);
     final lineStyle = theme.bodySoft.copyWith(
-      fontSize: 14,
+      fontSize: 15,
       height: 1.25,
       color: deleted ? theme.inkMuted : lineInk,
     );

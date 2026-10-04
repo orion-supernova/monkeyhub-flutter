@@ -920,15 +920,14 @@ class _PillBottomNavState extends State<PillBottomNav>
                                 // side of the content inside a segment, so the
                                 // overflow has somewhere to go.
                                 left: iconSize - 9,
-                                // Sits on the accent-filled sliding indicator
-                                // when this segment is the active one, so it has
-                                // to invert there. Hardcoding `false` painted
-                                // accent@0.16 on accent@0.16 and the badge
-                                // vanished on the one segment most likely to
-                                // carry it.
-                                child: CountBadge(
+                                // THE tab badge: a solid danger capsule with
+                                // white tabular digits — what the native
+                                // UITabBar shows, so the two bars agree. The
+                                // quiet in-list badge was accent digits on a
+                                // faint fill, near-invisible on an inactive
+                                // tab and letter-spaced on character themes.
+                                child: CountBadge.tab(
                                   count: widget.badges[d.section]!,
-                                  onAccent: t > 0.5,
                                 ),
                               ),
                           ],
