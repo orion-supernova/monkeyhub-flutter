@@ -1387,7 +1387,7 @@
   "glassKnobLabelSaturation": "色のにじみ",
   "glassKnobHintSaturation": "ぼかしの中でどれだけ色が残るか。2を超えるとポスタリゼーションが起きます",
   "glassKnobLabelRimOpacity": "縁",
-  "glassKnobHintRimOpacity": "アクセントとなる輪郭線。0にすると縁のないサーフェスに",
+  "glassKnobHintRimOpacity": "ガラスの縁の明るさ。0にすると枠線が消えます",
   "glassKnobLabelRimWidth": "縁の太さ",
   "glassKnobHintRimWidth": "その輪郭線の太さ",
   "glassKnobLabelShadowOpacity": "影",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{total}件中{shown}件のイベント",
   "diagDropped": "{count, plural, other{以前のイベント{count}件を破棄しました — ログは途中から始まります}}",
   "diagRepeatSpan": "{seconds}秒で×{count}",
-  "roomContentTabSemantic": "{label}、{count}件"
+  "roomContentTabSemantic": "{label}、{count}件",
+  "mapAppsTitle": "マップ",
+  "mapAppsChoose": "位置情報を開くアプリ",
+  "mapAppsRemember": "デフォルトに設定",
+  "mapAppsAskEveryTime": "毎回確認する",
+  "mapAppsBrowser": "ブラウザ",
+  "mapAppsSubtitle": "共有された位置情報を開くアプリを選びます。",
+  "mapAppsUnavailable": "デフォルトのマップアプリを利用できません。別のアプリを選んでください。",
+  "mapAppsNoInstalled": "対応するマップアプリが見つかりません。ブラウザを利用できます。",
+  "interactionAnswersSearch": "名前や回答を検索",
+  "interactionFilterEmpty": "このフィルターに一致する回答はありません。",
+  "interactionRetry": "再試行"
 }

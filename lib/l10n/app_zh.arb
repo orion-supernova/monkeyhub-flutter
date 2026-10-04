@@ -1387,7 +1387,7 @@
   "glassKnobLabelSaturation": "色彩溢出",
   "glassKnobHintSaturation": "模糊后残留的色彩程度，超过 2 会出现色调分离",
   "glassKnobLabelRimOpacity": "边框",
-  "glassKnobHintRimOpacity": "强调色边框，设为零则无边框",
+  "glassKnobHintRimOpacity": "玻璃边缘的亮度。设为零可隐藏边框",
   "glassKnobLabelRimWidth": "边框宽度",
   "glassKnobHintRimWidth": "该边框的粗细",
   "glassKnobLabelShadowOpacity": "阴影",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{total} 个事件中的 {shown} 个",
   "diagDropped": "{count, plural, other{已丢弃 {count} 个较早的事件——日志从中途开始}}",
   "diagRepeatSpan": "{seconds} 秒内 ×{count}",
-  "roomContentTabSemantic": "{label}，{count} 项"
+  "roomContentTabSemantic": "{label}，{count} 项",
+  "mapAppsTitle": "地图",
+  "mapAppsChoose": "打开位置的应用",
+  "mapAppsRemember": "设为默认应用",
+  "mapAppsAskEveryTime": "每次询问",
+  "mapAppsBrowser": "浏览器",
+  "mapAppsSubtitle": "选择用于打开共享位置的应用。",
+  "mapAppsUnavailable": "默认地图应用不可用，请选择其他应用。",
+  "mapAppsNoInstalled": "未找到支持的地图应用，可以使用浏览器。",
+  "interactionAnswersSearch": "搜索用户或回答",
+  "interactionFilterEmpty": "没有符合此筛选条件的回答。",
+  "interactionRetry": "重试"
 }

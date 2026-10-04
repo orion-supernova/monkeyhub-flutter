@@ -5056,8 +5056,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get glassKnobLabelRimOpacity => 'حافة';
 
   @override
-  String get glassKnobHintRimOpacity =>
-      'خط الحافة المميز. اجعله صفرًا لسطح بلا حدود.';
+  String get glassKnobHintRimOpacity => 'سطوع حافة الزجاج. صفر لسطح بلا حدود';
 
   @override
   String get glassKnobLabelRimWidth => 'سُمك الحافة';
@@ -11118,4 +11117,39 @@ class AppLocalizationsAr extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label، $count عنصر';
   }
+
+  @override
+  String get mapAppsTitle => 'الخرائط';
+
+  @override
+  String get mapAppsChoose => 'فتح الموقع في';
+
+  @override
+  String get mapAppsRemember => 'استخدام كافتراضي';
+
+  @override
+  String get mapAppsAskEveryTime => 'السؤال في كل مرة';
+
+  @override
+  String get mapAppsBrowser => 'المتصفح';
+
+  @override
+  String get mapAppsSubtitle => 'اختر أين تُفتح المواقع المشتركة.';
+
+  @override
+  String get mapAppsUnavailable =>
+      'تطبيق الخرائط الافتراضي غير متاح. اختر تطبيقًا آخر.';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'لم يتم العثور على تطبيق خرائط مدعوم. يمكنك استخدام المتصفح.';
+
+  @override
+  String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
+
+  @override
+  String get interactionFilterEmpty => 'لا توجد إجابات تطابق هذا الفلتر.';
+
+  @override
+  String get interactionRetry => 'المحاولة مجددًا';
 }

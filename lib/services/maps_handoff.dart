@@ -1,133 +1,165 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 
-/// Hands a coordinate pair to whatever the user already uses for maps.
-///
-/// This is the whole of this app's involvement in navigation, and that is a
-/// decision rather than an omission. Turn-by-turn is a product, not a feature:
-/// it needs routing data, traffic, voice, re-routing, offline tiles and a
-/// licence for all of it. The user already has an application that does those
-/// things, has already granted it whatever it needs, and already prefers it.
-/// So a tap on a location bubble ends here, in their app, at their pin.
-///
-/// Three routes, tried in order, because each platform has exactly one right
-/// answer and one honest fallback:
-///
-///  * **Android — `geo:`**. The platform intent, which raises the app chooser
-///    if the user has more than one maps app and goes straight through if they
-///    have one. Preferred over a Google Maps URL specifically because it does
-///    *not* presume Google Maps: Organic Maps, OsmAnd and Waze all register for
-///    it.
-///  * **iOS — `maps://`**. Apple Maps' own scheme. Third-party maps apps on iOS
-///    cannot claim it, so this is genuinely "the platform's map" rather than
-///    "the user's choice"; iOS offers no chooser intent to use instead.
-///  * **Everywhere else, and as a last resort — an OpenStreetMap web URL**.
-///    Reached on web, Linux and Windows, and on a phone whose maps app has been
-///    removed. OpenStreetMap because it is the one map host that needs no key
-///    and no account to *link* to, which keeps this file consistent with the
-///    rest of the feature (see LocationMapPreview) — and because a link is the
-///    one place a third party unavoidably learns the coordinates, so it should
-///    at least be a party that is not selling them. Swapping the host is the
-///    one constant below.
+@immutable
+class MapApp {
+  const MapApp(this.id, this.name);
+  final String id;
+  final String name;
+}
+
+/// App discovery never launches an app or sends coordinates. Android discovers
+/// geo-intent handlers; iOS probes the supported apps' declared URL schemes.
 class MapsHandoff {
-  /// Where the web fallback points. One constant, deliberately, so changing
-  /// this app's mind about which map site to hand people to is a one-line
-  /// change and not a search.
-  static const _webHost = 'https://www.openstreetmap.org';
+  static const _channel = MethodChannel('monkeyhub/maps');
+  static const browser = MapApp('browser', 'Browser');
+  static const _iosApps = [
+    MapApp('apple', 'Apple Maps'),
+    MapApp('google', 'Google Maps'),
+    MapApp('yandex', 'Yandex Maps'),
+    MapApp('waze', 'Waze'),
+  ];
 
-  /// Zoom for the web fallback — street level. High enough to see which
-  /// building, low enough that a fix with 100 m of error doesn't imply a
-  /// doorway.
-  static const _webZoom = 17;
+  static Future<List<MapApp>> availableApps() async {
+    final apps = <MapApp>[];
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        final rows = await _channel.invokeListMethod<dynamic>('available');
+        for (final row in rows ?? []) {
+          if (row is Map && row['id'] is String && row['name'] is String) {
+            apps.add(MapApp('android:${row['id']}', row['name'] as String));
+          }
+        }
+      } catch (_) {
+        /* Browser remains available if native discovery fails. */
+      }
+    } else if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      for (final app in _iosApps) {
+        if (defaultTargetPlatform == TargetPlatform.macOS &&
+            app.id != 'apple') {
+          continue;
+        }
+        try {
+          if (await launcher.canLaunchUrl(
+            appUri(app.id, latitude: 0, longitude: 0),
+          )) {
+            apps.add(app);
+          }
+        } catch (_) {
+          /* An uninstalled app is not offered. */
+        }
+      }
+    }
+    return [...apps, browser];
+  }
 
-  /// Opens [latitude],[longitude] in the platform's maps application.
-  ///
-  /// [label] is what the pin is called where the platform supports naming one
-  /// (Android's `geo:` query, Apple's `q`). Passing the sender's name is what
-  /// makes three shared locations in one afternoon distinguishable once they
-  /// are open in a maps app that has forgotten which chat they came from.
-  ///
-  /// Returns false when nothing could be opened at all — every route refused —
-  /// so the caller can say so rather than leaving a tap that appears to do
-  /// nothing.
-  static Future<bool> open({
+  static bool validCoordinates(double latitude, double longitude) =>
+      latitude.isFinite &&
+      longitude.isFinite &&
+      latitude.abs() <= 90 &&
+      longitude.abs() <= 180;
+
+  static Uri appUri(
+    String id, {
+    required double latitude,
+    required double longitude,
+    String? label,
+  }) {
+    final lat = latitude.toStringAsFixed(6);
+    final lng = longitude.toStringAsFixed(6);
+    final name = (label ?? '').trim();
+    return switch (id) {
+      'apple' => Uri(
+        scheme: 'maps',
+        host: '',
+        queryParameters: {
+          'll': '$lat,$lng',
+          'q': name.isEmpty ? 'Shared location' : name,
+        },
+      ),
+      'google' => Uri(
+        scheme: 'comgooglemaps',
+        host: '',
+        queryParameters: {
+          'q': '$lat,$lng',
+          'center': '$lat,$lng',
+          'zoom': '17',
+        },
+      ),
+      // Yandex takes LONGITUDE first. pt adds a pin; ll centres the view.
+      'yandex' => Uri(
+        scheme: 'yandexmaps',
+        host: 'maps.yandex.ru',
+        path: '/',
+        queryParameters: {'ll': '$lng,$lat', 'pt': '$lng,$lat', 'z': '17'},
+      ),
+      'waze' => Uri(
+        scheme: 'waze',
+        host: '',
+        queryParameters: {'ll': '$lat,$lng', 'navigate': 'no', 'zoom': '17'},
+      ),
+      _ => Uri.parse(
+        'https://www.openstreetmap.org/?mlat=$lat&mlon=$lng#map=17/$lat/$lng',
+      ),
+    };
+  }
+
+  static Future<bool> launch(
+    MapApp app, {
     required double latitude,
     required double longitude,
     String? label,
   }) async {
-    for (final uri in candidateUris(
-      latitude: latitude,
-      longitude: longitude,
-      label: label,
-    )) {
-      if (await _tryLaunch(uri)) return true;
+    if (!validCoordinates(latitude, longitude)) return false;
+    try {
+      if (app.id.startsWith('android:')) {
+        return await _channel.invokeMethod<bool>('open', {
+              'id': app.id.substring(8),
+              'latitude': latitude,
+              'longitude': longitude,
+              'label': label ?? '',
+            }) ??
+            false;
+      }
+      return await launcher.launchUrl(
+        appUri(app.id, latitude: latitude, longitude: longitude, label: label),
+        mode: launcher.LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      return false;
     }
-    return false;
   }
 
-  /// The URIs [open] will try, in order.
-  ///
-  /// Exposed (and pure) so the scheme construction — the part with the
-  /// platform-specific escaping and the easily-transposed lat/lng pairs — can be
-  /// tested without launching anything.
+  // Compatibility for pure URI callers. Interactive location cards use the
+  // app picker instead of silently opening the platform's first maps app.
   static List<Uri> candidateUris({
     required double latitude,
     required double longitude,
     String? label,
   }) {
-    // Six decimal places here rather than the five the bubble prints. This
-    // string is consumed by software, not read by a person, so the rounding
-    // that keeps a UI honest only loses precision.
-    final lat = latitude.toStringAsFixed(6);
-    final lng = longitude.toStringAsFixed(6);
-    final name = (label ?? '').trim();
-
-    final web = Uri.parse(
-      '$_webHost/?mlat=$lat&mlon=$lng#map=$_webZoom/$lat/$lng',
-    );
-
+    final web = appUri('browser', latitude: latitude, longitude: longitude);
     if (kIsWeb) return [web];
-
-    // `Platform` is only touched behind the kIsWeb guard above — reading it in
-    // a browser throws.
-    if (Platform.isAndroid) {
-      // `geo:lat,lng?q=lat,lng(Label)`. The `q` repeats the coordinates on
-      // purpose: without it some handlers treat the path as a map centre and
-      // drop no pin at all, and the pair inside `q` is what actually gets
-      // marked. The label goes in parentheses per the intent's format, and is
-      // encoded because a sender's name may contain anything.
-      final q = name.isEmpty
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final lat = latitude.toStringAsFixed(6),
+          lng = longitude.toStringAsFixed(6);
+      final q = (label ?? '').trim().isEmpty
           ? '$lat,$lng'
-          : '$lat,$lng(${Uri.encodeComponent(name)})';
-      return [Uri.parse('geo:$lat,$lng?q=$q'), web];
-    }
-    if (Platform.isIOS || Platform.isMacOS) {
-      // `ll` centres the map, `q` names the pin. Apple Maps drops the pin at
-      // `ll` when `q` is not itself an address, which is why the label may be
-      // free text here and must not be on Android.
-      final q = name.isEmpty ? 'Shared location' : name;
+          : '$lat,$lng(${label!.trim()})';
       return [
-        Uri.parse('maps://?ll=$lat,$lng&q=${Uri.encodeComponent(q)}'),
+        Uri.parse('geo:$lat,$lng').replace(queryParameters: {'q': q}),
+        web,
+      ];
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      return [
+        appUri('apple', latitude: latitude, longitude: longitude, label: label),
         web,
       ];
     }
     return [web];
-  }
-
-  static Future<bool> _tryLaunch(Uri uri) async {
-    try {
-      return await launcher.launchUrl(
-        uri,
-        // External, always. A coordinate handed to an in-app browser is a
-        // coordinate that has gone nowhere useful — the point is to leave.
-        mode: launcher.LaunchMode.externalApplication,
-      );
-    } catch (_) {
-      // A scheme with no handler throws on some platforms and returns false on
-      // others. Both mean "try the next one" — the same shape LinkOpener uses.
-      return false;
-    }
   }
 }

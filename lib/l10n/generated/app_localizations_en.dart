@@ -4953,7 +4953,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glassKnobHintRimOpacity =>
-      'The accent outline. Zero for a borderless surface';
+      'Brightness of the glass edge. Zero for a borderless surface';
 
   @override
   String get glassKnobLabelRimWidth => 'Rim width';
@@ -10961,4 +10961,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count items';
   }
+
+  @override
+  String get mapAppsTitle => 'Maps';
+
+  @override
+  String get mapAppsChoose => 'Open location in';
+
+  @override
+  String get mapAppsRemember => 'Use as default';
+
+  @override
+  String get mapAppsAskEveryTime => 'Ask every time';
+
+  @override
+  String get mapAppsBrowser => 'Browser';
+
+  @override
+  String get mapAppsSubtitle => 'Choose where shared locations open.';
+
+  @override
+  String get mapAppsUnavailable =>
+      'Your default maps app is unavailable. Choose another.';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'No supported maps apps found. You can use your browser.';
+
+  @override
+  String get interactionAnswersSearch => 'Search people or answers';
+
+  @override
+  String get interactionFilterEmpty => 'No answers match this filter.';
+
+  @override
+  String get interactionRetry => 'Try again';
 }

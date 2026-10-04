@@ -134,20 +134,6 @@ class RoomCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
             ],
-            if (room.hasUnread) ...[
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: theme.accent,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 9),
-            ],
             Expanded(
               child: Text(
                 room.isSavedMessages
@@ -165,11 +151,13 @@ class RoomCard extends StatelessWidget {
             // say so here. [hasUnread] above goes quiet by the same rule, so
             // the dot and the bold name go with the pill rather than leaving a
             // half-silenced row.
-            if (room.visibleUnreadCount > 0) ...[
+            if (room.hasUnread || room.visibleUnreadCount > 0) ...[
               const SizedBox(width: 8),
-              CountBadge(
+              RoomUnreadBadge(
                 count: room.visibleUnreadCount,
+                unread: room.hasUnread,
                 mention: room.hasVisibleMention,
+                quiet: room.isMuted,
               ),
             ],
           ],

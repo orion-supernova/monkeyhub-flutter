@@ -9,6 +9,7 @@ import '../models/enums.dart';
 import '../models/message_interaction.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
+import 'attachment_bubble_frame.dart';
 import 'message_stamp.dart';
 
 /// Everything a transcript can do to a poll, checklist or event, in one object.
@@ -182,27 +183,19 @@ class InteractionBubble extends StatelessWidget {
     final respond = actions.onRespond == null
         ? null
         : (String choiceId) => actions.onRespond!(id, choiceId);
-    final showRespondents = actions.onShowRespondents == null ||
+    final showRespondents =
+        actions.onShowRespondents == null ||
             // Never on an anonymous poll: the server refuses it, and a tap whose
             // only possible outcome is a refusal is worse than no tap at all.
             it?.anonymous == true
         ? null
         : () => actions.onShowRespondents!(id);
 
-    return Container(
+    return AttachmentBubbleFrame(
+      theme: theme,
+      radius: radius,
       width: width,
-      decoration: BoxDecoration(
-        // The card's own ground, not the bubble decoration. An interactive
-        // message is a piece of furniture with controls on it — filling it with
-        // the outgoing accent would put a filled bar and a filled checkbox on a
-        // filled ground, and none of the three would read. So mine and theirs
-        // share one surface, and the row's alignment says which is which,
-        // exactly as it does for a photo or a map card.
-        color: theme.surfaceSunken,
-        borderRadius: radius,
-        border: Border.all(color: theme.divider, width: 1),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,13 +206,17 @@ class InteractionBubble extends StatelessWidget {
           // line that makes a body-less card still say what it asked.
           Text(
             message.content,
-            style: theme.bodyEmph.copyWith(color: theme.ink, height: 1.25),
+            style: theme.bodyEmph.copyWith(
+              color: theme.ink,
+              fontSize: 17,
+              height: 1.3,
+            ),
           ),
           if (it != null && it.kind == MessageType.event) ...[
             const SizedBox(height: 8),
             _EventWhen(theme: theme, interaction: it, l10n: l10n, now: clock()),
           ],
-          const SizedBox(height: 11),
+          const SizedBox(height: 12),
           if (it == null)
             // The body has not landed. A row of muted placeholders rather than
             // a spinner: this resolves in a frame or two on a live room, and a
@@ -232,8 +229,12 @@ class InteractionBubble extends StatelessWidget {
               theme: theme,
               interaction: it,
               l10n: l10n,
+              canAdminister: _canAdminister,
               onRespond: respond,
-              onRemoveItem: _canAdminister && actions.onRemoveItem != null
+              onRemoveItem:
+                  it.kind == MessageType.checklist &&
+                      _canAdminister &&
+                      actions.onRemoveItem != null
                   ? (choiceId) => actions.onRemoveItem!(id, choiceId)
                   : null,
               onShowRespondents: showRespondents,
@@ -252,7 +253,8 @@ class InteractionBubble extends StatelessWidget {
                   ? null
                   : (label) => actions.onAddItem!(id, label),
             ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          Divider(height: 12, thickness: 0.5, color: attachmentEdge(theme)),
           _Footer(
             theme: theme,
             interaction: it,
@@ -302,37 +304,30 @@ class _Header extends StatelessWidget {
     final kind = message.type;
     final (icon, label) = switch (kind) {
       MessageType.checklist => (
-          CupertinoIcons.checkmark_square,
-          l10n.interactionKindChecklist,
-        ),
-      MessageType.event => (
-          CupertinoIcons.calendar,
-          l10n.interactionKindEvent,
-        ),
+        CupertinoIcons.checkmark_square,
+        l10n.interactionKindChecklist,
+      ),
+      MessageType.event => (CupertinoIcons.calendar, l10n.interactionKindEvent),
       // Everything else reaching this widget is a poll — `buildMessageContent`
       // routes only the three interactive types here, and the two above are
       // named. A quiz is a poll wearing a badge, not a fourth kind.
       _ => (
-          CupertinoIcons.chart_bar_alt_fill,
-          it?.quiz == true ? l10n.interactionKindQuiz : l10n.interactionKindPoll,
-        ),
+        CupertinoIcons.chart_bar_alt_fill,
+        it?.quiz == true ? l10n.interactionKindQuiz : l10n.interactionKindPoll,
+      ),
     };
 
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Icon(icon, size: 14, color: theme.accent),
-        const SizedBox(width: 6),
-        Text(
-          // Sentence case, as stored in the ARB — never `toUpperCase()`d
-          // (Dart's invariant mapping turns Turkish "i" into "I", not "İ") —
-          // and on the body face, never the theme's tracked mono.
-          label,
-          style: _meta(theme).copyWith(
-            color: theme.accent,
-            fontWeight: FontWeight.w600,
-          ),
+        AttachmentKindLabel(
+          theme: theme,
+          icon: icon,
+          label: label,
+          color: _interactionTone(theme, kind),
         ),
-        const Spacer(),
         if (it != null) ...[
           if (it.anonymous)
             _Badge(theme: theme, text: l10n.interactionBadgeAnonymous),
@@ -360,27 +355,18 @@ class _Badge extends StatelessWidget {
   final AppTheme theme;
   final String text;
 
-  /// CLOSED reads against the accent rather than the muted ground, because it
-  /// is the one badge that says a control the reader can see will not work.
+  /// CLOSED has stronger ink so it remains clear without a bright filled pill.
   final bool emphatic;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 5),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: emphatic ? theme.accent : theme.surface,
-          borderRadius: BorderRadius.circular(theme.radiusSm),
-        ),
-        child: Text(
-          // Sentence case from the ARB — see the note in [_Header].
-          text,
-          style: _meta(theme).copyWith(
-            color: emphatic ? theme.accentInk : theme.inkMuted,
-            fontWeight: FontWeight.w600,
-          ),
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: _meta(theme).copyWith(
+          color: emphatic ? theme.inkSoft : attachmentSecondaryInk(theme),
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -425,27 +411,29 @@ class _EventWhen extends StatelessWidget {
           children: [
             Icon(
               CupertinoIcons.clock,
-              size: 13,
+              size: 15,
               // A past event is dimmed rather than hidden or struck through.
               // The card stays in the transcript forever and the RSVPs on it
               // are a record of who came; saying "this already happened" is
               // information, and taking the line away would remove the only
               // thing that dates it.
-              color: past ? theme.inkMuted : theme.inkSoft,
+              color: past ? attachmentSecondaryInk(theme) : theme.inkSoft,
             ),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
                 past ? l10n.interactionEventPast(when) : when,
-                style: _meta(theme).copyWith(
-                  color: past ? theme.inkMuted : theme.inkSoft,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  color: past ? attachmentSecondaryInk(theme) : theme.inkSoft,
                 ),
               ),
             ),
           ],
         ),
         if ((interaction.place ?? '').isNotEmpty) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 7),
           Row(
             children: [
               Icon(CupertinoIcons.placemark, size: 13, color: theme.inkSoft),
@@ -493,16 +481,17 @@ String eventWhenLine({
   required bool use24Hour,
 }) {
   String time(DateTime d) => l.formatTimeOfDay(
-        TimeOfDay.fromDateTime(d),
-        alwaysUse24HourFormat: use24Hour,
-      );
+    TimeOfDay.fromDateTime(d),
+    alwaysUse24HourFormat: use24Hour,
+  );
   final date = l.formatMediumDate(start);
   final from = time(start);
   if (end == null) return '$date · $from';
   // Same day: one date and a range. Different days get both dates, because
   // "20:00 – 02:00" on one line is a four-hour party or a thirty-hour one and
   // nothing on the card would say which.
-  final sameDay = start.year == end.year &&
+  final sameDay =
+      start.year == end.year &&
       start.month == end.month &&
       start.day == end.day;
   if (sameDay) return '$date · $from – ${time(end)}';
@@ -528,10 +517,10 @@ class _ChoicesSkeleton extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 7),
             child: Container(
-              height: 30,
+              height: 44,
               decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(theme.radiusSm),
+                color: attachmentRowFill(theme),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
@@ -546,6 +535,7 @@ class _Choices extends StatelessWidget {
     required this.theme,
     required this.interaction,
     required this.l10n,
+    required this.canAdminister,
     this.onRespond,
     this.onRemoveItem,
     this.onShowRespondents,
@@ -554,6 +544,7 @@ class _Choices extends StatelessWidget {
   final AppTheme theme;
   final MessageInteraction interaction;
   final AppLocalizations l10n;
+  final bool canAdminister;
   final void Function(String choiceId)? onRespond;
   final void Function(String choiceId)? onRemoveItem;
   final VoidCallback? onShowRespondents;
@@ -561,22 +552,172 @@ class _Choices extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final it = interaction;
+    if (it.kind == MessageType.event && it.choices.length == 3) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: attachmentRowFill(theme),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final (index, choice) in it.choices.indexed) ...[
+                  if (index > 0) const SizedBox(width: 3),
+                  Expanded(
+                    child: _RsvpChoice(
+                      key: ValueKey(choice.id),
+                      theme: theme,
+                      interaction: it,
+                      choice: choice,
+                      l10n: l10n,
+                      onRespond: onRespond,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          for (final choice in it.choices)
+            if (choice.respondents.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      interactionChoiceLabel(l10n, it.kind, choice),
+                      style: _meta(theme).copyWith(color: theme.inkSoft),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _RespondentLine(
+                        theme: theme,
+                        choice: choice,
+                        l10n: l10n,
+                        onTap: onShowRespondents,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      );
+    }
     return Column(
       children: [
         for (final choice in it.choices)
           Padding(
+            key: ValueKey(choice.id),
             padding: const EdgeInsets.only(bottom: 7),
             child: _ChoiceRow(
               theme: theme,
               interaction: it,
               choice: choice,
               l10n: l10n,
-              onRespond: onRespond,
+              onRespond:
+                  it.kind != MessageType.checklist ||
+                      canAdminister ||
+                      (it.othersMayCheck &&
+                          (choice.count == 0 ||
+                              it.myChoiceIds.contains(choice.id)))
+                  ? onRespond
+                  : null,
               onRemove: onRemoveItem,
               onShowRespondents: onShowRespondents,
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Event replies form a compact group, like the three actions on an iOS card.
+class _RsvpChoice extends StatelessWidget {
+  const _RsvpChoice({
+    super.key,
+    required this.theme,
+    required this.interaction,
+    required this.choice,
+    required this.l10n,
+    this.onRespond,
+  });
+
+  final AppTheme theme;
+  final MessageInteraction interaction;
+  final InteractionChoice choice;
+  final AppLocalizations l10n;
+  final void Function(String choiceId)? onRespond;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = interaction.choiceSelected(choice);
+    final answerable =
+        onRespond != null &&
+        !interaction.isClosed &&
+        interaction.pendingChoiceIds.isEmpty;
+    final label = interactionChoiceLabel(l10n, interaction.kind, choice);
+    final tone = _interactionTone(theme, MessageType.event);
+    void respond() {
+      HapticFeedback.selectionClick();
+      onRespond!(choice.id);
+    }
+
+    return FocusableTap(
+      onTap: answerable ? respond : null,
+      enabled: answerable,
+      selected: selected,
+      radius: 14,
+      semanticLabel: l10n.interactionChoiceSemantics(choice.count, label),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: answerable ? respond : null,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected
+                ? Color.alphaBlend(
+                    tone.withValues(alpha: 0.12),
+                    attachmentBubbleFill(theme),
+                  )
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            border: selected
+                ? Border.all(color: tone.withValues(alpha: 0.22), width: 0.5)
+                : null,
+          ),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 4,
+            runSpacing: 2,
+            children: [
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: _meta(theme).copyWith(
+                  color: selected ? theme.ink : theme.inkSoft,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (interaction.pendingChoiceIds.contains(choice.id))
+                const CupertinoActivityIndicator(radius: 6)
+              else
+                Text(
+                  MaterialLocalizations.of(context).formatDecimal(choice.count),
+                  style: _meta(theme).copyWith(
+                    color: attachmentSecondaryInk(theme),
+                    fontSize: 12,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -620,7 +761,10 @@ class _ChoiceRow extends StatelessWidget {
     // than `chosen || pending`, because a pending tap on a choice you already
     // hold is a RETRACTION, and drawing it filled would show the opposite of
     // what is about to happen.
-    final selected = pending ? !chosen : chosen;
+    // A checklist tick belongs to the item, whoever completed it. Personal
+    // selections still govern polls, while a shared completed task stays ticked
+    // beside the completer's name for everybody reading the room.
+    final selected = it.choiceSelected(choice);
 
     // A quiz reveals its marks once this reader has answered (or it closes),
     // which is exactly when the server starts sending `correctChoiceId`.
@@ -637,19 +781,24 @@ class _ChoiceRow extends StatelessWidget {
     final markColor = isRight
         ? theme.success
         : isWrongPick
-            ? theme.danger
-            : theme.accent;
+        ? theme.danger
+        : _interactionTone(theme, it.kind);
 
     final row = Stack(
       children: [
         if (showsBar)
           Positioned.fill(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(theme.radiusSm),
+              borderRadius: BorderRadius.circular(12),
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
+                  // A cached poll can remount while scrolling. Start at its
+                  // known result; only a changed tally needs an animation.
+                  tween: Tween(
+                    begin: fraction.clamp(0.0, 1.0),
+                    end: fraction.clamp(0.0, 1.0),
+                  ),
                   duration: motion.d(theme.motionMed),
                   curve: motion.c(theme.motionCurve),
                   builder: (context, value, _) => FractionallySizedBox(
@@ -661,7 +810,7 @@ class _ChoiceRow extends StatelessWidget {
                         // accent would need its own foreground colour — which
                         // would then have to change halfway across the row as
                         // the fill passes under the text.
-                        alpha: isRight ? 0.26 : 0.16,
+                        alpha: isRight ? 0.18 : 0.10,
                       ),
                     ),
                   ),
@@ -670,7 +819,7 @@ class _ChoiceRow extends StatelessWidget {
             ),
           ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
           child: Row(
             children: [
               _Control(
@@ -689,8 +838,12 @@ class _ChoiceRow extends StatelessWidget {
                     Text(
                       interactionChoiceLabel(l10n, it.kind, choice),
                       style: theme.body.copyWith(
-                        color: theme.ink,
-                        height: 1.2,
+                        color:
+                            it.kind == MessageType.checklist && choice.count > 0
+                            ? attachmentSecondaryInk(theme)
+                            : theme.ink,
+                        fontSize: 15,
+                        height: 1.3,
                         // A ticked checklist item is struck through — the one
                         // place this card uses a text decoration, because a
                         // checklist's whole affordance is seeing what is left.
@@ -705,14 +858,14 @@ class _ChoiceRow extends StatelessWidget {
                         // style — but it is the exact shape that painted the
                         // drag chrome's file names with a red underline, and
                         // it costs nothing to close.
-                        decoration: it.kind == MessageType.checklist &&
-                                choice.count > 0
+                        decoration:
+                            it.kind == MessageType.checklist && choice.count > 0
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
                         decorationColor:
                             it.kind == MessageType.checklist && choice.count > 0
-                                ? theme.inkMuted
-                                : null,
+                            ? attachmentSecondaryInk(theme)
+                            : null,
                       ),
                     ),
                     if (choice.respondents.isNotEmpty) ...[
@@ -728,12 +881,18 @@ class _ChoiceRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (showsBar)
+              if (pending)
+                const SizedBox(
+                  width: 30,
+                  height: 16,
+                  child: CupertinoActivityIndicator(radius: 7),
+                )
+              else if (showsBar)
                 Text(
                   l10n.interactionPercent((fraction * 100).round()),
                   style: _meta(theme).copyWith(
-                    color: theme.inkMuted,
-                    fontWeight: FontWeight.w700,
+                    color: attachmentSecondaryInk(theme),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               if (onRemove != null) ...[
@@ -742,19 +901,21 @@ class _ChoiceRow extends StatelessWidget {
                   onTap: () => onRemove!(choice.id),
                   radius: theme.radiusSm,
                   semanticLabel: l10n.interactionRemoveItem(
-                      interactionChoiceLabel(l10n, it.kind, choice)),
+                    interactionChoiceLabel(l10n, it.kind, choice),
+                  ),
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
                       HapticFeedback.selectionClick();
                       onRemove!(choice.id);
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.all(3),
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
                       child: Icon(
                         CupertinoIcons.minus_circle,
                         size: 15,
-                        color: theme.inkMuted,
+                        color: attachmentSecondaryInk(theme),
                       ),
                     ),
                   ),
@@ -766,11 +927,15 @@ class _ChoiceRow extends StatelessWidget {
       ],
     );
 
-    final answerable = onRespond != null && !it.isClosed && !_spent();
+    final answerable =
+        onRespond != null &&
+        !it.isClosed &&
+        it.pendingChoiceIds.isEmpty &&
+        !(it.quiz && chosen);
     return FocusableTap(
       onTap: answerable ? () => onRespond!(choice.id) : null,
       enabled: answerable,
-      radius: theme.radiusSm,
+      radius: 12,
       selected: selected,
       semanticLabel: _semanticLabel(),
       child: GestureDetector(
@@ -783,25 +948,16 @@ class _ChoiceRow extends StatelessWidget {
             : null,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(theme.radiusSm),
-            border: Border.all(
-              color: selected ? markColor : theme.divider,
-              width: selected ? 1.4 : 1,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            color: showsBar && selected
+                ? markColor.withValues(alpha: 0.035)
+                : Colors.transparent,
           ),
           child: row,
         ),
       ),
     );
   }
-
-  /// Whether this reader's one answer is already used up.
-  ///
-  /// Only a quiz spends one: the server refuses a second answer there, so the
-  /// row must stop offering to take it. Every other kind toggles, which is what
-  /// makes the same control mean both "vote" and "take it back".
-  bool _spent() => interaction.quiz && interaction.hasAnswered;
 
   String _semanticLabel() {
     final n = choice.count;
@@ -813,7 +969,9 @@ class _ChoiceRow extends StatelessWidget {
         // getting it backwards here compiles fine whenever both happen to be
         // strings — so the two are deliberately typed differently.
         : l10n.interactionChoiceSemantics(
-            n, interactionChoiceLabel(l10n, interaction.kind, choice));
+            n,
+            interactionChoiceLabel(l10n, interaction.kind, choice),
+          );
   }
 }
 
@@ -849,19 +1007,26 @@ class _Control extends StatelessWidget {
     return AnimatedContainer(
       duration: motion.d(theme.motionFast),
       curve: motion.c(theme.motionCurve),
-      width: 18,
-      height: 18,
+      width: 20,
+      height: 20,
       decoration: BoxDecoration(
         color: selected ? color : Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(square ? theme.radiusSm * 0.6 : 9),
+        borderRadius: BorderRadius.circular(square ? 6 : 10),
         border: Border.all(
-          color: selected ? color : theme.inkMuted.withValues(alpha: 0.5),
-          width: 1.6,
+          color: selected
+              ? color
+              : attachmentSecondaryInk(theme).withValues(alpha: 0.5),
+          width: 1.3,
         ),
       ),
       child: selected
-          ? Icon(CupertinoIcons.check_mark, size: 12, color: theme.accentInk)
+          ? Icon(
+              CupertinoIcons.check_mark,
+              size: 12,
+              color: color.computeLuminance() > 0.3
+                  ? const Color(0xFF000000)
+                  : const Color(0xFFFFFFFF),
+            )
           : null,
     );
   }
@@ -897,7 +1062,7 @@ class _RespondentLine extends StatelessWidget {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: _meta(theme).copyWith(color: theme.inkMuted),
+      style: _meta(theme).copyWith(color: attachmentSecondaryInk(theme)),
     );
     if (onTap == null) return line;
     return FocusableTap(
@@ -943,10 +1108,10 @@ class _QuizVerdict extends StatelessWidget {
     final right = answered && it.myChoiceIds.contains(it.correctChoiceId);
     final note = it.explanation ?? '';
     final tone = !answered
-        ? theme.inkMuted
+        ? attachmentSecondaryInk(theme)
         : right
-            ? theme.success
-            : theme.danger;
+        ? theme.success
+        : theme.danger;
 
     return Padding(
       padding: const EdgeInsets.only(top: 2, bottom: 4),
@@ -957,8 +1122,8 @@ class _QuizVerdict extends StatelessWidget {
             !answered
                 ? CupertinoIcons.info_circle
                 : right
-                    ? CupertinoIcons.checkmark_seal_fill
-                    : CupertinoIcons.xmark_seal_fill,
+                ? CupertinoIcons.checkmark_seal_fill
+                : CupertinoIcons.xmark_seal_fill,
             size: 14,
             color: tone,
           ),
@@ -970,11 +1135,12 @@ class _QuizVerdict extends StatelessWidget {
               children: [
                 if (answered)
                   Text(
-                    right ? l10n.interactionQuizRight : l10n.interactionQuizWrong,
-                    style: _meta(theme).copyWith(
-                      color: tone,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    right
+                        ? l10n.interactionQuizRight
+                        : l10n.interactionQuizWrong,
+                    style: _meta(
+                      theme,
+                    ).copyWith(color: tone, fontWeight: FontWeight.w700),
                   ),
                 if (note.isNotEmpty)
                   Padding(
@@ -1041,17 +1207,22 @@ class _AddItemRowState extends State<_AddItemRow> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
     if (!widget.enabled || widget.onAdd == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
       child: Row(
         children: [
-          Icon(CupertinoIcons.add, size: 15, color: theme.inkMuted),
+          Icon(
+            CupertinoIcons.add,
+            size: 20,
+            color: _interactionTone(theme, MessageType.checklist),
+          ),
           const SizedBox(width: 9),
           Expanded(
             child: TextField(
               controller: _controller,
               focusNode: _focus,
-              style: theme.body.copyWith(color: theme.ink),
+              style: theme.body.copyWith(color: theme.ink, fontSize: 15),
               cursorColor: theme.accent,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
@@ -1060,7 +1231,10 @@ class _AddItemRowState extends State<_AddItemRow> {
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 hintText: widget.l10n.interactionAddItemHint,
-                hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                hintStyle: theme.body.copyWith(
+                  color: attachmentSecondaryInk(theme),
+                  fontSize: 15,
+                ),
               ),
             ),
           ),
@@ -1111,8 +1285,12 @@ class _Footer extends StatelessWidget {
       if (onClose != null && !it.isClosed) {
         actions.add(_action(l10n.interactionClose, onClose!));
       }
-      if (onShowRespondents != null && !it.anonymous && it.respondentCount > 0) {
-        actions.add(_action(l10n.interactionSeeWhoAnswered, onShowRespondents!));
+      if (onShowRespondents != null &&
+          !it.anonymous &&
+          it.respondentCount > 0) {
+        actions.add(
+          _action(l10n.interactionSeeWhoAnswered, onShowRespondents!),
+        );
       }
     }
 
@@ -1141,7 +1319,9 @@ class _Footer extends StatelessWidget {
                   _countLine(it),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: _meta(theme).copyWith(color: theme.inkMuted),
+                  style: _meta(
+                    theme,
+                  ).copyWith(color: attachmentSecondaryInk(theme)),
                 ),
               ),
             const Spacer(),
@@ -1157,7 +1337,7 @@ class _Footer extends StatelessWidget {
         if (actions.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 7),
-            child: Wrap(spacing: 14, runSpacing: 6, children: actions),
+            child: Wrap(spacing: 16, runSpacing: 6, children: actions),
           ),
       ],
     );
@@ -1168,9 +1348,7 @@ class _Footer extends StatelessWidget {
       return l10n.interactionChecklistProgress(it.doneCount, it.choices.length);
     }
     if (it.respondentCount == 0) {
-      return it.isClosed
-          ? l10n.interactionNoAnswers
-          : l10n.interactionBeFirst;
+      return it.isClosed ? l10n.interactionNoAnswers : l10n.interactionBeFirst;
     }
     final base = it.kind == MessageType.event
         ? l10n.interactionRsvpCount(it.respondentCount)
@@ -1179,31 +1357,47 @@ class _Footer extends StatelessWidget {
   }
 
   Widget _action(String label, VoidCallback onTap) => FocusableTap(
-        onTap: onTap,
-        radius: theme.radiusSm,
-        semanticLabel: label,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-          child: Text(
-            label,
-            style: _meta(theme).copyWith(
-              color: theme.accent,
-              fontWeight: FontWeight.w700,
+    onTap: onTap,
+    radius: 16,
+    semanticLabel: label,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Text(
+          label,
+          style: _meta(theme).copyWith(
+            color: attachmentReadableInk(
+              theme,
+              _interactionTone(theme, interaction?.kind ?? MessageType.poll),
             ),
+            fontWeight: FontWeight.w600,
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// Meta text on a poll/checklist/event card — badges, percentages, the
 /// "who answered" line, times and places: the body face at 13 with tabular
 /// figures, never the theme's tracked mono or caption slot.
-TextStyle _meta(AppTheme theme) => theme.bodySoft.copyWith(
-      fontSize: 13,
-      letterSpacing: 0,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+TextStyle _meta(AppTheme theme) => attachmentMetaStyle(theme);
+
+Color _interactionTone(AppTheme theme, MessageType kind) {
+  final seed = switch (kind) {
+    MessageType.checklist => const Color(0xFF3CAD8B),
+    MessageType.event => const Color(0xFFF1845D),
+    _ => const Color(0xFF8772E4),
+  };
+  final tone = Color.lerp(seed, theme.accent, 0.06)!;
+  return Color.lerp(
+    tone,
+    theme.background.computeLuminance() < 0.4 ? Colors.white : Colors.black,
+    theme.background.computeLuminance() < 0.4 ? 0.08 : 0.06,
+  )!;
+}

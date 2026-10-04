@@ -42,7 +42,13 @@ final class NativeChrome: NSObject, UITabBarDelegate {
     self.hostController = hostController
     super.init()
     channel.setMethodCallHandler { [weak self] call, result in
-      self?.handle(call, result)
+      guard let self else {
+        // The engine can outlive its UI scene. Always complete the call so
+        // Dart's startup probe can fall back to the Flutter bar.
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      self.handle(call, result)
     }
   }
 

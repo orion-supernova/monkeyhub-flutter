@@ -53,6 +53,7 @@ import 'reply_style_screen.dart';
 import 'speaker_color_screen.dart';
 import 'logo_screen.dart';
 import 'motion_screen.dart';
+import 'map_apps_screen.dart';
 import 'navigation_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/native_tab_bar.dart' show NativeChrome;
@@ -737,6 +738,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                       _open('speakerColors', (_) => const SpeakerColorScreen()),
                 ),
                 _HubRow(
+                  icon: CupertinoIcons.map,
+                  tone: TileTone.teal,
+                  title: l10n.mapAppsTitle,
+                  value: store.mapAppId == null ? l10n.mapAppsAskEveryTime
+                      : store.mapAppId == 'browser' ? l10n.mapAppsBrowser : store.mapAppName,
+                  selected: _isOpen('mapApps'),
+                  onTap: () => _open('mapApps', (_) => const MapAppsScreen()),
+                ),
+                _HubRow(
                   icon: CupertinoIcons.reply,
                   tone: TileTone.indigo,
                   title: l10n.settingsHubReplyStyle,
@@ -1034,6 +1044,12 @@ class _SettingsScreenState extends State<SettingsScreen>
           enKw: en.settingsSearchKwCompanions,
           onOpen: () => _open('marlowe', (_) => const MarloweScreen())),
       // ── Chats
+      page('mapApps',
+          title: l10n.mapAppsTitle, enTitle: en.mapAppsTitle,
+          section: chats, icon: CupertinoIcons.map, tone: TileTone.teal,
+          kw: '${l10n.mapAppsTitle} Google Yandex Apple Waze',
+          enKw: 'maps location navigation Google Yandex Apple Waze',
+          onOpen: () => _open('mapApps', (_) => const MapAppsScreen())),
       page('roomLayout',
           title: l10n.settingsHubChatList,
           enTitle: en.settingsHubChatList,

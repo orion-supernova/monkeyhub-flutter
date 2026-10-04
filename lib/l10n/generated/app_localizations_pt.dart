@@ -5021,7 +5021,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get glassKnobHintRimOpacity =>
-      'O contorno de destaque. Zero para uma superfície sem orla';
+      'Brilho da borda do vidro. Zero para uma superfície sem borda';
 
   @override
   String get glassKnobLabelRimWidth => 'Largura da orla';
@@ -11072,6 +11072,43 @@ class AppLocalizationsPt extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count itens';
   }
+
+  @override
+  String get mapAppsTitle => 'Mapas';
+
+  @override
+  String get mapAppsChoose => 'Abrir localização em';
+
+  @override
+  String get mapAppsRemember => 'Usar como padrão';
+
+  @override
+  String get mapAppsAskEveryTime => 'Perguntar sempre';
+
+  @override
+  String get mapAppsBrowser => 'Navegador';
+
+  @override
+  String get mapAppsSubtitle =>
+      'Escolha onde abrir as localizações partilhadas.';
+
+  @override
+  String get mapAppsUnavailable =>
+      'A app de mapas padrão não está disponível. Escolha outra.';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'Nenhuma app de mapas compatível encontrada. Pode usar o navegador.';
+
+  @override
+  String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
+
+  @override
+  String get interactionFilterEmpty =>
+      'Nenhuma resposta corresponde a este filtro.';
+
+  @override
+  String get interactionRetry => 'Tentar novamente';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16088,7 +16125,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get glassKnobHintRimOpacity =>
-      'O contorno de destaque. Zero para uma superfície sem borda';
+      'Brilho da borda do vidro. Zero para uma superfície sem borda';
 
   @override
   String get glassKnobLabelRimWidth => 'Espessura da borda';
@@ -22133,4 +22170,41 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count itens';
   }
+
+  @override
+  String get mapAppsTitle => 'Mapas';
+
+  @override
+  String get mapAppsChoose => 'Abrir localização em';
+
+  @override
+  String get mapAppsRemember => 'Usar como padrão';
+
+  @override
+  String get mapAppsAskEveryTime => 'Perguntar sempre';
+
+  @override
+  String get mapAppsBrowser => 'Navegador';
+
+  @override
+  String get mapAppsSubtitle =>
+      'Escolha onde abrir as localizações compartilhadas.';
+
+  @override
+  String get mapAppsUnavailable =>
+      'Seu app de mapas padrão não está disponível. Escolha outro.';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'Nenhum app de mapas compatível encontrado. Você pode usar o navegador.';
+
+  @override
+  String get interactionAnswersSearch => 'Buscar pessoas ou respostas';
+
+  @override
+  String get interactionFilterEmpty =>
+      'Nenhuma resposta corresponde a este filtro.';
+
+  @override
+  String get interactionRetry => 'Tentar novamente';
 }

@@ -418,7 +418,7 @@ class MessageBubble extends StatelessWidget {
         ),
         bubble: _BubbleGestureDetector(
           onLongPress: onLongPress,
-          onDoubleTap: onDoubleTap,
+          onDoubleTap: _contentHandlesTap(message) ? null : onDoubleTap,
           child: bubbleArea,
         ),
         // An album's chips are drawn on the tiles that earned them — a row
@@ -972,7 +972,7 @@ class EphemeralMessageBubble extends StatelessWidget {
         ),
         bubble: _BubbleGestureDetector(
           onLongPress: onLongPress,
-          onDoubleTap: onDoubleTap,
+          onDoubleTap: _contentHandlesTap(message) ? null : onDoubleTap,
           child: bubbleArea,
         ),
         reactions: message.reactions.isNotEmpty && onReactionTap != null
@@ -1003,6 +1003,16 @@ class EphemeralMessageBubble extends StatelessWidget {
     );
   }
 }
+
+// A parent double-tap recognizer holds a child's ordinary tap until its
+// timeout, and can turn two quick answers into an action-menu gesture.
+// Attachment controls own their taps; long-press still opens the message menu.
+bool _contentHandlesTap(ChatMessage message) => switch (message.type) {
+  MessageType.text => message.mentions.isNotEmpty ||
+      UrlDetector.matches(message.content).isNotEmpty,
+  MessageType.system => false,
+  _ => true,
+};
 
 /// Long-press-for-reactions, double-tap, and right-click-mirrors-long-press
 /// on a single [child], with an explicit long-press duration. Plain

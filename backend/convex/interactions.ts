@@ -263,8 +263,7 @@ async function recount(ctx: any, interaction: any) {
  * isn't", so a field added to this table later is withheld by accident rather
  * than disclosed by accident.
  *
- * The answer becomes due when the viewer has answered — they have spent their
- * one guess — or when the quiz is closed, which is what closing means.
+ * The answer becomes due when the viewer has answered — they can now see the result — or when the quiz is closed, which is what closing means.
  */
 function sanitizeInteraction(
   interaction: any,
@@ -503,8 +502,7 @@ export const create = mutation({
  *
  * Toggling is deliberate on every kind: re-sending a choice you already hold
  * takes it back. It is what makes one control do "vote" and "retract", and the
- * only place it is switched off is a quiz, where retracting a wrong answer to
- * try another is the entire thing being measured.
+ * exception is a quiz: its answer can be replaced but never removed.
  */
 export const respond = mutation({
   args: {
@@ -574,8 +572,7 @@ export const respond = mutation({
     }
 
     if (held) {
-      // A quiz answer is spent. Refused rather than silently ignored, so a
-      // client that offers the control anyway gets told why.
+      // A quiz answer can be replaced, but cannot be toggled off.
       if (interaction.quiz === true) throw new Error(ERR_NOT_ALLOWED);
       await ctx.db.delete(held._id);
       await recount(ctx, interaction);

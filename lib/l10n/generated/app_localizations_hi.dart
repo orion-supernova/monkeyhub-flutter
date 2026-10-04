@@ -4975,7 +4975,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get glassKnobHintRimOpacity =>
-      'किनारे की हाइलाइट रेखा। शून्य पर बॉर्डर-रहित सतह';
+      'काँच के किनारे की चमक। बिना बॉर्डर वाली सतह के लिए शून्य';
 
   @override
   String get glassKnobLabelRimWidth => 'किनारे की चौड़ाई';
@@ -10958,4 +10958,39 @@ class AppLocalizationsHi extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count आइटम';
   }
+
+  @override
+  String get mapAppsTitle => 'मैप्स';
+
+  @override
+  String get mapAppsChoose => 'लोकेशन इसमें खोलें';
+
+  @override
+  String get mapAppsRemember => 'डिफ़ॉल्ट के रूप में इस्तेमाल करें';
+
+  @override
+  String get mapAppsAskEveryTime => 'हर बार पूछें';
+
+  @override
+  String get mapAppsBrowser => 'ब्राउज़र';
+
+  @override
+  String get mapAppsSubtitle => 'शेयर की गई लोकेशन कहाँ खुले, चुनें।';
+
+  @override
+  String get mapAppsUnavailable =>
+      'आपका डिफ़ॉल्ट मैप ऐप उपलब्ध नहीं है। दूसरा चुनें।';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'कोई समर्थित मैप ऐप नहीं मिला। आप ब्राउज़र इस्तेमाल कर सकते हैं।';
+
+  @override
+  String get interactionAnswersSearch => 'लोग या जवाब खोजें';
+
+  @override
+  String get interactionFilterEmpty => 'इस फ़िल्टर से कोई जवाब मेल नहीं खाता।';
+
+  @override
+  String get interactionRetry => 'फिर कोशिश करें';
 }

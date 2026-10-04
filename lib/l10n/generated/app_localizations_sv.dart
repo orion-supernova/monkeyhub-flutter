@@ -4988,7 +4988,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get glassKnobHintRimOpacity =>
-      'Accentkonturen. Noll för en kantlös yta';
+      'Glaskantens ljusstyrka. Noll för en yta utan kant';
 
   @override
   String get glassKnobLabelRimWidth => 'Kantbredd';
@@ -10984,4 +10984,39 @@ class AppLocalizationsSv extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count objekt';
   }
+
+  @override
+  String get mapAppsTitle => 'Kartor';
+
+  @override
+  String get mapAppsChoose => 'Öppna plats i';
+
+  @override
+  String get mapAppsRemember => 'Använd som standard';
+
+  @override
+  String get mapAppsAskEveryTime => 'Fråga varje gång';
+
+  @override
+  String get mapAppsBrowser => 'Webbläsare';
+
+  @override
+  String get mapAppsSubtitle => 'Välj var delade platser ska öppnas.';
+
+  @override
+  String get mapAppsUnavailable =>
+      'Din förvalda kartapp är inte tillgänglig. Välj en annan.';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'Ingen kartapp som stöds hittades. Du kan använda webbläsaren.';
+
+  @override
+  String get interactionAnswersSearch => 'Sök personer eller svar';
+
+  @override
+  String get interactionFilterEmpty => 'Inga svar matchar det här filtret.';
+
+  @override
+  String get interactionRetry => 'Försök igen';
 }

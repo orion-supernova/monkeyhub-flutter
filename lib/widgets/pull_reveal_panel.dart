@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
-import 'action_buttons.dart' show TextLinkButton;
+import 'glass_buttons.dart';
 import 'search_field.dart';
 
 import 'teardown_safe.dart';
@@ -100,8 +100,11 @@ class PullRevealSlot extends StatelessWidget {
         duration: instant ? Duration.zero : theme.motionMed,
         curve: Curves.easeOutCubic,
         tween: Tween<double>(end: progress),
-        builder: (context, factor, child) =>
-            Align(alignment: Alignment.topCenter, heightFactor: factor, child: child),
+        builder: (context, factor, child) => Align(
+          alignment: Alignment.topCenter,
+          heightFactor: factor,
+          child: child,
+        ),
         child: _PullRevealPanel(
           key: panelKey,
           searchCtrl: searchCtrl,
@@ -181,24 +184,11 @@ class _PullRevealPanel extends StatelessWidget {
               // that row used to be almost entirely empty (one small glyph
               // against the panel's full width), which read as dead space
               // stacked on top of the search bar rather than part of it.
-              // The iOS search bar's Cancel: a text button in the accent,
-              // beside the field. It dismisses the whole panel, field and all.
-              //
-              // Always on, unlike the field's own Cancel (off here): the
-              // panel is open whether or not the field has focus, and this is
-              // how you close it. The shared text link, so it is the same
-              // Cancel the search screen and Settings slide in.
-              //
-              // Held to the bar's 40 (the link's own minimum is 44): taller,
-              // and it would set the row's height and push the field off the
-              // panel's bottom edge.
-              SizedBox(
-                height: searchFieldHeight,
-                child: TextLinkButton(
-                  label: MaterialLocalizations.of(context).cancelButtonLabel,
-                  semanticLabel: l10n.pullRevealCollapseSemanticLabel,
-                  onTap: onCollapse,
-                ),
+              // The shared glass close control also dismisses the panel when
+              // the field is empty or unfocused.
+              GlassCloseButton(
+                semanticLabel: l10n.pullRevealCollapseSemanticLabel,
+                onTap: onCollapse,
               ),
             ],
           ),
@@ -247,7 +237,9 @@ class _ArchivedRowState extends State<_ArchivedRow>
         // face would be, the title, the count in grey (archived chats ask for
         // nothing), a chevron because it opens a list rather than a chat.
         child: AnimatedContainer(
-          duration: _pressed ? Duration.zero : const Duration(milliseconds: 240),
+          duration: _pressed
+              ? Duration.zero
+              : const Duration(milliseconds: 240),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: _pressed ? theme.ink.withValues(alpha: 0.06) : null,

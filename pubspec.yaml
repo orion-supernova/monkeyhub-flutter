@@ -331,6 +331,7 @@ dependency_overrides:
     path: third_party/flutter_callkit_incoming
 
 dev_dependencies:
+  url_launcher_platform_interface: ^2.3.2
   flutter_test:
     sdk: flutter
 

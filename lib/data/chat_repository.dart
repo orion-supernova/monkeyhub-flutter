@@ -545,6 +545,7 @@ class ChatRepository extends ChangeNotifier {
   /// cast — the live window does not mention them, and "not mentioned" is not
   /// "gone".
   final Map<String, Map<String, MessageInteraction>> _interactions = {};
+  final Map<String, Future<bool>> _interactionWrites = {};
 
   /// Message ids [_hydrateInteractions] has already asked the server about,
   /// keyed by room.
@@ -4220,11 +4221,15 @@ class ChatRepository extends ChangeNotifier {
       // about them. A vote by somebody else refires this subscription, and
       // dropping the marker there would un-fill the control the reader is
       // still waiting on.
-      final pending = authoritative
+      final writing = _interactionWrites.containsKey('$roomId/${fresh.messageId}');
+      final pending = authoritative && !writing
           ? const <String>{}
           : (existing?.pendingChoiceIds ?? const <String>{});
       slot[fresh.messageId] =
-          pending.isEmpty ? fresh : fresh.copyWith(pendingChoiceIds: pending);
+          pending.isEmpty ? fresh : fresh.copyWith(
+            pendingChoiceIds: pending,
+            pendingSelectedChoiceIds: existing?.pendingSelectedChoiceIds,
+          );
     }
   }
 
@@ -4288,42 +4293,81 @@ class ChatRepository extends ChangeNotifier {
   /// takes it back. The server owns that rule — this only mirrors it well
   /// enough to draw the pending state.
   ///
-  /// Returns false when the server refused (a closed poll, a quiz already
-  /// answered, a checklist somebody else's tick), so the caller can say so.
+  /// Returns false when the server refused (a closed poll or a checklist somebody else's tick), so the caller can say so.
   Future<bool> respondToInteraction({
     required String roomId,
     required String messageId,
     required String choiceId,
   }) async {
+    final key = '$roomId/$messageId';
+    final active = _interactionWrites[key];
+    if (active != null) return active; // A second tap must not toggle it back.
+    final task = Future<bool>.microtask(() => _respondToInteraction(roomId, messageId, choiceId));
+    _interactionWrites[key] = task;
+    try {
+      return await task;
+    } finally {
+      if (identical(_interactionWrites[key], task)) _interactionWrites.remove(key);
+    }
+  }
+
+  Future<bool> _respondToInteraction(
+    String roomId, String messageId, String choiceId,
+  ) async {
     final me = _userId;
     if (me == null) return false;
     final current = _interactions[roomId]?[messageId];
+    final selected = current?.myChoiceIds.toSet() ?? <String>{};
+    if (selected.contains(choiceId)) {
+      if (current?.quiz == true) return true;
+      selected.remove(choiceId);
+    } else {
+      if (current?.kind != MessageType.checklist && current?.multiple != true) {
+        selected.clear();
+      }
+      selected.add(choiceId);
+    }
     if (current != null) {
+      final visualSelection = current.kind == MessageType.checklist
+          ? current.choices.where((choice) => choice.count > 0).map((choice) => choice.id).toSet()
+          : selected;
+      if (current.kind == MessageType.checklist) {
+        if (!visualSelection.remove(choiceId)) visualSelection.add(choiceId);
+      }
       _interactions[roomId]![messageId] = current.copyWith(
-        pendingChoiceIds: {...current.pendingChoiceIds, choiceId},
+        pendingChoiceIds: {choiceId},
+        pendingSelectedChoiceIds: visualSelection,
       );
       notifyListeners();
     }
     try {
       await api.respondToInteraction(
-        messageId: messageId,
-        userId: me,
-        choiceId: choiceId,
+        messageId: messageId, userId: me, choiceId: choiceId,
       );
+      if (_userId != me) return true;
+      // The mutation may finish before the subscription delivers the tally.
+      // Keep the acknowledged selection until a fresh one-message read lands.
+      final after = _interactions[roomId]?[messageId];
+      if (after != null && current?.kind != MessageType.checklist) {
+        _interactions[roomId]![messageId] = after.copyWith(myChoiceIds: selected.toList());
+      }
+      try {
+        final rows = await api.interactionStateFor(messageIds: [messageId], userId: me);
+        if (_userId == me) _mergeInteractions(roomId, rows, authoritative: false);
+      } catch (_) {
+        // The vote succeeded. A failed refresh is not a failed vote; the live
+        // subscription will bring the tally when the connection catches up.
+      }
       return true;
     } catch (_) {
       return false;
     } finally {
-      // Cleared whichever way it went, and harmlessly racing the subscription
-      // fire that also clears it: both settle on the same state, so whoever
-      // wins is right. Re-read rather than closing over `current`, because the
-      // fire may have replaced the row while this was in flight.
-      final after = _interactions[roomId]?[messageId];
-      if (after != null && after.pendingChoiceIds.contains(choiceId)) {
-        _interactions[roomId]![messageId] = after.copyWith(
-          pendingChoiceIds: {...after.pendingChoiceIds}..remove(choiceId),
-        );
-        notifyListeners();
+      if (_userId == me) {
+        final after = _interactions[roomId]?[messageId];
+        if (after != null) {
+          _interactions[roomId]![messageId] = after.copyWith(pendingChoiceIds: {});
+          notifyListeners();
+        }
       }
     }
   }

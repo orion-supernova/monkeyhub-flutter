@@ -1397,7 +1397,7 @@
   "glassKnobLabelSaturation": "Färgläckage",
   "glassKnobHintSaturation": "Hur mycket färg som överlever oskärpan. Efter 2 posteriseras den",
   "glassKnobLabelRimOpacity": "Kant",
-  "glassKnobHintRimOpacity": "Accentkonturen. Noll för en kantlös yta",
+  "glassKnobHintRimOpacity": "Glaskantens ljusstyrka. Noll för en yta utan kant",
   "glassKnobLabelRimWidth": "Kantbredd",
   "glassKnobHintRimWidth": "Tjockleken på den konturen",
   "glassKnobLabelShadowOpacity": "Skugga",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{shown} av {total} händelser",
   "diagDropped": "{count, plural, one{{count} tidigare händelse kastades – loggen börjar mitt i förloppet} other{{count} tidigare händelser kastades – loggen börjar mitt i förloppet}}",
   "diagRepeatSpan": "×{count} på {seconds} s",
-  "roomContentTabSemantic": "{label}, {count} objekt"
+  "roomContentTabSemantic": "{label}, {count} objekt",
+  "mapAppsTitle": "Kartor",
+  "mapAppsChoose": "Öppna plats i",
+  "mapAppsRemember": "Använd som standard",
+  "mapAppsAskEveryTime": "Fråga varje gång",
+  "mapAppsBrowser": "Webbläsare",
+  "mapAppsSubtitle": "Välj var delade platser ska öppnas.",
+  "mapAppsUnavailable": "Din förvalda kartapp är inte tillgänglig. Välj en annan.",
+  "mapAppsNoInstalled": "Ingen kartapp som stöds hittades. Du kan använda webbläsaren.",
+  "interactionAnswersSearch": "Sök personer eller svar",
+  "interactionFilterEmpty": "Inga svar matchar det här filtret.",
+  "interactionRetry": "Försök igen"
 }

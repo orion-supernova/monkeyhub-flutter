@@ -113,8 +113,8 @@ void main() {
     expect(find.byType(LocationMapPreview), findsOneWidget);
     // No badge, because there is no state to report: a static pin is neither
     // running nor finished.
-    expect(find.text('LIVE'), findsNothing);
-    expect(find.text('ENDED'), findsNothing);
+    expect(find.text('Live'), findsNothing);
+    expect(find.text('Ended'), findsNothing);
     // The coordinates and the accuracy are the whole caption.
     expect(find.textContaining('41.01380, 28.94970'), findsOneWidget);
     expect(find.textContaining('±15 m'), findsOneWidget);
@@ -131,8 +131,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('LIVE'), findsOneWidget);
-    expect(find.text('ENDED'), findsNothing);
+    expect(find.text('Live'), findsOneWidget);
+    expect(find.text('Ended'), findsNothing);
     // The deadline in words, not just as a badge. A badge does not survive a
     // screenshot, a screen reader, or a glance.
     final hh = until.hour.toString().padLeft(2, '0');
@@ -154,8 +154,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('ENDED'), findsOneWidget);
-    expect(find.text('LIVE'), findsNothing);
+    expect(find.text('Ended'), findsOneWidget);
+    expect(find.text('Live'), findsNothing);
     // Still shows where they were — the position was already delivered to this
     // room while the share ran, so hiding it discloses nothing and only costs
     // the transcript its record.
@@ -184,12 +184,12 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('LIVE'), findsOneWidget);
+    expect(find.text('Live'), findsOneWidget);
 
     await tickSeconds(tester, 5, (d) => now = now.add(d));
 
-    expect(find.text('LIVE'), findsNothing);
-    expect(find.text('ENDED'), findsOneWidget);
+    expect(find.text('Live'), findsNothing);
+    expect(find.text('Ended'), findsOneWidget);
     // And the card itself is redrawn as finished, not merely relabelled — the
     // halo is gone and the grid is dimmed, which is what stops an expired share
     // from reading as a live one at a glance.
@@ -213,7 +213,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('LIVE'), findsOneWidget);
+    expect(find.text('Live'), findsOneWidget);
     expect(find.text('No recent update'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
@@ -240,6 +240,63 @@ void main() {
     await tester.pump();
     expect(find.text('Stop sharing'), findsOneWidget);
 
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the quiet stop action still ends the publishing share', (
+    tester,
+  ) async {
+    var stopped = 0;
+    final now = DateTime(2026, 10, 4, 16, 0);
+    await tester.pumpWidget(
+      bubble(
+        msg(
+          type: MessageType.liveLocation,
+          expiresAt: now.add(const Duration(hours: 1)),
+          updatedAt: now,
+        ),
+        clock: () => now,
+        publishing: true,
+        onStop: () async {
+          stopped++;
+        },
+      ),
+    );
+    await tester.tap(find.text('Stop sharing'));
+    await tester.pump();
+    expect(stopped, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('map card wraps readouts and actions at larger text sizes', (
+    tester,
+  ) async {
+    final now = DateTime(2026, 10, 4, 16, 0);
+    await tester.pumpWidget(
+      host(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.6)),
+          child: LocationBubble(
+            theme: BasicTheme.midnight(),
+            message: msg(
+              type: MessageType.liveLocation,
+              expiresAt: now.add(const Duration(hours: 1)),
+              updatedAt: now,
+            ),
+            isMine: true,
+            width: 210,
+            radius: BorderRadius.circular(16),
+            clock: () => now,
+            publishing: true,
+            onStopSharing: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Open in maps'), findsOneWidget);
+    expect(find.textContaining('41.01380, 28.94970'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

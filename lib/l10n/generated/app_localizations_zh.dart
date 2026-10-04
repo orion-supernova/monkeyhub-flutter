@@ -4710,7 +4710,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glassKnobLabelRimOpacity => '边框';
 
   @override
-  String get glassKnobHintRimOpacity => '强调色边框，设为零则无边框';
+  String get glassKnobHintRimOpacity => '玻璃边缘的亮度。设为零可隐藏边框';
 
   @override
   String get glassKnobLabelRimWidth => '边框宽度';
@@ -10413,4 +10413,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label，$count 项';
   }
+
+  @override
+  String get mapAppsTitle => '地图';
+
+  @override
+  String get mapAppsChoose => '打开位置的应用';
+
+  @override
+  String get mapAppsRemember => '设为默认应用';
+
+  @override
+  String get mapAppsAskEveryTime => '每次询问';
+
+  @override
+  String get mapAppsBrowser => '浏览器';
+
+  @override
+  String get mapAppsSubtitle => '选择用于打开共享位置的应用。';
+
+  @override
+  String get mapAppsUnavailable => '默认地图应用不可用，请选择其他应用。';
+
+  @override
+  String get mapAppsNoInstalled => '未找到支持的地图应用，可以使用浏览器。';
+
+  @override
+  String get interactionAnswersSearch => '搜索用户或回答';
+
+  @override
+  String get interactionFilterEmpty => '没有符合此筛选条件的回答。';
+
+  @override
+  String get interactionRetry => '重试';
 }

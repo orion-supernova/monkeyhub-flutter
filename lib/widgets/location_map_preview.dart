@@ -3,6 +3,17 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import '../theme/app_theme.dart';
+import 'attachment_bubble_frame.dart';
+
+/// A restrained map tint: a little of the active theme keeps it related to
+/// the transcript, while teal distinguishes places from polls and events.
+Color locationMapAccent(AppTheme theme) => Color.lerp(
+  theme.background.computeLuminance() < 0.4
+      ? const Color(0xFF40CFBA)
+      : const Color(0xFF087E70),
+  theme.accent,
+  0.14,
+)!;
 
 /// The card a location bubble draws instead of a map.
 ///
@@ -149,8 +160,16 @@ double spanMetersFor(double? accuracyM) {
 @visibleForTesting
 double graticuleStepMeters(double spanMeters) {
   const ladder = [
-    10.0, 20.0, 50.0, 100.0, 200.0, 500.0,
-    1000.0, 2000.0, 5000.0, 10000.0,
+    10.0,
+    20.0,
+    50.0,
+    100.0,
+    200.0,
+    500.0,
+    1000.0,
+    2000.0,
+    5000.0,
+    10000.0,
   ];
   for (final step in ladder) {
     if (spanMeters / step <= 8) return step;
@@ -197,7 +216,14 @@ class _GraticulePainter extends CustomPainter {
     canvas.clipRect(rect);
 
     // Ground.
-    canvas.drawRect(rect, Paint()..color = theme.surfaceSunken);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = Color.alphaBlend(
+          locationMapAccent(theme).withValues(alpha: 0.035),
+          attachmentBubbleFill(theme),
+        ),
+    );
 
     _paintGraticule(canvas, size, centre, stepM, stepPx);
     _paintAccuracyRing(canvas, centre, pxPerMeter);
@@ -221,14 +247,14 @@ class _GraticulePainter extends CustomPainter {
   ) {
     if (stepPx <= 2) return; // Degenerate; nothing legible to draw.
 
-    final ink = dimmed ? theme.inkMuted : theme.accent;
+    final ink = theme.inkMuted;
     final minor = Paint()
-      ..color = ink.withValues(alpha: dimmed ? 0.10 : 0.16)
-      ..strokeWidth = 1
+      ..color = ink.withValues(alpha: dimmed ? 0.07 : 0.12)
+      ..strokeWidth = 0.6
       ..style = PaintingStyle.stroke;
     final major = Paint()
-      ..color = ink.withValues(alpha: dimmed ? 0.16 : 0.28)
-      ..strokeWidth = 1.4
+      ..color = ink.withValues(alpha: dimmed ? 0.12 : 0.22)
+      ..strokeWidth = 0.9
       ..style = PaintingStyle.stroke;
 
     // Degrees per grid step. Longitude is corrected by cos(latitude), which is
@@ -304,7 +330,7 @@ class _GraticulePainter extends CustomPainter {
     if (acc == null || acc <= 0) return;
     final r = acc * pxPerMeter;
     if (r < 3) return; // Smaller than the marker; the marker already says it.
-    final tint = dimmed ? theme.inkMuted : theme.accent;
+    final tint = dimmed ? theme.inkMuted : locationMapAccent(theme);
     canvas.drawCircle(
       centre,
       r,
@@ -321,7 +347,7 @@ class _GraticulePainter extends CustomPainter {
   }
 
   void _paintMarker(Canvas canvas, Offset centre) {
-    final tint = dimmed ? theme.inkMuted : theme.accent;
+    final tint = dimmed ? theme.inkMuted : locationMapAccent(theme);
 
     // The live halo. Expands and fades on each cycle — the one animated thing
     // on the card, and the only signal a still screenshot cannot carry, which is
@@ -389,13 +415,14 @@ class _GraticulePainter extends CustomPainter {
     _text(canvas, 'N', Offset(size.width - 22, 8), alpha: 0.45);
   }
 
-  void _text(Canvas canvas, String s, Offset at, {double alpha = 0.55}) {
+  void _text(Canvas canvas, String s, Offset at, {double alpha = 1}) {
     final tp = TextPainter(
       text: TextSpan(
         text: s,
-        style: theme.monoTiny.copyWith(
-          color: theme.ink.withValues(alpha: alpha),
-          letterSpacing: 0.6,
+        style: attachmentMetaStyle(theme).copyWith(
+          color: theme.inkSoft.withValues(alpha: alpha),
+          fontSize: 11,
+          letterSpacing: 0,
         ),
       ),
       textDirection: textDirection,

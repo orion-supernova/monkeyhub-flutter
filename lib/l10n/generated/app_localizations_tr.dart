@@ -4935,7 +4935,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get glassKnobHintRimOpacity =>
-      'Vurgu rengindeki kenar çizgisi. Kenarlıksız yüzey için sıfırla';
+      'Cam kenarının parlaklığı. Kenarlıksız bir yüzey için sıfır';
 
   @override
   String get glassKnobLabelRimWidth => 'Kenarlık kalınlığı';
@@ -10915,4 +10915,39 @@ class AppLocalizationsTr extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count öğe';
   }
+
+  @override
+  String get mapAppsTitle => 'Haritalar';
+
+  @override
+  String get mapAppsChoose => 'Konumu şurada aç';
+
+  @override
+  String get mapAppsRemember => 'Varsayılan olarak kullan';
+
+  @override
+  String get mapAppsAskEveryTime => 'Her seferinde sor';
+
+  @override
+  String get mapAppsBrowser => 'Tarayıcı';
+
+  @override
+  String get mapAppsSubtitle => 'Paylaşılan konumların nerede açılacağını seç.';
+
+  @override
+  String get mapAppsUnavailable =>
+      'Varsayılan harita uygulaman kullanılamıyor. Başka bir uygulama seç.';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'Desteklenen bir harita uygulaması bulunamadı. Tarayıcını kullanabilirsin.';
+
+  @override
+  String get interactionAnswersSearch => 'Kişi veya yanıt ara';
+
+  @override
+  String get interactionFilterEmpty => 'Bu filtreye uygun yanıt yok.';
+
+  @override
+  String get interactionRetry => 'Tekrar dene';
 }

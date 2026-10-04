@@ -1387,7 +1387,7 @@
   "glassKnobLabelSaturation": "تسرب اللون",
   "glassKnobHintSaturation": "مقدار اللون الذي يبقى بعد التمويه. بعد القيمة 2 يظهر تأثير البوسترة.",
   "glassKnobLabelRimOpacity": "حافة",
-  "glassKnobHintRimOpacity": "خط الحافة المميز. اجعله صفرًا لسطح بلا حدود.",
+  "glassKnobHintRimOpacity": "سطوع حافة الزجاج. صفر لسطح بلا حدود",
   "glassKnobLabelRimWidth": "سُمك الحافة",
   "glassKnobHintRimWidth": "سماكة خط الحافة.",
   "glassKnobLabelShadowOpacity": "ظل",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{shown} من {total} حدث",
   "diagDropped": "{count, plural, other{تم إسقاط {count} من الأحداث السابقة — يبدأ السجل من منتصف القصة}}",
   "diagRepeatSpan": "×{count} خلال {seconds} ث",
-  "roomContentTabSemantic": "{label}، {count} عنصر"
+  "roomContentTabSemantic": "{label}، {count} عنصر",
+  "mapAppsTitle": "الخرائط",
+  "mapAppsChoose": "فتح الموقع في",
+  "mapAppsRemember": "استخدام كافتراضي",
+  "mapAppsAskEveryTime": "السؤال في كل مرة",
+  "mapAppsBrowser": "المتصفح",
+  "mapAppsSubtitle": "اختر أين تُفتح المواقع المشتركة.",
+  "mapAppsUnavailable": "تطبيق الخرائط الافتراضي غير متاح. اختر تطبيقًا آخر.",
+  "mapAppsNoInstalled": "لم يتم العثور على تطبيق خرائط مدعوم. يمكنك استخدام المتصفح.",
+  "interactionAnswersSearch": "البحث عن أشخاص أو إجابات",
+  "interactionFilterEmpty": "لا توجد إجابات تطابق هذا الفلتر.",
+  "interactionRetry": "المحاولة مجددًا"
 }

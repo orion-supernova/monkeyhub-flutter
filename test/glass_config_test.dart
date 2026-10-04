@@ -23,6 +23,25 @@ GlassPreset _presetNamed(String name) =>
     kBuiltInGlassPresets.firstWhere((p) => p.name == name);
 
 void main() {
+  test('app glass resolves sparse tuning against the iOS-style recipe', () {
+    expect(resolveAppGlass(const GlassConfig()), kNativeMatchGlass);
+    final tuned = const GlassConfig({'rimWidth': 2.5, 'blur': 6});
+    final resolved = resolveAppGlass(tuned);
+    for (final knob in glassKnobs) {
+      expect(
+        resolved.of(knob),
+        tuned.overrides.containsKey(knob.id)
+            ? tuned.of(knob)
+            : kNativeMatchGlass.of(knob),
+      );
+    }
+    expect(
+      tuned.overrides.length,
+      2,
+      reason: 'resolving must not change saved overrides',
+    );
+  });
+
   group('GlassConfig', () {
     test('an untouched dial reports its standard', () {
       const c = GlassConfig();
@@ -115,19 +134,34 @@ void main() {
   });
 
   group('built-in presets', () {
+    test(
+      'existing Frosted defaults upgrade while keeping independent tuning',
+      () {
+        const old = GlassProfile(
+          nav: GlassConfig({'frost': 0.45, 'blur': 10}),
+          app: GlassConfig({'blur': 7}),
+          geometry: GlassConfig({'barMargin': 24}),
+        );
+        final upgraded = upgradeFrostedGlassProfile(old, 'frosted');
+        expect(upgraded.nav, kNativeMatchGlass);
+        expect(upgraded.app, old.app);
+        expect(upgraded.geometry, old.geometry);
+        expect(upgradeFrostedGlassProfile(old, 'saved-look'), old);
+        expect(upgradeFrostedGlassProfile(old, null), old);
+        final tuned = old.copyWith(nav: old.nav.set(kBlur, 8));
+        expect(upgradeFrostedGlassProfile(tuned, 'frosted'), tuned);
+      },
+    );
     test('the default is the readable one, not the see-through one', () {
       expect(kDefaultGlassPresetId, 'frosted');
     });
 
-    test('Frosted is the tuning the bar shipped with before Clear', () {
+    test('Frosted matches the native Liquid Glass recipe', () {
       final nav = kBuiltInGlassPresets
           .firstWhere((p) => p.id == 'frosted')
           .profile
           .nav;
-      expect(nav.of(kFrost), 0.45);
-      expect(nav.of(kBlur), 10);
-      // No colour trickery — that arrived with Clear.
-      expect(nav.of(kSaturation), 1.0);
+      expect(nav, kNativeMatchGlass);
     });
 
     test('Clear keeps the see-through tuning', () {
@@ -161,7 +195,7 @@ void main() {
 
     test('starts on the default preset', () {
       expect(store.glassPresetId, kDefaultGlassPresetId);
-      expect(store.glass.nav.of(kBlur), 10);
+      expect(store.glass.nav.of(kBlur), kNativeMatchGlass.of(kBlur));
     });
 
     test(
@@ -357,7 +391,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester.getRect(find.byIcon(navDestinations(AppLocalizationsEn()).first.icon)).width,
+        tester
+            .getRect(
+              find.byIcon(navDestinations(AppLocalizationsEn()).first.icon),
+            )
+            .width,
         30,
       );
 
@@ -403,7 +441,7 @@ void main() {
       final shadow = (decorated.decoration as ShapeDecoration).shadows!.single;
       expect(
         shadow.offset.dy,
-        3,
+        3.75,
         reason: 'a null config must read glass.app, never glass.nav',
       );
     });
@@ -544,7 +582,7 @@ void main() {
 
       expect(
         store.glass.nav.of(kBlur),
-        10,
+        kNativeMatchGlass.of(kBlur),
         reason: 'undo goes back to Frosted, not to the raw recipe',
       );
       expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
@@ -653,6 +691,25 @@ void main() {
             'the bar while tuning them would be tuning blind',
       );
       expect(find.text('message'), findsOneWidget);
+      final preview = find.byKey(glassPreviewKey);
+      final rims = find.descendant(
+        of: preview,
+        matching: find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.foregroundPainter is SpecularRim,
+        ),
+      );
+      expect(
+        rims,
+        findsNWidgets(7),
+        reason:
+            'header, buttons, search and composer all preview the iOS-style edge',
+      );
+      for (final glass in tester.widgetList<LiquidGlass>(
+        find.descendant(of: preview, matching: find.byType(LiquidGlass)),
+      )) {
+        expect(glass.config, resolveAppGlass(store.glass.app));
+        expect(glass.neutral, isTrue);
+      }
     });
 
     testWidgets('matching copies the bar\'s glass onto the other surfaces', (
@@ -671,10 +728,9 @@ void main() {
       // "Visible" means built, which for a full-height capsule can still be
       // its last few points under the bottom edge — park it in the lower
       // part of the viewport, clear of both the edge and the pinned preview.
-      await tester.runAsync(() => Scrollable.ensureVisible(
-            tester.element(target),
-            alignment: 0.75,
-          ));
+      await tester.runAsync(
+        () => Scrollable.ensureVisible(tester.element(target), alignment: 0.75),
+      );
       await tester.pumpAndSettle();
       await tester.tap(target);
       await tester.pumpAndSettle();

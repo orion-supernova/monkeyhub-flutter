@@ -44,6 +44,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
+  static const _kMapAppId = 'mh.maps.app';
+  static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
   static const _kStickerSuggestions = 'mh.stickerSuggestions';
   static const _kShowNetworkStats = 'mh.showNetworkStats';
@@ -86,7 +88,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kCaptureProtection, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowNetworkStats, _kPhotoHd,
+    _kManualLogoThemeId, _kShowLinkUrls, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel,
@@ -133,6 +135,8 @@ class SettingsStore extends ChangeNotifier {
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
+  String? _mapAppId;
+  String? _mapAppName;
   bool _autoplayExpressions = true;
   bool _stickerSuggestions = true;
   bool _photoHd = false;
@@ -233,6 +237,9 @@ class SettingsStore extends ChangeNotifier {
   /// preview card. Default `false` — the preview alone communicates the
   /// link, and keeping the URL text out makes mixed messages read clean.
   bool get showLinkUrls => _showLinkUrls;
+  /// Null means ask every time, including the first time a location is opened.
+  String? get mapAppId => _mapAppId;
+  String? get mapAppName => _mapAppName;
 
   /// Whether GIFs and animated stickers play by themselves in the transcript
   /// and the picker. Off shows each one still, with a tap to play it — for
@@ -570,6 +577,8 @@ class SettingsStore extends ChangeNotifier {
     _manualLogoThemeId = s[_kManualLogoThemeId];
     final slu = s[_kShowLinkUrls];
     _showLinkUrls = slu == 'true'; // default false
+    _mapAppId = s[_kMapAppId];
+    _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
     _stickerSuggestions = s[_kStickerSuggestions] != 'false'; // default true
     final sns = s[_kShowNetworkStats];
@@ -606,9 +615,9 @@ class SettingsStore extends ChangeNotifier {
     // default look like an unsaved edit.
     final stored = _decodeGlass(rawGlass);
     if (stored != null) {
-      _glass = stored;
       // Legitimately null once the slot you were wearing is deleted.
       _glassPresetId = s[_kGlassPreset];
+      _glass = upgradeFrostedGlassProfile(stored, _glassPresetId);
     } else {
       _glassPresetId = kDefaultGlassPresetId;
       _glass = _resolvePreset(_glassPresetId).profile;
@@ -848,6 +857,37 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
     await _storage.write(key: _kLogoMode, value: m.name);
     _applyLauncherIcon();
+  }
+
+  Future<void>? _mapAppWrite;
+
+  Future<void> setMapApp(String? id, String? name) async {
+    final savedName = id == null ? null : name ?? id;
+    if (_mapAppId == id && _mapAppName == savedName) {
+      await _mapAppWrite;
+      return;
+    }
+    _mapAppId = id;
+    _mapAppName = savedName;
+    Future<void> persist() async {
+      if (id == null) {
+        await _storage.delete(key: _kMapAppId);
+        await _storage.delete(key: _kMapAppName);
+      } else {
+        await _storage.write(key: _kMapAppId, value: id);
+        await _storage.write(key: _kMapAppName, value: savedName!);
+      }
+    }
+    // Keep the id and display name together when choices are tapped rapidly.
+    final active = _mapAppWrite;
+    final task = active == null ? persist() : active.then((_) => persist());
+    _mapAppWrite = task;
+    notifyListeners();
+    try {
+      await task;
+    } finally {
+      if (identical(_mapAppWrite, task)) _mapAppWrite = null;
+    }
   }
 
   Future<void> setShowLinkUrls(bool v) async {

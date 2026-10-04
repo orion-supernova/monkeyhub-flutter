@@ -50,8 +50,13 @@ class LinkPreviewService {
   final Map<String, LinkPreview?> _cache = {};
 
   /// Returns a cached preview synchronously if one exists, otherwise null.
-  /// Callers should fall back to [fetch] when this is null.
+  /// Use [hasCached] to distinguish a cached failure from an unfetched URL.
   LinkPreview? cached(String url) => _cache[url];
+
+  /// A failed fetch is a cached result too. The transcript must distinguish
+  /// that from an unfetched URL so remounting a failed link does not briefly
+  /// reserve a large image placeholder and change the surrounding row offsets.
+  bool hasCached(String url) => _cache.containsKey(url);
 
   Future<LinkPreview?> fetch(String url) {
     final existing = _inflight[url];

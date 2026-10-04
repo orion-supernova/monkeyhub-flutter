@@ -1387,7 +1387,7 @@
   "glassKnobLabelSaturation": "रंग फैलाव",
   "glassKnobHintSaturation": "ब्लर के बाद कितना रंग बचता है। 2 से ज़्यादा पर पोस्टराइज़ हो जाता है",
   "glassKnobLabelRimOpacity": "किनारा",
-  "glassKnobHintRimOpacity": "किनारे की हाइलाइट रेखा। शून्य पर बॉर्डर-रहित सतह",
+  "glassKnobHintRimOpacity": "काँच के किनारे की चमक। बिना बॉर्डर वाली सतह के लिए शून्य",
   "glassKnobLabelRimWidth": "किनारे की चौड़ाई",
   "glassKnobHintRimWidth": "उस रेखा की मोटाई",
   "glassKnobLabelShadowOpacity": "छाया",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{total} में से {shown} इवेंट",
   "diagDropped": "{count, plural, other{{count} पुराने इवेंट हटा दिए गए — लॉग बीच कहानी से शुरू होता है}}",
   "diagRepeatSpan": "{seconds} सेकंड में ×{count}",
-  "roomContentTabSemantic": "{label}, {count} आइटम"
+  "roomContentTabSemantic": "{label}, {count} आइटम",
+  "mapAppsTitle": "मैप्स",
+  "mapAppsChoose": "लोकेशन इसमें खोलें",
+  "mapAppsRemember": "डिफ़ॉल्ट के रूप में इस्तेमाल करें",
+  "mapAppsAskEveryTime": "हर बार पूछें",
+  "mapAppsBrowser": "ब्राउज़र",
+  "mapAppsSubtitle": "शेयर की गई लोकेशन कहाँ खुले, चुनें।",
+  "mapAppsUnavailable": "आपका डिफ़ॉल्ट मैप ऐप उपलब्ध नहीं है। दूसरा चुनें।",
+  "mapAppsNoInstalled": "कोई समर्थित मैप ऐप नहीं मिला। आप ब्राउज़र इस्तेमाल कर सकते हैं।",
+  "interactionAnswersSearch": "लोग या जवाब खोजें",
+  "interactionFilterEmpty": "इस फ़िल्टर से कोई जवाब मेल नहीं खाता।",
+  "interactionRetry": "फिर कोशिश करें"
 }

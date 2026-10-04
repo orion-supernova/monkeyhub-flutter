@@ -1,7 +1,10 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart'
-    show kIsWeb, listEquals, visibleForTesting;
+    show
+        TargetPlatform,
+        defaultTargetPlatform,
+        kIsWeb,
+        listEquals,
+        visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -53,10 +56,17 @@ abstract final class NativeChrome {
 
   /// Asks the native side once, at startup. Cheap, and never throws: a
   /// missing handler (a build without the Swift file) is simply "no".
+  /// The bridge belongs to the UI scene, while the engine can start headless
+  /// or outlive that scene. An unanswered probe must not block `runApp`.
   static Future<void> init() async {
-    if (kIsWeb || !Platform.isIOS) return;
+    _supported = false;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
     try {
-      _supported = await channel.invokeMethod<bool>('isSupported') ?? false;
+      _supported =
+          await channel
+              .invokeMethod<bool>('isSupported')
+              .timeout(const Duration(seconds: 2)) ??
+          false;
     } catch (_) {
       _supported = false;
     }

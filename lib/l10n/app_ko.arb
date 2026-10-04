@@ -1387,7 +1387,7 @@
   "glassKnobLabelSaturation": "색 번짐",
   "glassKnobHintSaturation": "블러를 거치고도 색이 얼마나 남는지 조절해요. 2를 넘으면 포스터화돼요.",
   "glassKnobLabelRimOpacity": "테두리",
-  "glassKnobHintRimOpacity": "강조 테두리예요. 0이면 테두리 없는 표면이 돼요.",
+  "glassKnobHintRimOpacity": "유리 가장자리의 밝기. 0으로 설정하면 테두리가 사라집니다",
   "glassKnobLabelRimWidth": "테두리 두께",
   "glassKnobHintRimWidth": "그 테두리의 두께예요.",
   "glassKnobLabelShadowOpacity": "그림자",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "이벤트 {total}개 중 {shown}개",
   "diagDropped": "{count, plural, other{이전 이벤트 {count}개를 버렸어요 — 로그가 중간부터 시작돼요}}",
   "diagRepeatSpan": "{seconds}초 동안 ×{count}",
-  "roomContentTabSemantic": "{label}, {count}개"
+  "roomContentTabSemantic": "{label}, {count}개",
+  "mapAppsTitle": "지도",
+  "mapAppsChoose": "위치를 열 앱",
+  "mapAppsRemember": "기본 앱으로 사용",
+  "mapAppsAskEveryTime": "매번 묻기",
+  "mapAppsBrowser": "브라우저",
+  "mapAppsSubtitle": "공유된 위치를 열 앱을 선택하세요.",
+  "mapAppsUnavailable": "기본 지도 앱을 사용할 수 없습니다. 다른 앱을 선택하세요.",
+  "mapAppsNoInstalled": "지원되는 지도 앱이 없습니다. 브라우저를 사용할 수 있습니다.",
+  "interactionAnswersSearch": "사람 또는 답변 검색",
+  "interactionFilterEmpty": "이 필터에 맞는 답변이 없습니다.",
+  "interactionRetry": "다시 시도"
 }

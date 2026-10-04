@@ -4775,7 +4775,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glassKnobLabelRimOpacity => '縁';
 
   @override
-  String get glassKnobHintRimOpacity => 'アクセントとなる輪郭線。0にすると縁のないサーフェスに';
+  String get glassKnobHintRimOpacity => 'ガラスの縁の明るさ。0にすると枠線が消えます';
 
   @override
   String get glassKnobLabelRimWidth => '縁の太さ';
@@ -10516,4 +10516,37 @@ class AppLocalizationsJa extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label、$count件';
   }
+
+  @override
+  String get mapAppsTitle => 'マップ';
+
+  @override
+  String get mapAppsChoose => '位置情報を開くアプリ';
+
+  @override
+  String get mapAppsRemember => 'デフォルトに設定';
+
+  @override
+  String get mapAppsAskEveryTime => '毎回確認する';
+
+  @override
+  String get mapAppsBrowser => 'ブラウザ';
+
+  @override
+  String get mapAppsSubtitle => '共有された位置情報を開くアプリを選びます。';
+
+  @override
+  String get mapAppsUnavailable => 'デフォルトのマップアプリを利用できません。別のアプリを選んでください。';
+
+  @override
+  String get mapAppsNoInstalled => '対応するマップアプリが見つかりません。ブラウザを利用できます。';
+
+  @override
+  String get interactionAnswersSearch => '名前や回答を検索';
+
+  @override
+  String get interactionFilterEmpty => 'このフィルターに一致する回答はありません。';
+
+  @override
+  String get interactionRetry => '再試行';
 }

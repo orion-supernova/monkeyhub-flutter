@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
+import '../l10n/generated/app_localizations.dart';
+import 'odometer_number.dart';
 import 'ios_kit.dart' show groupedMetaStyle, quietFill;
+
+double _badgeContrast(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  return ((la > lb ? la : lb) + 0.05) / ((la < lb ? la : lb) + 0.05);
+}
 
 /// The small accent pill that carries a pending count.
 ///
@@ -24,13 +32,10 @@ class CountBadge extends StatelessWidget {
   /// THE tab-bar badge: a solid danger capsule, white 13/w600 tabular digits
   /// in the system face whatever the theme — the iOS tab badge, which reads
   /// the same on every theme because it belongs to the chrome, not the page.
-  const CountBadge.tab({
-    super.key,
-    required this.count,
-    this.max = 99,
-  })  : onAccent = false,
-        mention = false,
-        tab = true;
+  const CountBadge.tab({super.key, required this.count, this.max = 99})
+    : onAccent = false,
+      mention = false,
+      tab = true;
 
   final int count;
 
@@ -63,7 +68,7 @@ class CountBadge extends StatelessWidget {
       return Container(
         constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
         padding: const EdgeInsets.symmetric(horizontal: 6),
-  
+
         decoration: BoxDecoration(
           color: theme.danger,
           borderRadius: BorderRadius.circular(999),
@@ -156,6 +161,92 @@ class DotBadge extends StatelessWidget {
         color: theme.accent,
         shape: BoxShape.circle,
         border: Border.all(color: theme.background, width: 1.5),
+      ),
+    );
+  }
+}
+
+/// The conversation counter: a soft capsule rather than a bright notification
+/// disc. Shared by the list, cards and grid; mentions carry an @ in the same
+/// capsule, and an unread room without a count gets a quiet short dash.
+class RoomUnreadBadge extends StatelessWidget {
+  const RoomUnreadBadge({
+    super.key,
+    this.count = 0,
+    this.unread = false,
+    this.mention = false,
+    this.quiet = false,
+  });
+
+  final int count;
+  final bool unread;
+  final bool mention;
+  final bool quiet;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0 && !unread) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    final tint = quiet ? theme.inkMuted : theme.accent;
+    final fill = Color.alphaBlend(
+      tint.withValues(alpha: quiet ? 0.10 : (mention ? 0.22 : 0.12)),
+      theme.surface,
+    );
+    final preferred = quiet ? theme.inkSoft : theme.accent;
+    // Accent colours are palette highlights, not guaranteed text colours.
+    // Rose and the character themes need the same readable small digits.
+    final ink = _badgeContrast(preferred, fill) >= 4.5
+        ? preferred
+        : (_badgeContrast(theme.ink, fill) >= 4.5
+              ? theme.ink
+              : (fill.computeLuminance() > 0.179
+                    ? Colors.black
+                    : Colors.white));
+    final numbered = count > 0;
+    final label = count > 99 ? '99+' : '$count';
+    final style = groupedMetaStyle(theme).copyWith(
+      fontSize: 12,
+      height: 1,
+      letterSpacing: 0,
+      fontWeight: FontWeight.w600,
+      color: ink,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return Semantics(
+      label: numbered
+          ? '${mention ? '@ ' : ''}$label'
+          : AppLocalizations.of(context).roomFacetLabelUnread,
+      excludeSemantics: true,
+      child: Container(
+        constraints: BoxConstraints(minWidth: numbered ? 28 : 16),
+        height: numbered ? 22 : 8,
+        padding: EdgeInsets.symmetric(horizontal: numbered ? 7 : 0),
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(numbered ? 8 : 4),
+          border: Border.all(
+            color: tint.withValues(alpha: quiet ? 0.14 : 0.24),
+          ),
+        ),
+        child: Center(
+          widthFactor: 1,
+          heightFactor: 1,
+          child: !numbered
+              ? null
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (mention) ...[
+                      Text('@', style: style),
+                      const SizedBox(width: 3),
+                    ],
+                    if (count > 99)
+                      Text(label, style: style)
+                    else
+                      OdometerNumber(value: count, style: style),
+                  ],
+                ),
+        ),
       ),
     );
   }

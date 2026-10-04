@@ -5571,7 +5571,7 @@
   "@glassKnobLabelRimOpacity": {
     "description": "All-caps name of the 'rim' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
   },
-  "glassKnobHintRimOpacity": "The accent outline. Zero for a borderless surface",
+  "glassKnobHintRimOpacity": "Brightness of the glass edge. Zero for a borderless surface",
   "@glassKnobHintRimOpacity": {
     "description": "One-line caption under the 'rim' slider explaining what it does to the look."
   },
@@ -12816,5 +12816,16 @@
         "type": "String"
       }
     }
-  }
+  },
+  "mapAppsTitle": "Maps",
+  "mapAppsChoose": "Open location in",
+  "mapAppsRemember": "Use as default",
+  "mapAppsAskEveryTime": "Ask every time",
+  "mapAppsBrowser": "Browser",
+  "mapAppsSubtitle": "Choose where shared locations open.",
+  "mapAppsUnavailable": "Your default maps app is unavailable. Choose another.",
+  "mapAppsNoInstalled": "No supported maps apps found. You can use your browser.",
+  "interactionAnswersSearch": "Search people or answers",
+  "interactionFilterEmpty": "No answers match this filter.",
+  "interactionRetry": "Try again"
 }

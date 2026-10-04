@@ -4791,7 +4791,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get glassKnobLabelRimOpacity => '테두리';
 
   @override
-  String get glassKnobHintRimOpacity => '강조 테두리예요. 0이면 테두리 없는 표면이 돼요.';
+  String get glassKnobHintRimOpacity => '유리 가장자리의 밝기. 0으로 설정하면 테두리가 사라집니다';
 
   @override
   String get glassKnobLabelRimWidth => '테두리 두께';
@@ -10542,4 +10542,37 @@ class AppLocalizationsKo extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count개';
   }
+
+  @override
+  String get mapAppsTitle => '지도';
+
+  @override
+  String get mapAppsChoose => '위치를 열 앱';
+
+  @override
+  String get mapAppsRemember => '기본 앱으로 사용';
+
+  @override
+  String get mapAppsAskEveryTime => '매번 묻기';
+
+  @override
+  String get mapAppsBrowser => '브라우저';
+
+  @override
+  String get mapAppsSubtitle => '공유된 위치를 열 앱을 선택하세요.';
+
+  @override
+  String get mapAppsUnavailable => '기본 지도 앱을 사용할 수 없습니다. 다른 앱을 선택하세요.';
+
+  @override
+  String get mapAppsNoInstalled => '지원되는 지도 앱이 없습니다. 브라우저를 사용할 수 있습니다.';
+
+  @override
+  String get interactionAnswersSearch => '사람 또는 답변 검색';
+
+  @override
+  String get interactionFilterEmpty => '이 필터에 맞는 답변이 없습니다.';
+
+  @override
+  String get interactionRetry => '다시 시도';
 }

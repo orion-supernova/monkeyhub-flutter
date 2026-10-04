@@ -5044,7 +5044,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get glassKnobHintRimOpacity =>
-      'Le contour d’accentuation. Mets zéro pour une surface sans bordure';
+      'Luminosité du bord du verre. Zéro pour une surface sans bordure';
 
   @override
   String get glassKnobLabelRimWidth => 'Largeur de bordure';
@@ -11122,4 +11122,41 @@ class AppLocalizationsFr extends AppLocalizations {
   String roomContentTabSemantic(String count, String label) {
     return '$label, $count éléments';
   }
+
+  @override
+  String get mapAppsTitle => 'Cartes';
+
+  @override
+  String get mapAppsChoose => 'Ouvrir le lieu dans';
+
+  @override
+  String get mapAppsRemember => 'Utiliser par défaut';
+
+  @override
+  String get mapAppsAskEveryTime => 'Toujours demander';
+
+  @override
+  String get mapAppsBrowser => 'Navigateur';
+
+  @override
+  String get mapAppsSubtitle => 'Choisissez où ouvrir les lieux partagés.';
+
+  @override
+  String get mapAppsUnavailable =>
+      'Votre app de cartes par défaut est indisponible. Choisissez-en une autre.';
+
+  @override
+  String get mapAppsNoInstalled =>
+      'Aucune app de cartes compatible trouvée. Vous pouvez utiliser le navigateur.';
+
+  @override
+  String get interactionAnswersSearch =>
+      'Rechercher des personnes ou des réponses';
+
+  @override
+  String get interactionFilterEmpty =>
+      'Aucune réponse ne correspond à ce filtre.';
+
+  @override
+  String get interactionRetry => 'Réessayer';
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:monkeyhub/widgets/glass_buttons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -26,6 +28,7 @@ void main() {
     required int archivedCount,
     required bool open,
     bool instant = false,
+    VoidCallback? onCollapse,
   }) => MaterialApp(
     locale: const Locale('en'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -49,7 +52,7 @@ void main() {
               onClearSearch: () {},
               archivedCount: archivedCount,
               onOpenArchived: () {},
-              onCollapse: () {},
+              onCollapse: onCollapse ?? () {},
             ),
             // Stands in for the first chat row. How far down the list this
             // starts IS the space the panel takes — and it's the only way to
@@ -65,12 +68,20 @@ void main() {
   testWidgets('nothing archived: the panel ends right under the search field', (
     tester,
   ) async {
-    await tester.pumpWidget(host(archivedCount: 0, open: true));
+    var collapsed = false;
+    await tester.pumpWidget(
+      host(archivedCount: 0, open: true, onCollapse: () => collapsed = true),
+    );
     await tester.pumpAndSettle();
 
+    expect(find.text('Cancel'), findsNothing);
+    expect(find.byType(GlassCloseButton), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.xmark), findsOneWidget);
     final slot = tester.getRect(find.byType(PullRevealSlot));
     final search = tester.getRect(find.byType(SearchField));
     expect(slot.bottom - search.bottom, closeTo(bottomPadding, 0.5));
+    await tester.tap(find.byType(GlassCloseButton));
+    expect(collapsed, isTrue);
   });
 
   testWidgets('an archived folder row is what makes the panel taller', (

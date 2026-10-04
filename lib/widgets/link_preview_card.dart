@@ -9,7 +9,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
+import 'attachment_bubble_frame.dart';
 import 'skeleton_rows.dart' show SkeletonBox, SkeletonSweep;
 
 import 'teardown_safe.dart';
@@ -23,7 +23,7 @@ import '../l10n/text_case.dart';
 ///    typographic info panel (site dot + caps tag, display title, soft
 ///    description, mono domain with chevron). Used when [LinkPreview.imageUrl]
 ///    is present and the fetch returned rich content.
-///  * **compact** — square accent-gradient sigil on the left and the same
+///  * **compact** — a small link glyph on the left and the same
 ///    info column on the right. Used when no image exists but title /
 ///    description came back.
 ///  * **bare** — minimal pill with `link` glyph, domain, and chevron.
@@ -84,14 +84,19 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
   }
 
   Future<void> _load() async {
-    final cached = LinkPreviewService.instance.cached(widget.url);
-    if (cached != null) {
-      setState(() => _preview = cached);
+    final service = LinkPreviewService.instance;
+    if (service.hasCached(widget.url)) {
+      final cached = service.cached(widget.url);
+      setState(() {
+        _preview = cached;
+        _loading = false;
+        _failed = cached == null || !cached.hasContent;
+      });
       return;
     }
     setState(() => _loading = true);
     try {
-      final preview = await LinkPreviewService.instance.fetch(widget.url);
+      final preview = await service.fetch(widget.url);
       if (!mounted) return;
       setState(() {
         _preview = preview;
@@ -119,11 +124,13 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final radius = widget.borderRadius ??
-        BorderRadius.circular(widget.insideBubble ? theme.radiusMd : theme.radiusLg);
+    final radius =
+        widget.borderRadius ??
+        BorderRadius.circular(
+          widget.insideBubble ? theme.radiusMd : theme.radiusLg,
+        );
     final preview = _preview;
-    final hasImage =
-        preview != null && (preview.imageUrl?.isNotEmpty ?? false);
+    final hasImage = preview != null && (preview.imageUrl?.isNotEmpty ?? false);
     final hasContent = preview != null && preview.hasContent;
 
     final showSkeleton = preview == null && (_loading || !_failed);
@@ -150,19 +157,19 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
                 key: const ValueKey('content'),
                 child: hasContent
                     ? hasImage
-                        ? _HeroLayout(
-                            theme: theme,
-                            preview: preview,
-                            domain: _domain,
-                            isMine: widget.isMine,
-                            insideBubble: widget.insideBubble,
-                          )
-                        : _CompactLayout(
-                            theme: theme,
-                            preview: preview,
-                            domain: _domain,
-                            isMine: widget.isMine,
-                          )
+                          ? _HeroLayout(
+                              theme: theme,
+                              preview: preview,
+                              domain: _domain,
+                              isMine: widget.isMine,
+                              insideBubble: widget.insideBubble,
+                            )
+                          : _CompactLayout(
+                              theme: theme,
+                              preview: preview,
+                              domain: _domain,
+                              isMine: widget.isMine,
+                            )
                     : _BareLayout(
                         theme: theme,
                         domain: _domain,
@@ -232,13 +239,10 @@ class _HeroLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final tone = _CardTones.of(theme, isMine, insideBubble);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: tone.surface,
-        border: Border.all(color: tone.border, width: 1),
-        borderRadius: insideBubble
-            ? BorderRadius.circular(theme.radiusMd)
-            : BorderRadius.circular(theme.radiusLg),
+    return AttachmentBubbleFrame(
+      theme: theme,
+      radius: BorderRadius.circular(
+        insideBubble ? theme.radiusMd : theme.radiusLg,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -271,20 +275,8 @@ class _HeroLayout extends StatelessWidget {
               ],
             ),
           ),
-          // Theme-accent hairline seam between image and info — a tiny
-          // signature flourish that lifts the card out of generic territory.
-          Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.accent.withValues(alpha: 0.0),
-                  theme.accent.withValues(alpha: isMine ? 0.55 : 0.35),
-                  theme.accent.withValues(alpha: 0.0),
-                ],
-              ),
-            ),
-          ),
+          // The same fine divider as the other attachment cards.
+          Container(height: 1, color: tone.border),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
             child: _InfoBlock(
@@ -320,8 +312,10 @@ class _HeroImage extends StatelessWidget {
     // re-rendered on every scroll back through the room shouldn't re-fetch a
     // stranger's server.
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final decodeWidth =
-        math.max(1, (MediaQuery.sizeOf(context).width * dpr).round());
+    final decodeWidth = math.max(
+      1,
+      (MediaQuery.sizeOf(context).width * dpr).round(),
+    );
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.cover,
@@ -331,8 +325,7 @@ class _HeroImage extends StatelessWidget {
       errorWidget: (_, _, _) => Container(
         color: tone.surface,
         alignment: Alignment.center,
-        child: Icon(CupertinoIcons.photo,
-            color: tone.inkMuted, size: 22),
+        child: Icon(CupertinoIcons.photo, color: tone.inkMuted, size: 22),
       ),
       placeholder: (_, _) => Container(
         color: tone.surface,
@@ -347,8 +340,7 @@ class _HeroImage extends StatelessWidget {
   }
 }
 
-/// Compact layout: theme-gradient sigil on the left, info column on the
-/// right. Used when OG meta exists but no image came back.
+/// Compact metadata card, used when the page has no preview image.
 class _CompactLayout extends StatelessWidget {
   const _CompactLayout({
     required this.theme,
@@ -365,50 +357,32 @@ class _CompactLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tone = _CardTones.of(theme, isMine, true);
-    return Container(
-      decoration: BoxDecoration(
-        color: tone.surface,
-        border: Border.all(color: tone.border, width: 1),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Accent gradient sigil — the card's identity when no image
-            // exists. Theme.accent shifted through its luminance range
-            // creates a "branded chip" feel.
-            Container(
-              width: 56,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    theme.accent.withValues(alpha: 0.85),
-                    theme.accent.withValues(alpha: 0.45),
-                  ],
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Icon(CupertinoIcons.link,
-                  size: 22, color: theme.accentInk),
+    return AttachmentBubbleFrame(
+      theme: theme,
+      radius: BorderRadius.circular(theme.radiusMd),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              CupertinoIcons.link,
+              size: 20,
+              color: attachmentActionInk(theme),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                child: _InfoBlock(
-                  theme: theme,
-                  preview: preview,
-                  domain: domain,
-                  tone: tone,
-                  dense: true,
-                ),
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _InfoBlock(
+              theme: theme,
+              preview: preview,
+              domain: domain,
+              tone: tone,
+              dense: true,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -433,24 +407,16 @@ class _BareLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tone = _CardTones.of(theme, isMine, true);
-    return Container(
-      decoration: BoxDecoration(
-        color: tone.surface,
-        border: Border.all(color: tone.border, width: 1),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
+    return AttachmentBubbleFrame(
+      theme: theme,
+      radius: BorderRadius.circular(theme.radiusMd),
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       child: Row(
         children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              color: quietFill(theme),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: Icon(CupertinoIcons.link, size: 14, color: theme.accent),
+          Icon(
+            CupertinoIcons.link,
+            size: 20,
+            color: attachmentActionInk(theme),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -480,7 +446,11 @@ class _BareLayout extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Icon(CupertinoIcons.arrow_up_right, size: 15, color: theme.accent),
+          Icon(
+            CupertinoIcons.arrow_up_right,
+            size: 15,
+            color: attachmentActionInk(theme),
+          ),
         ],
       ),
     );
@@ -673,19 +643,15 @@ class _CardTones {
   final Color inkSoft;
   final Color inkMuted;
 
-  /// The card stays ownership-neutral; the row alignment (and the surrounding
-  /// bubble decoration, when present) communicates mine/theirs. This matches
-  /// the existing image-bubble caption treatment which also reuses
-  /// [AppTheme.surfaceSunken] regardless of sender.
+  /// Row alignment communicates ownership. The surface and edge share the
+  /// palette used by poll, list, event and map bubbles.
   factory _CardTones.of(AppTheme theme, bool isMine, bool insideBubble) {
     return _CardTones(
-      surface: insideBubble ? theme.surfaceSunken : theme.surface,
-      // No outline: the iMessage link card is a filled panel, and a hairline
-      // around it inside a bubble drew a box inside a box.
-      border: const Color(0x00000000),
+      surface: attachmentBubbleFill(theme),
+      border: attachmentEdge(theme),
       ink: theme.ink,
-      inkSoft: theme.inkSoft,
-      inkMuted: theme.inkMuted,
+      inkSoft: attachmentSecondaryInk(theme),
+      inkMuted: attachmentSecondaryInk(theme),
     );
   }
 }

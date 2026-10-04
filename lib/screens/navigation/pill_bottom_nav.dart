@@ -720,6 +720,7 @@ class _PillBottomNavState extends State<PillBottomNav>
               child: LiquidGlass(
                 shape: LiquidGlassShape.capsule,
                 config: profile.nav,
+                neutral: true,
                 child: const SizedBox.expand(),
               ),
             ),
@@ -1009,13 +1010,22 @@ class _Indicator extends StatelessWidget {
     return DecoratedBox(
       key: navIndicatorKey,
       decoration: ShapeDecoration(
-        color: theme.ink.withValues(
-          alpha: (light ? 0.07 : 0.12) + 0.06 * grab,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            (light ? Colors.black : Colors.white).withValues(
+              alpha: (light ? 0.055 : 0.16) + 0.06 * grab,
+            ),
+            (light ? Colors.black : Colors.white).withValues(
+              alpha: (light ? 0.085 : 0.09) + 0.06 * grab,
+            ),
+          ],
         ),
         shape: StadiumBorder(
           side: BorderSide(
             color: (light ? Colors.black : Colors.white).withValues(
-              alpha: (light ? 0.06 : 0.14) + 0.12 * grab,
+              alpha: (light ? 0.025 : 0.08) + 0.12 * grab,
             ),
             width: 0.5,
           ),

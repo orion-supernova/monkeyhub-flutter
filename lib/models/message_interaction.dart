@@ -28,10 +28,10 @@ class InteractionRespondent {
       );
 
   Map<String, dynamic> toJson() => {
-        'userId': userId,
-        'name': name,
-        'at': at.millisecondsSinceEpoch,
-      };
+    'userId': userId,
+    'name': name,
+    'at': at.millisecondsSinceEpoch,
+  };
 }
 
 /// One answerable thing: a poll option, a checklist item, or an RSVP button.
@@ -74,28 +74,29 @@ class InteractionChoice {
         count: (j['count'] as num?)?.toInt() ?? 0,
         respondents: ((j['respondents'] as List?) ?? const [])
             .whereType<Map>()
-            .map((e) => InteractionRespondent.fromJson(e.cast<String, dynamic>()))
+            .map(
+              (e) => InteractionRespondent.fromJson(e.cast<String, dynamic>()),
+            )
             .toList(),
       );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'label': label,
-        'count': count,
-        if (respondents.isNotEmpty)
-          'respondents': [for (final r in respondents) r.toJson()],
-      };
+    'id': id,
+    'label': label,
+    'count': count,
+    if (respondents.isNotEmpty)
+      'respondents': [for (final r in respondents) r.toJson()],
+  };
 
   InteractionChoice copyWith({
     int? count,
     List<InteractionRespondent>? respondents,
-  }) =>
-      InteractionChoice(
-        id: id,
-        label: label,
-        count: count ?? this.count,
-        respondents: respondents ?? this.respondents,
-      );
+  }) => InteractionChoice(
+    id: id,
+    label: label,
+    count: count ?? this.count,
+    respondents: respondents ?? this.respondents,
+  );
 }
 
 /// The body of a poll, checklist or event — everything the message row does not
@@ -137,6 +138,7 @@ class MessageInteraction {
     this.closedAt,
     this.closedBy,
     this.pendingChoiceIds = const {},
+    this.pendingSelectedChoiceIds,
   });
 
   final String messageId;
@@ -158,6 +160,11 @@ class MessageInteraction {
   /// What this reader picked. Their own answers, so anonymity never withholds
   /// it — a poll that hid your vote from you would just be broken.
   final List<String> myChoiceIds;
+
+  /// The intended selection while a write is running. A subscription can
+  /// acknowledge the same answer before the mutation returns; keeping this
+  /// snapshot prevents that acknowledgement from toggling the control twice.
+  final Set<String>? pendingSelectedChoiceIds;
 
   final bool multiple;
   final bool anonymous;
@@ -190,9 +197,25 @@ class MessageInteraction {
   /// grow, then shrink again when the real state arrived, which is the one
   /// thing an optimistic update must never do.
   ///
-  /// Local-only: never serialized, and cleared whenever the server's own state
-  /// for this interaction next lands.
+  /// Local-only: never serialized, and cleared when the write completes.
   final Set<String> pendingChoiceIds;
+
+  /// Paint only the new selection while a single-answer replacement is pending.
+  /// The counts remain the server's confirmed counts.
+  bool choiceSelected(InteractionChoice choice) {
+    if (pendingChoiceIds.isNotEmpty && pendingSelectedChoiceIds != null) {
+      return pendingSelectedChoiceIds!.contains(choice.id);
+    }
+    final held = kind == MessageType.checklist
+        ? choice.count > 0
+        : myChoiceIds.contains(choice.id);
+    if (pendingChoiceIds.isEmpty) return held;
+    if (kind != MessageType.checklist && !multiple) {
+      final pending = pendingChoiceIds.last;
+      return choice.id == pending && !myChoiceIds.contains(pending);
+    }
+    return pendingChoiceIds.contains(choice.id) ? !held : held;
+  }
 
   bool get isClosed => closedAt != null;
 
@@ -210,8 +233,9 @@ class MessageInteraction {
   /// Deliberately the MAX and not [respondentCount]: on a [multiple] poll the
   /// counts sum past the number of voters, so scaling by the voter count would
   /// draw bars past the end of the card.
-  int get topCount =>
-      choices.isEmpty ? 0 : choices.map((c) => c.count).reduce((a, b) => a > b ? a : b);
+  int get topCount => choices.isEmpty
+      ? 0
+      : choices.map((c) => c.count).reduce((a, b) => a > b ? a : b);
 
   /// This choice's share of the vote, 0..1, for the bar and the percentage.
   ///
@@ -264,60 +288,63 @@ class MessageInteraction {
   }
 
   Map<String, dynamic> toJson() => {
-        'messageId': messageId,
-        'kind': kind.wire,
-        'createdBy': createdBy,
-        'createdAt': createdAt.millisecondsSinceEpoch,
-        'choices': [for (final c in choices) c.toJson()],
-        'respondentCount': respondentCount,
-        if (myChoiceIds.isNotEmpty) 'myChoiceIds': myChoiceIds,
-        if (multiple) 'multiple': true,
-        if (anonymous) 'anonymous': true,
-        if (quiz) 'quiz': true,
-        if (correctChoiceId != null) 'correctChoiceId': correctChoiceId,
-        if (explanation != null) 'explanation': explanation,
-        if (!othersMayCheck) 'othersMayCheck': false,
-        if (!othersMayAdd) 'othersMayAdd': false,
-        if (startsAt != null) 'startsAt': startsAt!.millisecondsSinceEpoch,
-        if (endsAt != null) 'endsAt': endsAt!.millisecondsSinceEpoch,
-        if (place != null) 'place': place,
-        if (closedAt != null) 'closedAt': closedAt!.millisecondsSinceEpoch,
-        if (closedBy != null) 'closedBy': closedBy,
-        // `pendingChoiceIds` is deliberately absent: it describes an in-flight
-        // mutation on THIS device, and a cache that restored one would show a
-        // tap that no longer has a request behind it.
-      };
+    'messageId': messageId,
+    'kind': kind.wire,
+    'createdBy': createdBy,
+    'createdAt': createdAt.millisecondsSinceEpoch,
+    'choices': [for (final c in choices) c.toJson()],
+    'respondentCount': respondentCount,
+    if (myChoiceIds.isNotEmpty) 'myChoiceIds': myChoiceIds,
+    if (multiple) 'multiple': true,
+    if (anonymous) 'anonymous': true,
+    if (quiz) 'quiz': true,
+    if (correctChoiceId != null) 'correctChoiceId': correctChoiceId,
+    if (explanation != null) 'explanation': explanation,
+    if (!othersMayCheck) 'othersMayCheck': false,
+    if (!othersMayAdd) 'othersMayAdd': false,
+    if (startsAt != null) 'startsAt': startsAt!.millisecondsSinceEpoch,
+    if (endsAt != null) 'endsAt': endsAt!.millisecondsSinceEpoch,
+    if (place != null) 'place': place,
+    if (closedAt != null) 'closedAt': closedAt!.millisecondsSinceEpoch,
+    if (closedBy != null) 'closedBy': closedBy,
+    // `pendingChoiceIds` is deliberately absent: it describes an in-flight
+    // mutation on THIS device, and a cache that restored one would show a
+    // tap that no longer has a request behind it.
+  };
 
   MessageInteraction copyWith({
     List<InteractionChoice>? choices,
     int? respondentCount,
     List<String>? myChoiceIds,
     Set<String>? pendingChoiceIds,
+    Set<String>? pendingSelectedChoiceIds,
     DateTime? closedAt,
     String? closedBy,
-  }) =>
-      MessageInteraction(
-        messageId: messageId,
-        kind: kind,
-        createdBy: createdBy,
-        createdAt: createdAt,
-        choices: choices ?? this.choices,
-        respondentCount: respondentCount ?? this.respondentCount,
-        myChoiceIds: myChoiceIds ?? this.myChoiceIds,
-        multiple: multiple,
-        anonymous: anonymous,
-        quiz: quiz,
-        correctChoiceId: correctChoiceId,
-        explanation: explanation,
-        othersMayCheck: othersMayCheck,
-        othersMayAdd: othersMayAdd,
-        startsAt: startsAt,
-        endsAt: endsAt,
-        place: place,
-        closedAt: closedAt ?? this.closedAt,
-        closedBy: closedBy ?? this.closedBy,
-        pendingChoiceIds: pendingChoiceIds ?? this.pendingChoiceIds,
-      );
+  }) => MessageInteraction(
+    messageId: messageId,
+    kind: kind,
+    createdBy: createdBy,
+    createdAt: createdAt,
+    choices: choices ?? this.choices,
+    respondentCount: respondentCount ?? this.respondentCount,
+    myChoiceIds: myChoiceIds ?? this.myChoiceIds,
+    multiple: multiple,
+    anonymous: anonymous,
+    quiz: quiz,
+    correctChoiceId: correctChoiceId,
+    explanation: explanation,
+    othersMayCheck: othersMayCheck,
+    othersMayAdd: othersMayAdd,
+    startsAt: startsAt,
+    endsAt: endsAt,
+    place: place,
+    closedAt: closedAt ?? this.closedAt,
+    closedBy: closedBy ?? this.closedBy,
+    pendingChoiceIds: pendingChoiceIds ?? this.pendingChoiceIds,
+    pendingSelectedChoiceIds: pendingChoiceIds?.isEmpty == true
+        ? null
+        : pendingSelectedChoiceIds ?? this.pendingSelectedChoiceIds,
+  );
 }
 
 /// One row of the "who answered what" sheet.

@@ -173,7 +173,7 @@ const kSaturation = GlassKnob(
 const kRimOpacity = GlassKnob(
   id: 'rimOpacity',
   label: 'RIM',
-  hint: 'the accent outline. zero for a borderless surface',
+  hint: 'brightness of the glass edge. zero for a borderless surface',
   min: 0,
   max: 1,
   standard: 0.30,
@@ -363,13 +363,10 @@ class GlassConfig {
   /// makes a reset control a no-op, and so what disables it.
   bool get isUntouched => overrides.isEmpty;
 
-  GlassConfig set(GlassKnob k, double v) => GlassConfig({
-    ...overrides,
-    k.id: k.clampValue(v),
-  });
+  GlassConfig set(GlassKnob k, double v) =>
+      GlassConfig({...overrides, k.id: k.clampValue(v)});
 
-  GlassConfig reset(GlassKnob k) =>
-      GlassConfig({...overrides}..remove(k.id));
+  GlassConfig reset(GlassKnob k) => GlassConfig({...overrides}..remove(k.id));
 
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(overrides);
 
@@ -555,8 +552,8 @@ String sanitizeSlotName(String raw) {
 
 /// The look the app ships with, and the one it ships as an alternative.
 ///
-/// `frosted` is the default: readable over anything, no colour trickery, the
-/// bar clearly a surface. `clear` is the see-through tuning — thin fill, barely
+/// `frosted` is the default: the neutral, top-lit recipe matched to native iOS
+/// glass. `clear` is the see-through tuning — thin fill, barely
 /// any blur, and the colour behind boosted so it actually reads as content
 /// rather than as haze. It is deliberately not the default; it looks its best
 /// over busy, colourful content and its worst over a plain one.
@@ -565,9 +562,7 @@ const kBuiltInGlassPresets = <GlassPreset>[
     id: 'frosted',
     name: 'Frosted',
     builtIn: true,
-    profile: GlassProfile(
-      nav: GlassConfig(<String, double>{'frost': 0.45, 'blur': 10}),
-    ),
+    profile: GlassProfile(nav: kNativeMatchGlass),
   ),
   GlassPreset(
     id: 'clear',
@@ -607,8 +602,21 @@ String glassPresetName(AppLocalizations l10n, GlassPreset preset) {
 /// The preset a fresh install starts on.
 const kDefaultGlassPresetId = 'frosted';
 
+/// Upgrade the old shipped Frosted bar without overwriting a user's dials or
+/// saved slots. App tuning and geometry are independent and stay intact.
+GlassProfile upgradeFrostedGlassProfile(
+  GlassProfile profile,
+  String? presetId,
+) {
+  const previousNav = GlassConfig({'frost': 0.45, 'blur': 10});
+  if (presetId != 'frosted' || profile.nav != previousNav) return profile;
+  return profile.copyWith(nav: kNativeMatchGlass);
+}
+
 /// The recipe every app-drawn glass surface follows while iOS draws the tab
-/// bar ([GlassEngine.native]), in place of the user's tuning.
+/// bar ([GlassEngine.native]), in place of the user's tuning. Untuned app
+/// chrome also uses this recipe with the Flutter tab bar, so switching only
+/// the bar's style leaves the default buttons consistent.
 ///
 /// Matched by eye to iOS 26 Liquid Glass beside the real `UITabBar`: a thin
 /// fill, a light blur with the colour behind it lifted rather than washed out,
@@ -627,3 +635,9 @@ const kNativeMatchGlass = GlassConfig(<String, double>{
   'shadowBlur': 20,
   'shadowY': 4,
 });
+
+/// App surfaces start from the iOS-style material; sparse overrides tune only
+/// the selected dials without reverting the rest to the older Frosted recipe.
+GlassConfig resolveAppGlass(GlassConfig config) => config.isUntouched
+    ? kNativeMatchGlass
+    : GlassConfig({...kNativeMatchGlass.overrides, ...config.overrides});

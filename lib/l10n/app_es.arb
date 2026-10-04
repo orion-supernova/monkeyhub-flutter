@@ -1397,7 +1397,7 @@
   "glassKnobLabelSaturation": "Fuga de color",
   "glassKnobHintSaturation": "Cuánto color sobrevive al desenfoque. Pasado el 2, se posteriza",
   "glassKnobLabelRimOpacity": "Borde",
-  "glassKnobHintRimOpacity": "El contorno de acento. Ponlo en cero para una superficie sin borde",
+  "glassKnobHintRimOpacity": "Brillo del borde del cristal. Cero para una superficie sin borde",
   "glassKnobLabelRimWidth": "Grosor del borde",
   "glassKnobHintRimWidth": "El grosor de ese contorno",
   "glassKnobLabelShadowOpacity": "Sombra",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{shown} de {total} eventos",
   "diagDropped": "{count, plural, one{Se descartó {count} evento anterior: el registro empieza a mitad de historia} other{Se descartaron {count} eventos anteriores: el registro empieza a mitad de historia}}",
   "diagRepeatSpan": "×{count} en {seconds} s",
-  "roomContentTabSemantic": "{label}, {count} elementos"
+  "roomContentTabSemantic": "{label}, {count} elementos",
+  "mapAppsTitle": "Mapas",
+  "mapAppsChoose": "Abrir ubicación en",
+  "mapAppsRemember": "Usar por defecto",
+  "mapAppsAskEveryTime": "Preguntar siempre",
+  "mapAppsBrowser": "Navegador",
+  "mapAppsSubtitle": "Elige dónde abrir las ubicaciones compartidas.",
+  "mapAppsUnavailable": "Tu app de mapas predeterminada no está disponible. Elige otra.",
+  "mapAppsNoInstalled": "No hay apps de mapas compatibles. Puedes usar el navegador.",
+  "interactionAnswersSearch": "Buscar personas o respuestas",
+  "interactionFilterEmpty": "Ninguna respuesta coincide con este filtro.",
+  "interactionRetry": "Reintentar"
 }

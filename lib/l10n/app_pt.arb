@@ -1397,7 +1397,7 @@
   "glassKnobLabelSaturation": "Sangria de cor",
   "glassKnobHintSaturation": "Quanta cor sobrevive ao desfoque. Depois de 2, começa a posterizar",
   "glassKnobLabelRimOpacity": "Orla",
-  "glassKnobHintRimOpacity": "O contorno de destaque. Zero para uma superfície sem orla",
+  "glassKnobHintRimOpacity": "Brilho da borda do vidro. Zero para uma superfície sem borda",
   "glassKnobLabelRimWidth": "Largura da orla",
   "glassKnobHintRimWidth": "Espessura dessa orla",
   "glassKnobLabelShadowOpacity": "Sombra",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{shown} de {total} eventos",
   "diagDropped": "{count, plural, one{{count} evento anterior descartado — o registo começa a meio da história} other{{count} eventos anteriores descartados — o registo começa a meio da história}}",
   "diagRepeatSpan": "×{count} em {seconds} s",
-  "roomContentTabSemantic": "{label}, {count} itens"
+  "roomContentTabSemantic": "{label}, {count} itens",
+  "mapAppsTitle": "Mapas",
+  "mapAppsChoose": "Abrir localização em",
+  "mapAppsRemember": "Usar como padrão",
+  "mapAppsAskEveryTime": "Perguntar sempre",
+  "mapAppsBrowser": "Navegador",
+  "mapAppsSubtitle": "Escolha onde abrir as localizações partilhadas.",
+  "mapAppsUnavailable": "A app de mapas padrão não está disponível. Escolha outra.",
+  "mapAppsNoInstalled": "Nenhuma app de mapas compatível encontrada. Pode usar o navegador.",
+  "interactionAnswersSearch": "Pesquisar pessoas ou respostas",
+  "interactionFilterEmpty": "Nenhuma resposta corresponde a este filtro.",
+  "interactionRetry": "Tentar novamente"
 }

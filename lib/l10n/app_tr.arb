@@ -1387,7 +1387,7 @@
   "glassKnobLabelSaturation": "Renk sızması",
   "glassKnobHintSaturation": "Renklerin bulanıklıktan ne kadarının kurtulduğu. 2’den sonra posterize olur",
   "glassKnobLabelRimOpacity": "Kenarlık",
-  "glassKnobHintRimOpacity": "Vurgu rengindeki kenar çizgisi. Kenarlıksız yüzey için sıfırla",
+  "glassKnobHintRimOpacity": "Cam kenarının parlaklığı. Kenarlıksız bir yüzey için sıfır",
   "glassKnobLabelRimWidth": "Kenarlık kalınlığı",
   "glassKnobHintRimWidth": "O çizginin kalınlığı",
   "glassKnobLabelShadowOpacity": "Gölge",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{total} olaydan {shown} tanesi",
   "diagDropped": "{count, plural, other{Önceki {count} olay atıldı — günlük hikâyenin ortasından başlıyor}}",
   "diagRepeatSpan": "{seconds} sn içinde ×{count}",
-  "roomContentTabSemantic": "{label}, {count} öğe"
+  "roomContentTabSemantic": "{label}, {count} öğe",
+  "mapAppsTitle": "Haritalar",
+  "mapAppsChoose": "Konumu şurada aç",
+  "mapAppsRemember": "Varsayılan olarak kullan",
+  "mapAppsAskEveryTime": "Her seferinde sor",
+  "mapAppsBrowser": "Tarayıcı",
+  "mapAppsSubtitle": "Paylaşılan konumların nerede açılacağını seç.",
+  "mapAppsUnavailable": "Varsayılan harita uygulaman kullanılamıyor. Başka bir uygulama seç.",
+  "mapAppsNoInstalled": "Desteklenen bir harita uygulaması bulunamadı. Tarayıcını kullanabilirsin.",
+  "interactionAnswersSearch": "Kişi veya yanıt ara",
+  "interactionFilterEmpty": "Bu filtreye uygun yanıt yok.",
+  "interactionRetry": "Tekrar dene"
 }

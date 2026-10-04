@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_message.dart';
@@ -15,6 +18,27 @@ import 'package:monkeyhub/keyboard/focusable_tap.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/widgets/interaction_bubble.dart';
 import 'package:monkeyhub/widgets/interaction_respondents_sheet.dart';
+import 'package:monkeyhub/widgets/message_bubble.dart';
+import 'package:monkeyhub/widgets/filter_capsule.dart';
+
+class _AnswersApi extends Fake implements ChatApi {
+  List<InteractionRespondentDetail> rows = [];
+  bool fail = false;
+  int reads = 0;
+  Completer<List<InteractionRespondentDetail>>? pending;
+  VoidCallback? onRead;
+  @override
+  Future<List<InteractionRespondentDetail>> interactionRespondents({
+    required String messageId,
+    required String userId,
+  }) async {
+    reads++;
+    onRead?.call();
+    if (fail) throw StateError('offline');
+    if (pending != null) return pending!.future;
+    return rows;
+  }
+}
 
 /// Polls, checklists and events on the client.
 ///
@@ -39,32 +63,30 @@ void main() {
     String id = 'm1',
     MessageType type = MessageType.poll,
     String content = 'pizza or curry?',
-  }) =>
-      ChatMessage(
-        id: id,
-        roomId: 'r',
-        senderId: 'author',
-        senderName: 'author',
-        content: content,
-        createdAt: DateTime(2026, 3, 1, 12, 4),
-        type: type,
-      );
+  }) => ChatMessage(
+    id: id,
+    roomId: 'r',
+    senderId: 'author',
+    senderName: 'author',
+    content: content,
+    createdAt: DateTime(2026, 3, 1, 12, 4),
+    type: type,
+  );
 
   InteractionChoice choice(
     String id,
     String label, {
     int count = 0,
     List<String> respondents = const [],
-  }) =>
-      InteractionChoice(
-        id: id,
-        label: label,
-        count: count,
-        respondents: [
-          for (final n in respondents)
-            InteractionRespondent(userId: n, name: n, at: DateTime(2026, 3, 1)),
-        ],
-      );
+  }) => InteractionChoice(
+    id: id,
+    label: label,
+    count: count,
+    respondents: [
+      for (final n in respondents)
+        InteractionRespondent(userId: n, name: n, at: DateTime(2026, 3, 1)),
+    ],
+  );
 
   MessageInteraction poll({
     MessageType kind = MessageType.poll,
@@ -77,71 +99,65 @@ void main() {
     bool quiz = false,
     String? correctChoiceId,
     DateTime? closedAt,
-  }) =>
-      MessageInteraction(
-        messageId: 'm1',
-        kind: kind,
-        createdBy: 'author',
-        createdAt: DateTime(2026, 3, 1, 12, 4),
-        choices: choices ?? [choice('0', 'pizza'), choice('1', 'curry')],
-        respondentCount: respondentCount,
-        myChoiceIds: myChoiceIds,
-        pendingChoiceIds: pending,
-        multiple: multiple,
-        anonymous: anonymous,
-        quiz: quiz,
-        correctChoiceId: correctChoiceId,
-        closedAt: closedAt,
-      );
+  }) => MessageInteraction(
+    messageId: 'm1',
+    kind: kind,
+    createdBy: 'author',
+    createdAt: DateTime(2026, 3, 1, 12, 4),
+    choices: choices ?? [choice('0', 'pizza'), choice('1', 'curry')],
+    respondentCount: respondentCount,
+    myChoiceIds: myChoiceIds,
+    pendingChoiceIds: pending,
+    multiple: multiple,
+    anonymous: anonymous,
+    quiz: quiz,
+    correctChoiceId: correctChoiceId,
+    closedAt: closedAt,
+  );
 
-  Widget host(Widget child) => MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: LayoutScope(
-              windowClass: WindowClass.compact,
-              width: 390,
-              // LOOSE constraints inside the 390, which is what the transcript
-              // actually hands a bubble (`ConstrainedBox(maxWidth: ...)`). A
-              // bare `SizedBox(width: 390, child: card)` would impose a TIGHT
-              // 390 and stretch the card past its own `width:` — measuring the
-              // harness rather than the widget.
-              child: SizedBox(
-                width: 390,
-                child: Align(alignment: Alignment.topLeft, child: child),
-              ),
-            ),
+  Widget host(Widget child) => ThemeScope(
+    controller: ThemeController(BasicTheme.midnight()),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: LayoutScope(
+          windowClass: WindowClass.compact,
+          width: 390,
+          child: SizedBox(
+            width: 390,
+            child: Align(alignment: Alignment.topLeft, child: child),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
   Widget card(
     ChatMessage message,
     MessageInteraction? interaction, {
     InteractionActions actions = InteractionActions.none,
     String? me = 'me',
-  }) =>
-      Builder(
-        builder: (context) => InteractionBubble(
-          theme: ThemeScope.of(context),
-          message: message,
-          interaction: interaction,
-          isMine: false,
-          width: 280,
-          radius: BorderRadius.circular(18),
-          actions: actions,
-          currentUserId: me,
-          clock: () => DateTime(2026, 3, 1, 12, 30),
-        ),
-      );
+  }) => Builder(
+    builder: (context) => InteractionBubble(
+      theme: ThemeScope.of(context),
+      message: message,
+      interaction: interaction,
+      isMine: false,
+      width: 280,
+      radius: BorderRadius.circular(18),
+      actions: actions,
+      currentUserId: me,
+      clock: () => DateTime(2026, 3, 1, 12, 30),
+    ),
+  );
 
   // ── The two-source problem ──────────────────────────────────────────────
 
   group('a card renders before its body arrives', () {
-    testWidgets('the prompt is drawn from the MESSAGE, not the interaction',
-        (tester) async {
+    testWidgets('the prompt is drawn from the MESSAGE, not the interaction', (
+      tester,
+    ) async {
       await tester.pumpWidget(host(card(pollMessage(), null)));
       expect(tester.takeException(), isNull);
 
@@ -152,23 +168,29 @@ void main() {
       expect(find.text('Poll'), findsOneWidget);
     });
 
-    testWidgets('the body landing does not change the prompt or the height much',
-        (tester) async {
-      await tester.pumpWidget(host(card(pollMessage(), null)));
-      final skeletonHeight = tester.getSize(find.byType(InteractionBubble)).height;
+    testWidgets(
+      'the body landing does not change the prompt or the height much',
+      (tester) async {
+        await tester.pumpWidget(host(card(pollMessage(), null)));
+        final skeletonHeight = tester
+            .getSize(find.byType(InteractionBubble))
+            .height;
 
-      await tester.pumpWidget(host(card(pollMessage(), poll())));
-      await tester.pumpAndSettle();
-      expect(find.text('pizza or curry?'), findsOneWidget);
-      expect(find.text('pizza'), findsOneWidget);
+        await tester.pumpWidget(host(card(pollMessage(), poll())));
+        await tester.pumpAndSettle();
+        expect(find.text('pizza or curry?'), findsOneWidget);
+        expect(find.text('pizza'), findsOneWidget);
 
-      // The skeleton exists to keep the transcript from lurching when the real
-      // choices arrive. Three placeholder rows against two real options is
-      // close enough that the list does not jump a screen — this pins that it
-      // is in the same neighbourhood rather than a zero-height placeholder.
-      final realHeight = tester.getSize(find.byType(InteractionBubble)).height;
-      expect((realHeight - skeletonHeight).abs(), lessThan(60));
-    });
+        // The skeleton exists to keep the transcript from lurching when the real
+        // choices arrive. Three placeholder rows against two real options is
+        // close enough that the list does not jump a screen — this pins that it
+        // is in the same neighbourhood rather than a zero-height placeholder.
+        final realHeight = tester
+            .getSize(find.byType(InteractionBubble))
+            .height;
+        expect((realHeight - skeletonHeight).abs(), lessThan(60));
+      },
+    );
   });
 
   // ── Optimism ────────────────────────────────────────────────────────────
@@ -180,21 +202,25 @@ void main() {
         respondentCount: 2,
       );
       await tester.pumpWidget(host(card(pollMessage(), confirmed)));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('100%'), findsOneWidget);
 
       // The same poll with this device's vote in flight. The server has not
       // agreed yet, so the percentage must be untouched.
       final pendingVote = confirmed.copyWith(pendingChoiceIds: {'1'});
       await tester.pumpWidget(host(card(pollMessage(), pendingVote)));
-      await tester.pumpAndSettle();
-      expect(find.text('100%'), findsOneWidget,
-          reason: 'the bar must not move until the server says it has');
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.text('100%'),
+        findsOneWidget,
+        reason: 'the bar must not move until the server says it has',
+      );
       expect(find.text('50%'), findsNothing);
     });
 
-    testWidgets('a pending tap on a HELD choice draws as un-selected',
-        (tester) async {
+    testWidgets('a pending tap on a HELD choice draws as un-selected', (
+      tester,
+    ) async {
       // The subtle half: `chosen != pending`, not `chosen || pending`. Tapping
       // a choice you already hold is a RETRACTION, and drawing it filled while
       // that is in flight shows the opposite of what is about to happen.
@@ -204,45 +230,62 @@ void main() {
       // the pixels it paints.
       bool selectedOf(String label) {
         final tap = tester.widget<FocusableTap>(
-          find.ancestor(
-            of: find.text(label),
-            matching: find.byType(FocusableTap),
-          ).first,
+          find
+              .ancestor(
+                of: find.text(label),
+                matching: find.byType(FocusableTap),
+              )
+              .first,
         );
         return tap.selected ?? false;
       }
 
       // Held, nothing in flight: filled.
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        poll(myChoiceIds: const ['0'], respondentCount: 1),
-        actions: InteractionActions(onRespond: (_, _) {}),
-      )));
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(myChoiceIds: const ['0'], respondentCount: 1),
+            actions: InteractionActions(onRespond: (_, _) {}),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
       expect(selectedOf('pizza'), isTrue);
 
       // Held, and a retraction in flight on the same choice: un-filled.
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        poll(
-          myChoiceIds: const ['0'],
-          pending: const {'0'},
-          respondentCount: 1,
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(
+              myChoiceIds: const ['0'],
+              pending: const {'0'},
+              respondentCount: 1,
+            ),
+            actions: InteractionActions(onRespond: (_, _) {}),
+          ),
         ),
-        actions: InteractionActions(onRespond: (_, _) {}),
-      )));
-      await tester.pumpAndSettle();
-      expect(selectedOf('pizza'), isFalse,
-          reason: 'a pending tap on a held choice is taking it back');
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        selectedOf('pizza'),
+        isFalse,
+        reason: 'a pending tap on a held choice is taking it back',
+      );
 
       // Not held, and a vote in flight: filled at once, before the server
       // agrees. That is the whole point of the pending set.
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        poll(pending: const {'1'}),
-        actions: InteractionActions(onRespond: (_, _) {}),
-      )));
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(pending: const {'1'}),
+            actions: InteractionActions(onRespond: (_, _) {}),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
       expect(selectedOf('curry'), isTrue);
     });
   });
@@ -262,8 +305,11 @@ void main() {
         ],
       );
       for (final c in p.choices) {
-        expect(p.fractionOf(c), 1.0,
-            reason: 'each option was picked by the one voter there is');
+        expect(
+          p.fractionOf(c),
+          1.0,
+          reason: 'each option was picked by the one voter there is',
+        );
       }
     });
 
@@ -346,13 +392,21 @@ void main() {
 
     test('pendingChoiceIds is never serialized', () {
       final p = poll(pending: const {'0'});
-      expect(p.toJson().containsKey('pendingChoiceIds'), isFalse,
-          reason: 'a cache that restored one would show a tap with no request '
-              'behind it');
+      expect(
+        p.toJson().containsKey('pendingChoiceIds'),
+        isFalse,
+        reason:
+            'a cache that restored one would show a tap with no request '
+            'behind it',
+      );
     });
 
     test('the three wire names round-trip, and unknown falls back to text', () {
-      for (final t in [MessageType.poll, MessageType.checklist, MessageType.event]) {
+      for (final t in [
+        MessageType.poll,
+        MessageType.checklist,
+        MessageType.event,
+      ]) {
         expect(MessageTypeWire.parse(t.wire), t);
         expect(t.isInteractive, isTrue);
       }
@@ -383,11 +437,13 @@ void main() {
       expect(capsFor(MessageType.text).canEdit, isTrue);
     });
 
-    test('COPY is refused — the prompt without its result is not the message',
-        () {
-      expect(capsFor(MessageType.poll).canCopy, isFalse);
-      expect(capsFor(MessageType.text).canCopy, isTrue);
-    });
+    test(
+      'COPY is refused — the prompt without its result is not the message',
+      () {
+        expect(capsFor(MessageType.poll).canCopy, isFalse);
+        expect(capsFor(MessageType.text).canCopy, isTrue);
+      },
+    );
 
     test('FORWARD, PIN, SAVE and REPLY are all offered', () {
       final c = capsFor(MessageType.poll);
@@ -405,7 +461,9 @@ void main() {
       // that is `roomPreviewFor` server-side.
       expect(messagePreviewLine(pollMessage()), 'pizza or curry?');
       expect(
-        messagePreviewLine(pollMessage(type: MessageType.event, content: 'dinner')),
+        messagePreviewLine(
+          pollMessage(type: MessageType.event, content: 'dinner'),
+        ),
         'dinner',
       );
     });
@@ -456,16 +514,23 @@ void main() {
 
     test('the clock format follows the device, not the locale', () {
       final start = DateTime(2026, 8, 26, 20, 0);
-      expect(eventWhenLine(start: start, l: l, use24Hour: true), contains('20:00'));
-      expect(eventWhenLine(start: start, l: l, use24Hour: false), contains('8:00'));
+      expect(
+        eventWhenLine(start: start, l: l, use24Hour: true),
+        contains('20:00'),
+      );
+      expect(
+        eventWhenLine(start: start, l: l, use24Hour: false),
+        contains('8:00'),
+      );
     });
   });
 
   // ── Rendered states ─────────────────────────────────────────────────────
 
   group('the states a card can be in', () {
-    testWidgets('an anonymous poll shows counts but names nobody',
-        (tester) async {
+    testWidgets('an anonymous poll shows counts but names nobody', (
+      tester,
+    ) async {
       final anon = poll(
         anonymous: true,
         respondentCount: 3,
@@ -487,11 +552,15 @@ void main() {
         respondentCount: 1,
         choices: [choice('0', 'pizza', count: 1), choice('1', 'curry')],
       );
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        closed,
-        actions: InteractionActions(onRespond: (_, _) => taps++),
-      )));
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            closed,
+            actions: InteractionActions(onRespond: (_, _) => taps++),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Closed'), findsOneWidget);
@@ -502,11 +571,17 @@ void main() {
 
     testWidgets('tapping an open option reports the choice id', (tester) async {
       String? got;
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        poll(),
-        actions: InteractionActions(onRespond: (_, choiceId) => got = choiceId),
-      )));
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(),
+            actions: InteractionActions(
+              onRespond: (_, choiceId) => got = choiceId,
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('curry'));
@@ -514,56 +589,71 @@ void main() {
       expect(got, '1');
     });
 
-    testWidgets('CLOSE is offered to the author and to nobody else',
-        (tester) async {
+    testWidgets('CLOSE is offered to the author and to nobody else', (
+      tester,
+    ) async {
       final mine = poll();
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        mine,
-        actions: InteractionActions(onClose: (_) {}),
-        me: 'author',
-      )));
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            mine,
+            actions: InteractionActions(onClose: (_) {}),
+            me: 'author',
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Close'), findsOneWidget);
 
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        mine,
-        actions: InteractionActions(onClose: (_) {}),
-        me: 'someone-else',
-      )));
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            mine,
+            actions: InteractionActions(onClose: (_) {}),
+            me: 'someone-else',
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Close'), findsNothing);
     });
 
-    testWidgets('a quiz reveals its verdict only once answered', (tester) async {
+    testWidgets('a quiz reveals its verdict only once answered', (
+      tester,
+    ) async {
       // Before: the server withheld `correctChoiceId`, so no verdict.
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        poll(quiz: true, respondentCount: 1),
-      )));
+      await tester.pumpWidget(
+        host(card(pollMessage(), poll(quiz: true, respondentCount: 1))),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Quiz'), findsOneWidget);
       expect(find.text('Correct'), findsNothing);
       expect(find.text('Not quite'), findsNothing);
 
       // After answering wrong.
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        poll(
-          quiz: true,
-          respondentCount: 1,
-          myChoiceIds: const ['0'],
-          correctChoiceId: '1',
-          choices: [choice('0', 'pizza', count: 1), choice('1', 'curry')],
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(
+              quiz: true,
+              respondentCount: 1,
+              myChoiceIds: const ['0'],
+              correctChoiceId: '1',
+              choices: [choice('0', 'pizza', count: 1), choice('1', 'curry')],
+            ),
+          ),
         ),
-      )));
+      );
       await tester.pumpAndSettle();
       expect(find.text('Not quite'), findsOneWidget);
     });
 
-    testWidgets('a checklist counts progress and offers an add field',
-        (tester) async {
+    testWidgets('a checklist counts progress and offers an add field', (
+      tester,
+    ) async {
       final list = poll(
         kind: MessageType.checklist,
         respondentCount: 1,
@@ -572,11 +662,15 @@ void main() {
           choice('1', 'food'),
         ],
       );
-      await tester.pumpWidget(host(card(
-        pollMessage(type: MessageType.checklist, content: 'camping'),
-        list,
-        actions: InteractionActions(onAddItem: (_, _) {}),
-      )));
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(type: MessageType.checklist, content: 'camping'),
+            list,
+            actions: InteractionActions(onAddItem: (_, _) {}),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Checklist'), findsOneWidget);
@@ -588,8 +682,9 @@ void main() {
       expect(find.text('Add an item'), findsOneWidget);
     });
 
-    testWidgets('an event card shows its when-line and the three RSVPs',
-        (tester) async {
+    testWidgets('an event card shows its when-line and the three RSVPs', (
+      tester,
+    ) async {
       final event = MessageInteraction(
         messageId: 'm1',
         kind: MessageType.event,
@@ -604,10 +699,11 @@ void main() {
         startsAt: DateTime(2026, 8, 26, 20, 0),
         place: 'the usual',
       );
-      await tester.pumpWidget(host(card(
-        pollMessage(type: MessageType.event, content: 'dinner'),
-        event,
-      )));
+      await tester.pumpWidget(
+        host(
+          card(pollMessage(type: MessageType.event, content: 'dinner'), event),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Event'), findsOneWidget);
@@ -617,22 +713,28 @@ void main() {
       expect(find.text('2 replies'), findsOneWidget);
     });
 
-    testWidgets('a past event says so rather than hiding the line',
-        (tester) async {
+    testWidgets('a past event says so rather than hiding the line', (
+      tester,
+    ) async {
       final past = MessageInteraction(
         messageId: 'm1',
         kind: MessageType.event,
         createdBy: 'author',
         createdAt: DateTime(2026, 1, 1),
-        choices: [choice('going', 'going'), choice('maybe', 'maybe'), choice('no', 'no')],
+        choices: [
+          choice('going', 'going'),
+          choice('maybe', 'maybe'),
+          choice('no', 'no'),
+        ],
         respondentCount: 0,
         // The card's injected clock is 2026-03-01 12:30.
         startsAt: DateTime(2026, 2, 1, 20, 0),
       );
-      await tester.pumpWidget(host(card(
-        pollMessage(type: MessageType.event, content: 'dinner'),
-        past,
-      )));
+      await tester.pumpWidget(
+        host(
+          card(pollMessage(type: MessageType.event, content: 'dinner'), past),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('already happened'), findsOneWidget);
     });
@@ -641,8 +743,9 @@ void main() {
   // ── What a render caught that the assertions did not ────────────────────
 
   group('regressions found by looking at a rendered card', () {
-    testWidgets("an event's RSVP buttons are the app's words, not the server's",
-        (tester) async {
+    testWidgets("an event's RSVP buttons are the app's words, not the server's", (
+      tester,
+    ) async {
       // `choice.label` for an event is a server-owned TOKEN — `going`, `maybe`,
       // `no` — not something a person typed. Printing it raw put English on the
       // card in all twelve languages, and every assertion still passed because
@@ -660,10 +763,11 @@ void main() {
         respondentCount: 0,
         startsAt: DateTime(2026, 8, 26, 20, 0),
       );
-      await tester.pumpWidget(host(card(
-        pollMessage(type: MessageType.event, content: 'dinner'),
-        event,
-      )));
+      await tester.pumpWidget(
+        host(
+          card(pollMessage(type: MessageType.event, content: 'dinner'), event),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Going'), findsOneWidget);
@@ -674,8 +778,9 @@ void main() {
       expect(find.text('no'), findsNothing);
     });
 
-    testWidgets('the footer survives every action being live at once',
-        (tester) async {
+    testWidgets('the footer survives every action being live at once', (
+      tester,
+    ) async {
       // RETRACT, CLOSE and SEE WHO ANSWERED are all offered on the author's own
       // open, answered, public poll — more words than 280pt holds beside a
       // count and a stamp. As one `Row` it overflowed by 22 pixels, and a `Row`
@@ -686,21 +791,28 @@ void main() {
         myChoiceIds: const ['0'],
         choices: [choice('0', 'pizza', count: 5), choice('1', 'curry')],
       );
-      await tester.pumpWidget(host(card(
-        pollMessage(),
-        busy,
-        me: 'author',
-        actions: InteractionActions(
-          onRespond: (_, _) {},
-          onRetract: (_) {},
-          onClose: (_) {},
-          onShowRespondents: (_) {},
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            busy,
+            me: 'author',
+            actions: InteractionActions(
+              onRespond: (_, _) {},
+              onRetract: (_) {},
+              onClose: (_) {},
+              onShowRespondents: (_) {},
+            ),
+          ),
         ),
-      )));
+      );
       await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull,
-          reason: 'the footer must wrap rather than overflow');
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the footer must wrap rather than overflow',
+      );
       expect(find.text('Retract'), findsOneWidget);
       expect(find.text('Close'), findsOneWidget);
       expect(find.text('See who answered'), findsOneWidget);
@@ -710,40 +822,50 @@ void main() {
       for (final label in ['Retract', 'Close', 'See who answered']) {
         final r = tester.getRect(find.text(label));
         expect(r.right, lessThanOrEqualTo(cardRect.right + 0.5), reason: label);
-        expect(r.bottom, lessThanOrEqualTo(cardRect.bottom + 0.5), reason: label);
+        expect(
+          r.bottom,
+          lessThanOrEqualTo(cardRect.bottom + 0.5),
+          reason: label,
+        );
       }
     });
   });
 
   group('the respondents sheet', () {
-    testWidgets('survives its own first frame, before the query returns',
-        (tester) async {
+    testWidgets('survives its own first frame, before the query returns', (
+      tester,
+    ) async {
       // It did not. `visible` was a ternary with a `..sort()` cascade on the
       // end, and the cascade bound to the WHOLE conditional — so the
       // still-loading branch was a `const []` being sorted, which throws.
       // Analyzer-clean, type-correct, and it crashed the sheet every single
       // time it was opened. Nothing here could see it until the sheet was
       // pumped rather than reasoned about.
-      await tester.pumpWidget(MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: InteractionRespondentsSheet(
-              api: ChatApi(ConvexBackend.instance),
-              messageId: 'm1',
-              currentUserId: 'me',
-              interaction: poll(
-                respondentCount: 2,
-                choices: [choice('0', 'pizza', count: 2), choice('1', 'curry')],
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ThemeScope(
+            controller: ThemeController(BasicTheme.midnight()),
+            child: Scaffold(
+              body: InteractionRespondentsSheet(
+                api: ChatApi(ConvexBackend.instance),
+                messageId: 'm1',
+                currentUserId: 'me',
+                interaction: poll(
+                  respondentCount: 2,
+                  choices: [
+                    choice('0', 'pizza', count: 2),
+                    choice('1', 'curry'),
+                  ],
+                ),
+                resolveUser: (_) => null,
+                onOpenProfile: (_) {},
               ),
-              resolveUser: (_) => null,
-              onOpenProfile: (_) {},
             ),
           ),
         ),
-      ));
+      );
 
       // The frame the crash happened in: the request is out, nothing is back.
       expect(tester.takeException(), isNull);
@@ -752,11 +874,474 @@ void main() {
     });
   });
 
+  group('answer touch regression', () {
+    for (final ephemeral in [false, true]) {
+      testWidgets(
+        'attachment tap is immediate with message menu ($ephemeral)',
+        (tester) async {
+          var answers = 0;
+          var menus = 0;
+          final actions = InteractionActions(onRespond: (_, _) => answers++);
+          final message = pollMessage();
+          await tester.pumpWidget(
+            host(
+              ChatMetricsScope(
+                metrics: ChatMetrics.forPane(390, WindowClass.compact),
+                child: ephemeral
+                    ? EphemeralMessageBubble(
+                        message: message,
+                        now: ValueNotifier(DateTime(2026, 3, 1)),
+                        currentUserId: 'me',
+                        api: ChatApi(ConvexBackend.instance),
+                        interaction: poll(),
+                        interactionActions: actions,
+                        onDoubleTap: () => menus++,
+                        onLongPress: () => menus++,
+                      )
+                    : MessageBubble(
+                        message: message,
+                        now: DateTime(2026, 3, 1),
+                        currentUserId: 'me',
+                        api: ChatApi(ConvexBackend.instance),
+                        interaction: poll(),
+                        interactionActions: actions,
+                        onDoubleTap: () => menus++,
+                        onLongPress: () => menus++,
+                      ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('pizza'));
+          expect(
+            answers,
+            1,
+            reason: 'answer must not wait for the double-tap timeout',
+          );
+          await tester.tap(find.text('curry'));
+          expect(answers, 2);
+          expect(menus, 0);
+          await tester.longPress(find.text('pizza'));
+          expect(
+            menus,
+            1,
+            reason: 'attachment message actions remain available',
+          );
+        },
+      );
+    }
+
+    testWidgets('answered quiz still accepts another option', (tester) async {
+      String? answer;
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(quiz: true, myChoiceIds: ['0'], correctChoiceId: '1'),
+            actions: InteractionActions(onRespond: (_, id) => answer = id),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('curry'));
+      expect(answer, '1');
+    });
+
+    testWidgets('poll author does not see checklist remove controls', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(),
+            me: 'author',
+            actions: InteractionActions(onRemoveItem: (_, _) {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.remove), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is FocusableTap &&
+              (w.semanticLabel ?? '').toLowerCase().contains('remove'),
+        ),
+        findsNothing,
+      );
+    });
+
+    test('single answer replacement shows exactly the intended choice', () {
+      final p = poll(myChoiceIds: ['0'], pending: {'1'});
+      expect(p.choiceSelected(p.choices[0]), isFalse);
+      expect(p.choiceSelected(p.choices[1]), isTrue);
+      final acknowledged = p.copyWith(
+        myChoiceIds: ['1'],
+        pendingSelectedChoiceIds: {'1'},
+      );
+      expect(acknowledged.choiceSelected(p.choices[1]), isTrue);
+      expect(
+        acknowledged.copyWith(pendingChoiceIds: {}).pendingSelectedChoiceIds,
+        isNull,
+      );
+      expect(
+        MessageInteraction.fromJson(acknowledged.toJson()).pendingChoiceIds,
+        isEmpty,
+      );
+    });
+
+    testWidgets('in-flight answer disables repeat taps', (tester) async {
+      var answers = 0;
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(),
+            poll(pending: {'1'}),
+            actions: InteractionActions(onRespond: (_, _) => answers++),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text('pizza'));
+      await tester.tap(find.text('curry'));
+      expect(answers, 0);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('shared checklist does not offer undo of someone else’s tick', (
+      tester,
+    ) async {
+      var answers = 0;
+      final list = poll(
+        kind: MessageType.checklist,
+        choices: [
+          choice('0', 'tent', count: 1, respondents: ['bea']),
+          choice('1', 'food'),
+        ],
+      );
+      await tester.pumpWidget(
+        host(
+          card(
+            pollMessage(type: MessageType.checklist),
+            list,
+            actions: InteractionActions(onRespond: (_, _) => answers++),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('tent'));
+      expect(answers, 0);
+      await tester.tap(find.text('food'));
+      expect(answers, 1);
+    });
+  });
+
+  group('answer sheet filters', () {
+    for (final kind in [
+      MessageType.poll,
+      MessageType.checklist,
+      MessageType.event,
+    ]) {
+      testWidgets(
+        '$kind ignores unrelated repository and query notifications',
+        (tester) async {
+          final changes = ChangeNotifier();
+          final api = _AnswersApi()..onRead = changes.notifyListeners;
+          final it = poll(kind: kind);
+          api.rows = [
+            InteractionRespondentDetail(
+              userId: 'ada',
+              name: 'Ada',
+              choiceId: '0',
+              at: DateTime(2026),
+            ),
+          ];
+          await tester.pumpWidget(
+            host(
+              InteractionRespondentsSheet(
+                api: api,
+                messageId: 'm1',
+                currentUserId: 'me',
+                interaction: it,
+                currentInteraction: () =>
+                    MessageInteraction.fromJson(it.toJson()),
+                changes: changes,
+                resolveUser: (_) => null,
+                onOpenProfile: (_) {},
+              ),
+            ),
+          );
+          await tester.pump();
+          for (var i = 0; i < 10; i++) {
+            changes.notifyListeners();
+            await tester.pump(const Duration(milliseconds: 200));
+          }
+          expect(api.reads, 1);
+          expect(find.text('Ada'), findsOneWidget);
+          expect(find.byType(CupertinoActivityIndicator), findsNothing);
+          await tester.pumpWidget(const SizedBox());
+          changes.dispose();
+        },
+      );
+    }
+
+    testWidgets('event answer changes coalesce while a request is running', (
+      tester,
+    ) async {
+      final changes = ChangeNotifier();
+      final reply = Completer<List<InteractionRespondentDetail>>();
+      final api = _AnswersApi()..pending = reply;
+      var it = poll(kind: MessageType.event);
+      await tester.pumpWidget(
+        host(
+          InteractionRespondentsSheet(
+            api: api,
+            messageId: 'm1',
+            currentUserId: 'me',
+            interaction: it,
+            currentInteraction: () => it,
+            changes: changes,
+            resolveUser: (_) => null,
+            onOpenProfile: (_) {},
+          ),
+        ),
+      );
+      for (var count = 1; count <= 2; count++) {
+        it = poll(kind: MessageType.event, respondentCount: count);
+        changes.notifyListeners();
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      expect(api.reads, 1, reason: 'only one request may be in flight');
+      it = poll(kind: MessageType.event, respondentCount: 3);
+      changes.notifyListeners();
+      api.pending = null;
+      api.rows = [
+        InteractionRespondentDetail(
+          userId: 'bea',
+          name: 'Bea',
+          choiceId: '1',
+          at: DateTime(2026),
+        ),
+      ];
+      reply.complete([]);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(api.reads, 2, reason: 'one follow-up gets the latest answers');
+      expect(find.text('Bea'), findsOneWidget);
+      expect(find.byType(CupertinoActivityIndicator), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      changes.dispose();
+    });
+
+    testWidgets('a stalled answer request stops spinning and can retry', (
+      tester,
+    ) async {
+      final reply = Completer<List<InteractionRespondentDetail>>();
+      final api = _AnswersApi()..pending = reply;
+      await tester.pumpWidget(
+        host(
+          InteractionRespondentsSheet(
+            api: api,
+            messageId: 'm1',
+            currentUserId: 'me',
+            interaction: poll(kind: MessageType.event),
+            resolveUser: (_) => null,
+            onOpenProfile: (_) {},
+          ),
+        ),
+      );
+      expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+      await tester.pump(const Duration(seconds: 15));
+      await tester.pump();
+      expect(find.byType(CupertinoActivityIndicator), findsNothing);
+      expect(find.text('Try again'), findsOneWidget);
+      api.pending = null;
+      api.rows = [
+        InteractionRespondentDetail(
+          userId: 'ada',
+          name: 'Ada',
+          choiceId: '0',
+          at: DateTime(2026),
+        ),
+      ];
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      reply.complete([]);
+      await tester.pump();
+      expect(api.reads, 2);
+      expect(find.text('Ada'), findsOneWidget);
+    });
+
+    testWidgets('anonymous answer sheet never requests names', (tester) async {
+      final api = _AnswersApi();
+      await tester.pumpWidget(
+        host(
+          InteractionRespondentsSheet(
+            api: api,
+            messageId: 'm1',
+            currentUserId: 'me',
+            interaction: poll(anonymous: true),
+            resolveUser: (_) => null,
+            onOpenProfile: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(api.reads, 0);
+      expect(find.byType(TextField), findsNothing);
+    });
+
+    testWidgets('answer search fits above the phone keyboard', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+      final api = _AnswersApi()
+        ..rows = [
+          InteractionRespondentDetail(
+            userId: 'ada',
+            name: 'Ada',
+            choiceId: '0',
+            at: DateTime(2026),
+          ),
+        ];
+      await tester.pumpWidget(
+        host(
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showInteractionRespondentsSheet(
+                context,
+                api: api,
+                messageId: 'm1',
+                currentUserId: 'me',
+                interaction: poll(),
+                resolveUser: (_) => null,
+                onOpenProfile: (_) {},
+              ),
+              child: const Text('Open answers'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open answers'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(TextField));
+      tester.view.viewInsets = const FakeViewPadding(bottom: 333);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'ada');
+      await tester.pumpAndSettle();
+      expect(find.text('Ada'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      final field = tester.getRect(find.byType(TextField));
+      expect(field.bottom, lessThan(844 - 333));
+    });
+
+    for (final kind in [
+      MessageType.poll,
+      MessageType.checklist,
+      MessageType.event,
+    ]) {
+      testWidgets('$kind shows empty choices and searches refreshed answers', (
+        tester,
+      ) async {
+        final api = _AnswersApi();
+        final changes = ChangeNotifier();
+        var it = poll(
+          kind: kind,
+          choices: [choice('0', 'pizza', count: 99), choice('1', 'curry')],
+        );
+        api.rows = [
+          InteractionRespondentDetail(
+            userId: 'ada',
+            name: 'Ada',
+            choiceId: '0',
+            at: DateTime(2026),
+          ),
+        ];
+        await tester.pumpWidget(
+          host(
+            InteractionRespondentsSheet(
+              api: api,
+              messageId: 'm1',
+              currentUserId: 'me',
+              interaction: it,
+              currentInteraction: () => it,
+              resolveUser: (_) => null,
+              onOpenProfile: (_) {},
+              changes: changes,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final capsules = tester
+            .widgetList<FilterCapsule>(find.byType(FilterCapsule))
+            .toList();
+        expect(capsules.map((c) => c.count), [1, 1, 0]);
+        await tester.tap(find.byType(FilterCapsule).last);
+        await tester.pumpAndSettle();
+        expect(find.text('No answers match this filter.'), findsOneWidget);
+        await tester.tap(find.byType(FilterCapsule).first);
+        await tester.enterText(find.byType(TextField), 'ada');
+        await tester.pumpAndSettle();
+        expect(find.text('Ada'), findsOneWidget);
+        api.rows = [
+          InteractionRespondentDetail(
+            userId: 'bea',
+            name: 'Bea',
+            choiceId: '1',
+            at: DateTime(2026),
+          ),
+        ];
+        it = it.copyWith(
+          choices: [choice('0', 'pizza'), choice('1', 'curry', count: 1)],
+        );
+        changes.notifyListeners();
+        await tester.pump(const Duration(milliseconds: 200));
+        await tester.pumpAndSettle();
+        expect(find.text('Ada'), findsNothing);
+        expect(find.text('No answers match this filter.'), findsOneWidget);
+        await tester.enterText(find.byType(TextField), 'curry');
+        await tester.pumpAndSettle();
+        expect(find.text('Bea'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        changes.dispose();
+      });
+    }
+
+    testWidgets('failed answer request can retry', (tester) async {
+      final api = _AnswersApi()..fail = true;
+      await tester.pumpWidget(
+        host(
+          InteractionRespondentsSheet(
+            api: api,
+            messageId: 'm1',
+            currentUserId: 'me',
+            interaction: poll(),
+            resolveUser: (_) => null,
+            onOpenProfile: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Try again'), findsOneWidget);
+      api.fail = false;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(api.reads, 2);
+      expect(find.text('Try again'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   // ── Layout ──────────────────────────────────────────────────────────────
 
   group('geometry', () {
-    testWidgets('a long option wraps inside the card rather than overflowing',
-        (tester) async {
+    testWidgets('a long option wraps inside the card rather than overflowing', (
+      tester,
+    ) async {
       final wordy = poll(
         respondentCount: 1,
         choices: [
@@ -781,8 +1366,9 @@ void main() {
       expect(rect.right, lessThanOrEqualTo(390));
     });
 
-    testWidgets('the percentage stays inside the card at the narrowest width',
-        (tester) async {
+    testWidgets('the percentage stays inside the card at the narrowest width', (
+      tester,
+    ) async {
       final p = poll(
         respondentCount: 3,
         choices: [choice('0', 'pizza', count: 3), choice('1', 'curry')],

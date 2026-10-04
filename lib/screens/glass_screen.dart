@@ -517,6 +517,7 @@ class _GlassScreenState extends State<GlassScreen> {
                             profile.app,
                             base.app,
                             (c) => _edit(profile.copyWith(app: c)),
+                            appChrome: true,
                           ),
                         ),
 
@@ -556,13 +557,14 @@ class _GlassScreenState extends State<GlassScreen> {
     List<GlassKnob> knobs,
     GlassConfig config,
     GlassConfig base,
-    ValueChanged<GlassConfig> onChanged,
-  ) => [
+    ValueChanged<GlassConfig> onChanged, {
+    bool appChrome = false,
+  }) => [
     for (final k in knobs)
       _KnobRow(
         knob: k,
-        config: config,
-        base: base,
+        config: appChrome ? resolveAppGlass(config) : config,
+        base: appChrome ? resolveAppGlass(base) : base,
         onChanged: (v) => onChanged(config.set(k, v)),
         onReset: () => onChanged(_resetKnob(config, base, k)),
       ),
@@ -794,13 +796,13 @@ class _GlassPreview extends StatelessWidget {
   /// for the dials.
   static double collapsedHeightFor(GlassConfig geo, _Shows shows) =>
       shows == _Shows.surfaces
-      ? 132
+      ? 172
       : (_barHeight(geo) + 26).clamp(72.0, 240.0);
 
   /// Expanded: plus a band of content to scroll under them.
   static double expandedHeightFor(GlassConfig geo, _Shows shows) =>
       shows == _Shows.surfaces
-      ? 216
+      ? 248
       : (_barHeight(geo) + 92).clamp(150.0, 300.0);
 
   @override
@@ -825,7 +827,11 @@ class _GlassPreview extends StatelessWidget {
             // has a frame or two to cover.
             Positioned.fill(
               child: TweenAnimationBuilder<GlassProfile>(
-                tween: _GlassProfileTween(end: SettingsStore.instance.glass),
+                tween: _GlassProfileTween(
+                  end: SettingsStore.instance.glass.copyWith(
+                    app: resolveAppGlass(SettingsStore.instance.glass.app),
+                  ),
+                ),
                 duration: _glassMotion,
                 curve: Curves.easeOutCubic,
                 // A straight swap between the bar and the other surfaces, not
@@ -847,7 +853,7 @@ class _GlassPreview extends StatelessWidget {
                         )
                       : _SurfacesPreview(
                           key: const ValueKey(_Shows.surfaces),
-                          config: profile.app,
+                          config: resolveAppGlass(profile.app),
                         ),
               ),
             ),
@@ -864,7 +870,7 @@ class _GlassPreview extends StatelessWidget {
   }
 }
 
-/// The other glass in the app: a room header, its two round buttons, and the
+/// The other glass in the app: a room header, round buttons, search and
 /// composer.
 ///
 /// Every one is a real [LiquidGlass], built exactly as the real composer and
@@ -895,6 +901,7 @@ class _SurfacesPreview extends StatelessWidget {
                   child: LiquidGlass(
                     shape: LiquidGlassShape.capsule,
                     config: config,
+                    neutral: true,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 9,
@@ -927,6 +934,7 @@ class _SurfacesPreview extends StatelessWidget {
                 LiquidGlass(
                   size: const Size(38, 38),
                   config: config,
+                  neutral: true,
                   child: Icon(
                     CupertinoIcons.phone,
                     size: 17,
@@ -937,6 +945,7 @@ class _SurfacesPreview extends StatelessWidget {
                 LiquidGlass(
                   size: const Size(38, 38),
                   config: config,
+                  neutral: true,
                   child: Icon(
                     CupertinoIcons.ellipsis,
                     size: 17,
@@ -947,11 +956,34 @@ class _SurfacesPreview extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          LiquidGlass(
+            shape: LiquidGlassShape.capsule,
+            config: config,
+            neutral: true,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: SizedBox(
+              height: 40,
+              child: Row(
+                children: [
+                  Icon(CupertinoIcons.search, size: 17, color: theme.inkSoft),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      l10n.searchScreenHintRooms,
+                      style: groupedTitleStyle(theme).copyWith(color: theme.inkMuted),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               LiquidGlass(
                 size: const Size(38, 38),
                 config: config,
+                neutral: true,
                 child: Icon(CupertinoIcons.plus, size: 18, color: theme.ink),
               ),
               const SizedBox(width: 8),
@@ -959,6 +991,7 @@ class _SurfacesPreview extends StatelessWidget {
                 child: LiquidGlass(
                   shape: LiquidGlassShape.rounded,
                   config: config,
+                  neutral: true,
                   radius: 19,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -979,6 +1012,7 @@ class _SurfacesPreview extends StatelessWidget {
               LiquidGlass(
                 size: const Size(38, 38),
                 config: config,
+                neutral: true,
                 tinted: true,
                 child: Icon(
                   CupertinoIcons.arrow_up,

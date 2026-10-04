@@ -1397,7 +1397,7 @@
   "glassKnobLabelSaturation": "Bavure de couleur",
   "glassKnobHintSaturation": "La part de couleur qui survit au flou. Au-delà de 2, ça postérise",
   "glassKnobLabelRimOpacity": "Bordure",
-  "glassKnobHintRimOpacity": "Le contour d’accentuation. Mets zéro pour une surface sans bordure",
+  "glassKnobHintRimOpacity": "Luminosité du bord du verre. Zéro pour une surface sans bordure",
   "glassKnobLabelRimWidth": "Largeur de bordure",
   "glassKnobHintRimWidth": "L’épaisseur de ce contour",
   "glassKnobLabelShadowOpacity": "Ombre",
@@ -3066,5 +3066,16 @@
   "diagEventCount": "{shown} sur {total} événements",
   "diagDropped": "{count, plural, one{{count} événement antérieur abandonné — le journal commence en cours de route} other{{count} événements antérieurs abandonnés — le journal commence en cours de route}}",
   "diagRepeatSpan": "×{count} en {seconds} s",
-  "roomContentTabSemantic": "{label}, {count} éléments"
+  "roomContentTabSemantic": "{label}, {count} éléments",
+  "mapAppsTitle": "Cartes",
+  "mapAppsChoose": "Ouvrir le lieu dans",
+  "mapAppsRemember": "Utiliser par défaut",
+  "mapAppsAskEveryTime": "Toujours demander",
+  "mapAppsBrowser": "Navigateur",
+  "mapAppsSubtitle": "Choisissez où ouvrir les lieux partagés.",
+  "mapAppsUnavailable": "Votre app de cartes par défaut est indisponible. Choisissez-en une autre.",
+  "mapAppsNoInstalled": "Aucune app de cartes compatible trouvée. Vous pouvez utiliser le navigateur.",
+  "interactionAnswersSearch": "Rechercher des personnes ou des réponses",
+  "interactionFilterEmpty": "Aucune réponse ne correspond à ce filtre.",
+  "interactionRetry": "Réessayer"
 }

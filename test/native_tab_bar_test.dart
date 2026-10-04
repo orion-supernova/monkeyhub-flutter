@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,6 +26,66 @@ void main() {
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(NativeChrome.channel, null);
+    NativeChrome.debugSupported = false;
+  });
+
+  testWidgets('startup detects native chrome on iOS', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(NativeChrome.channel, (_) async => true);
+
+    await NativeChrome.init();
+
+    expect(NativeChrome.supported, isTrue);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('startup falls back when the scene bridge is missing', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    NativeChrome.debugSupported = true;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          NativeChrome.channel, (_) async => throw MissingPluginException(),
+        );
+
+    await NativeChrome.init();
+
+    expect(NativeChrome.supported, isFalse);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('an unanswered scene probe cannot hold startup indefinitely', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    final reply = Completer<Object?>();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(NativeChrome.channel, (_) => reply.future);
+    final initialization = NativeChrome.init();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    await initialization;
+
+    expect(NativeChrome.supported, isFalse);
+    // A late scene reply must not enable a native bar after the shell has
+    // already mounted its Flutter fallback.
+    reply.complete(true);
+    await tester.pump();
+    expect(NativeChrome.supported, isFalse);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('other platforms skip the native scene probe', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    NativeChrome.debugSupported = true;
+
+    await NativeChrome.init();
+
+    expect(calls, isEmpty);
+    expect(NativeChrome.supported, isFalse);
+    debugDefaultTargetPlatformOverride = null;
   });
 
   Widget host(Widget child) => ThemeScope(

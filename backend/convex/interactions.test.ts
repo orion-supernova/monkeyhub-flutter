@@ -205,7 +205,7 @@ describe("a quiz withholds its answer until it is due", () => {
     expect(before.explanation).toBeUndefined();
   });
 
-  test("answering spends the guess and reveals the answer", async () => {
+  test("quiz answers reveal the answer and can be replaced", async () => {
     const t = convexTest(schema);
     const author = await signUp(t, "author");
     const player = await signUp(t, "player");
@@ -235,8 +235,7 @@ describe("a quiz withholds its answer until it is due", () => {
     expect(after.explanation).toBe("it has been since 1523.");
     expect(after.myChoiceIds).toEqual(["0"]);
 
-    // Spent. Toggling a quiz answer off, or picking another, is refused —
-    // otherwise "getting it wrong" would mean nothing.
+    // A quiz keeps an answer, but allows replacing it like other single choices.
     await expect(
       t.mutation(api.interactions.respond, {
         sessionToken: player.token,
@@ -245,6 +244,15 @@ describe("a quiz withholds its answer until it is due", () => {
         choiceId: "0",
       }),
     ).rejects.toThrow(/NOT_ALLOWED/);
+    await t.mutation(api.interactions.respond, {
+      sessionToken: player.token,
+      userId: player.userId as any,
+      messageId,
+      choiceId: "1",
+    });
+    const changed = await readOne(t, player, roomId);
+    expect(changed.myChoiceIds).toEqual(["1"]);
+    expect(changed.choices.map((choice: any) => choice.count)).toEqual([0, 1]);
     await expect(
       t.mutation(api.interactions.retract, {
         sessionToken: player.token,

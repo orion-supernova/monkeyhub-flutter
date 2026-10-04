@@ -8468,7 +8468,7 @@ abstract class AppLocalizations {
   /// One-line caption under the 'rim' slider explaining what it does to the look.
   ///
   /// In en, this message translates to:
-  /// **'The accent outline. Zero for a borderless surface'**
+  /// **'Brightness of the glass edge. Zero for a borderless surface'**
   String get glassKnobHintRimOpacity;
 
   /// All-caps name of the 'rim width' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
@@ -18558,6 +18558,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{label}, {count} items'**
   String roomContentTabSemantic(String count, String label);
+
+  /// No description provided for @mapAppsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Maps'**
+  String get mapAppsTitle;
+
+  /// No description provided for @mapAppsChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Open location in'**
+  String get mapAppsChoose;
+
+  /// No description provided for @mapAppsRemember.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as default'**
+  String get mapAppsRemember;
+
+  /// No description provided for @mapAppsAskEveryTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask every time'**
+  String get mapAppsAskEveryTime;
+
+  /// No description provided for @mapAppsBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser'**
+  String get mapAppsBrowser;
+
+  /// No description provided for @mapAppsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose where shared locations open.'**
+  String get mapAppsSubtitle;
+
+  /// No description provided for @mapAppsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Your default maps app is unavailable. Choose another.'**
+  String get mapAppsUnavailable;
+
+  /// No description provided for @mapAppsNoInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'No supported maps apps found. You can use your browser.'**
+  String get mapAppsNoInstalled;
+
+  /// No description provided for @interactionAnswersSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search people or answers'**
+  String get interactionAnswersSearch;
+
+  /// No description provided for @interactionFilterEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No answers match this filter.'**
+  String get interactionFilterEmpty;
+
+  /// No description provided for @interactionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get interactionRetry;
 }
 
 class _AppLocalizationsDelegate

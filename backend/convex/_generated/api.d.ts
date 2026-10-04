@@ -17,6 +17,7 @@ import type * as childGuard from "../childGuard.js";
 import type * as crons from "../crons.js";
 import type * as dailyNudge from "../dailyNudge.js";
 import type * as deployment from "../deployment.js";
+import type * as designSamples from "../designSamples.js";
 import type * as deviceLogin from "../deviceLogin.js";
 import type * as expressions from "../expressions.js";
 import type * as family from "../family.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   dailyNudge: typeof dailyNudge;
   deployment: typeof deployment;
+  designSamples: typeof designSamples;
   deviceLogin: typeof deviceLogin;
   expressions: typeof expressions;
   family: typeof family;

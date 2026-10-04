@@ -87,6 +87,7 @@ import '../widgets/edge_bleed.dart';
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/glass_pill.dart';
 import '../widgets/jump_back.dart';
+import '../widgets/timeline_list_view.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/location_share_sheet.dart';
 import '../widgets/composer_edit_card.dart';
@@ -259,11 +260,10 @@ class _RoomScreenState extends State<RoomScreen>
   // see _recomputePositionState.
   final GlobalKey _listViewportKey = GlobalKey();
   final Map<String, _DateTrack> _dateTracks = {};
-  String? _floatingLabel;
-  bool _isActivelyScrolling = false;
+  final _datePresentation = ValueNotifier<({String? label, bool active, double overlap})>(
+    (label: null, active: false, overlap: 0),
+  );
   Timer? _hideTimer;
-  // 0..1 — how much a real divider currently overlaps the chip's rect.
-  double _dividerOverlap = 0;
   // Set during build; used by _recomputePositionState to know where the
   // chip "lives" so it can compute overlap with divider RenderBoxes.
   double _chipRestingY = 16;
@@ -443,14 +443,25 @@ class _RoomScreenState extends State<RoomScreen>
       // is a notifier, so it repaints the bubbles listening to it and nothing
       // else — it does NOT rebuild the screen.
       if (_room?.messageLifetime != null) _fadeNow.value = now;
-      // The slow half: 1Hz, and this one IS a setState, because relative
-      // timestamps and the live-share "still running" check decide what the
-      // screen builds. It used to run at 5Hz too in an ephemeral room, which
-      // meant four transcript rebuilds a second that changed nothing visible,
-      // paid out of the same frame budget the receive path parses an arriving
-      // message on.
+      // Ordinary saved text, photos and past events do not change each second.
+      // Location/countdown widgets own their clocks. Rebuild this screen only
+      // when a time boundary changes a row's actions or an event's past state.
       if (t.tick % 5 != 0) return;
-      setState(() => _now = now);
+      final previous = _now;
+      _now = now;
+      final dayChanged = previous.year != now.year ||
+          previous.month != now.month || previous.day != now.day;
+      final rowChanged = _lastTimeline.any((m) {
+        if (m.type == MessageType.liveLocation) {
+          return m.isLiveLocationRunning(previous) != m.isLiveLocationRunning(now);
+        }
+        if (m.type == MessageType.event) {
+          final start = widget.repo.interactionFor(widget.roomId, m.id)?.startsAt;
+          return start != null && start.isBefore(previous) != start.isBefore(now);
+        }
+        return false;
+      });
+      if (dayChanged || rowChanged) setState(() {});
     });
     _highlightCtrl = AnimationController(
       vsync: this,
@@ -803,16 +814,21 @@ class _RoomScreenState extends State<RoomScreen>
     _recomputePositionState();
     _hideTimer?.cancel();
     if (shouldShow) {
-      if (!_isActivelyScrolling) {
-        if (mounted) setState(() => _isActivelyScrolling = true);
+      if (!_datePresentation.value.active) {
+        if (mounted) _setDateScrolling(true);
       }
       _hideTimer = Timer(const Duration(milliseconds: 800), () {
         if (!mounted) return;
-        setState(() => _isActivelyScrolling = false);
+        _setDateScrolling(false);
       });
-    } else if (_isActivelyScrolling) {
-      if (mounted) setState(() => _isActivelyScrolling = false);
+    } else if (_datePresentation.value.active) {
+      if (mounted) _setDateScrolling(false);
     }
+  }
+
+  void _setDateScrolling(bool active) {
+    final value = _datePresentation.value;
+    _datePresentation.value = (label: value.label, active: active, overlap: value.overlap);
   }
 
   /// Single pass over every tracked item — picks the topmost date label
@@ -873,15 +889,15 @@ class _RoomScreenState extends State<RoomScreen>
     }
 
     final nextLabel = best ?? fallback;
-    final labelChanged = nextLabel != null && nextLabel != _floatingLabel;
-    final overlapChanged = (maxOverlap - _dividerOverlap).abs() > 0.01;
-    if (labelChanged || overlapChanged) {
-      if (mounted) {
-        setState(() {
-          if (labelChanged) _floatingLabel = nextLabel;
-          _dividerOverlap = maxOverlap;
-        });
-      }
+    final value = _datePresentation.value;
+    final labelChanged = nextLabel != null && nextLabel != value.label;
+    final overlapChanged = (maxOverlap - value.overlap).abs() > 0.01;
+    if (mounted && (labelChanged || overlapChanged)) {
+      _datePresentation.value = (
+        label: nextLabel ?? value.label,
+        active: value.active,
+        overlap: maxOverlap,
+      );
     }
   }
 
@@ -1337,9 +1353,11 @@ class _RoomScreenState extends State<RoomScreen>
     _expressions.removeListener(_onExpressionsChanged);
     _expressions.dispose();
     _composerFocus.removeListener(_onComposerFocusChanged);
+    _composerFocus.unfocus();
     _composerFocus.dispose();
     _highlightCtrl.dispose();
     _hideTimer?.cancel();
+    _datePresentation.dispose();
     _arrivals.dispose();
     _departures.dispose();
     _scroll.removeListener(_onScroll);
@@ -2461,6 +2479,8 @@ class _RoomScreenState extends State<RoomScreen>
       messageId: messageId,
       currentUserId: me,
       interaction: interaction,
+      changes: widget.repo,
+      currentInteraction: () => widget.repo.interactionFor(widget.roomId, messageId) ?? interaction,
       resolveUser: (id) => _members[id] ?? widget.repo.userById(id),
       onOpenProfile: _openProfile,
     );
@@ -3841,7 +3861,10 @@ class _RoomScreenState extends State<RoomScreen>
             // same way it would dismiss the keyboard the panel stands in for.
             canPop: !_selection.active && !_expressions.isOpen,
             onPopInvokedWithResult: (didPop, _) {
-              if (didPop) return;
+              if (didPop) {
+                _composerFocus.unfocus();
+                return;
+              }
               if (_expressions.isOpen) {
                 _expressions.hide();
               } else {
@@ -3872,7 +3895,10 @@ class _RoomScreenState extends State<RoomScreen>
               // what a flush ring would look like.
               glowInset: const EdgeInsets.all(7),
               child: Scaffold(
-                backgroundColor: Colors.transparent,
+                // iOS keyboards have transparent rounded top corners. The
+                // body shrinks above the keyboard; the scaffold's full-size
+                // backing must still paint the theme through those corners.
+                backgroundColor: theme.background,
                 body: Stack(
                   children: [
                     theme.backgroundLayer(context),
@@ -4533,13 +4559,24 @@ class _RoomScreenState extends State<RoomScreen>
                 // coordinates; the Align this may introduce offsets x only,
                 // and only .dy is read.
                 ChatColumn(
-                  child: ListView.builder(
+                  child: TimelineListView(
                   key: _listViewportKey,
                   controller: _scroll,
-                  reverse: true,
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  preserveAtStart: widget.repo.inHistoryWindow(room.id),
                   padding: listPadding,
-                  itemCount: items.length + typingRows + insetRows,
+                  rowKeys: [
+                    if (insetRows == 1) const ValueKey('timeline-inset'),
+                    if (typingRows == 1) const ValueKey('timeline-typing'),
+                    for (final item in items)
+                      ValueKey(switch (item) {
+                        MessageItem() => 'message:${_arrivals.keyFor(item.message)}',
+                        DateDividerItem() => 'date:${item.label}',
+                        ThreadFoldItem() => 'fold:${item.threadKey}:${item.oldestHiddenId}',
+                        UnreadDividerItem() => 'unread',
+                        IntroItem() => 'intro',
+                        _ => throw StateError('Unknown transcript row ${item.runtimeType}'),
+                      }),
+                  ],
                   itemBuilder: (context, i) {
                     // reverse: true — index 0 is the BOTTOM of the transcript.
                     // The glass floats over exactly that edge, so its measured
@@ -5207,21 +5244,22 @@ class _RoomScreenState extends State<RoomScreen>
                   right: 0,
                   child: IgnorePointer(
                     child: Center(
-                      // AnimatedOpacity drives show/hide on scroll start /
-                      // 800ms-idle. The inner Opacity + translate + scale
-                      // follow `_dividerOverlap` in real time so the chip
-                      // yields as a real _DateDivider crosses its rect.
-                      child: AnimatedOpacity(
-                        opacity: (_isActivelyScrolling && _floatingLabel != null) ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        child: Transform.translate(
-                          offset: Offset(0, 14 * _dividerOverlap),
-                          child: Transform.scale(
-                            scale: 1 - 0.08 * _dividerOverlap,
-                            child: Opacity(
-                              opacity: (1 - _dividerOverlap).clamp(0.0, 1.0),
-                              child: _FloatingDateChip(label: _floatingLabel ?? ''),
+                      // Scroll chrome listens locally: changing its date or
+                      // yielding to a divider must not rebuild the transcript.
+                      child: ValueListenableBuilder<({String? label, bool active, double overlap})>(
+                        valueListenable: _datePresentation,
+                        builder: (context, value, _) => AnimatedOpacity(
+                          opacity: (value.active && value.label != null) ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          child: Transform.translate(
+                            offset: Offset(0, 14 * value.overlap),
+                            child: Transform.scale(
+                              scale: 1 - 0.08 * value.overlap,
+                              child: Opacity(
+                                opacity: (1 - value.overlap).clamp(0.0, 1.0),
+                                child: _FloatingDateChip(label: value.label ?? ''),
+                              ),
                             ),
                           ),
                         ),

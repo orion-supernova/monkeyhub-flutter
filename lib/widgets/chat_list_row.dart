@@ -8,8 +8,7 @@ import '../models/chat_user.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import '../theme/motion.dart';
-import 'odometer_number.dart';
+import 'count_badge.dart';
 import 'remote_image.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
@@ -260,69 +259,12 @@ class _ChatListRowState extends State<ChatListRow>
   Widget _trailing(AppTheme theme) {
     final room = widget.room;
     final count = room.unreadCount;
-    if (count > 0) {
-      // A muted room still counts, but in grey: the number is information,
-      // not a request for attention.
-      // Grey for ANY live mute, not just a badge mute: a room you have told
-      // to stop notifying you is not one whose count should be the brightest
-      // thing on the screen. Messages and Telegram both draw it this way.
-      final quiet = room.isMuted;
-      final mention = room.hasVisibleMention;
-      // The outgoing-bubble colour, not the accent. On a dark theme the
-      // accent is tuned to read AS text on the page, which makes it too light
-      // to carry white digits; the bubble is the theme's colour for "white
-      // text sits on this", so a pip and a bubble agree.
-      final pip = theme.bubbleFill(isMine: true);
-      final label = count > 99 ? '99+' : '$count';
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (mention) ...[
-            _Pip(
-              color: pip,
-              child: Text(
-                '@',
-                style: _pipStyle(theme).copyWith(color: theme.accentInk),
-              ),
-            ),
-            const SizedBox(width: 4),
-          ],
-          // A new message lands with a pop and the digits roll — Telegram's
-          // counter. Keyed on the count, so only a change replays it.
-          TweenAnimationBuilder<double>(
-            key: ValueKey(count),
-            tween: Tween(begin: 1.22, end: 1),
-            duration: MotionScope.of(context)
-                .d(const Duration(milliseconds: 520)),
-            curve: Curves.elasticOut,
-            builder: (context, s, child) =>
-                Transform.scale(scale: s, child: child),
-            child: _Pip(
-              color: quiet ? theme.inkMuted.withValues(alpha: 0.45) : pip,
-              child: count > 99
-                  ? Text(
-                      label,
-                      style: _pipStyle(theme).copyWith(
-                        color: quiet ? theme.background : theme.accentInk,
-                      ),
-                    )
-                  : OdometerNumber(
-                      value: count,
-                      style: _pipStyle(theme).copyWith(
-                        color: quiet ? theme.background : theme.accentInk,
-                      ),
-                    ),
-            ),
-          ),
-        ],
-      );
-    }
-    if (room.hasUnread) {
-      return Container(
-        width: 10,
-        height: 10,
-        margin: const EdgeInsets.only(top: 4, right: 4),
-        decoration: BoxDecoration(color: theme.accent, shape: BoxShape.circle),
+    if (count > 0 || room.hasUnread) {
+      return RoomUnreadBadge(
+        count: count,
+        unread: room.hasUnread,
+        mention: room.hasVisibleMention,
+        quiet: room.isMuted,
       );
     }
     if (room.isPinned) {
@@ -334,13 +276,7 @@ class _ChatListRowState extends State<ChatListRow>
     return const SizedBox.shrink();
   }
 
-  TextStyle _pipStyle(AppTheme theme) => theme.bodySoft.copyWith(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        height: 1.0,
-        letterSpacing: 0,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      );
+
 }
 
 /// A room's face at any size: Saved Messages' bookmark disc, a DM peer's
@@ -405,26 +341,6 @@ class ChatRoomAvatar extends StatelessWidget {
     }
     return MonogramAvatar(label: room.name, seed: room.id, size: size);
   }
-}
-
-/// The capsule a count sits in: at least a circle, growing sideways for more
-/// digits.
-class _Pip extends StatelessWidget {
-  const _Pip({required this.color, required this.child});
-  final Color color;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: child,
-      );
 }
 
 /// A face for something that has no picture: one hue from the theme's avatar

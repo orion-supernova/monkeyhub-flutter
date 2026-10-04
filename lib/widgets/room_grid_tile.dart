@@ -144,22 +144,12 @@ class RoomGridTile extends StatelessWidget {
                   children: [
                     // Mute-resolved, same as room_card.dart: a badge-muted
                     // room shows neither the pill nor the dot it falls back to.
-                    if (room.visibleUnreadCount > 0)
-                      CountBadge(
+                    if (room.visibleUnreadCount > 0 || room.hasUnread)
+                      RoomUnreadBadge(
                         count: room.visibleUnreadCount,
+                        unread: room.hasUnread,
                         mention: room.hasVisibleMention,
-                      )
-                    else if (room.hasUnread)
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: theme.accent,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
-                          ],
-                        ),
+                        quiet: room.isMuted,
                       ),
                     // Icons alone up here: the tile has a name, a preview
                     // line and an unread count to fit as well, and every

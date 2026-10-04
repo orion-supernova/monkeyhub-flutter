@@ -6,7 +6,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
-import 'action_buttons.dart';
+import 'glass_buttons.dart';
+import 'liquid_glass.dart';
 import 'ios_kit.dart' show groupedTitleStyle, groupedValueStyle;
 import 'route_landing.dart';
 import 'spring_press.dart';
@@ -36,21 +37,9 @@ const double searchFieldHeight = 40;
 /// Glyph → text gap inside the pill.
 const double _kGlyphGap = 6;
 
-/// The pill.
-///
-/// The iOS search field: a capsule of soft fill and nothing else. The theme's
-/// input box carried a border, and a hairline-ringed pill is a Material text
-/// field; Messages, Mail and Settings draw search as a tinted capsule with no
-/// edge at all, and the shape plus the magnifier is what says "search". The
-/// fill is the theme's own ink at a low alpha, so it follows every palette —
-/// a light wash on dark themes, a grey wash on light ones — and is the same
-/// on a page and on a sheet (0.06/0.10 vanished on Daylight's sheets).
-BoxDecoration searchFieldDecoration(AppTheme theme) => BoxDecoration(
-      color: theme.ink.withValues(
-        alpha: theme.background.computeLuminance() > 0.4 ? 0.07 : 0.12,
-      ),
-      borderRadius: BorderRadius.circular(999),
-    );
+/// The field, its door and hero shuttle use the app's live glass material.
+Widget _searchGlass(Widget child) =>
+    LiquidGlass(shape: LiquidGlassShape.capsule, child: child);
 
 /// THE search bar of the app: magnifier, field, clear disc, in a 40pt pill —
 /// and, at the top of a screen, a Cancel that slides in while it is in use.
@@ -83,8 +72,8 @@ class SearchField extends StatefulWidget {
     this.onCancel,
     this.onSubmitted,
     this.leadingAccessory,
-  })  : _doorTap = null,
-        semanticLabel = null;
+  }) : _doorTap = null,
+       semanticLabel = null;
 
   /// A search *door*: the same pill, not editable — tapping it opens the
   /// screen that really searches (Discover's "Search people", the reaction
@@ -96,17 +85,17 @@ class SearchField extends StatefulWidget {
     required VoidCallback onTap,
     this.heroTag,
     this.semanticLabel,
-  })  : hintText = hint,
-        _doorTap = onTap,
-        controller = null,
-        onChanged = null,
-        onClear = null,
-        autofocus = false,
-        focusNode = null,
-        showCancel = false,
-        onCancel = null,
-        onSubmitted = null,
-        leadingAccessory = null;
+  }) : hintText = hint,
+       _doorTap = onTap,
+       controller = null,
+       onChanged = null,
+       onClear = null,
+       autofocus = false,
+       focusNode = null,
+       showCancel = false,
+       onCancel = null,
+       onSubmitted = null,
+       leadingAccessory = null;
 
   /// Null only on a [SearchField.door].
   final TextEditingController? controller;
@@ -272,34 +261,35 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
   }) {
     return Material(
       type: MaterialType.transparency,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: searchFieldHeight),
-        decoration: searchFieldDecoration(theme),
-        // Keyboard focus only: a touch user has the caret; a hardware-
-        // keyboard user tabbing through needs to see where they landed.
-        foregroundDecoration: ring
-            ? ShapeDecoration(
-                shape: StadiumBorder(
-                  side: BorderSide(
-                    color: theme.accent,
-                    width: 2,
-                    strokeAlign: BorderSide.strokeAlignOutside,
+      child: _searchGlass(
+        Container(
+          constraints: const BoxConstraints(minHeight: searchFieldHeight),
+          // Keyboard focus only: a touch user has the caret; a hardware-
+          // keyboard user tabbing through needs to see where they landed.
+          foregroundDecoration: ring
+              ? ShapeDecoration(
+                  shape: StadiumBorder(
+                    side: BorderSide(
+                      color: theme.accent,
+                      width: 2,
+                      strokeAlign: BorderSide.strokeAlignOutside,
+                    ),
                   ),
-                ),
-              )
-            : null,
-        padding: const EdgeInsets.only(left: searchFieldHPadding),
-        child: Row(
-          children: [
-            Icon(
-              CupertinoIcons.search,
-              color: theme.inkMuted,
-              size: searchFieldIconSize,
-            ),
-            const SizedBox(width: _kGlyphGap),
-            Expanded(child: content),
-            trailing ?? const SizedBox(width: searchFieldHPadding),
-          ],
+                )
+              : null,
+          padding: const EdgeInsets.only(left: searchFieldHPadding),
+          child: Row(
+            children: [
+              Icon(
+                CupertinoIcons.search,
+                color: theme.inkMuted,
+                size: searchFieldIconSize,
+              ),
+              const SizedBox(width: _kGlyphGap),
+              Expanded(child: content),
+              trailing ?? const SizedBox(width: searchFieldHPadding),
+            ],
+          ),
         ),
       ),
     );
@@ -415,16 +405,16 @@ class _CancelSlot extends StatelessWidget {
         final show = focused || controller.text.isNotEmpty;
         return ClipRect(
           child: AnimatedSize(
-            duration:
-                calm ? Duration.zero : const Duration(milliseconds: 260),
+            duration: calm ? Duration.zero : const Duration(milliseconds: 260),
             curve: Curves.easeOutCubic,
             alignment: Alignment.centerLeft,
             child: show
                 ? Padding(
                     padding: const EdgeInsets.only(left: 8),
-                    child: TextLinkButton(
-                      label:
-                          MaterialLocalizations.of(context).cancelButtonLabel,
+                    child: GlassCloseButton(
+                      semanticLabel: MaterialLocalizations.of(
+                        context,
+                      ).cancelButtonLabel,
                       onTap: onCancel,
                     ),
                   )
@@ -480,9 +470,8 @@ class SearchFieldHero extends StatelessWidget {
     // mid-flight and their elements are being handed around. `ThemeScope` sits
     // above the app's navigator, so the overlay is inside it either way.
     final theme = ThemeScope.of(flightContext);
-    return DecoratedBox(
-      decoration: searchFieldDecoration(theme),
-      child: Align(
+    return _searchGlass(
+      Align(
         alignment: Alignment.centerLeft,
         child: Padding(
           padding: const EdgeInsets.only(left: searchFieldHPadding),

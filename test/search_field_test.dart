@@ -103,8 +103,11 @@ void main() {
       await tester.pumpWidget(host(bar(c)));
 
       final clear = find.byIcon(CupertinoIcons.xmark_circle_fill);
-      expect(find.byIcon(CupertinoIcons.search), findsOneWidget,
-          reason: 'the magnifier is always there');
+      expect(
+        find.byIcon(CupertinoIcons.search),
+        findsOneWidget,
+        reason: 'the magnifier is always there',
+      );
       expect(clear, findsNothing, reason: 'nothing to clear yet');
 
       await tester.enterText(find.byType(TextField), 'ada');
@@ -226,12 +229,17 @@ void main() {
           ),
         ),
       );
-      final cancel = find.text('Cancel');
+      final cancel = find.byIcon(CupertinoIcons.xmark);
       expect(cancel, findsNothing, reason: 'idle: no Cancel');
 
       await tester.enterText(find.byType(TextField), 'ada');
       await tester.pumpAndSettle();
       expect(cancel, findsOneWidget);
+      expect(
+        find.text('Cancel'),
+        findsNothing,
+        reason: 'exit search uses an icon with a localized semantic label',
+      );
 
       await tester.tap(cancel);
       await tester.pumpAndSettle();
@@ -369,7 +377,8 @@ void main() {
       expect(
         tester.widget<TextField>(field).focusNode?.hasFocus,
         isFalse,
-        reason: 'a keyboard rising through a page still sliding in is two '
+        reason:
+            'a keyboard rising through a page still sliding in is two '
             'animations arguing over the same 300ms',
       );
 
