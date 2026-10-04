@@ -616,10 +616,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
                       onTap: _selection.clear,
                     )
                   else
-                    // Still: the bar never moves, so there is nothing for a
-                    // blur behind the disc to do but cost a pass.
+                    // Real glass, like every page's back button (room info's
+                    // included) — the still disc read as a different, whiter
+                    // button on the same screen pair.
                     GlassBackButton(
-                      still: true,
                       semanticLabel: l10n.roomContentScreenBackTooltip,
                       onTap: () => Navigator.of(context).pop(),
                     ),

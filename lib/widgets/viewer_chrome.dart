@@ -1,11 +1,14 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
+
 import '../l10n/generated/app_localizations.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
-import 'media_filmstrip.dart' show MediaScrim;
+import 'spring_press.dart';
 import 'message_stamp.dart' show formatClockTime;
 
 /// The top bar every full-screen media viewer wears — the photo viewer, the
@@ -158,7 +161,23 @@ class _ViewerTopBarState extends State<ViewerTopBar> {
       still: still,
       child: Stack(
         children: [
-          MediaScrim(height: pad.top + 62, fromTop: true),
+          // A real bar, not a scrim: the ×, who sent it and Show in chat read
+          // as one navigation bar over the black void. Solid, never blurred —
+          // this chrome fades on every tap, and a fading blur is the one
+          // thing the app never draws.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xE0141416),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    width: 1 / MediaQuery.devicePixelRatioOf(context),
+                  ),
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: EdgeInsets.fromLTRB(8, pad.top + 6, 8, 10),
             // At least the buttons' height, and taller when large text makes
@@ -178,20 +197,17 @@ class _ViewerTopBarState extends State<ViewerTopBar> {
                   Align(
                     alignment: Alignment.centerLeft,
                     // The shared media ×, 17pt glyph like every close.
-                    child: still
-                        ? ViewerChromeButton(
-                            icon: CupertinoIcons.xmark,
-                            iconSize: 17,
-                            still: true,
-                            semanticLabel: widget.closeLabel ??
-                                MaterialLocalizations.of(context)
-                                    .closeButtonLabel,
-                            onTap: widget.onClose,
-                          )
-                        : GlassCloseButton(
-                            semanticLabel: widget.closeLabel,
-                            onTap: widget.onClose,
-                          ),
+                    // Always the blur-free disc: the bar behind it is solid,
+                    // so live glass bought nothing — and swapping glass for
+                    // the still disc whenever the route moved made the ×
+                    // visibly flicker on every open and dismiss.
+                    child: ViewerChromeButton(
+                      icon: CupertinoIcons.xmark,
+                      iconSize: 17,
+                      semanticLabel: widget.closeLabel ??
+                          MaterialLocalizations.of(context).closeButtonLabel,
+                      onTap: widget.onClose,
+                    ),
                   ),
                   if (actions.isNotEmpty)
                     Align(
@@ -262,7 +278,9 @@ class ViewerChromeButton extends StatelessWidget {
       iconSize: iconSize,
       semanticLabel: semanticLabel,
       onTap: onTap,
-      still: still ?? ViewerTopBar.stillOf(context),
+      // Never live glass in the viewer — see the × in [ViewerTopBar]. One
+      // material for the whole flight, so nothing changes mid-animation.
+      still: true,
     );
   }
 }
@@ -289,18 +307,19 @@ class ViewerToolbarAction {
   final bool danger;
 }
 
-/// The row of actions under a full-screen picture — Share, Save, Forward,
-/// Delete — the way Photos lays them out: bare white glyphs spread across the
-/// bottom, no buttons drawn around them.
+/// The actions under a full-screen picture — Share, Save, Forward, Delete —
+/// laid out the iOS 26 Photos way: the first action alone on the left, the
+/// last alone on the right, anything between grouped in one pill in the
+/// middle. All of it in the same 40pt disc material as the × and Show in
+/// chat above, so the viewer has one family of controls.
 ///
-/// Bare on purpose, not glass. The toolbar fades with the rest of the viewer
-/// chrome on every tap and every dismiss drag, and glass is the one material
-/// this app never fades; white glyphs with a soft shadow over the existing
-/// bottom [MediaScrim] are as legible over any photograph and cost nothing to
-/// animate.
+/// A grouped capsule with dividers between every icon read as Android; iOS
+/// groups by position and shape, never with rules between glyphs.
 ///
-/// Lays out only the row; the caller places it and supplies the scrim, which
-/// it shares with the filmstrip above.
+/// Blur-free discs ([GlassIconButton] `still`): the toolbar fades with the
+/// rest of the chrome on every tap and dismiss, and a fading blur is the one
+/// thing the app never draws — swapping materials mid-fade is what made the
+/// buttons flicker.
 class ViewerToolbar extends StatelessWidget {
   const ViewerToolbar({super.key, required this.actions});
 
@@ -312,28 +331,87 @@ class ViewerToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    Color tintFor(ViewerToolbarAction a) =>
+        a.danger ? theme.danger : theme.ink;
+    Widget disc(ViewerToolbarAction a) => GlassIconButton(
+          icon: a.icon,
+          onTap: a.onTap,
+          semanticLabel: a.semanticLabel,
+          color: a.danger ? theme.danger : null,
+          still: true,
+        );
+    final middle = actions.length > 2
+        ? actions.sublist(1, actions.length - 1)
+        : const <ViewerToolbarAction>[];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
         height: height,
         child: Row(
-          // One action sits centred rather than pinned to the left edge;
-          // more spread out like Photos' toolbar.
-          mainAxisAlignment: actions.length == 1
-              ? MainAxisAlignment.center
-              : MainAxisAlignment.spaceAround,
           children: [
-            // The app's round buttons, not bare glyphs: the same 40pt disc
-            // as back and × — one family of controls across the viewer.
-            for (final a in actions)
-              GlassIconButton(
-                icon: a.icon,
-                onTap: a.onTap,
-                semanticLabel: a.semanticLabel,
-                color: a.danger ? theme.danger : null,
-              ),
+            if (actions.isNotEmpty) disc(actions.first),
+            const Spacer(),
+            if (middle.length == 1) disc(middle.single),
+            if (middle.length > 1)
+              // The middle group: one pill of the same disc material, glyphs
+              // spaced like a tab bar's — no dividers.
+              _Pill(
+                    children: [
+                      for (final a in middle)
+                        SpringPress(
+                          onTap: a.onTap,
+                          semanticLabel: a.semanticLabel,
+                          scale: PressSpec.scaleSmall,
+                          focusShape: FocusRingShape.circle,
+                          focusRadius: 20,
+                          child: SizedBox(
+                            width: 48,
+                            height: 40,
+                            child: Icon(a.icon, size: 19, color: tintFor(a)),
+                          ),
+                        ),
+                    ],
+                  ),
+            const Spacer(),
+            if (actions.length > 1) disc(actions.last),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The middle group's capsule, in the chrome disc's fill, rim and shadow.
+class _Pill extends StatelessWidget {
+  const _Pill({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    // The rim paints on the pill's OUTER box: with the padding outside the
+    // painter, the lit edge was drawn 4pt inside the fill and read as a
+    // second, broken border.
+    return CustomPaint(
+      foregroundPainter: SpecularRim(
+        shape: const StadiumBorder(),
+        light: theme.isLight,
+      ),
+      child: Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: ShapeDecoration(
+        color: chromeDiscFill(theme),
+        shape: const StadiumBorder(),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
   }
