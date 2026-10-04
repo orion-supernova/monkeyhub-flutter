@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -176,6 +178,10 @@ Future<MessageActionResult?> showMessageActionMenu({
   // relaxes — and makes the intent explicit rather than accidental.
   final metrics = ChatMetricsScope.readOf(context);
 
+  // The blurred backdrop, taken once now rather than blurred live. See
+  // [_BlurSnapshot].
+  final backdrop = _BlurSnapshot.capture(anchorCtx);
+
   final completer = Completer<MessageActionResult?>();
   late OverlayEntry entry;
   entry = OverlayEntry(
@@ -189,8 +195,10 @@ Future<MessageActionResult?> showMessageActionMenu({
       isSaved: isSaved,
       isTranslated: isTranslated,
       fileName: fileName,
+      backdrop: backdrop,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
+        backdrop?.image.dispose();
         try {
           entry.remove();
         } catch (_) {}
@@ -214,10 +222,14 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.isSaved,
     required this.isTranslated,
     required this.fileName,
+    required this.backdrop,
     required this.onResolve,
   });
 
   final Rect bubbleRect;
+
+  /// The chat behind, pre-blurred; null when it could not be captured.
+  final _BlurSnapshot? backdrop;
 
   /// Chat metrics captured from the pane the bubble was lifted out of; null
   /// when it wasn't inside one.
@@ -472,7 +484,11 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
         onDismiss: () => _resolve(null),
         child: Stack(
         children: [
-          _Scrim(t: curved, onTap: () => _resolve(null)),
+          _Scrim(
+            t: curved,
+            backdrop: widget.backdrop,
+            onTap: () => _resolve(null),
+          ),
           _LiftedBubble(
             t: curved,
             rect: bubble,
@@ -550,43 +566,119 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
 
 // ───────────────────────── scrim ─────────────────────────
 
+/// The chat behind the menu, captured once at press time and blurred once.
+///
+/// The old scrim faded a full-screen live `BackdropFilter` in through an
+/// `Opacity`: a blur inside a fading layer is re-rendered offscreen every
+/// frame, and on the first frames Impeller often had not produced it at all —
+/// so the blur arrived late and stuttered in, behind a bubble that was
+/// already up. A still image fades for the cost of a texture draw.
+///
+/// Taken from the outermost [RenderRepaintBoundary] above the bubble — the
+/// route's own, which every page has — at a quarter of device resolution:
+/// the blur erases the detail that the downsampling would have cost, and a
+/// quarter-size image blurs sixteen times cheaper.
+class _BlurSnapshot {
+  _BlurSnapshot(this.image, this.rect);
+  final ui.Image image;
+
+  /// Where the captured page sits, in window coordinates.
+  final Rect rect;
+
+  static const _scale = 0.25;
+  static const _sigma = 22.0;
+
+  static _BlurSnapshot? capture(BuildContext anchor) {
+    try {
+      RenderRepaintBoundary? outer;
+      RenderObject? node = anchor.findRenderObject();
+      while (node != null) {
+        if (node is RenderRepaintBoundary && node.attached) outer = node;
+        node = node.parent;
+      }
+      final boundary = outer;
+      if (boundary == null || !boundary.hasSize) return null;
+      // Not `debugNeedsPaint` — it is debug-only and throws in release, which
+      // the catch below would turn into "always fall back". toImageSync
+      // asserts the same thing itself in debug.
+      final raw = boundary.toImageSync(pixelRatio: _scale);
+      final w = raw.width, h = raw.height;
+      final recorder = ui.PictureRecorder();
+      // Blur radius scales with the image: sigma 22 at full size is 5.5 here.
+      Canvas(recorder).drawImage(
+        raw,
+        Offset.zero,
+        Paint()
+          ..imageFilter = ui.ImageFilter.blur(
+            sigmaX: _sigma * _scale,
+            sigmaY: _sigma * _scale,
+            tileMode: TileMode.clamp,
+          ),
+      );
+      final blurred = recorder.endRecording().toImageSync(w, h);
+      raw.dispose();
+      final origin = boundary.localToGlobal(Offset.zero);
+      return _BlurSnapshot(blurred, origin & boundary.size);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 class _Scrim extends StatelessWidget {
-  const _Scrim({required this.t, required this.onTap});
+  const _Scrim({required this.t, required this.backdrop, required this.onTap});
   final Animation<double> t;
+  final _BlurSnapshot? backdrop;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final snap = backdrop;
+    final tint = AnimatedBuilder(
+      animation: t,
+      // Clamped: the curve is the theme's entrance, and a springy one
+      // overshoots past 1, which an opacity cannot take.
+      builder: (_, child) =>
+          Opacity(opacity: t.value.clamp(0.0, 1.0), child: child),
+      child: Stack(
+        children: [
+          if (snap != null)
+            Positioned.fromRect(
+              rect: snap.rect,
+              child: RawImage(
+                image: snap.image,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.low,
+              ),
+            ),
+          const Positioned.fill(
+            child: ColoredBox(color: Color(0x52000000)),
+          ),
+        ],
+      ),
+    );
     return Positioned.fill(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        // A fixed blur faded in by opacity — never a blur whose sigma moves.
-        // Animating sigma re-runs the whole-screen blur at a new radius every
-        // frame of the menu's entrance and exit; a constant one is the same
-        // filter each frame, and only the layer's alpha changes over it.
-        child: AnimatedBuilder(
-          animation: t,
-          // Clamped: the curve is the theme's entrance, and a springy one
-          // overshoots past 1, which an opacity cannot take.
-          builder: (_, child) =>
-              Opacity(opacity: t.value.clamp(0.0, 1.0), child: child),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-                    child: const SizedBox.expand(),
+        child: snap != null
+            ? tint
+            // No snapshot (a page that has not painted yet): the live blur,
+            // present at full strength from the first frame rather than faded
+            // — fading it is exactly what made it late.
+            : Stack(
+                children: [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
                   ),
-                ),
+                  Positioned.fill(child: tint),
+                ],
               ),
-              const Positioned.fill(
-                child: ColoredBox(color: Color(0x52000000)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1,14 +1,12 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 import 'media_filmstrip.dart' show MediaScrim;
 import 'message_stamp.dart' show formatClockTime;
-import 'spring_press.dart';
 
 /// The top bar every full-screen media viewer wears — the photo viewer, the
 /// video viewer, the gallery pager and the view-once viewer — so all four look
@@ -191,7 +189,6 @@ class _ViewerTopBarState extends State<ViewerTopBar> {
                             onTap: widget.onClose,
                           )
                         : GlassCloseButton(
-                            tone: GlassTone.media,
                             semanticLabel: widget.closeLabel,
                             onTap: widget.onClose,
                           ),
@@ -258,45 +255,14 @@ class ViewerChromeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final blurFree = still ?? ViewerTopBar.stillOf(context);
-    if (!blurFree) {
-      return GlassIconButton(
-        tone: GlassTone.media,
-        icon: icon,
-        iconSize: iconSize,
-        semanticLabel: semanticLabel,
-        onTap: onTap,
-      );
-    }
-    final enabled = onTap != null;
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: semanticLabel,
-      child: SpringPress(
-        onTap: onTap,
-        haptic: false,
-        scale: 0.94,
-        focusShape: FocusRingShape.circle,
-        focusRadius: size / 2,
-        child: Container(
-          width: size,
-          height: size,
-          alignment: Alignment.center,
-          decoration: const ShapeDecoration(
-            color: Color(0x4D2A2A2E),
-            shape: CircleBorder(
-              side: BorderSide(color: MediaGlass.stroke, width: 0.8),
-            ),
-            shadows: [MediaGlass.shadow],
-          ),
-          child: Icon(
-            icon,
-            size: iconSize,
-            color: enabled ? MediaGlass.ink : MediaGlass.inkDisabled,
-          ),
-        ),
-      ),
+    // The app's own 40pt button — the same disc as back and × everywhere
+    // else, not a viewer-only material — blur-free while the chrome fades.
+    return GlassIconButton(
+      icon: icon,
+      iconSize: iconSize,
+      semanticLabel: semanticLabel,
+      onTap: onTap,
+      still: still ?? ViewerTopBar.stillOf(context),
     );
   }
 }
@@ -346,10 +312,6 @@ class ViewerToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // Delete's tint: the theme's danger lifted most of the way to white, so it
-    // still reads as red over a dark photograph and never as a dark blot over
-    // a bright one.
-    final danger = Color.lerp(theme.danger, Colors.white, 0.35)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: SizedBox(
@@ -361,25 +323,14 @@ class ViewerToolbar extends StatelessWidget {
               ? MainAxisAlignment.center
               : MainAxisAlignment.spaceAround,
           children: [
+            // The app's round buttons, not bare glyphs: the same 40pt disc
+            // as back and × — one family of controls across the viewer.
             for (final a in actions)
-              SpringPress(
+              GlassIconButton(
+                icon: a.icon,
                 onTap: a.onTap,
                 semanticLabel: a.semanticLabel,
-                scale: PressSpec.scaleSmall,
-                focusShape: FocusRingShape.circle,
-                focusRadius: 22,
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Center(
-                    child: Icon(
-                      a.icon,
-                      size: 22,
-                      color: a.danger ? danger : Colors.white,
-                      shadows: _kGlyphShadow,
-                    ),
-                  ),
-                ),
+                color: a.danger ? theme.danger : null,
               ),
           ],
         ),

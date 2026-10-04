@@ -4735,9 +4735,26 @@ class _RoomScreenState extends State<RoomScreen>
                       // where the room's own SpeakerScope is not an ancestor.
                       // Without it the lifted bubble would drop its speaker
                       // colour at exactly the moment it is being stared at.
+                      // The lifted copy is the bubble alone. A compact reply
+                      // marker is an accent line drawn ABOVE the bubble, part
+                      // of the row's context, and floating it over the blur
+                      // read as a stray line. A full quote card stays: it is
+                      // inside the bubble.
+                      final shownMarker = sameRow ? replyMarker : ReplyMarker.full;
+                      final liftedMarker = shownMarker == ReplyMarker.compact
+                          ? ReplyMarker.none
+                          : shownMarker;
                       return SpeakerScope(
                         slots: room.isDm ? SpeakerSlots.none : _speakerSlots,
-                        child: target.isEphemeral
+                        // Bottom-aligned in the row's measured rect: without
+                        // the marker the bubble is shorter than the row, and
+                        // top-aligned it would jump up by the marker's height
+                        // as it lifts.
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            target.isEphemeral
                           ? EphemeralMessageBubble(
                               message: target,
                               now: _fadeNow,
@@ -4747,8 +4764,7 @@ class _RoomScreenState extends State<RoomScreen>
                               parentAuthor: parentAuthor,
                               saved: widget.repo
                                   .isMessageSaved(room.id, target.id),
-                              replyMarker:
-                                  sameRow ? replyMarker : ReplyMarker.full,
+                              replyMarker: liftedMarker,
                               grouped: sameRow && grouped,
                               lastInRun: !sameRow || messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
@@ -4767,8 +4783,7 @@ class _RoomScreenState extends State<RoomScreen>
                               deliveredToOthers: deliveredToOthers,
                               saved: widget.repo
                                   .isMessageSaved(room.id, target.id),
-                              replyMarker:
-                                  sameRow ? replyMarker : ReplyMarker.full,
+                              replyMarker: liftedMarker,
                               grouped: sameRow && grouped,
                               lastInRun: !sameRow || messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
@@ -4776,6 +4791,8 @@ class _RoomScreenState extends State<RoomScreen>
                               senderName: senderName,
                               onOpenViewOnce: () => _openViewOnce(target),
                             ),
+                          ],
+                        ),
                       );
                     },
                   );

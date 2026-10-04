@@ -7,7 +7,6 @@ import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/capture_shield.dart';
 import '../widgets/liquid_glass.dart';
-import '../widgets/photo_backdrop.dart';
 import '../l10n/text_case.dart';
 import '../widgets/viewer_chrome.dart';
 
@@ -122,14 +121,9 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
               // Decoded from the SAME in-memory bytes, at 96px: nothing is
               // written to disk and nothing new is fetched, which is the
               // property this whole screen exists to preserve.
-              PhotoBackdrop(
-                image: Image.memory(
-                  widget.bytes,
-                  fit: BoxFit.cover,
-                  cacheWidth: kPhotoBackdropDecodeWidth,
-                  gaplessPlayback: true,
-                ),
-              ),
+              // Black void around a photo that doesn't fill the screen, like
+          // Photos — the blurred copy of the picture read as a smudge.
+          const ColoredBox(color: Colors.black),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 // Only when un-zoomed: while zoomed the vertical drag belongs

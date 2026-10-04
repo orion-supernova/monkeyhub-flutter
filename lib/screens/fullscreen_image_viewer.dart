@@ -226,19 +226,9 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                 Positioned.fill(
                   child: Opacity(
                     opacity: (1 - t).clamp(0.0, 1.0),
-                    child: PhotoBackdrop(
-                      image: RemoteImage(
-                        storageId: widget.storageId,
-                        onDark: true,
-                        api: widget.api,
-                        fit: BoxFit.cover,
-                        borderRadius: BorderRadius.zero,
-                        // The thumbnail's decode when there is one — already
-                        // resident, so the backdrop costs nothing.
-                        decodeWidth: widget.thumbnailDecodeWidth ??
-                            kPhotoBackdropDecodeWidth,
-                      ),
-                    ),
+                    child: // Black void around a photo that doesn't fill the screen, like
+          // Photos — the blurred copy of the picture read as a smudge.
+          const ColoredBox(color: Colors.black),
                   ),
                 ),
               Transform.translate(

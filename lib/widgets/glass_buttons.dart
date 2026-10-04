@@ -68,6 +68,28 @@ class GlassIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
+    // Real glass on pages, as it shipped in 1.3.114 — the user preferred it
+    // to the opaque disc this briefly became. Only a [still] button (on a
+    // sheet or card, which slide) draws the blur-free [ChromeDisc].
+    if (tone == GlassTone.app && !still) {
+      final theme = ThemeScope.of(context);
+      final ink = color ??
+          (tint != null
+              ? theme.accentInk
+              : (enabled ? theme.ink : theme.inkMuted));
+      return Semantics(
+        button: true,
+        enabled: enabled,
+        label: semanticLabel,
+        child: LiquidGlass(
+          size: Size(size, size),
+          tone: tone,
+          tint: tint,
+          onTap: onTap,
+          child: Icon(icon, size: iconSize, color: ink),
+        ),
+      );
+    }
     if (tone == GlassTone.media) {
       final ink = color ?? (enabled ? MediaGlass.ink : MediaGlass.inkDisabled);
       return Semantics(

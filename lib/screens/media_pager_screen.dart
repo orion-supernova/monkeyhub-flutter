@@ -15,7 +15,6 @@ import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/media_filmstrip.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
-import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_chrome.dart' show MediaDurationBadge, MediaPlayDisc;
 import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
@@ -843,16 +842,9 @@ class _Page extends StatelessWidget {
         // colour rather than on dead black. Reuses the thumbnail decode where
         // the flight already warmed one, so it costs nothing on the page you
         // opened.
-        PhotoBackdrop(
-          image: RemoteImage(
-            storageId: id,
-            api: api,
-            fit: BoxFit.cover,
-            borderRadius: BorderRadius.zero,
-            decodeWidth: sourceDecodeWidth ?? kPhotoBackdropDecodeWidth,
-            onDark: true,
-          ),
-        ),
+        // Black void around a photo that doesn't fill the screen, like
+          // Photos — the blurred copy of the picture read as a smudge.
+          const ColoredBox(color: Colors.black),
         PhotoDismissArea(
           drag: drag,
           onDismiss: onDismiss,
@@ -990,16 +982,9 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
       fit: StackFit.expand,
       children: [
         if (poster != null)
-          PhotoBackdrop(
-            image: RemoteImage(
-              storageId: poster,
-              api: widget.api,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.zero,
-              decodeWidth: kPhotoBackdropDecodeWidth,
-              onDark: true,
-            ),
-          ),
+          // Black void around a photo that doesn't fill the screen, like
+          // Photos — the blurred copy of the picture read as a smudge.
+          const ColoredBox(color: Colors.black),
         PhotoDismissArea(
           drag: widget.drag,
           onDismiss: widget.onDismiss,
