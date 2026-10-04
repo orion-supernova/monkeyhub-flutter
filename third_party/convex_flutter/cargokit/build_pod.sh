@@ -16,6 +16,18 @@ env
 # Platform name (macosx, iphoneos, iphonesimulator)
 export CARGOKIT_DARWIN_PLATFORM_NAME=$PLATFORM_NAME
 
+# monkeyhub patch: on macOS the Rust target IS the host, so Xcode's
+# MACOSX_DEPLOYMENT_TARGET (12.0) also reaches cargo's host-side proc-macro
+# builds, and with rustc 1.94 on macOS 27 any value above 11.0 leaves those
+# dylibs unloadable: "can't find crate for `zerofrom_derive`" and the macOS
+# archive fails (iOS is unaffected — its target is not the host). Unset, rustc
+# uses its own defaults (11.0 arm64, 10.12 x86_64), both below the app's 12.0,
+# which links fine. See PATCHES.md.
+if [ "$PLATFORM_NAME" = "macosx" ]; then
+  unset MACOSX_DEPLOYMENT_TARGET
+fi
+# end monkeyhub patch
+
 # Arctive architectures (arm64, armv7, x86_64), space separated.
 export CARGOKIT_DARWIN_ARCHS=$ARCHS
 

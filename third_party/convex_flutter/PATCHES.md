@@ -6,12 +6,14 @@ Vendored from `pub.dev/convex_flutter-3.0.1` and wired up through
 except the changes below, each bracketed by `monkeyhub patch` comments so the
 whole delta is greppable.
 
-There are two independent patch sets, for two unrelated bugs:
+There are three independent patch sets, for three unrelated bugs:
 
 1. **The web reconnect loop** — five defects in
    `lib/src/impl/convex_client_web.dart`, described below.
 2. **The native zombie socket** — `rust/src/lib.rs` plus the thin Dart shims
    that expose it, described in [Native: a real reconnect](#native-a-real-reconnect).
+3. **The macOS archive** — `cargokit/build_pod.sh`, described in
+   [macOS: the deployment target and proc-macros](#macos-the-deployment-target-and-proc-macros).
 
 Regenerate after touching `rust/src/lib.rs`:
 
@@ -244,3 +246,22 @@ or drop the override if upstream has fixed them. Check specifically whether
 
 Getting this wrong fails quietly: the app reports itself connected and simply
 stops receiving.
+
+## macOS: the deployment target and proc-macros
+
+`flutter build macos` / the macOS archive failed in the Rust step with
+`error[E0463]: can't find crate for 'zerofrom_derive'` (and `tokio_macros`),
+from a clean cache, while iOS built the same crate fine.
+
+Cause: Xcode exports `MACOSX_DEPLOYMENT_TARGET=12.0` into the script phase,
+cargokit passes the environment to cargo, and on macOS the target
+(`aarch64-apple-darwin`) is the host — so the variable also applies to the
+host-side proc-macro dylibs. With rustc 1.94 on macOS 27 any value above 11.0
+produces proc-macros rustc then cannot load. Reproduced outside Xcode:
+`MACOSX_DEPLOYMENT_TARGET=12.0 cargo build --target aarch64-apple-darwin`
+fails, `11.0` or unset succeeds. iOS never hits it: its target is not the host.
+
+Fix (`cargokit/build_pod.sh`): unset `MACOSX_DEPLOYMENT_TARGET` for
+`PLATFORM_NAME=macosx`. rustc's defaults (11.0 arm64, 10.12 x86_64) are below
+the app's 12.0, which links without complaint. Revisit if the app's macOS
+deployment target ever drops below 11.0, or once rustc no longer breaks.
