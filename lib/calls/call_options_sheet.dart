@@ -7,7 +7,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart';
 import 'call_models.dart';
-import 'call_service.dart';
+
+export 'call_models.dart' show CallOptionsController;
 
 /// In-call counterpart to the Settings screen's Calls section — the same
 /// two settings ([SettingsStore.showNetworkStats],
@@ -15,7 +16,9 @@ import 'call_service.dart';
 /// itself via the control bar's tune icon, so neither has to be a
 /// Settings-only affordance. Both write straight to [SettingsStore]; the
 /// video-quality row additionally applies live via
-/// [CallService.switchVideoQuality] when a video call is already underway.
+/// [CallOptionsController.switchVideoQuality] when a camera is already being
+/// sent — the 1:1 call and the group call each implement it, so this one
+/// sheet is "More" in both trays.
 class CallOptionsSheet extends StatelessWidget {
   const CallOptionsSheet({
     super.key,
@@ -23,7 +26,9 @@ class CallOptionsSheet extends StatelessWidget {
     required this.showVideoQuality,
   });
 
-  final CallService service;
+  /// The call to apply a tier change to — a `CallService` or a
+  /// `GroupCallService`.
+  final CallOptionsController service;
 
   /// False for a voice call — there's no video to size, so the row is
   /// omitted rather than shown disabled.

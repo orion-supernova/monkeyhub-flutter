@@ -3148,6 +3148,8 @@ class _RoomScreenState extends State<RoomScreen>
         api: widget.api,
         heroTag: _transcriptHeroTag(m),
         thumbnailDecodeWidth: sourceDecodeWidth,
+        // Share and Save — a lone picture still gets the viewer's toolbar.
+        message: m,
       );
       return;
     }
@@ -3172,6 +3174,14 @@ class _RoomScreenState extends State<RoomScreen>
       // open would degrade to a cross-fade.
       heroTagFor: _transcriptHeroTag,
       sourceDecodeWidth: sourceDecodeWidth,
+      // Share, Save, Forward and Delete. The chat is where most pictures are
+      // opened from, so without this the toolbar would exist only in room
+      // info.
+      actions: MediaPagerActions.room(
+        repo: widget.repo,
+        api: widget.api,
+        roomId: widget.roomId,
+      ),
       onPageChanged: _alignTranscriptTo,
       onShowInChat: (msg) {
         travelTo = msg;

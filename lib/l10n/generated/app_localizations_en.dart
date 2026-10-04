@@ -1835,7 +1835,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverScreenNothingPending => 'Nothing pending';
 
   @override
-  String get discoverScreenYourPeopleLabel => 'Your people';
+  String get discoverScreenYourPeopleLabel => 'Friends';
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
@@ -1851,7 +1851,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => 'Find a public room by name';
 
   @override
-  String get discoverScreenYourRoomsLabel => 'Your rooms';
+  String get discoverScreenYourRoomsLabel => 'Rooms';
 
   @override
   String get discoverScreenNoRoomsYet => 'No rooms yet';
@@ -2013,7 +2013,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchScreenHintPeople => 'Search people';
 
   @override
-  String get searchScreenHintRooms => 'Search rooms';
+  String get searchScreenHintRooms => 'Search public rooms';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2251,8 +2251,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'Group voice call';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count in call';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count in call',
+      one: 'Just you',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3850,7 +3856,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Continue with Google';
 
   @override
-  String get discoverListsPeopleTitle => 'Your people';
+  String get discoverListsPeopleTitle => 'Friends';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3864,7 +3870,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'Filter your people';
+  String get discoverListsFilterHint => 'Search friends';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'Clear filter';
@@ -3878,7 +3884,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'Your rooms';
+  String get discoverListsRoomsTitle => 'Rooms';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3892,7 +3898,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'Filter your rooms';
+  String get discoverListsFilterRoomsHint => 'Search your rooms';
 
   @override
   String get discoverListsNoRoomsYet => 'No rooms yet';
@@ -4490,34 +4496,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get familyRequestStageRecipientLabel => 'waiting for them';
 
   @override
-  String get roomContentTabLabelMedia => 'MEDIA';
+  String get roomContentTabLabelMedia => 'Media';
 
   @override
-  String get roomContentTabLabelFiles => 'FILES';
+  String get roomContentTabLabelFiles => 'Files';
 
   @override
-  String get roomContentTabLabelVoice => 'VOICE';
+  String get roomContentTabLabelVoice => 'Voice';
 
   @override
-  String get roomContentTabLabelLinks => 'LINKS';
+  String get roomContentTabLabelLinks => 'Links';
 
   @override
-  String get roomContentTabLabelSaved => 'SAVED';
+  String get roomContentTabLabelSaved => 'Saved';
 
   @override
-  String get roomContentTabHeaderMedia => 'media';
+  String get roomContentTabHeaderMedia => 'Media';
 
   @override
-  String get roomContentTabHeaderFiles => 'files';
+  String get roomContentTabHeaderFiles => 'Files';
 
   @override
-  String get roomContentTabHeaderVoice => 'voice';
+  String get roomContentTabHeaderVoice => 'Voice';
 
   @override
-  String get roomContentTabHeaderLinks => 'links';
+  String get roomContentTabHeaderLinks => 'Links';
 
   @override
-  String get roomContentTabHeaderSaved => 'saved';
+  String get roomContentTabHeaderSaved => 'Saved';
 
   @override
   String get roomFacetLabelDms => 'DMs';
@@ -5492,10 +5498,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedBoardOpenArchive => 'Archive';
 
   @override
-  String get feedBoardGamesLabel => 'The games';
+  String get feedBoardGamesLabel => 'Games';
 
   @override
-  String get feedBoardGamesOpen => 'All games';
+  String get feedBoardGamesOpen => 'Leaderboard';
 
   @override
   String get gamesScreenTitle => 'the games.';
@@ -5693,106 +5699,100 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoRulesLabel => 'The rules';
 
   @override
-  String get gameInfoControlsLabel => 'Controls';
+  String get gameInfoControlsLabel => 'What to tap';
 
   @override
   String get gameInfoScoringTimed =>
-      'The clock runs while the board is on screen and stops when you pause or leave. Finish fastest and you top today\'s list.';
+      'Finish fastest to win. The clock stops when you leave.';
 
   @override
   String get gameInfoScoringGuesses =>
-      'Scored by how few guesses it takes, not by the clock.';
+      'Crack it in the fewest guesses to win. Time doesn\'t count.';
 
   @override
-  String get gameInfoSameForEveryone => 'Everyone gets the same board today.';
+  String get gameInfoSameForEveryone => 'Everyone gets the same puzzle today.';
 
   @override
-  String get gameInfoQueensGoal =>
-      'Place one crown in every row, column and colour.';
+  String get gameInfoQueensGoal => 'Put 8 crowns on the board.';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'Eight crowns: one in each row, one in each column.';
+  String get gameInfoQueensRule1 => 'Every row gets exactly 1 crown.';
 
   @override
-  String get gameInfoQueensRule2 =>
-      'Each colour block gets exactly one crown too.';
+  String get gameInfoQueensRule2 => 'Every column gets exactly 1 crown.';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'No two crowns may touch — not even at a corner.';
+  String get gameInfoQueensRule3 => 'Every colour gets exactly 1 crown.';
 
   @override
   String get gameInfoQueensControls =>
-      'Tap a square once for a cross to rule it out, again for a crown, again to clear it.';
+      'Tap once for × (no crown here). Tap twice for a crown. Tap again to clear.';
 
   @override
-  String get gameInfoTangoGoal => 'Fill the grid with suns and moons.';
+  String get gameInfoTangoGoal => 'Fill every square with a sun or a moon.';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'Every row and column holds three suns and three moons.';
+  String get gameInfoTangoRule1 => 'Every row has 3 suns and 3 moons.';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'Never three of the same next to each other, across or down.';
+  String get gameInfoTangoRule2 => 'Every column has 3 suns and 3 moons.';
 
   @override
-  String get gameInfoTangoRule3 =>
-      '= between two squares means they match. × means they differ.';
+  String get gameInfoTangoRule3 => 'Never 3 of the same in a line. 2 is fine.';
 
   @override
   String get gameInfoTangoControls =>
-      'Tap a square for a sun, again for a moon, again to clear. Printed squares don\'t move.';
+      'Tap once for a sun, twice for a moon, again to clear. Squares that start filled can\'t change.';
 
   @override
-  String get gameInfoZipGoal => 'Draw one line that goes through every square.';
+  String get gameInfoZipGoal => 'Draw one line through every square.';
 
   @override
-  String get gameInfoZipRule1 => 'Start on 1 and finish on the last number.';
+  String get gameInfoZipRule1 => 'Start on 1.';
 
   @override
-  String get gameInfoZipRule2 => 'Touch the numbers in order along the way.';
+  String get gameInfoZipRule2 => 'Visit the numbers in order: 1, 2, 3…';
 
   @override
-  String get gameInfoZipRule3 => 'Every square gets used exactly once.';
+  String get gameInfoZipRule3 => 'Fill every square. Use each square once.';
 
   @override
   String get gameInfoZipControls =>
-      'Drag your finger to draw. Drag back over the line to rub it out.';
+      'Drag your finger to draw. Drag back to undo.';
 
   @override
-  String get gameInfoSudokuGoal => 'Fill the grid with the digits 1 to 6.';
+  String get gameInfoSudokuGoal => 'Fill the grid with the numbers 1 to 6.';
 
   @override
-  String get gameInfoSudokuRule1 => 'Each row uses 1 to 6, once each.';
+  String get gameInfoSudokuRule1 =>
+      'Every row has 1, 2, 3, 4, 5 and 6. No repeats.';
 
   @override
-  String get gameInfoSudokuRule2 => 'So does each column.';
+  String get gameInfoSudokuRule2 => 'Every column too.';
 
   @override
-  String get gameInfoSudokuRule3 => 'And so does each 2x3 box.';
+  String get gameInfoSudokuRule3 =>
+      'Every box too. A box is 2 rows by 3 columns.';
 
   @override
   String get gameInfoSudokuControls =>
-      'Tap a square, then a digit. Tap the same digit again to clear it. Notes writes small pencil marks instead.';
+      'Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.';
 
   @override
-  String get gameInfoCodeGoal => 'Work out the hidden four-symbol code.';
+  String get gameInfoCodeGoal => 'Guess the secret code of 4 symbols.';
 
   @override
   String get gameInfoCodeRule1 =>
-      'Six tries, and the code never repeats a symbol.';
+      'The code uses 4 different symbols. No repeats.';
 
   @override
-  String get gameInfoCodeRule2 => 'Green means right symbol, right place.';
+  String get gameInfoCodeRule2 => 'You get 6 guesses.';
 
   @override
-  String get gameInfoCodeRule3 => 'Yellow means right symbol, wrong place.';
+  String get gameInfoCodeRule3 => 'Green: right symbol, right spot.';
 
   @override
-  String get gameInfoCodeControls =>
-      'Tap symbols to build a guess, then send it. The board tells you how close you were.';
+  String get gameInfoCodeControls => 'Tap 4 symbols, then tap Guess.';
 
   @override
   String get savedMessagesTitle => 'Saved Messages';
@@ -10267,10 +10267,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get childPairBackIos => 'Back to sign in';
 
   @override
-  String get gamesHubTitle => 'Games';
+  String get gamesHubTitle => 'Leaderboard';
 
   @override
-  String get gamesHubSubtitle => 'New boards every day, the same for everyone.';
+  String get gamesHubSubtitle => 'Today\'s winners. New puzzles every day.';
 
   @override
   String get gameTellFriendsMessage =>
@@ -10316,7 +10316,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changeRequestUseIos => 'Use it';
 
   @override
-  String get settingsSearchHint => 'Search';
+  String get settingsSearchHint => 'Search settings';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10582,4 +10582,383 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => 'chosen';
+
+  @override
+  String get pageSectionSeeAll => 'See all';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => 'See all friends';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => 'See all your rooms';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ringing',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return 'Today at $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return 'Yesterday at $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date at $time';
+  }
+
+  @override
+  String get photoChromeSaved => 'Saved';
+
+  @override
+  String get photoChromeSaveFailed => 'Couldn’t save that';
+
+  @override
+  String get photoChromeShareFailed => 'Couldn’t share that';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Forwarded to $count chats',
+      one: 'Forwarded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => 'Couldn’t forward that';
+
+  @override
+  String get photoChromeDeleteFailed => 'Couldn’t delete that';
+
+  @override
+  String get photoChromeDeleteBody =>
+      'This removes it for everyone in this chat. It can’t be undone.';
+
+  @override
+  String get roomContentMonthThis => 'This month';
+
+  @override
+  String get roomContentMonthLast => 'Last month';
+
+  @override
+  String get gameInfoGoalLabel => 'Goal';
+
+  @override
+  String get gameInfoExampleLabel => 'Example';
+
+  @override
+  String get gameInfoWinLabel => 'How you win';
+
+  @override
+  String get gameInfoQueensRule4 =>
+      'Crowns can\'t touch. Not even corner to corner.';
+
+  @override
+  String get gameInfoQueensExample =>
+      'One crown here means: no other crown in its row, its column, its colour, or the 8 squares around it.';
+
+  @override
+  String get gameInfoTangoRule4 =>
+      '= means the 2 squares match. × means they\'re different.';
+
+  @override
+  String get gameInfoTangoExample =>
+      'Sun, sun, empty? The empty square must be a moon.';
+
+  @override
+  String get gameInfoZipRule4 => 'Move up, down, left or right. No diagonals.';
+
+  @override
+  String get gameInfoZipRule5 => 'Finish on the last number.';
+
+  @override
+  String get gameInfoZipExample =>
+      'Going from 1 to 2? Take the long way if you must. No square can be left empty.';
+
+  @override
+  String get gameInfoSudokuExample =>
+      'A row already has 1, 2, 4, 5 and 6? The empty square is 3.';
+
+  @override
+  String get gameInfoCodeRule4 => 'Yellow: right symbol, wrong spot.';
+
+  @override
+  String get gameInfoCodeRule5 => 'Grey: that symbol isn\'t in the code.';
+
+  @override
+  String get gameInfoCodeExample =>
+      'Green, yellow, grey, grey means: 1 symbol is in the right spot, 1 belongs somewhere else, 2 aren\'t in the code.';
+
+  @override
+  String get leaderboardOverall => 'Today';
+
+  @override
+  String get leaderboardFooter =>
+      '1 point for every puzzle you solve today. A tie goes to whoever came first more often.';
+
+  @override
+  String get leaderboardNotPlayed => 'Not played yet';
+
+  @override
+  String get leaderboardPlay => 'Play';
+
+  @override
+  String get leaderboardEmptyTitle => 'No scores yet today';
+
+  @override
+  String get leaderboardEmptyBody =>
+      'Solve a puzzle and you\'ll be first on the board.';
+
+  @override
+  String get leaderboardGamesHeader => 'Today\'s puzzles';
+
+  @override
+  String get pointComposerPickFirst => 'Pick one above first';
+
+  @override
+  String get momentStoryNext => 'Next';
+
+  @override
+  String get momentStoryPrevious => 'Previous';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$solved of $total solved',
+      zero: 'Nothing solved yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count wins',
+      one: '1 win',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return 'Play $game';
+  }
+
+  @override
+  String get diagCatApi => 'Server calls';
+
+  @override
+  String get diagCatConnection => 'Connection';
+
+  @override
+  String get diagCatDevice => 'Device';
+
+  @override
+  String get diagCatError => 'Errors';
+
+  @override
+  String get diagCatFrame => 'Slow frames';
+
+  @override
+  String get diagCatLayout => 'Layout';
+
+  @override
+  String get diagCatLifecycle => 'App state';
+
+  @override
+  String get diagCatLog => 'Log';
+
+  @override
+  String get diagCatNav => 'Navigation';
+
+  @override
+  String get diagCatNetwork => 'Network';
+
+  @override
+  String get diagCatSubscription => 'Live updates';
+
+  @override
+  String get diagSevTrace => 'Trace';
+
+  @override
+  String get diagSevDebug => 'Debug';
+
+  @override
+  String get diagSevInfo => 'Info';
+
+  @override
+  String get diagSevWarning => 'Warning';
+
+  @override
+  String get diagSevError => 'Error';
+
+  @override
+  String get diagAll => 'All';
+
+  @override
+  String get diagSearchHint => 'Search name, detail, body';
+
+  @override
+  String get diagSummaryCopied => 'Summary copied';
+
+  @override
+  String get diagShareLog => 'Share log';
+
+  @override
+  String get diagCopySummary => 'Copy summary';
+
+  @override
+  String get diagDeleteAll => 'Delete all';
+
+  @override
+  String get diagUndo => 'Undo';
+
+  @override
+  String get diagDeleteLogTitle => 'Delete the whole log?';
+
+  @override
+  String get diagDeleteLogBody =>
+      'Every event captured so far goes, along with the previous run\'s log. Anything that happens from now on is captured as usual.';
+
+  @override
+  String get diagDelete => 'Delete';
+
+  @override
+  String get diagLogDeleted => 'Log deleted';
+
+  @override
+  String get diagFilter => 'Filter';
+
+  @override
+  String get diagMore => 'More';
+
+  @override
+  String get diagLatest => 'Latest';
+
+  @override
+  String get diagJumpToLatest => 'Jump to latest';
+
+  @override
+  String get diagPaused => 'paused';
+
+  @override
+  String get diagPreparingLog => 'preparing log…';
+
+  @override
+  String get diagEmptyNothingTitle => 'Nothing captured yet';
+
+  @override
+  String get diagEmptyNothingHint =>
+      'Use the app for a moment and events will appear here.';
+
+  @override
+  String get diagEmptyHiddenTitle => 'Only hidden events so far';
+
+  @override
+  String get diagEmptyHiddenHint =>
+      'Tap a dimmed chip above to see it, or long-press it to bring it back into All.';
+
+  @override
+  String get diagEmptyNoMatchTitle => 'No events match';
+
+  @override
+  String get diagEmptyNoMatchHint => 'Tap All above to clear the filter.';
+
+  @override
+  String get diagApply => 'Apply';
+
+  @override
+  String get diagMinSeverity => 'Minimum severity';
+
+  @override
+  String get diagEverything => 'Everything';
+
+  @override
+  String get diagHiddenFromAllHeader => 'Hidden from All';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'Left out of All until picked on the chip row. Long-press a chip there for the same switch.';
+
+  @override
+  String get diagCollapseRepeats => 'Collapse repeats';
+
+  @override
+  String get diagCollapseRepeatsSubtitle =>
+      'Fold a run of the same event into one row';
+
+  @override
+  String get diagResetFilter => 'Reset filter';
+
+  @override
+  String get diagBodyTruncated => 'Body truncated at capture';
+
+  @override
+  String get diagCopyEvent => 'Copy event';
+
+  @override
+  String get diagEventCopied => 'Event copied';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category hidden from All';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category back in All';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category, $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category, $count, hidden from All';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$shown of $total events';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count earlier events dropped — the log starts mid-story',
+      one: '$count earlier event dropped — the log starts mid-story',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '×$count over ${seconds}s';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label, $count items';
+  }
 }

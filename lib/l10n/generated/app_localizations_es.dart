@@ -1863,7 +1863,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get discoverScreenNothingPending => 'Nada enviado';
 
   @override
-  String get discoverScreenYourPeopleLabel => 'Tu gente';
+  String get discoverScreenYourPeopleLabel => 'Amigos';
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
@@ -1880,7 +1880,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Busca una sala pública por nombre';
 
   @override
-  String get discoverScreenYourRoomsLabel => 'Tus salas';
+  String get discoverScreenYourRoomsLabel => 'Salas';
 
   @override
   String get discoverScreenNoRoomsYet => 'Ninguna sala todavía';
@@ -2045,7 +2045,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchScreenHintPeople => 'Buscar personas';
 
   @override
-  String get searchScreenHintRooms => 'Buscar salas';
+  String get searchScreenHintRooms => 'Buscar salas públicas';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2286,8 +2286,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'Llamada de voz grupal';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count en la llamada';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count en la llamada',
+      one: 'Solo tú',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3896,7 +3902,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Continuar con Google';
 
   @override
-  String get discoverListsPeopleTitle => 'Tu gente';
+  String get discoverListsPeopleTitle => 'Amigos';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3910,7 +3916,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'Filtra tu gente';
+  String get discoverListsFilterHint => 'Buscar amigos';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'Borrar filtro';
@@ -3924,7 +3930,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'Tus salas';
+  String get discoverListsRoomsTitle => 'Salas';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3938,7 +3944,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'Filtra tus salas';
+  String get discoverListsFilterRoomsHint => 'Buscar en tus salas';
 
   @override
   String get discoverListsNoRoomsYet => 'Ninguna sala todavía';
@@ -4541,34 +4547,34 @@ class AppLocalizationsEs extends AppLocalizations {
   String get familyRequestStageRecipientLabel => 'esperando su respuesta';
 
   @override
-  String get roomContentTabLabelMedia => 'MULTIMEDIA';
+  String get roomContentTabLabelMedia => 'Multimedia';
 
   @override
-  String get roomContentTabLabelFiles => 'ARCHIVOS';
+  String get roomContentTabLabelFiles => 'Archivos';
 
   @override
-  String get roomContentTabLabelVoice => 'VOZ';
+  String get roomContentTabLabelVoice => 'Voz';
 
   @override
-  String get roomContentTabLabelLinks => 'ENLACES';
+  String get roomContentTabLabelLinks => 'Enlaces';
 
   @override
-  String get roomContentTabLabelSaved => 'GUARDADOS';
+  String get roomContentTabLabelSaved => 'Guardados';
 
   @override
-  String get roomContentTabHeaderMedia => 'multimedia';
+  String get roomContentTabHeaderMedia => 'Multimedia';
 
   @override
-  String get roomContentTabHeaderFiles => 'archivos';
+  String get roomContentTabHeaderFiles => 'Archivos';
 
   @override
-  String get roomContentTabHeaderVoice => 'voz';
+  String get roomContentTabHeaderVoice => 'Voz';
 
   @override
-  String get roomContentTabHeaderLinks => 'enlaces';
+  String get roomContentTabHeaderLinks => 'Enlaces';
 
   @override
-  String get roomContentTabHeaderSaved => 'guardados';
+  String get roomContentTabHeaderSaved => 'Guardados';
 
   @override
   String get roomFacetLabelDms => 'directos';
@@ -5555,10 +5561,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get feedBoardOpenArchive => 'Archivo';
 
   @override
-  String get feedBoardGamesLabel => 'Los juegos';
+  String get feedBoardGamesLabel => 'Juegos';
 
   @override
-  String get feedBoardGamesOpen => 'Todos los juegos';
+  String get feedBoardGamesOpen => 'Clasificación';
 
   @override
   String get gamesScreenTitle => 'los juegos.';
@@ -5758,114 +5764,103 @@ class AppLocalizationsEs extends AppLocalizations {
   String get gameInfoRulesLabel => 'Las reglas';
 
   @override
-  String get gameInfoControlsLabel => 'Controles';
+  String get gameInfoControlsLabel => 'Qué tocar';
 
   @override
   String get gameInfoScoringTimed =>
-      'El reloj corre mientras el tablero está en pantalla y se para si pausas o sales. El más rápido encabeza la lista de hoy.';
+      'Gana quien termina más rápido. El reloj se para si sales.';
 
   @override
   String get gameInfoScoringGuesses =>
-      'Se puntúa por cuántos intentos necesitas, no por el tiempo.';
+      'Gana quien lo descifra con menos intentos. El tiempo no cuenta.';
 
   @override
-  String get gameInfoSameForEveryone => 'Hoy todos juegan el mismo tablero.';
+  String get gameInfoSameForEveryone => 'Hoy todos tienen el mismo puzle.';
 
   @override
-  String get gameInfoQueensGoal =>
-      'Coloca una corona en cada fila, columna y color.';
+  String get gameInfoQueensGoal => 'Pon 8 coronas en el tablero.';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'Ocho coronas: una en cada fila y una en cada columna.';
+  String get gameInfoQueensRule1 => 'Cada fila tiene exactamente 1 corona.';
 
   @override
-  String get gameInfoQueensRule2 =>
-      'Cada bloque de color lleva también exactamente una corona.';
+  String get gameInfoQueensRule2 => 'Cada columna tiene exactamente 1 corona.';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'Dos coronas no pueden tocarse, ni siquiera por una esquina.';
+  String get gameInfoQueensRule3 => 'Cada color tiene exactamente 1 corona.';
 
   @override
   String get gameInfoQueensControls =>
-      'Toca una casilla una vez para una cruz que la descarta, otra vez para una corona y otra para vaciarla.';
+      'Toca una vez: × (aquí no hay corona). Dos veces: corona. Otra vez: borrar.';
 
   @override
-  String get gameInfoTangoGoal => 'Rellena la cuadrícula con soles y lunas.';
+  String get gameInfoTangoGoal => 'Llena cada casilla con un sol o una luna.';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'Cada fila y columna lleva tres soles y tres lunas.';
+  String get gameInfoTangoRule1 => 'Cada fila tiene 3 soles y 3 lunas.';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'Nunca tres iguales seguidos, ni en horizontal ni en vertical.';
+  String get gameInfoTangoRule2 => 'Cada columna tiene 3 soles y 3 lunas.';
 
   @override
-  String get gameInfoTangoRule3 =>
-      'Un = entre dos casillas significa que son iguales; una × que son distintas.';
+  String get gameInfoTangoRule3 => 'Nunca 3 iguales seguidos. 2 sí vale.';
 
   @override
   String get gameInfoTangoControls =>
-      'Toca una casilla para un sol, otra vez para una luna y otra para vaciarla. Las casillas impresas no se mueven.';
+      'Toca una vez: sol. Dos veces: luna. Otra vez: borrar. Las casillas que ya vienen llenas no cambian.';
 
   @override
   String get gameInfoZipGoal =>
-      'Dibuja una línea que pase por todas las casillas.';
+      'Dibuja una sola línea que pase por todas las casillas.';
 
   @override
-  String get gameInfoZipRule1 =>
-      'Empieza en el 1 y termina en el último número.';
+  String get gameInfoZipRule1 => 'Empieza en el 1.';
 
   @override
-  String get gameInfoZipRule2 =>
-      'Ve tocando los números en orden por el camino.';
+  String get gameInfoZipRule2 => 'Pasa por los números en orden: 1, 2, 3…';
 
   @override
-  String get gameInfoZipRule3 => 'Cada casilla se usa exactamente una vez.';
+  String get gameInfoZipRule3 =>
+      'Llena todas las casillas. Cada una, una sola vez.';
 
   @override
   String get gameInfoZipControls =>
-      'Arrastra el dedo para dibujar. Vuelve sobre la línea para borrarla.';
+      'Arrastra el dedo para dibujar. Vuelve atrás para deshacer.';
 
   @override
   String get gameInfoSudokuGoal =>
-      'Rellena la cuadrícula con los dígitos del 1 al 6.';
+      'Llena la cuadrícula con los números del 1 al 6.';
 
   @override
   String get gameInfoSudokuRule1 =>
-      'Cada fila usa del 1 al 6, una vez cada uno.';
+      'Cada fila tiene 1, 2, 3, 4, 5 y 6. Sin repetir.';
 
   @override
-  String get gameInfoSudokuRule2 => 'Cada columna, igual.';
+  String get gameInfoSudokuRule2 => 'Cada columna, también.';
 
   @override
-  String get gameInfoSudokuRule3 => 'Y cada caja de 2x3, también.';
+  String get gameInfoSudokuRule3 =>
+      'Cada caja, también. Una caja son 2 filas por 3 columnas.';
 
   @override
   String get gameInfoSudokuControls =>
-      'Toca una casilla y luego un dígito. Toca el mismo dígito otra vez para borrarlo. Con notas escribes marcas pequeñas a lápiz.';
+      'Toca una casilla y luego un número. Tócalo otra vez para borrar. Notas pone marcas pequeñas a lápiz.';
 
   @override
-  String get gameInfoCodeGoal =>
-      'Descubre el código oculto de cuatro símbolos.';
+  String get gameInfoCodeGoal => 'Adivina el código secreto de 4 símbolos.';
 
   @override
   String get gameInfoCodeRule1 =>
-      'Seis intentos, y el código nunca repite un símbolo.';
+      'El código usa 4 símbolos distintos. Sin repetir.';
 
   @override
-  String get gameInfoCodeRule2 =>
-      'Verde significa símbolo correcto en el lugar correcto.';
+  String get gameInfoCodeRule2 => 'Tienes 6 intentos.';
 
   @override
-  String get gameInfoCodeRule3 =>
-      'Amarillo significa símbolo correcto en el lugar equivocado.';
+  String get gameInfoCodeRule3 => 'Verde: símbolo correcto, sitio correcto.';
 
   @override
-  String get gameInfoCodeControls =>
-      'Toca símbolos para formar un intento y envíalo. El tablero te dice cuánto te acercaste.';
+  String get gameInfoCodeControls => 'Toca 4 símbolos y luego toca Adivinar.';
 
   @override
   String get savedMessagesTitle => 'Mensajes guardados';
@@ -10374,11 +10369,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get childPairBackIos => 'Volver a iniciar sesión';
 
   @override
-  String get gamesHubTitle => 'Juegos';
+  String get gamesHubTitle => 'Clasificación';
 
   @override
   String get gamesHubSubtitle =>
-      'Tableros nuevos cada día, los mismos para todos.';
+      'Los ganadores de hoy. Puzles nuevos cada día.';
 
   @override
   String get gameTellFriendsMessage =>
@@ -10425,7 +10420,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get changeRequestUseIos => 'Usar';
 
   @override
-  String get settingsSearchHint => 'Buscar';
+  String get settingsSearchHint => 'Buscar en ajustes';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10687,4 +10682,388 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => 'elegido';
+
+  @override
+  String get pageSectionSeeAll => 'Ver todo';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => 'Ver todos los amigos';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => 'Ver todas tus salas';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sonando',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return 'Hoy a las $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return 'Ayer a las $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date a las $time';
+  }
+
+  @override
+  String get photoChromeSaved => 'Guardado';
+
+  @override
+  String get photoChromeSaveFailed => 'No se pudo guardar';
+
+  @override
+  String get photoChromeShareFailed => 'No se pudo compartir';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Reenviado a $count chats',
+      one: 'Reenviado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => 'No se pudo reenviar';
+
+  @override
+  String get photoChromeDeleteFailed => 'No se pudo eliminar';
+
+  @override
+  String get photoChromeDeleteBody =>
+      'Se eliminará para todos en este chat. No se puede deshacer.';
+
+  @override
+  String get roomContentMonthThis => 'Este mes';
+
+  @override
+  String get roomContentMonthLast => 'El mes pasado';
+
+  @override
+  String get gameInfoGoalLabel => 'Objetivo';
+
+  @override
+  String get gameInfoExampleLabel => 'Ejemplo';
+
+  @override
+  String get gameInfoWinLabel => 'Cómo se gana';
+
+  @override
+  String get gameInfoQueensRule4 =>
+      'Las coronas no se tocan. Ni siquiera por la esquina.';
+
+  @override
+  String get gameInfoQueensExample =>
+      'Una corona aquí significa: ninguna otra en su fila, su columna, su color ni en las 8 casillas de alrededor.';
+
+  @override
+  String get gameInfoTangoRule4 =>
+      '= significa que las 2 casillas son iguales. × que son distintas.';
+
+  @override
+  String get gameInfoTangoExample =>
+      '¿Sol, sol, vacía? La casilla vacía tiene que ser luna.';
+
+  @override
+  String get gameInfoZipRule4 =>
+      'Muévete arriba, abajo, izquierda o derecha. Nada de diagonales.';
+
+  @override
+  String get gameInfoZipRule5 => 'Termina en el último número.';
+
+  @override
+  String get gameInfoZipExample =>
+      '¿Vas del 1 al 2? Si hace falta, da un rodeo. Ninguna casilla puede quedar vacía.';
+
+  @override
+  String get gameInfoSudokuExample =>
+      '¿Una fila ya tiene 1, 2, 4, 5 y 6? La casilla vacía es el 3.';
+
+  @override
+  String get gameInfoCodeRule4 =>
+      'Amarillo: símbolo correcto, sitio equivocado.';
+
+  @override
+  String get gameInfoCodeRule5 => 'Gris: ese símbolo no está en el código.';
+
+  @override
+  String get gameInfoCodeExample =>
+      'Verde, amarillo, gris, gris significa: 1 símbolo está en su sitio, 1 va en otro sitio y 2 no están en el código.';
+
+  @override
+  String get leaderboardOverall => 'Hoy';
+
+  @override
+  String get leaderboardFooter =>
+      '1 punto por cada puzle que resuelvas hoy. En caso de empate, gana quien quedó primero más veces.';
+
+  @override
+  String get leaderboardNotPlayed => 'Aún no has jugado';
+
+  @override
+  String get leaderboardPlay => 'Jugar';
+
+  @override
+  String get leaderboardEmptyTitle => 'Aún no hay puntuaciones hoy';
+
+  @override
+  String get leaderboardEmptyBody =>
+      'Resuelve un puzle y serás el primero de la lista.';
+
+  @override
+  String get leaderboardGamesHeader => 'Los puzles de hoy';
+
+  @override
+  String get pointComposerPickFirst => 'Primero elige uno arriba';
+
+  @override
+  String get momentStoryNext => 'Siguiente';
+
+  @override
+  String get momentStoryPrevious => 'Anterior';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$solved de $total resueltos',
+      one: '1 de $total resuelto',
+      zero: 'Nada resuelto aún',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count victorias',
+      one: '1 victoria',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return 'Jugar: $game';
+  }
+
+  @override
+  String get diagCatApi => 'Llamadas al servidor';
+
+  @override
+  String get diagCatConnection => 'Conexión';
+
+  @override
+  String get diagCatDevice => 'Dispositivo';
+
+  @override
+  String get diagCatError => 'Errores';
+
+  @override
+  String get diagCatFrame => 'Fotogramas lentos';
+
+  @override
+  String get diagCatLayout => 'Diseño';
+
+  @override
+  String get diagCatLifecycle => 'Estado de la app';
+
+  @override
+  String get diagCatLog => 'Registro';
+
+  @override
+  String get diagCatNav => 'Navegación';
+
+  @override
+  String get diagCatNetwork => 'Red';
+
+  @override
+  String get diagCatSubscription => 'Actualizaciones en vivo';
+
+  @override
+  String get diagSevTrace => 'Rastreo';
+
+  @override
+  String get diagSevDebug => 'Depuración';
+
+  @override
+  String get diagSevInfo => 'Info';
+
+  @override
+  String get diagSevWarning => 'Advertencia';
+
+  @override
+  String get diagSevError => 'Error';
+
+  @override
+  String get diagAll => 'Todo';
+
+  @override
+  String get diagSearchHint => 'Buscar nombre, detalle, contenido';
+
+  @override
+  String get diagSummaryCopied => 'Resumen copiado';
+
+  @override
+  String get diagShareLog => 'Compartir registro';
+
+  @override
+  String get diagCopySummary => 'Copiar resumen';
+
+  @override
+  String get diagDeleteAll => 'Borrar todo';
+
+  @override
+  String get diagUndo => 'Deshacer';
+
+  @override
+  String get diagDeleteLogTitle => '¿Borrar todo el registro?';
+
+  @override
+  String get diagDeleteLogBody =>
+      'Se borran todos los eventos registrados hasta ahora y el registro de la sesión anterior. Lo que pase a partir de ahora se registra como siempre.';
+
+  @override
+  String get diagDelete => 'Borrar';
+
+  @override
+  String get diagLogDeleted => 'Registro borrado';
+
+  @override
+  String get diagFilter => 'Filtrar';
+
+  @override
+  String get diagMore => 'Más';
+
+  @override
+  String get diagLatest => 'Lo último';
+
+  @override
+  String get diagJumpToLatest => 'Ir a lo último';
+
+  @override
+  String get diagPaused => 'en pausa';
+
+  @override
+  String get diagPreparingLog => 'preparando registro…';
+
+  @override
+  String get diagEmptyNothingTitle => 'Aún no se ha registrado nada';
+
+  @override
+  String get diagEmptyNothingHint =>
+      'Usa la app un momento y los eventos aparecerán aquí.';
+
+  @override
+  String get diagEmptyHiddenTitle => 'Por ahora solo hay eventos ocultos';
+
+  @override
+  String get diagEmptyHiddenHint =>
+      'Toca una etiqueta atenuada de arriba para verla, o mantenla pulsada para devolverla a Todo.';
+
+  @override
+  String get diagEmptyNoMatchTitle => 'Ningún evento coincide';
+
+  @override
+  String get diagEmptyNoMatchHint => 'Toca Todo arriba para quitar el filtro.';
+
+  @override
+  String get diagApply => 'Aplicar';
+
+  @override
+  String get diagMinSeverity => 'Gravedad mínima';
+
+  @override
+  String get diagEverything => 'Todo';
+
+  @override
+  String get diagHiddenFromAllHeader => 'Ocultos en Todo';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'Quedan fuera de Todo hasta que los elijas en la fila de etiquetas. Mantén pulsada una etiqueta allí para el mismo ajuste.';
+
+  @override
+  String get diagCollapseRepeats => 'Agrupar repeticiones';
+
+  @override
+  String get diagCollapseRepeatsSubtitle =>
+      'Junta una serie del mismo evento en una fila';
+
+  @override
+  String get diagResetFilter => 'Restablecer filtro';
+
+  @override
+  String get diagBodyTruncated => 'Contenido recortado al registrar';
+
+  @override
+  String get diagCopyEvent => 'Copiar evento';
+
+  @override
+  String get diagEventCopied => 'Evento copiado';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category oculto en Todo';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category vuelve a Todo';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category, $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category, $count, oculto en Todo';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$shown de $total eventos';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Se descartaron $count eventos anteriores: el registro empieza a mitad de historia',
+      one:
+          'Se descartó $count evento anterior: el registro empieza a mitad de historia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '×$count en $seconds s';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label, $count elementos';
+  }
 }

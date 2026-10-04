@@ -1772,7 +1772,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get discoverScreenNothingPending => '送信リクエストなし';
 
   @override
-  String get discoverScreenYourPeopleLabel => '友達';
+  String get discoverScreenYourPeopleLabel => '友だち';
 
   @override
   String get discoverScreenNoFriendsYetWithHint => 'まだ誰もいない — 上で人をさがそう';
@@ -1787,7 +1787,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => '名前で公開ルームをさがす';
 
   @override
-  String get discoverScreenYourRoomsLabel => '参加ルーム';
+  String get discoverScreenYourRoomsLabel => 'ルーム';
 
   @override
   String get discoverScreenNoRoomsYet => 'まだルームがない';
@@ -1947,7 +1947,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchScreenHintPeople => 'ユーザーを検索';
 
   @override
-  String get searchScreenHintRooms => 'ルームを検索';
+  String get searchScreenHintRooms => '公開ルームを検索';
 
   @override
   String get searchScreenPeoplePromptChild => '新しい人を探すには、ユーザー名をすべて入力してね';
@@ -2173,8 +2173,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'グループ音声通話';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count人参加中';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人参加中',
+      one: '自分だけ',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3726,7 +3732,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Googleで続ける';
 
   @override
-  String get discoverListsPeopleTitle => 'あなたの友だち';
+  String get discoverListsPeopleTitle => '友だち';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3739,7 +3745,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => '友だちを絞り込む';
+  String get discoverListsFilterHint => '友だちを検索';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'フィルターをクリア';
@@ -3753,7 +3759,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'あなたのルーム';
+  String get discoverListsRoomsTitle => 'ルーム';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3766,7 +3772,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'ルームを絞り込む';
+  String get discoverListsFilterRoomsHint => '参加中のルームを検索';
 
   @override
   String get discoverListsNoRoomsYet => 'まだルームがありません';
@@ -5295,7 +5301,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get feedBoardGamesLabel => 'ゲーム';
 
   @override
-  String get feedBoardGamesOpen => 'すべて';
+  String get feedBoardGamesOpen => 'ランキング';
 
   @override
   String get gamesScreenTitle => 'ゲーム。';
@@ -5490,94 +5496,93 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameInfoRulesLabel => 'ルール';
 
   @override
-  String get gameInfoControlsLabel => '操作';
+  String get gameInfoControlsLabel => 'タップのしかた';
 
   @override
-  String get gameInfoScoringTimed =>
-      '盤面を開いている間だけ時計が進み、一時停止や離脱で止まります。最速なら今日のトップです。';
+  String get gameInfoScoringTimed => 'いちばん早く解いた人の勝ち。画面を離れると時計は止まります。';
 
   @override
-  String get gameInfoScoringGuesses => 'スコアは推測回数の少なさで決まり、時間は関係ありません。';
+  String get gameInfoScoringGuesses => '少ない回数で当てた人の勝ち。時間は関係ありません。';
 
   @override
-  String get gameInfoSameForEveryone => '今日は全員が同じ盤面です。';
+  String get gameInfoSameForEveryone => '今日はみんな同じパズルです。';
 
   @override
-  String get gameInfoQueensGoal => '各行・各列・各色に王冠を1つずつ置きます。';
+  String get gameInfoQueensGoal => '盤に王冠を8つ置こう。';
 
   @override
-  String get gameInfoQueensRule1 => '王冠は8つ。各行に1つ、各列に1つ。';
+  String get gameInfoQueensRule1 => 'どの横の列にも王冠は1つだけ。';
 
   @override
-  String get gameInfoQueensRule2 => '色のかたまりごとにもちょうど1つずつ。';
+  String get gameInfoQueensRule2 => 'どの縦の列にも王冠は1つだけ。';
 
   @override
-  String get gameInfoQueensRule3 => '王冠どうしは接してはいけません。角どうしもだめです。';
+  String get gameInfoQueensRule3 => 'どの色にも王冠は1つだけ。';
 
   @override
-  String get gameInfoQueensControls => 'マスを1回タップでバツ、2回で王冠、3回で空に戻ります。';
+  String get gameInfoQueensControls => '1回タップで×（ここには置かない）。2回で王冠。もう1回で消す。';
 
   @override
-  String get gameInfoTangoGoal => '盤面を太陽と月で埋めます。';
+  String get gameInfoTangoGoal => '全部のマスに太陽か月を入れよう。';
 
   @override
-  String get gameInfoTangoRule1 => '各行・各列に太陽3つと月3つ。';
+  String get gameInfoTangoRule1 => 'どの横の列も太陽3つと月3つ。';
 
   @override
-  String get gameInfoTangoRule2 => '同じものが3つ続いてはいけません。縦も横もです。';
+  String get gameInfoTangoRule2 => 'どの縦の列も太陽3つと月3つ。';
 
   @override
-  String get gameInfoTangoRule3 => 'マスの間の = は同じ、× は違うという意味です。';
+  String get gameInfoTangoRule3 => '同じものを3つ続けて並べない。2つならOK。';
 
   @override
   String get gameInfoTangoControls =>
-      'マスをタップで太陽、もう一度で月、もう一度で空に。最初から入っているマスは動きません。';
+      '1回タップで太陽、2回で月、もう1回で消す。最初から入っているマスは変えられません。';
 
   @override
-  String get gameInfoZipGoal => 'すべてのマスを通る線を1本描きます。';
+  String get gameInfoZipGoal => '全部のマスを通る1本の線を引こう。';
 
   @override
-  String get gameInfoZipRule1 => '1から始めて、最後の数字で終わります。';
+  String get gameInfoZipRule1 => '1からスタート。';
 
   @override
-  String get gameInfoZipRule2 => '途中の数字は順番どおりに通ります。';
+  String get gameInfoZipRule2 => '数字を順番に通る：1、2、3…';
 
   @override
-  String get gameInfoZipRule3 => 'どのマスもちょうど1回ずつ使います。';
+  String get gameInfoZipRule3 => '全部のマスを通る。同じマスは1回だけ。';
 
   @override
-  String get gameInfoZipControls => '指をなぞって描きます。線の上を戻ると消えます。';
+  String get gameInfoZipControls => '指でなぞって線を引く。戻ると消えます。';
 
   @override
-  String get gameInfoSudokuGoal => '盤面を1〜6の数字で埋めます。';
+  String get gameInfoSudokuGoal => 'マスを1〜6の数字でうめよう。';
 
   @override
-  String get gameInfoSudokuRule1 => '各行に1〜6を1回ずつ。';
+  String get gameInfoSudokuRule1 => 'どの横の列にも1・2・3・4・5・6。同じ数字はダメ。';
 
   @override
-  String get gameInfoSudokuRule2 => '各列も同じです。';
+  String get gameInfoSudokuRule2 => '縦の列も同じ。';
 
   @override
-  String get gameInfoSudokuRule3 => '2×3のブロックも同じです。';
+  String get gameInfoSudokuRule3 => 'ブロックも同じ。ブロックは2行×3列。';
 
   @override
   String get gameInfoSudokuControls =>
-      'マスをタップしてから数字をタップします。同じ数字をもう一度押すと消えます。メモではえんぴつの小さな数字になります。';
+      'マスをタップして、数字をタップ。もう一度押すと消えます。メモで小さな数字を書けます。';
 
   @override
-  String get gameInfoCodeGoal => '隠された4つの記号のコードを当てます。';
+  String get gameInfoCodeGoal => '4つの記号のひみつのコードを当てよう。';
 
   @override
-  String get gameInfoCodeRule1 => '6回まで。コードに同じ記号は現れません。';
+  String get gameInfoCodeRule1 => 'コードは4つともちがう記号。同じ記号はなし。';
 
   @override
-  String get gameInfoCodeRule2 => '緑は記号も位置も正解です。';
+  String get gameInfoCodeRule2 => 'チャンスは6回。';
 
   @override
-  String get gameInfoCodeRule3 => '黄色は記号は合っているが位置が違います。';
+  String get gameInfoCodeRule3 => '緑：記号も場所も正解。';
 
   @override
-  String get gameInfoCodeControls => '記号をタップして予想を作り、送信します。どれだけ近いか盤面が教えてくれます。';
+  String get gameInfoCodeControls => '記号を4つタップして、「予想する」をタップ。';
 
   @override
   String get savedMessagesTitle => '保存済みメッセージ';
@@ -9856,10 +9861,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get childPairBackIos => 'サインインに戻る';
 
   @override
-  String get gamesHubTitle => 'ゲーム';
+  String get gamesHubTitle => 'ランキング';
 
   @override
-  String get gamesHubSubtitle => '毎日新しい盤面。みんな同じ問題です。';
+  String get gamesHubSubtitle => '今日の勝者。パズルは毎日新しくなります。';
 
   @override
   String get gameTellFriendsMessage => 'この結果が通知で届きます。送信できるのは1回だけです。';
@@ -9904,7 +9909,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get changeRequestUseIos => '適用';
 
   @override
-  String get settingsSearchHint => '検索';
+  String get settingsSearchHint => '設定を検索';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10147,4 +10152,368 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => '手動で選択';
+
+  @override
+  String get pageSectionSeeAll => 'すべて表示';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => '友だちをすべて表示';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => '参加中のルームをすべて表示';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人を呼び出し中',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return '今日 $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return '昨日 $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get photoChromeSaved => '保存しました';
+
+  @override
+  String get photoChromeSaveFailed => '保存できませんでした';
+
+  @override
+  String get photoChromeShareFailed => '共有できませんでした';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のチャットに転送しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => '転送できませんでした';
+
+  @override
+  String get photoChromeDeleteFailed => '削除できませんでした';
+
+  @override
+  String get photoChromeDeleteBody => 'このチャットにいる全員から削除されます。元に戻すことはできません。';
+
+  @override
+  String get roomContentMonthThis => '今月';
+
+  @override
+  String get roomContentMonthLast => '先月';
+
+  @override
+  String get gameInfoGoalLabel => '目標';
+
+  @override
+  String get gameInfoExampleLabel => '例';
+
+  @override
+  String get gameInfoWinLabel => '勝ち方';
+
+  @override
+  String get gameInfoQueensRule4 => '王冠どうしはくっつけない。ななめもダメ。';
+
+  @override
+  String get gameInfoQueensExample =>
+      'ここに王冠を置くと、同じ横の列・縦の列・色と、まわりの8マスには、もう置けません。';
+
+  @override
+  String get gameInfoTangoRule4 => '= は2マスが同じ。× は2マスがちがう。';
+
+  @override
+  String get gameInfoTangoExample => '太陽、太陽、空き？ 空きマスは月に決まり。';
+
+  @override
+  String get gameInfoZipRule4 => '上・下・左・右に進む。ななめはダメ。';
+
+  @override
+  String get gameInfoZipRule5 => '最後の数字でゴール。';
+
+  @override
+  String get gameInfoZipExample => '1から2へ行く？ 必要なら遠回りしよう。空きマスを残してはダメ。';
+
+  @override
+  String get gameInfoSudokuExample => '横の列に1・2・4・5・6がある？ 空きマスは3。';
+
+  @override
+  String get gameInfoCodeRule4 => '黄色：記号は正解、場所がちがう。';
+
+  @override
+  String get gameInfoCodeRule5 => 'グレー：その記号はコードにない。';
+
+  @override
+  String get gameInfoCodeExample => '緑・黄・グレー・グレーなら：1つは場所も正解、1つは別の場所、2つはコードにない。';
+
+  @override
+  String get leaderboardOverall => '今日';
+
+  @override
+  String get leaderboardFooter => '今日解いたパズル1つにつき1ポイント。同点なら、1位になった回数が多い人が上。';
+
+  @override
+  String get leaderboardNotPlayed => 'まだプレイしていません';
+
+  @override
+  String get leaderboardPlay => 'プレイ';
+
+  @override
+  String get leaderboardEmptyTitle => '今日のスコアはまだありません';
+
+  @override
+  String get leaderboardEmptyBody => 'パズルを解いて、ランキングの1位になろう。';
+
+  @override
+  String get leaderboardGamesHeader => '今日のパズル';
+
+  @override
+  String get pointComposerPickFirst => 'まず上から1つ選んで';
+
+  @override
+  String get momentStoryNext => '次へ';
+
+  @override
+  String get momentStoryPrevious => '前へ';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$total問中$solved問クリア',
+      zero: 'まだ解いていません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count勝',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return '$gameをプレイ';
+  }
+
+  @override
+  String get diagCatApi => 'サーバー呼び出し';
+
+  @override
+  String get diagCatConnection => '接続';
+
+  @override
+  String get diagCatDevice => 'デバイス';
+
+  @override
+  String get diagCatError => 'エラー';
+
+  @override
+  String get diagCatFrame => '遅いフレーム';
+
+  @override
+  String get diagCatLayout => 'レイアウト';
+
+  @override
+  String get diagCatLifecycle => 'アプリの状態';
+
+  @override
+  String get diagCatLog => 'ログ';
+
+  @override
+  String get diagCatNav => 'ナビゲーション';
+
+  @override
+  String get diagCatNetwork => 'ネットワーク';
+
+  @override
+  String get diagCatSubscription => 'ライブ更新';
+
+  @override
+  String get diagSevTrace => 'トレース';
+
+  @override
+  String get diagSevDebug => 'デバッグ';
+
+  @override
+  String get diagSevInfo => '情報';
+
+  @override
+  String get diagSevWarning => '警告';
+
+  @override
+  String get diagSevError => 'エラー';
+
+  @override
+  String get diagAll => 'すべて';
+
+  @override
+  String get diagSearchHint => '名前・詳細・本文を検索';
+
+  @override
+  String get diagSummaryCopied => '概要をコピーしました';
+
+  @override
+  String get diagShareLog => 'ログを共有';
+
+  @override
+  String get diagCopySummary => '概要をコピー';
+
+  @override
+  String get diagDeleteAll => 'すべて削除';
+
+  @override
+  String get diagUndo => '取り消す';
+
+  @override
+  String get diagDeleteLogTitle => 'ログをすべて削除しますか?';
+
+  @override
+  String get diagDeleteLogBody =>
+      'これまでに記録したイベントと、前回起動時のログがすべて消えます。これから起きることは通常どおり記録されます。';
+
+  @override
+  String get diagDelete => '削除';
+
+  @override
+  String get diagLogDeleted => 'ログを削除しました';
+
+  @override
+  String get diagFilter => 'フィルタ';
+
+  @override
+  String get diagMore => 'その他';
+
+  @override
+  String get diagLatest => '最新';
+
+  @override
+  String get diagJumpToLatest => '最新へ移動';
+
+  @override
+  String get diagPaused => '一時停止中';
+
+  @override
+  String get diagPreparingLog => 'ログを準備中…';
+
+  @override
+  String get diagEmptyNothingTitle => 'まだ何も記録されていません';
+
+  @override
+  String get diagEmptyNothingHint => '少しアプリを使うと、ここにイベントが表示されます。';
+
+  @override
+  String get diagEmptyHiddenTitle => '今のところ非表示のイベントだけです';
+
+  @override
+  String get diagEmptyHiddenHint => '上の薄いチップをタップすると表示、長押しで「すべて」に戻せます。';
+
+  @override
+  String get diagEmptyNoMatchTitle => '一致するイベントはありません';
+
+  @override
+  String get diagEmptyNoMatchHint => '上の「すべて」をタップするとフィルタを解除できます。';
+
+  @override
+  String get diagApply => '適用';
+
+  @override
+  String get diagMinSeverity => '最小の重要度';
+
+  @override
+  String get diagEverything => 'すべて';
+
+  @override
+  String get diagHiddenFromAllHeader => '「すべて」で非表示';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'チップ列で選ぶまで「すべて」から除外されます。チップを長押ししても同じ切り替えができます。';
+
+  @override
+  String get diagCollapseRepeats => '繰り返しをまとめる';
+
+  @override
+  String get diagCollapseRepeatsSubtitle => '同じイベントの連続を1行にまとめます';
+
+  @override
+  String get diagResetFilter => 'フィルタをリセット';
+
+  @override
+  String get diagBodyTruncated => '記録時に本文を切り詰めました';
+
+  @override
+  String get diagCopyEvent => 'イベントをコピー';
+
+  @override
+  String get diagEventCopied => 'イベントをコピーしました';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$categoryを「すべて」で非表示にしました';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$categoryを「すべて」に戻しました';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category、$count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category、$count、「すべて」で非表示';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$total件中$shown件のイベント';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '以前のイベント$count件を破棄しました — ログは途中から始まります',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '$seconds秒で×$count';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label、$count件';
+  }
 }

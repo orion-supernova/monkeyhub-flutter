@@ -331,28 +331,19 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      child: Row(
-        children: [
-          Expanded(
-            // The shared bar, and the far end of the flight out of Discover's
-            // door — both halves of Explore land here, so both get the same
-            // clear button and the same shape.
-            child: SearchField(
-              controller: q,
-              hintText: hintText,
-              onChanged: onChanged,
-              autofocus: true,
-              heroTag: heroTag,
-            ),
-          ),
-          const SizedBox(width: 10),
-          // The iOS search bar's Cancel, in the accent — THE tertiary text
-          // action, so it springs and takes keyboard focus like every other.
-          TextLinkButton(
-            label: MaterialLocalizations.of(context).cancelButtonLabel,
-            onTap: onClose,
-          ),
-        ],
+      // The shared bar, and the far end of the flight out of Discover's
+      // door — both halves of Explore land here, so both get the same clear
+      // button and the same shape. Its own Cancel, not one drawn beside it:
+      // the field slides it in once it has focus (on landing, so it arrives
+      // after the pill has touched down), and Cancel here leaves the screen.
+      child: SearchField(
+        controller: q,
+        hintText: hintText,
+        onChanged: onChanged,
+        autofocus: true,
+        heroTag: heroTag,
+        showCancel: true,
+        onCancel: onClose,
       ),
     );
   }

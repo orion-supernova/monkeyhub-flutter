@@ -262,82 +262,16 @@ class _RoomGlyph extends StatelessWidget {
   }
 }
 
-class DiscoverSectionHeader extends StatelessWidget {
-  const DiscoverSectionHeader({
-    super.key,
-    required this.label,
-    required this.count,
-  });
-  final String label;
-
-  /// Empty string hides the number — used while a fetch is in flight, so a `0`
-  /// only ever means "looked, found nothing".
-  final String count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // The App Store / Music section title: bold, sentence case, the count
-    // trailing in muted ink. No rule — the space above does the separating.
-    return Padding(
-      padding: const EdgeInsets.only(left: 2, bottom: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Flexible(
-            child: Text(
-              sentenceCaseOf(context, label),
-              // The theme's own section-display size, exactly as the shared
-              // PageSectionHeader draws it — no 22pt override of its own.
-              style: theme.displaySmall.copyWith(color: theme.ink),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (count.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            Text(
-              count,
-              style: theme.body.copyWith(
-                fontSize: 17,
-                color: theme.inkMuted,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class SeeAllRow extends StatelessWidget {
-  const SeeAllRow({super.key, required this.total, required this.onTap});
-  final int total;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    // The shared text link — accent, trailing chevron, the iOS "See All".
-    return Center(
-      child: TextLinkButton(
-        label: l10n.childSetupScreenSeeAllLabel(total),
-        icon: CupertinoIcons.chevron_forward,
-        semanticLabel: l10n.childSetupScreenSeeAllSemanticLabel(total),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
 /// A section with nothing in it: the shared one-line empty note.
+///
+/// Air above only. Whatever follows a section owns the gap after it (32 to
+/// the next heading on Discover), and a bottom pad here stacked on top of
+/// that, leaving Discover's rhythm 12pt looser than every other tab's.
 class DiscoverEmptyLine extends StatelessWidget {
   const DiscoverEmptyLine(this.text, {super.key});
   final String text;
 
   @override
   Widget build(BuildContext context) =>
-      EmptyLine(text, padding: const EdgeInsets.symmetric(vertical: 12));
+      EmptyLine(text, padding: const EdgeInsets.only(top: 12));
 }

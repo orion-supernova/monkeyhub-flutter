@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../diagnostics/diag_event.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/search_field.dart';
 import '../../widgets/sheet_kit.dart';
+import 'diag_palette.dart';
 
 /// What the viewer is currently showing.
 ///
@@ -69,10 +71,9 @@ class DiagFilterSheet extends StatefulWidget {
   final DiagFilter initial;
 
   static Future<DiagFilter?> show(BuildContext context, DiagFilter initial) {
+    // Stops short of the status bar on a phone — every sheet does now.
     return showAdaptiveSheet<DiagFilter>(
       context,
-      // Tall enough to reach the status bar on a phone.
-      useSafeArea: true,
       builder: (_) => DiagFilterSheet(initial: initial),
     );
   }
@@ -93,27 +94,18 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
     super.dispose();
   }
 
-  /// `warn` reads as a level in a log and as a typo in a sentence; the rows
-  /// say what each floor lets through instead.
-  static String _sevTitle(DiagSev s) => switch (s) {
-    DiagSev.trace => 'Trace',
-    DiagSev.debug => 'Debug',
-    DiagSev.info => 'Info',
-    DiagSev.warn => 'Warning',
-    DiagSev.error => 'Error',
-  };
-
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     // Category PICKING is not here: the chip row over the timeline does it,
     // counts and all, and a second list of the same eleven names under this
     // one read as the same control twice. A pick made there survives this
     // sheet untouched — it rides along in [_f].
     return SheetFrame(
-      title: 'Filter',
+      title: l10n.diagFilter,
       confirm: SheetConfirm(
-        label: 'Apply',
+        label: l10n.diagApply,
         onTap: () => Navigator.of(context).pop(_f),
       ),
       // Pinned, so the sheet does not jump as the keyboard comes and goes,
@@ -121,21 +113,26 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
       maxHeightFraction: 0.9,
       padding: EdgeInsets.zero,
       child: ListView(
+        // At the top, a drag down pulls the sheet away instead of
+        // overscrolling the list.
+        physics: SheetPullPhysics.of(context),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         children: [
           SearchField(
             controller: _search,
-            hintText: 'Search name, detail, body',
+            hintText: l10n.diagSearchHint,
             onChanged: (v) => setState(() => _f = _f.copyWith(query: v)),
+            // Inside a sheet: the sheet's × is the way out, not a Cancel.
+            showCancel: false,
           ),
           const SizedBox(height: 24),
           SheetGroup(
-            header: 'Minimum severity',
+            header: l10n.diagMinSeverity,
             children: [
               for (final s in DiagSev.values)
                 GroupedRow.choice(
-                  title: _sevTitle(s),
-                  subtitle: s == DiagSev.trace ? 'Everything' : null,
+                  title: diagSeverityLabel(l10n, s),
+                  subtitle: s == DiagSev.trace ? l10n.diagEverything : null,
                   selected: _f.minSev == s,
                   onTap: () => setState(() => _f = _f.copyWith(minSev: s)),
                 ),
@@ -145,11 +142,11 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
           // The same switch as a long press on a chip in the row above the
           // timeline — here so it can be found without knowing the gesture.
           SheetGroup(
-            header: 'Hidden from All',
+            header: l10n.diagHiddenFromAllHeader,
             children: [
               for (final c in DiagCat.values)
                 GroupedRow.toggle(
-                  title: c.name,
+                  title: diagCategoryLabel(l10n, c),
                   value: _f.hidden.contains(c),
                   onChanged: (on) => setState(() {
                     final next = {..._f.hidden};
@@ -160,10 +157,9 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Text(
-              'Left out of All until picked on the chip row. Long-press a '
-              'chip there for the same switch.',
+              l10n.diagHiddenFromAllFooter,
               style: groupedFooterStyle(theme),
             ),
           ),
@@ -171,8 +167,8 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
           SheetGroup(
             children: [
               GroupedRow.toggle(
-                title: 'Collapse repeats',
-                subtitle: 'Fold a run of the same event into one row',
+                title: l10n.diagCollapseRepeats,
+                subtitle: l10n.diagCollapseRepeatsSubtitle,
                 value: _f.collapse,
                 onChanged: (v) => setState(() => _f = _f.copyWith(collapse: v)),
               ),
@@ -182,7 +178,7 @@ class _DiagFilterSheetState extends State<DiagFilterSheet> {
           SheetGroup(
             children: [
               GroupedRow(
-                title: 'Reset filter',
+                title: l10n.diagResetFilter,
                 chevron: false,
                 // Resets the view, not the preference: what All leaves out
                 // is a standing choice, and has its own section above.

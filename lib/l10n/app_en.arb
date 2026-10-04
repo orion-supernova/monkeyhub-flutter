@@ -2127,7 +2127,7 @@
   "@discoverScreenNothingPending": {
     "description": "Empty-state line shown when there are no outgoing friend requests."
   },
-  "discoverScreenYourPeopleLabel": "Your people",
+  "discoverScreenYourPeopleLabel": "Friends",
   "@discoverScreenYourPeopleLabel": {
     "description": "All-caps section header label above the friends list."
   },
@@ -2147,7 +2147,7 @@
   "@discoverScreenSearchRoomsSubtitle": {
     "description": "Subtitle under 'search rooms' explaining what the search does."
   },
-  "discoverScreenYourRoomsLabel": "Your rooms",
+  "discoverScreenYourRoomsLabel": "Rooms",
   "@discoverScreenYourRoomsLabel": {
     "description": "All-caps section header label above the preview of group chats the viewer already belongs to."
   },
@@ -2355,7 +2355,7 @@
   "@searchScreenHintPeople": {
     "description": "Search screen: TextField hint text when searching for people (SearchMode.people)."
   },
-  "searchScreenHintRooms": "Search rooms",
+  "searchScreenHintRooms": "Search public rooms",
   "@searchScreenHintRooms": {
     "description": "Search screen: TextField hint text when searching for public rooms (SearchMode.rooms)."
   },
@@ -2643,7 +2643,7 @@
   "@groupCallScreenTitleVoice": {
     "description": "Header title on the group call screen when the call is voice-only."
   },
-  "groupCallScreenParticipantCount": "{count} in call",
+  "groupCallScreenParticipantCount": "{count, plural, =1{Just you} other{{count} in call}}",
   "@groupCallScreenParticipantCount": {
     "description": "Pill badge in the group call header showing how many people (including you) are currently in the call."
   },
@@ -4327,7 +4327,7 @@
   "@socialButtonGoogleContinue": {
     "description": "Visible label and screen-reader semanticLabel on the app's own themed 'Continue with Google' button."
   },
-  "discoverListsPeopleTitle": "Your people",
+  "discoverListsPeopleTitle": "Friends",
   "@discoverListsPeopleTitle": {
     "description": "Lowercase fragment-style heading at the top of the full people list screen (opened from Discover's \"see all\" row)."
   },
@@ -4335,7 +4335,7 @@
   "@discoverListsPeopleCount": {
     "description": "Caption under the people-list title showing how many friends the user has, e.g. \"12 people\"."
   },
-  "discoverListsFilterHint": "Filter your people",
+  "discoverListsFilterHint": "Search friends",
   "@discoverListsFilterHint": {
     "description": "Hint text in the search/filter TextField on the full people list screen."
   },
@@ -4351,7 +4351,7 @@
   "@discoverListsNoMatches": {
     "description": "Empty-state line shown when the user's filter text on the people list matches no friends; {query} is the text they typed."
   },
-  "discoverListsRoomsTitle": "Your rooms",
+  "discoverListsRoomsTitle": "Rooms",
   "@discoverListsRoomsTitle": {
     "description": "Lowercase fragment-style heading at the top of the full rooms list screen (opened from Discover's \"see all\" row)."
   },
@@ -4359,7 +4359,7 @@
   "@discoverListsRoomsCount": {
     "description": "Caption under the rooms-list title showing how many group chats the user belongs to, e.g. \"12 rooms\"."
   },
-  "discoverListsFilterRoomsHint": "Filter your rooms",
+  "discoverListsFilterRoomsHint": "Search your rooms",
   "@discoverListsFilterRoomsHint": {
     "description": "Hint text in the search/filter TextField on the full rooms list screen."
   },
@@ -5023,43 +5023,43 @@
   "@familyRequestStageRecipientLabel": {
     "description": "Status pill shown to the sender while the request awaits the recipient (adult) or the recipient's own decision after their guardian already approved. Deliberately vague, same string covers both cases."
   },
-  "roomContentTabLabelMedia": "MEDIA",
+  "roomContentTabLabelMedia": "Media",
   "@roomContentTabLabelMedia": {
     "description": "All-caps pill-nav tab label for the Media bucket in the shared-content browser."
   },
-  "roomContentTabLabelFiles": "FILES",
+  "roomContentTabLabelFiles": "Files",
   "@roomContentTabLabelFiles": {
     "description": "All-caps pill-nav tab label for the Files bucket in the shared-content browser."
   },
-  "roomContentTabLabelVoice": "VOICE",
+  "roomContentTabLabelVoice": "Voice",
   "@roomContentTabLabelVoice": {
     "description": "All-caps pill-nav tab label for the Voice notes bucket in the shared-content browser."
   },
-  "roomContentTabLabelLinks": "LINKS",
+  "roomContentTabLabelLinks": "Links",
   "@roomContentTabLabelLinks": {
     "description": "All-caps pill-nav tab label for the Links bucket in the shared-content browser."
   },
-  "roomContentTabLabelSaved": "SAVED",
+  "roomContentTabLabelSaved": "Saved",
   "@roomContentTabLabelSaved": {
     "description": "All-caps pill-nav tab label for the Saved tab of the shared-content browser — the messages THIS reader bookmarked in this room. Not the personal Saved Messages chat; see savedMessagesTitle for that."
   },
-  "roomContentTabHeaderMedia": "media",
+  "roomContentTabHeaderMedia": "Media",
   "@roomContentTabHeaderMedia": {
     "description": "Lowercase form of the Media tab name, used in the shared-content screen's large heading (app's lowercase heading voice, e.g. 'settings.')."
   },
-  "roomContentTabHeaderFiles": "files",
+  "roomContentTabHeaderFiles": "Files",
   "@roomContentTabHeaderFiles": {
     "description": "Lowercase form of the Files tab name, used in the shared-content screen's large heading."
   },
-  "roomContentTabHeaderVoice": "voice",
+  "roomContentTabHeaderVoice": "Voice",
   "@roomContentTabHeaderVoice": {
     "description": "Lowercase form of the Voice tab name, used in the shared-content screen's large heading."
   },
-  "roomContentTabHeaderLinks": "links",
+  "roomContentTabHeaderLinks": "Links",
   "@roomContentTabHeaderLinks": {
     "description": "Lowercase form of the Links tab name, used in the shared-content screen's large heading."
   },
-  "roomContentTabHeaderSaved": "saved",
+  "roomContentTabHeaderSaved": "Saved",
   "@roomContentTabHeaderSaved": {
     "description": "Lowercase form of the Saved tab name, used in the shared-content screen's large heading. Pre-authored per locale rather than lowercased in code, because Dart's toLowerCase() is not locale-aware."
   },
@@ -6215,11 +6215,11 @@
   "@feedBoardOpenArchive": {
     "description": "Label on the control in the HIGHLIGHTS section header that opens the user's own archive of kept moments."
   },
-  "feedBoardGamesLabel": "The games",
+  "feedBoardGamesLabel": "Games",
   "@feedBoardGamesLabel": {
     "description": "All-caps band label for the Feed section holding today's four logic games (Queens, Tango, Zip, Mini Sudoku) as small board thumbnails."
   },
-  "feedBoardGamesOpen": "All games",
+  "feedBoardGamesOpen": "Leaderboard",
   "@feedBoardGamesOpen": {
     "description": "Label on the control in the THE GAMES section header that opens the games hub, where all of today's boards and everyone's times live."
   },
@@ -6435,119 +6435,119 @@
   "@gameInfoRulesLabel": {
     "description": "All-caps header above the bulleted rules in the how-to-play sheet."
   },
-  "gameInfoControlsLabel": "Controls",
+  "gameInfoControlsLabel": "What to tap",
   "@gameInfoControlsLabel": {
     "description": "All-caps header above the line explaining what to tap or drag, in the how-to-play sheet."
   },
-  "gameInfoScoringTimed": "The clock runs while the board is on screen and stops when you pause or leave. Finish fastest and you top today's list.",
+  "gameInfoScoringTimed": "Finish fastest to win. The clock stops when you leave.",
   "@gameInfoScoringTimed": {
     "description": "Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard."
   },
-  "gameInfoScoringGuesses": "Scored by how few guesses it takes, not by the clock.",
+  "gameInfoScoringGuesses": "Crack it in the fewest guesses to win. Time doesn't count.",
   "@gameInfoScoringGuesses": {
     "description": "Closing line of the how-to-play sheet for the symbol-code puzzle — the one game on the hub that is ranked by guesses rather than by time."
   },
-  "gameInfoSameForEveryone": "Everyone gets the same board today.",
+  "gameInfoSameForEveryone": "Everyone gets the same puzzle today.",
   "@gameInfoSameForEveryone": {
     "description": "Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful."
   },
-  "gameInfoQueensGoal": "Place one crown in every row, column and colour.",
+  "gameInfoQueensGoal": "Put 8 crowns on the board.",
   "@gameInfoQueensGoal": {
     "description": "One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet."
   },
-  "gameInfoQueensRule1": "Eight crowns: one in each row, one in each column.",
+  "gameInfoQueensRule1": "Every row gets exactly 1 crown.",
   "@gameInfoQueensRule1": {
     "description": "First rule bullet in the Queens how-to-play sheet."
   },
-  "gameInfoQueensRule2": "Each colour block gets exactly one crown too.",
+  "gameInfoQueensRule2": "Every column gets exactly 1 crown.",
   "@gameInfoQueensRule2": {
     "description": "Second rule bullet in the Queens how-to-play sheet. The board is divided into coloured regions and each holds exactly one crown."
   },
-  "gameInfoQueensRule3": "No two crowns may touch — not even at a corner.",
+  "gameInfoQueensRule3": "Every colour gets exactly 1 crown.",
   "@gameInfoQueensRule3": {
     "description": "Third rule bullet in the Queens how-to-play sheet. Crowns may not be adjacent horizontally, vertically or diagonally."
   },
-  "gameInfoQueensControls": "Tap a square once for a cross to rule it out, again for a crown, again to clear it.",
+  "gameInfoQueensControls": "Tap once for × (no crown here). Tap twice for a crown. Tap again to clear.",
   "@gameInfoQueensControls": {
     "description": "Explains the Queens board's controls: a tap cycles a square through empty, the player's own cross, and a crown."
   },
-  "gameInfoTangoGoal": "Fill the grid with suns and moons.",
+  "gameInfoTangoGoal": "Fill every square with a sun or a moon.",
   "@gameInfoTangoGoal": {
     "description": "One-sentence description of what the player is trying to do in Tango, at the top of its how-to-play sheet."
   },
-  "gameInfoTangoRule1": "Every row and column holds three suns and three moons.",
+  "gameInfoTangoRule1": "Every row has 3 suns and 3 moons.",
   "@gameInfoTangoRule1": {
     "description": "First rule bullet in the Tango how-to-play sheet."
   },
-  "gameInfoTangoRule2": "Never three of the same next to each other, across or down.",
+  "gameInfoTangoRule2": "Every column has 3 suns and 3 moons.",
   "@gameInfoTangoRule2": {
     "description": "Second rule bullet in the Tango how-to-play sheet. No run of three identical symbols horizontally or vertically."
   },
-  "gameInfoTangoRule3": "= between two squares means they match. × means they differ.",
+  "gameInfoTangoRule3": "Never 3 of the same in a line. 2 is fine.",
   "@gameInfoTangoRule3": {
     "description": "Third rule bullet in the Tango how-to-play sheet. Explains the two operators printed on the edges between adjacent squares. Keep the '=' and '×' symbols as they are."
   },
-  "gameInfoTangoControls": "Tap a square for a sun, again for a moon, again to clear. Printed squares don't move.",
+  "gameInfoTangoControls": "Tap once for a sun, twice for a moon, again to clear. Squares that start filled can't change.",
   "@gameInfoTangoControls": {
     "description": "Explains the Tango board's controls. 'printed squares' are the ones the puzzle starts with, which cannot be changed."
   },
-  "gameInfoZipGoal": "Draw one line that goes through every square.",
+  "gameInfoZipGoal": "Draw one line through every square.",
   "@gameInfoZipGoal": {
     "description": "One-sentence description of what the player is trying to do in Zip, at the top of its how-to-play sheet."
   },
-  "gameInfoZipRule1": "Start on 1 and finish on the last number.",
+  "gameInfoZipRule1": "Start on 1.",
   "@gameInfoZipRule1": {
     "description": "First rule bullet in the Zip how-to-play sheet. The board has numbered dots and the line must begin at 1 and end at the highest one."
   },
-  "gameInfoZipRule2": "Touch the numbers in order along the way.",
+  "gameInfoZipRule2": "Visit the numbers in order: 1, 2, 3…",
   "@gameInfoZipRule2": {
     "description": "Second rule bullet in the Zip how-to-play sheet. The numbered dots must be visited in ascending order."
   },
-  "gameInfoZipRule3": "Every square gets used exactly once.",
+  "gameInfoZipRule3": "Fill every square. Use each square once.",
   "@gameInfoZipRule3": {
     "description": "Third rule bullet in the Zip how-to-play sheet."
   },
-  "gameInfoZipControls": "Drag your finger to draw. Drag back over the line to rub it out.",
+  "gameInfoZipControls": "Drag your finger to draw. Drag back to undo.",
   "@gameInfoZipControls": {
     "description": "Explains the Zip board's controls. The line is drawn with a drag and retracts when the finger moves back along it."
   },
-  "gameInfoSudokuGoal": "Fill the grid with the digits 1 to 6.",
+  "gameInfoSudokuGoal": "Fill the grid with the numbers 1 to 6.",
   "@gameInfoSudokuGoal": {
     "description": "One-sentence description of what the player is trying to do in Mini Sudoku, at the top of its how-to-play sheet."
   },
-  "gameInfoSudokuRule1": "Each row uses 1 to 6, once each.",
+  "gameInfoSudokuRule1": "Every row has 1, 2, 3, 4, 5 and 6. No repeats.",
   "@gameInfoSudokuRule1": {
     "description": "First rule bullet in the Mini Sudoku how-to-play sheet."
   },
-  "gameInfoSudokuRule2": "So does each column.",
+  "gameInfoSudokuRule2": "Every column too.",
   "@gameInfoSudokuRule2": {
     "description": "Second rule bullet in the Mini Sudoku how-to-play sheet. Reads as a continuation of the row rule immediately above it."
   },
-  "gameInfoSudokuRule3": "And so does each 2x3 box.",
+  "gameInfoSudokuRule3": "Every box too. A box is 2 rows by 3 columns.",
   "@gameInfoSudokuRule3": {
     "description": "Third rule bullet in the Mini Sudoku how-to-play sheet. The 6x6 grid is divided into boxes two rows tall and three columns wide."
   },
-  "gameInfoSudokuControls": "Tap a square, then a digit. Tap the same digit again to clear it. Notes writes small pencil marks instead.",
+  "gameInfoSudokuControls": "Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.",
   "@gameInfoSudokuControls": {
     "description": "Explains the Mini Sudoku board's controls, including the notes toggle that switches the keypad to writing small pencil marks."
   },
-  "gameInfoCodeGoal": "Work out the hidden four-symbol code.",
+  "gameInfoCodeGoal": "Guess the secret code of 4 symbols.",
   "@gameInfoCodeGoal": {
     "description": "One-sentence description of what the player is trying to do in the symbol-code puzzle, at the top of its how-to-play sheet."
   },
-  "gameInfoCodeRule1": "Six tries, and the code never repeats a symbol.",
+  "gameInfoCodeRule1": "The code uses 4 different symbols. No repeats.",
   "@gameInfoCodeRule1": {
     "description": "First rule bullet in the symbol-code puzzle's how-to-play sheet."
   },
-  "gameInfoCodeRule2": "Green means right symbol, right place.",
+  "gameInfoCodeRule2": "You get 6 guesses.",
   "@gameInfoCodeRule2": {
     "description": "Second rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a correctly-placed symbol is shown in."
   },
-  "gameInfoCodeRule3": "Yellow means right symbol, wrong place.",
+  "gameInfoCodeRule3": "Green: right symbol, right spot.",
   "@gameInfoCodeRule3": {
     "description": "Third rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a misplaced symbol is shown in."
   },
-  "gameInfoCodeControls": "Tap symbols to build a guess, then send it. The board tells you how close you were.",
+  "gameInfoCodeControls": "Tap 4 symbols, then tap Guess.",
   "@gameInfoCodeControls": {
     "description": "Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback."
   },
@@ -11914,11 +11914,11 @@
   "@childPairBackIos": {
     "description": "Link at the bottom of the child pairing screen returning to sign in."
   },
-  "gamesHubTitle": "Games",
+  "gamesHubTitle": "Leaderboard",
   "@gamesHubTitle": {
     "description": "Large iOS title of the games hub screen."
   },
-  "gamesHubSubtitle": "New boards every day, the same for everyone.",
+  "gamesHubSubtitle": "Today's winners. New puzzles every day.",
   "@gamesHubSubtitle": {
     "description": "One line under the Games title: the daily boards are shared by everyone."
   },
@@ -11979,7 +11979,7 @@
   "@changeRequestUseIos": {
     "description": "Primary capsule on a suggested-change row (new group name, picture or description) that applies the suggestion. Short, sentence case."
   },
-  "settingsSearchHint": "Search",
+  "settingsSearchHint": "Search settings",
   "@settingsSearchHint": {
     "description": "Placeholder in the search field at the top of Settings."
   },
@@ -12311,5 +12311,510 @@
   "reportFactLanguageChosen": "chosen",
   "@reportFactLanguageChosen": {
     "description": "Shown in brackets after the app language on the Report a problem screen when the user picked the language in the app, e.g. 'tr (chosen)'."
+  },
+  "pageSectionSeeAll": "See all",
+  "@pageSectionSeeAll": {
+    "description": "The action at the end of a tab-page section title (\"Friends 12   See all ›\"), opening the full list."
+  },
+  "discoverScreenSeeAllFriendsSemanticLabel": "See all friends",
+  "@discoverScreenSeeAllFriendsSemanticLabel": {
+    "description": "Screen-reader label for the Friends section's See all action on Discover."
+  },
+  "discoverScreenSeeAllRoomsSemanticLabel": "See all your rooms",
+  "@discoverScreenSeeAllRoomsSemanticLabel": {
+    "description": "Screen-reader label for the Rooms section's See all action on Discover."
+  },
+  "groupCallScreenRingingCount": "{count, plural, other{{count} ringing}}",
+  "@groupCallScreenRingingCount": {
+    "description": "Group call header chip suffix: invited people whose phones are ringing.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "photoChromeWhenToday": "Today at {time}",
+  "@photoChromeWhenToday": {
+    "description": "Photo viewer subtitle: when the photo was sent, today.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "photoChromeWhenYesterday": "Yesterday at {time}",
+  "@photoChromeWhenYesterday": {
+    "description": "Photo viewer subtitle: when the photo was sent, yesterday.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "photoChromeWhenDate": "{date} at {time}",
+  "@photoChromeWhenDate": {
+    "description": "Photo viewer subtitle: date and time the photo was sent.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "photoChromeSaved": "Saved",
+  "@photoChromeSaved": {
+    "description": "Toast after saving a photo or video from the viewer to the device."
+  },
+  "photoChromeSaveFailed": "Couldn’t save that",
+  "@photoChromeSaveFailed": {
+    "description": "Toast when saving from the viewer fails."
+  },
+  "photoChromeShareFailed": "Couldn’t share that",
+  "@photoChromeShareFailed": {
+    "description": "Toast when sharing from the viewer fails."
+  },
+  "photoChromeForwarded": "{count, plural, one{Forwarded} other{Forwarded to {count} chats}}",
+  "@photoChromeForwarded": {
+    "description": "Toast after forwarding the viewed photo to chats.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "photoChromeForwardFailed": "Couldn’t forward that",
+  "@photoChromeForwardFailed": {
+    "description": "Toast when forwarding from the viewer fails."
+  },
+  "photoChromeDeleteFailed": "Couldn’t delete that",
+  "@photoChromeDeleteFailed": {
+    "description": "Toast when deleting from the viewer fails."
+  },
+  "photoChromeDeleteBody": "This removes it for everyone in this chat. It can’t be undone.",
+  "@photoChromeDeleteBody": {
+    "description": "Confirm sheet body when deleting one photo or video from the viewer."
+  },
+  "roomContentMonthThis": "This month",
+  "@roomContentMonthThis": {
+    "description": "Room media grid month section header for the current month."
+  },
+  "roomContentMonthLast": "Last month",
+  "@roomContentMonthLast": {
+    "description": "Room media grid month section header for the previous month."
+  },
+  "gameInfoGoalLabel": "Goal",
+  "@gameInfoGoalLabel": {
+    "description": "Screen-reader label for the one-line goal under the example board on a game's how-to-play sheet. Not drawn."
+  },
+  "gameInfoExampleLabel": "Example",
+  "@gameInfoExampleLabel": {
+    "description": "Label on the worked-example card of a game's how-to-play sheet."
+  },
+  "gameInfoWinLabel": "How you win",
+  "@gameInfoWinLabel": {
+    "description": "Heading of the scoring lines at the foot of a game's how-to-play sheet."
+  },
+  "gameInfoQueensRule4": "Crowns can't touch. Not even corner to corner.",
+  "@gameInfoQueensRule4": {
+    "description": "Queens rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoQueensExample": "One crown here means: no other crown in its row, its column, its colour, or the 8 squares around it.",
+  "@gameInfoQueensExample": {
+    "description": "Queens worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoTangoRule4": "= means the 2 squares match. × means they're different.",
+  "@gameInfoTangoRule4": {
+    "description": "Tango rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoTangoExample": "Sun, sun, empty? The empty square must be a moon.",
+  "@gameInfoTangoExample": {
+    "description": "Tango worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoZipRule4": "Move up, down, left or right. No diagonals.",
+  "@gameInfoZipRule4": {
+    "description": "Zip rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoZipRule5": "Finish on the last number.",
+  "@gameInfoZipRule5": {
+    "description": "Zip rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoZipExample": "Going from 1 to 2? Take the long way if you must. No square can be left empty.",
+  "@gameInfoZipExample": {
+    "description": "Zip worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoSudokuExample": "A row already has 1, 2, 4, 5 and 6? The empty square is 3.",
+  "@gameInfoSudokuExample": {
+    "description": "Mini sudoku worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoCodeRule4": "Yellow: right symbol, wrong spot.",
+  "@gameInfoCodeRule4": {
+    "description": "The code rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoCodeRule5": "Grey: that symbol isn't in the code.",
+  "@gameInfoCodeRule5": {
+    "description": "The code rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "gameInfoCodeExample": "Green, yellow, grey, grey means: 1 symbol is in the right spot, 1 belongs somewhere else, 2 aren't in the code.",
+  "@gameInfoCodeExample": {
+    "description": "The code worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
+  },
+  "leaderboardOverall": "Today",
+  "@leaderboardOverall": {
+    "description": "Leaderboard filter capsule: the overall standings across all of today's games."
+  },
+  "leaderboardFooter": "1 point for every puzzle you solve today. A tie goes to whoever came first more often.",
+  "@leaderboardFooter": {
+    "description": "Footer under the overall leaderboard explaining the score."
+  },
+  "leaderboardNotPlayed": "Not played yet",
+  "@leaderboardNotPlayed": {
+    "description": "Subtitle of the viewer's own pinned leaderboard row when they have not finished a game today."
+  },
+  "leaderboardPlay": "Play",
+  "@leaderboardPlay": {
+    "description": "Small pill on the viewer's pinned leaderboard row that opens a game."
+  },
+  "leaderboardEmptyTitle": "No scores yet today",
+  "@leaderboardEmptyTitle": {
+    "description": "Leaderboard empty state title."
+  },
+  "leaderboardEmptyBody": "Solve a puzzle and you'll be first on the board.",
+  "@leaderboardEmptyBody": {
+    "description": "Leaderboard empty state message."
+  },
+  "leaderboardGamesHeader": "Today's puzzles",
+  "@leaderboardGamesHeader": {
+    "description": "Section header above the grid of today's game tiles on the leaderboard."
+  },
+  "pointComposerPickFirst": "Pick one above first",
+  "@pointComposerPickFirst": {
+    "description": "Disabled label of the point composer's button until a point type is picked."
+  },
+  "momentStoryNext": "Next",
+  "@momentStoryNext": {
+    "description": "Screen-reader action in the highlight stories viewer: go to the next photo."
+  },
+  "momentStoryPrevious": "Previous",
+  "@momentStoryPrevious": {
+    "description": "Screen-reader action in the highlight stories viewer: go to the previous photo."
+  },
+  "leaderboardSolved": "{solved, plural, =0{Nothing solved yet} other{{solved} of {total} solved}}",
+  "@leaderboardSolved": {
+    "description": "Leaderboard row subtitle: how many of today's games this player solved.",
+    "placeholders": {
+      "solved": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "leaderboardWins": "{count, plural, =1{1 win} other{{count} wins}}",
+  "@leaderboardWins": {
+    "description": "Leaderboard row subtitle: how many games this player won today (ranked first and solved).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leaderboardEmptyAction": "Play {game}",
+  "@leaderboardEmptyAction": {
+    "description": "Leaderboard empty state button that opens a game, named by {game}.",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "diagCatApi": "Server calls",
+  "@diagCatApi": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatConnection": "Connection",
+  "@diagCatConnection": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatDevice": "Device",
+  "@diagCatDevice": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatError": "Errors",
+  "@diagCatError": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatFrame": "Slow frames",
+  "@diagCatFrame": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatLayout": "Layout",
+  "@diagCatLayout": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatLifecycle": "App state",
+  "@diagCatLifecycle": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatLog": "Log",
+  "@diagCatLog": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatNav": "Navigation",
+  "@diagCatNav": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatNetwork": "Network",
+  "@diagCatNetwork": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagCatSubscription": "Live updates",
+  "@diagCatSubscription": {
+    "description": "Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name."
+  },
+  "diagSevTrace": "Trace",
+  "@diagSevTrace": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagSevDebug": "Debug",
+  "@diagSevDebug": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagSevInfo": "Info",
+  "@diagSevInfo": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagSevWarning": "Warning",
+  "@diagSevWarning": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagSevError": "Error",
+  "@diagSevError": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagAll": "All",
+  "@diagAll": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagSearchHint": "Search name, detail, body",
+  "@diagSearchHint": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagSummaryCopied": "Summary copied",
+  "@diagSummaryCopied": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagShareLog": "Share log",
+  "@diagShareLog": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagCopySummary": "Copy summary",
+  "@diagCopySummary": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagDeleteAll": "Delete all",
+  "@diagDeleteAll": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagUndo": "Undo",
+  "@diagUndo": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagDeleteLogTitle": "Delete the whole log?",
+  "@diagDeleteLogTitle": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagDeleteLogBody": "Every event captured so far goes, along with the previous run's log. Anything that happens from now on is captured as usual.",
+  "@diagDeleteLogBody": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagDelete": "Delete",
+  "@diagDelete": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagLogDeleted": "Log deleted",
+  "@diagLogDeleted": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagFilter": "Filter",
+  "@diagFilter": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagMore": "More",
+  "@diagMore": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagLatest": "Latest",
+  "@diagLatest": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagJumpToLatest": "Jump to latest",
+  "@diagJumpToLatest": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagPaused": "paused",
+  "@diagPaused": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagPreparingLog": "preparing log…",
+  "@diagPreparingLog": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEmptyNothingTitle": "Nothing captured yet",
+  "@diagEmptyNothingTitle": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEmptyNothingHint": "Use the app for a moment and events will appear here.",
+  "@diagEmptyNothingHint": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEmptyHiddenTitle": "Only hidden events so far",
+  "@diagEmptyHiddenTitle": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEmptyHiddenHint": "Tap a dimmed chip above to see it, or long-press it to bring it back into All.",
+  "@diagEmptyHiddenHint": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEmptyNoMatchTitle": "No events match",
+  "@diagEmptyNoMatchTitle": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEmptyNoMatchHint": "Tap All above to clear the filter.",
+  "@diagEmptyNoMatchHint": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagApply": "Apply",
+  "@diagApply": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagMinSeverity": "Minimum severity",
+  "@diagMinSeverity": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEverything": "Everything",
+  "@diagEverything": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagHiddenFromAllHeader": "Hidden from All",
+  "@diagHiddenFromAllHeader": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagHiddenFromAllFooter": "Left out of All until picked on the chip row. Long-press a chip there for the same switch.",
+  "@diagHiddenFromAllFooter": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagCollapseRepeats": "Collapse repeats",
+  "@diagCollapseRepeats": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagCollapseRepeatsSubtitle": "Fold a run of the same event into one row",
+  "@diagCollapseRepeatsSubtitle": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagResetFilter": "Reset filter",
+  "@diagResetFilter": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagBodyTruncated": "Body truncated at capture",
+  "@diagBodyTruncated": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagCopyEvent": "Copy event",
+  "@diagCopyEvent": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagEventCopied": "Event copied",
+  "@diagEventCopied": {
+    "description": "Diagnostics UI copy."
+  },
+  "diagHiddenFromAll": "{category} hidden from All",
+  "@diagHiddenFromAll": {
+    "description": "Toast after long-pressing a Diagnostics category chip to hide it from All.",
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "diagBackInAll": "{category} back in All",
+  "@diagBackInAll": {
+    "description": "Toast after long-pressing a hidden Diagnostics chip to bring it back.",
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "diagChipSemanticLabel": "{category}, {count}",
+  "@diagChipSemanticLabel": {
+    "description": "Screen-reader label of a Diagnostics category chip: name and event count.",
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "diagChipHiddenSemanticLabel": "{category}, {count}, hidden from All",
+  "@diagChipHiddenSemanticLabel": {
+    "description": "Screen-reader label of a Diagnostics category chip that is hidden from All.",
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "diagEventCount": "{shown} of {total} events",
+  "@diagEventCount": {
+    "description": "Diagnostics subtitle: how many events the filter shows, of all captured.",
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "diagDropped": "{count, plural, one{{count} earlier event dropped — the log starts mid-story} other{{count} earlier events dropped — the log starts mid-story}}",
+  "@diagDropped": {
+    "description": "Diagnostics warning line when the ring buffer dropped early events.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "diagRepeatSpan": "×{count} over {seconds}s",
+  "@diagRepeatSpan": {
+    "description": "Diagnostics collapsed row: how many repeats over how many seconds (seconds pre-formatted, e.g. 1.4).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "roomContentTabSemantic": "{label}, {count} items",
+  "@roomContentTabSemantic": {
+    "description": "Screen-reader label for a room content tab with how many items it holds (count may be like 99+).",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
   }
 }

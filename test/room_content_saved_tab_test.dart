@@ -14,6 +14,7 @@ import 'package:monkeyhub/models/room_content_item.dart';
 import 'package:monkeyhub/screens/room_content_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/segmented_control.dart';
 
 /// The SAVED tab of the shared-content browser — what used to be a standalone
 /// block in room info.
@@ -267,7 +268,15 @@ void main() {
     );
 
     expect(find.text(l10n.roomContentTabLabelSaved), findsNothing);
-    expect(find.text(l10n.roomContentTabLabelMedia), findsOneWidget);
+    // The tab label and the bar's title are both "Media" now that both are
+    // sentence case, so this looks for the tab itself.
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is IosSegmentedControl<RoomContentTab> &&
+          w.segments.any((s) => s.value == RoomContentTab.media) &&
+          w.segments.every((s) => s.value != RoomContentTab.saved)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('asking for the SAVED tab of such a room lands on MEDIA',
@@ -279,7 +288,14 @@ void main() {
       repo: _FakeRepo({'rA': const []}, canSave: false),
     );
 
-    expect(find.text(l10n.roomContentTabHeaderMedia), findsOneWidget);
+    expect(
+      tester
+          .widget<IosSegmentedControl<RoomContentTab>>(
+              find.byType(IosSegmentedControl<RoomContentTab>))
+          .value,
+      RoomContentTab.media,
+    );
+    expect(find.text(l10n.roomContentTabHeaderMedia), findsWidgets);
   });
 
   group('where the count comes from', () {

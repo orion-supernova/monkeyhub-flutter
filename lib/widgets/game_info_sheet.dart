@@ -15,7 +15,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'puzzle_symbol.dart';
-import 'sheet_kit.dart' show SheetBar, SheetCloseButton, SheetHandle, sheetFill, sheetTopRadius;
+import 'sheet_kit.dart';
 import 'ios_kit.dart';
 import '../l10n/text_case.dart';
 
@@ -28,10 +28,14 @@ import '../l10n/text_case.dart';
 /// Opening a puzzle you do not understand, on a clock, next to your friends'
 /// times, is how a daily gets closed and never reopened.
 ///
-/// So the sheet answers three questions in order, and no others: what am I
-/// trying to do, what are the actual rules, and what do I tap. The scoring line
-/// at the end is there because these are timed and shared, and nobody should
-/// discover that by seeing their name on a leaderboard.
+/// So the sheet answers four questions in order, and no others: what am I
+/// trying to do (a picture and one line), what are the rules (3–5 numbered
+/// lines, one idea each), what does that look like (one worked example), and
+/// what do I tap. The copy is written for a ten-year-old on purpose — short
+/// words, digits not number words, no "region" or "orthogonal" — because the
+/// person reading it is deciding in five seconds whether to play. The scoring
+/// line at the end is there because these are timed and shared, and nobody
+/// should discover that by seeing their name on a leaderboard.
 ///
 /// Reachable from the ⓘ on every tile — on the Feed band and on the hub — which
 /// are the two places the question occurs.
@@ -92,11 +96,10 @@ Future<void> _show(
   GameInfoEntry entry,
   VoidCallback onPlay,
 ) async {
+  // Kept clear of the status bar by `showAdaptiveSheet`'s own default: the
+  // rules run long in a few languages and can outgrow a small phone.
   final play = await showAdaptiveSheet<bool>(
     context,
-    // The rules run long in a few languages; a sheet that can outgrow a small
-    // phone must stop at the status bar, which only the route can enforce.
-    useSafeArea: true,
     builder: (_) => _GameInfoSheet(game: game, entry: entry),
   );
   // After the sheet is fully gone, never from inside it: [onPlay] pushes the
@@ -213,171 +216,238 @@ class _GameInfoSheet extends StatelessWidget {
       GameInfoEntry.resume => l10n.gameInfoContinue,
       GameInfoEntry.review => l10n.gameInfoSeeResult,
     };
-    // `ModalBottomSheetRoute` strips only the TOP inset, so the home indicator
-    // is still ours to clear — under the button rather than under the panel,
-    // which stays attached to the bottom edge.
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final header = groupedHeaderStyle(theme);
 
-    // Bounded as a phone's bottom sheet, unbounded as the desktop popover —
-    // which already scrolls its whole content, so a Flexible there would have
-    // nothing to flex against and throw.
-    return LayoutBuilder(
-      builder: (context, constraints) => Container(
-      decoration: BoxDecoration(
-        color: sheetFill(theme),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(sheetTopRadius(theme)),
-        ),
+    // The shared sheet: the game's name in the bar like every sheet's, the ×
+    // the app's one chrome disc, and the way in pinned as the footer — on a
+    // short phone or in a long language the rules scroll and "Play" stays put.
+    // The body is a [SheetScrollBody], so a pull down from its top drags the
+    // whole sheet closed instead of stretching the text.
+    return SheetFrame(
+      title: sentenceCaseOf(context, copy.name),
+      onClose: () => Navigator.of(context).maybePop(false),
+      padding: EdgeInsets.zero,
+      // Autofocused, so a keyboard user lands on the way in.
+      footer: SheetActionButton(
+        label: action,
+        icon: CupertinoIcons.play_fill,
+        autofocus: true,
+        haptic: false,
+        onTap: () => Navigator.of(context).maybePop(true),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Fixed, above the scroll view: this is the part a thumb grabs to
-          // swipe the sheet away, and a grabber or a close button that scrolls
-          // off with the rules is one nobody can reach. The game's name is the
-          // bar's title, like every sheet's; the example board and the goal
-          // are the hero in the body.
-          const SheetHandle(),
-          SheetBar(
-            title: sentenceCaseOf(context, copy.name),
-            leading: SheetCloseButton(
-              onTap: () => Navigator.of(context).maybePop(false),
-            ),
-          ),
-          _flexIfBounded(
-            constraints,
-            // A soft fade at the foot of the rules, so text running on under
-            // the pinned button reads as "more below" rather than being cut
-            // off hard.
-            Stack(
-              children: [
-                // Clamping, not the platform's bounce: when the rules overflow
-                // a short screen, a pull down at the top should read as the
-                // sheet being dragged, not as the text inside it stretching.
-                SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // An example board rather than an icon. The words
-                          // below are about crowns and colour regions and a
-                          // line through squares, and every one of them is
-                          // easier to read next to the thing it describes.
-                          SizedBox(
-                            width: 86,
-                            height: 86,
-                            child: _Example(game: game, theme: theme),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  sentenceCaseOf(context, l10n.gameInfoLabel),
-                                  style: groupedMetaStyle(theme).copyWith(
-                                    color: theme.accent,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  sentenceCaseOf(context, copy.goal),
-                                  style: groupedTitleStyle(theme).copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 22),
-                      Text(
-                        sentenceCaseOf(context, l10n.gameInfoRulesLabel),
-                        style: groupedHeaderStyle(theme),
-                      ),
-                      const SizedBox(height: 10),
-                      for (final rule in copy.rules) ...[
-                        _Bullet(text: rule),
-                        const SizedBox(height: 8),
-                      ],
-                      const SizedBox(height: 12),
-                      Text(
-                        sentenceCaseOf(context, l10n.gameInfoControlsLabel),
-                        style: groupedHeaderStyle(theme),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        sentenceCaseOf(context, copy.controls),
-                        style: groupedSubtitleStyle(theme).copyWith(
-                          color: theme.inkSoft,
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      // One footer voice for both closing lines.
-                      Text(
-                        sentenceCaseOf(context, copy.scoring),
-                        style: groupedFooterStyle(theme),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        sentenceCaseOf(context, l10n.gameInfoSameForEveryone),
-                        style: groupedFooterStyle(theme),
-                      ),
-                    ],
-                  ),
+      child: SheetScrollBody(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The hero: an example board rather than an icon. The words below
+            // are about crowns and colours and a line through squares, and
+            // every one of them is easier to read next to the thing it
+            // describes.
+            Center(
+              child: SizedBox.square(
+                dimension: 132,
+                child: ExcludeSemantics(
+                  child: _Example(game: game, theme: theme),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 20,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            sheetFill(theme).withValues(alpha: 0),
-                            sheetFill(theme),
-                          ],
-                        ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // The goal, in one line, under the picture of it.
+            Semantics(
+              label: '${l10n.gameInfoGoalLabel}: ${copy.goal}',
+              excludeSemantics: true,
+              child: Text(
+                sentenceCaseOf(context, copy.goal),
+                textAlign: TextAlign.center,
+                style: theme.bodyEmph.copyWith(
+                  fontSize: 20,
+                  height: 1.25,
+                  color: theme.ink,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Semantics(
+              header: true,
+              child: Text(
+                sentenceCaseOf(context, l10n.gameInfoRulesLabel),
+                style: header,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Numbered, not bulleted: "rule 3" is something a person can
+            // point at, and the count tells them how much there is to learn.
+            for (var i = 0; i < copy.rules.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _NumberedRule(number: i + 1, text: copy.rules[i]),
+            ],
+            const SizedBox(height: 24),
+            _ExampleCard(text: copy.example),
+            const SizedBox(height: 24),
+            Semantics(
+              header: true,
+              child: Text(
+                sentenceCaseOf(context, l10n.gameInfoControlsLabel),
+                style: header,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              sentenceCaseOf(context, copy.controls),
+              style: groupedTitleStyle(theme).copyWith(color: theme.inkSoft),
+            ),
+            const SizedBox(height: 24),
+            // How you win: quieter than the rules, because it is not needed
+            // to play — but these games are timed and shared, and nobody
+            // should discover that by seeing their name on a leaderboard.
+            Row(
+              children: [
+                Icon(
+                  CupertinoIcons.rosette,
+                  size: 15,
+                  color: theme.accent,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      sentenceCaseOf(context, l10n.gameInfoWinLabel),
+                      style: groupedFooterStyle(theme).copyWith(
+                        color: theme.inkSoft,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 4),
+            Text(
+              '${sentenceCaseOf(context, copy.win)} '
+              '${sentenceCaseOf(context, l10n.gameInfoSameForEveryone)}',
+              style: groupedFooterStyle(theme),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One rule: a small accent number disc, then the rule at row-title size.
+/// Read aloud as "1. Every row gets exactly 1 crown."
+class _NumberedRule extends StatelessWidget {
+  const _NumberedRule({required this.number, required this.text});
+
+  final int number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final line = sentenceCaseOf(context, text);
+    final style = groupedTitleStyle(theme);
+    // The disc centres on the FIRST line of the text, whatever the text size:
+    // a fixed top offset drifts off it at 1.3×.
+    final lineHeight =
+        (style.fontSize ?? 17) * (style.height ?? 1.25) *
+        MediaQuery.textScalerOf(context).scale(1);
+    return Semantics(
+      label: '$number. $line',
+      excludeSemantics: true,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: lineHeight < 24 ? 24 : lineHeight,
+            child: Center(
+              child: Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.accent.withValues(alpha: 0.14),
+                ),
+                child: Text(
+                  '$number',
+                  textScaler: TextScaler.noScaling,
+                  style: groupedMetaStyle(theme).copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: theme.accent,
+                    height: 1,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+            ),
           ),
-          // Pinned under the scroll view, so on a short screen the way in is
-          // on screen from the first frame instead of below the rules.
-          // Autofocused, so a keyboard user lands on the way in.
-          Padding(
-            padding: EdgeInsets.fromLTRB(22, 8, 22, 18 + bottomInset),
-            child: SheetActionButton(
-              label: action,
-              icon: CupertinoIcons.play_fill,
-              autofocus: true,
-              haptic: false,
-              onTap: () => Navigator.of(context).maybePop(true),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              // Centres a one-line rule on the 24pt disc when the line is
+              // shorter than it.
+              padding: EdgeInsets.only(
+                top: lineHeight < 24 ? (24 - lineHeight) / 2 : 0,
+              ),
+              child: Text(line, style: style),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The worked example: one tiny situation, on a quiet card, so the rules
+/// above stop being abstract.
+class _ExampleCard extends StatelessWidget {
+  const _ExampleCard({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: sheetGroupFill(theme),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                CupertinoIcons.lightbulb_fill,
+                size: 15,
+                color: theme.accent,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                sentenceCaseOf(context, l10n.gameInfoExampleLabel),
+                style: groupedMetaStyle(theme).copyWith(
+                  color: theme.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            sentenceCaseOf(context, text),
+            style: groupedFooterStyle(theme).copyWith(color: theme.ink),
+          ),
+        ],
       ),
     );
   }
-
-  static Widget _flexIfBounded(BoxConstraints c, Widget child) =>
-      c.hasBoundedHeight ? Flexible(child: child) : child;
 }
 
 /// A small worked example of the board being described.
@@ -433,26 +503,26 @@ class _Example extends StatelessWidget {
       // The code as a 2×2 board of cells, the way the real grid draws a
       // guess. A loose Wrap of four bare glyphs broke 3+1 and looked broken.
       Widget cell(int i) => Container(
-            width: 38,
-            height: 38,
+            width: 46,
+            height: 46,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: PuzzleSymbol(index: i, size: 20, accent: theme.accent),
+            child: PuzzleSymbol(index: i, size: 24, accent: theme.accent),
           );
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             for (var r = 0; r < kPuzzleSlots ~/ 2; r++) ...[
-              if (r > 0) const SizedBox(height: 6),
+              if (r > 0) const SizedBox(height: 8),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   cell(r * 2),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   cell(r * 2 + 1),
                 ],
               ),
@@ -482,46 +552,14 @@ class _Example extends StatelessWidget {
   }
 }
 
-class _Bullet extends StatelessWidget {
-  const _Bullet({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 7, right: 10),
-          child: Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(
-              color: theme.accent,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            sentenceCaseOf(context, text),
-            style: groupedSubtitleStyle(theme).copyWith(color: theme.inkSoft),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// Everything the sheet says about one game.
 typedef _Copy = ({
   String name,
   String goal,
   List<String> rules,
+  String example,
   String controls,
-  String scoring,
+  String win,
 });
 
 _Copy _copyFor(AppLocalizations l10n, DailyGame? game) => switch (game) {
@@ -532,9 +570,11 @@ _Copy _copyFor(AppLocalizations l10n, DailyGame? game) => switch (game) {
       l10n.gameInfoQueensRule1,
       l10n.gameInfoQueensRule2,
       l10n.gameInfoQueensRule3,
+      l10n.gameInfoQueensRule4,
     ],
+    example: l10n.gameInfoQueensExample,
     controls: l10n.gameInfoQueensControls,
-    scoring: l10n.gameInfoScoringTimed,
+    win: l10n.gameInfoScoringTimed,
   ),
   DailyGame.tango => (
     name: l10n.gameTangoName,
@@ -543,9 +583,11 @@ _Copy _copyFor(AppLocalizations l10n, DailyGame? game) => switch (game) {
       l10n.gameInfoTangoRule1,
       l10n.gameInfoTangoRule2,
       l10n.gameInfoTangoRule3,
+      l10n.gameInfoTangoRule4,
     ],
+    example: l10n.gameInfoTangoExample,
     controls: l10n.gameInfoTangoControls,
-    scoring: l10n.gameInfoScoringTimed,
+    win: l10n.gameInfoScoringTimed,
   ),
   DailyGame.zip => (
     name: l10n.gameZipName,
@@ -554,9 +596,12 @@ _Copy _copyFor(AppLocalizations l10n, DailyGame? game) => switch (game) {
       l10n.gameInfoZipRule1,
       l10n.gameInfoZipRule2,
       l10n.gameInfoZipRule3,
+      l10n.gameInfoZipRule4,
+      l10n.gameInfoZipRule5,
     ],
+    example: l10n.gameInfoZipExample,
     controls: l10n.gameInfoZipControls,
-    scoring: l10n.gameInfoScoringTimed,
+    win: l10n.gameInfoScoringTimed,
   ),
   DailyGame.sudoku => (
     name: l10n.gameSudokuName,
@@ -566,8 +611,9 @@ _Copy _copyFor(AppLocalizations l10n, DailyGame? game) => switch (game) {
       l10n.gameInfoSudokuRule2,
       l10n.gameInfoSudokuRule3,
     ],
+    example: l10n.gameInfoSudokuExample,
     controls: l10n.gameInfoSudokuControls,
-    scoring: l10n.gameInfoScoringTimed,
+    win: l10n.gameInfoScoringTimed,
   ),
   null => (
     name: l10n.gameCodeName,
@@ -576,10 +622,13 @@ _Copy _copyFor(AppLocalizations l10n, DailyGame? game) => switch (game) {
       l10n.gameInfoCodeRule1,
       l10n.gameInfoCodeRule2,
       l10n.gameInfoCodeRule3,
+      l10n.gameInfoCodeRule4,
+      l10n.gameInfoCodeRule5,
     ],
+    example: l10n.gameInfoCodeExample,
     controls: l10n.gameInfoCodeControls,
     // The one game here that is not against a clock. Saying so is the whole
     // reason this is a per-game line rather than one shared sentence.
-    scoring: l10n.gameInfoScoringGuesses,
+    win: l10n.gameInfoScoringGuesses,
   ),
 };

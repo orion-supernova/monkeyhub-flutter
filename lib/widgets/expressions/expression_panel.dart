@@ -18,8 +18,7 @@ import '../../models/sticker_pack.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
-import '../search_field.dart'
-    show searchFieldDecoration, searchFieldHPadding, searchFieldIconSize;
+import '../search_field.dart' show SearchField;
 import '../reaction_picker_sheet.dart' show EmojiSearchBar, EmojiSearchView;
 import 'expression_media.dart';
 import 'expression_sheet.dart';
@@ -621,6 +620,20 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
     _load(reset: true);
   }
 
+  /// The clear disc: back to Trending with the keyboard still up, so the
+  /// next query can be typed straight away. Only the strip's tabs put the
+  /// keyboard away ([_showSection]) — they are a choice to browse instead.
+  void _clearQuery() {
+    _debounce?.cancel();
+    _autoDebounce?.cancel();
+    _query.clear();
+    setState(() {
+      _section = _KlipySection.trending;
+      _suggestions = const [];
+    });
+    _load(reset: true);
+  }
+
   void _showSection(_KlipySection s) {
     HapticFeedback.selectionClick();
     _query.clear();
@@ -669,72 +682,48 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final typing = _focus.hasFocus && _query.text.trim().isNotEmpty;
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-          child: Container(
-            height: 40,
-            // SearchField's own measure — pill, 12pt inset, 18pt magnifier —
-            // hand-drawn only because this box carries a scope tag and runs
-            // its query on the Search key, two slots SearchField lacks.
-            decoration: searchFieldDecoration(theme),
-            padding: const EdgeInsets.symmetric(horizontal: searchFieldHPadding),
-            child: Row(
-              children: [
-                Icon(
-                  CupertinoIcons.search,
-                  size: searchFieldIconSize,
-                  color: theme.inkMuted,
-                ),
-                const SizedBox(width: 8),
-                // Which of KLIPY's catalogues this box searches. The
-                // placeholder itself has to stay "Search KLIPY", so the
-                // scope goes beside it.
-                _ScopeTag(
-                  label: _isSticker
-                      ? l10n.expressionTabStickers
-                      : l10n.expressionTabGifs,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _query,
-                    focusNode: _focus,
-                    onChanged: _onQueryChanged,
-                    // The keyboard's Search key runs the search and gets out
-                    // of the way, so the results have the room.
-                    onSubmitted: (q) {
-                      _focus.unfocus();
-                      if (q.trim().isNotEmpty) _runQuery(q);
-                    },
-                    textInputAction: TextInputAction.search,
-                    style: theme.body.copyWith(color: theme.ink),
-                    cursorColor: theme.accent,
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      // KLIPY's one mandatory attribution: this placeholder.
-                      hintText: l10n.expressionSearchKlipy,
-                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                      hintMaxLines: 1,
-                    ),
+          child: Row(
+            children: [
+              Expanded(
+                // THE search bar. It used to be a hand-drawn copy because it
+                // carries a scope tag and runs its query on the Search key;
+                // both are slots of the shared field now.
+                child: SearchField(
+                  controller: _query,
+                  focusNode: _focus,
+                  // KLIPY's one mandatory attribution: this placeholder.
+                  hintText: l10n.expressionSearchKlipy,
+                  onChanged: _onQueryChanged,
+                  // Clearing goes back to Trending, not just to an empty box —
+                  // and keeps the keyboard, like every other search field.
+                  onClear: _clearQuery,
+                  // The keyboard's Search key runs the search and gets out of
+                  // the way, so the results have the room.
+                  onSubmitted: (q) {
+                    _focus.unfocus();
+                    if (q.trim().isNotEmpty) _runQuery(q);
+                  },
+                  // A panel under the composer, not the top of a screen: the
+                  // keyboard button beside it is how you put it away.
+                  showCancel: false,
+                  // Which of KLIPY's catalogues this box searches. The
+                  // placeholder itself has to stay "Search KLIPY", so the
+                  // scope goes beside it.
+                  leadingAccessory: _ScopeTag(
+                    label: _isSticker
+                        ? l10n.expressionTabStickers
+                        : l10n.expressionTabGifs,
                   ),
                 ),
-                if (_query.text.isNotEmpty)
-                  SpringPress(
-                    onTap: () => _showSection(_KlipySection.trending),
-                    haptic: false,
-                    semanticLabel: l10n.pullRevealClearSearchSemanticLabel,
-                    child: Icon(CupertinoIcons.clear_circled_solid,
-                        size: searchFieldIconSize, color: theme.inkMuted),
-                  ),
-                if (_focus.hasFocus) HideKeyboardButton(focus: _focus),
-              ],
-            ),
+              ),
+              if (_focus.hasFocus) HideKeyboardButton(focus: _focus),
+            ],
           ),
         ),
         SizedBox(

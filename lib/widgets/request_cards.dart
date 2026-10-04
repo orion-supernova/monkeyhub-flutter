@@ -105,7 +105,6 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
       scale: PressSpec.scaleSmall,
       semanticLabel: req.user.displayName,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: theme.roomCardDecoration(
           ephemeral: req.roomType == RoomType.secret,
@@ -310,7 +309,6 @@ class _RoomInvitationCardState extends State<RoomInvitationCard> {
     final l10n = AppLocalizations.of(context);
     final inv = widget.invitation;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: theme.roomCardDecoration(ephemeral: false, active: false),
       child: Column(
@@ -447,7 +445,6 @@ class _OutgoingRequestCardState extends State<OutgoingRequestCard> {
     final l10n = AppLocalizations.of(context);
     final req = widget.req;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: theme.roomCardDecoration(
         ephemeral: req.roomType == RoomType.secret,

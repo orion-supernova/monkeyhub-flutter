@@ -1,7 +1,42 @@
 import 'package:flutter/material.dart';
 
 import '../../diagnostics/diag_event.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
+
+/// A category's name as the screen says it — "Live updates", not
+/// `subscription`.
+///
+/// Every chip, filter row, event row and toast goes through this; they used
+/// to print the enum's own name, which is a developer's word in a developer's
+/// case in every language. The exported log keeps the raw names (see
+/// diag_export): it is read by people grepping, not by people tapping.
+///
+/// An exhaustive switch, so a new category fails the build until it has a
+/// name rather than shipping as a blank chip.
+String diagCategoryLabel(AppLocalizations l10n, DiagCat c) => switch (c) {
+  DiagCat.api => l10n.diagCatApi,
+  DiagCat.connection => l10n.diagCatConnection,
+  DiagCat.device => l10n.diagCatDevice,
+  DiagCat.error => l10n.diagCatError,
+  DiagCat.frame => l10n.diagCatFrame,
+  DiagCat.layout => l10n.diagCatLayout,
+  DiagCat.lifecycle => l10n.diagCatLifecycle,
+  DiagCat.log => l10n.diagCatLog,
+  DiagCat.nav => l10n.diagCatNav,
+  DiagCat.network => l10n.diagCatNetwork,
+  DiagCat.subscription => l10n.diagCatSubscription,
+};
+
+/// A severity's name — `warn` reads as a level in a log and as a typo in a
+/// sentence, so the screen says "Warning".
+String diagSeverityLabel(AppLocalizations l10n, DiagSev s) => switch (s) {
+  DiagSev.trace => l10n.diagSevTrace,
+  DiagSev.debug => l10n.diagSevDebug,
+  DiagSev.info => l10n.diagSevInfo,
+  DiagSev.warn => l10n.diagSevWarning,
+  DiagSev.error => l10n.diagSevError,
+};
 
 /// Colours for the diagnostics timeline.
 ///

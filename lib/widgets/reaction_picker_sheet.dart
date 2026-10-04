@@ -269,45 +269,15 @@ class EmojiSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final hint = sentenceCaseOf(
-      context,
-      AppLocalizations.of(context).reactionBubbleSearchHint,
-    );
+    // THE search door: the same pill as the field it opens, to the pixel —
+    // tapping it should feel like focusing the field, not like opening
+    // something else. (It was a hand-drawn copy whose hint sat 2pt further
+    // right than the field's, which is exactly the jump you saw on tap.)
     return Padding(
       padding: EdgeInsets.fromLTRB(10, 4, 10, 4 + bottomSafe),
-      child: FocusableTap(
+      child: SearchField.door(
+        hint: AppLocalizations.of(context).reactionBubbleSearchHint,
         onTap: onTap,
-        semanticLabel: hint,
-        radius: 12,
-        // Bare GestureDetector, never InkWell — this app renders no ink anywhere.
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          // Drawn to [SearchField]'s exact measure — pill, 18pt magnifier,
-          // 17pt hint — because it is a door to one: tapping it should feel
-          // like focusing the field, not like opening something else.
-          child: Container(
-            height: 40,
-            decoration: searchFieldDecoration(theme),
-            padding:
-                const EdgeInsets.symmetric(horizontal: searchFieldHPadding),
-            child: Row(
-              children: [
-                Icon(
-                  CupertinoIcons.search,
-                  size: searchFieldIconSize,
-                  color: theme.inkMuted,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  hint,
-                  style: theme.body.copyWith(color: theme.inkMuted),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -497,6 +467,7 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
                       focusNode: focusNode,
                       hintText: loc.reactionBubbleSearchHint,
                       onChanged: onTextInputChanged,
+                      showCancel: false,
                     ),
                   ),
                 ],

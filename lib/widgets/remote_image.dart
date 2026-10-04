@@ -39,6 +39,7 @@ class RemoteImage extends StatefulWidget {
     this.placeholderDecodeWidth,
     this.decodeWidth,
     this.onAspectRatio,
+    this.onDark = false,
   });
 
   final String storageId;
@@ -85,6 +86,12 @@ class RemoteImage extends StatefulWidget {
   /// new to this mount — a caller can drive layout from it without writing a
   /// setState loop.
   final ValueChanged<double>? onAspectRatio;
+
+  /// Drawn on a black viewer whatever the theme: the shimmer and the broken
+  /// plate become a faint white wash instead of the theme's sunken surface.
+  /// That surface is a cream slab on Risograph and pale grey on Daylight —
+  /// a bright flash on every page swiped to over a slow network.
+  final bool onDark;
 
   @override
   State<RemoteImage> createState() => _RemoteImageState();
@@ -274,6 +281,7 @@ class _RemoteImageState extends State<RemoteImage> {
         width: widget.width,
         height: widget.height,
         borderRadius: radius,
+        onDark: widget.onDark,
       );
     }
 
@@ -315,11 +323,13 @@ class _RemoteImageState extends State<RemoteImage> {
           width: widget.width,
           height: widget.height,
           borderRadius: radius,
+          onDark: widget.onDark,
         ),
         errorWidget: (_, _, _) => _ShimmerBox(
           width: widget.width,
           height: widget.height,
           borderRadius: radius,
+          onDark: widget.onDark,
         ),
       );
     }
@@ -327,17 +337,25 @@ class _RemoteImageState extends State<RemoteImage> {
       width: widget.width,
       height: widget.height,
       borderRadius: radius,
+      onDark: widget.onDark,
     );
   }
 
   Widget _broken(AppTheme theme, BorderRadius radius) => Container(
         width: widget.width,
         height: widget.height,
-        decoration:
-            BoxDecoration(color: theme.surfaceSunken, borderRadius: radius),
+        decoration: BoxDecoration(
+          color: widget.onDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : theme.surfaceSunken,
+          borderRadius: radius,
+        ),
         alignment: Alignment.center,
-        child:
-            Icon(Icons.broken_image_outlined, size: 24, color: theme.inkMuted),
+        child: Icon(
+          Icons.broken_image_outlined,
+          size: 24,
+          color: widget.onDark ? Colors.white24 : theme.inkMuted,
+        ),
       );
 }
 
@@ -350,11 +368,13 @@ class _ShimmerBox extends StatefulWidget {
     required this.width,
     required this.height,
     required this.borderRadius,
+    this.onDark = false,
   });
 
   final double? width;
   final double? height;
   final BorderRadius borderRadius;
+  final bool onDark;
 
   @override
   State<_ShimmerBox> createState() => _ShimmerBoxState();
@@ -380,14 +400,20 @@ class _ShimmerBoxState extends State<_ShimmerBox>
     // surface tones, so the placeholder doesn't read as a stark "dark
     // box" inside a lighter bubble silhouette (which made any rounded-
     // corner antialias imperfection visible as a hard "cut off" edge).
-    final base = Color.alphaBlend(
-      theme.surfaceSunken.withValues(alpha: 0.55),
-      theme.surfaceRaised,
-    );
-    final highlight = Color.alphaBlend(
-      theme.surfaceRaised.withValues(alpha: 0.85),
-      base,
-    );
+    // On a viewer's black (see [RemoteImage.onDark]) a faint white wash
+    // instead, whatever the theme.
+    final base = widget.onDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Color.alphaBlend(
+            theme.surfaceSunken.withValues(alpha: 0.55),
+            theme.surfaceRaised,
+          );
+    final highlight = widget.onDark
+        ? Colors.white.withValues(alpha: 0.11)
+        : Color.alphaBlend(
+            theme.surfaceRaised.withValues(alpha: 0.85),
+            base,
+          );
     return ClipRRect(
       borderRadius: widget.borderRadius,
       child: AnimatedBuilder(

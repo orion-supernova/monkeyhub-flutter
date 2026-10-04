@@ -1745,7 +1745,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoverScreenNothingPending => '尚未发送';
 
   @override
-  String get discoverScreenYourPeopleLabel => '我的好友';
+  String get discoverScreenYourPeopleLabel => '好友';
 
   @override
   String get discoverScreenNoFriendsYetWithHint => '还没有人 · 去上面找人吧';
@@ -1760,7 +1760,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => '按名称搜索公开房间';
 
   @override
-  String get discoverScreenYourRoomsLabel => '我的房间';
+  String get discoverScreenYourRoomsLabel => '房间';
 
   @override
   String get discoverScreenNoRoomsYet => '还没有房间';
@@ -1920,7 +1920,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchScreenHintPeople => '搜索用户';
 
   @override
-  String get searchScreenHintRooms => '搜索聊天室';
+  String get searchScreenHintRooms => '搜索公开房间';
 
   @override
   String get searchScreenPeoplePromptChild => '输入完整用户名才能找到新朋友';
@@ -2143,8 +2143,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get groupCallScreenTitleVoice => '群组语音通话';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count 人通话中';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人通话中',
+      one: '只有你',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3679,7 +3685,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get socialButtonGoogleContinue => '通过 Google 继续';
 
   @override
-  String get discoverListsPeopleTitle => '你的好友';
+  String get discoverListsPeopleTitle => '好友';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3692,7 +3698,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => '筛选你的好友';
+  String get discoverListsFilterHint => '搜索好友';
 
   @override
   String get discoverListsClearFilterSemanticLabel => '清除筛选';
@@ -3706,7 +3712,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => '你的房间';
+  String get discoverListsRoomsTitle => '房间';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3719,7 +3725,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => '筛选你的房间';
+  String get discoverListsFilterRoomsHint => '搜索你的房间';
 
   @override
   String get discoverListsNoRoomsYet => '还没有房间';
@@ -5224,10 +5230,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedBoardOpenArchive => '存档';
 
   @override
-  String get feedBoardGamesLabel => '今日游戏';
+  String get feedBoardGamesLabel => '游戏';
 
   @override
-  String get feedBoardGamesOpen => '全部游戏';
+  String get feedBoardGamesOpen => '排行榜';
 
   @override
   String get gamesScreenTitle => '游戏。';
@@ -5422,91 +5428,91 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameInfoRulesLabel => '规则';
 
   @override
-  String get gameInfoControlsLabel => '操作';
+  String get gameInfoControlsLabel => '怎么点';
 
   @override
-  String get gameInfoScoringTimed => '棋盘在屏幕上时计时进行，暂停或离开即停止。用时最短的人排在今天第一。';
+  String get gameInfoScoringTimed => '最快完成的人赢。离开时计时会暂停。';
 
   @override
-  String get gameInfoScoringGuesses => '按猜的次数计分，与用时无关。';
+  String get gameInfoScoringGuesses => '猜的次数最少的人赢。不计时间。';
 
   @override
-  String get gameInfoSameForEveryone => '今天所有人拿到的是同一道题。';
+  String get gameInfoSameForEveryone => '今天每个人的题目都一样。';
 
   @override
-  String get gameInfoQueensGoal => '在每一行、每一列和每种颜色中各放一顶王冠。';
+  String get gameInfoQueensGoal => '在棋盘上放 8 顶王冠。';
 
   @override
-  String get gameInfoQueensRule1 => '八顶王冠：每行一顶，每列一顶。';
+  String get gameInfoQueensRule1 => '每一行正好 1 顶王冠。';
 
   @override
-  String get gameInfoQueensRule2 => '每个颜色块也恰好放一顶王冠。';
+  String get gameInfoQueensRule2 => '每一列正好 1 顶王冠。';
 
   @override
-  String get gameInfoQueensRule3 => '任意两顶王冠都不能相邻，连对角也不行。';
+  String get gameInfoQueensRule3 => '每种颜色正好 1 顶王冠。';
 
   @override
-  String get gameInfoQueensControls => '点一下方格打叉排除，再点放王冠，再点清空。';
+  String get gameInfoQueensControls => '点 1 下是 ×（这里没有王冠）。点 2 下是王冠。再点一下清除。';
 
   @override
-  String get gameInfoTangoGoal => '用太阳和月亮填满格子。';
+  String get gameInfoTangoGoal => '每一格填上太阳或月亮。';
 
   @override
-  String get gameInfoTangoRule1 => '每行每列各有三个太阳和三个月亮。';
+  String get gameInfoTangoRule1 => '每一行有 3 个太阳和 3 个月亮。';
 
   @override
-  String get gameInfoTangoRule2 => '横向或纵向都不能连续出现三个相同的。';
+  String get gameInfoTangoRule2 => '每一列有 3 个太阳和 3 个月亮。';
 
   @override
-  String get gameInfoTangoRule3 => '两格之间的 = 表示相同，× 表示不同。';
+  String get gameInfoTangoRule3 => '同样的不能连着 3 个。2 个可以。';
 
   @override
-  String get gameInfoTangoControls => '点方格放太阳，再点放月亮，再点清空。题目自带的格子不能改。';
+  String get gameInfoTangoControls => '点 1 下是太阳，点 2 下是月亮，再点一下清除。一开始就有的格子不能改。';
 
   @override
-  String get gameInfoZipGoal => '画一条经过每一格的线。';
+  String get gameInfoZipGoal => '画一条线，经过每一格。';
 
   @override
-  String get gameInfoZipRule1 => '从 1 开始，在最后一个数字上结束。';
+  String get gameInfoZipRule1 => '从 1 开始。';
 
   @override
-  String get gameInfoZipRule2 => '沿途按顺序经过每个数字。';
+  String get gameInfoZipRule2 => '按顺序经过数字：1、2、3……';
 
   @override
-  String get gameInfoZipRule3 => '每一格恰好经过一次。';
+  String get gameInfoZipRule3 => '填满每一格。每格只走一次。';
 
   @override
-  String get gameInfoZipControls => '拖动手指画线。沿线往回拖即可擦除。';
+  String get gameInfoZipControls => '用手指拖动来画线。往回拖就能撤销。';
 
   @override
-  String get gameInfoSudokuGoal => '用数字 1 到 6 填满格子。';
+  String get gameInfoSudokuGoal => '用 1 到 6 填满格子。';
 
   @override
-  String get gameInfoSudokuRule1 => '每行用 1 到 6 各一次。';
+  String get gameInfoSudokuRule1 => '每一行都有 1、2、3、4、5、6。不能重复。';
 
   @override
-  String get gameInfoSudokuRule2 => '每列也一样。';
+  String get gameInfoSudokuRule2 => '每一列也一样。';
 
   @override
-  String get gameInfoSudokuRule3 => '每个 2x3 的宫也一样。';
+  String get gameInfoSudokuRule3 => '每个宫也一样。一个宫是 2 行 3 列。';
 
   @override
-  String get gameInfoSudokuControls => '先点方格，再点数字。再点同一个数字即可清除。笔记模式写的是小号铅笔标记。';
+  String get gameInfoSudokuControls => '先点格子，再点数字。再点一次就清除。笔记可以写小标记。';
 
   @override
-  String get gameInfoCodeGoal => '推理出隐藏的四个符号密码。';
+  String get gameInfoCodeGoal => '猜出由 4 个符号组成的密码。';
 
   @override
-  String get gameInfoCodeRule1 => '六次机会，密码中不会出现重复符号。';
+  String get gameInfoCodeRule1 => '密码由 4 个不同的符号组成。不会重复。';
 
   @override
-  String get gameInfoCodeRule2 => '绿色表示符号对、位置也对。';
+  String get gameInfoCodeRule2 => '你有 6 次机会。';
 
   @override
-  String get gameInfoCodeRule3 => '黄色表示符号对但位置不对。';
+  String get gameInfoCodeRule3 => '绿色：符号对，位置也对。';
 
   @override
-  String get gameInfoCodeControls => '点击符号组成一次猜测，然后提交。棋盘会告诉你差多少。';
+  String get gameInfoCodeControls => '点 4 个符号，然后点“猜”。';
 
   @override
   String get savedMessagesTitle => '保存的消息';
@@ -9755,10 +9761,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get childPairBackIos => '返回登录';
 
   @override
-  String get gamesHubTitle => '游戏';
+  String get gamesHubTitle => '排行榜';
 
   @override
-  String get gamesHubSubtitle => '每天都有新棋盘，所有人都一样。';
+  String get gamesHubSubtitle => '今天的赢家。每天都有新题目。';
 
   @override
   String get gameTellFriendsMessage => '他们会收到这条成绩的通知。只能发送一次。';
@@ -9802,7 +9808,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get changeRequestUseIos => '采用';
 
   @override
-  String get settingsSearchHint => '搜索';
+  String get settingsSearchHint => '搜索设置';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10045,4 +10051,366 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => '手动选择';
+
+  @override
+  String get pageSectionSeeAll => '查看全部';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => '查看全部好友';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => '查看你的全部房间';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人响铃中',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return '今天 $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return '昨天 $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get photoChromeSaved => '已保存';
+
+  @override
+  String get photoChromeSaveFailed => '无法保存';
+
+  @override
+  String get photoChromeShareFailed => '无法分享';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已转发到 $count 个聊天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => '无法转发';
+
+  @override
+  String get photoChromeDeleteFailed => '无法删除';
+
+  @override
+  String get photoChromeDeleteBody => '此操作会为聊天中的所有人删除,且无法撤销。';
+
+  @override
+  String get roomContentMonthThis => '本月';
+
+  @override
+  String get roomContentMonthLast => '上个月';
+
+  @override
+  String get gameInfoGoalLabel => '目标';
+
+  @override
+  String get gameInfoExampleLabel => '例子';
+
+  @override
+  String get gameInfoWinLabel => '怎么赢';
+
+  @override
+  String get gameInfoQueensRule4 => '王冠不能挨着。斜着也不行。';
+
+  @override
+  String get gameInfoQueensExample =>
+      '这里放一顶王冠，就表示：同一行、同一列、同一颜色，以及周围 8 格，都不能再放王冠。';
+
+  @override
+  String get gameInfoTangoRule4 => '= 表示 2 格相同。× 表示不同。';
+
+  @override
+  String get gameInfoTangoExample => '太阳、太阳、空格？那个空格一定是月亮。';
+
+  @override
+  String get gameInfoZipRule4 => '只能上、下、左、右走。不能斜着走。';
+
+  @override
+  String get gameInfoZipRule5 => '在最后一个数字结束。';
+
+  @override
+  String get gameInfoZipExample => '从 1 走到 2？需要的话就绕远路。不能留下空格。';
+
+  @override
+  String get gameInfoSudokuExample => '一行里已经有 1、2、4、5、6？空格就是 3。';
+
+  @override
+  String get gameInfoCodeRule4 => '黄色：符号对，位置不对。';
+
+  @override
+  String get gameInfoCodeRule5 => '灰色：密码里没有这个符号。';
+
+  @override
+  String get gameInfoCodeExample => '绿、黄、灰、灰的意思是：1 个符号位置对，1 个应该在别处，2 个不在密码里。';
+
+  @override
+  String get leaderboardOverall => '今天';
+
+  @override
+  String get leaderboardFooter => '今天每解出一题得 1 分。同分时，拿第一次数多的人排前面。';
+
+  @override
+  String get leaderboardNotPlayed => '还没玩';
+
+  @override
+  String get leaderboardPlay => '开始';
+
+  @override
+  String get leaderboardEmptyTitle => '今天还没有成绩';
+
+  @override
+  String get leaderboardEmptyBody => '解出一道题，你就是榜上第一名。';
+
+  @override
+  String get leaderboardGamesHeader => '今天的题目';
+
+  @override
+  String get pointComposerPickFirst => '先在上面选一个';
+
+  @override
+  String get momentStoryNext => '下一个';
+
+  @override
+  String get momentStoryPrevious => '上一个';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$total 题解出 $solved 题',
+      zero: '还没解出',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '赢了 $count 次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return '玩$game';
+  }
+
+  @override
+  String get diagCatApi => '服务器调用';
+
+  @override
+  String get diagCatConnection => '连接';
+
+  @override
+  String get diagCatDevice => '设备';
+
+  @override
+  String get diagCatError => '错误';
+
+  @override
+  String get diagCatFrame => '慢帧';
+
+  @override
+  String get diagCatLayout => '布局';
+
+  @override
+  String get diagCatLifecycle => '应用状态';
+
+  @override
+  String get diagCatLog => '日志';
+
+  @override
+  String get diagCatNav => '导航';
+
+  @override
+  String get diagCatNetwork => '网络';
+
+  @override
+  String get diagCatSubscription => '实时更新';
+
+  @override
+  String get diagSevTrace => '跟踪';
+
+  @override
+  String get diagSevDebug => '调试';
+
+  @override
+  String get diagSevInfo => '信息';
+
+  @override
+  String get diagSevWarning => '警告';
+
+  @override
+  String get diagSevError => '错误';
+
+  @override
+  String get diagAll => '全部';
+
+  @override
+  String get diagSearchHint => '搜索名称、详情、正文';
+
+  @override
+  String get diagSummaryCopied => '已复制摘要';
+
+  @override
+  String get diagShareLog => '分享日志';
+
+  @override
+  String get diagCopySummary => '复制摘要';
+
+  @override
+  String get diagDeleteAll => '全部删除';
+
+  @override
+  String get diagUndo => '撤销';
+
+  @override
+  String get diagDeleteLogTitle => '删除整个日志?';
+
+  @override
+  String get diagDeleteLogBody => '目前记录的所有事件以及上次运行的日志都会被删除。之后发生的事件照常记录。';
+
+  @override
+  String get diagDelete => '删除';
+
+  @override
+  String get diagLogDeleted => '日志已删除';
+
+  @override
+  String get diagFilter => '筛选';
+
+  @override
+  String get diagMore => '更多';
+
+  @override
+  String get diagLatest => '最新';
+
+  @override
+  String get diagJumpToLatest => '跳到最新';
+
+  @override
+  String get diagPaused => '已暂停';
+
+  @override
+  String get diagPreparingLog => '正在准备日志…';
+
+  @override
+  String get diagEmptyNothingTitle => '尚未记录任何内容';
+
+  @override
+  String get diagEmptyNothingHint => '使用一会儿应用,事件就会显示在这里。';
+
+  @override
+  String get diagEmptyHiddenTitle => '目前只有隐藏的事件';
+
+  @override
+  String get diagEmptyHiddenHint => '轻点上方变暗的标签即可查看,长按可把它放回“全部”。';
+
+  @override
+  String get diagEmptyNoMatchTitle => '没有匹配的事件';
+
+  @override
+  String get diagEmptyNoMatchHint => '轻点上方的“全部”即可清除筛选。';
+
+  @override
+  String get diagApply => '应用';
+
+  @override
+  String get diagMinSeverity => '最低严重级别';
+
+  @override
+  String get diagEverything => '全部';
+
+  @override
+  String get diagHiddenFromAllHeader => '在“全部”中隐藏';
+
+  @override
+  String get diagHiddenFromAllFooter => '在标签行中选中之前不会出现在“全部”里。长按那里的标签也能切换。';
+
+  @override
+  String get diagCollapseRepeats => '折叠重复项';
+
+  @override
+  String get diagCollapseRepeatsSubtitle => '把连续的相同事件合并为一行';
+
+  @override
+  String get diagResetFilter => '重置筛选';
+
+  @override
+  String get diagBodyTruncated => '记录时正文已截断';
+
+  @override
+  String get diagCopyEvent => '复制事件';
+
+  @override
+  String get diagEventCopied => '已复制事件';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '已在“全部”中隐藏$category';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category已回到“全部”';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category,$count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category,$count,已在“全部”中隐藏';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$total 个事件中的 $shown 个';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已丢弃 $count 个较早的事件——日志从中途开始',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '$seconds 秒内 ×$count';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label，$count 项';
+  }
 }

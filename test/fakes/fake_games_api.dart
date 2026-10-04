@@ -8,9 +8,13 @@ import 'package:monkeyhub/models/game_record.dart';
 /// raw one so it has something to put on disk, and a stub that only knew how to
 /// answer the decoded call would pass while the cached path went untested.
 class FakeGamesApi implements GamesApi {
-  FakeGamesApi(this.payload);
+  FakeGamesApi(this.payload, {this.standingsAnswer = const GameStandings()});
 
   final Map<String, dynamic> payload;
+
+  /// What [standings] answers — nobody's times unless a test hands it a
+  /// board (the leaderboard renders and tests do).
+  final GameStandings standingsAnswer;
 
   @override
   Future<DailyBoards> daily({required String dayKey}) async =>
@@ -23,7 +27,7 @@ class FakeGamesApi implements GamesApi {
   Future<GameStandings> standings({
     required String userId,
     required String dayKey,
-  }) async => const GameStandings();
+  }) async => standingsAnswer;
 
   @override
   Future<GameSession> start({

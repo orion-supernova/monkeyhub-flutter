@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/text_case.dart';
+import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
@@ -15,10 +16,15 @@ class IosSegment<T> {
     required this.label,
     this.icon,
     this.semanticLabel,
+    this.badge = false,
   });
 
   final T value;
   final String label;
+
+  /// A 6pt accent dot after the label: something new behind this segment
+  /// (unseen saves). Visual only — say it in [semanticLabel] too.
+  final bool badge;
 
   /// An optional Cupertino glyph before the label.
   final IconData? icon;
@@ -80,6 +86,7 @@ class IosSegmentedControl<T> extends StatelessWidget {
         builder: (context, box) {
           final inner = box.maxWidth - _inset * 2;
           final each = inner / n;
+          final fontSize = _sharedFontSize(context, theme, each);
           int at(double dx) => ((dx - _inset) / each).floor().clamp(0, n - 1);
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -133,6 +140,7 @@ class IosSegmentedControl<T> extends StatelessWidget {
                             child: _SegmentLabel(
                               segment: segments[i],
                               selected: i == index,
+                              fontSize: fontSize,
                             ),
                           ),
                         ),
@@ -146,18 +154,72 @@ class IosSegmentedControl<T> extends StatelessWidget {
       ),
     );
   }
+
+  /// One size for every label, the largest at which each segment's longest
+  /// word fits its segment. Shrinking each label on its own left five Turkish
+  /// tabs at 1.3× in four different sizes — "Ses" at 15, "Kaydedilenler" at
+  /// 9 — which read as a bug, not as a fit. iOS shrinks the whole control.
+  double _sharedFontSize(BuildContext context, AppTheme theme, double each) {
+    if (!each.isFinite) return _SegmentLabel.baseSize;
+    final scaler = MediaQuery.textScalerOf(context);
+    final dir = Directionality.of(context);
+    var size = _SegmentLabel.baseSize;
+    for (final seg in segments) {
+      final room = each -
+          _SegmentLabel.padH * 2 -
+          (seg.icon != null ? 20 : 0) -
+          (seg.badge ? 10 : 0);
+      final words = sentenceCaseOf(context, seg.label).split(RegExp(r'\s+'));
+      for (final word in words) {
+        if (word.isEmpty) continue;
+        while (size > _SegmentLabel.floorSize) {
+          final p = TextPainter(
+            text: TextSpan(
+              text: word,
+              // The selected weight: the wider of the two, so a label does
+              // not outgrow its segment when the thumb lands on it.
+              style: theme.body.copyWith(
+                fontSize: size,
+                letterSpacing: -0.2,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            textDirection: dir,
+            textScaler: scaler,
+            maxLines: 1,
+          )..layout();
+          final w = p.width;
+          p.dispose();
+          if (w <= room) break;
+          size -= 0.5;
+        }
+      }
+    }
+    return size;
+  }
 }
 
 class _SegmentLabel<T> extends StatelessWidget {
-  const _SegmentLabel({required this.segment, required this.selected});
+  const _SegmentLabel({
+    required this.segment,
+    required this.selected,
+    required this.fontSize,
+  });
   final IosSegment<T> segment;
   final bool selected;
+
+  /// Shared by every segment — see [IosSegmentedControl._sharedFontSize].
+  final double fontSize;
+
+  static const baseSize = 15.0;
+  static const floorSize = 10.0;
+  static const padH = 8.0;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final style = theme.body.copyWith(
-      fontSize: 15,
+      fontSize: fontSize,
       height: 1.2,
       letterSpacing: -0.2,
       fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
@@ -167,7 +229,7 @@ class _SegmentLabel<T> extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 32),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: padH, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -180,9 +242,22 @@ class _SegmentLabel<T> extends StatelessWidget {
                   sentenceCaseOf(context, segment.label),
                   style: style,
                   maxLines: 2,
-                  minFontSize: 11,
+                  // Words already fit at [fontSize]; this only covers a
+                  // label too long for two lines.
+                  minFontSize: fontSize < 11 ? fontSize : 11,
                 ),
               ),
+              if (segment.badge) ...[
+                const SizedBox(width: 4),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: theme.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

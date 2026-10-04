@@ -1,12 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart';
-import 'search_field.dart' show searchFieldDecoration;
+import 'search_field.dart' show SearchField;
 
 /// One thing Settings search can find: a hub row, or a setting that lives one
 /// page down (Profile visibility inside the account page, say).
@@ -70,9 +68,13 @@ String normalizeForSearch(String s) {
   return b.toString().toLowerCase();
 }
 
-/// The iOS Settings search capsule: magnifier, field, a clear button while
-/// there is text, and Cancel beside it while searching.
-class SettingsSearchField extends StatefulWidget {
+/// The Settings hub's search bar: THE [SearchField], with its Cancel.
+///
+/// It used to be its own 38pt capsule with an 18pt glyph — one of four
+/// search bars that had drifted apart in height, glyph and fill. Kept as a
+/// name only so the hub's call site reads as what it is; everything it draws
+/// is the shared field's.
+class SettingsSearchField extends StatelessWidget {
   const SettingsSearchField({
     super.key,
     required this.controller,
@@ -85,111 +87,15 @@ class SettingsSearchField extends StatefulWidget {
   final ValueChanged<String> onChanged;
 
   @override
-  State<SettingsSearchField> createState() => _SettingsSearchFieldState();
-}
-
-class _SettingsSearchFieldState extends State<SettingsSearchField> {
-  @override
-  void initState() {
-    super.initState();
-    widget.focusNode.addListener(_changed);
-    widget.controller.addListener(_changed);
-  }
-
-  @override
-  void dispose() {
-    widget.focusNode.removeListener(_changed);
-    widget.controller.removeListener(_changed);
-    super.dispose();
-  }
-
-  void _changed() {
-    if (mounted) setState(() {});
-  }
-
-  void _cancel() {
-    widget.controller.clear();
-    widget.onChanged('');
-    widget.focusNode.unfocus();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final motion = MotionScope.of(context);
-    final searching =
-        widget.focusNode.hasFocus || widget.controller.text.isNotEmpty;
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 38,
-            decoration: searchFieldDecoration(theme),
-            padding: const EdgeInsets.only(left: 10, right: 4),
-            child: Row(
-              children: [
-                Icon(CupertinoIcons.search, size: 18, color: theme.inkMuted),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: TextField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    onChanged: widget.onChanged,
-                    textInputAction: TextInputAction.search,
-                    autocorrect: false,
-                    cursorColor: theme.accent,
-                    style: groupedTitleStyle(theme),
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      hintText: l10n.settingsSearchHint,
-                      hintStyle: groupedValueStyle(theme),
-                    ),
-                  ),
-                ),
-                if (widget.controller.text.isNotEmpty)
-                  SpringPress(
-                    onTap: () {
-                      widget.controller.clear();
-                      widget.onChanged('');
-                    },
-                    semanticLabel: MaterialLocalizations.of(
-                      context,
-                    ).deleteButtonTooltip,
-                    focusShape: FocusRingShape.circle,
-                    scale: 0.86,
-                    haptic: false,
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Icon(
-                        CupertinoIcons.xmark_circle_fill,
-                        size: 18,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        // Cancel slides in beside the field while searching, as in iOS.
-        AnimatedSize(
-          duration: motion.d(const Duration(milliseconds: 260)),
-          curve: Curves.easeOutCubic,
-          child: searching
-              ? Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: TextLinkButton(
-                    label: l10n.acctCancel,
-                    onTap: _cancel,
-                  ),
-                )
-              : const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => SearchField(
+        controller: controller,
+        focusNode: focusNode,
+        hintText: AppLocalizations.of(context).settingsSearchHint,
+        onChanged: onChanged,
+        // Top of a tab, so the iOS Cancel: it clears, puts the keyboard
+        // away and brings the hub back.
+        showCancel: true,
+      );
 }
 
 /// The flat result list: every match as one grouped block, rising in on a

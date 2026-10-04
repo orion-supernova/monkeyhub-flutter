@@ -16,6 +16,7 @@ import 'package:monkeyhub/screens/create_room_sheet.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/adaptive_sheet.dart';
 import 'package:monkeyhub/widgets/discover_rows.dart';
+import 'package:monkeyhub/widgets/ios_kit.dart' show PageSectionHeader;
 import 'package:monkeyhub/widgets/moment_rail.dart';
 import 'package:monkeyhub/widgets/pull_reveal_panel.dart';
 import 'package:monkeyhub/widgets/app_toast.dart';
@@ -181,8 +182,8 @@ class _Bits extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const DiscoverSectionHeader(label: 'PUBLIC ROOMS', count: '87'),
-                const SizedBox(height: 10),
+                PageSectionHeader('Public rooms', count: '87',
+                    actionLabel: 'See all', onAction: () {}),
                 PublicRoomTile(room: _room, onTap: () {}),
                 PublicRoomTile(
                   room: ChatRoom(
@@ -199,7 +200,6 @@ class _Bits extends StatelessWidget {
                   onTap: () {},
                 ),
                 FriendRow(user: _friends[0], api: _FakeApi(), onTap: () {}),
-                SeeAllRow(total: 87, onTap: () {}),
                 const SizedBox(height: 16),
                 MomentRail(
                   moments: [

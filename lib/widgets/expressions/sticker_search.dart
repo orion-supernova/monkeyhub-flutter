@@ -16,7 +16,7 @@ import '../../theme/theme_scope.dart';
 import 'expression_media.dart';
 import 'expression_sheet.dart';
 import 'klipy_attribution.dart';
-import '../search_field.dart' show searchFieldDecoration;
+import '../search_field.dart' show SearchField;
 import '../../l10n/text_case.dart';
 
 String _bare(String s) => s.replaceAll('️', '').trim();
@@ -325,50 +325,29 @@ class StickerSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
+    // THE search bar, at the GIF tab's inset so switching tabs doesn't nudge
+    // it. It was a 36pt pill with a 15pt glyph of its own — one of the four
+    // search bars that had drifted apart.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
-      child: Container(
-        height: 36,
-        decoration: searchFieldDecoration(theme),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Row(
-          children: [
-            Icon(CupertinoIcons.search, size: 15, color: theme.inkMuted),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                focusNode: focus,
-                onChanged: onChanged,
-                textInputAction: TextInputAction.search,
-                // Matches update as you type; the key just puts the keyboard
-                // away so they have the room.
-                onSubmitted: (_) => focus.unfocus(),
-                style: theme.body.copyWith(color: theme.ink),
-                cursorColor: theme.accent,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  hintText: l10n.expressionSearchStickers,
-                  hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                  hintMaxLines: 1,
-                ),
-              ),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: SearchField(
+              controller: controller,
+              focusNode: focus,
+              hintText: AppLocalizations.of(context).expressionSearchStickers,
+              onChanged: onChanged,
+              // Matches update as you type; the key just puts the keyboard
+              // away so they have the room.
+              onSubmitted: (_) => focus.unfocus(),
+              // A panel under the composer: the keyboard button beside it is
+              // the way out, not a Cancel.
+              showCancel: false,
             ),
-            if (controller.text.isNotEmpty)
-              GestureDetector(
-                onTap: () {
-                  controller.clear();
-                  onChanged('');
-                },
-                child: Icon(CupertinoIcons.clear_circled_solid,
-                    size: 16, color: theme.inkMuted),
-              ),
-            if (focus.hasFocus) HideKeyboardButton(focus: focus),
-          ],
-        ),
+          ),
+          if (focus.hasFocus) HideKeyboardButton(focus: focus),
+        ],
       ),
     );
   }

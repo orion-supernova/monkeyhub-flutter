@@ -12,6 +12,7 @@ import '../diagnostics/device_report.dart';
 import '../diagnostics/diag_buffer.dart';
 import '../diagnostics/diag_event.dart';
 import '../diagnostics/diag_export.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
@@ -164,7 +165,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     );
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    showAppToast(context, 'Summary copied', tone: ToastTone.success);
+    showAppToast(
+      context,
+      AppLocalizations.of(context).diagSummaryCopied,
+      tone: ToastTone.success,
+    );
   }
 
   /// The ⋯ menu: the three things you do with a log once you have found what
@@ -176,21 +181,22 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     final origin = box == null || !box.hasSize
         ? null
         : box.localToGlobal(Offset.zero) & box.size;
+    final l10n = AppLocalizations.of(context);
     final pick = await showIosActionSheet<_More>(
       context,
-      actions: const [
+      actions: [
         IosSheetAction(
-          label: 'Share log',
+          label: l10n.diagShareLog,
           value: _More.share,
           icon: CupertinoIcons.square_arrow_up,
         ),
         IosSheetAction(
-          label: 'Copy summary',
+          label: l10n.diagCopySummary,
           value: _More.copy,
           icon: CupertinoIcons.doc_on_doc,
         ),
         IosSheetAction(
-          label: 'Delete all',
+          label: l10n.diagDeleteAll,
           value: _More.delete,
           icon: CupertinoIcons.trash,
           destructive: true,
@@ -252,10 +258,12 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     final before = _filter.hidden;
     final hiding = !before.contains(c);
     _setHidden(hiding ? {...before, c} : ({...before}..remove(c)));
+    final l10n = AppLocalizations.of(context);
+    final name = diagCategoryLabel(l10n, c);
     showAppToast(
       context,
-      hiding ? '${c.name} hidden from All' : '${c.name} back in All',
-      actionLabel: 'Undo',
+      hiding ? l10n.diagHiddenFromAll(name) : l10n.diagBackInAll(name),
+      actionLabel: l10n.diagUndo,
       onAction: () {
         if (mounted) _setHidden(before);
       },
@@ -263,18 +271,18 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   }
 
   Future<void> _deleteAll() async {
+    final l10n = AppLocalizations.of(context);
     final go = await showConfirmSheet(
       context,
-      headline: 'Delete the whole log?',
-      body: 'Every event captured so far goes, along with the previous '
-          "run's log. Anything that happens from now on is captured as usual.",
-      confirmLabel: 'Delete',
+      headline: l10n.diagDeleteLogTitle,
+      body: l10n.diagDeleteLogBody,
+      confirmLabel: l10n.diagDelete,
     );
     if (!go || !mounted) return;
     await DiagBuffer.instance.wipe();
     if (!mounted) return;
     setState(() => _follow = true);
-    showAppToast(context, 'Log deleted', tone: ToastTone.success);
+    showAppToast(context, l10n.diagLogDeleted, tone: ToastTone.success);
   }
 
   /// Anything the sheet narrows by that the page itself does not show — the
@@ -286,21 +294,22 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final events = _events;
     final groups = collapseEvents(events, enabled: _filter.collapse);
     final buf = DiagBuffer.instance;
     final dropped = buf.dropped;
 
     final page = IosPage(
-      title: 'Diagnostics',
+      title: l10n.settingsHubDiagnostics,
       // Which binary this is, under the counts. The question it answers ("am
       // I even looking at the build I just shipped?") comes up before any
       // question the timeline below can answer, and every other signal a
       // tester has — window chrome, Dock icon, app name — reads the same for
       // an iOS build on an Apple silicon Mac as for the real macOS one.
-      subtitle: '${events.length} of ${buf.length} events'
-          '${_follow ? '' : ' · paused'}'
-          '${_busy ? ' · preparing log…' : ''}'
+      subtitle: '${l10n.diagEventCount(events.length, buf.length)}'
+          '${_follow ? '' : ' · ${l10n.diagPaused}'}'
+          '${_busy ? ' · ${l10n.diagPreparingLog}' : ''}'
           '${_build == null ? '' : '\n$_build'}',
       // Deliberately a flat colour rather than `theme.backgroundLayer` — the
       // themed backdrops include shader and gradient layers, and several of
@@ -312,14 +321,14 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       actions: [
         GlassIconButton(
           icon: CupertinoIcons.line_horizontal_3_decrease,
-          semanticLabel: 'Filter',
+          semanticLabel: l10n.diagFilter,
           tint: _sheetFiltering ? theme.accent : null,
           onTap: _openFilter,
         ),
         GlassIconButton(
           key: _moreKey,
           icon: CupertinoIcons.ellipsis,
-          semanticLabel: 'More',
+          semanticLabel: l10n.diagMore,
           // Share is the slow one; a second tap mid-export would race it.
           onTap: _busy ? null : _openMore,
         ),
@@ -333,7 +342,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
             sliver: SliverToBoxAdapter(
               child: Text(
-                '$dropped earlier events dropped — the log starts mid-story',
+                l10n.diagDropped(dropped),
                 style: groupedMetaStyle(theme).copyWith(color: theme.danger),
               ),
             ),
@@ -347,7 +356,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             child: _Toolbar(
               search: SearchField(
                 controller: _search,
-                hintText: 'Search name, detail, body',
+                hintText: l10n.diagSearchHint,
                 onChanged: (q) =>
                     setState(() => _filter = _filter.copyWith(query: q)),
               ),
@@ -429,9 +438,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 GlassPillButton(
-                  label: 'Latest',
+                  label: l10n.diagLatest,
                   icon: CupertinoIcons.arrow_down,
-                  semanticLabel: 'Jump to latest',
+                  semanticLabel: l10n.diagJumpToLatest,
                   height: 40,
                   onTap: _resumeFollow,
                 ),
@@ -516,19 +525,19 @@ class _Empty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final nothingAtAll = captured == 0;
     final String title;
     final String hint;
     if (nothingAtAll) {
-      title = 'Nothing captured yet';
-      hint = 'Use the app for a moment and events will appear here.';
+      title = l10n.diagEmptyNothingTitle;
+      hint = l10n.diagEmptyNothingHint;
     } else if (onlyHidden) {
-      title = 'Only hidden events so far';
-      hint = 'Tap a dimmed chip above to see it, or long-press it to bring it '
-          'back into All.';
+      title = l10n.diagEmptyHiddenTitle;
+      hint = l10n.diagEmptyHiddenHint;
     } else {
-      title = 'No events match';
-      hint = 'Tap All above to clear the filter.';
+      title = l10n.diagEmptyNoMatchTitle;
+      hint = l10n.diagEmptyNoMatchHint;
     }
     return Center(
       child: Padding(
@@ -584,6 +593,7 @@ class _QuickCats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final present = counts.entries.where((e) => e.value > 0).toList()
       ..sort((a, b) {
         final byHidden = (hidden.contains(a.key) ? 1 : 0)
@@ -611,7 +621,7 @@ class _QuickCats extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _CatChip(
-              label: 'All',
+              label: l10n.diagAll,
               count: total,
               on: selected.isEmpty,
               onTap: onAll,
@@ -625,7 +635,7 @@ class _QuickCats extends StatelessWidget {
             ),
             for (final e in present) ...[
               _CatChip(
-                label: e.key.name,
+                label: diagCategoryLabel(l10n, e.key),
                 count: e.value,
                 colour: DiagPalette.cat(e.key),
                 on: selected.contains(e.key),
@@ -682,7 +692,9 @@ class _CatChip extends StatelessWidget {
       count: count,
       showZeroCount: true,
       faded: hidden,
-      semanticLabel: '$label $count${hidden ? ', hidden from All' : ''}',
+      semanticLabel: hidden
+          ? AppLocalizations.of(context).diagChipHiddenSemanticLabel(label, count)
+          : AppLocalizations.of(context).diagChipSemanticLabel(label, count),
       // The dot is what makes the row scannable, and it is the same hue the
       // timeline uses for that category — so a chip and the rows it selects
       // are visibly the same thing. A hidden category keeps the hue on a

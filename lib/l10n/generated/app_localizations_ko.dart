@@ -1774,7 +1774,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get discoverScreenNothingPending => '보낸 요청 없음';
 
   @override
-  String get discoverScreenYourPeopleLabel => '내 사람들';
+  String get discoverScreenYourPeopleLabel => '친구';
 
   @override
   String get discoverScreenNoFriendsYetWithHint => '아직 아무도 없어요 — 위에서 사람 찾기';
@@ -1789,7 +1789,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => '이름으로 공개 채팅방 찾기';
 
   @override
-  String get discoverScreenYourRoomsLabel => '내 채팅방';
+  String get discoverScreenYourRoomsLabel => '채팅방';
 
   @override
   String get discoverScreenNoRoomsYet => '아직 채팅방이 없어요';
@@ -1949,7 +1949,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get searchScreenHintPeople => '사람 검색';
 
   @override
-  String get searchScreenHintRooms => '방 검색';
+  String get searchScreenHintRooms => '공개 채팅방 검색';
 
   @override
   String get searchScreenPeoplePromptChild => '새로운 사람을 찾으려면 아이디 전체를 정확히 입력하세요';
@@ -2178,8 +2178,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get groupCallScreenTitleVoice => '그룹 음성 통화';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '통화 중 $count명';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '통화 중 $count명',
+      one: '나만 있음',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3738,7 +3744,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Google로 계속하기';
 
   @override
-  String get discoverListsPeopleTitle => '내 사람들';
+  String get discoverListsPeopleTitle => '친구';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3751,7 +3757,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => '내 사람들 검색';
+  String get discoverListsFilterHint => '친구 검색';
 
   @override
   String get discoverListsClearFilterSemanticLabel => '필터 지우기';
@@ -3765,7 +3771,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => '내 채팅방';
+  String get discoverListsRoomsTitle => '채팅방';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -5313,7 +5319,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get feedBoardGamesLabel => '게임';
 
   @override
-  String get feedBoardGamesOpen => '전체 게임';
+  String get feedBoardGamesOpen => '순위표';
 
   @override
   String get gamesScreenTitle => '게임.';
@@ -5508,94 +5514,94 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameInfoRulesLabel => '규칙';
 
   @override
-  String get gameInfoControlsLabel => '조작';
+  String get gameInfoControlsLabel => '누르는 법';
 
   @override
-  String get gameInfoScoringTimed =>
-      '보드가 화면에 있는 동안만 시계가 돌고, 일시정지하거나 나가면 멈춰. 가장 빠르면 오늘 1위야.';
+  String get gameInfoScoringTimed => '가장 빨리 끝내면 이겨. 나가면 시계가 멈춰.';
 
   @override
-  String get gameInfoScoringGuesses => '시간이 아니라 몇 번 만에 맞혔는지로 점수가 매겨져.';
+  String get gameInfoScoringGuesses => '가장 적게 추측해서 맞히면 이겨. 시간은 상관없어.';
 
   @override
-  String get gameInfoSameForEveryone => '오늘은 모두 같은 보드를 받아.';
+  String get gameInfoSameForEveryone => '오늘은 모두 같은 퍼즐을 풀어.';
 
   @override
-  String get gameInfoQueensGoal => '모든 행, 열, 색에 왕관을 하나씩 놓아.';
+  String get gameInfoQueensGoal => '판에 왕관 8개를 놓아.';
 
   @override
-  String get gameInfoQueensRule1 => '왕관 여덟 개, 각 행에 하나 각 열에 하나.';
+  String get gameInfoQueensRule1 => '가로줄마다 왕관은 딱 1개.';
 
   @override
-  String get gameInfoQueensRule2 => '색 덩어리마다도 정확히 하나씩.';
+  String get gameInfoQueensRule2 => '세로줄마다 왕관은 딱 1개.';
 
   @override
-  String get gameInfoQueensRule3 => '왕관끼리는 닿으면 안 돼. 모서리끼리도 안 돼.';
+  String get gameInfoQueensRule3 => '색깔마다 왕관은 딱 1개.';
 
   @override
-  String get gameInfoQueensControls => '칸을 한 번 누르면 X, 다시 누르면 왕관, 또 누르면 비워져.';
+  String get gameInfoQueensControls =>
+      '한 번 누르면 ×(여기엔 왕관 없음). 두 번 누르면 왕관. 한 번 더 누르면 지워져.';
 
   @override
-  String get gameInfoTangoGoal => '격자를 해와 달로 채워.';
+  String get gameInfoTangoGoal => '모든 칸을 해나 달로 채워.';
 
   @override
-  String get gameInfoTangoRule1 => '모든 행과 열에 해 셋, 달 셋.';
+  String get gameInfoTangoRule1 => '가로줄마다 해 3개, 달 3개.';
 
   @override
-  String get gameInfoTangoRule2 => '같은 것이 셋 연속으로 붙으면 안 돼. 가로도 세로도.';
+  String get gameInfoTangoRule2 => '세로줄마다 해 3개, 달 3개.';
 
   @override
-  String get gameInfoTangoRule3 => '칸 사이의 = 는 같다는 뜻, × 는 다르다는 뜻이야.';
+  String get gameInfoTangoRule3 => '같은 게 3개 연속이면 안 돼. 2개는 괜찮아.';
 
   @override
   String get gameInfoTangoControls =>
-      '칸을 누르면 해, 다시 누르면 달, 또 누르면 비워져. 미리 찍혀 있는 칸은 안 바뀌어.';
+      '한 번 누르면 해, 두 번이면 달, 한 번 더 누르면 지워져. 처음부터 채워진 칸은 못 바꿔.';
 
   @override
-  String get gameInfoZipGoal => '모든 칸을 지나는 선을 하나 그려.';
+  String get gameInfoZipGoal => '모든 칸을 지나는 선 하나를 그려.';
 
   @override
-  String get gameInfoZipRule1 => '1에서 시작해 마지막 숫자에서 끝내.';
+  String get gameInfoZipRule1 => '1에서 시작해.';
 
   @override
-  String get gameInfoZipRule2 => '가는 길에 숫자를 순서대로 지나가.';
+  String get gameInfoZipRule2 => '숫자를 순서대로 지나가: 1, 2, 3…';
 
   @override
-  String get gameInfoZipRule3 => '모든 칸을 정확히 한 번씩 써.';
+  String get gameInfoZipRule3 => '모든 칸을 채워. 한 칸은 한 번만.';
 
   @override
-  String get gameInfoZipControls => '손가락을 끌어서 그려. 선 위로 되돌아가면 지워져.';
+  String get gameInfoZipControls => '손가락으로 끌어서 그려. 되돌리려면 뒤로 끌어.';
 
   @override
-  String get gameInfoSudokuGoal => '격자를 1부터 6까지의 숫자로 채워.';
+  String get gameInfoSudokuGoal => '칸을 1부터 6까지 숫자로 채워.';
 
   @override
-  String get gameInfoSudokuRule1 => '각 행에 1부터 6까지 한 번씩.';
+  String get gameInfoSudokuRule1 => '가로줄마다 1, 2, 3, 4, 5, 6. 겹치면 안 돼.';
 
   @override
-  String get gameInfoSudokuRule2 => '각 열도 마찬가지야.';
+  String get gameInfoSudokuRule2 => '세로줄도 똑같아.';
 
   @override
-  String get gameInfoSudokuRule3 => '2x3 박스도 마찬가지.';
+  String get gameInfoSudokuRule3 => '박스도 똑같아. 박스는 2줄 × 3칸이야.';
 
   @override
   String get gameInfoSudokuControls =>
-      '칸을 누른 다음 숫자를 눌러. 같은 숫자를 다시 누르면 지워져. 메모 모드에서는 작은 연필 표시가 들어가.';
+      '칸을 누르고 숫자를 눌러. 다시 누르면 지워져. 메모는 작은 연필 표시를 넣어.';
 
   @override
-  String get gameInfoCodeGoal => '숨겨진 기호 네 개짜리 코드를 알아내.';
+  String get gameInfoCodeGoal => '기호 4개로 된 비밀 코드를 맞혀.';
 
   @override
-  String get gameInfoCodeRule1 => '여섯 번의 기회, 코드에 같은 기호는 반복되지 않아.';
+  String get gameInfoCodeRule1 => '코드는 서로 다른 기호 4개야. 겹치는 건 없어.';
 
   @override
-  String get gameInfoCodeRule2 => '초록은 기호도 자리도 맞다는 뜻.';
+  String get gameInfoCodeRule2 => '기회는 6번이야.';
 
   @override
-  String get gameInfoCodeRule3 => '노랑은 기호는 맞지만 자리가 틀렸다는 뜻.';
+  String get gameInfoCodeRule3 => '초록: 기호도 맞고 자리도 맞아.';
 
   @override
-  String get gameInfoCodeControls => '기호를 눌러 추측을 만든 다음 보내. 얼마나 가까웠는지 보드가 알려줘.';
+  String get gameInfoCodeControls => '기호 4개를 누르고 추측을 눌러.';
 
   @override
   String get savedMessagesTitle => '저장한 메시지';
@@ -9880,10 +9886,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPairBackIos => '로그인으로 돌아가기';
 
   @override
-  String get gamesHubTitle => '게임';
+  String get gamesHubTitle => '순위표';
 
   @override
-  String get gamesHubSubtitle => '매일 새 보드, 모두에게 똑같이.';
+  String get gamesHubSubtitle => '오늘의 우승자. 매일 새 퍼즐이 나와.';
 
   @override
   String get gameTellFriendsMessage => '이 결과가 알림으로 전송돼요. 한 번만 보낼 수 있어요.';
@@ -9928,7 +9934,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get changeRequestUseIos => '적용';
 
   @override
-  String get settingsSearchHint => '검색';
+  String get settingsSearchHint => '설정 검색';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10171,4 +10177,369 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => '직접 선택';
+
+  @override
+  String get pageSectionSeeAll => '모두 보기';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => '친구 모두 보기';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => '내 채팅방 모두 보기';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명 호출 중',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return '오늘 $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return '어제 $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get photoChromeSaved => '저장됨';
+
+  @override
+  String get photoChromeSaveFailed => '저장하지 못했어요';
+
+  @override
+  String get photoChromeShareFailed => '공유하지 못했어요';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개에 전달했어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => '전달하지 못했어요';
+
+  @override
+  String get photoChromeDeleteFailed => '삭제하지 못했어요';
+
+  @override
+  String get photoChromeDeleteBody => '이 채팅방의 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.';
+
+  @override
+  String get roomContentMonthThis => '이번 달';
+
+  @override
+  String get roomContentMonthLast => '지난달';
+
+  @override
+  String get gameInfoGoalLabel => '목표';
+
+  @override
+  String get gameInfoExampleLabel => '예시';
+
+  @override
+  String get gameInfoWinLabel => '이기는 법';
+
+  @override
+  String get gameInfoQueensRule4 => '왕관끼리 닿으면 안 돼. 대각선도 안 돼.';
+
+  @override
+  String get gameInfoQueensExample =>
+      '여기에 왕관을 놓으면, 같은 가로줄·세로줄·색깔과 주변 8칸에는 다른 왕관을 못 놓아.';
+
+  @override
+  String get gameInfoTangoRule4 => '= 는 두 칸이 같다는 뜻. × 는 다르다는 뜻.';
+
+  @override
+  String get gameInfoTangoExample => '해, 해, 빈칸? 빈칸은 무조건 달이야.';
+
+  @override
+  String get gameInfoZipRule4 => '위, 아래, 왼쪽, 오른쪽으로만. 대각선은 안 돼.';
+
+  @override
+  String get gameInfoZipRule5 => '마지막 숫자에서 끝내.';
+
+  @override
+  String get gameInfoZipExample => '1에서 2로 가? 필요하면 돌아가. 빈칸이 남으면 안 돼.';
+
+  @override
+  String get gameInfoSudokuExample => '가로줄에 1, 2, 4, 5, 6이 있어? 빈칸은 3이야.';
+
+  @override
+  String get gameInfoCodeRule4 => '노랑: 기호는 맞는데 자리가 틀렸어.';
+
+  @override
+  String get gameInfoCodeRule5 => '회색: 그 기호는 코드에 없어.';
+
+  @override
+  String get gameInfoCodeExample =>
+      '초록, 노랑, 회색, 회색이면: 1개는 자리까지 맞고, 1개는 다른 자리에 있고, 2개는 코드에 없어.';
+
+  @override
+  String get leaderboardOverall => '오늘';
+
+  @override
+  String get leaderboardFooter => '오늘 푼 퍼즐마다 1점. 동점이면 1등을 더 많이 한 사람이 위야.';
+
+  @override
+  String get leaderboardNotPlayed => '아직 안 했어';
+
+  @override
+  String get leaderboardPlay => '플레이';
+
+  @override
+  String get leaderboardEmptyTitle => '오늘은 아직 점수가 없어';
+
+  @override
+  String get leaderboardEmptyBody => '퍼즐을 풀면 순위표 1등이야.';
+
+  @override
+  String get leaderboardGamesHeader => '오늘의 퍼즐';
+
+  @override
+  String get pointComposerPickFirst => '먼저 위에서 하나 골라';
+
+  @override
+  String get momentStoryNext => '다음';
+
+  @override
+  String get momentStoryPrevious => '이전';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$total개 중 $solved개 풂',
+      zero: '아직 푼 게 없어',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count승',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return '$game 플레이';
+  }
+
+  @override
+  String get diagCatApi => '서버 호출';
+
+  @override
+  String get diagCatConnection => '연결';
+
+  @override
+  String get diagCatDevice => '기기';
+
+  @override
+  String get diagCatError => '오류';
+
+  @override
+  String get diagCatFrame => '느린 프레임';
+
+  @override
+  String get diagCatLayout => '레이아웃';
+
+  @override
+  String get diagCatLifecycle => '앱 상태';
+
+  @override
+  String get diagCatLog => '로그';
+
+  @override
+  String get diagCatNav => '탐색';
+
+  @override
+  String get diagCatNetwork => '네트워크';
+
+  @override
+  String get diagCatSubscription => '실시간 업데이트';
+
+  @override
+  String get diagSevTrace => '추적';
+
+  @override
+  String get diagSevDebug => '디버그';
+
+  @override
+  String get diagSevInfo => '정보';
+
+  @override
+  String get diagSevWarning => '경고';
+
+  @override
+  String get diagSevError => '오류';
+
+  @override
+  String get diagAll => '전체';
+
+  @override
+  String get diagSearchHint => '이름, 세부 정보, 본문 검색';
+
+  @override
+  String get diagSummaryCopied => '요약을 복사했어요';
+
+  @override
+  String get diagShareLog => '로그 공유';
+
+  @override
+  String get diagCopySummary => '요약 복사';
+
+  @override
+  String get diagDeleteAll => '모두 삭제';
+
+  @override
+  String get diagUndo => '실행 취소';
+
+  @override
+  String get diagDeleteLogTitle => '로그 전체를 삭제할까요?';
+
+  @override
+  String get diagDeleteLogBody =>
+      '지금까지 기록된 모든 이벤트와 이전 실행의 로그가 삭제돼요. 앞으로 일어나는 일은 평소처럼 기록돼요.';
+
+  @override
+  String get diagDelete => '삭제';
+
+  @override
+  String get diagLogDeleted => '로그를 삭제했어요';
+
+  @override
+  String get diagFilter => '필터';
+
+  @override
+  String get diagMore => '더 보기';
+
+  @override
+  String get diagLatest => '최신';
+
+  @override
+  String get diagJumpToLatest => '최신으로 이동';
+
+  @override
+  String get diagPaused => '일시 정지됨';
+
+  @override
+  String get diagPreparingLog => '로그 준비 중…';
+
+  @override
+  String get diagEmptyNothingTitle => '아직 기록된 게 없어요';
+
+  @override
+  String get diagEmptyNothingHint => '앱을 잠시 사용하면 여기에 이벤트가 나타나요.';
+
+  @override
+  String get diagEmptyHiddenTitle => '지금까지는 숨긴 이벤트만 있어요';
+
+  @override
+  String get diagEmptyHiddenHint => '위의 흐린 칩을 탭하면 보이고, 길게 누르면 전체로 다시 돌아와요.';
+
+  @override
+  String get diagEmptyNoMatchTitle => '일치하는 이벤트가 없어요';
+
+  @override
+  String get diagEmptyNoMatchHint => '위의 전체를 탭하면 필터가 지워져요.';
+
+  @override
+  String get diagApply => '적용';
+
+  @override
+  String get diagMinSeverity => '최소 심각도';
+
+  @override
+  String get diagEverything => '전부';
+
+  @override
+  String get diagHiddenFromAllHeader => '전체에서 숨김';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      '칩 줄에서 고르기 전까지 전체에서 빠져요. 거기서 칩을 길게 눌러도 같은 설정이에요.';
+
+  @override
+  String get diagCollapseRepeats => '반복 묶기';
+
+  @override
+  String get diagCollapseRepeatsSubtitle => '같은 이벤트가 이어지면 한 줄로 묶어요';
+
+  @override
+  String get diagResetFilter => '필터 재설정';
+
+  @override
+  String get diagBodyTruncated => '기록할 때 본문이 잘렸어요';
+
+  @override
+  String get diagCopyEvent => '이벤트 복사';
+
+  @override
+  String get diagEventCopied => '이벤트를 복사했어요';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category을(를) 전체에서 숨겼어요';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category을(를) 전체로 되돌렸어요';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category, $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category, $count, 전체에서 숨김';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '이벤트 $total개 중 $shown개';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '이전 이벤트 $count개를 버렸어요 — 로그가 중간부터 시작돼요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '$seconds초 동안 ×$count';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label, $count개';
+  }
 }

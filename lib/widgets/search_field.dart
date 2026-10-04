@@ -1,29 +1,40 @@
-import 'dart:ui' show lerpDouble;
-
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'action_buttons.dart';
+import 'ios_kit.dart' show groupedTitleStyle, groupedValueStyle;
 import 'route_landing.dart';
+import 'spring_press.dart';
 import '../l10n/text_case.dart';
 
-/// Horizontal inset of the pill's contents. Public because
+/// Leading inset of the pill, to the magnifier. Public because
 /// [SearchFieldHero]'s shuttle has to land the magnifier on exactly the pixel
 /// the real field draws it at, and a flight that stops one padding step short
 /// of its destination is a flight you can see snap.
-const double searchFieldHPadding = 12;
+const double searchFieldHPadding = 10;
 
-/// The same, for a *door* — a card that opens a search screen rather than
-/// being one (Discover's FIND PEOPLE / SEARCH ROOMS rows). It lives here for
-/// the same reason: it is the other end of the flight the shuttle interpolates.
+/// Kept for the old card doors' callers. Every door is now a
+/// [SearchField.door] — the same pill as the field — so nothing new should
+/// read this.
 const double searchDoorHPadding = 14;
 
 /// One size for every magnifier in the app, so the one that flies is the same
-/// glyph at both ends and never resizes mid-air.
-const double searchFieldIconSize = 18;
+/// glyph at both ends and never resizes mid-air. The clear disc matches it.
+const double searchFieldIconSize = 17;
+
+/// The pill's height: the chrome-button height, so a search bar and the 40pt
+/// discs beside it sit on one line. Fixed, never padding-derived — that is
+/// how four search bars drifted to 36, 38, 40 and 44pt (a character theme's
+/// 15pt body made a shorter pill than Basic's 17).
+const double searchFieldHeight = 40;
+
+/// Glyph → text gap inside the pill.
+const double _kGlyphGap = 6;
 
 /// The pill.
 ///
@@ -32,43 +43,77 @@ const double searchFieldIconSize = 18;
 /// field; Messages, Mail and Settings draw search as a tinted capsule with no
 /// edge at all, and the shape plus the magnifier is what says "search". The
 /// fill is the theme's own ink at a low alpha, so it follows every palette —
-/// a light wash on dark themes, a grey wash on light ones.
+/// a light wash on dark themes, a grey wash on light ones — and is the same
+/// on a page and on a sheet (0.06/0.10 vanished on Daylight's sheets).
 BoxDecoration searchFieldDecoration(AppTheme theme) => BoxDecoration(
       color: theme.ink.withValues(
-        alpha: theme.background.computeLuminance() > 0.4 ? 0.06 : 0.10,
+        alpha: theme.background.computeLuminance() > 0.4 ? 0.07 : 0.12,
       ),
       borderRadius: BorderRadius.circular(999),
     );
 
-/// The app's search bar: magnifier, field, clear button, in a pill.
+/// THE search bar of the app: magnifier, field, clear disc, in a 40pt pill —
+/// and, at the top of a screen, a Cancel that slides in while it is in use.
 ///
-/// Three screens drew their own before this existed — the chat list's
-/// pull-down panel, and both halves of Discover's search screen — and they had
-/// already drifted apart: one was a pill and one was a rounded box, one had a
-/// clear button and one left you selecting text to erase it. They are one
-/// widget now, which is also what makes the flight between them possible: a
-/// hero can only morph two boxes that agree on what they are.
+/// Every search in the app is this widget (or its [SearchField.door]); none
+/// draws its own pill. Several screens did, and they drifted in height,
+/// glyph, fill and clear button until the user noticed. One widget is also
+/// what makes the flight from a door possible: a hero can only morph two
+/// boxes that agree on what they are.
+///
+/// Type is the grouped-row voice (17, the body face) whatever the theme's
+/// body size; the hint is a sentence-case "Search people" with no ellipsis.
 ///
 /// Deliberately not a `TextField` with `InputDecoration.prefixIcon`. The
-/// surrounding [Container] is what carries the theme's decoration, and the
-/// field inside draws no border of its own — see [InputDecoration] below, and
-/// the [Material] wrapper, which is what stops Flutter painting its debug
-/// underline on a field that lives outside a Material-themed ancestor.
+/// surrounding box is what carries the decoration, and the field inside draws
+/// no border of its own — see [InputDecoration] below, and the [Material]
+/// wrapper, which is what stops Flutter painting its debug underline on a
+/// field that lives outside a Material-themed ancestor.
 class SearchField extends StatefulWidget {
   const SearchField({
     super.key,
-    required this.controller,
+    required TextEditingController this.controller,
     required this.hintText,
-    required this.onChanged,
+    required ValueChanged<String> this.onChanged,
     this.onClear,
     this.autofocus = false,
     this.focusNode,
     this.heroTag,
-  });
+    this.showCancel = true,
+    this.onCancel,
+    this.onSubmitted,
+    this.leadingAccessory,
+  })  : _doorTap = null,
+        semanticLabel = null;
 
-  final TextEditingController controller;
+  /// A search *door*: the same pill, not editable — tapping it opens the
+  /// screen that really searches (Discover's "Search people", the reaction
+  /// picker's search). Pixel-identical to the field, so with a [heroTag] the
+  /// flight into that screen moves one box that never changes shape.
+  const SearchField.door({
+    super.key,
+    required String hint,
+    required VoidCallback onTap,
+    this.heroTag,
+    this.semanticLabel,
+  })  : hintText = hint,
+        _doorTap = onTap,
+        controller = null,
+        onChanged = null,
+        onClear = null,
+        autofocus = false,
+        focusNode = null,
+        showCancel = false,
+        onCancel = null,
+        onSubmitted = null,
+        leadingAccessory = null;
+
+  /// Null only on a [SearchField.door].
+  final TextEditingController? controller;
   final String hintText;
-  final ValueChanged<String> onChanged;
+
+  /// Null only on a [SearchField.door].
+  final ValueChanged<String>? onChanged;
 
   /// What the clear button does. Null empties [controller] and reports the
   /// empty query through [onChanged]; a caller supplies its own only when
@@ -89,6 +134,27 @@ class SearchField extends StatefulWidget {
   /// entry, so skipping it outright keeps the no-tag case honest.
   final Object? heroTag;
 
+  /// The trailing Cancel that slides in while the field is focused or holds
+  /// text. On for a search at the top of a screen (the search screen, the
+  /// Settings hub, the chat list's pull panel); pass false inside sheets and
+  /// pickers, where the sheet's own × is the way out.
+  final bool showCancel;
+
+  /// After Cancel has cleared and unfocused the field — the search screen
+  /// pops itself here.
+  final VoidCallback? onCancel;
+
+  /// Return on the keyboard (whose key reads "Search").
+  final ValueChanged<String>? onSubmitted;
+
+  /// Sits between the magnifier and the text — a scope tag ("Stickers ×").
+  final Widget? leadingAccessory;
+
+  /// A door's screen-reader label; defaults to the hint.
+  final String? semanticLabel;
+
+  final VoidCallback? _doorTap;
+
   @override
   State<SearchField> createState() => _SearchFieldState();
 }
@@ -96,8 +162,44 @@ class SearchField extends StatefulWidget {
 class _SearchFieldState extends State<SearchField> with RouteLanding {
   FocusNode? _ownNode;
   FocusNode get _node => widget.focusNode ?? (_ownNode ??= FocusNode());
+  FocusNode? _listened;
 
   bool _asked = false;
+  bool _focused = false;
+  bool _traditional =
+      FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+
+  bool get _isDoor => widget._doorTap != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isDoor) return;
+    _listen();
+    FocusManager.instance.addHighlightModeListener(_onHighlightMode);
+  }
+
+  @override
+  void didUpdateWidget(SearchField old) {
+    super.didUpdateWidget(old);
+    if (!_isDoor && old.focusNode != widget.focusNode) _listen();
+  }
+
+  void _listen() {
+    _listened?.removeListener(_onFocus);
+    _listened = _node..addListener(_onFocus);
+    _focused = _node.hasFocus;
+  }
+
+  void _onFocus() {
+    if (!mounted || _focused == _node.hasFocus) return;
+    setState(() => _focused = _node.hasFocus);
+  }
+
+  void _onHighlightMode(FocusHighlightMode mode) {
+    final t = mode == FocusHighlightMode.traditional;
+    if (mounted && t != _traditional) setState(() => _traditional = t);
+  }
 
   /// Takes the keyboard only once the route has landed.
   ///
@@ -110,13 +212,17 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
   /// still sliding in is two animations spending the same 300ms arguing.
   @override
   void onRouteLandingChanged() {
-    if (!landed || !widget.autofocus || _asked) return;
+    if (_isDoor || !landed || !widget.autofocus || _asked) return;
     _asked = true;
     _node.requestFocus();
   }
 
   @override
   void dispose() {
+    if (!_isDoor) {
+      FocusManager.instance.removeHighlightModeListener(_onHighlightMode);
+      _listened?.removeListener(_onFocus);
+    }
     _ownNode?.dispose();
     super.dispose();
   }
@@ -127,19 +233,62 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
       custom();
       return;
     }
-    widget.controller.clear();
-    widget.onChanged('');
+    widget.controller!.clear();
+    widget.onChanged!('');
+  }
+
+  void _cancel() {
+    if (widget.controller!.text.isNotEmpty) _clear();
+    _node.unfocus();
+    widget.onCancel?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final field = Material(
+    final pill = _isDoor ? _door(context, theme) : _field(context, theme);
+    final tag = widget.heroTag;
+    final flown = tag == null ? pill : SearchFieldHero(tag: tag, child: pill);
+    if (_isDoor || !widget.showCancel) return flown;
+    return Row(
+      children: [
+        Expanded(child: flown),
+        _CancelSlot(
+          controller: widget.controller!,
+          focused: _focused,
+          onCancel: _cancel,
+        ),
+      ],
+    );
+  }
+
+  /// The capsule both variants share: fill, height, the magnifier at the
+  /// same x. [trailing] is the clear disc's slot.
+  Widget _capsule(
+    AppTheme theme, {
+    required Widget content,
+    Widget? trailing,
+    bool ring = false,
+  }) {
+    return Material(
       type: MaterialType.transparency,
       child: Container(
+        constraints: const BoxConstraints(minHeight: searchFieldHeight),
         decoration: searchFieldDecoration(theme),
-        padding: const EdgeInsets.symmetric(horizontal: searchFieldHPadding),
+        // Keyboard focus only: a touch user has the caret; a hardware-
+        // keyboard user tabbing through needs to see where they landed.
+        foregroundDecoration: ring
+            ? ShapeDecoration(
+                shape: StadiumBorder(
+                  side: BorderSide(
+                    color: theme.accent,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignOutside,
+                  ),
+                ),
+              )
+            : null,
+        padding: const EdgeInsets.only(left: searchFieldHPadding),
         child: Row(
           children: [
             Icon(
@@ -147,60 +296,143 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
               color: theme.inkMuted,
               size: searchFieldIconSize,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: widget.controller,
-                focusNode: _node,
-                style: theme.body.copyWith(color: theme.ink),
-                cursorColor: theme.accent,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  // Sentence case whatever the caller passes: most hints in
-                  // the ARBs were written lower-case for the old chrome.
-                  hintText: sentenceCaseOf(context, widget.hintText),
-                  hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 11),
-                ),
-                onChanged: widget.onChanged,
-              ),
-            ),
-            // Rebuilds only this small row on every keystroke — the controller
-            // is a Listenable, and the clear button's whole job is reacting to
-            // its text, so there's no reason to rebuild the rest of the bar
-            // (or lift state up) for it.
-            AnimatedBuilder(
-              animation: widget.controller,
-              builder: (context, _) => widget.controller.text.isEmpty
-                  ? const SizedBox.shrink()
-                  : Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: FocusableTap(
-                        onTap: _clear,
-                        semanticLabel: l10n.pullRevealClearSearchSemanticLabel,
-                        shape: FocusRingShape.circle,
-                        radius: 999,
-                        child: GestureDetector(
-                          onTap: _clear,
-                          behavior: HitTestBehavior.opaque,
-                          child: Icon(
-                            CupertinoIcons.clear_circled_solid,
-                            size: searchFieldIconSize,
-                            color: theme.inkMuted,
-                          ),
-                        ),
-                      ),
-                    ),
-            ),
+            const SizedBox(width: _kGlyphGap),
+            Expanded(child: content),
+            trailing ?? const SizedBox(width: searchFieldHPadding),
           ],
         ),
       ),
     );
+  }
 
-    final tag = widget.heroTag;
-    return tag == null ? field : SearchFieldHero(tag: tag, child: field);
+  Widget _door(BuildContext context, AppTheme theme) {
+    final hint = sentenceCaseOf(context, widget.hintText);
+    return SpringPress(
+      onTap: widget._doorTap,
+      scale: 0.98,
+      haptic: false,
+      focusShape: FocusRingShape.capsule,
+      semanticLabel: widget.semanticLabel ?? hint,
+      child: _capsule(
+        theme,
+        content: Text(
+          hint,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: groupedValueStyle(theme),
+        ),
+      ),
+    );
+  }
+
+  Widget _field(BuildContext context, AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final controller = widget.controller!;
+    final accessory = widget.leadingAccessory;
+    final input = TextField(
+      controller: controller,
+      focusNode: _node,
+      style: groupedTitleStyle(theme),
+      cursorColor: theme.accent,
+      cursorWidth: 2,
+      textInputAction: TextInputAction.search,
+      autocorrect: false,
+      decoration: InputDecoration(
+        isCollapsed: true,
+        border: InputBorder.none,
+        // Sentence case whatever the caller passes: most hints in the ARBs
+        // were written lower-case for the old chrome.
+        hintText: sentenceCaseOf(context, widget.hintText),
+        hintStyle: groupedValueStyle(theme),
+        hintMaxLines: 1,
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      ),
+      onChanged: widget.onChanged,
+      onSubmitted: widget.onSubmitted,
+    );
+    return _capsule(
+      theme,
+      ring: _focused && _traditional,
+      content: accessory == null
+          ? input
+          : Row(
+              children: [
+                accessory,
+                const SizedBox(width: _kGlyphGap),
+                Expanded(child: input),
+              ],
+            ),
+      // Rebuilds only this small slot on every keystroke — the controller is
+      // a Listenable, and the clear button's whole job is reacting to its
+      // text, so there's no reason to rebuild the rest of the bar (or lift
+      // state up) for it.
+      trailing: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) => controller.text.isEmpty
+            ? const SizedBox(width: searchFieldHPadding)
+            : Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: SpringPress(
+                  onTap: _clear,
+                  scale: 0.86,
+                  haptic: false,
+                  focusShape: FocusRingShape.circle,
+                  semanticLabel: l10n.pullRevealClearSearchSemanticLabel,
+                  child: SizedBox.square(
+                    dimension: 32,
+                    child: Icon(
+                      CupertinoIcons.xmark_circle_fill,
+                      size: searchFieldIconSize,
+                      color: theme.inkMuted.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+/// The search bar's trailing Cancel: slides in while the field is focused or
+/// holds text, slides out once it is neither. Instant under reduced motion.
+class _CancelSlot extends StatelessWidget {
+  const _CancelSlot({
+    required this.controller,
+    required this.focused,
+    required this.onCancel,
+  });
+
+  final TextEditingController controller;
+  final bool focused;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final calm = MotionScope.of(context).calm;
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final show = focused || controller.text.isNotEmpty;
+        return ClipRect(
+          child: AnimatedSize(
+            duration:
+                calm ? Duration.zero : const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.centerLeft,
+            child: show
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: TextLinkButton(
+                      label:
+                          MaterialLocalizations.of(context).cancelButtonLabel,
+                      onTap: onCancel,
+                    ),
+                  )
+                : const SizedBox(height: searchFieldHeight),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -226,14 +458,13 @@ class SearchFieldHero extends StatelessWidget {
   Widget build(BuildContext context) =>
       Hero(tag: tag, flightShuttleBuilder: _shuttle, child: child);
 
-  /// What actually flies: the two decorations lerped, with the magnifier
-  /// gliding from the door's trailing edge to the field's leading one.
+  /// What actually flies: the pill itself, with the magnifier where both
+  /// ends draw it.
   ///
-  /// `animation.value` is 1 at the *search screen* end of the flight in both
-  /// directions — Flutter hands the shuttle the pushed route's animation on a
-  /// push and the popping route's on a pop — so a single `t` describes
-  /// "how much of a search bar is this right now" without consulting
-  /// [HeroFlightDirection] at all.
+  /// Both ends are now the same box — the door is a [SearchField.door], the
+  /// pixel twin of the field — so there is nothing to lerp but the rect the
+  /// [Hero] already interpolates. (The old card door wore the theme's input
+  /// box and a trailing magnifier, and the shuttle morphed one into the other.)
   ///
   /// Nothing here draws text. That is not only about overflow: an overlay
   /// entry sits outside both routes' [Material] and [DefaultTextStyle], and
@@ -249,32 +480,19 @@ class SearchFieldHero extends StatelessWidget {
     // mid-flight and their elements are being handed around. `ThemeScope` sits
     // above the app's navigator, so the overlay is inside it either way.
     final theme = ThemeScope.of(flightContext);
-    final door = theme.inputDecoration();
-    final bar = searchFieldDecoration(theme);
-
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, _) {
-        final t = animation.value.clamp(0.0, 1.0);
-        return DecoratedBox(
-          decoration: BoxDecoration.lerp(door, bar, t)!,
-          child: Align(
-            alignment:
-                Alignment.lerp(Alignment.centerRight, Alignment.centerLeft, t)!,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal:
-                    lerpDouble(searchDoorHPadding, searchFieldHPadding, t)!,
-              ),
-              child: Icon(
-                CupertinoIcons.search,
-                size: searchFieldIconSize,
-                color: theme.inkMuted,
-              ),
-            ),
+    return DecoratedBox(
+      decoration: searchFieldDecoration(theme),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.only(left: searchFieldHPadding),
+          child: Icon(
+            CupertinoIcons.search,
+            size: searchFieldIconSize,
+            color: theme.inkMuted,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

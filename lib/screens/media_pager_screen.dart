@@ -1,26 +1,112 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
+import '../widgets/destructive_sheet.dart' show showConfirmSheet;
+import '../widgets/forward_target_sheet.dart';
 import '../widgets/media_filmstrip.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/photo_backdrop.dart';
-import '../widgets/photo_chrome.dart' show MediaPlayDisc;
+import '../widgets/photo_chrome.dart' show MediaDurationBadge, MediaPlayDisc;
 import '../widgets/photo_dismiss_area.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/spring_press.dart';
 import '../widgets/steady_hero.dart';
 import 'fullscreen_video_viewer.dart';
-import '../widgets/glass_buttons.dart';
-import '../widgets/liquid_glass.dart';
+import 'room_content_actions.dart';
 import '../widgets/viewer_chrome.dart';
+
+/// What the gallery's bottom toolbar can do with the picture on screen.
+///
+/// The pager draws the toolbar, asks before deleting and says what happened;
+/// these do the work. Each is optional, and a null one hides its button — a
+/// pager opened somewhere with no room to forward from simply has no Forward.
+///
+/// [MediaPagerActions.room] is the whole set for a conversation, so the
+/// transcript and the room's shared-content grid hand the gallery one value
+/// rather than four closures each.
+class MediaPagerActions {
+  const MediaPagerActions({
+    this.currentUserId,
+    this.onShare,
+    this.onSave,
+    this.onForward,
+    this.onDelete,
+  });
+
+  /// Whose pictures may be deleted: Delete shows only on [currentUserId]'s.
+  final String? currentUserId;
+
+  /// The OS share sheet. False when nothing could be handed to it.
+  final Future<bool> Function(ChatMessage m)? onShare;
+
+  /// Save to the photo library. False when it did not save.
+  final Future<bool> Function(ChatMessage m)? onSave;
+
+  /// Picks chats and forwards into them, from [context] (the sheet needs one).
+  /// The number of chats it reached; null when the reader backed out.
+  final Future<int?> Function(BuildContext context, ChatMessage m)? onForward;
+
+  /// Delete for everyone, AFTER the pager has asked. False when the server
+  /// refused it.
+  final Future<bool> Function(ChatMessage m)? onDelete;
+
+  /// The full set for one conversation, built on the same helpers the
+  /// shared-content grid's action bar uses, so "share a photo" is one
+  /// implementation whether one or forty are picked.
+  ///
+  /// [onDeleted] lets the opener drop the row from its own list straight
+  /// away rather than waiting on a subscription.
+  factory MediaPagerActions.room({
+    required ChatRepository repo,
+    required ChatApi api,
+    required String roomId,
+    void Function(ChatMessage m)? onDeleted,
+  }) {
+    return MediaPagerActions(
+      currentUserId: repo.userId,
+      onShare: (m) => shareMessages(api: api, messages: [m]),
+      // `gal` has no web implementation — see [saveMessagesToDevice].
+      onSave: kIsWeb
+          ? null
+          : (m) async =>
+              (await saveMessagesToDevice(api: api, messages: [m])).ok > 0,
+      onForward: (context, m) async {
+        final targets = await showForwardTargetSheet(
+          context,
+          repo: repo,
+          messageCount: 1,
+          excludeRoomId: roomId,
+        );
+        if (targets == null || targets.isEmpty) return null;
+        final result = await forwardMessages(
+          api: api,
+          repo: repo,
+          sourceRoomId: roomId,
+          targets: [for (final t in targets) t.id],
+          messages: [m],
+        );
+        return result.ok;
+      },
+      onDelete: (m) async {
+        final result =
+            await deleteMessages(api: api, repo: repo, messageIds: [m.id]);
+        if (result.ok > 0) onDeleted?.call(m);
+        return result.ok > 0;
+      },
+    );
+  }
+}
 
 /// Fullscreen media, swipeable across a set — the MEDIA tab's grid, or every
 /// picture in one conversation.
@@ -62,6 +148,7 @@ class MediaPagerScreen extends StatefulWidget {
     this.onPageChanged,
     this.heroTagFor,
     this.sourceDecodeWidth,
+    this.actions,
   });
 
   final List<ChatMessage> items;
@@ -101,6 +188,9 @@ class MediaPagerScreen extends StatefulWidget {
   /// cutting to a picture rather than moving it.
   final Object Function(ChatMessage message)? heroTagFor;
 
+  /// The bottom toolbar's actions. Null draws no toolbar at all.
+  final MediaPagerActions? actions;
+
   /// Returns the index the pager was left on, so the grid can put that tile
   /// back under the reader's eyes. Null if it was dismissed without settling.
   ///
@@ -116,6 +206,7 @@ class MediaPagerScreen extends StatefulWidget {
     void Function(ChatMessage message)? onPageChanged,
     Object Function(ChatMessage message)? heroTagFor,
     int? sourceDecodeWidth,
+    MediaPagerActions? actions,
   }) {
     return Navigator.of(context, rootNavigator: true).push<int>(
       PageRouteBuilder<int>(
@@ -134,6 +225,7 @@ class MediaPagerScreen extends StatefulWidget {
           onPageChanged: onPageChanged,
           heroTagFor: heroTagFor,
           sourceDecodeWidth: sourceDecodeWidth,
+          actions: actions,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -149,6 +241,11 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     with RouteLanding {
   late final PageController _pager;
   late int _index;
+
+  /// The set as it stands now. A copy of [MediaPagerScreen.items] that only
+  /// ever shrinks — Delete takes the picture out from under the reader and
+  /// the gallery carries on with its neighbour, as Photos does.
+  late final List<ChatMessage> _items = [...widget.items];
 
   /// Live dismiss-drag offset, written by whichever page is under a finger and
   /// painted here. Shared across the pages on purpose — only one of them can be
@@ -169,6 +266,10 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
 
   bool _closing = false;
 
+  /// An action is in flight. A second tap on Share while the first is still
+  /// fetching the file would open two share sheets.
+  bool _busy = false;
+
   @override
   void initState() {
     super.initState();
@@ -183,12 +284,17 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     super.dispose();
   }
 
-  /// Pops with the index the reader settled on. Guarded because a committed
-  /// dismiss drag and a tap on the close button can land in the same frame.
+  /// Pops with the index the reader settled on — in the set the opener HANDED
+  /// in, which is the list it knows, even after a delete has shortened ours.
+  /// Guarded because a committed dismiss drag and a tap on the close button can
+  /// land in the same frame.
   void _close() {
     if (_closing) return;
     _closing = true;
-    Navigator.of(context).pop(_index);
+    final at = _items.isEmpty
+        ? -1
+        : widget.items.indexWhere((m) => m.id == _items[_index].id);
+    Navigator.of(context).pop(at < 0 ? null : at);
   }
 
   Object _heroTag(ChatMessage m) =>
@@ -202,15 +308,144 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     _pager.jumpToPage(i);
   }
 
+  // ───────────────────────── toolbar ─────────────────────────
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      await action();
+    } finally {
+      _busy = false;
+    }
+  }
+
+  Future<void> _share(ChatMessage m) => _run(() async {
+        final l10n = AppLocalizations.of(context);
+        final toast = AppToast.of(context);
+        final ok = await widget.actions!.onShare!(m);
+        if (!ok) toast.show(l10n.photoChromeShareFailed, tone: ToastTone.danger);
+      });
+
+  Future<void> _save(ChatMessage m) => _run(() async {
+        final l10n = AppLocalizations.of(context);
+        final toast = AppToast.of(context);
+        final ok = await widget.actions!.onSave!(m);
+        toast.show(
+          ok ? l10n.photoChromeSaved : l10n.photoChromeSaveFailed,
+          tone: ok ? ToastTone.success : ToastTone.danger,
+        );
+      });
+
+  Future<void> _forward(ChatMessage m) => _run(() async {
+        final l10n = AppLocalizations.of(context);
+        final toast = AppToast.of(context);
+        final reached = await widget.actions!.onForward!(context, m);
+        if (reached == null) return;
+        if (reached > 0) {
+          toast.show(l10n.photoChromeForwarded(reached), tone: ToastTone.success);
+        } else {
+          toast.show(l10n.photoChromeForwardFailed, tone: ToastTone.danger);
+        }
+      });
+
+  Future<void> _delete(ChatMessage m) => _run(() async {
+        final l10n = AppLocalizations.of(context);
+        final toast = AppToast.of(context);
+        final confirmed = await showConfirmSheet(
+          context,
+          headline: l10n.roomContentScreenDeleteHeadline(1),
+          body: l10n.photoChromeDeleteBody,
+          confirmLabel: l10n.roomContentScreenDeleteForEveryone,
+        );
+        if (!confirmed || !mounted) return;
+        final ok = await widget.actions!.onDelete!(m);
+        if (!mounted) return;
+        if (!ok) {
+          toast.show(l10n.photoChromeDeleteFailed, tone: ToastTone.danger);
+          return;
+        }
+        final at = _items.indexWhere((x) => x.id == m.id);
+        if (at < 0) return;
+        if (_items.length == 1) {
+          // Nothing left to look at. No flight home either — the tile it
+          // would land on is the thing that was just deleted.
+          _items.removeAt(at);
+          _closing = true;
+          Navigator.of(context).pop();
+          return;
+        }
+        setState(() {
+          _items.removeAt(at);
+          // The page under the reader is now the one after it — or, at the
+          // end of the set, the one before.
+          if (_index >= _items.length) _index = _items.length - 1;
+          _zoomed = false;
+        });
+        if (_pager.hasClients && _pager.page?.round() != _index) {
+          _pager.jumpToPage(_index);
+        }
+        widget.onPageChanged?.call(_items[_index]);
+      });
+
+  /// How tall the filmstrip-and-toolbar band is, home indicator included.
+  double _bottomChromeHeight(BuildContext context) {
+    final strip = _items.length > 1;
+    final tools = _toolbar(_items[_index]).isNotEmpty;
+    if (!strip && !tools) return 0;
+    return MediaQuery.paddingOf(context).bottom +
+        (strip ? MediaFilmstrip.viewerHeight : 0) +
+        (tools ? ViewerToolbar.height + (strip ? 8 : 0) : 0) +
+        8;
+  }
+
+  List<ViewerToolbarAction> _toolbar(ChatMessage m) {
+    final a = widget.actions;
+    if (a == null) return const [];
+    final l10n = AppLocalizations.of(context);
+    // Nothing to share, save or forward once the blob has gone.
+    final hasFile = m.mediaStorageId != null;
+    return [
+      if (a.onShare != null && hasFile)
+        ViewerToolbarAction(
+          icon: CupertinoIcons.square_arrow_up,
+          semanticLabel: l10n.roomContentScreenShareAction,
+          onTap: () => _share(m),
+        ),
+      if (a.onSave != null && hasFile)
+        ViewerToolbarAction(
+          icon: CupertinoIcons.arrow_down_to_line,
+          semanticLabel: l10n.roomContentScreenSaveAction,
+          onTap: () => _save(m),
+        ),
+      if (a.onForward != null)
+        ViewerToolbarAction(
+          icon: CupertinoIcons.arrowshape_turn_up_right,
+          semanticLabel: l10n.roomContentScreenForwardAction,
+          onTap: () => _forward(m),
+        ),
+      if (a.onDelete != null &&
+          a.currentUserId != null &&
+          m.senderId == a.currentUserId)
+        ViewerToolbarAction(
+          icon: CupertinoIcons.trash,
+          semanticLabel: l10n.roomContentScreenDeleteAction,
+          danger: true,
+          onTap: () => _delete(m),
+        ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    if (widget.items.isEmpty) return const SizedBox.shrink();
+    if (_items.isEmpty) return const SizedBox.shrink();
     final screen = MediaQuery.sizeOf(context);
-    final current = widget.items[_index];
-    // A rail under a set of one is a rail with one tile on it, saying nothing
-    // the position counter above has not already said.
-    final strip = widget.items.length > 1;
+    final current = _items[_index];
+    final l10n = AppLocalizations.of(context);
+    // A rail under a set of one is a rail with one tile on it, saying nothing.
+    final strip = _items.length > 1;
+    final tools = _toolbar(current);
 
     return Material(
       type: MaterialType.transparency,
@@ -230,11 +465,12 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                 // Painted inside the route rather than left to the barrier, so
                 // it can fade to nothing as the drag commits — that is what
                 // makes the Hero return read as the picture going back where it
-                // came from rather than as a cut.
+                // came from rather than as a cut. Fully black at rest: at 95%
+                // the transcript bled through as a dirty grey.
                 Positioned.fill(
                   child: IgnorePointer(
                     child: ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.95 * (1 - t)),
+                      color: Colors.black.withValues(alpha: 1 - t),
                     ),
                   ),
                 ),
@@ -249,27 +485,29 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                 ),
                 _FadingChrome(
                   opacity: chromeOpacity,
-                  child: _TopBar(
+                  builder: (still) => _TopBar(
                     message: current,
-                    position: AppLocalizations.of(context)
-                        .photoChromeMediaPositionLabel(
+                    position: l10n.photoChromeThumbnailSemanticLabel(
                       _index + 1,
-                      widget.items.length,
+                      _items.length,
                     ),
+                    still: still,
                     onClose: _close,
                     onShowInChat: widget.onShowInChat == null
                         ? null
                         : () => widget.onShowInChat!(current),
                   ),
                 ),
-                if (strip)
+                if (strip || tools.isNotEmpty)
                   _FadingChrome(
                     opacity: chromeOpacity,
                     alignBottom: true,
-                    child: _Strip(
-                      items: widget.items,
+                    builder: (_) => _BottomChrome(
+                      items: _items,
                       index: _index,
                       api: widget.api,
+                      strip: strip,
+                      tools: tools,
                       onTap: _jumpTo,
                     ),
                   ),
@@ -283,7 +521,14 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
             physics: _zoomed
                 ? const NeverScrollableScrollPhysics()
                 : const PageScrollPhysics(),
-            itemCount: widget.items.length,
+            itemCount: _items.length,
+            // Keyed by message, so a delete that slides every later page one
+            // slot left hands each its own state rather than its neighbour's.
+            findChildIndexCallback: (key) {
+              if (key is! ValueKey<String>) return null;
+              final i = _items.indexWhere((m) => m.id == key.value);
+              return i < 0 ? null : i;
+            },
             onPageChanged: (i) {
               setState(() {
                 _index = i;
@@ -292,24 +537,30 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                 // gallery unswipeable with nothing on screen to explain why.
                 _zoomed = false;
               });
-              widget.onPageChanged?.call(widget.items[i]);
+              widget.onPageChanged?.call(_items[i]);
             },
             itemBuilder: (_, i) => HeroMode(
+              key: ValueKey<String>(_items[i].id),
               // Neighbours stay built; only the visible one may fly. See the
               // class comment.
               enabled: i == _index,
               child: _Page(
-                message: widget.items[i],
+                message: _items[i],
                 api: widget.api,
-                heroTag: _heroTag(widget.items[i]),
+                heroTag: _heroTag(_items[i]),
                 // Only the page the flight actually opened on. The rest were
                 // never a thumbnail on the route below, so there is no warm
                 // decode of theirs to defer to, and offering one would only
                 // pin them to a resolution they never had.
-                sourceDecodeWidth:
-                    i == widget.initialIndex ? widget.sourceDecodeWidth : null,
+                sourceDecodeWidth: _items[i].id ==
+                        widget.items[widget.initialIndex
+                                .clamp(0, widget.items.length - 1)]
+                            .id
+                    ? widget.sourceDecodeWidth
+                    : null,
                 landed: landed,
                 drag: _drag,
+                chromeClearance: _chrome ? _bottomChromeHeight(context) : 0,
                 onDismiss: _close,
                 onToggleChrome: () => setState(() => _chrome = !_chrome),
                 onZoomChanged: (z) {
@@ -331,24 +582,42 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
 /// [AnimatedOpacity] rather than a plain [Opacity] so the tap-to-hide toggle
 /// is a fade and not a cut. It is driven by the dismiss drag as well, and at
 /// 90ms that follows a finger closely enough to still read as continuous.
-class _FadingChrome extends StatelessWidget {
+///
+/// [builder] is told whether the chrome is anything but fully shown and at
+/// rest, so the glass in it can step down to its blur-free twin for exactly
+/// the frames it is fading — a `BackdropFilter` is never animated.
+class _FadingChrome extends StatefulWidget {
   const _FadingChrome({
     required this.opacity,
-    required this.child,
+    required this.builder,
     this.alignBottom = false,
   });
 
   final double opacity;
-  final Widget child;
+  final Widget Function(bool still) builder;
   final bool alignBottom;
 
   @override
+  State<_FadingChrome> createState() => _FadingChromeState();
+}
+
+class _FadingChromeState extends State<_FadingChrome> {
+  bool _fading = false;
+
+  @override
+  void didUpdateWidget(_FadingChrome old) {
+    super.didUpdateWidget(old);
+    if (old.opacity != widget.opacity) _fading = true;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final opacity = widget.opacity;
     return Positioned(
       left: 0,
       right: 0,
-      top: alignBottom ? null : 0,
-      bottom: alignBottom ? 0 : null,
+      top: widget.alignBottom ? null : 0,
+      bottom: widget.alignBottom ? 0 : null,
       child: IgnorePointer(
         // Not merely invisible: hidden chrome that still swallowed taps would
         // make the gesture that hid it impossible to undo.
@@ -356,45 +625,64 @@ class _FadingChrome extends StatelessWidget {
         child: AnimatedOpacity(
           opacity: opacity,
           duration: const Duration(milliseconds: 90),
-          child: child,
+          onEnd: () {
+            if (mounted && _fading) setState(() => _fading = false);
+          },
+          child: widget.builder(_fading || opacity < 1),
         ),
       ),
     );
   }
 }
 
-/// The thumbnail rail, plus the scrim that keeps it legible over a bright
+/// Everything under the picture: the thumbnail rail, the toolbar 8pt below
+/// it, and the one scrim both sit on so they stay legible over a bright
 /// photograph.
-class _Strip extends StatelessWidget {
-  const _Strip({
+class _BottomChrome extends StatelessWidget {
+  const _BottomChrome({
     required this.items,
     required this.index,
     required this.api,
+    required this.strip,
+    required this.tools,
     required this.onTap,
   });
 
   final List<ChatMessage> items;
   final int index;
   final ChatApi api;
+  final bool strip;
+  final List<ViewerToolbarAction> tools;
   final void Function(int i) onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final hasTools = tools.isNotEmpty;
+    final height = (strip ? MediaFilmstrip.viewerHeight : 0) +
+        (hasTools ? ViewerToolbar.height + (strip ? 8 : 0) : 0);
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
-        MediaScrim(height: MediaFilmstrip.height + bottom + 24),
+        MediaScrim(height: height + bottom + 40),
         Padding(
-          padding: EdgeInsets.only(bottom: bottom + 6),
-          child: MediaFilmstrip(
-            count: items.length,
-            index: index,
-            onTap: onTap,
-            tileSemanticLabel: (i, total) =>
-                l10n.photoChromeThumbnailSemanticLabel(i, total),
-            thumbnailBuilder: (_, i) => _Thumb(message: items[i], api: api),
+          padding: EdgeInsets.only(bottom: bottom + (hasTools ? 4 : 6)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (strip)
+                MediaFilmstrip.viewer(
+                  count: items.length,
+                  index: index,
+                  onTap: onTap,
+                  tileSemanticLabel: (i, total) =>
+                      l10n.photoChromeThumbnailSemanticLabel(i, total),
+                  thumbnailBuilder: (_, i) => _Thumb(message: items[i], api: api),
+                ),
+              if (strip && hasTools) const SizedBox(height: 8),
+              if (hasTools) ViewerToolbar(actions: tools),
+            ],
           ),
         ),
       ],
@@ -416,12 +704,14 @@ class _Thumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final video = _isMovie(message);
     final id = video ? message.posterStorageId : message.mediaStorageId;
     if (id == null) {
+      // Fixed dark, not the theme's sunken surface: this rail sits on the
+      // viewer's black on every theme, and a cream tile on Risograph read as
+      // a hole punched in it.
       return ColoredBox(
-        color: theme.surfaceSunken,
+        color: Colors.white.withValues(alpha: 0.06),
         child: Icon(
           video ? CupertinoIcons.film : CupertinoIcons.photo,
           size: 18,
@@ -433,12 +723,13 @@ class _Thumb extends StatelessWidget {
       storageId: id,
       api: api,
       // The box is already tight from the rail, so this only steers the
-      // DECODE — 54pt of thumbnail has no business decoding at the screen cap,
+      // DECODE — 40pt of thumbnail has no business decoding at the screen cap,
       // which is what `decodeSizeFor` falls back to when neither axis is given.
-      width: MediaFilmstrip.tileSize,
-      height: MediaFilmstrip.tileSize,
+      width: MediaFilmstrip.viewerTileSize,
+      height: MediaFilmstrip.viewerTileSize,
       fit: BoxFit.cover,
       borderRadius: BorderRadius.zero,
+      onDark: true,
     );
     if (!video) return thumb;
     return Stack(
@@ -480,11 +771,16 @@ class _Page extends StatelessWidget {
     required this.onDismiss,
     required this.onToggleChrome,
     required this.onZoomChanged,
+    this.chromeClearance = 0,
   });
 
   final ChatMessage message;
   final ChatApi api;
   final Object heroTag;
+
+  /// How much of the screen's bottom the gallery's chrome covers — see
+  /// [_VideoPage.chromeClearance].
+  final double chromeClearance;
 
   /// See [MediaPagerScreen.sourceDecodeWidth]. Null on every page but the one
   /// the gallery opened on.
@@ -521,6 +817,7 @@ class _Page extends StatelessWidget {
         heroTag: heroTag,
         drag: drag,
         onDismiss: onDismiss,
+        chromeClearance: chromeClearance,
       );
     }
 
@@ -537,6 +834,7 @@ class _Page extends StatelessWidget {
       borderRadius: BorderRadius.zero,
       placeholderDecodeWidth: sourceDecodeWidth,
       decodeWidth: landed ? null : sourceDecodeWidth,
+      onDark: true,
     );
     return Stack(
       fit: StackFit.expand,
@@ -552,6 +850,7 @@ class _Page extends StatelessWidget {
             fit: BoxFit.cover,
             borderRadius: BorderRadius.zero,
             decodeWidth: sourceDecodeWidth ?? kPhotoBackdropDecodeWidth,
+            onDark: true,
           ),
         ),
         PhotoDismissArea(
@@ -642,7 +941,12 @@ class _VideoPage extends StatefulWidget {
     required this.heroTag,
     required this.drag,
     required this.onDismiss,
+    this.chromeClearance = 0,
   });
+
+  /// The bottom band the filmstrip and toolbar sit in. The duration badge
+  /// stays above it: under the chrome's scrim it was a grey smudge.
+  final double chromeClearance;
 
   final ChatMessage message;
   final ChatApi api;
@@ -693,6 +997,7 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
               fit: BoxFit.cover,
               borderRadius: BorderRadius.zero,
               decodeWidth: kPhotoBackdropDecodeWidth,
+              onDark: true,
             ),
           ),
         PhotoDismissArea(
@@ -710,17 +1015,24 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
             children: [
               mediaFlight(
                 widget.heroTag,
-                poster == null
-                    ? const Icon(
-                        CupertinoIcons.film,
-                        size: 34,
-                        color: Colors.white24,
-                      )
-                    : RemoteImage(
+                // The film glyph only when there is nothing to play: under the
+                // play disc's scrim it showed through as a second mark. A
+                // playable posterless video flies an empty box — the disc
+                // below is the whole picture.
+                poster != null
+                    ? RemoteImage(
                         storageId: poster,
                         api: widget.api,
                         fit: BoxFit.contain,
-                      ),
+                        onDark: true,
+                      )
+                    : playable
+                        ? const SizedBox(width: 34, height: 34)
+                        : const Icon(
+                            CupertinoIcons.film,
+                            size: 34,
+                            color: Colors.white24,
+                          ),
               ),
               if (playable)
                 // Held back until the picture has arrived. A disc fading in
@@ -742,7 +1054,60 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
             ],
           ),
         ),
+        ?_durationBadge(),
       ],
+    );
+  }
+
+  /// The clip's length in the bottom-right corner of the PICTURE, where every
+  /// grid tile and bubble already puts it — not the screen's corner, which on
+  /// a landscape clip is a long way from anything to do with the video.
+  ///
+  /// Only when the poster's shape is known, because that is what says where
+  /// the picture's corner is; and held back until the flight lands, like the
+  /// play disc, so it is not a third thing moving.
+  Widget? _durationBadge() {
+    final ms = widget.message.mediaDurationMs;
+    if (ms == null || ms <= 0) return null;
+    final aspect = widget.message.mediaAspectRatio ??
+        MediaAspectCache.instance.peek(widget.message.posterStorageId ?? '');
+    if (aspect == null || !aspect.isFinite || aspect <= 0) return null;
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: LayoutBuilder(
+          builder: (context, box) {
+            var w = box.maxWidth;
+            var h = w / aspect;
+            if (h > box.maxHeight) {
+              h = box.maxHeight;
+              w = h * aspect;
+            }
+            // Lifted clear of the chrome when the picture runs down into it.
+            final pictureBottom = (box.maxHeight + h) / 2;
+            final lift = (pictureBottom - (box.maxHeight - widget.chromeClearance))
+                .clamp(0.0, h / 2);
+            return Center(
+              child: SizedBox(
+                width: w,
+                height: h,
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(10, 10, 10, 10 + lift),
+                    child: AnimatedOpacity(
+                      opacity: landed ? 1 : 0,
+                      duration: const Duration(milliseconds: 140),
+                      child: MediaDurationBadge(
+                        duration: Duration(milliseconds: ms),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -766,18 +1131,24 @@ class _PlayDisc extends StatelessWidget {
       );
 }
 
-/// The pager's top bar: the shared viewer chrome, with who sent it and where
-/// in the album this is.
+/// The pager's top bar: the shared viewer chrome, with who sent it and when.
+///
+/// When, not "3 / 8": the filmstrip under the picture already says where in
+/// the set this is, and the question a photograph raises that nothing else on
+/// screen answers is when it was taken. The position stays for screen
+/// readers, which have no filmstrip to glance at.
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.message,
     required this.position,
+    required this.still,
     required this.onClose,
     required this.onShowInChat,
   });
 
   final ChatMessage message;
   final String position;
+  final bool still;
   final VoidCallback onClose;
   final VoidCallback? onShowInChat;
 
@@ -786,15 +1157,17 @@ class _TopBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return ViewerTopBar(
       onClose: onClose,
+      still: still,
       closeLabel: l10n.photoChromeCloseSemanticLabel,
       title: message.senderName.isEmpty
           ? l10n.photoChromeMediaYouLabel
           : message.senderName,
-      subtitle: position,
+      subtitle: viewerWhenLabel(context, message.createdAt),
+      subtitleSemanticLabel:
+          '${viewerWhenLabel(context, message.createdAt)}, $position',
       actions: [
         if (onShowInChat != null)
-          GlassIconButton(
-            tone: GlassTone.media,
+          ViewerChromeButton(
             icon: CupertinoIcons.chat_bubble,
             semanticLabel: l10n.photoChromeShowInChatSemanticLabel,
             onTap: onShowInChat,

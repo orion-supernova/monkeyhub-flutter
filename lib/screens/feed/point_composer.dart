@@ -13,11 +13,11 @@ import '../../media/image_raster.dart';
 import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../models/moment.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/ios_kit.dart';
-import '../../widgets/meta_text.dart';
 import '../../widgets/photo_chrome.dart' show MediaOverlayChip;
 import '../../widgets/sheet_kit.dart';
 
@@ -51,6 +51,7 @@ Future<bool> showPointComposer(
   required String userId,
   MomentTag? initialTag,
 }) async {
+  // Kept below the Dynamic Island by `showAdaptiveSheet`'s default.
   final posted = await showAdaptiveSheet<bool>(
     context,
     builder: (_) => _PointComposer(
@@ -83,6 +84,7 @@ class _PointComposer extends StatefulWidget {
 class _PointComposerState extends State<_PointComposer> {
   final _note = TextEditingController();
   final _focus = FocusNode();
+  final _fieldKey = GlobalKey();
   MomentTag? _tag;
   CroppedImage? _image;
 
@@ -106,6 +108,7 @@ class _PointComposerState extends State<_PointComposer> {
     super.initState();
     _tag = widget.initialTag;
     _note.addListener(_onTyped);
+    _focus.addListener(_onFocus);
     // A point is a sentence. Opening straight into the keyboard is the whole
     // difference between "log it in four seconds" and "log it later, probably
     // never".
@@ -117,6 +120,7 @@ class _PointComposerState extends State<_PointComposer> {
   @override
   void dispose() {
     _note.removeListener(_onTyped);
+    _focus.removeListener(_onFocus);
     _note.dispose();
     _focus.dispose();
     super.dispose();
@@ -319,161 +323,221 @@ class _PointComposerState extends State<_PointComposer> {
     }
   }
 
+  /// Keeps the note field in view once the keyboard is up. The body scrolls
+  /// (a [SheetScrollBody]); without this, focusing the field on a small phone
+  /// left it under the keyboard with the grid filling the view.
+  void _onFocus() {
+    if (!_focus.hasFocus) return;
+    Future<void>.delayed(const Duration(milliseconds: 320), () {
+      final target = _fieldKey.currentContext;
+      if (!mounted || target == null || !target.mounted) return;
+      if (!_focus.hasFocus) return;
+      Scrollable.ensureVisible(
+        target,
+        alignment: 1,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final remaining = _maxNote - _note.text.characters.length;
+    final over = remaining < 0;
 
-    // The shared bar (× leading, title centred); SheetFrame adds the
-    // keyboard's inset under the scroller.
+    // The footer button says what is missing rather than just greying out —
+    // a disabled "Add a point" under five unpicked chips reads as broken.
+    final String action;
+    if (_tag == null) {
+      action = l10n.pointComposerPickFirst;
+    } else {
+      action = l10n.pointComposerAdd;
+    }
+
+    // The shared sheet: × leading (the app's one chrome disc), the question
+    // as the title, and the commit pinned as the footer — always on screen,
+    // riding above the keyboard, however tall the body gets. No ✓ in the bar:
+    // the footer button is the single commit.
+    //
+    // No height cap and no scroll view of its own. The old 0.82-screen
+    // ConstrainedBox plus the keyboard inset asked for more than the screen,
+    // the route clipped the TOP — the bar, under the Dynamic Island — and the
+    // body's own scroll view ate every downward drag, so the sheet could not
+    // be swiped away. `showAdaptiveSheet` now keeps the sheet below the
+    // island, and [SheetScrollBody] hands a pull from the top to the sheet.
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.pointComposerTitle),
       padding: EdgeInsets.zero,
-      // Scrolls, and is bounded — the same fix the highlight composer already
-      // carries. An unscrollable Column in an `isScrollControlled` sheet simply
-      // clips whatever runs past the viewport, and with the keyboard up and a
-      // photo attached what got clipped was ADD POINT itself: the button you
-      // need to finish is the one that disappears.
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // The concept needs explaining — "kerizlik points" is not a thing
-              // anyone has met before. One tap, right where the question
-              // occurs to you: first thing under the bar, whose trailing slot
-              // is reserved for a ✓.
-              _WhatIsThis(onTap: () => showPointsExplainer(context)),
-              const SizedBox(height: 14),
-              _TagGrid(
-                selected: _tag,
-                enabled: !_busy,
-                onPick: (t) {
-                  setState(() => _tag = t);
-                  HapticFeedback.selectionClick();
-                },
+      footer: SheetActionButton(
+        label: action,
+        busy: _busy,
+        onTap: _canPost && !over ? _post : null,
+      ),
+      child: SheetScrollBody(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The decision first: the category is what makes this a point.
+            _TagGrid(
+              selected: _tag,
+              enabled: !_busy,
+              onPick: (t) {
+                setState(() => _tag = t);
+                HapticFeedback.selectionClick();
+              },
+            ),
+            const SizedBox(height: 6),
+            // "Kerizlik points" is not a thing anyone has met before, so the
+            // explainer is one tap away — under the choices it explains, not
+            // above them where it used to push the decision down.
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextLinkButton(
+                label: l10n.pointsExplainerOpen,
+                icon: CupertinoIcons.chevron_forward,
+                fontSize: 15,
+                onTap: () => showPointsExplainer(context),
               ),
-              const SizedBox(height: 16),
-              // The shared composer field: a filled rounded box with the
-              // theme's accent caret, so the note reads as a place to type
-              // rather than floating text.
-              SheetTextField(
-                controller: _note,
-                focusNode: _focus,
-                maxLines: 4,
-                minLines: 2,
-                enabled: !_busy,
-                hint: _tag == null
-                    ? l10n.pointComposerNoteHint
-                    : MomentTagChip.exampleFor(l10n, _tag!),
-              ),
-              if (_image != null) ...[
-                const SizedBox(height: 12),
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                      // Capped at the same 300 the highlight composer's `_MediaSlot`
-                      // uses. A 9:16 portrait rendered at its true ratio is taller
-                      // than the sheet on its own; keep the two in step.
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 300),
-                        child: AspectRatio(
-                          aspectRatio: _image!.width / _image!.height,
-                          child: Image.memory(_image!.bytes, fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 10),
+            // The shared composer field, with the countdown inside it once
+            // it matters.
+            SheetTextField(
+              key: _fieldKey,
+              controller: _note,
+              focusNode: _focus,
+              maxLines: 6,
+              minLines: 3,
+              enabled: !_busy,
+              hint: _tag == null
+                  ? l10n.pointComposerNoteHint
+                  : MomentTagChip.exampleFor(l10n, _tag!),
+              trailing: remaining <= 40
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 8, 13),
+                      child: Text(
+                        '$remaining',
+                        style: groupedMetaStyle(theme).copyWith(
+                          color: over ? theme.danger : theme.inkMuted,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
-                    ),
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Row(
-                        children: [
-                          // Only when the original bytes were kept — a re-crop
-                          // has to start from those, never from the export.
-                          if (_imageSource != null) ...[
-                            MediaOverlayChip(
-                              icon: CupertinoIcons.crop,
-                              semanticLabel: l10n.momentComposerEditPhoto,
-                              onTap: _busy ? null : _editImage,
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          MediaOverlayChip(
-                            icon: CupertinoIcons.xmark,
-                            semanticLabel: l10n.momentComposerRemovePhoto,
-                            onTap: _busy
-                                ? null
-                                : () => setState(() {
-                                    _image = null;
-                                    _imageSource = null;
-                                  }),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              if (_errorCode != null) ...[
-                const SizedBox(height: 12),
-                FormErrorBanner(switch (_errorCode) {
-                  'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
-                  'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
-                  'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
-                  'PICK_FAILED' => l10n.mediaPickFailedMessage,
-                  _ => l10n.momentComposerErrorGeneric,
-                }),
-              ],
-              const SizedBox(height: 14),
-              Row(
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            if (_image == null)
+              // Two ways in, both offered — the camera FIRST, because a
+              // point is usually logged in the thirty seconds after the
+              // thing happened, when the picture does not exist yet.
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  // Two ways in, both offered — the camera FIRST, because a
-                  // point is usually logged in the thirty seconds after the
-                  // thing happened, when the picture does not exist yet.
-                  // Hidden once there is a photo: the chips on the preview own
-                  // changing it from there.
-                  if (_image == null) ...[
-                    _SourceButton(
-                      icon: CupertinoIcons.camera_fill,
-                      label: l10n.momentComposerCapture,
-                      onTap: _busy ? null : _capture,
-                    ),
-                    const SizedBox(width: 8),
-                    _SourceButton(
-                      icon: CupertinoIcons.photo_fill_on_rectangle_fill,
-                      label: l10n.momentComposerLibrary,
-                      onTap: _busy ? null : _pickPhoto,
-                    ),
-                  ],
-                  const Spacer(),
-                  if (remaining <= 40)
-                    Text(
-                      '$remaining',
-                      style: metaText(
-                        theme,
-                        color: remaining < 0 ? theme.danger : theme.inkMuted,
-                      ),
-                    ),
+                  _SourceButton(
+                    icon: CupertinoIcons.camera_fill,
+                    label: l10n.momentComposerCapture,
+                    onTap: _busy ? null : _capture,
+                  ),
+                  _SourceButton(
+                    icon: CupertinoIcons.photo_fill_on_rectangle_fill,
+                    label: l10n.momentComposerLibrary,
+                    onTap: _busy ? null : _pickPhoto,
+                  ),
                 ],
+              )
+            else
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: _Thumb(
+                  image: _image!,
+                  canEdit: _imageSource != null && !_busy,
+                  onEdit: _editImage,
+                  onRemove: _busy
+                      ? null
+                      : () => setState(() {
+                          _image = null;
+                          _imageSource = null;
+                        }),
+                ),
               ),
-              const SizedBox(height: 14),
-              // The shared primary, with its own same-size spinner while the
-              // point is being written.
-              SheetActionButton(
-                label: l10n.pointComposerAdd,
-                busy: _busy,
-                onTap: _canPost && remaining >= 0 ? _post : null,
-              ),
+            if (_errorCode != null) ...[
+              const SizedBox(height: 12),
+              FormErrorBanner(switch (_errorCode) {
+                'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
+                'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
+                'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
+                'PICK_FAILED' => l10n.mediaPickFailedMessage,
+                _ => l10n.momentComposerErrorGeneric,
+              }),
             ],
-          ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// The attached photo, small: an 88pt rounded thumbnail. Tap it to re-crop;
+/// the × chip removes it.
+///
+/// Small on purpose. The old preview rendered up to 300pt tall, and a
+/// portrait photo pushed the note and the button off the sheet — the picture
+/// is the footnote of a point, not its body.
+class _Thumb extends StatelessWidget {
+  const _Thumb({
+    required this.image,
+    required this.canEdit,
+    required this.onEdit,
+    required this.onRemove,
+  });
+
+  final CroppedImage image;
+  final bool canEdit;
+  final VoidCallback onEdit;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return SizedBox.square(
+      dimension: 88,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: SpringPress(
+              onTap: canEdit ? onEdit : null,
+              semanticLabel: l10n.momentComposerEditPhoto,
+              focusRadius: 12,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(
+                  image.bytes,
+                  fit: BoxFit.cover,
+                  // Decoded at thumbnail size, not the full crop.
+                  cacheWidth: (88 * dpr).round(),
+                  gaplessPlayback: true,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 4,
+            top: 4,
+            child: MediaOverlayChip(
+              icon: CupertinoIcons.xmark,
+              semanticLabel: l10n.momentComposerRemovePhoto,
+              onTap: onRemove,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -609,20 +673,24 @@ class _TagChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // accentInk on an accent fill, never white — NeonNight's accent is pure
+    // yellow and Graphite's is near-white.
+    final ink = active ? theme.accentInk : theme.ink;
     return Semantics(
       selected: active,
       child: SpringPress(
         onTap: onTap,
         semanticLabel: '$label — $hint',
-        focusRadius: theme.radiusMd,
+        focusRadius: 14,
         child: AnimatedContainer(
           duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          constraints: const BoxConstraints(minHeight: 64),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             // The accent, not bubbleFill: a picked option is a control state,
             // not a message.
             color: active ? theme.accent : quietFill(theme),
-            borderRadius: BorderRadius.circular(theme.radiusMd),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,34 +698,47 @@ class _TagChoice extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    MomentTagChip.iconFor(tag),
-                    size: 15,
-                    // accentInk on an accent fill, never white — NeonNight's
-                    // accent is pure yellow and Graphite's is near-white.
-                    color: active ? theme.accentInk : theme.accent,
+                  AnimatedContainer(
+                    duration: theme.motionFast,
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: active
+                          ? theme.accentInk.withValues(alpha: 0.18)
+                          : theme.accent.withValues(alpha: 0.14),
+                    ),
+                    child: Icon(
+                      MomentTagChip.iconFor(tag),
+                      size: 15,
+                      color: active ? theme.accentInk : theme.accent,
+                    ),
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      sentenceCaseOf(context, label),
-                      style: labelText(
-                        theme,
-                        color: active ? theme.accentInk : theme.ink,
-                      ),
+                  const SizedBox(width: 8),
+                  Expanded(child: _ChipTitle(text: sentenceCaseOf(context, label), color: ink)),
+                  const SizedBox(width: 4),
+                  // Its slot is always there, so picking a chip never
+                  // re-wraps its title.
+                  SizedBox.square(
+                    dimension: 20,
+                    child: AnimatedOpacity(
+                      duration: theme.motionFast,
+                      opacity: active ? 1 : 0,
+                      child: _PickedCheck(theme: theme),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 6),
               Text(
                 sentenceCaseOf(context, hint),
-                style: metaText(
-                  theme,
+                style: groupedMetaStyle(theme).copyWith(
                   color: active
                       ? theme.accentInk.withValues(alpha: 0.85)
                       : theme.inkMuted,
                 ),
+                maxLines: 2,
               ),
             ],
           ),
@@ -667,38 +748,54 @@ class _TagChoice extends StatelessWidget {
   }
 }
 
-/// The small circled question mark that opens the explainer.
-class _WhatIsThis extends StatelessWidget {
-  const _WhatIsThis({required this.onTap});
+/// A chip's title: never an ellipsis, never a word broken in half.
+///
+/// Several words wrap onto a second line. One long word ("Demiştim" at 1.3×
+/// in a phone-width half column) shrinks to fit instead — wrapping it would
+/// split it mid-word. Not FitLabel: the grid's rows are IntrinsicHeight
+/// (equal heights per row), and FitLabel measures with a LayoutBuilder, which
+/// cannot answer intrinsic queries; a FittedBox can.
+class _ChipTitle extends StatelessWidget {
+  const _ChipTitle({required this.text, required this.color});
 
-  final VoidCallback onTap;
+  final String text;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: l10n.pointsExplainerOpen,
-      focusShape: FocusRingShape.capsule,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: quietFill(theme),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(CupertinoIcons.question_circle, size: 15, color: theme.accent),
-            const SizedBox(width: 5),
-            Text(
-              sentenceCaseOf(context, l10n.pointsExplainerOpen),
-              style: metaText(theme, color: theme.accent),
-            ),
-          ],
-        ),
-      ),
+    final style = groupedTitleStyle(theme).copyWith(
+      fontWeight: FontWeight.w600,
+      color: color,
+    );
+    if (text.trim().contains(' ')) return Text(text, style: style);
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Text(text, style: style, maxLines: 1, softWrap: false),
     );
   }
+}
+
+/// [SelectionCheck]'s picked state, inverted for a chip that is itself
+/// accent-filled: an accentInk disc with an accent tick. The stock check is
+/// accent on accent there — invisible.
+class _PickedCheck extends StatelessWidget {
+  const _PickedCheck({required this.theme});
+
+  final AppTheme theme;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: theme.accentInk,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          CupertinoIcons.checkmark_alt,
+          size: 14,
+          color: theme.accent,
+        ),
+      );
 }

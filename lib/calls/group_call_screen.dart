@@ -1,21 +1,26 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/chat_api.dart';
+import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/user_avatar.dart';
 import 'audio_level_monitor.dart';
 import 'call_media.dart';
+import 'call_options_sheet.dart';
+import 'call_stats_monitor.dart';
 import 'draw/draw_canvas.dart';
 import 'draw/draw_model.dart';
 import 'group_call_service.dart';
@@ -76,6 +81,17 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
 
   final AudioLevelMonitor _levels = AudioLevelMonitor();
 
+  /// Live link stats, one monitor per peer connection, keyed by userId —
+  /// only while [SettingsStore.showNetworkStats] is on. A mesh call is one
+  /// link per person, so unlike the 1:1 call's single readout each tile
+  /// gets its own, and nothing polls `getStats` when nobody asked to see it.
+  final Map<String, CallStatsMonitor> _stats = {};
+  final Map<String, ValueNotifier<CallQualitySnapshot?>> _statsOf = {};
+
+  /// Which connection each monitor is reading, so a link rebuilt after a
+  /// drop gets a fresh monitor instead of polling the dead one.
+  final Map<String, RTCPeerConnection> _statsPc = {};
+
   GroupCallService get svc => widget.service;
 
   @override
@@ -83,6 +99,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     super.initState();
     svc.addListener(_onChanged);
     svc.drawArmed.addListener(_onChanged);
+    SettingsStore.instance.addListener(_onSettings);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _levels.sources = () => [
           for (final p in svc.peers.values)
@@ -106,6 +123,74 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
       if (mounted && ok != _shareSupported) setState(() => _shareSupported = ok);
     }));
     unawaited(_loadMe());
+    _syncStats();
+  }
+
+  // ---------------------------------------------------------------- stats
+
+  bool _statsOn = false;
+
+  void _onSettings() {
+    if (!mounted) return;
+    final on = SettingsStore.instance.showNetworkStats;
+    if (on == _statsOn) return;
+    _syncStats();
+    setState(() {});
+  }
+
+  /// Starts a monitor for every connected peer and stops the ones whose
+  /// peer (or connection) has gone — or all of them when the toggle is off.
+  void _syncStats() {
+    _statsOn = SettingsStore.instance.showNetworkStats;
+    final wanted = <String, RTCPeerConnection>{
+      if (_statsOn)
+        for (final p in svc.peers.values)
+          if (p.pc != null) p.userId: p.pc!,
+    };
+    for (final id in _stats.keys.toList(growable: false)) {
+      if (!identical(wanted[id], _statsPc[id])) {
+        _stats.remove(id)?.dispose();
+        _statsPc.remove(id);
+      }
+    }
+    for (final e in wanted.entries) {
+      if (_stats.containsKey(e.key)) continue;
+      final target = _statsOf.putIfAbsent(e.key, () => ValueNotifier(null));
+      _statsPc[e.key] = e.value;
+      _stats[e.key] = CallStatsMonitor(pc: e.value, target: target)..start();
+    }
+  }
+
+  /// The readout for a peer's tile, or null when stats are off.
+  ValueListenable<CallQualitySnapshot?>? _statsFor(String userId) =>
+      _statsOn ? _statsOf.putIfAbsent(userId, () => ValueNotifier(null)) : null;
+
+  /// What this phone is sending, summed over every link — the local tile's
+  /// "↑". Null when stats are off.
+  Listenable? get _uploadStats =>
+      _statsOn ? Listenable.merge(_statsOf.values.toList()) : null;
+
+  double? _uploadKbps() {
+    double? sum;
+    for (final n in _statsOf.values) {
+      final out = n.value?.outKbps;
+      if (out != null) sum = (sum ?? 0) + out;
+    }
+    return sum;
+  }
+
+  /// A peer's live readout for their tile or face; null when stats are off.
+  Widget? _peerStats(String userId) {
+    final n = _statsFor(userId);
+    if (n == null) return null;
+    return _StatsCaption(listenable: n, text: () => statsDownLine(n.value));
+  }
+
+  /// This phone's upload, for the "you" tile; null when stats are off.
+  Widget? _localStats() {
+    final l = _uploadStats;
+    if (l == null) return null;
+    return _StatsCaption(listenable: l, text: () => statsUpLine(_uploadKbps()));
   }
 
   static MediaStreamTrack? _firstAudio(MediaStream? s) {
@@ -258,6 +343,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
         p.screenStreamTick,
         p.remoteStream != null,
         p.screenStream != null,
+        identityHashCode(p.pc),
       ]);
     }
     for (final r in svc.rosterRows) {
@@ -281,6 +367,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
       return;
     }
     unawaited(_syncRenderers());
+    _syncStats();
     final key = _buildKey();
     if (key == _lastBuiltKey) return;
     _lastBuiltKey = key;
@@ -291,6 +378,13 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
   void dispose() {
     svc.removeListener(_onChanged);
     svc.drawArmed.removeListener(_onChanged);
+    SettingsStore.instance.removeListener(_onSettings);
+    for (final m in _stats.values) {
+      m.dispose();
+    }
+    for (final n in _statsOf.values) {
+      n.dispose();
+    }
     _levels
       ..stop()
       ..dispose();
@@ -419,6 +513,8 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
           me: _meUser,
           theme: theme,
           bottomInset: trayInset,
+          statsFor: _peerStats,
+          localStats: _localStats(),
         ),
       _Layout.grid => _VideoGrid(
           key: const ValueKey('grid'),
@@ -430,6 +526,8 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
           localRenderer: _localRenderer,
           theme: theme,
           bottomInset: trayInset,
+          statsFor: _peerStats,
+          localStats: _localStats(),
         ),
       _Layout.stage => _ShareStage(
           key: const ValueKey('stage'),
@@ -484,6 +582,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
+                            flex: 3,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,20 +630,26 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              l10n.groupCallScreenParticipantCount(
-                                peers.length + 1,
+                          const SizedBox(width: 12),
+                          // Flexible, up to two fifths of the row: "3 in call · 1
+                          // ringing" in Turkish at 1.3× is wider than the
+                          // room left beside a long group name, and the chip
+                          // goes to two lines — never cut — before it
+                          // squeezes the name out of its row. Aligned right:
+                          // a short "Just you" chip otherwise floated in the
+                          // middle of its loose slot.
+                          Flexible(
+                            flex: 2,
+                            child: Align(
+                              alignment: Alignment.topRight,
+                              child: _CountChip(
+                                counts: _counts(l10n, peers.length),
+                                style: callCaptionStyle(theme).copyWith(
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
                               ),
-                              style: callCaptionStyle(theme),
                             ),
                           ),
                         ],
@@ -650,12 +755,116 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
           onTap: () => unawaited(svc.switchCamera()),
           label: l10n.groupCallScreenFlipLabel,
         ),
+      // The 1:1 tray's "More", in the same place under the same name: the
+      // stats readout and, with a camera on, the quality tier.
+      CallTrayAction(
+        icon: CallGlyphs.more,
+        onTap: () => showAdaptiveSheet(
+          context,
+          builder: (_) => CallOptionsSheet(
+            service: svc,
+            showVideoQuality: svc.localCamActive,
+          ),
+        ),
+        label: l10n.callScreenControlOptions,
+      ),
       CallTrayAction(
         icon: CallGlyphs.hide,
         onTap: _hide,
         label: l10n.groupCallScreenMinimizeLabel,
       ),
     ];
+  }
+
+  /// The header chip: who is on the call, and who is still being rung.
+  ///
+  /// Counted from the roster, not from the live links. A link that drops and
+  /// comes back used to take its person out of the count for the seconds it
+  /// was reconnecting, so "3 in call" blinked to "2" and back while nobody had
+  /// left; the roster still says `joined` for them throughout. The live links
+  /// are only the fallback for the moment before the roster has arrived.
+  ({String joined, String? ringing}) _counts(
+    AppLocalizations l10n,
+    int livePeers,
+  ) {
+    final me = svc.userId;
+    final rows = svc.rosterRows;
+    var joined = livePeers + 1;
+    var ringing = 0;
+    if (rows.isNotEmpty) {
+      joined = 1;
+      for (final r in rows) {
+        if (r['userId']?.toString() == me) continue;
+        switch (r['status']) {
+          case 'joined':
+            joined++;
+          case 'invited':
+            ringing++;
+        }
+      }
+    }
+    return (
+      joined: l10n.groupCallScreenParticipantCount(joined),
+      ringing: ringing == 0 ? null : l10n.groupCallScreenRingingCount(ringing),
+    );
+  }
+}
+
+/// The header's count chip: "3 in call · 1 ringing" on one line when it fits,
+/// otherwise the two halves stacked, right-aligned, with no dot. Wrapping the
+/// one string instead broke it wherever the width ran out — in Turkish at 1.3×
+/// that was three centred lines with the dot dangling at the end of one.
+class _CountChip extends StatelessWidget {
+  const _CountChip({required this.counts, required this.style});
+
+  final ({String joined, String? ringing}) counts;
+  final TextStyle style;
+
+  static const _padH = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final ringing = counts.ringing;
+    Widget body;
+    if (ringing == null) {
+      body = Text(counts.joined, textAlign: TextAlign.right, style: style);
+    } else {
+      final line = '${counts.joined} · $ringing';
+      body = LayoutBuilder(
+        builder: (context, box) {
+          final p = TextPainter(
+            text: TextSpan(text: line, style: style),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+            maxLines: 1,
+          )..layout();
+          final fits = p.width <= box.maxWidth;
+          p.dispose();
+          if (fits) return Text(line, maxLines: 1, style: style);
+          // One line each, shrunk a touch if a half is still too wide
+          // ("3 kişi görüşmede" at 1.3×) rather than wrapped into a third
+          // line taller than the title block beside it.
+          Widget half(String text) => FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(text, maxLines: 1, style: style),
+              );
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [half(counts.joined), half(ringing)],
+          );
+        },
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: _padH, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: body,
+    );
   }
 }
 
@@ -675,6 +884,8 @@ class _VoiceStage extends StatelessWidget {
     required this.me,
     required this.theme,
     required this.bottomInset,
+    required this.statsFor,
+    required this.localStats,
   });
 
   final GroupCallService service;
@@ -685,6 +896,10 @@ class _VoiceStage extends StatelessWidget {
 
   /// What the tray covers at the bottom; the faces centre above it.
   final double bottomInset;
+
+  /// Live link stats under each face — see `_GroupCallScreenState._stats`.
+  final Widget? Function(String userId) statsFor;
+  final Widget? localStats;
 
   @override
   Widget build(BuildContext context) {
@@ -730,6 +945,18 @@ class _VoiceStage extends StatelessWidget {
               );
             }
 
+            // The face, and under it the link's readout when stats are on.
+            Widget withStats(Widget orb, Widget? stats) => stats == null
+                ? orb
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      orb,
+                      const SizedBox(height: 4),
+                      stats,
+                    ],
+                  );
+
             final mine = orbFor(
               me,
               l10n.groupCallScreenYouLabel,
@@ -755,18 +982,21 @@ class _VoiceStage extends StatelessWidget {
                         child: mine,
                       )
                     else
-                      mine,
+                      withStats(mine, localStats),
                     for (final p in peers)
-                      orbFor(
-                        ChatUser(
-                          id: p.userId,
-                          username: '',
-                          name: p.name,
-                          avatarStorageId: p.avatarStorageId,
+                      withStats(
+                        orbFor(
+                          ChatUser(
+                            id: p.userId,
+                            username: '',
+                            name: p.name,
+                            avatarStorageId: p.avatarStorageId,
+                          ),
+                          p.name,
+                          muted: p.mediaState.audioMuted,
+                          dimmed: !p.connected || p.reconnecting,
                         ),
-                        p.name,
-                        muted: p.mediaState.audioMuted,
-                        dimmed: !p.connected || p.reconnecting,
+                        statsFor(p.userId),
                       ),
                     for (final g in ghosts)
                       orbFor(
@@ -806,6 +1036,8 @@ class _VideoGrid extends StatelessWidget {
     required this.localRenderer,
     required this.theme,
     required this.bottomInset,
+    required this.statsFor,
+    required this.localStats,
   });
 
   final GroupCallService service;
@@ -818,6 +1050,10 @@ class _VideoGrid extends StatelessWidget {
 
   /// What the tray covers at the bottom; the grid scrolls clear of it.
   final double bottomInset;
+
+  /// Live link stats in each tile's corner — see `_GroupCallScreenState._stats`.
+  final Widget? Function(String userId) statsFor;
+  final Widget? localStats;
 
   @override
   Widget build(BuildContext context) {
@@ -851,6 +1087,7 @@ class _VideoGrid extends StatelessWidget {
               accent: theme.accent,
               user: me,
               api: api,
+              stats: localStats,
               video: showLocal
                   ? RTCVideoView(
                       localRenderer!,
@@ -874,6 +1111,7 @@ class _VideoGrid extends StatelessWidget {
                   avatarStorageId: peer.avatarStorageId,
                 ),
                 api: api,
+                stats: statsFor(peer.userId),
                 video: (!peer.mediaState.videoOff &&
                         peer.remoteStream != null &&
                         peer.remoteStream!.getVideoTracks().isNotEmpty &&
@@ -902,6 +1140,7 @@ class _Tile extends StatelessWidget {
     required this.user,
     this.api,
     this.video,
+    this.stats,
     this.muted = false,
     this.dimmed = false,
   });
@@ -912,6 +1151,9 @@ class _Tile extends StatelessWidget {
   final ChatUser user;
   final ChatApi? api;
   final Widget? video;
+
+  /// The link readout, over the name in the bottom-left corner.
+  final Widget? stats;
   final bool muted;
   final bool dimmed;
 
@@ -951,27 +1193,39 @@ class _Tile extends StatelessWidget {
             left: 8,
             right: 8,
             bottom: 8,
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (muted) ...[
-                  const Icon(CallGlyphs.micOff, size: 13, color: Colors.white70),
-                  const SizedBox(width: 4),
-                ],
-                Expanded(
-                  child: Text(
-                    label,
-                    // The call caption face, like every other name over a
-                    // call — not a raw 11pt style of its own.
-                    style: callCaptionStyle(ThemeScope.of(context)).copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      shadows: const [
-                        Shadow(blurRadius: 6, color: Colors.black87),
-                      ],
+                if (stats != null) ...[stats!, const SizedBox(height: 2)],
+                Row(
+                  children: [
+                    if (muted) ...[
+                      const Icon(
+                        CallGlyphs.micOff,
+                        size: 13,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Text(
+                        label,
+                        // The call caption face, like every other name over a
+                        // call — not a raw 11pt style of its own.
+                        style: callCaptionStyle(ThemeScope.of(context))
+                            .copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          shadows: const [
+                            Shadow(blurRadius: 6, color: Colors.black87),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -1210,3 +1464,58 @@ class _StripTile extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Stats
+// ---------------------------------------------------------------------------
+
+/// One line of live link stats over a tile or under a face, redrawn on each
+/// two-second sample and on nothing else.
+class _StatsCaption extends StatelessWidget {
+  const _StatsCaption({required this.listenable, required this.text});
+
+  final Listenable listenable;
+  final String? Function() text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return ListenableBuilder(
+      listenable: listenable,
+      builder: (context, _) {
+        final line = text();
+        if (line == null) return const SizedBox.shrink();
+        return Text(
+          line,
+          maxLines: 1,
+          overflow: TextOverflow.fade,
+          softWrap: false,
+          style: callCaptionStyle(theme).copyWith(
+            shadows: const [Shadow(blurRadius: 6, color: Colors.black87)],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// "↓ 1.2 Mb/s · 48 ms · 0.3%" — what a peer's link is delivering, how long
+/// a round trip takes and how much is lost. Parts the sample has no number
+/// for are left out rather than shown as dashes; null when it has none.
+@visibleForTesting
+String? statsDownLine(CallQualitySnapshot? s) {
+  if (s == null) return null;
+  final parts = <String>[
+    if (s.inKbps != null) '↓ ${_mbps(s.inKbps!)} Mb/s',
+    if (s.rttMs != null) '${s.rttMs!.round()} ms',
+    if (s.lossPercent != null) '${s.lossPercent!.toStringAsFixed(1)}%',
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
+}
+
+/// "↑ 2.4 Mb/s" — everything this phone is sending, over every link.
+@visibleForTesting
+String? statsUpLine(double? outKbps) =>
+    outKbps == null ? null : '↑ ${_mbps(outKbps)} Mb/s';
+
+String _mbps(double kbps) => (kbps / 1000).toStringAsFixed(1);

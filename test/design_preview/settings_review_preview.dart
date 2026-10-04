@@ -481,6 +481,23 @@ void main() {
           act: () async {},
         );
       }, variant: _ios);
+      // Turkish at 1.3x together: the longest words at the largest size.
+      testWidgets('review: ${entry.key} tr13', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await snap(
+          tester,
+          previewApp(
+            ThemeController.byId('basic'),
+            entry.value(),
+            locale: const Locale('tr'),
+          ),
+          'rv_${entry.key}_tr13.png',
+          size: size,
+          dpr: dpr,
+          act: () async {},
+        );
+      }, variant: _ios);
       testWidgets('review: ${entry.key} x1.3', (tester) async {
         tester.platformDispatcher.textScaleFactorTestValue = 1.3;
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);

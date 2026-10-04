@@ -69,8 +69,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('The rules'), findsOneWidget);
-    expect(find.text('Eight crowns: one in each row, one in each column.'),
-        findsOneWidget);
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.gameInfoQueensRule1), findsOneWidget);
     // The whole point of the separate target: the board must not have opened
     // behind the sheet.
     expect(opened, 0);
@@ -126,8 +126,8 @@ void main() {
     await tester.tap(find.byType(GameInfoButton).at(DailyGame.zip.index + 1));
     await tester.pumpAndSettle();
 
-    expect(find.text('Start on 1 and finish on the last number.'),
-        findsOneWidget);
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.gameInfoZipRule1), findsOneWidget);
     expect(opened, 0);
   });
 
@@ -188,8 +188,8 @@ void main() {
     await tester.tapAt(Offset(box.left + 3, box.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Start on 1 and finish on the last number.'),
-        findsOneWidget);
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.gameInfoZipRule1), findsOneWidget);
     expect(opened, 0);
   });
 
@@ -296,11 +296,9 @@ void main() {
 
     // It shares the hub with four timed boards but is ranked by guesses, and
     // saying so is the reason the scoring line is per-game rather than shared.
-    expect(
-      find.text('Scored by how few guesses it takes, not by the clock.'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('The clock runs'), findsNothing);
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.textContaining(l10n.gameInfoScoringGuesses), findsOneWidget);
+    expect(find.textContaining(l10n.gameInfoScoringTimed), findsNothing);
   });
 
   // The main button used to read GOT IT and only closed the sheet, which

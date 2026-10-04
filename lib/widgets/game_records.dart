@@ -115,10 +115,7 @@ class RecordsSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // The page's shared shelf header, like the hub's other sections.
-            PageSectionHeader(
-              l10n.recordsLabel,
-              padding: const EdgeInsets.only(bottom: 4),
-            ),
+            PageSectionHeader(l10n.recordsLabel),
             // Body face, never the theme's caption (tracked mono on the
             // character themes).
             Text(

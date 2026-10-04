@@ -10,7 +10,7 @@ import 'package:monkeyhub/data/feed_store.dart';
 import 'package:monkeyhub/data/games_store.dart';
 import 'package:monkeyhub/data/records_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
-import 'package:monkeyhub/screens/games/games_hub_screen.dart';
+import 'package:monkeyhub/screens/games/leaderboard_screen.dart';
 import 'package:monkeyhub/screens/games/queens_screen.dart';
 import 'package:monkeyhub/screens/games/sudoku_screen.dart';
 import 'package:monkeyhub/screens/games/tango_screen.dart';
@@ -77,7 +77,7 @@ void main() {
   );
 
   final screens = <String, Widget>{
-    'the hub': GamesHubScreen(
+    'the hub': LeaderboardScreen(
       feedApi: FeedApi(ConvexBackend.instance),
       userId: 'u1',
     ),

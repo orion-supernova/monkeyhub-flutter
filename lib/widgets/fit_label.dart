@@ -45,6 +45,29 @@ class FitLabel extends StatelessWidget {
               !_fits(style.copyWith(fontSize: size), width, scaler, dir)) {
             size -= 0.5;
           }
+          // Still a word wider than the box at the floor: the engine would
+          // break it mid-word ("Kaydedi / lenler" in five Turkish tabs at
+          // 1.3×). Lay the label out at its longest word's width, so lines
+          // only ever break between words, and scale that picture down to
+          // fit. The last resort, for a language/text-size pair nobody
+          // designed for — smaller beats broken.
+          final floor = style.copyWith(fontSize: size);
+          final longest = _longestWord(floor, scaler, dir);
+          if (longest > width) {
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                width: longest.ceilToDouble(),
+                child: Text(
+                  text,
+                  textAlign: textAlign,
+                  maxLines: maxLines,
+                  overflow: TextOverflow.clip,
+                  style: floor,
+                ),
+              ),
+            );
+          }
         }
         return Text(
           text,
@@ -58,6 +81,22 @@ class FitLabel extends StatelessWidget {
         );
       },
     );
+  }
+
+  double _longestWord(TextStyle s, TextScaler scaler, TextDirection dir) {
+    var widest = 0.0;
+    for (final word in text.split(RegExp(r'\s+'))) {
+      if (word.isEmpty) continue;
+      final p = TextPainter(
+        text: TextSpan(text: word, style: s),
+        textDirection: dir,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      if (p.width > widest) widest = p.width;
+      p.dispose();
+    }
+    return widest;
   }
 
   bool _fits(TextStyle s, double width, TextScaler scaler, TextDirection dir) {

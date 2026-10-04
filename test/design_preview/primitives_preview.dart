@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/account_kit.dart';
+import 'package:monkeyhub/widgets/adaptive_sheet.dart';
 import 'package:monkeyhub/widgets/count_badge.dart';
 import 'package:monkeyhub/widgets/filter_capsule.dart';
 import 'package:monkeyhub/widgets/game_result_actions.dart';
@@ -468,6 +469,160 @@ class _Media extends StatelessWidget {
 }
 
 /// A plain page that opens an overlay once it has a context.
+/// Round 2 kit: one × look (page / sheet / card), the header ramp (T2 with
+/// count and "See all ›", the Settings-hub page header, T3), and every
+/// search-bar state side by side.
+class _Round2 extends StatefulWidget {
+  const _Round2();
+
+  @override
+  State<_Round2> createState() => _Round2State();
+}
+
+class _Round2State extends State<_Round2> {
+  final _empty = TextEditingController();
+  final _filled = TextEditingController(text: 'deniz');
+  final _scoped = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final t = (String en, String tr) => _t(context, en, tr);
+    Widget label(String s) => Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(s, style: groupedMetaStyle(theme)),
+        );
+    return IosPage(
+      title: t('Round 2', 'Tur 2'),
+      showBack: false,
+      children: [
+        // One × everywhere: page (live), sheet (still), card (still).
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(children: [
+                const GlassCloseButton(),
+                label('page'),
+              ]),
+            ),
+            Expanded(
+              flex: 2,
+              child: Column(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: sheetFill(theme),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SheetCloseButton(),
+                      SheetConfirmButton(onTap: () {}),
+                      const SheetConfirmButton(onTap: null),
+                      SheetTrashButton(onTap: () {}),
+                    ],
+                  ),
+                ),
+                label('sheet: × ✓ ✓(off) trash'),
+              ]),
+            ),
+            Expanded(
+              child: Column(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: groupedFill(theme),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const GlassCloseButton(still: true),
+                ),
+                label('card'),
+              ]),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        // Search: empty (sheet), filled + Cancel (top of screen), door,
+        // with a scope tag.
+        SearchField(
+          controller: _empty,
+          hintText: t('Search people', 'Kişi ara'),
+          onChanged: (_) {},
+          showCancel: false,
+        ),
+        const SizedBox(height: 10),
+        SearchField(
+          controller: _filled,
+          hintText: t('Search settings', 'Ayarlarda ara'),
+          onChanged: (_) {},
+        ),
+        const SizedBox(height: 10),
+        SearchField.door(
+          hint: t('Search public rooms', 'Herkese açık oda ara'),
+          onTap: () {},
+        ),
+        const SizedBox(height: 10),
+        SearchField(
+          controller: _scoped,
+          hintText: t('Search', 'Ara'),
+          onChanged: (_) {},
+          showCancel: false,
+          leadingAccessory: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: theme.accent.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              t('Stickers', 'Çıkartmalar'),
+              style: groupedMetaStyle(theme).copyWith(color: theme.accent),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        // T2: count + action, plain, and the Settings hub's page header.
+        PageSectionHeader(
+          t('Friends', 'Arkadaşlar'),
+          count: '12',
+          actionLabel: t('See all', 'Tümü'),
+          onAction: () {},
+        ),
+        PageSectionHeader(t('Highlights', 'Öne çıkanlar')),
+        const SizedBox(height: 22),
+        GroupedSection(
+          pageHeader: true,
+          margin: const EdgeInsets.only(bottom: 32),
+          header: t('General', 'Genel'),
+          footer: t('Rows are 52pt now.', 'Satırlar artık 52pt.'),
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.globe,
+              tone: TileTone.blue,
+              title: t('Language', 'Dil'),
+              value: 'English',
+              onTap: () {},
+            ),
+            GroupedRow.toggle(
+              icon: CupertinoIcons.bell_fill,
+              tone: TileTone.red,
+              title: t('Notifications', 'Bildirimler'),
+              subtitle: t('Messages, calls and friends', 'Mesajlar, aramalar ve arkadaşlar'),
+              value: true,
+              onChanged: (_) {},
+            ),
+            GroupedRow(
+              title: t('Check for updates', 'Güncellemeleri denetle'),
+              onTap: () {},
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class _Opener extends StatelessWidget {
   const _Opener({required this.anchor});
   final GlobalKey anchor;
@@ -508,6 +663,35 @@ final Map<String, void Function(BuildContext)> _overlays = {
           IosAlertAction(label: _t(c, 'Save preset', 'Ön ayarı kaydet'), value: true, preferred: true),
         ],
       ),
+  'footer': (c) => showAdaptiveSheet<void>(
+        c,
+        builder: (ctx) => SheetFrame(
+          title: _t(ctx, 'What happened?', 'Ne oldu?'),
+          footer: SheetActionButton(
+            label: _t(ctx, 'Add a point', 'Puan ekle'),
+            onTap: () {},
+          ),
+          child: SheetScrollBody(
+            padding: const EdgeInsets.only(top: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < 14; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: quietFill(ThemeScope.of(ctx)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
   'actions': (c) => showIosActionSheet<int>(
         c,
         title: _t(c, 'Leave Weekend Crew?', 'Weekend Crew’dan ayrılsın mı?'),
@@ -533,6 +717,7 @@ void main() {
     'controls': const _Controls(),
     'lists': const _Lists(),
     'media': const _Media(),
+    'round2': const _Round2(),
   };
 
   Future<void> page(WidgetTester tester, String id, MapEntry<String, Widget> e,

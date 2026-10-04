@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../../diagnostics/diag_event.dart';
 import '../../keyboard/focusable_tap.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/app_toast.dart';
@@ -32,7 +33,9 @@ class _DiagEventRowState extends State<DiagEventRow> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final e = widget.group.first;
+    final catName = diagCategoryLabel(l10n, e.cat);
     // Two channels, doing two different jobs. The left rule is the CATEGORY,
     // so a scroll reads as bands of colour and you can find the layout events
     // among four hundred subscription ones without reading a word. Severity is
@@ -49,7 +52,7 @@ class _DiagEventRowState extends State<DiagEventRow> {
       child: FocusableTap(
         onTap: () => setState(() => _open = !_open),
         radius: theme.radiusSm,
-        semanticLabel: '${e.cat.name} ${e.event}',
+        semanticLabel: '$catName ${e.event}',
         child: GestureDetector(
           onTap: () => setState(() => _open = !_open),
           behavior: HitTestBehavior.opaque,
@@ -122,7 +125,7 @@ class _DiagEventRowState extends State<DiagEventRow> {
                                   TextSpan(
                                     children: [
                                       TextSpan(
-                                        text: '${e.cat.name}  ',
+                                        text: '$catName  ',
                                         style: groupedMetaStyle(theme).copyWith(
                                           color: colour,
                                           fontWeight: FontWeight.w600,
@@ -147,9 +150,11 @@ class _DiagEventRowState extends State<DiagEventRow> {
                                 const SizedBox(width: 6),
                                 _Badge(
                                   // The span is the diagnostic, not the count.
-                                  text:
-                                      '×${widget.group.count} over '
-                                      '${(widget.group.spanMs / 1000).toStringAsFixed(1)}s',
+                                  text: l10n.diagRepeatSpan(
+                                    widget.group.count,
+                                    (widget.group.spanMs / 1000)
+                                        .toStringAsFixed(1),
+                                  ),
                                   colour: theme.danger,
                                 ),
                               ],
@@ -208,6 +213,7 @@ class _Detail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8, left: 68),
       child: Column(
@@ -246,7 +252,7 @@ class _Detail extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  'Body truncated at capture',
+                  l10n.diagBodyTruncated,
                   style: groupedMetaStyle(theme).copyWith(color: theme.danger),
                 ),
               ),
@@ -255,7 +261,7 @@ class _Detail extends StatelessWidget {
           FocusableTap(
             onTap: () => _copy(context, event),
             radius: theme.radiusSm,
-            semanticLabel: 'Copy event',
+            semanticLabel: l10n.diagCopyEvent,
             child: GestureDetector(
               onTap: () => _copy(context, event),
               behavior: HitTestBehavior.opaque,
@@ -273,7 +279,7 @@ class _Detail extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Copy event',
+                      l10n.diagCopyEvent,
                       style: theme.body.copyWith(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -293,7 +299,11 @@ class _Detail extends StatelessWidget {
   static Future<void> _copy(BuildContext context, DiagEvent e) async {
     await Clipboard.setData(ClipboardData(text: e.toNdjsonLine()));
     if (!context.mounted) return;
-    showAppToast(context, 'Event copied', tone: ToastTone.success);
+    showAppToast(
+      context,
+      AppLocalizations.of(context).diagEventCopied,
+      tone: ToastTone.success,
+    );
   }
 }
 

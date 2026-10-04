@@ -63,19 +63,16 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
-    // The sheet's own scroller, not the desktop popover's: on a compact window
-    // `showAdaptiveSheet` goes down the `showModalBottomSheet` path, so any
-    // scroller found here is the one this fix added.
-    expect(find.byType(SingleChildScrollView), findsWidgets);
+    // The commit button is the sheet's pinned footer now (§F1): on screen
+    // from the first frame, with no scrolling at all, while the body above
+    // it scrolls. It reads "Pick one above first" until a kind is chosen.
+    final label = sentenceCase(l10n.pointComposerPickFirst, languageCode: 'en');
+    expect(find.text(label), findsOneWidget);
+    final button = tester.getRect(find.text(label));
+    expect(button.top, greaterThan(0));
+    expect(button.bottom, lessThanOrEqualTo(520));
 
-    // Reachable — by scrolling if need be, which is exactly what was missing.
-    // The button prints its label in sentence case.
-    final add = sentenceCase(l10n.pointComposerAdd, languageCode: 'en');
-    await tester.scrollUntilVisible(
-      find.text(add),
-      120,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(find.text(add), findsOneWidget);
+    // The body still scrolls — the grid and the field do not fit 520pt.
+    expect(find.byType(SingleChildScrollView), findsWidgets);
   });
 }

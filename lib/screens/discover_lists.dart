@@ -121,9 +121,11 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
           // THE search bar: pill, magnifier, clear button, accent caret.
           SearchField(
             controller: _q,
-            hintText: sentenceCaseOf(context, l10n.discoverListsFilterHint),
+            hintText: l10n.discoverListsFilterHint,
+            // No onClear: the field's own empties the controller AND reports
+            // '' here. A custom one that only reset [_query] left the typed
+            // text sitting in the bar over an unfiltered list.
             onChanged: (v) => setState(() => _query = v),
-            onClear: () => setState(() => _query = ''),
           ),
           const SizedBox(height: 18),
         ],
@@ -213,9 +215,11 @@ class _RoomsListScreenState extends State<RoomsListScreen> {
           // THE search bar: pill, magnifier, clear button, accent caret.
           SearchField(
             controller: _q,
-            hintText: sentenceCaseOf(context, l10n.discoverListsFilterRoomsHint),
+            hintText: l10n.discoverListsFilterRoomsHint,
+            // No onClear: the field's own empties the controller AND reports
+            // '' here. A custom one that only reset [_query] left the typed
+            // text sitting in the bar over an unfiltered list.
             onChanged: (v) => setState(() => _query = v),
-            onClear: () => setState(() => _query = ''),
           ),
           const SizedBox(height: 18),
         ],

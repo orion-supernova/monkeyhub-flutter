@@ -31,7 +31,7 @@ import 'screen_share.dart';
 /// Signaling rides on Convex via `CallApi.subscribeCallSignals`; that
 /// subscription is wired by `SignalingSubscriber` which delivers signals into
 /// [handleRemoteSignal].
-class CallService extends ChangeNotifier {
+class CallService extends ChangeNotifier implements CallOptionsController {
   CallService({required this.api});
 
   static CallService? _instance;
@@ -1417,6 +1417,7 @@ class CallService extends ChangeNotifier {
   /// and swaps it onto the existing sender via `replaceTrack`. No SDP
   /// renegotiation: the sender/transceiver stays put, only its track and
   /// encoder params change.
+  @override
   Future<void> switchVideoQuality(VideoQualityTier tier) async {
     await SettingsStore.instance.setVideoQualityTier(tier);
     final s = _session;

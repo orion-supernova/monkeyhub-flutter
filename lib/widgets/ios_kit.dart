@@ -103,9 +103,12 @@ class _IosPageState extends State<IosPage> {
         (widget.showBack && canPop ? const GlassBackButton() : null);
     final bottom = MediaQuery.paddingOf(context).bottom;
 
+    // Top 0: the large title's box starts 52pt below the safe area (the bar's
+    // height), the line Feed, Discover and Chats draw theirs on — a tab root
+    // and a pushed page put their titles at one y.
     final header = SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -219,6 +222,11 @@ class _IosPageState extends State<IosPage> {
 ///
 /// Rows are separated automatically by a hairline that starts where their
 /// text does, so callers pass bare rows and never think about dividers.
+///
+/// The header is the T3 [GroupedHeader] — pushed pages and sheets. On a TAB
+/// ROOT (the Settings hub) pass [pageHeader]: the header becomes the T2
+/// [PageSectionHeader], the size Feed's and Discover's sections use, with its
+/// left edge on theirs (x = 20 on a 16pt-gutter page).
 class GroupedSection extends StatelessWidget {
   const GroupedSection({
     super.key,
@@ -226,12 +234,18 @@ class GroupedSection extends StatelessWidget {
     this.header,
     this.footer,
     this.margin = const EdgeInsets.only(bottom: 28),
+    this.pageHeader = false,
   });
 
   final List<Widget> children;
   final String? header;
   final String? footer;
   final EdgeInsets margin;
+
+  /// Draw [header] as a tab root's [PageSectionHeader] (T2) rather than a
+  /// [GroupedHeader] (T3). Pair it with a 32pt bottom [margin], the gap
+  /// between sections on every tab root.
+  final bool pageHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +257,13 @@ class GroupedSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (header != null) GroupedHeader(header!),
+          if (header != null)
+            pageHeader
+                ? PageSectionHeader(
+                    header!,
+                    padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+                  )
+                : GroupedHeader(header!),
           ClipRRect(
             borderRadius: BorderRadius.circular(groupedRadius(theme)),
             child: ColoredBox(
@@ -268,7 +288,7 @@ class GroupedSection extends StatelessWidget {
           ),
           if (footer != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Text(footer!, style: groupedFooterStyle(theme)),
             ),
         ],
@@ -336,7 +356,7 @@ class GroupedHeader extends StatelessWidget {
       style: groupedHeaderStyle(theme),
     );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
       child: trailing == null
           ? label
           : Row(
@@ -402,6 +422,10 @@ Color tileColor(AppTheme theme, TileTone tone) => switch (tone) {
       TileTone.gray => const Color(0xFF8E8E93),
       TileTone.accent => theme.accent,
     };
+
+/// The height of a one-line [GroupedRow] — and the floor every grouped row
+/// (a hub row with a custom leading, an `InsetGroup` row) should share.
+const double kGroupedRowMinHeight = 52;
 
 /// One row in a [GroupedSection].
 ///
@@ -510,10 +534,14 @@ class _GroupedRowState extends State<GroupedRow>
         w.chevron ?? (tappable && w.trailing == null && !w.destructive);
     final titleColor = w.destructive ? theme.danger : theme.ink;
 
+    // iOS 26 Settings density: a one-line row is 52pt (11 + a 30pt tile +
+    // 11). At 48 with 7pt padding the tile all but touched the hairlines and
+    // the hub read cramped. Text starts at 16 + 30 + 14 = 60, where the
+    // hairline does.
     final row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
+      constraints: const BoxConstraints(minHeight: kGroupedRowMinHeight),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(w.icon != null ? 14 : 16, 7, 14, 7),
+        padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
         child: Row(
           children: [
             if (w.icon != null) ...[
@@ -525,7 +553,7 @@ class _GroupedRowState extends State<GroupedRow>
                   color: w.destructive
                       ? theme.danger
                       : tileColor(theme, w.tone),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(7.5),
                 ),
                 child: Icon(
                   w.icon,
@@ -535,7 +563,7 @@ class _GroupedRowState extends State<GroupedRow>
                       : Colors.white,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
             ],
             Expanded(
               child: _TitleValue(
@@ -555,11 +583,11 @@ class _GroupedRowState extends State<GroupedRow>
               w.trailing!,
             ],
             if (showChevron) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Icon(
                 CupertinoIcons.chevron_forward,
-                size: 15,
-                color: theme.inkMuted.withValues(alpha: 0.7),
+                size: 14,
+                color: theme.inkMuted.withValues(alpha: 0.55),
               ),
             ],
           ],
@@ -680,11 +708,11 @@ class _TitleValue extends StatelessWidget {
               ],
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(subtitle!, style: groupedSubtitleStyle(theme)),
             ],
             if (below != null) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 below,
                 style: valueStyle,
@@ -900,45 +928,94 @@ class PersonRow extends StatelessWidget {
   }
 }
 
-/// THE header of a page-level section — Feed's "Moments", Discover's
-/// "People": the theme's `displaySmall` (each theme's own ~20–22pt display
-/// face), with an optional accent text action ("See all") on the far edge.
+/// T2 of the header ramp — THE header of a section on a TAB ROOT: Feed's
+/// "Highlights", Discover's "Friends", the Settings hub's "General", the
+/// leaderboard's "Today's puzzles". The theme's `displaySmall` (each theme's
+/// own ~18–22pt display face) in ink.
 ///
-/// For grouped settings-style blocks use [GroupedHeader]; this is the bigger
-/// voice of a content page, where a section is a shelf, not a form.
+/// The ramp, one rule anyone can apply:
+///   * T1 — the large title (`IosPage`, the tab mastheads), `displayLarge`.
+///   * T2 — this, on every tab root.
+///   * T3 — [GroupedHeader] (17/w600), on pushed pages and in sheets.
+///
+/// Optional [count] ("Friends 12") in the row-value voice, on the title's
+/// baseline; optional [actionLabel] drawn as "Label ›" — the one action
+/// style, never a centred "See all" row under the list. The title wraps to a
+/// second line rather than clip (Turkish at 1.3×); the action keeps its 44pt
+/// target on the title's centre line.
+///
+/// The parent owns the space ABOVE (32pt between tab-root sections); the
+/// default padding is 10pt below, to the section's body. Its left edge is the
+/// caller's: put it on the T1 title's x (20pt from the screen edge).
 class PageSectionHeader extends StatelessWidget {
   const PageSectionHeader(
     this.title, {
     super.key,
+    this.count,
     this.actionLabel,
     this.onAction,
-    this.padding = const EdgeInsets.fromLTRB(4, 18, 4, 8),
+    this.actionSemanticLabel,
+    this.padding = const EdgeInsets.fromLTRB(0, 0, 0, 10),
   });
 
   final String title;
+
+  /// A number after the title ("12"). Null or empty draws none.
+  final String? count;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// What a screen reader says for the action, when the label alone is
+  /// ambiguous ("See all friends" for a bare "See all").
+  final String? actionSemanticLabel;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final titleStyle = theme.displaySmall.copyWith(color: theme.ink);
+    final n = count;
+    final heading = Semantics(
+      header: true,
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: sentenceCaseOf(context, title)),
+            if (n != null && n.isNotEmpty) ...[
+              // One paragraph, not a Row: the count shares the title's
+              // baseline at any text size, and wraps with it instead of
+              // being pushed off the row.
+              const WidgetSpan(child: SizedBox(width: 6)),
+              TextSpan(
+                text: n,
+                style: groupedValueStyle(theme).copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ],
+        ),
+        style: titleStyle,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+    final label = actionLabel;
     return Padding(
       padding: padding,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
-            child: Semantics(
-              header: true,
-              child: Text(
-                sentenceCaseOf(context, title),
-                style: theme.displaySmall.copyWith(color: theme.ink),
-              ),
+          Expanded(child: heading),
+          if (label != null && onAction != null) ...[
+            const SizedBox(width: 8),
+            TextLinkButton(
+              label: label,
+              icon: CupertinoIcons.chevron_forward,
+              onTap: onAction,
+              semanticLabel: actionSemanticLabel,
             ),
-          ),
-          if (actionLabel != null && onAction != null)
-            TextLinkButton(label: actionLabel!, onTap: onAction),
+          ],
         ],
       ),
     );

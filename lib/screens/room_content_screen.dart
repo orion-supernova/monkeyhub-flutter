@@ -18,6 +18,7 @@ import '../models/room_content_item.dart';
 import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart' show sheetTitleStyle;
@@ -27,9 +28,9 @@ import '../widgets/audio_message.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
+import '../widgets/liquid_glass.dart' show SpecularRim;
 import '../widgets/media_grid_tile.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
-import '../widgets/pill_nav.dart';
 import '../widgets/remote_image.dart';
 import 'fullscreen_video_viewer.dart';
 import 'media_pager_screen.dart';
@@ -111,6 +112,36 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     _c.loadInitial();
     _scroll.addListener(_onScroll);
     _loadCounts();
+    // First look at this room's shelf this session: what is on it now counts
+    // as seen. Only saves made after that light the Saved dot.
+    _savedSeenAt.putIfAbsent(widget.roomId, _latestSave);
+    if (_tab == RoomContentTab.saved) _markSavedSeen();
+  }
+
+  /// When each room's Saved tab was last looked at, by the newest `savedAt`
+  /// on it then. Session memory, on purpose: the dot answers "anything I
+  /// saved since I last looked here", and a reinstall or relaunch forgetting
+  /// that costs one stale dot at most — not worth a disk write per visit.
+  static final Map<String, DateTime> _savedSeenAt = {};
+
+  DateTime _latestSave() {
+    var latest = DateTime.fromMillisecondsSinceEpoch(0);
+    for (final b in widget.repo.savedFor(widget.roomId)) {
+      if (b.savedAt.isAfter(latest)) latest = b.savedAt;
+    }
+    return latest;
+  }
+
+  void _markSavedSeen() => _savedSeenAt[widget.roomId] = _latestSave();
+
+  /// A save newer than the last look, and the reader not on the tab now.
+  bool get _hasUnseenSaves {
+    if (_tab == RoomContentTab.saved) return false;
+    final seen = _savedSeenAt[widget.roomId];
+    if (seen == null) return false;
+    return widget.repo
+        .savedFor(widget.roomId)
+        .any((b) => b.savedAt.isAfter(seen));
   }
 
   @override
@@ -151,6 +182,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     // into the LINKS tab would leave the action bar acting on rows that are
     // not on screen.
     _selection.clear();
+    // Leaving the shelf or arriving on it both mean it has been seen.
+    if (tab == RoomContentTab.saved || _tab == RoomContentTab.saved) {
+      _markSavedSeen();
+    }
     setState(() => _tab = tab);
     _c.loadInitial();
     if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -263,12 +298,21 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       initialIndex: start,
       api: widget.api,
       sourceDecodeWidth: _tileDecodeWidth(),
-      onPageChanged: (msg) {
-        final i = media.indexWhere((x) => x.id == msg.id);
-        // Keeps the tile the reader has swiped to laid out, so the closing
-        // flight has a destination however deep into the set they went.
-        if (i >= 0) _revealInGrid(i);
-      },
+      actions: MediaPagerActions.room(
+        repo: widget.repo,
+        api: widget.api,
+        roomId: widget.roomId,
+        // Lead the subscription, as the bulk delete does: the paged half of
+        // the grid is a snapshot and would keep the tile until a refresh.
+        onDeleted: (msg) {
+          if (!mounted) return;
+          _c.forget({msg.id});
+          _loadCounts();
+        },
+      ),
+      // Keeps the tile the reader has swiped to laid out, so the closing
+      // flight has a destination however deep into the set they went.
+      onPageChanged: (msg) => _revealInGrid(msg.id),
       onShowInChat: (msg) {
         handBack = msg;
         // Pop the pager (a root-navigator route) before handing the message
@@ -283,21 +327,40 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       return;
     }
     if (landed == null || landed == start) return;
-    _revealInGrid(landed);
+    _revealInGrid(media[landed].id);
   }
 
-  /// Scrolls the grid so tile [index] is on screen.
+  /// Scrolls the grid so the tile for [messageId] is on screen.
   ///
   /// Swiping several photos deep in the pager and closing should not land you
   /// looking at the one you opened. It also gives the closing hero somewhere to
   /// fly to: a tile scrolled outside the grid's build range has no widget for
   /// the flight to match, and Flutter degrades to a plain fade.
-  void _revealInGrid(int index) {
-    if (!_scroll.hasClients) return;
-    final width = MediaQuery.sizeOf(context).width;
-    final columns = _gridColumns(width);
-    final rowExtent = width / columns + _gridSpacing;
-    final target = (index ~/ columns) * rowExtent;
+  ///
+  /// By id rather than index: a delete from inside the pager shortens the list
+  /// under it, and an index into the old one points at the wrong photograph.
+  void _revealInGrid(String messageId) {
+    if (!_scroll.hasClients || _gridWidth <= 0) return;
+    final columns = _gridColumns(_gridWidth);
+    final tile = (_gridWidth - (columns - 1) * _gridSpacing) / columns;
+    final rowExtent = tile + _gridSpacing;
+
+    // Walk the month sections the grid draws: each is a header and its own
+    // rows, so the tile's offset is everything above it in both.
+    var offset = 0.0;
+    double? target;
+    for (final group in _monthGroups(_c.items)) {
+      offset += _monthHeaderHeight;
+      final at = group.items.indexWhere((m) => m.id == messageId);
+      if (at >= 0) {
+        // Under the month header, which is pinned and would cover it.
+        target = offset + (at ~/ columns) * rowExtent - _monthHeaderHeight;
+        break;
+      }
+      final rows = (group.items.length / columns).ceil();
+      offset += rows * rowExtent - _gridSpacing;
+    }
+    if (target == null) return;
 
     // Only when it is genuinely off screen — jumping a tile that is already
     // visible moves the grid under the reader for no reason.
@@ -519,21 +582,14 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
         final l10n = AppLocalizations.of(context);
         final picked = _selected.length;
         final selecting = _selection.active;
-        // An iOS navigation bar: the back chevron (an × while selecting,
-        // which is a mode to leave, not a page to pop) leading, the title
-        // centred at 17/w600, the Select text action trailing — Photos'
-        // shape. No tracked mono eyebrow over a 21pt left-aligned title.
+        // An iOS navigation bar: the back chevron leading (Cancel while
+        // selecting — iOS Photos' word for leaving the mode; an × there read
+        // as "close the screen"), the title centred at 17/w600, the Select
+        // text action trailing. No hairline: the segmented control under it
+        // is the separation.
         return Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: theme.divider,
-                width: 1 / MediaQuery.devicePixelRatioOf(context),
-              ),
-            ),
-          ),
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -555,12 +611,15 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
               Row(
                 children: [
                   if (selecting)
-                    GlassCloseButton(
-                      semanticLabel: l10n.roomContentScreenCancelTooltip,
+                    TextLinkButton(
+                      label: l10n.roomContentScreenCancelTooltip,
                       onTap: _selection.clear,
                     )
                   else
+                    // Still: the bar never moves, so there is nothing for a
+                    // blur behind the disc to do but cost a pass.
                     GlassBackButton(
+                      still: true,
                       semanticLabel: l10n.roomContentScreenBackTooltip,
                       onTap: () => Navigator.of(context).pop(),
                     ),
@@ -595,30 +654,30 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   }
 
   Widget _tabs(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-      // Rebuilt with the active controller, which listens to the repository —
-      // so unsaving the last bookmark drops the SAVED badge on the same frame
-      // the row leaves the list, rather than on the next screen open.
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      // The shared segmented control — labels only. Counts were badges on a
+      // row of pills; the grid's month headers carry them now, where they say
+      // something about what is on screen. A screen reader still hears each
+      // tab's count, from the same server tally the badges used.
       child: AnimatedBuilder(
         animation: _c,
-        builder: (_, _) => SingleChildScrollView(
-          // Five labels plus badges overflow a narrow phone; scrolling is what
-          // keeps the strip honest rather than shrinking the text.
-          scrollDirection: Axis.horizontal,
-          child: PillNav(
-            items: [
-              for (final t in _tabsShown)
-                PillNavItem(
-                  id: t.name,
-                  label: t.label(context),
-                  badge: (_countFor(t) ?? RoomContentCount.zero).badge,
-                ),
-            ],
-            activeId: _tab.name,
-            onChange: (id) =>
-                _switchTo(_tabsShown.firstWhere((t) => t.name == id)),
-          ),
+        builder: (_, _) => IosSegmentedControl<RoomContentTab>(
+          value: _tab,
+          onChanged: _switchTo,
+          segments: [
+            for (final t in _tabsShown)
+              IosSegment(
+                value: t,
+                label: t.label(context),
+                badge: t == RoomContentTab.saved && _hasUnseenSaves,
+                semanticLabel: switch (_countFor(t)?.badge) {
+                  null => null,
+                  final n => l10n.roomContentTabSemantic(n, t.label(context)),
+                },
+              ),
+          ],
         ),
       ),
     );
@@ -666,43 +725,89 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   /// purpose. Two ways of working it out is how the gallery ends up asking the
   /// `ImageCache` for an entry that was never made and flying a shimmer.
   int _tileDecodeWidth() {
-    final width = MediaQuery.sizeOf(context).width;
+    final width = _gridWidth > 0 ? _gridWidth : MediaQuery.sizeOf(context).width;
     final tileWidth = width / _gridColumns(width);
     return (tileWidth * MediaQuery.devicePixelRatioOf(context)).round();
   }
 
+  /// Photos' grid: edge to edge, square, 2pt apart, in month sections whose
+  /// headers stay pinned while their month scrolls under them.
+  ///
+  /// One [SliverMainAxisGroup] per month so each header is pinned only within
+  /// its own section — plain pinned headers in one scroll view stack up under
+  /// each other instead of handing over.
   Widget _mediaGrid(AppTheme theme, double bottomPad) {
     final items = _c.items;
-    final width = MediaQuery.sizeOf(context).width;
-    final columns = _gridColumns(width);
     final decodeWidth = _tileDecodeWidth();
+    final groups = _monthGroups(items);
+    final now = DateTime.now();
 
-    return GridView.builder(
-      controller: _scroll,
-      padding: EdgeInsets.fromLTRB(2, 6, 2, bottomPad),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        crossAxisSpacing: _gridSpacing,
-        mainAxisSpacing: _gridSpacing,
-      ),
-      itemCount: items.length + (_c.hasMore ? 1 : 0),
-      itemBuilder: (_, i) {
-        if (i >= items.length) return const _TailSpinner();
-        final m = items[i];
-        return MediaGridTile(
-          message: m,
-          api: widget.api,
-          selected: _selection.contains(m.id),
-          selecting: _selection.active,
-          decodeWidth: decodeWidth,
-          onTap: () => _openMessage(m),
-          onLongPress: () {
-            HapticFeedback.selectionClick();
-            _selection.begin(m.id);
-          },
+    return LayoutBuilder(
+      builder: (context, box) {
+        _gridWidth = box.maxWidth;
+        final columns = _gridColumns(box.maxWidth);
+        return CustomScrollView(
+          controller: _scroll,
+          slivers: [
+            for (final g in groups)
+              SliverMainAxisGroup(
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _MonthHeader(
+                      theme: theme,
+                      title: _monthTitle(context, g.month, now),
+                      count: g.items.length,
+                    ),
+                  ),
+                  SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: _gridSpacing,
+                      mainAxisSpacing: _gridSpacing,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        final m = g.items[i];
+                        return MediaGridTile(
+                          key: ValueKey(m.id),
+                          message: m,
+                          api: widget.api,
+                          selected: _selection.contains(m.id),
+                          selecting: _selection.active,
+                          decodeWidth: decodeWidth,
+                          onTap: () => _openMessage(m),
+                          onLongPress: () {
+                            HapticFeedback.selectionClick();
+                            _selection.begin(m.id);
+                          },
+                        );
+                      },
+                      childCount: g.items.length,
+                    ),
+                  ),
+                ],
+              ),
+            // The next page appends to the last month (or opens a new one);
+            // the spinner says one is coming.
+            if (_c.hasMore) const SliverToBoxAdapter(child: _TailSpinner()),
+            SliverPadding(padding: EdgeInsets.only(bottom: bottomPad)),
+          ],
         );
       },
     );
+  }
+
+  /// "This month", "Last month", else the month and year in the reader's
+  /// language ("September 2026", "Eylül 2026").
+  String _monthTitle(BuildContext context, DateTime month, DateTime now) {
+    final l10n = AppLocalizations.of(context);
+    final thisMonth = DateTime(now.year, now.month);
+    if (month == thisMonth) return l10n.roomContentMonthThis;
+    if (month == DateTime(now.year, now.month - 1)) {
+      return l10n.roomContentMonthLast;
+    }
+    return MaterialLocalizations.of(context).formatMonthYear(month);
   }
 
   Widget _rowList(AppTheme theme, double bottomPad) {
@@ -827,6 +932,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   /// reproduce the grid's row extent to scroll to one.
   static const double _gridSpacing = 2;
 
+  /// The grid's width at its last layout, for [_revealInGrid] — inside an
+  /// [AdaptivePageBody] it is not the screen's.
+  double _gridWidth = 0;
+
   /// Wider panes get more columns rather than bigger squares — a 200pt photo
   /// thumbnail is not more useful than a 110pt one, just heavier to decode.
   static int _gridColumns(double width) => width >= Breakpoints.expanded
@@ -834,6 +943,103 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       : width >= Breakpoints.medium
       ? 5
       : 3;
+}
+
+/// Height of a month header in the media grid. Shared with
+/// [_RoomContentScreenState._revealInGrid], which has to step over them.
+const double _monthHeaderHeight = 40;
+
+/// One month of the media grid, newest first like the list it came from.
+class _MonthGroup {
+  _MonthGroup(this.month);
+
+  /// The first of the month, local time.
+  final DateTime month;
+  final List<ChatMessage> items = [];
+}
+
+/// Splits [items] (newest first) into consecutive months. Consecutive, not
+/// bucketed: the list is already in order, so one pass keeps it in order and
+/// a page that arrives later simply extends the last month or starts the next.
+List<_MonthGroup> _monthGroups(List<ChatMessage> items) {
+  final groups = <_MonthGroup>[];
+  for (final m in items) {
+    final at = m.createdAt.toLocal();
+    final month = DateTime(at.year, at.month);
+    if (groups.isEmpty || groups.last.month != month) {
+      groups.add(_MonthGroup(month));
+    }
+    groups.last.items.add(m);
+  }
+  return groups;
+}
+
+/// A pinned month header: the T3 grouped header's type at 17/w600, the count
+/// in the meta style beside it, over the page's own background at 92% so the
+/// photographs scrolling under it show as a shadow rather than a collision.
+/// No blur — it is pinned, it moves with every scroll frame.
+class _MonthHeader extends SliverPersistentHeaderDelegate {
+  _MonthHeader({required this.theme, required this.title, required this.count});
+
+  final AppTheme theme;
+  final String title;
+  final int count;
+
+  @override
+  double get minExtent => _monthHeaderHeight;
+
+  @override
+  double get maxExtent => _monthHeaderHeight;
+
+  @override
+  bool shouldRebuild(_MonthHeader old) =>
+      old.title != title || old.count != count || !identical(old.theme, theme);
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
+    return Semantics(
+      header: true,
+      child: Container(
+        height: _monthHeaderHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          color: theme.background.withValues(alpha: 0.92),
+          // Only once something is under it: a hairline at rest would rule
+          // a line between a header and the first row it belongs to.
+          border: overlaps
+              ? Border(
+                  bottom: BorderSide(
+                    color: theme.divider.withValues(alpha: 0.6),
+                    width: 1 / MediaQuery.devicePixelRatioOf(context),
+                  ),
+                )
+              : null,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Flexible(
+              child: Text(
+                title,
+                style: groupedHeaderStyle(theme),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$count',
+              style: groupedMetaStyle(theme).copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _DayHeader extends StatelessWidget {
@@ -1409,59 +1615,91 @@ class RoomContentActionBar extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Container(
-              decoration: theme.sheetDecoration(),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  BulkActionButton(
-                    theme: theme,
-                    icon: CupertinoIcons.arrowshape_turn_up_right,
-                    label: l10n.roomContentScreenForwardAction,
-                    onTap: onForward,
+            // A floating card, rounded all round. It used to wear the
+            // sheet's decoration, which rounds only the top and borders only
+            // some sides — so it read as a sheet cut off 12pt above the
+            // screen's bottom, with grid tiles showing under its flat edge.
+            // Raised surface, hairline, the chrome disc's shadow and rim: the
+            // same material as the buttons in the bar above it.
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black
+                        .withValues(alpha: theme.isLight ? 0.12 : 0.36),
+                    blurRadius: theme.isLight ? 18 : 22,
+                    offset: Offset(0, theme.isLight ? 4 : 6),
                   ),
-                  if (isLinks)
-                    BulkActionButton(
-                      theme: theme,
-                      icon: CupertinoIcons.doc_on_clipboard,
-                      label: l10n.roomContentScreenCopyAction,
-                      onTap: onCopy,
-                    )
-                  else ...[
-                    // `gal` has no web implementation — see the MissingPluginException
-                    // note in profile_screen.dart. Hidden rather than offered and
-                    // then failed.
-                    if (savable && !kIsWeb)
+                ],
+              ),
+              child: CustomPaint(
+                foregroundPainter: SpecularRim(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  light: theme.isLight,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: chromeDiscFill(theme),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: theme.divider, width: 0.5),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
                       BulkActionButton(
                         theme: theme,
-                        icon: CupertinoIcons.arrow_down_to_line,
-                        label: l10n.roomContentScreenSaveAction,
-                        onTap: onSave,
+                        icon: CupertinoIcons.arrowshape_turn_up_right,
+                        label: l10n.roomContentScreenForwardAction,
+                        onTap: onForward,
                       ),
-                    BulkActionButton(
-                      theme: theme,
-                      icon: CupertinoIcons.share,
-                      label: l10n.roomContentScreenShareAction,
-                      onTap: onShare,
-                    ),
-                  ],
-                  if (onShowInChat != null)
-                    BulkActionButton(
-                      theme: theme,
-                      icon: CupertinoIcons.chat_bubble,
-                      label: l10n.roomContentScreenInChatAction,
-                      onTap: onShowInChat!,
-                    ),
-                  if (canDelete)
-                    BulkActionButton(
-                      theme: theme,
-                      icon: CupertinoIcons.trash,
-                      label: l10n.roomContentScreenDeleteAction,
-                      destructive: true,
-                      onTap: onDelete,
-                    ),
-                ],
+                      if (isLinks)
+                        BulkActionButton(
+                          theme: theme,
+                          icon: CupertinoIcons.doc_on_clipboard,
+                          label: l10n.roomContentScreenCopyAction,
+                          onTap: onCopy,
+                        )
+                      else ...[
+                        // `gal` has no web implementation — see the MissingPluginException
+                        // note in profile_screen.dart. Hidden rather than offered and
+                        // then failed.
+                        if (savable && !kIsWeb)
+                          BulkActionButton(
+                            theme: theme,
+                            icon: CupertinoIcons.arrow_down_to_line,
+                            label: l10n.roomContentScreenSaveAction,
+                            onTap: onSave,
+                          ),
+                        BulkActionButton(
+                          theme: theme,
+                          icon: CupertinoIcons.share,
+                          label: l10n.roomContentScreenShareAction,
+                          onTap: onShare,
+                        ),
+                      ],
+                      if (onShowInChat != null)
+                        BulkActionButton(
+                          theme: theme,
+                          icon: CupertinoIcons.chat_bubble,
+                          label: l10n.roomContentScreenInChatAction,
+                          onTap: onShowInChat!,
+                        ),
+                      if (canDelete)
+                        BulkActionButton(
+                          theme: theme,
+                          icon: CupertinoIcons.trash,
+                          label: l10n.roomContentScreenDeleteAction,
+                          destructive: true,
+                          onTap: onDelete,
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

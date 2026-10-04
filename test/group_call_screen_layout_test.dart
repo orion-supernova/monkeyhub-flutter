@@ -7,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/backend/group_call_api.dart';
 import 'package:monkeyhub/calls/call_models.dart';
+import 'package:monkeyhub/calls/call_stats_monitor.dart';
 import 'package:monkeyhub/calls/draw/draw_canvas.dart';
 import 'package:monkeyhub/calls/group_call_screen.dart';
 import 'package:monkeyhub/calls/group_call_service.dart';
@@ -204,6 +205,18 @@ void main() {
       prev?.call(details);
     };
     addTearDown(() => FlutterError.onError = prev);
+    // The same plugin's event stream, answered rather than filtered: the
+    // handler above is replaced by each `testWidgets` before its body runs,
+    // so a `listen` that lost the race landed in whichever test was running
+    // — under a parallel run, reliably the roster test.
+    const events = EventChannel('FlutterWebRTC.Event');
+    final messenger =
+        TestWidgetsFlutterBinding.ensureInitialized().defaultBinaryMessenger;
+    messenger.setMockStreamHandler(
+      events,
+      MockStreamHandler.inline(onListen: (_, _) {}),
+    );
+    addTearDown(() => messenger.setMockStreamHandler(events, null));
   });
 
   testWidgets('a voice call is faces, not empty tiles', (tester) async {
@@ -235,6 +248,88 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(svc.leaveCall);
+  });
+
+  testWidgets('the header counts the roster, and the tray offers More',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final (svc, api, _) = await _call(tester);
+    await tester.pumpWidget(_host(svc));
+    await _settle(tester);
+
+    // Me plus Bea and Cem joined; Dua is being rung, and says so.
+    // One line when it fits beside the title, else the halves stacked.
+    expect(
+      find.text('3 in call · 1 ringing').evaluate().length +
+          (find.text('3 in call').evaluate().isNotEmpty &&
+                  find.text('1 ringing').evaluate().isNotEmpty
+              ? 1
+              : 0),
+      1,
+    );
+    // The 1:1 tray's "More", right before Hide.
+    final labels = [
+      for (final e in find.byType(CallControlButton).evaluate())
+        (e.widget as CallControlButton).label,
+    ];
+    expect(labels.indexOf('More'), labels.indexOf('Hide') - 1);
+
+    // A peer whose link is down is still on the call — the roster says so —
+    // and the count must not dip while it comes back.
+    svc.peers['b']!.reconnecting = true;
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    svc.notifyListeners();
+    await _settle(tester);
+    // One line when it fits beside the title, else the halves stacked.
+    expect(
+      find.text('3 in call · 1 ringing').evaluate().length +
+          (find.text('3 in call').evaluate().isNotEmpty &&
+                  find.text('1 ringing').evaluate().isNotEmpty
+              ? 1
+              : 0),
+      1,
+    );
+
+    // Alone is "Just you", not "1 in call".
+    await tester.runAsync(() async {
+      api.roster!({
+        'groupCallId': 'gc1',
+        'status': 'active',
+        'roomName': 'crew',
+        'participants': [
+          {'userId': 'a', 'status': 'joined', 'name': 'A'},
+        ],
+      });
+      await _pump();
+    });
+    await _settle(tester);
+    expect(find.text('Just you'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(svc.leaveCall);
+  });
+
+  test('stats lines leave out what the sample does not know', () {
+    expect(statsDownLine(null), isNull);
+    expect(
+      statsDownLine(const CallQualitySnapshot(
+        quality: CallQuality.good,
+        inKbps: 1234,
+        rttMs: 48.4,
+        lossPercent: 0.25,
+      )),
+      '↓ 1.2 Mb/s · 48 ms · 0.3%',
+    );
+    expect(
+      statsDownLine(const CallQualitySnapshot(
+        quality: CallQuality.good,
+        rttMs: 120,
+      )),
+      '120 ms',
+    );
+    expect(statsUpLine(2400), '↑ 2.4 Mb/s');
+    expect(statsUpLine(null), isNull);
   });
 
   testWidgets('a camera coming on makes it a video call, and off again',

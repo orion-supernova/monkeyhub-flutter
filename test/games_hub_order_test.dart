@@ -10,7 +10,7 @@ import 'package:monkeyhub/data/feed_store.dart';
 import 'package:monkeyhub/data/games_store.dart';
 import 'package:monkeyhub/data/records_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
-import 'package:monkeyhub/screens/games/games_hub_screen.dart';
+import 'package:monkeyhub/screens/games/leaderboard_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/game_tile.dart';
@@ -60,7 +60,7 @@ void main() {
     supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
-      child: GamesHubScreen(
+      child: LeaderboardScreen(
         feedApi: FeedApi(ConvexBackend.instance),
         userId: 'u1',
       ),

@@ -402,6 +402,9 @@ class _Grid extends StatelessWidget {
   }
 }
 
+/// The "right symbol, wrong spot" colour — the yellow the rules promise.
+const Color kPuzzlePresentAmber = Color(0xFFF5B400);
+
 class _Row extends StatelessWidget {
   const _Row({
     required this.symbols,
@@ -415,8 +418,8 @@ class _Row extends StatelessWidget {
   final bool revealed;
   final Color accent;
 
-  /// This slot's status, once revealed. Green means exactly right, the
-  /// accent-tinted "light" means the right symbol in the wrong place — the
+  /// This slot's status, once revealed. Green means exactly right, amber
+  /// means the right symbol in the wrong place — the
   /// Wordle-style per-tile read `pegsForSlots` computes server-side, only for
   /// the player's own guesses (see the library doc on why).
   PuzzlePegSlot? _statusFor(int i) {
@@ -452,9 +455,13 @@ class _Row extends StatelessWidget {
                   curve: motion.c(theme.motionEntrance),
                   builder: (context, v, child) {
                     final status = v > 0.5 ? _statusFor(i) : null;
+                    // Amber, fixed, on every theme — not the accent. The
+                    // rules tell everyone "yellow means right symbol, wrong
+                    // spot", and on Basic the accent is blue: the board was
+                    // contradicting its own instructions.
                     final Color? lit = switch (status) {
                       PuzzlePegSlot.exact => theme.success,
-                      PuzzlePegSlot.present => theme.accent,
+                      PuzzlePegSlot.present => kPuzzlePresentAmber,
                       _ => null,
                     };
                     // A symbol just typed lands with a little pop; a checked
@@ -471,8 +478,14 @@ class _Row extends StatelessWidget {
                         ..scaleByDouble(pop, pop, 1, 1),
                       child: Container(
                         decoration: BoxDecoration(
+                          // Amber is lighter than green, so it takes a little
+                          // more strength to read as the same weight of verdict.
                           color: lit != null
-                              ? lit.withValues(alpha: 0.30)
+                              ? lit.withValues(
+                                  alpha: status == PuzzlePegSlot.present
+                                      ? 0.55
+                                      : 0.30,
+                                )
                               : theme.ink.withValues(
                                   alpha: i < symbols.length ? 0.10 : 0.05,
                                 ),

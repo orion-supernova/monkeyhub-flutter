@@ -1754,6 +1754,7 @@ Widget buildMessageContent({
               mimeType: message.mimeType,
               isMine: isMine,
               maxWidth: metrics?.videoMaxWidth,
+              message: message,
             );
       final hasFileCaption = message.content.isNotEmpty;
       // With a caption the stamp belongs to the caption block, exactly as it
@@ -2688,6 +2689,8 @@ class _ImageTileState extends State<_ImageTile> {
         // immediately rather than shimmering while the full-resolution decode
         // lands.
         thumbnailDecodeWidth: decode,
+        // Share and Save on the lone viewer too.
+        message: widget.message,
       );
     } finally {
       if (mounted) setState(() => _viewing = false);

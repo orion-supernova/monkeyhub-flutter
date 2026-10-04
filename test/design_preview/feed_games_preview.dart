@@ -19,7 +19,7 @@ import 'package:monkeyhub/models/daily_game.dart';
 import 'package:monkeyhub/screens/feed/points_explainer.dart';
 import 'package:monkeyhub/screens/feed/puzzle_screen.dart';
 import 'package:monkeyhub/screens/games/game_scaffold.dart';
-import 'package:monkeyhub/screens/games/games_hub_screen.dart';
+import 'package:monkeyhub/screens/games/leaderboard_screen.dart';
 import 'package:monkeyhub/screens/games/queens_screen.dart';
 import 'package:monkeyhub/screens/games/sudoku_screen.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -62,7 +62,7 @@ void main() {
   });
 
   final screens = <String, Widget Function()>{
-    'hub': () => GamesHubScreen(
+    'hub': () => LeaderboardScreen(
           feedApi: FeedApi(ConvexBackend.instance),
           userId: 'u1',
         ),

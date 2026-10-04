@@ -1866,7 +1866,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get discoverScreenNothingPending => 'لا طلبات مُرسلة';
 
   @override
-  String get discoverScreenYourPeopleLabel => 'أشخاصك';
+  String get discoverScreenYourPeopleLabel => 'الأصدقاء';
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
@@ -1882,7 +1882,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => 'ابحث عن غرفة عامة بالاسم';
 
   @override
-  String get discoverScreenYourRoomsLabel => 'غرفك';
+  String get discoverScreenYourRoomsLabel => 'الغرف';
 
   @override
   String get discoverScreenNoRoomsYet => 'لا غرف بعد';
@@ -2045,7 +2045,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchScreenHintPeople => 'ابحث عن أشخاص';
 
   @override
-  String get searchScreenHintRooms => 'ابحث عن غرف';
+  String get searchScreenHintRooms => 'ابحث عن غرف عامة';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2284,8 +2284,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'مكالمة صوتية جماعية';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count في المكالمة';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count في المكالمة',
+      one: 'أنت فقط',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3937,7 +3943,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get socialButtonGoogleContinue => 'المتابعة باستخدام Google';
 
   @override
-  String get discoverListsPeopleTitle => 'أشخاصك';
+  String get discoverListsPeopleTitle => 'الأصدقاء';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3955,7 +3961,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'تصفية أشخاصك';
+  String get discoverListsFilterHint => 'ابحث في الأصدقاء';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'مسح التصفية';
@@ -3969,7 +3975,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'غرفك';
+  String get discoverListsRoomsTitle => 'الغرف';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3987,7 +3993,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'تصفية غرفك';
+  String get discoverListsFilterRoomsHint => 'ابحث في غرفك';
 
   @override
   String get discoverListsNoRoomsYet => 'لا غرف بعد';
@@ -5594,7 +5600,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get feedBoardGamesLabel => 'الألعاب';
 
   @override
-  String get feedBoardGamesOpen => 'كل الألعاب';
+  String get feedBoardGamesOpen => 'لوحة الصدارة';
 
   @override
   String get gamesScreenTitle => 'الألعاب.';
@@ -5789,102 +5795,94 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gameInfoRulesLabel => 'القواعد';
 
   @override
-  String get gameInfoControlsLabel => 'التحكّم';
+  String get gameInfoControlsLabel => 'ماذا تلمس';
 
   @override
-  String get gameInfoScoringTimed =>
-      'الوقت يعمل ما دام اللوح ظاهرًا، ويتوقّف عند الإيقاف أو الخروج. الأسرع يتصدّر قائمة اليوم.';
+  String get gameInfoScoringTimed => 'الأسرع يفوز. تتوقف الساعة عندما تخرج.';
 
   @override
-  String get gameInfoScoringGuesses => 'النتيجة بعدد المحاولات، لا بالوقت.';
+  String get gameInfoScoringGuesses => 'الأقل تخمينًا يفوز. الوقت لا يُحسب.';
 
   @override
-  String get gameInfoSameForEveryone => 'الجميع يحصل على نفس اللوح اليوم.';
+  String get gameInfoSameForEveryone => 'الجميع يحصل على اللغز نفسه اليوم.';
 
   @override
-  String get gameInfoQueensGoal => 'ضع تاجًا واحدًا في كل صف وعمود ولون.';
+  String get gameInfoQueensGoal => 'ضع 8 تيجان على اللوحة.';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'ثمانية تيجان: واحد في كل صف وواحد في كل عمود.';
+  String get gameInfoQueensRule1 => 'كل صف فيه تاج واحد بالضبط.';
 
   @override
-  String get gameInfoQueensRule2 =>
-      'كل كتلة لونية تحصل أيضًا على تاج واحد بالضبط.';
+  String get gameInfoQueensRule2 => 'كل عمود فيه تاج واحد بالضبط.';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'لا يجوز أن يتلامس تاجان — ولا حتى من الزاوية.';
+  String get gameInfoQueensRule3 => 'كل لون فيه تاج واحد بالضبط.';
 
   @override
   String get gameInfoQueensControls =>
-      'اضغط المربع مرة لوضع علامة استبعاد، ومرة أخرى للتاج، ومرة ثالثة للمسح.';
+      'المس مرة: × (لا تاج هنا). مرتين: تاج. مرة أخرى: امسح.';
 
   @override
-  String get gameInfoTangoGoal => 'املأ الشبكة بالشموس والأقمار.';
+  String get gameInfoTangoGoal => 'املأ كل مربع بشمس أو قمر.';
 
   @override
-  String get gameInfoTangoRule1 => 'كل صف وعمود يحتوي ثلاث شموس وثلاثة أقمار.';
+  String get gameInfoTangoRule1 => 'كل صف فيه 3 شموس و3 أقمار.';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'لا ثلاثة متشابهة متجاورة، أفقيًا أو رأسيًا.';
+  String get gameInfoTangoRule2 => 'كل عمود فيه 3 شموس و3 أقمار.';
 
   @override
-  String get gameInfoTangoRule3 =>
-      'علامة = بين مربعين تعني تطابقهما، و× تعني اختلافهما.';
+  String get gameInfoTangoRule3 => 'لا 3 متشابهة متتالية أبدًا. 2 لا بأس.';
 
   @override
   String get gameInfoTangoControls =>
-      'اضغط المربع لشمس، ومرة أخرى لقمر، ومرة ثالثة للمسح. المربعات المطبوعة ثابتة.';
+      'المس مرة: شمس. مرتين: قمر. مرة أخرى: امسح. المربعات المملوءة من البداية لا تتغير.';
 
   @override
-  String get gameInfoZipGoal => 'ارسم خطًا واحدًا يمرّ بكل مربع.';
+  String get gameInfoZipGoal => 'ارسم خطًا واحدًا يمر بكل المربعات.';
 
   @override
-  String get gameInfoZipRule1 => 'ابدأ من 1 وانتهِ عند آخر رقم.';
+  String get gameInfoZipRule1 => 'ابدأ من 1.';
 
   @override
-  String get gameInfoZipRule2 => 'مُرّ بالأرقام بالترتيب في طريقك.';
+  String get gameInfoZipRule2 => 'مرّ على الأرقام بالترتيب: 1، 2، 3…';
 
   @override
-  String get gameInfoZipRule3 => 'كل مربع يُستخدم مرة واحدة بالضبط.';
+  String get gameInfoZipRule3 => 'املأ كل المربعات. كل مربع مرة واحدة فقط.';
 
   @override
-  String get gameInfoZipControls => 'اسحب إصبعك للرسم، وارجع فوق الخط لمحوه.';
+  String get gameInfoZipControls => 'اسحب إصبعك لترسم. اسحب للخلف لتتراجع.';
 
   @override
-  String get gameInfoSudokuGoal => 'املأ الشبكة بالأرقام من 1 إلى 6.';
+  String get gameInfoSudokuGoal => 'املأ الشبكة بالأرقام من 1 إلى 6.';
 
   @override
-  String get gameInfoSudokuRule1 => 'كل صف يستخدم 1 إلى 6 مرة واحدة لكل رقم.';
+  String get gameInfoSudokuRule1 => 'كل صف فيه 1، 2، 3، 4، 5 و6. بلا تكرار.';
 
   @override
-  String get gameInfoSudokuRule2 => 'وكذلك كل عمود.';
+  String get gameInfoSudokuRule2 => 'وكل عمود كذلك.';
 
   @override
-  String get gameInfoSudokuRule3 => 'وكذلك كل مربع 2×3.';
+  String get gameInfoSudokuRule3 => 'وكل صندوق كذلك. الصندوق صفّان في 3 أعمدة.';
 
   @override
   String get gameInfoSudokuControls =>
-      'اضغط مربعًا ثم رقمًا. اضغط الرقم نفسه مجددًا للمسح. وضع الملاحظات يكتب علامات صغيرة بدلًا من ذلك.';
+      'المس مربعًا ثم رقمًا. المس الرقم مرة أخرى للمسح. الملاحظات تضيف علامات صغيرة.';
 
   @override
-  String get gameInfoCodeGoal =>
-      'اكتشف الشيفرة المخفيّة المكوّنة من أربعة رموز.';
+  String get gameInfoCodeGoal => 'خمّن الشيفرة السرية من 4 رموز.';
 
   @override
-  String get gameInfoCodeRule1 => 'ست محاولات، والشيفرة لا تكرّر أي رمز.';
+  String get gameInfoCodeRule1 => 'الشيفرة فيها 4 رموز مختلفة. بلا تكرار.';
 
   @override
-  String get gameInfoCodeRule2 => 'الأخضر يعني الرمز الصحيح في المكان الصحيح.';
+  String get gameInfoCodeRule2 => 'لديك 6 تخمينات.';
 
   @override
-  String get gameInfoCodeRule3 => 'الأصفر يعني الرمز الصحيح في المكان الخطأ.';
+  String get gameInfoCodeRule3 => 'أخضر: رمز صحيح في مكان صحيح.';
 
   @override
-  String get gameInfoCodeControls =>
-      'اضغط الرموز لبناء تخمين ثم أرسله. سيخبرك اللوح كم اقتربت.';
+  String get gameInfoCodeControls => 'المس 4 رموز، ثم المس تخمين.';
 
   @override
   String get savedMessagesTitle => 'الرسائل المحفوظة';
@@ -10435,10 +10433,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get childPairBackIos => 'العودة إلى تسجيل الدخول';
 
   @override
-  String get gamesHubTitle => 'الألعاب';
+  String get gamesHubTitle => 'لوحة الصدارة';
 
   @override
-  String get gamesHubSubtitle => 'ألواح جديدة كل يوم، واحدة للجميع.';
+  String get gamesHubSubtitle => 'فائزو اليوم. ألغاز جديدة كل يوم.';
 
   @override
   String get gameTellFriendsMessage =>
@@ -10484,7 +10482,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get changeRequestUseIos => 'استخدمه';
 
   @override
-  String get settingsSearchHint => 'بحث';
+  String get settingsSearchHint => 'ابحث في الإعدادات';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10744,4 +10742,380 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => 'مختارة';
+
+  @override
+  String get pageSectionSeeAll => 'عرض الكل';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => 'عرض كل الأصدقاء';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => 'عرض كل غرفك';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'يرنّ $count',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return 'اليوم الساعة $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return 'أمس الساعة $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date الساعة $time';
+  }
+
+  @override
+  String get photoChromeSaved => 'تم الحفظ';
+
+  @override
+  String get photoChromeSaveFailed => 'تعذّر الحفظ';
+
+  @override
+  String get photoChromeShareFailed => 'تعذّرت المشاركة';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تمت إعادة التوجيه إلى $count محادثات',
+      one: 'تمت إعادة التوجيه',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => 'تعذّرت إعادة التوجيه';
+
+  @override
+  String get photoChromeDeleteFailed => 'تعذّر الحذف';
+
+  @override
+  String get photoChromeDeleteBody =>
+      'سيؤدي هذا إلى إزالته لدى الجميع في هذه المحادثة. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get roomContentMonthThis => 'هذا الشهر';
+
+  @override
+  String get roomContentMonthLast => 'الشهر الماضي';
+
+  @override
+  String get gameInfoGoalLabel => 'الهدف';
+
+  @override
+  String get gameInfoExampleLabel => 'مثال';
+
+  @override
+  String get gameInfoWinLabel => 'كيف تفوز';
+
+  @override
+  String get gameInfoQueensRule4 => 'التيجان لا تتلامس. ولا حتى من الزوايا.';
+
+  @override
+  String get gameInfoQueensExample =>
+      'تاج هنا يعني: لا تاج آخر في صفه أو عموده أو لونه، ولا في الـ 8 مربعات حوله.';
+
+  @override
+  String get gameInfoTangoRule4 =>
+      '= تعني أن المربعين متشابهان. × تعني أنهما مختلفان.';
+
+  @override
+  String get gameInfoTangoExample =>
+      'شمس، شمس، فارغ؟ المربع الفارغ يجب أن يكون قمرًا.';
+
+  @override
+  String get gameInfoZipRule4 =>
+      'تحرّك لأعلى أو لأسفل أو يمينًا أو يسارًا. لا خطوط مائلة.';
+
+  @override
+  String get gameInfoZipRule5 => 'انتهِ عند آخر رقم.';
+
+  @override
+  String get gameInfoZipExample =>
+      'ذاهب من 1 إلى 2؟ خذ الطريق الطويل إن لزم. لا يجوز ترك أي مربع فارغًا.';
+
+  @override
+  String get gameInfoSudokuExample =>
+      'صف فيه 1، 2، 4، 5 و6؟ المربع الفارغ هو 3.';
+
+  @override
+  String get gameInfoCodeRule4 => 'أصفر: رمز صحيح في مكان خطأ.';
+
+  @override
+  String get gameInfoCodeRule5 => 'رمادي: هذا الرمز ليس في الشيفرة.';
+
+  @override
+  String get gameInfoCodeExample =>
+      'أخضر، أصفر، رمادي، رمادي تعني: 1 رمز في مكانه الصحيح، و1 مكانه في موضع آخر، و2 ليسا في الشيفرة.';
+
+  @override
+  String get leaderboardOverall => 'اليوم';
+
+  @override
+  String get leaderboardFooter =>
+      '1 نقطة لكل لغز تحلّه اليوم. عند التعادل، يتقدم من جاء أولًا مرات أكثر.';
+
+  @override
+  String get leaderboardNotPlayed => 'لم تلعب بعد';
+
+  @override
+  String get leaderboardPlay => 'العب';
+
+  @override
+  String get leaderboardEmptyTitle => 'لا نتائج بعد اليوم';
+
+  @override
+  String get leaderboardEmptyBody => 'حلّ لغزًا وستكون الأول في القائمة.';
+
+  @override
+  String get leaderboardGamesHeader => 'ألغاز اليوم';
+
+  @override
+  String get pointComposerPickFirst => 'اختر واحدًا في الأعلى أولًا';
+
+  @override
+  String get momentStoryNext => 'التالي';
+
+  @override
+  String get momentStoryPrevious => 'السابق';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$solved من $total محلولة',
+      zero: 'لم يُحلّ شيء بعد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count انتصارات',
+      one: 'فوز واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return 'العب $game';
+  }
+
+  @override
+  String get diagCatApi => 'استدعاءات الخادم';
+
+  @override
+  String get diagCatConnection => 'الاتصال';
+
+  @override
+  String get diagCatDevice => 'الجهاز';
+
+  @override
+  String get diagCatError => 'الأخطاء';
+
+  @override
+  String get diagCatFrame => 'إطارات بطيئة';
+
+  @override
+  String get diagCatLayout => 'التخطيط';
+
+  @override
+  String get diagCatLifecycle => 'حالة التطبيق';
+
+  @override
+  String get diagCatLog => 'السجل';
+
+  @override
+  String get diagCatNav => 'التنقل';
+
+  @override
+  String get diagCatNetwork => 'الشبكة';
+
+  @override
+  String get diagCatSubscription => 'تحديثات مباشرة';
+
+  @override
+  String get diagSevTrace => 'تتبّع';
+
+  @override
+  String get diagSevDebug => 'تصحيح';
+
+  @override
+  String get diagSevInfo => 'معلومات';
+
+  @override
+  String get diagSevWarning => 'تحذير';
+
+  @override
+  String get diagSevError => 'خطأ';
+
+  @override
+  String get diagAll => 'الكل';
+
+  @override
+  String get diagSearchHint => 'ابحث في الاسم والتفاصيل والمحتوى';
+
+  @override
+  String get diagSummaryCopied => 'تم نسخ الملخص';
+
+  @override
+  String get diagShareLog => 'مشاركة السجل';
+
+  @override
+  String get diagCopySummary => 'نسخ الملخص';
+
+  @override
+  String get diagDeleteAll => 'حذف الكل';
+
+  @override
+  String get diagUndo => 'تراجع';
+
+  @override
+  String get diagDeleteLogTitle => 'حذف السجل بالكامل؟';
+
+  @override
+  String get diagDeleteLogBody =>
+      'سيُحذف كل حدث سُجِّل حتى الآن مع سجل التشغيل السابق. وكل ما يحدث من الآن يُسجَّل كالمعتاد.';
+
+  @override
+  String get diagDelete => 'حذف';
+
+  @override
+  String get diagLogDeleted => 'تم حذف السجل';
+
+  @override
+  String get diagFilter => 'تصفية';
+
+  @override
+  String get diagMore => 'المزيد';
+
+  @override
+  String get diagLatest => 'الأحدث';
+
+  @override
+  String get diagJumpToLatest => 'الانتقال إلى الأحدث';
+
+  @override
+  String get diagPaused => 'متوقف مؤقتًا';
+
+  @override
+  String get diagPreparingLog => 'جارٍ تجهيز السجل…';
+
+  @override
+  String get diagEmptyNothingTitle => 'لم يُسجَّل شيء بعد';
+
+  @override
+  String get diagEmptyNothingHint =>
+      'استخدم التطبيق قليلًا وستظهر الأحداث هنا.';
+
+  @override
+  String get diagEmptyHiddenTitle => 'لا توجد سوى أحداث مخفية حتى الآن';
+
+  @override
+  String get diagEmptyHiddenHint =>
+      'اضغط على شارة باهتة في الأعلى لرؤيتها، أو اضغط عليها مطولًا لإعادتها إلى الكل.';
+
+  @override
+  String get diagEmptyNoMatchTitle => 'لا توجد أحداث مطابقة';
+
+  @override
+  String get diagEmptyNoMatchHint => 'اضغط على الكل في الأعلى لمسح التصفية.';
+
+  @override
+  String get diagApply => 'تطبيق';
+
+  @override
+  String get diagMinSeverity => 'الحد الأدنى للخطورة';
+
+  @override
+  String get diagEverything => 'كل شيء';
+
+  @override
+  String get diagHiddenFromAllHeader => 'مخفية من الكل';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'تُستبعد من الكل حتى تختارها في صف الشارات. اضغط مطولًا على شارة هناك للإعداد نفسه.';
+
+  @override
+  String get diagCollapseRepeats => 'دمج التكرارات';
+
+  @override
+  String get diagCollapseRepeatsSubtitle => 'اجمع تكرار الحدث نفسه في صف واحد';
+
+  @override
+  String get diagResetFilter => 'إعادة ضبط التصفية';
+
+  @override
+  String get diagBodyTruncated => 'اقتُطع المحتوى عند التسجيل';
+
+  @override
+  String get diagCopyEvent => 'نسخ الحدث';
+
+  @override
+  String get diagEventCopied => 'تم نسخ الحدث';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category مخفية من الكل';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category عادت إلى الكل';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category، $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category، $count، مخفية من الكل';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$shown من $total حدث';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تم إسقاط $count من الأحداث السابقة — يبدأ السجل من منتصف القصة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '×$count خلال $seconds ث';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label، $count عنصر';
+  }
 }

@@ -122,7 +122,8 @@ class GroupPeer {
 ///
 /// Backend is roster + signaling only; media stays P2P with the same
 /// STUN/TURN fallback as 1:1 calls. Capacity is capped server-side at 6.
-class GroupCallService extends ChangeNotifier {
+class GroupCallService extends ChangeNotifier
+    implements CallOptionsController {
   GroupCallService({required this.api});
 
   static GroupCallService? _instance;
@@ -1751,6 +1752,86 @@ class GroupCallService extends ChangeNotifier {
     }
     localStreamTick++;
     notifyListeners();
+  }
+
+  /// Guards [switchVideoQuality] against a second tap landing while the first
+  /// is still warming the new camera — both would read the same old track and
+  /// one camera would be left running with nothing sending it.
+  bool _switchingVideoQuality = false;
+
+  /// The in-call quality row, the mesh's half of [CallOptionsController].
+  ///
+  /// Persists [tier], then — if a camera is going out — re-acquires it at the
+  /// new resolution and swaps it onto every peer's camera sender with
+  /// `replaceTrack`, the same no-renegotiation swap [_cameraOn] does, and
+  /// re-caps every encoder at the tier's bitrate tapered for the mesh size
+  /// ([meshVideoBitrate]). A voice call, or a camera that is off, only saves
+  /// the choice: the next camera comes up at it because [_cameraOn] and the
+  /// join both read [_videoTier].
+  @override
+  Future<void> switchVideoQuality(VideoQualityTier tier) async {
+    await SettingsStore.instance.setVideoQualityTier(tier);
+    _videoTier = tier;
+    final ls = _localStream;
+    final old = _camTrack;
+    final id = _groupCallId;
+    if (id == null || ls == null || old == null || localVideoOff ||
+        _switchingVideoQuality) {
+      return;
+    }
+    _switchingVideoQuality = true;
+    try {
+      final MediaStreamTrack next;
+      try {
+        next = await getVideoTrackFn(tier);
+      } catch (e) {
+        debugPrint('GroupCallService.switchVideoQuality: $e');
+        return;
+      }
+      if (_groupCallId != id || _localStream != ls) {
+        // The call ended while the camera was warming up.
+        try {
+          await next.stop();
+        } catch (_) {}
+        return;
+      }
+      for (final peer in _peers.values.toList(growable: false)) {
+        final sender = peer.camSender;
+        if (sender == null) continue;
+        try {
+          await sender.replaceTrack(next);
+        } catch (e) {
+          debugPrint('GroupCallService.switchVideoQuality replaceTrack: $e');
+        }
+      }
+      // Add before remove, and never let a throwing stop() skip the swap —
+      // see CallService.switchVideoQuality for the OEM that taught us.
+      await ls.addTrack(next);
+      await ls.removeTrack(old);
+      try {
+        await old.stop();
+      } catch (e) {
+        debugPrint('GroupCallService.switchVideoQuality stop: $e');
+      }
+      final bitrate = meshVideoBitrate(
+        _peers.length,
+        baseline: videoQualityPresets[tier]!.maxBitrate,
+      );
+      for (final peer in _peers.values.toList(growable: false)) {
+        final pc = peer.pc;
+        if (pc == null) continue;
+        try {
+          await configureVideoSenders(pc, maxBitrate: bitrate);
+          await _retuneScreenSender(peer);
+        } catch (e) {
+          debugPrint('GroupCallService.switchVideoQuality tune: $e');
+        }
+      }
+      localStreamTick++;
+      notifyListeners();
+    } finally {
+      _switchingVideoQuality = false;
+    }
   }
 
   /// Share this device's screen with everyone on the call.

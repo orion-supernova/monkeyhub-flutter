@@ -21,6 +21,14 @@ extension VideoQualityTierWire on VideoQualityTier {
       };
 }
 
+/// What the in-call options sheet needs from a call: one way to change the
+/// video tier live. The 1:1 [CallService] and the mesh [GroupCallService]
+/// both implement it, so the same `CallOptionsSheet` serves either call.
+abstract interface class CallOptionsController {
+  /// Persists [tier] and, when a camera is being sent, applies it now.
+  Future<void> switchVideoQuality(VideoQualityTier tier);
+}
+
 extension CallMediaKindWire on CallMediaKind {
   String get wire => this == CallMediaKind.audio ? 'audio' : 'video';
   static CallMediaKind parse(String? s) =>

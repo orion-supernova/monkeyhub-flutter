@@ -17,6 +17,7 @@ import '../l10n/text_case.dart';
 
 export 'action_buttons.dart';
 export 'labeled_field.dart' show SheetTextField, FormErrorBanner;
+export 'sheet_drag.dart' show SheetScrollBody, SheetPullPhysics, SheetDragHost;
 
 // The furniture every sheet in the app is built from, in the iOS 26 shape: a
 // generously rounded top, a grabber, an optional bar with a glass close button
@@ -59,15 +60,24 @@ class SheetHandle extends StatelessWidget {
   }
 }
 
-/// A sheet's card: rounded top, grabber, optional title bar, then [child].
+/// A sheet's card: rounded top, grabber, optional title bar, then [child],
+/// then an optional pinned [footer].
 ///
 /// The bar's layout is fixed here, not by callers, so it cannot drift from
-/// sheet to sheet: the × is ALWAYS on the leading edge and the ✓ ALWAYS on
-/// the trailing one — iOS 26's sheet shape, and it keeps the × in place the
-/// day a sheet gains a confirm. A titled sheet shows the × by default
-/// ([showClose]); an untitled menu does not. [padding] insets the child; the
-/// home-indicator and keyboard insets are added to its bottom so content
-/// never sits under either.
+/// sheet to sheet: the × is ALWAYS on the leading edge and the trailing slot
+/// holds a ✓ ([confirm]) or a lone destructive trash ([trash]) — iOS 26's
+/// sheet shape, and it keeps the × in place the day a sheet gains a confirm.
+/// A titled sheet shows the × by default ([showClose]); an untitled menu does
+/// not.
+///
+/// [padding] insets the child. The home-indicator / keyboard inset goes under
+/// the last thing on the sheet — the [footer] when there is one, otherwise
+/// the child — and it is the LARGER of the two, never their sum: with the
+/// keyboard up the home indicator is under the keyboard, and adding both
+/// left a dead 34pt band above it.
+///
+/// A scrolling body should be a [SheetScrollBody], so a pull down from its
+/// top drags the sheet closed.
 class SheetFrame extends StatelessWidget {
   const SheetFrame({
     super.key,
@@ -77,10 +87,13 @@ class SheetFrame extends StatelessWidget {
     this.showClose,
     this.onClose,
     this.confirm,
+    this.trash,
+    this.footer,
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 16),
     this.maxHeightFraction,
     this.handle = true,
-  });
+  }) : assert(confirm == null || trash == null,
+            'the trailing slot holds a ✓ or a trash, never both');
 
   final Widget child;
   final String? title;
@@ -96,10 +109,21 @@ class SheetFrame extends StatelessWidget {
 
   /// The trailing ✓, when the sheet commits something.
   final SheetConfirm? confirm;
+
+  /// The trailing trash, when the sheet shows one of YOUR things and the
+  /// only thing to do to it is delete it. Confirm with `showConfirmSheet`.
+  final VoidCallback? trash;
+
+  /// Pinned under the body, always on screen — the sheet's commit button
+  /// (a [SheetActionButton]). The body shrinks (and scrolls) first, so the
+  /// button rides above the keyboard. Padded (16, 8, 16, 12) + the inset.
+  final Widget? footer;
   final EdgeInsets padding;
 
-  /// When set, the sheet is pinned to this fraction of the window's height —
-  /// for scrolling content whose sheet must not resize as it filters.
+  /// When set, the sheet is pinned to this fraction of the height it may
+  /// take — for scrolling content whose sheet must not resize as it filters.
+  /// A fraction of the sheet's room (the screen below the top safe area),
+  /// not of the raw screen.
   final double? maxHeightFraction;
   final bool handle;
 
@@ -108,51 +132,74 @@ class SheetFrame extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final media = MediaQuery.of(context);
     final close = showClose ?? title != null;
-    final hasBar = title != null || close || confirm != null;
+    final hasBar =
+        title != null || close || confirm != null || trash != null;
     final fraction = maxHeightFraction;
+    final inset = media.viewInsets.bottom > media.padding.bottom
+        ? media.viewInsets.bottom
+        : media.padding.bottom;
+    final foot = footer;
+
+    Widget card(double? maxHeight) => Container(
+          constraints:
+              maxHeight == null ? null : BoxConstraints(maxHeight: maxHeight),
+          decoration: BoxDecoration(
+            color: sheetFill(theme),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(sheetTopRadius(theme)),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (handle) const SheetHandle() else const SizedBox(height: 10),
+              if (hasBar)
+                SheetBar(
+                  title: title,
+                  subtitle: subtitle,
+                  leading: close ? SheetCloseButton(onTap: onClose) : null,
+                  trailing: confirm != null
+                      ? SheetConfirmButton(
+                          onTap: confirm!.onTap,
+                          label: confirm!.label,
+                        )
+                      : trash != null
+                          ? SheetTrashButton(onTap: trash!)
+                          : null,
+                ),
+              Flexible(
+                fit: fraction == null ? FlexFit.loose : FlexFit.tight,
+                child: Padding(
+                  padding: padding.copyWith(
+                    bottom: padding.bottom + (foot == null ? inset : 0),
+                  ),
+                  child: child,
+                ),
+              ),
+              if (foot != null)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 12 + inset),
+                  child: foot,
+                ),
+            ],
+          ),
+        );
+
     return Material(
       type: MaterialType.transparency,
-      child: Container(
-        constraints: fraction == null
-            ? null
-            : BoxConstraints(maxHeight: media.size.height * fraction),
-        decoration: BoxDecoration(
-          color: sheetFill(theme),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(sheetTopRadius(theme)),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (handle) const SheetHandle() else const SizedBox(height: 10),
-            if (hasBar)
-              SheetBar(
-                title: title,
-                subtitle: subtitle,
-                leading: close ? SheetCloseButton(onTap: onClose) : null,
-                trailing: confirm == null
-                    ? null
-                    : SheetConfirmButton(
-                        onTap: confirm!.onTap,
-                        label: confirm!.label,
-                      ),
-              ),
-            Flexible(
-              fit: fraction == null ? FlexFit.loose : FlexFit.tight,
-              child: Padding(
-                padding: padding.copyWith(
-                  bottom: padding.bottom +
-                      media.padding.bottom +
-                      media.viewInsets.bottom,
-                ),
-                child: child,
+      child: fraction == null
+          ? card(null)
+          // The room the route actually gives the sheet: with the top safe
+          // area excluded (the `showAdaptiveSheet` default) the window height
+          // over-counts by the status bar. Unbounded in the desktop popover,
+          // which scrolls; the window height is the honest cap there.
+          : LayoutBuilder(
+              builder: (context, box) => card(
+                (box.maxHeight.isFinite ? box.maxHeight : media.size.height) *
+                    fraction,
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -168,8 +215,9 @@ class SheetConfirm {
 /// A sheet's 52pt title bar: × leading, centred title (and optional
 /// subtitle), ✓ trailing. [SheetFrame] draws it; a sheet that cannot be a
 /// [SheetFrame] (one that owns its own scroll or surface) draws this, with a
-/// [SheetCloseButton] and/or [SheetConfirmButton] — never anything else in
-/// those slots, so every sheet's bar reads the same.
+/// [SheetCloseButton] leading and a [SheetConfirmButton] OR a
+/// [SheetTrashButton] trailing — never anything else in those slots, so
+/// every sheet's bar reads the same.
 class SheetBar extends StatelessWidget {
   const SheetBar({
     super.key,
@@ -245,37 +293,27 @@ TextStyle sheetTitleStyle(AppTheme theme) =>
 /// size app-wide, matching [GlassBackButton].
 const double kSheetButtonSize = 40;
 
-/// The × that dismisses a sheet: 40pt, 17pt glyph, always the bar's leading
-/// slot.
+/// The × that dismisses a sheet: always the bar's leading slot.
 ///
-/// A flat disc, not glass: a [BackdropFilter] inside a sheet re-rasterises
-/// on every frame of the sheet's slide, which is the jank `sheet_surface.dart`
-/// documents. On a sheet's solid fill a blur has nothing to show anyway.
+/// It IS the app's × — a [GlassCloseButton], the same chrome disc a
+/// full-screen viewer wears — drawn [GlassCloseButton.still]: no backdrop
+/// blur, because a [BackdropFilter] inside a sheet re-rasterises on every
+/// frame of the sheet's rise (the jank `sheet_surface.dart` documents), and
+/// on a sheet's solid fill a blur has nothing to show anyway.
 class SheetCloseButton extends StatelessWidget {
   const SheetCloseButton({super.key, this.onTap});
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap ?? () => Navigator.of(context).maybePop(),
-      semanticLabel: MaterialLocalizations.of(context).closeButtonLabel,
-      child: Container(
-        width: kSheetButtonSize,
-        height: kSheetButtonSize,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: theme.ink.withValues(alpha: 0.08),
-        ),
-        child: Icon(CupertinoIcons.xmark, size: 17, color: theme.ink),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GlassCloseButton(
+        still: true,
+        onTap: onTap ?? () => Navigator.of(context).maybePop(),
+      );
 }
 
-/// The accent ✓ that commits a sheet — iOS 26's tinted confirm circle.
+/// The accent ✓ that commits a sheet — iOS 26's tinted confirm circle. It
+/// wears the chrome disc's rim and shadow over its accent, so the × and the
+/// ✓ read as one pair; disabled, it is the plain disc with a muted glyph.
 class SheetConfirmButton extends StatelessWidget {
   const SheetConfirmButton({super.key, required this.onTap, this.label});
   final VoidCallback? onTap;
@@ -285,24 +323,45 @@ class SheetConfirmButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final enabled = onTap != null;
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label ?? MaterialLocalizations.of(context).okButtonLabel,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        width: kSheetButtonSize,
-        height: kSheetButtonSize,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: enabled ? theme.accent : theme.ink.withValues(alpha: 0.10),
-        ),
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label ?? MaterialLocalizations.of(context).okButtonLabel,
+      child: ChromeDisc(
+        size: kSheetButtonSize,
+        still: true,
+        tint: enabled ? theme.accent : null,
+        onTap: onTap,
         child: Icon(
           CupertinoIcons.checkmark_alt,
           size: 19,
           color: enabled ? theme.accentInk : theme.inkMuted,
         ),
       ),
+    );
+  }
+}
+
+/// The trash a sheet's bar may wear on its TRAILING edge, instead of a ✓,
+/// when the sheet shows something of yours and deleting it is the one
+/// action (§0.1 of the round-2 rulings). The still chrome disc with a red
+/// 18pt glyph. Follow the tap with `showConfirmSheet`.
+class SheetTrashButton extends StatelessWidget {
+  const SheetTrashButton({super.key, required this.onTap, this.semanticLabel});
+  final VoidCallback onTap;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GlassIconButton(
+      still: true,
+      icon: CupertinoIcons.trash,
+      iconSize: 18,
+      color: theme.danger,
+      onTap: onTap,
+      semanticLabel: semanticLabel ??
+          MaterialLocalizations.of(context).deleteButtonTooltip,
     );
   }
 }

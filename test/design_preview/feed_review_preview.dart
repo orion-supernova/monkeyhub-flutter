@@ -38,7 +38,7 @@ import 'package:monkeyhub/screens/feed/point_composer.dart';
 import 'package:monkeyhub/screens/feed/points_explainer.dart';
 import 'package:monkeyhub/screens/feed/puzzle_screen.dart';
 import 'package:monkeyhub/screens/feed_screen.dart';
-import 'package:monkeyhub/screens/games/games_hub_screen.dart';
+import 'package:monkeyhub/screens/games/leaderboard_screen.dart';
 import 'package:monkeyhub/screens/games/tango_screen.dart';
 import 'package:monkeyhub/screens/games/zip_screen.dart';
 import 'package:monkeyhub/theme/app_theme.dart';
@@ -437,7 +437,7 @@ void main() {
         api: _ChatApi(), feedApi: _FeedApi(const []), userId: 'me'),
     'explainer': () => const PointsExplainerScreen(),
     'puzzle': () => PuzzleScreen(feedApi: _FeedApi(const []), userId: 'u1'),
-    'hub': () => GamesHubScreen(feedApi: _FeedApi(const []), userId: 'u1'),
+    'hub': () => LeaderboardScreen(feedApi: _FeedApi(const []), userId: 'u1'),
     'tango': () => const TangoScreen(userId: 'u1'),
     'zip': () => const ZipScreen(userId: 'u1'),
     'discover': () =>

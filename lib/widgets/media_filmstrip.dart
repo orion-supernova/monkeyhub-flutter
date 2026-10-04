@@ -38,7 +38,26 @@ class MediaFilmstrip extends StatefulWidget {
     this.removeSemanticLabel,
     this.tileSemanticLabel,
     this.trailing,
-  });
+  }) : viewer = false;
+
+  /// The gallery's rail: small square tiles packed 2pt apart, the others
+  /// dimmed and the current one ringed in white — the Photos filmstrip. The
+  /// plain constructor stays the photo tray's, which is an editor's rail of
+  /// things you are about to send, with room for the remove chip on each.
+  const MediaFilmstrip.viewer({
+    super.key,
+    required this.count,
+    required this.index,
+    required this.thumbnailBuilder,
+    required this.onTap,
+    this.tileSemanticLabel,
+  })  : viewer = true,
+        onRemove = null,
+        removeSemanticLabel = null,
+        trailing = null;
+
+  /// The gallery's look — see [MediaFilmstrip.viewer].
+  final bool viewer;
 
   final int count;
 
@@ -71,11 +90,22 @@ class MediaFilmstrip extends StatefulWidget {
   /// eight of them fit across a phone.
   static const tileSize = 54.0;
   static const _gap = 8.0;
-  static const _extent = tileSize + _gap;
 
   /// Height of the whole rail including its padding — callers reserve space
   /// with this rather than measuring it.
   static const height = tileSize + 22;
+
+  /// The gallery rail's tile: small enough that the rail reads as an index
+  /// under the photograph rather than a second row of photographs.
+  static const viewerTileSize = 40.0;
+  static const _viewerGap = 2.0;
+
+  /// [height] for [MediaFilmstrip.viewer].
+  static const viewerHeight = viewerTileSize + 12;
+
+  double get _tile => viewer ? viewerTileSize : tileSize;
+  double get _gapNow => viewer ? _viewerGap : _gap;
+  double get _extent => _tile + _gapNow;
 
   @override
   State<MediaFilmstrip> createState() => _MediaFilmstripState();
@@ -128,8 +158,9 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
     if (!mounted || !_scroll.hasClients || _viewport <= 0) return;
     final i = widget.index;
     if (i < 0 || i >= widget.count) return;
-    final target = (i * MediaFilmstrip._extent +
-            MediaFilmstrip._extent / 2 -
+    final extent = widget._extent;
+    final target = (i * extent +
+            extent / 2 -
             _viewport / 2)
         .clamp(
       _scroll.position.minScrollExtent,
@@ -156,20 +187,23 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
     // One past the last tile when there is a trailing slot, so the arithmetic
     // below and the builder agree about how long the rail is.
     final slots = widget.count + (widget.trailing == null ? 0 : 1);
+    final tile = widget._tile;
+    final gap = widget._gapNow;
     return SizedBox(
-      height: MediaFilmstrip.height,
+      height: widget.viewer
+          ? MediaFilmstrip.viewerHeight
+          : MediaFilmstrip.height,
       child: LayoutBuilder(
         builder: (context, constraints) {
           _viewport = constraints.maxWidth;
-          final contentWidth =
-              slots * MediaFilmstrip._extent - MediaFilmstrip._gap;
+          final contentWidth = slots * widget._extent - gap;
           // A rail that fits sits centred and does not scroll. Left-aligning
           // three thumbnails under a centred photograph looks like the layout
           // ran out of things to do.
           final centred = contentWidth <= constraints.maxWidth;
 
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 11),
+            padding: EdgeInsets.symmetric(vertical: widget.viewer ? 6 : 11),
             // Lazily built, and it has to be: a long conversation's gallery is
             // hundreds of items, each tile owns a `RemoteImage` that resolves a
             // serving URL when it mounts, and a rail that inflated all of them
@@ -187,14 +221,26 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
                     )
                   : const EdgeInsets.symmetric(horizontal: 14),
               itemCount: slots,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(width: MediaFilmstrip._gap),
+              // The ring around the current tile is painted past its edges,
+              // into the gap; a clipping viewport would shave it off the
+              // first and last tile.
+              clipBehavior: Clip.none,
+              separatorBuilder: (_, _) => SizedBox(width: gap),
               itemBuilder: (context, i) {
                 if (i >= widget.count) {
                   return SizedBox(
-                    width: MediaFilmstrip.tileSize,
-                    height: MediaFilmstrip.tileSize,
+                    width: tile,
+                    height: tile,
                     child: widget.trailing,
+                  );
+                }
+                if (widget.viewer) {
+                  return _ViewerTile(
+                    selected: i == widget.index,
+                    semanticLabel:
+                        widget.tileSemanticLabel?.call(i + 1, widget.count),
+                    onTap: () => widget.onTap(i),
+                    child: widget.thumbnailBuilder(context, i),
                   );
                 }
                 return _Tile(
@@ -301,6 +347,75 @@ class _Tile extends StatelessWidget {
                   ),
                 ],
               ),
+    );
+  }
+}
+
+/// One square in the gallery's rail ([MediaFilmstrip.viewer]).
+///
+/// The ring is white and sits OUTSIDE the tile, in the 2pt gap — white because
+/// the rail lives on a photograph, where an accent ring is one more colour
+/// competing with the picture's own; outside so it costs the thumbnail none of
+/// its 40 points.
+class _ViewerTile extends StatelessWidget {
+  const _ViewerTile({
+    required this.child,
+    required this.selected,
+    required this.onTap,
+    required this.semanticLabel,
+  });
+
+  final Widget child;
+  final bool selected;
+  final VoidCallback onTap;
+  final String? semanticLabel;
+
+  static const _size = MediaFilmstrip.viewerTileSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      scale: PressSpec.scaleSmall,
+      focusRadius: 8,
+      haptic: false,
+      child: SizedBox(
+        width: _size,
+        height: _size,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: AnimatedOpacity(
+                  // Dimmed, not greyed: the others stay recognisable as the
+                  // photographs they are while the current one is plainly lit.
+                  opacity: selected ? 1 : 0.55,
+                  duration: const Duration(milliseconds: 150),
+                  child: SizedBox.expand(child: child),
+                ),
+              ),
+            ),
+            if (selected)
+              Positioned(
+                left: -2,
+                top: -2,
+                right: -2,
+                bottom: -2,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFFFFFF), width: 2),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -6,11 +6,12 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
-import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'media_flight.dart';
+import 'photo_chrome.dart' show MediaDurationBadge;
 import 'remote_image.dart';
+import 'selection_check.dart';
 import 'steady_hero.dart';
 
 /// Hero tag tying a grid tile to its page in the fullscreen pager.
@@ -64,7 +65,13 @@ class MediaGridTile extends StatelessWidget {
   /// stuttering one — the same argument `RemoteImage` makes at length.
   final int? decodeWidth;
 
-  bool get _isVideo => message.type == MessageType.video;
+  /// A circular video note is a video here too: the grid shows it as one
+  /// clip among the rest, and its `.mp4` id handed to an image decoder is a
+  /// broken tile. See `MediaPagerScreen`'s `_isMovie`, which fixed the same
+  /// thing on the other end of the flight.
+  bool get _isVideo =>
+      message.type == MessageType.video ||
+      message.type == MessageType.videoNote;
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +125,7 @@ class MediaGridTile extends StatelessWidget {
                         storageId: imageId,
                         api: api,
                         fit: BoxFit.cover,
+                        borderRadius: BorderRadius.zero,
                         decodeWidth: decodeWidth,
                       ),
                     ),
@@ -126,13 +134,18 @@ class MediaGridTile extends StatelessWidget {
                       storageId: imageId,
                       api: api,
                       fit: BoxFit.cover,
+                      // Square, as Photos draws it: the 2pt gaps are the
+                      // grid's only lines.
+                      borderRadius: BorderRadius.zero,
                       decodeWidth: decodeWidth,
                     )
                   : _GlyphTile(theme: theme, isVideo: _isVideo),
             ),
 
-            if (_isVideo)
-              _VideoOverlay(theme: theme, durationMs: message.mediaDurationMs),
+            // Not while choosing: the check takes the same corner, and a
+            // video's length is not what a selection is deciding.
+            if (_isVideo && !selecting)
+              _VideoOverlay(durationMs: message.mediaDurationMs),
 
             if (selecting)
               _SelectionVeil(theme: theme, selected: selected),
@@ -165,61 +178,41 @@ class _GlyphTile extends StatelessWidget {
   }
 }
 
-/// The play badge and running time, over whatever is underneath.
+/// A video's mark on a tile: its running time on the shared duration badge,
+/// a play glyph leading it, in the bottom-right corner — iOS Photos' tile.
 ///
-/// Both sit in a dark lozenge rather than taking a theme colour: they are drawn
-/// over a photograph, and no theme knows what colour that is.
+/// One mark, not two. The tile used to put a play disc bottom-left AND the
+/// duration bottom-right, and the pair said "video" twice across a picture
+/// three tiles wide. A clip with no known length keeps just the glyph on the
+/// same badge, so it still says what it is.
 class _VideoOverlay extends StatelessWidget {
-  const _VideoOverlay({required this.theme, required this.durationMs});
+  const _VideoOverlay({required this.durationMs});
 
-  final AppTheme theme;
   final int? durationMs;
 
   @override
   Widget build(BuildContext context) {
     final ms = durationMs;
-    return IgnorePointer(
-      child: Padding(
-        padding: const EdgeInsets.all(5),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(
-                color: Color(0x66000000),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(CupertinoIcons.play_fill,
-                  size: 9, color: Colors.white),
-            ),
-            const Spacer(),
-            if (ms != null && ms > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: const Color(0x66000000),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  formatClockDuration(Duration(milliseconds: ms)),
-                  style: theme.monoTiny.copyWith(
-                    color: Colors.white,
-                    fontSize: 9,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+    final known = ms != null && ms > 0;
+    return Positioned(
+      right: 6,
+      bottom: 6,
+      child: known
+          ? MediaDurationBadge(
+              duration: Duration(milliseconds: ms),
+              icon: CupertinoIcons.play_fill,
+            )
+          : const MediaDurationBadge(text: '', icon: CupertinoIcons.play_fill),
     );
   }
 }
 
-/// The selection state drawn over a tile.
+/// The selection state drawn over a tile, the way iOS Photos draws it: the
+/// circle in the bottom-right corner, a picked tile dimmed a fifth under a
+/// filled check, an unpicked one left alone with an empty ring.
 ///
-/// Unpicked tiles get an empty ring rather than nothing, so the whole grid says
-/// "you are choosing" at a glance instead of only the tiles already chosen.
+/// Dimmed, not washed in the accent. A blue film over a photograph changes
+/// what the picture looks like; a slight darkening only says "this one".
 class _SelectionVeil extends StatelessWidget {
   const _SelectionVeil({required this.theme, required this.selected});
 
@@ -233,23 +226,11 @@ class _SelectionVeil extends StatelessWidget {
         duration: theme.motionFast,
         curve: Curves.easeOutCubic,
         color: selected
-            ? theme.accent.withValues(alpha: 0.30)
-            : Colors.black.withValues(alpha: 0.10),
-        alignment: Alignment.topRight,
-        padding: const EdgeInsets.all(5),
-        child: Container(
-          width: 19,
-          height: 19,
-          decoration: BoxDecoration(
-            color: selected ? theme.accent : const Color(0x4D000000),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 1.4),
-          ),
-          child: selected
-              ? Icon(CupertinoIcons.check_mark,
-                  size: 12, color: theme.accentInk)
-              : null,
-        ),
+            ? Colors.black.withValues(alpha: 0.20)
+            : Colors.black.withValues(alpha: 0),
+        alignment: Alignment.bottomRight,
+        padding: const EdgeInsets.all(6),
+        child: SelectionCheck(picked: selected, media: true, size: 24),
       ),
     );
   }

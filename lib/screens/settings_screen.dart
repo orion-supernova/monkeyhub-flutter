@@ -70,6 +70,13 @@ import 'theme_screen.dart';
 import 'video_quality_screen.dart';
 import '../widgets/teardown_safe.dart';
 
+/// The gap under every hub section: 32, the one Feed and Discover keep
+/// between theirs. The hub is a tab root, so its sections wear the tab-root
+/// heading ([GroupedSection.pageHeader]) and the tab-root rhythm — the user
+/// compares tabs, and Settings' smaller 17pt headers 28pt apart read as a
+/// different app from the two tabs beside it.
+const _hubSectionGap = EdgeInsets.only(bottom: 32);
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
@@ -401,15 +408,15 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     // Toggles are defined once and used both in their section and as live
     // rows in search results, so the two can never disagree.
-    Widget linkUrlsToggle() => _StoreToggle(
+    Widget linkUrlsToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.link,
           tone: TileTone.teal,
           title: l10n.settingsHubShowLinkUrls,
           subtitle: l10n.settingsHubShowLinkUrlsSubtitle,
           value: () => store.showLinkUrls,
           onChanged: store.setShowLinkUrls,
-        );
-    Widget autoplayToggle() => _StoreToggle(
+        ));
+    Widget autoplayToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.play_rectangle_fill,
           tone: TileTone.pink,
           title: l10n.settingsAutoplayExpressionsLabel,
@@ -418,16 +425,16 @@ class _SettingsScreenState extends State<SettingsScreen>
               : l10n.settingsAutoplayExpressionsOffBody,
           value: () => store.autoplayExpressions,
           onChanged: store.setAutoplayExpressions,
-        );
-    Widget stickersToggle() => _StoreToggle(
+        ));
+    Widget stickersToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.smiley_fill,
           tone: TileTone.orange,
           title: l10n.settingsStickerSuggestionsLabel,
           subtitle: l10n.settingsStickerSuggestionsBody,
           value: () => store.stickerSuggestions,
           onChanged: store.setStickerSuggestions,
-        );
-    Widget pushToggle() => _StoreToggle(
+        ));
+    Widget pushToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.bell_fill,
           tone: TileTone.red,
           title: l10n.settingsHubPush,
@@ -441,8 +448,8 @@ class _SettingsScreenState extends State<SettingsScreen>
               await PushManager.instance.optOut();
             }
           },
-        );
-    Widget gameRemindersToggle() => _StoreToggle(
+        ));
+    Widget gameRemindersToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.game_controller_solid,
           tone: TileTone.purple,
           title: l10n.settingsHubGameReminders,
@@ -452,8 +459,8 @@ class _SettingsScreenState extends State<SettingsScreen>
             await store.setGameReminders(v);
             await PushManager.instance.setGameReminders(v);
           },
-        );
-    Widget friendActivityToggle() => _StoreToggle(
+        ));
+    Widget friendActivityToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.person_2_fill,
           tone: TileTone.green,
           title: l10n.settingsHubFriendActivity,
@@ -463,15 +470,15 @@ class _SettingsScreenState extends State<SettingsScreen>
             await store.setFriendActivity(v);
             await PushManager.instance.setFriendActivity(v);
           },
-        );
-    Widget callStatsToggle() => _StoreToggle(
+        ));
+    Widget callStatsToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.speedometer,
           tone: TileTone.gray,
           title: l10n.settingsHubCallStats,
           subtitle: l10n.settingsHubCallStatsSubtitle,
           value: () => store.showNetworkStats,
           onChanged: store.setShowNetworkStats,
-        );
+        ));
     final isChild = widget.auth.isChild;
 
     // Sections run in descending order of how often anyone opens them, not in
@@ -529,6 +536,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 const SizedBox(height: 16),
               ],
               GroupedSection(
+                margin: _hubSectionGap,
                 children: [
                   _ProfileCard(
                     user: me,
@@ -546,6 +554,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
             GroupedSection(
               header: l10n.settingsHubSectionGeneral,
+              pageHeader: true,
+              margin: _hubSectionGap,
               children: [
                 _HubRow(
                   icon: CupertinoIcons.globe,
@@ -555,7 +565,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   selected: _isOpen('language'),
                   onTap: () => _open('language', (_) => const LanguageScreen()),
                 ),
-                const _CheckForUpdatesRow(),
+                const _IconLed(_CheckForUpdatesRow()),
                 linkUrlsToggle(),
                 autoplayToggle(),
                 stickersToggle(),
@@ -564,6 +574,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
             GroupedSection(
               header: l10n.settingsHubSectionNotifications,
+              pageHeader: true,
+              margin: _hubSectionGap,
               children: [
                 pushToggle(),
                 // Nested under push, and only while it is on: a reminder toggle
@@ -577,19 +589,21 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // Each renders as no rows at all when there is nothing to show.
                 ..._CallDeliveryRows.rows(context, _callDelivery),
                 if (_menuBarVisible != null)
-                  _HubToggle(
+                  _IconLed(_HubToggle(
                     icon: CupertinoIcons.device_laptop,
                     tone: TileTone.gray,
                     title: l10n.settingsHubMenuBar,
                     subtitle: l10n.settingsHubMenuBarSubtitle,
                     value: _menuBarVisible!,
                     onChanged: MacAppChrome.instance.setVisible,
-                  ),
+                  )),
               ],
             ),
 
             GroupedSection(
               header: l10n.settingsHubSectionCalls,
+              pageHeader: true,
+              margin: _hubSectionGap,
               children: [
                 _HubRow(
                   icon: CupertinoIcons.videocam_fill,
@@ -605,6 +619,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
             GroupedSection(
               header: l10n.settingsHubSectionAppearance,
+              pageHeader: true,
+              margin: _hubSectionGap,
               children: [
                 _HubRow(
                   icon: CupertinoIcons.paintbrush_fill,
@@ -660,27 +676,30 @@ class _SettingsScreenState extends State<SettingsScreen>
             // something specific — "Translating into Türkçe" beats "On".
             GroupedSection(
               header: l10n.settingsHubSectionCompanions,
+              pageHeader: true,
               margin: const EdgeInsets.only(bottom: 8),
               children: [
-                _CompanionRow(
+                _IconLed(_CompanionRow(
                   companion: Companion.sebastian,
                   selected: _isOpen('sebastian'),
                   onTap: () => _open('sebastian', (_) => const SebastianScreen()),
-                ),
-                _CompanionRow(
+                )),
+                _IconLed(_CompanionRow(
                   companion: Companion.marlowe,
                   selected: _isOpen('marlowe'),
                   onTap: () => _open('marlowe', (_) => const MarloweScreen()),
-                ),
+                )),
               ],
             ),
             const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 28),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
               child: CompanionStorageLine(),
             ),
 
             GroupedSection(
               header: l10n.settingsHubSectionChats,
+              pageHeader: true,
+              margin: _hubSectionGap,
               children: [
                 _HubRow(
                   icon: CupertinoIcons.list_bullet,
@@ -736,6 +755,8 @@ class _SettingsScreenState extends State<SettingsScreen>
             // children included, and Settings is the one screen all of them open.
             GroupedSection(
               header: l10n.settingsHubSectionHelp,
+              pageHeader: true,
+              margin: _hubSectionGap,
               children: [
                 _HubRow(
                   icon: CupertinoIcons.ant_fill,
@@ -777,9 +798,11 @@ class _SettingsScreenState extends State<SettingsScreen>
             // the bottom, and findable by search for all of them.
             GroupedSection(
               header: l10n.settingsHubSectionAdvanced,
+              pageHeader: true,
+              margin: _hubSectionGap,
               footer: l10n.settingsHubAdvancedFooter,
               children: [
-                if (!isChild) _ServerRow(selected: _isOpen('server')),
+                if (!isChild) _IconLed(_ServerRow(selected: _isOpen('server'))),
                 callStatsToggle(),
                 _HubRow(
                   icon: CupertinoIcons.waveform_path_ecg,
@@ -888,7 +911,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           section: general,
           kw: l10n.settingsSearchKwUpdates,
           enKw: en.settingsSearchKwUpdates,
-          row: () => const _CheckForUpdatesRow()),
+          row: () => const _IconLed(_CheckForUpdatesRow())),
       live('linkUrls',
           title: l10n.settingsHubShowLinkUrls,
           enTitle: en.settingsHubShowLinkUrls,
@@ -1266,7 +1289,9 @@ class _ProfileCardState extends State<_ProfileCard>
           duration:
               _pressed ? Duration.zero : const Duration(milliseconds: 260),
           color: _rowFill(theme, pressed: _pressed, selected: widget.selected),
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          // The grouped rows' 16 at the sides, so the face's left edge sits
+          // on the tiles' line below it; 14 top and bottom.
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           child: Row(
             children: [
               UserAvatar(user: u, size: 60, api: widget.api, showStatus: false),
@@ -1307,7 +1332,7 @@ class _ProfileCardState extends State<_ProfileCard>
                 const SizedBox(width: 8),
                 RowBadge(count: widget.pending),
               ],
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               _Chevron(),
             ],
           ),
@@ -1329,10 +1354,12 @@ class _Chevron extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // GroupedRow's chevron, exactly: a custom row beside a plain one must
+    // not wear a bigger, darker arrow.
     return Icon(
       CupertinoIcons.chevron_forward,
-      size: 15,
-      color: theme.inkMuted.withValues(alpha: 0.7),
+      size: 14,
+      color: theme.inkMuted.withValues(alpha: 0.55),
     );
   }
 }
@@ -1407,12 +1434,14 @@ class _HubRowState extends State<GroupedRow>
           duration:
               _pressed ? Duration.zero : const Duration(milliseconds: 260),
           color: _rowFill(theme, pressed: _pressed, selected: w.selected),
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.fromLTRB(14, 7, 14, 7),
+          // GroupedRow's geometry, so this row and the plain one under it
+          // are one height and their text starts on one line (16 + 30 + 14).
+          constraints: const BoxConstraints(minHeight: kGroupedRowMinHeight),
+          padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
           child: Row(
             children: [
               SizedBox(width: 30, height: 30, child: w.leading),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               // The name is a proper noun and never breaks; the status beside
               // it is what gives way.
               Text(
@@ -1430,7 +1459,7 @@ class _HubRowState extends State<GroupedRow>
                   textAlign: TextAlign.end,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               _Chevron(),
             ],
           ),
@@ -1438,6 +1467,28 @@ class _HubRowState extends State<GroupedRow>
       ),
     );
   }
+}
+
+/// Marks a hub row that is built by a wrapper widget (a toggle, the update
+/// check, a companion, the server) as icon-led. [groupedDividerInset] can only
+/// see the widget it is handed, and a wrapper that merely *builds* a
+/// [GroupedRow] reads as a plain row — so its hairline started at the card
+/// edge while the [_HubRow] beside it started under the title, two inset lines
+/// in one card. Being a [GroupedRow] with an icon is what earns the 60; the
+/// title and icon here are never drawn.
+class _IconLed extends GroupedRow {
+  const _IconLed(this.child)
+      : super(title: '', icon: CupertinoIcons.circle_fill);
+
+  final Widget child;
+
+  @override
+  State<GroupedRow> createState() => _IconLedState();
+}
+
+class _IconLedState extends State<GroupedRow> {
+  @override
+  Widget build(BuildContext context) => (widget as _IconLed).child;
 }
 
 /// A switch row with its tap haptic. `Switch.adaptive` is silent even on iOS,

@@ -37,17 +37,29 @@ import '../l10n/text_case.dart';
 /// two rows saved here is ~130pt less to scroll past.
 const int _previewCount = 3;
 
-/// The page's vertical rhythm, as three steps rather than a scatter of one-off
+/// The page's vertical rhythm, as two steps rather than a scatter of one-off
 /// gaps.
 ///
 /// Sections used to be divided only by ad-hoc SizedBoxes of 12, 14, 16 and 18 —
 /// so the space *between* two sections was barely larger than the space *inside*
 /// one, and an empty section ran straight into the next heading with nothing to
-/// say where one stopped. Each step is roughly double the last, which is what
-/// makes the grouping legible without drawing a single extra line.
+/// say where one stopped. 32 between sections is the gap every tab root keeps
+/// (Feed, Settings), so the three tabs scroll with one rhythm; the 10 from a
+/// heading to its body is [PageSectionHeader]'s own. (A third, 44pt step
+/// between the two worlds went with the worlds' band labels: the jump chips
+/// name them now, and a section is a section.)
 const double _withinSection = 12;
-const double _betweenSections = 30;
-const double _betweenWorlds = 44;
+const double _betweenSections = 32;
+
+/// Request cards with [_withinSection] *between* them and none after the last.
+/// The cards used to carry a 12pt bottom margin each, so the last one pushed
+/// the next heading 44pt away instead of [_betweenSections].
+List<Widget> _spaced(List<Widget> cards) => [
+      for (var i = 0; i < cards.length; i++) ...[
+        if (i > 0) const SizedBox(height: _withinSection),
+        cards[i],
+      ],
+    ];
 
 /// Everything you go looking for, grouped into two worlds.
 ///
@@ -174,13 +186,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     );
   }
 
-  /// Opens the search screen for [mode].
+  /// Opens the search screen for [mode], flying the bar out of its door.
   ///
-  /// [fromDoor] is what tells the screen whether it has a box to fly out of.
-  /// The doors do; SEE ALL — which opens the same screen from the bottom of the
-  /// rooms list — does not, and letting it claim the door's tag anyway would
-  /// fly the bar out of a card that is usually scrolled off the top by then.
-  void _openSearch(SearchMode mode, {bool fromDoor = true}) {
+  /// Only the doors open it now (See all goes to the full lists), so the
+  /// screen always has a pill on this route to fly out of.
+  void _openSearch(SearchMode mode) {
     final theme = ThemeScope.of(context);
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -191,7 +201,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           api: widget.api,
           family: widget.family,
           mode: mode,
-          heroTag: fromDoor ? searchFieldHeroTagFor(mode) : null,
+          heroTag: searchFieldHeroTagFor(mode),
         ),
         transitionsBuilder: (_, anim, _, child) {
           final curved = CurvedAnimation(
@@ -258,7 +268,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       if (showRooms) t.discoverScreenCaptionRooms,
       t.discoverScreenCaptionRequests,
     ].join(' · ');
-    final showBands = showPeople && showRooms;
+    final showJump = showPeople && showRooms;
 
     // Expanded windows lay PEOPLE and ROOMS out as two side-by-side columns
     // instead of stacking them — the whole reason the single-column page needs
@@ -271,23 +281,15 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     // column either way — there's no second world to put beside it.
     final twoColumns = context.isExpanded && showRooms;
 
-    final peopleWorld = <Widget>[
-      if (showBands)
-        _BandLabel(t.discoverScreenPeopleBandLabel, key: _peopleKey),
-      if (showPeople) ...[
-        _DoorRow(
-          heroTag: searchFieldHeroTagFor(SearchMode.people),
-          circular: true,
-          icon: CupertinoIcons.person_2,
-          title: t.discoverScreenFindPeopleTitle,
-          subtitle: widget.family.isChild
-              ? t.discoverScreenFindPeopleSubtitleChild
-              : t.discoverScreenFindPeopleSubtitleAdult,
-          onTap: () => _openSearch(SearchMode.people),
-        ),
-        const SizedBox(height: _betweenSections),
-      ],
+    // A section's search door: the same 40pt pill as the bar it opens, so
+    // the hero carries one box that never changes shape.
+    Widget door(SearchMode mode, String hint) => SearchField.door(
+      hint: hint,
+      heroTag: searchFieldHeroTagFor(mode),
+      onTap: () => _openSearch(mode),
+    );
 
+    final peopleWorld = <Widget>[
       // One section, both directions named on a segmented control — the shape
       // the old Friends tab used.
       //
@@ -296,23 +298,27 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       // read as missing), and not much height, since all of this stacks above
       // the rooms world on a single-column page. A segment does both — the
       // counts are always on screen, but only one list is ever rendered.
-      DiscoverSectionHeader(
-        key: _incomingKey,
-        label: t.discoverScreenRequestsSectionLabel,
-        // The counts live on the segments, where they say which direction
-        // they belong to.
-        count: '',
+      //
+      // No count on the title: the counts live on the segments, where they
+      // say which direction they belong to. This heading is also the People
+      // chip's anchor — the world's band label is gone, and the first section
+      // of the world is where "People" lands.
+      KeyedSubtree(
+        key: _peopleKey,
+        child: PageSectionHeader(
+          t.discoverScreenRequestsSectionLabel,
+          key: _incomingKey,
+        ),
       ),
       if (showOutgoing) ...[
-        const SizedBox(height: 10),
         _RequestSegments(
           active: _requestsTab,
           incoming: incoming.length + groupInvites.length,
           outgoing: outgoing.length,
           onChange: (tab) => setState(() => _requestsTab = tab),
         ),
+        const SizedBox(height: _withinSection),
       ],
-      const SizedBox(height: _withinSection),
       AnimatedSize(
         duration: theme.motionMed,
         curve: Curves.easeOutCubic,
@@ -331,41 +337,62 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               // link, the group fills up) where a friend request does not.
               if (incoming.isEmpty && groupInvites.isEmpty)
                 DiscoverEmptyLine(t.discoverScreenInboxQuiet)
-              else ...[
-                for (final inv in groupInvites)
-                  RoomInvitationCard(
-                    key: ValueKey('roominv_${inv.invitationId}'),
-                    invitation: inv,
-                    repo: widget.repo,
-                    api: widget.api,
-                  ),
-                for (final r in incoming)
-                  IncomingRequestCard(
-                    key: ValueKey('in_${r.user.id}'),
+              else
+                ..._spaced([
+                  for (final inv in groupInvites)
+                    RoomInvitationCard(
+                      key: ValueKey('roominv_${inv.invitationId}'),
+                      invitation: inv,
+                      repo: widget.repo,
+                      api: widget.api,
+                    ),
+                  for (final r in incoming)
+                    IncomingRequestCard(
+                      key: ValueKey('in_${r.user.id}'),
+                      req: r,
+                      repo: widget.repo,
+                      api: widget.api,
+                    ),
+                ])
+            else if (outgoing.isEmpty)
+              DiscoverEmptyLine(t.discoverScreenNothingPending)
+            else
+              ..._spaced([
+                for (final r in outgoing)
+                  OutgoingRequestCard(
+                    key: ValueKey('out_${r.user.id}'),
                     req: r,
                     repo: widget.repo,
                     api: widget.api,
                   ),
-              ]
-            else if (outgoing.isEmpty)
-              DiscoverEmptyLine(t.discoverScreenNothingPending)
-            else
-              for (final r in outgoing)
-                OutgoingRequestCard(
-                  key: ValueKey('out_${r.user.id}'),
-                  req: r,
-                  repo: widget.repo,
-                  api: widget.api,
-                ),
+              ]),
           ],
         ),
       ),
 
       const SizedBox(height: _betweenSections),
-      DiscoverSectionHeader(
-        label: t.discoverScreenYourPeopleLabel,
+      // "See all ›" lives in the heading, the one place every tab puts it —
+      // it used to be a centred row under the list here and a header action
+      // on Feed, two answers to one question.
+      PageSectionHeader(
+        t.discoverScreenYourPeopleLabel,
         count: '${friends.length}',
+        actionLabel: friends.length > _previewCount ? t.pageSectionSeeAll : null,
+        actionSemanticLabel: t.discoverScreenSeeAllFriendsSemanticLabel,
+        onAction: () =>
+            _push(PeopleListScreen(repo: widget.repo, api: widget.api)),
       ),
+      if (showPeople) ...[
+        // A child finds people by exact username only, and the hint says so
+        // before they type a half-name that will never match.
+        door(
+          SearchMode.people,
+          widget.family.isChild
+              ? t.discoverScreenFindPeopleSubtitleChild
+              : t.searchScreenHintPeople,
+        ),
+        const SizedBox(height: _withinSection),
+      ],
       // The one empty state worth a sentence: it points at the way out, which
       // a bare `0` cannot.
       if (friends.isEmpty)
@@ -374,12 +401,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               ? t.discoverScreenNoFriendsYetWithHint
               : t.discoverScreenNoFriendsYet,
         )
-      else ...[
-        const SizedBox(height: _withinSection),
+      else
         // One grouped block, the iOS contacts list — not a floating card
         // per person.
         GroupedSection(
-          margin: const EdgeInsets.only(bottom: 4),
+          margin: EdgeInsets.zero,
           children: [
             for (final f in friends.take(_previewCount))
               FriendRow(
@@ -390,13 +416,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               ),
           ],
         ),
-        if (friends.length > _previewCount)
-          SeeAllRow(
-            total: friends.length,
-            onTap: () =>
-                _push(PeopleListScreen(repo: widget.repo, api: widget.api)),
-          ),
-      ],
     ];
 
     // Absent, not greyed out and not empty, when a guardian hasn't unlocked
@@ -405,23 +424,24 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final roomsWorld = !showRooms
         ? null
         : <Widget>[
-            if (showBands)
-              _BandLabel(t.discoverScreenRoomsBandLabel, key: _roomsKey),
-            // Says "search", not "browse". Rooms are listable, so a row
-            // promising to *browse* them sitting directly above a list of them
-            // read as two different sets — the question it prompted was "are
-            // these my rooms or all of them?". Naming the row for the one
-            // thing it does (search) leaves the section below as the only
-            // list, and mirrors the people door exactly: search entry, then
-            // your own list.
-            _DoorRow(
-              heroTag: searchFieldHeroTagFor(SearchMode.rooms),
-              circular: false,
-              icon: CupertinoIcons.number,
-              title: t.discoverScreenSearchRoomsTitle,
-              subtitle: t.discoverScreenSearchRoomsSubtitle,
-              onTap: () => _openSearch(SearchMode.rooms),
+            // One heading for the world, not a "Rooms" band over a "Your
+            // rooms" section — that said Rooms twice. It is also the Rooms
+            // chip's anchor.
+            PageSectionHeader(
+              t.discoverScreenYourRoomsLabel,
+              key: _roomsKey,
+              count: '${myRooms.length}',
+              actionLabel:
+                  myRooms.length > _previewCount ? t.pageSectionSeeAll : null,
+              actionSemanticLabel: t.discoverScreenSeeAllRoomsSemanticLabel,
+              onAction: () =>
+                  _push(RoomsListScreen(repo: widget.repo, api: widget.api)),
             ),
+            // Says "search public rooms", not "browse". A row promising to
+            // *browse* rooms directly above a list of them read as two
+            // different sets — "are these my rooms or all of them?". The hint
+            // names the set it searches, so the list below stays the only list.
+            door(SearchMode.rooms, t.searchScreenHintRooms),
             const SizedBox(height: _withinSection),
             // The typed half of the invite token. Its other half is the link,
             // which arrives through the OS and never touches this screen — but
@@ -430,25 +450,26 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             // for a room they cannot find by searching. Private rooms are not
             // listed anywhere by design, so for those this row and a tapped
             // link are the only two doors that exist.
-            _DoorRow(
-              circular: false,
-              icon: CupertinoIcons.lock_open_fill,
-              title: t.discoverScreenJoinByCodeTitle,
-              subtitle: t.discoverScreenJoinByCodeSubtitle,
-              onTap: () =>
-                  _push(JoinByInviteScreen(repo: widget.repo, api: widget.api)),
+            GroupedSection(
+              margin: EdgeInsets.zero,
+              children: [
+                GroupedRow(
+                  icon: CupertinoIcons.lock_open_fill,
+                  tone: TileTone.indigo,
+                  title: t.discoverScreenJoinByCodeTitle,
+                  subtitle: t.discoverScreenJoinByCodeSubtitle,
+                  onTap: () => _push(
+                    JoinByInviteScreen(repo: widget.repo, api: widget.api),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: _betweenSections),
-            DiscoverSectionHeader(
-              label: t.discoverScreenYourRoomsLabel,
-              count: '${myRooms.length}',
-            ),
+            const SizedBox(height: _withinSection),
             if (myRooms.isEmpty)
               DiscoverEmptyLine(t.discoverScreenNoRoomsYet)
-            else ...[
-              const SizedBox(height: _withinSection),
+            else
               GroupedSection(
-                margin: const EdgeInsets.only(bottom: 4),
+                margin: EdgeInsets.zero,
                 children: [
                   for (final r in myRooms.take(_previewCount))
                     PublicRoomTile(
@@ -460,14 +481,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     ),
                 ],
               ),
-              if (myRooms.length > _previewCount)
-                SeeAllRow(
-                  total: myRooms.length,
-                  onTap: () => _push(
-                    RoomsListScreen(repo: widget.repo, api: widget.api),
-                  ),
-                ),
-            ],
           ];
 
     // The same large title the chat list wears, at the same height: 38pt of
@@ -488,7 +501,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       // One tap to either world, on the single-column page only — a two-column
       // page has nowhere for either chip to jump TO that isn't already on
       // screen.
-      if (showBands && !twoColumns) ...[
+      if (showJump && !twoColumns) ...[
         const SizedBox(height: 12),
         _WorldJump(
           onPeople: () => _jumpTo(_peopleKey),
@@ -515,7 +528,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     ...header,
-                    const SizedBox(height: 24),
+                    const SizedBox(height: _betweenSections),
                     // `Expanded`, not a fixed width centred as a pair — the
                     // header above spans the full column edge to edge, and a
                     // narrower, centred pair of lists left People starting
@@ -560,10 +573,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               ),
               children: [
                 ...header,
-                const SizedBox(height: 24),
+                const SizedBox(height: _betweenSections),
                 ...peopleWorld,
                 if (roomsWorld != null) ...[
-                  const SizedBox(height: _betweenWorlds),
+                  const SizedBox(height: _betweenSections),
                   ...roomsWorld,
                 ],
               ],
@@ -580,28 +593,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           // pill and the indicator instead.
           SafeArea(bottom: false, child: body),
         ],
-      ),
-    );
-  }
-}
-
-/// Names a world. Deliberately plainer than the page caption above it, which
-/// carries the accent tick — two identical tick+mono rows 20pt apart would read
-/// as one repeated element rather than two levels of hierarchy.
-class _BandLabel extends StatelessWidget {
-  const _BandLabel(this.text, {super.key});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // A world's name, one size under the page title — the Title 1 of an
-    // App Store tab.
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 2),
-      child: Text(
-        sentenceCaseOf(context, text),
-        style: theme.displayMedium.copyWith(color: theme.ink),
       ),
     );
   }
@@ -704,136 +695,4 @@ Widget _jumpChip(
     ).discoverScreenJumpToSemanticLabel(label),
     onTap: onTap,
   );
-}
-
-/// A way into a world: glyph, title, one line of explanation, search icon.
-///
-/// The glyph is a circle for people and a rounded square for rooms — the same
-/// distinction the app already draws between a round [UserAvatar] and a room
-/// tile's chip, so the two worlds stay apart at a glance.
-///
-/// The card flies into the search screen's bar via [SearchFieldHero].
-///
-/// A plain [Hero] between the two was tried and reverted once, and the reason
-/// is worth keeping: its default shuttle draws the *destination's* child at
-/// every intermediate size, so this card's own two lines of text were being
-/// asked to fit a box collapsing toward a one-line field, and overflowed on
-/// every frame of the flight. [SearchFieldHero] flies the box and the
-/// magnifier — the two things both ends actually have — and nothing that can
-/// overflow.
-class _DoorRow extends StatelessWidget {
-  const _DoorRow({
-    this.heroTag,
-    required this.circular,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  /// The search field this door flies into, when it opens one.
-  ///
-  /// Null for a door that opens an ordinary screen instead — the join-by-code
-  /// row. A Hero with no counterpart on the incoming route does not degrade
-  /// gracefully; it animates into nothing, which reads as the row falling
-  /// apart mid-transition.
-  final Object? heroTag;
-  final bool circular;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      haptic: false,
-      scale: PressSpec.scaleSmall,
-      semanticLabel: '$title. $subtitle',
-      focusRadius: groupedRadius(theme),
-      child: _maybeHero(
-          // A grouped iOS row: a coloured tile, the title, one line of what
-          // it finds, and the magnifier the search bar shares mid-flight.
-          child: Container(
-            decoration: BoxDecoration(
-              color: groupedFill(theme),
-              borderRadius: BorderRadius.circular(groupedRadius(theme)),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: searchDoorHPadding,
-              vertical: 12,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: tileColor(
-                      theme,
-                      circular ? TileTone.blue : TileTone.indigo,
-                    ),
-                    shape: circular ? BoxShape.circle : BoxShape.rectangle,
-                    borderRadius:
-                        circular ? null : BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 19, color: Colors.white),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        sentenceCaseOf(context, title),
-                        style: theme.bodyEmph.copyWith(
-                          color: theme.ink,
-                          fontSize: 17,
-                          fontStyle: FontStyle.normal,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        sentenceCaseOf(context, subtitle),
-                        // Body face, never the theme's caption (tracked mono
-                        // on the character themes).
-                        style: groupedSubtitleStyle(theme),
-                        // Two lines, like an iOS subtitle cell: "Open a group
-                        // someone shared with you" truncated at one even in
-                        // English at 1×.
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // For a search door, the glyph the flight shuttle carries
-                // into the search bar — same size at both ends. A door that
-                // opens an ordinary screen gets a chevron instead.
-                Icon(
-                  heroTag == null
-                      ? CupertinoIcons.chevron_forward
-                      : CupertinoIcons.search,
-                  size: searchFieldIconSize,
-                  color: theme.inkMuted,
-                ),
-              ],
-            ),
-          ),
-        ),
-    );
-  }
-
-  Widget _maybeHero({required Widget child}) {
-    final tag = heroTag;
-    if (tag == null) return child;
-    return SearchFieldHero(tag: tag, child: child);
-  }
 }

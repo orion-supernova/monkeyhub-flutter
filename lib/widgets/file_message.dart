@@ -7,6 +7,7 @@ import '../media/document_preview.dart';
 import '../media/document_saver.dart';
 import '../media/file_meta.dart';
 import '../media/file_url_cache.dart';
+import '../models/chat_message.dart';
 import '../screens/fullscreen_image_viewer.dart';
 import '../screens/text_file_viewer_screen.dart';
 import '../theme/app_theme.dart';
@@ -46,6 +47,7 @@ class FileMessage extends StatefulWidget {
     required this.mimeType,
     required this.isMine,
     this.maxWidth,
+    this.message,
   });
 
   final ChatApi api;
@@ -60,6 +62,10 @@ class FileMessage extends StatefulWidget {
   final String? mimeType;
   final bool isMine;
   final double? maxWidth;
+
+  /// The message this row draws, when there is one. Only the picture preview
+  /// reads it, to give its viewer a Share button.
+  final ChatMessage? message;
 
   @override
   State<FileMessage> createState() => _FileMessageState();
@@ -114,7 +120,14 @@ class _FileMessageState extends State<FileMessage>
         // A picture sent as a document is still a picture. It used to render
         // as a grey plate with a `PNG` chip on it, and the only way to see it
         // was to download it.
-        await FullscreenImageViewer.open(context, storageId: id, api: widget.api);
+        await FullscreenImageViewer.open(
+          context,
+          storageId: id,
+          api: widget.api,
+          // Share only: it is a document, so Save to Photos is not offered —
+          // the share sheet's own "Save Image" covers it.
+          message: widget.message,
+        );
         return;
       case DocumentPreviewKind.native:
         // The fetch is the slow part and the spinner belongs to it, exactly as

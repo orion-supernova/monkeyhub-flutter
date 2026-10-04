@@ -35,7 +35,7 @@ import 'feed/moment_viewer.dart';
 import 'feed/point_composer.dart';
 import 'feed/points_explainer.dart';
 import 'feed/puzzle_screen.dart';
-import 'games/games_hub_screen.dart';
+import 'games/leaderboard_screen.dart';
 import 'games/queens_screen.dart';
 import 'games/sudoku_screen.dart';
 import 'games/tango_screen.dart';
@@ -124,11 +124,12 @@ class _FeedScreenState extends State<FeedScreen>
     UiSelectionStore.instance.addListener(_consumePendingMoment);
   }
 
-  /// Whether the games hub is already up, so a second request does not stack a
-  /// second copy of it on top of the first.
-  bool _gamesHubOpen = false;
+  /// Whether the leaderboard is already up, so a second request does not
+  /// stack a second copy of it on top of the first.
+  bool _leaderboardOpen = false;
 
-  /// Opens the games hub for a tapped daily nudge.
+  /// Opens the leaderboard for a tapped daily nudge — the page that holds
+  /// today's five games as well as who is winning them.
   ///
   /// Pushed from HERE rather than from app.dart's push handler so the route
   /// lands on whichever navigator this Feed belongs to — the root one on a
@@ -138,7 +139,7 @@ class _FeedScreenState extends State<FeedScreen>
   /// Peeks [gamesViewPending] rather than consuming it up front: on a cold
   /// start, `HomeShell`/this screen can mount before `ChatRepository.attach`
   /// has run — `_applyAuthChange` in app.dart awaits the call-stack attach
-  /// first — so `widget.repo.userId` (and therefore [_openGamesHub], which
+  /// first — so `widget.repo.userId` (and therefore [_openLeaderboard], which
   /// needs it) is briefly unavailable. Consuming the one-shot here regardless
   /// would drop the notification on the floor with nothing left to retry it.
   /// [_onChange] re-runs this once the repo attaches and notifies.
@@ -147,8 +148,8 @@ class _FeedScreenState extends State<FeedScreen>
     if (!UiSelectionStore.instance.gamesViewPending) return;
     if (widget.repo.userId == null) return;
     if (!UiSelectionStore.instance.consumeGamesView()) return;
-    if (_gamesHubOpen) return;
-    _openGamesHub();
+    if (_leaderboardOpen) return;
+    _openLeaderboard();
   }
 
   /// Whether a tapped moment is already being fetched or shown, so a rebuild
@@ -184,7 +185,11 @@ class _FeedScreenState extends State<FeedScreen>
       }
     }
     if (known != null) {
-      _openFromActivity(known, null);
+      // Opened with the run it belongs to: a point among the day's points, a
+      // highlight among the highlights.
+      known.tag == null
+          ? _openFromActivity(known, null)
+          : _openFromPoint(known, null);
       return;
     }
     _momentOpening = true;
@@ -296,19 +301,19 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  Future<void> _openGamesHub() async {
+  Future<void> _openLeaderboard() async {
     final userId = widget.repo.userId;
     if (userId == null) return;
-    _gamesHubOpen = true;
+    _leaderboardOpen = true;
     try {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) =>
-              GamesHubScreen(feedApi: widget.feedApi, userId: userId),
+              LeaderboardScreen(feedApi: widget.feedApi, userId: userId),
         ),
       );
     } finally {
-      _gamesHubOpen = false;
+      _leaderboardOpen = false;
     }
   }
 
@@ -340,9 +345,10 @@ class _FeedScreenState extends State<FeedScreen>
   void _openFromPoint(Moment moment, Rect? origin) =>
       _open(moment, origin: origin, siblings: FeedStore.instance.points);
 
-  /// Opens a moment from the activity river, whose run is the whole day.
+  /// Opens a moment from the activity river, whose run is the river itself —
+  /// today's highlights, since the points live on the standings board.
   void _openFromActivity(Moment moment, Rect? origin) =>
-      _open(moment, origin: origin, siblings: FeedStore.instance.moments);
+      _open(moment, origin: origin, siblings: FeedStore.instance.highlights);
 
   void _open(
     Moment moment, {
@@ -368,6 +374,15 @@ class _FeedScreenState extends State<FeedScreen>
     final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
     final store = FeedStore.instance;
+    // The river carries highlights only. Points already have a home — the
+    // standings board tallies them and tells each one's story — and listing
+    // them again here drew every point twice on the same screen.
+    final activity = store.highlights;
+    // With friends but nothing to list, the section goes rather than saying
+    // "quiet so far" under a board full of points; someone with no friends
+    // keeps the hint, because that is what would fill it.
+    final noFriends = widget.repo.friends.isEmpty;
+    final showActivity = activity.isNotEmpty || noFriends;
 
     // Sections are assembled as a list so the entrance stagger can index them
     // without every section needing to know its own position. Deeper sections
@@ -416,13 +431,16 @@ class _FeedScreenState extends State<FeedScreen>
           // The band is an entry point as much as a status line, so the header
           // carries the way in to the rest of them — five boards do not fit a
           // Feed section, and burying the hub behind a tile would make the two
-          // extra taps the reason nobody plays them. The code puzzle is one of
+          // extra taps the reason nobody plays them. It reads "Leaderboard"
+          // because that is what a person wants after glancing at five tiles
+          // — who is winning — and the page it opens holds the games too.
+          // The code puzzle is one of
           // the five drawn here (first tile) rather than a separate section
           // above this one — it's a daily game exactly like the other four,
           // and giving it its own differently-shaped section was the
           // inconsistency, not this shelf.
           actionLabel: l10n.feedBoardGamesOpen,
-          onAction: _openGamesHub,
+          onAction: _openLeaderboard,
           body: GamesStrip(
             boards: GamesStore.instance.boards,
             results: store.games,
@@ -449,24 +467,26 @@ class _FeedScreenState extends State<FeedScreen>
           ),
         ),
       ),
-      (
-        id: 'activity',
-        child: _SectionShell(
-          label: l10n.feedBoardActivityLabel,
-          body: store.moments.isEmpty && widget.repo.friends.isEmpty
-              // Distinct from "quiet today": someone with no friends yet needs
-              // to know what would fill this, not that nothing happened.
-              ? EmptyLine(
-                  l10n.feedBoardActivityNoFriends,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                )
-              : MomentActivity(
-                  moments: store.moments,
-                  viewerId: widget.repo.userId ?? '',
-                  onOpen: _openFromActivity,
-                ),
+      if (showActivity)
+        (
+          id: 'activity',
+          child: _SectionShell(
+            label: l10n.feedBoardActivityLabel,
+            body: activity.isEmpty && noFriends
+                // Distinct from "quiet today": someone with no friends yet
+                // needs to know what would fill this, not that nothing
+                // happened.
+                ? EmptyLine(
+                    l10n.feedBoardActivityNoFriends,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  )
+                : MomentActivity(
+                    moments: activity,
+                    viewerId: widget.repo.userId ?? '',
+                    onOpen: _openFromActivity,
+                  ),
+          ),
         ),
-      ),
     ];
 
     // Keyed by id rather than threaded positionally, so the two layouts below
@@ -766,15 +786,18 @@ class _SectionShell extends StatelessWidget {
   final String label;
   final Widget body;
 
-  /// Optional trailing text link on the band: the archive, all games, the
-  /// points explainer. Plain accent text, no glyph — one shape for all three.
+  /// Optional trailing action on the band: the archive, the leaderboard, the
+  /// points explainer. Drawn "Label ›" by [PageSectionHeader] — one shape for
+  /// all three, and the same one Discover and the Settings hub use.
   final String? actionLabel;
   final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
+    // 32 between bands and the header's own 10 to its body: the tab-root
+    // rhythm every tab shares (§A of the round-2 spec).
     return Padding(
-      padding: const EdgeInsets.only(bottom: 30),
+      padding: const EdgeInsets.only(bottom: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -782,7 +805,6 @@ class _SectionShell extends StatelessWidget {
             label,
             actionLabel: actionLabel,
             onAction: onAction,
-            padding: const EdgeInsets.only(bottom: 6),
           ),
           body,
         ],

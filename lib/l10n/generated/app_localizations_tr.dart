@@ -1830,7 +1830,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get discoverScreenNothingPending => 'Gönderdiğin istek yok';
 
   @override
-  String get discoverScreenYourPeopleLabel => 'Arkadaşların';
+  String get discoverScreenYourPeopleLabel => 'Arkadaşlar';
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
@@ -1847,7 +1847,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'Herkese açık bir odayı adıyla bul';
 
   @override
-  String get discoverScreenYourRoomsLabel => 'Odaların';
+  String get discoverScreenYourRoomsLabel => 'Odalar';
 
   @override
   String get discoverScreenNoRoomsYet => 'Henüz oda yok';
@@ -2009,7 +2009,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get searchScreenHintPeople => 'Kişi ara';
 
   @override
-  String get searchScreenHintRooms => 'Oda ara';
+  String get searchScreenHintRooms => 'Herkese açık oda ara';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2250,8 +2250,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'Grup sesli arama';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count kişi aramada';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi görüşmede',
+      one: 'Sadece sen',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3837,7 +3843,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Google ile Devam Et';
 
   @override
-  String get discoverListsPeopleTitle => 'Arkadaşların';
+  String get discoverListsPeopleTitle => 'Arkadaşlar';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3850,7 +3856,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'Arkadaşlarını filtrele';
+  String get discoverListsFilterHint => 'Arkadaş ara';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'Filtreyi temizle';
@@ -3864,7 +3870,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'Odaların';
+  String get discoverListsRoomsTitle => 'Odalar';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3877,7 +3883,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'Odalarını filtrele';
+  String get discoverListsFilterRoomsHint => 'Odalarında ara';
 
   @override
   String get discoverListsNoRoomsYet => 'Henüz oda yok';
@@ -4473,34 +4479,34 @@ class AppLocalizationsTr extends AppLocalizations {
   String get familyRequestStageRecipientLabel => 'yanıt bekleniyor';
 
   @override
-  String get roomContentTabLabelMedia => 'MEDYA';
+  String get roomContentTabLabelMedia => 'Medya';
 
   @override
-  String get roomContentTabLabelFiles => 'DOSYALAR';
+  String get roomContentTabLabelFiles => 'Dosyalar';
 
   @override
-  String get roomContentTabLabelVoice => 'SES';
+  String get roomContentTabLabelVoice => 'Ses';
 
   @override
-  String get roomContentTabLabelLinks => 'BAĞLANTILAR';
+  String get roomContentTabLabelLinks => 'Bağlantılar';
 
   @override
-  String get roomContentTabLabelSaved => 'KAYDEDİLENLER';
+  String get roomContentTabLabelSaved => 'Kaydedilenler';
 
   @override
-  String get roomContentTabHeaderMedia => 'medya';
+  String get roomContentTabHeaderMedia => 'Medya';
 
   @override
-  String get roomContentTabHeaderFiles => 'dosyalar';
+  String get roomContentTabHeaderFiles => 'Dosyalar';
 
   @override
-  String get roomContentTabHeaderVoice => 'ses';
+  String get roomContentTabHeaderVoice => 'Ses';
 
   @override
-  String get roomContentTabHeaderLinks => 'bağlantılar';
+  String get roomContentTabHeaderLinks => 'Bağlantılar';
 
   @override
-  String get roomContentTabHeaderSaved => 'kaydedilenler';
+  String get roomContentTabHeaderSaved => 'Kaydedilenler';
 
   @override
   String get roomFacetLabelDms => 'birebir';
@@ -5478,7 +5484,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get feedBoardGamesLabel => 'Oyunlar';
 
   @override
-  String get feedBoardGamesOpen => 'Tüm oyunlar';
+  String get feedBoardGamesOpen => 'Sıralama';
 
   @override
   String get gamesScreenTitle => 'oyunlar.';
@@ -5676,105 +5682,100 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gameInfoRulesLabel => 'Kurallar';
 
   @override
-  String get gameInfoControlsLabel => 'Kontroller';
+  String get gameInfoControlsLabel => 'Nereye dokunacaksın';
 
   @override
   String get gameInfoScoringTimed =>
-      'Tahta ekrandayken sayaç işler, duraklattığında ya da çıktığında durur. En hızlı olan bugünün listesinde başa geçer.';
+      'En hızlı bitiren kazanır. Çıkınca saat durur.';
 
   @override
   String get gameInfoScoringGuesses =>
-      'Puan, süreye göre değil kaç denemede bildiğine göre verilir.';
+      'En az tahminde çözen kazanır. Süre önemli değil.';
 
   @override
-  String get gameInfoSameForEveryone => 'Bugün herkese aynı tahta geliyor.';
+  String get gameInfoSameForEveryone => 'Bugün herkese aynı bulmaca çıkar.';
 
   @override
-  String get gameInfoQueensGoal =>
-      'Her satıra, sütuna ve renge birer taç yerleştir.';
+  String get gameInfoQueensGoal => 'Tahtaya 8 taç koy.';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'Sekiz taç: her satırda bir, her sütunda bir.';
+  String get gameInfoQueensRule1 => 'Her satırda tam 1 taç olur.';
 
   @override
-  String get gameInfoQueensRule2 =>
-      'Her renk bloğunda da tam olarak bir taç bulunur.';
+  String get gameInfoQueensRule2 => 'Her sütunda tam 1 taç olur.';
 
   @override
-  String get gameInfoQueensRule3 => 'İki taç birbirine değemez — köşeden bile.';
+  String get gameInfoQueensRule3 => 'Her renkte tam 1 taç olur.';
 
   @override
   String get gameInfoQueensControls =>
-      'Bir kareye bir kez dokun çarpı, tekrar dokun taç, bir daha dokun boş.';
+      'Bir kez dokun: × (burada taç yok). İki kez dokun: taç. Bir daha dokun: temizle.';
 
   @override
-  String get gameInfoTangoGoal => 'Izgarayı güneşler ve aylarla doldur.';
+  String get gameInfoTangoGoal => 'Her kareye bir güneş ya da bir ay koy.';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'Her satır ve sütunda üç güneş, üç ay bulunur.';
+  String get gameInfoTangoRule1 => 'Her satırda 3 güneş ve 3 ay olur.';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'Art arda üç aynı olamaz, ne yatay ne dikey.';
+  String get gameInfoTangoRule2 => 'Her sütunda 3 güneş ve 3 ay olur.';
 
   @override
-  String get gameInfoTangoRule3 =>
-      'İki kare arasındaki = aynı, × farklı demektir.';
+  String get gameInfoTangoRule3 => 'Yan yana 3 aynısı olamaz. 2 olur.';
 
   @override
   String get gameInfoTangoControls =>
-      'Kareye dokun güneş, tekrar dokun ay, bir daha dokun boş. Basılı kareler değişmez.';
+      'Bir kez dokun: güneş. İki kez: ay. Bir daha: temizle. Baştan dolu kareler değişmez.';
 
   @override
-  String get gameInfoZipGoal => 'Her kareden geçen tek bir çizgi çiz.';
+  String get gameInfoZipGoal => 'Bütün karelerden geçen tek bir çizgi çiz.';
 
   @override
-  String get gameInfoZipRule1 => '1\'den başla, son sayıda bitir.';
+  String get gameInfoZipRule1 => '1\'den başla.';
 
   @override
-  String get gameInfoZipRule2 => 'Yol boyunca sayılara sırayla uğra.';
+  String get gameInfoZipRule2 => 'Sayılardan sırayla geç: 1, 2, 3…';
 
   @override
-  String get gameInfoZipRule3 => 'Her kare tam olarak bir kez kullanılır.';
+  String get gameInfoZipRule3 => 'Her kareyi doldur. Her kareden bir kez geç.';
 
   @override
   String get gameInfoZipControls =>
-      'Parmağını sürükleyerek çiz. Çizginin üstünden geri gel, silinsin.';
+      'Çizmek için parmağını sürükle. Geri almak için geri sürükle.';
 
   @override
-  String get gameInfoSudokuGoal => 'Izgarayı 1\'den 6\'ya rakamlarla doldur.';
+  String get gameInfoSudokuGoal =>
+      'Tabloyu 1\'den 6\'ya kadar sayılarla doldur.';
 
   @override
-  String get gameInfoSudokuRule1 => 'Her satırda 1\'den 6\'ya birer kez.';
+  String get gameInfoSudokuRule1 =>
+      'Her satırda 1, 2, 3, 4, 5 ve 6 olur. Tekrar yok.';
 
   @override
-  String get gameInfoSudokuRule2 => 'Her sütunda da aynısı.';
+  String get gameInfoSudokuRule2 => 'Her sütunda da.';
 
   @override
-  String get gameInfoSudokuRule3 => 'Ve her 2x3 kutuda da.';
+  String get gameInfoSudokuRule3 =>
+      'Her kutuda da. Bir kutu 2 satır, 3 sütundur.';
 
   @override
   String get gameInfoSudokuControls =>
-      'Önce bir kareye, sonra bir rakama dokun. Aynı rakama tekrar dokunursan silinir. Notlar modunda küçük kurşun kalem işaretleri yazılır.';
+      'Bir kareye, sonra bir sayıya dokun. Silmek için aynı sayıya tekrar dokun. Notlar küçük işaretler ekler.';
 
   @override
-  String get gameInfoCodeGoal => 'Gizli dört sembollü şifreyi çöz.';
+  String get gameInfoCodeGoal => '4 sembollük gizli şifreyi bul.';
 
   @override
-  String get gameInfoCodeRule1 =>
-      'Altı deneme, ve şifrede hiçbir sembol tekrarlanmaz.';
+  String get gameInfoCodeRule1 => 'Şifrede 4 farklı sembol var. Tekrar yok.';
 
   @override
-  String get gameInfoCodeRule2 => 'Yeşil, doğru sembol doğru yerde demek.';
+  String get gameInfoCodeRule2 => '6 tahmin hakkın var.';
 
   @override
-  String get gameInfoCodeRule3 => 'Sarı, doğru sembol yanlış yerde demek.';
+  String get gameInfoCodeRule3 => 'Yeşil: doğru sembol, doğru yer.';
 
   @override
-  String get gameInfoCodeControls =>
-      'Sembollere dokunarak bir tahmin kur ve gönder. Tahta ne kadar yaklaştığını söyler.';
+  String get gameInfoCodeControls => '4 sembole dokun, sonra Tahmin\'e dokun.';
 
   @override
   String get savedMessagesTitle => 'Kaydedilmiş Mesajlar';
@@ -10231,10 +10232,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get childPairBackIos => 'Girişe dön';
 
   @override
-  String get gamesHubTitle => 'Oyunlar';
+  String get gamesHubTitle => 'Sıralama';
 
   @override
-  String get gamesHubSubtitle => 'Her gün yeni tahtalar, herkes için aynı.';
+  String get gamesHubSubtitle =>
+      'Bugünün kazananları. Her gün yeni bulmacalar.';
 
   @override
   String get gameTellFriendsMessage =>
@@ -10280,7 +10282,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get changeRequestUseIos => 'Kullan';
 
   @override
-  String get settingsSearchHint => 'Ara';
+  String get settingsSearchHint => 'Ayarlarda ara';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10537,4 +10539,380 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => 'elle seçildi';
+
+  @override
+  String get pageSectionSeeAll => 'Tümü';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => 'Tüm arkadaşları gör';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => 'Tüm odalarını gör';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi aranıyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return 'Bugün $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return 'Dün $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get photoChromeSaved => 'Kaydedildi';
+
+  @override
+  String get photoChromeSaveFailed => 'Kaydedilemedi';
+
+  @override
+  String get photoChromeShareFailed => 'Paylaşılamadı';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sohbete iletildi',
+      one: 'İletildi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => 'İletilemedi';
+
+  @override
+  String get photoChromeDeleteFailed => 'Silinemedi';
+
+  @override
+  String get photoChromeDeleteBody =>
+      'Bu, sohbetteki herkes için kaldırılır. Geri alınamaz.';
+
+  @override
+  String get roomContentMonthThis => 'Bu ay';
+
+  @override
+  String get roomContentMonthLast => 'Geçen ay';
+
+  @override
+  String get gameInfoGoalLabel => 'Hedef';
+
+  @override
+  String get gameInfoExampleLabel => 'Örnek';
+
+  @override
+  String get gameInfoWinLabel => 'Nasıl kazanırsın';
+
+  @override
+  String get gameInfoQueensRule4 => 'Taçlar birbirine değemez. Köşeden bile.';
+
+  @override
+  String get gameInfoQueensExample =>
+      'Buraya bir taç koyarsan: aynı satırda, aynı sütunda, aynı renkte ve çevresindeki 8 karede başka taç olamaz.';
+
+  @override
+  String get gameInfoTangoRule4 => '= iki kare aynı demek. × farklı demek.';
+
+  @override
+  String get gameInfoTangoExample =>
+      'Güneş, güneş, boş mu? Boş kare ay olmalı.';
+
+  @override
+  String get gameInfoZipRule4 =>
+      'Yukarı, aşağı, sola ya da sağa git. Çapraz yok.';
+
+  @override
+  String get gameInfoZipRule5 => 'Son sayıda bitir.';
+
+  @override
+  String get gameInfoZipExample =>
+      '1\'den 2\'ye mi gidiyorsun? Gerekirse uzun yoldan git. Hiçbir kare boş kalamaz.';
+
+  @override
+  String get gameInfoSudokuExample =>
+      'Bir satırda 1, 2, 4, 5 ve 6 var mı? Boş kare 3\'tür.';
+
+  @override
+  String get gameInfoCodeRule4 => 'Sarı: doğru sembol, yanlış yer.';
+
+  @override
+  String get gameInfoCodeRule5 => 'Gri: bu sembol şifrede yok.';
+
+  @override
+  String get gameInfoCodeExample =>
+      'Yeşil, sarı, gri, gri şu demek: 1 sembol doğru yerde, 1 sembol başka yerde olmalı, 2 sembol şifrede yok.';
+
+  @override
+  String get leaderboardOverall => 'Bugün';
+
+  @override
+  String get leaderboardFooter =>
+      'Bugün çözdüğün her bulmaca 1 puan. Eşitlikte, daha çok birinci olan öne geçer.';
+
+  @override
+  String get leaderboardNotPlayed => 'Henüz oynamadın';
+
+  @override
+  String get leaderboardPlay => 'Oyna';
+
+  @override
+  String get leaderboardEmptyTitle => 'Bugün henüz skor yok';
+
+  @override
+  String get leaderboardEmptyBody => 'Bir bulmaca çöz, listede ilk sen ol.';
+
+  @override
+  String get leaderboardGamesHeader => 'Bugünün bulmacaları';
+
+  @override
+  String get pointComposerPickFirst => 'Önce yukarıdan birini seç';
+
+  @override
+  String get momentStoryNext => 'Sonraki';
+
+  @override
+  String get momentStoryPrevious => 'Önceki';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$solved/$total çözüldü',
+      zero: 'Henüz çözülen yok',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count galibiyet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return 'Oyna: $game';
+  }
+
+  @override
+  String get diagCatApi => 'Sunucu çağrıları';
+
+  @override
+  String get diagCatConnection => 'Bağlantı';
+
+  @override
+  String get diagCatDevice => 'Cihaz';
+
+  @override
+  String get diagCatError => 'Hatalar';
+
+  @override
+  String get diagCatFrame => 'Yavaş kareler';
+
+  @override
+  String get diagCatLayout => 'Yerleşim';
+
+  @override
+  String get diagCatLifecycle => 'Uygulama durumu';
+
+  @override
+  String get diagCatLog => 'Günlük';
+
+  @override
+  String get diagCatNav => 'Gezinme';
+
+  @override
+  String get diagCatNetwork => 'Ağ';
+
+  @override
+  String get diagCatSubscription => 'Canlı güncellemeler';
+
+  @override
+  String get diagSevTrace => 'İz';
+
+  @override
+  String get diagSevDebug => 'Hata ayıklama';
+
+  @override
+  String get diagSevInfo => 'Bilgi';
+
+  @override
+  String get diagSevWarning => 'Uyarı';
+
+  @override
+  String get diagSevError => 'Hata';
+
+  @override
+  String get diagAll => 'Tümü';
+
+  @override
+  String get diagSearchHint => 'Ad, ayrıntı, içerik ara';
+
+  @override
+  String get diagSummaryCopied => 'Özet kopyalandı';
+
+  @override
+  String get diagShareLog => 'Günlüğü paylaş';
+
+  @override
+  String get diagCopySummary => 'Özeti kopyala';
+
+  @override
+  String get diagDeleteAll => 'Tümünü sil';
+
+  @override
+  String get diagUndo => 'Geri al';
+
+  @override
+  String get diagDeleteLogTitle => 'Günlüğün tamamı silinsin mi?';
+
+  @override
+  String get diagDeleteLogBody =>
+      'Şimdiye kadar kaydedilen her olay ve bir önceki açılışın günlüğü silinir. Bundan sonra olanlar her zamanki gibi kaydedilir.';
+
+  @override
+  String get diagDelete => 'Sil';
+
+  @override
+  String get diagLogDeleted => 'Günlük silindi';
+
+  @override
+  String get diagFilter => 'Filtre';
+
+  @override
+  String get diagMore => 'Diğer';
+
+  @override
+  String get diagLatest => 'En yeni';
+
+  @override
+  String get diagJumpToLatest => 'En yeniye git';
+
+  @override
+  String get diagPaused => 'duraklatıldı';
+
+  @override
+  String get diagPreparingLog => 'günlük hazırlanıyor…';
+
+  @override
+  String get diagEmptyNothingTitle => 'Henüz bir şey kaydedilmedi';
+
+  @override
+  String get diagEmptyNothingHint =>
+      'Uygulamayı biraz kullan, olaylar burada görünür.';
+
+  @override
+  String get diagEmptyHiddenTitle => 'Şimdilik yalnızca gizli olaylar var';
+
+  @override
+  String get diagEmptyHiddenHint =>
+      'Görmek için yukarıdaki soluk bir etikete dokun ya da Tümü\'ne geri almak için basılı tut.';
+
+  @override
+  String get diagEmptyNoMatchTitle => 'Eşleşen olay yok';
+
+  @override
+  String get diagEmptyNoMatchHint =>
+      'Filtreyi temizlemek için yukarıdaki Tümü\'ne dokun.';
+
+  @override
+  String get diagApply => 'Uygula';
+
+  @override
+  String get diagMinSeverity => 'En düşük önem';
+
+  @override
+  String get diagEverything => 'Her şey';
+
+  @override
+  String get diagHiddenFromAllHeader => 'Tümü\'nde gizli';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'Etiket satırında seçilene kadar Tümü\'nde görünmez. Aynı ayar için oradaki etikete basılı tut.';
+
+  @override
+  String get diagCollapseRepeats => 'Tekrarları birleştir';
+
+  @override
+  String get diagCollapseRepeatsSubtitle =>
+      'Art arda gelen aynı olayları tek satırda topla';
+
+  @override
+  String get diagResetFilter => 'Filtreyi sıfırla';
+
+  @override
+  String get diagBodyTruncated => 'İçerik kayıt sırasında kısaltıldı';
+
+  @override
+  String get diagCopyEvent => 'Olayı kopyala';
+
+  @override
+  String get diagEventCopied => 'Olay kopyalandı';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category Tümü\'nde gizlendi';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category yeniden Tümü\'nde';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category, $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category, $count, Tümü\'nde gizli';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$total olaydan $shown tanesi';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Önceki $count olay atıldı — günlük hikâyenin ortasından başlıyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '$seconds sn içinde ×$count';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label, $count öğe';
+  }
 }

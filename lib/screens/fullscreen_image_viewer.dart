@@ -1,9 +1,16 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
+import '../models/chat_message.dart';
+import '../models/enums.dart';
+import '../widgets/app_toast.dart';
+import '../widgets/media_filmstrip.dart' show MediaScrim;
 import '../widgets/media_flight.dart';
 import '../widgets/photo_backdrop.dart';
 import '../widgets/photo_dismiss_area.dart';
@@ -11,6 +18,7 @@ import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/viewer_chrome.dart';
+import 'room_content_actions.dart';
 
 /// Fullscreen viewer for a single image stored in Convex.
 ///
@@ -27,6 +35,8 @@ class FullscreenImageViewer extends StatefulWidget {
     this.thumbnailDecodeWidth,
     this.circular = false,
     this.aspectRatio,
+    this.onShare,
+    this.onSave,
   });
 
   final String storageId;
@@ -66,6 +76,15 @@ class FullscreenImageViewer extends StatefulWidget {
   /// Ignored in [circular] mode, where the box is a square by definition.
   final double? aspectRatio;
 
+  /// The OS share sheet for this picture; false when nothing could be handed
+  /// to it. With [onSave], the bottom toolbar — a lone picture has no set to
+  /// forward within or delete from, so these two are all it offers. Both null
+  /// (an avatar) draws no toolbar.
+  final Future<bool> Function()? onShare;
+
+  /// Save to the photo library; false when it did not save.
+  final Future<bool> Function()? onSave;
+
   /// Fraction of the shorter screen edge the circle occupies in [circular] mode.
   /// Big enough to read as "fullscreen", short of the edges so the round shape
   /// stays legible against the barrier.
@@ -80,7 +99,26 @@ class FullscreenImageViewer extends StatefulWidget {
     int? thumbnailDecodeWidth,
     bool circular = false,
     double? aspectRatio,
+    Future<bool> Function()? onShare,
+    Future<bool> Function()? onSave,
+    ChatMessage? message,
   }) {
+    // [message] is the short way to get both: the same helpers the gallery
+    // and the shared-content grid use, so a lone photo shares and saves
+    // exactly like one in a set. Save only for a real photo or video — a
+    // picture sent as a document is a file, and `saveMessagesToDevice` skips
+    // files, so offering it would always toast a failure. `gal` has no web
+    // implementation either. Explicit callbacks still win.
+    final m = message;
+    final share = onShare ??
+        (m == null ? null : () => shareMessages(api: api, messages: [m]));
+    final save = onSave ??
+        (m == null ||
+                kIsWeb ||
+                (m.type != MessageType.image && m.type != MessageType.video)
+            ? null
+            : () async =>
+                (await saveMessagesToDevice(api: api, messages: [m])).ok > 0);
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
         opaque: false,
@@ -102,6 +140,8 @@ class FullscreenImageViewer extends StatefulWidget {
           thumbnailDecodeWidth: thumbnailDecodeWidth,
           circular: circular,
           aspectRatio: aspectRatio,
+          onShare: share,
+          onSave: save,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -189,6 +229,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                     child: PhotoBackdrop(
                       image: RemoteImage(
                         storageId: widget.storageId,
+                        onDark: true,
                         api: widget.api,
                         fit: BoxFit.cover,
                         borderRadius: BorderRadius.zero,
@@ -215,10 +256,25 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                   // The chrome gets out of the way as the picture leaves.
                   opacity: (1 - t * 2).clamp(0.0, 1.0),
                   child: ViewerTopBar(
+                    // Fading with the drag, so no blur under the × for it.
+                    still: t > 0,
                     onClose: () => Navigator.of(context).maybePop(),
                   ),
                 ),
               ),
+              if (_tools(context).isNotEmpty)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    ignoring: t > 0,
+                    child: Opacity(
+                      opacity: (1 - t * 2).clamp(0.0, 1.0),
+                      child: _BottomBar(actions: _tools(context)),
+                    ),
+                  ),
+                ),
             ],
           );
         },
@@ -237,6 +293,53 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
     );
   }
 
+  bool _busy = false;
+
+  /// Share and Save, when the opener offered them. One at a time: a second tap
+  /// on Share while the first is still fetching would open two sheets.
+  List<ViewerToolbarAction> _tools(BuildContext context) {
+    final share = widget.onShare;
+    final save = widget.onSave;
+    if (share == null && save == null) return const [];
+    final l10n = AppLocalizations.of(context);
+    Future<void> run(Future<void> Function() f) async {
+      if (_busy) return;
+      _busy = true;
+      try {
+        await f();
+      } finally {
+        _busy = false;
+      }
+    }
+
+    return [
+      if (share != null)
+        ViewerToolbarAction(
+          icon: CupertinoIcons.square_arrow_up,
+          semanticLabel: l10n.roomContentScreenShareAction,
+          onTap: () => run(() async {
+            final toast = AppToast.of(context);
+            if (!await share()) {
+              toast.show(l10n.photoChromeShareFailed, tone: ToastTone.danger);
+            }
+          }),
+        ),
+      if (save != null)
+        ViewerToolbarAction(
+          icon: CupertinoIcons.arrow_down_to_line,
+          semanticLabel: l10n.roomContentScreenSaveAction,
+          onTap: () => run(() async {
+            final toast = AppToast.of(context);
+            final ok = await save();
+            toast.show(
+              ok ? l10n.photoChromeSaved : l10n.photoChromeSaveFailed,
+              tone: ok ? ToastTone.success : ToastTone.danger,
+            );
+          }),
+        ),
+    ];
+  }
+
   /// The circle destination: a fixed square box, `cover`, clipped round.
   ///
   /// Deliberately no `width`/`height` on the [RemoteImage] — the [SizedBox]
@@ -250,6 +353,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
           height: diameter,
           child: RemoteImage(
             storageId: widget.storageId,
+            onDark: true,
             api: widget.api,
             fit: BoxFit.cover,
             borderRadius: BorderRadius.zero,
@@ -286,6 +390,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   Widget _rectImage(BuildContext context) {
     final image = RemoteImage(
       storageId: widget.storageId,
+      onDark: true,
       api: widget.api,
       fit: BoxFit.contain,
       borderRadius: BorderRadius.zero,
@@ -305,6 +410,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   /// decode that is already resident.
   Widget _flightImage() => RemoteImage(
         storageId: widget.storageId,
+        onDark: true,
         api: widget.api,
         fit: BoxFit.cover,
         borderRadius: BorderRadius.zero,
@@ -360,3 +466,26 @@ int thumbnailDecodeWidth(BuildContext context, double logicalWidth) =>
 /// the field wins the lookup and the function is unreachable.
 int _decodeWidth(BuildContext context, double logicalWidth) =>
     math.max(1, (logicalWidth * MediaQuery.devicePixelRatioOf(context)).round());
+
+/// The lone picture's toolbar on the shared bottom scrim — the gallery's,
+/// minus the filmstrip a set of one does not have.
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({required this.actions});
+
+  final List<ViewerToolbarAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        MediaScrim(height: ViewerToolbar.height + bottom + 40),
+        Padding(
+          padding: EdgeInsets.only(bottom: bottom + 4),
+          child: ViewerToolbar(actions: actions),
+        ),
+      ],
+    );
+  }
+}

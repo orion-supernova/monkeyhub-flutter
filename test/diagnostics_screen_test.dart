@@ -110,7 +110,7 @@ void main() {
     await hide(t, {'subscription', 'frame'});
     await open(t);
 
-    await t.tap(await visible(t, 'frame'));
+    await t.tap(await visible(t, 'Slow frames'));
     await t.pump();
     expect(shown('2'), findsOneWidget);
 
@@ -126,11 +126,12 @@ void main() {
     await hide(t, {'subscription', 'frame'});
     await open(t);
 
-    await t.longPress(await visible(t, 'frame'));
+    await t.longPress(await visible(t, 'Slow frames'));
     await t.pump();
 
     expect(shown('6'), findsOneWidget);
-    expect(find.text('frame back in All'), findsOneWidget);
+    // The category by its screen name, never the enum's (`frame`).
+    expect(find.text('Slow frames back in All'), findsOneWidget);
     expect(SettingsStore.instance.diagHiddenCategories, {'subscription'});
 
     // The next visit starts from the choice, not the default.
@@ -145,7 +146,7 @@ void main() {
     await hide(t, {'subscription', 'frame'});
     await open(t);
 
-    await t.longPress(await visible(t, 'api'));
+    await t.longPress(await visible(t, 'Server calls'));
     await t.pump();
     expect(shown('1'), findsOneWidget);
 

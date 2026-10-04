@@ -40,6 +40,7 @@ class GamesStore extends ChangeNotifier {
   String? _userId;
   DailyBoards _boards = const DailyBoards();
   GameStandings _standings = const GameStandings();
+  bool _standingsReady = false;
   bool _loading = false;
   bool _fetchingBoards = false;
   Object? _error;
@@ -58,6 +59,13 @@ class GamesStore extends ChangeNotifier {
   /// The viewer's own rows, any half-finished board, and the friend
   /// leaderboards.
   GameStandings get standings => _standings;
+
+  /// Whether [standings] has answered at least once for this user and day.
+  /// The leaderboard shows its skeleton until then — an empty
+  /// [GameStandings] before the first answer is "not asked yet", not
+  /// "nobody played", and drawing the empty state for it flashed "No scores
+  /// yet today" on every open.
+  bool get standingsReady => _standingsReady;
 
   bool get loading => _loading;
   Object? get error => _error;
@@ -114,6 +122,7 @@ class GamesStore extends ChangeNotifier {
     if (rolled || switched) {
       _boards = const DailyBoards();
       _standings = const GameStandings();
+      _standingsReady = false;
     }
     if (!rolled && !switched && !force && _boards.ready && !_loading) {
       // Boards are held, but a leaderboard the player is looking at should
@@ -154,6 +163,7 @@ class GamesStore extends ChangeNotifier {
         }
       }
       _standings = results[1] as GameStandings;
+      _standingsReady = true;
       _loading = false;
       _error = null;
     } catch (e) {
@@ -264,6 +274,7 @@ class GamesStore extends ChangeNotifier {
       final next = await api.standings(userId: userId, dayKey: day);
       if (gen != _gen) return;
       _standings = next;
+      _standingsReady = true;
       _error = null;
       _notify();
     } catch (e) {
@@ -298,6 +309,7 @@ class GamesStore extends ChangeNotifier {
     _userId = null;
     _boards = const DailyBoards();
     _standings = const GameStandings();
+    _standingsReady = false;
     _loading = false;
     _error = null;
     _notify();

@@ -309,6 +309,8 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
                   // The chrome gets out of the way as the video leaves.
                   opacity: (1 - t * 2).clamp(0.0, 1.0),
                   child: ViewerTopBar(
+                    // Fading with the drag, so no blur under the × for it.
+                    still: t > 0,
                     onClose: () => Navigator.of(context).maybePop(),
                   ),
                 ),
@@ -348,6 +350,7 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
             ? const SizedBox.expand()
             : RemoteImage(
                 storageId: poster,
+                onDark: true,
                 api: widget.api,
                 fit: BoxFit.contain,
               ),
@@ -402,6 +405,7 @@ class _HandoffPlate extends StatelessWidget {
                 color: Colors.black,
                 child: RemoteImage(
                   storageId: poster,
+                  onDark: true,
                   api: api,
                   fit: BoxFit.contain,
                 ),

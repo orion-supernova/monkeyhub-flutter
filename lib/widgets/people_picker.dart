@@ -243,7 +243,11 @@ class _PeoplePickerState extends State<PeoplePicker> {
           hintText: widget.hintText,
           autofocus: widget.autofocus,
           onChanged: _onChanged,
-          onClear: () => _onChanged(''),
+          // A picker inside a sheet: the sheet's × is the way out. No
+          // onClear either — the default empties the controller AND reports
+          // '' to [_onChanged] (which cancels the debounce); the custom one
+          // only did the second, so the typed text stayed in the bar.
+          showCancel: false,
         ),
         const SizedBox(height: 6),
         Expanded(

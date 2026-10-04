@@ -102,7 +102,7 @@ void main() {
       addTearDown(c.dispose);
       await tester.pumpWidget(host(bar(c)));
 
-      final clear = find.byIcon(CupertinoIcons.clear_circled_solid);
+      final clear = find.byIcon(CupertinoIcons.xmark_circle_fill);
       expect(find.byIcon(CupertinoIcons.search), findsOneWidget,
           reason: 'the magnifier is always there');
       expect(clear, findsNothing, reason: 'nothing to clear yet');
@@ -129,7 +129,7 @@ void main() {
       expect(reported, 'ada');
 
       // The default clear — the one a caller gets without writing anything.
-      await tester.tap(find.byIcon(CupertinoIcons.clear_circled_solid));
+      await tester.tap(find.byIcon(CupertinoIcons.xmark_circle_fill));
       await tester.pump();
 
       expect(c.text, isEmpty);
@@ -152,7 +152,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.byIcon(CupertinoIcons.clear_circled_solid));
+      await tester.tap(find.byIcon(CupertinoIcons.xmark_circle_fill));
       await tester.pump();
 
       expect(custom, 1);
@@ -161,6 +161,112 @@ void main() {
         0,
         reason: 'the caller owns what clearing means — including the reporting',
       );
+    });
+  });
+
+  group('one pill', () {
+    testWidgets('field and door are the same 40pt box, glyph at the same x', (
+      tester,
+    ) async {
+      final c = TextEditingController();
+      addTearDown(c.dispose);
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: SafeArea(
+              child: Column(
+                children: [
+                  SearchField(
+                    key: const ValueKey('field'),
+                    controller: c,
+                    hintText: 'Search people',
+                    onChanged: (_) {},
+                    showCancel: false,
+                  ),
+                  SearchField.door(
+                    key: const ValueKey('door'),
+                    hint: 'Search people',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      final field = tester.getSize(find.byKey(const ValueKey('field')));
+      final door = tester.getSize(find.byKey(const ValueKey('door')));
+      expect(field.height, searchFieldHeight);
+      expect(door, field);
+      final glyphs = find.byIcon(CupertinoIcons.search);
+      expect(
+        tester.getTopLeft(glyphs.at(0)).dx,
+        tester.getTopLeft(glyphs.at(1)).dx,
+      );
+    });
+
+    testWidgets('Cancel slides in on focus and clears, unfocuses, reports', (
+      tester,
+    ) async {
+      final c = TextEditingController();
+      addTearDown(c.dispose);
+      var cancelled = 0;
+      String? reported;
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: SafeArea(
+              child: SearchField(
+                controller: c,
+                hintText: 'Search settings',
+                onChanged: (v) => reported = v,
+                onCancel: () => cancelled++,
+              ),
+            ),
+          ),
+        ),
+      );
+      final cancel = find.text('Cancel');
+      expect(cancel, findsNothing, reason: 'idle: no Cancel');
+
+      await tester.enterText(find.byType(TextField), 'ada');
+      await tester.pumpAndSettle();
+      expect(cancel, findsOneWidget);
+
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+      expect(c.text, isEmpty);
+      expect(reported, isEmpty);
+      expect(cancelled, 1);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+        isFalse,
+      );
+      expect(cancel, findsNothing);
+    });
+
+    testWidgets('inside a sheet (showCancel: false) there is no Cancel', (
+      tester,
+    ) async {
+      final c = TextEditingController();
+      addTearDown(c.dispose);
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: SafeArea(
+              child: SearchField(
+                controller: c,
+                hintText: 'Search',
+                onChanged: (_) {},
+                showCancel: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), 'ada');
+      await tester.pumpAndSettle();
+      expect(find.text('Cancel'), findsNothing);
     });
   });
 

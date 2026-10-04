@@ -1849,7 +1849,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get discoverScreenNothingPending => 'कुछ नहीं भेजा';
 
   @override
-  String get discoverScreenYourPeopleLabel => 'तुम्हारे लोग';
+  String get discoverScreenYourPeopleLabel => 'दोस्त';
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
@@ -1865,7 +1865,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get discoverScreenSearchRoomsSubtitle => 'नाम से पब्लिक रूम खोजो';
 
   @override
-  String get discoverScreenYourRoomsLabel => 'तुम्हारे रूम';
+  String get discoverScreenYourRoomsLabel => 'रूम्स';
 
   @override
   String get discoverScreenNoRoomsYet => 'अभी कोई रूम नहीं';
@@ -2029,7 +2029,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get searchScreenHintPeople => 'लोग खोजो';
 
   @override
-  String get searchScreenHintRooms => 'रूम खोजो';
+  String get searchScreenHintRooms => 'पब्लिक रूम खोजो';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2266,8 +2266,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'ग्रुप वॉइस कॉल';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return 'कॉल में $count';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'कॉल में $count',
+      one: 'सिर्फ़ तुम',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3871,7 +3877,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Google से जारी रखें';
 
   @override
-  String get discoverListsPeopleTitle => 'तुम्हारे लोग';
+  String get discoverListsPeopleTitle => 'दोस्त';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3885,7 +3891,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'अपने लोगों को फ़िल्टर करो';
+  String get discoverListsFilterHint => 'दोस्त खोजो';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'फ़िल्टर हटाओ';
@@ -3899,7 +3905,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'तुम्हारे रूम';
+  String get discoverListsRoomsTitle => 'रूम्स';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3913,7 +3919,7 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'अपने रूम फ़िल्टर करो';
+  String get discoverListsFilterRoomsHint => 'अपने रूम खोजो';
 
   @override
   String get discoverListsNoRoomsYet => 'अभी तक कोई रूम नहीं';
@@ -5514,10 +5520,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get feedBoardOpenArchive => 'संग्रह';
 
   @override
-  String get feedBoardGamesLabel => 'खेल';
+  String get feedBoardGamesLabel => 'गेम्स';
 
   @override
-  String get feedBoardGamesOpen => 'सभी खेल';
+  String get feedBoardGamesOpen => 'लीडरबोर्ड';
 
   @override
   String get gamesScreenTitle => 'खेल।';
@@ -5713,104 +5719,102 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoRulesLabel => 'नियम';
 
   @override
-  String get gameInfoControlsLabel => 'नियंत्रण';
+  String get gameInfoControlsLabel => 'क्या टैप करें';
 
   @override
   String get gameInfoScoringTimed =>
-      'जब तक बोर्ड स्क्रीन पर है घड़ी चलती है; रोकने या बाहर जाने पर रुक जाती है। सबसे तेज़ आज की सूची में सबसे ऊपर।';
+      'सबसे तेज़ खत्म करने वाला जीतता है। बाहर जाने पर घड़ी रुक जाती है।';
 
   @override
   String get gameInfoScoringGuesses =>
-      'स्कोर कम अनुमानों से बनता है, घड़ी से नहीं।';
+      'सबसे कम अनुमानों में हल करने वाला जीतता है। समय नहीं गिना जाता।';
 
   @override
-  String get gameInfoSameForEveryone => 'आज सबको एक ही बोर्ड मिलता है।';
+  String get gameInfoSameForEveryone => 'आज सबको एक ही पहेली मिलती है।';
 
   @override
-  String get gameInfoQueensGoal => 'हर पंक्ति, स्तंभ और रंग में एक ताज रखें।';
+  String get gameInfoQueensGoal => 'बोर्ड पर 8 ताज रखें।';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'आठ ताज: हर पंक्ति में एक, हर स्तंभ में एक।';
+  String get gameInfoQueensRule1 => 'हर पंक्ति में ठीक 1 ताज।';
 
   @override
-  String get gameInfoQueensRule2 => 'हर रंग-खंड में भी ठीक एक ताज होता है।';
+  String get gameInfoQueensRule2 => 'हर स्तंभ में ठीक 1 ताज।';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'कोई दो ताज नहीं छू सकते — कोने से भी नहीं।';
+  String get gameInfoQueensRule3 => 'हर रंग में ठीक 1 ताज।';
 
   @override
   String get gameInfoQueensControls =>
-      'किसी खाने पर एक बार टैप करें तो क्रॉस, दोबारा टैप करें तो ताज, फिर से टैप करें तो खाली।';
+      'एक बार टैप: × (यहाँ ताज नहीं)। दो बार: ताज। फिर से: मिटाएँ।';
 
   @override
-  String get gameInfoTangoGoal => 'ग्रिड को सूरज और चाँद से भरें।';
+  String get gameInfoTangoGoal => 'हर खाने में सूरज या चाँद भरें।';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'हर पंक्ति और स्तंभ में तीन सूरज और तीन चाँद होते हैं।';
+  String get gameInfoTangoRule1 => 'हर पंक्ति में 3 सूरज और 3 चाँद।';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'कभी भी तीन एक जैसे साथ-साथ नहीं, न आड़े न खड़े।';
+  String get gameInfoTangoRule2 => 'हर स्तंभ में 3 सूरज और 3 चाँद।';
 
   @override
   String get gameInfoTangoRule3 =>
-      'दो खानों के बीच = का मतलब वे एक जैसे हैं, × का मतलब अलग हैं।';
+      'एक लाइन में लगातार 3 एक जैसे कभी नहीं। 2 चलेंगे।';
 
   @override
   String get gameInfoTangoControls =>
-      'खाने पर टैप करें तो सूरज, दोबारा चाँद, फिर खाली। छपे हुए खाने नहीं बदलते।';
+      'एक बार टैप: सूरज। दो बार: चाँद। फिर से: मिटाएँ। पहले से भरे खाने नहीं बदलते।';
 
   @override
-  String get gameInfoZipGoal => 'एक ऐसी रेखा खींचें जो हर खाने से गुज़रे।';
+  String get gameInfoZipGoal => 'एक ही लाइन बनाएँ जो हर खाने से गुज़रे।';
 
   @override
-  String get gameInfoZipRule1 => '1 से शुरू करें और आखिरी संख्या पर खत्म करें।';
+  String get gameInfoZipRule1 => '1 से शुरू करें।';
 
   @override
-  String get gameInfoZipRule2 => 'रास्ते में संख्याओं को क्रम से छुएँ।';
+  String get gameInfoZipRule2 => 'नंबरों पर क्रम से जाएँ: 1, 2, 3…';
 
   @override
-  String get gameInfoZipRule3 => 'हर खाना ठीक एक बार इस्तेमाल होता है।';
+  String get gameInfoZipRule3 => 'हर खाना भरें। हर खाना सिर्फ़ एक बार।';
 
   @override
   String get gameInfoZipControls =>
-      'उँगली घसीटकर खींचें। रेखा पर वापस घसीटें तो मिट जाएगी।';
+      'बनाने के लिए उंगली खींचें। मिटाने के लिए वापस खींचें।';
 
   @override
-  String get gameInfoSudokuGoal => 'ग्रिड को 1 से 6 अंकों से भरें।';
+  String get gameInfoSudokuGoal => 'ग्रिड को 1 से 6 तक के नंबरों से भरें।';
 
   @override
-  String get gameInfoSudokuRule1 => 'हर पंक्ति में 1 से 6 तक एक-एक बार।';
+  String get gameInfoSudokuRule1 =>
+      'हर पंक्ति में 1, 2, 3, 4, 5 और 6। कोई दोहराव नहीं।';
 
   @override
-  String get gameInfoSudokuRule2 => 'हर स्तंभ में भी वैसा ही।';
+  String get gameInfoSudokuRule2 => 'हर स्तंभ में भी।';
 
   @override
-  String get gameInfoSudokuRule3 => 'और हर 2x3 बॉक्स में भी।';
+  String get gameInfoSudokuRule3 =>
+      'हर बॉक्स में भी। एक बॉक्स 2 पंक्ति और 3 स्तंभ का होता है।';
 
   @override
   String get gameInfoSudokuControls =>
-      'खाने पर टैप करें, फिर अंक पर। वही अंक दोबारा टैप करें तो मिट जाएगा। नोट्स मोड में छोटे पेंसिल निशान लगते हैं।';
+      'एक खाने पर टैप करें, फिर एक नंबर पर। मिटाने के लिए वही नंबर फिर टैप करें। नोट्स छोटे पेंसिल निशान लगाता है।';
 
   @override
-  String get gameInfoCodeGoal => 'चार-चिह्न वाले छिपे कोड का पता लगाएँ।';
+  String get gameInfoCodeGoal => '4 चिह्नों वाला गुप्त कोड पहचानें।';
 
   @override
   String get gameInfoCodeRule1 =>
-      'छह कोशिशें, और कोड में कोई चिह्न दोहराया नहीं जाता।';
+      'कोड में 4 अलग-अलग चिह्न हैं। कोई दोहराव नहीं।';
 
   @override
-  String get gameInfoCodeRule2 => 'हरा मतलब सही चिह्न, सही जगह।';
+  String get gameInfoCodeRule2 => 'आपको 6 अनुमान मिलते हैं।';
 
   @override
-  String get gameInfoCodeRule3 => 'पीला मतलब सही चिह्न, गलत जगह।';
+  String get gameInfoCodeRule3 => 'हरा: सही चिह्न, सही जगह।';
 
   @override
   String get gameInfoCodeControls =>
-      'अनुमान बनाने के लिए चिह्नों पर टैप करें, फिर भेजें। बोर्ड बताएगा कि आप कितने करीब थे।';
+      '4 चिह्नों पर टैप करें, फिर अनुमान पर टैप करें।';
 
   @override
   String get savedMessagesTitle => 'सेव किए गए मैसेज';
@@ -10278,10 +10282,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get childPairBackIos => 'साइन इन पर वापस जाएँ';
 
   @override
-  String get gamesHubTitle => 'गेम्स';
+  String get gamesHubTitle => 'लीडरबोर्ड';
 
   @override
-  String get gamesHubSubtitle => 'हर दिन नए बोर्ड, सबके लिए एक जैसे।';
+  String get gamesHubSubtitle => 'आज के विजेता। हर दिन नई पहेलियाँ।';
 
   @override
   String get gameTellFriendsMessage =>
@@ -10327,7 +10331,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get changeRequestUseIos => 'लागू करें';
 
   @override
-  String get settingsSearchHint => 'खोजें';
+  String get settingsSearchHint => 'सेटिंग्स में खोजें';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10577,4 +10581,381 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => 'चुनी गई';
+
+  @override
+  String get pageSectionSeeAll => 'सभी देखो';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => 'सभी दोस्त देखो';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => 'अपने सभी रूम देखो';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count को घंटी जा रही है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return 'आज $time बजे';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return 'कल $time बजे';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date, $time बजे';
+  }
+
+  @override
+  String get photoChromeSaved => 'सेव हो गया';
+
+  @override
+  String get photoChromeSaveFailed => 'सेव नहीं हो सका';
+
+  @override
+  String get photoChromeShareFailed => 'शेयर नहीं हो सका';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चैट में फ़ॉरवर्ड हो गया',
+      one: 'फ़ॉरवर्ड हो गया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => 'फ़ॉरवर्ड नहीं हो सका';
+
+  @override
+  String get photoChromeDeleteFailed => 'डिलीट नहीं हो सका';
+
+  @override
+  String get photoChromeDeleteBody =>
+      'यह इसे इस चैट के सभी लोगों के लिए हटा देगा। इसे वापस नहीं लिया जा सकता।';
+
+  @override
+  String get roomContentMonthThis => 'इस महीने';
+
+  @override
+  String get roomContentMonthLast => 'पिछले महीने';
+
+  @override
+  String get gameInfoGoalLabel => 'लक्ष्य';
+
+  @override
+  String get gameInfoExampleLabel => 'उदाहरण';
+
+  @override
+  String get gameInfoWinLabel => 'कैसे जीतें';
+
+  @override
+  String get gameInfoQueensRule4 =>
+      'ताज एक-दूसरे को छू नहीं सकते। कोने से भी नहीं।';
+
+  @override
+  String get gameInfoQueensExample =>
+      'यहाँ एक ताज का मतलब: उसकी पंक्ति, स्तंभ, रंग और आसपास के 8 खानों में कोई और ताज नहीं।';
+
+  @override
+  String get gameInfoTangoRule4 =>
+      '= का मतलब दोनों खाने एक जैसे। × का मतलब अलग-अलग।';
+
+  @override
+  String get gameInfoTangoExample =>
+      'सूरज, सूरज, खाली? खाली खाना चाँद ही होगा।';
+
+  @override
+  String get gameInfoZipRule4 => 'ऊपर, नीचे, बाएँ या दाएँ चलें। तिरछा नहीं।';
+
+  @override
+  String get gameInfoZipRule5 => 'आखिरी नंबर पर खत्म करें।';
+
+  @override
+  String get gameInfoZipExample =>
+      '1 से 2 जा रहे हैं? ज़रूरत हो तो लंबा रास्ता लें। कोई खाना खाली नहीं रह सकता।';
+
+  @override
+  String get gameInfoSudokuExample =>
+      'किसी पंक्ति में 1, 2, 4, 5 और 6 हैं? खाली खाना 3 है।';
+
+  @override
+  String get gameInfoCodeRule4 => 'पीला: सही चिह्न, गलत जगह।';
+
+  @override
+  String get gameInfoCodeRule5 => 'स्लेटी: यह चिह्न कोड में नहीं है।';
+
+  @override
+  String get gameInfoCodeExample =>
+      'हरा, पीला, स्लेटी, स्लेटी का मतलब: 1 चिह्न सही जगह पर है, 1 कहीं और जाएगा, 2 कोड में नहीं हैं।';
+
+  @override
+  String get leaderboardOverall => 'आज';
+
+  @override
+  String get leaderboardFooter =>
+      'आज हल की गई हर पहेली के लिए 1 पॉइंट। बराबरी पर, जो ज़्यादा बार पहले आया वह आगे।';
+
+  @override
+  String get leaderboardNotPlayed => 'अभी तक नहीं खेला';
+
+  @override
+  String get leaderboardPlay => 'खेलें';
+
+  @override
+  String get leaderboardEmptyTitle => 'आज अभी कोई स्कोर नहीं';
+
+  @override
+  String get leaderboardEmptyBody =>
+      'एक पहेली हल करें और सूची में सबसे पहले आएँ।';
+
+  @override
+  String get leaderboardGamesHeader => 'आज की पहेलियाँ';
+
+  @override
+  String get pointComposerPickFirst => 'पहले ऊपर से एक चुनें';
+
+  @override
+  String get momentStoryNext => 'अगला';
+
+  @override
+  String get momentStoryPrevious => 'पिछला';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$total में से $solved हल',
+      zero: 'अभी कुछ हल नहीं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count जीत',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return '$game खेलें';
+  }
+
+  @override
+  String get diagCatApi => 'सर्वर कॉल';
+
+  @override
+  String get diagCatConnection => 'कनेक्शन';
+
+  @override
+  String get diagCatDevice => 'डिवाइस';
+
+  @override
+  String get diagCatError => 'गड़बड़ियाँ';
+
+  @override
+  String get diagCatFrame => 'धीमे फ़्रेम';
+
+  @override
+  String get diagCatLayout => 'लेआउट';
+
+  @override
+  String get diagCatLifecycle => 'ऐप की स्थिति';
+
+  @override
+  String get diagCatLog => 'लॉग';
+
+  @override
+  String get diagCatNav => 'नेविगेशन';
+
+  @override
+  String get diagCatNetwork => 'नेटवर्क';
+
+  @override
+  String get diagCatSubscription => 'लाइव अपडेट';
+
+  @override
+  String get diagSevTrace => 'ट्रेस';
+
+  @override
+  String get diagSevDebug => 'डीबग';
+
+  @override
+  String get diagSevInfo => 'जानकारी';
+
+  @override
+  String get diagSevWarning => 'चेतावनी';
+
+  @override
+  String get diagSevError => 'गड़बड़ी';
+
+  @override
+  String get diagAll => 'सभी';
+
+  @override
+  String get diagSearchHint => 'नाम, ब्योरा, बॉडी खोजो';
+
+  @override
+  String get diagSummaryCopied => 'सारांश कॉपी हो गया';
+
+  @override
+  String get diagShareLog => 'लॉग शेयर करो';
+
+  @override
+  String get diagCopySummary => 'सारांश कॉपी करो';
+
+  @override
+  String get diagDeleteAll => 'सब मिटाओ';
+
+  @override
+  String get diagUndo => 'वापस लो';
+
+  @override
+  String get diagDeleteLogTitle => 'पूरा लॉग मिटाना है?';
+
+  @override
+  String get diagDeleteLogBody =>
+      'अब तक दर्ज हर इवेंट मिट जाएगा, पिछली बार का लॉग भी। अब से जो होगा, वो हमेशा की तरह दर्ज होगा।';
+
+  @override
+  String get diagDelete => 'मिटाओ';
+
+  @override
+  String get diagLogDeleted => 'लॉग मिटा दिया';
+
+  @override
+  String get diagFilter => 'फ़िल्टर';
+
+  @override
+  String get diagMore => 'और';
+
+  @override
+  String get diagLatest => 'सबसे नया';
+
+  @override
+  String get diagJumpToLatest => 'सबसे नए पर जाओ';
+
+  @override
+  String get diagPaused => 'रुका हुआ';
+
+  @override
+  String get diagPreparingLog => 'लॉग तैयार हो रहा है…';
+
+  @override
+  String get diagEmptyNothingTitle => 'अभी तक कुछ दर्ज नहीं हुआ';
+
+  @override
+  String get diagEmptyNothingHint =>
+      'ऐप थोड़ी देर इस्तेमाल करो, इवेंट यहाँ दिखेंगे।';
+
+  @override
+  String get diagEmptyHiddenTitle => 'अभी तक सिर्फ़ छिपे हुए इवेंट हैं';
+
+  @override
+  String get diagEmptyHiddenHint =>
+      'देखने के लिए ऊपर किसी धुंधले चिप पर टैप करो, या उसे सभी में वापस लाने के लिए दबाकर रखो।';
+
+  @override
+  String get diagEmptyNoMatchTitle => 'कोई इवेंट मेल नहीं खाता';
+
+  @override
+  String get diagEmptyNoMatchHint => 'फ़िल्टर हटाने के लिए ऊपर सभी पर टैप करो।';
+
+  @override
+  String get diagApply => 'लागू करो';
+
+  @override
+  String get diagMinSeverity => 'न्यूनतम गंभीरता';
+
+  @override
+  String get diagEverything => 'सब कुछ';
+
+  @override
+  String get diagHiddenFromAllHeader => 'सभी से छिपे';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'चिप वाली लाइन में चुने जाने तक सभी से बाहर रहते हैं। वही स्विच पाने के लिए वहाँ किसी चिप को दबाकर रखो।';
+
+  @override
+  String get diagCollapseRepeats => 'दोहराव समेटो';
+
+  @override
+  String get diagCollapseRepeatsSubtitle =>
+      'एक ही इवेंट की लगातार कड़ी को एक लाइन में समेटो';
+
+  @override
+  String get diagResetFilter => 'फ़िल्टर रीसेट करो';
+
+  @override
+  String get diagBodyTruncated => 'दर्ज करते समय बॉडी काट दी गई';
+
+  @override
+  String get diagCopyEvent => 'इवेंट कॉपी करो';
+
+  @override
+  String get diagEventCopied => 'इवेंट कॉपी हो गया';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category सभी से छिपाया';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category फिर से सभी में';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category, $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category, $count, सभी से छिपा';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$total में से $shown इवेंट';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count पुराने इवेंट हटा दिए गए — लॉग बीच कहानी से शुरू होता है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '$seconds सेकंड में ×$count';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label, $count आइटम';
+  }
 }

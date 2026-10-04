@@ -142,7 +142,10 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
               controller: _search,
               hintText: loc.chatTargetSearchHint,
               onChanged: (_) => setState(() {}),
-              onClear: () => setState(() {}),
+              // In a sheet, so no Cancel. And no onClear: the default
+              // empties the controller and reports '' through onChanged; the
+              // custom setState-only one left the typed text in the bar.
+              showCancel: false,
             ),
             const SizedBox(height: 6),
             ConstrainedBox(

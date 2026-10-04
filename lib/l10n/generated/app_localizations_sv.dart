@@ -1853,7 +1853,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get discoverScreenNothingPending => 'Inget skickat';
 
   @override
-  String get discoverScreenYourPeopleLabel => 'Dina vänner';
+  String get discoverScreenYourPeopleLabel => 'Vänner';
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
@@ -1870,7 +1870,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'Hitta ett offentligt rum via namn';
 
   @override
-  String get discoverScreenYourRoomsLabel => 'Dina rum';
+  String get discoverScreenYourRoomsLabel => 'Rum';
 
   @override
   String get discoverScreenNoRoomsYet => 'Inga rum än';
@@ -2034,7 +2034,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get searchScreenHintPeople => 'Sök personer';
 
   @override
-  String get searchScreenHintRooms => 'Sök rum';
+  String get searchScreenHintRooms => 'Sök offentliga rum';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2272,8 +2272,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'Gruppröstsamtal';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count i samtalet';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count i samtalet',
+      one: 'Bara du',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3876,7 +3882,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Fortsätt med Google';
 
   @override
-  String get discoverListsPeopleTitle => 'Dina vänner';
+  String get discoverListsPeopleTitle => 'Vänner';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3890,7 +3896,7 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'Filtrera dina vänner';
+  String get discoverListsFilterHint => 'Sök vänner';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'Rensa filter';
@@ -3904,7 +3910,7 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'Dina rum';
+  String get discoverListsRoomsTitle => 'Rum';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3918,7 +3924,7 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'Filtrera dina rum';
+  String get discoverListsFilterRoomsHint => 'Sök bland dina rum';
 
   @override
   String get discoverListsNoRoomsYet => 'Inga rum än';
@@ -4523,34 +4529,34 @@ class AppLocalizationsSv extends AppLocalizations {
   String get familyRequestStageRecipientLabel => 'väntar på dem';
 
   @override
-  String get roomContentTabLabelMedia => 'MEDIA';
+  String get roomContentTabLabelMedia => 'Media';
 
   @override
-  String get roomContentTabLabelFiles => 'FILER';
+  String get roomContentTabLabelFiles => 'Filer';
 
   @override
-  String get roomContentTabLabelVoice => 'RÖST';
+  String get roomContentTabLabelVoice => 'Röst';
 
   @override
-  String get roomContentTabLabelLinks => 'LÄNKAR';
+  String get roomContentTabLabelLinks => 'Länkar';
 
   @override
-  String get roomContentTabLabelSaved => 'SPARADE';
+  String get roomContentTabLabelSaved => 'Sparade';
 
   @override
-  String get roomContentTabHeaderMedia => 'media';
+  String get roomContentTabHeaderMedia => 'Media';
 
   @override
-  String get roomContentTabHeaderFiles => 'filer';
+  String get roomContentTabHeaderFiles => 'Filer';
 
   @override
-  String get roomContentTabHeaderVoice => 'röst';
+  String get roomContentTabHeaderVoice => 'Röst';
 
   @override
-  String get roomContentTabHeaderLinks => 'länkar';
+  String get roomContentTabHeaderLinks => 'Länkar';
 
   @override
-  String get roomContentTabHeaderSaved => 'sparade';
+  String get roomContentTabHeaderSaved => 'Sparade';
 
   @override
   String get roomFacetLabelDms => 'DM';
@@ -5528,10 +5534,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get feedBoardOpenArchive => 'Arkiv';
 
   @override
-  String get feedBoardGamesLabel => 'Spelen';
+  String get feedBoardGamesLabel => 'Spel';
 
   @override
-  String get feedBoardGamesOpen => 'Alla spel';
+  String get feedBoardGamesOpen => 'Topplista';
 
   @override
   String get gamesScreenTitle => 'spelen.';
@@ -5727,105 +5733,100 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameInfoRulesLabel => 'Reglerna';
 
   @override
-  String get gameInfoControlsLabel => 'Kontroller';
+  String get gameInfoControlsLabel => 'Vad du trycker på';
 
   @override
   String get gameInfoScoringTimed =>
-      'Klockan går så länge brickan är uppe och stannar när du pausar eller lämnar. Snabbast toppar dagens lista.';
+      'Snabbast vinner. Klockan stannar när du lämnar.';
 
   @override
   String get gameInfoScoringGuesses =>
-      'Poängen sätts av hur få gissningar du behöver, inte av klockan.';
+      'Färst gissningar vinner. Tiden räknas inte.';
 
   @override
-  String get gameInfoSameForEveryone => 'Alla får samma bricka idag.';
+  String get gameInfoSameForEveryone => 'Alla får samma pussel i dag.';
 
   @override
-  String get gameInfoQueensGoal =>
-      'Placera en krona i varje rad, kolumn och färg.';
+  String get gameInfoQueensGoal => 'Placera 8 kronor på brädet.';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'Åtta kronor: en i varje rad och en i varje kolumn.';
+  String get gameInfoQueensRule1 => 'Varje rad får exakt 1 krona.';
 
   @override
-  String get gameInfoQueensRule2 => 'Varje färgblock får också exakt en krona.';
+  String get gameInfoQueensRule2 => 'Varje kolumn får exakt 1 krona.';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'Två kronor får inte nudda varandra, inte ens i ett hörn.';
+  String get gameInfoQueensRule3 => 'Varje färg får exakt 1 krona.';
 
   @override
   String get gameInfoQueensControls =>
-      'Tryck på en ruta en gång för ett kryss som stryker den, igen för en krona, igen för att tömma.';
+      'Tryck en gång: × (ingen krona här). Två gånger: krona. Igen: rensa.';
 
   @override
-  String get gameInfoTangoGoal => 'Fyll rutnätet med solar och månar.';
+  String get gameInfoTangoGoal => 'Fyll varje ruta med en sol eller en måne.';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'Varje rad och kolumn har tre solar och tre månar.';
+  String get gameInfoTangoRule1 => 'Varje rad har 3 solar och 3 månar.';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'Aldrig tre likadana i rad, varken vågrätt eller lodrätt.';
+  String get gameInfoTangoRule2 => 'Varje kolumn har 3 solar och 3 månar.';
 
   @override
-  String get gameInfoTangoRule3 =>
-      'Ett = mellan två rutor betyder lika, ett × betyder olika.';
+  String get gameInfoTangoRule3 => 'Aldrig 3 likadana i rad. 2 går bra.';
 
   @override
   String get gameInfoTangoControls =>
-      'Tryck på en ruta för en sol, igen för en måne, igen för att tömma. Förtryckta rutor går inte att ändra.';
+      'Tryck en gång: sol. Två gånger: måne. Igen: rensa. Rutor som är ifyllda från början går inte att ändra.';
 
   @override
-  String get gameInfoZipGoal => 'Rita en linje som går genom varje ruta.';
+  String get gameInfoZipGoal => 'Dra ett enda streck genom alla rutor.';
 
   @override
-  String get gameInfoZipRule1 => 'Börja på 1 och sluta på det sista talet.';
+  String get gameInfoZipRule1 => 'Börja på 1.';
 
   @override
-  String get gameInfoZipRule2 => 'Ta siffrorna i ordning på vägen.';
+  String get gameInfoZipRule2 => 'Besök talen i ordning: 1, 2, 3…';
 
   @override
-  String get gameInfoZipRule3 => 'Varje ruta används exakt en gång.';
+  String get gameInfoZipRule3 => 'Fyll alla rutor. Varje ruta bara en gång.';
 
   @override
   String get gameInfoZipControls =>
-      'Dra fingret för att rita. Dra tillbaka längs linjen för att sudda.';
+      'Dra med fingret för att rita. Dra tillbaka för att ångra.';
 
   @override
-  String get gameInfoSudokuGoal => 'Fyll rutnätet med siffrorna 1 till 6.';
+  String get gameInfoSudokuGoal => 'Fyll rutnätet med talen 1 till 6.';
 
   @override
-  String get gameInfoSudokuRule1 => 'Varje rad använder 1 till 6, en gång var.';
+  String get gameInfoSudokuRule1 =>
+      'Varje rad har 1, 2, 3, 4, 5 och 6. Inga dubbletter.';
 
   @override
-  String get gameInfoSudokuRule2 => 'Samma sak för varje kolumn.';
+  String get gameInfoSudokuRule2 => 'Varje kolumn också.';
 
   @override
-  String get gameInfoSudokuRule3 => 'Och varje 2x3-ruta också.';
+  String get gameInfoSudokuRule3 =>
+      'Varje box också. En box är 2 rader gånger 3 kolumner.';
 
   @override
   String get gameInfoSudokuControls =>
-      'Tryck på en ruta och sedan på en siffra. Tryck på samma siffra igen för att sudda. Anteckningsläget skriver små blyertsmarkeringar i stället.';
+      'Tryck på en ruta, sedan på en siffra. Tryck igen för att sudda. Anteckningar ger små blyertsmärken.';
 
   @override
-  String get gameInfoCodeGoal => 'Lista ut den dolda koden på fyra symboler.';
+  String get gameInfoCodeGoal => 'Gissa den hemliga koden med 4 symboler.';
 
   @override
   String get gameInfoCodeRule1 =>
-      'Sex försök, och koden upprepar aldrig en symbol.';
+      'Koden har 4 olika symboler. Inga dubbletter.';
 
   @override
-  String get gameInfoCodeRule2 => 'Grönt betyder rätt symbol på rätt plats.';
+  String get gameInfoCodeRule2 => 'Du får 6 gissningar.';
 
   @override
-  String get gameInfoCodeRule3 => 'Gult betyder rätt symbol på fel plats.';
+  String get gameInfoCodeRule3 => 'Grön: rätt symbol, rätt plats.';
 
   @override
-  String get gameInfoCodeControls =>
-      'Tryck på symboler för att bygga en gissning och skicka den. Brickan visar hur nära du var.';
+  String get gameInfoCodeControls => 'Tryck på 4 symboler och sedan på Gissa.';
 
   @override
   String get savedMessagesTitle => 'Sparade meddelanden';
@@ -10297,10 +10298,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get childPairBackIos => 'Tillbaka till inloggning';
 
   @override
-  String get gamesHubTitle => 'Spel';
+  String get gamesHubTitle => 'Topplista';
 
   @override
-  String get gamesHubSubtitle => 'Nya brädor varje dag, samma för alla.';
+  String get gamesHubSubtitle => 'Dagens vinnare. Nya pussel varje dag.';
 
   @override
   String get gameTellFriendsMessage =>
@@ -10346,7 +10347,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get changeRequestUseIos => 'Använd';
 
   @override
-  String get settingsSearchHint => 'Sök';
+  String get settingsSearchHint => 'Sök i inställningar';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10600,4 +10601,387 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => 'valt';
+
+  @override
+  String get pageSectionSeeAll => 'Visa alla';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => 'Visa alla vänner';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => 'Visa alla dina rum';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ringer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return 'I dag $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return 'I går $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get photoChromeSaved => 'Sparad';
+
+  @override
+  String get photoChromeSaveFailed => 'Kunde inte spara';
+
+  @override
+  String get photoChromeShareFailed => 'Kunde inte dela';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Vidarebefordrad till $count chattar',
+      one: 'Vidarebefordrad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => 'Kunde inte vidarebefordra';
+
+  @override
+  String get photoChromeDeleteFailed => 'Kunde inte radera';
+
+  @override
+  String get photoChromeDeleteBody =>
+      'Det tas bort för alla i den här chatten. Det kan inte ångras.';
+
+  @override
+  String get roomContentMonthThis => 'Den här månaden';
+
+  @override
+  String get roomContentMonthLast => 'Förra månaden';
+
+  @override
+  String get gameInfoGoalLabel => 'Mål';
+
+  @override
+  String get gameInfoExampleLabel => 'Exempel';
+
+  @override
+  String get gameInfoWinLabel => 'Så vinner du';
+
+  @override
+  String get gameInfoQueensRule4 =>
+      'Kronor får inte nudda varandra. Inte ens hörn mot hörn.';
+
+  @override
+  String get gameInfoQueensExample =>
+      'En krona här betyder: ingen annan krona i samma rad, kolumn eller färg, eller i de 8 rutorna runt den.';
+
+  @override
+  String get gameInfoTangoRule4 =>
+      '= betyder att de 2 rutorna är lika. × att de är olika.';
+
+  @override
+  String get gameInfoTangoExample =>
+      'Sol, sol, tom? Den tomma rutan måste vara en måne.';
+
+  @override
+  String get gameInfoZipRule4 =>
+      'Gå upp, ner, vänster eller höger. Inga diagonaler.';
+
+  @override
+  String get gameInfoZipRule5 => 'Sluta på det sista talet.';
+
+  @override
+  String get gameInfoZipExample =>
+      'Ska du från 1 till 2? Ta en omväg om du måste. Ingen ruta får bli tom.';
+
+  @override
+  String get gameInfoSudokuExample =>
+      'Har en rad redan 1, 2, 4, 5 och 6? Den tomma rutan är 3.';
+
+  @override
+  String get gameInfoCodeRule4 => 'Gul: rätt symbol, fel plats.';
+
+  @override
+  String get gameInfoCodeRule5 => 'Grå: den symbolen finns inte i koden.';
+
+  @override
+  String get gameInfoCodeExample =>
+      'Grön, gul, grå, grå betyder: 1 symbol står rätt, 1 hör hemma någon annanstans, 2 finns inte i koden.';
+
+  @override
+  String get leaderboardOverall => 'I dag';
+
+  @override
+  String get leaderboardFooter =>
+      '1 poäng för varje pussel du löser i dag. Vid lika vinner den som kom först flest gånger.';
+
+  @override
+  String get leaderboardNotPlayed => 'Inte spelat än';
+
+  @override
+  String get leaderboardPlay => 'Spela';
+
+  @override
+  String get leaderboardEmptyTitle => 'Inga resultat än i dag';
+
+  @override
+  String get leaderboardEmptyBody =>
+      'Lös ett pussel så hamnar du först på listan.';
+
+  @override
+  String get leaderboardGamesHeader => 'Dagens pussel';
+
+  @override
+  String get pointComposerPickFirst => 'Välj en ovan först';
+
+  @override
+  String get momentStoryNext => 'Nästa';
+
+  @override
+  String get momentStoryPrevious => 'Föregående';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$solved av $total lösta',
+      one: '1 av $total löst',
+      zero: 'Inget löst än',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count vinster',
+      one: '1 vinst',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return 'Spela $game';
+  }
+
+  @override
+  String get diagCatApi => 'Serveranrop';
+
+  @override
+  String get diagCatConnection => 'Anslutning';
+
+  @override
+  String get diagCatDevice => 'Enhet';
+
+  @override
+  String get diagCatError => 'Fel';
+
+  @override
+  String get diagCatFrame => 'Långsamma bildrutor';
+
+  @override
+  String get diagCatLayout => 'Layout';
+
+  @override
+  String get diagCatLifecycle => 'Appläge';
+
+  @override
+  String get diagCatLog => 'Logg';
+
+  @override
+  String get diagCatNav => 'Navigering';
+
+  @override
+  String get diagCatNetwork => 'Nätverk';
+
+  @override
+  String get diagCatSubscription => 'Liveuppdateringar';
+
+  @override
+  String get diagSevTrace => 'Spårning';
+
+  @override
+  String get diagSevDebug => 'Felsökning';
+
+  @override
+  String get diagSevInfo => 'Info';
+
+  @override
+  String get diagSevWarning => 'Varning';
+
+  @override
+  String get diagSevError => 'Fel';
+
+  @override
+  String get diagAll => 'Alla';
+
+  @override
+  String get diagSearchHint => 'Sök namn, detalj, innehåll';
+
+  @override
+  String get diagSummaryCopied => 'Sammanfattning kopierad';
+
+  @override
+  String get diagShareLog => 'Dela logg';
+
+  @override
+  String get diagCopySummary => 'Kopiera sammanfattning';
+
+  @override
+  String get diagDeleteAll => 'Radera allt';
+
+  @override
+  String get diagUndo => 'Ångra';
+
+  @override
+  String get diagDeleteLogTitle => 'Radera hela loggen?';
+
+  @override
+  String get diagDeleteLogBody =>
+      'Alla händelser som fångats hittills försvinner, liksom förra körningens logg. Allt som händer härifrån fångas som vanligt.';
+
+  @override
+  String get diagDelete => 'Radera';
+
+  @override
+  String get diagLogDeleted => 'Loggen raderad';
+
+  @override
+  String get diagFilter => 'Filtrera';
+
+  @override
+  String get diagMore => 'Mer';
+
+  @override
+  String get diagLatest => 'Senaste';
+
+  @override
+  String get diagJumpToLatest => 'Hoppa till senaste';
+
+  @override
+  String get diagPaused => 'pausad';
+
+  @override
+  String get diagPreparingLog => 'förbereder logg…';
+
+  @override
+  String get diagEmptyNothingTitle => 'Inget fångat än';
+
+  @override
+  String get diagEmptyNothingHint =>
+      'Använd appen en stund så dyker händelser upp här.';
+
+  @override
+  String get diagEmptyHiddenTitle => 'Bara dolda händelser hittills';
+
+  @override
+  String get diagEmptyHiddenHint =>
+      'Tryck på en nedtonad etikett ovan för att se den, eller håll in för att ta tillbaka den till Alla.';
+
+  @override
+  String get diagEmptyNoMatchTitle => 'Inga händelser matchar';
+
+  @override
+  String get diagEmptyNoMatchHint =>
+      'Tryck på Alla ovan för att rensa filtret.';
+
+  @override
+  String get diagApply => 'Använd';
+
+  @override
+  String get diagMinSeverity => 'Lägsta allvarlighetsgrad';
+
+  @override
+  String get diagEverything => 'Allt';
+
+  @override
+  String get diagHiddenFromAllHeader => 'Dolda i Alla';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'Utelämnas ur Alla tills de väljs i etikettraden. Håll in en etikett där för samma reglage.';
+
+  @override
+  String get diagCollapseRepeats => 'Slå ihop upprepningar';
+
+  @override
+  String get diagCollapseRepeatsSubtitle =>
+      'Samla en serie av samma händelse på en rad';
+
+  @override
+  String get diagResetFilter => 'Återställ filter';
+
+  @override
+  String get diagBodyTruncated => 'Innehållet kortades vid fångst';
+
+  @override
+  String get diagCopyEvent => 'Kopiera händelse';
+
+  @override
+  String get diagEventCopied => 'Händelsen kopierad';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category dold i Alla';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category tillbaka i Alla';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category, $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category, $count, dold i Alla';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$shown av $total händelser';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count tidigare händelser kastades – loggen börjar mitt i förloppet',
+      one: '$count tidigare händelse kastades – loggen börjar mitt i förloppet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '×$count på $seconds s';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label, $count objekt';
+  }
 }

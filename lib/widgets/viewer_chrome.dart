@@ -1,9 +1,14 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 import 'media_filmstrip.dart' show MediaScrim;
+import 'message_stamp.dart' show formatClockTime;
+import 'spring_press.dart';
 
 /// The top bar every full-screen media viewer wears — the photo viewer, the
 /// video viewer, the gallery pager and the view-once viewer — so all four look
@@ -12,16 +17,22 @@ import 'media_filmstrip.dart' show MediaScrim;
 /// and text stay legible over a bright sky.
 ///
 /// Positioning and fading stay with the caller, which knows its own dismiss
-/// gesture; this is only the bar.
-class ViewerTopBar extends StatelessWidget {
+/// gesture; this is only the bar. What the bar does own is the rule about its
+/// glass: a `BackdropFilter` is never faded, so while the bar is moving — the
+/// route flying in or out, or [still] because the caller is fading it with a
+/// drag — its discs draw as [ViewerChromeButton]'s blur-free twin, and become
+/// real glass again once everything has come to rest.
+class ViewerTopBar extends StatefulWidget {
   const ViewerTopBar({
     super.key,
     required this.onClose,
     this.closeLabel,
     this.title,
     this.subtitle,
+    this.subtitleSemanticLabel,
     this.center,
     this.actions = const [],
+    this.still = false,
   });
 
   final VoidCallback onClose;
@@ -31,44 +42,109 @@ class ViewerTopBar extends StatelessWidget {
   final String? title;
   final String? subtitle;
 
+  /// What a screen reader hears instead of [subtitle] — the pager's "3 of 8",
+  /// which the eye gets from the filmstrip and the ear has no other way to.
+  final String? subtitleSemanticLabel;
+
   /// Replaces the title column — e.g. the view-once badge.
   final Widget? center;
+
+  /// Trailing buttons. Build them as [ViewerChromeButton]s and pass them
+  /// [ViewerTopBar.stillOf] so they follow the same glass rule as the ×.
   final List<Widget> actions;
 
+  /// The caller is fading or moving the bar right now (a dismiss drag, a
+  /// tap-to-hide fade), so its discs must not blur.
+  final bool still;
+
   static const double _button = 40;
+
+  /// Whether the bar's discs are drawing blur-free right now — for trailing
+  /// actions built by the caller, which cannot see the route's animation.
+  static bool stillOf(BuildContext context) =>
+      _ViewerStill.maybeOf(context) ?? false;
+
+  @override
+  State<ViewerTopBar> createState() => _ViewerTopBarState();
+}
+
+class _ViewerTopBarState extends State<ViewerTopBar> {
+  Animation<double>? _route;
+  bool _routeMoving = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final next = ModalRoute.of(context)?.animation;
+    if (identical(next, _route)) return;
+    _route?.removeStatusListener(_onRouteStatus);
+    _route = next;
+    _route?.addStatusListener(_onRouteStatus);
+    _routeMoving = _moving(_route?.status);
+  }
+
+  @override
+  void dispose() {
+    _route?.removeStatusListener(_onRouteStatus);
+    super.dispose();
+  }
+
+  // A status listener, not an AnimatedBuilder: the bar only needs to know
+  // WHETHER the route is moving, and rebuilding it on every frame of the
+  // flight to learn that would be work spent on the one moment that has none
+  // to spare.
+  static bool _moving(AnimationStatus? s) =>
+      s == AnimationStatus.forward || s == AnimationStatus.reverse;
+
+  void _onRouteStatus(AnimationStatus s) {
+    final moving = _moving(s);
+    if (moving != _routeMoving && mounted) setState(() => _routeMoving = moving);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final pad = MediaQuery.paddingOf(context);
-    final Widget? middle = center ??
+    final still = widget.still || _routeMoving;
+    final title = widget.title;
+    final subtitle = widget.subtitle;
+    final Widget? middle = widget.center ??
         (title == null
             ? null
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    title!,
+                    title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.bodyEmph.copyWith(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
                       color: MediaGlass.ink,
                       decoration: TextDecoration.none,
+                      shadows: _kGlyphShadow,
                     ),
                   ),
                   if (subtitle != null)
                     // The body face at 13 in near-white — the caption slot
                     // was tracked mono at low contrast on a character
                     // theme, nearly gone over a bright sky.
-                    Text(
-                      subtitle!,
-                      maxLines: 1,
-                      style: theme.body.copyWith(
-                        fontSize: 13,
-                        height: 1.25,
-                        color: MediaGlass.ink.withValues(alpha: 0.85),
-                        decoration: TextDecoration.none,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                    Semantics(
+                      label: widget.subtitleSemanticLabel,
+                      excludeSemantics: widget.subtitleSemanticLabel != null,
+                      child: Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.body.copyWith(
+                          fontSize: 13,
+                          height: 1.25,
+                          color: MediaGlass.ink.withValues(alpha: 0.85),
+                          decoration: TextDecoration.none,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          shadows: _kGlyphShadow,
+                        ),
                       ),
                     ),
                 ],
@@ -76,42 +152,264 @@ class ViewerTopBar extends StatelessWidget {
     // The title is centred on the SCREEN, like a sheet bar's: inset by the
     // wider side's chrome on both sides, so two trailing actions no longer
     // shove it left of centre.
-    final side = _button * (actions.isEmpty ? 1 : actions.length) + 8;
+    final actions = widget.actions;
+    final side =
+        ViewerTopBar._button * (actions.isEmpty ? 1 : actions.length) + 8;
 
-    return Stack(
-      children: [
-        MediaScrim(height: pad.top + 62, fromTop: true),
-        Padding(
-          padding: EdgeInsets.fromLTRB(8, pad.top + 6, 8, 10),
-          child: SizedBox(
-            height: _button,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (middle != null)
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: side),
-                    child: middle,
-                  ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  // The shared media ×, 17pt glyph like every close.
-                  child: GlassCloseButton(
-                    tone: GlassTone.media,
-                    semanticLabel: closeLabel,
-                    onTap: onClose,
-                  ),
-                ),
-                if (actions.isNotEmpty)
+    return _ViewerStill(
+      still: still,
+      child: Stack(
+        children: [
+          MediaScrim(height: pad.top + 62, fromTop: true),
+          Padding(
+            padding: EdgeInsets.fromLTRB(8, pad.top + 6, 8, 10),
+            // At least the buttons' height, and taller when large text makes
+            // the name and the date need it — the bar grows rather than
+            // clipping the second line.
+            child: ConstrainedBox(
+              constraints:
+                  const BoxConstraints(minHeight: ViewerTopBar._button),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (middle != null)
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: side),
+                      child: middle,
+                    ),
                   Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+                    alignment: Alignment.centerLeft,
+                    // The shared media ×, 17pt glyph like every close.
+                    child: still
+                        ? ViewerChromeButton(
+                            icon: CupertinoIcons.xmark,
+                            iconSize: 17,
+                            still: true,
+                            semanticLabel: widget.closeLabel ??
+                                MaterialLocalizations.of(context)
+                                    .closeButtonLabel,
+                            onTap: widget.onClose,
+                          )
+                        : GlassCloseButton(
+                            tone: GlassTone.media,
+                            semanticLabel: widget.closeLabel,
+                            onTap: widget.onClose,
+                          ),
                   ),
-              ],
+                  if (actions.isNotEmpty)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child:
+                          Row(mainAxisSize: MainAxisSize.min, children: actions),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+}
+
+/// Carries [ViewerTopBar]'s "moving right now" down to trailing actions the
+/// caller built, so one flag decides every disc in the bar.
+class _ViewerStill extends InheritedWidget {
+  const _ViewerStill({required this.still, required super.child});
+
+  final bool still;
+
+  static bool? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_ViewerStill>()?.still;
+
+  @override
+  bool updateShouldNotify(_ViewerStill old) => old.still != still;
+}
+
+/// A 40pt disc in a viewer's top bar.
+///
+/// At rest it IS the media glass button — this adds nothing to the material.
+/// [still] draws the same disc, same hairline, same shadow, with no blur
+/// behind it, for the frames when the chrome is fading or flying: the app's
+/// one rule about glass is that a `BackdropFilter` is never animated, and the
+/// viewer chrome fades every time a tap hides it or a drag sends the picture
+/// home. The fill is a shade darker than the glass's to make up for the
+/// photograph no longer being softened behind it — side by side for one frame
+/// at the start of a 90ms fade, the two read as the same button.
+///
+/// [still] defaults to whatever the enclosing [ViewerTopBar] says.
+class ViewerChromeButton extends StatelessWidget {
+  const ViewerChromeButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.semanticLabel,
+    this.iconSize = 19,
+    this.still,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String? semanticLabel;
+  final double iconSize;
+  final bool? still;
+
+  static const double size = 40;
+
+  @override
+  Widget build(BuildContext context) {
+    final blurFree = still ?? ViewerTopBar.stillOf(context);
+    if (!blurFree) {
+      return GlassIconButton(
+        tone: GlassTone.media,
+        icon: icon,
+        iconSize: iconSize,
+        semanticLabel: semanticLabel,
+        onTap: onTap,
+      );
+    }
+    final enabled = onTap != null;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: semanticLabel,
+      child: SpringPress(
+        onTap: onTap,
+        haptic: false,
+        scale: 0.94,
+        focusShape: FocusRingShape.circle,
+        focusRadius: size / 2,
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: const ShapeDecoration(
+            color: Color(0x4D2A2A2E),
+            shape: CircleBorder(
+              side: BorderSide(color: MediaGlass.stroke, width: 0.8),
+            ),
+            shadows: [MediaGlass.shadow],
+          ),
+          child: Icon(
+            icon,
+            size: iconSize,
+            color: enabled ? MediaGlass.ink : MediaGlass.inkDisabled,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The soft shadow every bare white glyph and label over a photograph wears:
+/// enough to lift white off a bright sky, invisible over a dark room.
+const List<Shadow> _kGlyphShadow = [Shadow(color: Color(0x99000000), blurRadius: 6)];
+
+/// One button in a [ViewerToolbar].
+class ViewerToolbarAction {
+  const ViewerToolbarAction({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onTap,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  /// Delete. Tinted, not filled: a red disc at the bottom of a photograph is
+  /// an alarm, a pink-white glyph is a choice.
+  final bool danger;
+}
+
+/// The row of actions under a full-screen picture — Share, Save, Forward,
+/// Delete — the way Photos lays them out: bare white glyphs spread across the
+/// bottom, no buttons drawn around them.
+///
+/// Bare on purpose, not glass. The toolbar fades with the rest of the viewer
+/// chrome on every tap and every dismiss drag, and glass is the one material
+/// this app never fades; white glyphs with a soft shadow over the existing
+/// bottom [MediaScrim] are as legible over any photograph and cost nothing to
+/// animate.
+///
+/// Lays out only the row; the caller places it and supplies the scrim, which
+/// it shares with the filmstrip above.
+class ViewerToolbar extends StatelessWidget {
+  const ViewerToolbar({super.key, required this.actions});
+
+  final List<ViewerToolbarAction> actions;
+
+  /// Height of the row, for callers reserving space above it.
+  static const double height = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    // Delete's tint: the theme's danger lifted most of the way to white, so it
+    // still reads as red over a dark photograph and never as a dark blot over
+    // a bright one.
+    final danger = Color.lerp(theme.danger, Colors.white, 0.35)!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: SizedBox(
+        height: height,
+        child: Row(
+          // One action sits centred rather than pinned to the left edge;
+          // more spread out like Photos' toolbar.
+          mainAxisAlignment: actions.length == 1
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.spaceAround,
+          children: [
+            for (final a in actions)
+              SpringPress(
+                onTap: a.onTap,
+                semanticLabel: a.semanticLabel,
+                scale: PressSpec.scaleSmall,
+                focusShape: FocusRingShape.circle,
+                focusRadius: 22,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: Icon(
+                      a.icon,
+                      size: 22,
+                      color: a.danger ? danger : Colors.white,
+                      shadows: _kGlyphShadow,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// When a picture was sent, the way the viewer's subtitle says it: "Today at
+/// 14:32", "Yesterday at 09:10", "Oct 3 at 14:32" this year, else
+/// "Oct 3, 2025 at 14:32".
+///
+/// The time is the transcript's own 24h clock, so the viewer and the bubble it
+/// came from never disagree about when something was said.
+String viewerWhenLabel(BuildContext context, DateTime at) {
+  final l10n = AppLocalizations.of(context);
+  final local = at.toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final time = formatClockTime(local);
+  if (day == today) return l10n.photoChromeWhenToday(time);
+  if (today.difference(day).inDays == 1) {
+    return l10n.photoChromeWhenYesterday(time);
+  }
+  final material = MaterialLocalizations.of(context);
+  // The year only when it is not this one — and then always, which
+  // `formatMediumDate` (weekday, month, day) would silently drop.
+  final date = day.year == now.year
+      ? material.formatShortMonthDay(day)
+      : material.formatShortDate(day);
+  return l10n.photoChromeWhenDate(date, time);
 }

@@ -1179,8 +1179,11 @@ class _PickRoomSheetState extends State<_PickRoomSheet> {
                 SearchField(
                   controller: _q,
                   hintText: l10n.childPolicyScreenPickRoomHint,
+                  // No onClear: the default empties the controller and
+                  // reports '' here; the custom one reset [_query] only,
+                  // leaving the typed text over an unfiltered list.
                   onChanged: (v) => setState(() => _query = v),
-                  onClear: () => setState(() => _query = ''),
+                  showCancel: false,
                 ),
                 const SizedBox(height: 10),
                 Expanded(

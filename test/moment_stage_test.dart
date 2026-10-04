@@ -42,9 +42,10 @@ Moment _moment({
   String? media,
   String? caption,
   MomentTag? tag,
+  String userId = 'u1',
 }) => Moment(
   id: id,
-  userId: 'u1',
+  userId: userId,
   dayKey: '2026-08-28',
   createdAt: DateTime(2026, 8, 28, 9),
   expiresAt: DateTime(2026, 8, 29, 9),
@@ -118,31 +119,27 @@ void main() {
     expect(find.text('washed the car, it rained at four'), findsOneWidget);
   });
 
-  testWidgets('the rest of the run is one swipe away', (tester) async {
+  // Stories: a sideways swipe moves to the next PERSON. (Moving through one
+  // person's pictures is a tap — see moment_story_test.dart.)
+  testWidgets('the next person is one swipe away', (tester) async {
     final first = _moment(id: 'm1', media: 'blob1', caption: 'the sunset');
-    final second = _moment(id: 'm2', media: 'blob2', caption: 'the cat');
+    final second = _moment(
+      id: 'm2',
+      media: 'blob2',
+      caption: 'the cat',
+      userId: 'u2',
+    );
     await tester.pumpWidget(
       _host(moment: first, siblings: [first, second]),
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-
-    // `textContaining`, because the counter shares its line with the relative
-    // time — "now · 1 / 2".
-    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(
-      find.textContaining(l10n.photoChromeMediaPositionLabel(1, 2)),
-      findsOneWidget,
-    );
+    expect(find.text('the sunset'), findsOneWidget);
 
     await tester.fling(find.byType(PageView), const Offset(-400, 0), 1200);
     await tester.pumpAndSettle();
 
     expect(find.text('the cat'), findsOneWidget);
-    expect(
-      find.textContaining(l10n.photoChromeMediaPositionLabel(2, 2)),
-      findsOneWidget,
-    );
   });
 
   testWidgets('caption-only siblings are not pages you can swipe onto', (
@@ -156,14 +153,6 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    // One page, so no position counter at all — a run of one has nothing to
-    // count.
-    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(
-      find.textContaining(l10n.photoChromeMediaPositionLabel(1, 2)),
-      findsNothing,
-    );
-
     await tester.fling(find.byType(PageView), const Offset(-400, 0), 1200);
     await tester.pumpAndSettle();
 
@@ -171,7 +160,7 @@ void main() {
     expect(find.text('the sunset'), findsOneWidget);
   });
 
-  // Four quick reactions were the whole vocabulary; the full picker is one
+  // Five quick reactions are the whole vocabulary; the full picker is one
   // tap past them on both surfaces.
   testWidgets('both surfaces offer the full emoji picker', (tester) async {
     await tester.pumpWidget(

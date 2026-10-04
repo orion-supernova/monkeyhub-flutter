@@ -3276,7 +3276,7 @@ abstract class AppLocalizations {
   /// All-caps section header label above the friends list.
   ///
   /// In en, this message translates to:
-  /// **'Your people'**
+  /// **'Friends'**
   String get discoverScreenYourPeopleLabel;
 
   /// Empty-state line for the friends list when people search is available, pointing up at the search door.
@@ -3306,7 +3306,7 @@ abstract class AppLocalizations {
   /// All-caps section header label above the preview of group chats the viewer already belongs to.
   ///
   /// In en, this message translates to:
-  /// **'Your rooms'**
+  /// **'Rooms'**
   String get discoverScreenYourRoomsLabel;
 
   /// Empty-state line shown when the viewer isn't a member of any group chat yet.
@@ -3618,7 +3618,7 @@ abstract class AppLocalizations {
   /// Search screen: TextField hint text when searching for public rooms (SearchMode.rooms).
   ///
   /// In en, this message translates to:
-  /// **'Search rooms'**
+  /// **'Search public rooms'**
   String get searchScreenHintRooms;
 
   /// People-search empty state (query not yet typed) shown to a child account, explaining that only an exact full username finds someone new.
@@ -4050,8 +4050,8 @@ abstract class AppLocalizations {
   /// Pill badge in the group call header showing how many people (including you) are currently in the call.
   ///
   /// In en, this message translates to:
-  /// **'{count} in call'**
-  String groupCallScreenParticipantCount(Object count);
+  /// **'{count, plural, =1{Just you} other{{count} in call}}'**
+  String groupCallScreenParticipantCount(num count);
 
   /// Lowercase status chip shown at the top of the group call screen when any participant's connection is recovering.
   ///
@@ -6599,7 +6599,7 @@ abstract class AppLocalizations {
   /// Lowercase fragment-style heading at the top of the full people list screen (opened from Discover's "see all" row).
   ///
   /// In en, this message translates to:
-  /// **'Your people'**
+  /// **'Friends'**
   String get discoverListsPeopleTitle;
 
   /// Caption under the people-list title showing how many friends the user has, e.g. "12 people".
@@ -6611,7 +6611,7 @@ abstract class AppLocalizations {
   /// Hint text in the search/filter TextField on the full people list screen.
   ///
   /// In en, this message translates to:
-  /// **'Filter your people'**
+  /// **'Search friends'**
   String get discoverListsFilterHint;
 
   /// Screen-reader semantic label for the small close/clear icon button that resets the people-list filter field.
@@ -6635,7 +6635,7 @@ abstract class AppLocalizations {
   /// Lowercase fragment-style heading at the top of the full rooms list screen (opened from Discover's "see all" row).
   ///
   /// In en, this message translates to:
-  /// **'Your rooms'**
+  /// **'Rooms'**
   String get discoverListsRoomsTitle;
 
   /// Caption under the rooms-list title showing how many group chats the user belongs to, e.g. "12 rooms".
@@ -6647,7 +6647,7 @@ abstract class AppLocalizations {
   /// Hint text in the search/filter TextField on the full rooms list screen.
   ///
   /// In en, this message translates to:
-  /// **'Filter your rooms'**
+  /// **'Search your rooms'**
   String get discoverListsFilterRoomsHint;
 
   /// Empty-state line shown on the rooms list when the user isn't a member of any group chat.
@@ -7646,61 +7646,61 @@ abstract class AppLocalizations {
   /// All-caps pill-nav tab label for the Media bucket in the shared-content browser.
   ///
   /// In en, this message translates to:
-  /// **'MEDIA'**
+  /// **'Media'**
   String get roomContentTabLabelMedia;
 
   /// All-caps pill-nav tab label for the Files bucket in the shared-content browser.
   ///
   /// In en, this message translates to:
-  /// **'FILES'**
+  /// **'Files'**
   String get roomContentTabLabelFiles;
 
   /// All-caps pill-nav tab label for the Voice notes bucket in the shared-content browser.
   ///
   /// In en, this message translates to:
-  /// **'VOICE'**
+  /// **'Voice'**
   String get roomContentTabLabelVoice;
 
   /// All-caps pill-nav tab label for the Links bucket in the shared-content browser.
   ///
   /// In en, this message translates to:
-  /// **'LINKS'**
+  /// **'Links'**
   String get roomContentTabLabelLinks;
 
   /// All-caps pill-nav tab label for the Saved tab of the shared-content browser — the messages THIS reader bookmarked in this room. Not the personal Saved Messages chat; see savedMessagesTitle for that.
   ///
   /// In en, this message translates to:
-  /// **'SAVED'**
+  /// **'Saved'**
   String get roomContentTabLabelSaved;
 
   /// Lowercase form of the Media tab name, used in the shared-content screen's large heading (app's lowercase heading voice, e.g. 'settings.').
   ///
   /// In en, this message translates to:
-  /// **'media'**
+  /// **'Media'**
   String get roomContentTabHeaderMedia;
 
   /// Lowercase form of the Files tab name, used in the shared-content screen's large heading.
   ///
   /// In en, this message translates to:
-  /// **'files'**
+  /// **'Files'**
   String get roomContentTabHeaderFiles;
 
   /// Lowercase form of the Voice tab name, used in the shared-content screen's large heading.
   ///
   /// In en, this message translates to:
-  /// **'voice'**
+  /// **'Voice'**
   String get roomContentTabHeaderVoice;
 
   /// Lowercase form of the Links tab name, used in the shared-content screen's large heading.
   ///
   /// In en, this message translates to:
-  /// **'links'**
+  /// **'Links'**
   String get roomContentTabHeaderLinks;
 
   /// Lowercase form of the Saved tab name, used in the shared-content screen's large heading. Pre-authored per locale rather than lowercased in code, because Dart's toLowerCase() is not locale-aware.
   ///
   /// In en, this message translates to:
-  /// **'saved'**
+  /// **'Saved'**
   String get roomContentTabHeaderSaved;
 
   /// Lowercase chip/filter label for the 'direct messages' (1:1 chat) facet in the chat-list filter bar/drawer.
@@ -9434,13 +9434,13 @@ abstract class AppLocalizations {
   /// All-caps band label for the Feed section holding today's four logic games (Queens, Tango, Zip, Mini Sudoku) as small board thumbnails.
   ///
   /// In en, this message translates to:
-  /// **'The games'**
+  /// **'Games'**
   String get feedBoardGamesLabel;
 
   /// Label on the control in the THE GAMES section header that opens the games hub, where all of today's boards and everyone's times live.
   ///
   /// In en, this message translates to:
-  /// **'All games'**
+  /// **'Leaderboard'**
   String get feedBoardGamesOpen;
 
   /// Lowercase page title of the games hub, with a full stop, matching the house style of the other sub-screens ('the puzzle.', 'language.').
@@ -9764,175 +9764,175 @@ abstract class AppLocalizations {
   /// All-caps header above the line explaining what to tap or drag, in the how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Controls'**
+  /// **'What to tap'**
   String get gameInfoControlsLabel;
 
   /// Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard.
   ///
   /// In en, this message translates to:
-  /// **'The clock runs while the board is on screen and stops when you pause or leave. Finish fastest and you top today\'s list.'**
+  /// **'Finish fastest to win. The clock stops when you leave.'**
   String get gameInfoScoringTimed;
 
   /// Closing line of the how-to-play sheet for the symbol-code puzzle — the one game on the hub that is ranked by guesses rather than by time.
   ///
   /// In en, this message translates to:
-  /// **'Scored by how few guesses it takes, not by the clock.'**
+  /// **'Crack it in the fewest guesses to win. Time doesn\'t count.'**
   String get gameInfoScoringGuesses;
 
   /// Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful.
   ///
   /// In en, this message translates to:
-  /// **'Everyone gets the same board today.'**
+  /// **'Everyone gets the same puzzle today.'**
   String get gameInfoSameForEveryone;
 
   /// One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Place one crown in every row, column and colour.'**
+  /// **'Put 8 crowns on the board.'**
   String get gameInfoQueensGoal;
 
   /// First rule bullet in the Queens how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Eight crowns: one in each row, one in each column.'**
+  /// **'Every row gets exactly 1 crown.'**
   String get gameInfoQueensRule1;
 
   /// Second rule bullet in the Queens how-to-play sheet. The board is divided into coloured regions and each holds exactly one crown.
   ///
   /// In en, this message translates to:
-  /// **'Each colour block gets exactly one crown too.'**
+  /// **'Every column gets exactly 1 crown.'**
   String get gameInfoQueensRule2;
 
   /// Third rule bullet in the Queens how-to-play sheet. Crowns may not be adjacent horizontally, vertically or diagonally.
   ///
   /// In en, this message translates to:
-  /// **'No two crowns may touch — not even at a corner.'**
+  /// **'Every colour gets exactly 1 crown.'**
   String get gameInfoQueensRule3;
 
   /// Explains the Queens board's controls: a tap cycles a square through empty, the player's own cross, and a crown.
   ///
   /// In en, this message translates to:
-  /// **'Tap a square once for a cross to rule it out, again for a crown, again to clear it.'**
+  /// **'Tap once for × (no crown here). Tap twice for a crown. Tap again to clear.'**
   String get gameInfoQueensControls;
 
   /// One-sentence description of what the player is trying to do in Tango, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Fill the grid with suns and moons.'**
+  /// **'Fill every square with a sun or a moon.'**
   String get gameInfoTangoGoal;
 
   /// First rule bullet in the Tango how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Every row and column holds three suns and three moons.'**
+  /// **'Every row has 3 suns and 3 moons.'**
   String get gameInfoTangoRule1;
 
   /// Second rule bullet in the Tango how-to-play sheet. No run of three identical symbols horizontally or vertically.
   ///
   /// In en, this message translates to:
-  /// **'Never three of the same next to each other, across or down.'**
+  /// **'Every column has 3 suns and 3 moons.'**
   String get gameInfoTangoRule2;
 
   /// Third rule bullet in the Tango how-to-play sheet. Explains the two operators printed on the edges between adjacent squares. Keep the '=' and '×' symbols as they are.
   ///
   /// In en, this message translates to:
-  /// **'= between two squares means they match. × means they differ.'**
+  /// **'Never 3 of the same in a line. 2 is fine.'**
   String get gameInfoTangoRule3;
 
   /// Explains the Tango board's controls. 'printed squares' are the ones the puzzle starts with, which cannot be changed.
   ///
   /// In en, this message translates to:
-  /// **'Tap a square for a sun, again for a moon, again to clear. Printed squares don\'t move.'**
+  /// **'Tap once for a sun, twice for a moon, again to clear. Squares that start filled can\'t change.'**
   String get gameInfoTangoControls;
 
   /// One-sentence description of what the player is trying to do in Zip, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Draw one line that goes through every square.'**
+  /// **'Draw one line through every square.'**
   String get gameInfoZipGoal;
 
   /// First rule bullet in the Zip how-to-play sheet. The board has numbered dots and the line must begin at 1 and end at the highest one.
   ///
   /// In en, this message translates to:
-  /// **'Start on 1 and finish on the last number.'**
+  /// **'Start on 1.'**
   String get gameInfoZipRule1;
 
   /// Second rule bullet in the Zip how-to-play sheet. The numbered dots must be visited in ascending order.
   ///
   /// In en, this message translates to:
-  /// **'Touch the numbers in order along the way.'**
+  /// **'Visit the numbers in order: 1, 2, 3…'**
   String get gameInfoZipRule2;
 
   /// Third rule bullet in the Zip how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Every square gets used exactly once.'**
+  /// **'Fill every square. Use each square once.'**
   String get gameInfoZipRule3;
 
   /// Explains the Zip board's controls. The line is drawn with a drag and retracts when the finger moves back along it.
   ///
   /// In en, this message translates to:
-  /// **'Drag your finger to draw. Drag back over the line to rub it out.'**
+  /// **'Drag your finger to draw. Drag back to undo.'**
   String get gameInfoZipControls;
 
   /// One-sentence description of what the player is trying to do in Mini Sudoku, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Fill the grid with the digits 1 to 6.'**
+  /// **'Fill the grid with the numbers 1 to 6.'**
   String get gameInfoSudokuGoal;
 
   /// First rule bullet in the Mini Sudoku how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Each row uses 1 to 6, once each.'**
+  /// **'Every row has 1, 2, 3, 4, 5 and 6. No repeats.'**
   String get gameInfoSudokuRule1;
 
   /// Second rule bullet in the Mini Sudoku how-to-play sheet. Reads as a continuation of the row rule immediately above it.
   ///
   /// In en, this message translates to:
-  /// **'So does each column.'**
+  /// **'Every column too.'**
   String get gameInfoSudokuRule2;
 
   /// Third rule bullet in the Mini Sudoku how-to-play sheet. The 6x6 grid is divided into boxes two rows tall and three columns wide.
   ///
   /// In en, this message translates to:
-  /// **'And so does each 2x3 box.'**
+  /// **'Every box too. A box is 2 rows by 3 columns.'**
   String get gameInfoSudokuRule3;
 
   /// Explains the Mini Sudoku board's controls, including the notes toggle that switches the keypad to writing small pencil marks.
   ///
   /// In en, this message translates to:
-  /// **'Tap a square, then a digit. Tap the same digit again to clear it. Notes writes small pencil marks instead.'**
+  /// **'Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.'**
   String get gameInfoSudokuControls;
 
   /// One-sentence description of what the player is trying to do in the symbol-code puzzle, at the top of its how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Work out the hidden four-symbol code.'**
+  /// **'Guess the secret code of 4 symbols.'**
   String get gameInfoCodeGoal;
 
   /// First rule bullet in the symbol-code puzzle's how-to-play sheet.
   ///
   /// In en, this message translates to:
-  /// **'Six tries, and the code never repeats a symbol.'**
+  /// **'The code uses 4 different symbols. No repeats.'**
   String get gameInfoCodeRule1;
 
   /// Second rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a correctly-placed symbol is shown in.
   ///
   /// In en, this message translates to:
-  /// **'Green means right symbol, right place.'**
+  /// **'You get 6 guesses.'**
   String get gameInfoCodeRule2;
 
   /// Third rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a misplaced symbol is shown in.
   ///
   /// In en, this message translates to:
-  /// **'Yellow means right symbol, wrong place.'**
+  /// **'Green: right symbol, right spot.'**
   String get gameInfoCodeRule3;
 
   /// Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback.
   ///
   /// In en, this message translates to:
-  /// **'Tap symbols to build a guess, then send it. The board tells you how close you were.'**
+  /// **'Tap 4 symbols, then tap Guess.'**
   String get gameInfoCodeControls;
 
   /// Room-list display name for the self-chat room every account has (name starting with 'dm:self:'), shown in place of a friend's display name in RoomCard/RoomGridTile.
@@ -17434,13 +17434,13 @@ abstract class AppLocalizations {
   /// Large iOS title of the games hub screen.
   ///
   /// In en, this message translates to:
-  /// **'Games'**
+  /// **'Leaderboard'**
   String get gamesHubTitle;
 
   /// One line under the Games title: the daily boards are shared by everyone.
   ///
   /// In en, this message translates to:
-  /// **'New boards every day, the same for everyone.'**
+  /// **'Today\'s winners. New puzzles every day.'**
   String get gamesHubSubtitle;
 
   /// Message in the confirmation sheet before sending a finished game result to friends as a notification.
@@ -17524,7 +17524,7 @@ abstract class AppLocalizations {
   /// Placeholder in the search field at the top of Settings.
   ///
   /// In en, this message translates to:
-  /// **'Search'**
+  /// **'Search settings'**
   String get settingsSearchHint;
 
   /// Shown when a Settings search matches nothing. {query} is what was typed.
@@ -17952,6 +17952,612 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'chosen'**
   String get reportFactLanguageChosen;
+
+  /// The action at the end of a tab-page section title ("Friends 12   See all ›"), opening the full list.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get pageSectionSeeAll;
+
+  /// Screen-reader label for the Friends section's See all action on Discover.
+  ///
+  /// In en, this message translates to:
+  /// **'See all friends'**
+  String get discoverScreenSeeAllFriendsSemanticLabel;
+
+  /// Screen-reader label for the Rooms section's See all action on Discover.
+  ///
+  /// In en, this message translates to:
+  /// **'See all your rooms'**
+  String get discoverScreenSeeAllRoomsSemanticLabel;
+
+  /// Group call header chip suffix: invited people whose phones are ringing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{{count} ringing}}'**
+  String groupCallScreenRingingCount(int count);
+
+  /// Photo viewer subtitle: when the photo was sent, today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today at {time}'**
+  String photoChromeWhenToday(String time);
+
+  /// Photo viewer subtitle: when the photo was sent, yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday at {time}'**
+  String photoChromeWhenYesterday(String time);
+
+  /// Photo viewer subtitle: date and time the photo was sent.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} at {time}'**
+  String photoChromeWhenDate(String date, String time);
+
+  /// Toast after saving a photo or video from the viewer to the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get photoChromeSaved;
+
+  /// Toast when saving from the viewer fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t save that'**
+  String get photoChromeSaveFailed;
+
+  /// Toast when sharing from the viewer fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t share that'**
+  String get photoChromeShareFailed;
+
+  /// Toast after forwarding the viewed photo to chats.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Forwarded} other{Forwarded to {count} chats}}'**
+  String photoChromeForwarded(int count);
+
+  /// Toast when forwarding from the viewer fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t forward that'**
+  String get photoChromeForwardFailed;
+
+  /// Toast when deleting from the viewer fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t delete that'**
+  String get photoChromeDeleteFailed;
+
+  /// Confirm sheet body when deleting one photo or video from the viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes it for everyone in this chat. It can’t be undone.'**
+  String get photoChromeDeleteBody;
+
+  /// Room media grid month section header for the current month.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get roomContentMonthThis;
+
+  /// Room media grid month section header for the previous month.
+  ///
+  /// In en, this message translates to:
+  /// **'Last month'**
+  String get roomContentMonthLast;
+
+  /// Screen-reader label for the one-line goal under the example board on a game's how-to-play sheet. Not drawn.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal'**
+  String get gameInfoGoalLabel;
+
+  /// Label on the worked-example card of a game's how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get gameInfoExampleLabel;
+
+  /// Heading of the scoring lines at the foot of a game's how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'How you win'**
+  String get gameInfoWinLabel;
+
+  /// Queens rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Crowns can\'t touch. Not even corner to corner.'**
+  String get gameInfoQueensRule4;
+
+  /// Queens worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'One crown here means: no other crown in its row, its column, its colour, or the 8 squares around it.'**
+  String get gameInfoQueensExample;
+
+  /// Tango rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'= means the 2 squares match. × means they\'re different.'**
+  String get gameInfoTangoRule4;
+
+  /// Tango worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun, sun, empty? The empty square must be a moon.'**
+  String get gameInfoTangoExample;
+
+  /// Zip rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up, down, left or right. No diagonals.'**
+  String get gameInfoZipRule4;
+
+  /// Zip rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish on the last number.'**
+  String get gameInfoZipRule5;
+
+  /// Zip worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Going from 1 to 2? Take the long way if you must. No square can be left empty.'**
+  String get gameInfoZipExample;
+
+  /// Mini sudoku worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'A row already has 1, 2, 4, 5 and 6? The empty square is 3.'**
+  String get gameInfoSudokuExample;
+
+  /// The code rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow: right symbol, wrong spot.'**
+  String get gameInfoCodeRule4;
+
+  /// The code rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Grey: that symbol isn\'t in the code.'**
+  String get gameInfoCodeRule5;
+
+  /// The code worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Green, yellow, grey, grey means: 1 symbol is in the right spot, 1 belongs somewhere else, 2 aren\'t in the code.'**
+  String get gameInfoCodeExample;
+
+  /// Leaderboard filter capsule: the overall standings across all of today's games.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get leaderboardOverall;
+
+  /// Footer under the overall leaderboard explaining the score.
+  ///
+  /// In en, this message translates to:
+  /// **'1 point for every puzzle you solve today. A tie goes to whoever came first more often.'**
+  String get leaderboardFooter;
+
+  /// Subtitle of the viewer's own pinned leaderboard row when they have not finished a game today.
+  ///
+  /// In en, this message translates to:
+  /// **'Not played yet'**
+  String get leaderboardNotPlayed;
+
+  /// Small pill on the viewer's pinned leaderboard row that opens a game.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get leaderboardPlay;
+
+  /// Leaderboard empty state title.
+  ///
+  /// In en, this message translates to:
+  /// **'No scores yet today'**
+  String get leaderboardEmptyTitle;
+
+  /// Leaderboard empty state message.
+  ///
+  /// In en, this message translates to:
+  /// **'Solve a puzzle and you\'ll be first on the board.'**
+  String get leaderboardEmptyBody;
+
+  /// Section header above the grid of today's game tiles on the leaderboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s puzzles'**
+  String get leaderboardGamesHeader;
+
+  /// Disabled label of the point composer's button until a point type is picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick one above first'**
+  String get pointComposerPickFirst;
+
+  /// Screen-reader action in the highlight stories viewer: go to the next photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get momentStoryNext;
+
+  /// Screen-reader action in the highlight stories viewer: go to the previous photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get momentStoryPrevious;
+
+  /// Leaderboard row subtitle: how many of today's games this player solved.
+  ///
+  /// In en, this message translates to:
+  /// **'{solved, plural, =0{Nothing solved yet} other{{solved} of {total} solved}}'**
+  String leaderboardSolved(int solved, int total);
+
+  /// Leaderboard row subtitle: how many games this player won today (ranked first and solved).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 win} other{{count} wins}}'**
+  String leaderboardWins(int count);
+
+  /// Leaderboard empty state button that opens a game, named by {game}.
+  ///
+  /// In en, this message translates to:
+  /// **'Play {game}'**
+  String leaderboardEmptyAction(String game);
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Server calls'**
+  String get diagCatApi;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get diagCatConnection;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get diagCatDevice;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors'**
+  String get diagCatError;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Slow frames'**
+  String get diagCatFrame;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get diagCatLayout;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'App state'**
+  String get diagCatLifecycle;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get diagCatLog;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation'**
+  String get diagCatNav;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get diagCatNetwork;
+
+  /// Diagnostics category name (chips, filter rows, event rows). The exported log keeps the raw enum name.
+  ///
+  /// In en, this message translates to:
+  /// **'Live updates'**
+  String get diagCatSubscription;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Trace'**
+  String get diagSevTrace;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug'**
+  String get diagSevDebug;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get diagSevInfo;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get diagSevWarning;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get diagSevError;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get diagAll;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Search name, detail, body'**
+  String get diagSearchHint;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary copied'**
+  String get diagSummaryCopied;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Share log'**
+  String get diagShareLog;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy summary'**
+  String get diagCopySummary;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all'**
+  String get diagDeleteAll;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get diagUndo;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the whole log?'**
+  String get diagDeleteLogTitle;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Every event captured so far goes, along with the previous run\'s log. Anything that happens from now on is captured as usual.'**
+  String get diagDeleteLogBody;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get diagDelete;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Log deleted'**
+  String get diagLogDeleted;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get diagFilter;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get diagMore;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get diagLatest;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to latest'**
+  String get diagJumpToLatest;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'paused'**
+  String get diagPaused;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'preparing log…'**
+  String get diagPreparingLog;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing captured yet'**
+  String get diagEmptyNothingTitle;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the app for a moment and events will appear here.'**
+  String get diagEmptyNothingHint;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Only hidden events so far'**
+  String get diagEmptyHiddenTitle;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a dimmed chip above to see it, or long-press it to bring it back into All.'**
+  String get diagEmptyHiddenHint;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'No events match'**
+  String get diagEmptyNoMatchTitle;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap All above to clear the filter.'**
+  String get diagEmptyNoMatchHint;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get diagApply;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum severity'**
+  String get diagMinSeverity;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything'**
+  String get diagEverything;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden from All'**
+  String get diagHiddenFromAllHeader;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Left out of All until picked on the chip row. Long-press a chip there for the same switch.'**
+  String get diagHiddenFromAllFooter;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse repeats'**
+  String get diagCollapseRepeats;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Fold a run of the same event into one row'**
+  String get diagCollapseRepeatsSubtitle;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset filter'**
+  String get diagResetFilter;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Body truncated at capture'**
+  String get diagBodyTruncated;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy event'**
+  String get diagCopyEvent;
+
+  /// Diagnostics UI copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Event copied'**
+  String get diagEventCopied;
+
+  /// Toast after long-pressing a Diagnostics category chip to hide it from All.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} hidden from All'**
+  String diagHiddenFromAll(String category);
+
+  /// Toast after long-pressing a hidden Diagnostics chip to bring it back.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} back in All'**
+  String diagBackInAll(String category);
+
+  /// Screen-reader label of a Diagnostics category chip: name and event count.
+  ///
+  /// In en, this message translates to:
+  /// **'{category}, {count}'**
+  String diagChipSemanticLabel(String category, int count);
+
+  /// Screen-reader label of a Diagnostics category chip that is hidden from All.
+  ///
+  /// In en, this message translates to:
+  /// **'{category}, {count}, hidden from All'**
+  String diagChipHiddenSemanticLabel(String category, int count);
+
+  /// Diagnostics subtitle: how many events the filter shows, of all captured.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} events'**
+  String diagEventCount(int shown, int total);
+
+  /// Diagnostics warning line when the ring buffer dropped early events.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} earlier event dropped — the log starts mid-story} other{{count} earlier events dropped — the log starts mid-story}}'**
+  String diagDropped(int count);
+
+  /// Diagnostics collapsed row: how many repeats over how many seconds (seconds pre-formatted, e.g. 1.4).
+  ///
+  /// In en, this message translates to:
+  /// **'×{count} over {seconds}s'**
+  String diagRepeatSpan(int count, String seconds);
+
+  /// Screen-reader label for a room content tab with how many items it holds (count may be like 99+).
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count} items'**
+  String roomContentTabSemantic(String count, String label);
 }
 
 class _AppLocalizationsDelegate

@@ -205,7 +205,9 @@ class _ChildCard extends StatelessWidget {
               PressRow(
                 onTap: onOpen,
                 semanticLabel: summary.user.displayName,
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                // The grouped rows' 16 at the sides and their chevron, so a
+                // child's card and the plain rows around it share one edge.
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 child: Row(
                   children: [
                     UserAvatar(user: summary.user, size: 48, api: api),
@@ -228,11 +230,11 @@ class _ChildCard extends StatelessWidget {
                       ),
                     ),
                     RowBadge(count: summary.pendingCount),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Icon(
                       CupertinoIcons.chevron_forward,
-                      size: 15,
-                      color: theme.inkMuted.withValues(alpha: 0.7),
+                      size: 14,
+                      color: theme.inkMuted.withValues(alpha: 0.55),
                     ),
                   ],
                 ),

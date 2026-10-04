@@ -1885,7 +1885,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get discoverScreenNothingPending => 'Rien d\'envoyé';
 
   @override
-  String get discoverScreenYourPeopleLabel => 'Tes potes';
+  String get discoverScreenYourPeopleLabel => 'Amis';
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
@@ -1902,7 +1902,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Trouve un salon public par son nom';
 
   @override
-  String get discoverScreenYourRoomsLabel => 'Tes salons';
+  String get discoverScreenYourRoomsLabel => 'Salons';
 
   @override
   String get discoverScreenNoRoomsYet => 'Aucun salon pour l\'instant';
@@ -2068,7 +2068,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchScreenHintPeople => 'Rechercher des personnes';
 
   @override
-  String get searchScreenHintRooms => 'Rechercher des salons';
+  String get searchScreenHintRooms => 'Rechercher des salons publics';
 
   @override
   String get searchScreenPeoplePromptChild =>
@@ -2310,8 +2310,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get groupCallScreenTitleVoice => 'Appel vocal de groupe';
 
   @override
-  String groupCallScreenParticipantCount(Object count) {
-    return '$count dans l\'appel';
+  String groupCallScreenParticipantCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dans l’appel',
+      one: 'Juste toi',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3928,7 +3934,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get socialButtonGoogleContinue => 'Continuer avec Google';
 
   @override
-  String get discoverListsPeopleTitle => 'Tes proches';
+  String get discoverListsPeopleTitle => 'Amis';
 
   @override
   String discoverListsPeopleCount(num count) {
@@ -3942,7 +3948,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterHint => 'Filtre tes proches';
+  String get discoverListsFilterHint => 'Rechercher des amis';
 
   @override
   String get discoverListsClearFilterSemanticLabel => 'Effacer le filtre';
@@ -3956,7 +3962,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsRoomsTitle => 'Tes salons';
+  String get discoverListsRoomsTitle => 'Salons';
 
   @override
   String discoverListsRoomsCount(num count) {
@@ -3970,7 +3976,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get discoverListsFilterRoomsHint => 'Filtre tes salons';
+  String get discoverListsFilterRoomsHint => 'Rechercher dans tes salons';
 
   @override
   String get discoverListsNoRoomsYet => 'Aucun salon pour l\'instant';
@@ -4577,34 +4583,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get familyRequestStageRecipientLabel => 'en attente de sa réponse';
 
   @override
-  String get roomContentTabLabelMedia => 'MÉDIAS';
+  String get roomContentTabLabelMedia => 'Médias';
 
   @override
-  String get roomContentTabLabelFiles => 'FICHIERS';
+  String get roomContentTabLabelFiles => 'Fichiers';
 
   @override
-  String get roomContentTabLabelVoice => 'VOCAL';
+  String get roomContentTabLabelVoice => 'Vocal';
 
   @override
-  String get roomContentTabLabelLinks => 'LIENS';
+  String get roomContentTabLabelLinks => 'Liens';
 
   @override
-  String get roomContentTabLabelSaved => 'ENREGISTRÉS';
+  String get roomContentTabLabelSaved => 'Enregistrés';
 
   @override
-  String get roomContentTabHeaderMedia => 'médias';
+  String get roomContentTabHeaderMedia => 'Médias';
 
   @override
-  String get roomContentTabHeaderFiles => 'fichiers';
+  String get roomContentTabHeaderFiles => 'Fichiers';
 
   @override
-  String get roomContentTabHeaderVoice => 'vocal';
+  String get roomContentTabHeaderVoice => 'Vocal';
 
   @override
-  String get roomContentTabHeaderLinks => 'liens';
+  String get roomContentTabHeaderLinks => 'Liens';
 
   @override
-  String get roomContentTabHeaderSaved => 'enregistrés';
+  String get roomContentTabHeaderSaved => 'Enregistrés';
 
   @override
   String get roomFacetLabelDms => 'MP';
@@ -5590,10 +5596,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get feedBoardOpenArchive => 'Archives';
 
   @override
-  String get feedBoardGamesLabel => 'Les jeux';
+  String get feedBoardGamesLabel => 'Jeux';
 
   @override
-  String get feedBoardGamesOpen => 'Tous les jeux';
+  String get feedBoardGamesOpen => 'Classement';
 
   @override
   String get gamesScreenTitle => 'les jeux.';
@@ -5793,114 +5799,106 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gameInfoRulesLabel => 'Les règles';
 
   @override
-  String get gameInfoControlsLabel => 'Commandes';
+  String get gameInfoControlsLabel => 'Où toucher';
 
   @override
   String get gameInfoScoringTimed =>
-      'Le chrono tourne tant que la grille est à l\'écran et s\'arrête si tu mets en pause ou si tu sors. Le plus rapide est en tête du jour.';
+      'Le plus rapide gagne. Le chrono s\'arrête quand tu quittes.';
 
   @override
   String get gameInfoScoringGuesses =>
-      'Le score dépend du nombre d\'essais, pas du chrono.';
+      'Le moins d\'essais gagne. Le temps ne compte pas.';
 
   @override
   String get gameInfoSameForEveryone =>
-      'Tout le monde a la même grille aujourd\'hui.';
+      'Aujourd\'hui, tout le monde a le même puzzle.';
 
   @override
-  String get gameInfoQueensGoal =>
-      'Place une couronne dans chaque ligne, colonne et couleur.';
+  String get gameInfoQueensGoal => 'Place 8 couronnes sur la grille.';
 
   @override
-  String get gameInfoQueensRule1 =>
-      'Huit couronnes : une par ligne et une par colonne.';
+  String get gameInfoQueensRule1 => 'Chaque ligne a exactement 1 couronne.';
 
   @override
-  String get gameInfoQueensRule2 =>
-      'Chaque bloc de couleur reçoit aussi exactement une couronne.';
+  String get gameInfoQueensRule2 => 'Chaque colonne a exactement 1 couronne.';
 
   @override
-  String get gameInfoQueensRule3 =>
-      'Deux couronnes ne peuvent pas se toucher, même par un coin.';
+  String get gameInfoQueensRule3 => 'Chaque couleur a exactement 1 couronne.';
 
   @override
   String get gameInfoQueensControls =>
-      'Touche une case une fois pour une croix qui l\'écarte, encore pour une couronne, encore pour l\'effacer.';
+      'Touche une fois : × (pas de couronne ici). Deux fois : couronne. Encore : effacer.';
 
   @override
-  String get gameInfoTangoGoal => 'Remplis la grille de soleils et de lunes.';
+  String get gameInfoTangoGoal =>
+      'Remplis chaque case avec un soleil ou une lune.';
 
   @override
-  String get gameInfoTangoRule1 =>
-      'Chaque ligne et chaque colonne contient trois soleils et trois lunes.';
+  String get gameInfoTangoRule1 => 'Chaque ligne a 3 soleils et 3 lunes.';
 
   @override
-  String get gameInfoTangoRule2 =>
-      'Jamais trois identiques à la suite, en ligne comme en colonne.';
+  String get gameInfoTangoRule2 => 'Chaque colonne a 3 soleils et 3 lunes.';
 
   @override
-  String get gameInfoTangoRule3 =>
-      'Un = entre deux cases veut dire qu\'elles sont identiques ; un × qu\'elles diffèrent.';
+  String get gameInfoTangoRule3 => 'Jamais 3 pareils à la suite. 2, ça va.';
 
   @override
   String get gameInfoTangoControls =>
-      'Touche une case pour un soleil, encore pour une lune, encore pour l\'effacer. Les cases imprimées ne bougent pas.';
+      'Touche une fois : soleil. Deux fois : lune. Encore : effacer. Les cases déjà remplies ne changent pas.';
 
   @override
   String get gameInfoZipGoal =>
       'Trace une seule ligne qui passe par toutes les cases.';
 
   @override
-  String get gameInfoZipRule1 =>
-      'Commence sur le 1 et termine sur le dernier nombre.';
+  String get gameInfoZipRule1 => 'Commence sur le 1.';
 
   @override
   String get gameInfoZipRule2 =>
-      'Passe par les nombres dans l\'ordre en chemin.';
+      'Passe par les nombres dans l\'ordre : 1, 2, 3…';
 
   @override
   String get gameInfoZipRule3 =>
-      'Chaque case est utilisée exactement une fois.';
+      'Remplis toutes les cases. Chaque case une seule fois.';
 
   @override
   String get gameInfoZipControls =>
-      'Fais glisser ton doigt pour tracer. Reviens sur la ligne pour l\'effacer.';
+      'Glisse le doigt pour tracer. Reviens en arrière pour annuler.';
 
   @override
   String get gameInfoSudokuGoal =>
-      'Remplis la grille avec les chiffres de 1 à 6.';
+      'Remplis la grille avec les chiffres de 1 à 6.';
 
   @override
   String get gameInfoSudokuRule1 =>
-      'Chaque ligne utilise 1 à 6, une fois chacun.';
+      'Chaque ligne a 1, 2, 3, 4, 5 et 6. Pas de doublon.';
 
   @override
   String get gameInfoSudokuRule2 => 'Chaque colonne aussi.';
 
   @override
-  String get gameInfoSudokuRule3 => 'Et chaque bloc de 2x3 aussi.';
+  String get gameInfoSudokuRule3 =>
+      'Chaque bloc aussi. Un bloc fait 2 lignes sur 3 colonnes.';
 
   @override
   String get gameInfoSudokuControls =>
-      'Touche une case, puis un chiffre. Retouche le même chiffre pour l\'effacer. Le mode notes écrit de petites annotations.';
+      'Touche une case, puis un chiffre. Retouche-le pour effacer. Notes ajoute de petites marques au crayon.';
 
   @override
-  String get gameInfoCodeGoal => 'Devine le code caché de quatre symboles.';
+  String get gameInfoCodeGoal => 'Devine le code secret de 4 symboles.';
 
   @override
   String get gameInfoCodeRule1 =>
-      'Six essais, et le code ne répète jamais un symbole.';
+      'Le code a 4 symboles différents. Pas de doublon.';
 
   @override
-  String get gameInfoCodeRule2 => 'Vert veut dire bon symbole, bonne place.';
+  String get gameInfoCodeRule2 => 'Tu as 6 essais.';
 
   @override
-  String get gameInfoCodeRule3 =>
-      'Jaune veut dire bon symbole, mauvaise place.';
+  String get gameInfoCodeRule3 => 'Vert : bon symbole, bonne place.';
 
   @override
-  String get gameInfoCodeControls =>
-      'Touche des symboles pour composer un essai, puis envoie-le. La grille te dit à quel point tu étais proche.';
+  String get gameInfoCodeControls => 'Touche 4 symboles, puis touche Deviner.';
 
   @override
   String get savedMessagesTitle => 'Messages enregistrés';
@@ -10427,11 +10425,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get childPairBackIos => 'Retour à la connexion';
 
   @override
-  String get gamesHubTitle => 'Jeux';
+  String get gamesHubTitle => 'Classement';
 
   @override
   String get gamesHubSubtitle =>
-      'De nouvelles grilles chaque jour, les mêmes pour tous.';
+      'Les gagnants du jour. De nouveaux puzzles chaque jour.';
 
   @override
   String get gameTellFriendsMessage =>
@@ -10477,7 +10475,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get changeRequestUseIos => 'Appliquer';
 
   @override
-  String get settingsSearchHint => 'Rechercher';
+  String get settingsSearchHint => 'Rechercher dans les réglages';
 
   @override
   String settingsSearchNoResults(String query) {
@@ -10738,4 +10736,390 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reportFactLanguageChosen => 'choisie';
+
+  @override
+  String get pageSectionSeeAll => 'Tout voir';
+
+  @override
+  String get discoverScreenSeeAllFriendsSemanticLabel => 'Voir tous les amis';
+
+  @override
+  String get discoverScreenSeeAllRoomsSemanticLabel => 'Voir tous tes salons';
+
+  @override
+  String groupCallScreenRingingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count appels en cours',
+      one: '$count appel en cours',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String photoChromeWhenToday(String time) {
+    return 'Aujourd’hui à $time';
+  }
+
+  @override
+  String photoChromeWhenYesterday(String time) {
+    return 'Hier à $time';
+  }
+
+  @override
+  String photoChromeWhenDate(String date, String time) {
+    return '$date à $time';
+  }
+
+  @override
+  String get photoChromeSaved => 'Enregistré';
+
+  @override
+  String get photoChromeSaveFailed => 'Impossible d’enregistrer';
+
+  @override
+  String get photoChromeShareFailed => 'Impossible de partager';
+
+  @override
+  String photoChromeForwarded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Transféré dans $count discussions',
+      one: 'Transféré',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get photoChromeForwardFailed => 'Impossible de transférer';
+
+  @override
+  String get photoChromeDeleteFailed => 'Impossible de supprimer';
+
+  @override
+  String get photoChromeDeleteBody =>
+      'Ça le supprime pour tout le monde dans ce salon. C’est irréversible.';
+
+  @override
+  String get roomContentMonthThis => 'Ce mois-ci';
+
+  @override
+  String get roomContentMonthLast => 'Le mois dernier';
+
+  @override
+  String get gameInfoGoalLabel => 'Objectif';
+
+  @override
+  String get gameInfoExampleLabel => 'Exemple';
+
+  @override
+  String get gameInfoWinLabel => 'Comment gagner';
+
+  @override
+  String get gameInfoQueensRule4 =>
+      'Les couronnes ne se touchent pas. Même pas par un coin.';
+
+  @override
+  String get gameInfoQueensExample =>
+      'Une couronne ici veut dire : aucune autre dans sa ligne, sa colonne, sa couleur, ni dans les 8 cases autour.';
+
+  @override
+  String get gameInfoTangoRule4 =>
+      '= veut dire que les 2 cases sont pareilles. × qu\'elles sont différentes.';
+
+  @override
+  String get gameInfoTangoExample =>
+      'Soleil, soleil, vide ? La case vide doit être une lune.';
+
+  @override
+  String get gameInfoZipRule4 =>
+      'Va en haut, en bas, à gauche ou à droite. Pas en diagonale.';
+
+  @override
+  String get gameInfoZipRule5 => 'Termine sur le dernier nombre.';
+
+  @override
+  String get gameInfoZipExample =>
+      'Tu vas du 1 au 2 ? Fais un détour s\'il le faut. Aucune case ne doit rester vide.';
+
+  @override
+  String get gameInfoSudokuExample =>
+      'Une ligne a déjà 1, 2, 4, 5 et 6 ? La case vide, c\'est 3.';
+
+  @override
+  String get gameInfoCodeRule4 => 'Jaune : bon symbole, mauvaise place.';
+
+  @override
+  String get gameInfoCodeRule5 => 'Gris : ce symbole n\'est pas dans le code.';
+
+  @override
+  String get gameInfoCodeExample =>
+      'Vert, jaune, gris, gris veut dire : 1 symbole est à la bonne place, 1 va ailleurs, 2 ne sont pas dans le code.';
+
+  @override
+  String get leaderboardOverall => 'Aujourd\'hui';
+
+  @override
+  String get leaderboardFooter =>
+      '1 point par puzzle résolu aujourd\'hui. En cas d\'égalité, celui qui a fini premier le plus souvent passe devant.';
+
+  @override
+  String get leaderboardNotPlayed => 'Pas encore joué';
+
+  @override
+  String get leaderboardPlay => 'Jouer';
+
+  @override
+  String get leaderboardEmptyTitle => 'Pas encore de scores aujourd\'hui';
+
+  @override
+  String get leaderboardEmptyBody =>
+      'Résous un puzzle et tu seras premier au classement.';
+
+  @override
+  String get leaderboardGamesHeader => 'Les puzzles du jour';
+
+  @override
+  String get pointComposerPickFirst => 'Choisis d\'abord en haut';
+
+  @override
+  String get momentStoryNext => 'Suivant';
+
+  @override
+  String get momentStoryPrevious => 'Précédent';
+
+  @override
+  String leaderboardSolved(int solved, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      solved,
+      locale: localeName,
+      other: '$solved sur $total résolus',
+      one: '1 sur $total résolu',
+      zero: 'Rien de résolu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardWins(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count victoires',
+      one: '1 victoire',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String leaderboardEmptyAction(String game) {
+    return 'Jouer : $game';
+  }
+
+  @override
+  String get diagCatApi => 'Appels serveur';
+
+  @override
+  String get diagCatConnection => 'Connexion';
+
+  @override
+  String get diagCatDevice => 'Appareil';
+
+  @override
+  String get diagCatError => 'Erreurs';
+
+  @override
+  String get diagCatFrame => 'Images lentes';
+
+  @override
+  String get diagCatLayout => 'Mise en page';
+
+  @override
+  String get diagCatLifecycle => 'État de l\'app';
+
+  @override
+  String get diagCatLog => 'Journal';
+
+  @override
+  String get diagCatNav => 'Navigation';
+
+  @override
+  String get diagCatNetwork => 'Réseau';
+
+  @override
+  String get diagCatSubscription => 'Mises à jour en direct';
+
+  @override
+  String get diagSevTrace => 'Trace';
+
+  @override
+  String get diagSevDebug => 'Débogage';
+
+  @override
+  String get diagSevInfo => 'Info';
+
+  @override
+  String get diagSevWarning => 'Avertissement';
+
+  @override
+  String get diagSevError => 'Erreur';
+
+  @override
+  String get diagAll => 'Tout';
+
+  @override
+  String get diagSearchHint => 'Rechercher nom, détail, contenu';
+
+  @override
+  String get diagSummaryCopied => 'Résumé copié';
+
+  @override
+  String get diagShareLog => 'Partager le journal';
+
+  @override
+  String get diagCopySummary => 'Copier le résumé';
+
+  @override
+  String get diagDeleteAll => 'Tout supprimer';
+
+  @override
+  String get diagUndo => 'Annuler';
+
+  @override
+  String get diagDeleteLogTitle => 'Supprimer tout le journal ?';
+
+  @override
+  String get diagDeleteLogBody =>
+      'Tous les événements enregistrés jusqu\'ici disparaissent, ainsi que le journal de la session précédente. Ce qui se passe ensuite est enregistré comme d\'habitude.';
+
+  @override
+  String get diagDelete => 'Supprimer';
+
+  @override
+  String get diagLogDeleted => 'Journal supprimé';
+
+  @override
+  String get diagFilter => 'Filtrer';
+
+  @override
+  String get diagMore => 'Plus';
+
+  @override
+  String get diagLatest => 'Récents';
+
+  @override
+  String get diagJumpToLatest => 'Aller aux plus récents';
+
+  @override
+  String get diagPaused => 'en pause';
+
+  @override
+  String get diagPreparingLog => 'préparation du journal…';
+
+  @override
+  String get diagEmptyNothingTitle => 'Rien d\'enregistré pour l\'instant';
+
+  @override
+  String get diagEmptyNothingHint =>
+      'Utilise l\'app un instant et les événements apparaîtront ici.';
+
+  @override
+  String get diagEmptyHiddenTitle =>
+      'Seulement des événements masqués pour l\'instant';
+
+  @override
+  String get diagEmptyHiddenHint =>
+      'Touche une pastille grisée ci-dessus pour la voir, ou appuie longuement pour la remettre dans Tout.';
+
+  @override
+  String get diagEmptyNoMatchTitle => 'Aucun événement ne correspond';
+
+  @override
+  String get diagEmptyNoMatchHint =>
+      'Touche Tout ci-dessus pour retirer le filtre.';
+
+  @override
+  String get diagApply => 'Appliquer';
+
+  @override
+  String get diagMinSeverity => 'Gravité minimale';
+
+  @override
+  String get diagEverything => 'Tout';
+
+  @override
+  String get diagHiddenFromAllHeader => 'Masqués dans Tout';
+
+  @override
+  String get diagHiddenFromAllFooter =>
+      'Exclus de Tout tant qu\'ils ne sont pas choisis dans la rangée de pastilles. Un appui long sur une pastille fait la même chose.';
+
+  @override
+  String get diagCollapseRepeats => 'Regrouper les répétitions';
+
+  @override
+  String get diagCollapseRepeatsSubtitle =>
+      'Regroupe une suite du même événement sur une ligne';
+
+  @override
+  String get diagResetFilter => 'Réinitialiser le filtre';
+
+  @override
+  String get diagBodyTruncated => 'Contenu tronqué à la capture';
+
+  @override
+  String get diagCopyEvent => 'Copier l\'événement';
+
+  @override
+  String get diagEventCopied => 'Événement copié';
+
+  @override
+  String diagHiddenFromAll(String category) {
+    return '$category masqué dans Tout';
+  }
+
+  @override
+  String diagBackInAll(String category) {
+    return '$category de retour dans Tout';
+  }
+
+  @override
+  String diagChipSemanticLabel(String category, int count) {
+    return '$category, $count';
+  }
+
+  @override
+  String diagChipHiddenSemanticLabel(String category, int count) {
+    return '$category, $count, masqué dans Tout';
+  }
+
+  @override
+  String diagEventCount(int shown, int total) {
+    return '$shown sur $total événements';
+  }
+
+  @override
+  String diagDropped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count événements antérieurs abandonnés — le journal commence en cours de route',
+      one:
+          '$count événement antérieur abandonné — le journal commence en cours de route',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String diagRepeatSpan(int count, String seconds) {
+    return '×$count en $seconds s';
+  }
+
+  @override
+  String roomContentTabSemantic(String count, String label) {
+    return '$label, $count éléments';
+  }
 }

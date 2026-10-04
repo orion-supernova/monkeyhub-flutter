@@ -371,7 +371,7 @@ class LiquidGlass extends StatelessWidget {
             : null,
       ),
       child: CustomPaint(
-        foregroundPainter: _SpecularRim(shape: shape, light: isLight),
+        foregroundPainter: SpecularRim(shape: shape, light: isLight),
         child: glass,
       ),
     );
@@ -380,8 +380,12 @@ class LiquidGlass extends StatelessWidget {
 
 /// Strokes [shape]'s outline with a top-lit gradient — the specular rim of
 /// matched glass. Paint-only and cheap: one path, one shader, no layers.
-class _SpecularRim extends CustomPainter {
-  const _SpecularRim({required this.shape, required this.light});
+///
+/// Public because the chrome disc (`glass_buttons.dart`) wears the same lit
+/// edge: the 40pt × on a sheet and the one on a page are one button, and the
+/// rim is most of what makes them read as one.
+class SpecularRim extends CustomPainter {
+  const SpecularRim({required this.shape, required this.light});
 
   final OutlinedBorder shape;
   final bool light;
@@ -412,6 +416,6 @@ class _SpecularRim extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SpecularRim old) =>
+  bool shouldRepaint(SpecularRim old) =>
       old.light != light || old.shape != shape;
 }

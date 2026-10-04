@@ -173,6 +173,7 @@ class _InviteFriendsSheetState extends State<_InviteFriendsSheet> {
                 controller: _search,
                 hintText: l10n.roomInviteFriendsSearchHint,
                 onChanged: (_) => setState(() {}),
+                showCancel: false,
               ),
               const SizedBox(height: 12),
             ],

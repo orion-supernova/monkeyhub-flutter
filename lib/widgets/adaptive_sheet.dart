@@ -4,6 +4,7 @@ import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'glass_surface.dart';
+import 'sheet_drag.dart';
 import 'sheet_kit.dart' show sheetTopRadius;
 
 /// Presents modal content adaptively: a bottom sheet on compact (phone)
@@ -24,8 +25,10 @@ import 'sheet_kit.dart' show sheetTopRadius;
 /// has to be answered, like a mandatory update. Pair it with a
 /// `PopScope(canPop: false)` in the content to also block Android back and Esc.
 ///
-/// `useSafeArea: true` for any sheet tall enough to reach the top of the
-/// screen — see the parameter.
+/// Every compact sheet stops below the top safe area (see `useSafeArea`) and
+/// 8pt short of it, so the page underneath peeks out under the island the
+/// way iOS stacks a sheet. Its scrolling body pulls it closed when that body
+/// is a `SheetScrollBody` (the [SheetDragHost] wrapped around it here).
 Future<T?> showAdaptiveSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
@@ -37,11 +40,10 @@ Future<T?> showAdaptiveSheet<T>(
   bool enableDrag = true,
 
   /// Bounds the bottom sheet by the window's top safe area instead of by the
-  /// raw screen height.
-  ///
-  /// Off by default because most sheets in this app are short enough that it
-  /// never bites, and a sheet that cannot possibly reach the status bar reads
-  /// the same either way. Turn it on for anything that can grow tall.
+  /// raw screen height. On by default: a sheet that grows (a keyboard, a long
+  /// list, a big text size) otherwise runs up under the notch or the Dynamic
+  /// Island, bar and × included — the point composer did exactly that. Off
+  /// only for a sheet that deliberately paints edge to edge.
   ///
   /// Worth knowing before reaching for anything else: `ModalBottomSheetRoute`
   /// wraps its content in `MediaQuery.removePadding(removeTop: true)`, which
@@ -50,7 +52,7 @@ Future<T?> showAdaptiveSheet<T>(
   /// inside the content widget is a silent no-op. This flag is the hook that
   /// applies it from OUTSIDE, at the route level, where the padding is still
   /// intact.
-  bool useSafeArea = false,
+  bool useSafeArea = true,
 }) {
   if (context.isCompact) {
     final calm = MotionScope.of(context).calm;
@@ -83,11 +85,27 @@ Future<T?> showAdaptiveSheet<T>(
       // here gives them all the iOS 26 corner (`sheetTopRadius`) in one
       // place. A plain clip, never animated — the route slides it, the clip
       // rides along for free.
-      builder: (ctx) => ClipRRect(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(sheetTopRadius(ThemeScope.of(ctx))),
+      //
+      // Capped 8pt short of the room the route gives it, so a full-height
+      // sheet leaves a sliver of the page showing under the island, and
+      // wrapped in the host that lets a scrolled-to-top body pull it down.
+      builder: (ctx) => SheetDragHost(
+        enabled: enableDrag && isDismissible,
+        child: LayoutBuilder(
+          builder: (ctx, box) => ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: box.maxHeight.isFinite
+                  ? (box.maxHeight - 8).clamp(0.0, double.infinity)
+                  : double.infinity,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(sheetTopRadius(ThemeScope.of(ctx))),
+              ),
+              child: builder(ctx),
+            ),
+          ),
         ),
-        child: builder(ctx),
       ),
     );
   }

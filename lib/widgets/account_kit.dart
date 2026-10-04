@@ -409,7 +409,7 @@ class InsetGroup extends StatelessWidget {
           ),
           if (footer != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Text(footer!, style: groupedFooterStyle(theme)),
             ),
         ],

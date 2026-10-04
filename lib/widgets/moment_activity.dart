@@ -9,14 +9,18 @@ import '../theme/theme_scope.dart';
 import 'moment_rail.dart';
 import 'meta_text.dart';
 
-/// The chronological tail of the board: everything that happened today, in
-/// order, one line each.
+/// The chronological tail of the board: today's highlights, newest first, one
+/// line each.
 ///
-/// Deliberately text-forward and low-key. The three blocks above it — the
-/// rail, the puzzle, the standings — are the curated summary; this is the
-/// catch-all that keeps them from having to be exhaustive. Without that split
-/// the four sections end up restating each other, which is the usual way a
-/// feed screen dies.
+/// Highlights only. Points have their own home on the standings board, which
+/// tallies them and tells each one's story, and handing them to this list as
+/// well drew every point twice on one screen — the Feed passes
+/// `FeedStore.highlights`, never `moments`.
+///
+/// Deliberately text-forward and low-key. The blocks above it — the rail, the
+/// games, the standings — are the curated summary; this is the plain log
+/// under them. Without that split the sections end up restating each other,
+/// which is the usual way a feed screen dies.
 class MomentActivity extends StatelessWidget {
   const MomentActivity({
     super.key,

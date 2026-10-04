@@ -315,6 +315,7 @@ class _StickerPackStoreState extends State<StickerPackStore> {
                       focusNode: _focus,
                       hintText: l10n.expressionPackSearchHint,
                       onChanged: _onQuery,
+                      showCancel: false,
                     ),
                   ),
                   if (_focus.hasFocus) HideKeyboardButton(focus: _focus),

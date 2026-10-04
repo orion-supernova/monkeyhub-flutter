@@ -8,9 +8,9 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/discover_rows.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
-/// Discover previews five of each list and sends the rest to a full-list
-/// screen, so the header's count and the see-all row are the only things
-/// telling you how much you haven't seen. Both have to be honest.
+/// Discover's rows. (Its section headings are the shared
+/// [PageSectionHeader] now — count and "See all ›" included — and are tested
+/// with the kit.)
 void main() {
   Widget host(Widget child, {double width = 375}) => MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -24,54 +24,6 @@ void main() {
       ),
     ),
   );
-
-  group('section header', () {
-    testWidgets('prints the total beside the label', (tester) async {
-      await tester.pumpWidget(
-        host(const DiscoverSectionHeader(label: 'PUBLIC ROOMS', count: '87')),
-      );
-      // Printed in sentence case, the iOS section title.
-      expect(find.text('Public rooms'), findsOneWidget);
-      expect(find.text('87'), findsOneWidget);
-    });
-
-    testWidgets('shows no number at all while a fetch is in flight', (
-      tester,
-    ) async {
-      // An empty count is how "still looking" is told apart from "looked,
-      // found nothing" — a bare 0 during the first flight would be a lie.
-      await tester.pumpWidget(
-        host(const DiscoverSectionHeader(label: 'PUBLIC ROOMS', count: '')),
-      );
-      // Printed in sentence case, the iOS section title.
-      expect(find.text('Public rooms'), findsOneWidget);
-      expect(find.text('0'), findsNothing);
-    });
-  });
-
-  group('see-all row', () {
-    testWidgets('names the true total, not the preview length', (tester) async {
-      await tester.pumpWidget(host(SeeAllRow(total: 87, onTap: () {})));
-      expect(find.text('See all 87'), findsOneWidget);
-    });
-
-    testWidgets('is tappable', (tester) async {
-      var tapped = false;
-      await tester.pumpWidget(
-        host(SeeAllRow(total: 24, onTap: () => tapped = true)),
-      );
-      await tester.tap(find.text('See all 24'));
-      await tester.pump();
-      expect(tapped, isTrue);
-    });
-
-    testWidgets('fits the 360pt desktop column', (tester) async {
-      await tester.pumpWidget(
-        host(SeeAllRow(total: 1234, onTap: () {}), width: 360),
-      );
-      expect(tester.takeException(), isNull);
-    });
-  });
 
   group('public room row', () {
     ChatRoom room({

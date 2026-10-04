@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import 'action_buttons.dart' show TextLinkButton;
 import 'search_field.dart';
 
 import 'teardown_safe.dart';
@@ -138,7 +139,6 @@ class _PullRevealPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
       // The bottom inset is the only thing separating the search field from
@@ -170,6 +170,10 @@ class _PullRevealPanel extends StatelessWidget {
                   // the pending debounce, or the list would come back 250ms
                   // after a tap that asked for it now.
                   onClear: onClear,
+                  // The panel draws its own collapse control beside the
+                  // field (below), which is this bar's way out; a Cancel as
+                  // well would be two buttons for one job.
+                  showCancel: false,
                 ),
               ),
               const SizedBox(width: 8),
@@ -179,30 +183,21 @@ class _PullRevealPanel extends StatelessWidget {
               // stacked on top of the search bar rather than part of it.
               // The iOS search bar's Cancel: a text button in the accent,
               // beside the field. It dismisses the whole panel, field and all.
-              FocusableTap(
-                onTap: onCollapse,
-                semanticLabel: l10n.pullRevealCollapseSemanticLabel,
-                shape: FocusRingShape.capsule,
-                radius: 999,
-                child: GestureDetector(
+              //
+              // Always on, unlike the field's own Cancel (off here): the
+              // panel is open whether or not the field has focus, and this is
+              // how you close it. The shared text link, so it is the same
+              // Cancel the search screen and Settings slide in.
+              //
+              // Held to the bar's 40 (the link's own minimum is 44): taller,
+              // and it would set the row's height and push the field off the
+              // panel's bottom edge.
+              SizedBox(
+                height: searchFieldHeight,
+                child: TextLinkButton(
+                  label: MaterialLocalizations.of(context).cancelButtonLabel,
+                  semanticLabel: l10n.pullRevealCollapseSemanticLabel,
                   onTap: onCollapse,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 8,
-                    ),
-                    child: Text(
-                      sentenceCaseOf(
-                        context,
-                        MaterialLocalizations.of(context).cancelButtonLabel,
-                      ),
-                      style: theme.body.copyWith(
-                        fontSize: 17,
-                        color: theme.accent,
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ],
