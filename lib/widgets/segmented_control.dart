@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
@@ -44,7 +45,14 @@ class IosSegment<T> {
 /// Tap a segment, or drag the thumb across. Keyboard: each segment is a
 /// focus stop. A null [onChanged] draws the control disabled. No spring
 /// press — iOS segments don't dip; the thumb's slide is the feedback.
-class IosSegmentedControl<T> extends StatelessWidget {
+///
+/// Stateful for smoothness, not for data: the thumb moves from local state
+/// the instant you tap, and [onChanged] is delivered a frame later, so the
+/// slide's first frame is never the same frame as the caller's (often heavy)
+/// content swap. A drag moves only the thumb and commits once, on release —
+/// it used to fire [onChanged] on every segment it crossed. The shared label
+/// size is measured once per width / labels / text scale, not every build.
+class IosSegmentedControl<T> extends StatefulWidget {
   const IosSegmentedControl({
     super.key,
     required this.segments,
@@ -61,12 +69,78 @@ class IosSegmentedControl<T> extends StatelessWidget {
   static const _inset = 2.0;
 
   @override
+  State<IosSegmentedControl<T>> createState() => _IosSegmentedControlState<T>();
+}
+
+class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
+  /// Where the thumb is drawn. Leads [IosSegmentedControl.value] by a frame
+  /// on a tap, and by a whole gesture on a drag.
+  int? _shown;
+  bool _dragging = false;
+
+  // The measured shared font size and what it was measured for.
+  Object? _fontKey;
+  double _fontSize = _SegmentLabel.baseSize;
+
+  List<IosSegment<T>> get segments => widget.segments;
+
+  int get _valueIndex => segments.indexWhere((s) => s.value == widget.value);
+
+  @override
+  void didUpdateWidget(IosSegmentedControl<T> old) {
+    super.didUpdateWidget(old);
+    // Follow the caller once it has caught up with the thumb (or moved the
+    // value itself). An unrelated rebuild in the frame between a tap and its
+    // deferred commit must not snap the thumb back.
+    if (!_dragging &&
+        (old.value != widget.value || _shown == _valueIndex)) {
+      _shown = null;
+    }
+  }
+
+  void _commit(int i) {
+    final onChanged = widget.onChanged;
+    if (onChanged == null || i < 0 || i >= segments.length) return;
+    if (i == _valueIndex) return;
+    final value = segments[i].value;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) onChanged(value);
+    });
+  }
+
+  void _show(int i) {
+    if ((_shown ?? _valueIndex) == i) return;
+    HapticFeedback.selectionClick();
+    setState(() => _shown = i);
+  }
+
+  void _tap(int i) {
+    if (widget.onChanged == null) return;
+    _show(i);
+    _commit(i);
+  }
+
+  double _sharedFontSizeCached(BuildContext context, AppTheme theme, double each) {
+    final key = Object.hashAll([
+      each,
+      theme.id,
+      MediaQuery.textScalerOf(context),
+      for (final s in segments) ...[s.label, s.icon != null, s.badge],
+    ]);
+    if (key != _fontKey) {
+      _fontKey = key;
+      _fontSize = _sharedFontSize(context, theme, each);
+    }
+    return _fontSize;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
-    final enabled = onChanged != null;
+    final enabled = widget.onChanged != null;
     final n = segments.length;
-    final index = segments.indexWhere((s) => s.value == value);
+    final index = _shown ?? _valueIndex;
     final track = theme.ink.withValues(alpha: theme.isLight ? 0.07 : 0.10);
     // Light: the white thumb of iOS. Dark: a lifted grey (iOS's #636366
     // role), mixed from the theme's ink so a tinted dark theme keeps its hue.
@@ -74,27 +148,31 @@ class IosSegmentedControl<T> extends StatelessWidget {
         ? Colors.white
         : Color.alphaBlend(theme.ink.withValues(alpha: 0.24), theme.surface);
 
-    void pick(int i) {
-      if (!enabled || i < 0 || i >= n || i == index) return;
-      HapticFeedback.selectionClick();
-      onChanged!(segments[i].value);
-    }
-
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: LayoutBuilder(
         builder: (context, box) {
-          final inner = box.maxWidth - _inset * 2;
+          const inset = IosSegmentedControl._inset;
+          final inner = box.maxWidth - inset * 2;
           final each = inner / n;
-          final fontSize = _sharedFontSize(context, theme, each);
-          int at(double dx) => ((dx - _inset) / each).floor().clamp(0, n - 1);
+          final fontSize = _sharedFontSizeCached(context, theme, each);
+          int at(double dx) => ((dx - inset) / each).floor().clamp(0, n - 1);
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTapUp: enabled ? (d) => pick(at(d.localPosition.dx)) : null,
+            onTapUp: enabled ? (d) => _tap(at(d.localPosition.dx)) : null,
+            onHorizontalDragStart: enabled ? (_) => _dragging = true : null,
             onHorizontalDragUpdate:
-                enabled ? (d) => pick(at(d.localPosition.dx)) : null,
+                enabled ? (d) => _show(at(d.localPosition.dx)) : null,
+            onHorizontalDragEnd: enabled
+                ? (_) {
+                    _dragging = false;
+                    final i = _shown;
+                    if (i != null) _commit(i);
+                  }
+                : null,
+            onHorizontalDragCancel: enabled ? () => _dragging = false : null,
             child: Container(
-              padding: const EdgeInsets.all(_inset),
+              padding: const EdgeInsets.all(inset),
               decoration: BoxDecoration(
                 color: track,
                 borderRadius: BorderRadius.circular(999),
@@ -131,7 +209,7 @@ class IosSegmentedControl<T> extends StatelessWidget {
                         SizedBox(
                           width: each,
                           child: FocusableTap(
-                            onTap: enabled ? () => pick(i) : null,
+                            onTap: enabled ? () => _tap(i) : null,
                             selected: i == index,
                             semanticLabel: segments[i].semanticLabel ??
                                 sentenceCaseOf(context, segments[i].label),
