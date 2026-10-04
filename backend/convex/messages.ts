@@ -1210,11 +1210,17 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // the interesting parts are).
   const fmt = armed ? undefined : sanitizeFormatting(content, formatting);
 
+  // One timestamp for the row AND the room card. Convex freezes Date.now()
+  // per mutation in production, but nothing else does (convex-test, for
+  // one), and `migrations.backfillSpoilerPreviews` matches the card to its
+  // message by `lastMessageTime === createdAt` — two reads a tick apart
+  // made that miss.
+  const sentAt = Date.now();
   const messageId = await ctx.db.insert("messages", {
     roomId,
     userId,
     content,
-    createdAt: Date.now(),
+    createdAt: sentAt,
     type: msgType,
     mediaStorageId,
     // Deliberately dropped on an armed send. The sealed tile is a fixed size,
@@ -1349,7 +1355,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   });
   await ctx.db.patch(roomId, {
     lastMessage: preview,
-    lastMessageTime: Date.now(),
+    lastMessageTime: sentAt,
   });
 
   // Fire push notifications in background (non-blocking)
