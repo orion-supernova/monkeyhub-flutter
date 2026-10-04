@@ -281,13 +281,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     // column either way — there's no second world to put beside it.
     final twoColumns = context.isExpanded && showRooms;
 
-    // A section's search door: the same 40pt pill as the bar it opens, so
-    // the hero carries one box that never changes shape.
-    Widget door(SearchMode mode, String hint) => SearchField.door(
-      hint: hint,
-      heroTag: searchFieldHeroTagFor(mode),
-      onTap: () => _openSearch(mode),
-    );
+    // Search doors are the cards they were in 1.3.114 ("Find people",
+    // "Search rooms"), not bare search bars: a search bar directly above
+    // your friends or your rooms read as a filter for that list, when it
+    // searches everyone.
 
     final peopleWorld = <Widget>[
       // One section, both directions named on a segmented control — the shape
@@ -383,13 +380,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             _push(PeopleListScreen(repo: widget.repo, api: widget.api)),
       ),
       if (showPeople) ...[
-        // A child finds people by exact username only, and the hint says so
-        // before they type a half-name that will never match.
-        door(
-          SearchMode.people,
-          widget.family.isChild
+        // A child finds people by exact username only, and the subtitle
+        // says so before they type a half-name that will never match.
+        _DoorRow(
+          heroTag: searchFieldHeroTagFor(SearchMode.people),
+          circular: true,
+          icon: CupertinoIcons.person_2,
+          title: t.discoverScreenFindPeopleTitle,
+          subtitle: widget.family.isChild
               ? t.discoverScreenFindPeopleSubtitleChild
-              : t.searchScreenHintPeople,
+              : t.discoverScreenFindPeopleSubtitleAdult,
+          onTap: () => _openSearch(SearchMode.people),
         ),
         const SizedBox(height: _withinSection),
       ],
@@ -441,7 +442,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             // *browse* rooms directly above a list of them read as two
             // different sets — "are these my rooms or all of them?". The hint
             // names the set it searches, so the list below stays the only list.
-            door(SearchMode.rooms, t.searchScreenHintRooms),
+            _DoorRow(
+              heroTag: searchFieldHeroTagFor(SearchMode.rooms),
+              circular: false,
+              icon: CupertinoIcons.number,
+              title: t.discoverScreenSearchRoomsTitle,
+              subtitle: t.discoverScreenSearchRoomsSubtitle,
+              onTap: () => _openSearch(SearchMode.rooms),
+            ),
             const SizedBox(height: _withinSection),
             // The typed half of the invite token. Its other half is the link,
             // which arrives through the OS and never touches this screen — but
@@ -695,4 +703,136 @@ Widget _jumpChip(
     ).discoverScreenJumpToSemanticLabel(label),
     onTap: onTap,
   );
+}
+
+/// A way into a world: glyph, title, one line of explanation, search icon.
+///
+/// The glyph is a circle for people and a rounded square for rooms — the same
+/// distinction the app already draws between a round [UserAvatar] and a room
+/// tile's chip, so the two worlds stay apart at a glance.
+///
+/// The card flies into the search screen's bar via [SearchFieldHero].
+///
+/// A plain [Hero] between the two was tried and reverted once, and the reason
+/// is worth keeping: its default shuttle draws the *destination's* child at
+/// every intermediate size, so this card's own two lines of text were being
+/// asked to fit a box collapsing toward a one-line field, and overflowed on
+/// every frame of the flight. [SearchFieldHero] flies the box and the
+/// magnifier — the two things both ends actually have — and nothing that can
+/// overflow.
+class _DoorRow extends StatelessWidget {
+  const _DoorRow({
+    this.heroTag,
+    required this.circular,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  /// The search field this door flies into, when it opens one.
+  ///
+  /// Null for a door that opens an ordinary screen instead — the join-by-code
+  /// row. A Hero with no counterpart on the incoming route does not degrade
+  /// gracefully; it animates into nothing, which reads as the row falling
+  /// apart mid-transition.
+  final Object? heroTag;
+  final bool circular;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SpringPress(
+      onTap: onTap,
+      haptic: false,
+      scale: PressSpec.scaleSmall,
+      semanticLabel: '$title. $subtitle',
+      focusRadius: groupedRadius(theme),
+      child: _maybeHero(
+          // A grouped iOS row: a coloured tile, the title, one line of what
+          // it finds, and the magnifier the search bar shares mid-flight.
+          child: Container(
+            decoration: BoxDecoration(
+              color: groupedFill(theme),
+              borderRadius: BorderRadius.circular(groupedRadius(theme)),
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: searchDoorHPadding,
+              vertical: 12,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: tileColor(
+                      theme,
+                      circular ? TileTone.blue : TileTone.indigo,
+                    ),
+                    shape: circular ? BoxShape.circle : BoxShape.rectangle,
+                    borderRadius:
+                        circular ? null : BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 19, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        sentenceCaseOf(context, title),
+                        style: theme.bodyEmph.copyWith(
+                          color: theme.ink,
+                          fontSize: 17,
+                          fontStyle: FontStyle.normal,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        sentenceCaseOf(context, subtitle),
+                        // Body face, never the theme's caption (tracked mono
+                        // on the character themes).
+                        style: groupedSubtitleStyle(theme),
+                        // Two lines, like an iOS subtitle cell: "Open a group
+                        // someone shared with you" truncated at one even in
+                        // English at 1×.
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // For a search door, the glyph the flight shuttle carries
+                // into the search bar — same size at both ends. A door that
+                // opens an ordinary screen gets a chevron instead.
+                Icon(
+                  heroTag == null
+                      ? CupertinoIcons.chevron_forward
+                      : CupertinoIcons.search,
+                  size: searchFieldIconSize,
+                  color: theme.inkMuted,
+                ),
+              ],
+            ),
+          ),
+        ),
+    );
+  }
+
+  Widget _maybeHero({required Widget child}) {
+    final tag = heroTag;
+    if (tag == null) return child;
+    return SearchFieldHero(tag: tag, child: child);
+  }
 }

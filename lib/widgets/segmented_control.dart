@@ -78,9 +78,6 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
   int? _shown;
   bool _dragging = false;
 
-  // The measured shared font size and what it was measured for.
-  Object? _fontKey;
-  double _fontSize = _SegmentLabel.baseSize;
 
   List<IosSegment<T>> get segments => widget.segments;
 
@@ -120,18 +117,27 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
     _commit(i);
   }
 
-  double _sharedFontSizeCached(BuildContext context, AppTheme theme, double each) {
+  // The measured layout and what it was measured for.
+  Object? _layoutKey;
+  ({double font, List<double> widths}) _layout =
+      (font: _SegmentLabel.baseSize, widths: const []);
+
+  ({double font, List<double> widths}) _layoutCached(
+    BuildContext context,
+    AppTheme theme,
+    double inner,
+  ) {
     final key = Object.hashAll([
-      each,
+      inner,
       theme.id,
       MediaQuery.textScalerOf(context),
       for (final s in segments) ...[s.label, s.icon != null, s.badge],
     ]);
-    if (key != _fontKey) {
-      _fontKey = key;
-      _fontSize = _sharedFontSize(context, theme, each);
+    if (key != _layoutKey || _layout.widths.length != segments.length) {
+      _layoutKey = key;
+      _layout = _measure(context, theme, inner);
     }
-    return _fontSize;
+    return _layout;
   }
 
   @override
@@ -154,9 +160,20 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
         builder: (context, box) {
           const inset = IosSegmentedControl._inset;
           final inner = box.maxWidth - inset * 2;
-          final each = inner / n;
-          final fontSize = _sharedFontSizeCached(context, theme, each);
-          int at(double dx) => ((dx - inset) / each).floor().clamp(0, n - 1);
+          final layout = _layoutCached(context, theme, inner);
+          final fontSize = layout.font;
+          final widths = layout.widths;
+          final lefts = <double>[0];
+          for (var i = 0; i < n - 1; i++) {
+            lefts.add(lefts.last + widths[i]);
+          }
+          int at(double dx) {
+            final x = dx - inset;
+            for (var i = n - 1; i >= 0; i--) {
+              if (x >= lefts[i]) return i;
+            }
+            return 0;
+          }
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapUp: enabled ? (d) => _tap(at(d.localPosition.dx)) : null,
@@ -183,8 +200,8 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
                     AnimatedPositioned(
                       duration: motion.d(const Duration(milliseconds: 300)),
                       curve: Curves.easeOutCubic,
-                      left: each * index,
-                      width: each,
+                      left: lefts[index],
+                      width: widths[index],
                       top: 0,
                       bottom: 0,
                       child: DecoratedBox(
@@ -194,9 +211,9 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
                           boxShadow: theme.isLight
                               ? const [
                                   BoxShadow(
-                                    color: Color(0x1F000000),
-                                    blurRadius: 6,
-                                    offset: Offset(0, 2),
+                                    color: Color(0x14000000),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 1),
                                   ),
                                 ]
                               : null,
@@ -207,7 +224,7 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
                     children: [
                       for (var i = 0; i < n; i++)
                         SizedBox(
-                          width: each,
+                          width: widths[i],
                           child: FocusableTap(
                             onTap: enabled ? () => _tap(i) : null,
                             selected: i == index,
@@ -233,49 +250,76 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
     );
   }
 
-  /// One size for every label, the largest at which each segment's longest
-  /// word fits its segment. Shrinking each label on its own left five Turkish
-  /// tabs at 1.3× in four different sizes — "Ses" at 15, "Kaydedilenler" at
-  /// 9 — which read as a bug, not as a fit. iOS shrinks the whole control.
-  double _sharedFontSize(BuildContext context, AppTheme theme, double each) {
-    if (!each.isFinite) return _SegmentLabel.baseSize;
+  /// Segment widths sized to their labels — UISegmentedControl's
+  /// `apportionsSegmentWidthsByContent` — with ONE font size for all of them.
+  ///
+  /// Equal fifths gave "Ses" as much room as "Kaydedilenler", which then
+  /// could not fit its fifth and shrank on its own while its neighbours stayed
+  /// at 15: five labels in two sizes, which read as a bug. Here every label is
+  /// measured at 15; if they all fit, the spare width is shared out evenly;
+  /// if not, the whole row steps down together (to 12 at most), as iOS
+  /// shrinks the whole control rather than one segment.
+  ({double font, List<double> widths}) _measure(
+    BuildContext context,
+    AppTheme theme,
+    double inner,
+  ) {
+    final n = segments.length;
+    if (!inner.isFinite || inner <= 0) {
+      return (font: _SegmentLabel.baseSize, widths: List.filled(n, 0));
+    }
     final scaler = MediaQuery.textScalerOf(context);
     final dir = Directionality.of(context);
-    var size = _SegmentLabel.baseSize;
-    for (final seg in segments) {
-      final room = each -
-          _SegmentLabel.padH * 2 -
-          (seg.icon != null ? 20 : 0) -
-          (seg.badge ? 10 : 0);
-      final words = sentenceCaseOf(context, seg.label).split(RegExp(r'\s+'));
-      for (final word in words) {
-        if (word.isEmpty) continue;
-        while (size > _SegmentLabel.floorSize) {
-          final p = TextPainter(
-            text: TextSpan(
-              text: word,
-              // The selected weight: the wider of the two, so a label does
-              // not outgrow its segment when the thumb lands on it.
-              style: theme.body.copyWith(
-                fontSize: size,
-                letterSpacing: -0.2,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            textDirection: dir,
-            textScaler: scaler,
-            maxLines: 1,
-          )..layout();
-          final w = p.width;
-          p.dispose();
-          if (w <= room) break;
-          size -= 0.5;
-        }
-      }
+    double textWidth(String label, double size) {
+      final p = TextPainter(
+        text: TextSpan(
+          text: label,
+          // The selected weight: the wider of the two, so a label does not
+          // outgrow its segment when the thumb lands on it.
+          style: theme.body.copyWith(
+            fontSize: size,
+            letterSpacing: -0.2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: dir,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final w = p.width;
+      p.dispose();
+      return w;
     }
-    return size;
+
+    double chrome(IosSegment<T> s) =>
+        _SegmentLabel.padH * 2 + (s.icon != null ? 20 : 0) + (s.badge ? 10 : 0);
+    final labels = [for (final s in segments) sentenceCaseOf(context, s.label)];
+
+    var size = _SegmentLabel.baseSize;
+    List<double> natural() => [
+          for (var i = 0; i < n; i++)
+            textWidth(labels[i], size).ceilToDouble() + chrome(segments[i]),
+        ];
+    var widths = natural();
+    var total = widths.fold<double>(0, (a, b) => a + b);
+    while (total > inner && size > _SegmentLabel.fitFloorSize) {
+      size -= 0.5;
+      widths = natural();
+      total = widths.fold<double>(0, (a, b) => a + b);
+    }
+    if (total <= inner) {
+      final extra = (inner - total) / n;
+      widths = [for (final w in widths) w + extra];
+    } else {
+      // Even 12pt does not fit (huge text scale): scale the widths to the
+      // track; FitLabel wraps or shrinks what is left over.
+      final k = inner / total;
+      widths = [for (final w in widths) w * k];
+    }
+    return (font: size, widths: widths);
   }
 }
+
 
 class _SegmentLabel<T> extends StatelessWidget {
   const _SegmentLabel({
@@ -290,7 +334,8 @@ class _SegmentLabel<T> extends StatelessWidget {
   final double fontSize;
 
   static const baseSize = 15.0;
-  static const floorSize = 10.0;
+  /// The smallest the shared size steps down to before the row compresses.
+  static const fitFloorSize = 12.0;
   static const padH = 8.0;
 
   @override
