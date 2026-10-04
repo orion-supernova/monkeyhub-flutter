@@ -119,13 +119,23 @@ class _NativeTabBarState extends State<NativeTabBar> {
   void initState() {
     super.initState();
     NativeChrome.holds.addListener(_sync);
-    NativeChrome.channel.setMethodCallHandler((call) async {
-      if (call.method == 'select' && mounted) {
-        final i = call.arguments as int;
-        if (i >= 0 && i < navOrder.length) widget.onSelect(navOrder[i]);
-      }
-      return null;
-    });
+    _current = this;
+    NativeChrome.channel.setMethodCallHandler(_onNativeCall);
+  }
+
+  /// The instance taps are routed to. The channel has one handler slot, and
+  /// a theme change builds the new shell before the old one is disposed —
+  /// the old dispose used to clear the slot the new instance had just
+  /// filled, so every tap after a theme switch went nowhere until a restart.
+  static _NativeTabBarState? _current;
+
+  static Future<Object?> _onNativeCall(MethodCall call) async {
+    final state = _current;
+    if (call.method == 'select' && state != null && state.mounted) {
+      final i = call.arguments as int;
+      if (i >= 0 && i < navOrder.length) state.widget.onSelect(navOrder[i]);
+    }
+    return null;
   }
 
   @override
@@ -143,7 +153,13 @@ class _NativeTabBarState extends State<NativeTabBar> {
   @override
   void dispose() {
     NativeChrome.holds.removeListener(_sync);
-    NativeChrome.channel.setMethodCallHandler(null);
+    // Only the current instance may tear down: a disposed predecessor would
+    // otherwise unhook (and the native side ignores its stale owner) the bar
+    // its successor already owns.
+    if (identical(_current, this)) {
+      _current = null;
+      NativeChrome.channel.setMethodCallHandler(null);
+    }
     _call('dispose');
     super.dispose();
   }

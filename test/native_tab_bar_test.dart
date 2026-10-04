@@ -134,4 +134,27 @@ void main() {
     final oldOwner = (calls[dispose].arguments as Map)['owner'];
     expect(oldOwner, isNot(newOwner));
   });
+
+  // The dead-tabs bug: the same rebuild let the old instance's dispose clear
+  // the channel handler the new one had just installed, so the bar showed
+  // but no tap reached the shell until a restart.
+  testWidgets('a rebuilt shell still hears taps', (tester) async {
+    HomeSection? picked;
+    Widget bar(String key) => host(NativeTabBar(
+          key: ValueKey(key),
+          active: HomeSection.chat,
+          onSelect: (s) => picked = s,
+          badges: const {},
+        ));
+    await tester.pumpWidget(bar('midnight'));
+    await tester.pumpWidget(bar('daylight'));
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .handlePlatformMessage(
+      NativeChrome.channel.name,
+      NativeChrome.channel.codec
+          .encodeMethodCall(MethodCall('select', navIndexOf(HomeSection.feed))),
+      (_) {},
+    );
+    expect(picked, HomeSection.feed);
+  });
 }
