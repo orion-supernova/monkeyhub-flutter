@@ -4462,6 +4462,12 @@ class _RoomScreenState extends State<RoomScreen>
     // rebuilds one `SizedBox`, instead of rebuilding every bubble in the
     // viewport the way a new `padding` on the `ListView` would.
     final insetRows = bottomChrome == null ? 0 : 1;
+    // A warm cache makes the transcript useful before the server answers, but
+    // it can be stale by hours. Keep a small cue at the newest edge so the
+    // first live batch (and any messages it brings) doesn't appear without
+    // context. The row owns its bounded offline wait, just like the empty
+    // transcript placeholder below.
+    final syncRows = messages.isNotEmpty && !serverAnswered ? 1 : 0;
     // The list's own bottom padding sits BELOW the spacer, so it reads as the
     // gap between the glass and the newest bubble — which is what it is.
     Widget insetSpacer() => ChatBottomInsetBuilder(
@@ -4566,6 +4572,7 @@ class _RoomScreenState extends State<RoomScreen>
                   padding: listPadding,
                   rowKeys: [
                     if (insetRows == 1) const ValueKey('timeline-inset'),
+                    if (syncRows == 1) const ValueKey('timeline-sync'),
                     if (typingRows == 1) const ValueKey('timeline-typing'),
                     for (final item in items)
                       ValueKey(switch (item) {
@@ -4585,12 +4592,19 @@ class _RoomScreenState extends State<RoomScreen>
                     if (insetRows == 1 && i == 0) {
                       return insetSpacer();
                     }
+                    if (syncRows == 1 && i == insetRows) {
+                      return PendingPlaceholder(
+                        pending: !serverAnswered,
+                        loading: (_) => const _TimelineSyncIndicator(),
+                        empty: (_) => const SizedBox.shrink(),
+                      );
+                    }
                     // Still the bottom of the conversation, which is where a
                     // message that hasn't been sent yet belongs.
-                    if (typingRows == 1 && i == insetRows) {
+                    if (typingRows == 1 && i == insetRows + syncRows) {
                       return typingRow();
                     }
-                    final item = items[i - typingRows - insetRows];
+                    final item = items[i - typingRows - insetRows - syncRows];
                     if (item is IntroItem) {
                       return _RoomIntro(
                         room: room,
@@ -5351,6 +5365,59 @@ class _RoomScreenState extends State<RoomScreen>
       track.label = label;
     }
     return KeyedSubtree(key: track.key, child: child);
+  }
+}
+
+/// A brief cue that a cached transcript is being refreshed from the server.
+/// It sits at the newest edge of the reversed list and disappears as soon as
+/// the first live message batch arrives. [PendingPlaceholder] bounds the wait
+/// so an offline room does not keep claiming to load forever.
+class _TimelineSyncIndicator extends StatelessWidget {
+  const _TimelineSyncIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final label = AppLocalizations.of(context).audioMessageLoadingLabel;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: Center(
+        child: Semantics(
+          liveRegion: true,
+          child: LiquidGlass(
+            shape: LiquidGlassShape.capsule,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            tinted: true,
+            shadow: false,
+            semanticLabel: label,
+            child: ExcludeSemantics(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.accent,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    label,
+                    style: theme.bodySoft.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
