@@ -174,16 +174,6 @@ const Duration _kPopDwell = Duration(milliseconds: 120);
 /// nothing implicit can hand a *velocity* to the stretch. See [_frame] for how
 /// little of the tree actually rebuilds per frame.
 ///
-/// How much of the bottom inset the home indicator itself actually claims.
-///
-/// The inset a phone reports (34pt on a modern iPhone, ~24 for Android's
-/// gesture bar) is not the size of the thing that must not be covered — it is
-/// comfortable padding around a thin glyph near the edge. Floating chrome is
-/// meant to live inside it; a full-width tab bar is the shape that fills it.
-/// This is the part that is genuinely spoken for, and everything above it is
-/// the designer's to spend.
-const double kIndicatorKeepOut = 12;
-
 /// Returns a [Positioned], so it must be placed directly in a [Stack].
 ///
 /// Lives in its own file, and public, so a widget test can pump it. As a
@@ -673,8 +663,13 @@ class _PillBottomNavState extends State<PillBottomNav>
     // knob then means what its hint has always said — how high the bar floats
     // above it. Hardware with no indicator has nothing to clear, so the knob is
     // the whole gap there, exactly as before.
+    //
+    // Except where the inset is not an indicator at all: Android's 3-button
+    // bar is opaque buttons filling the whole inset, and floating 12pt into it
+    // put the pill straight on top of back/home/recents. [navBottomKeepOut]
+    // tells the two apart.
     final barBottom =
-        (safeBottom > 0 ? kIndicatorKeepOut : 0) + geo.of(kBarBottom);
+        navBottomKeepOut(safeBottom) + geo.of(kBarBottom);
 
     return Positioned(
       left: margin,

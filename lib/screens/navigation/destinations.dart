@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
 
 import '../../data/settings_store.dart';
@@ -52,8 +54,49 @@ const double kFloatingNavClearance = 110;
 /// row — use a plain footer gap instead, matching the screens (Discover's
 /// full-list pages, the games hub, …) that never had a floating nav to clear
 /// in the first place.
-double sectionBottomPadding(BuildContext context) =>
-    context.isCompact ? kFloatingNavClearance : 40;
+///
+/// Plus whatever of the bottom inset the pill has to climb over beyond the
+/// indicator — nothing on a gesture phone, the whole button bar on Android's
+/// 3-button navigation. The pill rises by exactly that much (see
+/// [navBottomKeepOut]), so a fixed clearance left the last row behind it.
+double sectionBottomPadding(BuildContext context) {
+  if (!context.isCompact) return 40;
+  final inset = MediaQuery.viewPaddingOf(context).bottom;
+  final extra = navBottomKeepOut(inset) - kIndicatorKeepOut;
+  return kFloatingNavClearance + (extra > 0 ? extra : 0);
+}
+
+/// How much of the bottom inset the home indicator itself actually claims.
+///
+/// The inset a phone reports (34pt on a modern iPhone, ~24 for Android's
+/// gesture bar) is not the size of the thing that must not be covered — it is
+/// comfortable padding around a thin glyph near the edge. Floating chrome is
+/// meant to live inside it; a full-width tab bar is the shape that fills it.
+/// This is the part that is genuinely spoken for, and everything above it is
+/// the designer's to spend.
+const double kIndicatorKeepOut = 12;
+
+/// The tallest bottom inset Android reports for gesture navigation.
+///
+/// The gesture handle's inset is 16–24dp across OEMs; 2- and 3-button
+/// navigation is 48dp, as is a pinned taskbar. Nothing ships in between, so
+/// anything above this is a bar of buttons rather than a handle.
+const double kGestureInsetMax = 32;
+
+/// How far above the screen's bottom edge floating nav chrome must start.
+///
+/// [inset] is the physical bottom inset (`viewPadding`, not `padding`). A
+/// gesture handle — every iPhone, Android's gesture navigation — only claims
+/// [kIndicatorKeepOut] of it. Android's button navigation is the opposite:
+/// opaque buttons filling the entire inset, which edge-to-edge (forced at
+/// targetSdk 35+) draws the app under. Floating 12pt into that put the pill
+/// on top of back/home/recents, so there the whole inset is spoken for.
+double navBottomKeepOut(double inset) {
+  if (inset <= 0) return 0;
+  final buttons = defaultTargetPlatform == TargetPlatform.android &&
+      inset > kGestureInsetMax;
+  return buttons ? inset : kIndicatorKeepOut;
+}
 
 /// Horizontal alignment of the bottom nav's sliding indicator over segment
 /// [index] of [count], on [Alignment]'s -1..1 x axis.

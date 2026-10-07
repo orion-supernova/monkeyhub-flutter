@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/settings_store.dart';
@@ -94,8 +95,17 @@ void main() {
   group('bottom placement', () {
     testWidgets('floats the knob above the home indicator, not above the '
         'whole inset', (tester) async {
-      final screenH = await pumpNavWithInset(tester, inset: 34);
-      final bar = tester.getRect(find.byType(LiquidGlass));
+      // An iPhone's inset. flutter_test reports Android by default, where a
+      // 34pt inset would read as a button bar — see the Android tests below.
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      late double screenH;
+      late Rect bar;
+      try {
+        screenH = await pumpNavWithInset(tester, inset: 34);
+        bar = tester.getRect(find.byType(LiquidGlass));
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
       // `kIndicatorKeepOut` + the knob. This has been wrong twice in opposite
       // directions: 46pt when the knob was ADDED to the inset, then 34pt when
       // it was floored by it — which put the bar's whole knob range at or above
@@ -113,6 +123,76 @@ void main() {
       // Hardware with no indicator has nothing to keep out of, so the knob is
       // the whole gap — which is why it cannot simply be replaced by the inset.
       expect(screenH - bar.bottom, closeTo(12, 0.5));
+    });
+
+    testWidgets('clears the whole of an Android button bar', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        // 3-button navigation: 48dp of opaque back/home/recents. Floating 12pt
+        // into it put the pill on top of the buttons.
+        final screenH = await pumpNavWithInset(tester, inset: 48);
+        final bar = tester.getRect(find.byType(LiquidGlass));
+        expect(screenH - bar.bottom, closeTo(48 + 12, 0.5));
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('floats into an Android gesture handle like an iPhone one',
+        (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        final screenH = await pumpNavWithInset(tester, inset: 24);
+        final bar = tester.getRect(find.byType(LiquidGlass));
+        expect(screenH - bar.bottom, closeTo(kIndicatorKeepOut + 12, 0.5));
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+  });
+
+  group('navBottomKeepOut', () {
+    test('a handle claims only the indicator; buttons claim the inset', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        expect(navBottomKeepOut(0), 0);
+        expect(navBottomKeepOut(24), kIndicatorKeepOut);
+        expect(navBottomKeepOut(48), 48);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+      // iOS never has buttons down there, whatever the inset.
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        expect(navBottomKeepOut(34), kIndicatorKeepOut);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('section clearance rises with the pill over a button bar',
+        (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewPadding = const FakeViewPadding(bottom: 48);
+      addTearDown(tester.view.reset);
+      late double padding;
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                padding = sectionBottomPadding(context);
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+      expect(padding, kFloatingNavClearance + 48 - kIndicatorKeepOut);
     });
   });
 
