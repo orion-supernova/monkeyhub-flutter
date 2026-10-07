@@ -12,6 +12,7 @@ import { badgeTotalFor } from "./badges";
 import { mayReachDevices } from "./deployment";
 import { liveSessionDeviceIds } from "./sessionCore";
 import { resolveMute } from "./mute";
+import { receiptFields } from "./receiptToken";
 
 // Deliberately NOT imported from ./webPush: that module runs in the Node
 // runtime (Convex's V8 isolate has no ECDH), and importing it here would drag
@@ -449,6 +450,17 @@ export const sendAlert = internalAction({
           threadId: a.roomId?.toString(),
           collapseId: a.collapseId,
         };
+        // The delivery proof this recipient's phone posts back on arrival —
+        // the second tick without the app having to be opened. Per recipient
+        // because it is signed over who they are. See receiptToken.ts.
+        if (a.kind === "message" && a.roomId && spec.data.createdAt) {
+          const proof = await receiptFields(
+            a.roomId.toString(),
+            t.userId.toString(),
+            spec.data.createdAt,
+          );
+          if (proof) Object.assign(spec.data, proof);
+        }
         // Per device rather than per recipient: someone with a phone and a
         // laptop gets both, each with its own transport and its own failure.
         await Promise.allSettled(

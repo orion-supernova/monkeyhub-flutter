@@ -71,6 +71,7 @@ class _OfflineApi extends Fake implements ChatApi {
   Future<void> markRoomDelivered({
     required String roomId,
     required String userId,
+    DateTime? upTo,
   }) async {}
 }
 

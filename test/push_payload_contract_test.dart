@@ -53,6 +53,9 @@ void main() {
   // The group-call overlay: the one place a foregrounded Android app raises
   // the group card itself, off the realtime invite rather than off a push.
   const dartApp = 'lib/app.dart';
+  // Signs the delivery proof a chat push carries for its recipient. The
+  // phone echoes these keys back to /receipts/delivered (http.ts).
+  const receipt = 'backend/convex/receiptToken.ts';
 
   final cache = <String, String>{};
   String source(String path) => cache.putIfAbsent(path, () {
@@ -124,7 +127,15 @@ void main() {
     // (`ChatRepository.takePushedMessages`). It is the one field a stub cannot
     // be built without — nothing else says where the bubble goes — so losing
     // it does not corrupt anything, it silently turns the whole seed off.
-    'createdAt': [senders, dartRepo],
+    // Also the message the delivery proof is signed over: each platform posts
+    // it back verbatim, and the signature only checks against the same string.
+    'createdAt': [senders, dartRepo, iosNse, androidRoute, web],
+    // The delivery proof — where to post it, whose it is, and the signature.
+    // A platform that misses one sends no receipt, and the sender's message
+    // sits on one tick until the app is opened.
+    'rcptUrl': [receipt, iosNse, androidRoute, web],
+    'rcptUser': [receipt, iosNse, androidRoute, web],
+    'rcptSig': [receipt, iosNse, androidRoute, web],
     // Whether the message is simple enough to seed at all: no formatting, no
     // mentions, no reply tether, none of which fit in a push and all of which
     // would make the bubble RE-LAY-OUT when the real row landed. Decided

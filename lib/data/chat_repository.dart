@@ -1275,8 +1275,11 @@ class ChatRepository extends ChangeNotifier {
       final inFlight = _deliveryReported[room.id];
       if (inFlight != null && !newest.isAfter(inFlight)) continue;
       _deliveryReported[room.id] = newest;
+      // The newest message this device has seen, not "now": a message sent
+      // after this snapshot has not reached the device, and must not be
+      // claimed by it.
       api
-          .markRoomDelivered(roomId: room.id, userId: userId)
+          .markRoomDelivered(roomId: room.id, userId: userId, upTo: newest)
           .catchError((_) {});
     }
   }

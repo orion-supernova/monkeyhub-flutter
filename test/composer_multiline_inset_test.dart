@@ -83,7 +83,9 @@ class _OfflineApi extends Fake implements ChatApi {
       {required String roomId, required String userId}) async {}
   @override
   Future<void> markRoomDelivered(
-      {required String roomId, required String userId}) async {}
+      {required String roomId,
+      required String userId,
+      DateTime? upTo}) async {}
   @override
   Future<void> setTyping(
       {required String roomId, required String userId}) async {}

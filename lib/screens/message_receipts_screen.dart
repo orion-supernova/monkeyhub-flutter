@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart'
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../backend/convex_client.dart' show Subscription;
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -36,29 +37,25 @@ import '../l10n/text_case.dart';
 ///
 /// ── Where the numbers come from ────────────────────────────────────────────
 ///
-/// Nowhere new. The room this was opened from is still mounted underneath and
-/// still holds its `messages:getReadState` subscription, so every cursor on
-/// this screen is already in memory before the finger has finished dragging it
-/// in: [ChatRepository.roomReadCursors] and
-/// [ChatRepository.roomDeliveredCursors], read through on every notification.
-/// This screen issues NO query of its own and opens no subscription, which is
-/// what lets it be pushed and thrown away sixty times without costing anything.
+/// WHETHER a message reached someone comes from the cursors the room beneath
+/// already holds: its `messages:getReadState` subscription, read through as
+/// [ChatRepository.roomReadCursors] and [ChatRepository.roomDeliveredCursors].
+/// The server keeps ONE cursor of each kind per membership row, not a row per
+/// (message × reader), so "X read this" is exactly
+/// `X.lastReadAt >= message.createdAt`.
 ///
-/// ── What a timestamp here actually means ───────────────────────────────────
+/// WHEN comes from `messages:getReceiptTimes`, the one subscription this
+/// screen opens, for this message only, and only while it is open. A cursor's
+/// own wall-clock stamp is when it LAST moved, so on any message but the
+/// newest it named a later message's time — "delivered 23:18" on a message
+/// delivered at 23:17, because something after it was read at 23:18. The
+/// server now keeps a short log of each cursor's moves and resolves this
+/// message's own time from it.
 ///
-/// The server keeps ONE read cursor per membership row, not one row per
-/// (message × reader) — `schema.ts` rules that fan-out out in as many words,
-/// twice. So "X read this" is exactly `X.lastReadAt >= message.createdAt`, and
-/// the time shown is when that cursor last advanced (`readClock`) — not the
-/// cursor itself, which is the newest read message's own `createdAt`.
-/// For a message near the bottom of the transcript — which is very nearly
-/// always what someone checks receipts on — the cursor moved *because of* this
-/// message and the time is the read time. On an older message it is an upper
-/// bound: they read it at some point between sending and that stamp. There is
-/// no cheaper true answer available and a per-message one is not available at
-/// any price, so the screen shows the cursor rather than inventing a precision
-/// it does not have.
-class MessageReceiptsScreen extends StatelessWidget {
+/// A time can be unknown: the message reached them before its cursor kept a
+/// log, or long enough ago that the log has moved on. The row then says
+/// "Delivered" or "Read" with no clock, rather than borrowing a neighbour's.
+class MessageReceiptsScreen extends StatefulWidget {
   const MessageReceiptsScreen({
     super.key,
     required this.repo,
@@ -91,6 +88,60 @@ class MessageReceiptsScreen extends StatelessWidget {
   final void Function(ChatUser user) onOpenProfile;
 
   @override
+  State<MessageReceiptsScreen> createState() => _MessageReceiptsScreenState();
+}
+
+class _MessageReceiptsScreenState extends State<MessageReceiptsScreen> {
+  Subscription? _timesSub;
+
+  /// This message's own times per member, once `getReceiptTimes` answers.
+  /// Null until then — see [_when] for what is shown meanwhile.
+  Map<String, ({DateTime? deliveredAt, DateTime? readAt})>? _times;
+
+  ChatRepository get repo => widget.repo;
+  String get currentUserId => widget.currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribe();
+  }
+
+  @override
+  void dispose() {
+    _timesSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _subscribe() async {
+    try {
+      final sub = await widget.api.subscribeReceiptTimes(
+        roomId: widget.roomId,
+        viewerUserId: widget.currentUserId,
+        createdAt: _message.createdAt,
+        onTimes: (times) {
+          if (mounted) setState(() => _times = times);
+        },
+        // A dropped socket keeps whatever is on screen; the cursors still
+        // say who has it, and the times come back with the connection.
+        onError: (_) {},
+      );
+      if (!mounted) {
+        sub.cancel();
+        return;
+      }
+      _timesSub = sub;
+    } catch (_) {
+      // No times at all: the rows still say who has it, and each shows a
+      // clock only where the cursor proves it — see [_when].
+    }
+  }
+
+  ChatMessage get _message =>
+      repo.findMessageInRoom(widget.roomId, widget.messageId) ??
+      widget.fallbackMessage;
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Scaffold(
@@ -119,8 +170,7 @@ class MessageReceiptsScreen extends StatelessWidget {
 
   Widget _body(BuildContext context, AppTheme theme) {
     final l10n = AppLocalizations.of(context);
-    final message =
-        repo.findMessageInRoom(roomId, messageId) ?? fallbackMessage;
+    final message = _message;
     // `messages:getReadState` always returns the viewer's own row in full, so
     // two empty maps mean the subscription has not landed yet — never "nobody
     // here shares anything". Worth telling apart: without this, the half-second
@@ -159,7 +209,7 @@ class MessageReceiptsScreen extends StatelessWidget {
                 if (i == 0) {
                   return _Preamble(
                     message: message,
-                    api: api,
+                    api: widget.api,
                     read: read,
                     delivered: delivered,
                     total: entries.length,
@@ -172,13 +222,13 @@ class MessageReceiptsScreen extends StatelessWidget {
                   index: i - 1,
                   entry: entry,
                   sentAt: message.createdAt,
-                  api: api,
+                  api: widget.api,
                   // The section label rides on the first row of each run
                   // instead of being its own list item: the buckets are
                   // ordered and contiguous, so "did the state just change"
                   // is the whole of the grouping logic.
                   showSection: previous == null || previous.state != entry.state,
-                  onOpenProfile: onOpenProfile,
+                  onOpenProfile: widget.onOpenProfile,
                 );
               },
             ),
@@ -200,7 +250,7 @@ class MessageReceiptsScreen extends StatelessWidget {
     final at = message.createdAt;
 
     final out = <_Entry>[];
-    for (final user in roster()) {
+    for (final user in widget.roster()) {
       // Your own row is not a receipt. You read it as you wrote it.
       if (user.id == currentUserId) continue;
       final readAt = reads[user.id];
@@ -211,13 +261,17 @@ class MessageReceiptsScreen extends StatelessWidget {
       // time, and the row shows both.
       final hasRead = readAt != null && !readAt.isBefore(at);
       final hasDelivered = deliveredAt != null && !deliveredAt.isBefore(at);
-      // The cursor decides WHETHER; the wall-clock stamp says WHEN. The
-      // cursor is the read message's own timestamp, so showing it made every
-      // read time equal the sent time. Rows that predate the stamp fall back.
+      // The cursor decides WHETHER; [_when] says WHEN.
+      final own = _times?[user.id];
       final stamps = (
-        readAt: hasRead ? (readTimes[user.id] ?? readAt) : null,
-        deliveredAt:
-            hasDelivered ? (deliverTimes[user.id] ?? deliveredAt) : null,
+        hasRead: hasRead,
+        hasDelivered: hasDelivered,
+        readAt: hasRead
+            ? _when(at, readAt, own?.readAt, readTimes[user.id])
+            : null,
+        deliveredAt: hasDelivered
+            ? _when(at, deliveredAt, own?.deliveredAt, deliverTimes[user.id])
+            : null,
       );
       if (hasRead) {
         out.add(_Entry(user, _ReceiptState.read, stamps));
@@ -248,16 +302,42 @@ class MessageReceiptsScreen extends StatelessWidget {
     });
     return out;
   }
+
+  /// When a cursor that has reached the message stamped [createdAt] did so.
+  ///
+  /// The server's answer for this message when it has one. Otherwise the
+  /// cursor's last-moved [clock], but ONLY when the cursor stopped exactly on
+  /// this message — then its last move is the one that covered it, so the
+  /// clock is this message's own time. Anywhere else the clock belongs to a
+  /// later message, and showing it is the 23:17-reads-as-23:18 bug; null, and
+  /// the row shows the fact without a time. This is also what the screen
+  /// shows in the instant before the server answers, so a correct time never
+  /// changes into a different one in front of the reader.
+  static DateTime? _when(
+    DateTime createdAt,
+    DateTime cursor,
+    DateTime? fromServer,
+    DateTime? clock,
+  ) {
+    if (fromServer != null) return fromServer;
+    if (clock != null && cursor.isAtSameMomentAs(createdAt)) return clock;
+    return null;
+  }
 }
 
 /// How far this message got with one person. Declared in the order the list
 /// shows them — [_Entry] sorts on `index`, so the enum IS the section order.
 enum _ReceiptState { read, delivered, sent, hidden }
 
-/// The two cursors a row can show, each null until it has reached this
-/// message. See the class comment on [MessageReceiptsScreen] for what a
-/// cursor's time means.
-typedef _Cursors = ({DateTime? readAt, DateTime? deliveredAt});
+/// What a row knows: whether each cursor has reached this message, and when,
+/// where that is known. A reached fact with a null time is shown without a
+/// clock. See the class comment on [MessageReceiptsScreen].
+typedef _Cursors = ({
+  bool hasRead,
+  bool hasDelivered,
+  DateTime? readAt,
+  DateTime? deliveredAt,
+});
 
 class _Entry {
   const _Entry(this.user, this.state, this.stamps);
@@ -265,12 +345,18 @@ class _Entry {
   final _ReceiptState state;
   final _Cursors stamps;
 
+  bool get hasRead => stamps.hasRead;
+  bool get hasDelivered => stamps.hasDelivered;
   DateTime? get readAt => stamps.readAt;
   DateTime? get deliveredAt => stamps.deliveredAt;
 
+  /// Whether the message has reached them at all.
+  bool get reached => hasRead || hasDelivered;
+
   /// The furthest the message got with them, for ordering within a bucket:
-  /// the read time for a reader, the delivery time otherwise.
-  DateTime? get at => readAt ?? deliveredAt;
+  /// the read time for a reader, the delivery time otherwise. Null when not
+  /// known, which sorts by name.
+  DateTime? get at => hasRead ? readAt : deliveredAt;
 }
 
 /// Back control and title, in the same shape as every other pushed list screen
@@ -567,7 +653,7 @@ class _ReceiptRowState extends State<_ReceiptRow>
         // the list are legible as two halves from across the room — before
         // reading a single name or heading.
         Opacity(
-          opacity: entry.at == null ? 0.55 : 1,
+          opacity: entry.reached ? 1 : 0.55,
           child: UserAvatar(
             user: user,
             api: widget.api,
@@ -675,6 +761,11 @@ class _ReceiptRowState extends State<_ReceiptRow>
     final name = entry.user.displayName;
     final read = entry.readAt;
     final delivered = entry.deliveredAt;
+    // A fact without a known time is read out as the state alone.
+    if ((entry.hasRead && read == null) ||
+        (entry.hasDelivered && !entry.hasRead && delivered == null)) {
+      return '$name, ${_sectionLabel(l10n, entry.state)}';
+    }
     if (read != null && delivered != null) {
       return l10n.messageReceiptsSemanticDeliveredThenRead(
         name,
@@ -714,10 +805,10 @@ class _Stamps extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final read = entry.readAt;
-    final delivered = entry.deliveredAt;
+    final read = entry.hasRead;
+    final delivered = entry.hasDelivered;
 
-    if (read == null && delivered == null) {
+    if (!read && !delivered) {
       return Text(
         sentenceCaseOf(
           context,
@@ -733,29 +824,30 @@ class _Stamps extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (read != null)
+        if (read)
           _StampLine(
             icon: CupertinoIcons.eye,
             label: l10n.messageReceiptsStampRead,
-            at: read,
+            at: entry.readAt,
             sentAt: sentAt,
             strong: true,
           ),
-        if (read != null && delivered != null) const SizedBox(height: 3),
-        if (delivered != null)
+        if (read && delivered) const SizedBox(height: 3),
+        if (delivered)
           _StampLine(
             icon: CupertinoIcons.checkmark_circle,
             label: l10n.messageReceiptsStampDelivered,
-            at: delivered,
+            at: entry.deliveredAt,
             sentAt: sentAt,
-            strong: read == null,
+            strong: !read,
           ),
       ],
     );
   }
 }
 
-/// One fact and its time. The day and the clock stay two different things —
+/// One fact and its time, or the fact alone when its time is not known. The
+/// day and the clock stay two different things —
 /// the day small and tracked out, the clock in mono — for the reason the
 /// column always had them apart: set in one style, a column of receipts
 /// becomes the same length of grey on every row, and the eye has nothing to
@@ -771,7 +863,7 @@ class _StampLine extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final DateTime at;
+  final DateTime? at;
   final DateTime sentAt;
 
   /// The row's headline fact, set in full ink; the other one steps back.
@@ -780,8 +872,8 @@ class _StampLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final day = _dayOf(at);
-    final showDay = day != _dayOf(sentAt);
+    final at = this.at;
+    final showDay = at != null && _dayOf(at) != _dayOf(sentAt);
     final tiny = theme.bodySoft.copyWith(
       color: theme.inkMuted,
       fontSize: 13,
@@ -798,21 +890,23 @@ class _StampLine extends StatelessWidget {
         // An inline note beside the clock ("Read 14:35"), as iMessage words
         // it — not a heading; the section above already says "Read".
         Text(label, style: tiny),
-        const SizedBox(width: 6),
-        if (showDay) ...[
-          Text(transcriptDay(context, at), style: tiny),
-          const SizedBox(width: 4),
-        ],
-        Text(
-          formatClockTime(at),
-          style: theme.body.copyWith(
-            fontSize: strong ? 15 : 13,
-            height: 1.1,
-            fontFeatures: const [FontFeature.tabularFigures()],
-            color: strong ? theme.ink : theme.inkSoft,
-            fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
+        if (at != null) ...[
+          const SizedBox(width: 6),
+          if (showDay) ...[
+            Text(transcriptDay(context, at), style: tiny),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            formatClockTime(at),
+            style: theme.body.copyWith(
+              fontSize: strong ? 15 : 13,
+              height: 1.1,
+              fontFeatures: const [FontFeature.tabularFigures()],
+              color: strong ? theme.ink : theme.inkSoft,
+              fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

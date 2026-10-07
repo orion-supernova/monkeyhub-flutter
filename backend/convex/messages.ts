@@ -14,6 +14,7 @@ import {
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { lensFor } from "./visibility";
+import { appendReceiptLog, receiptTimeFor } from "./receiptLog";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -2961,11 +2962,31 @@ export const markRoomRead = mutation({
     const clock = Date.now();
     const cursor = upTo ?? clock;
     const deliveredBefore = membership.lastDeliveredAt ?? 0;
+    // Both logs ride the same patch — see receiptLog.ts. A read that is also
+    // what delivered the message (no earlier delivery report reached us)
+    // gives it the same time for both, which is the truth as far as anyone
+    // can know it.
     await ctx.db.patch(membership._id, {
       lastReadAt: cursor,
       lastReadClock: clock,
+      readLog: appendReceiptLog(
+        membership.readLog,
+        membership.lastReadAt ?? 0,
+        cursor,
+        clock,
+      ),
       lastDeliveredAt: Math.max(deliveredBefore, cursor),
-      ...(cursor > deliveredBefore ? { lastDeliveredClock: clock } : {}),
+      ...(cursor > deliveredBefore
+        ? {
+            lastDeliveredClock: clock,
+            deliveredLog: appendReceiptLog(
+              membership.deliveredLog,
+              deliveredBefore,
+              cursor,
+              clock,
+            ),
+          }
+        : {}),
     });
 
     // Reading the room retires its outstanding notifications. The device that
@@ -2985,56 +3006,107 @@ export const markRoomRead = mutation({
 });
 
 /**
- * Mark a room as "delivered up to now" for the given user — the second tick.
+ * Mark a room as delivered up to a message for the given user — the second
+ * tick.
  *
  * Called by a recipient's client when it learns the room has moved but the
  * user has not opened it: the message is on the device, and that is all this
  * claims. Not called per message. The client fires it at most once per room
- * per burst of new traffic, and the guard below drops even that when the
- * cursor is already past the room's newest message, so a chatty or looping
- * client cannot turn this into a write per message.
+ * per burst of new traffic, and the guard in [advanceDelivered] drops even
+ * that when the cursor is already past what it reports, so a chatty or
+ * looping client cannot turn this into a write per message.
  *
- * That guard matters beyond write volume: patching a roomMembers row re-fires
- * `getReadState` for every member of the room and `listUserRooms` for this
- * one, so a no-op patch is not free — it is a rebuild of the sender's receipt
- * stream that says nothing new.
+ * `upTo` is the `createdAt` of the newest message the device actually holds,
+ * the same contract `markRoomRead` has. Without it the cursor was stamped
+ * `Date.now()`, which also claimed any message sent in the gap between the
+ * device's last update and this call, one the device had never seen. Clients
+ * from before the argument send none and get the room's newest message, which
+ * is what the old stamp meant, minus claiming the future.
  */
 export const markRoomDelivered = mutation({
-  args: { roomId: v.id("rooms"), userId: v.id("users") },
-  handler: async (ctx, { roomId, userId }) => {
-    const membership = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) =>
-        q.eq("roomId", roomId).eq("userId", userId)
-      )
-      .first();
-    if (!membership) return; // not a member, silently no-op
-
-    const room = await ctx.db.get(roomId);
-
-    // Above this many members the receipt stops being worth its fan-out: one
-    // patch re-runs `getReadState` for every member, so the cost climbs with
-    // room size exactly as the signal loses meaning ("someone's device has it"
-    // is trivially true the moment a large room is posted to). The client
-    // carries the same threshold and skips the call — this copy is what makes
-    // it hold for an old or misbehaving one, and it is free because the room
-    // is already loaded. One knob, two places, deliberately: see
-    // `ChatRepository.kDeliveryMemberLimit`.
-    if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
-
-    const newest = room?.lastMessageTime ?? 0;
-    const cursor = membership.lastDeliveredAt ?? 0;
-    // Everything this room has is already behind the cursor — there is nothing
-    // to tell anyone.
-    if (cursor >= newest) return;
-
-    const clock = Date.now();
-    await ctx.db.patch(membership._id, {
-      lastDeliveredAt: clock,
-      lastDeliveredClock: clock,
-    });
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    upTo: v.optional(v.number()),
+  },
+  handler: async (ctx, { roomId, userId, upTo }) => {
+    await advanceDelivered(ctx, roomId, userId, upTo);
   },
 });
+
+/**
+ * The same move, reported by the recipient's PHONE rather than the app: the
+ * notification extension (iOS) or the push handler (Android) posts it back
+ * the moment the push lands, app running or not. See `http.ts`
+ * `/receipts/delivered`, which has already checked the push's signature —
+ * that check is the authentication, so this is internal.
+ */
+export const markDeliveredByPush = internalMutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    upTo: v.number(),
+  },
+  handler: async (ctx, { roomId, userId, upTo }) => {
+    await advanceDelivered(ctx, roomId, userId, upTo);
+  },
+});
+
+/**
+ * Moves [userId]'s delivery cursor in [roomId] up to [upTo] (or the room's
+ * newest message), logging the move. No-op when it would not move.
+ *
+ * The no-op matters beyond write volume: patching a roomMembers row re-fires
+ * `getReadState` for every member of the room and `listUserRooms` for this
+ * one, so a patch that says nothing new is a rebuild of the sender's receipt
+ * stream for nothing. It is also what makes the push path safe to repeat: the
+ * app and the extension both reporting the same message is one write.
+ */
+async function advanceDelivered(
+  ctx: any,
+  roomId: Id<"rooms">,
+  userId: Id<"users">,
+  upTo: number | undefined,
+): Promise<void> {
+  const membership = await ctx.db
+    .query("roomMembers")
+    .withIndex("by_room_user", (q: any) =>
+      q.eq("roomId", roomId).eq("userId", userId)
+    )
+    .first();
+  if (!membership) return; // not a member, silently no-op
+
+  const room = await ctx.db.get(roomId);
+
+  // Above this many members the receipt stops being worth its fan-out: one
+  // patch re-runs `getReadState` for every member, so the cost climbs with
+  // room size exactly as the signal loses meaning ("someone's device has it"
+  // is trivially true the moment a large room is posted to). The client
+  // carries the same threshold and skips the call — this copy is what makes
+  // it hold for an old or misbehaving one, and it is free because the room
+  // is already loaded. One knob, two places, deliberately: see
+  // `ChatRepository.kDeliveryMemberLimit`.
+  if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
+
+  // Never past the room's newest message: nothing can have been delivered
+  // that has not been sent.
+  const newest = room?.lastMessageTime ?? 0;
+  const target = upTo === undefined ? newest : Math.min(upTo, newest);
+  const cursor = membership.lastDeliveredAt ?? 0;
+  if (cursor >= target) return;
+
+  const clock = Date.now();
+  await ctx.db.patch(membership._id, {
+    lastDeliveredAt: target,
+    lastDeliveredClock: clock,
+    deliveredLog: appendReceiptLog(
+      membership.deliveredLog,
+      cursor,
+      target,
+      clock,
+    ),
+  });
+}
 
 /**
  * Returns each member's delivery and read cursors for a room, each filtered by
@@ -3129,6 +3201,62 @@ export const getReadState = query({
         // Same gate as the cursors they stamp.
         readClock: shares ? (m.lastReadClock ?? null) : null,
         deliveredClock: shares ? (m.lastDeliveredClock ?? null) : null,
+      });
+    }
+    return out;
+  },
+});
+
+/**
+ * When THIS message reached each member and when they read it — the times the
+ * receipts screen shows.
+ *
+ * A separate query rather than more fields on `getReadState` because that one
+ * is the subscription every open room holds, and these logs are a few KB per
+ * member that only one screen ever wants. This runs only while that screen is
+ * open, and re-fires on the same `roomMembers` patches, so a receipt that
+ * lands while it is open still arrives live.
+ *
+ * WHETHER a message got there is still the cursors' job (`getReadState`).
+ * This answers WHEN, and answers null where that is not known — the message
+ * reached them before its cursor kept a log, or so long ago the log has moved
+ * on. See receiptLog.ts.
+ *
+ * Same gate as `getReadState`: a member who does not share `seen` with the
+ * viewer is omitted, and the viewer's own row is not a receipt and is left out.
+ */
+export const getReceiptTimes = query({
+  identityArg: "viewerUserId" as const,
+  args: {
+    roomId: v.id("rooms"),
+    viewerUserId: v.id("users"),
+    createdAt: v.number(),
+  },
+  handler: async (ctx, { roomId, viewerUserId, createdAt }) => {
+    const members = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
+      .collect();
+    const lens = await lensFor(ctx, viewerUserId);
+    const out: Array<{
+      userId: any;
+      readAt: number | null;
+      deliveredAt: number | null;
+    }> = [];
+    for (const m of members) {
+      if (lens.isSelf(m.userId)) continue;
+      const subject = { _id: m.userId, visibility: { seen: m.seenVisibility } };
+      if (!lens.canSee(subject, "seen")) continue;
+      out.push({
+        userId: m.userId,
+        readAt:
+          (m.lastReadAt ?? 0) >= createdAt
+            ? receiptTimeFor(m.readLog, createdAt)
+            : null,
+        deliveredAt:
+          (m.lastDeliveredAt ?? 0) >= createdAt
+            ? receiptTimeFor(m.deliveredLog, createdAt)
+            : null,
       });
     }
     return out;
