@@ -1,7 +1,8 @@
 /**
  * HTTP endpoints.
  *
- * There is exactly one, and it exists because of a property of this
+ * Two of them. `/receipts/delivered` is documented at its route. The first
+ * exists because of a property of this
  * deployment: `ctx.storage.getUrl` here returns `<site>/api/storage/<uuid>`
  * with no signature and no expiry (lib/media/file_url_cache.dart documents
  * this and caches URLs across launches on the strength of it). A URL like that
@@ -17,6 +18,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { verifyReceipt } from "./receiptToken";
 
 const http = httpRouter();
 
@@ -84,6 +86,69 @@ http.route({
         "Content-Disposition": "inline",
       },
     });
+  }),
+});
+
+/**
+ * A recipient's phone saying a message push arrived — the second tick, from
+ * the notification extension (iOS), the push handler (Android) or the service
+ * worker (web), with the app possibly not running at all. The body echoes the
+ * fields the push carried; the signature over them is the whole of the
+ * authentication. See receiptToken.ts.
+ *
+ * Answers 204 to anything well-formed whose signature checks out, whether or
+ * not it moved the cursor, and 403 otherwise. The caller is a process that is
+ * about to exit and will not retry either way.
+ */
+const receiptCors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+http.route({
+  path: "/receipts/delivered",
+  method: "OPTIONS",
+  handler: httpAction(async () => new Response(null, { status: 204, headers: receiptCors })),
+});
+
+http.route({
+  path: "/receipts/delivered",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const deny = () =>
+      new Response("forbidden", { status: 403, headers: receiptCors });
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return deny();
+    }
+    const { roomId, userId, createdAt, sig } = body ?? {};
+    if (
+      typeof roomId !== "string" ||
+      typeof userId !== "string" ||
+      typeof createdAt !== "string" ||
+      typeof sig !== "string"
+    ) {
+      return deny();
+    }
+    const upTo = Number(createdAt);
+    if (!Number.isFinite(upTo)) return deny();
+    if (!(await verifyReceipt(roomId, userId, createdAt, sig))) return deny();
+    try {
+      await ctx.runMutation(internal.messages.markDeliveredByPush, {
+        roomId: roomId as any,
+        userId: userId as any,
+        upTo,
+      });
+    } catch (e) {
+      // Signed by us, so the ids were real when the push left. A room or
+      // account deleted since is the only way here; nothing to tell anyone.
+      console.warn(`receipts/delivered: ${(e as Error).message}`);
+    }
+    return new Response(null, { status: 204, headers: receiptCors });
   }),
 });
 

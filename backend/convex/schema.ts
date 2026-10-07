@@ -383,6 +383,16 @@ export default defineSchema({
     // falls back to the cursor.
     lastReadClock: v.optional(v.number()),
     lastDeliveredClock: v.optional(v.number()),
+    // Each cursor's recent moves, so a message's own delivered/read time can
+    // be found again after the cursor has moved past it — the clocks above
+    // only ever hold the newest move. Bounded; see receiptLog.ts. Absent on
+    // rows not advanced since it was added.
+    readLog: v.optional(
+      v.array(v.object({ upTo: v.number(), at: v.number() })),
+    ),
+    deliveredLog: v.optional(
+      v.array(v.object({ upTo: v.number(), at: v.number() })),
+    ),
     // Per-viewer chat-list organization. Lives here, not on `rooms`, because
     // pinning/archiving a chat is inherently per-member — the same room can
     // be pinned for one member and untouched for everyone else in it.
