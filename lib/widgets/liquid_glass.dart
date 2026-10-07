@@ -30,6 +30,11 @@ abstract final class MediaGlass {
   static const fill = Color(0x2BFFFFFF);
   static const fillPressed = Color(0x3DFFFFFF);
 
+  /// The same glass with nothing behind it — for chrome that fades or flies,
+  /// where a `BackdropFilter` is never drawn. Matched to what [fill] looks
+  /// like over the black of a viewer, so the two never read as two buttons.
+  static const stillFill = Color(0xF2262628);
+
   /// Hairline that separates the glass from whatever is behind it. Without it
   /// a button over a light photo has no edge at all.
   static const stroke = Color(0x33FFFFFF);
@@ -72,7 +77,12 @@ class LiquidGlass extends StatelessWidget {
     this.semanticLabel,
     this.config,
     this.neutral = false,
+    this.still = false,
   });
+
+  /// No backdrop blur — [GlassTone.media] only — for glass that fades or
+  /// moves. Same shape, rim and light; a solid fill in place of the blur.
+  final bool still;
 
   final Widget child;
   final LiquidGlassShape shape;
@@ -224,37 +234,75 @@ class LiquidGlass extends StatelessWidget {
     ]);
   }
 
-  /// Glass over a photograph: fixed neutral dark, white hairline, the one
-  /// media blur. A [tint] makes it a solid, lit control.
+  /// Glass over a photograph, the iOS 26 Photos way: clear dark glass with
+  /// light pooling at the top and a specular edge brightest along the top —
+  /// not a filled disc with a dropped shadow and an even outline, which is
+  /// Material elevation and read as Android over a photo. A [tint] makes it a
+  /// solid, lit control.
   Widget _media(bool pressed) {
     final t = tint;
-    final fill = t ?? (pressed ? MediaGlass.fillPressed : MediaGlass.fill);
-    final stroke = t == null
-        ? MediaGlass.stroke
-        : Color.lerp(t, const Color(0xFFFFFFFF), 0.25)!;
-    final blurred = ClipPath(
-      clipper: ShapeBorderClipper(shape: _border()),
-      child: BackdropFilter.grouped(
-        filter: ImageFilter.blur(
-          sigmaX: MediaGlass.blurSigma,
-          sigmaY: MediaGlass.blurSigma,
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(child: ColoredBox(color: fill)),
-            _content(),
-          ],
-        ),
-      ),
+    final shape = _border();
+    final Color fill;
+    if (t != null) {
+      fill = t;
+    } else if (still) {
+      fill = pressed
+          ? Color.lerp(MediaGlass.stillFill, const Color(0xFFFFFFFF), 0.08)!
+          : MediaGlass.stillFill;
+    } else {
+      fill = pressed ? MediaGlass.fillPressed : MediaGlass.fill;
+    }
+    final body = Stack(
+      children: [
+        Positioned.fill(child: ColoredBox(color: fill)),
+        if (t == null)
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.10),
+                    // Transparent WHITE: fading to transparent black lays a
+                    // grey band across the glass.
+                    Colors.white.withValues(alpha: 0),
+                  ],
+                  stops: const [0.0, 0.6],
+                ),
+              ),
+            ),
+          ),
+        _content(),
+      ],
     );
-    // Stroke and shadow sit outside the clip so the shadow casts past the
-    // glass instead of being cut off at its own edge.
+    final clipped = ClipPath(
+      clipper: ShapeBorderClipper(shape: shape),
+      child: still || t != null
+          ? body
+          : BackdropFilter.grouped(
+              filter: ImageFilter.blur(
+                sigmaX: MediaGlass.blurSigma,
+                sigmaY: MediaGlass.blurSigma,
+              ),
+              child: body,
+            ),
+    );
+    // Rim and shadow sit outside the clip so the shadow casts past the glass
+    // instead of being cut off at its own edge. Centred, never dropped.
     return DecoratedBox(
       decoration: ShapeDecoration(
-        shape: _border(side: BorderSide(color: stroke, width: 0.8)),
+        shape: shape,
         shadows: shadow ? const [MediaGlass.shadow] : null,
       ),
-      child: blurred,
+      child: CustomPaint(
+        foregroundPainter: SpecularRim(
+          shape: shape,
+          light: false,
+          opacity: t == null ? 1 : 0.7,
+        ),
+        child: clipped,
+      ),
     );
   }
 

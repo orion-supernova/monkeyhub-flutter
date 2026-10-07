@@ -10549,4 +10549,68 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get interactionRetry => '再試行';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'キャプションを追加…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint => '1回表示の写真にはキャプションを付けられません';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel => 'もう1枚撮る';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count枚の写真を破棄しますか？',
+      one: 'この写真を破棄しますか？',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody => '編集内容とキャプションは失われます。';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => '破棄';
+
+  @override
+  String get galleryTrayRecentsTitle => '最近の項目';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'カメラに戻る';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'すべての写真';
+
+  @override
+  String get galleryTrayHandleLabel => '最近の写真';
+
+  @override
+  String get galleryTrayAllowPrompt => '最近の写真をここに表示';
+
+  @override
+  String get galleryTrayAllowButton => '許可';
+
+  @override
+  String get galleryTrayDeniedPrompt => '写真へのアクセスがオフです';
+
+  @override
+  String get galleryTraySettingsButton => '設定';
+
+  @override
+  String get galleryTrayLimitedNote => '許可した写真のみ表示しています';
+
+  @override
+  String get galleryTrayManageButton => '管理';
+
+  @override
+  String get galleryTrayEmpty => 'まだ写真がありません';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return '写真 $index';
+  }
 }

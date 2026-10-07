@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
@@ -14,6 +15,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
+import 'remote_image.dart';
 import 'schedule_message_sheet.dart';
 import 'ios_kit.dart';
 import 'sheet_kit.dart';
@@ -566,10 +568,13 @@ class _ScheduledRowState extends State<_ScheduledRow> {
   }
 
   Future<void> _changeTime() async {
+    final m = widget.message;
     final choice = await showScheduleMessageSheet(
       context,
       mode: ScheduleSheetMode.reschedule,
-      preview: widget.message.content,
+      preview: m.isPhoto && m.content.isEmpty
+          ? AppLocalizations.of(context).attachmentMenuPhotoLabel
+          : m.content,
       initial: widget.message.sendAt,
     );
     // Reschedule mode never offers the queue row — we are already looking at
@@ -585,6 +590,9 @@ class _ScheduledRowState extends State<_ScheduledRow> {
     final text = await showScheduledEditSheet(
       context,
       initial: widget.message.content,
+      // A photo's caption may be taken off entirely; a text message may not
+      // be emptied — the server holds the same line.
+      allowEmpty: widget.message.isPhoto,
     );
     if (text == null || !mounted) return;
     await _run(() => widget.repo.updateScheduledText(
@@ -660,12 +668,15 @@ class _ScheduledRowState extends State<_ScheduledRow> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              m.content,
-              style: groupedTitleStyle(theme),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
+            if (m.isPhoto)
+              _PhotoLine(message: m, api: widget.repo.api)
+            else
+              Text(
+                m.content,
+                style: groupedTitleStyle(theme),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             if (failed) ...[
               const SizedBox(height: 6),
               Text(
@@ -764,20 +775,25 @@ class _RowAction extends StatelessWidget {
 Future<String?> showScheduledEditSheet(
   BuildContext context, {
   required String initial,
+  bool allowEmpty = false,
 }) {
   return showAdaptiveSheet<String>(
     context,
     // Matches its two siblings. Without it, a tall keyboard pushes this sheet
     // up under the status bar.
     useSafeArea: true,
-    builder: (_) => _ScheduledEditSheet(initial: initial),
+    builder: (_) =>
+        _ScheduledEditSheet(initial: initial, allowEmpty: allowEmpty),
   );
 }
 
 class _ScheduledEditSheet extends StatefulWidget {
-  const _ScheduledEditSheet({required this.initial});
+  const _ScheduledEditSheet({required this.initial, this.allowEmpty = false});
 
   final String initial;
+
+  /// A photo's caption, which may be cleared. Text may not.
+  final bool allowEmpty;
 
   @override
   State<_ScheduledEditSheet> createState() => _ScheduledEditSheetState();
@@ -824,7 +840,7 @@ class _ScheduledEditSheetState extends State<_ScheduledEditSheet> {
           const SizedBox(height: 16),
           SheetActionButton(
             label: l10n.scheduleSheetSaveButton,
-            onTap: _controller.text.trim().isEmpty
+            onTap: _controller.text.trim().isEmpty && !widget.allowEmpty
                 ? null
                 : () => Navigator.of(context).pop(_controller.text.trim()),
           ),
@@ -838,3 +854,50 @@ class _ScheduledEditSheetState extends State<_ScheduledEditSheet> {
 double _lineHeightOf(BuildContext context, TextStyle style) =>
     MediaQuery.textScalerOf(context).scale(style.fontSize ?? 15) *
     (style.height ?? 1.2);
+
+/// A queued photo in the list: the picture that will go out, and its caption
+/// — or the word "Photo" when it has none. The file is already on the server,
+/// so this is the real thing, not a stand-in.
+class _PhotoLine extends StatelessWidget {
+  const _PhotoLine({required this.message, required this.api});
+
+  final ScheduledMessage message;
+  final ChatApi api;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final caption = message.content;
+    return Row(
+      children: [
+        SizedBox.square(
+          dimension: 52,
+          child: RemoteImage(
+            storageId: message.mediaStorageId!,
+            api: api,
+            fit: BoxFit.cover,
+            borderRadius: BorderRadius.circular(10),
+            decodeWidth:
+                (52 * MediaQuery.devicePixelRatioOf(context)).round(),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            caption.isEmpty ? l10n.attachmentMenuPhotoLabel : caption,
+            style: caption.isEmpty
+                ? groupedSubtitleStyle(theme)
+                : groupedTitleStyle(theme),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (message.viewOnce) ...[
+          const SizedBox(width: 8),
+          Icon(CupertinoIcons.flame_fill, size: 16, color: theme.accent),
+        ],
+      ],
+    );
+  }
+}

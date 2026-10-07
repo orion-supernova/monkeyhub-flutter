@@ -134,7 +134,8 @@ export async function releaseMessageBlobs(ctx: any, msg: any) {
 /**
  * Every storage id any row currently points at.
  *
- * The five fields are the complete set of `v.id("_storage")` in `schema.ts`.
+ * Every `v.id("_storage")` field in `schema.ts` that can be a file's only
+ * pointer.
  * `replyToPreview.mediaStorageId` is a *denormalized copy* of a parent
  * message's id, snapshotted at send time — it counts as a live reference, or a
  * file still rendered inside a reply preview would be swept out from under it.
@@ -192,6 +193,21 @@ async function collectReferenced(ctx: any): Promise<Set<string> | null> {
   const stickers = await scan("stickers");
   if (stickers === null) return null;
   for (const s of stickers) add(s.storageId);
+
+  // Scheduled photos. Uploaded when the sender scheduled them and pointed at
+  // by nothing else until they go out — up to a year later. Without this the
+  // sweep deletes the picture a day after it was scheduled, and the release
+  // posts a photo whose bytes are gone.
+  const scheduled = await scan("scheduledMessages");
+  if (scheduled === null) return null;
+  for (const r of scheduled) add(r.mediaStorageId);
+
+  // A proposed room picture waiting on an admin. Same shape: the row is the
+  // file's only pointer until it is approved, and an admin who takes more
+  // than a day to decide must not find the picture already gone.
+  const proposals = await scan("roomChangeRequests");
+  if (proposals === null) return null;
+  for (const r of proposals) add(r.storageId);
 
   return referenced;
 }

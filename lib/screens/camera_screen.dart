@@ -4,7 +4,9 @@ import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:photo_manager/photo_manager.dart' show AssetEntity, ThumbnailSize;
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
+import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,6 +16,8 @@ import '../l10n/text_case.dart';
 import '../media/preview_luminance.dart';
 import '../media/video_poster.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_toast.dart';
+import '../widgets/gallery_tray.dart';
 import '../widgets/photo_chrome.dart';
 import '../widgets/spring_press.dart';
 import 'room_items.dart' show formatClockDuration;
@@ -48,7 +52,20 @@ class CameraScreen<T> extends StatefulWidget {
     required this.review,
     this.initialLens = CameraLensDirection.back,
     this.allowVideo = false,
+    this.showGallery = true,
+    this.resume,
   });
+
+  /// Whether the recents strip sits above the shutter. See [GalleryTray] —
+  /// it only appears where the platform has a library to read.
+  final bool showGallery;
+
+  /// Reopens the caller's review surface without a new capture, for a caller
+  /// that is gathering several photos: backing out of the camera while some
+  /// are waiting goes back to them rather than throwing them away. Returns
+  /// null when there is nothing waiting, and the camera simply closes.
+  final Future<ReviewDecision<T>> Function(BuildContext context)? Function()?
+  resume;
 
   /// Whether the PHOTO/VIDEO switch is offered at all.
   ///
@@ -80,6 +97,9 @@ class CameraScreen<T> extends StatefulWidget {
     required CameraReviewer<T> review,
     CameraLensDirection initialLens = CameraLensDirection.back,
     bool allowVideo = false,
+    bool showGallery = true,
+    Future<ReviewDecision<T>> Function(BuildContext context)? Function()?
+    resume,
   }) {
     return Navigator.of(context).push<CameraResult<T>>(
       MaterialPageRoute(
@@ -88,6 +108,8 @@ class CameraScreen<T> extends StatefulWidget {
           review: review,
           initialLens: initialLens,
           allowVideo: allowVideo,
+          showGallery: showGallery,
+          resume: resume,
         ),
       ),
     );
@@ -124,12 +146,17 @@ class ReviewDone<T> extends ReviewDecision<T> {
   final T? value;
 }
 
-/// Throw this one away and shoot again.
+/// Throw this one away and shoot again — or, for a caller gathering several
+/// photos, go get another.
 ///
 /// Costs a controller restart rather than a route: the camera is still on the
 /// stack under the review surface, so RETAKE is that surface popping.
+///
+/// [gallery] comes back with the recents tray open full, for "add from
+/// library".
 class ReviewRetake<T> extends ReviewDecision<T> {
-  const ReviewRetake();
+  const ReviewRetake({this.gallery = false});
+  final bool gallery;
 }
 
 /// How the camera screen finished.
@@ -272,6 +299,17 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// user was just looking at rather than the black of a dead camera.
   CameraPhoto? _reviewing;
 
+  /// Whether a review surface is up over this route. Separate from
+  /// [_reviewing] because a resumed review has no new photo to paint.
+  bool _inReview = false;
+
+  final GalleryTrayController _tray = GalleryTrayController();
+
+  /// The tray covers the viewfinder, so the preview is paused under it.
+  bool _trayFull = false;
+
+  bool get _trayShown => widget.showGallery && GalleryTray.supported;
+
   /// Where the last tap-to-focus landed, in this widget's local coordinates.
   /// Null once the reticle has faded out.
   Offset? _focusPoint;
@@ -330,6 +368,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     _recordTicker?.cancel();
     _controller?.removeListener(_onControllerUpdate);
     _controller?.dispose();
+    _tray.dispose();
     super.dispose();
   }
 
@@ -356,7 +395,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       // starting a capture session behind it would light the recording
       // indicator for a camera nobody is pointing at anything. _review binds a
       // controller again if they ask to retake.
-      if (_reviewing == null) _select(_lens);
+      if (!_inReview) _select(_lens);
     }
   }
 
@@ -472,6 +511,64 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       _fault = null;
     });
     await _syncMetering();
+    // Bound while the gallery covers the screen — a retake that came back to
+    // "add from library", or a resume behind it.
+    if (_trayFull) await _setPreviewPaused(true);
+  }
+
+  /// Stops drawing frames under a gallery that hides them, without letting go
+  /// of the session — collapsing the tray then shows a live camera at once.
+  Future<void> _setPreviewPaused(bool paused) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    try {
+      if (paused) {
+        await controller.pausePreview();
+      } else {
+        await controller.resumePreview();
+      }
+    } catch (_) {
+      // Not every platform can pause; a preview that keeps running under the
+      // grid costs battery, not correctness.
+    }
+  }
+
+  void _onTrayFull(bool full) {
+    if (_trayFull == full) return;
+    setState(() => _trayFull = full);
+    unawaited(_setPreviewPaused(full));
+  }
+
+  /// One tap in the recents tray. The photo is reviewed exactly as a capture
+  /// is — over this route, which stays where it is underneath.
+  Future<void> _pickFromTray(AssetEntity asset) async {
+    if (_capturing || _recording || _inReview) return;
+    final toast = AppToast.of(context);
+    final failed = AppLocalizations.of(context).mediaPickFailedMessage;
+    final bytes = await GalleryTray.loadBytes(asset);
+    if (!mounted || _inReview) return;
+    if (bytes == null || bytes.isEmpty) {
+      toast.show(failed, tone: ToastTone.danger);
+      return;
+    }
+    final photo = CameraPhoto(bytes: bytes, mirrored: false);
+    await _review(photo, () => widget.review(context, photo));
+  }
+
+  /// The ×, and the system back: shut the gallery first, then hand back to a
+  /// review that is still waiting, and only then close.
+  void _close() {
+    if (_capturing || _recording) return;
+    if (_trayFull) {
+      _tray.collapse();
+      return;
+    }
+    final resume = widget.resume?.call();
+    if (resume != null && !_inReview) {
+      unawaited(_review(null, () => resume(context)));
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   /// A session can die mid-flight — thermal shutdown, another app seizing the
@@ -909,29 +1006,35 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       return;
     }
     if (!mounted) return;
-    await _review(
-      CameraPhoto(
-        bytes: bytes,
-        // Not mirrored here — the screen that receives this rasterizes once
-        // anyway and folds the flip into that pass, so the shutter returns
-        // immediately instead of stalling on a full-resolution re-encode.
-        mirrored: _isFront && _captureNeedsMirroring,
-      ),
+    final photo = CameraPhoto(
+      bytes: bytes,
+      // Not mirrored here — the screen that receives this rasterizes once
+      // anyway and folds the flip into that pass, so the shutter returns
+      // immediately instead of stalling on a full-resolution re-encode.
+      mirrored: _isFront && _captureNeedsMirroring,
     );
+    await _review(photo, () => widget.review(context, photo));
   }
 
-  /// Hands [photo] to the caller's review surface and does what it says.
+  /// Opens the caller's review surface — over [photo], or with nothing new
+  /// for a resumed one — and does what it says.
   ///
   /// The review is pushed on top of this route while it is still live — see
   /// [CameraScreen.review] for why — so the two things that follow are not a
   /// pop and a push but a pop and *nothing*: RETAKE reveals the camera that was
   /// there all along, and finishing closes it with the reviewed value.
-  Future<void> _review(CameraPhoto photo) async {
-    setState(() => _reviewing = photo);
+  Future<void> _review(
+    CameraPhoto? photo,
+    Future<ReviewDecision<T>> Function() open,
+  ) async {
+    setState(() {
+      _reviewing = photo;
+      _inReview = true;
+    });
     // Started, not awaited, before the session is let go: the review surface
     // pushes its route synchronously, so the frame that swaps the preview for
     // the still is the same frame the review covers it.
-    final decision = widget.review(context, photo);
+    final decision = open();
     final released = _release();
 
     final outcome = await decision;
@@ -942,7 +1045,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
         // _reviewing deliberately left set — this route is about to dismiss and
         // should carry the photo out with it. See the field.
         Navigator.of(context).pop<CameraResult<T>>(CameraReviewed<T>(value));
-      case ReviewRetake():
+      case ReviewRetake(:final gallery):
         // The old session has to be all the way down before the next one is
         // built, or the two overlap on the platform and the second is refused
         // the camera. Long done in practice — nobody reviews a photo in the
@@ -950,7 +1053,13 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
         // reflexes.
         await released;
         if (!mounted) return;
-        setState(() => _reviewing = null);
+        setState(() {
+          _reviewing = null;
+          _inReview = false;
+        });
+        // Before the session is rebuilt, so the gallery is already rising
+        // while the camera starts behind it.
+        if (gallery && _trayShown) _tray.expand();
         await _recover();
         await _select(_lens);
     }
@@ -978,21 +1087,54 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   @override
   Widget build(BuildContext context) {
     final reviewing = _reviewing;
-    return Scaffold(
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final scaffold = Scaffold(
       backgroundColor: Colors.black,
       body: BackdropGroup(
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (reviewing != null)
-              _stillBody(reviewing)
+            if (_inReview)
+              reviewing == null
+                  ? const ColoredBox(color: Colors.black)
+                  : _stillBody(reviewing)
             else if (_fault != null)
               _faultBody()
             else
               _previewBody(),
             // No camera chrome over a still: the shutter and the flash toggle
             // belong to a preview, and this screen is not showing one.
-            if (reviewing == null) SafeArea(child: _chrome()),
+            if (!_inReview) SafeArea(child: _chrome()),
+            // Kept mounted under a review rather than rebuilt after it, so
+            // coming back finds the gallery where it was left — scrolled to
+            // the same place, at the same stop.
+            if (_trayShown && _fault != _Fault.unavailable)
+              Positioned.fill(
+                child: Offstage(
+                  offstage: _inReview,
+                  child: IgnorePointer(
+                    ignoring: _capturing || _recording,
+                    child: AnimatedOpacity(
+                      // Out of the way of a recording, which needs the whole
+                      // viewfinder and has no use for a photo.
+                      opacity: _recording ? 0 : 1,
+                      duration: const Duration(milliseconds: 180),
+                      child: GalleryTray(
+                        controller: _tray,
+                        // Clear of the shutter row and, where there is one,
+                        // the PHOTO/VIDEO switch above it.
+                        anchor: safeBottom + (widget.allowVideo ? 162 : 112),
+                        onPick: _pickFromTray,
+                        onBrowseAll: () {
+                          HapticFeedback.selectionClick();
+                          _pop(CameraPickLibrary<T>());
+                        },
+                        onFullChanged: _onTrayFull,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Above everything, including the chrome: a selfie camera with no
             // flash unit uses the screen itself as the light. Warm rather than
             // pure white, which renders skin as a lamp does instead of as a
@@ -1002,6 +1144,15 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
           ],
         ),
       ),
+    );
+    // The system back goes through [_close] too: it shuts an open gallery and
+    // returns to waiting photos before it ever closes the camera.
+    return PopScope(
+      canPop: !_trayFull && widget.resume?.call() == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close();
+      },
+      child: scaffold,
     );
   }
 
@@ -1170,7 +1321,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                   context,
                 ).cameraScreenCloseButtonLabel,
                 enabled: !_capturing && !_recording,
-                onTap: () => Navigator.of(context).pop(),
+                onTap: _close,
               ),
               const Spacer(),
               if (_recording) ...[
@@ -1271,15 +1422,18 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                             ? null
                             : Align(
                                 alignment: Alignment.centerLeft,
-                                child: GlassIconButton(
-                                  tone: GlassTone.media,
-                                  icon: CupertinoIcons.photo_on_rectangle,
-                                  semanticLabel: AppLocalizations.of(
-                                    context,
-                                  ).cameraScreenChooseFromLibraryLabel,
+                                child: _LibraryButton(
+                                  latest: _trayShown ? _tray.latest : null,
                                   onTap: _capturing
                                       ? null
-                                      : () => _pop(CameraPickLibrary<T>()),
+                                      : () {
+                                          if (_trayShown) {
+                                            HapticFeedback.selectionClick();
+                                            _tray.expand();
+                                          } else {
+                                            _pop(CameraPickLibrary<T>());
+                                          }
+                                        },
                                 ),
                               ),
                       ),
@@ -1652,6 +1806,73 @@ class _RecordingBadge extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The library button: the newest photo as its face, the way the system
+/// camera does it — so the picture it opens onto is already on the button.
+/// The glyph until there is a photo to show.
+class _LibraryButton extends StatelessWidget {
+  const _LibraryButton({required this.latest, required this.onTap});
+
+  final ValueListenable<AssetEntity?>? latest;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = AppLocalizations.of(
+      context,
+    ).cameraScreenChooseFromLibraryLabel;
+    final glyph = GlassIconButton(
+      tone: GlassTone.media,
+      icon: CupertinoIcons.photo_on_rectangle,
+      semanticLabel: label,
+      onTap: onTap,
+    );
+    final source = latest;
+    if (source == null) return glyph;
+    return ValueListenableBuilder<AssetEntity?>(
+      valueListenable: source,
+      builder: (context, asset, _) {
+        if (asset == null) return glyph;
+        return SpringPress(
+          onTap: onTap,
+          semanticLabel: label,
+          scale: PressSpec.scaleSmall,
+          focusShape: FocusRingShape.rounded,
+          focusRadius: 11,
+          // The tap's own handler ticks; one haptic per press.
+          haptic: false,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Container(
+              key: ValueKey(asset.id),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: MediaGlass.ink, width: 1.5),
+                boxShadow: const [MediaGlass.shadow],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9.5),
+                child: Image(
+                  image: AssetEntityImageProvider(
+                    asset,
+                    isOriginal: false,
+                    thumbnailSize: const ThumbnailSize.square(240),
+                  ),
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                  errorBuilder: (_, _, _) =>
+                      const ColoredBox(color: kMediaScrim),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

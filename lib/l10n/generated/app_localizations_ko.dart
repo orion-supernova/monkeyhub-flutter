@@ -10575,4 +10575,68 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get interactionRetry => '다시 시도';
+
+  @override
+  String get cameraEditorScreenCaptionHint => '캡션 추가…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint => '한 번 보기 사진에는 캡션을 달 수 없어요';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel => '한 장 더 찍기';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '사진 $count장을 삭제할까요?',
+      one: '이 사진을 삭제할까요?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody => '편집 내용과 캡션이 사라져요.';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => '삭제';
+
+  @override
+  String get galleryTrayRecentsTitle => '최근 항목';
+
+  @override
+  String get galleryTrayBackToCameraLabel => '카메라로 돌아가기';
+
+  @override
+  String get galleryTrayAllPhotosLabel => '모든 사진';
+
+  @override
+  String get galleryTrayHandleLabel => '최근 사진';
+
+  @override
+  String get galleryTrayAllowPrompt => '최근 사진을 여기에서 보기';
+
+  @override
+  String get galleryTrayAllowButton => '허용';
+
+  @override
+  String get galleryTrayDeniedPrompt => '사진 접근이 꺼져 있어요';
+
+  @override
+  String get galleryTraySettingsButton => '설정';
+
+  @override
+  String get galleryTrayLimitedNote => '허용한 사진만 표시 중';
+
+  @override
+  String get galleryTrayManageButton => '관리';
+
+  @override
+  String get galleryTrayEmpty => '아직 사진이 없어요';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return '사진 $index';
+  }
 }

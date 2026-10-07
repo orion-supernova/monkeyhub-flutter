@@ -477,7 +477,12 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app needs to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app requires access to your photo library.</string>
+	<string>Shows your recent photos under the camera so you can send one with a tap.</string>
+	<!-- With "Limited" access, iOS would otherwise re-offer its select-more
+	     sheet on every launch that touches the library. The camera's recents
+	     strip offers its own "Manage" button instead. -->
+	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
+	<true/>
 	<!-- Location sharing. Two tiers, and the difference between them is the
 	     whole permission story:
 

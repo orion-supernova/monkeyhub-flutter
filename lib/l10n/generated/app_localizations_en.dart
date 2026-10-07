@@ -10996,4 +10996,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get interactionRetry => 'Try again';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'Add a caption…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint =>
+      'No captions on view-once photos';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel =>
+      'Take another photo';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Discard $count photos?',
+      one: 'Discard this photo?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody =>
+      'Your edits and captions will be lost.';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => 'Discard';
+
+  @override
+  String get galleryTrayRecentsTitle => 'Recents';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'Back to camera';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'All photos';
+
+  @override
+  String get galleryTrayHandleLabel => 'Recent photos';
+
+  @override
+  String get galleryTrayAllowPrompt => 'See your recent photos here';
+
+  @override
+  String get galleryTrayAllowButton => 'Allow';
+
+  @override
+  String get galleryTrayDeniedPrompt => 'Photo access is off';
+
+  @override
+  String get galleryTraySettingsButton => 'Settings';
+
+  @override
+  String get galleryTrayLimitedNote => 'Showing only the photos you’ve allowed';
+
+  @override
+  String get galleryTrayManageButton => 'Manage';
+
+  @override
+  String get galleryTrayEmpty => 'No photos yet';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return 'Photo $index';
+  }
 }

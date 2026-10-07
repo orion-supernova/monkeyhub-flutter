@@ -88,7 +88,7 @@ void main() {
         ),
       ),
     );
-    expect(find.byIcon(CupertinoIcons.xmark), findsNothing);
+    expect(find.byIcon(CupertinoIcons.trash_fill), findsNothing);
 
     final removed = <int>[];
     await tester.pumpWidget(
@@ -103,10 +103,27 @@ void main() {
       ),
     );
 
-    final badges = find.byIcon(CupertinoIcons.xmark);
-    expect(badges, findsNWidgets(3));
-    await tester.tap(badges.at(1));
-    expect(removed, [1]);
+    // One badge, on the current tile only: the others are for switching to,
+    // and a badge on each sat where the thumb lands when doing that.
+    final badges = find.byIcon(CupertinoIcons.trash_fill);
+    expect(badges, findsOneWidget);
+    await tester.tap(badges);
+    expect(removed, [0]);
+
+    await tester.pumpWidget(
+      host(
+        MediaFilmstrip(
+          count: 3,
+          index: 2,
+          onTap: (_) {},
+          onRemove: removed.add,
+          thumbnailBuilder: (_, i) => swatch(i),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(CupertinoIcons.trash_fill));
+    expect(removed, [0, 2]);
   });
 
   testWidgets('a rail that fits does not scroll, and a longer one does', (

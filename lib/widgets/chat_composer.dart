@@ -1,9 +1,6 @@
-import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/mention_session.dart';
@@ -11,24 +8,13 @@ import '../keyboard/focusable_tap.dart';
 import '../keyboard/mention_keyboard_nav.dart';
 import '../keyboard/submit_on_enter.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/interaction.dart';
-import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'composer_format_toolbar.dart';
-import 'haptic_ramp.dart';
+import 'send_button.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
-
-/// How long a press has to last before the hold ring is allowed to appear.
-///
-/// A tap is over in well under this; a hold is only a third of the way through
-/// it. So the ring never shows on a send, and a user who genuinely means to
-/// hold sees it come up almost at once. Below roughly 100ms it starts catching
-/// deliberate taps again, and much above 150ms the hold feels unresponsive
-/// before anything happens — this is the window between those.
-const Duration _kHoldRingLead = Duration(milliseconds: 130);
 
 /// The composer's send button.
 ///
@@ -42,7 +28,7 @@ const Duration _kHoldRingLead = Duration(milliseconds: 130);
 /// composer has text (see the `AnimatedSwitcher`s below), so with an empty
 /// composer there is nothing here to badge. `ScheduledPill` above the composer
 /// is what carries that state persistently.
-class _SendButton extends StatefulWidget {
+class _SendButton extends StatelessWidget {
   const _SendButton({
     super.key,
     required this.onSend,
@@ -64,277 +50,26 @@ class _SendButton extends StatefulWidget {
   final int scheduledCount;
 
   @override
-  State<_SendButton> createState() => _SendButtonState();
-}
-
-class _SendButtonState extends State<_SendButton>
-    with SingleTickerProviderStateMixin {
-  /// Drives the ring that sweeps around the button while it is held.
-  ///
-  /// The whole point is that a hold has to LOOK like it is going somewhere.
-  /// Without it the button sits there for 400ms and the user either lets go
-  /// (thinking it is broken) or is surprised by a sheet. The ring is the
-  /// mechanism iOS uses for the same gesture, rather than a fade or a wobble
-  /// tuned until it feels long enough.
-  late final AnimationController _hold;
-
-  /// The vibration that builds with the ring, and stops the instant it does.
-  late final HapticRamp _holdHaptics;
-
-  /// Waits out [_kHoldRingLead] before the ring is allowed to start.
-  ///
-  /// This is the whole fix for the ring flashing on an ordinary tap.
-  /// `onLongPressDown` fires on POINTER-DOWN — the recognizer has no idea yet
-  /// whether this will become a tap or a hold — so starting the sweep there
-  /// meant every send flashed a stub of arc and then spent up to 400ms
-  /// reversing it. No opacity threshold fixes that: the animation is running,
-  /// and the only question is how much of it you can see.
-  Timer? _leadIn;
-
-  /// Kept across the `AnimatedSwitcher` rebuild that fires on every keystroke.
-  ///
-  /// Load-bearing: this button is rebuilt whenever `controller.text` changes,
-  /// and a recognizer holding a live pointer whose element is re-created loses
-  /// the gesture mid-hold. The same reparenting problem `ComposerCaptureHost`
-  /// documents on its own mode button.
-  final GlobalKey _key = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _hold = AnimationController(
-      vsync: this,
-      // What is LEFT of the gesture once the lead-in has passed, so the ring
-      // still closes at the exact instant the recognizer fires. Using the full
-      // threshold here would leave it a lead-in short of complete at the moment
-      // the sheet opens — a progress indicator that never reaches its end.
-      duration: kActionMenuLongPress - _kHoldRingLead,
-    );
-    _holdHaptics = HapticRamp(_hold);
-  }
-
-  @override
-  void dispose() {
-    _leadIn?.cancel();
-    _holdHaptics.dispose();
-    _hold.dispose();
-    super.dispose();
-  }
-
-  void _startHold() {
-    if (widget.onSchedule == null) return;
-    if (MotionScope.of(context).calm) return;
-    _leadIn?.cancel();
-    _leadIn = Timer(_kHoldRingLead, () {
-      if (mounted) _hold.forward(from: 0);
-    });
-  }
-
-  /// Withdraws the ring, instantly.
-  ///
-  /// Snapped rather than reversed. A reverse reads as the button finishing
-  /// something; the user has just let go, and the honest rendering of an
-  /// abandoned gesture is that it is gone. It also means a press that ends a
-  /// millisecond after the lead-in leaves nothing lingering on screen.
-  /// True from [deactivate]: the hold recognizer can fire its cancel from
-  /// inside the unmount, and notifying [_hold]'s listeners then would mark a
-  /// builder dirty while the tree is locked (see TeardownSafe).
-  bool _leaving = false;
-
-  @override
-  void deactivate() {
-    _leaving = true;
-    super.deactivate();
-  }
-
-  @override
-  void activate() {
-    super.activate();
-    _leaving = false;
-  }
-
-  void _endHold() {
-    _leadIn?.cancel();
-    _leadIn = null;
-    if (_leaving) return;
-    if (_hold.value != 0) _hold.value = 0;
-  }
-
-  /// A send is one light tick. The hold's heavy impact stays the loud one.
-  void _send() {
-    HapticFeedback.lightImpact();
-    widget.onSend();
-  }
-
-  void _fire() {
-    final schedule = widget.onSchedule;
-    if (schedule == null) return;
-    // Heavier than anything the ramp played, so the sheet opening lands as
-    // its own beat rather than one more tap in the buzz.
-    HapticFeedback.heavyImpact();
-    _endHold();
-    schedule();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     // 40 in the liquid composer, like every chrome button; its slot stays
-    // 44 so the disc centres on the 44pt field beside it.
-    final size = widget.classic ? 38.0 : 40.0;
-
-    // A solid disc in the outgoing-bubble colour on both composers, not
-    // tinted glass and not a glowing accent button: send is the one control on
-    // screen that commits something, and it wears the colour of what it is
-    // about to create. Only the size differs.
-    Widget core = Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: theme.bubbleFill(isMine: true),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              CupertinoIcons.arrow_up,
-              size: widget.classic ? 19 : 20,
-              color: theme.accentInk,
-            ),
-          );
-
-    if (widget.scheduledCount > 0) {
-      core = Stack(
-        clipBehavior: Clip.none,
-        children: [
-          core,
-          Positioned(
-            right: -1,
-            bottom: -1,
-            child: _ScheduledBadge(
-              // Announced by the button's own semantic label below instead —
-              // a screen reader meeting both reads the count twice.
-              count: widget.scheduledCount,
-            ),
-          ),
-        ],
-      );
-    }
-
-    // The ring, painted outside the button's own bounds so it adds nothing to
-    // layout — the FocusableTap focus-ring trick, for the same reason.
-    if (widget.onSchedule != null) {
-      core = Stack(
-        clipBehavior: Clip.none,
-        children: [
-          core,
-          Positioned.fill(
-            child: IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _hold,
-                // A plain `== 0` check is enough now that the lead-in timer
-                // keeps the controller at rest through every tap: while it is
-                // moving at all, the user is deliberately holding.
-                builder: (context, _) => _hold.value == 0
-                    ? const SizedBox.shrink()
-                    : CustomPaint(
-                        painter: _HoldRingPainter(
-                          progress: _hold.value,
-                          color: theme.accentInk,
-                        ),
-                      ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    // The button shrinks slightly as the ring fills, so the hold reads as one
-    // gesture gathering rather than a decoration spinning on a static button.
-    //
-    // Driven by the same controller on purpose, now that the controller only
-    // ever leaves zero during a real hold. Its earlier form scaled on
-    // pointer-down and was the other half of the tap glitch: every send
-    // twitched. There is deliberately no press-down scale any more — the
-    // classic button never had one, and the ring is the feedback.
-    if (widget.onSchedule != null) {
-      core = AnimatedBuilder(
-        animation: _hold,
-        builder: (context, child) => Transform.scale(
-          scale: 1 - (_hold.value * 0.06),
-          child: child,
-        ),
-        child: core,
-      );
-    }
-
-    // RawGestureDetector, not GestureDetector: a plain one's long press is
-    // fixed at Flutter's half-second with no way to shorten it, and this app
-    // has already settled on `kActionMenuLongPress` for "hold reveals options"
-    // everywhere else. Two recognizers in one arena so a tap still sends.
-    Widget body = widget.onSchedule == null
-        ? GestureDetector(onTap: _send, child: core)
-        : RawGestureDetector(
-            key: _key,
-            behavior: HitTestBehavior.opaque,
-            gestures: {
-              TapGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-                () => TapGestureRecognizer(),
-                (instance) {
-                  instance.onTap = _send;
-                  instance.onTapCancel = _endHold;
-                },
-              ),
-              LongPressGestureRecognizer: GestureRecognizerFactoryWithHandlers<
-                  LongPressGestureRecognizer>(
-                () => LongPressGestureRecognizer(
-                  duration: kActionMenuLongPress,
-                ),
-                (instance) {
-                  instance.onLongPressDown = (_) => _startHold();
-                  instance.onLongPress = _fire;
-                  instance.onLongPressCancel = _endHold;
-                  instance.onLongPressUp = _endHold;
-                },
-              ),
-            },
-            child: core,
-          );
-
-    body = FocusableTap(
-      onTap: _send,
-      semanticLabel: widget.scheduledCount > 0
-          ? '${widget.semanticLabel}, '
-              '${l10n.composerScheduledBadgeSemantics(widget.scheduledCount)}'
-          : widget.semanticLabel,
-      shape: FocusRingShape.circle,
-      child: body,
+    // 44 so the disc centres on the 44pt field beside it. Everything else —
+    // the disc, the hold, the ring — is the shared [SendButton], the same one
+    // the photo composer sends with.
+    return SendButton(
+      size: classic ? 38 : 40,
+      onSend: onSend,
+      onSchedule: onSchedule,
+      semanticLabel: scheduledCount > 0
+          ? '$semanticLabel, '
+              '${l10n.composerScheduledBadgeSemantics(scheduledCount)}'
+          : semanticLabel,
+      badge: scheduledCount > 0
+          // Announced by the button's own semantic label instead — a screen
+          // reader meeting both reads the count twice.
+          ? _ScheduledBadge(count: scheduledCount)
+          : null,
     );
-
-    if (widget.onSchedule != null) {
-      // The keyboard route to the sheet, bound outside FocusableTap so it fires
-      // while the button's own node holds focus. Cmd/Ctrl+Enter is what every
-      // mail client already uses for "send with options".
-      body = CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.enter, meta: true): _fire,
-          const SingleActivator(LogicalKeyboardKey.enter, control: true): _fire,
-        },
-        child: body,
-      );
-      // The screen-reader route. A hold is a gesture a VoiceOver user cannot
-      // perform on a target they cannot see, so it gets a rotor action —
-      // `ComposerCaptureHost` ships both routes for its hold and so does this.
-      body = Semantics(
-        customSemanticsActions: {
-          CustomSemanticsAction(label: l10n.composerScheduleAction): _fire,
-        },
-        child: body,
-      );
-    }
-
-    return body;
   }
 }
 
@@ -375,38 +110,6 @@ class _ScheduledBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The arc that sweeps around the send button while it is held.
-class _HoldRingPainter extends CustomPainter {
-  const _HoldRingPainter({required this.progress, required this.color});
-
-  final double progress;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (progress <= 0) return;
-    final rect = Offset.zero & size;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      // Fades in over the first fifth of the sweep, so a tap that happens to
-      // register a few milliseconds of hold does not flash a stub of arc.
-      ..color = color.withValues(alpha: (progress * 5).clamp(0.0, 1.0) * 0.9);
-    canvas.drawArc(
-      rect.deflate(2),
-      -1.5707963267948966, // 12 o'clock
-      progress * 6.283185307179586,
-      false,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_HoldRingPainter old) =>
-      old.progress != progress || old.color != color;
 }
 
 /// Rebuilds its subtree when the composer crosses between empty and non-empty.

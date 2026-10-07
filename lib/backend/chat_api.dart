@@ -1685,8 +1685,21 @@ class ChatApi {
     /// retried stages one row rather than two. Carried all the way into the
     /// eventual `messages:send` insert.
     required String clientId,
+
+    /// A photo, already uploaded. [content] is then its caption.
+    String? mediaStorageId,
+    double? mediaWidth,
+    double? mediaHeight,
+    bool viewOnce = false,
   }) async {
     final res = await _cv.mutation('scheduledMessages:schedule', {
+      if (mediaStorageId != null) ...{
+        'type': 'image',
+        'mediaStorageId': mediaStorageId,
+        'mediaWidth': ?mediaWidth,
+        'mediaHeight': ?mediaHeight,
+        if (viewOnce) 'viewOnce': true,
+      },
       'roomId': roomId,
       'userId': userId,
       'content': content,

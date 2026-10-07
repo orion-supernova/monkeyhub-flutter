@@ -18,7 +18,6 @@ import '../models/room_content_item.dart';
 import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
-import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart' show sheetTitleStyle;
@@ -28,7 +27,7 @@ import '../widgets/audio_message.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
-import '../widgets/liquid_glass.dart' show SpecularRim;
+import '../widgets/liquid_glass.dart';
 import '../widgets/media_grid_tile.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/remote_image.dart';
@@ -1615,37 +1614,14 @@ class RoomContentActionBar extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            // A floating card, rounded all round. It used to wear the
-            // sheet's decoration, which rounds only the top and borders only
-            // some sides — so it read as a sheet cut off 12pt above the
-            // screen's bottom, with grid tiles showing under its flat edge.
-            // Raised surface, hairline, the chrome disc's shadow and rim: the
-            // same material as the buttons in the bar above it.
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black
-                        .withValues(alpha: theme.isLight ? 0.12 : 0.36),
-                    blurRadius: theme.isLight ? 18 : 22,
-                    offset: Offset(0, theme.isLight ? 4 : 6),
-                  ),
-                ],
-              ),
-              child: CustomPaint(
-                foregroundPainter: SpecularRim(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  light: theme.isLight,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: chromeDiscFill(theme),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: theme.divider, width: 0.5),
-                  ),
+            // The iOS 26 toolbar: one floating piece of Liquid Glass — the
+            // same capsule the transcript's own select bar is, so picking
+            // messages in the chat and picking photos here look like one
+            // feature. It was a raised card with a dropped shadow and an
+            // even outline, which is Material elevation and read as Android.
+            child: LiquidGlass(
+                  shape: LiquidGlassShape.rounded,
+                  radius: 26,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                   child: Row(
@@ -1699,8 +1675,6 @@ class RoomContentActionBar extends StatelessWidget {
                         ),
                     ],
                   ),
-                ),
-              ),
             ),
           ),
         ),

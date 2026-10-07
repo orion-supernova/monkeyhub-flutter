@@ -149,6 +149,9 @@ class _MomentComposerState extends State<_MomentComposer> {
           );
           return switch (outcome) {
             EditorRetake() => const ReviewRetake<EditorSend>(),
+            // Never popped here: this flow keeps one photo, so the editor
+            // offers no "add from library".
+            EditorAddFromLibrary() => const ReviewRetake<EditorSend>(),
             final EditorSend send => ReviewDone(send),
             null => const ReviewDone<EditorSend>(null),
           };

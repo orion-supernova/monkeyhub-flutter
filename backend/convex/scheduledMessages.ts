@@ -3,6 +3,7 @@ import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { guardOutgoing, permissionsFor, sendCore } from "./messages";
+import { deleteStored } from "./files";
 
 // ── Tuning ──────────────────────────────────────────────────────────────────
 
@@ -165,7 +166,11 @@ function sendArgsFor(row: any) {
     roomId: row.roomId,
     userId: row.userId,
     content: row.content,
-    type: "text",
+    type: row.type ?? "text",
+    mediaStorageId: row.mediaStorageId,
+    mediaWidth: row.mediaWidth,
+    mediaHeight: row.mediaHeight,
+    viewOnce: row.viewOnce,
     replyToId: row.replyToId,
     mentionedUserIds: row.mentionedUserIds,
     mentionsEveryone: row.mentionsEveryone,
@@ -216,6 +221,13 @@ export const schedule = mutation({
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     mentionsEveryone: v.optional(v.boolean()),
     formatting: formattingArg,
+    // A photo, already uploaded. `content` is then its caption, and may be
+    // empty. See the schema for why the blob is uploaded now, not at release.
+    type: v.optional(v.literal("image")),
+    mediaStorageId: v.optional(v.id("_storage")),
+    mediaWidth: v.optional(v.number()),
+    mediaHeight: v.optional(v.number()),
+    viewOnce: v.optional(v.boolean()),
     // Minted by the client so a retried `schedule` cannot stage the same
     // message twice, and carried all the way into the eventual insert.
     clientId: v.string(),
@@ -232,11 +244,34 @@ export const schedule = mutation({
       mentionedUserIds,
       mentionsEveryone,
       formatting,
+      type,
+      mediaStorageId,
+      mediaWidth,
+      mediaHeight,
+      viewOnce,
       clientId,
     }
   ) => {
+    // A photo and its blob come together or not at all: an "image" with no
+    // file would release as an empty bubble, and a file on a text row would
+    // skip the media grant the guard below asks for.
+    if ((type === "image") !== (mediaStorageId !== undefined)) {
+      throw new Error("SCHEDULE_BAD_MEDIA");
+    }
     const text = content.trim();
-    if (text.length === 0) throw new Error("SCHEDULE_EMPTY");
+    // A caption is optional; a text message is not.
+    if (text.length === 0 && mediaStorageId === undefined) {
+      throw new Error("SCHEDULE_EMPTY");
+    }
+    // The upload must have landed. A client that died between the PUT and
+    // this call has nothing to schedule, and finding out a week from now is
+    // finding out too late.
+    if (
+      mediaStorageId !== undefined &&
+      (await ctx.db.system.get(mediaStorageId)) === null
+    ) {
+      throw new Error("SCHEDULE_BAD_MEDIA");
+    }
 
     // Idempotency, before anything with a side effect — the same rule and the
     // same reason as the head of `sendCore`. A `schedule` that times out on the
@@ -253,14 +288,14 @@ export const schedule = mutation({
     const at = resolveSendAt(delayMs, sendAt);
 
     // Membership, the child guard, DM blocks — and `expiresAt`, which is how we
-    // learn the room self-destructs. Text with no blob, so neither guarded
-    // capability is needed; asking `permissionsFor` rather than writing the
-    // pair by hand keeps this honest if the text gate ever changes.
+    // learn the room self-destructs. A photo asks for the media grant exactly
+    // as a live photo send would; asking `permissionsFor` rather than writing
+    // the pair by hand keeps the two from drifting.
     const { expiresAt } = await guardOutgoing(
       ctx,
       roomId,
       userId,
-      permissionsFor("text", false)
+      permissionsFor(type ?? "text", mediaStorageId !== undefined)
     );
     if (expiresAt !== undefined) throw new Error("SCHEDULE_NOT_IN_EPHEMERAL");
 
@@ -289,6 +324,11 @@ export const schedule = mutation({
       mentionedUserIds,
       mentionsEveryone,
       formatting,
+      type,
+      mediaStorageId,
+      mediaWidth,
+      mediaHeight,
+      viewOnce: viewOnce === true ? true : undefined,
       clientId,
     });
 
@@ -425,9 +465,12 @@ export const updateText = mutation({
     ctx,
     { id, userId, content, mentionedUserIds, mentionsEveryone, formatting }
   ) => {
-    await ownedRow(ctx, id, userId);
+    const row = await ownedRow(ctx, id, userId);
     const text = content.trim();
-    if (text.length === 0) throw new Error("SCHEDULE_EMPTY");
+    // A photo's caption may be taken off; a text message may not be emptied.
+    if (text.length === 0 && row.mediaStorageId === undefined) {
+      throw new Error("SCHEDULE_EMPTY");
+    }
     await ctx.db.patch(id, {
       content: text,
       mentionedUserIds,
@@ -437,13 +480,17 @@ export const updateText = mutation({
   },
 });
 
-/** Drops a queued message. The row goes, and its job with it. */
+/**
+ * Drops a queued message. The row goes, its job with it — and a photo's file,
+ * which nothing else points at until release.
+ */
 export const cancel = mutation({
   args: { id: v.id("scheduledMessages"), userId: v.id("users") },
   handler: async (ctx, { id, userId }) => {
     const row = await ownedRow(ctx, id, userId);
     await ctx.db.delete(id);
     await dropJob(ctx, row.jobId);
+    await deleteStored(ctx, row.mediaStorageId);
   },
 });
 
@@ -551,6 +598,8 @@ export async function purgeScheduledForUser(ctx: any, userId: any) {
   for (const row of rows) {
     await ctx.db.delete(row._id);
     await dropJob(ctx, row.jobId);
+    // Unsent, so this row is the photo's only pointer.
+    await deleteStored(ctx, row.mediaStorageId);
   }
   return rows.length;
 }
@@ -571,6 +620,8 @@ export async function purgeScheduledForRoom(ctx: any, roomId: any) {
   for (const row of rows) {
     await ctx.db.delete(row._id);
     await dropJob(ctx, row.jobId);
+    // Unsent, so this row is the photo's only pointer.
+    await deleteStored(ctx, row.mediaStorageId);
   }
   return rows.length;
 }

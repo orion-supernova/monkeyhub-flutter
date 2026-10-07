@@ -11109,6 +11109,75 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get interactionRetry => 'Tentar novamente';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'Adicionar legenda…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint =>
+      'Sem legenda em fotos de visualização única';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel =>
+      'Tirar outra fotografia';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Descartar $count fotografias?',
+      one: 'Descartar esta fotografia?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody =>
+      'As suas edições e legendas serão perdidas.';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => 'Descartar';
+
+  @override
+  String get galleryTrayRecentsTitle => 'Recentes';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'Voltar à câmara';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'Todas as fotografias';
+
+  @override
+  String get galleryTrayHandleLabel => 'Fotografias recentes';
+
+  @override
+  String get galleryTrayAllowPrompt => 'Veja aqui as suas fotografias recentes';
+
+  @override
+  String get galleryTrayAllowButton => 'Permitir';
+
+  @override
+  String get galleryTrayDeniedPrompt =>
+      'O acesso às fotografias está desativado';
+
+  @override
+  String get galleryTraySettingsButton => 'Definições';
+
+  @override
+  String get galleryTrayLimitedNote =>
+      'A mostrar apenas as fotografias que permitiu';
+
+  @override
+  String get galleryTrayManageButton => 'Gerir';
+
+  @override
+  String get galleryTrayEmpty => 'Ainda não há fotografias';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return 'Fotografia $index';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -22207,4 +22276,71 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get interactionRetry => 'Tentar novamente';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'Adicionar legenda…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint =>
+      'Sem legenda em fotos de visualização única';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel => 'Tirar outra foto';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Descartar $count fotos?',
+      one: 'Descartar esta foto?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody =>
+      'Suas edições e legendas serão perdidas.';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => 'Descartar';
+
+  @override
+  String get galleryTrayRecentsTitle => 'Recentes';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'Voltar para a câmera';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'Todas as fotos';
+
+  @override
+  String get galleryTrayHandleLabel => 'Fotos recentes';
+
+  @override
+  String get galleryTrayAllowPrompt => 'Veja suas fotos recentes aqui';
+
+  @override
+  String get galleryTrayAllowButton => 'Permitir';
+
+  @override
+  String get galleryTrayDeniedPrompt => 'O acesso às fotos está desativado';
+
+  @override
+  String get galleryTraySettingsButton => 'Ajustes';
+
+  @override
+  String get galleryTrayLimitedNote =>
+      'Mostrando só as fotos que você permitiu';
+
+  @override
+  String get galleryTrayManageButton => 'Gerenciar';
+
+  @override
+  String get galleryTrayEmpty => 'Nenhuma foto ainda';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return 'Foto $index';
+  }
 }

@@ -62,7 +62,7 @@ class GlassIconButton extends StatelessWidget {
   final Color? tint;
 
   /// No backdrop blur: for a disc on a sheet, a card, anything that moves.
-  /// Ignored by [GlassTone.media], which is always glass.
+  /// [GlassTone.media] keeps its look and only drops the blur.
   final bool still;
 
   @override
@@ -100,6 +100,7 @@ class GlassIconButton extends StatelessWidget {
           size: Size(size, size),
           tone: tone,
           tint: tint,
+          still: still,
           onTap: onTap,
           child: Icon(icon, size: iconSize, color: ink),
         ),
@@ -388,6 +389,134 @@ class GlassPillButton extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One slot in a [GlassButtonGroup]: a glyph or a short label ("HD", "1").
+class GlassGroupItem {
+  const GlassGroupItem({
+    this.icon,
+    this.text,
+    required this.semanticLabel,
+    required this.onTap,
+    this.active = false,
+    this.color,
+  }) : assert(icon != null || text != null);
+
+  final IconData? icon;
+  final String? text;
+
+  /// Carries the on/off state too ("HD: on"), so the slot needs no toggled
+  /// semantics of its own.
+  final String semanticLabel;
+
+  /// Null draws the slot dimmed and inert.
+  final VoidCallback? onTap;
+
+  /// Lit with the accent — an armed pen, view-once on, HD on.
+  final bool active;
+
+  /// The glyph's colour when it is not lit — the toolbar's red Delete.
+  final Color? color;
+}
+
+/// Related controls sharing one capsule of glass, the iOS 26 way: grouped by
+/// shape, never by rules between the glyphs. A group of one is just the 40pt
+/// disc every other button is.
+///
+/// THE grouped pill — the photo composer's tools, its add buttons, undo/redo,
+/// and the middle of a viewer's toolbar are all this, so a group looks the
+/// same wherever it appears.
+///
+/// [still] drops the blur, for chrome that fades (a viewer's). [haptic] is
+/// the press's own tick; turn it off where every action plays its own, or the
+/// two land on top of each other.
+class GlassButtonGroup extends StatelessWidget {
+  const GlassButtonGroup({
+    super.key,
+    required this.items,
+    this.tone = GlassTone.media,
+    this.still = false,
+    this.haptic = true,
+    this.accent,
+  });
+
+  final List<GlassGroupItem> items;
+  final GlassTone tone;
+  final bool still;
+  final bool haptic;
+
+  /// The lit slot's fill. Defaults to the theme's accent.
+  final Color? accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final lit = accent ?? theme.accent;
+    return LiquidGlass(
+      tone: tone,
+      still: still,
+      shape: LiquidGlassShape.capsule,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: items.length > 1 ? 2 : 0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [for (final item in items) _slot(item, lit, theme)],
+        ),
+      ),
+    );
+  }
+
+  Widget _slot(GlassGroupItem item, Color lit, AppTheme theme) {
+    final enabled = item.onTap != null;
+    final media = tone == GlassTone.media;
+    final Color ink;
+    if (item.active) {
+      ink = theme.accentInk;
+    } else if (!enabled) {
+      ink = media ? MediaGlass.inkDisabled : theme.inkMuted;
+    } else {
+      ink = item.color ?? (media ? MediaGlass.ink : theme.ink);
+    }
+    final glyph = item.icon != null
+        ? Icon(item.icon, size: 19, color: ink)
+        : Text(
+            item.text!,
+            style: TextStyle(
+              color: ink,
+              fontSize: item.text!.length > 1 ? 13 : 15,
+              fontWeight: FontWeight.w700,
+              height: 1,
+              letterSpacing: 0.2,
+              decoration: TextDecoration.none,
+            ),
+          );
+    return SpringPress(
+      onTap: item.onTap,
+      semanticLabel: item.semanticLabel,
+      scale: PressSpec.scaleSmall,
+      focusShape: FocusRingShape.circle,
+      focusRadius: 20,
+      haptic: haptic,
+      child: SizedBox(
+        width: items.length > 1 ? 44 : 40,
+        height: 40,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: item.active ? lit : const Color(0x00000000),
+              shape: BoxShape.circle,
+            ),
+            child: glyph,
           ),
         ),
       ),

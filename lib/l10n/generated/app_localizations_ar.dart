@@ -11152,4 +11152,69 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get interactionRetry => 'المحاولة مجددًا';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'أضف تعليقًا…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint =>
+      'لا تعليقات على صور العرض لمرة واحدة';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel => 'التقط صورة أخرى';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'هل تريد تجاهل $count صور؟',
+      one: 'هل تريد تجاهل هذه الصورة؟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody => 'ستفقد تعديلاتك وتعليقاتك.';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => 'تجاهل';
+
+  @override
+  String get galleryTrayRecentsTitle => 'الأحدث';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'العودة إلى الكاميرا';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'كل الصور';
+
+  @override
+  String get galleryTrayHandleLabel => 'الصور الأخيرة';
+
+  @override
+  String get galleryTrayAllowPrompt => 'شاهد صورك الأخيرة هنا';
+
+  @override
+  String get galleryTrayAllowButton => 'سماح';
+
+  @override
+  String get galleryTrayDeniedPrompt => 'الوصول إلى الصور متوقف';
+
+  @override
+  String get galleryTraySettingsButton => 'الإعدادات';
+
+  @override
+  String get galleryTrayLimitedNote => 'تُعرض فقط الصور التي سمحت بها';
+
+  @override
+  String get galleryTrayManageButton => 'إدارة';
+
+  @override
+  String get galleryTrayEmpty => 'لا توجد صور بعد';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return 'صورة $index';
+  }
 }

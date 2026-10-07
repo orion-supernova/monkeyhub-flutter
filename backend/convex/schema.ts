@@ -1283,6 +1283,16 @@ export default defineSchema({
         })
       )
     ),
+    // A scheduled PHOTO. Absent `type` is text — every row written before
+    // photos could be scheduled. The blob is uploaded at schedule time, so the
+    // picture the sender reviewed is the one that goes out; this row is its
+    // only pointer until release, which is why `files.collectReferenced` scans
+    // this table and why `cancel` and both purges delete it.
+    type: v.optional(v.literal("image")),
+    mediaStorageId: v.optional(v.id("_storage")),
+    mediaWidth: v.optional(v.number()),
+    mediaHeight: v.optional(v.number()),
+    viewOnce: v.optional(v.boolean()),
     // Idempotency key, minted at schedule time and carried into the insert.
     // Required rather than optional: a release job that runs twice — the
     // deployment restarted between the insert and the commit — must find its

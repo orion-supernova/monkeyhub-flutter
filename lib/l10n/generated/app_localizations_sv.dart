@@ -11019,4 +11019,70 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get interactionRetry => 'Försök igen';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'Lägg till bildtext…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint =>
+      'Inga bildtexter på engångsfoton';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel => 'Ta ett foto till';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Slänga $count foton?',
+      one: 'Slänga det här fotot?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody =>
+      'Dina ändringar och bildtexter försvinner.';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => 'Släng';
+
+  @override
+  String get galleryTrayRecentsTitle => 'Senaste';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'Tillbaka till kameran';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'Alla foton';
+
+  @override
+  String get galleryTrayHandleLabel => 'Senaste foton';
+
+  @override
+  String get galleryTrayAllowPrompt => 'Se dina senaste foton här';
+
+  @override
+  String get galleryTrayAllowButton => 'Tillåt';
+
+  @override
+  String get galleryTrayDeniedPrompt => 'Åtkomst till bilder är av';
+
+  @override
+  String get galleryTraySettingsButton => 'Inställningar';
+
+  @override
+  String get galleryTrayLimitedNote => 'Visar bara foton du har tillåtit';
+
+  @override
+  String get galleryTrayManageButton => 'Hantera';
+
+  @override
+  String get galleryTrayEmpty => 'Inga foton än';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return 'Foto $index';
+  }
 }

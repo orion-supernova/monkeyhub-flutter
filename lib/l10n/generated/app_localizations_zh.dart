@@ -10446,4 +10446,68 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get interactionRetry => '重试';
+
+  @override
+  String get cameraEditorScreenCaptionHint => '添加说明…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint => '一次性查看的照片不能添加说明';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel => '再拍一张';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '要放弃这 $count 张照片吗？',
+      one: '要放弃这张照片吗？',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody => '你的编辑和说明将会丢失。';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => '放弃';
+
+  @override
+  String get galleryTrayRecentsTitle => '最近项目';
+
+  @override
+  String get galleryTrayBackToCameraLabel => '返回相机';
+
+  @override
+  String get galleryTrayAllPhotosLabel => '所有照片';
+
+  @override
+  String get galleryTrayHandleLabel => '最近的照片';
+
+  @override
+  String get galleryTrayAllowPrompt => '在这里查看最近的照片';
+
+  @override
+  String get galleryTrayAllowButton => '允许';
+
+  @override
+  String get galleryTrayDeniedPrompt => '照片访问权限已关闭';
+
+  @override
+  String get galleryTraySettingsButton => '设置';
+
+  @override
+  String get galleryTrayLimitedNote => '仅显示你已允许的照片';
+
+  @override
+  String get galleryTrayManageButton => '管理';
+
+  @override
+  String get galleryTrayEmpty => '还没有照片';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return '照片 $index';
+  }
 }

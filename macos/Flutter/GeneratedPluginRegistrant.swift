@@ -21,6 +21,7 @@ import just_audio
 import large_file_handler
 import mobile_scanner
 import package_info_plus
+import photo_manager
 import record_macos
 import share_plus
 import shared_preferences_foundation
@@ -47,6 +48,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   LargeFileHandlerPlugin.register(with: registry.registrar(forPlugin: "LargeFileHandlerPlugin"))
   MobileScannerPlugin.register(with: registry.registrar(forPlugin: "MobileScannerPlugin"))
   FPPPackageInfoPlusPlugin.register(with: registry.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))
+  PhotoManagerPlugin.register(with: registry.registrar(forPlugin: "PhotoManagerPlugin"))
   RecordMacOsPlugin.register(with: registry.registrar(forPlugin: "RecordMacOsPlugin"))
   SharePlusMacosPlugin.register(with: registry.registrar(forPlugin: "SharePlusMacosPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))

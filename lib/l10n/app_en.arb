@@ -12827,5 +12827,87 @@
   "mapAppsNoInstalled": "No supported maps apps found. You can use your browser.",
   "interactionAnswersSearch": "Search people or answers",
   "interactionFilterEmpty": "No answers match this filter.",
-  "interactionRetry": "Try again"
+  "interactionRetry": "Try again",
+  "cameraEditorScreenCaptionHint": "Add a caption…",
+  "@cameraEditorScreenCaptionHint": {
+    "description": "Placeholder in the caption field under a photo in the photo composer. Each photo in a send has its own caption."
+  },
+  "cameraEditorScreenCaptionViewOnceHint": "No captions on view-once photos",
+  "@cameraEditorScreenCaptionViewOnceHint": {
+    "description": "Placeholder shown in the disabled caption field while view-once is armed: captions are not sent with view-once photos."
+  },
+  "cameraEditorScreenAddFromCameraSemanticLabel": "Take another photo",
+  "@cameraEditorScreenAddFromCameraSemanticLabel": {
+    "description": "Accessibility label for the camera button in the photo composer that goes back to the camera to add another photo to the same send."
+  },
+  "cameraEditorScreenDiscardAllTitle": "{count, plural, =1{Discard this photo?} other{Discard {count} photos?}}",
+  "@cameraEditorScreenDiscardAllTitle": {
+    "description": "Title of the confirmation shown when leaving the photo composer with several photos or typed captions. {count} is the number of photos.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cameraEditorScreenDiscardAllBody": "Your edits and captions will be lost.",
+  "@cameraEditorScreenDiscardAllBody": {
+    "description": "Body of the discard confirmation in the photo composer."
+  },
+  "cameraEditorScreenDiscardAllConfirm": "Discard",
+  "@cameraEditorScreenDiscardAllConfirm": {
+    "description": "Destructive button of the discard confirmation in the photo composer."
+  },
+  "galleryTrayRecentsTitle": "Recents",
+  "@galleryTrayRecentsTitle": {
+    "description": "Title of the full-screen recent-photos gallery that opens from the in-app camera."
+  },
+  "galleryTrayBackToCameraLabel": "Back to camera",
+  "@galleryTrayBackToCameraLabel": {
+    "description": "Accessibility label for the chevron that collapses the camera's photo gallery back to the camera."
+  },
+  "galleryTrayAllPhotosLabel": "All photos",
+  "@galleryTrayAllPhotosLabel": {
+    "description": "Accessibility label for the button in the camera's photo gallery that opens the system photo picker (albums, multi-select)."
+  },
+  "galleryTrayHandleLabel": "Recent photos",
+  "@galleryTrayHandleLabel": {
+    "description": "Accessibility label for the drag handle of the recent-photos strip under the camera."
+  },
+  "galleryTrayAllowPrompt": "See your recent photos here",
+  "@galleryTrayAllowPrompt": {
+    "description": "Shown in the camera's recent-photos strip before photo library access has been asked for."
+  },
+  "galleryTrayAllowButton": "Allow",
+  "@galleryTrayAllowButton": {
+    "description": "Button next to galleryTrayAllowPrompt that asks for photo library access."
+  },
+  "galleryTrayDeniedPrompt": "Photo access is off",
+  "@galleryTrayDeniedPrompt": {
+    "description": "Shown in the camera's recent-photos strip when photo library access was refused."
+  },
+  "galleryTraySettingsButton": "Settings",
+  "@galleryTraySettingsButton": {
+    "description": "Button next to galleryTrayDeniedPrompt that opens the system Settings."
+  },
+  "galleryTrayLimitedNote": "Showing only the photos you’ve allowed",
+  "@galleryTrayLimitedNote": {
+    "description": "Note in the camera's photo gallery when the user granted access to selected photos only."
+  },
+  "galleryTrayManageButton": "Manage",
+  "@galleryTrayManageButton": {
+    "description": "Button next to galleryTrayLimitedNote that lets the user change which photos are shared."
+  },
+  "galleryTrayEmpty": "No photos yet",
+  "@galleryTrayEmpty": {
+    "description": "Shown in the camera's recent-photos strip when the library has no photos."
+  },
+  "galleryTrayPhotoLabel": "Photo {index}",
+  "@galleryTrayPhotoLabel": {
+    "description": "Accessibility label of one photo in the camera's recent-photos strip or gallery. {index} is its 1-based position, newest first.",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  }
 }

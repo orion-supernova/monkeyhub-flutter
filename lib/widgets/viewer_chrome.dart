@@ -1,14 +1,11 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart' show FocusRingShape;
 
 import '../l10n/generated/app_localizations.dart';
-import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
-import 'spring_press.dart';
 import 'message_stamp.dart' show formatClockTime;
 
 /// The top bar every full-screen media viewer wears — the photo viewer, the
@@ -271,13 +268,14 @@ class ViewerChromeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The app's own 40pt button — the same disc as back and × everywhere
-    // else, not a viewer-only material — blur-free while the chrome fades.
+    // The media glass every control over a photo wears — the camera's, the
+    // composer's — blur-free, because this chrome fades.
     return GlassIconButton(
       icon: icon,
       iconSize: iconSize,
       semanticLabel: semanticLabel,
       onTap: onTap,
+      tone: GlassTone.media,
       // Never live glass in the viewer — see the × in [ViewerTopBar]. One
       // material for the whole flight, so nothing changes mid-animation.
       still: true,
@@ -331,13 +329,12 @@ class ViewerToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    Color tintFor(ViewerToolbarAction a) =>
-        a.danger ? theme.danger : theme.ink;
     Widget disc(ViewerToolbarAction a) => GlassIconButton(
           icon: a.icon,
           onTap: a.onTap,
           semanticLabel: a.semanticLabel,
           color: a.danger ? theme.danger : null,
+          tone: GlassTone.media,
           still: true,
         );
     final middle = actions.length > 2
@@ -353,65 +350,24 @@ class ViewerToolbar extends StatelessWidget {
             const Spacer(),
             if (middle.length == 1) disc(middle.single),
             if (middle.length > 1)
-              // The middle group: one pill of the same disc material, glyphs
-              // spaced like a tab bar's — no dividers.
-              _Pill(
-                    children: [
-                      for (final a in middle)
-                        SpringPress(
-                          onTap: a.onTap,
-                          semanticLabel: a.semanticLabel,
-                          scale: PressSpec.scaleSmall,
-                          focusShape: FocusRingShape.circle,
-                          focusRadius: 20,
-                          child: SizedBox(
-                            width: 48,
-                            height: 40,
-                            child: Icon(a.icon, size: 19, color: tintFor(a)),
-                          ),
-                        ),
-                    ],
-                  ),
+              // The middle group: the shared grouped pill, blur-free because
+              // this toolbar fades with the rest of the chrome.
+              GlassButtonGroup(
+                still: true,
+                items: [
+                  for (final a in middle)
+                    GlassGroupItem(
+                      icon: a.icon,
+                      semanticLabel: a.semanticLabel,
+                      onTap: a.onTap,
+                      color: a.danger ? theme.danger : null,
+                    ),
+                ],
+              ),
             const Spacer(),
             if (actions.length > 1) disc(actions.last),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// The middle group's capsule, in the chrome disc's fill, rim and shadow.
-class _Pill extends StatelessWidget {
-  const _Pill({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // The rim paints on the pill's OUTER box: with the padding outside the
-    // painter, the lit edge was drawn 4pt inside the fill and read as a
-    // second, broken border.
-    return CustomPaint(
-      foregroundPainter: SpecularRim(
-        shape: const StadiumBorder(),
-        light: theme.isLight,
-      ),
-      child: Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: ShapeDecoration(
-        color: chromeDiscFill(theme),
-        shape: const StadiumBorder(),
-        shadows: const [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
   }

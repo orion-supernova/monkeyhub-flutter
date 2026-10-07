@@ -109,3 +109,44 @@ Future<MediaPick> _guarded(Future<List<XFile>> Function() pick) async {
         : const MediaPick.unreadable();
   }
 }
+
+/// The most photographs one send may carry.
+///
+/// Not a technical limit — it is a courtesy one. Every recipient of a room
+/// downloads every picture, and the difference between "they sent a few
+/// photos" and "my chat is now a photo album I did not ask for" is somewhere
+/// around here. It is also handed to the OS picker as its own limit, so the
+/// refusal happens while the user is still choosing rather than after.
+const int kMaxPhotoSelection = 10;
+
+/// Bytes read back off a set of picked files, and how many could not be.
+class PickedPhotos {
+  const PickedPhotos({required this.bytes, required this.dropped});
+  final List<Uint8List> bytes;
+  final int dropped;
+}
+
+/// Reads every picked file into memory, keeping the picker's order.
+///
+/// One failure does not lose the batch. A picture the platform declines to
+/// hand over — an iCloud asset that never came down, a content provider that
+/// died between the pick and the read — is counted and skipped, because the
+/// other nine are still perfectly sendable and refusing all of them would
+/// punish the user for the one.
+///
+/// Sequential rather than `Future.wait`: these are whole-file reads across a
+/// platform channel, and ten of them in flight at once is ten full-size images
+/// resident simultaneously before a single one has been shown.
+Future<PickedPhotos> readPickedPhotos(List<XFile> picked) async {
+  final out = <Uint8List>[];
+  var dropped = 0;
+  for (final file in picked) {
+    try {
+      out.add(await file.readAsBytes());
+    } catch (e) {
+      debugPrint('[photo_picking] could not read a picked photo: $e');
+      dropped++;
+    }
+  }
+  return PickedPhotos(bytes: out, dropped: dropped);
+}

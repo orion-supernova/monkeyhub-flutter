@@ -10950,4 +10950,72 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get interactionRetry => 'Tekrar dene';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'Açıklama ekle…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint =>
+      'Tek seferlik fotoğraflarda açıklama olmaz';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel =>
+      'Bir fotoğraf daha çek';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fotoğraf silinsin mi?',
+      one: 'Bu fotoğraf silinsin mi?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody =>
+      'Düzenlemelerin ve açıklamaların kaybolacak.';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => 'Sil';
+
+  @override
+  String get galleryTrayRecentsTitle => 'Son Eklenenler';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'Kameraya dön';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'Tüm fotoğraflar';
+
+  @override
+  String get galleryTrayHandleLabel => 'Son fotoğraflar';
+
+  @override
+  String get galleryTrayAllowPrompt => 'Son fotoğraflarını burada gör';
+
+  @override
+  String get galleryTrayAllowButton => 'İzin ver';
+
+  @override
+  String get galleryTrayDeniedPrompt => 'Fotoğraf erişimi kapalı';
+
+  @override
+  String get galleryTraySettingsButton => 'Ayarlar';
+
+  @override
+  String get galleryTrayLimitedNote =>
+      'Yalnızca izin verdiğin fotoğraflar gösteriliyor';
+
+  @override
+  String get galleryTrayManageButton => 'Yönet';
+
+  @override
+  String get galleryTrayEmpty => 'Henüz fotoğraf yok';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return 'Fotoğraf $index';
+  }
 }

@@ -112,6 +112,10 @@ class ScheduledMessage {
     this.formatting = const [],
     this.failedReason,
     this.failedAt,
+    this.mediaStorageId,
+    this.mediaWidth,
+    this.mediaHeight,
+    this.viewOnce = false,
   });
 
   final String id;
@@ -144,6 +148,18 @@ class ScheduledMessage {
   /// since. Null while [pending].
   final String? failedReason;
   final DateTime? failedAt;
+
+  /// The photo, when this is a scheduled photo — already uploaded, so the
+  /// list can show the very picture that will go out. [content] is then its
+  /// caption, and may be empty.
+  final String? mediaStorageId;
+  final double? mediaWidth;
+  final double? mediaHeight;
+
+  /// Armed with the circled "1" when it was scheduled.
+  final bool viewOnce;
+
+  bool get isPhoto => mediaStorageId != null;
 
   /// Whether the release failed and the message is waiting on the sender.
   bool get hasFailed => !pending && failedReason != null;
@@ -188,6 +204,10 @@ class ScheduledMessage {
         // clearing in `scheduledMessages:reschedule`.
         failedReason: (pending ?? this.pending) ? null : failedReason,
         failedAt: (pending ?? this.pending) ? null : failedAt,
+        mediaStorageId: mediaStorageId,
+        mediaWidth: mediaWidth,
+        mediaHeight: mediaHeight,
+        viewOnce: viewOnce,
       );
 
   /// Reads a row from `scheduledMessages:listForRoom`, or from the same shape
@@ -224,6 +244,10 @@ class ScheduledMessage {
       failedAt: failedAt == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(failedAt),
+      mediaStorageId: j['mediaStorageId']?.toString(),
+      mediaWidth: (j['mediaWidth'] as num?)?.toDouble(),
+      mediaHeight: (j['mediaHeight'] as num?)?.toDouble(),
+      viewOnce: (j['viewOnce'] ?? false) as bool,
     );
   }
 
@@ -244,6 +268,13 @@ class ScheduledMessage {
           'formatting': [for (final f in formatting) f.toJson()],
         if (failedReason != null) 'failedReason': failedReason,
         if (failedAt != null) 'failedAt': failedAt!.millisecondsSinceEpoch,
+        if (mediaStorageId != null) ...{
+          'type': 'image',
+          'mediaStorageId': mediaStorageId,
+        },
+        if (mediaWidth != null) 'mediaWidth': mediaWidth,
+        if (mediaHeight != null) 'mediaHeight': mediaHeight,
+        if (viewOnce) 'viewOnce': true,
       };
 
   @override
@@ -260,6 +291,10 @@ class ScheduledMessage {
           other.mentionsEveryone == mentionsEveryone &&
           other.failedReason == failedReason &&
           other.failedAt == failedAt &&
+          other.mediaStorageId == mediaStorageId &&
+          other.mediaWidth == mediaWidth &&
+          other.mediaHeight == mediaHeight &&
+          other.viewOnce == viewOnce &&
           listEquals(other.formatting, formatting) &&
           listEquals(
             [for (final m in other.mentions) m.userId],
@@ -278,6 +313,7 @@ class ScheduledMessage {
         mentionsEveryone,
         failedReason,
         failedAt,
+        Object.hash(mediaStorageId, mediaWidth, mediaHeight, viewOnce),
         Object.hashAll(formatting),
         Object.hashAll([for (final m in mentions) m.userId]),
       );

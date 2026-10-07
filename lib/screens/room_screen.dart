@@ -150,7 +150,6 @@ import '../widgets/ios_kit.dart'
 import 'room_content_actions.dart';
 import 'fullscreen_image_viewer.dart';
 import 'media_pager_screen.dart';
-import 'photo_tray_screen.dart';
 import 'profile_screen.dart';
 import 'room_info_screen.dart';
 import 'voice_recorder_screen.dart';
@@ -2669,94 +2668,170 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
-  /// Camera → editor → send, with the editor opening *over* the camera.
+  /// Camera → composer → send, with the composer opening *over* the camera.
   ///
-  /// There is no reopen-the-camera loop here any more, because there is nothing
-  /// to reopen: the camera route stays on the stack under the editor, so RETAKE
-  /// is the editor popping. That is also what fixes the shutter looking like a
-  /// bug — the camera used to pop and the editor push after it, and the chat
-  /// showed through the seam between the two animations.
+  /// There is no reopen-the-camera loop here, because there is nothing to
+  /// reopen: the camera route stays on the stack under the composer, so going
+  /// back for another shot is the composer popping. That is also what fixes
+  /// the shutter looking like a bug — the camera used to pop and the editor
+  /// push after it, and the chat showed through the seam between the two.
   ///
-  /// [initialLens] is which lens to open on, and RETAKE stays on it — a retake
-  /// is a second attempt at the shot the entry point was for, not a different
-  /// one.
+  /// The photos live in one [EditorDraft] for the whole visit, so "take
+  /// another" and "add from library" leave the composer without losing
+  /// anything: the next capture, or the next tap in the camera's gallery,
+  /// reopens it with one more photo. Backing out of the camera while photos are
+  /// waiting goes back to them too — see [CameraScreen.resume].
+  ///
+  /// [initialLens] is which lens to open on.
   ///
   /// The camera can also record: see [CameraScreen.allowVideo]. A clip comes
-  /// back as [CameraRecorded] and skips the editor entirely — there is no video
-  /// editor to send it through, and the review the photograph gets exists to
-  /// crop and draw on it rather than to confirm it.
+  /// back as [CameraRecorded] and skips the composer entirely — there is no
+  /// video editor to send it through.
   Future<void> _captureAndSend({
     CameraLensDirection initialLens = CameraLensDirection.back,
   }) async {
-    final result = await CameraScreen.open<EditorSend>(
-      context,
-      initialLens: initialLens,
-      // Chat is the one caller that can accept a clip, so it is the one caller
-      // that gets the PHOTO/VIDEO switch. The camera button used to be able to
-      // take a photograph and nothing else, which meant the only way to send a
-      // video was to have already recorded one somewhere else.
-      allowVideo: true,
-      review: (context, photo) async {
-        final outcome = await CameraEditorScreen.open(
-          context,
-          source: photo.bytes,
-          canRetake: true,
-          mirrored: photo.mirrored,
-          overCamera: true,
-        );
-        return switch (outcome) {
-          EditorRetake() => const ReviewRetake<EditorSend>(),
-          final EditorSend send => ReviewDone(send),
-          null => const ReviewDone<EditorSend>(null),
-        };
-      },
-    );
-    if (!mounted) return;
-
-    switch (result) {
-      case CameraReviewed(:final value):
-        // Sent from here rather than inside the review so the upload starts
-        // against a chat that is already back on screen.
-        if (value != null) _sendEdited(value);
-
-      case CameraRecorded(:final video):
-        // Recorded in the camera's VIDEO mode. Sent from here rather than from
-        // inside the camera for exactly the reason the photograph is: the
-        // upload should start against a chat that is already back on screen.
-        _sendMedia(
-          bytes: video.bytes,
-          type: MessageType.video,
-          contentType: 'video/mp4',
-          posterBytes: video.posterBytes,
-          mediaDurationMs: video.durationMs,
-        );
-
-      case CameraPickLibrary():
-        // The camera's own shortcut into the photo library.
-        await _pickAndSendFromGallery();
-
-      case CameraUnavailable():
-        // The in-app camera could not start for a reason that isn't the user
-        // saying no. Fall back to the system camera rather than leaving them
-        // with no way to take a picture at all. No mirroring on this path:
-        // `image_picker` never reports which lens fired, and reflecting a
-        // photo of a document would be worse than leaving a selfie unflipped.
-        // No retake either: the system camera has its own, and there is no
-        // route of ours underneath to go back to.
-        // A refusal folds into the cancel here rather than earning a snackbar
-        // of its own: the library reasons for one (an asset kept in iCloud) do
-        // not exist for a frame that was taken a second ago, and the camera's
-        // own permission prompt has already spoken for the rest.
-        final picked = (await pickPhoto(source: ImageSource.camera)).file;
-        if (picked == null || !mounted) return;
-        final bytes = await picked.readAsBytes();
-        if (!mounted) return;
-        final outcome = await CameraEditorScreen.open(context, source: bytes);
-        if (outcome is EditorSend) _sendEdited(outcome);
-
-      case null:
-        return; // backed out of the camera
+    final draft = EditorDraft();
+    Future<ReviewDecision<EditorSend>> compose(BuildContext context) async {
+      final outcome = await CameraEditorScreen.open(
+        context,
+        draft: draft,
+        canRetake: true,
+        overCamera: true,
+        allowCaptions: true,
+        maxPhotos: kMaxPhotoSelection,
+        galleryOverCamera: true,
+        allowSchedule: true,
+        scheduleRefusal: _photoScheduleRefusal(),
+      );
+      return switch (outcome) {
+        EditorRetake() => const ReviewRetake<EditorSend>(),
+        EditorAddFromLibrary() => const ReviewRetake<EditorSend>(
+          gallery: true,
+        ),
+        final EditorSend send => ReviewDone(send),
+        null => const ReviewDone<EditorSend>(null),
+      };
     }
+
+    try {
+      final result = await CameraScreen.open<EditorSend>(
+        context,
+        initialLens: initialLens,
+        // Chat is the one caller that can accept a clip, so it is the one
+        // caller that gets the PHOTO/VIDEO switch.
+        allowVideo: true,
+        review: (context, photo) {
+          if (draft.length < kMaxPhotoSelection) {
+            draft.add(photo.bytes, mirrored: photo.mirrored);
+          }
+          return compose(context);
+        },
+        resume: () => draft.isEmpty ? null : compose,
+      );
+      if (!mounted) return;
+
+      switch (result) {
+        case CameraReviewed(:final value):
+          // Sent from here rather than inside the review so the upload starts
+          // against a chat that is already back on screen.
+          if (value != null) _sendEdited(value);
+
+        case CameraRecorded(:final video):
+          // Sent from here rather than from inside the camera for exactly the
+          // reason the photograph is: the upload should start against a chat
+          // that is already back on screen.
+          _sendMedia(
+            bytes: video.bytes,
+            type: MessageType.video,
+            contentType: 'video/mp4',
+            posterBytes: video.posterBytes,
+            mediaDurationMs: video.durationMs,
+          );
+
+        case CameraPickLibrary():
+          // The gallery's "all photos" — the OS picker, for albums and
+          // multi-select. Photos already gathered in the camera come along.
+          await _pickAndSendFromGallery(into: draft);
+
+        case CameraUnavailable():
+          // The in-app camera could not start for a reason that isn't the user
+          // saying no. Fall back to the system camera rather than leaving them
+          // with no way to take a picture at all. No mirroring on this path:
+          // `image_picker` never reports which lens fired, and reflecting a
+          // photo of a document would be worse than leaving a selfie unflipped.
+          // A refusal folds into the cancel here: the camera's own permission
+          // prompt has already spoken for it.
+          final picked = (await pickPhoto(source: ImageSource.camera)).file;
+          if (picked == null || !mounted) return;
+          final bytes = await picked.readAsBytes();
+          if (!mounted) return;
+          await _composeAndSend([bytes]);
+
+        case null:
+          return; // backed out of the camera
+      }
+    } finally {
+      draft.dispose();
+    }
+  }
+
+  /// The composer for photos with no camera underneath — a share, a drop, the
+  /// system camera. Each photo gets its own caption, and the library is one
+  /// tap away for more.
+  Future<void> _composeAndSend(List<Uint8List> photos) async {
+    if (photos.isEmpty) return;
+    final draft = EditorDraft();
+    for (final bytes in photos.take(kMaxPhotoSelection)) {
+      draft.add(bytes);
+    }
+    draft.index = 0;
+    try {
+      await _composeDraft(draft);
+    } finally {
+      draft.dispose();
+    }
+  }
+
+  Future<void> _composeDraft(EditorDraft draft) async {
+    final outcome = await CameraEditorScreen.open(
+      context,
+      draft: draft,
+      allowCaptions: true,
+      maxPhotos: kMaxPhotoSelection,
+      pickMore: _pickMorePhotos,
+      allowSchedule: true,
+      scheduleRefusal: _photoScheduleRefusal(),
+    );
+    if (outcome is EditorSend && mounted) _sendEdited(outcome);
+  }
+
+  /// The composer's "add from library": the OS picker, at most [remaining].
+  Future<List<Uint8List>> _pickMorePhotos(int remaining) async {
+    if (remaining <= 0) return const [];
+    final toast = AppToast.of(context);
+    final loc = AppLocalizations.of(context);
+    // `pickMultiImage` refuses a limit under two, so the last slot is a
+    // single pick.
+    final pick = remaining == 1
+        ? await pickPhoto(source: ImageSource.gallery)
+        : await pickPhotos(limit: remaining);
+    if (pick.unreadable) {
+      toast.show(loc.mediaPickFailedMessage, tone: ToastTone.danger);
+      return const [];
+    }
+    if (pick.files.isEmpty) return const [];
+    // `limit` is ignored by the web and desktop pickers.
+    final within = pick.files.length > remaining
+        ? pick.files.sublist(0, remaining)
+        : pick.files;
+    if (within.length < pick.files.length) {
+      toast.show(loc.photoTrayLimitSnack(kMaxPhotoSelection));
+    }
+    final read = await readPickedPhotos(within);
+    if (read.dropped > 0) {
+      toast.show(loc.photoTrayLoadFailedSnack, tone: ToastTone.danger);
+    }
+    return read.bytes;
   }
 
   // ─────────────────────────── incoming shares ─────────────────────────────
@@ -2818,13 +2893,12 @@ class _RoomScreenState extends State<RoomScreen>
       if (lone != null) {
         final bytes = await _readShared(lone, toast, loc);
         if (bytes == null || !mounted) return;
-        final outcome = await CameraEditorScreen.open(context, source: bytes);
-        // Released whether or not it was sent: the editor holds its own copy of
-        // the bytes, and a share the user backed out of has no second chance to
-        // be delivered from disk.
+        // Released whether or not it is sent: the composer holds its own copy
+        // of the bytes, and a share the user backs out of has no second chance
+        // to be delivered from disk.
         ShareIntake.instance.disposeItems(payload.items);
         // `_sendEdited` goes through `_sendMedia`, which bumps the suggestion.
-        if (outcome is EditorSend) _sendEdited(outcome);
+        await _composeAndSend([bytes]);
         return;
       }
 
@@ -3030,7 +3104,7 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
-  /// The all-pictures case: one gets the editor, several get the tray.
+  /// The all-pictures case: every one of them goes to the composer.
   ///
   /// Split out because it is the only branch that opens a ROUTE, and a route
   /// opened from inside the send loop would put the editor over a transcript
@@ -3070,27 +3144,10 @@ class _RoomScreenState extends State<RoomScreen>
       toast.show(loc.photoTrayLoadFailedSnack, tone: ToastTone.danger);
     }
 
-    if (read.length == 1) {
-      // Route through the same editor the camera and gallery paths use — a
-      // preview, optional annotation, view-once, and a deliberate "send" tap
-      // instead of shipping the picture the moment it is let go.
-      final outcome = await CameraEditorScreen.open(context, source: read.first);
-      if (outcome is EditorSend) _sendEdited(outcome);
-      return;
-    }
-
-    final send = await PhotoTrayScreen.open(context, photos: read);
-    if (!mounted || send == null) return;
-    // In the tray's order, and synchronously: `sendMediaLocal` puts an
-    // optimistic bubble up per call, so the transcript grows the album in the
-    // order the sender arranged it rather than in whatever order the uploads
-    // finish.
-    for (final image in send.images) {
-      _sendPhoto(image, viewOnce: send.viewOnce);
-    }
-    if (send.dropped > 0) {
-      toast.show(loc.photoTrayLoadFailedSnack, tone: ToastTone.danger);
-    }
+    // The same composer the camera and gallery paths use — a preview,
+    // optional annotation, a caption per photo, view-once, and a deliberate
+    // "send" tap instead of shipping pictures the moment they are let go.
+    await _composeAndSend(read);
   }
 
   /// Tells the OS this chat was just messaged, so its share sheet ranks it up.
@@ -3116,20 +3173,86 @@ class _RoomScreenState extends State<RoomScreen>
     )));
   }
 
-  /// Sends what came out of the editor.
-  void _sendEdited(EditorSend outcome) =>
-      _sendPhoto(outcome.image, viewOnce: outcome.viewOnce);
+  /// Sends what came out of the composer, in its rail's order.
+  ///
+  /// Synchronously, one call per photo: `sendMediaLocal` puts an optimistic
+  /// bubble up per call, so the transcript grows the album in the order the
+  /// sender arranged it rather than in whatever order the uploads finish. A
+  /// captioned photo leaves the album for a bubble of its own — see
+  /// `albumEligible`.
+  void _sendEdited(EditorSend outcome) {
+    final at = outcome.scheduleAt;
+    if (at != null) {
+      unawaited(_schedulePhotos(outcome, at));
+      return;
+    }
+    for (final photo in outcome.photos) {
+      _sendPhoto(
+        photo.image,
+        viewOnce: outcome.viewOnce,
+        caption: photo.caption,
+      );
+    }
+    if (outcome.dropped > 0) {
+      AppToast.of(context).show(
+        AppLocalizations.of(context).photoTrayLoadFailedSnack,
+        tone: ToastTone.danger,
+      );
+    }
+  }
 
-  /// Sends one finished photograph. The single funnel for both photo paths —
-  /// the editor's one picture and the tray's several — so a change to how a
-  /// photo becomes a message cannot land on one of them and not the other.
-  void _sendPhoto(CroppedImage image, {required bool viewOnce}) {
+  /// What the composer says when the send arrow is held in a room that
+  /// refuses scheduling — the Chamber of Secrets rule [_scheduleSend] applies
+  /// to text, said in the same words. Null where scheduling is allowed.
+  String? _photoScheduleRefusal() => (_room?.isEphemeral ?? false)
+      ? AppLocalizations.of(context).scheduleErrorNotInEphemeral
+      : null;
+
+  /// Queues the composer's photos for [at] instead of sending them.
+  ///
+  /// The uploads happen here, after the composer has closed, so the chat is
+  /// back on screen while they run — the same reason a live photo send starts
+  /// against the transcript rather than inside the composer. They land in the
+  /// queue pill when the server has them. A refusal is said rather than
+  /// swallowed: a scheduled photo that silently never queued looks exactly
+  /// like one that did, until the day it does not arrive.
+  Future<void> _schedulePhotos(EditorSend outcome, DateTime at) async {
+    final replyTarget = _replyingTo;
+    if (replyTarget != null) setState(() => _replyingTo = null);
+    final code = await widget.repo.schedulePhotos(
+      widget.roomId,
+      [
+        for (final p in outcome.photos) (image: p.image, caption: p.caption),
+      ],
+      // An absolute instant: the sheet resolved a wall-clock intent in this
+      // device's timezone. See `SchedulePreset`.
+      sendAt: at.millisecondsSinceEpoch,
+      viewOnce: outcome.viewOnce,
+      replyToId: replyTarget?.id,
+    );
+    if (code == null || !mounted) return;
+    if (code == kChildApprovalRequired || code == kChildNotAllowed) {
+      await _handleSendGate(code);
+      return;
+    }
+    showAppToast(context, scheduleErrorSentence(context, code));
+  }
+
+  /// Sends one finished photograph. The single funnel for every photo path, so
+  /// a change to how a photo becomes a message cannot land on one of them and
+  /// not the others.
+  void _sendPhoto(
+    CroppedImage image, {
+    required bool viewOnce,
+    String? caption,
+  }) {
     _sendMedia(
       bytes: image.bytes,
       type: MessageType.image,
       contentType: image.contentType,
       pixelSize: Size(image.width.toDouble(), image.height.toDouble()),
       viewOnce: viewOnce,
+      caption: caption,
     );
   }
 
@@ -3321,15 +3444,14 @@ class _RoomScreenState extends State<RoomScreen>
   /// exception — and not `pickImage`, which is the whole feature: the library
   /// sheet has always been able to hand back a set, and asking it for one
   /// picture meant that sending four cost four trips through the attachment
-  /// sheet, the OS picker and the editor — with the four photos landing in the
-  /// conversation interleaved with whatever else arrived while the sender was
-  /// going back for the next one.
+  /// sheet, the OS picker and the editor.
   ///
-  /// One picture still goes straight to the editor. It is the better screen for
-  /// the case where all the attention is on one photograph, it is where the pen
-  /// and the cropper live, and a review tray showing a rail of exactly one
-  /// thumbnail would be furniture answering a question nobody asked. Several go
-  /// to [PhotoTrayScreen], which is that screen for a set.
+  /// One photo or ten, they all go to the same composer: each with its own
+  /// pen, crop and caption, and a rail along the bottom once there are two.
+  ///
+  /// [into] is a draft already under way — the camera's, when its gallery's
+  /// "all photos" button was the way here — so photos gathered there come
+  /// along with their edits and captions instead of being dropped.
   ///
   /// The scrim is raised BEFORE the picker, not after it. `pickerImageQuality`
   /// forces the plugin to fully decode and re-encode every chosen asset —
@@ -3337,92 +3459,27 @@ class _RoomScreenState extends State<RoomScreen>
   /// native sheet has already slid away, so the user used to be handed back an
   /// unchanged chat screen and left to guess whether their tap had landed.
   ///
-  /// Held for the whole method rather than lowered at the handoff: the editor
-  /// and the tray both paint over the scrim and raise a spinner of their own
-  /// while they decode, so there is no frame where nothing is spinning. One
-  /// raise, one lower, no interleaving around a route push.
-  Future<void> _pickAndSendFromGallery() async {
-    // Resolved before the awaits below, which are async gaps after which
-    // touching `context` is unsafe — the same up-front capture the file pick
-    // and the pin paths make.
-    final toast = AppToast.of(context);
-    final loc = AppLocalizations.of(context);
+  /// Held for the whole method rather than lowered at the handoff: the
+  /// composer paints over the scrim and raises a spinner of its own while it
+  /// decodes, so there is no frame where nothing is spinning.
+  Future<void> _pickAndSendFromGallery({EditorDraft? into}) async {
+    final room = kMaxPhotoSelection - (into?.length ?? 0);
     _setMediaBusy(true);
     try {
-      final pick = await pickPhotos(
-        // The OS enforces it, so the refusal happens while the user is still
-        // looking at their library rather than after they have chosen thirty.
-        limit: kMaxPhotoSelection,
-      );
+      final read = room <= 0 ? const <Uint8List>[] : await _pickMorePhotos(room);
       if (!mounted) return;
-      // The platform kept what was chosen — an iOS asset still in iCloud is
-      // the usual reason, and one of those fails the whole batch rather than
-      // dropping itself out of it. Nothing to send, so say why: the picker has
-      // already slid away and the alternative is a tap that did nothing.
-      if (pick.unreadable) {
-        toast.show(
-          loc.mediaPickFailedMessage,
-          tone: ToastTone.danger,
-        );
-        return;
+      if (read.isEmpty && (into == null || into.isEmpty)) return;
+      final draft = into ?? EditorDraft();
+      final firstNew = draft.length;
+      for (final bytes in read) {
+        draft.add(bytes);
       }
-      final picked = pick.files;
-      if (picked.isEmpty) return;
-
-      if (picked.length == 1) {
-        final bytes = await picked.first.readAsBytes();
-        if (!mounted) return;
-        // Route through the same editor the camera path uses — a preview,
-        // optional annotation, and a deliberate "send" tap instead of shipping
-        // the photo the moment it is picked. No retake: there is no camera
-        // behind this photo to go back to.
-        final outcome = await CameraEditorScreen.open(context, source: bytes);
-        if (outcome is EditorSend) _sendEdited(outcome);
-        return;
-      }
-
-      // `limit` above is honoured by the iOS and Android pickers and by nothing
-      // else — `file_selector`-backed web and desktop implementations ignore it.
-      // Trimming here rather than letting thirty photographs through keeps the
-      // send inside the repository's retained-upload budget, and saying so is
-      // better than a batch that half-fails at the far end.
-      final within = picked.length > kMaxPhotoSelection
-          ? picked.sublist(0, kMaxPhotoSelection)
-          : picked;
-      if (within.length < picked.length) {
-        toast.show(loc.photoTrayLimitSnack(kMaxPhotoSelection));
-      }
-
-      final read = await readPickedPhotos(within);
-      if (!mounted) return;
-      if (read.bytes.isEmpty) {
-        toast.show(
-          loc.photoTrayLoadFailedSnack,
-          tone: ToastTone.danger,
-        );
-        return;
-      }
-
-      final send = await PhotoTrayScreen.open(context, photos: read.bytes);
-      if (!mounted) return;
-      if (send != null) {
-        // In the rail's order, and synchronously: `sendMediaLocal` puts an
-        // optimistic bubble up per call, so the transcript grows the album in
-        // the order the sender arranged it rather than in whatever order the
-        // uploads happen to finish.
-        for (final image in send.images) {
-          _sendPhoto(image, viewOnce: send.viewOnce);
-        }
-      }
-      // Counted across both halves: a photo the platform would not hand over at
-      // all, and one whose bytes would not decode at export. Either way the
-      // send is smaller than what was chosen, and saying so is better than
-      // letting the user count bubbles.
-      if (read.dropped > 0 || (send?.dropped ?? 0) > 0) {
-        toast.show(
-          loc.photoTrayLoadFailedSnack,
-          tone: ToastTone.danger,
-        );
+      // Opens on the first photo just chosen, not the last.
+      draft.index = read.isEmpty ? draft.length - 1 : firstNew;
+      try {
+        await _composeDraft(draft);
+      } finally {
+        if (into == null) draft.dispose();
       }
     } finally {
       _setMediaBusy(false);
@@ -3718,6 +3775,9 @@ class _RoomScreenState extends State<RoomScreen>
     /// Armed with the circled "1" in the editor: one look per recipient, then
     /// the file is deleted from the server.
     bool viewOnce = false,
+
+    /// What the sender wrote under a photo in the composer.
+    String? caption,
   }) {
     // Snapshot and disarm up front — see _send. Deliberately NOT restored on
     // failure the way this used to be: the failure now arrives long after the
@@ -3745,6 +3805,7 @@ class _RoomScreenState extends State<RoomScreen>
       mediaDurationMs: mediaDurationMs,
       replyToId: replyTarget?.id,
       viewOnce: viewOnce,
+      caption: caption,
     );
     _scrollToBottom();
     _touchShareTarget();

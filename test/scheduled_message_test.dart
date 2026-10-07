@@ -166,6 +166,27 @@ void main() {
       expect(ScheduledMessage.fromJson(m.toJson()), m);
     });
 
+    test('a scheduled photo round-trips, caption and file both', () {
+      final m = ScheduledMessage(
+        id: 'sm2',
+        roomId: 'r1',
+        content: '',
+        sendAt: DateTime(2026, 8, 12, 18),
+        createdAt: DateTime(2026, 8, 12, 9),
+        mediaStorageId: 'kg2abc',
+        mediaWidth: 1200,
+        mediaHeight: 900,
+        viewOnce: true,
+      );
+      expect(m.isPhoto, isTrue);
+      final json = m.toJson();
+      expect(json['type'], 'image');
+      expect(ScheduledMessage.fromJson(json), m);
+      // A text row stays a text row on the wire: no `type` key at all.
+      expect(make().toJson().containsKey('type'), isFalse);
+      expect(make().isPhoto, isFalse);
+    });
+
     test('a row with no `pending` key reads as pending', () {
       // Absent means true on the wire — the backend only ever writes the field
       // when it is unsetting it, so a row that has never failed simply has no

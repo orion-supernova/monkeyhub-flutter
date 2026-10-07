@@ -10993,4 +10993,71 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get interactionRetry => 'फिर कोशिश करें';
+
+  @override
+  String get cameraEditorScreenCaptionHint => 'कैप्शन जोड़ें…';
+
+  @override
+  String get cameraEditorScreenCaptionViewOnceHint =>
+      'एक बार देखी जाने वाली फ़ोटो पर कैप्शन नहीं';
+
+  @override
+  String get cameraEditorScreenAddFromCameraSemanticLabel => 'एक और फ़ोटो लें';
+
+  @override
+  String cameraEditorScreenDiscardAllTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ोटो हटाएँ?',
+      one: 'यह फ़ोटो हटाएँ?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraEditorScreenDiscardAllBody =>
+      'आपके संपादन और कैप्शन खो जाएँगे।';
+
+  @override
+  String get cameraEditorScreenDiscardAllConfirm => 'हटाएँ';
+
+  @override
+  String get galleryTrayRecentsTitle => 'हाल ही के';
+
+  @override
+  String get galleryTrayBackToCameraLabel => 'कैमरा पर वापस जाएँ';
+
+  @override
+  String get galleryTrayAllPhotosLabel => 'सभी फ़ोटो';
+
+  @override
+  String get galleryTrayHandleLabel => 'हाल की फ़ोटो';
+
+  @override
+  String get galleryTrayAllowPrompt => 'अपनी हाल की फ़ोटो यहाँ देखें';
+
+  @override
+  String get galleryTrayAllowButton => 'अनुमति दें';
+
+  @override
+  String get galleryTrayDeniedPrompt => 'फ़ोटो एक्सेस बंद है';
+
+  @override
+  String get galleryTraySettingsButton => 'सेटिंग्स';
+
+  @override
+  String get galleryTrayLimitedNote =>
+      'केवल आपकी अनुमति वाली फ़ोटो दिख रही हैं';
+
+  @override
+  String get galleryTrayManageButton => 'प्रबंधित करें';
+
+  @override
+  String get galleryTrayEmpty => 'अभी कोई फ़ोटो नहीं';
+
+  @override
+  String galleryTrayPhotoLabel(int index) {
+    return 'फ़ोटो $index';
+  }
 }

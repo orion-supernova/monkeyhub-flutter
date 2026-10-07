@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../diagnostics/diag_log.dart';
+import '../media/image_raster.dart' show CroppedImage;
 import '../media/upload_service.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -4561,6 +4562,53 @@ class ChatRepository extends ChangeNotifier {
         // purpose: one key that survives every retry of this one message.
         clientId: 'sch_${DateTime.now().microsecondsSinceEpoch}',
       );
+      return null;
+    } catch (e) {
+      return _scheduleErrorCode(e);
+    }
+  }
+
+  /// Queues finished photos for [sendAt], each with its own caption. Returns
+  /// null on success, or an error code the caller must surface — the
+  /// [scheduleText] contract.
+  ///
+  /// Each picture is uploaded NOW, so what goes out is exactly what the sender
+  /// reviewed, and the server holds the file against the scheduled row.
+  ///
+  /// One after another rather than all at once, for the album: each photo is
+  /// due one millisecond after the one before it, so the server releases them
+  /// in the order they sat in the composer — the same order a live multi-send
+  /// posts them in. [replyToId] rides on the first, as a live send's does.
+  Future<String?> schedulePhotos(
+    String roomId,
+    List<({CroppedImage image, String? caption})> photos, {
+    required int sendAt,
+    bool viewOnce = false,
+    String? replyToId,
+  }) async {
+    final id = _userId;
+    if (id == null) return 'SCHEDULE_FAILED';
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    try {
+      for (var i = 0; i < photos.length; i++) {
+        final photo = photos[i];
+        final storageId = await UploadService(api).uploadFile(
+          bytes: photo.image.bytes,
+          contentType: photo.image.contentType,
+        );
+        await api.scheduleMessage(
+          roomId: roomId,
+          userId: id,
+          content: photo.caption ?? '',
+          sendAt: sendAt + i,
+          replyToId: i == 0 ? replyToId : null,
+          mediaStorageId: storageId,
+          mediaWidth: photo.image.width.toDouble(),
+          mediaHeight: photo.image.height.toDouble(),
+          viewOnce: viewOnce,
+          clientId: 'sch_${stamp}_$i',
+        );
+      }
       return null;
     } catch (e) {
       return _scheduleErrorCode(e);

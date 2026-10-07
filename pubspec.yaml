@@ -56,6 +56,12 @@ dependencies:
   # does not exist.
   file_selector: ^1.1.0
   camera: ^0.12.0+2
+  # The recents strip under the in-app camera. image_picker can only present
+  # the system picker; it cannot list the library, so it cannot draw a row of
+  # the last thirty photos to tap. iOS and Android only — see
+  # `GalleryTray.supported`.
+  photo_manager: ^3.12.0
+  photo_manager_image_provider: ^2.2.0
   record: ^6.2.1
   just_audio: ^0.10.6
   video_player: ^2.9.2

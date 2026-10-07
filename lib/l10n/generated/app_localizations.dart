@@ -18624,6 +18624,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get interactionRetry;
+
+  /// Placeholder in the caption field under a photo in the photo composer. Each photo in a send has its own caption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a caption…'**
+  String get cameraEditorScreenCaptionHint;
+
+  /// Placeholder shown in the disabled caption field while view-once is armed: captions are not sent with view-once photos.
+  ///
+  /// In en, this message translates to:
+  /// **'No captions on view-once photos'**
+  String get cameraEditorScreenCaptionViewOnceHint;
+
+  /// Accessibility label for the camera button in the photo composer that goes back to the camera to add another photo to the same send.
+  ///
+  /// In en, this message translates to:
+  /// **'Take another photo'**
+  String get cameraEditorScreenAddFromCameraSemanticLabel;
+
+  /// Title of the confirmation shown when leaving the photo composer with several photos or typed captions. {count} is the number of photos.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Discard this photo?} other{Discard {count} photos?}}'**
+  String cameraEditorScreenDiscardAllTitle(int count);
+
+  /// Body of the discard confirmation in the photo composer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your edits and captions will be lost.'**
+  String get cameraEditorScreenDiscardAllBody;
+
+  /// Destructive button of the discard confirmation in the photo composer.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get cameraEditorScreenDiscardAllConfirm;
+
+  /// Title of the full-screen recent-photos gallery that opens from the in-app camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Recents'**
+  String get galleryTrayRecentsTitle;
+
+  /// Accessibility label for the chevron that collapses the camera's photo gallery back to the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to camera'**
+  String get galleryTrayBackToCameraLabel;
+
+  /// Accessibility label for the button in the camera's photo gallery that opens the system photo picker (albums, multi-select).
+  ///
+  /// In en, this message translates to:
+  /// **'All photos'**
+  String get galleryTrayAllPhotosLabel;
+
+  /// Accessibility label for the drag handle of the recent-photos strip under the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent photos'**
+  String get galleryTrayHandleLabel;
+
+  /// Shown in the camera's recent-photos strip before photo library access has been asked for.
+  ///
+  /// In en, this message translates to:
+  /// **'See your recent photos here'**
+  String get galleryTrayAllowPrompt;
+
+  /// Button next to galleryTrayAllowPrompt that asks for photo library access.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get galleryTrayAllowButton;
+
+  /// Shown in the camera's recent-photos strip when photo library access was refused.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo access is off'**
+  String get galleryTrayDeniedPrompt;
+
+  /// Button next to galleryTrayDeniedPrompt that opens the system Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get galleryTraySettingsButton;
+
+  /// Note in the camera's photo gallery when the user granted access to selected photos only.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing only the photos you’ve allowed'**
+  String get galleryTrayLimitedNote;
+
+  /// Button next to galleryTrayLimitedNote that lets the user change which photos are shared.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get galleryTrayManageButton;
+
+  /// Shown in the camera's recent-photos strip when the library has no photos.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos yet'**
+  String get galleryTrayEmpty;
+
+  /// Accessibility label of one photo in the camera's recent-photos strip or gallery. {index} is its 1-based position, newest first.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo {index}'**
+  String galleryTrayPhotoLabel(int index);
 }
 
 class _AppLocalizationsDelegate

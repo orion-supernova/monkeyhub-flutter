@@ -42,13 +42,27 @@ void main() {
     bool allowDrawing = true,
     bool allowViewOnce = true,
     String? confirmLabel,
-  }) => MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: ThemeScope(
-      controller: ThemeController(BasicTheme.midnight()),
-      child: CameraEditorScreen(
+    EditorDraft? draft,
+    bool allowCaptions = false,
+    int maxPhotos = 1,
+    bool galleryOverCamera = false,
+    bool allowSchedule = false,
+    String? scheduleRefusal,
+  }) => ThemeScope(
+    // Above the app, as in the real one, so a sheet the editor pushes (the
+    // schedule sheet) can see the theme too.
+    controller: ThemeController(BasicTheme.midnight()),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: CameraEditorScreen(
         source: source,
+        draft: draft,
+        allowCaptions: allowCaptions,
+        maxPhotos: maxPhotos,
+        galleryOverCamera: galleryOverCamera,
+        allowSchedule: allowSchedule,
+        scheduleRefusal: scheduleRefusal,
         canRetake: canRetake,
         allowDrawing: allowDrawing,
         allowViewOnce: allowViewOnce,
@@ -121,7 +135,7 @@ void main() {
     );
 
     expect(find.byIcon(CupertinoIcons.scribble), findsNothing);
-    expect(find.text('Send'), findsNothing);
+    expect(find.bySemanticsLabel('Send'), findsNothing);
     expect(find.text('Use photo'), findsOneWidget);
 
     // Still a cropper, which is the entire reason the feed came here.
@@ -154,7 +168,8 @@ void main() {
     expect(find.byIcon(CupertinoIcons.crop), findsOneWidget);
     expect(find.text('CROP'), findsNothing);
     expect(find.text('Use photo'), findsNothing);
-    expect(find.text('Send'), findsOneWidget);
+    // The round arrow, not a labelled pill.
+    expect(find.bySemanticsLabel('Send'), findsOneWidget);
   });
 
   testWidgets(
@@ -200,5 +215,274 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsOneWidget);
+  });
+
+  testWidgets('undo and redo keep their places, so repeated undo stays undo', (
+    tester,
+  ) async {
+    await settle(tester, host(photo));
+    await tester.tap(find.byIcon(CupertinoIcons.scribble));
+    await tester.pumpAndSettle();
+
+    final undo = find.byIcon(CupertinoIcons.arrow_uturn_left);
+    final redo = find.byIcon(CupertinoIcons.arrow_uturn_right);
+    // Out with the pen: both slots, before anything is drawn.
+    expect(undo, findsOneWidget);
+    expect(redo, findsOneWidget);
+    final undoAt = tester.getCenter(undo);
+    final redoAt = tester.getCenter(redo);
+    expect(undoAt.dx, lessThan(redoAt.dx));
+
+    await tester.drag(
+      find.byKey(cameraEditorStageImageKey),
+      const Offset(50, 40),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+
+    // Undo the only stroke, then keep tapping where undo was. It must stay
+    // undo — the old layout slid redo into this spot and redrew the stroke.
+    await tester.tapAt(undoAt);
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(undo), undoAt);
+    expect(tester.getCenter(redo), redoAt);
+    await tester.tapAt(undoAt);
+    await tester.pumpAndSettle();
+    await tester.tapAt(undoAt);
+    await tester.pumpAndSettle();
+
+    // Nothing drawn: redo is the only way back, and it is where it was.
+    await tester.tapAt(redoAt);
+    await tester.pumpAndSettle();
+    await tester.tapAt(undoAt);
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(undo), undoAt);
+  });
+
+  testWidgets('holding send opens the schedule sheet', (tester) async {
+    await settle(tester, host(photo, allowSchedule: true));
+    await tester.longPress(find.bySemanticsLabel('Send'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Schedule message'), findsOneWidget);
+  });
+
+  testWidgets('a room that refuses scheduling says why instead', (
+    tester,
+  ) async {
+    await settle(
+      tester,
+      host(photo, allowSchedule: true, scheduleRefusal: 'Not in this room'),
+    );
+    await tester.longPress(find.bySemanticsLabel('Send'));
+    await tester.pump();
+    expect(find.text('Schedule message'), findsNothing);
+    expect(find.text('Not in this room'), findsOneWidget);
+    // Let the toast run out so no timer outlives the test.
+    await tester.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('without scheduling, holding send does nothing extra', (
+    tester,
+  ) async {
+    await settle(tester, host(photo));
+    await tester.longPress(find.bySemanticsLabel('Send'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Schedule message'), findsNothing);
+  });
+
+  testWidgets('disposing the draft while the composer animates away is safe', (
+    tester,
+  ) async {
+    // The caller's `finally { draft.dispose(); }` runs the moment the route's
+    // future completes — while the route is still painting its exit. That
+    // used to empty the draft under it: RangeError on `_page`.
+    final draft = EditorDraft()..add(photo);
+    await tester.pumpWidget(
+      ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                try {
+                  await CameraEditorScreen.open(
+                    context,
+                    draft: draft,
+                    allowCaptions: true,
+                    maxPhotos: 10,
+                  );
+                } finally {
+                  draft.dispose();
+                }
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    for (var i = 0; i < 10; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
+
+    // Typing a caption: leaving then takes the keyboard focus away, and the
+    // focus change rebuilds the screen mid-exit — the frame that crashed.
+    await tester.tap(find.byKey(cameraEditorCaptionKey));
+    await tester.pump();
+    await tester.tap(find.byIcon(CupertinoIcons.xmark));
+    // Frame by frame through the exit, where the crash was.
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(tester.takeException(), isNull);
+    expect(draft.isEmpty, isTrue);
+  });
+
+  group('the multi-photo composer', () {
+    EditorDraft three() => EditorDraft()
+      ..add(makePng(600, 800))
+      ..add(makePng(800, 600))
+      ..add(makePng(500, 500))
+      ..index = 0;
+
+    String captionText(WidgetTester tester) => tester
+        .widget<TextField>(find.byKey(cameraEditorCaptionKey))
+        .controller!
+        .text;
+
+    testWidgets('captions follow the photo on screen', (tester) async {
+      final draft = three();
+      addTearDown(draft.dispose);
+      await settle(
+        tester,
+        host(photo, draft: draft, allowCaptions: true, maxPhotos: 10),
+      );
+      // No "3 photos" title: the rail is the count.
+      expect(find.text('3 photos'), findsNothing);
+      expect(find.bySemanticsLabel('Item 3 of 3'), findsOneWidget);
+
+      await tester.enterText(find.byKey(cameraEditorCaptionKey), 'first');
+      await tester.pump();
+
+      await tester.tap(find.bySemanticsLabel('Item 2 of 3'));
+      await tester.pump();
+      expect(captionText(tester), isEmpty);
+
+      await tester.enterText(find.byKey(cameraEditorCaptionKey), 'second');
+      await tester.pump();
+
+      await tester.tap(find.bySemanticsLabel('Item 1 of 3'));
+      await tester.pump();
+      expect(captionText(tester), 'first');
+    });
+
+    testWidgets('a sideways swipe moves between photos', (tester) async {
+      final draft = three();
+      addTearDown(draft.dispose);
+      await settle(
+        tester,
+        host(photo, draft: draft, allowCaptions: true, maxPhotos: 10),
+      );
+      await tester.enterText(find.byKey(cameraEditorCaptionKey), 'first');
+      await tester.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+
+      final middle = tester.getCenter(find.byType(Scaffold));
+      await tester.flingFrom(middle, const Offset(-300, 0), 1500);
+      await tester.pumpAndSettle();
+      expect(draft.index, 1);
+      expect(captionText(tester), isEmpty);
+
+      await tester.flingFrom(middle, const Offset(300, 0), 1500);
+      await tester.pumpAndSettle();
+      expect(draft.index, 0);
+      expect(captionText(tester), 'first');
+
+      // Nothing before the first photo: the swipe gives, then settles back.
+      await tester.flingFrom(middle, const Offset(300, 0), 1500);
+      await tester.pumpAndSettle();
+      expect(draft.index, 0);
+    });
+
+    testWidgets('view once turns captions off and says so', (tester) async {
+      final draft = three();
+      addTearDown(draft.dispose);
+      await settle(
+        tester,
+        host(photo, draft: draft, allowCaptions: true, maxPhotos: 10),
+      );
+      await tester.tap(find.text('1'));
+      await tester.pump();
+
+      final field = tester.widget<TextField>(
+        find.byKey(cameraEditorCaptionKey),
+      );
+      expect(field.enabled, isFalse);
+      expect(find.text('No captions on view-once photos'), findsOneWidget);
+    });
+
+    testWidgets('over the camera it offers both ways to add a photo', (
+      tester,
+    ) async {
+      final draft = three();
+      addTearDown(draft.dispose);
+      await settle(
+        tester,
+        host(
+          photo,
+          draft: draft,
+          canRetake: true,
+          allowCaptions: true,
+          maxPhotos: 10,
+          galleryOverCamera: true,
+        ),
+      );
+      expect(find.bySemanticsLabel('Take another photo'), findsOneWidget);
+      expect(find.bySemanticsLabel('Add more photos'), findsOneWidget);
+    });
+
+    testWidgets('a full draft stops offering more', (tester) async {
+      final draft = three();
+      addTearDown(draft.dispose);
+      await settle(
+        tester,
+        host(
+          photo,
+          draft: draft,
+          canRetake: true,
+          allowCaptions: true,
+          maxPhotos: 3,
+          galleryOverCamera: true,
+        ),
+      );
+      expect(find.bySemanticsLabel('Take another photo'), findsNothing);
+      expect(find.bySemanticsLabel('Add more photos'), findsNothing);
+    });
+
+    testWidgets('removing a photo from the rail takes it out of the draft', (
+      tester,
+    ) async {
+      final draft = three();
+      addTearDown(draft.dispose);
+      await settle(
+        tester,
+        host(photo, draft: draft, allowCaptions: true, maxPhotos: 10),
+      );
+      await tester.tap(find.bySemanticsLabel('Remove this photo').first);
+      await tester.pump();
+      expect(draft.length, 2);
+      expect(find.bySemanticsLabel('Item 2 of 2'), findsOneWidget);
+    });
   });
 }

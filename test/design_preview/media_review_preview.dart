@@ -15,7 +15,6 @@ import 'package:monkeyhub/drop/drop_item.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/screens/camera_editor_screen.dart';
 import 'package:monkeyhub/screens/image_crop_screen.dart';
-import 'package:monkeyhub/screens/photo_tray_screen.dart';
 import 'package:monkeyhub/screens/view_once_viewer.dart';
 import 'package:monkeyhub/screens/voice_recorder_screen.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -222,7 +221,18 @@ void main() {
         final bytes = await _photo(tester, w: 300, h: 400);
         await snap(
           tester,
-          previewApp(ThemeController.byId(id), PhotoTrayScreen(photos: [bytes, bytes, bytes]),
+          previewApp(
+              ThemeController.byId(id),
+              CameraEditorScreen(
+                draft: EditorDraft()
+                  ..add(bytes)
+                  ..add(bytes)
+                  ..add(bytes),
+                canRetake: true,
+                allowCaptions: true,
+                maxPhotos: 10,
+                galleryOverCamera: true,
+              ),
               locale: locales[lc]!),
           'media_tray_${id}_$lc.png',
           act: _decode(tester),

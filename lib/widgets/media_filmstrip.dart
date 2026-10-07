@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
-import 'photo_chrome.dart' show MediaOverlayChip;
 import 'spring_press.dart';
 
 /// The rail of thumbnails that sits under a full-bleed picture.
@@ -71,9 +71,10 @@ class MediaFilmstrip extends StatefulWidget {
 
   final void Function(int i) onTap;
 
-  /// Shows a dismiss badge on every tile. Null — the viewer's case — leaves the
-  /// tiles unadorned: you cannot take a photo out of a conversation that
-  /// already happened.
+  /// Shows a dismiss badge on the CURRENT tile — never on the others, where it
+  /// would sit under a thumb reaching to switch photos. Null — the viewer's
+  /// case — leaves the tiles unadorned: you cannot take a photo out of a
+  /// conversation that already happened.
   final void Function(int i)? onRemove;
 
   final String? removeSemanticLabel;
@@ -249,8 +250,13 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
                   semanticLabel:
                       widget.tileSemanticLabel?.call(i + 1, widget.count),
                   onTap: () => widget.onTap(i),
-                  onRemove:
-                      widget.onRemove == null ? null : () => widget.onRemove!(i),
+                  // Only on the photo being looked at. A badge on every tile
+                  // sat exactly where a thumb lands reaching for another
+                  // photo, so switching photos kept deleting them; now a
+                  // tap on any other tile can only ever select it.
+                  onRemove: widget.onRemove == null || i != widget.index
+                      ? null
+                      : () => widget.onRemove!(i),
                   removeSemanticLabel: widget.removeSemanticLabel,
                   child: widget.thumbnailBuilder(context, i),
                 );
@@ -336,13 +342,20 @@ class _Tile extends StatelessWidget {
                   // where the old private badge was, a few points over the
                   // corner so it stays off the face in the thumbnail.
                   Positioned(
-                    top: -7,
-                    right: -7,
-                    child: MediaOverlayChip(
-                      icon: CupertinoIcons.xmark,
-                      size: 24,
-                      onTap: onRemove,
-                      semanticLabel: removeSemanticLabel ?? '',
+                    top: -10,
+                    right: -10,
+                    // Pops in on the tile that just became current, so the
+                    // eye follows it to the photo it belongs to.
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.6, end: 1),
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutBack,
+                      builder: (_, v, child) =>
+                          Transform.scale(scale: v, child: child),
+                      child: _RemoveBadge(
+                        onTap: onRemove!,
+                        semanticLabel: removeSemanticLabel ?? '',
+                      ),
                     ),
                   ),
                 ],
@@ -441,6 +454,55 @@ class MediaScrim extends StatelessWidget {
             begin: fromTop ? Alignment.topCenter : Alignment.bottomCenter,
             end: fromTop ? Alignment.bottomCenter : Alignment.topCenter,
             colors: const [Color(0xB3000000), Color(0x00000000)],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The remove mark on the current tile: a red disc with a white trash glyph
+/// and a white ring — iOS's delete red, so it reads as "take this out" at a
+/// glance. The neutral dark × it replaced vanished into the black around
+/// the rail.
+///
+/// 26pt drawn inside a 40pt tap target, so it is easy to hit on purpose
+/// without growing over the tiles beside it.
+class _RemoveBadge extends StatelessWidget {
+  const _RemoveBadge({required this.onTap, required this.semanticLabel});
+
+  final VoidCallback onTap;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = ThemeScope.of(context).danger;
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      scale: PressSpec.scaleSmall,
+      focusShape: FocusRingShape.circle,
+      focusRadius: 13,
+      // The removal plays its own impact; the press must not add a tick.
+      haptic: false,
+      child: Padding(
+        // The extra slop is the tap target, not paint.
+        padding: const EdgeInsets.all(2),
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            color: danger,
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFFFFFFF), width: 1.5),
+            boxShadow: const [
+              BoxShadow(color: Color(0x66000000), blurRadius: 6),
+            ],
+          ),
+          child: const Icon(
+            CupertinoIcons.trash_fill,
+            size: 13,
+            color: Color(0xFFFFFFFF),
           ),
         ),
       ),
