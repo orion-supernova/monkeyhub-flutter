@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/layout.dart';
@@ -31,6 +32,7 @@ class GameLayoutShell extends StatelessWidget {
     this.leadingWidth = 84,
     this.boardWidth = 440,
     this.sidebarWidth = 320,
+    this.scrollLocked,
   });
 
   final List<Widget> header;
@@ -50,11 +52,33 @@ class GameLayoutShell extends StatelessWidget {
   final double boardWidth;
   final double sidebarWidth;
 
+  /// True while the page must hold still — a finger is on the board, and a
+  /// scroll that started under it would move the grid out from under the
+  /// stroke. Null for a screen with nothing to lock.
+  final ValueListenable<bool>? scrollLocked;
+
   @override
   Widget build(BuildContext context) {
+    final lock = scrollLocked;
+    if (lock == null) return _build(context, null);
+    return ValueListenableBuilder<bool>(
+      valueListenable: lock,
+      builder: (context, locked, _) => _build(
+        context,
+        // Swapping the physics, rather than winning a gesture arena, is what
+        // makes this hold for every board: a tap board never enters the arena
+        // against the page at all, and the page's drag is cancelled outright
+        // the moment it can no longer scroll.
+        locked ? const NeverScrollableScrollPhysics() : null,
+      ),
+    );
+  }
+
+  Widget _build(BuildContext context, ScrollPhysics? physics) {
     if (!context.isExpanded) {
       return AdaptivePageBody(
         child: ListView(
+          physics: physics,
           // The device's bottom inset rides on the scroller rather than being
           // reserved by a `SafeArea` — see [edgeToEdgeBottom]. The board runs
           // to the bottom of the glass and the scoreboard scrolls past the home
@@ -71,6 +95,7 @@ class GameLayoutShell extends StatelessWidget {
       );
     }
     return SingleChildScrollView(
+      physics: physics,
       padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context)),
       child: Align(
         alignment: Alignment.topCenter,

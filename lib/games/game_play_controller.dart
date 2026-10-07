@@ -42,6 +42,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _tick;
 
   bool _ready = false;
+  bool _started = false;
   bool _busy = false;
   bool _paused = false;
   bool _finished = false;
@@ -57,6 +58,12 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   /// False until [begin] has heard back. The board renders inert until then, so
   /// a tap cannot land before there is a clock to time it against.
   bool get ready => _ready;
+
+  /// Whether the player has touched the board yet. The clock waits for it —
+  /// opening a game is not starting it, and a stopwatch that ran while the
+  /// screen was still settling, or while somebody read the rules, would time
+  /// the walk in rather than the solve.
+  bool get started => _started;
 
   /// A server round trip is in flight. Submit and hint disable themselves.
   bool get busy => _busy;
@@ -94,8 +101,8 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   /// than waiting for the standings to come back.
   bool get shared => _shared;
 
-  /// The stopwatch. Ticks only while the board is open, in the foreground and
-  /// unpaused.
+  /// The stopwatch. Ticks only once [startClock] has run, and then only while
+  /// the board is open, in the foreground and unpaused.
   Duration get elapsed {
     final since = _since;
     if (since == null) return _accumulated;
@@ -126,8 +133,6 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
         _solved = GamesStore.instance.standings.mine[game]?.solved ?? false;
         _gaveUp = GamesStore.instance.standings.mine[game]?.gaveUp ?? false;
         _shared = GamesStore.instance.standings.mine[game]?.shared ?? false;
-      } else {
-        _resume();
       }
     } catch (e) {
       _errorCode = _codeOf(e);
@@ -136,8 +141,19 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       // the server will settle on the next call — and `submit` re-derives the
       // ceiling from its own row regardless.
       _ready = true;
-      _resume();
     }
+    notifyListeners();
+  }
+
+  /// Starts the clock on the player's first touch of the board. Every later
+  /// call is a no-op, so the board can call it on every touch.
+  ///
+  /// A board restored mid-solve waits for a touch too: its saved time carries
+  /// on from where it stopped, not from the moment the screen opened.
+  void startClock() {
+    if (!_ready || _started || _finished || _paused) return;
+    _started = true;
+    _resume();
     notifyListeners();
   }
 
@@ -171,6 +187,9 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   /// see [GamesApi.hint].
   Future<GameHint?> hint(List<int> board) async {
     if (_busy || _finished) return null;
+    // A hint is a move like any other — asking for one before touching the
+    // board must not be a way to get a cell for free off the clock.
+    startClock();
     _busy = true;
     _errorCode = null;
     notifyListeners();
@@ -351,7 +370,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _resume() {
-    if (_since != null || _finished) return;
+    if (_since != null || _finished || !_started) return;
     _since = DateTime.now();
     _tick ??= Timer.periodic(const Duration(seconds: 1), (_) {
       notifyListeners();

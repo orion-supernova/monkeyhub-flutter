@@ -26,7 +26,7 @@ import '../../l10n/text_case.dart';
 /// different from Sudoku — the grid is. Four copies of a stopwatch and an
 /// autosave is four places for the timer to leak, and it also guarantees the
 /// four boards drift apart visually within a month of shipping.
-class GameScaffold extends StatelessWidget {
+class GameScaffold extends StatefulWidget {
   const GameScaffold({
     super.key,
     required this.controller,
@@ -69,9 +69,33 @@ class GameScaffold extends StatelessWidget {
   final VoidCallback? onTellFriends;
 
   @override
+  State<GameScaffold> createState() => _GameScaffoldState();
+}
+
+class _GameScaffoldState extends State<GameScaffold> {
+  final _touch = _BoardTouch();
+
+  @override
+  void dispose() {
+    _touch.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final GameScaffold(
+      :controller,
+      :title,
+      :rule,
+      :board,
+      :tools,
+      :footer,
+      :viewerId,
+      :onShare,
+      :onTellFriends,
+    ) = widget;
 
     final header = <Widget>[
       _TopBar(controller: controller),
@@ -98,7 +122,23 @@ class GameScaffold extends StatelessWidget {
             // game reads as that card growing to fill the screen.
             ClipRRect(
               borderRadius: BorderRadius.circular(theme.radiusMd),
-              child: board,
+              // Sees every touch before the board's own recognizers do, and
+              // never competes with them: the first touch starts the clock,
+              // and any finger down holds the page still until it lifts.
+              child: Listener(
+                onPointerDown: (e) {
+                  if (!controller.ready ||
+                      controller.finished ||
+                      controller.paused) {
+                    return;
+                  }
+                  controller.startClock();
+                  _touch.down(e.pointer);
+                },
+                onPointerUp: (e) => _touch.up(e.pointer),
+                onPointerCancel: (e) => _touch.up(e.pointer),
+                child: board,
+              ),
             ),
             // Fades rather than popping, so pausing reads as the board
             // being put away, not as a screen swap.
@@ -142,7 +182,7 @@ class GameScaffold extends StatelessWidget {
         ),
       if (footer != null && !controller.finished) ...[
         const SizedBox(height: 14),
-        footer!,
+        footer,
       ],
       if (controller.finished) ...[
         _ResultCard(
@@ -168,6 +208,7 @@ class GameScaffold extends StatelessWidget {
               header: header,
               board: board_,
               boardWidth: 480,
+              scrollLocked: _touch.locked,
               sidebar: GameStandingsList(
                 game: controller.game,
                 viewerId: viewerId,
@@ -178,6 +219,26 @@ class GameScaffold extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Which fingers are on the board right now. The page stays locked until the
+/// last of them lifts — a second finger landing and leaving mid-stroke must not
+/// let the first one start scrolling.
+class _BoardTouch {
+  final locked = ValueNotifier<bool>(false);
+  final _pointers = <int>{};
+
+  void down(int pointer) {
+    _pointers.add(pointer);
+    locked.value = true;
+  }
+
+  void up(int pointer) {
+    _pointers.remove(pointer);
+    locked.value = _pointers.isNotEmpty;
+  }
+
+  void dispose() => locked.dispose();
 }
 
 /// Back arrow, running clock, pause.
@@ -222,7 +283,13 @@ class _TopBar extends StatelessWidget {
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0,
-                  color: controller.finished ? theme.success : theme.ink,
+                  // Muted until the first touch, so a clock waiting on the
+                  // player reads as waiting rather than stuck.
+                  color: controller.finished
+                      ? theme.success
+                      : controller.started
+                      ? theme.ink
+                      : theme.inkMuted,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
