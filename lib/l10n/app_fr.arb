@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "Tu as déjà résolu celle d’aujourd’hui",
   "puzzleErrorOutOfGuesses": "Plus d’essais aujourd’hui",
   "puzzleErrorGeneric": "Envoi impossible — réessaie",
+  "puzzleGuessWaiting": "Pas de connexion. Ton essai est gardé et partira dès ton retour",
+  "gameSubmitWaiting": "Pas de connexion. Ta grille finie est gardée et partira dès ton retour",
   "puzzleScoreboardLabel": "Scores du jour",
   "puzzleScoreboardEmpty": "Personne n’a encore terminé aujourd’hui",
   "puzzleTilePlay": "joue l’énigme du jour",

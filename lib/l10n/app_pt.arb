@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "Já resolveste o de hoje",
   "puzzleErrorOutOfGuesses": "Não tens tentativas hoje",
   "puzzleErrorGeneric": "Não foi possível enviar — tenta de novo",
+  "puzzleGuessWaiting": "Sem ligação. O teu palpite está guardado e segue quando voltares",
+  "gameSubmitWaiting": "Sem ligação. O teu tabuleiro feito está guardado e segue quando voltares",
   "puzzleScoreboardLabel": "Pontuações de hoje",
   "puzzleScoreboardEmpty": "Ainda ninguém terminou hoje",
   "puzzleTilePlay": "joga o enigma de hoje",

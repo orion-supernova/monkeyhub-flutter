@@ -5057,6 +5057,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get puzzleErrorGeneric => '发送失败 — 请重试';
 
   @override
+  String get puzzleGuessWaiting => '没有网络。你的猜测已保存，恢复连接后会自动发送';
+
+  @override
+  String get gameSubmitWaiting => '没有网络。你完成的棋盘已保存，恢复连接后会自动提交';
+
+  @override
   String get puzzleScoreboardLabel => '今日成绩';
 
   @override

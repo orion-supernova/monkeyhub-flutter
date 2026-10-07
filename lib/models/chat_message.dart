@@ -305,9 +305,9 @@ class ChatMessage {
   /// paint the picture the sender chose instead of fetching back the one they
   /// just sent.
   ///
-  /// Never leaves the process: [toJson] enumerates its keys and this is not among
-  /// them, and the disk cache is only ever handed server-parsed messages — the
-  /// pending list has no path to it at all.
+  /// Not among [toJson]'s keys, so the transcript cache never sees it. The
+  /// outbox writes the bytes separately while the send is unconfirmed — see
+  /// [PendingUpload].
   final PendingUpload? upload;
 
   /// Can this viewer still open it? False once burned, once spent, and on the
@@ -626,6 +626,9 @@ class ChatMessage {
     ReplyPreview? replyToPreview,
     String? rootId,
     bool? viewOnceOpened,
+    // Only the outbox passes this: a send read back from disk after a restart
+    // gets its bytes back on the copy that marks it failed.
+    PendingUpload? upload,
   }) => ChatMessage(
         id: id ?? this.id,
         roomId: roomId,
@@ -661,7 +664,7 @@ class ChatMessage {
         // Carried, not droppable. A copyWith that quietly lost the bytes of an
         // in-flight send would leave a bubble that can neither paint its picture
         // nor be retried, and nothing about the call site would hint at it.
-        upload: upload,
+        upload: upload ?? this.upload,
         // Carried for the same reason: a copy that lost these would render a
         // bubble whose text says "@bob" and whose highlighting says nothing,
         // with nothing at the call site to hint at why. `copyWith` runs on the

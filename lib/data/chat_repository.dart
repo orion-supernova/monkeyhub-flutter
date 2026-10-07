@@ -47,6 +47,78 @@ import 'settings_store.dart';
 ///   - active subscriptions (rooms; messages of currently open room)
 ///   - optimistic pending sends
 class ChatRepository extends ChangeNotifier {
+  /// Every change to an unsent message already announces itself here — a new
+  /// bubble, a status flip, an upload landing, a discard, a reconciliation — so
+  /// this is where the outbox follows it to disk, rather than at each of the
+  /// dozen sites that touch [_pending] and the next one somebody adds.
+  @override
+  void notifyListeners() {
+    _saveOutboxIfChanged();
+    super.notifyListeners();
+  }
+
+  /// Whether [m] is an unsent message worth keeping across a restart.
+  ///
+  /// Not one the server has acked (`sent` — it exists, the echo is only late),
+  /// and not a live location share, whose publisher does not survive a restart
+  /// either: re-sent later it would be a share nobody is feeding. An attachment
+  /// needs either its storage id or its bytes; one with neither (the
+  /// too-large refusal) has nothing to retry with.
+  static bool _belongsInOutbox(ChatMessage m) {
+    if (m.status == MessageStatus.sent) return false;
+    if (m.liveShareDurationMs != null) return false;
+    if (!m.isMedia || m.mediaStorageId != null) return true;
+    final up = m.upload;
+    return up != null && !up.disposed;
+  }
+
+  void _saveOutboxIfChanged() {
+    final uid = _userId;
+    if (uid == null || _outboxLoadedFor != uid) return;
+    final unsent = <ChatMessage>[
+      for (final list in _pending.values)
+        for (final m in list)
+          if (_belongsInOutbox(m)) m,
+    ];
+    final sig = [
+      for (final m in unsent)
+        '${m.id}|${m.status.index}|${m.mediaStorageId}|${m.posterStorageId}',
+    ].join(',');
+    if (sig == _outboxSig) return;
+    _outboxSig = sig;
+    CacheStore.instance.scheduleSaveOutbox(uid, unsent);
+  }
+
+  /// Reads last run's unsent messages back into [_pending], once per account.
+  Future<void> _restoreOutbox(String userId) async {
+    if (_outboxLoadedFor == userId) return;
+    final unsent = await CacheStore.instance.loadOutbox(userId);
+    if (_userId != userId) {
+      for (final m in unsent) {
+        m.upload?.dispose();
+      }
+      return;
+    }
+    final touched = <List<ChatMessage>>{};
+    for (final m in unsent) {
+      final list = _pending.putIfAbsent(m.roomId, () => []);
+      if (list.any((p) => p.id == m.id)) {
+        m.upload?.dispose();
+        continue;
+      }
+      list.add(m);
+      touched.add(list);
+      _heldFromLastRun.add(m.id);
+    }
+    for (final list in touched) {
+      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    }
+    _outboxLoadedFor = userId;
+    // Unconditionally: anything sent between launch and this read has not
+    // reached the disk yet, because writes were held until now.
+    notifyListeners();
+  }
+
   ChatRepository({required this.api, required this.cv});
 
   final ChatApi api;
@@ -233,6 +305,23 @@ class ChatRepository extends ChangeNotifier {
 
   final Map<String, List<ChatMessage>> _messages = {}; // roomId → ordered list
   final Map<String, List<ChatMessage>> _pending = {}; // optimistic messages
+
+  /// The account whose outbox has been read back into [_pending]. Nothing is
+  /// written to the outbox until this matches [_userId] — a write before the
+  /// read would replace last run's unsent messages with whatever this run has
+  /// produced so far, which at launch is nothing.
+  String? _outboxLoadedFor;
+
+  /// What the outbox on disk was last told to hold, so [notifyListeners] —
+  /// which fires constantly — only writes when an unsent message actually came,
+  /// went or changed state.
+  String _outboxSig = '';
+
+  /// Unsent messages read back from a previous run. Shown failed, with retry
+  /// and discard, and left out of [flushPending]'s reconnect sweep: whether a
+  /// message typed before a restart should still go out — maybe days later —
+  /// is the sender's call, and a reconnect is not them making it.
+  final Set<String> _heldFromLastRun = {};
   // Newest message id we've seen per room. Used to dedup [markRoomRead]
   // when the `messages:list` subscription refires for non-message reasons
   // (e.g. a reaction add/remove) so we don't trip a roomMembers patch →
@@ -737,6 +826,15 @@ class ChatRepository extends ChangeNotifier {
         notifyListeners();
       }
     } catch (_) {}
+
+    // 1b) Messages this account never got onto the server last time. Read
+    //     before anything else can write the outbox, and before the reconnect
+    //     sweep can see them — see [_heldFromLastRun].
+    try {
+      await _restoreOutbox(userId);
+    } catch (e) {
+      debugPrint('outbox restore failed: $e');
+    }
 
     // 2) Seed from parallel API hits before subscriptions take over.
     try {
@@ -1323,6 +1421,11 @@ class ChatRepository extends ChangeNotifier {
       }
     }
     _pending.clear();
+    // The outbox on disk goes with the cache directory (`CacheStore.clearFor`);
+    // these make sure the next sign-in reads it again rather than overwriting it.
+    _outboxLoadedFor = null;
+    _outboxSig = '';
+    _heldFromLastRun.clear();
     _lastSeenNewestMsgId.clear();
     _lastLiveRaw.clear();
     _deletedLocally.clear();
@@ -3879,6 +3982,9 @@ class ChatRepository extends ChangeNotifier {
       for (final m in entry.value) {
         if (m.id != messageId) continue;
         if (m.status != MessageStatus.error) return;
+        // The sender has decided; from here it is an ordinary send, and a
+        // failure is swept up on the next reconnect like any other.
+        _heldFromLastRun.remove(m.id);
         final up = m.upload;
         if (up != null && !up.disposed && m.mediaStorageId == null) {
           m.status = MessageStatus.uploading;
@@ -3904,6 +4010,7 @@ class ChatRepository extends ChangeNotifier {
     for (final list in _pending.values) {
       final i = list.indexWhere((m) => m.id == messageId);
       if (i < 0) continue;
+      _heldFromLastRun.remove(messageId);
       list.removeAt(i).upload?.dispose();
       notifyListeners();
       return;
@@ -5276,7 +5383,8 @@ class ChatRepository extends ChangeNotifier {
       for (final m in entry.value) {
         if ((m.status == MessageStatus.pending ||
                 m.status == MessageStatus.error) &&
-            _isPostable(m)) {
+            _isPostable(m) &&
+            !_heldFromLastRun.contains(m.id)) {
           retry.add((entry.key, m));
         }
       }

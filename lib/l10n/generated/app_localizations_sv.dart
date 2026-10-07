@@ -5349,6 +5349,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get puzzleErrorGeneric => 'Kunde inte skicka — försök igen';
 
   @override
+  String get puzzleGuessWaiting =>
+      'Ingen anslutning. Din gissning är sparad och skickas när du är tillbaka';
+
+  @override
+  String get gameSubmitWaiting =>
+      'Ingen anslutning. Din färdiga bräda är sparad och skickas när du är tillbaka';
+
+  @override
   String get puzzleScoreboardLabel => 'Dagens resultat';
 
   @override

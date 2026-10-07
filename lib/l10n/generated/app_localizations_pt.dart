@@ -5385,6 +5385,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get puzzleErrorGeneric => 'Não foi possível enviar — tenta de novo';
 
   @override
+  String get puzzleGuessWaiting =>
+      'Sem ligação. O teu palpite está guardado e segue quando voltares';
+
+  @override
+  String get gameSubmitWaiting =>
+      'Sem ligação. O teu tabuleiro feito está guardado e segue quando voltares';
+
+  @override
   String get puzzleScoreboardLabel => 'Pontuações de hoje';
 
   @override
@@ -16569,6 +16577,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get puzzleErrorGeneric => 'Não foi possível enviar — tente de novo';
+
+  @override
+  String get puzzleGuessWaiting =>
+      'Sem conexão. Seu palpite está salvo e vai assim que voltar';
+
+  @override
+  String get gameSubmitWaiting =>
+      'Sem conexão. Seu tabuleiro pronto está salvo e vai assim que voltar';
 
   @override
   String get puzzleScoreboardLabel => 'Pontuações de hoje';

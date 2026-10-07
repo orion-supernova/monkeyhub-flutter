@@ -5297,6 +5297,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get puzzleErrorGeneric => 'Tahmin gönderilemedi — tekrar dene';
 
   @override
+  String get puzzleGuessWaiting =>
+      'Bağlantı yok. Tahminin kaydedildi, bağlantı gelince gönderilecek';
+
+  @override
+  String get gameSubmitWaiting =>
+      'Bağlantı yok. Bitmiş tahtan kaydedildi, bağlantı gelince gönderilecek';
+
+  @override
   String get puzzleScoreboardLabel => 'Bugünün skorları';
 
   @override

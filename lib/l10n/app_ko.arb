@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "오늘 건 이미 풀었어요",
   "puzzleErrorOutOfGuesses": "오늘 남은 기회가 없어요",
   "puzzleErrorGeneric": "보내지 못했어요 — 다시 시도해주세요",
+  "puzzleGuessWaiting": "연결이 없어요. 추측은 저장됐고 연결되면 전송돼요",
+  "gameSubmitWaiting": "연결이 없어요. 완성한 보드는 저장됐고 연결되면 제출돼요",
   "puzzleScoreboardLabel": "오늘의 점수",
   "puzzleScoreboardEmpty": "오늘은 아직 아무도 끝내지 않았어요",
   "puzzleTilePlay": "오늘의 퍼즐 풀기",

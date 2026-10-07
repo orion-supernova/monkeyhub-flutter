@@ -153,6 +153,18 @@ class _GameScaffoldState extends State<GameScaffold> {
           ],
         ),
       ),
+      // A finished board waiting on the network. Not an error the player has
+      // to act on — it resends by itself — but it must be said, or a board
+      // that has gone inert with its clock stopped just looks frozen.
+      if (controller.stalled) ...[
+        const SizedBox(height: 12),
+        FormErrorBanner(
+          l10n.gameSubmitWaiting,
+          icon: CupertinoIcons.wifi_slash,
+          actionLabel: l10n.gamesRetry,
+          onAction: controller.retryNow,
+        ),
+      ],
       if (controller.errorCode != null) ...[
         const SizedBox(height: 12),
         FormErrorBanner(switch (controller.errorCode) {

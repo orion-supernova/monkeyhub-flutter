@@ -5122,6 +5122,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get puzzleErrorGeneric => '送信できませんでした — もう一度お試しください';
 
   @override
+  String get puzzleGuessWaiting => '接続がありません。予想は保存済みで、つながり次第送信されます';
+
+  @override
+  String get gameSubmitWaiting => '接続がありません。完成した盤面は保存済みで、つながり次第送信されます';
+
+  @override
   String get puzzleScoreboardLabel => '今日のスコア';
 
   @override

@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "Du har redan löst dagens",
   "puzzleErrorOutOfGuesses": "Inga försök kvar idag",
   "puzzleErrorGeneric": "Kunde inte skicka — försök igen",
+  "puzzleGuessWaiting": "Ingen anslutning. Din gissning är sparad och skickas när du är tillbaka",
+  "gameSubmitWaiting": "Ingen anslutning. Din färdiga bräda är sparad och skickas när du är tillbaka",
   "puzzleScoreboardLabel": "Dagens resultat",
   "puzzleScoreboardEmpty": "Ingen har blivit klar idag än",
   "puzzleTilePlay": "spela dagens pussel",

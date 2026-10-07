@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
@@ -50,11 +51,45 @@ class PuzzleScreen extends StatefulWidget {
 class _PuzzleScreenState extends State<PuzzleScreen> {
   /// The row being composed, shorter than [kPuzzleSlots] until it is full.
   final List<int> _draft = [];
-  bool _busy = false;
+
+  /// Which try the full [_draft] was sent as, from the tap on GUESS until the
+  /// server has it on the board. Non-null locks the keypad.
+  ///
+  /// Locked rather than handed back after a failure, and that is the whole of
+  /// the fix for a guess lost to a network hiccup. The native client keeps a
+  /// sent mutation in flight and resends it when the socket returns, however
+  /// long ago this side timed it out — so a guess that "failed" is a guess that
+  /// may still land. When the keypad came back on a timeout, a player in a dead
+  /// tunnel kept typing and tapping GUESS, every tap queued another try, and
+  /// the reconnect played them all at once: the board filled itself in and
+  /// ended on OUT_OF_GUESSES in front of them.
+  ///
+  /// Every send of one try carries the same number, and the server writes
+  /// nothing for a try already on the board — see `guess` in puzzle.ts. So the
+  /// retries below are free, and the only way the lock lifts is the server
+  /// answering, either here or through the board subscription.
+  int? _sendingAttempt;
+
+  /// The last send of [_sendingAttempt] did not get through. The guess is kept
+  /// and retried; the banner says so and offers to try at once.
+  bool _stalled = false;
+  Timer? _retry;
+
+  /// A request is out right now, so a manual retry does not stack another.
+  bool _inFlight = false;
+
   String? _errorCode;
 
   /// A send to friends in flight, so a second tap cannot race the first.
   bool _telling = false;
+
+  bool get _locked => _sendingAttempt != null;
+
+  static const _retryAfter = Duration(seconds: 4);
+
+  /// The refusals that are verdicts. Anything else — a timeout, a dropped
+  /// socket, a server that is not answering — says nothing about the guess.
+  static const _refusals = ['ALREADY_SOLVED', 'OUT_OF_GUESSES', 'BAD_GUESS'];
 
   @override
   void initState() {
@@ -64,38 +99,67 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   @override
   void dispose() {
+    _retry?.cancel();
     FeedStore.instance.removeListener(_onChange);
     super.dispose();
   }
 
   void _onChange() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // The board subscription is as good an answer as the mutation's own: a try
+    // it shows on the board has landed, whichever copy of the send put it there.
+    final sending = _sendingAttempt;
+    final played = FeedStore.instance.puzzle.mine?.guesses.length ?? 0;
+    if (sending != null && played > sending) {
+      _settle();
+      return;
+    }
+    setState(() {});
+  }
+
+  /// The guess is on the board. Unlocks and clears the draft.
+  void _settle() {
+    _retry?.cancel();
+    setState(() {
+      _draft.clear();
+      _sendingAttempt = null;
+      _stalled = false;
+      _errorCode = null;
+    });
   }
 
   void _push(int symbol) {
-    if (_draft.length >= kPuzzleSlots || _busy) return;
+    if (_draft.length >= kPuzzleSlots || _locked) return;
     setState(() => _draft.add(symbol));
     HapticFeedback.selectionClick();
   }
 
   void _pop() {
-    if (_draft.isEmpty || _busy) return;
+    if (_draft.isEmpty || _locked) return;
     setState(() => _draft.removeLast());
     HapticFeedback.selectionClick();
   }
 
   Future<void> _submit() async {
-    if (_draft.length != kPuzzleSlots || _busy) return;
+    if (_draft.length != kPuzzleSlots || _inFlight) return;
+    // Numbered once, on the first tap, and never again: a retry must name the
+    // same try or the server would read it as the next one.
+    final attempt = _sendingAttempt ??
+        (FeedStore.instance.puzzle.mine?.guesses.length ?? 0);
+    _retry?.cancel();
     setState(() {
-      _busy = true;
+      _sendingAttempt = attempt;
+      _inFlight = true;
       _errorCode = null;
     });
     try {
-      final attempt = await widget.feedApi.guess(
+      final result = await widget.feedApi.guess(
         userId: widget.userId,
         dayKey: FeedStore.instance.dayKey,
         guess: List<int>.from(_draft),
+        attempt: attempt,
       );
+      _inFlight = false;
       // Hand the server's own attempt to the store BEFORE clearing the draft.
       // This used to rely on the board subscription alone, and a board that had
       // gone quiet — the socket the OS suspended while you were away, most
@@ -107,20 +171,28 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       // Not `mounted`-gated: the write landed, and the store outlives this
       // screen. Bailing here on a screen popped mid-flight would drop a
       // confirmed guess on the floor for the Feed band too.
-      FeedStore.instance.applyPuzzleAttempt(attempt);
+      FeedStore.instance.applyPuzzleAttempt(result);
       if (!mounted) return;
-      setState(() {
-        _draft.clear();
-        _busy = false;
-      });
+      if (_sendingAttempt == attempt) _settle();
       HapticFeedback.mediumImpact();
     } catch (e) {
-      if (!mounted) return;
+      _inFlight = false;
+      if (!mounted || _sendingAttempt != attempt) return;
       final s = e.toString();
-      setState(() {
-        _busy = false;
-        _errorCode = ['ALREADY_SOLVED', 'OUT_OF_GUESSES', 'BAD_GUESS']
-            .firstWhere(s.contains, orElse: () => 'UNKNOWN');
+      final refusal = _refusals.where(s.contains).firstOrNull;
+      if (refusal != null) {
+        // A verdict on the guess, so the player has their keypad back.
+        setState(() {
+          _sendingAttempt = null;
+          _stalled = false;
+          _errorCode = refusal;
+        });
+        return;
+      }
+      // Not a verdict: keep the guess, keep the lock, keep trying.
+      setState(() => _stalled = true);
+      _retry = Timer(_retryAfter, () {
+        if (mounted && _stalled) _submit();
       });
     }
   }
@@ -221,6 +293,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     List<Widget> game(double? gridWidth) => [
       _Grid(attempt: attempt, draft: _draft, maxWidth: gridWidth),
+      if (_stalled) ...[
+        const SizedBox(height: 12),
+        FormErrorBanner(
+          l10n.puzzleGuessWaiting,
+          icon: CupertinoIcons.wifi_slash,
+          actionLabel: l10n.gamesRetry,
+          onAction: _inFlight ? null : _submit,
+        ),
+      ],
       if (_errorCode != null) ...[
         const SizedBox(height: 12),
         FormErrorBanner(switch (_errorCode) {
@@ -247,7 +328,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           ? null
           : _SideKeypad(
               draft: _draft,
-              busy: _busy,
+              busy: _locked,
               onPush: _push,
               onPop: _pop,
               onSubmit: _submit,
@@ -290,7 +371,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                       ),
                       child: _Keypad(
                         draft: _draft,
-                        busy: _busy,
+                        busy: _locked,
                         onPush: _push,
                         onPop: _pop,
                         onSubmit: _submit,

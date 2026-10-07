@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "आज की पहेली आप हल कर चुके हैं",
   "puzzleErrorOutOfGuesses": "आज कोई मौका नहीं बचा",
   "puzzleErrorGeneric": "भेजा नहीं जा सका — फिर कोशिश करें",
+  "puzzleGuessWaiting": "कनेक्शन नहीं है। आपका अनुमान सहेजा गया है, कनेक्शन लौटते ही भेजा जाएगा",
+  "gameSubmitWaiting": "कनेक्शन नहीं है। आपका पूरा बोर्ड सहेजा गया है, कनेक्शन लौटते ही भेजा जाएगा",
   "puzzleScoreboardLabel": "आज के स्कोर",
   "puzzleScoreboardEmpty": "आज अभी किसी ने पूरी नहीं की",
   "puzzleTilePlay": "आज की पहेली खेलें",

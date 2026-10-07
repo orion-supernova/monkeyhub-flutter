@@ -5408,6 +5408,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get puzzleErrorGeneric => 'Envoi impossible — réessaie';
 
   @override
+  String get puzzleGuessWaiting =>
+      'Pas de connexion. Ton essai est gardé et partira dès ton retour';
+
+  @override
+  String get gameSubmitWaiting =>
+      'Pas de connexion. Ta grille finie est gardée et partira dès ton retour';
+
+  @override
   String get puzzleScoreboardLabel => 'Scores du jour';
 
   @override

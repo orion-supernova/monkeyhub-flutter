@@ -59,7 +59,16 @@ class FakeGamesApi implements GamesApi {
     required String dayKey,
     required DailyGame game,
     required List<int> board,
+    required int seq,
   }) async => const GameHint(index: -1, value: 0);
+
+  /// Thrown by the next [submitFailures] calls to [submit], to stand in for a
+  /// socket that is down. Each submit that throws one decrements it.
+  int submitFailures = 0;
+
+  /// Every elapsed time [submit] was handed, in order — a retry must resend the
+  /// time the board was solved at, not a later one.
+  final List<int> submitted = [];
 
   @override
   Future<GameOutcome> submit({
@@ -70,7 +79,14 @@ class FakeGamesApi implements GamesApi {
     required int elapsedMs,
     int hintsUsed = 0,
     int mistakes = 0,
-  }) async => const GameOutcome(solved: true, durationMs: 1000, replay: false);
+  }) async {
+    submitted.add(elapsedMs);
+    if (submitFailures > 0) {
+      submitFailures--;
+      throw Exception('MutationTimeout');
+    }
+    return const GameOutcome(solved: true, durationMs: 1000, replay: false);
+  }
 
   @override
   Future<List<int>> reveal({
