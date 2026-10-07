@@ -8,7 +8,9 @@ import 'package:path_provider/path_provider.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../models/enums.dart';
 import '../models/message_interaction.dart';
+import '../models/pending_upload.dart';
 
 /// On-disk snapshot of the data the user already saw — used to render
 /// instantly on cold boot, even when the network is down. The Convex
@@ -409,6 +411,132 @@ class CacheStore {
     }
   }
 
+  // ─────────────────────────────── outbox ───────────────────────────────
+
+  /// How soon an outbox change reaches the disk. Much shorter than
+  /// [_writeDebounce]: everything else here is a copy of something the server
+  /// still has, while the outbox is the only copy there is. A send typed in a
+  /// tunnel and followed by a swipe-away of the app must not depend on the
+  /// phone staying up for another half second.
+  static const Duration _outboxDebounce = Duration(milliseconds: 150);
+
+  /// Messages this account sent that the server has not confirmed, as they
+  /// were left — read back so a restart does not throw them away.
+  ///
+  /// Under `<userId>/outbox/`: `outbox.json` holds each message's wire map,
+  /// and an attachment whose bytes never finished going up keeps them beside
+  /// it as `<id>.bin` (and `<id>.poster.bin` for a video's still), so the
+  /// bubble can still paint its picture and a retry has something to upload.
+  /// [clearFor] takes the whole directory with it on sign-out — these are one
+  /// person's unsent words and photos.
+  ///
+  /// Everything comes back as [MessageStatus.error]. Whether a send from a
+  /// previous run should still go out is the sender's call, not this
+  /// device's: the bubble offers retry and discard.
+  Future<List<ChatMessage>> loadOutbox(String userId) async {
+    if (kIsWeb) return const []; // no path_provider on web — memory only
+    try {
+      final dir = Directory('${(await _ensureDir(userId)).path}/outbox');
+      final f = File('${dir.path}/outbox.json');
+      if (!await f.exists()) return const [];
+      final list = (jsonDecode(await f.readAsString()) as List?) ?? const [];
+      final out = <ChatMessage>[];
+      for (final raw in list) {
+        try {
+          final j = (raw as Map).cast<String, dynamic>();
+          final m = ChatMessage.fromJson(
+            (j['message'] as Map).cast<String, dynamic>(),
+          );
+          PendingUpload? upload;
+          final up = (j['upload'] as Map?)?.cast<String, dynamic>();
+          if (up != null) {
+            final bytes = File('${dir.path}/${m.id}.bin');
+            // Bytes gone means nothing to retry with; the message still comes
+            // back, failed, so the sender sees what did not go and can discard
+            // it — rather than having it vanish without a word.
+            if (await bytes.exists()) {
+              final poster = File('${dir.path}/${m.id}.poster.bin');
+              upload = PendingUpload(
+                bytes: await bytes.readAsBytes(),
+                contentType: up['contentType'] as String,
+                posterBytes:
+                    await poster.exists() ? await poster.readAsBytes() : null,
+              );
+            }
+          }
+          out.add(m.copyWith(status: MessageStatus.error, upload: upload));
+        } catch (e) {
+          debugPrint('cache loadOutbox skipped an entry: $e');
+        }
+      }
+      return out;
+    } catch (e) {
+      debugPrint('cache loadOutbox failed: $e');
+      return const [];
+    }
+  }
+
+  /// Replaces the stored outbox with [messages].
+  ///
+  /// Through the same debounce as every other write, so [clearFor]'s
+  /// [discardPendingWrites] covers it: a sign-out must not be followed by the
+  /// departing account's unsent messages being written back to disk.
+  void scheduleSaveOutbox(String userId, List<ChatMessage> messages) {
+    if (kIsWeb) return; // no disk cache on web
+    final snapshot = List<ChatMessage>.of(messages);
+    _debounce('outbox', delay: _outboxDebounce, () {
+      // Chained: a write of several megabytes of photo can outlast the next
+      // debounce, and two writes interleaving their renames and deletes would
+      // leave neither outbox on disk.
+      return _outboxWrites = _outboxWrites.then(
+        (_) => _writeOutbox(userId, snapshot),
+      );
+    });
+  }
+
+  Future<void> _outboxWrites = Future.value();
+
+  Future<void> _writeOutbox(String userId, List<ChatMessage> snapshot) async {
+    try {
+      final dir = Directory('${(await _ensureDir(userId)).path}/outbox');
+      if (!await dir.exists()) await dir.create(recursive: true);
+      final keep = <String>{'outbox.json'};
+      final entries = <Map<String, dynamic>>[];
+      for (final m in snapshot) {
+        final up = m.upload;
+        final holdsBytes = up != null && !up.disposed;
+        if (holdsBytes) {
+          // Written once per message: the bytes of a send never change.
+          final bytes = File('${dir.path}/${m.id}.bin');
+          if (!await bytes.exists()) await bytes.writeAsBytes(up.bytes);
+          keep.add('${m.id}.bin');
+          final poster = up.posterBytes;
+          if (poster != null) {
+            final pf = File('${dir.path}/${m.id}.poster.bin');
+            if (!await pf.exists()) await pf.writeAsBytes(poster);
+            keep.add('${m.id}.poster.bin');
+          }
+        }
+        entries.add({
+          'message': m.toJson(),
+          if (holdsBytes) 'upload': {'contentType': up.contentType},
+        });
+      }
+      // Through a temp file and a rename, so a kill mid-write leaves the
+      // previous outbox rather than half of a new one.
+      final tmp = File('${dir.path}/outbox.json.tmp');
+      await tmp.writeAsString(jsonEncode(entries), flush: true);
+      await tmp.rename('${dir.path}/outbox.json');
+      // Bytes of anything sent or discarded since the last write.
+      await for (final f in dir.list()) {
+        final name = f.uri.pathSegments.last;
+        if (f is File && !keep.contains(name)) await f.delete();
+      }
+    } catch (e) {
+      debugPrint('cache saveOutbox failed: $e');
+    }
+  }
+
   // ─────────────────────────────── cleanup ───────────────────────────────
 
   /// Drop all cached data for the given user. Called on signOut + deleteAccount.
@@ -435,9 +563,13 @@ class CacheStore {
 
   // ─────────────────────────────── debounce ───────────────────────────────
 
-  void _debounce(String key, FutureOr<void> Function() job) {
+  void _debounce(
+    String key,
+    FutureOr<void> Function() job, {
+    Duration delay = _writeDebounce,
+  }) {
     _pendingWrites[key]?.cancel();
-    _pendingWrites[key] = Timer(_writeDebounce, () async {
+    _pendingWrites[key] = Timer(delay, () async {
       _pendingWrites.remove(key);
       await job();
     });

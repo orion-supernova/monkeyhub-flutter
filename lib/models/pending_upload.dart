@@ -11,10 +11,14 @@ import '../media/upload_service.dart';
 /// had their photo fetched back down from the server, over the network, having
 /// just sent it up.
 ///
-/// Deliberately not serialized. [ChatMessage.toJson] enumerates its keys, so this
-/// field is invisible to it by construction; and the disk cache is only ever
-/// handed server-parsed messages, never the pending list, so there is no path
-/// from here to `SharedPreferences` even if someone adds the key by mistake.
+/// Not part of [ChatMessage.toJson] — that map is the transcript cache's record
+/// of a message, and the transcript cache is only ever handed server-parsed
+/// messages. The one place these bytes reach the disk is the outbox
+/// (`CacheStore.scheduleSaveOutbox`), which writes them beside the unsent
+/// message they belong to, under the sender's own cache directory, so a send
+/// that had not finished going up survives a restart and can still be retried.
+/// They are deleted the moment the send lands or is discarded, and with the
+/// rest of the directory on sign-out.
 class PendingUpload {
   PendingUpload({
     required this.bytes,
