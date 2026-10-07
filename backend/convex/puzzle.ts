@@ -166,10 +166,22 @@ export function score(
 /**
  * Submits a guess and returns the feedback for it.
  *
- * Idempotency is by GUESS COUNT rather than a flag: replaying the same call
- * after a flaky socket appends a duplicate row's worth of guesses otherwise,
- * and burning a try on a network hiccup is the sort of thing that makes a
- * daily game feel unfair exactly once and then get abandoned.
+ * Idempotency is by GUESS COUNT rather than a flag: the client names which try
+ * this is (`attempt`, 0-based — the number of guesses it has already seen
+ * land), and a call whose slot is already filled writes nothing and hands back
+ * the board as it stands.
+ *
+ * That check is what a network hiccup needs, not a nicety. The native client
+ * keeps every mutation it has sent in flight and resends them when the socket
+ * comes back, long after the Dart side has timed the call out and let the
+ * player tap GUESS again. Before the check, a few taps in a dead tunnel queued
+ * a few guesses, and the reconnect played every one of them at once — a player
+ * watched the board fill itself in and end on OUT_OF_GUESSES. Burning a try on
+ * a network hiccup is the sort of thing that makes a daily game feel unfair
+ * exactly once and then get abandoned.
+ *
+ * `attempt` is optional only so a client from before it existed keeps working;
+ * such a call appends unconditionally, as it always did.
  *
  * Returns the whole board state rather than only the new row, so a client that
  * missed a response can resync from any single call.
@@ -180,8 +192,9 @@ export const guess = mutation({
     // The player's local day, for the same timezone reason as the feed board.
     dayKey: v.string(),
     guess: v.array(v.number()),
+    attempt: v.optional(v.number()),
   },
-  handler: async (ctx, { userId, dayKey, guess: g }) => {
+  handler: async (ctx, { userId, dayKey, guess: g, attempt }) => {
     if (g.length !== SLOTS) throw new Error("BAD_GUESS");
     for (const s of g) {
       if (!Number.isInteger(s) || s < 0 || s >= SYMBOLS) {
@@ -197,10 +210,21 @@ export const guess = mutation({
       .first();
 
     const prior: number[][] = existing?.guesses ?? [];
+    const answer = answerFor(dayKey);
+
+    // A replay — or a second send of a try that already landed. Checked BEFORE
+    // the solved/out-of-guesses refusals so the resent copy of a winning or a
+    // last guess answers with the finished board rather than an error the
+    // client would have to tell apart from a real one.
+    if (attempt !== undefined && prior.length > attempt) {
+      return boardOf(prior, answer, existing?.sharedAt !== undefined, {
+        replay: true,
+      });
+    }
+
     if (existing?.solved) throw new Error("ALREADY_SOLVED");
     if (prior.length >= MAX_GUESSES) throw new Error("OUT_OF_GUESSES");
 
-    const answer = answerFor(dayKey);
     const guesses = [...prior, g];
     const solved = score(g, answer).exact === SLOTS;
     const done = solved || guesses.length >= MAX_GUESSES;
@@ -237,26 +261,45 @@ export const guess = mutation({
       });
     }
 
-    return {
-      // Feedback for every guess so far, not just this one — a client that
-      // dropped a response can rebuild the whole grid from this. Ordered
-      // per-slot status is safe here: this response only ever reaches the
-      // player who made these exact guesses.
-      feedback: guesses.map((row) => ({
-        ...score(row, answer),
-        slots: pegsForSlots(row, answer),
-      })),
-      guesses,
-      solved,
-      done,
-      // The answer is revealed ONLY once the player can no longer act on it.
-      // Returning it a moment early would put it in the response of the guess
-      // that used their last try, which is exactly when it matters.
-      answer: done && !solved ? answer : undefined,
-      shared: existing?.sharedAt !== undefined,
-    };
+    return boardOf(guesses, answer, existing?.sharedAt !== undefined, {
+      replay: false,
+    });
   },
 });
+
+/**
+ * The player's whole board as `guess` hands it back — for a fresh guess and a
+ * replayed one alike, so the client has one shape to read.
+ */
+function boardOf(
+  guesses: number[][],
+  answer: number[],
+  shared: boolean,
+  { replay }: { replay: boolean }
+) {
+  const solved = guesses.some((row) => score(row, answer).exact === SLOTS);
+  const done = solved || guesses.length >= MAX_GUESSES;
+  return {
+    // Feedback for every guess so far, not just this one — a client that
+    // dropped a response can rebuild the whole grid from this. Ordered
+    // per-slot status is safe here: this response only ever reaches the
+    // player who made these exact guesses.
+    feedback: guesses.map((row) => ({
+      ...score(row, answer),
+      slots: pegsForSlots(row, answer),
+    })),
+    guesses,
+    solved,
+    done,
+    // The answer is revealed ONLY once the player can no longer act on it.
+    // Returning it a moment early would put it in the response of the guess
+    // that used their last try, which is exactly when it matters.
+    answer: done && !solved ? answer : undefined,
+    shared,
+    // True when this call wrote nothing because its try had already landed.
+    replay,
+  };
+}
 
 /**
  * Tells the player's friends how today's code went, because they asked.

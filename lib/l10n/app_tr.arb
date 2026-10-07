@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "Bugünkünü zaten çözdün",
   "puzzleErrorOutOfGuesses": "Bugün hakkın kalmadı",
   "puzzleErrorGeneric": "Tahmin gönderilemedi — tekrar dene",
+  "puzzleGuessWaiting": "Bağlantı yok. Tahminin kaydedildi, bağlantı gelince gönderilecek",
+  "gameSubmitWaiting": "Bağlantı yok. Bitmiş tahtan kaydedildi, bağlantı gelince gönderilecek",
   "puzzleScoreboardLabel": "Bugünün skorları",
   "puzzleScoreboardEmpty": "Bugün henüz kimse bitirmedi",
   "puzzleTilePlay": "bugünün bulmacasını oyna",

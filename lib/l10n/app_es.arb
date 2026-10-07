@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "Ya has resuelto el de hoy",
   "puzzleErrorOutOfGuesses": "Hoy no te quedan intentos",
   "puzzleErrorGeneric": "No se pudo enviar — inténtalo de nuevo",
+  "puzzleGuessWaiting": "Sin conexión. Tu intento está guardado y se enviará al volver",
+  "gameSubmitWaiting": "Sin conexión. Tu tablero terminado está guardado y se enviará al volver",
   "puzzleScoreboardLabel": "Puntuaciones de hoy",
   "puzzleScoreboardEmpty": "Hoy todavía no ha terminado nadie",
   "puzzleTilePlay": "juega el puzle de hoy",

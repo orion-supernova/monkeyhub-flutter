@@ -384,8 +384,11 @@ export const hint = mutation({
     dayKey: v.string(),
     game: v.string(),
     board: v.array(v.number()),
+    // How many hints the client has already seen land. Optional only for
+    // clients from before it existed. See the replay check below.
+    seq: v.optional(v.number()),
   },
-  handler: async (ctx, { userId, dayKey, game, board }) => {
+  handler: async (ctx, { userId, dayKey, game, board, seq }) => {
     if (!isGameId(game)) throw new Error("UNKNOWN_GAME");
     if (game === "zip") throw new Error("NO_HINT");
     if (board.length > 64) throw new Error("BAD_PROGRESS");
@@ -409,6 +412,16 @@ export const hint = mutation({
       if (board[i] !== answer[i]) wrong.push(i);
     }
     if (wrong.length === 0) return { index: -1, value: 0 };
+
+    // A replay: this hint was already counted, and the native client is
+    // resending a call the player saw time out. It keeps every sent mutation
+    // in flight across a reconnect, so without this a hint asked for in a dead
+    // tunnel was charged once per resend. Answered from the same rotation slot
+    // it would have had, and charged nothing.
+    if (seq !== undefined && row.hintsUsed > seq) {
+      const pick = wrong[seq % wrong.length];
+      return { index: pick, value: answer[pick] };
+    }
 
     const pick = wrong[row.hintsUsed % wrong.length];
     await ctx.db.patch(row._id, { hintsUsed: row.hintsUsed + 1 });

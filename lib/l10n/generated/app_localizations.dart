@@ -9113,6 +9113,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send that guess — try again'**
   String get puzzleErrorGeneric;
 
+  /// Shown under the code puzzle's grid when a guess could not reach the server. The guess is kept, the keypad stays locked, and it is resent automatically; the banner's action retries at once.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Your guess is saved and goes through when you\'re back'**
+  String get puzzleGuessWaiting;
+
+  /// Shown on a daily game (Queens, Tango, Zip, Sudoku) when the solved board could not be submitted for lack of a connection. The board stays locked and the clock stopped; it is resubmitted automatically.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Your finished board is saved and goes in when you\'re back'**
+  String get gameSubmitWaiting;
+
   /// All-caps band label above the list of friends who have finished today's puzzle.
   ///
   /// In en, this message translates to:

@@ -5313,6 +5313,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get puzzleErrorGeneric => 'Couldn\'t send that guess — try again';
 
   @override
+  String get puzzleGuessWaiting =>
+      'No connection. Your guess is saved and goes through when you\'re back';
+
+  @override
+  String get gameSubmitWaiting =>
+      'No connection. Your finished board is saved and goes in when you\'re back';
+
+  @override
   String get puzzleScoreboardLabel => 'Today\'s scores';
 
   @override

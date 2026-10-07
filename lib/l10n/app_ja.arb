@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "今日の分はすでに解けています",
   "puzzleErrorOutOfGuesses": "今日の回数は残っていません",
   "puzzleErrorGeneric": "送信できませんでした — もう一度お試しください",
+  "puzzleGuessWaiting": "接続がありません。予想は保存済みで、つながり次第送信されます",
+  "gameSubmitWaiting": "接続がありません。完成した盤面は保存済みで、つながり次第送信されます",
   "puzzleScoreboardLabel": "今日のスコア",
   "puzzleScoreboardEmpty": "今日はまだ誰も終えていません",
   "puzzleTilePlay": "今日のパズルで遊ぶ",

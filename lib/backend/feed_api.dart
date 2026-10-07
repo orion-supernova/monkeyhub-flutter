@@ -135,15 +135,24 @@ class FeedApi {
   ///
   /// Throws `BAD_GUESS` for a malformed guess, `ALREADY_SOLVED` for a replay
   /// after winning, and `OUT_OF_GUESSES` past the sixth try.
+  ///
+  /// [attempt] is which try this is — the number of guesses already on the
+  /// board when it was made — and it is what makes sending the same guess
+  /// twice safe. The native client resends every mutation still in flight when
+  /// the socket comes back, including ones this side has long since timed out;
+  /// the server writes nothing for a try that has already landed and answers
+  /// with the board as it stands.
   Future<PuzzleAttempt> guess({
     required String userId,
     required String dayKey,
     required List<int> guess,
+    required int attempt,
   }) async {
     final res = await _cv.mutation('puzzle:guess', {
       'userId': userId,
       'dayKey': dayKey,
       'guess': guess,
+      'attempt': attempt,
     });
     return PuzzleAttempt.fromJson((res as Map).cast<String, dynamic>())!;
   }

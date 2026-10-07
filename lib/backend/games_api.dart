@@ -116,17 +116,25 @@ class GamesApi {
   /// at: any route covering every cell in order wins, so the only thing the
   /// server could steer someone onto is the route it happened to generate,
   /// discarding whatever legal line they had already drawn.
+  ///
+  /// [seq] is how many hints the player has already been given. A hint the
+  /// native client resends after a reconnect — it keeps every sent mutation in
+  /// flight, however long ago this side timed it out — names a number the
+  /// server has already counted past, and is answered without being charged
+  /// again.
   Future<GameHint> hint({
     required String userId,
     required String dayKey,
     required DailyGame game,
     required List<int> board,
+    required int seq,
   }) async {
     final res = await _cv.mutation('games:hint', {
       'userId': userId,
       'dayKey': dayKey,
       'game': game.wire,
       'board': board,
+      'seq': seq,
     });
     final j = (res as Map).cast<String, dynamic>();
     return GameHint(

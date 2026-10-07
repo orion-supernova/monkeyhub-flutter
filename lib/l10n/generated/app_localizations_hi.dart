@@ -5336,6 +5336,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get puzzleErrorGeneric => 'भेजा नहीं जा सका — फिर कोशिश करें';
 
   @override
+  String get puzzleGuessWaiting =>
+      'कनेक्शन नहीं है। आपका अनुमान सहेजा गया है, कनेक्शन लौटते ही भेजा जाएगा';
+
+  @override
+  String get gameSubmitWaiting =>
+      'कनेक्शन नहीं है। आपका पूरा बोर्ड सहेजा गया है, कनेक्शन लौटते ही भेजा जाएगा';
+
+  @override
   String get puzzleScoreboardLabel => 'आज के स्कोर';
 
   @override

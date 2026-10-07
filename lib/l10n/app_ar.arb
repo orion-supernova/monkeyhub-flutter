@@ -1495,6 +1495,8 @@
   "puzzleErrorAlreadySolved": "لقد حللت لغز اليوم بالفعل",
   "puzzleErrorOutOfGuesses": "لا محاولات متبقية اليوم",
   "puzzleErrorGeneric": "تعذّر الإرسال — حاول مجددًا",
+  "puzzleGuessWaiting": "لا يوجد اتصال. تخمينك محفوظ وسيُرسل عند عودة الاتصال",
+  "gameSubmitWaiting": "لا يوجد اتصال. لوحتك المكتملة محفوظة وستُرسل عند عودة الاتصال",
   "puzzleScoreboardLabel": "نتائج اليوم",
   "puzzleScoreboardEmpty": "لم ينتهِ أحد اليوم بعد",
   "puzzleTilePlay": "العب لغز اليوم",

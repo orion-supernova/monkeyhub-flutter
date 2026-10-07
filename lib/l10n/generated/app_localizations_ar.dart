@@ -5415,6 +5415,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get puzzleErrorGeneric => 'تعذّر الإرسال — حاول مجددًا';
 
   @override
+  String get puzzleGuessWaiting =>
+      'لا يوجد اتصال. تخمينك محفوظ وسيُرسل عند عودة الاتصال';
+
+  @override
+  String get gameSubmitWaiting =>
+      'لا يوجد اتصال. لوحتك المكتملة محفوظة وستُرسل عند عودة الاتصال';
+
+  @override
   String get puzzleScoreboardLabel => 'نتائج اليوم';
 
   @override

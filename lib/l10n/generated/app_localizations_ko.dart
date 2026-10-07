@@ -5139,6 +5139,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get puzzleErrorGeneric => '보내지 못했어요 — 다시 시도해주세요';
 
   @override
+  String get puzzleGuessWaiting => '연결이 없어요. 추측은 저장됐고 연결되면 전송돼요';
+
+  @override
+  String get gameSubmitWaiting => '연결이 없어요. 완성한 보드는 저장됐고 연결되면 제출돼요';
+
+  @override
   String get puzzleScoreboardLabel => '오늘의 점수';
 
   @override

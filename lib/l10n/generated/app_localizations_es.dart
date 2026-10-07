@@ -5376,6 +5376,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get puzzleErrorGeneric => 'No se pudo enviar — inténtalo de nuevo';
 
   @override
+  String get puzzleGuessWaiting =>
+      'Sin conexión. Tu intento está guardado y se enviará al volver';
+
+  @override
+  String get gameSubmitWaiting =>
+      'Sin conexión. Tu tablero terminado está guardado y se enviará al volver';
+
+  @override
   String get puzzleScoreboardLabel => 'Puntuaciones de hoy';
 
   @override

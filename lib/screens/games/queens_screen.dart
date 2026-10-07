@@ -71,6 +71,10 @@ class _QueensScreenState extends State<QueensScreen>
     await _play.begin();
     if (!mounted) return;
     setState(_restore);
+    // A board left solved but never submitted — the connection was down when
+    // it was finished and the player walked away — goes in now. Waiting for a
+    // tap would be waiting for the one move that unsolves it.
+    if (!_play.finished) _maybeFinish();
   }
 
   /// Rebuilds the board from whatever was saved.
