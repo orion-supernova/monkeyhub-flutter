@@ -9553,6 +9553,12 @@ class AppLocalizationsHi extends AppLocalizations {
       'हर लिंक प्रीव्यू के साथ पता दिखाएँ';
 
   @override
+  String get settingsHubPresenceDots => 'दिखाएँ कि कौन ऑनलाइन है';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => 'प्रोफ़ाइल फ़ोटो पर बिंदु';
+
+  @override
   String get settingsHubPush => 'पुश सूचनाएँ';
 
   @override
@@ -10360,6 +10366,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'लिंक, यूआरएल, पता, प्रीव्यू';
+
+  @override
+  String get settingsSearchKwPresence => 'ऑनलाइन, स्थिति, बिंदु, सक्रिय, हरा';
 
   @override
   String get settingsSearchKwAutoplay => 'जिफ़, एनिमेशन, ऑटोप्ले';

@@ -9191,6 +9191,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsHubShowLinkUrlsSubtitle => '링크 미리보기 옆에 주소 표시';
 
   @override
+  String get settingsHubPresenceDots => '온라인 상태 표시';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => '프로필 사진의 점';
+
+  @override
   String get settingsHubPush => '푸시 알림';
 
   @override
@@ -9961,6 +9967,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => '링크, URL, 주소, 미리보기';
+
+  @override
+  String get settingsSearchKwPresence => '온라인, 상태, 점, 활동, 초록';
 
   @override
   String get settingsSearchKwAutoplay => 'GIF, 애니메이션, 자동 재생';

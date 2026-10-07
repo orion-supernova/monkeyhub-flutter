@@ -107,7 +107,7 @@ class RoomGridTile extends StatelessWidget {
                 child: Icon(CupertinoIcons.bookmark_fill, size: 18, color: theme.accent),
               )
             else if (dmUser != null)
-              UserAvatar(user: dmUser!, size: 40, api: api, showStatus: false)
+              UserAvatar(user: dmUser!, size: 40, api: api)
             else if (room.avatarStorageId != null && api != null)
               ClipOval(
                 child: RemoteImage(

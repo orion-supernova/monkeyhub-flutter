@@ -9629,6 +9629,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Muestra la dirección junto a cada vista previa';
 
   @override
+  String get settingsHubPresenceDots => 'Mostrar quién está en línea';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle =>
+      'El punto en las fotos de perfil';
+
+  @override
   String get settingsHubPush => 'Notificaciones push';
 
   @override
@@ -10449,6 +10456,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'enlaces, url, dirección, vista previa';
+
+  @override
+  String get settingsSearchKwPresence =>
+      'en línea, presencia, estado, punto, activo, verde';
 
   @override
   String get settingsSearchKwAutoplay =>

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
+import '../data/settings_store.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -91,14 +92,23 @@ class UserAvatar extends StatelessWidget {
         Positioned(
           right: -dot * 0.1,
           bottom: -dot * 0.1,
-          child: Container(
-            width: dot,
-            height: dot,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: theme.background, width: 1.5),
-            ),
+          // Only the dot listens. Plenty of avatars are built `const` inside
+          // parents that never rebuild, so the Settings toggle has to reach
+          // them itself — and the Stack stays put either way, so a flip never
+          // remounts the face and reloads its image.
+          child: ListenableBuilder(
+            listenable: SettingsStore.instance,
+            builder: (context, _) => !SettingsStore.instance.showPresenceDots
+                ? const SizedBox.shrink()
+                : Container(
+                    width: dot,
+                    height: dot,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.background, width: 1.5),
+                    ),
+                  ),
           ),
         ),
       ],

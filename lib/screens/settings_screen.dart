@@ -417,6 +417,14 @@ class _SettingsScreenState extends State<SettingsScreen>
           value: () => store.showLinkUrls,
           onChanged: store.setShowLinkUrls,
         ));
+    Widget presenceDotsToggle() => _IconLed(_StoreToggle(
+          icon: CupertinoIcons.circle_fill,
+          tone: TileTone.green,
+          title: l10n.settingsHubPresenceDots,
+          subtitle: l10n.settingsHubPresenceDotsSubtitle,
+          value: () => store.showPresenceDots,
+          onChanged: store.setShowPresenceDots,
+        ));
     Widget autoplayToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.play_rectangle_fill,
           tone: TileTone.pink,
@@ -492,6 +500,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             isChild: isChild,
             toggles: {
               'linkUrls': linkUrlsToggle,
+              'presenceDots': presenceDotsToggle,
               'autoplay': autoplayToggle,
               'stickers': stickersToggle,
               'push': pushToggle,
@@ -671,32 +680,6 @@ class _SettingsScreenState extends State<SettingsScreen>
               ],
             ),
 
-            // A companion is not a rendering preference: it is a resident that
-            // costs hundreds of megabytes and runs a model on the handset, so it
-            // gets its own section. One row per resident, so the value can say
-            // something specific — "Translating into Türkçe" beats "On".
-            GroupedSection(
-              header: l10n.settingsHubSectionCompanions,
-              pageHeader: true,
-              margin: const EdgeInsets.only(bottom: 8),
-              children: [
-                _IconLed(_CompanionRow(
-                  companion: Companion.sebastian,
-                  selected: _isOpen('sebastian'),
-                  onTap: () => _open('sebastian', (_) => const SebastianScreen()),
-                )),
-                _IconLed(_CompanionRow(
-                  companion: Companion.marlowe,
-                  selected: _isOpen('marlowe'),
-                  onTap: () => _open('marlowe', (_) => const MarloweScreen()),
-                )),
-              ],
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
-              child: CompanionStorageLine(),
-            ),
-
             GroupedSection(
               header: l10n.settingsHubSectionChats,
               pageHeader: true,
@@ -711,6 +694,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                   onTap: () =>
                       _open('roomLayout', (_) => const RoomLayoutScreen()),
                 ),
+                // A viewing preference, so it lives with the list it changes.
+                // Hiding your OWN status is a different thing, a privacy
+                // setting on the server, and lives in Profile visibility.
+                presenceDotsToggle(),
                 _HubRow(
                   icon: CupertinoIcons.chat_bubble_2_fill,
                   tone: TileTone.green,
@@ -758,6 +745,32 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                 ),
               ],
+            ),
+
+            // A companion is not a rendering preference: it is a resident that
+            // costs hundreds of megabytes and runs a model on the handset, so it
+            // gets its own section. One row per resident, so the value can say
+            // something specific — "Translating into Türkçe" beats "On".
+            GroupedSection(
+              header: l10n.settingsHubSectionCompanions,
+              pageHeader: true,
+              margin: const EdgeInsets.only(bottom: 8),
+              children: [
+                _IconLed(_CompanionRow(
+                  companion: Companion.sebastian,
+                  selected: _isOpen('sebastian'),
+                  onTap: () => _open('sebastian', (_) => const SebastianScreen()),
+                )),
+                _IconLed(_CompanionRow(
+                  companion: Companion.marlowe,
+                  selected: _isOpen('marlowe'),
+                  onTap: () => _open('marlowe', (_) => const MarloweScreen()),
+                )),
+              ],
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
+              child: CompanionStorageLine(),
             ),
 
             // The privacy policy stays unconditional: Guideline 5.1.1(i) and
@@ -1024,25 +1037,6 @@ class _SettingsScreenState extends State<SettingsScreen>
           kw: l10n.settingsSearchKwMotion,
           enKw: en.settingsSearchKwMotion,
           onOpen: () => _open('motion', (_) => const MotionScreen())),
-      // ── Companions
-      page('sebastian',
-          title: Companion.sebastian.displayName,
-          enTitle: Companion.sebastian.displayName,
-          section: companions,
-          icon: CupertinoIcons.person_fill,
-          tone: TileTone.indigo,
-          kw: l10n.settingsSearchKwCompanions,
-          enKw: en.settingsSearchKwCompanions,
-          onOpen: () => _open('sebastian', (_) => const SebastianScreen())),
-      page('marlowe',
-          title: Companion.marlowe.displayName,
-          enTitle: Companion.marlowe.displayName,
-          section: companions,
-          icon: CupertinoIcons.person_fill,
-          tone: TileTone.teal,
-          kw: l10n.settingsSearchKwCompanions,
-          enKw: en.settingsSearchKwCompanions,
-          onOpen: () => _open('marlowe', (_) => const MarloweScreen())),
       // ── Chats
       page('mapApps',
           title: l10n.mapAppsTitle, enTitle: en.mapAppsTitle,
@@ -1059,6 +1053,13 @@ class _SettingsScreenState extends State<SettingsScreen>
           kw: l10n.settingsSearchKwChatList,
           enKw: en.settingsSearchKwChatList,
           onOpen: () => _open('roomLayout', (_) => const RoomLayoutScreen())),
+      live('presenceDots',
+          title: l10n.settingsHubPresenceDots,
+          enTitle: en.settingsHubPresenceDots,
+          section: chats,
+          kw: l10n.settingsSearchKwPresence,
+          enKw: en.settingsSearchKwPresence,
+          row: toggles['presenceDots']!),
       page('chatStyle',
           title: l10n.settingsHubChatStyle,
           enTitle: en.settingsHubChatStyle,
@@ -1098,6 +1099,25 @@ class _SettingsScreenState extends State<SettingsScreen>
           enKw: en.settingsSearchKwReply,
           onOpen: () => _open(
               'replyStyle', (_) => ReplyStyleScreen(api: widget.api))),
+      // ── Companions
+      page('sebastian',
+          title: Companion.sebastian.displayName,
+          enTitle: Companion.sebastian.displayName,
+          section: companions,
+          icon: CupertinoIcons.person_fill,
+          tone: TileTone.indigo,
+          kw: l10n.settingsSearchKwCompanions,
+          enKw: en.settingsSearchKwCompanions,
+          onOpen: () => _open('sebastian', (_) => const SebastianScreen())),
+      page('marlowe',
+          title: Companion.marlowe.displayName,
+          enTitle: Companion.marlowe.displayName,
+          section: companions,
+          icon: CupertinoIcons.person_fill,
+          tone: TileTone.teal,
+          kw: l10n.settingsSearchKwCompanions,
+          enKw: en.settingsSearchKwCompanions,
+          onOpen: () => _open('marlowe', (_) => const MarloweScreen())),
       // ── Account (one page down, inside the profile)
       if (me != null) ...[
         page('profile',

@@ -9642,6 +9642,13 @@ class AppLocalizationsPt extends AppLocalizations {
       'Mostra o endereço junto de cada pré-visualização';
 
   @override
+  String get settingsHubPresenceDots => 'Mostrar quem está online';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle =>
+      'O ponto nas fotografias de perfil';
+
+  @override
   String get settingsHubPush => 'Notificações push';
 
   @override
@@ -10457,6 +10464,10 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsSearchKwLinks =>
       'ligações, url, endereço, pré-visualização';
+
+  @override
+  String get settingsSearchKwPresence =>
+      'online, presença, estado, ponto, ativo, verde';
 
   @override
   String get settingsSearchKwAutoplay => 'gif, animação, reprodução automática';
@@ -20810,6 +20821,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Mostra o endereço ao lado de cada prévia';
 
   @override
+  String get settingsHubPresenceDots => 'Mostrar quem está online';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => 'A bolinha nas fotos de perfil';
+
+  @override
   String get settingsHubPush => 'Notificações push';
 
   @override
@@ -21627,6 +21644,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsSearchKwLinks => 'links, url, endereço, prévia';
+
+  @override
+  String get settingsSearchKwPresence =>
+      'online, presença, status, bolinha, ativo, verde';
 
   @override
   String get settingsSearchKwAutoplay => 'gif, animação, reprodução automática';

@@ -16093,6 +16093,18 @@ abstract class AppLocalizations {
   /// **'Print the address next to each link preview'**
   String get settingsHubShowLinkUrlsSubtitle;
 
+  /// Settings hub (iOS-style grouped list). Switch title: whether other people's avatars show the online/away dot on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Show who\'s online'**
+  String get settingsHubPresenceDots;
+
+  /// Settings hub (iOS-style grouped list). Switch subtitle. Keep it to one short line; it sits beside a switch.
+  ///
+  /// In en, this message translates to:
+  /// **'The dot on profile pictures'**
+  String get settingsHubPresenceDotsSubtitle;
+
   /// Settings hub (iOS-style grouped list). Switch title.
   ///
   /// In en, this message translates to:
@@ -17574,6 +17586,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'links, url, address, preview'**
   String get settingsSearchKwLinks;
+
+  /// Comma-separated search keywords (synonyms people might type) for the Online dots entry in Settings search. Not shown on screen; keep short.
+  ///
+  /// In en, this message translates to:
+  /// **'online, presence, status, dot, active, green'**
+  String get settingsSearchKwPresence;
 
   /// Comma-separated search keywords (synonyms people might type) for the Autoplay entry in Settings search. Not shown on screen; keep short.
   ///

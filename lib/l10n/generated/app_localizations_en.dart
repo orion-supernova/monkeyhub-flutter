@@ -9530,6 +9530,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Print the address next to each link preview';
 
   @override
+  String get settingsHubPresenceDots => 'Show who\'s online';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => 'The dot on profile pictures';
+
+  @override
   String get settingsHubPush => 'Push notifications';
 
   @override
@@ -10346,6 +10352,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'links, url, address, preview';
+
+  @override
+  String get settingsSearchKwPresence =>
+      'online, presence, status, dot, active, green';
 
   @override
   String get settingsSearchKwAutoplay => 'gif, animation, autoplay, motion';

@@ -10982,6 +10982,14 @@
   "@settingsHubShowLinkUrlsSubtitle": {
     "description": "Settings hub (iOS-style grouped list). Switch subtitle."
   },
+  "settingsHubPresenceDots": "Show who's online",
+  "@settingsHubPresenceDots": {
+    "description": "Settings hub (iOS-style grouped list). Switch title: whether other people's avatars show the online/away dot on this device."
+  },
+  "settingsHubPresenceDotsSubtitle": "The dot on profile pictures",
+  "@settingsHubPresenceDotsSubtitle": {
+    "description": "Settings hub (iOS-style grouped list). Switch subtitle. Keep it to one short line; it sits beside a switch."
+  },
   "settingsHubPush": "Push notifications",
   "@settingsHubPush": {
     "description": "Settings hub (iOS-style grouped list). Switch title."
@@ -12019,6 +12027,10 @@
   "settingsSearchKwLinks": "links, url, address, preview",
   "@settingsSearchKwLinks": {
     "description": "Comma-separated search keywords (synonyms people might type) for the Links entry in Settings search. Not shown on screen; keep short."
+  },
+  "settingsSearchKwPresence": "online, presence, status, dot, active, green",
+  "@settingsSearchKwPresence": {
+    "description": "Comma-separated search keywords (synonyms people might type) for the Online dots entry in Settings search. Not shown on screen; keep short."
   },
   "settingsSearchKwAutoplay": "gif, animation, autoplay, motion",
   "@settingsSearchKwAutoplay": {

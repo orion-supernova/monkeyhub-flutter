@@ -9709,6 +9709,12 @@ class AppLocalizationsAr extends AppLocalizations {
       'عرض العنوان بجانب كل معاينة رابط';
 
   @override
+  String get settingsHubPresenceDots => 'إظهار المتصلين';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => 'النقطة على صور الملف الشخصي';
+
+  @override
   String get settingsHubPush => 'الإشعارات الفورية';
 
   @override
@@ -10510,6 +10516,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'روابط، عنوان، معاينة';
+
+  @override
+  String get settingsSearchKwPresence => 'متصل، حالة، نقطة، نشط، أخضر';
 
   @override
   String get settingsSearchKwAutoplay => 'صور متحركة، تشغيل تلقائي';

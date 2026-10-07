@@ -9566,6 +9566,12 @@ class AppLocalizationsSv extends AppLocalizations {
       'Visar adressen bredvid varje förhandsvisning';
 
   @override
+  String get settingsHubPresenceDots => 'Visa vem som är online';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => 'Pricken på profilbilder';
+
+  @override
   String get settingsHubPush => 'Pushnotiser';
 
   @override
@@ -10376,6 +10382,10 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'länkar, url, adress, förhandsvisning';
+
+  @override
+  String get settingsSearchKwPresence =>
+      'online, närvaro, status, prick, aktiv, grön';
 
   @override
   String get settingsSearchKwAutoplay => 'gif, animation, autouppspelning';

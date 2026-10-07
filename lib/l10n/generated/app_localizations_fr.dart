@@ -9682,6 +9682,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Affiche l\'adresse à côté de chaque aperçu';
 
   @override
+  String get settingsHubPresenceDots => 'Afficher qui est en ligne';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle =>
+      'La pastille sur les photos de profil';
+
+  @override
   String get settingsHubPush => 'Notifications push';
 
   @override
@@ -10504,6 +10511,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'liens, url, adresse, aperçu';
+
+  @override
+  String get settingsSearchKwPresence =>
+      'en ligne, présence, statut, pastille, actif, vert';
 
   @override
   String get settingsSearchKwAutoplay => 'gif, animation, lecture automatique';

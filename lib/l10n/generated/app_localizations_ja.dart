@@ -9166,6 +9166,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsHubShowLinkUrlsSubtitle => 'リンクプレビューの横にアドレスを表示';
 
   @override
+  String get settingsHubPresenceDots => 'オンラインの人を表示';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => 'プロフィール写真の点';
+
+  @override
   String get settingsHubPush => 'プッシュ通知';
 
   @override
@@ -9936,6 +9942,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'リンク, URL, アドレス, プレビュー';
+
+  @override
+  String get settingsSearchKwPresence => 'オンライン, 状態, ステータス, 点, アクティブ, 緑';
 
   @override
   String get settingsSearchKwAutoplay => 'GIF, アニメーション, 自動再生';

@@ -9496,6 +9496,13 @@ class AppLocalizationsTr extends AppLocalizations {
       'Her bağlantı önizlemesinin yanında adresi yaz';
 
   @override
+  String get settingsHubPresenceDots => 'Kimin çevrimiçi olduğunu göster';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle =>
+      'Profil fotoğraflarındaki nokta';
+
+  @override
   String get settingsHubPush => 'Anlık bildirimler';
 
   @override
@@ -10311,6 +10318,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => 'bağlantı, url, adres, önizleme';
+
+  @override
+  String get settingsSearchKwPresence =>
+      'çevrimiçi, durum, nokta, aktif, yeşil';
 
   @override
   String get settingsSearchKwAutoplay => 'gif, animasyon, otomatik oynat';

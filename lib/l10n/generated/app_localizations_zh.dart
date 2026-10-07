@@ -9066,6 +9066,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHubShowLinkUrlsSubtitle => '在每个链接预览旁显示地址';
 
   @override
+  String get settingsHubPresenceDots => '显示谁在线';
+
+  @override
+  String get settingsHubPresenceDotsSubtitle => '头像上的圆点';
+
+  @override
   String get settingsHubPush => '推送通知';
 
   @override
@@ -9835,6 +9841,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsSearchKwLinks => '链接, 网址, 地址, 预览';
+
+  @override
+  String get settingsSearchKwPresence => '在线, 状态, 圆点, 活跃, 绿色';
 
   @override
   String get settingsSearchKwAutoplay => '动图, 动画, 自动播放';

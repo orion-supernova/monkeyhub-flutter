@@ -44,6 +44,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
+  static const _kShowPresenceDots = 'mh.showPresenceDots';
   static const _kMapAppId = 'mh.maps.app';
   static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
@@ -88,7 +89,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kCaptureProtection, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel,
@@ -135,6 +136,7 @@ class SettingsStore extends ChangeNotifier {
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
+  bool _showPresenceDots = true;
   String? _mapAppId;
   String? _mapAppName;
   bool _autoplayExpressions = true;
@@ -237,6 +239,12 @@ class SettingsStore extends ChangeNotifier {
   /// preview card. Default `false` — the preview alone communicates the
   /// link, and keeping the URL text out makes mixed messages read clean.
   bool get showLinkUrls => _showLinkUrls;
+
+  /// Whether other people's avatars carry the online/away dot. Purely what
+  /// THIS device draws: it fetches nothing less and hides nothing about the
+  /// viewer — that is Profile visibility's "Online status", on the server.
+  /// Default `true`.
+  bool get showPresenceDots => _showPresenceDots;
   /// Null means ask every time, including the first time a location is opened.
   String? get mapAppId => _mapAppId;
   String? get mapAppName => _mapAppName;
@@ -577,6 +585,7 @@ class SettingsStore extends ChangeNotifier {
     _manualLogoThemeId = s[_kManualLogoThemeId];
     final slu = s[_kShowLinkUrls];
     _showLinkUrls = slu == 'true'; // default false
+    _showPresenceDots = s[_kShowPresenceDots] != 'false'; // default true
     _mapAppId = s[_kMapAppId];
     _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
@@ -895,6 +904,13 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = v;
     notifyListeners();
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setShowPresenceDots(bool v) async {
+    if (_showPresenceDots == v) return;
+    _showPresenceDots = v;
+    notifyListeners();
+    await _storage.write(key: _kShowPresenceDots, value: v ? 'true' : 'false');
   }
 
   Future<void> setAutoplayExpressions(bool v) async {
