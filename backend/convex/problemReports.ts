@@ -120,9 +120,9 @@ async function ensureLogAccount(ctx: any) {
     // time this account was seen, and inventing one would be a lie the
     // presence UI would happily render.
     //
-    // The visibility block is what makes the account private, and leaving it
-    // absent would have done the OPPOSITE of that: the server's defaults in
-    // `visibility.DEFAULT_LEVEL` are "public" for avatar, status and lastSeen.
+    // The visibility block is what makes the account private. Leaving it
+    // absent would hand this account `visibility.DEFAULT_LEVEL`, which shares
+    // presence and read receipts with friends.
     // See the note on `SYSTEM_VISIBILITY`.
     visibility: SYSTEM_VISIBILITY,
     // `avatarStorageId` is deliberately absent. A mutation cannot create a blob

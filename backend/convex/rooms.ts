@@ -10,7 +10,7 @@ import {
   isChild,
 } from "./childGuard";
 import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
-import { lensFor, publicUserView, seenVisibilityOf } from "./visibility";
+import { lensFor, levelOf, publicUserView, seenVisibilityOf } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { deleteStored } from "./files";
@@ -722,21 +722,27 @@ export const getMemberIds = internalQuery({
         senderAvatarUrl = await ctx.storage.getUrl(senderRow.avatarStorageId);
       }
     }
-    // "public" unless the sender said otherwise — see visibility.ts's
-    // DEFAULT_LEVEL. Read straight off the row rather than through a lens
-    // here: a lens is built once per VIEWER and tested against many subjects,
-    // which is backwards for one sender and many recipients, so building one
-    // per member below is reserved for the minority ("friends"/"nobody") case
-    // that actually needs a per-recipient answer. This is the hottest push
-    // path in the app; the common "public" avatar should cost nothing extra.
-    const avatarLevel = senderRow?.visibility?.avatar ?? "public";
+    // Read straight off the row rather than through a lens: a lens is built
+    // once per VIEWER and tested against many subjects, which is backwards for
+    // one sender and many recipients. This is the hottest push path in the app.
+    //
+    // "friends" is the default (visibility.ts's DEFAULT_LEVEL), so it is the
+    // common case and gets the cheap answer: friendship is symmetric, so ONE
+    // lens from the sender's side says which recipients are friends. Anyone it
+    // does not clear still gets their own lens, which is what catches the
+    // guardian bypass — that one only reads from the recipient's side.
+    const avatarLevel = levelOf(senderRow, "avatar");
+    const senderLens =
+      resolvePushContext && senderAvatarUrl && senderRow && avatarLevel === "friends"
+        ? await lensFor(ctx, senderRow._id)
+        : null;
 
     const members = [];
     for (const m of filtered) {
       const mute = resolveMute(m, now);
       let avatarVisible = false;
       if (resolvePushContext && senderAvatarUrl && senderRow) {
-        if (avatarLevel === "public") {
+        if (avatarLevel === "public" || senderLens?.isFriend(m.userId)) {
           avatarVisible = true;
         } else {
           const lens = await lensFor(ctx, m.userId);

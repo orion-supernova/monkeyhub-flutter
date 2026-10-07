@@ -3045,12 +3045,13 @@ export const markRoomDelivered = mutation({
  *
  *   reader.visibility.seen = "public"  → visible to anyone
  *   reader.visibility.seen = "friends" → visible only to the reader's friends
- *   reader.visibility.seen = "nobody"  → hidden (the default for missing/unset)
+ *   reader.visibility.seen = "nobody"  → hidden
+ *   (unset reads as "friends" — visibility.ts's DEFAULT_LEVEL)
  *
  * `lastDeliveredAt` — gated on `seen` as well, by product decision. Both ticks
- * past the first are therefore one opt-in: a user who has not turned on SEND
- * READ RECEIPTS reports neither delivery nor reads, and senders see a single
- * tick for them forever.
+ * past the first are therefore one switch: a user who turns SEND READ RECEIPTS
+ * off reports neither delivery nor reads, and senders see a single tick for
+ * them forever.
  *
  * This is the strict reading, chosen over gating delivery on `lastSeen`. The
  * `lastSeen` variant would have lit the second tick by default (that control
@@ -3060,10 +3061,9 @@ export const markRoomDelivered = mutation({
  * whatever the child had set. Under `seen`, which is deliberately NOT in that
  * set, both cursors stay the child's to withhold.
  *
- * The cost is real and worth stating plainly: `seen` defaults to "nobody", so
- * out of the box every message in the app sits on one tick until the recipient
- * opts in. That is the intended default, not an oversight — do not "fix" it by
- * loosening the gate here.
+ * `seen` defaults to "friends" (2026-10-07; it was "nobody", which left every
+ * message in the app on one tick until the recipient opted in). Change that
+ * default in visibility.ts, never by loosening the gate here.
  *
  * Either cursor comes back `null` when the viewer may not have it, rather than
  * 0: the shape still distinguishes "withheld" from "behind everything", which

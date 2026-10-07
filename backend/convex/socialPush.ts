@@ -5,6 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { AlertSpec } from "./push";
 import { liveSessionDeviceIds } from "./sessionCore";
 import { MAX_GUESSES } from "./puzzle";
+import { levelOf } from "./visibility";
 
 /**
  * Friend activity — the two pushes another PERSON causes on your phone.
@@ -506,7 +507,7 @@ async function audienceOf(
  */
 async function actorFace(ctx: any, actor: any): Promise<string | null> {
   if (!actor?.avatarStorageId) return null;
-  if ((actor.visibility?.avatar ?? "nobody") === "nobody") return null;
+  if (levelOf(actor, "avatar") === "nobody") return null;
   return await ctx.storage.getUrl(actor.avatarStorageId);
 }
 
