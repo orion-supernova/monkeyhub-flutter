@@ -145,8 +145,13 @@ void main() {
       ..nativeCardsEnabled = true
       ..attach(userId: 'me', deviceId: 'dev-1');
     NativeCallHandler.nativeCallUiOverride = true;
-    NativeCallHandler.activeCallsFn = () async => cards;
-    NativeCallHandler.endCallFn = (uuid) async => ended.add(uuid);
+    NativeCallHandler.activeCallsFn = () async => List.of(cards);
+    // Like the plugin: an ended card leaves the active list, which is what
+    // `NativeCallHandler.cardGone` reads before any dismissal ack is sent.
+    NativeCallHandler.endCallFn = (uuid) async {
+      ended.add(uuid);
+      cards.removeWhere((c) => c['id'] == uuid);
+    };
     NativeCallHandler.endAllCallsFn = () async => endedAll = true;
   });
 
@@ -182,6 +187,10 @@ void main() {
       await handler.replayColdStartCalls();
       await _pump();
       expect(ended, [card['id']]);
+      // The ack waits for the card to be verifiably gone.
+      await Future<void>.delayed(
+          NativeCallHandler.cardGoneSettle + const Duration(milliseconds: 50));
+      await _pump();
       expect(groupApi.acked, ['g-gone']);
       // The plugin reports our own end of an un-answered card as DECLINE.
       await handler.handleEvent(CallEventActionCallDecline(_paramsFor(card)));

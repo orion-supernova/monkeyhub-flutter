@@ -2839,19 +2839,26 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   /// ack only means the push goes out the way it always did. Mobile only —
   /// nothing else shows a native card, and the backend never pushes to the
   /// simulator anyway.
+  ///
+  /// Only once the card is verifiably gone — see [NativeCallHandler.cardGone]
+  /// for why having asked for the end is not enough.
   void _ackNativeDismissed(String callId) {
     final me = _userId;
     final dev = _deviceId;
     if (!_isMobile || me == null || dev == null) return;
-    try {
-      unawaited(api
-          .ackNativeDismissed(callId: callId, userId: me, deviceId: dev)
-          .catchError((Object e) {
+    unawaited(() async {
+      try {
+        if (!await NativeCallHandler.instance.cardGone(callId)) {
+          debugPrint('CallService: card for $callId still up — no dismissal '
+              'ack, leaving it to the taken push');
+          return;
+        }
+        await api.ackNativeDismissed(
+            callId: callId, userId: me, deviceId: dev);
+      } catch (e) {
         debugPrint('CallService: ackNativeDismissed failed: $e');
-      }));
-    } catch (e) {
-      debugPrint('CallService: ackNativeDismissed failed: $e');
-    }
+      }
+    }());
   }
 
   /// Test seam for [_startHeartbeat]: the beat is otherwise only reachable

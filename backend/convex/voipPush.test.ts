@@ -44,12 +44,27 @@ describe("selectTakenTargets", () => {
     expect(out.map((d) => d.deviceId)).toEqual(["b"]);
   });
 
-  test("never a device that acked its card gone", () => {
+  test("an acked iPhone loses its PushKit leg — the phantom ring", () => {
     const out = selectTakenTargets(
-      [row("a", { voip: true }), row("b", { voip: true }), row("c", { fcm: true })],
-      { excludeDeviceId: null, iosVoip: true, dismissed: new Set(["a", "c"]) },
+      [row("a", { voip: true }), row("b", { voip: true })],
+      { excludeDeviceId: null, iosVoip: true, dismissed: new Set(["a"]) },
     );
     expect(out.map((d) => d.deviceId)).toEqual(["b"]);
+  });
+
+  test("an acked Android still gets its taken — the ack is not proof", () => {
+    // 2026-10-07: a Galaxy acked its card gone and kept ringing after the
+    // caller cancelled, because this push skipped it.
+    const out = selectTakenTargets(
+      [row("droid", { fcm: true }), row("both", { voip: true, fcm: true })],
+      {
+        excludeDeviceId: null,
+        iosVoip: true,
+        dismissed: new Set(["droid", "both"]),
+      },
+    );
+    expect(out.map((d) => d.deviceId)).toEqual(["droid", "both"]);
+    for (const d of out) expect(d.voipToken).toBeUndefined();
   });
 
   test("iosVoip:false strips PushKit off the row so the retry cannot re-add it", () => {

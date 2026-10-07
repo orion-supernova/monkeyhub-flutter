@@ -536,23 +536,39 @@ object ChatNotifications {
             // never add any — this notification only ever reports what somebody
             // else said — so it is never rendered; MessagingStyle simply
             // requires a "me" to exist.
-            val style = NotificationCompat.MessagingStyle(
-                Person.Builder().setName("").build()
-            ).addMessage(
-                body,
-                data["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
-                sender,
-            )
-            // Never set for a DM, whose `roomName` push.ts deliberately omits:
-            // in a two-person conversation the sender's name IS the title, and
-            // a conversation title as well would say the same thing twice.
-            if (isGroup && roomName.isNotEmpty()) {
-                style.conversationTitle = roomName
-                // Tells the system this is a room rather than a pair, which is
-                // what makes it attribute each line to its sender.
-                style.isGroupConversation = true
-            }
-            builder.setStyle(style)
+            //
+            // And requires it to have a NAME. The constructor throws
+            // IllegalArgumentException("User's name must not be empty.") on an
+            // empty one, and this used to pass "". Every chat notification on
+            // Android died right here from the day MessagingStyle went in
+            // (2026-08-28): the throw escaped `post`, `onMessageReceived`'s
+            // catch logged it, and nothing was shown — while game and friend
+            // pushes, which never reach this branch, kept arriving. That is
+            // the whole of "I only get game notifications".
+            //
+            // Built inside runCatching as well, so that whatever the next rule
+            // MessagingStyle grows is, a style it refuses costs the layout and
+            // not the message: the BigTextStyle set on the builder above stays.
+            runCatching {
+                val style = NotificationCompat.MessagingStyle(
+                    Person.Builder().setName("You").build()
+                ).addMessage(
+                    body,
+                    data["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
+                    sender,
+                )
+                // Never set for a DM, whose `roomName` push.ts deliberately
+                // omits: in a two-person conversation the sender's name IS the
+                // title, and a conversation title as well would say the same
+                // thing twice.
+                if (isGroup && roomName.isNotEmpty()) {
+                    style.conversationTitle = roomName
+                    // Tells the system this is a room rather than a pair, which
+                    // is what makes it attribute each line to its sender.
+                    style.isGroupConversation = true
+                }
+                builder.setStyle(style)
+            }.onFailure { Log.w(TAG, "MessagingStyle refused, posting plain: ${it.message}") }
             // Being named is the one fact MessagingStyle has no line for: it
             // took over the title, where "X mentioned you" used to sit, and
             // the message line is the message. The header's subtext is what
