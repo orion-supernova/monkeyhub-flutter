@@ -105,6 +105,9 @@ void main() {
         onSend: (_, {query}) {},
         height: 320,
       )));
+      // Past the panel's grow-in.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
       expect(find.text('Emoji'), findsOneWidget);
       expect(find.text('Stickers'), findsOneWidget);
@@ -122,6 +125,9 @@ void main() {
         onSend: (item, {query}) => sent = item,
         height: 320,
       )));
+      // Past the panel's grow-in.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Stickers'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
@@ -137,7 +143,7 @@ void main() {
 
   group('panel levels', () {
     ExpressionPanelController levels() => ExpressionPanelController()
-      ..setLayout(expanded: 600, aboveKeyboard: 250);
+      ..setLayout(expanded: 600, room: 250);
 
     test('a slow release snaps to whichever level is nearer', () {
       final c = levels();
@@ -196,11 +202,11 @@ void main() {
 
     test('opens at the height the host asks for, within bounds', () {
       final c = ExpressionPanelController()
-        ..setLayout(expanded: 600, aboveKeyboard: 250, resting: 422);
+        ..setLayout(expanded: 600, room: 250, resting: 422);
       expect(c.currentHeight, 422);
-      c.setLayout(expanded: 600, aboveKeyboard: 250, resting: 100);
+      c.setLayout(expanded: 600, room: 250, resting: 100);
       expect(c.height, 240, reason: 'never too short to browse');
-      c.setLayout(expanded: 300, aboveKeyboard: 250, resting: 500);
+      c.setLayout(expanded: 300, room: 250, resting: 500);
       expect(c.height, 300, reason: 'never taller than expanded');
     });
 
@@ -221,6 +227,74 @@ void main() {
       final c = levels()..setSearching(true);
       expect(c.currentHeight, 250);
     });
+
+    test('a search hands over to the keyboard without a dip or a jump', () {
+      const screen = 874.0;
+      final c = ExpressionPanelController();
+      // The composer's keyboard comes up, then goes down for the panel.
+      for (final inset in <double>[0, 150, 300, 336, 336, 200, 40, 0]) {
+        c.noteKeyboardInset(inset);
+      }
+      c.setLayout(expanded: 600, room: 700, bottomPadding: 34, resting: 437);
+      final before = c.currentHeight + 34;
+
+      // The frame the field takes focus, before the keyboard moves: nothing
+      // may change yet — not a jump to fill the screen, not a drop to the
+      // final height.
+      c.setSearching(true);
+      c.setLayout(expanded: 600, room: 700, bottomPadding: 34, resting: 437);
+      expect(c.currentHeight, before);
+
+      // As the keyboard rises the panel's top only ever climbs, and lands on
+      // the room the full keyboard leaves.
+      var lastTop = screen - before;
+      for (final inset in <double>[60, 150, 260, 320, 336]) {
+        c.noteKeyboardInset(inset);
+        c.setLayout(
+          expanded: 600,
+          room: 700,
+          keyboardInset: inset,
+          bottomPadding: 34,
+          resting: 437,
+        );
+        final top = screen - inset - c.currentHeight;
+        expect(top, lessThanOrEqualTo(lastTop));
+        lastTop = top;
+      }
+      expect(c.currentHeight, 700 - 336);
+    });
+
+    test('switching tab mid-search lets the keyboard carry the panel down',
+        () {
+      final c = ExpressionPanelController();
+      for (final inset in <double>[0, 336, 336, 0]) {
+        c.noteKeyboardInset(inset);
+      }
+      void frame(double inset) {
+        c.noteKeyboardInset(inset);
+        c.setLayout(
+          expanded: 600,
+          room: 700,
+          keyboardInset: inset,
+          bottomPadding: 34,
+          resting: 437,
+        );
+      }
+
+      frame(0);
+      c.setSearching(true);
+      // Up most of the way, then the tab switch takes the field and the
+      // keyboard turns back before the panel hears the search is over.
+      for (final inset in <double>[150, 300]) {
+        frame(inset);
+      }
+      final held = c.currentHeight;
+      for (final inset in <double>[250, 120, 40]) {
+        frame(inset);
+        // Running the rise backwards threw the panel back up to its old size.
+        expect(c.currentHeight, lessThanOrEqualTo(held));
+      }
+    });
   });
 
   testWidgets('the close button puts the panel away', (tester) async {
@@ -233,6 +307,9 @@ void main() {
       onSend: (_, {query}) {},
       height: 320,
     )));
+    // Past the panel's grow-in.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.byIcon(CupertinoIcons.xmark));
     expect(c.isOpen, isFalse);
     await tester.pumpWidget(const SizedBox());
@@ -283,6 +360,9 @@ void main() {
         .position;
 
     await tester.pumpWidget(panel());
+    // Past the panel's grow-in.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Stickers'));
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     // Pick the last pack: drag the strip to its end, then tap its button.
@@ -294,6 +374,9 @@ void main() {
     // Close and reopen: the strip starts over, then lands on Pack 11.
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(panel());
+    // Past the panel's grow-in.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
     await tester.pump();
     expect(strip().pixels, greaterThan(0));
@@ -331,6 +414,9 @@ void main() {
       onSend: (_, {query}) {},
       height: 320,
     )));
+    // Past the panel's grow-in.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Stickers'));
     await tester.pumpAndSettle(const Duration(milliseconds: 100));
     final mine = tester.getRect(find.byTooltip('My stickers'));
@@ -405,6 +491,9 @@ void main() {
         onSend: (item, {query}) => sent = item,
         height: 420,
       )));
+      // Past the panel's grow-in.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Stickers'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       expect(find.byTooltip('Sticker packs'), findsOneWidget);
@@ -442,6 +531,9 @@ void main() {
         onSend: (_, {query}) {},
         height: 420,
       )));
+      // Past the panel's grow-in.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Stickers'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       await tester.tap(find.byTooltip('Sticker packs'));
@@ -476,7 +568,7 @@ void main() {
       final focus = FocusNode();
       addTearDown(focus.dispose);
       final c = ExpressionPanelController()
-        ..setLayout(expanded: 560, aboveKeyboard: 480, resting: 300)
+        ..setLayout(expanded: 560, room: 480, resting: 300)
         ..open(focus);
       await tester.pumpWidget(host(ExpressionPanel(
         controller: c,
@@ -484,6 +576,9 @@ void main() {
         onSend: (_, {query}) {},
         height: 300,
       )));
+      // Past the panel's grow-in.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Stickers'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       await tester.tap(find.byTooltip('Sticker packs'));
@@ -510,6 +605,9 @@ void main() {
         onSend: (_, {query}) {},
         height: 420,
       )));
+      // Past the panel's grow-in.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Stickers'));
       await tester.pumpAndSettle(const Duration(milliseconds: 100));
       await tester.tap(find.byTooltip('Tall'));

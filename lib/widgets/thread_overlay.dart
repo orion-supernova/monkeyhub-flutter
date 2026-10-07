@@ -1591,10 +1591,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
                   expanded: MediaQuery.sizeOf(context).height -
                       MediaQuery.paddingOf(context).vertical -
                       190,
-                  aboveKeyboard: MediaQuery.sizeOf(context).height -
-                      MediaQuery.viewInsetsOf(context).bottom -
+                  room: MediaQuery.sizeOf(context).height -
                       MediaQuery.paddingOf(context).top -
                       190,
+                  keyboardInset: MediaQuery.viewInsetsOf(context).bottom,
                   resting: MediaQuery.sizeOf(context).height * 0.5,
                 ),
                 composer: _composer,

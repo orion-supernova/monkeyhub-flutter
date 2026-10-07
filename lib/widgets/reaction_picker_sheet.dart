@@ -294,9 +294,15 @@ class EmojiSearchView extends SearchView {
     super.showEmojiView, {
     super.key,
     required this.bottomSafe,
+    this.onSearchFocusChanged,
   });
 
   final double bottomSafe;
+
+  /// Told when the search field takes or loses the keyboard, so a host that
+  /// sits above the keyboard while searching (the expression panel) can — the
+  /// same report its GIF and sticker searches make.
+  final ValueChanged<bool>? onSearchFocusChanged;
 
   @override
   EmojiSearchViewState createState() => EmojiSearchViewState();
@@ -318,8 +324,32 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
   /// Guards against an older query's index load landing after a newer one's.
   int _generation = 0;
 
+  /// What was last reported to [EmojiSearchView.onSearchFocusChanged] —
+  /// tracked rather than read at dispose, as the panel's own searches do.
+  bool _reportedFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    focusNode.addListener(_onFocus);
+  }
+
+  void _onFocus() {
+    if (focusNode.hasFocus == _reportedFocus) return;
+    _reportedFocus = focusNode.hasFocus;
+    widget.onSearchFocusChanged?.call(_reportedFocus);
+  }
+
   @override
   void dispose() {
+    focusNode.removeListener(_onFocus);
+    // Leaving search (the back chevron, or a tab switch) takes the field away
+    // without an unfocus the listener would hear; after the frame, as the
+    // tree is being torn down.
+    final report = widget.onSearchFocusChanged;
+    if (_reportedFocus && report != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => report(false));
+    }
     _controller.dispose();
     super.dispose();
   }

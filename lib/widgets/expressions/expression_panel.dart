@@ -105,9 +105,29 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
 
   late _Tab _tab = _lastTab;
 
+  /// The keyboard inset the panel was last laid out against — see the
+  /// height animation in [build].
+  double? _lastInset;
+
+  /// False for the first frame only, so a panel opened with no keyboard up
+  /// grows in from nothing rather than appearing at full height — the host's
+  /// chrome does not animate its size while the panel is involved.
+  bool _shown = false;
+
   @override
   void initState() {
     super.initState();
+    // Opened from the keyboard, it must not grow: it takes the keyboard's
+    // place at full height on its first frame, and the keyboard slides away
+    // over it. Grown from nothing, the composer fell with the keyboard to an
+    // empty floor and jumped back up once the panel caught up — the keyboard
+    // seemed to vanish and come back.
+    _shown = (widget.controller?.keyboardInset ?? 0) > 0;
+    if (!_shown) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _shown = true);
+      });
+    }
     // Before the first trending request, so it can already carry the browser
     // agent KLIPY needs to serve an ad.
     unawaited(primeKlipyUserAgent());
@@ -137,23 +157,54 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
         var tab = _tab;
         if (tab == _Tab.gifs && !gifsAvailable) tab = _Tab.emoji;
         final full = widget.height + widget.bottomPadding;
-        final visible = math.max(0.0, full - widget.keyboardInset);
+        // Handing over to or from the keyboard, the panel shows in step
+        // with how far the keyboard has gone: none of it while the keyboard
+        // is all the way up, all of it once it is down. `full - inset` (the
+        // panel exactly where the keyboard is not) was right only when the
+        // two stand the same height. The resting panel is taller, and its
+        // extra strip appeared in one frame on the way in — the composer
+        // jumped up — and vanished in one on the way out — it dropped.
+        final kb = widget.keyboardInset;
+        final kbFull = widget.controller?.keyboardFullHeight;
+        final visible = kb <= 0
+            ? full
+            : kbFull != null && kbFull > 0
+                ? full * (1 - (kb / kbFull).clamp(0.0, 1.0))
+                : math.max(0.0, full - kb);
         final dragging = widget.controller?.dragging ?? false;
+        // Not while the keyboard is moving either. Opening or closing it moves
+        // this height on every frame of its slide, and a tween restarted on every
+        // frame trails behind and lands late — a lag and a catch-up that read
+        // as a spring. The keyboard is already animating; following it frame
+        // for frame is the smooth version. Read from the controller, which the
+        // host feeds the real inset: under the host's Scaffold this context's
+        // own MediaQuery has had it taken out, and always says 0.
+        final inset = widget.controller?.keyboardInset ?? 0;
+        final keyboardMoving = _lastInset != null && inset != _lastInset;
+        _lastInset = inset;
         // Animated between levels, but not under a finger: while dragging the
         // panel must track the handle exactly, or it lags and feels loose.
         return AnimatedContainer(
-          duration: dragging || MotionScope.of(context).calm
+          duration: dragging ||
+                  keyboardMoving ||
+                  MotionScope.of(context).calm
               ? Duration.zero
               : const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
-          height: visible,
-          child: ClipRect(
-            child: OverflowBox(
-              alignment: Alignment.topCenter,
-              minHeight: full,
-              maxHeight: full,
-              child: _body(context, theme, l10n, store, gifsAvailable, tab),
-            ),
+          height: _shown || MotionScope.of(context).calm ? visible : 0,
+          // Laid out at its full height and NOT clipped to the part showing:
+          // the rest hangs down behind the keyboard. The keyboard animates on
+          // its own, between the app's frames, and the first frames of a
+          // panel opening are heavy ones — clipped, every frame the app ran
+          // late uncovered an empty floor below the composer, and the panel
+          // popped in after it: the keyboard seemed to vanish and come back.
+          // With the panel already drawn under it, a sliding keyboard only
+          // ever uncovers the panel, the way a native one does.
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            minHeight: full,
+            maxHeight: full,
+            child: _body(context, theme, l10n, store, gifsAvailable, tab),
           ),
         );
       },
@@ -234,7 +285,10 @@ class _ExpressionPanelState extends State<ExpressionPanel> {
                   ),
                   Expanded(
                     child: switch (tab) {
-                      _Tab.emoji => _EmojiTab(composer: widget.composer),
+                      _Tab.emoji => _EmojiTab(
+                          composer: widget.composer,
+                          onSearchFocusChanged: _searchFocusChanged,
+                        ),
                       _Tab.gifs => _KlipyBrowser(
                           key: const ValueKey('klipy-gifs'),
                           kind: ExpressionKind.gif,
@@ -314,9 +368,10 @@ class _DragHeader extends StatelessWidget {
 // ─── Emoji ──────────────────────────────────────────────────────────────────
 
 class _EmojiTab extends StatelessWidget {
-  const _EmojiTab({required this.composer});
+  const _EmojiTab({required this.composer, this.onSearchFocusChanged});
 
   final TextEditingController composer;
+  final ValueChanged<bool>? onSearchFocusChanged;
 
   /// Deletes the grapheme before the cursor — a flag or a family is one
   /// character to the user and many code units to the controller.
@@ -405,7 +460,13 @@ class _EmojiTab extends StatelessWidget {
         ),
         searchViewConfig: SearchViewConfig(
           customSearchView: (config, state, showEmojiView) =>
-              EmojiSearchView(config, state, showEmojiView, bottomSafe: 0),
+              EmojiSearchView(
+                config,
+                state,
+                showEmojiView,
+                bottomSafe: 0,
+                onSearchFocusChanged: onSearchFocusChanged,
+              ),
         ),
         skinToneConfig: SkinToneConfig(
           enabled: true,
@@ -1630,10 +1691,33 @@ class ExpressionPanelController extends ChangeNotifier {
 
   double? _keyboardHeight;
 
+  /// How tall the keyboard stood the last time it came to rest all the way
+  /// up. Any single frame could be one of a keyboard's frames on the way up
+  /// or down, and a trip can turn back halfway (a tab switch mid-search), so
+  /// only an inset that holds still is believed.
+  double? _keyboardUp;
+
+  /// The same, for a search field's keyboard. Remembered on its own: the
+  /// composer's keyboard carries a suggestion bar a search's does not, so
+  /// it stands ~35pt taller, and a search sized for it settled with a step.
+  double? _searchKeyboardUp;
+  double _lastNotedInset = 0;
+
   /// Call on every build with `MediaQuery.viewInsetsOf(context).bottom`.
   void noteKeyboardInset(double inset) {
     if (inset > 120 && !_searching) _keyboardHeight = inset;
+    if (inset > 120 && inset == _lastNotedInset) {
+      if (_searching) {
+        _searchKeyboardUp = inset;
+      } else {
+        _keyboardUp = inset;
+      }
+    }
+    _lastNotedInset = inset;
   }
+
+  /// The keyboard a search should expect: its own, once one has been seen.
+  double? get _expectedSearchKeyboard => _searchKeyboardUp ?? _keyboardUp;
 
   /// Half the screen, as the host measured it in [setLayout] — enough to
   /// browse a few rows of GIFs or stickers without dragging, while the
@@ -1655,7 +1739,20 @@ class ExpressionPanelController extends ChangeNotifier {
   // and snaps with the gesture's velocity.
 
   double _expandedHeight = 520;
-  double _searchRoom = 230;
+  double _room = 230;
+  double _inset = 0;
+  double _pad = 0;
+
+  /// The keyboard's inset as the host last measured it.
+  double get keyboardInset => _inset;
+
+  /// The composer's keyboard at rest, all the way up — what the panel trades
+  /// places with. Null until one has been seen.
+  double? get keyboardFullHeight => _keyboardUp;
+
+  /// What the panel showed the moment a search took focus, padding
+  /// included. The search height is blended from this as the keyboard rises.
+  double? _searchFrom;
   bool _expanded = false;
   double? _dragHeight;
 
@@ -1669,11 +1766,14 @@ class ExpressionPanelController extends ChangeNotifier {
   /// it never notifies: the values are read in the same build that set them.
   ///
   /// [expanded] is the tallest the panel may grow with the keyboard down;
-  /// [aboveKeyboard] is the room between the composer and the keyboard while
-  /// a search field has it.
+  /// [room] is the same budget measured for a search — what the panel could
+  /// take if no keyboard were up — and [keyboardInset] is the keyboard's
+  /// inset right now.
   void setLayout({
     required double expanded,
-    required double aboveKeyboard,
+    required double room,
+    double keyboardInset = 0,
+    double bottomPadding = 0,
     double? resting,
   }) {
     if (resting != null) {
@@ -1681,18 +1781,53 @@ class ExpressionPanelController extends ChangeNotifier {
       _restingHeight = resting.clamp(240.0, math.max(240.0, expanded));
     }
     _expandedHeight = math.max(expanded, height);
-    _searchRoom = aboveKeyboard;
+    _room = room;
+    // The blend below is for the keyboard's way UP only. Once it is all the
+    // way up — or the moment it starts back down, which is what switching
+    // tab mid-search does: the field goes with the old tab, and the panel
+    // hears the search is over a frame later — the panel holds its search
+    // height, and the keyboard carries it down from there. Blending on the
+    // way down ran the rise backwards and threw the panel back up to the
+    // size it had before the search.
+    if (_searchFrom != null &&
+        (keyboardInset < _inset ||
+            keyboardInset >= (_expectedSearchKeyboard ?? double.infinity))) {
+      _searchFrom = null;
+    }
+    _inset = keyboardInset;
+    _pad = bottomPadding;
   }
 
   /// The height to lay the panel out at now.
   double get currentHeight {
-    if (_searching) return searchingHeight;
+    if (_searching) {
+      // Blended by how far up the keyboard is. Shrinking to the search height
+      // at once dropped everything above the panel before the keyboard had
+      // moved, and the keyboard then carried it back up: a dip and a rise,
+      // which read as a bounce. Tied to the keyboard's progress, the composer
+      // only ever travels up, and at the keyboard's own pace.
+      final from = _searchFrom;
+      final up = _expectedSearchKeyboard;
+      if (from != null && up != null && _inset < up) {
+        final t = (_inset / up).clamp(0.0, 1.0);
+        return from + (searchingHeight - from) * t;
+      }
+      return searchingHeight;
+    }
     return _dragHeight ?? (_expanded ? _expandedHeight : height);
   }
 
   /// While a search field has the keyboard the panel takes all the room left
   /// above it — searching is when people most want to see results.
-  double get searchingHeight => math.max(200.0, _searchRoom);
+  ///
+  /// Measured against the keyboard's FULL height, not its inset this frame.
+  /// A search starts on the frame the field takes focus, before the keyboard
+  /// has begun to rise: against an inset of 0 the room above it was nearly
+  /// the whole screen, the panel shot up to fill it and then sank back as the
+  /// keyboard came up. The keyboard that was just put away for the panel
+  /// already said how tall it is.
+  double get searchingHeight =>
+      math.max(200.0, _room - math.max(_inset, _expectedSearchKeyboard ?? 0));
 
   void dragBy(double dy) {
     final base = _dragHeight ?? (_expanded ? _expandedHeight : height);
@@ -1816,6 +1951,11 @@ class ExpressionPanelController extends ChangeNotifier {
 
   void setSearching(bool v) {
     if (_searching == v) return;
+    if (v) {
+      _searchFrom = (_dragHeight ?? (_expanded ? _expandedHeight : height)) +
+          _pad -
+          _inset;
+    }
     _searching = v;
     // Putting the search keyboard away is asking for room to look at the
     // results, so the panel opens up rather than dropping back to half height.

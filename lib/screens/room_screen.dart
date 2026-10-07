@@ -3569,6 +3569,39 @@ class _RoomScreenState extends State<RoomScreen>
     await createPersonalSticker(context, api: widget.api);
   }
 
+  /// Whether the expression panel was open on the previous build — see
+  /// [_chromeSize].
+  bool _panelWasOpen = false;
+
+  /// Keeps the bottom chrome's subtree — the composer's field, its focus and
+  /// the keyboard with it — when [_chromeSize] adds or drops its wrapper.
+  final GlobalKey _chromeKey = GlobalKey(debugLabel: 'roomBottomChrome');
+
+  /// The bottom chrome, resized in step with its height.
+  ///
+  /// Animated so a reply card grows up out of the composer. Never while the
+  /// expression panel is open, or on the build it closes: the panel sits
+  /// BELOW the composer and animates its own height, frame by frame with the
+  /// keyboard. Eased a second time out here, the box trailed the panel and
+  /// — pinned to the bottom, clipped at the top — cut the composer off for a
+  /// frame or two whenever it fell behind: a flicker on every keyboard move.
+  ///
+  /// Left out rather than given a zero duration: an [AnimatedSize] at zero
+  /// finishes its animation synchronously inside its own layout and re-dirties
+  /// itself, which Flutter asserts against.
+  Widget _chromeSize(AppTheme theme, Widget child) {
+    final involved = _expressions.isOpen || _panelWasOpen;
+    _panelWasOpen = _expressions.isOpen;
+    final keyed = KeyedSubtree(key: _chromeKey, child: child);
+    if (involved) return keyed;
+    return AnimatedSize(
+      duration: theme.motionFast,
+      curve: theme.motionEntrance,
+      alignment: Alignment.bottomCenter,
+      child: keyed,
+    );
+  }
+
   /// The panel itself, for either chat style.
   Widget _expressionPanel({required double bottomPadding}) {
     // What the expanded level may take: everything but the header, the
@@ -3578,8 +3611,9 @@ class _RoomScreenState extends State<RoomScreen>
     const reserved = 190.0;
     _expressions.setLayout(
       expanded: mq.size.height - mq.padding.top - bottomPadding - reserved,
-      aboveKeyboard:
-          mq.size.height - mq.viewInsets.bottom - mq.padding.top - reserved,
+      room: mq.size.height - mq.padding.top - reserved,
+      keyboardInset: mq.viewInsets.bottom,
+      bottomPadding: bottomPadding,
       // Opens at half the screen: a few rows to browse without dragging,
       // and half the conversation still in view.
       resting: mq.size.height * 0.5,
@@ -4073,11 +4107,9 @@ class _RoomScreenState extends State<RoomScreen>
             // bar's height would jump to make room while only the card's
             // contents faded in. Bottom alignment keeps the composer planted
             // and grows the card upward out of it.
-            child: AnimatedSize(
-              duration: theme.motionFast,
-              curve: theme.motionEntrance,
-              alignment: Alignment.bottomCenter,
-              child: _selection.active
+            child: _chromeSize(
+              theme,
+              _selection.active
                   ? _selectionBar(room, me)
                   : Column(
               mainAxisSize: MainAxisSize.min,
@@ -4226,6 +4258,9 @@ class _RoomScreenState extends State<RoomScreen>
     // single rasterization pass — see lib/widgets/liquid_glass.dart.
     return BackdropGroup(
       child: Stack(
+        // Unclipped so the expression panel can hang below the keyboard's top
+        // edge — see the note on its height in `ExpressionPanel`.
+        clipBehavior: Clip.none,
         children: [
           Positioned.fill(
             child: _messageBody(
@@ -4314,11 +4349,9 @@ class _RoomScreenState extends State<RoomScreen>
               child: ChatColumn(
               // See the classic composer: grows the reply card up out of the
               // bar instead of snapping the bar taller.
-              child: AnimatedSize(
-                duration: theme.motionFast,
-                curve: theme.motionEntrance,
-                alignment: Alignment.bottomCenter,
-                child: MeasureChatBottomInset(
+              child: _chromeSize(
+                theme,
+                MeasureChatBottomInset(
                   inset: _bottomChrome,
                   which: ChatChromeHeight.target,
                   child: _selection.active
