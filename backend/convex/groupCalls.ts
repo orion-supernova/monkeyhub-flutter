@@ -9,7 +9,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
-import { lensFor } from "./visibility";
+import { lensFor, levelOf } from "./visibility";
 import { TAKEN_PUSH_GRACE_MS } from "./calls";
 
 // ────────────────────────────── constants ──────────────────────────────
@@ -338,17 +338,20 @@ export const start = mutation({
       const starterAvatarUrl = starter?.avatarStorageId
         ? await ctx.storage.getUrl(starter.avatarStorageId)
         : null;
-      // "public" unless the starter said otherwise, and read straight off the
-      // row — exactly as `rooms.getMemberIds` does for a message, and for the
-      // same reason. A lens costs two full friendship scans to build, this is
-      // the mutation a ringing phone is waiting on, and the common case needs
-      // no lens at all. Only "friends"/"nobody" pays per invitee.
-      const avatarLevel = starter?.visibility?.avatar ?? "public";
+      // Read straight off the row — exactly as `rooms.getMemberIds` does for a
+      // message, and for the same reason: a lens costs two full friendship
+      // scans to build, and this is the mutation a ringing phone is waiting
+      // on. "public", the default, needs no lens; "friends" needs one from the
+      // starter's side (friendship is symmetric); only an invitee that one
+      // does not clear pays for their own, which is where a guardian is seen.
+      const avatarLevel = levelOf(starter, "avatar");
       const perUser: Record<string, { data: Record<string, string> }> = {};
       if (starter && starterAvatarUrl) {
+        const starterLens =
+          avatarLevel === "friends" ? await lensFor(ctx, starter._id) : null;
         for (const inviteeId of invited) {
           let visible = true;
-          if (avatarLevel !== "public") {
+          if (avatarLevel !== "public" && !starterLens?.isFriend(inviteeId)) {
             const lens = await lensFor(ctx, inviteeId);
             visible = lens.canSee(starter, "avatar");
           }
@@ -716,7 +719,7 @@ export const pendingInviteForUser = query({
     // while the phone rings. The storage id feeds `UserAvatar`; the URL is
     // what the native card wants. Both null when hidden — never a face the
     // starter's own setting says this person may not see.
-    const avatarLevel = starter?.visibility?.avatar ?? "public";
+    const avatarLevel = levelOf(starter, "avatar");
     let starterAvatarVisible = !!starter?.avatarStorageId;
     if (starterAvatarVisible && avatarLevel !== "public") {
       const lens = await lensFor(ctx, userId);

@@ -68,9 +68,8 @@ export default defineSchema({
     // wake a killed app for the native ConnectionService ringer.
     fcmToken: v.optional(v.string()),
     // Per-field visibility — each value is "public" | "friends" | "nobody".
-    // username + name are always public since they're identity. New accounts
-    // and missing keys default to "nobody" on the client; this object stores
-    // exactly what the user has set, verbatim.
+    // username + name are always public since they're identity. Missing keys
+    // read as `visibility.ts`'s DEFAULT_LEVEL on both server and client; this object stores exactly what the user has set, verbatim.
     visibility: v.optional(
       v.object({
         avatar: v.optional(v.string()),
@@ -435,7 +434,7 @@ export default defineSchema({
     // creation (`visibility.seenVisibilityOf`) and kept current by
     // `users.updateVisibility`'s fan-out whenever the owner changes the
     // setting. Absent on every row written before this field existed —
-    // resolves through `DEFAULT_LEVEL.seen` ("nobody") until the one-time
+    // resolves through `DEFAULT_LEVEL.seen` ("friends") until the one-time
     // backfill migration runs; see `migrations.backfillSeenVisibility`.
     seenVisibility: v.optional(v.string()),
   })

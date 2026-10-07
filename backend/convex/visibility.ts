@@ -36,28 +36,37 @@ export type VisField = "avatar" | "status" | "lastSeen" | "seen";
 /**
  * Level used when the stored map has no entry for a field.
  *
- * These are NOT uniform, and the difference is deliberate — which is exactly
- * why they belong in one table instead of being re-decided per call site:
+ * By product decision (2026-10-07):
  *
- *   avatar / status / lastSeen → "public". What `users.getProfile` has always
- *     done. Defaulting these closed would blank the avatar of every account
- *     that has never opened the visibility screen, which is most of them.
+ *   avatar → "public". A face is how a friend request, a Discover result or a
+ *     stranger in a group is recognised at all; hiding it by default would
+ *     turn all of those into initials.
  *
- *   seen (read receipts) → "nobody". What `messages.getReadState` has always
- *     done, and the stricter default is right: a read receipt is a claim about
- *     someone's behaviour, not their identity, and it should be opted into.
+ *   status / lastSeen / seen → "friends". These used to be "public" for
+ *     presence and "nobody" for read receipts, which meant a stranger saw when
+ *     you were online while your own friends never got a second tick or a
+ *     SEEN. Behaviour is for the people you added, and only them.
  *
- * Note these are also NOT the client model's defaults — `ChatUser`'s
- * `ProfileVisibility` fails closed to "nobody" across the board. The server's
- * reading is the one that decides what actually leaves the database, so the
- * server's is the one spelled out here.
+ * A stored value always wins, so anyone who picked "public" or "nobody" keeps
+ * exactly what they picked. Only accounts that never touched a field move.
+ *
+ * The client model (`ProfileVisibility` in chat_user.dart) reads an absent
+ * field the same way, so the visibility screen shows what is really enforced.
+ * Read the level through [levelOf], never `visibility?.x ?? "<literal>"` — a
+ * literal at a call site is how the push paths ended up disagreeing with this
+ * table about whose avatar was public.
  */
 const DEFAULT_LEVEL: Record<VisField, string> = {
   avatar: "public",
-  status: "public",
-  lastSeen: "public",
-  seen: "nobody",
+  status: "friends",
+  lastSeen: "friends",
+  seen: "friends",
 };
+
+/** The effective level of [field] on a `users` row, default applied. */
+export function levelOf(subject: any, field: VisField): string {
+  return subject?.visibility?.[field] ?? DEFAULT_LEVEL[field];
+}
 
 /**
  * Fields a guardian sees on their own child regardless of the child's setting.
@@ -157,7 +166,7 @@ export async function lensFor(
       const id = subject?._id;
       if (lens.isSelf(id)) return true;
       if (lens.isGuardian(id) && GUARDIAN_BYPASS.has(field)) return true;
-      const level = subject?.visibility?.[field] ?? DEFAULT_LEVEL[field];
+      const level = levelOf(subject, field);
       if (level === "public") return true;
       if (level === "friends") return lens.isFriend(id);
       return false; // "nobody"

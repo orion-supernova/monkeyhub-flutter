@@ -3,14 +3,22 @@ import 'enums.dart';
 import 'family.dart';
 
 /// Per-field visibility for a user's profile. Matches backend's
-/// `users.visibility` shape. New users default to `nobody` across the board;
-/// existing server-stored values are returned verbatim.
+/// `users.visibility` shape. An absent field reads exactly as the server
+/// enforces it (`DEFAULT_LEVEL` in backend/convex/visibility.ts): `public`
+/// for avatar and friend requests, `friends` for status, last seen and read
+/// receipts. Stored values are
+/// returned verbatim.
 enum FieldVisibility { public, friends, nobody }
 
 extension FieldVisibilityWire on FieldVisibility {
   String get wire => name;
-  static FieldVisibility parse(String? s) {
+  /// [absent] is what a missing key means — the server's default for that
+  /// field. An unrecognised value still fails closed to `nobody`.
+  static FieldVisibility parse(String? s,
+      [FieldVisibility absent = FieldVisibility.nobody]) {
     switch (s) {
+      case null:
+        return absent;
       case 'public':
         return FieldVisibility.public;
       case 'friends':
@@ -25,13 +33,12 @@ extension FieldVisibilityWire on FieldVisibility {
 
 class ProfileVisibility {
   ProfileVisibility({
-    this.avatar = FieldVisibility.nobody,
-    this.status = FieldVisibility.nobody,
-    this.lastSeen = FieldVisibility.nobody,
-    this.seen = FieldVisibility.nobody,
-    this.friendRequests = FieldVisibility.nobody, // public | nobody only
-    // The three Feed keys are the ONE place in this object where absent does
-    // not mean "nobody". A board nobody opted into is a dead board, so sharing
+    this.avatar = FieldVisibility.public,
+    this.status = FieldVisibility.friends,
+    this.lastSeen = FieldVisibility.friends,
+    this.seen = FieldVisibility.friends,
+    this.friendRequests = FieldVisibility.public, // public | nobody only
+    // The Feed keys: a board nobody opted into is a dead board, so sharing
     // today with friends is the default and only the PAST is opt-in. The
     // server owns that decision (`visibilityOf` in backend/convex/feed.ts);
     // these defaults exist so an optimistic local update agrees with it.
@@ -46,7 +53,7 @@ class ProfileVisibility {
   FieldVisibility lastSeen;
 
   /// Controls whether your read receipts ("SEEN" indicator) are surfaced
-  /// to people whose messages you've read. Nobody by default — opt-in only.
+  /// to people whose messages you've read. Friends by default.
   FieldVisibility seen;
   FieldVisibility friendRequests;
 
@@ -69,24 +76,25 @@ class ProfileVisibility {
   FieldVisibility pointsPast;
 
   factory ProfileVisibility.fromJson(Map<String, dynamic> j) => ProfileVisibility(
-        avatar: FieldVisibilityWire.parse(j['avatar'] as String?),
-        status: FieldVisibilityWire.parse(j['status'] as String?),
-        lastSeen: FieldVisibilityWire.parse(j['lastSeen'] as String?),
-        seen: FieldVisibilityWire.parse(j['seen'] as String?),
-        friendRequests: FieldVisibilityWire.parse(j['friendRequests'] as String?),
-        // `FieldVisibilityWire.parse` fails closed to `nobody`, which is right
-        // for every other key here and wrong for these two — so an ABSENT
-        // value (a user who has never touched the setting) must read as
-        // `friends`, matching the server. A stored "nobody" still wins.
-        feed: j['feed'] == null
-            ? FieldVisibility.friends
-            : FieldVisibilityWire.parse(j['feed'] as String?),
-        points: j['points'] == null
-            ? FieldVisibility.friends
-            : FieldVisibilityWire.parse(j['points'] as String?),
-        puzzle: j['puzzle'] == null
-            ? FieldVisibility.friends
-            : FieldVisibilityWire.parse(j['puzzle'] as String?),
+        avatar: FieldVisibilityWire.parse(
+            j['avatar'] as String?, FieldVisibility.public),
+        status: FieldVisibilityWire.parse(
+            j['status'] as String?, FieldVisibility.friends),
+        lastSeen: FieldVisibilityWire.parse(
+            j['lastSeen'] as String?, FieldVisibility.friends),
+        seen: FieldVisibilityWire.parse(
+            j['seen'] as String?, FieldVisibility.friends),
+        friendRequests: FieldVisibilityWire.parse(
+            j['friendRequests'] as String?, FieldVisibility.public),
+        // An ABSENT value (a user who has never touched the setting) reads as
+        // the server's default, so the screen shows what is enforced. A
+        // stored "nobody" still wins.
+        feed: FieldVisibilityWire.parse(
+            j['feed'] as String?, FieldVisibility.friends),
+        points: FieldVisibilityWire.parse(
+            j['points'] as String?, FieldVisibility.friends),
+        puzzle: FieldVisibilityWire.parse(
+            j['puzzle'] as String?, FieldVisibility.friends),
         pointsPast: FieldVisibilityWire.parse(j['pointsPast'] as String?),
       );
 

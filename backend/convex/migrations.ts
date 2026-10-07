@@ -282,8 +282,8 @@ export const stripDeviceTokens = internalMutation({
  * fix carries this already, stamped from the joining user's current
  * `visibility.seen` at insert time. This walks existing rows and fills it in
  * for memberships written before the field existed, so read receipts don't
- * silently go dark (missing ⇒ "nobody" per `visibility.ts`'s `DEFAULT_LEVEL`)
- * for a member who actually shares them, until they next touch the setting.
+ * silently fall back to `visibility.ts`'s `DEFAULT_LEVEL` for a member who
+ * set something else, until they next touch the setting.
  *
  * Only patches rows where the owning user has an explicit, non-default
  * `visibility.seen` — a row left with `seenVisibility` absent resolves through
