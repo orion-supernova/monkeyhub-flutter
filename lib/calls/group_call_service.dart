@@ -800,15 +800,22 @@ class GroupCallService extends ChangeNotifier
     final me = _userId;
     final dev = _deviceId;
     if (me == null || dev == null) return;
-    try {
-      unawaited(api
-          .ackNativeDismissed(groupCallId: groupCallId, userId: me, deviceId: dev)
-          .catchError((Object e) {
+    // Only once the card is verifiably gone — see
+    // [NativeCallHandler.cardGone]. The ack turns off `group_taken` for this
+    // device, and that push is the last thing that can stop a ringer.
+    unawaited(() async {
+      try {
+        if (!await NativeCallHandler.instance.cardGone(groupCallId)) {
+          debugPrint('GroupCallService: card for $groupCallId still up — no '
+              'dismissal ack, leaving it to the taken push');
+          return;
+        }
+        await api.ackNativeDismissed(
+            groupCallId: groupCallId, userId: me, deviceId: dev);
+      } catch (e) {
         debugPrint('GroupCallService: ackNativeDismissed failed: $e');
-      }));
-    } catch (e) {
-      debugPrint('GroupCallService: ackNativeDismissed threw: $e');
-    }
+      }
+    }());
   }
 
   // ───────── roster-driven mesh membership ─────────

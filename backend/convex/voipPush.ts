@@ -450,7 +450,15 @@ export const sendVoipTaken = internalAction({
  * Which of [devices] a `taken` push goes to. Pure, so the selection rules
  * are unit-testable without a push transport:
  *   - never the device that settled the call (`excludeDeviceId`);
- *   - never a device that acked its card already gone (`dismissed`);
+ *   - a device that acked its card already gone (`dismissed`) loses its
+ *     PushKit leg and KEEPS its FCM one. The ack exists for iOS alone, where
+ *     a `taken` with no card left to end is a phantom ring; on Android
+ *     `CallFcmService.handleTaken` ending an id that is not showing is a
+ *     no-op. And the ack is a claim, not a proof: on 2026-10-07 a cancelled
+ *     call left an iPhone AND a Galaxy ringing after both had acked, and the
+ *     push that skipped them was the one thing that could have stopped the
+ *     Galaxy. A harmless push to a device that was right beats a skipped
+ *     push to one that was wrong;
  *   - with `iosVoip: false` the PushKit leg is stripped off the DEVICE row
  *     rather than checked inside pushToDevice — the row is what a
  *     transient-failure retry (`retryPushToDevice`) is scheduled with, so
@@ -467,8 +475,11 @@ export function selectTakenTargets(
 ): DeviceRow[] {
   return devices
     .filter((d) => d.deviceId !== opts.excludeDeviceId)
-    .filter((d) => !opts.dismissed.has(d.deviceId))
-    .map((d) => (opts.iosVoip ? d : { ...d, voipToken: undefined }))
+    .map((d) =>
+      opts.iosVoip && !opts.dismissed.has(d.deviceId)
+        ? d
+        : { ...d, voipToken: undefined },
+    )
     .filter((d) => d.voipToken || d.fcmToken);
 }
 
@@ -544,20 +555,25 @@ export const retryPushToDevice = internalAction({
         return null;
       }
     }
-    // A `taken` retry is always safe to send — unless the device acked its
-    // card gone in the meantime, in which case it is the phantom ring
-    // `sendVoipTaken` just avoided. Same check, two seconds later.
+    // A `taken` retry is always safe to send — except on the PushKit leg of a
+    // device that acked its card gone in the meantime, which would be the
+    // phantom ring `sendVoipTaken` just avoided. Same rule as
+    // `selectTakenTargets`, two seconds later: the FCM leg still goes.
+    let target = device as DeviceRow;
     if (kind === "taken" && callId) {
       const dismissedIds: string[] = await ctx.runQuery(
         internal.calls.dismissedDevicesInternal,
         { callId: callId as Id<"calls"> },
       );
-      const deviceId = (device as DeviceRow).deviceId;
+      const deviceId = target.deviceId;
       if (dismissedIds.includes(deviceId)) {
-        console.log(
-          `retryPushToDevice: taken for ${callId} — device ${deviceId} acked dismissal, skipping retry`,
-        );
-        return null;
+        target = { ...target, voipToken: undefined };
+        if (!target.fcmToken) {
+          console.log(
+            `retryPushToDevice: taken for ${callId} — device ${deviceId} acked dismissal, skipping retry`,
+          );
+          return null;
+        }
       }
     }
     // The group twins of both guards. These were missing: a `group_invite`
@@ -580,15 +596,18 @@ export const retryPushToDevice = internalAction({
         internal.groupCalls.dismissedDevicesInternal,
         { groupCallId: groupCallId as Id<"groupCalls"> },
       );
-      const deviceId = (device as DeviceRow).deviceId;
+      const deviceId = target.deviceId;
       if (dismissedIds.includes(deviceId)) {
-        console.log(
-          `retryPushToDevice: group taken for ${groupCallId} — device ${deviceId} acked dismissal, skipping retry`,
-        );
-        return null;
+        target = { ...target, voipToken: undefined };
+        if (!target.fcmToken) {
+          console.log(
+            `retryPushToDevice: group taken for ${groupCallId} — device ${deviceId} acked dismissal, skipping retry`,
+          );
+          return null;
+        }
       }
     }
-    await pushToDevice(ctx, userId, device as DeviceRow, payload, {
+    await pushToDevice(ctx, userId, target, payload, {
       isRetry: true,
     });
     return null;

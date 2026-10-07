@@ -1113,6 +1113,48 @@ class NativeCallHandler {
     await _endIosFallbackCalls();
   }
 
+  /// How long [cardGone] lets an end settle before it looks. Android ends a
+  /// card through a broadcast, so the plugin's list lags the `endCall` that
+  /// asked for it by a beat.
+  static const cardGoneSettle = Duration(milliseconds: 400);
+
+  /// Whether the native card for [callId] — a 1:1 call or a group call — is
+  /// really no longer on this device, judged from the plugin's own list after
+  /// [cardGoneSettle].
+  ///
+  /// This is what a dismissal ack (`calls:ackNativeDismissed` /
+  /// `groupCalls:ackNativeDismissed`) must be based on, because the ack
+  /// switches OFF the server's grace-delayed `taken` push for this device,
+  /// and that push is the last thing that can stop a ringer. Acking on the
+  /// strength of having ASKED for the end — which is what every ack site did
+  /// — is how a cancelled call kept an iPhone and a Galaxy ringing on
+  /// 2026-10-07: both acked inside the grace, the push skipped both, and
+  /// neither card had actually gone.
+  ///
+  /// False whenever it cannot tell (the plugin throws, the list is
+  /// unreadable). An ack withheld costs, at worst, iOS's one-second phantom
+  /// ring; an ack sent wrongly costs a phone that rings until it times out.
+  Future<bool> cardGone(String callId) async {
+    if (!_nativeCallUi) return true;
+    await Future<void>.delayed(cardGoneSettle);
+    try {
+      final active = await activeCallsFn();
+      for (final c in active) {
+        if (c is! Map) continue;
+        final extra = c['extra'];
+        if (extra is! Map) continue;
+        if (extra['callId']?.toString() == callId ||
+            extra['groupCallId']?.toString() == callId) {
+          return false;
+        }
+      }
+      return true;
+    } catch (e) {
+      debugPrint('NativeCallHandler.cardGone($callId) could not tell: $e');
+      return false;
+    }
+  }
+
   /// Last resort: clear every card, for the paths where the event carried no
   /// identity at all so there is nothing to target. Prefer
   /// [endNativeByCallId] — this broadcasts ENDED process-wide.
