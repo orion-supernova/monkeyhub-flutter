@@ -10,6 +10,9 @@ import com.google.firebase.messaging.RemoteMessage
 import com.hiennv.flutter_callkit_incoming.Data
 import com.hiennv.flutter_callkit_incoming.FlutterCallkitIncomingPlugin
 import io.flutter.embedding.engine.FlutterEngine
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
 
 /// The single entry point for every push this app receives on Android.
@@ -34,6 +37,7 @@ class CallFcmService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "CallFcmService"
+        private const val RECEIPT_TIMEOUT_MS = 4_000
 
         // Keeps the plugin singleton (and its notification/sound managers)
         // alive for the accept/decline broadcast receivers that follow a show.
@@ -91,8 +95,12 @@ class CallFcmService : FirebaseMessagingService() {
             "group_invite" -> handleInvite(data, groupCallId = data["groupCallId"])
             "group_taken" -> handleTaken(data, groupCallId = data["groupCallId"])
             "message", "approval", "call_invite", "group_call_invite",
-            "daily_games", "friend_moment", "game_result" ->
+            "daily_games", "friend_moment", "game_result" -> {
                 ChatNotifications.show(this, data)
+                // After the banner, never before it: the second tick is not
+                // worth a moment of the message itself.
+                if (data["kind"] == "message") reportDelivery(data)
+            }
             "dismiss" -> ChatNotifications.dismiss(this, data)
             else -> Log.d(TAG, "ignoring message kind=${data["kind"]}")
         }
@@ -195,6 +203,48 @@ class CallFcmService : FirebaseMessagingService() {
     // login and app-resume, which is the same self-heal used for iOS PushKit.
     override fun onNewToken(token: String) {
         Log.d(TAG, "FCM token rotated; will re-upload on next app resume/login")
+    }
+
+    /// Tells the sender's server this message is on this phone — the second
+    /// tick, with no Activity and no Dart running.
+    ///
+    /// The push carries a proof signed for this recipient and this message
+    /// (`rcptUrl`/`rcptUser`/`rcptSig`, see backend/convex/receiptToken.ts);
+    /// this echoes it back. The signature is the whole of the authentication,
+    /// so there is no session to hold here. A push without the fields — an
+    /// older backend, or the feature switched off — sends nothing. The iOS
+    /// twin is `reportDelivery` in NotificationService.swift.
+    ///
+    /// Blocking is fine: `onMessageReceived` runs on a worker thread with a
+    /// budget of several seconds, and returning is what lets the process go.
+    /// Every failure is swallowed; the app reports delivery again when it
+    /// next opens.
+    private fun reportDelivery(data: Map<String, String>) {
+        val url = data["rcptUrl"] ?: return
+        val body = JSONObject()
+            .put("roomId", data["roomId"] ?: return)
+            .put("userId", data["rcptUser"] ?: return)
+            .put("createdAt", data["createdAt"] ?: return)
+            .put("sig", data["rcptSig"] ?: return)
+            .toString()
+            .toByteArray(Charsets.UTF_8)
+        try {
+            val conn = URL(url).openConnection() as HttpURLConnection
+            try {
+                conn.requestMethod = "POST"
+                conn.connectTimeout = RECEIPT_TIMEOUT_MS
+                conn.readTimeout = RECEIPT_TIMEOUT_MS
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setFixedLengthStreamingMode(body.size)
+                conn.outputStream.use { it.write(body) }
+                conn.responseCode
+            } finally {
+                conn.disconnect()
+            }
+        } catch (t: Throwable) {
+            Log.d(TAG, "delivery receipt not sent: ${t.message}")
+        }
     }
 
     private fun isAppForeground(): Boolean {

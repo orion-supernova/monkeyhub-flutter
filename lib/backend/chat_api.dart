@@ -1536,13 +1536,56 @@ class ChatApi {
   /// row, so this is safe to call once per room per burst of new traffic and
   /// pointless to call more often than that. See `messages:markRoomDelivered`,
   /// which drops the write entirely when the cursor is already current.
+  ///
+  /// [upTo] is the `createdAt` of the newest message this device holds — the
+  /// most it can honestly claim. Omitted, the server takes the room's newest.
   Future<void> markRoomDelivered({
     required String roomId,
     required String userId,
+    DateTime? upTo,
   }) async {
-    await _cv.mutation(
-      'messages:markRoomDelivered',
-      {'roomId': roomId, 'userId': userId},
+    await _cv.mutation('messages:markRoomDelivered', {
+      'roomId': roomId,
+      'userId': userId,
+      'upTo': ?upTo?.millisecondsSinceEpoch,
+    });
+  }
+
+  /// When the message stamped [createdAt] reached each other member of
+  /// [roomId], and when they read it — live, for the receipts screen.
+  ///
+  /// userId → (deliveredAt, readAt). A time is null when it is not known, or
+  /// the cursor has not reached the message; the cursors in
+  /// `messages:getReadState` decide which. Members who do not share receipts
+  /// with this viewer are absent. See `messages:getReceiptTimes`.
+  Future<Subscription> subscribeReceiptTimes({
+    required String roomId,
+    required String viewerUserId,
+    required DateTime createdAt,
+    required void Function(
+            Map<String, ({DateTime? deliveredAt, DateTime? readAt})> times)
+        onTimes,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'messages:getReceiptTimes',
+      {
+        'roomId': roomId,
+        'viewerUserId': viewerUserId,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+      },
+      onData: (raw) {
+        final out = <String, ({DateTime? deliveredAt, DateTime? readAt})>{};
+        for (final e in (raw as List?) ?? const []) {
+          final m = (e as Map).cast<String, dynamic>();
+          out[m['userId'].toString()] = (
+            deliveredAt: _msOrNull(m['deliveredAt']),
+            readAt: _msOrNull(m['readAt']),
+          );
+        }
+        onTimes(out);
+      },
+      onError: onError,
     );
   }
 

@@ -55,7 +55,11 @@ self.addEventListener('push', (event) => {
   const body = isGroup && sender
     ? `${sender}${mentioned ? ' mentioned you' : ''}: ${d.body || ''}`
     : (d.body || '');
-  event.waitUntil(
+  // The second tick, from the browser that just received it — see
+  // reportDelivery below. Inside the same waitUntil, so the worker is not
+  // torn down with the post still in flight.
+  event.waitUntil(Promise.all([
+    reportDelivery(d),
     self.registration.showNotification(title, {
       body,
       // Same semantics as the APNs collapse-id and the Android tag: a later
@@ -69,8 +73,29 @@ self.addEventListener('push', (event) => {
       badge: '/web/icons/Icon-192.png',
       data: d,
     }),
-  );
+  ]));
 });
+
+// Tells the sender's server this message reached this browser. The push
+// carries a proof signed for this recipient and message (rcptUrl / rcptUser /
+// rcptSig — see backend/convex/receiptToken.ts) and this echoes it back; the
+// signature is the authentication. Never rejects: a lost receipt is corrected
+// when the app next opens, and must not cost the notification.
+function reportDelivery(d) {
+  if (d.kind !== 'message' || !d.rcptUrl || !d.rcptSig) {
+    return Promise.resolve();
+  }
+  return fetch(d.rcptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      roomId: d.roomId,
+      userId: d.rcptUser,
+      createdAt: d.createdAt,
+      sig: d.rcptSig,
+    }),
+  }).catch(() => {});
+}
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

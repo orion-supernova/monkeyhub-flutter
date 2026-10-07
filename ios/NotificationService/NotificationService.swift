@@ -46,6 +46,21 @@ class NotificationService: UNNotificationServiceExtension {
   /// arriving when the message did.
   private static let avatarTimeout: TimeInterval = 2.5
 
+  /// The delivery proof's round trip — see `reportDelivery`. Entered as the
+  /// post goes out and left when it lands or fails; `deliver` waits on it.
+  private let receiptDone = DispatchGroup()
+  private var receiptTask: URLSessionDataTask?
+  /// `deliver` arms two finish lines (the post landing, and the patience
+  /// below running out) and exactly one may hand the banner over.
+  private let handOverLock = NSLock()
+  private var handedOver = false
+  /// How long a banner that is otherwise ready waits for the delivery post.
+  /// Usually it has long landed — it went out first, alongside the avatar
+  /// fetch — so this only bounds a slow network, and a second tick is never
+  /// worth more than a second of the message itself.
+  private static let receiptPatience: TimeInterval = 1.0
+  private static let receiptTimeout: TimeInterval = 4
+
   /// The kinds drawn as a conversation. `daily_games` and `approval` are
   /// deliberately absent: nobody is talking in either, and giving a broadcast a
   /// human face is how a notification learns to be ignored. `dismiss` never
@@ -85,6 +100,7 @@ class NotificationService: UNNotificationServiceExtension {
         guard let key = entry.key as? String, key != "aps" else { return }
         out[key] = "\(entry.value)"
       })
+      reportDelivery(info)
     }
 
     let personName = Self.displayName(in: info, fallback: original.title)
@@ -140,6 +156,8 @@ class NotificationService: UNNotificationServiceExtension {
 
   override func serviceExtensionTimeWillExpire() {
     avatarTask?.cancel()
+    // Cancelling completes the post, which releases a `deliver` waiting on it.
+    receiptTask?.cancel()
     // iOS is about to show something regardless; hand it the best we have
     // rather than letting it fall back to the unmodified payload.
     if let pending { deliver(pending) }
@@ -301,12 +319,72 @@ class NotificationService: UNNotificationServiceExtension {
     return INImage(imageData: png)
   }
 
+  /// Tells the sender's server this message is on this phone — the second
+  /// tick, while the app may not be running at all.
+  ///
+  /// The push carries a proof signed for this recipient and this message
+  /// (`rcptUrl`/`rcptUser`/`rcptSig`, see backend/convex/receiptToken.ts); this
+  /// echoes it back. No session and no stored credential: the signature is the
+  /// whole of the authentication. A push without the fields — an older
+  /// backend, or the feature switched off — sends nothing.
+  ///
+  /// Started before anything else that touches the network, so by the time
+  /// the banner is ready it has usually landed. `deliver` waits for it, up to
+  /// `receiptPatience`: once the content handler runs, iOS may end this
+  /// process, and a post still in flight would be lost with it.
+  private func reportDelivery(_ info: [AnyHashable: Any]) {
+    guard
+      let raw = info["rcptUrl"] as? String,
+      let url = URL(string: raw),
+      let roomId = info["roomId"] as? String,
+      let userId = info["rcptUser"] as? String,
+      let createdAt = info["createdAt"] as? String,
+      let sig = info["rcptSig"] as? String,
+      let body = try? JSONSerialization.data(withJSONObject: [
+        "roomId": roomId,
+        "userId": userId,
+        "createdAt": createdAt,
+        "sig": sig,
+      ])
+    else { return }
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.timeoutInterval = Self.receiptTimeout
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = body
+    receiptDone.enter()
+    let done = receiptDone
+    let task = URLSession.shared.dataTask(with: request) { _, _, _ in
+      done.leave()
+    }
+    receiptTask = task
+    task.resume()
+  }
+
   /// Hands the notification over exactly once. The download and the deadline
   /// race by design, and whichever loses must not deliver a second time.
+  ///
+  /// The content is final here; what may still be outstanding is the delivery
+  /// post, so the hand-over waits for whichever comes first of it landing and
+  /// `receiptPatience`. With no post in flight the group is already empty and
+  /// that is immediate.
   private func deliver(_ content: UNNotificationContent) {
-    guard !delivered, let handler = contentHandler else { return }
+    guard !delivered, contentHandler != nil else { return }
     delivered = true
     pending = content
+    // Strong captures, deliberately: this object must outlive the hand-over,
+    // or the notification goes with it.
+    receiptDone.notify(queue: .global()) { self.handOver(content) }
+    DispatchQueue.global().asyncAfter(deadline: .now() + Self.receiptPatience) {
+      self.handOver(content)
+    }
+  }
+
+  private func handOver(_ content: UNNotificationContent) {
+    handOverLock.lock()
+    defer { handOverLock.unlock() }
+    guard !handedOver, let handler = contentHandler else { return }
+    handedOver = true
     handler(content)
   }
 

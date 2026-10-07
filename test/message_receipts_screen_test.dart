@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
+import 'package:monkeyhub/backend/convex_client.dart' show Subscription;
 import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_message.dart';
@@ -47,7 +48,34 @@ Finder _stamp(String label) => find.byElementPredicate(
 /// The last one is the interesting one. A member withholding receipts is
 /// ABSENT from both maps rather than sitting at zero in them, and folding that
 /// absence into SENT would quietly accuse them of being offline forever.
-class _FakeApi extends Fake implements ChatApi {}
+class _FakeApi extends Fake implements ChatApi {
+  _FakeApi([this.times]);
+
+  /// What `messages:getReceiptTimes` answers for the message, or null for a
+  /// server that cannot be reached — the screen must still work then.
+  final Map<String, ({DateTime? deliveredAt, DateTime? readAt})>? times;
+
+  @override
+  Future<Subscription> subscribeReceiptTimes({
+    required String roomId,
+    required String viewerUserId,
+    required DateTime createdAt,
+    required void Function(
+            Map<String, ({DateTime? deliveredAt, DateTime? readAt})> times)
+        onTimes,
+    void Function(Object error)? onError,
+  }) async {
+    final t = times;
+    if (t == null) throw StateError('offline');
+    onTimes(t);
+    return _FakeSub();
+  }
+}
+
+class _FakeSub extends Fake implements Subscription {
+  @override
+  void cancel() {}
+}
 
 class _FakeRepo extends ChangeNotifier implements ChatRepository {
   _FakeRepo({
@@ -107,7 +135,11 @@ void main() {
 
   // ThemeScope wraps MaterialApp rather than sitting inside `home`, matching
   // app.dart and the reaction-details test next door.
-  Widget host(ChatRepository repo) => ThemeScope(
+  Widget host(
+    ChatRepository repo, {
+    Map<String, ({DateTime? deliveredAt, DateTime? readAt})>? times,
+  }) =>
+      ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
           localizationsDelegates: const [
@@ -117,7 +149,7 @@ void main() {
           ],
           home: MessageReceiptsScreen(
             repo: repo,
-            api: _FakeApi(),
+            api: _FakeApi(times),
             roomId: 'r1',
             messageId: 'm1',
             fallbackMessage: message,
@@ -150,7 +182,14 @@ void main() {
         'kai': sentAt.subtract(const Duration(hours: 2)),
       },
       // 'noa' appears in neither map: receipts withheld.
-    )));
+    ), times: {
+      'ada': (
+        deliveredAt: sentAt.add(const Duration(minutes: 1)),
+        readAt: sentAt.add(const Duration(minutes: 1)),
+      ),
+      'lin': (deliveredAt: sentAt.add(const Duration(seconds: 3)), readAt: null),
+      'kai': (deliveredAt: null, readAt: null),
+    }));
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
@@ -214,7 +253,13 @@ void main() {
         'ada': sentAt.add(const Duration(minutes: 2)),
         'lin': sentAt.add(const Duration(minutes: 4)),
       },
-    )));
+    ), times: {
+      'ada': (
+        deliveredAt: sentAt.add(const Duration(minutes: 2)),
+        readAt: sentAt.add(const Duration(minutes: 15)),
+      ),
+      'lin': (deliveredAt: sentAt.add(const Duration(minutes: 4)), readAt: null),
+    }));
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
@@ -243,7 +288,12 @@ void main() {
       message: message,
       reads: {'me': sentAt, 'ada': sentAt.add(const Duration(days: 1))},
       delivers: {'me': sentAt, 'ada': sentAt.add(const Duration(minutes: 1))},
-    )));
+    ), times: {
+      'ada': (
+        deliveredAt: sentAt.add(const Duration(minutes: 1)),
+        readAt: sentAt.add(const Duration(days: 1)),
+      ),
+    }));
     await tester.pumpAndSettle();
 
     // The delivery landed the same day as the send, so it is just a clock;
@@ -307,6 +357,10 @@ void main() {
   // The bug: `markRoomRead` writes the read message's own createdAt as the
   // cursor, so a read twenty minutes later still SHOWED as the sent time.
   // The cursor decides that it was read; the wall-clock stamp says when.
+  //
+  // No server times here (the fake API is offline): a cursor stopped exactly
+  // on this message proves its last move covered it, so its clock is this
+  // message's own time and is shown.
   testWidgets('shows when it was read, not the cursor', (tester) async {
     await tester.pumpWidget(host(_FakeRepo(
       message: message,
@@ -321,5 +375,57 @@ void main() {
     // Twice: the sent line in the header, and the delivery stamp two
     // seconds after it.
     expect(find.textContaining('14:20'), findsNWidgets(2));
+  });
+
+  // The 2026-10-07 report: "aaa" delivered 23:17, then "df" read at 23:18,
+  // and the info for "aaa" said delivered 23:18 — the cursor's last-moved
+  // clock, which belonged to "df". The message's own time comes from the
+  // server's log.
+  testWidgets('an older message shows its own delivery time, not the latest', (
+    tester,
+  ) async {
+    final later = sentAt.add(const Duration(minutes: 1));
+    await tester.pumpWidget(host(_FakeRepo(
+      message: message,
+      // Both cursors moved past this message, to a later one.
+      reads: {'me': later, 'ada': later},
+      delivers: {'me': later, 'ada': later},
+      readTimes: {'ada': later.add(const Duration(seconds: 25))},
+      deliverTimes: {'ada': later.add(const Duration(seconds: 25))},
+    ), times: {
+      'ada': (
+        deliveredAt: sentAt.add(const Duration(seconds: 20)),
+        readAt: later.add(const Duration(seconds: 25)),
+      ),
+    }));
+    await tester.pumpAndSettle();
+
+    expect(find.text('14:21'), findsOneWidget, reason: 'read');
+    // The sent line and the delivery: both 14:20, never 14:21.
+    expect(find.textContaining('14:20'), findsNWidgets(2));
+  });
+
+  testWidgets('reached with no known time says so without a clock', (
+    tester,
+  ) async {
+    final later = sentAt.add(const Duration(minutes: 9));
+    await tester.pumpWidget(host(_FakeRepo(
+      message: message,
+      reads: {'me': later},
+      delivers: {'me': later, 'ada': later},
+      deliverTimes: {'ada': later},
+    ), times: {
+      'ada': (deliveredAt: null, readAt: null),
+    }));
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(_section(sentenceCase(l10n.messageReceiptsSectionDelivered)),
+        findsOneWidget);
+    expect(_stamp(l10n.messageReceiptsStampDelivered), findsOneWidget);
+    expect(find.text(sentenceCase(l10n.messageReceiptsStateWaiting)),
+        findsNothing);
+    // The later message's clock is not borrowed.
+    expect(find.textContaining('14:29'), findsNothing);
   });
 }
