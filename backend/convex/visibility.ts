@@ -36,12 +36,16 @@ export type VisField = "avatar" | "status" | "lastSeen" | "seen";
 /**
  * Level used when the stored map has no entry for a field.
  *
- * "friends" for every field, by product decision (2026-10-07). It used to be
- * "public" for avatar/status/lastSeen and "nobody" for read receipts, which
- * meant a stranger saw your face and presence by default while your own
- * friends never got a second tick or a SEEN. Friends is the middle that a chat
- * app between people who know each other actually wants: the people you added
- * see all of it, nobody else sees any of it.
+ * By product decision (2026-10-07):
+ *
+ *   avatar → "public". A face is how a friend request, a Discover result or a
+ *     stranger in a group is recognised at all; hiding it by default would
+ *     turn all of those into initials.
+ *
+ *   status / lastSeen / seen → "friends". These used to be "public" for
+ *     presence and "nobody" for read receipts, which meant a stranger saw when
+ *     you were online while your own friends never got a second tick or a
+ *     SEEN. Behaviour is for the people you added, and only them.
  *
  * A stored value always wins, so anyone who picked "public" or "nobody" keeps
  * exactly what they picked. Only accounts that never touched a field move.
@@ -53,7 +57,7 @@ export type VisField = "avatar" | "status" | "lastSeen" | "seen";
  * table about whose avatar was public.
  */
 const DEFAULT_LEVEL: Record<VisField, string> = {
-  avatar: "friends",
+  avatar: "public",
   status: "friends",
   lastSeen: "friends",
   seen: "friends",

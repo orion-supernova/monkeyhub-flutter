@@ -69,8 +69,7 @@ export default defineSchema({
     fcmToken: v.optional(v.string()),
     // Per-field visibility — each value is "public" | "friends" | "nobody".
     // username + name are always public since they're identity. Missing keys
-    // read as `visibility.ts`'s DEFAULT_LEVEL ("friends") on both server and
-    // client; this object stores exactly what the user has set, verbatim.
+    // read as `visibility.ts`'s DEFAULT_LEVEL on both server and client; this object stores exactly what the user has set, verbatim.
     visibility: v.optional(
       v.object({
         avatar: v.optional(v.string()),

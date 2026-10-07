@@ -726,9 +726,9 @@ export const getMemberIds = internalQuery({
     // once per VIEWER and tested against many subjects, which is backwards for
     // one sender and many recipients. This is the hottest push path in the app.
     //
-    // "friends" is the default (visibility.ts's DEFAULT_LEVEL), so it is the
-    // common case and gets the cheap answer: friendship is symmetric, so ONE
-    // lens from the sender's side says which recipients are friends. Anyone it
+    // "public" (the default, see visibility.ts's DEFAULT_LEVEL) needs no lens.
+    // "friends" gets the cheap answer: friendship is symmetric, so ONE lens
+    // from the sender's side says which recipients are friends. Anyone it
     // does not clear still gets their own lens, which is what catches the
     // guardian bypass — that one only reads from the recipient's side.
     const avatarLevel = levelOf(senderRow, "avatar");

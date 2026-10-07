@@ -4,8 +4,9 @@ import 'family.dart';
 
 /// Per-field visibility for a user's profile. Matches backend's
 /// `users.visibility` shape. An absent field reads exactly as the server
-/// enforces it (`DEFAULT_LEVEL` in backend/convex/visibility.ts): `friends`
-/// for the four identity keys, `public` for friend requests. Stored values are
+/// enforces it (`DEFAULT_LEVEL` in backend/convex/visibility.ts): `public`
+/// for avatar and friend requests, `friends` for status, last seen and read
+/// receipts. Stored values are
 /// returned verbatim.
 enum FieldVisibility { public, friends, nobody }
 
@@ -32,7 +33,7 @@ extension FieldVisibilityWire on FieldVisibility {
 
 class ProfileVisibility {
   ProfileVisibility({
-    this.avatar = FieldVisibility.friends,
+    this.avatar = FieldVisibility.public,
     this.status = FieldVisibility.friends,
     this.lastSeen = FieldVisibility.friends,
     this.seen = FieldVisibility.friends,
@@ -76,7 +77,7 @@ class ProfileVisibility {
 
   factory ProfileVisibility.fromJson(Map<String, dynamic> j) => ProfileVisibility(
         avatar: FieldVisibilityWire.parse(
-            j['avatar'] as String?, FieldVisibility.friends),
+            j['avatar'] as String?, FieldVisibility.public),
         status: FieldVisibilityWire.parse(
             j['status'] as String?, FieldVisibility.friends),
         lastSeen: FieldVisibilityWire.parse(

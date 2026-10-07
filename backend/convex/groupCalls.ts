@@ -341,7 +341,7 @@ export const start = mutation({
       // Read straight off the row — exactly as `rooms.getMemberIds` does for a
       // message, and for the same reason: a lens costs two full friendship
       // scans to build, and this is the mutation a ringing phone is waiting
-      // on. "public" needs no lens; "friends", the default, needs one from the
+      // on. "public", the default, needs no lens; "friends" needs one from the
       // starter's side (friendship is symmetric); only an invitee that one
       // does not clear pays for their own, which is where a guardian is seen.
       const avatarLevel = levelOf(starter, "avatar");
