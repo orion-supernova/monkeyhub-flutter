@@ -54,7 +54,12 @@ class CameraScreen<T> extends StatefulWidget {
     this.allowVideo = false,
     this.showGallery = true,
     this.resume,
+    this.batch,
   });
+
+  /// Several photos from the tray's multi-select at once, for a caller that
+  /// gathers them. Null keeps the tray single-pick.
+  final CameraBatch<T>? batch;
 
   /// Whether the recents strip sits above the shutter. See [GalleryTray] —
   /// it only appears where the platform has a library to read.
@@ -100,6 +105,7 @@ class CameraScreen<T> extends StatefulWidget {
     bool showGallery = true,
     Future<ReviewDecision<T>> Function(BuildContext context)? Function()?
     resume,
+    CameraBatch<T>? batch,
   }) {
     return Navigator.of(context).push<CameraResult<T>>(
       MaterialPageRoute(
@@ -110,6 +116,7 @@ class CameraScreen<T> extends StatefulWidget {
           allowVideo: allowVideo,
           showGallery: showGallery,
           resume: resume,
+          batch: batch,
         ),
       ),
     );
@@ -132,6 +139,28 @@ class CameraScreen<T> extends StatefulWidget {
 /// Reviews a capture on top of the camera. See [CameraScreen.review].
 typedef CameraReviewer<T> =
     Future<ReviewDecision<T>> Function(BuildContext context, CameraPhoto photo);
+
+/// What [CameraScreen.batch] needs: how many more photos the caller has room
+/// for, and the review that takes several at once — the same surface, reached
+/// with all of them staged.
+class CameraBatch<T> {
+  const CameraBatch({
+    required this.room,
+    required this.max,
+    required this.review,
+  });
+
+  final int Function() room;
+
+  /// The caller's overall cap, for the message when [room] runs out.
+  final int max;
+
+  final Future<ReviewDecision<T>> Function(
+    BuildContext context,
+    List<CameraPhoto> photos,
+  )
+  review;
+}
 
 /// What the review surface decided about a capture.
 sealed class ReviewDecision<T> {
@@ -308,6 +337,15 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// The tray covers the viewfinder, so the preview is paused under it.
   bool _trayFull = false;
 
+  /// The tray is multi-selecting; the system back clears that first.
+  bool _traySelecting = false;
+
+  /// The gallery is up on behalf of the composer's "add from library", with
+  /// photos waiting in it. Closing the gallery goes back to them, not to a
+  /// camera the user never asked for, and no capture session is started
+  /// behind it: there is nothing to see through a full-screen grid.
+  bool _galleryForReview = false;
+
   bool get _trayShown => widget.showGallery && GalleryTray.supported;
 
   /// Where the last tap-to-focus landed, in this widget's local coordinates.
@@ -395,7 +433,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       // starting a capture session behind it would light the recording
       // indicator for a camera nobody is pointing at anything. _review binds a
       // controller again if they ask to retake.
-      if (!_inReview) _select(_lens);
+      if (!_inReview && !_galleryForReview) _select(_lens);
     }
   }
 
@@ -555,11 +593,61 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     await _review(photo, () => widget.review(context, photo));
   }
 
+  /// "Add" at the end of a multi-selection. The photos load a few at a time —
+  /// an iCloud original can take a moment, and ten full-size decodes at once
+  /// is a memory spike — then go to the review together, in picked order.
+  Future<void> _pickManyFromTray(List<AssetEntity> assets) async {
+    final batch = widget.batch;
+    if (batch == null || _capturing || _recording || _inReview) return;
+    final toast = AppToast.of(context);
+    final failed = AppLocalizations.of(context).mediaPickFailedMessage;
+    final loaded = List<Uint8List?>.filled(assets.length, null);
+    for (var i = 0; i < assets.length; i += 3) {
+      final end = math.min(i + 3, assets.length);
+      final chunk = await Future.wait([
+        for (var j = i; j < end; j++) GalleryTray.loadBytes(assets[j]),
+      ]);
+      loaded.setRange(i, end, chunk);
+      if (!mounted || _inReview) return;
+    }
+    final photos = [
+      for (final bytes in loaded)
+        if (bytes != null && bytes.isNotEmpty)
+          CameraPhoto(bytes: bytes, mirrored: false),
+    ];
+    if (photos.length < assets.length) {
+      toast.show(failed, tone: ToastTone.danger);
+    }
+    if (photos.isEmpty) return;
+    _tray.clearSelection();
+    await _review(photos.first, () => batch.review(context, photos));
+  }
+
+  /// Where the tray is going, the moment that is decided. A gallery opened
+  /// for the composer and then closed without a pick hands straight back to
+  /// the composer — the photos the user was looking at, not a camera.
+  void _onTraySettle(GalleryTrayStop stop) {
+    if (stop == GalleryTrayStop.full || !_galleryForReview) return;
+    if (_inReview || _capturing || _recording) return;
+    final resume = widget.resume?.call();
+    if (resume == null) {
+      // Nothing waiting after all: an ordinary camera, so start one.
+      setState(() => _galleryForReview = false);
+      unawaited(_select(_lens));
+      return;
+    }
+    unawaited(_review(null, () => resume(context)));
+  }
+
   /// The ×, and the system back: shut the gallery first, then hand back to a
   /// review that is still waiting, and only then close.
   void _close() {
     if (_capturing || _recording) return;
-    if (_trayFull) {
+    if (_traySelecting) {
+      _tray.clearSelection();
+      return;
+    }
+    if (_trayFull || _galleryForReview) {
       _tray.collapse();
       return;
     }
@@ -1030,6 +1118,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     setState(() {
       _reviewing = photo;
       _inReview = true;
+      _galleryForReview = false;
     });
     // Started, not awaited, before the session is let go: the review surface
     // pushes its route synchronously, so the frame that swaps the preview for
@@ -1053,15 +1142,20 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
         // reflexes.
         await released;
         if (!mounted) return;
+        // "Add from library" with photos waiting: the gallery is all there
+        // is to see, over black, and closing it goes back to them.
+        final forReview =
+            gallery && _trayShown && widget.resume?.call() != null;
         setState(() {
           _reviewing = null;
           _inReview = false;
+          _galleryForReview = forReview;
         });
         // Before the session is rebuilt, so the gallery is already rising
         // while the camera starts behind it.
         if (gallery && _trayShown) _tray.expand();
         await _recover();
-        await _select(_lens);
+        if (!forReview) await _select(_lens);
     }
   }
 
@@ -1094,7 +1188,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (_inReview)
+            if (_inReview || _galleryForReview)
               reviewing == null
                   ? const ColoredBox(color: Colors.black)
                   : _stillBody(reviewing)
@@ -1104,7 +1198,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               _previewBody(),
             // No camera chrome over a still: the shutter and the flash toggle
             // belong to a preview, and this screen is not showing one.
-            if (!_inReview) SafeArea(child: _chrome()),
+            if (!_inReview && !_galleryForReview) SafeArea(child: _chrome()),
             // Kept mounted under a review rather than rebuilt after it, so
             // coming back finds the gallery where it was left — scrolled to
             // the same place, at the same stop.
@@ -1130,6 +1224,14 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                           _pop(CameraPickLibrary<T>());
                         },
                         onFullChanged: _onTrayFull,
+                        onSettle: _onTraySettle,
+                        onPickMany: widget.batch == null
+                            ? null
+                            : _pickManyFromTray,
+                        selectionRoom: widget.batch?.room,
+                        selectionMax: widget.batch?.max,
+                        onSelectingChanged: (on) =>
+                            setState(() => _traySelecting = on),
                       ),
                     ),
                   ),
@@ -1148,7 +1250,11 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     // The system back goes through [_close] too: it shuts an open gallery and
     // returns to waiting photos before it ever closes the camera.
     return PopScope(
-      canPop: !_trayFull && widget.resume?.call() == null,
+      canPop:
+          !_trayFull &&
+          !_traySelecting &&
+          !_galleryForReview &&
+          widget.resume?.call() == null,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _close();
       },

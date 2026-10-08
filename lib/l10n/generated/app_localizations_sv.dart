@@ -11138,6 +11138,19 @@ class AppLocalizationsSv extends AppLocalizations {
   String get galleryTrayEmpty => 'Inga foton än';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return 'Lägg till ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => 'Avbryt markering';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count markerade';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return 'Foto $index';
   }

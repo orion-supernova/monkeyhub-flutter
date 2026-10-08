@@ -10686,6 +10686,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get galleryTrayEmpty => '아직 사진이 없어요';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return '추가 ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => '선택 취소';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count개 선택됨';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return '사진 $index';
   }

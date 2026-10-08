@@ -75,11 +75,15 @@ class GlassTray extends StatelessWidget {
     required this.child,
     this.maxWidth = 460,
     this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+    this.blur = true,
   });
 
   final Widget child;
   final double maxWidth;
   final EdgeInsets padding;
+
+  /// False: always the opaque fill, never the BackdropFilter.
+  final bool blur;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +94,7 @@ class GlassTray extends StatelessWidget {
     // video cannot afford. The same holds while the route carrying the
     // tray slides in or out: the call screen opening was one long animated
     // blur.
+    if (!blur) return _build(context, false);
     return _RouteSettled(
       builder: (context, settled) =>
           _build(context, settled && ControlsFade.allowsBlur(context)),
@@ -229,9 +234,15 @@ class CallTray extends StatelessWidget {
     required this.onEnd,
     required this.endColor,
     this.maxWidth = 480,
+    this.glass = true,
   });
 
   final List<CallTrayAction> actions;
+
+  /// Whether the capsule frosts what is behind it. Only worth it over live
+  /// video: a BackdropFilter re-runs on every frame anything on screen moves,
+  /// and over the voice call's dark wash it blurs black into black.
+  final bool glass;
   final IconData endIcon;
   final String endLabel;
   final VoidCallback onEnd;
@@ -402,6 +413,7 @@ class CallTray extends StatelessWidget {
               GlassTray(
                 maxWidth: capsule,
                 padding: capsulePadding,
+                blur: glass,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -543,48 +555,74 @@ class _PulseRingsState extends State<PulseRings>
   Widget build(BuildContext context) {
     final pulse = _pulse;
     final box = widget.diameter + widget.reach;
-    if (pulse == null) {
-      return SizedBox(
-        width: box,
-        height: box,
-        child: Center(child: widget.child),
-      );
-    }
     return SizedBox(
       width: box,
       height: box,
-      child: AnimatedBuilder(
-        animation: pulse,
-        child: widget.child,
-        builder: (context, child) => Stack(
-          alignment: Alignment.center,
-          children: [
-            for (final phase in const [0.0, 0.5])
-              _ring((pulse.value + phase) % 1.0),
-            child!,
-          ],
-        ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Painted, not built: the rings are a CustomPaint driven by the
+          // controller as its repaint listenable, alone in their own layer.
+          // As two Opacity-wrapped Containers rebuilt by an AnimatedBuilder,
+          // every tick repainted the whole call screen around them (the
+          // full-bleed wash, the avatar's 48pt shadow blur) and so made the
+          // tray's BackdropFilter re-blur, 60 to 120 times a second, for
+          // the length of the call.
+          if (pulse != null)
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _PulseRingsPainter(
+                    pulse: pulse,
+                    color: widget.accent,
+                    diameter: widget.diameter,
+                    reach: widget.reach,
+                  ),
+                ),
+              ),
+            ),
+          RepaintBoundary(child: widget.child),
+        ],
       ),
     );
+  }
+}
+
+class _PulseRingsPainter extends CustomPainter {
+  _PulseRingsPainter({
+    required this.pulse,
+    required this.color,
+    required this.diameter,
+    required this.reach,
+  }) : super(repaint: pulse);
+
+  final Animation<double> pulse;
+  final Color color;
+  final double diameter;
+  final double reach;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    for (final phase in const [0.0, 0.5]) {
+      final t = (pulse.value + phase) % 1.0;
+      // The ring's own alpha, not an Opacity layer around it.
+      paint.color = color.withValues(alpha: color.a * 0.6 * (1.0 - t) * 0.35);
+      // The stroke sits inside the box, as a Border would.
+      final radius = (diameter + t * reach) / 2 - 0.75;
+      canvas.drawCircle(center, radius, paint);
+    }
   }
 
-  Widget _ring(double t) {
-    final size = widget.diameter + t * widget.reach;
-    return Opacity(
-      opacity: (1.0 - t) * 0.35,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: widget.accent.withValues(alpha: 0.6),
-            width: 1.5,
-          ),
-        ),
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(_PulseRingsPainter old) =>
+      old.pulse != pulse ||
+      old.color != color ||
+      old.diameter != diameter ||
+      old.reach != reach;
 }
 
 /// The ring that says "talking": the avatar's own ring in the accent, and a
@@ -1162,25 +1200,33 @@ class RingerLayout extends StatelessWidget {
                 child: subtitle,
               ),
               const SizedBox(height: 48),
-              AnimatedBuilder(
-                animation: pulse,
-                builder: (context, child) => Transform.scale(
-                  scale: 1.0 + pulse.value * 0.05,
-                  child: child,
-                ),
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.accent.withValues(alpha: 0.38),
-                        blurRadius: 56,
-                      ),
-                    ],
+              // The breathing face in two layers: the face itself painted
+              // once (its 56pt shadow blur is the costly part), and a
+              // boundary around the scale so each tick re-composites that
+              // picture rather than repainting the whole ringer.
+              RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: pulse,
+                  builder: (context, child) => Transform.scale(
+                    scale: 1.0 + pulse.value * 0.05,
+                    child: child,
                   ),
-                  child: avatar,
+                  child: RepaintBoundary(
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.accent.withValues(alpha: 0.38),
+                            blurRadius: 56,
+                          ),
+                        ],
+                      ),
+                      child: avatar,
+                    ),
+                  ),
                 ),
               ),
               const Spacer(),
@@ -1458,7 +1504,7 @@ class _CallBannerButton extends StatelessWidget {
   }
 }
 
-class AudioBackdrop extends StatefulWidget {
+class AudioBackdrop extends StatelessWidget {
   const AudioBackdrop({
     super.key,
     required this.name,
@@ -1481,38 +1527,23 @@ class AudioBackdrop extends StatefulWidget {
   final ChatApi? api;
 
   @override
-  State<AudioBackdrop> createState() => AudioBackdropState();
-}
-
-class AudioBackdropState extends State<AudioBackdrop>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2600),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = widget.theme;
     final accent = theme.accent as Color;
     return CallBackdrop(
       accent: accent,
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.only(bottom: widget.bottomInset),
+          padding: EdgeInsets.only(bottom: bottomInset),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Avatar + concentric pulse rings.
                 // Springs in once when the call screen opens.
-                TweenAnimationBuilder<double>(
+                // Its own layer: the spring scales a cached picture of the
+                // face and rings instead of repainting the screen with it.
+                RepaintBoundary(
+                  child: TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0.82, end: 1),
                   duration: MediaQuery.disableAnimationsOf(context)
                       ? Duration.zero
@@ -1539,13 +1570,14 @@ class AudioBackdropState extends State<AudioBackdrop>
                     // Real avatar photo when available; per-user gradient +
                     // initial otherwise (UserAvatar handles both).
                     child: UserAvatar(
-                      user: widget.user,
-                      api: widget.api,
+                      user: user,
+                      api: api,
                       size: 132,
                       showStatus: false,
                     ),
                   ),
                   ),
+                ),
                 ),
                 const SizedBox(height: 28),
                 // FaceTime's name: big, centred, the one thing on screen
@@ -1553,7 +1585,7 @@ class AudioBackdropState extends State<AudioBackdrop>
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text(
-                    widget.name,
+                    name,
                     style: theme.displayLarge.copyWith(color: Colors.white),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1563,7 +1595,7 @@ class AudioBackdropState extends State<AudioBackdrop>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (widget.peerMuted) ...[
+                    if (peerMuted) ...[
                       const Icon(
                         CallGlyphs.micOff,
                         size: 15,
@@ -1571,7 +1603,7 @@ class AudioBackdropState extends State<AudioBackdrop>
                       ),
                       const SizedBox(width: 8),
                     ],
-                    widget.status,
+                    status,
                   ],
                 ),
               ],
@@ -1996,6 +2028,8 @@ class ElapsedLabelState extends State<ElapsedLabel> {
     final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     final label = d.inHours > 0 ? '${d.inHours}:$mm:$ss' : '$mm:$ss';
-    return Text(label, style: widget.style);
+    // Its own layer, so the tick repaints four digits rather than the
+    // screen they sit on.
+    return RepaintBoundary(child: Text(label, style: widget.style));
   }
 }

@@ -383,6 +383,68 @@ void main() {
       await service.endCall();
     });
 
+    test('the native setup waits for the call screen to finish sliding in',
+        () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      var acquired = false;
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        acquired = true;
+        return FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+      final slide = Completer<void>();
+      // What the overlay does on the dial's notify: the screen goes up.
+      service.addListener(() {
+        if (service.dialing != null) service.screenSettled = slide.future;
+      });
+
+      final initiated = service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await _pump();
+      expect(service.session?.status, CallStatus.outgoingRinging,
+          reason: 'the row is reserved meanwhile; the callee is ringing');
+      expect(acquired, isFalse, reason: 'no mic or audio session mid-slide');
+
+      slide.complete();
+      await initiated;
+      expect(acquired, isTrue);
+      await service.endCall();
+    });
+
+    test('hanging up while the screen settles sets up nothing', () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      var acquired = false;
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        acquired = true;
+        return FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+      final slide = Completer<void>();
+      service.addListener(() {
+        if (service.dialing != null) service.screenSettled = slide.future;
+      });
+
+      final initiated = service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await _pump();
+      await service.endCall();
+      slide.complete();
+      await initiated;
+      await _pump();
+      expect(acquired, isFalse);
+      expect(api.terminalCalls, ['cancel']);
+    });
+
     test('calling until the callee reports ringing, then ringing', () async {
       final api = _FakeCallApi();
       final service = _newService(api);

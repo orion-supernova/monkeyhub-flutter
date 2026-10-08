@@ -12992,6 +12992,28 @@
   "@galleryTrayEmpty": {
     "description": "Shown in the camera's recent-photos strip when the library has no photos."
   },
+  "galleryTrayAddSelectedButton": "Add ({count})",
+  "@galleryTrayAddSelectedButton": {
+    "description": "The camera gallery's button that adds every photo picked in multi-select; {count} is how many are picked.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "galleryTrayCancelSelectionLabel": "Cancel selection",
+  "@galleryTrayCancelSelectionLabel": {
+    "description": "Screen-reader label for the camera gallery's button that leaves multi-select without adding anything."
+  },
+  "galleryTraySelectedTitle": "{count} selected",
+  "@galleryTraySelectedTitle": {
+    "description": "Title of the full-screen camera gallery while photos are being multi-selected; {count} is how many are picked.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "galleryTrayPhotoLabel": "Photo {index}",
   "@galleryTrayPhotoLabel": {
     "description": "Accessibility label of one photo in the camera's recent-photos strip or gallery. {index} is its 1-based position, newest first.",

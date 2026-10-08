@@ -11224,6 +11224,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get galleryTrayEmpty => 'Aún no hay fotos';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return 'Añadir ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => 'Cancelar selección';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count seleccionadas';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return 'Foto $index';
   }

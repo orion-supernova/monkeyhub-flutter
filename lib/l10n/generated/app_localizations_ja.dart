@@ -10663,6 +10663,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get galleryTrayEmpty => 'まだ写真がありません';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return '追加 ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => '選択をキャンセル';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count件選択';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return '写真 $index';
   }

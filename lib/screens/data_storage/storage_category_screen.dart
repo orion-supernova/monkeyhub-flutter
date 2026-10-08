@@ -54,6 +54,9 @@ class _StorageCategoryScreenState extends State<StorageCategoryScreen>
   ChatApi get selectionApi => widget.api;
 
   @override
+  ChatRepository get selectionRepo => widget.repo;
+
+  @override
   void initState() {
     super.initState();
     _service.addListener(_changed);

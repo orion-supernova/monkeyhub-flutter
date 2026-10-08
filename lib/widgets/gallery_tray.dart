@@ -14,6 +14,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/image_raster.dart' show sniffImageContentType;
 import '../theme/theme_scope.dart';
+import 'app_toast.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 import 'photo_chrome.dart';
@@ -41,6 +42,13 @@ class GalleryTrayController {
   void expand() => _state?._settleTo(GalleryTrayStop.full);
   void collapse() => _state?._settleTo(GalleryTrayStop.strip);
 
+  /// Whether photos are being multi-selected. The system back clears the
+  /// selection before it does anything else.
+  bool get selecting => _state?._selecting ?? false;
+
+  /// Drops the multi-selection, without adding anything.
+  void clearSelection() => _state?._clearSelection();
+
   void dispose() => latest.dispose();
 }
 
@@ -53,9 +61,10 @@ class GalleryTrayController {
 /// grabber down and it gets out of the viewfinder; drag it up and it becomes a
 /// full-screen grid of the library.
 ///
-/// Taps are single selection, on purpose. Picking here hands one photo to the
-/// camera's review — the composer — which is where several photos are
-/// gathered: its "add from library" comes back here for the next one.
+/// A tap hands one photo to the camera's review — the composer — at once. A
+/// long press starts a multi-selection instead, where taps toggle and "Add"
+/// hands them over together; only offered when [GalleryTray.onPickMany] is
+/// set, since an avatar or a moment takes exactly one.
 ///
 /// The whole sheet is one full-height layer translated by the drag, so a drag
 /// moves pixels and never relays out the grid. Below the strip it is empty and
@@ -68,6 +77,11 @@ class GalleryTray extends StatefulWidget {
     required this.onPick,
     this.onBrowseAll,
     this.onFullChanged,
+    this.onPickMany,
+    this.selectionRoom,
+    this.selectionMax,
+    this.onSettle,
+    this.onSelectingChanged,
   });
 
   /// Whether this platform has a library to read. iOS and Android only:
@@ -94,6 +108,25 @@ class GalleryTray extends StatefulWidget {
   /// Fires when the sheet settles full, or starts to leave it. The camera
   /// pauses its preview behind a grid that covers it.
   final ValueChanged<bool>? onFullChanged;
+
+  /// "Add" at the end of a multi-selection, in the order the photos were
+  /// picked. Null keeps the tray single-pick: a long press does nothing.
+  final Future<void> Function(List<AssetEntity> assets)? onPickMany;
+
+  /// How many more photos the caller can take right now. A selection stops
+  /// growing there rather than failing at "Add".
+  final int Function()? selectionRoom;
+
+  /// The caller's overall cap, for the message when [selectionRoom] runs out.
+  final int? selectionMax;
+
+  /// Fires the moment a settle is decided — a drag let go, a button, the
+  /// controller — with where the sheet is going. The camera uses a sheet
+  /// leaving full to hand back to the composer that opened it.
+  final ValueChanged<GalleryTrayStop>? onSettle;
+
+  /// Fires when a multi-selection starts or ends.
+  final ValueChanged<bool>? onSelectingChanged;
 
   /// Loads [asset] as bytes the composer can take: a JPEG on iOS (the plugin's
   /// full-size rendition, orientation applied), the original elsewhere — and a
@@ -152,6 +185,11 @@ class _GalleryTrayState extends State<GalleryTray>
   final ScrollController _grid = ScrollController();
 
   GalleryTrayStop _stop = _rememberedStop ?? GalleryTrayStop.strip;
+
+  /// Where the sheet rested when the current drag began. A drag is judged
+  /// against it: leaving a stop takes a quarter of the way to the next one,
+  /// not half, so one deliberate swipe is always enough.
+  GalleryTrayStop _dragFrom = GalleryTrayStop.strip;
   bool _dragging = false;
   bool _full = false;
   _Geometry? _geo;
@@ -161,6 +199,14 @@ class _GalleryTrayState extends State<GalleryTray>
   bool _hasMore = true;
   bool _loadingMore = false;
   String? _picking;
+
+  /// The multi-selection, in the order it was picked. Empty is "not
+  /// selecting": the mode ends with its last photo.
+  final List<AssetEntity> _selection = [];
+
+  /// The last non-zero count, so the bar fading out does not read "Add (0)".
+  int _shownCount = 1;
+  bool _adding = false;
 
   static final _filter = FilterOptionGroup(
     orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
@@ -304,13 +350,82 @@ class _GalleryTrayState extends State<GalleryTray>
   }
 
   Future<void> _pick(AssetEntity asset) async {
-    if (_picking != null) return;
+    if (_picking != null || _adding) return;
     HapticFeedback.selectionClick();
     setState(() => _picking = asset.id);
     try {
       await widget.onPick(asset);
     } finally {
       if (mounted) setState(() => _picking = null);
+    }
+  }
+
+  // ---------------------------------------------------------------- selection
+
+  bool get _selecting => _selection.isNotEmpty;
+
+  /// Null outside multi-select; 0 for a photo that is not picked; otherwise
+  /// its place in the order, from 1.
+  int? _orderOf(AssetEntity asset) {
+    if (!_selecting) return null;
+    return _selection.indexWhere((a) => a.id == asset.id) + 1;
+  }
+
+  void _changeSelection(VoidCallback change) {
+    final was = _selecting;
+    setState(change);
+    if (_selecting) _shownCount = _selection.length;
+    if (was != _selecting) widget.onSelectingChanged?.call(_selecting);
+  }
+
+  void _clearSelection() {
+    if (!_selecting || !mounted) return;
+    _changeSelection(_selection.clear);
+  }
+
+  /// Whether a selection of [count] fits what the caller can still take.
+  bool _fits(int count) {
+    final room = widget.selectionRoom?.call();
+    if (room == null || count <= room) return true;
+    HapticFeedback.heavyImpact();
+    AppToast.of(context).show(
+      AppLocalizations.of(
+        context,
+      ).roomScreenMaxSelectionSnack(widget.selectionMax ?? math.max(room, 1)),
+    );
+    return false;
+  }
+
+  void _longPress(AssetEntity asset) {
+    if (widget.onPickMany == null || _picking != null || _adding) return;
+    if (_selecting) return _toggle(asset);
+    if (!_fits(1)) return;
+    HapticFeedback.mediumImpact();
+    _changeSelection(() => _selection.add(asset));
+  }
+
+  void _toggle(AssetEntity asset) {
+    final i = _selection.indexWhere((a) => a.id == asset.id);
+    if (i < 0 && !_fits(_selection.length + 1)) return;
+    HapticFeedback.selectionClick();
+    _changeSelection(() {
+      if (i >= 0) {
+        _selection.removeAt(i);
+      } else {
+        _selection.add(asset);
+      }
+    });
+  }
+
+  Future<void> _addSelected() async {
+    final add = widget.onPickMany;
+    if (add == null || !_selecting || _adding || _picking != null) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _adding = true);
+    try {
+      await add(List.of(_selection));
+    } finally {
+      if (mounted) setState(() => _adding = false);
     }
   }
 
@@ -335,6 +450,10 @@ class _GalleryTrayState extends State<GalleryTray>
   }) {
     if (!mounted) return;
     _stop = stop;
+    // Pushed down to the grabber, the photos are gone; so is what was picked
+    // among them.
+    if (stop == GalleryTrayStop.hidden) _clearSelection();
+    widget.onSettle?.call(stop);
     final g = _geo;
     if (g == null) return; // laid out at [_stop] on the first build
     if (stop != GalleryTrayStop.full) {
@@ -363,6 +482,7 @@ class _GalleryTrayState extends State<GalleryTray>
 
   void _dragStart() {
     _y.stop();
+    _dragFrom = _stop;
     _dragging = true;
     // The camera wakes up as soon as the grid starts to uncover it, not when
     // the sheet has finished leaving.
@@ -376,6 +496,7 @@ class _GalleryTrayState extends State<GalleryTray>
   }
 
   void _dragEnd(double velocity) {
+    if (!_dragging) return;
     _dragging = false;
     final g = _geo;
     if (g == null) return;
@@ -386,7 +507,7 @@ class _GalleryTrayState extends State<GalleryTray>
       (GalleryTrayStop.hidden, g.hidden),
     ];
     GalleryTrayStop target;
-    if (velocity.abs() > 650) {
+    if (velocity.abs() > 300) {
       // A flick goes one stop in the direction it was thrown, from wherever
       // the finger let go — not to the nearest, which is where it started.
       final ahead = velocity < 0
@@ -394,9 +515,30 @@ class _GalleryTrayState extends State<GalleryTray>
           : stops.firstWhere((s) => s.$2 > y + 1, orElse: () => stops.last);
       target = ahead.$1;
     } else {
-      target = stops
-          .reduce((a, b) => (a.$2 - y).abs() <= (b.$2 - y).abs() ? a : b)
-          .$1;
+      // An unhurried drag: the two stops either side of the finger, and a
+      // quarter of the way out of the one it started from commits to the
+      // other. Nearest-stop needed half of a screen-tall gap, which read as
+      // a swipe that did nothing and had to be repeated.
+      final above = stops.lastWhere(
+        (s) => s.$2 <= y,
+        orElse: () => stops.first,
+      );
+      final below = stops.firstWhere(
+        (s) => s.$2 >= y,
+        orElse: () => stops.last,
+      );
+      if (above.$1 == below.$1) {
+        target = above.$1;
+      } else {
+        final f = (y - above.$2) / (below.$2 - above.$2);
+        final from = _yFor(_dragFrom, g);
+        final cut = from <= above.$2 + 0.5
+            ? 0.25
+            : from >= below.$2 - 0.5
+            ? 0.75
+            : 0.5;
+        target = f < cut ? above.$1 : below.$1;
+      }
     }
     if (target != _stop) HapticFeedback.selectionClick();
     _settleTo(target, velocity: velocity);
@@ -445,6 +587,15 @@ class _GalleryTrayState extends State<GalleryTray>
   Widget build(BuildContext context) {
     final safe = MediaQuery.paddingOf(context);
     final limited = _access == GalleryAccess.limited;
+    // Everything that does not depend on where the sheet is, built once per
+    // state change rather than once per frame of a drag: the animation below
+    // hands these same instances back, so the grid's tiles and the strip's
+    // thumbnails are never rebuilt by movement alone.
+    final stripZone = _dragZone(_stripBody(context));
+    final grid = _gridBody(context);
+    final header = _headerRow(context);
+    final note = limited ? _limitedNote(context) : null;
+    final bar = _selectionBar(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final h = constraints.maxHeight;
@@ -474,18 +625,30 @@ class _GalleryTrayState extends State<GalleryTray>
             final stripOpacity = (reveal * (1 - t * 2.5)).clamp(0.0, 1.0);
             final gridOpacity = ((t - 0.3) / 0.6).clamp(0.0, 1.0);
             final top = safe.top * t;
+            // Above the grabber at the strip, down at the bottom edge once it
+            // is a gallery: the "Add" rides with the sheet between the two.
+            final barTop =
+                (y - _barHeight - 10) * (1 - t) +
+                (h - safe.bottom - _barHeight - 16) * t;
 
+            // Every child is here on every frame, in the same order. The dim
+            // used to be inserted ahead of the sheet the moment it rose off
+            // the strip; unkeyed, the Stack then matched the sheet's element
+            // to the dim and built the sheet afresh, which killed the drag
+            // under the finger. That was the "takes two swipes", both ways:
+            // the spring settling onto the strip removed the dim again.
             return Stack(
               children: [
                 // The camera dims under a rising sheet, like any iOS sheet.
-                if (t > 0)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: ColoredBox(
-                        color: Colors.black.withValues(alpha: 0.45 * t),
-                      ),
-                    ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: t > 0
+                        ? ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.45 * t),
+                          )
+                        : const SizedBox.shrink(),
                   ),
+                ),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -519,10 +682,7 @@ class _GalleryTrayState extends State<GalleryTray>
                         height: h - gridTop,
                         child: IgnorePointer(
                           ignoring: gridOpacity < 0.95,
-                          child: Opacity(
-                            opacity: gridOpacity,
-                            child: _gridBody(context),
-                          ),
+                          child: Opacity(opacity: gridOpacity, child: grid),
                         ),
                       ),
                       Positioned(
@@ -535,24 +695,27 @@ class _GalleryTrayState extends State<GalleryTray>
                             children: [
                               _grabber(context, t),
                               SizedBox(
-                                height: t > 0 ? _header * t : 0,
-                                child: t < 0.05
+                                height: _header * t,
+                                child: Visibility(
+                                  visible: t >= 0.05,
+                                  maintainState: true,
+                                  child: Opacity(
+                                    opacity: ((t - 0.5) / 0.5)
+                                        .clamp(0.0, 1.0),
+                                    child: header,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                height: note == null ? 0 : _note * t,
+                                child: note == null || t < 0.05
                                     ? null
                                     : Opacity(
                                         opacity: ((t - 0.5) / 0.5)
                                             .clamp(0.0, 1.0),
-                                        child: _headerRow(context),
+                                        child: note,
                                       ),
                               ),
-                              if (limited && t > 0.05)
-                                SizedBox(
-                                  height: _note * t,
-                                  child: Opacity(
-                                    opacity: ((t - 0.5) / 0.5)
-                                        .clamp(0.0, 1.0),
-                                    child: _limitedNote(context),
-                                  ),
-                                ),
                             ],
                           ),
                         ),
@@ -566,11 +729,21 @@ class _GalleryTrayState extends State<GalleryTray>
                           ignoring: stripOpacity < 0.5,
                           child: Opacity(
                             opacity: stripOpacity,
-                            child: _dragZone(_stripBody(context)),
+                            child: stripZone,
                           ),
                         ),
                       ),
                     ],
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: barTop,
+                  height: _barHeight,
+                  child: Opacity(
+                    opacity: math.max(reveal, t),
+                    child: bar,
                   ),
                 ),
               ],
@@ -578,6 +751,80 @@ class _GalleryTrayState extends State<GalleryTray>
           },
         );
       },
+    );
+  }
+
+  static const _barHeight = 46.0;
+
+  /// Cancel and "Add (N)", for a multi-selection. Always built, faded and
+  /// slid in and out, so it never shifts the Stack around it.
+  Widget _selectionBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = ThemeScope.of(context);
+    final label = l10n.galleryTrayAddSelectedButton(_shownCount);
+    final on = _selecting;
+    return IgnorePointer(
+      ignoring: !on,
+      child: AnimatedSlide(
+        offset: on ? Offset.zero : const Offset(0, 0.4),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        child: AnimatedOpacity(
+          opacity: on ? 1 : 0,
+          duration: const Duration(milliseconds: 160),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GlassIconButton(
+                tone: GlassTone.media,
+                icon: CupertinoIcons.xmark,
+                size: _barHeight,
+                semanticLabel: l10n.galleryTrayCancelSelectionLabel,
+                // It rides the sheet's drag; a moving blur is never drawn.
+                still: true,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _clearSelection();
+                },
+              ),
+              const SizedBox(width: 10),
+              SpringPress(
+                onTap: _adding ? null : _addSelected,
+                semanticLabel: label,
+                focusShape: FocusRingShape.capsule,
+                haptic: false,
+                child: Container(
+                  height: _barHeight,
+                  constraints: const BoxConstraints(minWidth: 132),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: theme.accent,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: const [MediaGlass.shadow],
+                  ),
+                  alignment: Alignment.center,
+                  child: _adding
+                      ? PhotoSpinner(size: 18, color: theme.accentInk)
+                      : Text(
+                          sentenceCaseOf(context, label),
+                          maxLines: 1,
+                          style: theme.body.copyWith(
+                            color: theme.accentInk,
+                            fontSize: 16,
+                            height: 1.2,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.none,
+                            fontFeatures: const [
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -646,7 +893,12 @@ class _GalleryTrayState extends State<GalleryTray>
           ),
           Expanded(
             child: Text(
-              sentenceCaseOf(context, l10n.galleryTrayRecentsTitle),
+              sentenceCaseOf(
+                context,
+                _selecting
+                    ? l10n.galleryTraySelectedTitle(_selection.length)
+                    : l10n.galleryTrayRecentsTitle,
+              ),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -770,8 +1022,12 @@ class _GalleryTrayState extends State<GalleryTray>
             size: _thumb,
             radius: 12,
             busy: _picking == asset.id,
+            order: _orderOf(asset),
             semanticLabel: l10n.galleryTrayPhotoLabel(i + 1),
-            onTap: () => _pick(asset),
+            onTap: _selecting ? () => _toggle(asset) : () => _pick(asset),
+            onLongPress: widget.onPickMany == null
+                ? null
+                : () => _longPress(asset),
           );
         },
       ),
@@ -798,7 +1054,13 @@ class _GalleryTrayState extends State<GalleryTray>
             // Clamping, so pulling down at the top is an overscroll this
             // sheet can take rather than a bounce the grid keeps.
             physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(2, 2, 2, bottom + 12),
+            // Room under the last row for the "Add" bar while selecting.
+            padding: EdgeInsets.fromLTRB(
+              2,
+              2,
+              2,
+              bottom + 12 + (_selecting ? _barHeight + 16 : 0),
+            ),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
               mainAxisSpacing: 2,
@@ -812,8 +1074,12 @@ class _GalleryTrayState extends State<GalleryTray>
                 asset: asset,
                 radius: 0,
                 busy: _picking == asset.id,
+                order: _orderOf(asset),
                 semanticLabel: l10n.galleryTrayPhotoLabel(i + 1),
-                onTap: () => _pick(asset),
+                onTap: _selecting ? () => _toggle(asset) : () => _pick(asset),
+                onLongPress: widget.onPickMany == null
+                    ? null
+                    : () => _longPress(asset),
               );
             },
           ),
@@ -856,6 +1122,8 @@ class _Thumb extends StatelessWidget {
     required this.semanticLabel,
     required this.onTap,
     this.size,
+    this.order,
+    this.onLongPress,
   });
 
   final AssetEntity asset;
@@ -864,6 +1132,11 @@ class _Thumb extends StatelessWidget {
   final bool busy;
   final String semanticLabel;
   final VoidCallback onTap;
+
+  /// Null outside multi-select; 0 when this photo is not picked; otherwise
+  /// its place in the order, from 1.
+  final int? order;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -887,13 +1160,24 @@ class _Thumb extends StatelessWidget {
       },
       errorBuilder: (_, _, _) => const SizedBox.shrink(),
     );
+    final picked = (order ?? 0) > 0;
     final tile = ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: Stack(
         fit: StackFit.expand,
         children: [
           const ColoredBox(color: Color(0x1FFFFFFF)),
-          image,
+          // A picked photo draws in from its edges, the way the system
+          // picker marks it, so the order badges are not the only tell.
+          AnimatedScale(
+            scale: picked ? 0.86 : 1,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(picked ? 8 : radius),
+              child: image,
+            ),
+          ),
           if (radius > 0)
             DecoratedBox(
               decoration: BoxDecoration(
@@ -906,12 +1190,19 @@ class _Thumb extends StatelessWidget {
               color: kMediaScrim,
               child: Center(child: PhotoSpinner(size: 20)),
             ),
+          if (order != null)
+            Positioned(
+              top: 5,
+              right: 5,
+              child: _OrderBadge(order: order!),
+            ),
         ],
       ),
     );
     return SpringPress(
       onTap: busy ? null : onTap,
-      semanticLabel: semanticLabel,
+      onLongPress: busy ? null : onLongPress,
+      semanticLabel: picked ? '$semanticLabel, $order' : semanticLabel,
       scale: PressSpec.scaleSmall,
       focusShape: FocusRingShape.rounded,
       focusRadius: radius,
@@ -925,6 +1216,48 @@ class _Thumb extends StatelessWidget {
               ),
               child: SizedBox.square(dimension: size, child: tile),
             ),
+    );
+  }
+}
+
+/// A photo's place in a multi-selection: an empty ring until it is picked,
+/// then its number on the accent.
+class _OrderBadge extends StatelessWidget {
+  const _OrderBadge({required this.order});
+
+  final int order;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final on = order > 0;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+      width: 22,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: on ? theme.accent : const Color(0x33000000),
+        border: Border.all(
+          color: on ? theme.accent : MediaGlass.ink,
+          width: 1.5,
+        ),
+        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 3)],
+      ),
+      child: on
+          ? Text(
+              '$order',
+              style: theme.body.copyWith(
+                color: theme.accentInk,
+                fontSize: 12,
+                height: 1,
+                fontWeight: FontWeight.w700,
+                decoration: TextDecoration.none,
+              ),
+            )
+          : null,
     );
   }
 }

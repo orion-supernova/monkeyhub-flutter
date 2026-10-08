@@ -25,9 +25,23 @@ import '../l10n/text_case.dart';
 /// this screen only shows on platforms without one (iOS simulator,
 /// desktop). See `_CallOverlay._nativeRinger`.
 class IncomingCallScreen extends StatefulWidget {
-  const IncomingCallScreen({super.key, required this.service, this.api});
+  const IncomingCallScreen({
+    super.key,
+    required this.service,
+    this.api,
+    this.screenUp,
+    this.routeName,
+  });
   final CallService service;
   final ChatApi? api;
+
+  /// Raised while the [CallScreen] this hands over to is up, as the
+  /// overlay does for the screens it pushes itself: the in-call pill hides
+  /// behind it rather than floating over the call.
+  final ValueNotifier<bool>? screenUp;
+
+  /// The [CallScreen] route's name, so it is as protected as this one.
+  final String? routeName;
 
   @override
   State<IncomingCallScreen> createState() => _IncomingCallScreenState();
@@ -80,11 +94,17 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       // repeated notifies in this window can't stack CallScreen routes
       // (each of which would allocate its own pair of video renderers).
       _movedToCall = true;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => CallScreen(service: widget.service, api: widget.api),
-        ),
-      );
+      final screenUp = widget.screenUp;
+      screenUp?.value = true;
+      Navigator.of(context)
+          .pushReplacement(
+            MaterialPageRoute<void>(
+              settings: RouteSettings(name: widget.routeName),
+              builder: (_) =>
+                  CallScreen(service: widget.service, api: widget.api),
+            ),
+          )
+          .whenComplete(() => screenUp?.value = false);
       return;
     }
     setState(() {});

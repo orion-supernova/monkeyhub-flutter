@@ -11230,6 +11230,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get galleryTrayEmpty => 'Ainda não há fotografias';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return 'Adicionar ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => 'Cancelar seleção';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count selecionadas';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return 'Fotografia $index';
   }
@@ -22979,6 +22992,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get galleryTrayEmpty => 'Nenhuma foto ainda';
+
+  @override
+  String galleryTrayAddSelectedButton(int count) {
+    return 'Adicionar ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => 'Cancelar seleção';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count selecionadas';
+  }
 
   @override
   String galleryTrayPhotoLabel(int index) {

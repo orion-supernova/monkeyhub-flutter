@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
+import 'alert_sound.dart';
+
 /// Web alert sounds via `<audio>` elements fed from in-memory blobs.
 ///
 /// Uses HTMLAudioElement instead of just_audio because an <audio> element keeps
@@ -21,31 +23,26 @@ import 'package:web/web.dart' as web;
 class WebAudio {
   const WebAudio._();
 
-  static web.HTMLAudioElement? _ping;
-  static web.HTMLAudioElement? _ring;
+  static final Map<AlertSound, web.HTMLAudioElement> _elements = {};
   static bool _unlocked = false;
 
-  static web.HTMLAudioElement _element(Uint8List bytes, {bool loop = false}) {
+  static void configure(AlertSound sound, Uint8List bytes) {
+    if (_elements.containsKey(sound)) return;
     final blob = web.Blob(
       [bytes.toJS].toJS,
-      web.BlobPropertyBag(type: 'audio/mpeg'),
+      web.BlobPropertyBag(type: sound.mime),
     );
     final url = web.URL.createObjectURL(blob);
-    return web.HTMLAudioElement()
+    _elements[sound] = web.HTMLAudioElement()
       ..src = url
-      ..loop = loop
+      ..loop = sound.loop
       ..preload = 'auto';
   }
-
-  static void configurePing(Uint8List bytes) => _ping ??= _element(bytes);
-  static void configureRingtone(Uint8List bytes) =>
-      _ring ??= _element(bytes, loop: true);
 
   static void unlock() {
     if (_unlocked) return;
     _unlocked = true;
-    for (final e in [_ping, _ring]) {
-      if (e == null) continue;
+    for (final e in _elements.values) {
       try {
         // Pause only AFTER the muted play resolves — a synchronous pause aborts
         // the play promise ("AbortError") and can leave the element not fully
@@ -62,8 +59,10 @@ class WebAudio {
     }
   }
 
-  static void playPing() {
-    final e = _ping;
+  /// From the top, so back-to-back one-shots each sound and a loop always
+  /// opens on its first beat.
+  static void play(AlertSound sound) {
+    final e = _elements[sound];
     if (e == null) return;
     try {
       e.currentTime = 0;
@@ -71,17 +70,8 @@ class WebAudio {
     } catch (_) {}
   }
 
-  static void startRingtone() {
-    final e = _ring;
-    if (e == null) return;
-    try {
-      e.currentTime = 0;
-      e.play();
-    } catch (_) {}
-  }
-
-  static void stopRingtone() {
-    final e = _ring;
+  static void stop(AlertSound sound) {
+    final e = _elements[sound];
     if (e == null) return;
     try {
       e.pause();

@@ -7,9 +7,7 @@ import '../../data/chat_repository.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/storage/storage_kinds.dart';
 import '../../media/storage/storage_service.dart';
-import '../../theme/layout.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/chat_list_row.dart' show ChatRoomAvatar;
@@ -21,11 +19,13 @@ import 'usage_widgets.dart';
 
 /// One chat's share of the cache, opened from Storage Usage's Chats tab: its
 /// face in the ring, the breakdown by kind with the same check-to-keep rows,
-/// and a clear button for exactly that chat.
+/// a clear button for exactly that chat, and under it everything that chat
+/// keeps on the device, every photo, video and file selectable.
 ///
-/// Opens as a sheet, a glance with a look at the chat's media. Its expand
-/// button turns it into a full page with everything that chat keeps on the
-/// device, every photo, video and file selectable, and a close button.
+/// A sheet that opens as a glance and drags up to full height to go through
+/// the rest ([ExpandingSheet]). It used to have an expand button that closed
+/// the sheet and opened a page in its place, which was two screens for one
+/// thing with a cut between them.
 Future<void> showChatStorageSheet(
   BuildContext context, {
   required RoomUsage usage,
@@ -35,44 +35,20 @@ Future<void> showChatStorageSheet(
   HapticFeedback.lightImpact();
   return showAdaptiveSheet<void>(
     context,
-    builder: (_) => _ChatStorage(
-      roomId: usage.roomId,
-      repo: repo,
-      api: api,
-      full: false,
-    ),
+    builder: (_) => _ChatStorage(roomId: usage.roomId, repo: repo, api: api),
   );
 }
-
-/// The same chat as a full page, sliding up from the bottom the way the
-/// sheet it grew out of did.
-Future<void> openChatStoragePage(
-  BuildContext context, {
-  required String roomId,
-  required ChatRepository repo,
-  required ChatApi api,
-}) =>
-    Navigator.of(context).push(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) =>
-          _ChatStorage(roomId: roomId, repo: repo, api: api, full: true),
-    ));
 
 class _ChatStorage extends StatefulWidget {
   const _ChatStorage({
     required this.roomId,
     required this.repo,
     required this.api,
-    required this.full,
   });
 
   final String roomId;
   final ChatRepository repo;
   final ChatApi api;
-
-  /// The page rather than the sheet: every item, selectable, and a close
-  /// button in place of the sheet's grab handle.
-  final bool full;
 
   @override
   State<_ChatStorage> createState() => _ChatStorageState();
@@ -80,10 +56,12 @@ class _ChatStorage extends StatefulWidget {
 
 class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
   final _service = StorageService.instance;
-  final _scroll = ScrollController();
 
   @override
   ChatApi get selectionApi => widget.api;
+
+  @override
+  ChatRepository get selectionRepo => widget.repo;
 
   /// Kinds unticked in the breakdown.
   final Set<StorageKind> _excluded = {};
@@ -99,7 +77,6 @@ class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
   @override
   void dispose() {
     _service.removeListener(_changed);
-    _scroll.dispose();
     super.dispose();
   }
 
@@ -123,17 +100,6 @@ class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
     final usage = _usage;
     return usage.byKind.keys.toList()
       ..sort((a, b) => usage.byKind[b]!.compareTo(usage.byKind[a]!));
-  }
-
-  /// Swaps the sheet for the page: the sheet closes and the page rises in
-  /// its place, from the navigator underneath.
-  void _expand() {
-    HapticFeedback.lightImpact();
-    final nav = Navigator.of(context);
-    final below = nav.context;
-    nav.pop();
-    openChatStoragePage(below,
-        roomId: widget.roomId, repo: widget.repo, api: widget.api);
   }
 
   Future<void> _run(Future<int> Function() job) async {
@@ -206,7 +172,7 @@ class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
               api: widget.api,
             ),
       // The page's large title already names the chat.
-      title: widget.full ? null : _title(l10n),
+      title: _title(l10n),
       subtitle: cacheTotal <= 0
           ? null
           : l10n.storageChatShare(percentLabel(usage.total, cacheTotal)),
@@ -242,24 +208,45 @@ class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
       : l10n.storageClearSelectedButton(bytesLabel(_selected));
 
   @override
-  Widget build(BuildContext context) =>
-      widget.full ? _page(context) : _sheet(context);
-
-  Widget _sheet(BuildContext context) {
+  Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final items = _items;
     final tiles =
-        MediaTileData.group([for (final i in _items) if (i.isVisual) i]);
-    return SheetFrame(
-      maxHeightFraction: 0.92,
-      expand: _expand,
-      footer: SheetActionButton(
-        label: _clearLabel(l10n),
-        busy: _busy,
-        onTap: _selected <= 0 ? null : _clearKinds,
-      ),
-      child: SheetScrollBody(
-        child: Column(
+        MediaTileData.group([for (final i in items) if (i.isVisual) i]);
+    final files = [
+      for (final i in items)
+        if (i.kind == StorageKind.files || i.kind == StorageKind.voice) i,
+    ]..sort((a, b) => b.bytes.compareTo(a.bytes));
+    final pickedBytes = items
+        .where((i) => picked.contains(i.id))
+        .fold<int>(0, (a, i) => a + i.bytes);
+
+    Widget boxed(Widget child) => SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: child,
+          ),
+        );
+
+    return ExpandingSheet(
+      wrap: (scroll, body) =>
+          dragRegion(tiles: tiles, scroll: scroll, child: body),
+      // While picking, the one button clears exactly the picks; otherwise
+      // the ticked kinds.
+      footer: selecting
+          ? SheetActionButton(
+              label: l10n.storageClearSelectedButton(bytesLabel(pickedBytes)),
+              busy: _busy,
+              onTap: _clearPicked,
+            )
+          : SheetActionButton(
+              label: _clearLabel(l10n),
+              busy: _busy,
+              onTap: _selected <= 0 ? null : _clearKinds,
+            ),
+      slivers: (context, _) => [
+        boxed(Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _hero(l10n),
@@ -269,112 +256,22 @@ class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
               child: Text(l10n.storageClearFooter,
                   style: groupedFooterStyle(theme)),
             ),
-            if (tiles.isNotEmpty) ...[
-              GroupedHeader(l10n.storageTabMedia),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(groupedRadius(theme)),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 120,
-                    mainAxisSpacing: 2,
-                    crossAxisSpacing: 2,
-                  ),
-                  // A look, not the whole archive: the expanded page has it.
-                  itemCount: tiles.length.clamp(0, 24),
-                  itemBuilder: (context, i) =>
-                      StorageMediaTile(tile: tiles[i], api: widget.api),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
+            if (tiles.isNotEmpty) GroupedHeader(l10n.storageTabMedia),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _page(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final items = _items;
-    final tiles =
-        MediaTileData.group([for (final i in items) if (i.isVisual) i]);
-    final files = [
-      for (final i in items)
-        if (i.kind == StorageKind.files || i.kind == StorageKind.voice) i,
-    ]..sort((a, b) => b.bytes.compareTo(a.bytes));
-    final picking = selecting;
-    final pickedBytes = items
-        .where((i) => picked.contains(i.id))
-        .fold<int>(0, (a, i) => a + i.bytes);
-
-    Widget boxed(Widget child) => SliverToBoxAdapter(
-          child: AdaptivePageBody(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: child,
+        )),
+        if (tiles.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: mediaGridSliver(tiles),
+          ),
+        if (files.isNotEmpty)
+          boxed(Padding(
+            padding: const EdgeInsets.only(top: 28),
+            child: GroupedSection(
+              header: l10n.storageTabFiles,
+              children: [for (final f in files) fileRow(f)],
             ),
-          ),
-        );
-
-    return Stack(
-      children: [
-        dragRegion(
-          tiles: tiles,
-          scroll: _scroll,
-          child: IosPage(
-            title: _title(l10n),
-            controller: _scroll,
-            // A page that rose from the bottom closes; it does not go back.
-            leading: const GlassCloseButton(),
-            slivers: [
-              boxed(Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _hero(l10n),
-                  GroupedSection(
-                    footer: l10n.storageClearFooter,
-                    children: [
-                      ..._categoryRows(l10n),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                        child: SheetActionButton(
-                          label: _clearLabel(l10n),
-                          busy: _busy,
-                          onTap: _selected <= 0 ? null : _clearKinds,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (tiles.isNotEmpty) GroupedHeader(l10n.storageTabMedia),
-                ],
-              )),
-              if (tiles.isNotEmpty) mediaGridSliver(tiles),
-              if (files.isNotEmpty)
-                boxed(Padding(
-                  padding: const EdgeInsets.only(top: 28),
-                  child: GroupedSection(
-                    header: l10n.storageTabFiles,
-                    children: [
-                      for (final f in files) fileRow(f),
-                    ],
-                  ),
-                )),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                    height: edgeToEdgeBottom(context, picking ? 96 : 40)),
-              ),
-            ],
-          ),
-        ),
-        ClearSelectionBar(
-          visible: picking,
-          label: l10n.storageClearSelectedButton(bytesLabel(pickedBytes)),
-          busy: _busy,
-          onTap: _clearPicked,
-        ),
+          )),
       ],
     );
   }

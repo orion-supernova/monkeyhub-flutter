@@ -94,10 +94,33 @@ class _CallScreenState extends State<CallScreen> {
     }
     widget.service.addListener(_onChanged);
     widget.service.drawArmed.addListener(_onChanged);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     unawaited(ScreenShare.supported().then((ok) {
       if (mounted && ok != _shareSupported) setState(() => _shareSupported = ok);
     }));
+  }
+
+  Animation<double>? _routeAnimation;
+  bool _immersive = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final a = ModalRoute.of(context)?.animation;
+    if (identical(a, _routeAnimation)) return;
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _routeAnimation = a?..addStatusListener(_onRouteStatus);
+    _onRouteStatus(a?.status ?? AnimationStatus.completed);
+  }
+
+  /// The system bars go away once the screen has finished sliding up, not
+  /// as it starts: hiding them changes the window's insets, and mid-slide
+  /// that relaid out every screen in the app (the chat underneath included)
+  /// on the frames the slide most needed.
+  void _onRouteStatus(AnimationStatus status) {
+    if (_immersive || status != AnimationStatus.completed) return;
+    _immersive = true;
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   /// The call on screen: the session, or before it exists the tap's dial
@@ -279,6 +302,7 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   void dispose() {
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
     widget.service.removeListener(_onChanged);
     widget.service.drawArmed.removeListener(_onChanged);
     if (_renderersUsed) {
@@ -291,7 +315,9 @@ class _CallScreenState extends State<CallScreen> {
       _remoteScreenRenderer.dispose();
       _localScreenRenderer.dispose();
     }
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (_immersive) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     super.dispose();
   }
 
@@ -820,6 +846,7 @@ class _CallScreenState extends State<CallScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: CallTray(
                         actions: trayActions,
+                        glass: isVideo,
                         endIcon: CallGlyphs.end,
                         endLabel: l10n.callScreenControlEnd,
                         endColor: theme.danger,

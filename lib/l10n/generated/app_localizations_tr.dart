@@ -11070,6 +11070,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String get galleryTrayEmpty => 'Henüz fotoğraf yok';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return 'Ekle ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => 'Seçimi iptal et';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count seçildi';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return 'Fotoğraf $index';
   }

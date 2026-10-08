@@ -11264,6 +11264,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get galleryTrayEmpty => 'لا توجد صور بعد';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return 'إضافة ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => 'إلغاء التحديد';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return 'تم تحديد $count';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return 'صورة $index';
   }

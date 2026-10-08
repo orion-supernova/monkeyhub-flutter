@@ -3,7 +3,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show MethodChannel, SystemUiOverlayStyle;
+import 'package:flutter/services.dart'
+    show HapticFeedback, MethodChannel, SystemUiOverlayStyle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth/auth_service.dart';
@@ -2264,6 +2265,14 @@ class _CallOverlayState extends State<_CallOverlay> {
   // call banner) work whether the tab is foreground or background.
   String? _ringingCallId;
 
+  /// What [_ringingCallId] is ringing with: the ringtone (incoming) or the
+  /// ringback (outgoing).
+  AlertSound? _ringingSound;
+
+  /// The outgoing call this device saw ringing and has not heard answered
+  /// yet. See [_syncAnswered].
+  String? _dialedCallId;
+
   @override
   void initState() {
     super.initState();
@@ -2332,7 +2341,11 @@ class _CallOverlayState extends State<_CallOverlay> {
     if (ringing) {
       if (_ringingCallId == s.callId) return;
       _ringingCallId = s.callId;
-      AlertSounds.instance.startRingtone();
+      // The caller hears the plain ringback every phone network plays, not
+      // the incoming ringtone: that one means "pick up", this "waiting".
+      final sound = outgoingRinging ? AlertSound.ringback : AlertSound.ringtone;
+      _ringingSound = sound;
+      AlertSounds.instance.play(sound);
       // When the tab isn't focused the in-app ringer never mounts (no frames),
       // so surface a persistent OS banner. No-op off web / when focused.
       // Incoming-call only — the caller already knows they're dialing.
@@ -2348,14 +2361,38 @@ class _CallOverlayState extends State<_CallOverlay> {
     } else {
       if (_ringingCallId == null) return;
       _ringingCallId = null;
-      AlertSounds.instance.stopRingtone();
+      final sound = _ringingSound;
+      _ringingSound = null;
+      if (sound != null) AlertSounds.instance.stop(sound);
       WebNotifier.dismissCall();
     }
+  }
+
+  /// The caller's "they picked up": a short chime and a tap, once, when a
+  /// call this device dialed first connects. Keyed to the dial, not to the
+  /// status, so an ICE-restart recovery (active again) or a call moved here
+  /// from another device (switching to active) stays quiet, and the callee,
+  /// who answered it themselves, never hears it.
+  void _syncAnswered(CallSession? s) {
+    if (s == null) {
+      _dialedCallId = null;
+      return;
+    }
+    if (!s.isCaller) return;
+    if (s.status == CallStatus.outgoingRinging) {
+      _dialedCallId = s.callId;
+      return;
+    }
+    if (s.status != CallStatus.active || _dialedCallId != s.callId) return;
+    _dialedCallId = null;
+    AlertSounds.instance.play(AlertSound.connected);
+    HapticFeedback.mediumImpact();
   }
 
   void _onChanged() {
     final s = widget.service.session;
     _syncRingtone(s);
+    _syncAnswered(s);
     if (s == null) {
       _enrichedCallId = null;
       // A tap's dial: the screen goes up now, not a backend round trip
@@ -2364,6 +2401,11 @@ class _CallOverlayState extends State<_CallOverlay> {
       if (widget.service.dialing != null) {
         if (_activeCallId == _dialingLatch) return;
         _activeCallId = _dialingLatch;
+        // Decode the caller's tones while the backend reserves the row, so
+        // the ringback opens on its first beat and the answer chime is
+        // instant.
+        unawaited(AlertSounds.instance
+            .prepare(const [AlertSound.ringback, AlertSound.connected]));
         WidgetsBinding.instance.addPostFrameCallback((_) {
           // Failed or hung up before the frame: nothing left to show.
           final svc = widget.service;
@@ -2412,8 +2454,12 @@ class _CallOverlayState extends State<_CallOverlay> {
           MaterialPageRoute(
             fullscreenDialog: true,
             settings: const RouteSettings(name: kProtectedRouteName),
-            builder: (_) =>
-                IncomingCallScreen(service: widget.service, api: widget.api),
+            builder: (_) => IncomingCallScreen(
+              service: widget.service,
+              api: widget.api,
+              screenUp: widget.screenUp,
+              routeName: kProtectedRouteName,
+            ),
           ),
         );
       }
@@ -2424,16 +2470,34 @@ class _CallOverlayState extends State<_CallOverlay> {
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     widget.screenUp.value = true;
-    nav
-        .push(
-          MaterialPageRoute(
-            fullscreenDialog: true,
-            settings: const RouteSettings(name: kProtectedRouteName),
-            builder: (_) =>
-                CallScreen(service: widget.service, api: widget.api),
-          ),
-        )
-        .whenComplete(() => widget.screenUp.value = false);
+    final route = MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      settings: const RouteSettings(name: kProtectedRouteName),
+      builder: (_) => CallScreen(service: widget.service, api: widget.api),
+    );
+    nav.push(route).whenComplete(() => widget.screenUp.value = false);
+    // A dial's native setup waits for the slide; see
+    // [CallService.screenSettled].
+    if (widget.service.session == null && widget.service.dialing != null) {
+      widget.service.screenSettled = _settled(route);
+    }
+  }
+
+  /// Completes when [route] stops moving in: finished, or turned back.
+  static Future<void> _settled(ModalRoute<void> route) {
+    final a = route.animation;
+    if (a == null || a.status != AnimationStatus.forward) {
+      return Future.value();
+    }
+    final done = Completer<void>();
+    void onStatus(AnimationStatus st) {
+      if (st == AnimationStatus.forward) return;
+      a.removeStatusListener(onStatus);
+      if (!done.isCompleted) done.complete();
+    }
+
+    a.addStatusListener(onStatus);
+    return done.future;
   }
 
   /// One profile lookup per call: fills in the real display name (the

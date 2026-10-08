@@ -11108,6 +11108,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get galleryTrayEmpty => 'अभी कोई फ़ोटो नहीं';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return 'जोड़ें ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => 'चयन रद्द करें';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '$count चुने गए';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return 'फ़ोटो $index';
   }

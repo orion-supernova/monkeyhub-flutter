@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
@@ -59,6 +60,9 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
 
   @override
   ChatApi get selectionApi => widget.api;
+
+  @override
+  ChatRepository get selectionRepo => widget.repo;
 
   /// Kinds the user unticked: kept out of the clear, out of the ring.
   final Set<StorageKind> _excluded = {};
@@ -212,12 +216,19 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
     final pickedBytes = r.items
         .where((i) => picked.contains(i.id))
         .fold<int>(0, (a, i) => a + i.bytes);
+    final tiles = _tab == _Tab.media
+        ? MediaTileData.group(r.media)
+        : const <MediaTileData>[];
 
     return AnimatedBuilder(
       animation: SettingsStore.instance,
       builder: (context, _) => Stack(
         children: [
-          _withDrag(IosPage(
+          // Always wrapped, even on the tabs with no grid. Wrapping only on
+          // Media changed the widget above the page, which remounted its
+          // scroll view, and a fresh one starts at the top: every tap on a
+          // segment threw the reader back to the ring.
+          dragRegion(tiles: tiles, scroll: _scroll, child: IosPage(
             title: l10n.storageUsageTitle,
             controller: _scroll,
             slivers: [
@@ -233,29 +244,38 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
                         _categories(l10n, r),
                         _autoRemove(l10n),
                         _limit(l10n),
-                        if (r.byRoom.isNotEmpty || r.items.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: IosSegmentedControl<_Tab>(
-                              segments: [
-                                IosSegment(value: _Tab.chats, label: l10n.storageTabChats),
-                                IosSegment(value: _Tab.media, label: l10n.storageTabMedia),
-                                IosSegment(value: _Tab.files, label: l10n.storageTabFiles),
-                              ],
-                              value: _tab,
-                              onChanged: (t) => setState(() => _tab = t),
-                            ),
-                          ),
                       ],
                     ),
                   ),
                 ),
               ),
-              ..._tabBody(l10n, r),
+              if (r.byRoom.isNotEmpty || r.items.isNotEmpty) ...[
+                _TabsTop(_tabsTop),
+                SliverToBoxAdapter(
+                  child: AdaptivePageBody(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: IosSegmentedControl<_Tab>(
+                        segments: [
+                          IosSegment(value: _Tab.chats, label: l10n.storageTabChats),
+                          IosSegment(value: _Tab.media, label: l10n.storageTabMedia),
+                          IosSegment(value: _Tab.files, label: l10n.storageTabFiles),
+                        ],
+                        value: _tab,
+                        onChanged: (t) => setState(() => _tab = t),
+                      ),
+                    ),
+                  ),
+                ),
+                ..._tabBody(l10n, r, tiles),
+              ],
               SliverToBoxAdapter(
                 child: SizedBox(
                     height: edgeToEdgeBottom(context, picking ? 96 : 40)),
               ),
+              // Last, so the bottom margin counts towards the screenful.
+              if (r.byRoom.isNotEmpty || r.items.isNotEmpty)
+                _TabsFloor(_tabsTop),
             ],
           )),
           // The clear bar for a picked set, floating over the grid the way
@@ -271,12 +291,9 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
     );
   }
 
-  /// The Media tab's grid picks by drag; the rest of the page is untouched
-  /// by it (a long press on anything that is not a tile does nothing).
-  Widget _withDrag(Widget page) => _tab == _Tab.media
-      ? dragRegion(
-          tiles: MediaTileData.group(_r.media), scroll: _scroll, child: page)
-      : page;
+  /// Where the tabs start, written during layout and read a few slivers
+  /// later by the floor under them. See [_TabsFloor].
+  final _tabsTop = _TabsAnchor();
 
   Widget _hero(AppLocalizations l10n, StorageReport r) {
     final theme = ThemeScope.of(context);
@@ -462,7 +479,8 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
     );
   }
 
-  List<Widget> _tabBody(AppLocalizations l10n, StorageReport r) {
+  List<Widget> _tabBody(
+      AppLocalizations l10n, StorageReport r, List<MediaTileData> tiles) {
     Widget boxed(Widget child) => SliverToBoxAdapter(
           child: AdaptivePageBody(
             child: Padding(
@@ -497,7 +515,6 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
           )),
         ];
       case _Tab.media:
-        final tiles = MediaTileData.group(r.media);
         if (tiles.isEmpty) return [empty(l10n.storageNoMedia)];
         // A real sliver grid, so a cache of thousands of tiles builds only
         // the rows on screen.
@@ -514,5 +531,78 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
           )),
         ];
     }
+  }
+}
+
+/// The scroll offset at which the tabs start, measured during layout.
+class _TabsAnchor {
+  double offset = 0;
+}
+
+/// Records where the tabs start. Takes no space.
+class _TabsTop extends LeafRenderObjectWidget {
+  const _TabsTop(this.anchor);
+  final _TabsAnchor anchor;
+
+  @override
+  RenderSliver createRenderObject(BuildContext context) =>
+      _RenderTabsTop(anchor);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderTabsTop r) =>
+      r.anchor = anchor;
+}
+
+class _RenderTabsTop extends RenderSliver {
+  _RenderTabsTop(this.anchor);
+  _TabsAnchor anchor;
+
+  @override
+  void performLayout() {
+    anchor.offset = constraints.precedingScrollExtent;
+    geometry = SliverGeometry.zero;
+  }
+}
+
+/// Pads the bottom of the page so the tabs and whatever is under them are at
+/// least a screen tall.
+///
+/// Without it, switching from a long tab to a short one shrank the page under
+/// the reader: the scroll position no longer fitted, the view clamped, and the
+/// segmented control they had just tapped flew down the screen. With it, the
+/// tabs can always sit at the top, so a switch changes what is below the
+/// control and never where the control is.
+///
+/// A render sliver rather than a layout builder because it is measured on
+/// every layout of the page, scrolling included, and a builder would rebuild
+/// on every frame of a scroll.
+class _TabsFloor extends LeafRenderObjectWidget {
+  const _TabsFloor(this.anchor);
+  final _TabsAnchor anchor;
+
+  @override
+  RenderSliver createRenderObject(BuildContext context) =>
+      _RenderTabsFloor(anchor);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderTabsFloor r) =>
+      r.anchor = anchor;
+}
+
+class _RenderTabsFloor extends RenderSliver {
+  _RenderTabsFloor(this.anchor);
+  _TabsAnchor anchor;
+
+  @override
+  void performLayout() {
+    final c = constraints;
+    final used = c.precedingScrollExtent - anchor.offset;
+    final extent = (c.viewportMainAxisExtent - used).clamp(0.0, double.infinity);
+    final paint = calculatePaintOffset(c, from: 0, to: extent);
+    geometry = SliverGeometry(
+      scrollExtent: extent,
+      paintExtent: paint,
+      maxPaintExtent: extent,
+    );
   }
 }

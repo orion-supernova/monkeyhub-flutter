@@ -2839,6 +2839,20 @@ class _RoomScreenState extends State<RoomScreen>
           return compose(context);
         },
         resume: () => draft.isEmpty ? null : compose,
+        // The gallery's multi-select: every picked photo joins the draft,
+        // and the composer opens on the first of them.
+        batch: CameraBatch(
+          room: () => kMaxPhotoSelection - draft.length,
+          max: kMaxPhotoSelection,
+          review: (context, photos) {
+            final first = draft.length;
+            for (final photo in photos.take(kMaxPhotoSelection - first)) {
+              draft.add(photo.bytes, mirrored: photo.mirrored);
+            }
+            draft.index = first;
+            return compose(context);
+          },
+        ),
       );
       if (!mounted) return;
 

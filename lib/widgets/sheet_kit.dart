@@ -88,17 +88,12 @@ class SheetFrame extends StatelessWidget {
     this.onClose,
     this.confirm,
     this.trash,
-    this.expand,
     this.footer,
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 16),
     this.maxHeightFraction,
     this.handle = true,
-  }) : assert(
-            (confirm != null ? 1 : 0) +
-                    (trash != null ? 1 : 0) +
-                    (expand != null ? 1 : 0) <=
-                1,
-            'the trailing slot holds one of ✓, trash or expand');
+  }) : assert(confirm == null || trash == null,
+            'the trailing slot holds one of ✓ or trash');
 
   final Widget child;
   final String? title;
@@ -118,10 +113,6 @@ class SheetFrame extends StatelessWidget {
   /// The trailing trash, when the sheet shows one of YOUR things and the
   /// only thing to do to it is delete it. Confirm with `showConfirmSheet`.
   final VoidCallback? trash;
-
-  /// The trailing expand glyph, when the sheet's content can also be opened
-  /// as a full page: the sheet is a glance, the page is the whole thing.
-  final VoidCallback? expand;
 
   /// Pinned under the body, always on screen — the sheet's commit button
   /// (a [SheetActionButton]). The body shrinks (and scrolls) first, so the
@@ -144,8 +135,7 @@ class SheetFrame extends StatelessWidget {
     final hasBar = title != null ||
         close ||
         confirm != null ||
-        trash != null ||
-        expand != null;
+        trash != null;
     final fraction = maxHeightFraction;
     final inset = media.viewInsets.bottom > media.padding.bottom
         ? media.viewInsets.bottom
@@ -178,9 +168,7 @@ class SheetFrame extends StatelessWidget {
                         )
                       : trash != null
                           ? SheetTrashButton(onTap: trash!)
-                          : expand != null
-                              ? SheetExpandButton(onTap: expand!)
-                              : null,
+                          : null,
                 ),
               Flexible(
                 fit: fraction == null ? FlexFit.loose : FlexFit.tight,
@@ -380,21 +368,153 @@ class SheetTrashButton extends StatelessWidget {
   }
 }
 
-/// The expand glyph a [SheetFrame] wears when its content also exists as a
-/// full page.
-class SheetExpandButton extends StatelessWidget {
-  const SheetExpandButton({super.key, required this.onTap});
-  final VoidCallback onTap;
+/// A sheet that opens as a glance and is dragged up into the whole thing,
+/// the way Maps' and Photos' info sheets are: it rests at [glance] or at full
+/// height, and a pull down from the glance closes it.
+///
+/// The body is one scroll view that drives the sheet. Dragged up, the sheet
+/// grows first and the content scrolls once it is full; dragged down from the
+/// top of the content, the sheet shrinks, then closes. A flick carries it to
+/// the next resting height in that direction. [DraggableScrollableSheet] does
+/// the hand-off, so the content and the sheet never fight over a pixel, and
+/// the grabber is the first thing in the scroll view, pinned, so dragging it
+/// moves the sheet too.
+///
+/// Not an expand button that closes the sheet and opens a page in its place:
+/// that was two screens for one thing, with a cut between them.
+///
+/// [slivers] are built against the sheet's own scroll controller, and [wrap]
+/// gets the same one, for a region that auto-scrolls it (a drag-select grid).
+/// [footer] stays pinned under the body at every height.
+///
+/// Present it with `showAdaptiveSheet`. In the desktop popover, which nothing
+/// drags, it is a fixed-height card that scrolls.
+class ExpandingSheet extends StatefulWidget {
+  const ExpandingSheet({
+    super.key,
+    required this.slivers,
+    this.footer,
+    this.wrap,
+    this.glance = 0.62,
+  });
+
+  final List<Widget> Function(BuildContext context, ScrollController scroll)
+      slivers;
+  final Widget? footer;
+  final Widget Function(ScrollController scroll, Widget body)? wrap;
+
+  /// The resting height it opens at, as a share of the room the sheet has.
+  final double glance;
 
   @override
-  Widget build(BuildContext context) => GlassIconButton(
-        still: true,
-        icon: CupertinoIcons.arrow_up_left_arrow_down_right,
-        iconSize: 17,
-        onTap: onTap,
-        semanticLabel:
-            MaterialLocalizations.of(context).collapsedIconTapHint,
+  State<ExpandingSheet> createState() => _ExpandingSheetState();
+}
+
+class _ExpandingSheetState extends State<ExpandingSheet> {
+  /// The popover's own; on a phone the draggable sheet supplies one.
+  ScrollController? _popover;
+
+  @override
+  void dispose() {
+    _popover?.dispose();
+    super.dispose();
+  }
+
+  Widget _card(BuildContext context, ScrollController scroll,
+      {required bool handle}) {
+    final theme = ThemeScope.of(context);
+    final media = MediaQuery.of(context);
+    final inset = media.viewInsets.bottom > media.padding.bottom
+        ? media.viewInsets.bottom
+        : media.padding.bottom;
+    final foot = widget.footer;
+    final radius = Radius.circular(sheetTopRadius(theme));
+    Widget body = CustomScrollView(
+      controller: scroll,
+      slivers: [
+        if (handle)
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _GrabberHeader(sheetFill(theme)),
+          )
+        else
+          const SliverToBoxAdapter(child: SizedBox(height: 10)),
+        ...widget.slivers(context, scroll),
+        if (foot == null)
+          SliverToBoxAdapter(child: SizedBox(height: 16 + inset)),
+      ],
+    );
+    final wrap = widget.wrap;
+    if (wrap != null) body = wrap(scroll, body);
+    return Material(
+      type: MaterialType.transparency,
+      child: ClipRRect(
+        borderRadius: BorderRadius.vertical(top: radius),
+        child: ColoredBox(
+          color: sheetFill(theme),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: body),
+              if (foot != null)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 12 + inset),
+                  child: foot,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!context.isCompact) {
+      final scroll = _popover ??= ScrollController();
+      final height = MediaQuery.sizeOf(context).height;
+      return SizedBox(
+        height: (height * 0.8).clamp(320.0, 760.0),
+        child: _card(context, scroll, handle: false),
       );
+    }
+    return DraggableScrollableSheet(
+      // Sized to itself, not stretched over the route: the space above the
+      // card stays the barrier, so a tap there still closes it.
+      expand: false,
+      initialChildSize: widget.glance,
+      // Down to nothing: reaching it is a close (the modal route listens for
+      // exactly that), so the glance is never a floor the finger hits.
+      minChildSize: 0,
+      maxChildSize: 1,
+      snap: true,
+      snapSizes: [widget.glance],
+      snapAnimationDuration: const Duration(milliseconds: 260),
+      builder: (context, scroll) => _card(context, scroll, handle: true),
+    );
+  }
+}
+
+/// The grabber, pinned at the top of an [ExpandingSheet]'s scroll view so the
+/// content scrolls under it and a drag on it moves the sheet.
+class _GrabberHeader extends SliverPersistentHeaderDelegate {
+  const _GrabberHeader(this.fill);
+  final Color fill;
+
+  static const double _extent = 15;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
+      ColoredBox(color: fill, child: const SheetHandle());
+
+  @override
+  bool shouldRebuild(_GrabberHeader old) => old.fill != fill;
 }
 
 // [SheetActionButton], [TextLinkButton] and [RowPillButton] live in

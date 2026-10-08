@@ -17,6 +17,7 @@ import 'package:monkeyhub/screens/data_storage/storage_usage_screen.dart';
 import 'package:monkeyhub/screens/data_storage/usage_widgets.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show ExpandingSheet;
 
 class _FakeApi extends Fake implements ChatApi {}
 
@@ -130,5 +131,68 @@ void main() {
       ),
     )));
     expect(tester.getSize(find.byType(UsageCategoryRow)).height, 52);
+  });
+
+  /// The page's own scroll position.
+  ScrollPosition pagePosition(WidgetTester tester) => tester
+      .state<ScrollableState>(find
+          .descendant(
+              of: find.byType(CustomScrollView),
+              matching: find.byType(Scrollable))
+          .first)
+      .position;
+
+  testWidgets('a tab switch keeps the page where it is', (tester) async {
+    tester.view.physicalSize = const Size(390, 844) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_host(StorageUsageScreen(repo: repo, api: api)));
+    await tester.pump(const Duration(seconds: 1));
+
+    final position = pagePosition(tester);
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pump();
+    final before = position.pixels;
+    expect(before, greaterThan(200));
+
+    WidgetController.hitTestWarningShouldBeFatal = true;
+    addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
+    for (final tab in ['Files', 'Media', 'Chats']) {
+      await tester.tap(find.text(tab));
+      await tester.pump(const Duration(milliseconds: 300));
+      // The same position, on the same scroll view: neither remounted to the
+      // top nor clamped by a tab shorter than the one before.
+      expect(identical(pagePosition(tester), position), isTrue, reason: tab);
+      expect(position.pixels, closeTo(before, 0.5), reason: tab);
+    }
+  });
+
+  testWidgets('a chat opens as a glance and drags up to full height',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_host(StorageUsageScreen(repo: repo, api: api)));
+    await tester.pump(const Duration(seconds: 1));
+
+    await tester.scrollUntilVisible(find.text('Room r'), 200,
+        scrollable: find
+            .descendant(
+                of: find.byType(CustomScrollView),
+                matching: find.byType(Scrollable))
+            .first);
+    await tester.tap(find.text('Room r'));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byType(ExpandingSheet);
+    expect(sheet, findsOneWidget);
+    final glance = tester.getSize(sheet).height;
+    expect(glance, lessThan(844 * 0.75));
+
+    await tester.drag(find.text('Room r').last, const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(sheet).height, greaterThan(glance + 150),
+        reason: 'dragging the body up grows the sheet');
+    expect(find.byType(ExpandingSheet), findsOneWidget);
   });
 }

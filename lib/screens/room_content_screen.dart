@@ -23,7 +23,6 @@ import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/drag_select.dart';
-import '../media/native_gallery.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/audio_message.dart';
 import '../widgets/bulk_action_bar.dart';
@@ -33,7 +32,6 @@ import '../widgets/liquid_glass.dart';
 import '../widgets/media_grid_tile.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/remote_image.dart';
-import 'fullscreen_video_viewer.dart';
 import 'media_pager_screen.dart';
 import 'room_content_actions.dart';
 import 'room_items.dart' show transcriptDay;
@@ -214,14 +212,14 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       return;
     }
     switch (m.type) {
+      // A video opens in the same gallery as a photo and plays there, so a
+      // clip looks the same tapped as it does swiped onto. A note plays in a
+      // circle in the transcript because that is where its shape means
+      // something; in the browser it is one video among the rest.
       case MessageType.image:
-        _openPager(m);
       case MessageType.video:
-      // Opened in the same player. A note plays in a circle in the transcript
-      // because that is where its shape means something; in the browser it is
-      // one video among the rest.
       case MessageType.videoNote:
-        _openVideo(m);
+        _openPager(m);
       case MessageType.file:
         _saveOne(m);
       case MessageType.audio:
@@ -258,39 +256,6 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       case MessageType.sticker:
         _showInChat(m);
     }
-  }
-
-  /// Straight to the player, the same as a tap on a video in the transcript.
-  ///
-  /// Deliberately not through the pager. A video tapped in this grid used to
-  /// open the gallery, which then handed off to the OS player over the top of
-  /// itself — so closing the player left you looking at a fullscreen still of
-  /// the video you had just watched, and closing was two gestures instead of
-  /// one. The gallery is still there for swiping between things; it is just no
-  /// longer in the way of watching one. The poster flies out of the tile
-  /// either way.
-  void _openVideo(ChatMessage m) {
-    final id = m.mediaStorageId;
-    if (id == null) return;
-    FullscreenVideoViewer.open(
-      context,
-      storageId: id,
-      api: widget.api,
-      posterStorageId: m.posterStorageId,
-      heroTag: roomMediaHeroTag(m.id),
-      // Every photo and video in this tab, so the OS player swipes through
-      // them the way the photo pager does.
-      gallery: VideoGallery(
-        items: [
-          for (final x in _c.items)
-            if (x.type == MessageType.image ||
-                x.type == MessageType.video ||
-                x.type == MessageType.videoNote)
-              x,
-        ],
-        onLanded: (x) => _revealInGrid(x.id),
-      ),
-    );
   }
 
   Future<void> _openPager(ChatMessage m) async {

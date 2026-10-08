@@ -10558,6 +10558,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get galleryTrayEmpty => '还没有照片';
 
   @override
+  String galleryTrayAddSelectedButton(int count) {
+    return '添加 ($count)';
+  }
+
+  @override
+  String get galleryTrayCancelSelectionLabel => '取消选择';
+
+  @override
+  String galleryTraySelectedTitle(int count) {
+    return '已选择 $count 项';
+  }
+
+  @override
   String galleryTrayPhotoLabel(int index) {
     return '照片 $index';
   }

@@ -238,6 +238,17 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   CallSession? _dialing;
   CallSession? get dialing => _dialing;
 
+  /// Completes once the call screen that went up for the dial has finished
+  /// sliding in. Set by the overlay that pushes it; display only.
+  ///
+  /// [initiate] holds the native setup (CallKit's outgoing call, the audio
+  /// session, the camera and mic, the peer connection) until then. That work
+  /// runs on the platform thread, which on iOS is the thread that presents
+  /// Flutter's frames, so starting it mid-slide froze the slide. The wait is
+  /// at most what is left of a 300 ms transition, and usually nothing: the
+  /// backend round trip before it is longer.
+  Future<void>? screenSettled;
+
   /// A callee's `ringing` report that beat [initiate]'s own response here
   /// (the push and its report can outrun the mutation's reply on a slow
   /// box). Applied when the session for that callId is created.
@@ -621,6 +632,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       localVideoOff: kind == CallMediaKind.audio,
       speakerOn: kind == CallMediaKind.video,
     );
+    screenSettled = null;
     _dialing = dial;
     notifyListeners();
 
@@ -677,6 +689,22 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       );
       _earlyRingingCallId = null;
       notifyListeners();
+      final settle = screenSettled;
+      screenSettled = null;
+      if (settle != null) {
+        await settle.timeout(
+          const Duration(milliseconds: 600),
+          onTimeout: () {},
+        );
+        // Hung up while the screen was still settling: [endCall] already
+        // cancelled the row and tore the session down.
+        final cur = _session;
+        if (cur == null ||
+            cur.callId != callId ||
+            cur.status != CallStatus.outgoingRinging) {
+          return;
+        }
+      }
       // Surface the native "outgoing call" affordance (green pill on iOS,
       // Recents entry, Bluetooth routing). Fire-and-forget — failure here
       // doesn't block the WebRTC handshake.

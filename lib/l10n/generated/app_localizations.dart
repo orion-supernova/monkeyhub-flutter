@@ -18805,6 +18805,24 @@ abstract class AppLocalizations {
   /// **'No photos yet'**
   String get galleryTrayEmpty;
 
+  /// The camera gallery's button that adds every photo picked in multi-select; {count} is how many are picked.
+  ///
+  /// In en, this message translates to:
+  /// **'Add ({count})'**
+  String galleryTrayAddSelectedButton(int count);
+
+  /// Screen-reader label for the camera gallery's button that leaves multi-select without adding anything.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel selection'**
+  String get galleryTrayCancelSelectionLabel;
+
+  /// Title of the full-screen camera gallery while photos are being multi-selected; {count} is how many are picked.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String galleryTraySelectedTitle(int count);
+
   /// Accessibility label of one photo in the camera's recent-photos strip or gallery. {index} is its 1-based position, newest first.
   ///
   /// In en, this message translates to:

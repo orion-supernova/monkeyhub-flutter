@@ -25,8 +25,9 @@ import '../../widgets/donut_chart.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/teardown_safe.dart';
-import '../fullscreen_image_viewer.dart';
-import '../fullscreen_video_viewer.dart';
+import '../../models/chat_message.dart';
+import '../../models/enums.dart';
+import '../media_pager_screen.dart';
 import 'storage_labels.dart';
 
 /// The top of Storage Usage, Data Usage and a chat's storage sheet: the ring,
@@ -791,6 +792,7 @@ mixin StorageSelection<T extends StatefulWidget> on State<T> {
   bool get selecting => picked.isNotEmpty;
 
   ChatApi get selectionApi;
+  ChatRepository get selectionRepo;
 
   void togglePick(Iterable<StoredItem> parts) {
     HapticFeedback.selectionClick();
@@ -814,19 +816,80 @@ mixin StorageSelection<T extends StatefulWidget> on State<T> {
   bool isPicked(MediaTileData t) => t.parts.every((p) => picked.contains(p.id));
 
   /// A tap on a tile: picks while selecting; otherwise opens the photo or
-  /// video, or picks what has nothing to open (a GIF, a link preview).
-  Future<void> tapTile(MediaTileData tile) async {
+  /// video in the media gallery, swipeable across every other tile in [all]
+  /// that has something to show, the way the room's shared media is. A tile
+  /// with nothing to open (a GIF, a link preview) is picked instead.
+  Future<void> tapTile(MediaTileData tile, List<MediaTileData> all) async {
     if (selecting) return togglePick(tile.parts);
-    final video = tile.video;
-    final photo = tile.photoId;
-    if (video == null && photo == null) return startPicking(tile.parts);
-    if (video != null) {
-      await FullscreenVideoViewer.open(context,
-          storageId: video.id, api: selectionApi, posterStorageId: photo);
-    } else {
-      await FullscreenImageViewer.open(context,
-          storageId: photo!, api: selectionApi);
+    if (tile.video == null && tile.photoId == null) {
+      return startPicking(tile.parts);
     }
+    final l10n = AppLocalizations.of(context);
+    final set = <ChatMessage>[];
+    var start = 0;
+    for (final t in all) {
+      final m = viewerMessageFor(t, l10n);
+      if (m == null) continue;
+      if (identical(t, tile)) start = set.length;
+      set.add(m);
+    }
+    if (set.isEmpty) return;
+    await MediaPagerScreen.open(
+      context,
+      items: set,
+      initialIndex: start,
+      api: selectionApi,
+      fileAsSeen: false,
+    );
+  }
+
+  /// What the gallery shows for [t]: the real message when this device still
+  /// holds it, which knows its sender, shape and length; otherwise a stand-in
+  /// built from what the cache recorded, named after its chat. Null for a
+  /// tile with nothing a viewer can open.
+  ChatMessage? viewerMessageFor(MediaTileData t, AppLocalizations l10n) {
+    final video = t.video;
+    final photo = t.photoId;
+    if (video == null && photo == null) return null;
+    final first = t.parts.first;
+    final roomId = first.roomId;
+    final messageId = first.messageId;
+    if (roomId != null && messageId != null) {
+      final real = selectionRepo.findMessageInRoom(roomId, messageId);
+      if (real != null &&
+          real.mediaStorageId != null &&
+          (real.type == MessageType.image ||
+              real.type == MessageType.video ||
+              real.type == MessageType.videoNote)) {
+        return real;
+      }
+    }
+    final room = roomId == null ? null : selectionRepo.roomById(roomId);
+    final String where;
+    if (room != null) {
+      where = roomTitle(l10n, selectionRepo, room);
+    } else if (roomId != null) {
+      where = removedChatTitle(l10n, StorageService.instance.report, roomId,
+          selectionRepo.userId);
+    } else {
+      where = storageLabel(l10n, first.kind);
+    }
+    final at = first.sentAt ?? first.lastSeen;
+    return ChatMessage(
+      id: t.key,
+      roomId: roomId ?? '',
+      senderId: '',
+      senderName: where,
+      content: '',
+      createdAt: DateTime.fromMillisecondsSinceEpoch(at),
+      type: video == null
+          ? MessageType.image
+          : video.kind == StorageKind.videoMessages
+              ? MessageType.videoNote
+              : MessageType.video,
+      mediaStorageId: video?.id ?? photo,
+      posterStorageId: video == null ? null : photo,
+    );
   }
 
   /// A tap on a file row: picks while selecting; otherwise opens the file
@@ -887,7 +950,7 @@ mixin StorageSelection<T extends StatefulWidget> on State<T> {
                     api: selectionApi,
                     selected: isPicked(t),
                     selecting: selecting,
-                    onTap: () => tapTile(t),
+                    onTap: () => tapTile(t, tiles),
                   ),
                 );
               },
