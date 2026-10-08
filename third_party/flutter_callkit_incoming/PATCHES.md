@@ -71,6 +71,15 @@ unless noted.
    tear down every call without the app ever hearing about it. Added
    `CallEventActionCallProviderDidReset` (consumed by
    `NativeCallHandler` → full local teardown).
+6. **Ended calls in `activeCalls` (iOS, `CallManager.swift`).** The list is
+   read from `CXCallObserver`, which keeps an ended call listed for a while,
+   and any call the plugin holds no entry for (AppDelegate's fallback ringer,
+   or a card whose entry was dropped) comes back as a bare `{id}` with no
+   `extra`. `NativeCallHandler.cardGone` read such a bare entry as "not this
+   call", so a still-ringing card could ack itself dismissed and switch off
+   the server's `taken` push: the 2026-10-08 cancelled call that kept an
+   iPhone ringing. Ended calls are now skipped, so a bare entry always means
+   a live card the app cannot identify, which `cardGone` treats as not gone.
 
 ## When bumping the plugin version
 

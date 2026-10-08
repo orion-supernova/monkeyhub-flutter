@@ -169,8 +169,15 @@ class CallFcmService : FirebaseMessagingService() {
                         },
                     )
                 )
-                FlutterCallkitIncomingPlugin.getInstance()?.showIncomingNotification(callData)
-                    ?: Log.e(TAG, "callkit plugin unavailable — cannot ring $callId")
+                val plugin = FlutterCallkitIncomingPlugin.getInstance()
+                if (plugin == null) {
+                    Log.e(TAG, "callkit plugin unavailable — cannot ring $callId")
+                } else {
+                    plugin.showIncomingNotification(callData)
+                    // A group ring carries no proof; reportRinging is a
+                    // no-op for it. Off the main thread: it blocks on I/O.
+                    Thread { reportRinging(data) }.start()
+                }
             } catch (t: Throwable) {
                 Log.e(TAG, "showIncomingNotification failed for $callId", t)
             }
@@ -244,6 +251,41 @@ class CallFcmService : FirebaseMessagingService() {
             }
         } catch (t: Throwable) {
             Log.d(TAG, "delivery receipt not sent: ${t.message}")
+        }
+    }
+
+    /// Tells the caller's server this phone is ringing: the ring proof the
+    /// invite push carries (`ringUrl`/`ringUser`/`ringSig`, signed in
+    /// backend/convex/receiptToken.ts), posted once the card is up. The
+    /// caller's screen goes from "calling" to "ringing" and the ringback
+    /// starts. A foregrounded app never gets here: it rings from Dart, which
+    /// reports through `calls:markRinging` instead. The iOS twin is
+    /// `reportRinging` in AppDelegate.swift. Failures are swallowed: a lost
+    /// report costs the caller the ringback, never the call.
+    private fun reportRinging(data: Map<String, String>) {
+        val url = data["ringUrl"] ?: return
+        val body = JSONObject()
+            .put("callId", data["callId"] ?: return)
+            .put("userId", data["ringUser"] ?: return)
+            .put("sig", data["ringSig"] ?: return)
+            .toString()
+            .toByteArray(Charsets.UTF_8)
+        try {
+            val conn = URL(url).openConnection() as HttpURLConnection
+            try {
+                conn.requestMethod = "POST"
+                conn.connectTimeout = RECEIPT_TIMEOUT_MS
+                conn.readTimeout = RECEIPT_TIMEOUT_MS
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setFixedLengthStreamingMode(body.size)
+                conn.outputStream.use { it.write(body) }
+                conn.responseCode
+            } finally {
+                conn.disconnect()
+            }
+        } catch (t: Throwable) {
+            Log.d(TAG, "ring report not sent: ${t.message}")
         }
     }
 

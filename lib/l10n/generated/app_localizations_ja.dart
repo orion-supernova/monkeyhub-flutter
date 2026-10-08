@@ -1576,8 +1576,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callScreenVoiceCallLabel => '着信音声通話';
 
   @override
-  String callScreenStatusRinging(Object kind) {
+  String callScreenStatusCalling(String kind) {
     return '$kind・発信中…';
+  }
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind・呼び出し中…';
   }
 
   @override

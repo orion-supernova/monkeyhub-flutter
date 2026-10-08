@@ -468,6 +468,7 @@
   "themeScreenPreviewBubbleAnswer": "sanki doğrusu bu.",
   "callScreenVideoCallLabel": "Görüntülü arama",
   "callScreenVoiceCallLabel": "Sesli arama",
+  "callScreenStatusCalling": "{kind} · aranıyor…",
   "callScreenStatusRinging": "{kind} · çalıyor…",
   "callScreenStatusIncoming": "{kind} · geliyor",
   "callScreenStatusConnecting": "{kind} · bağlanıyor…",

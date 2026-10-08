@@ -1555,8 +1555,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callScreenVoiceCallLabel => '语音来电';
 
   @override
-  String callScreenStatusRinging(Object kind) {
+  String callScreenStatusCalling(String kind) {
     return '$kind · 呼叫中…';
+  }
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · 响铃中…';
   }
 
   @override

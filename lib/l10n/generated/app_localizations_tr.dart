@@ -1628,6 +1628,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'Sesli arama';
 
   @override
+  String callScreenStatusCalling(String kind) {
+    return '$kind · aranıyor…';
+  }
+
+  @override
   String callScreenStatusRinging(Object kind) {
     return '$kind · çalıyor…';
   }

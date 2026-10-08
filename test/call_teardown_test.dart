@@ -47,6 +47,9 @@ class _FakeCallApi extends Fake implements CallApi {
   /// Same control for `rejectCall`.
   Future<String?>? rejectResult;
 
+  /// When set, `initiateCall` answers with this (the slow reservation).
+  Future<String>? initiateResult;
+
   @override
   Future<String> initiateCall({
     required String callerId,
@@ -54,7 +57,7 @@ class _FakeCallApi extends Fake implements CallApi {
     required String roomId,
     required String type,
   }) async =>
-      'call-${terminalCalls.length}-$type-$roomId';
+      initiateResult ?? 'call-${terminalCalls.length}-$type-$roomId';
 
   @override
   Future<String?> cancelCall(
@@ -316,6 +319,125 @@ void main() {
       // it (the callee is already ringing) rather than strand it.
       expect(api.terminalCalls, contains('cancel'));
       expect(service.session, isNull);
+    });
+
+    test('the dial shows before the row; hanging up on it cancels the row',
+        () async {
+      final api = _FakeCallApi();
+      final reservation = Completer<String>();
+      api.initiateResult = reservation.future;
+      final service = _newService(api);
+      var acquired = false;
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        acquired = true;
+        return FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+
+      final initiated = service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await _pump();
+      expect(service.dialing?.peerName, 'Peer',
+          reason: 'the screen has something to show before the round trip');
+      expect(service.session, isNull);
+      expect(service.inCall, isTrue, reason: 'a second tap must not dial');
+
+      await service.endCall();
+      expect(service.dialing, isNull);
+      expect(service.inCall, isFalse);
+
+      reservation.complete('call-late');
+      await initiated;
+      await _pump();
+      expect(api.terminalCalls, ['cancel'],
+          reason: 'the row the callee is about to ring for is cancelled');
+      expect(service.session, isNull);
+      expect(acquired, isFalse, reason: 'no mic for a call already hung up');
+    });
+
+    test('the dial hands over to the session in one step', () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async =>
+          FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+      final seen = <String>[];
+      service.addListener(() => seen.add(
+          '${service.dialing != null}/${service.session != null}'));
+
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      expect(service.dialing, isNull);
+      expect(service.session?.status, CallStatus.outgoingRinging);
+      expect(seen, isNot(contains('false/false')),
+          reason: 'never a frame with no call, or the screen pops');
+      expect(seen.first, 'true/false');
+      await service.endCall();
+    });
+
+    test('calling until the callee reports ringing, then ringing', () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async =>
+          FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      final callId = service.session!.callId;
+      expect(service.session!.peerRinging, isFalse,
+          reason: 'no ringback for a push that may never land');
+
+      await service.handleRemoteSignal({
+        'kind': 'ringing',
+        'fromUserId': 'peer',
+        'callId': callId,
+        'payload': '{}',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      expect(service.session!.peerRinging, isTrue);
+      expect(service.session!.status, CallStatus.outgoingRinging);
+      await service.endCall();
+    });
+
+    test('a ringing report that beats the reservation reply is kept',
+        () async {
+      final api = _FakeCallApi();
+      final reservation = Completer<String>();
+      api.initiateResult = reservation.future;
+      final service = _newService(api);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async =>
+          FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+      final initiated = service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await _pump();
+      await service.handleRemoteSignal({
+        'kind': 'ringing',
+        'fromUserId': 'peer',
+        'callId': 'call-fast',
+        'payload': '{}',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      reservation.complete('call-fast');
+      await initiated;
+      expect(service.session?.peerRinging, isTrue);
+      await service.endCall();
     });
 
     test('endCall is a no-op on an already-terminal session (double tap)',

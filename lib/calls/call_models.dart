@@ -139,6 +139,7 @@ class CallSession {
     this.errorMessage,
     this.peerDeviceId,
     this.reconnecting = false,
+    this.peerRinging = false,
   });
 
   final String callId;
@@ -175,6 +176,12 @@ class CallSession {
   /// signal carries `fromDeviceId`.
   final String? peerDeviceId;
 
+  /// Caller side: a device of the callee has actually put the ringer up (it
+  /// reported so, see `calls.markRinging`). Until then an outgoing call is
+  /// only "calling": the push may still be on its way, or may never land.
+  /// The ringback plays only once this is true.
+  final bool peerRinging;
+
   CallSession copyWith({
     CallStatus? status,
     String? peerName,
@@ -188,6 +195,7 @@ class CallSession {
     String? errorMessage,
     String? peerDeviceId,
     bool? reconnecting,
+    bool? peerRinging,
   }) {
     return CallSession(
       callId: callId,
@@ -208,6 +216,7 @@ class CallSession {
       errorMessage: errorMessage,
       peerDeviceId: peerDeviceId ?? this.peerDeviceId,
       reconnecting: reconnecting ?? this.reconnecting,
+      peerRinging: peerRinging ?? this.peerRinging,
     );
   }
 }

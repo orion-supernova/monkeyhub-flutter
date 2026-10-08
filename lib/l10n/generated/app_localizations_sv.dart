@@ -1651,8 +1651,13 @@ class AppLocalizationsSv extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'Röstsamtal';
 
   @override
+  String callScreenStatusCalling(String kind) {
+    return '$kind · ringer upp…';
+  }
+
+  @override
   String callScreenStatusRinging(Object kind) {
-    return '$kind · ringer…';
+    return '$kind · det ringer…';
   }
 
   @override

@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/call_api.dart';
@@ -227,6 +228,29 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   // ───────── active call state ─────────
   CallSession? _session;
   CallSession? get session => _session;
+
+  /// The outgoing call between the tap and its backend row: everything the
+  /// call screen shows except a callId, which the reservation round trip
+  /// supplies. Set so the screen slides up on the tap instead of a network
+  /// trip later; display only. Nothing that routes signals or talks to the
+  /// native layer reads it. Cleared in the same notify that sets [session],
+  /// or on its own when the reservation fails or the caller hangs up first.
+  CallSession? _dialing;
+  CallSession? get dialing => _dialing;
+
+  /// A callee's `ringing` report that beat [initiate]'s own response here
+  /// (the push and its report can outrun the mutation's reply on a slow
+  /// box). Applied when the session for that callId is created.
+  String? _earlyRingingCallId;
+
+  /// Whether this process is in the foreground, for the callee's ringing
+  /// report: a foregrounded app has its ringer up (CallKit or in-app),
+  /// a backgrounded one leaves the report to the native push handler.
+  @visibleForTesting
+  bool Function() appInForegroundFn = () {
+    final st = WidgetsBinding.instance.lifecycleState;
+    return st == null || st == AppLifecycleState.resumed;
+  };
 
   RTCPeerConnection? _pc;
 
@@ -562,6 +586,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   // ───────── public API ─────────
 
   bool get inCall =>
+      _dialing != null ||
       _session != null && _session!.status != CallStatus.idle &&
       _session!.status != CallStatus.ended &&
       _session!.status != CallStatus.failed;
@@ -584,33 +609,73 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     // explains the refusal itself, so bailing silently here is correct.
     if (!await CallPermissions.ensure(kind)) return;
 
+    final dial = CallSession(
+      callId: '',
+      roomId: roomId,
+      peerUserId: peerUserId,
+      peerName: peerName,
+      mediaKind: kind,
+      isCaller: true,
+      status: CallStatus.outgoingRinging,
+      startedAt: DateTime.now(),
+      localVideoOff: kind == CallMediaKind.audio,
+      speakerOn: kind == CallMediaKind.video,
+    );
+    _dialing = dial;
+    notifyListeners();
+
     // 1. Reserve the call row first so we have a callId for every signal
     //    that follows. ICE starts gathering the moment setLocalDescription
     //    resolves, and onIceCandidate needs the callId to route — so the
     //    session must be alive before any of that fires. Outside the try:
     //    if the reservation itself fails there is nothing to clean up yet.
-    final callId = await api.initiateCall(
-      callerId: me,
-      calleeId: peerUserId,
-      roomId: roomId,
-      type: kind.wire,
-    );
+    final String callId;
+    try {
+      callId = await api.initiateCall(
+        callerId: me,
+        calleeId: peerUserId,
+        roomId: roomId,
+        type: kind.wire,
+      );
+    } catch (_) {
+      if (identical(_dialing, dial)) {
+        _dialing = null;
+        notifyListeners();
+      }
+      rethrow;
+    }
+    if (!identical(_dialing, dial)) {
+      // Hung up while the row was being reserved ([endCall] cleared the
+      // dial). The callee's phone is about to ring for it, so cancel.
+      unawaited(_notifyBackendTerminal(
+        callId: callId,
+        userId: me,
+        preferCancel: true,
+      ));
+      return;
+    }
+    _dialing = null;
     try {
       _rememberLocalCall(callId);
+      // The dial with its callId; [_dialing] -> [_session] in one notify, so
+      // the call screen already up sees one continuous call. Loudspeaker for
+      // video, earpiece for voice (set on the dial): matches the route
+      // applied when media attaches; avoids a wrong icon while ringing.
       _session = CallSession(
         callId: callId,
         roomId: roomId,
         peerUserId: peerUserId,
-        peerName: peerName,
+        peerName: dial.peerName,
+        peerAvatarStorageId: dial.peerAvatarStorageId,
         mediaKind: kind,
         isCaller: true,
         status: CallStatus.outgoingRinging,
-        startedAt: DateTime.now(),
-        localVideoOff: kind == CallMediaKind.audio,
-        // Loudspeaker for video, earpiece for voice — matches the route
-        // applied when media attaches; avoids a wrong icon while ringing.
-        speakerOn: kind == CallMediaKind.video,
+        startedAt: dial.startedAt,
+        localVideoOff: dial.localVideoOff,
+        speakerOn: dial.speakerOn,
+        peerRinging: _earlyRingingCallId == callId,
       );
+      _earlyRingingCallId = null;
       notifyListeners();
       // Surface the native "outgoing call" affordance (green pill on iOS,
       // Recents entry, Bluetooth routing). Fire-and-forget — failure here
@@ -846,6 +911,13 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   Future<void> endCall({String? errorMessage}) async {
     final me = _userId;
     final s = _session;
+    if (s == null && _dialing != null) {
+      // Hung up before the backend row exists: drop the dial, and
+      // [initiate] cancels the row once the reservation lands.
+      _dialing = null;
+      notifyListeners();
+      return;
+    }
     if (me == null || s == null) {
       // Session already gone (e.g. cleared inside the terminal UI hold) but
       // an in-flight acquisition may have landed media since — never leave
@@ -1626,6 +1698,23 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       }
     }
 
+    // The callee's ringer is up. Arrives with no session only when it beat
+    // [initiate]'s reply; held for the session that reply creates.
+    if (kind == 'ringing') {
+      final s = _session;
+      if (s == null || s.callId != callId) {
+        if (_dialing != null) _earlyRingingCallId = callId;
+        return;
+      }
+      if (s.isCaller &&
+          s.status == CallStatus.outgoingRinging &&
+          !s.peerRinging) {
+        _session = s.copyWith(peerRinging: true);
+        notifyListeners();
+      }
+      return;
+    }
+
     // Invite → open the IncomingCallScreen IMMEDIATELY, before the caller
     // has finished its WebRTC offer. The session lives without a PC until
     // the offer arrives and `_onRemoteOffer` hydrates it.
@@ -1890,6 +1979,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         kind: mediaKind,
         avatarUrl: avatarUrl,
       ));
+      _reportRinging(callId);
       debugPrint(
         'CallService._onRemoteInvite: opened incoming UI '
         'callId=$callId kind=${mediaKind.wire}',
@@ -2842,6 +2932,26 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   ///
   /// Only once the card is verifiably gone — see [NativeCallHandler.cardGone]
   /// for why having asked for the end is not enough.
+  /// Tells the caller this device is ringing, so their screen moves from
+  /// "calling" to "ringing" and the ringback starts. Only while in the
+  /// foreground, where the ringer is certainly up: CallKit from the PushKit
+  /// push, the native card [_onRemoteInvite] just raised on Android, or the
+  /// in-app ringer on desktop and web. In the background the native push
+  /// handler reports from the push itself. Fire-and-forget: a lost report
+  /// costs the caller the ringback, never the call.
+  void _reportRinging(String callId) {
+    final me = _userId;
+    if (me == null) return;
+    if (_isMobile && !appInForegroundFn()) return;
+    unawaited(() async {
+      try {
+        await api.markCallRinging(callId: callId, userId: me);
+      } catch (e) {
+        debugPrint('CallService: markCallRinging failed: $e');
+      }
+    }());
+  }
+
   void _ackNativeDismissed(String callId) {
     final me = _userId;
     final dev = _deviceId;

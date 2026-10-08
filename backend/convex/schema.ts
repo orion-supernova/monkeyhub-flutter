@@ -2250,6 +2250,10 @@ export default defineSchema({
     // ConnectionService) for this call gone — `ackNativeDismissed`. The
     // grace-delayed `taken` push skips them (see `scheduleTakenPush`).
     dismissedDeviceIds: v.optional(v.array(v.string())),
+    // When a callee device first reported its ringer up (`markRinging`):
+    // the line between the caller's "calling" and "ringing". Unset while
+    // the push is still on its way, or if it never landed anywhere.
+    ringingAt: v.optional(v.number()),
   })
     .index("by_callee_status", ["calleeId", "status"])
     .index("by_caller_status", ["callerId", "status"])
@@ -2269,7 +2273,7 @@ export default defineSchema({
     callId: v.id("calls"),
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
-    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "ice-batch" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer" | "restart-request" | "restart-offer" | "restart-answer" | "renegotiate" | "reoffer" | "reanswer"
+    kind: v.string(),            // "invite" | "ringing" | "offer" | "answer" | "ice" | "ice-batch" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer" | "restart-request" | "restart-offer" | "restart-answer" | "renegotiate" | "reoffer" | "reanswer"
     payload: v.string(),         // JSON-encoded (SDP, ICE candidate, state object, …)
     createdAt: v.number(),
     consumed: v.boolean(),

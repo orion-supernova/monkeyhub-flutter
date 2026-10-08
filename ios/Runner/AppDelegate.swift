@@ -547,7 +547,65 @@ import flutter_callkit_incoming
     callData.supportsVideo = callType == 1
     callData.audioSessionMode = callType == 1 ? "videoChat" : "voiceChat"
 
-    showIncomingWithRetry(callData, convexCallId: convexCallId, pushCompletion: completion)
+    showIncomingWithRetry(callData, convexCallId: convexCallId) { [weak self] in
+      completion()
+      // A group ring has no caller waiting on "ringing"; its push carries no
+      // proof and this is a no-op for it.
+      self?.reportRinging(dict, callUuid: callUuid)
+    }
+  }
+
+  /// Tells the caller's server this phone is ringing: the ring proof the
+  /// invite push carries (`ringUrl`/`ringUser`/`ringSig`, signed in
+  /// backend/convex/receiptToken.ts) posted back once the card is really up.
+  /// The caller's screen goes from "calling" to "ringing" and the ringback
+  /// starts. No session and no Dart: the signature is the authentication,
+  /// and it only says what this phone is in a position to say.
+  ///
+  /// Only for a card that exists: the plugin calls the report's completion on
+  /// an error too (Focus, a refused report), and a phone that is not ringing
+  /// must not say it is. Fire-and-forget under a background task, so a push
+  /// that launched the process still gets the post out. The Android twin is
+  /// `reportRinging` in CallFcmService.kt.
+  private func reportRinging(_ dict: [AnyHashable: Any], callUuid: UUID) {
+    guard
+      let raw = dict["ringUrl"] as? String,
+      let url = URL(string: raw),
+      let callId = dict["callId"] as? String,
+      let userId = dict["ringUser"] as? String,
+      let sig = dict["ringSig"] as? String,
+      let body = try? JSONSerialization.data(withJSONObject: [
+        "callId": callId,
+        "userId": userId,
+        "sig": sig,
+      ])
+    else { return }
+    let pluginCard = (SwiftFlutterCallkitIncomingPlugin.sharedInstance?.activeCalls() ?? [])
+      .contains { ($0["id"] as? String).flatMap(UUID.init(uuidString:)) == callUuid }
+    guard pluginCard || fallbackCallIdByUuid[callUuid] != nil else {
+      NSLog("[voip] no card up for \(callId) — not reporting ringing")
+      return
+    }
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.timeoutInterval = 8
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = body
+    var task: UIBackgroundTaskIdentifier = .invalid
+    task = UIApplication.shared.beginBackgroundTask(withName: "ring-report") {
+      UIApplication.shared.endBackgroundTask(task)
+      task = .invalid
+    }
+    URLSession.shared.dataTask(with: request) { _, _, error in
+      if let error = error {
+        NSLog("[voip] ring report not sent: \(error.localizedDescription)")
+      }
+      DispatchQueue.main.async {
+        guard task != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(task)
+        task = .invalid
+      }
+    }.resume()
   }
 
   // Shows the CallKit ringer for an invite push, handling two failure modes

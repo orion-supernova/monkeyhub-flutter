@@ -1279,6 +1279,54 @@ export const callStatusInternal = internalQuery({
 // Recorded so the grace-delayed `taken` push (`scheduleTakenPush`) leaves
 // that device alone; see TAKEN_PUSH_GRACE_MS for why that matters on iOS.
 // Idempotent, and a GC'd row is fine: there is nothing left to push about.
+// A callee device has its ringer up: stamp the row and tell the caller,
+// whose screen goes from "calling" to "ringing" and whose ringback starts.
+// The first report wins; later ones (a second device, the in-app report
+// racing the native one) and reports for a call no longer ringing are no-ops.
+async function markRingingImpl(ctx: any, call: any) {
+  if (call.status !== "ringing" || call.ringingAt !== undefined) return;
+  const now = Date.now();
+  await ctx.db.patch(call._id, { ringingAt: now });
+  await ctx.db.insert("callSignals", {
+    callId: call._id,
+    fromUserId: call.calleeId,
+    toUserId: call.callerId,
+    kind: "ringing",
+    payload: "{}",
+    createdAt: now,
+    consumed: false,
+  });
+}
+
+// The in-app report: a ringer Dart raised itself, or CallKit up while the
+// app is in the foreground. Only the callee can say their phone is ringing.
+export const markRinging = mutation({
+  args: { callId: v.id("calls"), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { callId, userId }) => {
+    const call = await ctx.db.get(callId);
+    if (!call) return null;
+    if (call.calleeId.toString() !== userId.toString()) {
+      throw new Error("NOT_THE_CALLEE");
+    }
+    await markRingingImpl(ctx, call);
+    return null;
+  },
+});
+
+// The native report, from `/calls/ringing` (http.ts) once the signed ring
+// proof has checked out. The signature already names the callee.
+export const markRingingInternal = internalMutation({
+  args: { callId: v.id("calls"), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { callId, userId }) => {
+    const call = await ctx.db.get(callId);
+    if (!call || call.calleeId.toString() !== userId.toString()) return null;
+    await markRingingImpl(ctx, call);
+    return null;
+  },
+});
+
 export const ackNativeDismissed = mutation({
   args: {
     callId: v.id("calls"),

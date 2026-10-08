@@ -1661,6 +1661,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'Chamada de voz';
 
   @override
+  String callScreenStatusCalling(String kind) {
+    return '$kind · a ligar…';
+  }
+
+  @override
   String callScreenStatusRinging(Object kind) {
     return '$kind · a tocar…';
   }
@@ -13414,8 +13419,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get callScreenVoiceCallLabel => 'Chamada de voz';
 
   @override
-  String callScreenStatusRinging(Object kind) {
+  String callScreenStatusCalling(String kind) {
     return '$kind · chamando…';
+  }
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · tocando…';
   }
 
   @override

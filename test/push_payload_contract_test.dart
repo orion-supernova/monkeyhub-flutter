@@ -136,6 +136,14 @@ void main() {
     'rcptUrl': [receipt, iosNse, androidRoute, web],
     'rcptUser': [receipt, iosNse, androidRoute, web],
     'rcptSig': [receipt, iosNse, androidRoute, web],
+    // The RING proof — the same idea for an incoming call. The callee's
+    // native ringer posts it back once the card is up, which is what moves
+    // the caller from "calling" to "ringing" and starts their ringback. A
+    // platform that misses one leaves its callers on "calling" whenever the
+    // app is not in the foreground.
+    'ringUrl': [receipt, ios, androidRoute],
+    'ringUser': [receipt, ios, androidRoute],
+    'ringSig': [receipt, ios, androidRoute],
     // Whether the message is simple enough to seed at all: no formatting, no
     // mentions, no reply tether, none of which fit in a push and all of which
     // would make the bubble RE-LAY-OUT when the real row landed. Decided

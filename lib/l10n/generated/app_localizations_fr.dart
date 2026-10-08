@@ -1681,6 +1681,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'Appel vocal';
 
   @override
+  String callScreenStatusCalling(String kind) {
+    return '$kind · appel…';
+  }
+
+  @override
   String callScreenStatusRinging(Object kind) {
     return '$kind · sonnerie…';
   }

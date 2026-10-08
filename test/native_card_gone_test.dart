@@ -44,6 +44,16 @@ void main() {
     expect(await NativeCallHandler.instance.cardGone('g1'), isFalse);
   });
 
+  test('a live card with no identity is not gone', () async {
+    // iOS lists a card the plugin holds no entry for (the fallback ringer)
+    // as a bare id. It may be this call's: the 2026-10-08 iPhone that kept
+    // ringing after a cancel acked on exactly this.
+    cards = [
+      {'id': 'uuid'},
+    ];
+    expect(await NativeCallHandler.instance.cardGone('c1'), isFalse);
+  });
+
   test('cannot tell is not gone — the push stays on', () async {
     listError = Exception('plugin channel wedged');
     expect(await NativeCallHandler.instance.cardGone('c1'), isFalse);

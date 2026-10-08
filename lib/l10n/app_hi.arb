@@ -468,6 +468,7 @@
   "themeScreenPreviewBubbleAnswer": "एकदम सही लग रहा है.",
   "callScreenVideoCallLabel": "इनकमिंग वीडियो कॉल",
   "callScreenVoiceCallLabel": "इनकमिंग वॉइस कॉल",
+  "callScreenStatusCalling": "{kind} · कॉल की जा रही है…",
   "callScreenStatusRinging": "{kind} · रिंग जा रही है…",
   "callScreenStatusIncoming": "{kind} · रिंग आ रही है…",
   "callScreenStatusConnecting": "{kind} · कनेक्ट हो रही है…",

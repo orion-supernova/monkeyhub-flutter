@@ -1895,9 +1895,16 @@
   "@callScreenVoiceCallLabel": {
     "description": "Call-kind label prefixed to pre-active call statuses (ringing/incoming/connecting) on the call screen, distinguishing voice calls from video calls."
   },
+  "callScreenStatusCalling": "{kind} · calling…",
+  "@callScreenStatusCalling": {
+    "description": "Status line shown while an outgoing call is placed but no device of the callee has started ringing yet (the push may still be on its way). Distinct from callScreenStatusRinging, which means the callee's phone is ringing now. {kind} is the localized 'Video call'/'Voice call' label.",
+    "placeholders": {
+      "kind": {"type": "String"}
+    }
+  },
   "callScreenStatusRinging": "{kind} · ringing…",
   "@callScreenStatusRinging": {
-    "description": "Status line shown while an outgoing call is ringing. {kind} is the localized 'Video call'/'Voice call' label."
+    "description": "Status line shown while an outgoing call is ringing: a device of the callee reported that its ringer is up. Before that the line reads callScreenStatusCalling. {kind} is the localized 'Video call'/'Voice call' label."
   },
   "callScreenStatusIncoming": "{kind} · incoming",
   "@callScreenStatusIncoming": {

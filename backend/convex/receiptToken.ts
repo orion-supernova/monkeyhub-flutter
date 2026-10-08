@@ -131,3 +131,66 @@ export async function verifyReceipt(
     enc.encode(message(roomId, userId, createdAt)),
   );
 }
+
+// ─────────────────────────── call ringing ───────────────────────────
+//
+// The same trick for an incoming call: the ring push carries a proof that
+// this callee's phone has the ringer up, which the native push handlers
+// (AppDelegate.swift's PushKit handler, CallFcmService.kt) post back once
+// the card is actually on screen, from a process that may have no Dart and
+// no session. `/calls/ringing` (http.ts) checks it and moves the call from
+// the caller's "calling" to "ringing". The domain prefix keeps a ring proof
+// and a delivery proof from ever being the same string.
+
+function ringMessage(callId: string, userId: string): string {
+  return `ring|${callId}|${userId}`;
+}
+
+/** Where the phone posts a ring proof: the receipts endpoint's sibling. */
+export function ringEndpoint(): string | null {
+  const receipts = receiptEndpoint();
+  if (!receipts || !receipts.endsWith("/receipts/delivered")) return null;
+  return receipts.slice(0, -"/receipts/delivered".length) + "/calls/ringing";
+}
+
+/**
+ * The ring-push fields for one callee of one call, or null when the feature
+ * is off (no `RECEIPT_SECRET`). Keys are a cross-language contract with
+ * AppDelegate.swift and CallFcmService.kt — see
+ * test/push_payload_contract_test.dart.
+ */
+export async function ringFields(
+  callId: string,
+  userId: string,
+): Promise<Record<string, string> | null> {
+  const s = secret();
+  const url = ringEndpoint();
+  if (!s || !url) return null;
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    await key(s, "sign"),
+    enc.encode(ringMessage(callId, userId)),
+  );
+  return {
+    ringUrl: url,
+    ringUser: userId,
+    ringSig: toBase64Url(new Uint8Array(sig)),
+  };
+}
+
+/** Whether [sig] is this deployment's ring proof for the callee of [callId]. */
+export async function verifyRing(
+  callId: string,
+  userId: string,
+  sig: string,
+): Promise<boolean> {
+  const s = secret();
+  const bytes = fromBase64Url(sig);
+  if (!s || !bytes) return false;
+  return await crypto.subtle.verify(
+    "HMAC",
+    await key(s, "verify"),
+    bytes,
+    enc.encode(ringMessage(callId, userId)),
+  );
+}

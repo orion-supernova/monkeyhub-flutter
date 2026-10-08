@@ -1658,8 +1658,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'Llamada de voz';
 
   @override
-  String callScreenStatusRinging(Object kind) {
+  String callScreenStatusCalling(String kind) {
     return '$kind · llamando…';
+  }
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · sonando…';
   }
 
   @override

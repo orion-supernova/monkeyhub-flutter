@@ -524,3 +524,79 @@ describe("native-card dismissal ack", () => {
     ).toBe("ended");
   });
 });
+
+describe("callee ringing report (markRinging)", () => {
+  async function ringingCall(t: ReturnType<typeof convexTest>) {
+    const caller = await signUp(t, "caller");
+    const callee = await signUp(t, "callee");
+    const roomId = await makeRoom(t, caller);
+    await join(t, callee, roomId);
+    const callId = await t.mutation(api.calls.initiate, {
+      sessionToken: caller.token,
+      callerId: caller.userId as any,
+      calleeId: callee.userId as any,
+      roomId,
+      type: "audio",
+    });
+    return { caller, callee, callId };
+  }
+
+  async function ringingSignals(t: ReturnType<typeof convexTest>, callId: any) {
+    return await t.run(async (ctx) =>
+      (await ctx.db.query("callSignals").collect()).filter(
+        (s) => s.callId === callId && s.kind === "ringing",
+      ),
+    );
+  }
+
+  test("the first report stamps the call and tells the caller once", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    for (let i = 0; i < 2; i++) {
+      await t.mutation(api.calls.markRinging, {
+        sessionToken: callee.token,
+        callId,
+        userId: callee.userId as any,
+      });
+    }
+    await t.mutation(internal.calls.markRingingInternal, {
+      callId,
+      userId: callee.userId as any,
+    });
+    const signals = await ringingSignals(t, callId);
+    expect(signals).toHaveLength(1);
+    expect(signals[0].toUserId).toBe(caller.userId);
+    const row: any = await t.run(async (ctx) => await ctx.db.get(callId));
+    expect(row?.ringingAt).toBeTypeOf("number");
+    await drain(t);
+  });
+
+  test("only the callee can say their phone is ringing", async () => {
+    const t = convexTest(schema);
+    const { caller, callId } = await ringingCall(t);
+    await expect(
+      t.mutation(api.calls.markRinging, {
+        sessionToken: caller.token,
+        callId,
+        userId: caller.userId as any,
+      }),
+    ).rejects.toThrow("NOT_THE_CALLEE");
+    await drain(t);
+  });
+
+  test("a report for a cancelled call says nothing", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    await t.mutation(api.calls.cancel, {
+      sessionToken: caller.token,
+      callId,
+      userId: caller.userId as any,
+    });
+    await t.mutation(internal.calls.markRingingInternal, {
+      callId,
+      userId: callee.userId as any,
+    });
+    expect(await ringingSignals(t, callId)).toHaveLength(0);
+    await drain(t);
+  });
+});

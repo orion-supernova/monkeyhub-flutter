@@ -105,6 +105,19 @@ class CallApi {
     });
   }
 
+  /// This device has the ringer up for [callId] (callee side). The native
+  /// push handlers report it themselves from the push; this is the in-app
+  /// path, for a ringer Dart raised. Idempotent: the first report wins.
+  Future<void> markCallRinging({
+    required String callId,
+    required String userId,
+  }) async {
+    await _cv.mutation('calls:markRinging', {
+      'callId': callId,
+      'userId': userId,
+    });
+  }
+
   Future<void> sendCallSignal({
     required String callId,
     required String fromUserId,

@@ -2925,7 +2925,13 @@ abstract class AppLocalizations {
   /// **'Voice call'**
   String get callScreenVoiceCallLabel;
 
-  /// Status line shown while an outgoing call is ringing. {kind} is the localized 'Video call'/'Voice call' label.
+  /// Status line shown while an outgoing call is placed but no device of the callee has started ringing yet (the push may still be on its way). Distinct from callScreenStatusRinging, which means the callee's phone is ringing now. {kind} is the localized 'Video call'/'Voice call' label.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} · calling…'**
+  String callScreenStatusCalling(String kind);
+
+  /// Status line shown while an outgoing call is ringing: a device of the callee reported that its ringer is up. Before that the line reads callScreenStatusCalling. {kind} is the localized 'Video call'/'Voice call' label.
   ///
   /// In en, this message translates to:
   /// **'{kind} · ringing…'**

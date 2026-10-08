@@ -1577,8 +1577,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callScreenVoiceCallLabel => '수신 음성 통화';
 
   @override
-  String callScreenStatusRinging(Object kind) {
+  String callScreenStatusCalling(String kind) {
     return '$kind · 발신 중…';
+  }
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · 벨 울리는 중…';
   }
 
   @override

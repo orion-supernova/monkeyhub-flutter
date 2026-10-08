@@ -9,6 +9,7 @@ import {
   type ApnsEnv,
 } from "./pushTransport";
 import { liveSessionDeviceIds } from "./sessionCore";
+import { ringFields } from "./receiptToken";
 
 // Direct VoIP push delivery — wakes a *killed* app for CallKit (iOS) or
 // ConnectionService (Android).
@@ -130,6 +131,10 @@ export const sendVoip = internalAction({
       callerAvatarUrl: args.callerAvatarUrl ?? "",
       callType: args.type,
       roomId: args.roomId.toString(),
+      // The ring proof the callee's phone posts back once its ringer is up
+      // (receiptToken.ts). Absent while RECEIPT_SECRET is unset, and then
+      // only the in-app report can move the caller to "ringing".
+      ...((await ringFields(args.callId.toString(), args.calleeId.toString())) ?? {}),
     };
     // Fan out in parallel — one slow APNs round-trip shouldn't block the
     // sibling devices. allSettled because we never want one failure to

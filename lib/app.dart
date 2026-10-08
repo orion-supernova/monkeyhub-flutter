@@ -2221,6 +2221,10 @@ class _CallOverlay extends StatefulWidget {
 }
 
 class _CallOverlayState extends State<_CallOverlay> {
+  /// [_activeCallId] while the screen is up for [CallService.dialing], the
+  /// call that has no id yet.
+  static const _dialingLatch = '\u0000dialing';
+
   String? _activeCallId;
   String? _enrichedCallId;
   // The call we're currently ringing for. Driven straight from the CallService
@@ -2281,7 +2285,10 @@ class _CallOverlayState extends State<_CallOverlay> {
         !widget.service.acceptedNatively;
     // Caller-side ringback: no platform provides one natively (CallKit's own
     // UI is silent while the callee's phone rings), so — unlike the incoming
-    // case above — this plays on every platform, real phones included. Gated
+    // case above — this plays on every platform, real phones included. Only
+    // once the callee's ringer is actually up ([CallSession.peerRinging]):
+    // before that the call is "calling", and a ringback would claim a ring
+    // that may never happen. Also gated
     // on [localStream] rather than the bare status transition:
     // `CallService.initiate` sets `outgoingRinging` BEFORE `_attachLocalMedia`
     // reclassifies the shared AVAudioSession, so starting playback at the
@@ -2290,6 +2297,7 @@ class _CallOverlayState extends State<_CallOverlay> {
         s != null &&
         s.status == CallStatus.outgoingRinging &&
         s.isCaller &&
+        s.peerRinging &&
         widget.service.localStream != null;
     final ringing = incomingRinging || outgoingRinging;
     if (ringing) {
@@ -2320,8 +2328,22 @@ class _CallOverlayState extends State<_CallOverlay> {
     final s = widget.service.session;
     _syncRingtone(s);
     if (s == null) {
-      _activeCallId = null;
       _enrichedCallId = null;
+      // A tap's dial: the screen goes up now, not a backend round trip
+      // later. It already renders the dial, and stays up when the session
+      // takes over (latched below).
+      if (widget.service.dialing != null) {
+        if (_activeCallId == _dialingLatch) return;
+        _activeCallId = _dialingLatch;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Failed or hung up before the frame: nothing left to show.
+          final svc = widget.service;
+          if (svc.dialing == null && svc.session == null) return;
+          _pushCallScreen();
+        });
+        return;
+      }
+      _activeCallId = null;
       return;
     }
     final terminal =
@@ -2331,6 +2353,11 @@ class _CallOverlayState extends State<_CallOverlay> {
     if (terminal) return;
     _maybeEnrichPeerIdentity(s);
     if (_activeCallId == s.callId) return; // already showing
+    if (_activeCallId == _dialingLatch && s.isCaller) {
+      // The dial's own screen, now with a callId.
+      _activeCallId = s.callId;
+      return;
+    }
     // Routes from here:
     //   - Outgoing caller → CallScreen (the live in-call UI).
     //   - Callee, accepted via native CallKit → straight to CallScreen.
@@ -2350,17 +2377,7 @@ class _CallOverlayState extends State<_CallOverlay> {
       final nav = rootNavigatorKey.currentState;
       if (nav == null) return;
       if (goCallScreen) {
-        widget.screenUp.value = true;
-        nav
-            .push(
-              MaterialPageRoute(
-                fullscreenDialog: true,
-                settings: const RouteSettings(name: kProtectedRouteName),
-                builder: (_) =>
-                    CallScreen(service: widget.service, api: widget.api),
-              ),
-            )
-            .whenComplete(() => widget.screenUp.value = false);
+        _pushCallScreen();
       } else {
         nav.push(
           MaterialPageRoute(
@@ -2372,6 +2389,22 @@ class _CallOverlayState extends State<_CallOverlay> {
         );
       }
     });
+  }
+
+  void _pushCallScreen() {
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    widget.screenUp.value = true;
+    nav
+        .push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            settings: const RouteSettings(name: kProtectedRouteName),
+            builder: (_) =>
+                CallScreen(service: widget.service, api: widget.api),
+          ),
+        )
+        .whenComplete(() => widget.screenUp.value = false);
   }
 
   /// One profile lookup per call: fills in the real display name (the

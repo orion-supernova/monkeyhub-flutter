@@ -1633,6 +1633,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'Voice call';
 
   @override
+  String callScreenStatusCalling(String kind) {
+    return '$kind · calling…';
+  }
+
+  @override
   String callScreenStatusRinging(Object kind) {
     return '$kind · ringing…';
   }

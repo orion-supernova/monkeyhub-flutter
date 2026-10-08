@@ -1142,7 +1142,12 @@ class NativeCallHandler {
       for (final c in active) {
         if (c is! Map) continue;
         final extra = c['extra'];
-        if (extra is! Map) continue;
+        // A live card with no identity (iOS lists a card the plugin holds no
+        // entry for, like AppDelegate's fallback ringer, as a bare `{id}`)
+        // could be this call's. Reading it as "some other call" acked a
+        // still-ringing iPhone dismissed on 2026-10-08, and the `taken` push
+        // that would have stopped it was skipped.
+        if (extra is! Map) return false;
         if (extra['callId']?.toString() == callId ||
             extra['groupCallId']?.toString() == callId) {
           return false;

@@ -88,7 +88,7 @@ class _CallScreenState extends State<CallScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.service.session?.mediaKind == CallMediaKind.video ||
+    if (_shown?.mediaKind == CallMediaKind.video ||
         _anyVideo) {
       _ensureRenderers();
     }
@@ -99,6 +99,11 @@ class _CallScreenState extends State<CallScreen> {
       if (mounted && ok != _shareSupported) setState(() => _shareSupported = ok);
     }));
   }
+
+  /// The call on screen: the session, or before it exists the tap's dial
+  /// ([CallService.dialing]), so the screen is up while the backend row is
+  /// still being reserved.
+  CallSession? get _shown => widget.service.session ?? widget.service.dialing;
 
   /// Whether there is anything to render — ours or theirs, camera or screen.
   bool get _anyVideo {
@@ -162,7 +167,7 @@ class _CallScreenState extends State<CallScreen> {
 
   int _buildKey() {
     final svc = widget.service;
-    final s = svc.session;
+    final s = _shown;
     return Object.hashAll([
       s?.callId,
       s?.status,
@@ -172,6 +177,7 @@ class _CallScreenState extends State<CallScreen> {
       s?.localVideoOff,
       s?.speakerOn,
       s?.reconnecting,
+      s?.peerRinging,
       s?.peerState.audioMuted,
       s?.peerState.videoOff,
       s?.peerState.screenSharing,
@@ -237,7 +243,7 @@ class _CallScreenState extends State<CallScreen> {
 
   void _onChanged() {
     if (!mounted) return;
-    final s = widget.service.session;
+    final s = _shown;
     if (_anyVideo) _ensureRenderers();
     _syncStreams();
     // A swap only makes sense while both feeds are on screen. If the peer's
@@ -350,7 +356,10 @@ class _CallScreenState extends State<CallScreen> {
     final loc = AppLocalizations.of(context);
     switch (s.status) {
       case CallStatus.outgoingRinging:
-        return loc.callScreenStatusRinging(_kindLabel(s));
+        // "Calling" until a device of theirs reports its ringer is up.
+        return s.peerRinging
+            ? loc.callScreenStatusRinging(_kindLabel(s))
+            : loc.callScreenStatusCalling(_kindLabel(s));
       case CallStatus.incomingRinging:
         return loc.callScreenStatusIncoming(_kindLabel(s));
       case CallStatus.connecting:
@@ -476,7 +485,7 @@ class _CallScreenState extends State<CallScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final s = widget.service.session;
+    final s = _shown;
     if (s == null) {
       return const Scaffold(
         backgroundColor: Colors.black,

@@ -1662,8 +1662,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'مكالمة صوتية واردة';
 
   @override
-  String callScreenStatusRinging(Object kind) {
+  String callScreenStatusCalling(String kind) {
     return '$kind · جارٍ الاتصال…';
+  }
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · يرن…';
   }
 
   @override

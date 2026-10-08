@@ -87,8 +87,16 @@ class GlassTray extends StatelessWidget {
     // fading or sliding, the blur is swapped for an opaque-enough dark fill
     // of the same family: an animated BackdropFilter re-samples the frame
     // behind it every tick, which is the one thing a call screen over live
-    // video cannot afford.
-    final blur = ControlsFade.allowsBlur(context);
+    // video cannot afford. The same holds while the route carrying the
+    // tray slides in or out: the call screen opening was one long animated
+    // blur.
+    return _RouteSettled(
+      builder: (context, settled) =>
+          _build(context, settled && ControlsFade.allowsBlur(context)),
+    );
+  }
+
+  Widget _build(BuildContext context, bool blur) {
     final box = Container(
       padding: padding,
       decoration: BoxDecoration(
@@ -133,6 +141,46 @@ class GlassTray extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Builds with whether the enclosing route has finished its transition,
+/// rebuilding when that changes. No route reads as settled.
+class _RouteSettled extends StatefulWidget {
+  const _RouteSettled({required this.builder});
+
+  final Widget Function(BuildContext context, bool settled) builder;
+
+  @override
+  State<_RouteSettled> createState() => _RouteSettledState();
+}
+
+class _RouteSettledState extends State<_RouteSettled> {
+  Animation<double>? _animation;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final a = ModalRoute.of(context)?.animation;
+    if (identical(a, _animation)) return;
+    _animation?.removeStatusListener(_onStatus);
+    _animation = a?..addStatusListener(_onStatus);
+  }
+
+  void _onStatus(AnimationStatus _) {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _animation?.removeStatusListener(_onStatus);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(
+        context,
+        _animation == null || _animation!.status == AnimationStatus.completed,
+      );
 }
 
 /// One control in the tray, in priority order — the first ones are the

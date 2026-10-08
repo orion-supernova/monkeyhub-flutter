@@ -101,7 +101,11 @@ class CallManager: NSObject {
     func activeCalls() -> [[String: Any]] {
         let calls = callController.callObserver.calls
         var json = [[String: Any]]()
-        for call in calls {
+        // MONKEYHUB PATCH 6 (cancelled call kept ringing): the observer keeps
+        // an ended call listed for a while, and a card with no plugin entry
+        // comes back as a bare {id}. Ended calls are skipped so the app can
+        // treat every bare entry as a live card it cannot identify.
+        for call in calls where !call.hasEnded {
             let callItem = self.callWithUUID(uuid: call.uuid)
             if(callItem != nil){
                 var item: [String: Any] = callItem!.data.toJSON()

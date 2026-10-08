@@ -18,7 +18,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { verifyReceipt } from "./receiptToken";
+import { verifyReceipt, verifyRing } from "./receiptToken";
 
 const http = httpRouter();
 
@@ -147,6 +147,52 @@ http.route({
       // Signed by us, so the ids were real when the push left. A room or
       // account deleted since is the only way here; nothing to tell anyone.
       console.warn(`receipts/delivered: ${(e as Error).message}`);
+    }
+    return new Response(null, { status: 204, headers: receiptCors });
+  }),
+});
+
+/**
+ * A callee's phone has the ringer up — the ring proof from the VoIP push
+ * (receiptToken.ts `ringFields`), posted by AppDelegate.swift's PushKit
+ * handler or CallFcmService.kt once the card is on screen. Same contract as
+ * `/receipts/delivered`: 204 for a good signature, 403 otherwise, and the
+ * poster never retries.
+ */
+http.route({
+  path: "/calls/ringing",
+  method: "OPTIONS",
+  handler: httpAction(async () => new Response(null, { status: 204, headers: receiptCors })),
+});
+
+http.route({
+  path: "/calls/ringing",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const deny = () =>
+      new Response("forbidden", { status: 403, headers: receiptCors });
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return deny();
+    }
+    const { callId, userId, sig } = body ?? {};
+    if (
+      typeof callId !== "string" ||
+      typeof userId !== "string" ||
+      typeof sig !== "string"
+    ) {
+      return deny();
+    }
+    if (!(await verifyRing(callId, userId, sig))) return deny();
+    try {
+      await ctx.runMutation(internal.calls.markRingingInternal, {
+        callId: callId as any,
+        userId: userId as any,
+      });
+    } catch (e) {
+      console.warn(`calls/ringing: ${(e as Error).message}`);
     }
     return new Response(null, { status: 204, headers: receiptCors });
   }),

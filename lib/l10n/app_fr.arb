@@ -478,6 +478,7 @@
   "themeScreenPreviewBubbleAnswer": "on dirait le bon.",
   "callScreenVideoCallLabel": "Appel vidéo",
   "callScreenVoiceCallLabel": "Appel vocal",
+  "callScreenStatusCalling": "{kind} · appel…",
   "callScreenStatusRinging": "{kind} · sonnerie…",
   "callScreenStatusIncoming": "{kind} · entrant",
   "callScreenStatusConnecting": "{kind} · connexion…",

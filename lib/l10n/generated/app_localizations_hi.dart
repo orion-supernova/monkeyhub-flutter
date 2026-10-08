@@ -1645,6 +1645,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get callScreenVoiceCallLabel => 'इनकमिंग वॉइस कॉल';
 
   @override
+  String callScreenStatusCalling(String kind) {
+    return '$kind · कॉल की जा रही है…';
+  }
+
+  @override
   String callScreenStatusRinging(Object kind) {
     return '$kind · रिंग जा रही है…';
   }
