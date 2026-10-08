@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show SystemUiOverlayStyle;
+import 'package:flutter/services.dart' show MethodChannel, SystemUiOverlayStyle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth/auth_service.dart';
@@ -320,6 +320,31 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     unawaited(PushManager.instance.registerWebPushAfterPermission());
   }
 
+  /// iOS asks here, from `applicationWillTerminate`, before the process goes.
+  static const _presenceChannel = MethodChannel('monkeyhub/presence');
+
+  /// The app was swiped away in the app switcher. It sat there `inactive`,
+  /// which says nothing about presence ([presenceStatusFor]), and iOS
+  /// terminates it straight from there: no `paused`, so no `away`, and the
+  /// stored `online` from the session held until the staleness sweep caught
+  /// up, minutes later. The person read as online with the app closed.
+  /// AppDelegate waits (briefly) for this to answer, so the write gets out
+  /// while the socket is still up. `away` rather than `offline`, the same as
+  /// a backgrounding: presence is per user, and another of their devices may
+  /// still be open.
+  Future<void> _awayOnTerminate() async {
+    final session = _auth.session;
+    if (session == null || _lastSentStatus == 'away') return;
+    _lastSentStatus = 'away';
+    try {
+      await _api
+          .updateStatus(userId: session.userId, status: 'away')
+          .timeout(const Duration(milliseconds: 1200));
+    } catch (_) {
+      _lastSentStatus = null;
+    }
+  }
+
   // Presence keepalive. Stamps `lastSeen` every 30s while signed in so the
   // server can treat a client that stopped heartbeating (closed browser tab,
   // killed app) as offline — the robust cross-platform fix for "still shows
@@ -440,6 +465,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _presenceChannel.setMethodCallHandler((call) async {
+      if (call.method == 'willTerminate') await _awayOnTerminate();
+      return true;
+    });
     _auth.addListener(_onAuthChange);
     // Every appearance change lands in SettingsStore — the settings screen,
     // the first-launch picker, a keychain that became readable late — and this

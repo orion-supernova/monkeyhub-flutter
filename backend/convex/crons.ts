@@ -81,9 +81,14 @@ crons.interval(
 // Presence backstop: demote users who stopped heartbeating (closed tab, killed
 // app) to 'offline'. Readers already correct this on the fly via
 // effectiveStatus; this keeps the stored value honest. See presence.ts.
+//
+// Every minute: a subscription does not re-run because time passed, so a
+// reader's `effectiveStatus` only goes offline when this patch lands. At five
+// minutes a closed app read as online for up to eight. The range is per
+// status and usually empty, so a tick is a couple of index reads.
 crons.interval(
   "users.sweepStalePresence",
-  { minutes: 5 },
+  { minutes: 1 },
   internal.users.sweepStalePresence,
   {},
 );

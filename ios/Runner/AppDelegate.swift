@@ -55,6 +55,9 @@ import flutter_callkit_incoming
   // callId so answer/decline can be bridged to Dart and "taken" pushes can
   // dismiss the right card.
   private var fallbackCallIdByUuid: [UUID: String] = [:]
+  // monkeyhub/presence: lets `applicationWillTerminate` get the person's
+  // `away` out before the process goes. See there.
+  private var presenceChannel: FlutterMethodChannel?
   // voip-channel calls that fired before Dart was listening (cold
   // background launch). Dart drains them via `takePendingEvents` once its
   // handler is installed, so a fallback-card answer/decline isn't lost.
@@ -403,6 +406,25 @@ import flutter_callkit_incoming
   }
 
   // MARK: - PKPushRegistryDelegate
+
+  // Swiped away in the app switcher. The app was `inactive` there, a state
+  // that writes no presence, and nothing else runs before the process goes:
+  // the stored `online` used to outlive the app by the staleness window plus
+  // the sweep, minutes of a closed app reading as online. Dart writes `away`
+  // (`_awayOnTerminate` in app.dart); spinning the run loop here is what lets
+  // the channel call and its reply move while iOS waits on this method.
+  // Bounded well inside the few seconds iOS allows.
+  override func applicationWillTerminate(_ application: UIApplication) {
+    if let channel = presenceChannel {
+      var answered = false
+      channel.invokeMethod("willTerminate", arguments: nil) { _ in answered = true }
+      let deadline = Date().addingTimeInterval(1.5)
+      while !answered && Date() < deadline {
+        RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+      }
+    }
+    super.applicationWillTerminate(application)
+  }
 
   func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
     guard type == .voIP else { return }
@@ -1140,6 +1162,13 @@ import flutter_callkit_incoming
           result(FlutterMethodNotImplemented)
         }
       }
+    }
+
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubPresencePlugin") {
+      presenceChannel = FlutterMethodChannel(
+        name: "monkeyhub/presence",
+        binaryMessenger: registrar.messenger()
+      )
     }
 
     // monkeyhub/device — exposes a human-readable name for this physical
