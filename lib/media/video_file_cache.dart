@@ -6,6 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'file_url_cache.dart';
+import 'storage/data_usage_store.dart';
+import 'storage/gallery_autosave.dart';
+import 'storage/media_ledger.dart';
+import 'storage/storage_kinds.dart';
 
 /// The file is bigger than [VideoFileCache] is willing to hold on disk.
 ///
@@ -51,13 +55,19 @@ class VideoFileCache {
 
   static const _dirName = 'mh_video_v1';
 
+  /// The folder under the app's cache directory, for the storage scan.
+  static const dirName = _dirName;
+
   /// Total bytes kept. At the ~8 MB a compressed phone clip runs to, this is
   /// roughly the last thirty videos — well past "the ones I'm rewatching",
   /// which is all this needs to cover.
   static const _maxFileBytes = 48 * 1024 * 1024;
 
-  /// Ceiling for the whole directory, enforced by [_sweep].
-  static const _maxBytes = 256 * 1024 * 1024;
+  /// Ceiling for the whole directory, enforced by [_sweep]. A backstop only:
+  /// the size the user chose in Data and Storage is enforced across every
+  /// cache by `StorageService`, and this just stops a runaway directory if
+  /// that policy is "no limit".
+  static const _maxBytes = 4 * 1024 * 1024 * 1024;
 
   /// Whole-download deadline. Generous because unlike a voice note this can
   /// legitimately be tens of megabytes on a bad connection — but still finite,
@@ -130,6 +140,7 @@ class VideoFileCache {
     Future<String?> Function() url, {
     void Function(int received, int? total)? onProgress,
     http.Client? client,
+    int? maxBytes,
   }) {
     if (kIsWeb) {
       throw UnsupportedError('VideoFileCache is native-only');
@@ -144,8 +155,12 @@ class VideoFileCache {
     final inFlight = _pending[storageId];
     if (inFlight != null) return inFlight;
 
-    final future = _download(storageId, url, onProgress, client).then((path) {
+    final future =
+        _download(storageId, url, onProgress, client, maxBytes).then((path) {
       _paths[storageId] = path;
+      final entry = MediaLedger.instance
+          .markLocal(storageId, fallbackKind: StorageKind.videos);
+      unawaited(GalleryAutoSave.instance.offerVideo(entry, path));
       if (!_swept) {
         _swept = true;
         unawaited(_sweep());
@@ -245,7 +260,11 @@ class VideoFileCache {
     Future<String?> Function() url,
     void Function(int received, int? total)? onProgress,
     http.Client? client,
+    int? maxBytes,
   ) async {
+    final cap = maxBytes == null || maxBytes > _maxFileBytes
+        ? _maxFileBytes
+        : maxBytes;
     final dir = await _directory();
     await _index(dir);
 
@@ -269,7 +288,7 @@ class VideoFileCache {
       final total = resp.contentLength;
       // Checked before a single byte is written: the point is to hand the
       // caller back to streaming without having spent the download twice.
-      if (total != null && total > _maxFileBytes) throw MediaTooLarge(total);
+      if (total != null && total > cap) throw MediaTooLarge(total);
 
       // Streamed to a sink rather than collected into `bodyBytes`. A video is
       // the one media type here where buffering the whole response in memory
@@ -277,18 +296,22 @@ class VideoFileCache {
       // phone, on top of whatever the transcript is already holding.
       final sink = part.openWrite();
       var received = 0;
+      final usage =
+          UsageKind.of(MediaLedger.instance[storageId]?.kind ?? StorageKind.videos);
       try {
         await for (final chunk in resp.stream) {
           received += chunk.length;
           // Also enforced mid-stream: a chunked response declares no length,
           // so this is the only ceiling that exists for one.
-          if (received > _maxFileBytes) throw MediaTooLarge(received);
+          if (received > cap) throw MediaTooLarge(received);
           sink.add(chunk);
           onProgress?.call(received, total);
         }
         await sink.flush();
       } finally {
         await sink.close();
+        // Whatever arrived was paid for, finished or not.
+        DataUsageStore.instance.record(usage, received: received);
       }
 
       final path = '${dir.path}/$storageId${await _extensionFor(part)}';

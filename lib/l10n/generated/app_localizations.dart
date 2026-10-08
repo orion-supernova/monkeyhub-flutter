@@ -18942,6 +18942,672 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} and {count, plural, one{1 other} other{{count} others}}'**
   String momentReactorsSummary(int count, String name);
+
+  /// Storage/data usage category: photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get storageKindPhotos;
+
+  /// Storage/data usage category: videos.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get storageKindVideos;
+
+  /// Storage/data usage category: round video messages (video notes).
+  ///
+  /// In en, this message translates to:
+  /// **'Video messages'**
+  String get storageKindVideoMessages;
+
+  /// Storage/data usage category: voice messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice messages'**
+  String get storageKindVoice;
+
+  /// Storage/data usage category: documents and files.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get storageKindFiles;
+
+  /// Storage/data usage category: stickers and GIFs.
+  ///
+  /// In en, this message translates to:
+  /// **'Stickers and GIFs'**
+  String get storageKindStickers;
+
+  /// Storage category: the offline copy of chats kept on the device so they open instantly.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat history'**
+  String get storageKindChatHistory;
+
+  /// Storage/data usage category: avatars, link previews and anything else.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get storageKindOther;
+
+  /// Data usage category: voice and video calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls'**
+  String get dataUsageKindCalls;
+
+  /// Title of the Data and Storage settings page and its row in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Data and Storage'**
+  String get dataStorageTitle;
+
+  /// Settings search keywords for Data and Storage. Space separated words people might type; not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'storage cache memory space clear download auto download data usage cellular mobile wifi save to photos gallery'**
+  String get settingsSearchKwDataStorage;
+
+  /// Title of the storage usage page and its row.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Usage'**
+  String get storageUsageTitle;
+
+  /// Title of the data usage page and its row.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Usage'**
+  String get dataUsageTitle;
+
+  /// Section header for auto-download rules.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic media download'**
+  String get dataStorageAutoDownloadHeader;
+
+  /// Row and page title: auto-download rules while on cellular/mobile data.
+  ///
+  /// In en, this message translates to:
+  /// **'Using Cellular'**
+  String get dataStorageUsingCellular;
+
+  /// Row and page title: auto-download rules while on Wi-Fi.
+  ///
+  /// In en, this message translates to:
+  /// **'Using Wi-Fi'**
+  String get dataStorageUsingWifi;
+
+  /// Small tag next to the network the device is currently on.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get dataStorageNowTag;
+
+  /// Row/action that restores the default auto-download rules.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset auto-download settings'**
+  String get autoDownloadReset;
+
+  /// Confirmation title before resetting auto-download rules.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore the default auto-download settings?'**
+  String get autoDownloadResetTitle;
+
+  /// Section header: automatically save incoming photos/videos to the photo library.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Photos'**
+  String get dataStorageSaveHeader;
+
+  /// Footer under the Save to Photos section.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically save new photos and videos from these chats to your photo library.'**
+  String get dataStorageSaveFooter;
+
+  /// Section header for call data settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls'**
+  String get dataStorageCallsHeader;
+
+  /// Row: lower call quality to use less data.
+  ///
+  /// In en, this message translates to:
+  /// **'Use less data for calls'**
+  String get dataStorageLessDataForCalls;
+
+  /// Footer explaining the call data saver.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses less data on weak or metered networks, with slightly lower audio and video quality.'**
+  String get dataStorageCallsFooter;
+
+  /// Call data saver option: never.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get dataStorageCallsNever;
+
+  /// Call data saver option: only on cellular data.
+  ///
+  /// In en, this message translates to:
+  /// **'On cellular'**
+  String get dataStorageCallsCellular;
+
+  /// Call data saver option: always.
+  ///
+  /// In en, this message translates to:
+  /// **'Always'**
+  String get dataStorageCallsAlways;
+
+  /// Value meaning a rule is turned off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get dataStorageOff;
+
+  /// Kind of chat: one to one conversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Private chats'**
+  String get dataStorageChatsPrivate;
+
+  /// Kind of chat: private group chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get dataStorageChatsGroups;
+
+  /// Kind of chat: public, discoverable rooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Public rooms'**
+  String get dataStorageChatsPublic;
+
+  /// Network type: cellular / mobile data.
+  ///
+  /// In en, this message translates to:
+  /// **'Cellular'**
+  String get dataStorageNetCellular;
+
+  /// Network type: Wi-Fi.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi'**
+  String get dataStorageNetWifi;
+
+  /// Master switch for automatic media download on one network.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-download media'**
+  String get autoDownloadMaster;
+
+  /// Section header above the Low/Medium/High slider.
+  ///
+  /// In en, this message translates to:
+  /// **'Data usage'**
+  String get autoDownloadUsageHeader;
+
+  /// Auto-download preset: low data use.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get autoDownloadPresetLow;
+
+  /// Auto-download preset: medium data use.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get autoDownloadPresetMedium;
+
+  /// Auto-download preset: high data use.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get autoDownloadPresetHigh;
+
+  /// Footer when the rules no longer match a preset.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve customized these settings. Move the slider to switch back to a preset.'**
+  String get autoDownloadCustomFooter;
+
+  /// Section header listing photos, videos, files.
+  ///
+  /// In en, this message translates to:
+  /// **'Types of media'**
+  String get autoDownloadTypesHeader;
+
+  /// Row/page title for the video auto-download rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos and video messages'**
+  String get autoDownloadVideosTitle;
+
+  /// Footer under media types.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice messages and stickers are tiny, so they always download automatically.'**
+  String get autoDownloadVoiceFooter;
+
+  /// Summary meaning a rule applies in every kind of chat.
+  ///
+  /// In en, this message translates to:
+  /// **'All chats'**
+  String get autoDownloadAllChats;
+
+  /// Subtitle of a media type row: size cap and which chats. size e.g. '10 MB', chats e.g. 'All chats'.
+  ///
+  /// In en, this message translates to:
+  /// **'{chats}, up to {size}'**
+  String autoDownloadUpToIn(String size, String chats);
+
+  /// Part of the one line summary under Using Cellular, e.g. 'Videos up to 10 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} up to {size}'**
+  String autoDownloadSummaryUpTo(String kind, String size);
+
+  /// Summary when no photos/videos/files download automatically.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice messages only'**
+  String get autoDownloadSummaryVoiceOnly;
+
+  /// Section header above per chat kind switches.
+  ///
+  /// In en, this message translates to:
+  /// **'Download automatically in'**
+  String get autoDownloadInHeader;
+
+  /// Section header above the size slider.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum file size'**
+  String get autoDownloadMaxSizeHeader;
+
+  /// Footer under the video size slider.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos up to {size} download automatically. Larger ones wait for a tap.'**
+  String autoDownloadMaxSizeVideoFooter(String size);
+
+  /// Footer under the file size slider.
+  ///
+  /// In en, this message translates to:
+  /// **'Files up to {size} download automatically. Larger ones wait for a tap.'**
+  String autoDownloadMaxSizeFileFooter(String size);
+
+  /// Accessibility label of the button on a photo held back by auto-download rules.
+  ///
+  /// In en, this message translates to:
+  /// **'Download photo'**
+  String get autoDownloadGateLoad;
+
+  /// Section header on a Save to Photos page.
+  ///
+  /// In en, this message translates to:
+  /// **'Save automatically'**
+  String get saveToPhotosHeader;
+
+  /// Footer on a Save to Photos page.
+  ///
+  /// In en, this message translates to:
+  /// **'New photos and videos you receive in these chats are added to your photo library as they download.'**
+  String get saveToPhotosFooter;
+
+  /// Section header above the video size slider for Save to Photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum video size'**
+  String get saveToPhotosMaxVideoHeader;
+
+  /// Toast when photo library permission is refused.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow photo library access in Settings to save automatically.'**
+  String get saveToPhotosNoAccess;
+
+  /// Value: both photos and videos are saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and videos'**
+  String get saveToPhotosPhotosAndVideos;
+
+  /// Shown while the storage size is being measured.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating…'**
+  String get storageCalculating;
+
+  /// Subtitle under the storage total. percent e.g. '3.3%'.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub uses {percent} of your free space.'**
+  String storageShareOfFree(String percent);
+
+  /// Subtitle when the cache is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is cached right now.'**
+  String get storageEmpty;
+
+  /// Button that clears every category. size e.g. '58.7 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear entire cache {size}'**
+  String storageClearAllButton(String size);
+
+  /// Button that clears only the selected items or categories.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selected {size}'**
+  String storageClearSelectedButton(String size);
+
+  /// Button in a chat's storage sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cache {size}'**
+  String storageClearChatButton(String size);
+
+  /// Footer under the clear button.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything stays in the cloud and downloads again whenever you need it.'**
+  String get storageClearFooter;
+
+  /// Confirmation title.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the entire cache?'**
+  String get storageClearAllTitle;
+
+  /// Confirmation title.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the selected items?'**
+  String get storageClearSelectedTitle;
+
+  /// Confirmation message before clearing cache.
+  ///
+  /// In en, this message translates to:
+  /// **'Your messages stay. Media downloads again when you open it.'**
+  String get storageClearBody;
+
+  /// Destructive confirm button. size e.g. '58.7 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear {size}'**
+  String storageClearConfirm(String size);
+
+  /// Toast after clearing. size e.g. '58.7 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Freed {size}'**
+  String storageFreed(String size);
+
+  /// Cleanup suggestion row title. size e.g. '120 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Free up {size}'**
+  String storageCleanupTitle(String size);
+
+  /// Cleanup suggestion row subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Media you haven\'t opened in a month'**
+  String get storageCleanupSubtitle;
+
+  /// Action label on the cleanup suggestion row.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean'**
+  String get storageCleanupAction;
+
+  /// Footer under the cleanup suggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Only clears media nobody has looked at in 30 days. Saved Messages is never touched.'**
+  String get storageCleanupFooter;
+
+  /// Section header: rules for automatically removing old cached media.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-remove cached media'**
+  String get storageAutoRemoveHeader;
+
+  /// Footer under the auto-remove rules.
+  ///
+  /// In en, this message translates to:
+  /// **'Media you haven\'t opened for this long is removed from this device to save space. It stays in the cloud, and Saved Messages is always kept.'**
+  String get storageAutoRemoveFooter;
+
+  /// Auto-remove option: never remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get dataStorageKeepNever;
+
+  /// Auto-remove option: after one month.
+  ///
+  /// In en, this message translates to:
+  /// **'1 month'**
+  String get dataStorageKeepMonth;
+
+  /// Auto-remove option: after one week.
+  ///
+  /// In en, this message translates to:
+  /// **'1 week'**
+  String get dataStorageKeepWeek;
+
+  /// Auto-remove option: after one day.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day'**
+  String get dataStorageKeepDay;
+
+  /// Section header above the cache size slider.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum cache size'**
+  String get storageLimitHeader;
+
+  /// Footer under the cache size slider.
+  ///
+  /// In en, this message translates to:
+  /// **'If the cache grows past this, the media you opened longest ago is removed first.'**
+  String get storageLimitFooter;
+
+  /// Cache size option: unlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'No limit'**
+  String get dataStorageLimitNone;
+
+  /// Segment: storage by chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats'**
+  String get storageTabChats;
+
+  /// Segment: cached photos and videos.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get storageTabMedia;
+
+  /// Segment: cached files and voice messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get storageTabFiles;
+
+  /// Empty state of the Chats tab.
+  ///
+  /// In en, this message translates to:
+  /// **'No chat has anything cached yet.'**
+  String get storageNoChats;
+
+  /// Empty state of the Media tab.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos or videos are cached yet.'**
+  String get storageNoMedia;
+
+  /// Empty state of the Files tab.
+  ///
+  /// In en, this message translates to:
+  /// **'No files are cached yet.'**
+  String get storageNoFiles;
+
+  /// Menu action on a cached media tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open photo'**
+  String get storageOpenPhoto;
+
+  /// Menu action on a cached media tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open video'**
+  String get storageOpenVideo;
+
+  /// Menu action that starts selecting tiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get storageSelect;
+
+  /// Subtitle in a chat's storage sheet. percent e.g. '24%'.
+  ///
+  /// In en, this message translates to:
+  /// **'This chat uses {percent} of your cache.'**
+  String storageChatShare(String percent);
+
+  /// Name shown for cached media from a chat that is no longer in the chat list.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat you left'**
+  String get storageChatUnknown;
+
+  /// Subtitle: when counting began. date is a formatted date.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String dataUsageSince(String date);
+
+  /// Segment: all networks.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get dataUsageAll;
+
+  /// Empty state of data usage.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been counted on this network yet.'**
+  String get dataUsageNothingYet;
+
+  /// Footer under the data usage breakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a category to see what was sent and received.'**
+  String get dataUsageTapHint;
+
+  /// Bytes sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get dataUsageSent;
+
+  /// Bytes received.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get dataUsageReceived;
+
+  /// Section header above sent/received totals.
+  ///
+  /// In en, this message translates to:
+  /// **'Total network usage'**
+  String get dataUsageTotalHeader;
+
+  /// Footer explaining what data usage measures.
+  ///
+  /// In en, this message translates to:
+  /// **'Counts media and calls. Messages themselves are tiny and aren\'t included.'**
+  String get dataUsageFootnote;
+
+  /// Destructive row that zeroes data usage counters.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset statistics'**
+  String get dataUsageReset;
+
+  /// Confirmation title.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset data usage statistics?'**
+  String get dataUsageResetTitle;
+
+  /// Confirmation message.
+  ///
+  /// In en, this message translates to:
+  /// **'Counting starts again from now.'**
+  String get dataUsageResetBody;
+
+  /// Storage category: the on-device AI companions (Sebastian, Marlowe), their brains and translation cache.
+  ///
+  /// In en, this message translates to:
+  /// **'Companions'**
+  String get storageKindCompanions;
+
+  /// Appended to the storage footer when companions use space: they are not cleared with the cache.
+  ///
+  /// In en, this message translates to:
+  /// **'Companions aren\'t cleared with the cache. Tap them to manage their downloads.'**
+  String get storageCompanionsNote;
+
+  /// Subtitle on a storage category page: how many cached files and their total size. size e.g. '12.4 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item, {size}} other{{count} items, {size}}}'**
+  String storageCategoryCount(int count, String size);
+
+  /// Bar button that selects every cached item on the page.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get storageSelectAll;
+
+  /// Bar button that clears the selection.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get storageDeselectAll;
+
+  /// Empty state of a storage category page.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing of this kind is cached right now.'**
+  String get storageCategoryEmpty;
+
+  /// Footer on the chat history category page and the confirm message before clearing it.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the copy on this device is removed. Messages stay in the chat and load again the next time you open it.'**
+  String get storageChatHistoryFooter;
+
+  /// First sentence of the footer under the storage categories: the circle selects, the row opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a category to see what\'s inside, or its circle to leave it out.'**
+  String get storageCategoryHint;
 }
 
 class _AppLocalizationsDelegate

@@ -10654,4 +10654,372 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$name 和其他 $_temp0';
   }
+
+  @override
+  String get storageKindPhotos => '照片';
+
+  @override
+  String get storageKindVideos => '视频';
+
+  @override
+  String get storageKindVideoMessages => '视频留言';
+
+  @override
+  String get storageKindVoice => '语音消息';
+
+  @override
+  String get storageKindFiles => '文件';
+
+  @override
+  String get storageKindStickers => '贴纸和 GIF';
+
+  @override
+  String get storageKindChatHistory => '聊天记录';
+
+  @override
+  String get storageKindOther => '其他';
+
+  @override
+  String get dataUsageKindCalls => '通话';
+
+  @override
+  String get dataStorageTitle => '数据与存储';
+
+  @override
+  String get settingsSearchKwDataStorage =>
+      '存储 缓存 内存 空间 清理 清除 下载 自动下载 流量 数据用量 蜂窝网络 移动数据 wifi 无线 保存到照片 相册 storage cache';
+
+  @override
+  String get storageUsageTitle => '存储用量';
+
+  @override
+  String get dataUsageTitle => '数据用量';
+
+  @override
+  String get dataStorageAutoDownloadHeader => '自动下载媒体';
+
+  @override
+  String get dataStorageUsingCellular => '使用蜂窝网络时';
+
+  @override
+  String get dataStorageUsingWifi => '使用 Wi-Fi 时';
+
+  @override
+  String get dataStorageNowTag => '当前';
+
+  @override
+  String get autoDownloadReset => '重置自动下载设置';
+
+  @override
+  String get autoDownloadResetTitle => '恢复默认的自动下载设置？';
+
+  @override
+  String get dataStorageSaveHeader => '存储到照片';
+
+  @override
+  String get dataStorageSaveFooter => '自动将这些聊天中的新照片和视频保存到你的照片图库。';
+
+  @override
+  String get dataStorageCallsHeader => '通话';
+
+  @override
+  String get dataStorageLessDataForCalls => '通话时节省流量';
+
+  @override
+  String get dataStorageCallsFooter => '在信号弱或按流量计费的网络上节省流量，音视频质量会略有降低。';
+
+  @override
+  String get dataStorageCallsNever => '永不';
+
+  @override
+  String get dataStorageCallsCellular => '蜂窝网络下';
+
+  @override
+  String get dataStorageCallsAlways => '始终';
+
+  @override
+  String get dataStorageOff => '关闭';
+
+  @override
+  String get dataStorageChatsPrivate => '私聊';
+
+  @override
+  String get dataStorageChatsGroups => '群聊';
+
+  @override
+  String get dataStorageChatsPublic => '公开房间';
+
+  @override
+  String get dataStorageNetCellular => '蜂窝网络';
+
+  @override
+  String get dataStorageNetWifi => 'Wi-Fi';
+
+  @override
+  String get autoDownloadMaster => '自动下载媒体';
+
+  @override
+  String get autoDownloadUsageHeader => '数据用量';
+
+  @override
+  String get autoDownloadPresetLow => '低';
+
+  @override
+  String get autoDownloadPresetMedium => '中';
+
+  @override
+  String get autoDownloadPresetHigh => '高';
+
+  @override
+  String get autoDownloadCustomFooter => '你已自定义这些设置。拖动滑块可切回预设。';
+
+  @override
+  String get autoDownloadTypesHeader => '媒体类型';
+
+  @override
+  String get autoDownloadVideosTitle => '视频和视频留言';
+
+  @override
+  String get autoDownloadVoiceFooter => '语音消息和贴纸很小，所以总是会自动下载。';
+
+  @override
+  String get autoDownloadAllChats => '所有聊天';
+
+  @override
+  String autoDownloadUpToIn(String size, String chats) {
+    return '$chats，最大 $size';
+  }
+
+  @override
+  String autoDownloadSummaryUpTo(String kind, String size) {
+    return '$kind（最大 $size）';
+  }
+
+  @override
+  String get autoDownloadSummaryVoiceOnly => '仅语音消息';
+
+  @override
+  String get autoDownloadInHeader => '自动下载范围';
+
+  @override
+  String get autoDownloadMaxSizeHeader => '最大文件大小';
+
+  @override
+  String autoDownloadMaxSizeVideoFooter(String size) {
+    return '$size以内的视频会自动下载，更大的需轻点下载。';
+  }
+
+  @override
+  String autoDownloadMaxSizeFileFooter(String size) {
+    return '$size以内的文件会自动下载，更大的需轻点下载。';
+  }
+
+  @override
+  String get autoDownloadGateLoad => '下载照片';
+
+  @override
+  String get saveToPhotosHeader => '自动保存';
+
+  @override
+  String get saveToPhotosFooter => '在这些聊天中收到的新照片和视频下载后会添加到你的照片图库。';
+
+  @override
+  String get saveToPhotosMaxVideoHeader => '最大视频大小';
+
+  @override
+  String get saveToPhotosNoAccess => '请在“设置”中允许访问照片图库以自动保存。';
+
+  @override
+  String get saveToPhotosPhotosAndVideos => '照片和视频';
+
+  @override
+  String get storageCalculating => '正在计算…';
+
+  @override
+  String storageShareOfFree(String percent) {
+    return 'MonkeyHub 占用了你 $percent 的可用空间。';
+  }
+
+  @override
+  String get storageEmpty => '当前没有缓存。';
+
+  @override
+  String storageClearAllButton(String size) {
+    return '清除全部缓存 $size';
+  }
+
+  @override
+  String storageClearSelectedButton(String size) {
+    return '清除所选 $size';
+  }
+
+  @override
+  String storageClearChatButton(String size) {
+    return '清除缓存 $size';
+  }
+
+  @override
+  String get storageClearFooter => '所有内容都保留在云端，需要时会重新下载。';
+
+  @override
+  String get storageClearAllTitle => '清除全部缓存？';
+
+  @override
+  String get storageClearSelectedTitle => '清除所选项目？';
+
+  @override
+  String get storageClearBody => '你的消息会保留。媒体在打开时会重新下载。';
+
+  @override
+  String storageClearConfirm(String size) {
+    return '清除 $size';
+  }
+
+  @override
+  String storageFreed(String size) {
+    return '已释放 $size';
+  }
+
+  @override
+  String storageCleanupTitle(String size) {
+    return '释放 $size';
+  }
+
+  @override
+  String get storageCleanupSubtitle => '一个月内未打开的媒体';
+
+  @override
+  String get storageCleanupAction => '清理';
+
+  @override
+  String get storageCleanupFooter => '只清除 30 天内无人查看的媒体。保存的消息永远不会被清除。';
+
+  @override
+  String get storageAutoRemoveHeader => '自动清除缓存媒体';
+
+  @override
+  String get storageAutoRemoveFooter =>
+      '超过这段时间未打开的媒体会从此设备中移除以节省空间。它们仍保留在云端，保存的消息始终保留。';
+
+  @override
+  String get dataStorageKeepNever => '永不';
+
+  @override
+  String get dataStorageKeepMonth => '1 个月';
+
+  @override
+  String get dataStorageKeepWeek => '1 周';
+
+  @override
+  String get dataStorageKeepDay => '1 天';
+
+  @override
+  String get storageLimitHeader => '最大缓存大小';
+
+  @override
+  String get storageLimitFooter => '缓存超过此大小时，会先移除最久未打开的媒体。';
+
+  @override
+  String get dataStorageLimitNone => '无限制';
+
+  @override
+  String get storageTabChats => '聊天';
+
+  @override
+  String get storageTabMedia => '媒体';
+
+  @override
+  String get storageTabFiles => '文件';
+
+  @override
+  String get storageNoChats => '还没有任何聊天产生缓存。';
+
+  @override
+  String get storageNoMedia => '还没有缓存的照片或视频。';
+
+  @override
+  String get storageNoFiles => '还没有缓存的文件。';
+
+  @override
+  String get storageOpenPhoto => '打开照片';
+
+  @override
+  String get storageOpenVideo => '打开视频';
+
+  @override
+  String get storageSelect => '选择';
+
+  @override
+  String storageChatShare(String percent) {
+    return '此聊天占用了 $percent 的缓存。';
+  }
+
+  @override
+  String get storageChatUnknown => '已退出的聊天';
+
+  @override
+  String dataUsageSince(String date) {
+    return '自 $date 起';
+  }
+
+  @override
+  String get dataUsageAll => '全部';
+
+  @override
+  String get dataUsageNothingYet => '此网络上还没有统计数据。';
+
+  @override
+  String get dataUsageTapHint => '轻点类别可查看发送和接收的数据。';
+
+  @override
+  String get dataUsageSent => '已发送';
+
+  @override
+  String get dataUsageReceived => '已接收';
+
+  @override
+  String get dataUsageTotalHeader => '网络总用量';
+
+  @override
+  String get dataUsageFootnote => '统计媒体和通话。消息本身很小，不计入在内。';
+
+  @override
+  String get dataUsageReset => '重置统计';
+
+  @override
+  String get dataUsageResetTitle => '重置数据用量统计？';
+
+  @override
+  String get dataUsageResetBody => '将从现在起重新统计。';
+
+  @override
+  String get storageKindCompanions => '伙伴';
+
+  @override
+  String get storageCompanionsNote => '伙伴不会随缓存一起清除。轻点即可管理它们的下载内容。';
+
+  @override
+  String storageCategoryCount(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 项，$size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storageSelectAll => '全选';
+
+  @override
+  String get storageDeselectAll => '取消全选';
+
+  @override
+  String get storageCategoryEmpty => '目前没有此类缓存。';
+
+  @override
+  String get storageChatHistoryFooter => '只会删除此设备上的副本。消息仍保留在聊天中，下次打开时会重新加载。';
+
+  @override
+  String get storageCategoryHint => '轻点类别查看其中内容，轻点圆圈可将其排除。';
 }

@@ -25,6 +25,7 @@ class SelectionCheck extends StatelessWidget {
     this.size = 22,
     this.media = false,
     this.enabled = true,
+    this.color,
   });
 
   final bool picked;
@@ -36,14 +37,19 @@ class SelectionCheck extends StatelessWidget {
   /// False dims it — a row that cannot be picked (already a member).
   final bool enabled;
 
+  /// The picked fill, when the circle stands for something with a colour of
+  /// its own: a storage category whose slice is that colour in the chart
+  /// above. Null is the accent, as everywhere else.
+  final Color? color;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final Color ring;
     final Color fill;
     if (picked) {
-      ring = theme.accent;
-      fill = theme.accent;
+      ring = color ?? theme.accent;
+      fill = color ?? theme.accent;
     } else if (media) {
       ring = const Color(0xE6FFFFFF);
       fill = const Color(0x33000000);
@@ -71,7 +77,7 @@ class SelectionCheck extends StatelessWidget {
             ? Icon(
                 CupertinoIcons.checkmark_alt,
                 size: size * 0.72,
-                color: theme.accentInk,
+                color: color == null ? theme.accentInk : const Color(0xFFFFFFFF),
               )
             : null,
       ),

@@ -11213,4 +11213,390 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$name और $_temp0';
   }
+
+  @override
+  String get storageKindPhotos => 'फ़ोटो';
+
+  @override
+  String get storageKindVideos => 'वीडियो';
+
+  @override
+  String get storageKindVideoMessages => 'वीडियो नोट';
+
+  @override
+  String get storageKindVoice => 'वॉइस मैसेज';
+
+  @override
+  String get storageKindFiles => 'फ़ाइलें';
+
+  @override
+  String get storageKindStickers => 'स्टिकर और GIF';
+
+  @override
+  String get storageKindChatHistory => 'चैट हिस्ट्री';
+
+  @override
+  String get storageKindOther => 'अन्य';
+
+  @override
+  String get dataUsageKindCalls => 'कॉल';
+
+  @override
+  String get dataStorageTitle => 'डेटा और स्टोरेज';
+
+  @override
+  String get settingsSearchKwDataStorage =>
+      'स्टोरेज कैश मेमोरी जगह साफ़ डाउनलोड ऑटो डाउनलोड डेटा उपयोग सेल्युलर मोबाइल वाईफ़ाई wifi फ़ोटो सेव गैलरी storage cache';
+
+  @override
+  String get storageUsageTitle => 'स्टोरेज उपयोग';
+
+  @override
+  String get dataUsageTitle => 'डेटा उपयोग';
+
+  @override
+  String get dataStorageAutoDownloadHeader => 'मीडिया ऑटो डाउनलोड';
+
+  @override
+  String get dataStorageUsingCellular => 'सेल्युलर पर';
+
+  @override
+  String get dataStorageUsingWifi => 'Wi-Fi पर';
+
+  @override
+  String get dataStorageNowTag => 'अभी';
+
+  @override
+  String get autoDownloadReset => 'ऑटो डाउनलोड सेटिंग्स रीसेट करें';
+
+  @override
+  String get autoDownloadResetTitle =>
+      'ऑटो डाउनलोड की डिफ़ॉल्ट सेटिंग्स वापस लाएँ?';
+
+  @override
+  String get dataStorageSaveHeader => 'फ़ोटो में सहेजें';
+
+  @override
+  String get dataStorageSaveFooter =>
+      'इन चैट की नई फ़ोटो और वीडियो अपने आप फ़ोटो लाइब्रेरी में सेव हो जाएँगी।';
+
+  @override
+  String get dataStorageCallsHeader => 'कॉल';
+
+  @override
+  String get dataStorageLessDataForCalls => 'कॉल में कम डेटा इस्तेमाल करें';
+
+  @override
+  String get dataStorageCallsFooter =>
+      'कमज़ोर या लिमिटेड नेटवर्क पर कम डेटा लेता है, ऑडियो और वीडियो क्वालिटी थोड़ी कम रहती है।';
+
+  @override
+  String get dataStorageCallsNever => 'कभी नहीं';
+
+  @override
+  String get dataStorageCallsCellular => 'सेल्युलर पर';
+
+  @override
+  String get dataStorageCallsAlways => 'हमेशा';
+
+  @override
+  String get dataStorageOff => 'बंद';
+
+  @override
+  String get dataStorageChatsPrivate => 'प्राइवेट चैट';
+
+  @override
+  String get dataStorageChatsGroups => 'ग्रुप';
+
+  @override
+  String get dataStorageChatsPublic => 'पब्लिक रूम्स';
+
+  @override
+  String get dataStorageNetCellular => 'सेल्युलर';
+
+  @override
+  String get dataStorageNetWifi => 'Wi-Fi';
+
+  @override
+  String get autoDownloadMaster => 'मीडिया ऑटो डाउनलोड';
+
+  @override
+  String get autoDownloadUsageHeader => 'डेटा उपयोग';
+
+  @override
+  String get autoDownloadPresetLow => 'कम';
+
+  @override
+  String get autoDownloadPresetMedium => 'मध्यम';
+
+  @override
+  String get autoDownloadPresetHigh => 'ज़्यादा';
+
+  @override
+  String get autoDownloadCustomFooter =>
+      'तुमने ये सेटिंग्स बदली हैं। किसी प्रीसेट पर लौटने के लिए स्लाइडर खिसकाओ।';
+
+  @override
+  String get autoDownloadTypesHeader => 'मीडिया के प्रकार';
+
+  @override
+  String get autoDownloadVideosTitle => 'वीडियो और वीडियो नोट';
+
+  @override
+  String get autoDownloadVoiceFooter =>
+      'वॉइस मैसेज और स्टिकर बहुत छोटे होते हैं, इसलिए हमेशा अपने आप डाउनलोड हो जाते हैं।';
+
+  @override
+  String get autoDownloadAllChats => 'सभी चैट';
+
+  @override
+  String autoDownloadUpToIn(String size, String chats) {
+    return '$chats में $size तक';
+  }
+
+  @override
+  String autoDownloadSummaryUpTo(String kind, String size) {
+    return '$size तक के $kind';
+  }
+
+  @override
+  String get autoDownloadSummaryVoiceOnly => 'सिर्फ़ वॉइस मैसेज';
+
+  @override
+  String get autoDownloadInHeader => 'इनमें अपने आप डाउनलोड करें';
+
+  @override
+  String get autoDownloadMaxSizeHeader => 'अधिकतम फ़ाइल साइज़';
+
+  @override
+  String autoDownloadMaxSizeVideoFooter(String size) {
+    return '$size तक के वीडियो अपने आप डाउनलोड होते हैं। बड़े वीडियो टैप करने पर डाउनलोड होंगे।';
+  }
+
+  @override
+  String autoDownloadMaxSizeFileFooter(String size) {
+    return '$size तक की फ़ाइलें अपने आप डाउनलोड होती हैं। बड़ी फ़ाइलें टैप करने पर डाउनलोड होंगी।';
+  }
+
+  @override
+  String get autoDownloadGateLoad => 'फ़ोटो डाउनलोड करें';
+
+  @override
+  String get saveToPhotosHeader => 'अपने आप सेव करें';
+
+  @override
+  String get saveToPhotosFooter =>
+      'इन चैट में आने वाली नई फ़ोटो और वीडियो डाउनलोड होते ही फ़ोटो लाइब्रेरी में जुड़ जाती हैं।';
+
+  @override
+  String get saveToPhotosMaxVideoHeader => 'अधिकतम वीडियो साइज़';
+
+  @override
+  String get saveToPhotosNoAccess =>
+      'अपने आप सेव करने के लिए सेटिंग्स में फ़ोटो लाइब्रेरी का एक्सेस दें।';
+
+  @override
+  String get saveToPhotosPhotosAndVideos => 'फ़ोटो और वीडियो';
+
+  @override
+  String get storageCalculating => 'कैलकुलेट हो रहा है…';
+
+  @override
+  String storageShareOfFree(String percent) {
+    return 'MonkeyHub तुम्हारी खाली जगह का $percent इस्तेमाल करता है।';
+  }
+
+  @override
+  String get storageEmpty => 'अभी कैश में कुछ नहीं है।';
+
+  @override
+  String storageClearAllButton(String size) {
+    return 'पूरा कैश साफ़ करें $size';
+  }
+
+  @override
+  String storageClearSelectedButton(String size) {
+    return 'चुने हुए साफ़ करें $size';
+  }
+
+  @override
+  String storageClearChatButton(String size) {
+    return 'कैश साफ़ करें $size';
+  }
+
+  @override
+  String get storageClearFooter =>
+      'सब कुछ क्लाउड में रहता है और ज़रूरत पड़ने पर फिर से डाउनलोड हो जाता है।';
+
+  @override
+  String get storageClearAllTitle => 'पूरा कैश साफ़ करें?';
+
+  @override
+  String get storageClearSelectedTitle => 'चुने हुए आइटम साफ़ करें?';
+
+  @override
+  String get storageClearBody =>
+      'तुम्हारे मैसेज बने रहेंगे। मीडिया खोलने पर फिर से डाउनलोड होगा।';
+
+  @override
+  String storageClearConfirm(String size) {
+    return '$size साफ़ करें';
+  }
+
+  @override
+  String storageFreed(String size) {
+    return '$size खाली हुआ';
+  }
+
+  @override
+  String storageCleanupTitle(String size) {
+    return '$size खाली करें';
+  }
+
+  @override
+  String get storageCleanupSubtitle => 'एक महीने से न खोली गई मीडिया';
+
+  @override
+  String get storageCleanupAction => 'साफ़ करें';
+
+  @override
+  String get storageCleanupFooter =>
+      'सिर्फ़ वही मीडिया साफ़ होती है जिसे 30 दिनों से किसी ने नहीं देखा। सेव किए गए मैसेज को कभी नहीं छुआ जाता।';
+
+  @override
+  String get storageAutoRemoveHeader => 'कैश मीडिया अपने आप हटाएँ';
+
+  @override
+  String get storageAutoRemoveFooter =>
+      'जो मीडिया इतने समय से नहीं खोली गई, वह जगह बचाने के लिए इस डिवाइस से हटा दी जाती है। वह क्लाउड में रहती है, और सेव किए गए मैसेज हमेशा रखे जाते हैं।';
+
+  @override
+  String get dataStorageKeepNever => 'कभी नहीं';
+
+  @override
+  String get dataStorageKeepMonth => '1 महीना';
+
+  @override
+  String get dataStorageKeepWeek => '1 सप्ताह';
+
+  @override
+  String get dataStorageKeepDay => '1 दिन';
+
+  @override
+  String get storageLimitHeader => 'अधिकतम कैश साइज़';
+
+  @override
+  String get storageLimitFooter =>
+      'अगर कैश इससे बड़ा हो जाए, तो सबसे लंबे समय से न खोली गई मीडिया पहले हटती है।';
+
+  @override
+  String get dataStorageLimitNone => 'कोई सीमा नहीं';
+
+  @override
+  String get storageTabChats => 'चैट';
+
+  @override
+  String get storageTabMedia => 'मीडिया';
+
+  @override
+  String get storageTabFiles => 'फ़ाइलें';
+
+  @override
+  String get storageNoChats => 'अभी किसी चैट का कुछ भी कैश नहीं हुआ है।';
+
+  @override
+  String get storageNoMedia => 'अभी कोई फ़ोटो या वीडियो कैश नहीं है।';
+
+  @override
+  String get storageNoFiles => 'अभी कोई फ़ाइल कैश नहीं है।';
+
+  @override
+  String get storageOpenPhoto => 'फ़ोटो खोलें';
+
+  @override
+  String get storageOpenVideo => 'वीडियो खोलें';
+
+  @override
+  String get storageSelect => 'चुनें';
+
+  @override
+  String storageChatShare(String percent) {
+    return 'यह चैट तुम्हारे कैश का $percent इस्तेमाल करती है।';
+  }
+
+  @override
+  String get storageChatUnknown => 'छोड़ी हुई चैट';
+
+  @override
+  String dataUsageSince(String date) {
+    return '$date से';
+  }
+
+  @override
+  String get dataUsageAll => 'सभी';
+
+  @override
+  String get dataUsageNothingYet =>
+      'इस नेटवर्क पर अभी तक कुछ नहीं गिना गया है।';
+
+  @override
+  String get dataUsageTapHint =>
+      'क्या भेजा और क्या मिला, यह देखने के लिए किसी कैटेगरी पर टैप करें।';
+
+  @override
+  String get dataUsageSent => 'भेजा गया';
+
+  @override
+  String get dataUsageReceived => 'प्राप्त';
+
+  @override
+  String get dataUsageTotalHeader => 'कुल नेटवर्क उपयोग';
+
+  @override
+  String get dataUsageFootnote =>
+      'मीडिया और कॉल गिने जाते हैं। मैसेज बहुत छोटे होते हैं, इसलिए शामिल नहीं हैं।';
+
+  @override
+  String get dataUsageReset => 'आँकड़े रीसेट करें';
+
+  @override
+  String get dataUsageResetTitle => 'डेटा उपयोग के आँकड़े रीसेट करें?';
+
+  @override
+  String get dataUsageResetBody => 'गिनती अभी से फिर शुरू होगी।';
+
+  @override
+  String get storageKindCompanions => 'साथी';
+
+  @override
+  String get storageCompanionsNote =>
+      'कैश साफ़ करने पर साथी नहीं हटते। उनके डाउनलोड मैनेज करने के लिए उन पर टैप करें।';
+
+  @override
+  String storageCategoryCount(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count आइटम, $size',
+      one: '1 आइटम, $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storageSelectAll => 'सभी चुनें';
+
+  @override
+  String get storageDeselectAll => 'चयन हटाएं';
+
+  @override
+  String get storageCategoryEmpty => 'अभी इस तरह का कुछ भी कैश में नहीं है।';
+
+  @override
+  String get storageChatHistoryFooter =>
+      'सिर्फ़ इस डिवाइस की कॉपी हटती है। मैसेज चैट में रहते हैं और अगली बार खोलने पर फिर से लोड हो जाते हैं।';
+
+  @override
+  String get storageCategoryHint =>
+      'अंदर क्या है देखने के लिए किसी कैटेगरी पर टैप करें, या उसे छोड़ने के लिए उसके गोले पर।';
 }

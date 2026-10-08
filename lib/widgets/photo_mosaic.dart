@@ -6,6 +6,7 @@ import '../models/pending_upload.dart';
 import '../screens/fullscreen_image_viewer.dart' show thumbnailDecodeWidth;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'auto_download_gate.dart';
 import 'highlight_pulse.dart';
 import 'media_flight.dart';
 import 'reaction_bubble.dart';
@@ -449,10 +450,15 @@ class _MosaicTile extends StatelessWidget {
           image: image(borderRadius: BorderRadius.zero),
           radius: radius,
         ),
-        child: image(
-          // The block is clipped as one shape, so a tile that rounded itself
-          // would cut four notches out of the middle of it.
-          borderRadius: BorderRadius.zero,
+        child: AutoDownloadGate(
+          storageId: storageId,
+          roomId: message.roomId,
+          incoming: message.senderId != currentUserId,
+          child: image(
+            // The block is clipped as one shape, so a tile that rounded itself
+            // would cut four notches out of the middle of it.
+            borderRadius: BorderRadius.zero,
+          ),
         ),
       );
     } else {

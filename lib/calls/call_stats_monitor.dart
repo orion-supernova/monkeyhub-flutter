@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../media/storage/data_usage_store.dart';
+
 /// Coarse connection quality derived from WebRTC stats. `poor` drives the
 /// warning chip in the call UI; `fair` shows a subtle indicator.
 enum CallQuality { good, fair, poor }
@@ -54,6 +56,20 @@ class CallQualitySnapshot {
 /// call per poll plus delta math — cheap by construction.
 class CallStatsMonitor {
   CallStatsMonitor({required this.pc, required this.target});
+
+  /// Running totals already handed to [DataUsageStore], so each poll records
+  /// only what moved since the last. Counters reset with a renegotiated
+  /// transport, which shows up as a drop; that poll just rebases.
+  int _usageSent = 0;
+  int _usageReceived = 0;
+
+  void _recordUsage(int sent, int received) {
+    final ds = sent >= _usageSent ? sent - _usageSent : 0;
+    final dr = received >= _usageReceived ? received - _usageReceived : 0;
+    _usageSent = sent;
+    _usageReceived = received;
+    DataUsageStore.instance.record(UsageKind.calls, sent: ds, received: dr);
+  }
 
   final RTCPeerConnection pc;
   final ValueNotifier<CallQualitySnapshot?> target;
@@ -147,6 +163,15 @@ class CallStatsMonitor {
     }
     _lastBytesSent = bytesSent;
 
+    // Every outbound stream, audio included, for Data Usage. [bytesSent] above
+    // is video only because it feeds the video bitrate readout.
+    int allSent = 0;
+    for (final r in reports) {
+      if (r.type == 'outbound-rtp') {
+        allSent += _num(r.values['bytesSent'])?.toInt() ?? 0;
+      }
+    }
+
     int packetsLost = 0;
     int packetsReceived = 0;
     int bytesReceived = 0;
@@ -183,6 +208,7 @@ class CallStatsMonitor {
       inKbps = (bytesReceived - _lastBytesReceived) * 8 / 1000 / elapsed;
     }
     _lastBytesReceived = bytesReceived;
+    _recordUsage(allSent, bytesReceived);
 
     final videoFps = fps ?? inboundFps;
     final quality = classifyQuality(

@@ -1,10 +1,13 @@
+import 'dart:io' show File;
 import 'dart:typed_data';
 import 'dart:ui' show Rect;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
 
 import '../backend/chat_api.dart';
+import 'document_file_cache.dart';
 import 'file_url_cache.dart';
 
 /// Hands a received document to the platform, whatever "the platform" means
@@ -33,16 +36,27 @@ class DocumentSaver {
   /// and rethrows transport failures, both of which the caller reports on the
   /// tile rather than swallowing. Shared by [save] and by the in-app text
   /// viewer, which wants the bytes to decode rather than to hand to the OS.
+  ///
+  /// Natively the bytes come through [DocumentFileCache], so a document opened
+  /// twice is downloaded once, and one auto-download already fetched opens
+  /// with no network at all. [fileName] gives the cached copy its extension.
   static Future<Uint8List> fetchBytes({
     required ChatApi api,
     required String storageId,
+    String? fileName,
   }) async {
     // Null rather than a throw on a miss — see `FileUrlCache.resolve`, which
     // deliberately doesn't cache the absence either.
-    final url = await FileUrlCache.instance.resolve(
-      storageId,
-      () => api.getFileUrl(storageId),
-    );
+    Future<String?> resolveUrl() => FileUrlCache.instance.resolve(
+          storageId,
+          () => api.getFileUrl(storageId),
+        );
+    if (!kIsWeb) {
+      final path = await DocumentFileCache.instance
+          .resolve(storageId, resolveUrl, fileName: fileName);
+      return File(path).readAsBytes();
+    }
+    final url = await resolveUrl();
     if (url == null) throw const FileUnavailable();
 
     final resp = await http.get(Uri.parse(url));
@@ -62,7 +76,8 @@ class DocumentSaver {
     required String mimeType,
     Rect? originRect,
   }) async {
-    final Uint8List bytes = await fetchBytes(api: api, storageId: storageId);
+    final Uint8List bytes =
+        await fetchBytes(api: api, storageId: storageId, fileName: fileName);
 
     await SharePlus.instance.share(
       ShareParams(

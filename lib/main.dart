@@ -13,6 +13,9 @@ import 'companions/brain_manager.dart';
 import 'companions/device_capability.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_boot.dart';
+import 'media/storage/data_usage_store.dart';
+import 'media/storage/media_ledger.dart';
+import 'media/storage/network_kind.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
@@ -113,6 +116,10 @@ Future<void> main() async {
     SettingsStore.instance.load(),
     FileUrlCache.instance.load(),
     MediaAspectCache.instance.load(),
+    // The storage ledger and data usage counters: both small JSON reads, and
+    // both written to by the first frame's message bubbles and downloads.
+    MediaLedger.instance.load(),
+    DataUsageStore.instance.load(),
     // One hop, in parallel with the rest, so the shell's first frame already
     // knows whether iOS is drawing the bottom bar.
     NativeChrome.init(),
@@ -135,6 +142,9 @@ Future<void> main() async {
   await ServerDirectory.instance.load();
 
   PaintingBinding.instance.imageCache.maximumSize = 1500;
+
+  // Wi-Fi or cellular, for auto-download, data usage and the calls data saver.
+  NetworkKindMonitor.instance.start();
 
   if (kIsWeb) {
     await BrowserContextMenu.disableContextMenu();

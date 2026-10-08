@@ -1,8 +1,11 @@
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../data/settings_store.dart';
+import '../media/storage/network_kind.dart';
 import 'call_models.dart';
 
 /// Shared media plumbing for both the 1:1 [CallService] and the group-call
@@ -226,18 +229,39 @@ Future<void> configureVideoSenders(
   RTCPeerConnection pc, {
   int maxBitrate = 1200000,
 }) async {
+  // Use Less Data for Calls (Data and Storage) caps every path here, 1:1 and
+  // group alike, because every path tunes its senders through this function.
+  final saving = callsSaveData;
   try {
     final senders = await pc.getSenders();
     for (final sender in senders) {
-      if (sender.track?.kind != 'video') continue;
+      final kind = sender.track?.kind;
+      if (kind == 'audio' && saving) {
+        // Opus stays intelligible well below this; it is what a voice call
+        // on a weak cellular link negotiates down to anyway.
+        final params = sender.parameters;
+        var encodings = params.encodings;
+        if (encodings == null || encodings.isEmpty) {
+          encodings = [RTCRtpEncoding()];
+        }
+        for (final e in encodings) {
+          e.maxBitrate = kDataSaverAudioBitrate;
+        }
+        params.encodings = encodings;
+        await sender.setParameters(params);
+        continue;
+      }
+      if (kind != 'video') continue;
       final params = sender.parameters;
       var encodings = params.encodings;
       if (encodings == null || encodings.isEmpty) {
         encodings = [RTCRtpEncoding()];
       }
       for (final e in encodings) {
-        e.maxBitrate = maxBitrate;
-        e.maxFramerate = 30;
+        e.maxBitrate = saving
+            ? math.min(maxBitrate, kDataSaverVideoBitrate)
+            : maxBitrate;
+        e.maxFramerate = saving ? 20 : 30;
       }
       params.encodings = encodings;
       params.degradationPreference =
@@ -249,6 +273,18 @@ Future<void> configureVideoSenders(
     debugPrint('configureVideoSenders skipped: $e');
   }
 }
+
+/// Video ceiling while the calls data saver applies: enough for a clear face
+/// at 360p, roughly a fifth of what the default tier spends.
+const int kDataSaverVideoBitrate = 280000;
+
+/// Audio ceiling while the calls data saver applies.
+const int kDataSaverAudioBitrate = 24000;
+
+/// Whether calls should spend less data right now, from the user's rule and
+/// the network the device is on.
+bool get callsSaveData => SettingsStore.instance.dataPrefs
+    .callsSaveData(NetworkKindMonitor.instance.current);
 
 /// Reorder video codecs to prefer H.264 — hardware encode/decode on both
 /// iOS (VideoToolbox) and most Android chipsets, far cooler than software

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../backend/chat_api.dart';
+import 'storage/data_usage_store.dart';
 
 /// Thrown when an upload is stopped on purpose — the user discarded the message,
 /// or left and the repository gave up on it.
@@ -96,13 +97,18 @@ class UploadService {
   }) async {
     final url = await _api.generateUploadUrl();
     if (task?.cancelled ?? false) throw const UploadCancelled();
-    return _upload(
+    final id = await _upload(
       url: url,
       bytes: bytes,
       contentType: contentType,
       onProgress: kIsWeb ? null : onProgress,
       task: task,
     );
+    // Counted once it has landed. A failed attempt moved bytes too, but the
+    // retry will count them again, and twice-counted is the worse lie.
+    DataUsageStore.instance
+        .record(UsageKind.forUpload(contentType), sent: bytes.length);
+    return id;
   }
 
   Future<String> _upload({

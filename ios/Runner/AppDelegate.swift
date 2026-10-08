@@ -1138,6 +1138,19 @@ import flutter_callkit_incoming
           info["powerSaveMode"] = ProcessInfo.processInfo.isLowPowerModeEnabled
           info["refreshRate"] = UIScreen.main.maximumFramesPerSecond
           result(info)
+        case "getDiskSpace":
+          // For Data and Storage's "uses N% of your free space". The
+          // important-usage figure is what iOS Settings shows as available:
+          // it counts space the system would purge for a user-initiated save.
+          let home = URL(fileURLWithPath: NSHomeDirectory())
+          let values = try? home.resourceValues(forKeys: [
+            .volumeAvailableCapacityForImportantUsageKey,
+            .volumeTotalCapacityKey,
+          ])
+          result([
+            "free": NSNumber(value: values?.volumeAvailableCapacityForImportantUsage ?? 0),
+            "total": NSNumber(value: values?.volumeTotalCapacity ?? 0),
+          ])
         default:
           result(FlutterMethodNotImplemented)
         }

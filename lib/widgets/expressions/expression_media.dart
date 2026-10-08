@@ -13,6 +13,8 @@ import '../../backend/chat_api.dart';
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/file_url_cache.dart';
+import '../../media/storage/data_usage_store.dart';
+import '../../media/storage/media_image_cache.dart';
 import '../../models/enums.dart';
 import '../../models/expression_item.dart';
 import '../../theme/motion.dart';
@@ -165,6 +167,8 @@ class KlipyCacheManager extends CacheManager {
           // SDWebImage's default disk age, which is what KLIPY's iOS demo ships.
           stalePeriod: _stale,
           maxNrOfCacheObjects: 400,
+          // Counted as stickers in Data Usage.
+          fileService: CountingFileService(kindFor: (_) => UsageKind.stickers),
         ));
   static final KlipyCacheManager instance = KlipyCacheManager._();
   static const _stale = Duration(days: 7);
@@ -244,7 +248,7 @@ class KlipyImage extends StatelessWidget {
 /// Loads and caches Lottie compositions for sticker files in our storage.
 ///
 /// Two layers, the same split `RemoteImage` makes: the file on disk through
-/// [DefaultCacheManager] (our own files, apart from KLIPY's store), and the
+/// [MediaImageCache] (our own files, apart from KLIPY's store), and the
 /// parsed composition in memory, because parsing a Lottie
 /// document is the expensive part and a picker scrolls past the same sticker
 /// many times.
@@ -280,7 +284,9 @@ class LottieCache {
         if (res.statusCode != 200) return null;
         bytes = res.bodyBytes;
       } else {
-        final file = await DefaultCacheManager().getSingleFile(url, key: key);
+        MediaImageCache.bind(url, key);
+        final file =
+            await MediaImageCache.manager.getSingleFile(url, key: key);
         bytes = await file.readAsBytes();
       }
       final comp = await LottieComposition.fromBytes(bytes);

@@ -11239,4 +11239,392 @@ class AppLocalizationsSv extends AppLocalizations {
     );
     return '$name och $_temp0';
   }
+
+  @override
+  String get storageKindPhotos => 'Bilder';
+
+  @override
+  String get storageKindVideos => 'Videor';
+
+  @override
+  String get storageKindVideoMessages => 'Videonotiser';
+
+  @override
+  String get storageKindVoice => 'Röstmeddelanden';
+
+  @override
+  String get storageKindFiles => 'Filer';
+
+  @override
+  String get storageKindStickers => 'Klistermärken och GIF:ar';
+
+  @override
+  String get storageKindChatHistory => 'Chatthistorik';
+
+  @override
+  String get storageKindOther => 'Övrigt';
+
+  @override
+  String get dataUsageKindCalls => 'Samtal';
+
+  @override
+  String get dataStorageTitle => 'Data och lagring';
+
+  @override
+  String get settingsSearchKwDataStorage =>
+      'lagring cache minne utrymme rensa ladda ner automatisk nedladdning dataanvändning mobildata mobil wifi spara bilder galleri storage';
+
+  @override
+  String get storageUsageTitle => 'Lagringsanvändning';
+
+  @override
+  String get dataUsageTitle => 'Dataanvändning';
+
+  @override
+  String get dataStorageAutoDownloadHeader => 'Automatisk nedladdning av media';
+
+  @override
+  String get dataStorageUsingCellular => 'Med mobildata';
+
+  @override
+  String get dataStorageUsingWifi => 'Med Wi-Fi';
+
+  @override
+  String get dataStorageNowTag => 'Nu';
+
+  @override
+  String get autoDownloadReset => 'Återställ automatisk nedladdning';
+
+  @override
+  String get autoDownloadResetTitle =>
+      'Återställa standardinställningarna för automatisk nedladdning?';
+
+  @override
+  String get dataStorageSaveHeader => 'Spara i Bilder';
+
+  @override
+  String get dataStorageSaveFooter =>
+      'Spara nya bilder och videor från de här chattarna automatiskt i ditt bildbibliotek.';
+
+  @override
+  String get dataStorageCallsHeader => 'Samtal';
+
+  @override
+  String get dataStorageLessDataForCalls => 'Använd mindre data för samtal';
+
+  @override
+  String get dataStorageCallsFooter =>
+      'Använder mindre data på svaga eller begränsade nätverk, med något lägre ljud- och videokvalitet.';
+
+  @override
+  String get dataStorageCallsNever => 'Aldrig';
+
+  @override
+  String get dataStorageCallsCellular => 'Med mobildata';
+
+  @override
+  String get dataStorageCallsAlways => 'Alltid';
+
+  @override
+  String get dataStorageOff => 'Av';
+
+  @override
+  String get dataStorageChatsPrivate => 'Privata chattar';
+
+  @override
+  String get dataStorageChatsGroups => 'Grupper';
+
+  @override
+  String get dataStorageChatsPublic => 'Offentliga rum';
+
+  @override
+  String get dataStorageNetCellular => 'Mobildata';
+
+  @override
+  String get dataStorageNetWifi => 'Wi-Fi';
+
+  @override
+  String get autoDownloadMaster => 'Ladda ner media automatiskt';
+
+  @override
+  String get autoDownloadUsageHeader => 'Dataanvändning';
+
+  @override
+  String get autoDownloadPresetLow => 'Låg';
+
+  @override
+  String get autoDownloadPresetMedium => 'Medel';
+
+  @override
+  String get autoDownloadPresetHigh => 'Hög';
+
+  @override
+  String get autoDownloadCustomFooter =>
+      'Du har anpassat inställningarna. Dra i reglaget för att byta tillbaka till en förinställning.';
+
+  @override
+  String get autoDownloadTypesHeader => 'Medietyper';
+
+  @override
+  String get autoDownloadVideosTitle => 'Videor och videonotiser';
+
+  @override
+  String get autoDownloadVoiceFooter =>
+      'Röstmeddelanden och klistermärken är små, så de laddas alltid ner automatiskt.';
+
+  @override
+  String get autoDownloadAllChats => 'Alla chattar';
+
+  @override
+  String autoDownloadUpToIn(String size, String chats) {
+    return 'Upp till $size i $chats';
+  }
+
+  @override
+  String autoDownloadSummaryUpTo(String kind, String size) {
+    return '$kind upp till $size';
+  }
+
+  @override
+  String get autoDownloadSummaryVoiceOnly => 'Bara röstmeddelanden';
+
+  @override
+  String get autoDownloadInHeader => 'Ladda ner automatiskt i';
+
+  @override
+  String get autoDownloadMaxSizeHeader => 'Maximal filstorlek';
+
+  @override
+  String autoDownloadMaxSizeVideoFooter(String size) {
+    return 'Videor upp till $size laddas ner automatiskt. Större väntar tills du trycker.';
+  }
+
+  @override
+  String autoDownloadMaxSizeFileFooter(String size) {
+    return 'Filer upp till $size laddas ner automatiskt. Större väntar tills du trycker.';
+  }
+
+  @override
+  String get autoDownloadGateLoad => 'Ladda ner bild';
+
+  @override
+  String get saveToPhotosHeader => 'Spara automatiskt';
+
+  @override
+  String get saveToPhotosFooter =>
+      'Nya bilder och videor du får i de här chattarna läggs till i ditt bildbibliotek när de laddas ner.';
+
+  @override
+  String get saveToPhotosMaxVideoHeader => 'Maximal videostorlek';
+
+  @override
+  String get saveToPhotosNoAccess =>
+      'Tillåt åtkomst till bildbiblioteket i Inställningar för att spara automatiskt.';
+
+  @override
+  String get saveToPhotosPhotosAndVideos => 'Bilder och videor';
+
+  @override
+  String get storageCalculating => 'Beräknar…';
+
+  @override
+  String storageShareOfFree(String percent) {
+    return 'MonkeyHub använder $percent av ditt lediga utrymme.';
+  }
+
+  @override
+  String get storageEmpty => 'Inget är cachat just nu.';
+
+  @override
+  String storageClearAllButton(String size) {
+    return 'Rensa hela cachen $size';
+  }
+
+  @override
+  String storageClearSelectedButton(String size) {
+    return 'Rensa markerade $size';
+  }
+
+  @override
+  String storageClearChatButton(String size) {
+    return 'Rensa cache $size';
+  }
+
+  @override
+  String get storageClearFooter =>
+      'Allt finns kvar i molnet och laddas ner igen när du behöver det.';
+
+  @override
+  String get storageClearAllTitle => 'Rensa hela cachen?';
+
+  @override
+  String get storageClearSelectedTitle => 'Rensa markerade objekt?';
+
+  @override
+  String get storageClearBody =>
+      'Dina meddelanden finns kvar. Media laddas ner igen när du öppnar den.';
+
+  @override
+  String storageClearConfirm(String size) {
+    return 'Rensa $size';
+  }
+
+  @override
+  String storageFreed(String size) {
+    return '$size frigjort';
+  }
+
+  @override
+  String storageCleanupTitle(String size) {
+    return 'Frigör $size';
+  }
+
+  @override
+  String get storageCleanupSubtitle => 'Media du inte har öppnat på en månad';
+
+  @override
+  String get storageCleanupAction => 'Rensa';
+
+  @override
+  String get storageCleanupFooter =>
+      'Rensar bara media som ingen har tittat på på 30 dagar. Sparade meddelanden rörs aldrig.';
+
+  @override
+  String get storageAutoRemoveHeader => 'Ta bort cachad media automatiskt';
+
+  @override
+  String get storageAutoRemoveFooter =>
+      'Media du inte har öppnat på så här länge tas bort från enheten för att spara utrymme. Den finns kvar i molnet, och Sparade meddelanden behålls alltid.';
+
+  @override
+  String get dataStorageKeepNever => 'Aldrig';
+
+  @override
+  String get dataStorageKeepMonth => '1 månad';
+
+  @override
+  String get dataStorageKeepWeek => '1 vecka';
+
+  @override
+  String get dataStorageKeepDay => '1 dag';
+
+  @override
+  String get storageLimitHeader => 'Maximal cachestorlek';
+
+  @override
+  String get storageLimitFooter =>
+      'Om cachen blir större än så tas den media du öppnade för längst tid sedan bort först.';
+
+  @override
+  String get dataStorageLimitNone => 'Ingen gräns';
+
+  @override
+  String get storageTabChats => 'Chattar';
+
+  @override
+  String get storageTabMedia => 'Media';
+
+  @override
+  String get storageTabFiles => 'Filer';
+
+  @override
+  String get storageNoChats => 'Ingen chatt har något cachat än.';
+
+  @override
+  String get storageNoMedia => 'Inga bilder eller videor är cachade än.';
+
+  @override
+  String get storageNoFiles => 'Inga filer är cachade än.';
+
+  @override
+  String get storageOpenPhoto => 'Öppna bild';
+
+  @override
+  String get storageOpenVideo => 'Öppna video';
+
+  @override
+  String get storageSelect => 'Välj';
+
+  @override
+  String storageChatShare(String percent) {
+    return 'Den här chatten använder $percent av din cache.';
+  }
+
+  @override
+  String get storageChatUnknown => 'Chatt du har lämnat';
+
+  @override
+  String dataUsageSince(String date) {
+    return 'Sedan $date';
+  }
+
+  @override
+  String get dataUsageAll => 'Alla';
+
+  @override
+  String get dataUsageNothingYet =>
+      'Inget har räknats på det här nätverket än.';
+
+  @override
+  String get dataUsageTapHint =>
+      'Tryck på en kategori för att se vad som skickats och tagits emot.';
+
+  @override
+  String get dataUsageSent => 'Skickat';
+
+  @override
+  String get dataUsageReceived => 'Mottaget';
+
+  @override
+  String get dataUsageTotalHeader => 'Total nätverksanvändning';
+
+  @override
+  String get dataUsageFootnote =>
+      'Räknar media och samtal. Själva meddelandena är små och räknas inte med.';
+
+  @override
+  String get dataUsageReset => 'Nollställ statistik';
+
+  @override
+  String get dataUsageResetTitle =>
+      'Nollställa statistiken för dataanvändning?';
+
+  @override
+  String get dataUsageResetBody => 'Räkningen börjar om från nu.';
+
+  @override
+  String get storageKindCompanions => 'Följeslagare';
+
+  @override
+  String get storageCompanionsNote =>
+      'Följeslagare rensas inte med cachen. Tryck på dem för att hantera deras nedladdningar.';
+
+  @override
+  String storageCategoryCount(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count objekt, $size',
+      one: '1 objekt, $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storageSelectAll => 'Markera alla';
+
+  @override
+  String get storageDeselectAll => 'Avmarkera alla';
+
+  @override
+  String get storageCategoryEmpty =>
+      'Inget av den här typen är cachat just nu.';
+
+  @override
+  String get storageChatHistoryFooter =>
+      'Bara kopian på den här enheten tas bort. Meddelandena finns kvar i chatten och laddas igen nästa gång du öppnar den.';
+
+  @override
+  String get storageCategoryHint =>
+      'Tryck på en kategori för att se vad den innehåller, eller på cirkeln för att lämna den utanför.';
 }

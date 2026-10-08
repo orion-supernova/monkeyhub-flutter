@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -45,6 +46,7 @@ import 'chat_style_screen.dart';
 import 'companions/companion_page.dart'
     show CompanionStorageLine, companionStatusLine;
 import 'companions/marlowe_screen.dart';
+import 'data_storage/data_storage_screen.dart';
 import 'companions/sebastian_screen.dart';
 import 'diagnostics_screen.dart';
 import 'glass_screen.dart';
@@ -394,6 +396,11 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
       );
 
+  void _openDataStorage() => _open(
+        'dataStorage',
+        (_) => DataStorageScreen(repo: widget.repo, api: widget.api),
+      );
+
   void _open(String key, WidgetBuilder builder) =>
       openSettingsDetail(context, key: key, builder: builder);
 
@@ -575,6 +582,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                   selected: _isOpen('language'),
                   onTap: () => _open('language', (_) => const LanguageScreen()),
                 ),
+                // Nothing is cached to disk on the web, so there is nothing
+                // there for this page to measure or clear.
+                if (!kIsWeb)
+                  _HubRow(
+                    icon: CupertinoIcons.tray_full_fill,
+                    tone: TileTone.green,
+                    title: l10n.dataStorageTitle,
+                    selected: _isOpen('dataStorage'),
+                    onTap: _openDataStorage,
+                  ),
                 const _IconLed(_CheckForUpdatesRow()),
                 linkUrlsToggle(),
                 autoplayToggle(),
@@ -928,6 +945,16 @@ class _SettingsScreenState extends State<SettingsScreen>
           kw: l10n.settingsSearchKwLanguage,
           enKw: en.settingsSearchKwLanguage,
           onOpen: () => _open('language', (_) => const LanguageScreen())),
+      if (!kIsWeb)
+        page('dataStorage',
+            title: l10n.dataStorageTitle,
+            enTitle: en.dataStorageTitle,
+            section: general,
+            icon: CupertinoIcons.tray_full_fill,
+            tone: TileTone.green,
+            kw: l10n.settingsSearchKwDataStorage,
+            enKw: en.settingsSearchKwDataStorage,
+            onOpen: _openDataStorage),
       live('updates',
           title: l10n.settingsHubCheckForUpdates,
           enTitle: en.settingsHubCheckForUpdates,

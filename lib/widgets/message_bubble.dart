@@ -14,6 +14,8 @@ import '../models/pending_upload.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../media/media_aspect_cache.dart';
+import '../media/storage/auto_download.dart';
+import '../media/storage/media_ledger.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
@@ -23,6 +25,7 @@ import '../screens/fullscreen_image_viewer.dart';
 import '../screens/fullscreen_video_viewer.dart';
 import '../services/link_opener.dart';
 import 'audio_message.dart';
+import 'auto_download_gate.dart';
 import 'file_message.dart';
 import 'highlight_pulse.dart';
 import 'link_confirm_sheet.dart';
@@ -258,6 +261,15 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Files this row's media in the storage ledger (which chat, which kind,
+    // last seen) and offers it to auto-download. Both are a lookup on the hot
+    // path and do real work only the first time a message is drawn.
+    final incoming = message.senderId != currentUserId;
+    MediaLedger.instance.noteMessage(message, incoming: incoming);
+    for (final photo in album) {
+      MediaLedger.instance.noteMessage(photo, incoming: incoming);
+    }
+    AutoDownload.instance.consider(message, api, incoming: incoming);
     // The bubble's shape is a user preference, so the whole row rebuilds when
     // it changes. Settings writes are rare and user-initiated, and this is
     // what makes the picker's preview take effect everywhere at once.
@@ -1589,6 +1601,7 @@ Widget buildMessageContent({
       } else if (id != null) {
         imageTile = _ImageTile(
           message: message,
+          incoming: !isMine,
           storageId: id,
           api: api,
           width: imageSize,
@@ -2527,6 +2540,7 @@ class _ViewOnceSealPainter extends CustomPainter {
 class _ImageTile extends StatefulWidget {
   const _ImageTile({
     required this.message,
+    required this.incoming,
     required this.storageId,
     required this.api,
     required this.width,
@@ -2536,6 +2550,9 @@ class _ImageTile extends StatefulWidget {
   });
 
   final ChatMessage message;
+
+  /// Someone else sent it, so auto-download rules apply to it.
+  final bool incoming;
   final String storageId;
   final ChatApi api;
   final double width;
@@ -2727,16 +2744,22 @@ class _ImageTileState extends State<_ImageTile> {
   @override
   Widget build(BuildContext context) {
     final height = ChatMetrics.mediaTileHeight(widget.width, _aspect);
-    final Widget remote = RemoteImage(
+    final Widget remote = AutoDownloadGate(
       storageId: widget.storageId,
-      api: widget.api,
-      width: widget.width,
-      height: height,
+      roomId: widget.message.roomId,
+      incoming: widget.incoming,
       borderRadius: widget.radius,
-      // Only when there is something to learn. Measuring resolves an image
-      // stream per tile, and a transcript full of photos would pay that on every
-      // one of them to be told what the sender already said.
-      onAspectRatio: _aspect == null ? _onAspect : null,
+      child: RemoteImage(
+        storageId: widget.storageId,
+        api: widget.api,
+        width: widget.width,
+        height: height,
+        borderRadius: widget.radius,
+        // Only when there is something to learn. Measuring resolves an image
+        // stream per tile, and a transcript full of photos would pay that on
+        // every one of them to be told what the sender already said.
+        onAspectRatio: _aspect == null ? _onAspect : null,
+      ),
     );
     return GestureDetector(
       onTap: _openViewer,

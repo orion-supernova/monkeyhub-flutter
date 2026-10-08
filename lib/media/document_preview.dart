@@ -102,7 +102,8 @@ class DocumentPreview {
   }) async {
     if (!nativeAvailable) return false;
     final Uint8List bytes =
-        await DocumentSaver.fetchBytes(api: api, storageId: storageId);
+        await DocumentSaver.fetchBytes(
+            api: api, storageId: storageId, fileName: fileName);
     try {
       final shown = await _channel.invokeMethod<bool>('show', {
         'bytes': bytes,

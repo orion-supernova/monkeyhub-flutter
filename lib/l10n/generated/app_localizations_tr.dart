@@ -11172,4 +11172,391 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$name ve $_temp0';
   }
+
+  @override
+  String get storageKindPhotos => 'Fotoğraflar';
+
+  @override
+  String get storageKindVideos => 'Videolar';
+
+  @override
+  String get storageKindVideoMessages => 'Video notları';
+
+  @override
+  String get storageKindVoice => 'Sesli mesajlar';
+
+  @override
+  String get storageKindFiles => 'Dosyalar';
+
+  @override
+  String get storageKindStickers => 'Çıkartmalar ve GIF\'ler';
+
+  @override
+  String get storageKindChatHistory => 'Sohbet geçmişi';
+
+  @override
+  String get storageKindOther => 'Diğer';
+
+  @override
+  String get dataUsageKindCalls => 'Aramalar';
+
+  @override
+  String get dataStorageTitle => 'Veri ve Depolama';
+
+  @override
+  String get settingsSearchKwDataStorage =>
+      'depolama önbellek bellek alan temizle indir otomatik indirme veri kullanımı hücresel mobil wifi fotoğraflara kaydet galeri storage cache';
+
+  @override
+  String get storageUsageTitle => 'Depolama Kullanımı';
+
+  @override
+  String get dataUsageTitle => 'Veri Kullanımı';
+
+  @override
+  String get dataStorageAutoDownloadHeader => 'Otomatik medya indirme';
+
+  @override
+  String get dataStorageUsingCellular => 'Hücresel Kullanırken';
+
+  @override
+  String get dataStorageUsingWifi => 'Wi-Fi Kullanırken';
+
+  @override
+  String get dataStorageNowTag => 'Şu an';
+
+  @override
+  String get autoDownloadReset => 'Otomatik indirme ayarlarını sıfırla';
+
+  @override
+  String get autoDownloadResetTitle =>
+      'Varsayılan otomatik indirme ayarları geri yüklensin mi?';
+
+  @override
+  String get dataStorageSaveHeader => 'Fotoğraflar\'a kaydet';
+
+  @override
+  String get dataStorageSaveFooter =>
+      'Bu sohbetlerdeki yeni fotoğraf ve videolar otomatik olarak fotoğraf arşivine kaydedilir.';
+
+  @override
+  String get dataStorageCallsHeader => 'Aramalar';
+
+  @override
+  String get dataStorageLessDataForCalls => 'Aramalarda daha az veri kullan';
+
+  @override
+  String get dataStorageCallsFooter =>
+      'Zayıf veya kotalı ağlarda daha az veri kullanır, ses ve görüntü kalitesi biraz düşer.';
+
+  @override
+  String get dataStorageCallsNever => 'Asla';
+
+  @override
+  String get dataStorageCallsCellular => 'Hücresel veride';
+
+  @override
+  String get dataStorageCallsAlways => 'Her zaman';
+
+  @override
+  String get dataStorageOff => 'Kapalı';
+
+  @override
+  String get dataStorageChatsPrivate => 'Özel sohbetler';
+
+  @override
+  String get dataStorageChatsGroups => 'Gruplar';
+
+  @override
+  String get dataStorageChatsPublic => 'Herkese açık odalar';
+
+  @override
+  String get dataStorageNetCellular => 'Hücresel';
+
+  @override
+  String get dataStorageNetWifi => 'Wi-Fi';
+
+  @override
+  String get autoDownloadMaster => 'Medyayı otomatik indir';
+
+  @override
+  String get autoDownloadUsageHeader => 'Veri kullanımı';
+
+  @override
+  String get autoDownloadPresetLow => 'Düşük';
+
+  @override
+  String get autoDownloadPresetMedium => 'Orta';
+
+  @override
+  String get autoDownloadPresetHigh => 'Yüksek';
+
+  @override
+  String get autoDownloadCustomFooter =>
+      'Bu ayarları özelleştirdin. Hazır ayara dönmek için kaydırıcıyı hareket ettir.';
+
+  @override
+  String get autoDownloadTypesHeader => 'Medya türleri';
+
+  @override
+  String get autoDownloadVideosTitle => 'Videolar ve video notları';
+
+  @override
+  String get autoDownloadVoiceFooter =>
+      'Sesli mesajlar ve çıkartmalar çok küçük olduğu için her zaman otomatik indirilir.';
+
+  @override
+  String get autoDownloadAllChats => 'Tüm sohbetler';
+
+  @override
+  String autoDownloadUpToIn(String size, String chats) {
+    return 'En fazla $size, $chats';
+  }
+
+  @override
+  String autoDownloadSummaryUpTo(String kind, String size) {
+    return '$kind, en fazla $size';
+  }
+
+  @override
+  String get autoDownloadSummaryVoiceOnly => 'Yalnızca sesli mesajlar';
+
+  @override
+  String get autoDownloadInHeader => 'Otomatik indirilecek yerler';
+
+  @override
+  String get autoDownloadMaxSizeHeader => 'Maksimum dosya boyutu';
+
+  @override
+  String autoDownloadMaxSizeVideoFooter(String size) {
+    return '$size boyutuna kadar videolar otomatik indirilir. Daha büyükler dokunmanı bekler.';
+  }
+
+  @override
+  String autoDownloadMaxSizeFileFooter(String size) {
+    return '$size boyutuna kadar dosyalar otomatik indirilir. Daha büyükler dokunmanı bekler.';
+  }
+
+  @override
+  String get autoDownloadGateLoad => 'Fotoğrafı indir';
+
+  @override
+  String get saveToPhotosHeader => 'Otomatik kaydet';
+
+  @override
+  String get saveToPhotosFooter =>
+      'Bu sohbetlerde aldığın yeni fotoğraf ve videolar indirildikçe fotoğraf arşivine eklenir.';
+
+  @override
+  String get saveToPhotosMaxVideoHeader => 'Maksimum video boyutu';
+
+  @override
+  String get saveToPhotosNoAccess =>
+      'Otomatik kaydetmek için Ayarlar\'dan fotoğraf arşivine erişim izni ver.';
+
+  @override
+  String get saveToPhotosPhotosAndVideos => 'Fotoğraflar ve videolar';
+
+  @override
+  String get storageCalculating => 'Hesaplanıyor…';
+
+  @override
+  String storageShareOfFree(String percent) {
+    return 'MonkeyHub boş alanının $percent kadarını kullanıyor.';
+  }
+
+  @override
+  String get storageEmpty => 'Şu an önbellekte bir şey yok.';
+
+  @override
+  String storageClearAllButton(String size) {
+    return 'Tüm önbelleği temizle $size';
+  }
+
+  @override
+  String storageClearSelectedButton(String size) {
+    return 'Seçilenleri temizle $size';
+  }
+
+  @override
+  String storageClearChatButton(String size) {
+    return 'Önbelleği temizle $size';
+  }
+
+  @override
+  String get storageClearFooter =>
+      'Her şey bulutta kalır ve ihtiyaç duyduğunda yeniden indirilir.';
+
+  @override
+  String get storageClearAllTitle => 'Tüm önbellek temizlensin mi?';
+
+  @override
+  String get storageClearSelectedTitle => 'Seçilenler temizlensin mi?';
+
+  @override
+  String get storageClearBody =>
+      'Mesajların silinmez. Medya, açtığında yeniden indirilir.';
+
+  @override
+  String storageClearConfirm(String size) {
+    return '$size temizle';
+  }
+
+  @override
+  String storageFreed(String size) {
+    return '$size boşaltıldı';
+  }
+
+  @override
+  String storageCleanupTitle(String size) {
+    return '$size boşalt';
+  }
+
+  @override
+  String get storageCleanupSubtitle => 'Bir aydır açmadığın medya';
+
+  @override
+  String get storageCleanupAction => 'Temizle';
+
+  @override
+  String get storageCleanupFooter =>
+      'Yalnızca 30 gündür kimsenin bakmadığı medyayı temizler. Kaydedilmiş Mesajlar\'a asla dokunulmaz.';
+
+  @override
+  String get storageAutoRemoveHeader => 'Önbellekteki medyayı otomatik sil';
+
+  @override
+  String get storageAutoRemoveFooter =>
+      'Bu süre boyunca açmadığın medya, yer açmak için bu cihazdan kaldırılır. Bulutta kalmaya devam eder ve Kaydedilmiş Mesajlar her zaman korunur.';
+
+  @override
+  String get dataStorageKeepNever => 'Asla';
+
+  @override
+  String get dataStorageKeepMonth => '1 ay';
+
+  @override
+  String get dataStorageKeepWeek => '1 hafta';
+
+  @override
+  String get dataStorageKeepDay => '1 gün';
+
+  @override
+  String get storageLimitHeader => 'Maksimum önbellek boyutu';
+
+  @override
+  String get storageLimitFooter =>
+      'Önbellek bu boyutu aşarsa en uzun süredir açılmayan medya önce silinir.';
+
+  @override
+  String get dataStorageLimitNone => 'Sınır yok';
+
+  @override
+  String get storageTabChats => 'Sohbetler';
+
+  @override
+  String get storageTabMedia => 'Medya';
+
+  @override
+  String get storageTabFiles => 'Dosyalar';
+
+  @override
+  String get storageNoChats => 'Henüz hiçbir sohbette önbellek yok.';
+
+  @override
+  String get storageNoMedia => 'Henüz önbellekte fotoğraf veya video yok.';
+
+  @override
+  String get storageNoFiles => 'Henüz önbellekte dosya yok.';
+
+  @override
+  String get storageOpenPhoto => 'Fotoğrafı aç';
+
+  @override
+  String get storageOpenVideo => 'Videoyu aç';
+
+  @override
+  String get storageSelect => 'Seç';
+
+  @override
+  String storageChatShare(String percent) {
+    return 'Bu sohbet önbelleğinin $percent kadarını kullanıyor.';
+  }
+
+  @override
+  String get storageChatUnknown => 'Ayrıldığın sohbet';
+
+  @override
+  String dataUsageSince(String date) {
+    return '$date tarihinden beri';
+  }
+
+  @override
+  String get dataUsageAll => 'Tümü';
+
+  @override
+  String get dataUsageNothingYet => 'Bu ağda henüz hiçbir şey sayılmadı.';
+
+  @override
+  String get dataUsageTapHint =>
+      'Gönderilen ve alınanları görmek için bir kategoriye dokun.';
+
+  @override
+  String get dataUsageSent => 'Gönderilen';
+
+  @override
+  String get dataUsageReceived => 'Alınan';
+
+  @override
+  String get dataUsageTotalHeader => 'Toplam ağ kullanımı';
+
+  @override
+  String get dataUsageFootnote =>
+      'Medya ve aramaları sayar. Mesajların kendisi çok küçük olduğundan dahil değildir.';
+
+  @override
+  String get dataUsageReset => 'İstatistikleri sıfırla';
+
+  @override
+  String get dataUsageResetTitle =>
+      'Veri kullanımı istatistikleri sıfırlansın mı?';
+
+  @override
+  String get dataUsageResetBody => 'Sayım şu andan itibaren yeniden başlar.';
+
+  @override
+  String get storageKindCompanions => 'Yoldaşlar';
+
+  @override
+  String get storageCompanionsNote =>
+      'Yoldaşlar önbellekle birlikte temizlenmez. İndirmelerini yönetmek için onlara dokun.';
+
+  @override
+  String storageCategoryCount(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count öğe, $size',
+      one: '1 öğe, $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storageSelectAll => 'Tümünü seç';
+
+  @override
+  String get storageDeselectAll => 'Seçimi kaldır';
+
+  @override
+  String get storageCategoryEmpty =>
+      'Şu anda bu türde önbelleğe alınmış bir şey yok.';
+
+  @override
+  String get storageChatHistoryFooter =>
+      'Yalnızca bu cihazdaki kopya silinir. Mesajlar sohbette kalır ve sohbeti bir sonraki açışında yeniden yüklenir.';
+
+  @override
+  String get storageCategoryHint =>
+      'İçinde ne olduğunu görmek için bir kategoriye, hariç tutmak için dairesine dokun.';
 }

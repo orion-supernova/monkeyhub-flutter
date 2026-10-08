@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../media/storage/media_ledger.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
@@ -75,6 +76,9 @@ class MediaGridTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Files this tile's media under its chat for Data and Storage: a video
+    // opened from the room's shared media never passed through a bubble.
+    MediaLedger.instance.noteSeen(message);
     final theme = ThemeScope.of(context);
     // A video prefers its poster; the raw video id would resolve to a URL
     // `RemoteImage` cannot decode, which renders as a broken tile rather than

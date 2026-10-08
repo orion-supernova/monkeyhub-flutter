@@ -11326,4 +11326,395 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$name y $_temp0';
   }
+
+  @override
+  String get storageKindPhotos => 'Fotos';
+
+  @override
+  String get storageKindVideos => 'Vídeos';
+
+  @override
+  String get storageKindVideoMessages => 'Notas de vídeo';
+
+  @override
+  String get storageKindVoice => 'Mensajes de voz';
+
+  @override
+  String get storageKindFiles => 'Archivos';
+
+  @override
+  String get storageKindStickers => 'Stickers y GIFs';
+
+  @override
+  String get storageKindChatHistory => 'Historial de chats';
+
+  @override
+  String get storageKindOther => 'Otros';
+
+  @override
+  String get dataUsageKindCalls => 'Llamadas';
+
+  @override
+  String get dataStorageTitle => 'Datos y almacenamiento';
+
+  @override
+  String get settingsSearchKwDataStorage =>
+      'almacenamiento caché memoria espacio borrar descargar descarga automática datos uso de datos móviles wifi guardar fotos galería storage cache';
+
+  @override
+  String get storageUsageTitle => 'Uso del almacenamiento';
+
+  @override
+  String get dataUsageTitle => 'Uso de datos';
+
+  @override
+  String get dataStorageAutoDownloadHeader =>
+      'Descarga automática de multimedia';
+
+  @override
+  String get dataStorageUsingCellular => 'Con datos móviles';
+
+  @override
+  String get dataStorageUsingWifi => 'Con Wi-Fi';
+
+  @override
+  String get dataStorageNowTag => 'Ahora';
+
+  @override
+  String get autoDownloadReset => 'Restablecer descarga automática';
+
+  @override
+  String get autoDownloadResetTitle =>
+      '¿Restaurar los ajustes predeterminados de descarga automática?';
+
+  @override
+  String get dataStorageSaveHeader => 'Guardar en Fotos';
+
+  @override
+  String get dataStorageSaveFooter =>
+      'Guarda automáticamente las fotos y vídeos nuevos de estos chats en tu fototeca.';
+
+  @override
+  String get dataStorageCallsHeader => 'Llamadas';
+
+  @override
+  String get dataStorageLessDataForCalls => 'Usar menos datos en llamadas';
+
+  @override
+  String get dataStorageCallsFooter =>
+      'Usa menos datos en redes débiles o con límite, con una calidad de audio y vídeo un poco menor.';
+
+  @override
+  String get dataStorageCallsNever => 'Nunca';
+
+  @override
+  String get dataStorageCallsCellular => 'Con datos móviles';
+
+  @override
+  String get dataStorageCallsAlways => 'Siempre';
+
+  @override
+  String get dataStorageOff => 'Desactivado';
+
+  @override
+  String get dataStorageChatsPrivate => 'Chats privados';
+
+  @override
+  String get dataStorageChatsGroups => 'Grupos';
+
+  @override
+  String get dataStorageChatsPublic => 'Salas públicas';
+
+  @override
+  String get dataStorageNetCellular => 'Datos móviles';
+
+  @override
+  String get dataStorageNetWifi => 'Wi-Fi';
+
+  @override
+  String get autoDownloadMaster => 'Descargar multimedia automáticamente';
+
+  @override
+  String get autoDownloadUsageHeader => 'Uso de datos';
+
+  @override
+  String get autoDownloadPresetLow => 'Bajo';
+
+  @override
+  String get autoDownloadPresetMedium => 'Medio';
+
+  @override
+  String get autoDownloadPresetHigh => 'Alto';
+
+  @override
+  String get autoDownloadCustomFooter =>
+      'Personalizaste estos ajustes. Mueve el control para volver a un preajuste.';
+
+  @override
+  String get autoDownloadTypesHeader => 'Tipos de multimedia';
+
+  @override
+  String get autoDownloadVideosTitle => 'Vídeos y notas de vídeo';
+
+  @override
+  String get autoDownloadVoiceFooter =>
+      'Los mensajes de voz y los stickers ocupan muy poco, así que siempre se descargan automáticamente.';
+
+  @override
+  String get autoDownloadAllChats => 'Todos los chats';
+
+  @override
+  String autoDownloadUpToIn(String size, String chats) {
+    return 'Hasta $size en $chats';
+  }
+
+  @override
+  String autoDownloadSummaryUpTo(String kind, String size) {
+    return '$kind hasta $size';
+  }
+
+  @override
+  String get autoDownloadSummaryVoiceOnly => 'Solo mensajes de voz';
+
+  @override
+  String get autoDownloadInHeader => 'Descargar automáticamente en';
+
+  @override
+  String get autoDownloadMaxSizeHeader => 'Tamaño máximo de archivo';
+
+  @override
+  String autoDownloadMaxSizeVideoFooter(String size) {
+    return 'Los vídeos de hasta $size se descargan automáticamente. Los más grandes esperan a que los toques.';
+  }
+
+  @override
+  String autoDownloadMaxSizeFileFooter(String size) {
+    return 'Los archivos de hasta $size se descargan automáticamente. Los más grandes esperan a que los toques.';
+  }
+
+  @override
+  String get autoDownloadGateLoad => 'Descargar foto';
+
+  @override
+  String get saveToPhotosHeader => 'Guardar automáticamente';
+
+  @override
+  String get saveToPhotosFooter =>
+      'Las fotos y vídeos nuevos que recibas en estos chats se añaden a tu fototeca al descargarse.';
+
+  @override
+  String get saveToPhotosMaxVideoHeader => 'Tamaño máximo de vídeo';
+
+  @override
+  String get saveToPhotosNoAccess =>
+      'Permite el acceso a la fototeca en Ajustes para guardar automáticamente.';
+
+  @override
+  String get saveToPhotosPhotosAndVideos => 'Fotos y vídeos';
+
+  @override
+  String get storageCalculating => 'Calculando…';
+
+  @override
+  String storageShareOfFree(String percent) {
+    return 'MonkeyHub usa el $percent de tu espacio libre.';
+  }
+
+  @override
+  String get storageEmpty => 'No hay nada en caché ahora mismo.';
+
+  @override
+  String storageClearAllButton(String size) {
+    return 'Borrar toda la caché $size';
+  }
+
+  @override
+  String storageClearSelectedButton(String size) {
+    return 'Borrar selección $size';
+  }
+
+  @override
+  String storageClearChatButton(String size) {
+    return 'Borrar caché $size';
+  }
+
+  @override
+  String get storageClearFooter =>
+      'Todo sigue en la nube y se vuelve a descargar cuando lo necesites.';
+
+  @override
+  String get storageClearAllTitle => '¿Borrar toda la caché?';
+
+  @override
+  String get storageClearSelectedTitle =>
+      '¿Borrar los elementos seleccionados?';
+
+  @override
+  String get storageClearBody =>
+      'Tus mensajes se quedan. El contenido multimedia se vuelve a descargar al abrirlo.';
+
+  @override
+  String storageClearConfirm(String size) {
+    return 'Borrar $size';
+  }
+
+  @override
+  String storageFreed(String size) {
+    return '$size liberados';
+  }
+
+  @override
+  String storageCleanupTitle(String size) {
+    return 'Liberar $size';
+  }
+
+  @override
+  String get storageCleanupSubtitle =>
+      'Multimedia que no abres desde hace un mes';
+
+  @override
+  String get storageCleanupAction => 'Limpiar';
+
+  @override
+  String get storageCleanupFooter =>
+      'Solo borra el contenido que nadie ha visto en 30 días. Mensajes guardados nunca se toca.';
+
+  @override
+  String get storageAutoRemoveHeader =>
+      'Eliminar multimedia en caché automáticamente';
+
+  @override
+  String get storageAutoRemoveFooter =>
+      'El contenido que no abras durante este tiempo se quita del dispositivo para ahorrar espacio. Sigue en la nube, y Mensajes guardados siempre se conserva.';
+
+  @override
+  String get dataStorageKeepNever => 'Nunca';
+
+  @override
+  String get dataStorageKeepMonth => '1 mes';
+
+  @override
+  String get dataStorageKeepWeek => '1 semana';
+
+  @override
+  String get dataStorageKeepDay => '1 día';
+
+  @override
+  String get storageLimitHeader => 'Tamaño máximo de caché';
+
+  @override
+  String get storageLimitFooter =>
+      'Si la caché supera este tamaño, se elimina primero el contenido que abriste hace más tiempo.';
+
+  @override
+  String get dataStorageLimitNone => 'Sin límite';
+
+  @override
+  String get storageTabChats => 'Chats';
+
+  @override
+  String get storageTabMedia => 'Multimedia';
+
+  @override
+  String get storageTabFiles => 'Archivos';
+
+  @override
+  String get storageNoChats => 'Ningún chat tiene nada en caché todavía.';
+
+  @override
+  String get storageNoMedia => 'Todavía no hay fotos ni vídeos en caché.';
+
+  @override
+  String get storageNoFiles => 'Todavía no hay archivos en caché.';
+
+  @override
+  String get storageOpenPhoto => 'Abrir foto';
+
+  @override
+  String get storageOpenVideo => 'Abrir vídeo';
+
+  @override
+  String get storageSelect => 'Seleccionar';
+
+  @override
+  String storageChatShare(String percent) {
+    return 'Este chat usa el $percent de tu caché.';
+  }
+
+  @override
+  String get storageChatUnknown => 'Chat que dejaste';
+
+  @override
+  String dataUsageSince(String date) {
+    return 'Desde $date';
+  }
+
+  @override
+  String get dataUsageAll => 'Todas';
+
+  @override
+  String get dataUsageNothingYet => 'Aún no se ha contado nada en esta red.';
+
+  @override
+  String get dataUsageTapHint =>
+      'Toca una categoría para ver lo enviado y lo recibido.';
+
+  @override
+  String get dataUsageSent => 'Enviado';
+
+  @override
+  String get dataUsageReceived => 'Recibido';
+
+  @override
+  String get dataUsageTotalHeader => 'Uso total de red';
+
+  @override
+  String get dataUsageFootnote =>
+      'Cuenta multimedia y llamadas. Los mensajes en sí ocupan muy poco y no se incluyen.';
+
+  @override
+  String get dataUsageReset => 'Restablecer estadísticas';
+
+  @override
+  String get dataUsageResetTitle =>
+      '¿Restablecer las estadísticas de uso de datos?';
+
+  @override
+  String get dataUsageResetBody => 'El conteo empieza de nuevo desde ahora.';
+
+  @override
+  String get storageKindCompanions => 'Compañeros';
+
+  @override
+  String get storageCompanionsNote =>
+      'Los compañeros no se borran con la caché. Tócalos para gestionar sus descargas.';
+
+  @override
+  String storageCategoryCount(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elementos, $size',
+      one: '1 elemento, $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storageSelectAll => 'Seleccionar todo';
+
+  @override
+  String get storageDeselectAll => 'Deseleccionar';
+
+  @override
+  String get storageCategoryEmpty =>
+      'Ahora mismo no hay nada de este tipo en caché.';
+
+  @override
+  String get storageChatHistoryFooter =>
+      'Solo se elimina la copia de este dispositivo. Los mensajes siguen en el chat y se vuelven a cargar la próxima vez que lo abras.';
+
+  @override
+  String get storageCategoryHint =>
+      'Toca una categoría para ver qué contiene, o su círculo para dejarla fuera.';
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../media/file_url_cache.dart';
+import '../media/storage/media_image_cache.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
@@ -13,8 +14,9 @@ import '../theme/theme_scope.dart';
 /// Two layers of caching, because the old implementation had neither and images
 /// visibly reloaded on every screen entry:
 ///
-///  * **Bytes** — [CachedNetworkImage] keeps them on disk across launches and
-///    honors the `cache-control: private, max-age=2592000` Convex already sends.
+///  * **Bytes** — [CachedNetworkImage] keeps them on disk across launches, in
+///    [MediaImageCache]'s store: the one Data and Storage measures, counts the
+///    data of and clears.
 ///    Plain `Image.network` has no persistent cache at all on mobile, so a cold
 ///    start re-downloaded every avatar.
 ///  * **Decode size** — every load is capped to the pixels actually painted.
@@ -170,6 +172,7 @@ class _RemoteImageState extends State<RemoteImage> {
   void _bind() {
     final known = FileUrlCache.instance.peek(widget.storageId);
     if (known != null) {
+      MediaImageCache.bind(known, widget.storageId);
       _url = known;
       _wasCold = false;
       return;
@@ -190,6 +193,7 @@ class _RemoteImageState extends State<RemoteImage> {
         setState(() => _error = const FileUnavailable());
         return;
       }
+      MediaImageCache.bind(url, id);
       setState(() => _url = url);
     }).catchError((Object e) {
       if (!mounted || widget.storageId != id) return;
@@ -231,7 +235,7 @@ class _RemoteImageState extends State<RemoteImage> {
     final provider = ResizeImage.resizeIfNeeded(
       decode.width,
       decode.height,
-      CachedNetworkImageProvider(url),
+      CachedNetworkImageProvider(url, cacheManager: MediaImageCache.manager),
     );
     final stream = provider.resolve(ImageConfiguration.empty);
     final listener = ImageStreamListener((info, _) {
@@ -291,6 +295,7 @@ class _RemoteImageState extends State<RemoteImage> {
       borderRadius: radius,
       child: CachedNetworkImage(
         imageUrl: _url!,
+        cacheManager: MediaImageCache.manager,
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
@@ -312,6 +317,7 @@ class _RemoteImageState extends State<RemoteImage> {
     if (lowRes != null) {
       return CachedNetworkImage(
         imageUrl: url,
+        cacheManager: MediaImageCache.manager,
         width: widget.width,
         height: widget.height,
         fit: widget.fit,

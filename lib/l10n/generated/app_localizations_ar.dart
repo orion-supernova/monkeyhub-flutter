@@ -11381,4 +11381,394 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$name و$_temp0';
   }
+
+  @override
+  String get storageKindPhotos => 'الصور';
+
+  @override
+  String get storageKindVideos => 'الفيديوهات';
+
+  @override
+  String get storageKindVideoMessages => 'ملاحظات الفيديو';
+
+  @override
+  String get storageKindVoice => 'الرسائل الصوتية';
+
+  @override
+  String get storageKindFiles => 'الملفات';
+
+  @override
+  String get storageKindStickers => 'الملصقات وصور GIF';
+
+  @override
+  String get storageKindChatHistory => 'سجل الدردشات';
+
+  @override
+  String get storageKindOther => 'أخرى';
+
+  @override
+  String get dataUsageKindCalls => 'المكالمات';
+
+  @override
+  String get dataStorageTitle => 'البيانات والتخزين';
+
+  @override
+  String get settingsSearchKwDataStorage =>
+      'تخزين ذاكرة مؤقتة كاش مساحة مسح تنزيل تنزيل تلقائي استخدام البيانات خلوي جوال واي فاي wifi حفظ الصور معرض storage cache';
+
+  @override
+  String get storageUsageTitle => 'استخدام التخزين';
+
+  @override
+  String get dataUsageTitle => 'استخدام البيانات';
+
+  @override
+  String get dataStorageAutoDownloadHeader => 'التنزيل التلقائي للوسائط';
+
+  @override
+  String get dataStorageUsingCellular => 'عند استخدام الخلوي';
+
+  @override
+  String get dataStorageUsingWifi => 'عند استخدام Wi-Fi';
+
+  @override
+  String get dataStorageNowTag => 'الآن';
+
+  @override
+  String get autoDownloadReset => 'إعادة ضبط إعدادات التنزيل التلقائي';
+
+  @override
+  String get autoDownloadResetTitle =>
+      'هل تريد استعادة إعدادات التنزيل التلقائي الافتراضية؟';
+
+  @override
+  String get dataStorageSaveHeader => 'حفظ في الصور';
+
+  @override
+  String get dataStorageSaveFooter =>
+      'احفظ الصور ومقاطع الفيديو الجديدة من هذه الدردشات تلقائيًا في مكتبة الصور.';
+
+  @override
+  String get dataStorageCallsHeader => 'المكالمات';
+
+  @override
+  String get dataStorageLessDataForCalls => 'استخدام بيانات أقل للمكالمات';
+
+  @override
+  String get dataStorageCallsFooter =>
+      'يستخدم بيانات أقل على الشبكات الضعيفة أو المحدودة، مع جودة صوت وفيديو أقل قليلًا.';
+
+  @override
+  String get dataStorageCallsNever => 'أبدًا';
+
+  @override
+  String get dataStorageCallsCellular => 'على الخلوي';
+
+  @override
+  String get dataStorageCallsAlways => 'دائمًا';
+
+  @override
+  String get dataStorageOff => 'مُعطّل';
+
+  @override
+  String get dataStorageChatsPrivate => 'الدردشات الخاصة';
+
+  @override
+  String get dataStorageChatsGroups => 'المجموعات';
+
+  @override
+  String get dataStorageChatsPublic => 'الغرف العامة';
+
+  @override
+  String get dataStorageNetCellular => 'الخلوي';
+
+  @override
+  String get dataStorageNetWifi => 'Wi-Fi';
+
+  @override
+  String get autoDownloadMaster => 'تنزيل الوسائط تلقائيًا';
+
+  @override
+  String get autoDownloadUsageHeader => 'استخدام البيانات';
+
+  @override
+  String get autoDownloadPresetLow => 'منخفض';
+
+  @override
+  String get autoDownloadPresetMedium => 'متوسط';
+
+  @override
+  String get autoDownloadPresetHigh => 'مرتفع';
+
+  @override
+  String get autoDownloadCustomFooter =>
+      'لقد خصّصت هذه الإعدادات. حرّك شريط التمرير للعودة إلى إعداد مسبق.';
+
+  @override
+  String get autoDownloadTypesHeader => 'أنواع الوسائط';
+
+  @override
+  String get autoDownloadVideosTitle => 'الفيديوهات وملاحظات الفيديو';
+
+  @override
+  String get autoDownloadVoiceFooter =>
+      'الرسائل الصوتية والملصقات صغيرة جدًا، لذا تُنزَّل تلقائيًا دائمًا.';
+
+  @override
+  String get autoDownloadAllChats => 'كل الدردشات';
+
+  @override
+  String autoDownloadUpToIn(String size, String chats) {
+    return 'حتى $size في $chats';
+  }
+
+  @override
+  String autoDownloadSummaryUpTo(String kind, String size) {
+    return '$kind حتى $size';
+  }
+
+  @override
+  String get autoDownloadSummaryVoiceOnly => 'الرسائل الصوتية فقط';
+
+  @override
+  String get autoDownloadInHeader => 'التنزيل التلقائي في';
+
+  @override
+  String get autoDownloadMaxSizeHeader => 'الحد الأقصى لحجم الملف';
+
+  @override
+  String autoDownloadMaxSizeVideoFooter(String size) {
+    return 'تُنزَّل الفيديوهات حتى $size تلقائيًا. أما الأكبر منها فتنتظر نقرة منك.';
+  }
+
+  @override
+  String autoDownloadMaxSizeFileFooter(String size) {
+    return 'تُنزَّل الملفات حتى $size تلقائيًا. أما الأكبر منها فتنتظر نقرة منك.';
+  }
+
+  @override
+  String get autoDownloadGateLoad => 'تنزيل الصورة';
+
+  @override
+  String get saveToPhotosHeader => 'الحفظ التلقائي';
+
+  @override
+  String get saveToPhotosFooter =>
+      'تُضاف الصور ومقاطع الفيديو الجديدة التي تتلقاها في هذه الدردشات إلى مكتبة الصور عند تنزيلها.';
+
+  @override
+  String get saveToPhotosMaxVideoHeader => 'الحد الأقصى لحجم الفيديو';
+
+  @override
+  String get saveToPhotosNoAccess =>
+      'اسمح بالوصول إلى مكتبة الصور من الإعدادات للحفظ التلقائي.';
+
+  @override
+  String get saveToPhotosPhotosAndVideos => 'الصور ومقاطع الفيديو';
+
+  @override
+  String get storageCalculating => 'جارٍ الحساب…';
+
+  @override
+  String storageShareOfFree(String percent) {
+    return 'يستخدم MonkeyHub نسبة $percent من المساحة المتاحة.';
+  }
+
+  @override
+  String get storageEmpty => 'لا يوجد شيء في الذاكرة المؤقتة حاليًا.';
+
+  @override
+  String storageClearAllButton(String size) {
+    return 'مسح كل الذاكرة المؤقتة $size';
+  }
+
+  @override
+  String storageClearSelectedButton(String size) {
+    return 'مسح المحدد $size';
+  }
+
+  @override
+  String storageClearChatButton(String size) {
+    return 'مسح الذاكرة المؤقتة $size';
+  }
+
+  @override
+  String get storageClearFooter =>
+      'يبقى كل شيء في السحابة ويُنزَّل مجددًا متى احتجت إليه.';
+
+  @override
+  String get storageClearAllTitle => 'هل تريد مسح كل الذاكرة المؤقتة؟';
+
+  @override
+  String get storageClearSelectedTitle => 'هل تريد مسح العناصر المحددة؟';
+
+  @override
+  String get storageClearBody =>
+      'تبقى رسائلك كما هي. تُنزَّل الوسائط مجددًا عند فتحها.';
+
+  @override
+  String storageClearConfirm(String size) {
+    return 'مسح $size';
+  }
+
+  @override
+  String storageFreed(String size) {
+    return 'تم تحرير $size';
+  }
+
+  @override
+  String storageCleanupTitle(String size) {
+    return 'تحرير $size';
+  }
+
+  @override
+  String get storageCleanupSubtitle => 'وسائط لم تفتحها منذ شهر';
+
+  @override
+  String get storageCleanupAction => 'تنظيف';
+
+  @override
+  String get storageCleanupFooter =>
+      'يمسح فقط الوسائط التي لم يفتحها أحد منذ 30 يومًا. لا تُمَسّ الرسائل المحفوظة أبدًا.';
+
+  @override
+  String get storageAutoRemoveHeader => 'الإزالة التلقائية للوسائط المؤقتة';
+
+  @override
+  String get storageAutoRemoveFooter =>
+      'تُزال الوسائط التي لم تفتحها طوال هذه المدة من هذا الجهاز لتوفير المساحة. تبقى في السحابة، وتُحفظ الرسائل المحفوظة دائمًا.';
+
+  @override
+  String get dataStorageKeepNever => 'أبدًا';
+
+  @override
+  String get dataStorageKeepMonth => 'شهر واحد';
+
+  @override
+  String get dataStorageKeepWeek => 'أسبوع واحد';
+
+  @override
+  String get dataStorageKeepDay => 'يوم واحد';
+
+  @override
+  String get storageLimitHeader => 'الحد الأقصى لحجم الذاكرة المؤقتة';
+
+  @override
+  String get storageLimitFooter =>
+      'إذا تجاوزت الذاكرة المؤقتة هذا الحجم، تُزال أولًا الوسائط التي فتحتها منذ أطول مدة.';
+
+  @override
+  String get dataStorageLimitNone => 'بلا حد';
+
+  @override
+  String get storageTabChats => 'الدردشات';
+
+  @override
+  String get storageTabMedia => 'الوسائط';
+
+  @override
+  String get storageTabFiles => 'الملفات';
+
+  @override
+  String get storageNoChats => 'لم تُخزَّن أي دردشة مؤقتًا بعد.';
+
+  @override
+  String get storageNoMedia => 'لا توجد صور أو فيديوهات مخزنة مؤقتًا بعد.';
+
+  @override
+  String get storageNoFiles => 'لا توجد ملفات مخزنة مؤقتًا بعد.';
+
+  @override
+  String get storageOpenPhoto => 'فتح الصورة';
+
+  @override
+  String get storageOpenVideo => 'فتح الفيديو';
+
+  @override
+  String get storageSelect => 'تحديد';
+
+  @override
+  String storageChatShare(String percent) {
+    return 'تستخدم هذه الدردشة $percent من الذاكرة المؤقتة.';
+  }
+
+  @override
+  String get storageChatUnknown => 'دردشة غادرتها';
+
+  @override
+  String dataUsageSince(String date) {
+    return 'منذ $date';
+  }
+
+  @override
+  String get dataUsageAll => 'الكل';
+
+  @override
+  String get dataUsageNothingYet => 'لم يُحتسب أي شيء على هذه الشبكة بعد.';
+
+  @override
+  String get dataUsageTapHint => 'اضغط على فئة لرؤية ما أُرسل وما استُلم.';
+
+  @override
+  String get dataUsageSent => 'المُرسَل';
+
+  @override
+  String get dataUsageReceived => 'المُستلَم';
+
+  @override
+  String get dataUsageTotalHeader => 'إجمالي استخدام الشبكة';
+
+  @override
+  String get dataUsageFootnote =>
+      'يحتسب الوسائط والمكالمات. الرسائل نفسها صغيرة جدًا ولا تُحتسب.';
+
+  @override
+  String get dataUsageReset => 'إعادة ضبط الإحصائيات';
+
+  @override
+  String get dataUsageResetTitle =>
+      'هل تريد إعادة ضبط إحصائيات استخدام البيانات؟';
+
+  @override
+  String get dataUsageResetBody => 'يبدأ العدّ من جديد من الآن.';
+
+  @override
+  String get storageKindCompanions => 'الرفاق';
+
+  @override
+  String get storageCompanionsNote =>
+      'لا يُمسح الرفاق مع ذاكرة التخزين المؤقت. اضغط عليهم لإدارة تنزيلاتهم.';
+
+  @override
+  String storageCategoryCount(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count عنصر، $size',
+      many: '$count عنصرًا، $size',
+      few: '$count عناصر، $size',
+      two: 'عنصران، $size',
+      one: 'عنصر واحد، $size',
+      zero: 'لا عناصر، $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storageSelectAll => 'تحديد الكل';
+
+  @override
+  String get storageDeselectAll => 'إلغاء التحديد';
+
+  @override
+  String get storageCategoryEmpty =>
+      'لا يوجد شيء من هذا النوع في ذاكرة التخزين المؤقت حاليًا.';
+
+  @override
+  String get storageChatHistoryFooter =>
+      'تتم إزالة النسخة الموجودة على هذا الجهاز فقط. تبقى الرسائل في الدردشة وتُحمَّل مجددًا عند فتحها في المرة القادمة.';
+
+  @override
+  String get storageCategoryHint =>
+      'اضغط على فئة لترى محتواها، أو على دائرتها لاستبعادها.';
 }

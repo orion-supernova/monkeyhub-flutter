@@ -13097,5 +13097,528 @@
         "type": "String"
       }
     }
+  },
+  "storageKindPhotos": "Photos",
+  "@storageKindPhotos": {
+    "description": "Storage/data usage category: photos."
+  },
+  "storageKindVideos": "Videos",
+  "@storageKindVideos": {
+    "description": "Storage/data usage category: videos."
+  },
+  "storageKindVideoMessages": "Video messages",
+  "@storageKindVideoMessages": {
+    "description": "Storage/data usage category: round video messages (video notes)."
+  },
+  "storageKindVoice": "Voice messages",
+  "@storageKindVoice": {
+    "description": "Storage/data usage category: voice messages."
+  },
+  "storageKindFiles": "Files",
+  "@storageKindFiles": {
+    "description": "Storage/data usage category: documents and files."
+  },
+  "storageKindStickers": "Stickers and GIFs",
+  "@storageKindStickers": {
+    "description": "Storage/data usage category: stickers and GIFs."
+  },
+  "storageKindChatHistory": "Chat history",
+  "@storageKindChatHistory": {
+    "description": "Storage category: the offline copy of chats kept on the device so they open instantly."
+  },
+  "storageKindOther": "Other",
+  "@storageKindOther": {
+    "description": "Storage/data usage category: avatars, link previews and anything else."
+  },
+  "dataUsageKindCalls": "Calls",
+  "@dataUsageKindCalls": {
+    "description": "Data usage category: voice and video calls."
+  },
+  "dataStorageTitle": "Data and Storage",
+  "@dataStorageTitle": {
+    "description": "Title of the Data and Storage settings page and its row in Settings."
+  },
+  "settingsSearchKwDataStorage": "storage cache memory space clear download auto download data usage cellular mobile wifi save to photos gallery",
+  "@settingsSearchKwDataStorage": {
+    "description": "Settings search keywords for Data and Storage. Space separated words people might type; not shown."
+  },
+  "storageUsageTitle": "Storage Usage",
+  "@storageUsageTitle": {
+    "description": "Title of the storage usage page and its row."
+  },
+  "dataUsageTitle": "Data Usage",
+  "@dataUsageTitle": {
+    "description": "Title of the data usage page and its row."
+  },
+  "dataStorageAutoDownloadHeader": "Automatic media download",
+  "@dataStorageAutoDownloadHeader": {
+    "description": "Section header for auto-download rules."
+  },
+  "dataStorageUsingCellular": "Using Cellular",
+  "@dataStorageUsingCellular": {
+    "description": "Row and page title: auto-download rules while on cellular/mobile data."
+  },
+  "dataStorageUsingWifi": "Using Wi-Fi",
+  "@dataStorageUsingWifi": {
+    "description": "Row and page title: auto-download rules while on Wi-Fi."
+  },
+  "dataStorageNowTag": "Now",
+  "@dataStorageNowTag": {
+    "description": "Small tag next to the network the device is currently on."
+  },
+  "autoDownloadReset": "Reset auto-download settings",
+  "@autoDownloadReset": {
+    "description": "Row/action that restores the default auto-download rules."
+  },
+  "autoDownloadResetTitle": "Restore the default auto-download settings?",
+  "@autoDownloadResetTitle": {
+    "description": "Confirmation title before resetting auto-download rules."
+  },
+  "dataStorageSaveHeader": "Save to Photos",
+  "@dataStorageSaveHeader": {
+    "description": "Section header: automatically save incoming photos/videos to the photo library."
+  },
+  "dataStorageSaveFooter": "Automatically save new photos and videos from these chats to your photo library.",
+  "@dataStorageSaveFooter": {
+    "description": "Footer under the Save to Photos section."
+  },
+  "dataStorageCallsHeader": "Calls",
+  "@dataStorageCallsHeader": {
+    "description": "Section header for call data settings."
+  },
+  "dataStorageLessDataForCalls": "Use less data for calls",
+  "@dataStorageLessDataForCalls": {
+    "description": "Row: lower call quality to use less data."
+  },
+  "dataStorageCallsFooter": "Uses less data on weak or metered networks, with slightly lower audio and video quality.",
+  "@dataStorageCallsFooter": {
+    "description": "Footer explaining the call data saver."
+  },
+  "dataStorageCallsNever": "Never",
+  "@dataStorageCallsNever": {
+    "description": "Call data saver option: never."
+  },
+  "dataStorageCallsCellular": "On cellular",
+  "@dataStorageCallsCellular": {
+    "description": "Call data saver option: only on cellular data."
+  },
+  "dataStorageCallsAlways": "Always",
+  "@dataStorageCallsAlways": {
+    "description": "Call data saver option: always."
+  },
+  "dataStorageOff": "Off",
+  "@dataStorageOff": {
+    "description": "Value meaning a rule is turned off."
+  },
+  "dataStorageChatsPrivate": "Private chats",
+  "@dataStorageChatsPrivate": {
+    "description": "Kind of chat: one to one conversations."
+  },
+  "dataStorageChatsGroups": "Groups",
+  "@dataStorageChatsGroups": {
+    "description": "Kind of chat: private group chats."
+  },
+  "dataStorageChatsPublic": "Public rooms",
+  "@dataStorageChatsPublic": {
+    "description": "Kind of chat: public, discoverable rooms."
+  },
+  "dataStorageNetCellular": "Cellular",
+  "@dataStorageNetCellular": {
+    "description": "Network type: cellular / mobile data."
+  },
+  "dataStorageNetWifi": "Wi-Fi",
+  "@dataStorageNetWifi": {
+    "description": "Network type: Wi-Fi."
+  },
+  "autoDownloadMaster": "Auto-download media",
+  "@autoDownloadMaster": {
+    "description": "Master switch for automatic media download on one network."
+  },
+  "autoDownloadUsageHeader": "Data usage",
+  "@autoDownloadUsageHeader": {
+    "description": "Section header above the Low/Medium/High slider."
+  },
+  "autoDownloadPresetLow": "Low",
+  "@autoDownloadPresetLow": {
+    "description": "Auto-download preset: low data use."
+  },
+  "autoDownloadPresetMedium": "Medium",
+  "@autoDownloadPresetMedium": {
+    "description": "Auto-download preset: medium data use."
+  },
+  "autoDownloadPresetHigh": "High",
+  "@autoDownloadPresetHigh": {
+    "description": "Auto-download preset: high data use."
+  },
+  "autoDownloadCustomFooter": "You've customized these settings. Move the slider to switch back to a preset.",
+  "@autoDownloadCustomFooter": {
+    "description": "Footer when the rules no longer match a preset."
+  },
+  "autoDownloadTypesHeader": "Types of media",
+  "@autoDownloadTypesHeader": {
+    "description": "Section header listing photos, videos, files."
+  },
+  "autoDownloadVideosTitle": "Videos and video messages",
+  "@autoDownloadVideosTitle": {
+    "description": "Row/page title for the video auto-download rule."
+  },
+  "autoDownloadVoiceFooter": "Voice messages and stickers are tiny, so they always download automatically.",
+  "@autoDownloadVoiceFooter": {
+    "description": "Footer under media types."
+  },
+  "autoDownloadAllChats": "All chats",
+  "@autoDownloadAllChats": {
+    "description": "Summary meaning a rule applies in every kind of chat."
+  },
+  "autoDownloadUpToIn": "{chats}, up to {size}",
+  "@autoDownloadUpToIn": {
+    "description": "Subtitle of a media type row: size cap and which chats. size e.g. '10 MB', chats e.g. 'All chats'.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "chats": {
+        "type": "String"
+      }
+    }
+  },
+  "autoDownloadSummaryUpTo": "{kind} up to {size}",
+  "@autoDownloadSummaryUpTo": {
+    "description": "Part of the one line summary under Using Cellular, e.g. 'Videos up to 10 MB'.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "autoDownloadSummaryVoiceOnly": "Voice messages only",
+  "@autoDownloadSummaryVoiceOnly": {
+    "description": "Summary when no photos/videos/files download automatically."
+  },
+  "autoDownloadInHeader": "Download automatically in",
+  "@autoDownloadInHeader": {
+    "description": "Section header above per chat kind switches."
+  },
+  "autoDownloadMaxSizeHeader": "Maximum file size",
+  "@autoDownloadMaxSizeHeader": {
+    "description": "Section header above the size slider."
+  },
+  "autoDownloadMaxSizeVideoFooter": "Videos up to {size} download automatically. Larger ones wait for a tap.",
+  "@autoDownloadMaxSizeVideoFooter": {
+    "description": "Footer under the video size slider.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "autoDownloadMaxSizeFileFooter": "Files up to {size} download automatically. Larger ones wait for a tap.",
+  "@autoDownloadMaxSizeFileFooter": {
+    "description": "Footer under the file size slider.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "autoDownloadGateLoad": "Download photo",
+  "@autoDownloadGateLoad": {
+    "description": "Accessibility label of the button on a photo held back by auto-download rules."
+  },
+  "saveToPhotosHeader": "Save automatically",
+  "@saveToPhotosHeader": {
+    "description": "Section header on a Save to Photos page."
+  },
+  "saveToPhotosFooter": "New photos and videos you receive in these chats are added to your photo library as they download.",
+  "@saveToPhotosFooter": {
+    "description": "Footer on a Save to Photos page."
+  },
+  "saveToPhotosMaxVideoHeader": "Maximum video size",
+  "@saveToPhotosMaxVideoHeader": {
+    "description": "Section header above the video size slider for Save to Photos."
+  },
+  "saveToPhotosNoAccess": "Allow photo library access in Settings to save automatically.",
+  "@saveToPhotosNoAccess": {
+    "description": "Toast when photo library permission is refused."
+  },
+  "saveToPhotosPhotosAndVideos": "Photos and videos",
+  "@saveToPhotosPhotosAndVideos": {
+    "description": "Value: both photos and videos are saved."
+  },
+  "storageCalculating": "Calculating…",
+  "@storageCalculating": {
+    "description": "Shown while the storage size is being measured."
+  },
+  "storageShareOfFree": "MonkeyHub uses {percent} of your free space.",
+  "@storageShareOfFree": {
+    "description": "Subtitle under the storage total. percent e.g. '3.3%'.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "storageEmpty": "Nothing is cached right now.",
+  "@storageEmpty": {
+    "description": "Subtitle when the cache is empty."
+  },
+  "storageClearAllButton": "Clear entire cache {size}",
+  "@storageClearAllButton": {
+    "description": "Button that clears every category. size e.g. '58.7 MB'.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageClearSelectedButton": "Clear selected {size}",
+  "@storageClearSelectedButton": {
+    "description": "Button that clears only the selected items or categories.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageClearChatButton": "Clear cache {size}",
+  "@storageClearChatButton": {
+    "description": "Button in a chat's storage sheet.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageClearFooter": "Everything stays in the cloud and downloads again whenever you need it.",
+  "@storageClearFooter": {
+    "description": "Footer under the clear button."
+  },
+  "storageClearAllTitle": "Clear the entire cache?",
+  "@storageClearAllTitle": {
+    "description": "Confirmation title."
+  },
+  "storageClearSelectedTitle": "Clear the selected items?",
+  "@storageClearSelectedTitle": {
+    "description": "Confirmation title."
+  },
+  "storageClearBody": "Your messages stay. Media downloads again when you open it.",
+  "@storageClearBody": {
+    "description": "Confirmation message before clearing cache."
+  },
+  "storageClearConfirm": "Clear {size}",
+  "@storageClearConfirm": {
+    "description": "Destructive confirm button. size e.g. '58.7 MB'.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageFreed": "Freed {size}",
+  "@storageFreed": {
+    "description": "Toast after clearing. size e.g. '58.7 MB'.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageCleanupTitle": "Free up {size}",
+  "@storageCleanupTitle": {
+    "description": "Cleanup suggestion row title. size e.g. '120 MB'.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageCleanupSubtitle": "Media you haven't opened in a month",
+  "@storageCleanupSubtitle": {
+    "description": "Cleanup suggestion row subtitle."
+  },
+  "storageCleanupAction": "Clean",
+  "@storageCleanupAction": {
+    "description": "Action label on the cleanup suggestion row."
+  },
+  "storageCleanupFooter": "Only clears media nobody has looked at in 30 days. Saved Messages is never touched.",
+  "@storageCleanupFooter": {
+    "description": "Footer under the cleanup suggestion."
+  },
+  "storageAutoRemoveHeader": "Auto-remove cached media",
+  "@storageAutoRemoveHeader": {
+    "description": "Section header: rules for automatically removing old cached media."
+  },
+  "storageAutoRemoveFooter": "Media you haven't opened for this long is removed from this device to save space. It stays in the cloud, and Saved Messages is always kept.",
+  "@storageAutoRemoveFooter": {
+    "description": "Footer under the auto-remove rules."
+  },
+  "dataStorageKeepNever": "Never",
+  "@dataStorageKeepNever": {
+    "description": "Auto-remove option: never remove."
+  },
+  "dataStorageKeepMonth": "1 month",
+  "@dataStorageKeepMonth": {
+    "description": "Auto-remove option: after one month."
+  },
+  "dataStorageKeepWeek": "1 week",
+  "@dataStorageKeepWeek": {
+    "description": "Auto-remove option: after one week."
+  },
+  "dataStorageKeepDay": "1 day",
+  "@dataStorageKeepDay": {
+    "description": "Auto-remove option: after one day."
+  },
+  "storageLimitHeader": "Maximum cache size",
+  "@storageLimitHeader": {
+    "description": "Section header above the cache size slider."
+  },
+  "storageLimitFooter": "If the cache grows past this, the media you opened longest ago is removed first.",
+  "@storageLimitFooter": {
+    "description": "Footer under the cache size slider."
+  },
+  "dataStorageLimitNone": "No limit",
+  "@dataStorageLimitNone": {
+    "description": "Cache size option: unlimited."
+  },
+  "storageTabChats": "Chats",
+  "@storageTabChats": {
+    "description": "Segment: storage by chat."
+  },
+  "storageTabMedia": "Media",
+  "@storageTabMedia": {
+    "description": "Segment: cached photos and videos."
+  },
+  "storageTabFiles": "Files",
+  "@storageTabFiles": {
+    "description": "Segment: cached files and voice messages."
+  },
+  "storageNoChats": "No chat has anything cached yet.",
+  "@storageNoChats": {
+    "description": "Empty state of the Chats tab."
+  },
+  "storageNoMedia": "No photos or videos are cached yet.",
+  "@storageNoMedia": {
+    "description": "Empty state of the Media tab."
+  },
+  "storageNoFiles": "No files are cached yet.",
+  "@storageNoFiles": {
+    "description": "Empty state of the Files tab."
+  },
+  "storageOpenPhoto": "Open photo",
+  "@storageOpenPhoto": {
+    "description": "Menu action on a cached media tile."
+  },
+  "storageOpenVideo": "Open video",
+  "@storageOpenVideo": {
+    "description": "Menu action on a cached media tile."
+  },
+  "storageSelect": "Select",
+  "@storageSelect": {
+    "description": "Menu action that starts selecting tiles."
+  },
+  "storageChatShare": "This chat uses {percent} of your cache.",
+  "@storageChatShare": {
+    "description": "Subtitle in a chat's storage sheet. percent e.g. '24%'.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "storageChatUnknown": "Chat you left",
+  "@storageChatUnknown": {
+    "description": "Name shown for cached media from a chat that is no longer in the chat list."
+  },
+  "dataUsageSince": "Since {date}",
+  "@dataUsageSince": {
+    "description": "Subtitle: when counting began. date is a formatted date.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dataUsageAll": "All",
+  "@dataUsageAll": {
+    "description": "Segment: all networks."
+  },
+  "dataUsageNothingYet": "Nothing has been counted on this network yet.",
+  "@dataUsageNothingYet": {
+    "description": "Empty state of data usage."
+  },
+  "dataUsageTapHint": "Tap a category to see what was sent and received.",
+  "@dataUsageTapHint": {
+    "description": "Footer under the data usage breakdown."
+  },
+  "dataUsageSent": "Sent",
+  "@dataUsageSent": {
+    "description": "Bytes sent."
+  },
+  "dataUsageReceived": "Received",
+  "@dataUsageReceived": {
+    "description": "Bytes received."
+  },
+  "dataUsageTotalHeader": "Total network usage",
+  "@dataUsageTotalHeader": {
+    "description": "Section header above sent/received totals."
+  },
+  "dataUsageFootnote": "Counts media and calls. Messages themselves are tiny and aren't included.",
+  "@dataUsageFootnote": {
+    "description": "Footer explaining what data usage measures."
+  },
+  "dataUsageReset": "Reset statistics",
+  "@dataUsageReset": {
+    "description": "Destructive row that zeroes data usage counters."
+  },
+  "dataUsageResetTitle": "Reset data usage statistics?",
+  "@dataUsageResetTitle": {
+    "description": "Confirmation title."
+  },
+  "dataUsageResetBody": "Counting starts again from now.",
+  "@dataUsageResetBody": {
+    "description": "Confirmation message."
+  },
+  "storageKindCompanions": "Companions",
+  "@storageKindCompanions": {
+    "description": "Storage category: the on-device AI companions (Sebastian, Marlowe), their brains and translation cache."
+  },
+  "storageCompanionsNote": "Companions aren't cleared with the cache. Tap them to manage their downloads.",
+  "@storageCompanionsNote": {
+    "description": "Appended to the storage footer when companions use space: they are not cleared with the cache."
+  },
+  "storageCategoryCount": "{count, plural, =1{1 item, {size}} other{{count} items, {size}}}",
+  "@storageCategoryCount": {
+    "description": "Subtitle on a storage category page: how many cached files and their total size. size e.g. '12.4 MB'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageSelectAll": "Select all",
+  "@storageSelectAll": {
+    "description": "Bar button that selects every cached item on the page."
+  },
+  "storageDeselectAll": "Deselect all",
+  "@storageDeselectAll": {
+    "description": "Bar button that clears the selection."
+  },
+  "storageCategoryEmpty": "Nothing of this kind is cached right now.",
+  "@storageCategoryEmpty": {
+    "description": "Empty state of a storage category page."
+  },
+  "storageChatHistoryFooter": "Only the copy on this device is removed. Messages stay in the chat and load again the next time you open it.",
+  "@storageChatHistoryFooter": {
+    "description": "Footer on the chat history category page and the confirm message before clearing it."
+  },
+  "storageCategoryHint": "Tap a category to see what's inside, or its circle to leave it out.",
+  "@storageCategoryHint": {
+    "description": "First sentence of the footer under the storage categories: the circle selects, the row opens."
   }
 }

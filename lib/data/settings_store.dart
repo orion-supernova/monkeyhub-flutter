@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../calls/call_models.dart' show VideoQualityTier, VideoQualityTierWire;
+import '../media/storage/data_prefs.dart';
 import '../services/launcher_icon_service.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/speaker_colors.dart';
@@ -49,6 +50,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
   static const _kStickerSuggestions = 'mh.stickerSuggestions';
+  // Every Data and Storage rule, as one JSON document. See [DataStoragePrefs].
+  static const _kDataPrefs = 'mh.dataStorage.v1';
   static const _kShowNetworkStats = 'mh.showNetworkStats';
   static const _kPhotoHd = 'mh.photoHd';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
@@ -141,6 +144,7 @@ class SettingsStore extends ChangeNotifier {
   String? _mapAppName;
   bool _autoplayExpressions = true;
   bool _stickerSuggestions = true;
+  DataStoragePrefs _dataPrefs = DataStoragePrefs.defaults;
   bool _photoHd = false;
   bool _showNetworkStats = false;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
@@ -259,6 +263,10 @@ class SettingsStore extends ChangeNotifier {
   /// Whether typing a lone emoji offers matching stickers above the composer,
   /// the way Telegram and Signal do.
   bool get stickerSuggestions => _stickerSuggestions;
+
+  /// Auto-download, save to Photos, auto-remove, the cache ceiling and the
+  /// calls data saver: everything the Data and Storage screens set.
+  DataStoragePrefs get dataPrefs => _dataPrefs;
 
   /// When `true`, the in-call warning chip expands into a live numeric
   /// stats panel (bitrate, RTT, loss, jitter, resolution/fps) instead of
@@ -590,6 +598,7 @@ class SettingsStore extends ChangeNotifier {
     _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
     _stickerSuggestions = s[_kStickerSuggestions] != 'false'; // default true
+    _dataPrefs = _decodeDataPrefs(s[_kDataPrefs]);
     final sns = s[_kShowNetworkStats];
     _showNetworkStats = sns == 'true'; // default false
     final phd = s[_kPhotoHd];
@@ -927,6 +936,21 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
     await _storage.write(
         key: _kStickerSuggestions, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setDataPrefs(DataStoragePrefs v) async {
+    _dataPrefs = v;
+    notifyListeners();
+    await _storage.write(key: _kDataPrefs, value: jsonEncode(v.toJson()));
+  }
+
+  static DataStoragePrefs _decodeDataPrefs(String? raw) {
+    if (raw == null) return DataStoragePrefs.defaults;
+    try {
+      return DataStoragePrefs.fromJson(jsonDecode(raw));
+    } catch (_) {
+      return DataStoragePrefs.defaults;
+    }
   }
 
   Future<void> setSebastianEnabled(bool v) async {

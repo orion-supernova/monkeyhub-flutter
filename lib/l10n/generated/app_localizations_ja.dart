@@ -10757,4 +10757,380 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$nameさん他$_temp0';
   }
+
+  @override
+  String get storageKindPhotos => '写真';
+
+  @override
+  String get storageKindVideos => '動画';
+
+  @override
+  String get storageKindVideoMessages => 'ビデオメッセージ';
+
+  @override
+  String get storageKindVoice => 'ボイスメッセージ';
+
+  @override
+  String get storageKindFiles => 'ファイル';
+
+  @override
+  String get storageKindStickers => 'ステッカーとGIF';
+
+  @override
+  String get storageKindChatHistory => 'チャット履歴';
+
+  @override
+  String get storageKindOther => 'その他';
+
+  @override
+  String get dataUsageKindCalls => '通話';
+
+  @override
+  String get dataStorageTitle => 'データとストレージ';
+
+  @override
+  String get settingsSearchKwDataStorage =>
+      'ストレージ キャッシュ 容量 空き容量 削除 ダウンロード 自動ダウンロード データ使用量 モバイル通信 モバイル wifi Wi-Fi 写真に保存 ギャラリー storage cache';
+
+  @override
+  String get storageUsageTitle => 'ストレージ使用量';
+
+  @override
+  String get dataUsageTitle => 'データ使用量';
+
+  @override
+  String get dataStorageAutoDownloadHeader => 'メディアの自動ダウンロード';
+
+  @override
+  String get dataStorageUsingCellular => 'モバイル通信使用時';
+
+  @override
+  String get dataStorageUsingWifi => 'Wi-Fi使用時';
+
+  @override
+  String get dataStorageNowTag => '現在';
+
+  @override
+  String get autoDownloadReset => '自動ダウンロード設定をリセット';
+
+  @override
+  String get autoDownloadResetTitle => '自動ダウンロードの設定をデフォルトに戻しますか？';
+
+  @override
+  String get dataStorageSaveHeader => '写真に保存';
+
+  @override
+  String get dataStorageSaveFooter => 'これらのチャットの新しい写真とビデオを自動的に写真ライブラリに保存します。';
+
+  @override
+  String get dataStorageCallsHeader => '通話';
+
+  @override
+  String get dataStorageLessDataForCalls => '通話のデータ使用量を節約';
+
+  @override
+  String get dataStorageCallsFooter =>
+      '電波が弱いときや従量制のネットワークでデータ使用量を抑えます。音声と映像の品質は少し下がります。';
+
+  @override
+  String get dataStorageCallsNever => 'しない';
+
+  @override
+  String get dataStorageCallsCellular => 'モバイル通信時';
+
+  @override
+  String get dataStorageCallsAlways => '常に';
+
+  @override
+  String get dataStorageOff => 'オフ';
+
+  @override
+  String get dataStorageChatsPrivate => '個人チャット';
+
+  @override
+  String get dataStorageChatsGroups => 'グループ';
+
+  @override
+  String get dataStorageChatsPublic => '公開ルーム';
+
+  @override
+  String get dataStorageNetCellular => 'モバイル通信';
+
+  @override
+  String get dataStorageNetWifi => 'Wi-Fi';
+
+  @override
+  String get autoDownloadMaster => 'メディアの自動ダウンロード';
+
+  @override
+  String get autoDownloadUsageHeader => 'データ使用量';
+
+  @override
+  String get autoDownloadPresetLow => '低';
+
+  @override
+  String get autoDownloadPresetMedium => '中';
+
+  @override
+  String get autoDownloadPresetHigh => '高';
+
+  @override
+  String get autoDownloadCustomFooter =>
+      '設定がカスタマイズされています。スライダーを動かすとプリセットに戻ります。';
+
+  @override
+  String get autoDownloadTypesHeader => 'メディアの種類';
+
+  @override
+  String get autoDownloadVideosTitle => '動画とビデオメッセージ';
+
+  @override
+  String get autoDownloadVoiceFooter =>
+      'ボイスメッセージとステッカーはサイズが小さいため、常に自動でダウンロードされます。';
+
+  @override
+  String get autoDownloadAllChats => 'すべてのチャット';
+
+  @override
+  String autoDownloadUpToIn(String size, String chats) {
+    return '$chatsで最大$size';
+  }
+
+  @override
+  String autoDownloadSummaryUpTo(String kind, String size) {
+    return '$kind（最大$size）';
+  }
+
+  @override
+  String get autoDownloadSummaryVoiceOnly => 'ボイスメッセージのみ';
+
+  @override
+  String get autoDownloadInHeader => '自動ダウンロードする場所';
+
+  @override
+  String get autoDownloadMaxSizeHeader => '最大ファイルサイズ';
+
+  @override
+  String autoDownloadMaxSizeVideoFooter(String size) {
+    return '$sizeまでの動画は自動でダウンロードされます。それより大きい動画はタップするとダウンロードされます。';
+  }
+
+  @override
+  String autoDownloadMaxSizeFileFooter(String size) {
+    return '$sizeまでのファイルは自動でダウンロードされます。それより大きいファイルはタップするとダウンロードされます。';
+  }
+
+  @override
+  String get autoDownloadGateLoad => '写真をダウンロード';
+
+  @override
+  String get saveToPhotosHeader => '自動保存';
+
+  @override
+  String get saveToPhotosFooter =>
+      'これらのチャットで受信した新しい写真とビデオは、ダウンロードされると写真ライブラリに追加されます。';
+
+  @override
+  String get saveToPhotosMaxVideoHeader => '最大動画サイズ';
+
+  @override
+  String get saveToPhotosNoAccess => '自動保存するには、設定で写真ライブラリへのアクセスを許可してください。';
+
+  @override
+  String get saveToPhotosPhotosAndVideos => '写真とビデオ';
+
+  @override
+  String get storageCalculating => '計算中…';
+
+  @override
+  String storageShareOfFree(String percent) {
+    return 'MonkeyHubは空き容量の$percentを使用しています。';
+  }
+
+  @override
+  String get storageEmpty => '現在キャッシュはありません。';
+
+  @override
+  String storageClearAllButton(String size) {
+    return 'すべてのキャッシュを削除 $size';
+  }
+
+  @override
+  String storageClearSelectedButton(String size) {
+    return '選択項目を削除 $size';
+  }
+
+  @override
+  String storageClearChatButton(String size) {
+    return 'キャッシュを削除 $size';
+  }
+
+  @override
+  String get storageClearFooter => 'すべてクラウドに残り、必要なときに再びダウンロードされます。';
+
+  @override
+  String get storageClearAllTitle => 'すべてのキャッシュを削除しますか？';
+
+  @override
+  String get storageClearSelectedTitle => '選択した項目を削除しますか？';
+
+  @override
+  String get storageClearBody => 'メッセージは消えません。メディアは開くと再びダウンロードされます。';
+
+  @override
+  String storageClearConfirm(String size) {
+    return '$sizeを削除';
+  }
+
+  @override
+  String storageFreed(String size) {
+    return '$sizeを解放しました';
+  }
+
+  @override
+  String storageCleanupTitle(String size) {
+    return '$sizeを解放';
+  }
+
+  @override
+  String get storageCleanupSubtitle => '1か月開いていないメディア';
+
+  @override
+  String get storageCleanupAction => '削除';
+
+  @override
+  String get storageCleanupFooter =>
+      '30日間誰も見ていないメディアだけを削除します。保存済みメッセージには影響しません。';
+
+  @override
+  String get storageAutoRemoveHeader => 'キャッシュしたメディアの自動削除';
+
+  @override
+  String get storageAutoRemoveFooter =>
+      'この期間開いていないメディアは、容量を節約するためこのデバイスから削除されます。クラウドには残り、保存済みメッセージは常に保持されます。';
+
+  @override
+  String get dataStorageKeepNever => 'しない';
+
+  @override
+  String get dataStorageKeepMonth => '1か月';
+
+  @override
+  String get dataStorageKeepWeek => '1週間';
+
+  @override
+  String get dataStorageKeepDay => '1日';
+
+  @override
+  String get storageLimitHeader => '最大キャッシュサイズ';
+
+  @override
+  String get storageLimitFooter =>
+      'キャッシュがこのサイズを超えると、最後に開いてから最も時間が経ったメディアから削除されます。';
+
+  @override
+  String get dataStorageLimitNone => '制限なし';
+
+  @override
+  String get storageTabChats => 'チャット';
+
+  @override
+  String get storageTabMedia => 'メディア';
+
+  @override
+  String get storageTabFiles => 'ファイル';
+
+  @override
+  String get storageNoChats => 'キャッシュされたチャットはまだありません。';
+
+  @override
+  String get storageNoMedia => 'キャッシュされた写真やビデオはまだありません。';
+
+  @override
+  String get storageNoFiles => 'キャッシュされたファイルはまだありません。';
+
+  @override
+  String get storageOpenPhoto => '写真を開く';
+
+  @override
+  String get storageOpenVideo => '動画を開く';
+
+  @override
+  String get storageSelect => '選択';
+
+  @override
+  String storageChatShare(String percent) {
+    return 'このチャットはキャッシュの$percentを使用しています。';
+  }
+
+  @override
+  String get storageChatUnknown => '退出したチャット';
+
+  @override
+  String dataUsageSince(String date) {
+    return '$date以降';
+  }
+
+  @override
+  String get dataUsageAll => 'すべて';
+
+  @override
+  String get dataUsageNothingYet => 'このネットワークではまだ何も計測されていません。';
+
+  @override
+  String get dataUsageTapHint => 'カテゴリをタップすると送受信の内訳が表示されます。';
+
+  @override
+  String get dataUsageSent => '送信';
+
+  @override
+  String get dataUsageReceived => '受信';
+
+  @override
+  String get dataUsageTotalHeader => 'ネットワーク使用量の合計';
+
+  @override
+  String get dataUsageFootnote => 'メディアと通話を計測します。メッセージ自体はごく小さいため含まれません。';
+
+  @override
+  String get dataUsageReset => '統計をリセット';
+
+  @override
+  String get dataUsageResetTitle => 'データ使用量の統計をリセットしますか？';
+
+  @override
+  String get dataUsageResetBody => '今から再びカウントを開始します。';
+
+  @override
+  String get storageKindCompanions => 'コンパニオン';
+
+  @override
+  String get storageCompanionsNote =>
+      'コンパニオンはキャッシュと一緒には削除されません。タップしてダウンロードを管理できます。';
+
+  @override
+  String storageCategoryCount(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件、$size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storageSelectAll => 'すべて選択';
+
+  @override
+  String get storageDeselectAll => '選択解除';
+
+  @override
+  String get storageCategoryEmpty => '現在、この種類のキャッシュはありません。';
+
+  @override
+  String get storageChatHistoryFooter =>
+      '削除されるのはこの端末上のコピーだけです。メッセージはチャットに残り、次に開いたときに再度読み込まれます。';
+
+  @override
+  String get storageCategoryHint => 'カテゴリをタップすると中身を表示、丸をタップすると対象から外せます。';
 }

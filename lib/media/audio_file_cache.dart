@@ -7,6 +7,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'blob_url.dart';
 import 'file_url_cache.dart';
+import 'storage/data_usage_store.dart';
+import 'storage/media_ledger.dart';
+import 'storage/storage_kinds.dart';
 
 /// Keeps a playable local copy of a stored audio file.
 ///
@@ -37,9 +40,13 @@ class AudioFileCache {
 
   static const _dirName = 'mh_audio_v1';
 
+  /// The folder under the app's cache directory, for the storage scan.
+  static const dirName = _dirName;
+
   /// Total bytes kept. A 10s AAC-LC note at 96 kbps is ~30 KB, so this holds
-  /// several hundred — far more than anyone scrolls back through.
-  static const _maxBytes = 24 * 1024 * 1024;
+  /// thousands. A backstop: the user's own ceiling, set in Data and Storage,
+  /// is enforced across every cache by `StorageService`.
+  static const _maxBytes = 512 * 1024 * 1024;
 
   /// Whole-download ceiling. Not an inactivity watchdog: a voice note is small
   /// and there is nothing useful to do with a partial one, so a flat deadline
@@ -102,6 +109,7 @@ class AudioFileCache {
 
     final future = _download(storageId, url, client).then((path) {
       _paths[storageId] = path;
+      MediaLedger.instance.markLocal(storageId, fallbackKind: StorageKind.voice);
       if (!_swept) {
         _swept = true;
         unawaited(_sweep());
@@ -218,6 +226,7 @@ class AudioFileCache {
         throw HttpException('status ${resp.statusCode}', uri: Uri.parse(remote));
       }
       final bytes = resp.bodyBytes;
+      DataUsageStore.instance.record(UsageKind.voice, received: bytes.length);
       if (bytes.length < 12) {
         throw const FormatException('audio body too short to identify');
       }

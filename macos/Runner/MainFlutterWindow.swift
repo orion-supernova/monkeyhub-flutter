@@ -42,6 +42,17 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       switch call.method {
       case "getDisplayName":
         result(Host.current().localizedName)
+      case "getDiskSpace":
+        // Data and Storage's "uses N% of your free space"; same keys as iOS.
+        let home = URL(fileURLWithPath: NSHomeDirectory())
+        let values = try? home.resourceValues(forKeys: [
+          .volumeAvailableCapacityForImportantUsageKey,
+          .volumeTotalCapacityKey,
+        ])
+        result([
+          "free": NSNumber(value: values?.volumeAvailableCapacityForImportantUsage ?? 0),
+          "total": NSNumber(value: values?.volumeTotalCapacity ?? 0),
+        ])
       default:
         result(FlutterMethodNotImplemented)
       }

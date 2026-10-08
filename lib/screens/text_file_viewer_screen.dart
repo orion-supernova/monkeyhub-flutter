@@ -70,6 +70,7 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
     final bytes = await DocumentSaver.fetchBytes(
       api: widget.api,
       storageId: widget.storageId,
+      fileName: widget.fileName,
     );
     final truncated = bytes.length > _previewCapBytes;
     final slice = truncated ? bytes.sublist(0, _previewCapBytes) : bytes;

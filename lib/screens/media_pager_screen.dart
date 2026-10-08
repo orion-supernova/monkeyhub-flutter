@@ -7,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
+import '../media/storage/media_ledger.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
@@ -538,37 +539,42 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
               });
               widget.onPageChanged?.call(_items[i]);
             },
-            itemBuilder: (_, i) => HeroMode(
-              key: ValueKey<String>(_items[i].id),
-              // Neighbours stay built; only the visible one may fly. See the
-              // class comment.
-              enabled: i == _index,
-              child: _Page(
-                message: _items[i],
-                api: widget.api,
-                heroTag: _heroTag(_items[i]),
-                // Only the page the flight actually opened on. The rest were
-                // never a thumbnail on the route below, so there is no warm
-                // decode of theirs to defer to, and offering one would only
-                // pin them to a resolution they never had.
-                sourceDecodeWidth: _items[i].id ==
-                        widget.items[widget.initialIndex
-                                .clamp(0, widget.items.length - 1)]
-                            .id
-                    ? widget.sourceDecodeWidth
-                    : null,
-                landed: landed,
-                drag: _drag,
-                chromeClearance: _chrome ? _bottomChromeHeight(context) : 0,
-                onDismiss: _close,
-                onToggleChrome: () => setState(() => _chrome = !_chrome),
-                onZoomChanged: (z) {
-                  if (i == _index && z != _zoomed) {
-                    setState(() => _zoomed = z);
-                  }
-                },
-              ),
-            ),
+            itemBuilder: (_, i) {
+              // Every page reached by a swipe is filed under its chat, the
+              // same as a bubble would file it. See `MediaLedger`.
+              MediaLedger.instance.noteSeen(_items[i]);
+              return HeroMode(
+                key: ValueKey<String>(_items[i].id),
+                // Neighbours stay built; only the visible one may fly. See the
+                // class comment.
+                enabled: i == _index,
+                child: _Page(
+                  message: _items[i],
+                  api: widget.api,
+                  heroTag: _heroTag(_items[i]),
+                  // Only the page the flight actually opened on. The rest were
+                  // never a thumbnail on the route below, so there is no warm
+                  // decode of theirs to defer to, and offering one would only
+                  // pin them to a resolution they never had.
+                  sourceDecodeWidth: _items[i].id ==
+                          widget.items[widget.initialIndex
+                                  .clamp(0, widget.items.length - 1)]
+                              .id
+                      ? widget.sourceDecodeWidth
+                      : null,
+                  landed: landed,
+                  drag: _drag,
+                  chromeClearance: _chrome ? _bottomChromeHeight(context) : 0,
+                  onDismiss: _close,
+                  onToggleChrome: () => setState(() => _chrome = !_chrome),
+                  onZoomChanged: (z) {
+                    if (i == _index && z != _zoomed) {
+                      setState(() => _zoomed = z);
+                    }
+                  },
+                ),
+              );
+            },
           ),
         ),
       ),

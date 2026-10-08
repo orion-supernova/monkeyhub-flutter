@@ -61,6 +61,12 @@ import 'media/audio_file_cache.dart';
 import 'media/video_file_cache.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
+import 'media/document_file_cache.dart';
+import 'media/storage/data_usage_store.dart';
+import 'media/storage/media_image_cache.dart';
+import 'media/storage/media_ledger.dart';
+import 'media/storage/storage_kinds.dart';
+import 'media/storage/storage_service.dart';
 import 'audio/alert_sounds.dart';
 import 'privacy/capture_protection.dart';
 import 'push/badge_manager.dart';
@@ -452,6 +458,30 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         () => unawaited(PushManager.instance.syncDeviceContext());
     PushManager.instance.attachApi(_api);
     PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
+    // What kind of chat a room is, for every Data and Storage rule: auto-
+    // download, save to Photos and auto-remove are all written per kind.
+    // Saved Messages is where people keep things on purpose, so auto-remove
+    // never touches it.
+    MediaLedger.instance
+      ..roomClassifier = (roomId) {
+        final room = _repo.roomById(roomId);
+        if (room == null) return null;
+        if (room.isDm) return ChatClass.privateChats;
+        return room.isPublic ? ChatClass.publicRooms : ChatClass.groups;
+      }
+      // Parenthesised: an arrow body would swallow the next cascade step.
+      ..isKeptRoom =
+          ((roomId) => _repo.roomById(roomId)?.isSavedMessages ?? false)
+      ..selfId = (() => _repo.userId)
+      ..loadedMessages = (() sync* {
+        for (final room in _repo.rooms) {
+          yield* _repo.messagesFor(room.id);
+        }
+      });
+    // Auto-remove and the cache ceiling, once the launch has settled. Rate-
+    // limited inside, so the resume hook below can call it freely.
+    Future<void>.delayed(const Duration(seconds: 20),
+        () => StorageService.instance.enforcePolicy());
     // Web message-banner clicks open the room, same as a push tap.
     MessageAlerts.instance.setOnOpenRoom(_openRoomFromPush);
     // Web Push banner clicks (background/closed tab) open the room too — the
@@ -1064,6 +1094,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // resume is the first moment the keychain will certainly answer. Above the
     // session check, because the login screen wears the theme too.
     if (state == AppLifecycleState.resumed) unawaited(_retrySettings());
+    if (state == AppLifecycleState.resumed) {
+      unawaited(StorageService.instance.enforcePolicy());
+    } else {
+      // The ledger and the usage counters write behind a debounce; a
+      // backgrounding is the last safe moment to land them.
+      unawaited(MediaLedger.instance.flush());
+      unawaited(DataUsageStore.instance.flush());
+    }
     // Above the session check on purpose: connection health must keep tracking
     // foreground/background across a signed-out window, so a sign-in that lands
     // right after a resume doesn't inherit a parked recovery loop.
@@ -1638,6 +1676,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // argument at a hundred times the size.
         await AudioFileCache.instance.clear();
         await VideoFileCache.instance.clear();
+        await DocumentFileCache.instance.clear();
+        await MediaImageCache.clear();
+        // The index of what was cached, and for which chats. Data usage is
+        // the device's, not the account's, and stays.
+        await MediaLedger.instance.clear();
         // End the calls BEFORE stopping the signaling subscription: endCall
         // still wants its terminal mutation on the wire, and stop() first
         // used to leave a window where a peer's bye/cancel arrived with

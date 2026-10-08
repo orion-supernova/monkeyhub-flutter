@@ -369,10 +369,18 @@ class GroupedHeader extends StatelessWidget {
   }
 }
 
+/// A row that is not a [GroupedRow] but leads with something the hairline
+/// should start past: a tile, a check circle, an avatar. Implement it rather
+/// than wrapping the row in a fake [GroupedRow] to borrow the inset.
+abstract interface class GroupedInsetRow {
+  double get groupedInset;
+}
+
 /// Where the hairline under [row] starts inside a grouped block: under the
 /// text, past a row's tile or avatar. Shared by [GroupedSection] and
 /// `SheetGroup`.
 double groupedDividerInset(Widget row) {
+  if (row is GroupedInsetRow) return (row as GroupedInsetRow).groupedInset;
   if (row is GroupedRow && row.icon != null) return 60;
   if (row is PersonRow) return kPersonRowTextInset;
   return 16;

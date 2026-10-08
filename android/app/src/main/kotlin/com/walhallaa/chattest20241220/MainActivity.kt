@@ -279,6 +279,16 @@ class MainActivity : FlutterActivity() {
 
                         result.success(info)
                     }
+                    // Data and Storage's "uses N% of your free space".
+                    "getDiskSpace" -> {
+                        val stat = android.os.StatFs(filesDir.path)
+                        result.success(
+                            hashMapOf(
+                                "free" to stat.availableBytes,
+                                "total" to stat.totalBytes,
+                            )
+                        )
+                    }
                     // Battery-optimization exemption — OEM power managers
                     // (Xiaomi/Samsung/Oppo…) defer or drop high-priority FCM
                     // for optimized apps, which is fatal for call wakes.
