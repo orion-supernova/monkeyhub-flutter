@@ -577,6 +577,11 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   static const _swipeGap = 16.0;
 
   final TextEditingController _caption = TextEditingController();
+
+  /// What the caption field shows while view-once is armed: nothing, so the
+  /// hint saying why reads in full. The typed caption stays in [_caption] and
+  /// on the page, and comes back when view-once is turned off again.
+  final TextEditingController _noCaption = TextEditingController();
   final FocusNode _captionFocus = FocusNode();
 
   /// Repaint signals. Painting is driven by these rather than `setState` so a
@@ -644,6 +649,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     _swipeDx.dispose();
     _zoom.dispose();
     _caption.dispose();
+    _noCaption.dispose();
     _captionFocus.dispose();
     _committedRev.dispose();
     _liveRev.dispose();
@@ -1983,6 +1989,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
               ? null
               : () {
                   HapticFeedback.selectionClick();
+                  // The field turns off under the cursor; take the keyboard
+                  // with it rather than leave it up over nothing to type in.
+                  if (!_viewOnce) _captionFocus.unfocus();
                   setState(() => _viewOnce = !_viewOnce);
                 },
         ),
@@ -2110,7 +2119,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
           padding: const EdgeInsets.fromLTRB(16, 9, 14, 9),
           child: TextField(
             key: cameraEditorCaptionKey,
-            controller: _caption,
+            controller: _viewOnce ? _noCaption : _caption,
             focusNode: _captionFocus,
             enabled: enabled,
             minLines: 1,

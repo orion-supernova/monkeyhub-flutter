@@ -432,6 +432,32 @@ void main() {
       expect(find.text('No captions on view-once photos'), findsOneWidget);
     });
 
+    testWidgets('view once hides a typed caption and gives it back', (
+      tester,
+    ) async {
+      final draft = three();
+      addTearDown(draft.dispose);
+      await settle(
+        tester,
+        host(photo, draft: draft, allowCaptions: true, maxPhotos: 10),
+      );
+      await tester.enterText(find.byKey(cameraEditorCaptionKey), 'first');
+      await tester.pump();
+
+      await tester.tap(find.text('1'));
+      await tester.pump();
+      expect(captionText(tester), isEmpty);
+      expect(find.text('No captions on view-once photos'), findsOneWidget);
+      final field = tester.widget<TextField>(
+        find.byKey(cameraEditorCaptionKey),
+      );
+      expect(field.focusNode!.hasFocus, isFalse);
+
+      await tester.tap(find.text('1'));
+      await tester.pump();
+      expect(captionText(tester), 'first');
+    });
+
     testWidgets('over the camera it offers both ways to add a photo', (
       tester,
     ) async {

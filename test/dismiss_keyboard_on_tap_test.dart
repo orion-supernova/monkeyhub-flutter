@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/keyboard/dismiss_keyboard_on_tap.dart';
 
@@ -45,6 +46,34 @@ void main() {
     await tester.tap(find.byKey(const Key('background')), warnIfMissed: false);
     await tester.pump();
     expect(focus.hasFocus, isFalse);
+  });
+
+  testWidgets('a tap hides a keyboard left up with nothing focused', (
+    tester,
+  ) async {
+    // Back from Notification Center, iOS can leave the keyboard on screen
+    // after Flutter dropped the field's focus. With no focus to drop, only an
+    // explicit hide puts that keyboard away.
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.textInput,
+      (call) async {
+        calls.add(call.method);
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.textInput, null));
+
+    await tester.pumpWidget(_host(
+      const DismissKeyboardOnTap(child: SizedBox.expand(key: Key('body'))),
+    ));
+    expect(FocusManager.instance.primaryFocus?.context?.widget,
+        isNot(isA<EditableText>()));
+
+    await tester.tap(find.byKey(const Key('body')), warnIfMissed: false);
+    await tester.pump();
+    expect(calls, contains('TextInput.hide'));
   });
 
   testWidgets('a control under the wrapper still gets its tap', (tester) async {

@@ -39,6 +39,7 @@ import '../companions/sebastian.dart';
 import '../data/settings_store.dart';
 import '../data/spoiler_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_meta.dart';
@@ -194,6 +195,10 @@ class _RoomScreenState extends State<RoomScreen>
   final ValueNotifier<DateTime> _fadeNow = ValueNotifier(DateTime.now());
   final MentionTextController _composer = MentionTextController();
   final FocusNode _composerFocus = FocusNode();
+
+  /// Mends the composer's focus when the app comes back — see
+  /// [_restoreComposerFocus].
+  AppLifecycleListener? _lifecycle;
 
   /// The emoji/GIF/sticker panel, which trades places with the keyboard — see
   /// [ExpressionPanelController].
@@ -437,6 +442,9 @@ class _RoomScreenState extends State<RoomScreen>
     // is the keyboard coming back, which puts the panel away.
     _expressions.addListener(_onExpressionsChanged);
     _composerFocus.addListener(_onComposerFocusChanged);
+    if (!isPhysicalKeyboardPlatform) {
+      _lifecycle = AppLifecycleListener(onResume: _restoreComposerFocus);
+    }
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (t) {
       if (!mounted) return;
       final now = DateTime.now();
@@ -1422,6 +1430,7 @@ class _RoomScreenState extends State<RoomScreen>
     _composer.dispose();
     _expressions.removeListener(_onExpressionsChanged);
     _expressions.dispose();
+    _lifecycle?.dispose();
     _composerFocus.removeListener(_onComposerFocusChanged);
     _composerFocus.unfocus();
     _composerFocus.dispose();
@@ -1628,6 +1637,24 @@ class _RoomScreenState extends State<RoomScreen>
       repo: widget.repo,
       roomId: widget.roomId,
     );
+  }
+
+  /// Back from Notification Center or Control Center with the keyboard still
+  /// up but the composer no longer focused: Flutter suspends focus while the
+  /// app is inactive and does not always give it back. That leaves a keyboard
+  /// that types into nothing and that no tap away can dismiss, since there is
+  /// no focus left to drop. If the keyboard is still on screen, the composer
+  /// is what it was open for, so focus goes back there.
+  void _restoreComposerFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _composerFocus.hasFocus || _expressions.isOpen) return;
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+      final primary = FocusManager.instance.primaryFocus;
+      // Something else took focus on the way back; leave it there.
+      if (primary != null && primary.context?.widget is EditableText) return;
+      if (MediaQuery.viewInsetsOf(context).bottom <= 0) return;
+      _composerFocus.requestFocus();
+    });
   }
 
   /// Keep the caret in the composer after an Enter-send so the user can keep
@@ -4047,6 +4074,8 @@ class _RoomScreenState extends State<RoomScreen>
             onPopInvokedWithResult: (didPop, _) {
               if (didPop) {
                 _composerFocus.unfocus();
+                // Also hides a keyboard left standing with nothing focused.
+                dismissSoftKeyboard();
                 return;
               }
               if (_expressions.isOpen) {
@@ -4690,9 +4719,7 @@ class _RoomScreenState extends State<RoomScreen>
           ? null
           : () {
               _expressions.hide();
-              if (!isPhysicalKeyboardPlatform) {
-                FocusManager.instance.primaryFocus?.unfocus();
-              }
+              if (!isPhysicalKeyboardPlatform) dismissSoftKeyboard();
             },
       child: messages.isEmpty
           ? Stack(

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../platform.dart';
@@ -41,8 +42,23 @@ class DismissKeyboardOnTap extends StatelessWidget {
       // Default disposition hands focus back to the enclosing scope rather
       // than nulling it, so Tab traversal still has somewhere to resume from
       // on a tablet with a keyboard attached.
-      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      onTap: dismissSoftKeyboard,
       child: child,
     );
   }
+}
+
+/// Puts the soft keyboard away: unfocuses, then tells the platform to hide
+/// the keyboard outright.
+///
+/// Unfocusing alone is not enough on iOS. Pulling down Notification Center or
+/// Control Center sends the app inactive, Flutter suspends the focused field,
+/// and on the way back that focus is sometimes not restored while the keyboard
+/// stays on screen. With nothing focused there is nothing to unfocus, so every
+/// "tap away" or back gesture after that left an orphaned keyboard standing.
+/// The explicit hide is a no-op when the keyboard is already going.
+void dismissSoftKeyboard() {
+  FocusManager.instance.primaryFocus?.unfocus();
+  if (isPhysicalKeyboardPlatform) return;
+  SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
 }
