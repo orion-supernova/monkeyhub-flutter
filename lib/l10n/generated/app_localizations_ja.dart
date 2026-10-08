@@ -11133,4 +11133,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get storageCategoryHint => 'カテゴリをタップすると中身を表示、丸をタップすると対象から外せます。';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · 削除されたチャット';
+  }
 }

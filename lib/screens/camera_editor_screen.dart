@@ -25,6 +25,7 @@ import '../widgets/spring_press.dart';
 import 'review_route.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
+import '../widgets/glass_reveal.dart' show GlassStill;
 
 /// Post-capture composer: draw on a photo, frame it, caption it, send it — or
 /// several of them at once.
@@ -541,6 +542,13 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   /// way so the picture is unobstructed while it is being drawn on.
   bool _drawing = false;
 
+  /// True from a stroke's start until the chrome's fade back has settled at
+  /// full strength: the window in which the chrome's media glass draws its
+  /// blur-free twin (see [GlassStill]). Outlives [_drawing] by the length of
+  /// the fade back, which is the half of the flicker a plain `_drawing` would
+  /// leave in.
+  bool _chromeDimmed = false;
+
   /// The crop as it was when crop mode was entered, so CANCEL can restore it.
   Rect? _cropOnEnter;
   _AspectPreset? _presetOnEnter;
@@ -1010,7 +1018,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     if (_saving) return;
     if (!stage.contains(local)) return;
     HapticFeedback.selectionClick();
-    setState(() => _drawing = true);
+    setState(() => _drawing = _chromeDimmed = true);
     _current = _EditorStroke(
       color: _color,
       width: _strokeWidthNow,
@@ -1406,6 +1414,17 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
                 opacity: _drawing ? 0.16 : 1,
                 duration: const Duration(milliseconds: 150),
                 curve: Curves.easeOut,
+                onEnd: () {
+                  if (mounted && !_drawing && _chromeDimmed) {
+                    setState(() => _chromeDimmed = false);
+                  }
+                },
+                // The chrome is media glass, and glass inside a fading layer
+                // blurs the layer's empty buffer instead of the photo: a flat
+                // wash at 16% and a snap to frost when the fade back ends.
+                // Still discs have no blur to get wrong.
+                child: GlassStill(
+                still: _chromeDimmed,
                 child: Stack(
                   children: [
                     if (!cropping) ...[
@@ -1450,6 +1469,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
             ),

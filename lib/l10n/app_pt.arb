@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "Desmarcar tudo",
   "storageCategoryEmpty": "Neste momento não há nada deste tipo em cache.",
   "storageChatHistoryFooter": "Só a cópia neste dispositivo é removida. As mensagens continuam no chat e voltam a carregar da próxima vez que o abrir.",
-  "storageCategoryHint": "Toque numa categoria para ver o que contém, ou no círculo para a deixar de fora."
+  "storageCategoryHint": "Toque numa categoria para ver o que contém, ou no círculo para a deixar de fora.",
+  "storageChatRemovedNamed": "{names} · conversa removida"
 }

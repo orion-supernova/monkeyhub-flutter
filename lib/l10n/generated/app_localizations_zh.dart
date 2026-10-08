@@ -11022,4 +11022,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get storageCategoryHint => '轻点类别查看其中内容，轻点圆圈可将其排除。';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · 已移除的聊天';
+  }
 }

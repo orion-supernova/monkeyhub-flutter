@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'media_flight.dart';
 import 'photo_chrome.dart' show MediaDurationBadge;
+import 'video_length_badge.dart';
 import 'remote_image.dart';
 import 'selection_check.dart';
 import 'steady_hero.dart';
@@ -45,6 +46,7 @@ class MediaGridTile extends StatelessWidget {
     required this.selecting,
     required this.onTap,
     required this.onLongPress,
+    this.longPressInRegion = false,
     this.decodeWidth,
   });
 
@@ -59,7 +61,15 @@ class MediaGridTile extends StatelessWidget {
   final bool selecting;
 
   final VoidCallback onTap;
+
+  /// Starts selecting with this tile. Right-click always reaches it (the
+  /// desktop long-press); a held finger reaches it only when
+  /// [longPressInRegion] is false.
   final VoidCallback onLongPress;
+
+  /// The grid is a `DragSelectRegion`, which owns the long press so the
+  /// same finger can go on to drag a range. The tile then leaves it alone.
+  final bool longPressInRegion;
 
   /// Device-pixel width to decode at. A grid tile is a fraction of the screen,
   /// so decoding at full size is the difference between a smooth scroll and a
@@ -95,7 +105,7 @@ class MediaGridTile extends StatelessWidget {
       inset: 1,
       child: GestureDetector(
         onTap: onTap,
-        onLongPress: onLongPress,
+        onLongPress: longPressInRegion ? null : onLongPress,
         // Right-click is the desktop long-press, and the only pointer idiom
         // there for "act on this without opening it".
         onSecondaryTap: onLongPress,
@@ -149,7 +159,11 @@ class MediaGridTile extends StatelessWidget {
             // Not while choosing: the check takes the same corner, and a
             // video's length is not what a selection is deciding.
             if (_isVideo && !selecting)
-              _VideoOverlay(durationMs: message.mediaDurationMs),
+              _VideoOverlay(
+                storageId: message.mediaStorageId,
+                durationMs: message.mediaDurationMs,
+                api: api,
+              ),
 
             if (selecting)
               _SelectionVeil(theme: theme, selected: selected),
@@ -190,25 +204,28 @@ class _GlyphTile extends StatelessWidget {
 /// three tiles wide. A clip with no known length keeps just the glyph on the
 /// same badge, so it still says what it is.
 class _VideoOverlay extends StatelessWidget {
-  const _VideoOverlay({required this.durationMs});
+  const _VideoOverlay({
+    required this.storageId,
+    required this.durationMs,
+    required this.api,
+  });
 
+  final String? storageId;
   final int? durationMs;
+  final ChatApi api;
 
   @override
-  Widget build(BuildContext context) {
-    final ms = durationMs;
-    final known = ms != null && ms > 0;
-    return Positioned(
-      right: 6,
-      bottom: 6,
-      child: known
-          ? MediaDurationBadge(
-              duration: Duration(milliseconds: ms),
-              icon: CupertinoIcons.play_fill,
-            )
-          : const MediaDurationBadge(text: '', icon: CupertinoIcons.play_fill),
-    );
-  }
+  Widget build(BuildContext context) => Positioned(
+        right: 6,
+        bottom: 6,
+        // Fills in a length the sender never measured; see VideoLengthBadge.
+        child: VideoLengthBadge(
+          storageId: storageId,
+          durationMs: durationMs,
+          api: api,
+          withIcon: true,
+        ),
+      );
 }
 
 /// The selection state drawn over a tile, the way iOS Photos draws it: the

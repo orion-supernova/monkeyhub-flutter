@@ -88,12 +88,17 @@ class SheetFrame extends StatelessWidget {
     this.onClose,
     this.confirm,
     this.trash,
+    this.expand,
     this.footer,
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 16),
     this.maxHeightFraction,
     this.handle = true,
-  }) : assert(confirm == null || trash == null,
-            'the trailing slot holds a ✓ or a trash, never both');
+  }) : assert(
+            (confirm != null ? 1 : 0) +
+                    (trash != null ? 1 : 0) +
+                    (expand != null ? 1 : 0) <=
+                1,
+            'the trailing slot holds one of ✓, trash or expand');
 
   final Widget child;
   final String? title;
@@ -114,6 +119,10 @@ class SheetFrame extends StatelessWidget {
   /// only thing to do to it is delete it. Confirm with `showConfirmSheet`.
   final VoidCallback? trash;
 
+  /// The trailing expand glyph, when the sheet's content can also be opened
+  /// as a full page: the sheet is a glance, the page is the whole thing.
+  final VoidCallback? expand;
+
   /// Pinned under the body, always on screen — the sheet's commit button
   /// (a [SheetActionButton]). The body shrinks (and scrolls) first, so the
   /// button rides above the keyboard. Padded (16, 8, 16, 12) + the inset.
@@ -132,8 +141,11 @@ class SheetFrame extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final media = MediaQuery.of(context);
     final close = showClose ?? title != null;
-    final hasBar =
-        title != null || close || confirm != null || trash != null;
+    final hasBar = title != null ||
+        close ||
+        confirm != null ||
+        trash != null ||
+        expand != null;
     final fraction = maxHeightFraction;
     final inset = media.viewInsets.bottom > media.padding.bottom
         ? media.viewInsets.bottom
@@ -166,7 +178,9 @@ class SheetFrame extends StatelessWidget {
                         )
                       : trash != null
                           ? SheetTrashButton(onTap: trash!)
-                          : null,
+                          : expand != null
+                              ? SheetExpandButton(onTap: expand!)
+                              : null,
                 ),
               Flexible(
                 fit: fraction == null ? FlexFit.loose : FlexFit.tight,
@@ -364,6 +378,23 @@ class SheetTrashButton extends StatelessWidget {
           MaterialLocalizations.of(context).deleteButtonTooltip,
     );
   }
+}
+
+/// The expand glyph a [SheetFrame] wears when its content also exists as a
+/// full page.
+class SheetExpandButton extends StatelessWidget {
+  const SheetExpandButton({super.key, required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GlassIconButton(
+        still: true,
+        icon: CupertinoIcons.arrow_up_left_arrow_down_right,
+        iconSize: 17,
+        onTap: onTap,
+        semanticLabel:
+            MaterialLocalizations.of(context).collapsedIconTapHint,
+      );
 }
 
 // [SheetActionButton], [TextLinkButton] and [RowPillButton] live in

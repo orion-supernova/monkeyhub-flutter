@@ -22,6 +22,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/drag_select.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/audio_message.dart';
 import '../widgets/bulk_action_bar.dart';
@@ -745,53 +746,66 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       builder: (context, box) {
         _gridWidth = box.maxWidth;
         final columns = _gridColumns(box.maxWidth);
-        return CustomScrollView(
-          controller: _scroll,
-          slivers: [
-            for (final g in groups)
-              SliverMainAxisGroup(
-                slivers: [
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _MonthHeader(
-                      theme: theme,
-                      title: _monthTitle(context, g.month, now),
-                      count: g.items.length,
+        // Long press to start selecting, then drag to pick a range; once
+        // selecting, a sideways swipe picks too. See [DragSelectRegion].
+        return DragSelectRegion(
+          ids: [for (final g in groups) for (final m in g.items) m.id],
+          selected: _selection.ids,
+          selecting: _selection.active,
+          scroll: _scroll,
+          onChanged: _selection.replace,
+          child: CustomScrollView(
+            controller: _scroll,
+            slivers: [
+              for (final g in groups)
+                SliverMainAxisGroup(
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _MonthHeader(
+                        theme: theme,
+                        title: _monthTitle(context, g.month, now),
+                        count: g.items.length,
+                      ),
                     ),
-                  ),
-                  SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: _gridSpacing,
-                      mainAxisSpacing: _gridSpacing,
+                    SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        crossAxisSpacing: _gridSpacing,
+                        mainAxisSpacing: _gridSpacing,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) {
+                          final m = g.items[i];
+                          return DragSelectTile(
+                            key: ValueKey(m.id),
+                            id: m.id,
+                            child: MediaGridTile(
+                              message: m,
+                              api: widget.api,
+                              selected: _selection.contains(m.id),
+                              selecting: _selection.active,
+                              decodeWidth: decodeWidth,
+                              onTap: () => _openMessage(m),
+                              longPressInRegion: true,
+                              onLongPress: () {
+                                HapticFeedback.selectionClick();
+                                _selection.begin(m.id);
+                              },
+                            ),
+                          );
+                        },
+                        childCount: g.items.length,
+                      ),
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) {
-                        final m = g.items[i];
-                        return MediaGridTile(
-                          key: ValueKey(m.id),
-                          message: m,
-                          api: widget.api,
-                          selected: _selection.contains(m.id),
-                          selecting: _selection.active,
-                          decodeWidth: decodeWidth,
-                          onTap: () => _openMessage(m),
-                          onLongPress: () {
-                            HapticFeedback.selectionClick();
-                            _selection.begin(m.id);
-                          },
-                        );
-                      },
-                      childCount: g.items.length,
-                    ),
-                  ),
-                ],
-              ),
-            // The next page appends to the last month (or opens a new one);
-            // the spinner says one is coming.
-            if (_c.hasMore) const SliverToBoxAdapter(child: _TailSpinner()),
-            SliverPadding(padding: EdgeInsets.only(bottom: bottomPad)),
-          ],
+                  ],
+                ),
+              // The next page appends to the last month (or opens a new one);
+              // the spinner says one is coming.
+              if (_c.hasMore) const SliverToBoxAdapter(child: _TailSpinner()),
+              SliverPadding(padding: EdgeInsets.only(bottom: bottomPad)),
+            ],
+          ),
         );
       },
     );

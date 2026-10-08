@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
+import 'glass_reveal.dart';
 import 'liquid_glass.dart';
 
 /// Mounts [child] only while it is visible or animating.
@@ -33,8 +34,7 @@ class TransientPillSlot extends StatefulWidget {
 class _TransientPillSlotState extends State<TransientPillSlot>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  late final CurvedAnimation _fade;
-  late final Animation<double> _scale;
+  late final CurvedAnimation _grow;
 
   @override
   void initState() {
@@ -45,19 +45,12 @@ class _TransientPillSlotState extends State<TransientPillSlot>
       duration: const Duration(milliseconds: 220),
       value: widget.visible ? 1 : 0,
     );
-    // Opacity must stay inside 0..1, so the overshooting curve drives only the
-    // scale. easeOutBack on a fade would assert.
-    _fade = CurvedAnimation(
+    // Overshoots on the way in; [GlassReveal] lets the scale follow it past 1
+    // and clamps the content's fade itself.
+    _grow = CurvedAnimation(
       parent: _ctrl,
-      curve: Curves.easeOut,
+      curve: Curves.easeOutBack,
       reverseCurve: Curves.easeIn,
-    );
-    _scale = Tween<double>(begin: 0.86, end: 1).animate(
-      CurvedAnimation(
-        parent: _ctrl,
-        curve: Curves.easeOutBack,
-        reverseCurve: Curves.easeIn,
-      ),
     );
     // The only transitions that change what is mounted are into and out of
     // `dismissed`; every other frame is painted by the transitions themselves.
@@ -88,7 +81,7 @@ class _TransientPillSlotState extends State<TransientPillSlot>
   @override
   void dispose() {
     _ctrl.removeStatusListener(_onStatus);
-    _fade.dispose();
+    _grow.dispose();
     _ctrl.dispose();
     super.dispose();
   }
@@ -97,13 +90,19 @@ class _TransientPillSlotState extends State<TransientPillSlot>
   Widget build(BuildContext context) {
     if (_ctrl.isDismissed) return const SizedBox.shrink();
     return RepaintBoundary(
-      // Ignoring on the way out too: the pill is still painted while it fades,
-      // and a tap landing on something that is visibly leaving is a misfire.
+      // Ignoring on the way out too: the pill is still painted while it
+      // shrinks, and a tap landing on something that is visibly leaving is a
+      // misfire.
       child: IgnorePointer(
         ignoring: !widget.visible,
-        child: FadeTransition(
-          opacity: _fade,
-          child: ScaleTransition(scale: _scale, child: widget.child),
+        // Grown, not faded: the pill is glass, and a fade would have it blur
+        // its layer's empty buffer, a flat wash until the fade ends and the
+        // frost snaps in. See [GlassReveal].
+        child: AnimatedBuilder(
+          animation: _grow,
+          builder: (_, child) =>
+              GlassReveal(t: _grow.value, from: 0.6, child: child!),
+          child: widget.child,
         ),
       ),
     );

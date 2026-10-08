@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "Avmarkera alla",
   "storageCategoryEmpty": "Inget av den här typen är cachat just nu.",
   "storageChatHistoryFooter": "Bara kopian på den här enheten tas bort. Meddelandena finns kvar i chatten och laddas igen nästa gång du öppnar den.",
-  "storageCategoryHint": "Tryck på en kategori för att se vad den innehåller, eller på cirkeln för att lämna den utanför."
+  "storageCategoryHint": "Tryck på en kategori för att se vad den innehåller, eller på cirkeln för att lämna den utanför.",
+  "storageChatRemovedNamed": "{names} · borttagen chatt"
 }

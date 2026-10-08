@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "Seçimi kaldır",
   "storageCategoryEmpty": "Şu anda bu türde önbelleğe alınmış bir şey yok.",
   "storageChatHistoryFooter": "Yalnızca bu cihazdaki kopya silinir. Mesajlar sohbette kalır ve sohbeti bir sonraki açışında yeniden yüklenir.",
-  "storageCategoryHint": "İçinde ne olduğunu görmek için bir kategoriye, hariç tutmak için dairesine dokun."
+  "storageCategoryHint": "İçinde ne olduğunu görmek için bir kategoriye, hariç tutmak için dairesine dokun.",
+  "storageChatRemovedNamed": "{names} · kaldırılan sohbet"
 }

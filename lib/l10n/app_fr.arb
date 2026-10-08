@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "Tout désélectionner",
   "storageCategoryEmpty": "Rien de ce type n'est en cache pour l'instant.",
   "storageChatHistoryFooter": "Seule la copie sur cet appareil est supprimée. Les messages restent dans la discussion et se rechargent à la prochaine ouverture.",
-  "storageCategoryHint": "Touchez une catégorie pour voir son contenu, ou son cercle pour l’exclure."
+  "storageCategoryHint": "Touchez une catégorie pour voir son contenu, ou son cercle pour l’exclure.",
+  "storageChatRemovedNamed": "{names} · discussion supprimée"
 }

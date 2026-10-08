@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "選択解除",
   "storageCategoryEmpty": "現在、この種類のキャッシュはありません。",
   "storageChatHistoryFooter": "削除されるのはこの端末上のコピーだけです。メッセージはチャットに残り、次に開いたときに再度読み込まれます。",
-  "storageCategoryHint": "カテゴリをタップすると中身を表示、丸をタップすると対象から外せます。"
+  "storageCategoryHint": "カテゴリをタップすると中身を表示、丸をタップすると対象から外せます。",
+  "storageChatRemovedNamed": "{names} · 削除されたチャット"
 }

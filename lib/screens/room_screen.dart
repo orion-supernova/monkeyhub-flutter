@@ -6209,7 +6209,14 @@ class _DateTrack {
 /// Floating date pill shown over the message list while the user scrolls.
 /// Mirrors the inline _DateDivider's typography so the date string reads
 /// the same whether it's inline or hovering — only the surface differs:
-/// a blurred, accent-tinted pill that lifts off the messages.
+/// a shadow that lifts it off the messages.
+///
+/// Not blurred. The chip lives inside two animating opacities (it fades in
+/// with the scroll and yields to a divider by fading), and a BackdropFilter
+/// in a fading layer blurs the layer's empty buffer instead of the
+/// transcript: the frost dropped out for every frame of a fade and snapped
+/// back at its end. Under a 92% fill the blur was barely there anyway, and
+/// without it the chip is the same surface as the divider it hands off to.
 class _FloatingDateChip extends StatelessWidget {
   const _FloatingDateChip({required this.label});
   final String label;
@@ -6217,22 +6224,16 @@ class _FloatingDateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: _dateChipDecoration(theme, shadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.16),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ]),
-          child: _DateChipContent(label: label),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: _dateChipDecoration(theme, shadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.16),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
         ),
-      ),
+      ]),
+      child: _DateChipContent(label: label),
     );
   }
 }

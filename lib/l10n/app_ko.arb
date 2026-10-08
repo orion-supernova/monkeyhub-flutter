@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "선택 해제",
   "storageCategoryEmpty": "지금은 이 종류로 캐시된 항목이 없어요.",
   "storageChatHistoryFooter": "이 기기에 저장된 사본만 삭제돼요. 메시지는 채팅에 남아 있고 다음에 열 때 다시 불러와요.",
-  "storageCategoryHint": "카테고리를 탭하면 내용을 볼 수 있고, 동그라미를 탭하면 제외할 수 있어요."
+  "storageCategoryHint": "카테고리를 탭하면 내용을 볼 수 있고, 동그라미를 탭하면 제외할 수 있어요.",
+  "storageChatRemovedNamed": "{names} · 삭제된 채팅"
 }

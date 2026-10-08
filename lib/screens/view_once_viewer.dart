@@ -185,6 +185,10 @@ class _ViewOnceBadge extends StatelessWidget {
     return LiquidGlass(
       tone: GlassTone.media,
       shape: LiquidGlassShape.capsule,
+      // The bar's own rule, which its × already follows: blur-free while the
+      // route fades in or out, or this capsule frosts the fade's empty buffer
+      // (a grey wash) and snaps to real glass when the route lands.
+      still: ViewerTopBar.stillOf(context),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 6, 13, 6),
         child: Row(

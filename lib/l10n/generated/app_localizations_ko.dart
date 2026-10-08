@@ -11157,4 +11157,9 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       '카테고리를 탭하면 내용을 볼 수 있고, 동그라미를 탭하면 제외할 수 있어요.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · 삭제된 채팅';
+  }
 }

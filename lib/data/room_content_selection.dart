@@ -52,6 +52,16 @@ class RoomContentSelection extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces the selection with [ids] and turns selection mode on: what a
+  /// drag across the grid hands over as it grows and shrinks its range.
+  void replace(Set<String> ids) {
+    _ids
+      ..clear()
+      ..addAll(ids);
+    _active = true;
+    notifyListeners();
+  }
+
   /// Leaves selection mode and drops everything.
   void clear() {
     if (!_active && _ids.isEmpty) return;

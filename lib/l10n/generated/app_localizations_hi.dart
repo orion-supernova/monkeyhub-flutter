@@ -11599,4 +11599,9 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       'अंदर क्या है देखने के लिए किसी कैटेगरी पर टैप करें, या उसे छोड़ने के लिए उसके गोले पर।';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · हटाई गई चैट';
+  }
 }

@@ -19608,6 +19608,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap a category to see what\'s inside, or its circle to leave it out.'**
   String get storageCategoryHint;
+
+  /// Name of a cached chat that is no longer in the chat list (deleted, left or recreated). names are the people in it, read from its offline copy, e.g. 'zeynepoz'.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} · removed chat'**
+  String storageChatRemovedNamed(String names);
 }
 
 class _AppLocalizationsDelegate

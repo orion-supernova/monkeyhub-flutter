@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'sheet_drag.dart';
 import 'sheet_kit.dart' show sheetTopRadius;
@@ -135,25 +136,29 @@ Future<T?> showAdaptiveSheet<T>(
         ),
       ),
     ),
-    // A restrained scale + fade + rise, in the same voice as the message
-    // action menu's own entrance animation — showDialog's default fade-only
+    // A restrained grow + rise, in the same voice as the message action
+    // menu's own entrance animation — showDialog's default fade-only
     // transition read as too abrupt for a card this size.
+    //
+    // Grown, not faded: the card is glass, and a fading layer leaves its blur
+    // sampling an empty buffer, a flat wash for the whole fade and a snap to
+    // frost at the end. Its content still fades, inside the glass; see
+    // [GlassReveal].
     transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(
         parent: animation,
         curve: theme.motionEntrance,
       );
-      return FadeTransition(
-        opacity: curved,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.04),
-            end: Offset.zero,
-          ).animate(curved),
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
-            child: child,
-          ),
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(curved),
+        child: AnimatedBuilder(
+          animation: curved,
+          builder: (_, child) =>
+              GlassReveal(t: curved.value, from: 0.85, child: child!),
+          child: child,
         ),
       );
     },

@@ -11771,4 +11771,9 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       'اضغط على فئة لترى محتواها، أو على دائرتها لاستبعادها.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · محادثة محذوفة';
+  }
 }

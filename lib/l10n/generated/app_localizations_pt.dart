@@ -11723,6 +11723,11 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       'Toque numa categoria para ver o que contém, ou no círculo para a deixar de fora.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · conversa removida';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -23429,4 +23434,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get storageCategoryHint =>
       'Toque numa categoria para ver o que tem dentro, ou no círculo para deixá-la de fora.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · conversa removida';
+  }
 }

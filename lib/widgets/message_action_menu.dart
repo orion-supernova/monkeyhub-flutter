@@ -17,6 +17,7 @@ import '../keyboard/overlay_modal_scope.dart';
 import '../l10n/text_case.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
+import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'translation_slab.dart' show FrozenBubble;
 import 'teardown_safe.dart';
@@ -772,16 +773,12 @@ class _AnimatedEntry extends StatelessWidget {
       builder: (_, c) {
         final v = ((t.value - delay) / (1 - delay)).clamp(0.0, 1.0);
         final dy = (fromAbove ? -6 : 6) * (1 - v);
-        return Opacity(
-          opacity: v,
-          child: Transform.translate(
-            offset: Offset(0, dy),
-            child: Transform.scale(
-              scale: 0.86 + 0.14 * v,
-              alignment: alignment,
-              child: c,
-            ),
-          ),
+        // Grown, not faded: the pill and the action list are glass, and a
+        // fading layer leaves glass blurring an empty buffer, a flat white
+        // flash on every open and close. See [GlassReveal].
+        return Transform.translate(
+          offset: Offset(0, dy),
+          child: GlassReveal(t: v, alignment: alignment, from: 0.6, child: c!),
         );
       },
       child: child,

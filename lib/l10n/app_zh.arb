@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "取消全选",
   "storageCategoryEmpty": "目前没有此类缓存。",
   "storageChatHistoryFooter": "只会删除此设备上的副本。消息仍保留在聊天中，下次打开时会重新加载。",
-  "storageCategoryHint": "轻点类别查看其中内容，轻点圆圈可将其排除。"
+  "storageCategoryHint": "轻点类别查看其中内容，轻点圆圈可将其排除。",
+  "storageChatRemovedNamed": "{names} · 已移除的聊天"
 }

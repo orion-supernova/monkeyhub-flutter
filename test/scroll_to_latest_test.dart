@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/glass_reveal.dart';
 import 'package:monkeyhub/widgets/scroll_to_latest.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
@@ -115,18 +116,10 @@ void main() {
 
     testWidgets('opens without waiting to be animated in', (tester) async {
       // A slot built already-visible (re-entering a room scrolled up) must not
-      // fade in from nothing.
+      // grow in from nothing.
       await tester.pumpWidget(host(visible: true));
       expect(find.byType(ScrollToLatestPill), findsOneWidget);
-      expect(
-        // .first: FocusableTap's focus ring is an AnimatedOpacity, which is
-        // itself a FadeTransition. Ours is the outer one.
-        tester
-            .widget<FadeTransition>(inSlot(FadeTransition).first)
-            .opacity
-            .value,
-        1,
-      );
+      expect(tester.widget<GlassReveal>(inSlot(GlassReveal)).t, 1);
     });
 
     testWidgets('stays mounted while animating out, then unmounts', (

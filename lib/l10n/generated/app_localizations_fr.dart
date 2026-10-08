@@ -11771,4 +11771,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       'Touchez une catégorie pour voir son contenu, ou son cercle pour l’exclure.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · discussion supprimée';
+  }
 }

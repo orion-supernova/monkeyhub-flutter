@@ -13620,5 +13620,14 @@
   "storageCategoryHint": "Tap a category to see what's inside, or its circle to leave it out.",
   "@storageCategoryHint": {
     "description": "First sentence of the footer under the storage categories: the circle selects, the row opens."
+  },
+  "storageChatRemovedNamed": "{names} · removed chat",
+  "@storageChatRemovedNamed": {
+    "description": "Name of a cached chat that is no longer in the chat list (deleted, left or recreated). names are the people in it, read from its offline copy, e.g. 'zeynepoz'.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
   }
 }

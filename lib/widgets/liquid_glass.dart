@@ -7,6 +7,7 @@ import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import '../theme/theme_scope.dart';
+import 'glass_reveal.dart';
 import 'spring_press.dart';
 
 enum LiquidGlassShape { circle, capsule, rounded }
@@ -82,6 +83,7 @@ class LiquidGlass extends StatelessWidget {
 
   /// No backdrop blur — [GlassTone.media] only — for glass that fades or
   /// moves. Same shape, rim and light; a solid fill in place of the blur.
+  /// A [GlassStill] above turns it on for a whole faded subtree.
   final bool still;
 
   final Widget child;
@@ -154,7 +156,7 @@ class LiquidGlass extends StatelessWidget {
 
   /// The engine-aware material: which recipe the glass wears.
   Widget _material(BuildContext context, bool pressed) {
-    if (tone == GlassTone.media) return _media(pressed);
+    if (tone == GlassTone.media) return _media(context, pressed);
     final cfg = config;
     if (cfg != null) return _app(context, cfg, pressed);
     // Untuned app chrome keeps its matched appearance independently of the
@@ -185,10 +187,17 @@ class LiquidGlass extends StatelessWidget {
   /// [size] pins the box (there is slack to centre within), otherwise the
   /// glass shrink-wraps its content — a capsule around two words never
   /// paints full width.
-  Widget _content() => Padding(
-    padding: padding,
-    child: size == null ? child : Center(child: child),
-  );
+  ///
+  /// Faded inside the blur when a [GlassReveal] is bringing this glass in or
+  /// out: the content may fade, the glass itself never does (see there).
+  Widget _content(BuildContext context) {
+    final content = Padding(
+      padding: padding,
+      child: size == null ? child : Center(child: child),
+    );
+    final fade = GlassContentFade.of(context);
+    return fade >= 1 ? content : Opacity(opacity: fade, child: content);
+  }
 
   /// Saturate first, then blur. The other order blurs the colour into its
   /// neighbours before boosting it, so the boost lands on an already-averaged
@@ -239,9 +248,11 @@ class LiquidGlass extends StatelessWidget {
   /// not a filled disc with a dropped shadow and an even outline, which is
   /// Material elevation and read as Android over a photo. A [tint] makes it a
   /// solid, lit control.
-  Widget _media(bool pressed) {
+  Widget _media(BuildContext context, bool pressed) {
     final t = tint;
     final shape = _border();
+    // Shadows the field: still here or still because the subtree is fading.
+    final still = this.still || GlassStill.of(context);
     final Color fill;
     if (t != null) {
       fill = t;
@@ -273,7 +284,7 @@ class LiquidGlass extends StatelessWidget {
               ),
             ),
           ),
-        _content(),
+        _content(context),
       ],
     );
     final clipped = ClipPath(
@@ -413,7 +424,7 @@ class LiquidGlass extends StatelessWidget {
                   color: Colors.white.withValues(alpha: isLight ? 0.18 : 0.06),
                 ),
               ),
-            _content(),
+            _content(context),
           ],
         ),
       ),

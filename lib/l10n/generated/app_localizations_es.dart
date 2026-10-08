@@ -11717,4 +11717,9 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       'Toca una categoría para ver qué contiene, o su círculo para dejarla fuera.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · chat eliminado';
+  }
 }

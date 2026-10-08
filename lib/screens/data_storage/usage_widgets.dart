@@ -1,12 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
 import '../../data/chat_repository.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../media/document_preview.dart';
+import '../../media/document_saver.dart';
 import '../../media/file_meta.dart';
 import '../../media/storage/storage_kinds.dart';
 import '../../media/storage/storage_service.dart';
@@ -16,10 +20,13 @@ import '../../theme/theme_scope.dart';
 import '../../theme/layout.dart';
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/chat_list_row.dart' show ChatRoomAvatar;
+import '../../widgets/drag_select.dart';
 import '../../widgets/donut_chart.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/teardown_safe.dart';
+import '../fullscreen_image_viewer.dart';
+import '../fullscreen_video_viewer.dart';
 import 'storage_labels.dart';
 
 /// The top of Storage Usage, Data Usage and a chat's storage sheet: the ring,
@@ -393,6 +400,52 @@ String roomTitle(AppLocalizations l10n, ChatRepository repo, ChatRoom room) {
   return room.name;
 }
 
+final Map<String, String?> _removedNames = {};
+
+/// What to call a chat that is no longer in the chat list (deleted on the
+/// server, left, or recreated under a new id) but still has files here.
+///
+/// "Chat you left" said nothing about WHICH chat. Its own offline snapshot
+/// still holds the messages, so the people in it are read from there, once
+/// per file: "zeynepoz · removed chat".
+String removedChatTitle(
+  AppLocalizations l10n,
+  StorageReport report,
+  String roomId,
+  String? myId,
+) {
+  String? names;
+  for (final i in report.items) {
+    final path = i.path;
+    if (i.roomId != roomId ||
+        i.kind != StorageKind.chatHistory ||
+        path == null ||
+        !path.endsWith('messages_$roomId.json')) {
+      continue;
+    }
+    names = _removedNames.putIfAbsent(path, () {
+      try {
+        final raw = jsonDecode(File(path).readAsStringSync());
+        if (raw is! List) return null;
+        final seen = <String>{};
+        for (final m in raw) {
+          if (m is! Map || m['senderId'] == myId) continue;
+          final n = m['senderName'];
+          if (n is String && n.isNotEmpty) seen.add(n);
+          if (seen.length == 3) break;
+        }
+        return seen.isEmpty ? null : seen.join(', ');
+      } catch (_) {
+        return null;
+      }
+    });
+    break;
+  }
+  return names == null
+      ? l10n.storageChatUnknown
+      : l10n.storageChatRemovedNamed(names);
+}
+
 /// One chat's row in the Chats tab: its face, its name, its size.
 class StorageChatRow extends StatelessWidget implements GroupedInsetRow {
   const StorageChatRow({
@@ -424,7 +477,8 @@ class StorageChatRow extends StatelessWidget implements GroupedInsetRow {
     final me = repo.userId;
     final otherId = room == null || me == null ? null : room.otherParticipantId(me);
     final title = room == null
-        ? l10n.storageChatUnknown
+        ? removedChatTitle(
+            l10n, StorageService.instance.report, usage.roomId, me)
         : roomTitle(l10n, repo, room);
     return PersonRow(
       avatar: room == null
@@ -517,24 +571,27 @@ class MediaTileData {
   }
 }
 
-/// A tile in the Media tab: the picture, its size, and a selection circle.
+/// A tile in a storage media grid: the picture, its size, and, while
+/// selecting, a check circle.
+///
+/// The same rules as the room's shared media grid ([MediaGridTile]): a tap
+/// opens, a long press starts selecting (the grid's [DragSelectRegion] owns
+/// that), and the circles only show once selecting has started.
 class StorageMediaTile extends StatelessWidget {
   const StorageMediaTile({
     super.key,
     required this.tile,
     required this.api,
     this.selected = false,
+    this.selecting = false,
     this.onTap,
-    this.onToggle,
   });
 
   final MediaTileData tile;
   final ChatApi api;
   final bool selected;
+  final bool selecting;
   final VoidCallback? onTap;
-
-  /// Null draws no selection circle: a tile that is only looked at.
-  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -549,6 +606,7 @@ class StorageMediaTile extends StatelessWidget {
       ),
     );
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Stack(
         fit: StackFit.expand,
@@ -606,40 +664,39 @@ class StorageMediaTile extends StatelessWidget {
               ),
             ),
           ),
-          if (onToggle != null)
-          Positioned(
-            top: 0,
-            right: 0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onToggle,
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: SelectionCheck(picked: selected, media: true, size: 22),
-              ),
+          if (selecting)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: SelectionCheck(picked: selected, media: true, size: 22),
             ),
-          ),
         ],
       ),
     );
   }
 }
 
-/// A row in the Files tab: type badge, name, when it was sent, size.
+/// A row in a storage file list: type badge, name, when it was sent, size.
+/// A tap opens the file; a long press starts selecting; while selecting a
+/// tap picks, and the check circle shows.
 class StorageFileRow extends StatelessWidget implements GroupedInsetRow {
   const StorageFileRow({
     super.key,
     required this.item,
     required this.selected,
-    required this.onToggle,
+    required this.selecting,
+    required this.onTap,
+    required this.onLongPress,
   });
 
   final StoredItem item;
   final bool selected;
-  final VoidCallback onToggle;
+  final bool selecting;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
-  double get groupedInset => 96;
+  double get groupedInset => selecting ? 104 : 68;
 
   @override
   Widget build(BuildContext context) {
@@ -653,17 +710,30 @@ class StorageFileRow extends StatelessWidget implements GroupedInsetRow {
             DateTime.fromMillisecondsSinceEpoch(sent));
     final isVoice = item.kind == StorageKind.voice;
     return FocusableTap(
-      onTap: onToggle,
+      onTap: onTap,
       semanticLabel: name,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onToggle,
+        onTap: onTap,
+        onLongPress: () {
+          HapticFeedback.selectionClick();
+          onLongPress();
+        },
+        onSecondaryTap: onLongPress,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           child: Row(
             children: [
-              SelectionCheck(picked: selected),
-              const SizedBox(width: 14),
+              AnimatedSize(
+                duration: theme.motionFast,
+                curve: theme.motionCurve,
+                child: selecting
+                    ? Padding(
+                        padding: const EdgeInsets.only(right: 14),
+                        child: SelectionCheck(picked: selected),
+                      )
+                    : const SizedBox.shrink(),
+              ),
               Container(
                 width: 40,
                 height: 40,
@@ -704,6 +774,150 @@ class StorageFileRow extends StatelessWidget implements GroupedInsetRow {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The selection every storage page with media and files shares: Storage
+/// Usage's tabs, a category page, a chat's full page. One set of rules, the
+/// room gallery's: a tap opens, a long press starts selecting, a drag across
+/// the grid picks a range, and while selecting a tap picks.
+///
+/// Picks are item ids. A media tile can be several items (a video and its
+/// poster) and is picked and cleared as one.
+mixin StorageSelection<T extends StatefulWidget> on State<T> {
+  final Set<String> picked = {};
+
+  bool get selecting => picked.isNotEmpty;
+
+  ChatApi get selectionApi;
+
+  void togglePick(Iterable<StoredItem> parts) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      final ids = parts.map((p) => p.id).toList();
+      if (ids.every(picked.contains)) {
+        picked.removeAll(ids);
+      } else {
+        picked.addAll(ids);
+      }
+    });
+  }
+
+  void startPicking(Iterable<StoredItem> parts) {
+    HapticFeedback.selectionClick();
+    setState(() => picked.addAll(parts.map((p) => p.id)));
+  }
+
+  void clearPicks() => setState(picked.clear);
+
+  bool isPicked(MediaTileData t) => t.parts.every((p) => picked.contains(p.id));
+
+  /// A tap on a tile: picks while selecting; otherwise opens the photo or
+  /// video, or picks what has nothing to open (a GIF, a link preview).
+  Future<void> tapTile(MediaTileData tile) async {
+    if (selecting) return togglePick(tile.parts);
+    final video = tile.video;
+    final photo = tile.photoId;
+    if (video == null && photo == null) return startPicking(tile.parts);
+    if (video != null) {
+      await FullscreenVideoViewer.open(context,
+          storageId: video.id, api: selectionApi, posterStorageId: photo);
+    } else {
+      await FullscreenImageViewer.open(context,
+          storageId: photo!, api: selectionApi);
+    }
+  }
+
+  /// A tap on a file row: picks while selecting; otherwise opens the file
+  /// from its copy on disk.
+  Future<void> tapFile(StoredItem f) async {
+    if (selecting || !f.hasStorageId || f.kind != StorageKind.files) {
+      return togglePick([f]);
+    }
+    final l10n = AppLocalizations.of(context);
+    final name = f.fileName ?? l10n.fileMessageDefaultName;
+    try {
+      final shown = await DocumentPreview.openNative(
+          api: selectionApi, storageId: f.id, fileName: name);
+      if (shown || !mounted) return;
+    } catch (_) {}
+    if (!mounted) return;
+    await DocumentSaver.save(
+      api: selectionApi,
+      storageId: f.id,
+      fileName: name,
+      mimeType: mimeTypeForFileName(name),
+    );
+  }
+
+  /// One file row with this page's selection wired in.
+  StorageFileRow fileRow(StoredItem f) => StorageFileRow(
+        item: f,
+        selected: picked.contains(f.id),
+        selecting: selecting,
+        onTap: () => tapFile(f),
+        onLongPress: () => startPicking([f]),
+      );
+
+  /// The media grid as a sliver, centred to the readable width on a wide
+  /// window, every tile findable by a drag.
+  Widget mediaGridSliver(List<MediaTileData> tiles) => SliverLayoutBuilder(
+        builder: (context, c) {
+          final side = context.isCompact
+              ? 0.0
+              : ((c.crossAxisExtent - ContentWidth.readable) / 2)
+                  .clamp(0.0, double.infinity);
+          return SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: side),
+            sliver: SliverGrid.builder(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 140,
+                mainAxisSpacing: 2,
+                crossAxisSpacing: 2,
+              ),
+              itemCount: tiles.length,
+              itemBuilder: (context, i) {
+                final t = tiles[i];
+                return DragSelectTile(
+                  key: ValueKey(t.key),
+                  id: t.key,
+                  child: StorageMediaTile(
+                    tile: t,
+                    api: selectionApi,
+                    selected: isPicked(t),
+                    selecting: selecting,
+                    onTap: () => tapTile(t),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+
+  /// Wraps the page so a long press and a drag pick across [tiles]. Picks
+  /// outside the grid (files) are kept as they are.
+  Widget dragRegion({
+    required List<MediaTileData> tiles,
+    required ScrollController scroll,
+    required Widget child,
+  }) {
+    final byKey = {for (final t in tiles) t.key: t};
+    return DragSelectRegion(
+      ids: [for (final t in tiles) t.key],
+      selected: {for (final t in tiles) if (isPicked(t)) t.key},
+      selecting: selecting,
+      scroll: scroll,
+      onChanged: (keys) => setState(() {
+        for (final t in tiles) {
+          picked.removeAll(t.parts.map((p) => p.id));
+        }
+        for (final k in keys) {
+          picked.addAll(byKey[k]!.parts.map((p) => p.id));
+        }
+      }),
+      child: child,
     );
   }
 }

@@ -11627,4 +11627,9 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       'Tryck på en kategori för att se vad den innehåller, eller på cirkeln för att lämna den utanför.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · borttagen chatt';
+  }
 }

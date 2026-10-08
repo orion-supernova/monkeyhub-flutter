@@ -3241,5 +3241,6 @@
   "storageDeselectAll": "Deseleccionar",
   "storageCategoryEmpty": "Ahora mismo no hay nada de este tipo en caché.",
   "storageChatHistoryFooter": "Solo se elimina la copia de este dispositivo. Los mensajes siguen en el chat y se vuelven a cargar la próxima vez que lo abras.",
-  "storageCategoryHint": "Toca una categoría para ver qué contiene, o su círculo para dejarla fuera."
+  "storageCategoryHint": "Toca una categoría para ver qué contiene, o su círculo para dejarla fuera.",
+  "storageChatRemovedNamed": "{names} · chat eliminado"
 }

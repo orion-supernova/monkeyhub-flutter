@@ -11559,4 +11559,9 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get storageCategoryHint =>
       'İçinde ne olduğunu görmek için bir kategoriye, hariç tutmak için dairesine dokun.';
+
+  @override
+  String storageChatRemovedNamed(String names) {
+    return '$names · kaldırılan sohbet';
+  }
 }

@@ -39,6 +39,7 @@ import 'composer_capture.dart';
 import 'composer_reply_card.dart';
 import 'glass_buttons.dart';
 import 'glass_pill.dart';
+import 'glass_reveal.dart';
 import 'jump_back.dart';
 import 'mention_picker.dart';
 import 'mention_text_controller.dart';
@@ -1410,8 +1411,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
               child: SafeArea(
                 child: AnimatedBuilder(
                   animation: curved,
+                  // Grown, not faded: the × is glass, and in a fading layer
+                  // its blur samples an empty buffer, a flat wash until the
+                  // fade ends and the frost snaps in. See [GlassReveal].
                   builder: (_, child) =>
-                      Opacity(opacity: curved.value, child: child),
+                      GlassReveal(t: curved.value, from: 0.6, child: child!),
                   // The Padding was inside the button until it moved out to
                   // `glass_close_button.dart`; position is the caller's
                   // business, and the other two surfaces place it differently.

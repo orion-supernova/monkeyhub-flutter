@@ -9,6 +9,7 @@ import '../keyboard/focusable_tap.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../l10n/text_case.dart';
 import '../theme/theme_scope.dart';
+import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'ios_kit.dart';
 import 'teardown_safe.dart';
@@ -157,19 +158,13 @@ class _PullDownOverlayState<T> extends State<_PullDownOverlay<T>>
             width: _width,
             child: AnimatedBuilder(
               animation: _c,
-              builder: (_, child) {
-                final v = Curves.easeOutCubic.transform(_c.value);
-                // The entrance the long-press menus use, so the two families
-                // of menu open the same way.
-                return Opacity(
-                  opacity: v.clamp(0.0, 1.0),
-                  child: Transform.scale(
-                    scale: 0.86 + 0.14 * v,
-                    alignment: origin,
-                    child: child,
-                  ),
-                );
-              },
+              builder: (_, child) => GlassReveal(
+                // Unfolds out of the row that opened it, never faded: see
+                // [GlassReveal] for the flicker a fade puts on glass.
+                t: Curves.easeOutCubic.transform(_c.value),
+                alignment: origin,
+                child: child!,
+              ),
               child: _panel(context),
             ),
           ),

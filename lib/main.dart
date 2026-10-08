@@ -16,6 +16,7 @@ import 'diagnostics/diag_boot.dart';
 import 'media/storage/data_usage_store.dart';
 import 'media/storage/media_ledger.dart';
 import 'media/storage/network_kind.dart';
+import 'media/video_duration.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
@@ -120,6 +121,9 @@ Future<void> main() async {
     // both written to by the first frame's message bubbles and downloads.
     MediaLedger.instance.load(),
     DataUsageStore.instance.load(),
+    // Video lengths read from file headers, so a tile shows its time on
+    // the first frame.
+    VideoDuration.instance.load(),
     // One hop, in parallel with the rest, so the shell's first frame already
     // knows whether iOS is drawing the bottom bar.
     NativeChrome.init(),

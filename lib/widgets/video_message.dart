@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../backend/chat_api.dart';
 import '../media/file_url_cache.dart';
+import '../media/video_duration.dart';
 import '../media/video_file_cache.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -15,6 +16,7 @@ import 'liquid_glass.dart';
 import 'photo_chrome.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
+import 'video_length_badge.dart';
 
 /// The chat-bubble tile for a video message: a static poster with a play
 /// glyph, never the video itself. Tapping hands off to [onOpen], which
@@ -148,12 +150,14 @@ class VideoMessage extends StatelessWidget {
           // The shared play mark and duration badge (photo_chrome), so a
           // bubble, a grid tile and a viewer draw one recipe.
           if (id != null) const MediaPlayDisc(),
-          if (id != null && durationMs != null)
+          if (id != null)
             Positioned(
               right: 6,
               bottom: 6,
-              child: MediaDurationBadge(
-                duration: Duration(milliseconds: durationMs!),
+              child: VideoLengthBadge(
+                storageId: id,
+                durationMs: durationMs,
+                api: api,
               ),
             ),
         ],
@@ -289,6 +293,10 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
           : VideoPlayerController.networkUrl(Uri.parse(url));
       try {
         await c.initialize().timeout(_loadTimeout);
+        // The player knows the length now; every badge for this video can
+        // use it without probing the file.
+        VideoDuration.instance
+            .remember(id, c.value.duration.inMilliseconds);
       } catch (e) {
         // `.timeout()` does not cancel the future underneath it, so a stalled
         // init may still be running against this controller — dispose it

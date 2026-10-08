@@ -23,8 +23,6 @@ import '../../widgets/sheet_kit.dart';
 import '../../widgets/stepped_slider.dart';
 import '../companions/marlowe_screen.dart';
 import '../companions/sebastian_screen.dart';
-import '../fullscreen_image_viewer.dart';
-import '../fullscreen_video_viewer.dart';
 import 'chat_storage_sheet.dart';
 import 'storage_category_screen.dart';
 import 'storage_labels.dart';
@@ -54,14 +52,17 @@ class StorageUsageScreen extends StatefulWidget {
   State<StorageUsageScreen> createState() => _StorageUsageScreenState();
 }
 
-class _StorageUsageScreenState extends State<StorageUsageScreen> {
+class _StorageUsageScreenState extends State<StorageUsageScreen>
+    with StorageSelection {
   final _service = StorageService.instance;
+  final _scroll = ScrollController();
+
+  @override
+  ChatApi get selectionApi => widget.api;
 
   /// Kinds the user unticked: kept out of the clear, out of the ring.
   final Set<StorageKind> _excluded = {};
 
-  /// Items picked in the Media and Files tabs, by id.
-  final Set<String> _picked = {};
   _Tab _tab = _Tab.chats;
   StorageKind? _focused;
   bool _clearing = false;
@@ -76,6 +77,7 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
   @override
   void dispose() {
     _service.removeListener(_changed);
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -133,7 +135,7 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
 
   Future<void> _clearPicked() async {
     final l10n = AppLocalizations.of(context);
-    final items = _r.items.where((i) => _picked.contains(i.id)).toList();
+    final items = _r.items.where((i) => picked.contains(i.id)).toList();
     final bytes = items.fold<int>(0, (a, i) => a + i.bytes);
     if (items.isEmpty) return;
     final ok = await _confirm(
@@ -143,7 +145,7 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
     );
     if (!ok || !mounted) return;
     await _run(() => _service.deleteItems(items));
-    if (mounted) setState(_picked.clear);
+    if (mounted) clearPicks();
   }
 
   Future<void> _cleanStale(List<StoredItem> stale) async {
@@ -161,58 +163,6 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
           tone: ToastTone.success, icon: CupertinoIcons.checkmark_alt);
     } finally {
       if (mounted) setState(() => _clearing = false);
-    }
-  }
-
-  void _togglePick(Iterable<StoredItem> parts) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      final ids = parts.map((p) => p.id).toList();
-      if (ids.every(_picked.contains)) {
-        _picked.removeAll(ids);
-      } else {
-        _picked.addAll(ids);
-      }
-    });
-  }
-
-  Future<void> _openTile(MediaTileData tile, GlobalKey anchor) async {
-    if (_picked.isNotEmpty) {
-      _togglePick(tile.parts);
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
-    final choice = await showPullDownMenu<String>(
-      context: context,
-      anchorKey: anchor,
-      items: [
-        PullDownItem(
-          value: 'open',
-          label: tile.isVideo ? l10n.storageOpenVideo : l10n.storageOpenPhoto,
-          icon: CupertinoIcons.arrow_up_left_arrow_down_right,
-        ),
-        PullDownItem(
-          value: 'select',
-          label: l10n.storageSelect,
-          icon: CupertinoIcons.checkmark_circle,
-        ),
-      ],
-    );
-    if (!mounted) return;
-    switch (choice) {
-      case 'open':
-        final video = tile.video;
-        if (video != null) {
-          await FullscreenVideoViewer.open(context,
-              storageId: video.id,
-              api: widget.api,
-              posterStorageId: tile.thumbId);
-        } else if (tile.thumbId != null) {
-          await FullscreenImageViewer.open(context,
-              storageId: tile.thumbId!, api: widget.api);
-        }
-      case 'select':
-        _togglePick(tile.parts);
     }
   }
 
@@ -258,17 +208,18 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final r = _r;
-    final picking = _picked.isNotEmpty;
+    final picking = selecting;
     final pickedBytes = r.items
-        .where((i) => _picked.contains(i.id))
+        .where((i) => picked.contains(i.id))
         .fold<int>(0, (a, i) => a + i.bytes);
 
     return AnimatedBuilder(
       animation: SettingsStore.instance,
       builder: (context, _) => Stack(
         children: [
-          IosPage(
+          _withDrag(IosPage(
             title: l10n.storageUsageTitle,
+            controller: _scroll,
             slivers: [
               SliverToBoxAdapter(
                 child: AdaptivePageBody(
@@ -306,7 +257,7 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
                     height: edgeToEdgeBottom(context, picking ? 96 : 40)),
               ),
             ],
-          ),
+          )),
           // The clear bar for a picked set, floating over the grid the way
           // Telegram's does, so the selection stays in view while it grows.
           ClearSelectionBar(
@@ -319,6 +270,13 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
       ),
     );
   }
+
+  /// The Media tab's grid picks by drag; the rest of the page is untouched
+  /// by it (a long press on anything that is not a tile does nothing).
+  Widget _withDrag(Widget page) => _tab == _Tab.media
+      ? dragRegion(
+          tiles: MediaTileData.group(_r.media), scroll: _scroll, child: page)
+      : page;
 
   Widget _hero(AppLocalizations l10n, StorageReport r) {
     final theme = ThemeScope.of(context);
@@ -542,44 +500,8 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
         final tiles = MediaTileData.group(r.media);
         if (tiles.isEmpty) return [empty(l10n.storageNoMedia)];
         // A real sliver grid, so a cache of thousands of tiles builds only
-        // the rows on screen. Centred to the readable width like the rest of
-        // the page on a wide window.
-        return [
-          SliverLayoutBuilder(
-            builder: (context, c) {
-              final side = context.isCompact
-                  ? 0.0
-                  : ((c.crossAxisExtent - ContentWidth.readable) / 2)
-                      .clamp(0.0, double.infinity);
-              return SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: side),
-                sliver: SliverGrid.builder(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 140,
-                    mainAxisSpacing: 2,
-                    crossAxisSpacing: 2,
-                  ),
-                  itemCount: tiles.length,
-                  itemBuilder: (context, i) {
-                    final t = tiles[i];
-                    final anchor = GlobalKey();
-                    return KeyedSubtree(
-                      key: anchor,
-                      child: StorageMediaTile(
-                        tile: t,
-                        api: widget.api,
-                        selected:
-                            t.parts.every((p) => _picked.contains(p.id)),
-                        onTap: () => _openTile(t, anchor),
-                        onToggle: () => _togglePick(t.parts),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        ];
+        // the rows on screen.
+        return [mediaGridSliver(tiles)];
       case _Tab.files:
         final files = r.files;
         if (files.isEmpty) return [empty(l10n.storageNoFiles)];
@@ -587,12 +509,7 @@ class _StorageUsageScreenState extends State<StorageUsageScreen> {
           boxed(GroupedSection(
             margin: EdgeInsets.zero,
             children: [
-              for (final f in files)
-                StorageFileRow(
-                  item: f,
-                  selected: _picked.contains(f.id),
-                  onToggle: () => _togglePick([f]),
-                ),
+              for (final f in files) fileRow(f),
             ],
           )),
         ];
