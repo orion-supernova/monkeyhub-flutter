@@ -193,20 +193,6 @@ void main() {
         reason: 'primary focus: ${FocusManager.instance.primaryFocus}');
   });
 
-  // The smiley beside it opens the same mode on the reactions alone.
-  testWidgets('the smiley opens the reactions without the keyboard', (tester) async {
-    await tester.pumpWidget(
-      _host(moment: _moment(id: 'm3', media: 'blob3', caption: 'react')),
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(CupertinoIcons.smiley).first);
-    await tester.pumpAndSettle();
-    expect(find.byType(MomentCommentComposer), findsOneWidget);
-    final field = tester.widget<EditableText>(find.byType(EditableText).last);
-    expect(field.focusNode.hasFocus, isFalse);
-  });
-
   testWidgets('a point card has the picker too', (tester) async {
     await tester.pumpWidget(
       _host(moment: _moment(id: 'p1', caption: 'npc behaviour', tag: MomentTag.npc)),

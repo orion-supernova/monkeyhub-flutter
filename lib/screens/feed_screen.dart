@@ -106,6 +106,7 @@ class _FeedScreenState extends State<FeedScreen>
     // costs one cheap call on the first Feed mount of the day and nothing
     // after it. The friend leaderboards wait for the hub.
     GamesStore.instance.loadBoards();
+    unawaited(_loadMyAvatar());
     // The empty state turns on the friend count, so the board has to rebuild
     // when a friend request is accepted while it is on screen.
     widget.repo.addListener(_onChange);
@@ -390,7 +391,27 @@ class _FeedScreenState extends State<FeedScreen>
       origin: origin,
       openComments: openComments,
       onOpenProfile: _openProfile,
+      viewerAvatarStorageId: _myAvatar,
+      resolveUser: widget.repo.userById,
     );
+  }
+
+  /// The viewer's own face, for their reactions in the highlight viewer.
+  ///
+  /// A reaction the viewer just left is drawn before the server has echoed it
+  /// (and so before it carries a face), and one left before faces were stored
+  /// never will. One cheap read on mount covers both; null until it lands.
+  String? _myAvatar;
+
+  Future<void> _loadMyAvatar() async {
+    final id = widget.repo.userId;
+    if (id == null) return;
+    try {
+      final me = await widget.api.getProfile(id, viewerUserId: id);
+      if (mounted) _myAvatar = me?.avatarStorageId;
+    } catch (_) {
+      // Offline: their reactions keep the initial, which is what they had.
+    }
   }
 
   /// Someone tapped in a highlight's reactions or comments. Their profile

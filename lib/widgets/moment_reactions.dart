@@ -106,6 +106,8 @@ class MomentReactorStack extends StatelessWidget {
         ? firstName
         : l10n.momentReactorsSummary(groups.length - 1, firstName);
     final width = _face + (shown.length - 1) * (_face - _overlap) + 6;
+    // Read, not pressed (though it opens the list): plain faces and a line
+    // of type on a shadow, no glass. Glass on the story is for controls.
     return FocusableTap(
       onTap: onTap,
       semanticLabel: label,

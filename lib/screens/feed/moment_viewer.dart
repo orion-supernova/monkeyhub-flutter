@@ -20,7 +20,6 @@ import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/destructive_sheet.dart';
-import '../../widgets/glass_buttons.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/moment_reactions.dart';
 import '../../widgets/photo_backdrop.dart' show photoFillsScreen;
@@ -33,7 +32,9 @@ import '../../widgets/sheet_kit.dart'
         SheetBar,
         SheetCloseButton,
         SheetHandle,
-        SheetTrashButton;
+        SheetTrashButton,
+        IosSheetAction,
+        showIosActionSheet;
 
 import '../../widgets/steady_hero.dart';
 import '../fullscreen_video_viewer.dart';
@@ -105,7 +106,15 @@ Future<void> showMomentViewer(
   /// Opens someone's profile from the reactions or the comments. The viewer
   /// has no repository of its own to build one with, so the host lends this.
   void Function(ChatUser user)? onOpenProfile,
+
+  /// The viewer's own face and a lookup over the people the host already
+  /// holds (friends), to fill in reactors whose reaction carries no face:
+  /// the viewer's own, drawn before the server echoes it, and any left before
+  /// faces were stored with reactions.
+  String? viewerAvatarStorageId,
+  ChatUser? Function(String userId)? resolveUser,
 }) {
+  final faces = _Faces(viewerId: userId, viewerAvatar: viewerAvatarStorageId, resolve: resolveUser);
   if (moment.thumbStorageId != null) {
     // Only the ones with something to look at. A caption-only highlight sitting
     // in the middle of the rail is a legitimate page of *nothing* full-screen,
@@ -124,6 +133,7 @@ Future<void> showMomentViewer(
       userId: userId,
       openComments: openComments,
       onOpenProfile: onOpenProfile,
+      faces: faces,
     );
   }
   return _openCard(
@@ -135,7 +145,40 @@ Future<void> showMomentViewer(
     origin: origin,
     openComments: openComments,
     onOpenProfile: onOpenProfile,
+    faces: faces,
   );
+}
+
+/// Fills in the faces (and handles) a reactor row arrived without, from what
+/// the host already knows. A reaction's own stored face always wins: it
+/// carries the reactor's avatar setting as the server applied it.
+class _Faces {
+  const _Faces({required this.viewerId, this.viewerAvatar, this.resolve});
+
+  final String viewerId;
+  final String? viewerAvatar;
+  final ChatUser? Function(String userId)? resolve;
+
+  static const none = _Faces(viewerId: '');
+
+  List<MomentReactor> fill(List<MomentReactor> reactors) => [
+        for (final r in reactors)
+          r.avatarStorageId != null && r.username != null ? r : _filled(r),
+      ];
+
+  MomentReactor _filled(MomentReactor r) {
+    final known = r.userId == viewerId ? null : resolve?.call(r.userId);
+    final face = r.avatarStorageId ??
+        (r.userId == viewerId ? viewerAvatar : known?.avatarStorageId);
+    return MomentReactor(
+      emoji: r.emoji,
+      userId: r.userId,
+      name: r.name.isNotEmpty ? r.name : (known?.name ?? ''),
+      username: r.username ?? known?.username,
+      avatarStorageId: face,
+      createdAt: r.createdAt,
+    );
+  }
 }
 
 /// The full-screen route.
@@ -153,6 +196,7 @@ Future<void> _openStage(
   required String userId,
   bool openComments = false,
   void Function(ChatUser user)? onOpenProfile,
+  _Faces faces = _Faces.none,
 }) {
   return Navigator.of(context).push(
     PageRouteBuilder(
@@ -171,6 +215,7 @@ Future<void> _openStage(
         userId: userId,
         openComments: openComments,
         onOpenProfile: onOpenProfile,
+        faces: faces,
       ),
       transitionsBuilder: (_, anim, _, child) =>
           FadeTransition(opacity: anim, child: child),
@@ -187,6 +232,7 @@ Future<void> _openCard(
   Rect? origin,
   bool openComments = false,
   void Function(ChatUser user)? onOpenProfile,
+  _Faces faces = _Faces.none,
 }) {
   final theme = ThemeScope.of(context);
   final motion = MotionScope.of(context);
@@ -206,6 +252,7 @@ Future<void> _openCard(
         origin: origin,
         openComments: openComments,
         onOpenProfile: onOpenProfile,
+        faces: faces,
       ),
       // No transition here on purpose. The scrim, the card and the dismiss drag
       // all read the route's animation themselves — a page-wide FadeTransition
@@ -438,8 +485,10 @@ class _CommentsPill extends StatelessWidget {
           tone: GlassTone.media,
           shape: LiquidGlassShape.capsule,
           onTap: onTap,
+          // 44pt tall, the comment field's own height, so the bar's three
+          // controls stand on one line.
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: glyph,
           ),
         ),
@@ -601,7 +650,11 @@ class _MomentStage extends StatefulWidget {
     required this.userId,
     this.openComments = false,
     this.onOpenProfile,
+    this.faces = _Faces.none,
   });
+
+  /// See [_Faces].
+  final _Faces faces;
 
   /// Opens the first moment's comments once the stage is up — a comment
   /// notification's tap.
@@ -957,10 +1010,26 @@ class _MomentStageState extends State<_MomentStage>
     if (debugStoryAssumeLoaded) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onReady(m.id));
     }
+    // Already decoded: start now. A picture reports "decoded" once per
+    // mount, and two arrivals never get a second report: the next person's
+    // page, which the pager builds while it is still the neighbour (so its
+    // report came in before it was current, and was set aside), and a tap
+    // back on the very first story, which restarts the same picture. Both
+    // used to sit on an empty bar until the eight second fallback.
+    if (_decodedIds.contains(m.id)) {
+      _loadFallback?.cancel();
+      _ready = true;
+      _sync();
+    }
   }
 
-  /// The picture for [id] has decoded. Only the current item's counts.
+  /// Every picture that has reported decoded on this route, current or not.
+  final _decodedIds = <String>{};
+
+  /// The picture for [id] has decoded. Remembered whichever item it is; only
+  /// the current item's starts the clock.
   void _onReady(String id) {
+    _decodedIds.add(id);
     if (!mounted || id != _current.id || _ready) return;
     _loadFallback?.cancel();
     _ready = true;
@@ -1228,6 +1297,16 @@ class _MomentStageState extends State<_MomentStage>
                         ? () => setState(() => _fill = !_fill)
                         : null,
                     filled: _fill,
+                    onOpenAuthor: current.mine || widget.onOpenProfile == null
+                        ? null
+                        : () => widget.onOpenProfile!(
+                              ChatUser(
+                                id: current.userId,
+                                username: current.authorUsername,
+                                name: current.authorName,
+                                avatarStorageId: current.authorAvatarStorageId,
+                              ),
+                            ),
                   ),
                 ),
                 _FadingChrome(
@@ -1244,11 +1323,13 @@ class _MomentStageState extends State<_MomentStage>
                       // Who reacted: faces wearing their emoji, newest first.
                       if (_book.of(current).reactors.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
                           child: Align(
                             alignment: AlignmentDirectional.centerStart,
                             child: MomentReactorStack(
-                              groups: groupReactors(_book.of(current).reactors),
+                              groups: groupReactors(
+                                widget.faces.fill(_book.of(current).reactors),
+                              ),
                               api: widget.api,
                               viewerId: widget.userId,
                               onTap: () => _showReactors(current),
@@ -1259,7 +1340,6 @@ class _MomentStageState extends State<_MomentStage>
                         height: _kCommentBar,
                         count: _book.commentsOf(current),
                         onField: _openPanel,
-                        onReactions: () => _openPanel(keyboard: false),
                         onComments: () => _comments(current),
                       ),
                     ],
@@ -1450,7 +1530,7 @@ class _MomentStageState extends State<_MomentStage>
 
   /// Who reacted, as a list; [emoji] narrows it to one reaction.
   void _showReactors(Moment m, [String? emoji]) {
-    final reactors = _book.of(m).reactors;
+    final reactors = widget.faces.fill(_book.of(m).reactors);
     if (reactors.isEmpty) return;
     HapticFeedback.mediumImpact();
     showMomentReactions(
@@ -1807,13 +1887,13 @@ class _StoryProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
+    // Plain segments, not glass: glass is for the things you press, and these
+    // are read. A short, light shade at the card's top edge keeps them (and
+    // the name under them) legible on a bright sky, and fades out well before
+    // the photo's subject.
     return IgnorePointer(
       child: Stack(
         children: [
-          // A light shade at the top of the card, not a blur: enough that
-          // white bars and a white name stay legible over a bright sky, light
-          // enough that the photo still reads as the photo. Clipped to the
-          // card's own top edge and corners.
           Padding(
             padding: EdgeInsets.only(top: pad.top),
             child: ClipRRect(
@@ -1821,12 +1901,17 @@ class _StoryProgress extends StatelessWidget {
                 top: Radius.circular(_kStoryCardRadius),
               ),
               child: Container(
-                height: 104,
+                height: 120,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0x66000000), Color(0x00000000)],
+                    colors: [
+                      Color(0x52000000),
+                      Color(0x26000000),
+                      Color(0x00000000),
+                    ],
+                    stops: [0, 0.45, 1],
                   ),
                 ),
               ),
@@ -1865,8 +1950,10 @@ class _StoryProgressPainter extends CustomPainter {
   final int index;
   final Animation<double>? progress;
 
-  static const _gap = 4.0;
-  static const _track = Color(0x59FFFFFF);
+  // Tight gaps and a quiet track, so the one bright segment (where you are)
+  // leads and the rest read as a single thin rule.
+  static const _gap = 3.0;
+  static const _track = Color(0x4DFFFFFF);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1899,13 +1986,19 @@ class _StoryProgressPainter extends CustomPainter {
       old.count != count || old.index != index || old.progress != progress;
 }
 
-/// Who posted it and when — and, on the trailing edge, the trash (yours
-/// only), the fill toggle and the way out.
+/// Who posted it and when, and the two ways out of the picture: a menu and
+/// the close.
 ///
-/// **The × is TRAILING here, deliberately** — the one exception to "× leads".
-/// It is the stories convention (Instagram, iOS), and it leaves the leading
-/// edge to the person, which is what a stories bar is about. Order, trailing:
-/// trash, fill, ×; all 40pt media glass.
+/// The story's chrome is all plain: white type and white glyphs on a soft
+/// shadow, one language with the progress bar above and the comment field
+/// below, so nothing on top competes with the photograph. Two controls: ⋯
+/// (fit or fill, delete; gone when it would hold nothing) and ×.
+///
+/// The leading edge is the person, as one tap target: ringed face, name over
+/// time, opening their profile when the host lends a route to it.
+///
+/// **The × is TRAILING here, deliberately**: the one exception to "× leads",
+/// the stories convention (Instagram, iOS).
 class _StageTopBar extends StatelessWidget {
   const _StageTopBar({
     required this.moment,
@@ -1914,6 +2007,7 @@ class _StageTopBar extends StatelessWidget {
     required this.onDelete,
     required this.onToggleFill,
     required this.filled,
+    required this.onOpenAuthor,
   });
 
   final Moment moment;
@@ -1924,88 +2018,130 @@ class _StageTopBar extends StatelessWidget {
   final VoidCallback? onDelete;
 
   /// Switches between filling the screen and showing the whole frame. Null when
-  /// this picture is shown whole either way — see `_MomentStageState._fill`.
+  /// this picture is shown whole either way; see `_MomentStageState._fill`.
   final VoidCallback? onToggleFill;
 
-  /// Which of the two states the picture is in now, for the glyph.
+  /// Which of the two states the picture is in now, for the menu's glyph.
   final bool filled;
+
+  /// Opens the author's profile; null for your own or with no route lent.
+  final VoidCallback? onOpenAuthor;
+
+  static const _shadow = [Shadow(color: Color(0x80000000), blurRadius: 8)];
+
+  Future<void> _menu(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    HapticFeedback.selectionClick();
+    final choice = await showIosActionSheet<String>(
+      context,
+      actions: [
+        if (onToggleFill != null)
+          IosSheetAction(
+            label: l10n.photoChromeFillToggleSemanticLabel,
+            value: 'fill',
+            icon: filled
+                ? CupertinoIcons.arrow_down_right_arrow_up_left
+                : CupertinoIcons.arrow_up_left_arrow_down_right,
+          ),
+        if (onDelete != null)
+          IosSheetAction(
+            label: l10n.momentViewerDelete,
+            value: 'delete',
+            destructive: true,
+            icon: CupertinoIcons.trash,
+          ),
+      ],
+    );
+    switch (choice) {
+      case 'fill':
+        onToggleFill?.call();
+      case 'delete':
+        onDelete?.call();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final pad = MediaQuery.paddingOf(context);
-    const shadow = [Shadow(color: Color(0x99000000), blurRadius: 6)];
+    final hasMenu = onToggleFill != null || onDelete != null;
+    final name = moment.mine
+        ? sentenceCaseOf(context, l10n.momentRailYouLabel)
+        : moment.authorName;
 
-    // 8 below the 2.5pt progress bar, which sits 8 below the safe area.
+    final author = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _AuthorDot(moment: moment, api: api),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: theme.bodyEmph.copyWith(
+                  fontSize: 15,
+                  height: 1.15,
+                  color: MediaGlass.ink,
+                  shadows: _shadow,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                _ago(l10n, moment.createdAt),
+                style: theme.caption.copyWith(
+                  fontSize: 12,
+                  height: 1.2,
+                  color: MediaGlass.ink.withValues(alpha: 0.82),
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  shadows: _shadow,
+                ),
+                maxLines: 1,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final open = onOpenAuthor;
+
+    // Just under the progress bar, which sits 8 below the card's top edge.
     return Padding(
-      padding: EdgeInsets.fromLTRB(12, pad.top + 18, 10, 12),
+      // Just under the progress bar, which sits 8 below the card's top edge.
+      padding: EdgeInsets.fromLTRB(12, pad.top + 18, 4, 8),
       child: Row(
         children: [
-          _AuthorDot(moment: moment, api: api),
-          const SizedBox(width: 10),
-          // Name and time take what the buttons leave, as one group — a
-          // loose name beside a Spacer would split the free space with it
-          // and strand the × short of the edge.
+          // The person, as type: read, not pressed, so no glass. Still one
+          // tap target to their profile.
           Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    moment.mine
-                        ? sentenceCaseOf(context, l10n.momentRailYouLabel)
-                        : moment.authorName,
-                    style: theme.bodyEmph.copyWith(
-                      fontSize: 17,
-                      color: MediaGlass.ink,
-                      // Over an arbitrary photograph a shadow is what keeps
-                      // a name legible where the vignette has thinned out.
-                      shadows: shadow,
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: open == null
+                  ? author
+                  : FocusableTap(
+                      onTap: open,
+                      semanticLabel: name,
+                      shape: FocusRingShape.capsule,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: open,
+                        child: author,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _ago(l10n, moment.createdAt),
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    color: MediaGlass.inkDim,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    shadows: shadow,
-                  ),
-                  maxLines: 1,
-                ),
-              ],
             ),
           ),
-          const SizedBox(width: 8),
-          if (onDelete != null) ...[
-            GlassIconButton(
-              tone: GlassTone.media,
-              icon: CupertinoIcons.trash,
-              semanticLabel: l10n.momentViewerDelete,
-              onTap: onDelete,
-              iconSize: 18,
+          if (hasMenu)
+            _ChromeGlyph(
+              icon: CupertinoIcons.ellipsis,
+              semanticLabel: MaterialLocalizations.of(context).moreButtonTooltip,
+              onTap: () => _menu(context),
             ),
-            const SizedBox(width: 8),
-          ],
-          if (onToggleFill != null) ...[
-            GlassIconButton(
-              tone: GlassTone.media,
-              // The glyph names what the tap DOES, not the current state: a
-              // filled picture offers to shrink back to the whole frame.
-              icon: filled
-                  ? CupertinoIcons.arrow_down_right_arrow_up_left
-                  : CupertinoIcons.arrow_up_left_arrow_down_right,
-              semanticLabel: l10n.photoChromeFillToggleSemanticLabel,
-              onTap: onToggleFill,
-            ),
-            const SizedBox(width: 8),
-          ],
-          GlassCloseButton(
-            tone: GlassTone.media,
+          _ChromeGlyph(
+            icon: CupertinoIcons.xmark,
             semanticLabel: l10n.photoChromeCloseSemanticLabel,
             onTap: onClose,
           ),
@@ -2014,13 +2150,46 @@ class _StageTopBar extends StatelessWidget {
     );
   }
 
-  /// Compact relative time, matching the activity river's — everything on this
+  /// Compact relative time, matching the activity river's: everything on this
   /// board is from today, so it never needs a date.
   static String _ago(AppLocalizations l10n, DateTime at) {
     final d = DateTime.now().difference(at);
     if (d.inMinutes < 1) return l10n.momentActivityJustNow;
     if (d.inHours < 1) return l10n.momentActivityMinutesAgo(d.inMinutes);
     return l10n.momentActivityHoursAgo(d.inHours);
+  }
+}
+
+/// A plain white glyph over the story on a soft shadow: the top bar's
+/// buttons. 44pt to hit, springy to press.
+class _ChromeGlyph extends StatelessWidget {
+  const _ChromeGlyph({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      focusShape: FocusRingShape.circle,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Icon(
+          icon,
+          size: 24,
+          color: MediaGlass.ink,
+          shadows: const [Shadow(color: Color(0x80000000), blurRadius: 8)],
+        ),
+      ),
+    );
   }
 }
 
@@ -2053,7 +2222,12 @@ class _AuthorDot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.black.withValues(alpha: 0.35),
-        border: Border.all(color: MediaGlass.stroke, width: 1),
+        // A crisp white ring, the stories mark for "a person", and what keeps
+        // the face separate from whatever photo it sits on.
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.9),
+          width: 1.5,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
@@ -2105,8 +2279,9 @@ class _StageCaption extends StatelessWidget {
     final caption = moment.caption;
     final hasCaption = caption != null && caption.isNotEmpty;
     if (moment.tag == null && !hasCaption) return const SizedBox.shrink();
+    // Read, not pressed: plain type on a soft shadow, no card.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2120,6 +2295,7 @@ class _StageCaption extends StatelessWidget {
               caption,
               style: theme.body.copyWith(
                 color: MediaGlass.ink,
+                decoration: TextDecoration.none,
                 shadows: const [
                   Shadow(color: Color(0xCC000000), blurRadius: 10),
                 ],
@@ -2146,7 +2322,6 @@ class _StageCommentBar extends StatelessWidget {
     required this.height,
     required this.count,
     required this.onField,
-    required this.onReactions,
     required this.onComments,
   });
 
@@ -2156,8 +2331,6 @@ class _StageCommentBar extends StatelessWidget {
   /// Opens the reply mode with the keyboard up, to write.
   final VoidCallback onField;
 
-  /// Opens it on the reactions alone, keyboard down, to react.
-  final VoidCallback onReactions;
 
   /// Opens the whole conversation.
   final VoidCallback onComments;
@@ -2171,22 +2344,24 @@ class _StageCommentBar extends StatelessWidget {
     return ColoredBox(
       color: Colors.black,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(12, 8, 8, bottom),
+        padding: EdgeInsets.fromLTRB(12, 8, 12, bottom),
         child: SizedBox(
           height: height - 8,
           child: Row(
             children: [
               Expanded(
-                child: FocusableTap(
-                  onTap: onField,
-                  semanticLabel: hint,
-                  shape: FocusRingShape.capsule,
+                // A plain outlined field, the same language as the type above
+                // it, with the conversation's size at its trailing end. The
+                // field opens the reply mode (keyboard and the big reactions
+                // together); the count opens the conversation.
+                child: Semantics(
+                  button: true,
+                  label: hint,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: onField,
                     child: Container(
                       height: 44,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
@@ -2196,74 +2371,59 @@ class _StageCommentBar extends StatelessWidget {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              hint,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.body.copyWith(
-                                fontSize: 16,
-                                color: MediaGlass.inkDim,
+                            child: Padding(
+                              padding: const EdgeInsetsDirectional.only(start: 18),
+                              child: Text(
+                                hint,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.body.copyWith(
+                                  fontSize: 16,
+                                  color: MediaGlass.inkDim,
+                                ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              FocusableTap(
-                onTap: onReactions,
-                semanticLabel: l10n.reactionBubblePickerTitle,
-                shape: FocusRingShape.circle,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onReactions,
-                  child: const SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Icon(
-                      CupertinoIcons.smiley,
-                      size: 26,
-                      color: MediaGlass.ink,
-                    ),
-                  ),
-                ),
-              ),
-              FocusableTap(
-                onTap: onComments,
-                semanticLabel: l10n.momentCommentsCount(count),
-                shape: FocusRingShape.circle,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onComments,
-                  child: SizedBox(
-                    height: 44,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            CupertinoIcons.chat_bubble,
-                            size: 25,
-                            color: MediaGlass.ink,
-                          ),
-                          if (count > 0) ...[
-                            const SizedBox(width: 5),
-                            Text(
-                              '$count',
-                              style: theme.body.copyWith(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: MediaGlass.ink,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
+                          if (count > 0)
+                            FocusableTap(
+                              onTap: onComments,
+                              semanticLabel: l10n.momentCommentsCount(count),
+                              shape: FocusRingShape.capsule,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: onComments,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: SizedBox(
+                                    height: 44,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          CupertinoIcons.chat_bubble,
+                                          size: 18,
+                                          color: MediaGlass.ink,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '$count',
+                                          style: theme.body.copyWith(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: MediaGlass.ink,
+                                            fontFeatures: const [
+                                              FontFeature.tabularFigures(),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            )
+                          else
+                            const SizedBox(width: 14),
                         ],
                       ),
                     ),
@@ -2701,7 +2861,11 @@ class _MomentCardViewer extends StatefulWidget {
     this.origin,
     this.openComments = false,
     this.onOpenProfile,
+    this.faces = _Faces.none,
   });
+
+  /// See [_Faces].
+  final _Faces faces;
 
   final Moment moment;
   final ChatApi api;
@@ -2848,7 +3012,7 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
       (drag.abs() / (screen.height * _fadeSpan)).clamp(0.0, 1.0);
 
   void _showReactors(String emoji) {
-    final reactors = _book.of(widget.moment).reactors;
+    final reactors = widget.faces.fill(_book.of(widget.moment).reactors);
     if (reactors.isEmpty) return;
     HapticFeedback.mediumImpact();
     showMomentReactions(
