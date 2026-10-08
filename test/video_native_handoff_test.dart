@@ -10,8 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/media/file_url_cache.dart';
+import 'package:monkeyhub/media/native_gallery.dart';
 import 'package:monkeyhub/media/native_video_player.dart';
 import 'package:monkeyhub/media/video_file_cache.dart';
+import 'package:monkeyhub/models/chat_message.dart';
+import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/privacy/capture_protection.dart';
 import 'package:monkeyhub/screens/fullscreen_video_viewer.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -92,6 +95,7 @@ void main() {
   Future<void> openViewer(
     WidgetTester tester, {
     required String storageId,
+    VideoGallery? gallery,
   }) async {
     late BuildContext ctx;
     await tester.pumpWidget(
@@ -116,7 +120,12 @@ void main() {
       ),
     );
     unawaited(
-      FullscreenVideoViewer.open(ctx, storageId: storageId, api: _UrlApi()),
+      FullscreenVideoViewer.open(
+        ctx,
+        storageId: storageId,
+        api: _UrlApi(),
+        gallery: gallery,
+      ),
     );
     await settle(tester);
   }
@@ -162,5 +171,43 @@ void main() {
 
     expect(presented, hasLength(1));
     expect((presented.single.arguments as Map)['secure'], isFalse);
+  });
+
+  testWidgets('a gallery opens natively and the screen that asked steps aside',
+      (tester) async {
+    tester.view.physicalSize = viewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    nativeGalleryImageStat = (_) async => null;
+
+    ChatMessage video(String id) => ChatMessage(
+          id: id,
+          roomId: 'r',
+          senderId: 'them',
+          senderName: 'Them',
+          content: '',
+          createdAt: DateTime(2026, 10, 8),
+          type: MessageType.video,
+          mediaStorageId: id,
+        );
+
+    var presentedCalled = false;
+    seedCached('g_1');
+    await openViewer(
+      tester,
+      storageId: 'g_1',
+      gallery: VideoGallery(
+        items: [video('g_0'), video('g_1'), video('g_2')],
+        onPresented: () => presentedCalled = true,
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await settle(tester);
+
+    expect(presented.map((c) => c.method), ['presentGallery']);
+    expect((presented.single.arguments as Map)['index'], 1);
+    expect(presentedCalled, isTrue,
+        reason: 'the pager underneath must close, or closing the OS player '
+            'lands on it and needs a second close');
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_url_cache.dart';
+import '../media/native_gallery.dart';
 import '../media/native_video_player.dart';
 import '../media/video_file_cache.dart';
 import '../privacy/capture_protection.dart';
@@ -60,6 +61,7 @@ class FullscreenVideoViewer extends StatefulWidget {
     required this.api,
     this.posterStorageId,
     this.heroTag,
+    this.gallery,
   });
 
   final String storageId;
@@ -73,12 +75,17 @@ class FullscreenVideoViewer extends StatefulWidget {
   /// leaves the route's own fade to carry the arrival.
   final Object? heroTag;
 
+  /// The media around this video. With it, the OS player opens as a native
+  /// gallery the user can swipe through; without it, on this one video.
+  final VideoGallery? gallery;
+
   static Future<void> open(
     BuildContext context, {
     required String storageId,
     required ChatApi api,
     String? posterStorageId,
     Object? heroTag,
+    VideoGallery? gallery,
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
@@ -93,6 +100,7 @@ class FullscreenVideoViewer extends StatefulWidget {
           api: api,
           posterStorageId: posterStorageId,
           heroTag: heroTag,
+          gallery: gallery,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -183,6 +191,36 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
     // the moment the player appears, not the one from before the wait.
     final l = AppLocalizations.of(context);
     final secure = CaptureProtection.instance.active;
+
+    // The swipeable native gallery, when there is media around this video.
+    // Not under capture protection: the protected single player is the one
+    // that carries the recording shield, and a protected room's media is
+    // better seen one at a time than unshielded.
+    final gallery = widget.gallery;
+    if (source != null && gallery != null && !secure) {
+      final built = await buildNativeGallery(
+        gallery: gallery,
+        currentStorageId: widget.storageId,
+        currentUrl: source,
+        api: widget.api,
+      );
+      if (!mounted) return;
+      if (built.pages.length > 1 &&
+          await NativeVideoPlayer.presentGallery(
+            items: built.pages,
+            index: built.index,
+            onClosed: (i) {
+              if (i >= 0 && i < built.messages.length) {
+                gallery.onLanded?.call(built.messages[i]);
+              }
+            },
+            closeLabel: l.photoChromeCloseSemanticLabel,
+          )) {
+        if (mounted) Navigator.of(context).maybePop();
+        gallery.onPresented?.call();
+        return;
+      }
+    }
 
     if (source != null &&
         await NativeVideoPlayer.present(

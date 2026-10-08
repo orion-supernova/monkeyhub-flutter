@@ -7,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
+import '../media/native_gallery.dart';
 import '../media/storage/media_ledger.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
@@ -241,6 +242,34 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     with RouteLanding {
   late final PageController _pager;
   late int _index;
+
+  /// The native gallery a video page opened. It swipes through this same
+  /// set, so it REPLACES this pager rather than stacking on it: once it is on
+  /// screen the pager closes, unseen beneath it, and closing the OS player is
+  /// one close back to the grid or the chat, not two. Where the user ends up
+  /// still reaches the screen underneath, through [onPageChanged], the same
+  /// way swiping here does.
+  VideoGallery _nativeGallery() => VideoGallery(
+        items: _items,
+        onPresented: _stepAside,
+        onLanded: widget.onPageChanged,
+      );
+
+  /// Removes THIS pager's route, wherever it sits in the stack.
+  ///
+  /// Not [_close]: that pops, and a pop takes whatever route is on top. The
+  /// video viewer that opened the native gallery is popping itself in the
+  /// same moment, so a pop here could take the viewer a second time and
+  /// leave the pager standing, which was the "close twice" bug. Removed by
+  /// identity, the order cannot matter. Unanimated, because the OS player
+  /// covers it.
+  void _stepAside() {
+    if (!mounted || _closing) return;
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isActive) return;
+    _closing = true;
+    Navigator.of(context).removeRoute(route);
+  }
 
   /// The set as it stands now. A copy of [MediaPagerScreen.items] that only
   /// ever shrinks — Delete takes the picture out from under the reader and
@@ -551,6 +580,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                 child: _Page(
                   message: _items[i],
                   api: widget.api,
+                  gallery: _nativeGallery(),
                   heroTag: _heroTag(_items[i]),
                   // Only the page the flight actually opened on. The rest were
                   // never a thumbnail on the route below, so there is no warm
@@ -776,12 +806,16 @@ class _Page extends StatelessWidget {
     required this.onDismiss,
     required this.onToggleChrome,
     required this.onZoomChanged,
+    this.gallery,
     this.chromeClearance = 0,
   });
 
   final ChatMessage message;
   final ChatApi api;
   final Object heroTag;
+
+  /// The pager's whole set, for a video page's OS player to swipe through.
+  final VideoGallery? gallery;
 
   /// How much of the screen's bottom the gallery's chrome covers — see
   /// [_VideoPage.chromeClearance].
@@ -819,6 +853,7 @@ class _Page extends StatelessWidget {
       return _VideoPage(
         message: message,
         api: api,
+        gallery: gallery,
         heroTag: heroTag,
         drag: drag,
         onDismiss: onDismiss,
@@ -936,6 +971,7 @@ class _VideoPage extends StatefulWidget {
   const _VideoPage({
     required this.message,
     required this.api,
+    this.gallery,
     required this.heroTag,
     required this.drag,
     required this.onDismiss,
@@ -948,6 +984,9 @@ class _VideoPage extends StatefulWidget {
 
   final ChatMessage message;
   final ChatApi api;
+
+  /// The pager's set, handed to the OS player so it swipes on through it.
+  final VideoGallery? gallery;
   final Object heroTag;
   final ValueNotifier<Offset> drag;
   final VoidCallback onDismiss;
@@ -972,6 +1011,7 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
       storageId: id,
       api: widget.api,
       posterStorageId: widget.message.posterStorageId,
+      gallery: widget.gallery,
     );
   }
 

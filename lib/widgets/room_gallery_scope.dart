@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../media/native_gallery.dart';
 import '../models/chat_message.dart';
 
 /// Lets a photo in the transcript open the room's whole gallery without knowing
@@ -22,8 +23,14 @@ class RoomGalleryScope extends InheritedWidget {
   const RoomGalleryScope({
     super.key,
     required this.openGallery,
+    this.videoGalleryFor,
     required super.child,
   });
+
+  /// The chat's photos and videos around [message], for a video bubble to
+  /// open the OS player as a swipeable gallery. Null where there is no
+  /// conversation behind the bubble, and the player opens on the one video.
+  final VideoGallery Function(ChatMessage message)? videoGalleryFor;
 
   /// Opens the fullscreen gallery on [message] and completes when it closes.
   /// The room decides what the set is and where the flight goes.
@@ -49,5 +56,6 @@ class RoomGalleryScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(RoomGalleryScope old) =>
-      old.openGallery != openGallery;
+      old.openGallery != openGallery ||
+      old.videoGalleryFor != videoGalleryFor;
 }

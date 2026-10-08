@@ -23,6 +23,7 @@ import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/drag_select.dart';
+import '../media/native_gallery.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/audio_message.dart';
 import '../widgets/bulk_action_bar.dart';
@@ -277,6 +278,18 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       api: widget.api,
       posterStorageId: m.posterStorageId,
       heroTag: roomMediaHeroTag(m.id),
+      // Every photo and video in this tab, so the OS player swipes through
+      // them the way the photo pager does.
+      gallery: VideoGallery(
+        items: [
+          for (final x in _c.items)
+            if (x.type == MessageType.image ||
+                x.type == MessageType.video ||
+                x.type == MessageType.videoNote)
+              x,
+        ],
+        onLanded: (x) => _revealInGrid(x.id),
+      ),
     );
   }
 

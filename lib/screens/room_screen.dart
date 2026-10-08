@@ -43,6 +43,7 @@ import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_meta.dart';
+import '../media/native_gallery.dart';
 import '../media/video_poster.dart';
 import '../media/image_raster.dart';
 import '../media/photo_picking.dart';
@@ -3382,6 +3383,20 @@ class _RoomScreenState extends State<RoomScreen>
   /// already declines an armed view-once photo — a burn-on-open picture is not
   /// something you swipe past — and anything with no storage id, which is what
   /// a failed or still-running upload looks like.
+  /// The room's photos and videos, the same set the photo gallery swipes
+  /// through, for a video bubble's OS player to swipe through too. Closing
+  /// it lines the transcript up on the item it closed on, as the photo
+  /// gallery does.
+  VideoGallery _videoGalleryFor(ChatMessage m) => VideoGallery(
+        items: [
+          for (final x in widget.repo.timelineFor(widget.roomId))
+            if (messageBelongsIn(x, RoomContentTab.media)) x,
+        ],
+        onLanded: (landed) {
+          if (landed.id != m.id) _alignTranscriptTo(landed);
+        },
+      );
+
   Future<void> _openGallery(
     ChatMessage m, {
     required int sourceDecodeWidth,
@@ -4058,6 +4073,7 @@ class _RoomScreenState extends State<RoomScreen>
     // scope's own doc for why it is an inherited widget and not a parameter.
     return RoomGalleryScope(
       openGallery: _openGallery,
+      videoGalleryFor: _videoGalleryFor,
       child: SpeakerScope(
         // A DM hands out no colours at all. Two people, two margins — the layout
         // has already said everything a colour could, and tinting the one

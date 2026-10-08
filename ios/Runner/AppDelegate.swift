@@ -1458,6 +1458,10 @@ import flutter_callkit_incoming
         binaryMessenger: registrar.messenger()
       )
       channel.setMethodCallHandler { [weak self] call, result in
+        if call.method == "presentGallery" {
+          self?.presentMediaGallery(call, channel: channel, result: result)
+          return
+        }
         guard call.method == "present" else {
           result(FlutterMethodNotImplemented)
           return
@@ -1499,6 +1503,48 @@ import flutter_callkit_incoming
             result(true)
           }
         }
+      }
+    }
+  }
+
+  /// monkeyhub/video `presentGallery`: the swipeable native gallery, every
+  /// video in the system player's own page, photos as zoomable pages. Answers
+  /// once it is on screen, like `present`, and reports the page it closed on
+  /// back over the same channel (`galleryClosed`), so the Flutter screen
+  /// underneath can land there too. Backs NativeVideoPlayer.presentGallery.
+  private func presentMediaGallery(
+    _ call: FlutterMethodCall,
+    channel: FlutterMethodChannel,
+    result: @escaping FlutterResult
+  ) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    let raw = args["items"] as? [[String: Any]] ?? []
+    let items: [MediaGalleryItem] = raw.compactMap { m in
+      guard let s = m["url"] as? String, let url = URL(string: s) else { return nil }
+      let poster = (m["poster"] as? String).flatMap { URL(string: $0) }
+      return MediaGalleryItem(isVideo: (m["kind"] as? String) == "video", url: url, poster: poster)
+    }
+    guard !items.isEmpty else {
+      result(false)
+      return
+    }
+    let start = min(max((args["index"] as? Int) ?? 0, 0), items.count - 1)
+    DispatchQueue.main.async {
+      guard let host = self.topViewController() else {
+        result(false)
+        return
+      }
+      self.prepareAudioSessionForPlayback()
+      let gallery = MediaGalleryController(
+        items: items, index: start, closeLabel: args["closeLabel"] as? String
+      )
+      gallery.onClose = { index in
+        channel.invokeMethod("galleryClosed", arguments: index)
+      }
+      // No entrance animation, for the reason `present` gives: the Flutter
+      // route underneath already faded the poster in.
+      host.present(gallery, animated: false) {
+        result(true)
       }
     }
   }
@@ -2104,5 +2150,460 @@ private class _CaptureStreamHandler: NSObject, FlutterStreamHandler {
   func onCancel(withArguments arguments: Any?) -> FlutterError? {
     appDelegate?.setCaptureEventSink(nil)
     return nil
+  }
+}
+
+// MARK: - Native media gallery (monkeyhub/video presentGallery)
+
+/// One page of [MediaGalleryController]: a video or a photo, at a `file://`
+/// URL when a copy is on disk, else its remote URL.
+struct MediaGalleryItem {
+  let isVideo: Bool
+  let url: URL
+  let poster: URL?
+}
+
+/// What every gallery page answers to: where it sits, and being swiped onto
+/// and off screen.
+protocol MediaGalleryPage: UIViewController {
+  var pageIndex: Int { get }
+  /// Swiped to and settled: a video starts playing.
+  func becameCurrent()
+  /// Swiped away: a video pauses, so two never play at once.
+  func resignedCurrent()
+  /// Whether a downward drag may start closing the gallery from here (a
+  /// zoomed photo wants the drag for panning instead).
+  var allowsDismissDrag: Bool { get }
+}
+
+/// The swipeable native gallery: Photos' shape, the system player inside it.
+///
+/// Every video page is a full `AVPlayerViewController`, so scrubbing, the
+/// volume, AirPlay, Picture-in-Picture, captions and VoiceOver are the
+/// system's own, exactly as they were when one video opened alone. Photos are
+/// zoomable pages beside them. Swiping left and right moves between them;
+/// only the page in view plays.
+///
+/// Pages fill the whole screen, so a video or photo sits exactly where the
+/// Flutter pager that opened this had it: no jump on the handoff.
+///
+/// One close button on screen, never two. A video page shows the system
+/// player's own controls, ✕ included (AVKit draws one inside any full-screen
+/// modal, and there is no way to hide just that one), so this adds nothing
+/// there. A photo page has no player, so it gets this gallery's ✕ in the same
+/// top-left place, fading in and out as the swipe crosses between kinds.
+/// However the gallery goes (either ✕, a drag down), the page it closed on is
+/// reported from [viewDidDisappear], the one place every dismissal passes.
+final class MediaGalleryController: UIViewController,
+  UIPageViewControllerDataSource, UIPageViewControllerDelegate,
+  UIGestureRecognizerDelegate
+{
+  private let items: [MediaGalleryItem]
+  private(set) var index: Int
+  var onClose: ((Int) -> Void)?
+
+  private let pager = UIPageViewController(
+    transitionStyle: .scroll,
+    navigationOrientation: .horizontal,
+    options: [.interPageSpacing: 14]
+  )
+  private let bar = UIView()
+  private let barFade = CAGradientLayer()
+  private let closeLabel: String?
+
+  /// The floating bar's height below the status bar.
+  static let barHeight: CGFloat = 52
+  private var closed = false
+  private var reported = false
+
+  init(items: [MediaGalleryItem], index: Int, closeLabel: String?) {
+    self.items = items
+    self.index = index
+    self.closeLabel = closeLabel
+    super.init(nibName: nil, bundle: nil)
+    modalPresentationStyle = .fullScreen
+    modalPresentationCapturesStatusBarAppearance = true
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+  override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .black
+
+    addChild(pager)
+    view.addSubview(pager.view)
+    pager.didMove(toParent: self)
+    pager.dataSource = self
+    pager.delegate = self
+    pager.setViewControllers([page(at: index)], direction: .forward, animated: false)
+
+    // A fade rather than a fill: the media shows through, as it does under
+    // the Flutter pager's chrome.
+    barFade.colors = [
+      UIColor.black.withAlphaComponent(0.55).cgColor,
+      UIColor.black.withAlphaComponent(0).cgColor,
+    ]
+    bar.layer.insertSublayer(barFade, at: 0)
+    view.addSubview(bar)
+
+    // The close button: a round frosted disc with an ×, the same shape and
+    // place as the Flutter viewer's, built from the system's own material.
+    let disc = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterialDark))
+    disc.isUserInteractionEnabled = false
+    disc.layer.cornerRadius = 20
+    disc.clipsToBounds = true
+    disc.translatesAutoresizingMaskIntoConstraints = false
+    let close = UIButton(type: .system)
+    close.setImage(
+      UIImage(
+        systemName: "xmark",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+      ),
+      for: .normal
+    )
+    close.tintColor = .white
+    close.accessibilityLabel = closeLabel ?? NSLocalizedString("Close", comment: "")
+    close.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+    close.translatesAutoresizingMaskIntoConstraints = false
+    bar.addSubview(disc)
+    bar.addSubview(close)
+
+    NSLayoutConstraint.activate([
+      close.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 16),
+      close.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -6),
+      close.widthAnchor.constraint(equalToConstant: 40),
+      close.heightAnchor.constraint(equalToConstant: 40),
+      disc.centerXAnchor.constraint(equalTo: close.centerXAnchor),
+      disc.centerYAnchor.constraint(equalTo: close.centerYAnchor),
+      disc.widthAnchor.constraint(equalToConstant: 40),
+      disc.heightAnchor.constraint(equalToConstant: 40),
+    ])
+
+    // Drag down to close, as in Photos. Only from a page that allows it, and
+    // only when the drag is clearly downward, so it never fights the pager's
+    // horizontal swipe or a zoomed photo's pan.
+    let pan = UIPanGestureRecognizer(target: self, action: #selector(dismissPan(_:)))
+    pan.delegate = self
+    view.addGestureRecognizer(pan)
+    updateChrome(animated: false)
+  }
+
+  /// This gallery's ✕ only where the system player's is not: photo pages.
+  private func updateChrome(animated: Bool) {
+    let show = !(items[index].isVideo)
+    let apply = { self.bar.alpha = show ? 1 : 0 }
+    bar.isUserInteractionEnabled = show
+    if animated {
+      UIView.animate(withDuration: 0.2, animations: apply)
+    } else {
+      apply()
+    }
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    let top = view.safeAreaInsets.top + Self.barHeight
+    bar.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: top)
+    barFade.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: top + 24)
+    // The whole screen, so media centres where the Flutter pager centred it.
+    pager.view.frame = view.bounds
+  }
+
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    current?.becameCurrent()
+  }
+
+  private var current: MediaGalleryPage? {
+    pager.viewControllers?.first as? MediaGalleryPage
+  }
+
+  private func page(at i: Int) -> UIViewController {
+    let item = items[i]
+    return item.isVideo
+      ? MediaGalleryVideoPage(item: item, pageIndex: i)
+      : MediaGalleryPhotoPage(item: item, pageIndex: i)
+  }
+
+  // MARK: paging
+
+  func pageViewController(
+    _ pageViewController: UIPageViewController,
+    viewControllerBefore viewController: UIViewController
+  ) -> UIViewController? {
+    guard let p = viewController as? MediaGalleryPage, p.pageIndex > 0 else { return nil }
+    return page(at: p.pageIndex - 1)
+  }
+
+  func pageViewController(
+    _ pageViewController: UIPageViewController,
+    viewControllerAfter viewController: UIViewController
+  ) -> UIViewController? {
+    guard let p = viewController as? MediaGalleryPage, p.pageIndex < items.count - 1 else {
+      return nil
+    }
+    return page(at: p.pageIndex + 1)
+  }
+
+  func pageViewController(
+    _ pageViewController: UIPageViewController,
+    willTransitionTo pendingViewControllers: [UIViewController]
+  ) {
+    // Stop the sound the moment the swipe begins, not when it lands.
+    current?.resignedCurrent()
+  }
+
+  func pageViewController(
+    _ pageViewController: UIPageViewController,
+    didFinishAnimating finished: Bool,
+    previousViewControllers: [UIViewController],
+    transitionCompleted completed: Bool
+  ) {
+    guard let now = current else { return }
+    index = now.pageIndex
+    updateChrome(animated: true)
+    now.becameCurrent()
+  }
+
+  // MARK: closing
+
+  @objc private func closeTapped() { close() }
+
+  private func close() {
+    guard !closed else { return }
+    closed = true
+    current?.resignedCurrent()
+    dismiss(animated: true)
+  }
+
+  /// Every way out ends here: this gallery's ✕, a drag down, and the system
+  /// player's own ✕, which dismisses through UIKit without ever calling
+  /// [close]. Reporting from here is what keeps the Flutter screen
+  /// underneath landing on the right item whichever button was used.
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    guard isBeingDismissed || presentingViewController == nil, !reported else { return }
+    reported = true
+    closed = true
+    current?.resignedCurrent()
+    onClose?(index)
+  }
+
+  func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+    guard let pan = g as? UIPanGestureRecognizer, current?.allowsDismissDrag ?? false else {
+      return false
+    }
+    let v = pan.velocity(in: view)
+    return v.y > 0 && abs(v.y) > abs(v.x) * 1.5
+  }
+
+  @objc private func dismissPan(_ pan: UIPanGestureRecognizer) {
+    let dy = max(0, pan.translation(in: view).y)
+    switch pan.state {
+    case .changed:
+      pager.view.transform = CGAffineTransform(translationX: 0, y: dy)
+      view.backgroundColor = UIColor.black.withAlphaComponent(1 - min(dy / 600, 0.6))
+    case .ended, .cancelled:
+      if dy > 140 || pan.velocity(in: view).y > 900 {
+        close()
+      } else {
+        UIView.animate(withDuration: 0.25) {
+          self.pager.view.transform = .identity
+          self.view.backgroundColor = .black
+        }
+      }
+    default:
+      break
+    }
+  }
+}
+
+/// A video page: the system player, embedded, with the poster on its content
+/// overlay until the first frame is ready.
+final class MediaGalleryVideoPage: UIViewController, MediaGalleryPage {
+  let pageIndex: Int
+  private let item: MediaGalleryItem
+  private let playerController = AVPlayerViewController()
+  private var readyObservation: NSKeyValueObservation?
+  private let posterView = UIImageView()
+  private var wantsPlay = false
+
+  init(item: MediaGalleryItem, pageIndex: Int) {
+    self.item = item
+    self.pageIndex = pageIndex
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+  var allowsDismissDrag: Bool { true }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .black
+    addChild(playerController)
+    playerController.view.frame = view.bounds
+    playerController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    view.addSubview(playerController.view)
+    playerController.didMove(toParent: self)
+    playerController.entersFullScreenWhenPlaybackBegins = false
+    // A video that finishes stays on its last frame with the system's replay
+    // control, as in Photos. `true` here played the player's exit animation
+    // at the end, which looked exactly like the gallery closing when it had
+    // not: only the close button or a drag down closes.
+    playerController.exitsFullScreenWhenPlaybackEnds = false
+
+    // The player is made with the page, but nothing plays until the page is
+    // the current one: a neighbour prepared off screen starts instantly when
+    // swiped to.
+    let player = AVPlayer(url: item.url)
+    player.automaticallyWaitsToMinimizeStalling = true
+    playerController.player = player
+
+    if let poster = item.poster, let overlay = playerController.contentOverlayView {
+      posterView.frame = overlay.bounds
+      posterView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+      posterView.contentMode = .scaleAspectFit
+      overlay.addSubview(posterView)
+      MediaGalleryImageLoader.load(poster) { [weak self] image in
+        self?.posterView.image = image
+      }
+      readyObservation = playerController.observe(\.isReadyForDisplay, options: [.new]) {
+        [weak self] controller, _ in
+        guard controller.isReadyForDisplay else { return }
+        DispatchQueue.main.async {
+          UIView.animate(withDuration: 0.15) { self?.posterView.alpha = 0 }
+        }
+      }
+    }
+    if wantsPlay { player.play() }
+  }
+
+  func becameCurrent() {
+    wantsPlay = true
+    playerController.player?.play()
+  }
+
+  func resignedCurrent() {
+    wantsPlay = false
+    playerController.player?.pause()
+  }
+
+  deinit {
+    readyObservation?.invalidate()
+    // Let go of the decoder and the audio session with the page, or audio
+    // keeps going after a swipe or a close.
+    playerController.player?.pause()
+    playerController.player?.replaceCurrentItem(with: nil)
+  }
+}
+
+/// A photo page: pinch and double-tap to zoom, as in Photos.
+final class MediaGalleryPhotoPage: UIViewController, MediaGalleryPage, UIScrollViewDelegate {
+  let pageIndex: Int
+  private let item: MediaGalleryItem
+  private let scroll = UIScrollView()
+  private let imageView = UIImageView()
+  private let spinner = UIActivityIndicatorView(style: .medium)
+
+  init(item: MediaGalleryItem, pageIndex: Int) {
+    self.item = item
+    self.pageIndex = pageIndex
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+  var allowsDismissDrag: Bool { scroll.zoomScale <= scroll.minimumZoomScale + 0.01 }
+
+  func becameCurrent() {}
+
+  func resignedCurrent() {
+    scroll.setZoomScale(scroll.minimumZoomScale, animated: false)
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .black
+    scroll.frame = view.bounds
+    scroll.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    scroll.delegate = self
+    scroll.minimumZoomScale = 1
+    scroll.maximumZoomScale = 4
+    scroll.showsVerticalScrollIndicator = false
+    scroll.showsHorizontalScrollIndicator = false
+    scroll.contentInsetAdjustmentBehavior = .never
+    view.addSubview(scroll)
+
+    imageView.frame = scroll.bounds
+    imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    imageView.contentMode = .scaleAspectFit
+    scroll.addSubview(imageView)
+
+    spinner.color = .white
+    spinner.center = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
+    spinner.autoresizingMask = [
+      .flexibleTopMargin, .flexibleBottomMargin, .flexibleLeftMargin, .flexibleRightMargin,
+    ]
+    view.addSubview(spinner)
+    spinner.startAnimating()
+
+    let doubleTap = UITapGestureRecognizer(target: self, action: #selector(doubleTapped(_:)))
+    doubleTap.numberOfTapsRequired = 2
+    scroll.addGestureRecognizer(doubleTap)
+
+    MediaGalleryImageLoader.load(item.url) { [weak self] image in
+      self?.spinner.stopAnimating()
+      self?.imageView.image = image
+    }
+  }
+
+  func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
+
+  @objc private func doubleTapped(_ tap: UITapGestureRecognizer) {
+    if scroll.zoomScale > scroll.minimumZoomScale {
+      scroll.setZoomScale(scroll.minimumZoomScale, animated: true)
+      return
+    }
+    let point = tap.location(in: imageView)
+    let size = CGSize(width: scroll.bounds.width / 2.5, height: scroll.bounds.height / 2.5)
+    scroll.zoom(
+      to: CGRect(
+        x: point.x - size.width / 2, y: point.y - size.height / 2,
+        width: size.width, height: size.height
+      ),
+      animated: true
+    )
+  }
+}
+
+/// Loads a picture for a gallery page, from disk or the network, decoded off
+/// the main thread and delivered on it. Cached in memory for the gallery's
+/// life so swiping back to a page does not load it twice.
+enum MediaGalleryImageLoader {
+  private static let cache = NSCache<NSURL, UIImage>()
+
+  static func load(_ url: URL, completion: @escaping (UIImage?) -> Void) {
+    if let hit = cache.object(forKey: url as NSURL) {
+      completion(hit)
+      return
+    }
+    // Foundation.Data, spelled out: flutter_callkit_incoming exports a public
+    // class named `Data`, and the bare name is ambiguous in this file.
+    let finish: (Foundation.Data?) -> Void = { data in
+      let image = data.flatMap { UIImage(data: $0) }?.preparingForDisplay()
+      if let image { cache.setObject(image, forKey: url as NSURL) }
+      DispatchQueue.main.async { completion(image) }
+    }
+    if url.isFileURL {
+      DispatchQueue.global(qos: .userInitiated).async {
+        finish(try? Foundation.Data(contentsOf: url))
+      }
+    } else {
+      URLSession.shared.dataTask(with: url) { data, _, _ in finish(data) }.resume()
+    }
   }
 }

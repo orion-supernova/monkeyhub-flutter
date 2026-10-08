@@ -158,6 +158,12 @@ dependencies {
     // embedding pulls androidx.core, never this.
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 
+    // VideoGalleryActivity — the swipeable native gallery a video opens into
+    // when it has a chat's media around it. ViewPager2 brings RecyclerView
+    // with it; both are declared-by-use here, not inherited.
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
     val media3Version = "1.9.2"
     implementation("androidx.media3:media3-exoplayer:${media3Version}")
     implementation("androidx.media3:media3-ui:${media3Version}")

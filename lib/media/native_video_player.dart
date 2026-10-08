@@ -87,4 +87,90 @@ class NativeVideoPlayer {
       return false;
     }
   }
+
+  /// The page the native gallery closed on, reported by the platform. Set by
+  /// [presentGallery]; the platform calls back once, when the user closes it.
+  static ValueChanged<int>? _onGalleryClosed;
+  static bool _handlerInstalled = false;
+
+  static void _installHandler() {
+    if (_handlerInstalled) return;
+    _handlerInstalled = true;
+    _channel.setMethodCallHandler((call) async {
+      if (call.method != 'galleryClosed') return;
+      final index = call.arguments;
+      final cb = _onGalleryClosed;
+      _onGalleryClosed = null;
+      if (cb != null && index is int) cb(index);
+    });
+  }
+
+  /// Presents a swipeable native gallery: [items] in order, opened at [index],
+  /// videos in the OS player's own page (every control it has) and photos as
+  /// zoomable pages, swiping left and right between them as in Photos.
+  ///
+  /// Resolves once the gallery is on screen, like [present]. [onClosed]
+  /// receives the index the user closed on, so the screen underneath can land
+  /// on the same item.
+  ///
+  /// False when the platform cannot (an older native build without the
+  /// gallery, web, desktop); the caller falls back to [present].
+  ///
+  /// The gallery wears nothing but a close button ([closeLabel] for
+  /// VoiceOver): who sent the media and when was already on the Flutter
+  /// screen it opened from, and repeating it over the video is clutter.
+  static Future<bool> presentGallery({
+    required List<NativeMediaItem> items,
+    required int index,
+    ValueChanged<int>? onClosed,
+    String? closeLabel,
+  }) async {
+    if (!supported || items.isEmpty) return false;
+    _installHandler();
+    try {
+      _onGalleryClosed = onClosed;
+      final ok = await _channel.invokeMethod<bool>('presentGallery', {
+        'items': [for (final i in items) i.toMap()],
+        'index': index.clamp(0, items.length - 1),
+        'closeLabel': ?closeLabel,
+      });
+      if (ok != true) _onGalleryClosed = null;
+      return ok == true;
+    } on MissingPluginException {
+      _onGalleryClosed = null;
+      return false;
+    } on PlatformException catch (e) {
+      // `notImplemented` from a native half that predates the gallery.
+      debugPrint('NativeVideoPlayer.presentGallery declined: ${e.code}');
+      _onGalleryClosed = null;
+      return false;
+    } catch (e) {
+      debugPrint('NativeVideoPlayer.presentGallery failed: $e');
+      _onGalleryClosed = null;
+      return false;
+    }
+  }
+}
+
+/// One page of [NativeVideoPlayer.presentGallery].
+class NativeMediaItem {
+  const NativeMediaItem.video({required this.url, this.posterUrl})
+      : video = true;
+  const NativeMediaItem.photo({required this.url})
+      : video = false,
+        posterUrl = null;
+
+  final bool video;
+
+  /// A `file://` URL for a copy on disk, otherwise the remote URL.
+  final String url;
+
+  /// A still to show while a video loads.
+  final String? posterUrl;
+
+  Map<String, Object?> toMap() => {
+        'kind': video ? 'video' : 'photo',
+        'url': url,
+        'poster': ?posterUrl,
+      };
 }

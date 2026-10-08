@@ -1745,6 +1745,11 @@ Widget buildMessageContent({
                             api: api,
                             posterStorageId: message.posterStorageId,
                             heroTag: videoHeroTag,
+                            // The chat's photos and videos, so the OS player
+                            // swipes through them. Null outside a room.
+                            gallery: RoomGalleryScope.maybeOf(context)
+                                ?.videoGalleryFor
+                                ?.call(message),
                           ),
                 ),
         ),

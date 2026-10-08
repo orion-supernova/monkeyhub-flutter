@@ -366,9 +366,49 @@ class MainActivity : FlutterActivity() {
         // with the platform's own transport controls, rather than a Dart
         // re-implementation on top of a bare `video_player` texture. Backs
         // NativeVideoPlayer.
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/video")
+        val videoChannel =
+            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/video")
+        videoChannel
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+                    // The swipeable gallery. Reports the page it closed on
+                    // back over this channel, so Flutter can land there too.
+                    "presentGallery" -> {
+                        val raw = call.argument<List<Map<String, Any?>>>("items")
+                            ?: emptyList()
+                        val urls = ArrayList<String>()
+                        val kinds = ArrayList<String>()
+                        val posters = ArrayList<String>()
+                        for (m in raw) {
+                            val url = m["url"] as? String ?: continue
+                            urls.add(url)
+                            kinds.add(m["kind"] as? String ?: "photo")
+                            posters.add(m["poster"] as? String ?: "")
+                        }
+                        if (urls.isEmpty()) {
+                            result.success(false)
+                            return@setMethodCallHandler
+                        }
+                        try {
+                            VideoGalleryActivity.onClosed = { index ->
+                                videoChannel.invokeMethod("galleryClosed", index)
+                            }
+                            startActivity(
+                                Intent(this, VideoGalleryActivity::class.java)
+                                    .putStringArrayListExtra(VideoGalleryActivity.EXTRA_URLS, urls)
+                                    .putStringArrayListExtra(VideoGalleryActivity.EXTRA_KINDS, kinds)
+                                    .putStringArrayListExtra(VideoGalleryActivity.EXTRA_POSTERS, posters)
+                                    .putExtra(
+                                        VideoGalleryActivity.EXTRA_INDEX,
+                                        call.argument<Int>("index") ?: 0
+                                    )
+                            )
+                            result.success(true)
+                        } catch (_: Throwable) {
+                            VideoGalleryActivity.onClosed = null
+                            result.success(false)
+                        }
+                    }
                     "present" -> {
                         val url = call.argument<String>("url")
                         if (url.isNullOrBlank()) {

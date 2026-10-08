@@ -216,6 +216,17 @@
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustNothing" />
 
+        <!-- The swipeable native media gallery (VideoGalleryActivity). Same
+             shape as the single player above. -->
+        <activity
+            android:name=".VideoGalleryActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|keyboard|density|uiMode|locale|layoutDirection|fontScale"
+            android:hardwareAccelerated="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustNothing" />
+
         <!-- The app's entry in the system share sheet.
 
              A dedicated activity rather than an intent-filter on MainActivity,
