@@ -5201,6 +5201,42 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name님이 풀었어요: $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return '풀었어요: $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name님이 못 풀었어요: $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return '못 풀었어요: $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name님이 코드를 풀었어요';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => '코드를 풀었어요';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name님이 코드를 못 풀었어요';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => '코드를 못 풀었어요';
+
+  @override
   String pointLineSelf(Object tag) {
     return '나 · $tag';
   }
@@ -10322,9 +10358,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get leaderboardEmptyBody => '퍼즐을 풀면 순위표 1등이야.';
-
-  @override
-  String get leaderboardGamesHeader => '오늘의 퍼즐';
 
   @override
   String get pointComposerPickFirst => '먼저 위에서 하나 골라';

@@ -9221,6 +9221,54 @@ abstract class AppLocalizations {
   /// **'You logged a point: {tag}'**
   String momentActivityScoredSelf(Object tag);
 
+  /// Activity-river line when a friend finished one of the daily games and solved it. {game} is the game's name (Queens, Tango, Zip, Mini Sudoku, or the code puzzle's localized name); {name} is the friend's display name. The time or guess count is shown on its own line under this. NOTE: gen-l10n emits parameters in ALPHABETICAL order (game, name).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} solved {game}'**
+  String momentActivityGameSolved(String game, String name);
+
+  /// Activity-river line for the VIEWER'S OWN solved daily game. {game} is the game's name. Second person; a separate key from momentActivityGameSolved for verb agreement, see momentActivityPostedHighlightSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'You solved {game}'**
+  String momentActivityGameSolvedSelf(String game);
+
+  /// Activity-river line when a friend finished a daily game WITHOUT solving it (gave up, or ran out of guesses on the code). {game} is the game's name; {name} is the friend's display name. Neutral, not mocking. NOTE: parameters are emitted alphabetically (game, name).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} didn\'t solve {game}'**
+  String momentActivityGameMissed(String game, String name);
+
+  /// Activity-river line for the VIEWER'S OWN daily game finished without solving it. {game} is the game's name. Second person; see momentActivityPostedHighlightSelf for why this is a separate key.
+  ///
+  /// In en, this message translates to:
+  /// **'You didn\'t solve {game}'**
+  String momentActivityGameMissedSelf(String game);
+
+  /// Activity-river line when a friend solved today's code puzzle (the daily symbol-code game, gameCodeName). Its own sentence rather than momentActivityGameSolved with the game's name dropped in, because 'solved The code' reads as broken. {name} is the friend's display name; the guess count shows on the line under it.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} cracked the code'**
+  String momentActivityCodeSolved(String name);
+
+  /// Activity-river line for the VIEWER'S OWN solved code puzzle. Second person; see momentActivityPostedHighlightSelf for why this is a separate key.
+  ///
+  /// In en, this message translates to:
+  /// **'You cracked the code'**
+  String get momentActivityCodeSolvedSelf;
+
+  /// Activity-river line when a friend ran out of guesses on today's code puzzle. Neutral, not mocking. {name} is the friend's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} didn\'t crack the code'**
+  String momentActivityCodeMissed(String name);
+
+  /// Activity-river line for the VIEWER'S OWN code puzzle finished without solving it. Second person.
+  ///
+  /// In en, this message translates to:
+  /// **'You didn\'t crack the code'**
+  String get momentActivityCodeMissedSelf;
+
   /// Compact header above your own point on the points board. {tag} is the localized category name. Very short — the sentence underneath is the actual content.
   ///
   /// In en, this message translates to:
@@ -18198,12 +18246,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Solve a puzzle and you\'ll be first on the board.'**
   String get leaderboardEmptyBody;
-
-  /// Section header above the grid of today's game tiles on the leaderboard.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s puzzles'**
-  String get leaderboardGamesHeader;
 
   /// Disabled label of the point composer's button until a point type is picked.
   ///

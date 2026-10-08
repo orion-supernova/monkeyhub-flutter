@@ -5362,6 +5362,42 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name çözdü: $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'Çözdün: $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name çözemedi: $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'Çözemedin: $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name şifreyi çözdü';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'Şifreyi çözdün';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name şifreyi çözemedi';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'Şifreyi çözemedin';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'Sen · $tag';
   }
@@ -10695,9 +10731,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get leaderboardEmptyBody => 'Bir bulmaca çöz, listede ilk sen ol.';
-
-  @override
-  String get leaderboardGamesHeader => 'Bugünün bulmacaları';
 
   @override
   String get pointComposerPickFirst => 'Önce yukarıdan birini seç';

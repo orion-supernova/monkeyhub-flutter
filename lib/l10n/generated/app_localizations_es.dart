@@ -5442,6 +5442,42 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name ha resuelto $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'Has resuelto $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name no ha resuelto $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'No has resuelto $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name ha descifrado el código';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'Has descifrado el código';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name no ha descifrado el código';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'No has descifrado el código';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'Tú · $tag';
   }
@@ -10842,9 +10878,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get leaderboardEmptyBody =>
       'Resuelve un puzle y serás el primero de la lista.';
-
-  @override
-  String get leaderboardGamesHeader => 'Los puzles de hoy';
 
   @override
   String get pointComposerPickFirst => 'Primero elige uno arriba';

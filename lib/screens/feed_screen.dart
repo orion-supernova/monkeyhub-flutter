@@ -310,15 +310,19 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  Future<void> _openLeaderboard() async {
+  /// Opens the leaderboard; [tab] picks a game's board over "Today".
+  Future<void> _openLeaderboard({int tab = 0}) async {
     final userId = widget.repo.userId;
     if (userId == null) return;
     _leaderboardOpen = true;
     try {
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) =>
-              LeaderboardScreen(feedApi: widget.feedApi, userId: userId),
+          builder: (_) => LeaderboardScreen(
+            feedApi: widget.feedApi,
+            userId: userId,
+            initialTab: tab,
+          ),
         ),
       );
     } finally {
@@ -440,11 +444,14 @@ class _FeedScreenState extends State<FeedScreen>
     // standings board tallies them and tells each one's story — and listing
     // them again here drew every point twice on the same screen.
     final activity = store.highlights;
+    // Finished dailies join the river. The games band above only ever shows
+    // the viewer's own tiles, so a friend's score had nowhere else to land.
+    final plays = store.plays;
     // With friends but nothing to list, the section goes rather than saying
     // "quiet so far" under a board full of points; someone with no friends
     // keeps the hint, because that is what would fill it.
     final noFriends = widget.repo.friends.isEmpty;
-    final showActivity = activity.isNotEmpty || noFriends;
+    final showActivity = activity.isNotEmpty || plays.isNotEmpty || noFriends;
 
     // Sections are assembled as a list so the entrance stagger can index them
     // without every section needing to know its own position. Deeper sections
@@ -491,11 +498,10 @@ class _FeedScreenState extends State<FeedScreen>
         child: _SectionShell(
           label: l10n.feedBoardGamesLabel,
           // The band is an entry point as much as a status line, so the header
-          // carries the way in to the rest of them — five boards do not fit a
-          // Feed section, and burying the hub behind a tile would make the two
-          // extra taps the reason nobody plays them. It reads "Leaderboard"
-          // because that is what a person wants after glancing at five tiles
-          // — who is winning — and the page it opens holds the games too.
+          // carries the way in to who is winning. The games themselves live
+          // HERE, in one sideways row with the viewer's time and rank on each
+          // tile; the page this opens is the leaderboard only, because a second
+          // shelf of the same five boxes one tap away read as a repeat.
           // The code puzzle is one of
           // the five drawn here (first tile) rather than a separate section
           // above this one — it's a daily game exactly like the other four,
@@ -509,6 +515,11 @@ class _FeedScreenState extends State<FeedScreen>
             onOpen: _openGame,
             puzzle: store.puzzle,
             onOpenPuzzle: _openPuzzle,
+            ranks: {
+              for (final g in DailyGame.values)
+                g: ?store.gameRank(g, widget.repo.userId ?? ''),
+            },
+            puzzleRank: store.puzzleRank(widget.repo.userId ?? ''),
           ),
         ),
       ),
@@ -534,7 +545,7 @@ class _FeedScreenState extends State<FeedScreen>
           id: 'activity',
           child: _SectionShell(
             label: l10n.feedBoardActivityLabel,
-            body: activity.isEmpty && noFriends
+            body: activity.isEmpty && plays.isEmpty && noFriends
                 // Distinct from "quiet today": someone with no friends yet
                 // needs to know what would fill this, not that nothing
                 // happened.
@@ -544,8 +555,12 @@ class _FeedScreenState extends State<FeedScreen>
                   )
                 : MomentActivity(
                     moments: activity,
+                    plays: plays,
                     viewerId: widget.repo.userId ?? '',
                     onOpen: _openFromActivity,
+                    onOpenPlay: (play) => _openLeaderboard(
+                      tab: LeaderboardScreen.tabOf(play.game),
+                    ),
                   ),
           ),
         ),

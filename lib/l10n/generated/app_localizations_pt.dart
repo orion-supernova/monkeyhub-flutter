@@ -5452,6 +5452,42 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name resolveu $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'Resolveste $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name não resolveu $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'Não resolveste $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name decifrou o código';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'Decifraste o código';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name não decifrou o código';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'Não decifraste o código';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'Tu · $tag';
   }
@@ -10848,9 +10884,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get leaderboardEmptyBody =>
       'Resolve um puzzle e ficas em primeiro na lista.';
-
-  @override
-  String get leaderboardGamesHeader => 'Os puzzles de hoje';
 
   @override
   String get pointComposerPickFirst => 'Escolhe primeiro um em cima';
@@ -17176,6 +17209,42 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name resolveu $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'Você resolveu $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name não resolveu $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'Você não resolveu $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name decifrou o código';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'Você decifrou o código';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name não decifrou o código';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'Você não decifrou o código';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'Você · $tag';
   }
@@ -22563,9 +22632,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get leaderboardEmptyBody =>
       'Resolva um desafio e seja o primeiro da lista.';
-
-  @override
-  String get leaderboardGamesHeader => 'Os desafios de hoje';
 
   @override
   String get pointComposerPickFirst => 'Escolha um acima primeiro';

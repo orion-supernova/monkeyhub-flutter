@@ -123,6 +123,11 @@ void main() {
 
     // Zip's, so the sheet's contents prove it opened the right game's. +1:
     // the code puzzle's own tile is first in the strip.
+    // The row scrolls sideways; Zip's tile starts past the edge.
+    await tester.ensureVisible(
+      find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(GameInfoButton).at(DailyGame.zip.index + 1));
     await tester.pumpAndSettle();
 
@@ -182,6 +187,10 @@ void main() {
     // Inside Zip's button box but clear of the disc, which hugs the box's
     // trailing edge — over the card's own tap region, which would otherwise
     // win this one and open the board. +1: the code puzzle's tile is first.
+    await tester.ensureVisible(
+      find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
+    );
+    await tester.pumpAndSettle();
     final box = tester.getRect(
       find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
     );

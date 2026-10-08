@@ -1,5 +1,6 @@
 import '../models/daily_game.dart';
 import '../models/expression_item.dart';
+import '../models/game_play.dart';
 import '../models/moment.dart';
 import '../models/moment_comment.dart';
 import '../models/puzzle.dart';
@@ -321,6 +322,7 @@ class FeedBoard {
     required this.serverNow,
     this.puzzle = const PuzzleState(),
     this.games = const {},
+    this.plays = const [],
   });
 
   final List<Moment> moments;
@@ -338,6 +340,11 @@ class FeedBoard {
   /// look for. Friends' times cost a read each and live on the hub, which
   /// fetches them one-shot when it opens.
   final Map<DailyGame, GameResult> games;
+
+  /// Every FINISHED timed-game result today, the viewer's and their friends',
+  /// for the Activity list. Code-puzzle results are not repeated here: they
+  /// are already in [puzzle]'s scores.
+  final List<GamePlay> plays;
 
   /// The server's clock at the moment this was computed.
   ///
@@ -366,6 +373,10 @@ class FeedBoard {
         for (final g in (map['games'] as List?) ?? const [])
           ?_gameEntry(GameResult.fromJson((g as Map).cast<String, dynamic>())),
       ]),
+      plays: [
+        for (final p in (map['plays'] as List?) ?? const [])
+          ?GamePlay.fromJson((p as Map).cast<String, dynamic>()),
+      ],
     );
   }
 }

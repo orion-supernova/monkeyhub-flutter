@@ -5184,6 +5184,42 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$nameがクリア：$game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'クリア：$game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$nameはクリアならず：$game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'クリアならず：$game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$nameがコードを解いた';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'コードを解いた';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$nameはコードを解けず';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'コードを解けず';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'あなた · $tag';
   }
@@ -10296,9 +10332,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get leaderboardEmptyBody => 'パズルを解いて、ランキングの1位になろう。';
-
-  @override
-  String get leaderboardGamesHeader => '今日のパズル';
 
   @override
   String get pointComposerPickFirst => 'まず上から1つ選んで';

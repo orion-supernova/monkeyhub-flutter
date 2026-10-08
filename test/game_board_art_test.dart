@@ -333,6 +333,9 @@ void main() {
       for (final name in ['Queens', 'Tango', 'Zip', 'Mini sudoku']) {
         expect(find.text(name), findsOneWidget, reason: name);
       }
+      // The row scrolls sideways; Zip starts past the edge of a phone.
+      await tester.ensureVisible(find.text('Zip'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Zip'));
       await tester.pump();
       expect(opened, DailyGame.zip);

@@ -6075,6 +6075,74 @@
   "@momentActivityScoredSelf": {
     "description": "Activity-river line for the VIEWER'S OWN point. {tag} is the localized category name such as JINX. Second person; see momentActivityPostedHighlightSelf for why this is a separate key."
   },
+  "momentActivityGameSolved": "{name} solved {game}",
+  "@momentActivityGameSolved": {
+    "description": "Activity-river line when a friend finished one of the daily games and solved it. {game} is the game's name (Queens, Tango, Zip, Mini Sudoku, or the code puzzle's localized name); {name} is the friend's display name. The time or guess count is shown on its own line under this. NOTE: gen-l10n emits parameters in ALPHABETICAL order (game, name).",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityGameSolvedSelf": "You solved {game}",
+  "@momentActivityGameSolvedSelf": {
+    "description": "Activity-river line for the VIEWER'S OWN solved daily game. {game} is the game's name. Second person; a separate key from momentActivityGameSolved for verb agreement, see momentActivityPostedHighlightSelf.",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityGameMissed": "{name} didn't solve {game}",
+  "@momentActivityGameMissed": {
+    "description": "Activity-river line when a friend finished a daily game WITHOUT solving it (gave up, or ran out of guesses on the code). {game} is the game's name; {name} is the friend's display name. Neutral, not mocking. NOTE: parameters are emitted alphabetically (game, name).",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityGameMissedSelf": "You didn't solve {game}",
+  "@momentActivityGameMissedSelf": {
+    "description": "Activity-river line for the VIEWER'S OWN daily game finished without solving it. {game} is the game's name. Second person; see momentActivityPostedHighlightSelf for why this is a separate key.",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityCodeSolved": "{name} cracked the code",
+  "@momentActivityCodeSolved": {
+    "description": "Activity-river line when a friend solved today's code puzzle (the daily symbol-code game, gameCodeName). Its own sentence rather than momentActivityGameSolved with the game's name dropped in, because 'solved The code' reads as broken. {name} is the friend's display name; the guess count shows on the line under it.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityCodeSolvedSelf": "You cracked the code",
+  "@momentActivityCodeSolvedSelf": {
+    "description": "Activity-river line for the VIEWER'S OWN solved code puzzle. Second person; see momentActivityPostedHighlightSelf for why this is a separate key."
+  },
+  "momentActivityCodeMissed": "{name} didn't crack the code",
+  "@momentActivityCodeMissed": {
+    "description": "Activity-river line when a friend ran out of guesses on today's code puzzle. Neutral, not mocking. {name} is the friend's display name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityCodeMissedSelf": "You didn't crack the code",
+  "@momentActivityCodeMissedSelf": {
+    "description": "Activity-river line for the VIEWER'S OWN code puzzle finished without solving it. Second person."
+  },
   "pointLineSelf": "You · {tag}",
   "@pointLineSelf": {
     "description": "Compact header above your own point on the points board. {tag} is the localized category name. Very short — the sentence underneath is the actual content."
@@ -12503,10 +12571,6 @@
   "leaderboardEmptyBody": "Solve a puzzle and you'll be first on the board.",
   "@leaderboardEmptyBody": {
     "description": "Leaderboard empty state message."
-  },
-  "leaderboardGamesHeader": "Today's puzzles",
-  "@leaderboardGamesHeader": {
-    "description": "Section header above the grid of today's game tiles on the leaderboard."
   },
   "pointComposerPickFirst": "Pick one above first",
   "@pointComposerPickFirst": {

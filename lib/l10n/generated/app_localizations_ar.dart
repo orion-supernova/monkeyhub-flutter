@@ -5481,6 +5481,42 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name حلّ: $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'حللت: $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name لم يحلّ: $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'لم تحلّ: $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name فكّ الشيفرة';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'فككت الشيفرة';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name لم يفكّ الشيفرة';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'لم تفكّ الشيفرة';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'أنت · $tag';
   }
@@ -10896,9 +10932,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get leaderboardEmptyBody => 'حلّ لغزًا وستكون الأول في القائمة.';
-
-  @override
-  String get leaderboardGamesHeader => 'ألغاز اليوم';
 
   @override
   String get pointComposerPickFirst => 'اختر واحدًا في الأعلى أولًا';

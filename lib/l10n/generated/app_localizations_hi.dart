@@ -5402,6 +5402,42 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name ने हल किया: $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'आपने हल किया: $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name हल नहीं कर पाए: $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'आप हल नहीं कर पाए: $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name ने कोड तोड़ दिया';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'आपने कोड तोड़ दिया';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name कोड नहीं तोड़ पाए';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'आप कोड नहीं तोड़ पाए';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'आप · $tag';
   }
@@ -10737,9 +10773,6 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get leaderboardEmptyBody =>
       'एक पहेली हल करें और सूची में सबसे पहले आएँ।';
-
-  @override
-  String get leaderboardGamesHeader => 'आज की पहेलियाँ';
 
   @override
   String get pointComposerPickFirst => 'पहले ऊपर से एक चुनें';

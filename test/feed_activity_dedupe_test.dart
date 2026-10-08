@@ -15,7 +15,10 @@ import 'package:monkeyhub/data/feed_store.dart';
 import 'package:monkeyhub/family/family_service.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_user.dart';
+import 'package:monkeyhub/models/daily_game.dart';
+import 'package:monkeyhub/models/game_play.dart';
 import 'package:monkeyhub/models/moment.dart';
+import 'package:monkeyhub/models/puzzle.dart';
 import 'package:monkeyhub/screens/feed_screen.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/moment_activity.dart';
@@ -81,14 +84,24 @@ Moment _m(String id, {MomentTag? tag, String? media}) => Moment(
 void main() {
   late AppLocalizations l10n;
 
-  Future<void> pumpFeed(WidgetTester tester, List<Moment> moments) async {
+  Future<void> pumpFeed(
+    WidgetTester tester,
+    List<Moment> moments, {
+    List<GamePlay> plays = const [],
+    PuzzleState puzzle = const PuzzleState(),
+  }) async {
     // Tall enough that Activity — the last section — is laid out without
     // scrolling; the list is lazy and would otherwise never build it.
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(430, 4000);
     addTearDown(tester.view.reset);
     FeedStore.instance.applyBoard(
-      FeedBoard(moments: moments, serverNow: DateTime.now()),
+      FeedBoard(
+        moments: moments,
+        serverNow: DateTime.now(),
+        plays: plays,
+        puzzle: puzzle,
+      ),
     );
     final theme = ThemeController.byId('basic');
     await tester.pumpWidget(
@@ -173,5 +186,81 @@ void main() {
     expect(find.byType(MomentActivity), findsNothing);
 
     await unmount(tester);
+  });
+
+  GamePlay play(String userId, DailyGame game, int ms, {int agoMin = 5}) =>
+      GamePlay(
+        userId: userId,
+        name: userId == 'u1' ? '' : 'Ece',
+        game: game,
+        solved: true,
+        result: formatGameTime(ms),
+        durationMs: ms,
+        finishedAt: _now.subtract(Duration(minutes: agoMin)),
+      );
+
+  testWidgets('a finished game lands in Activity, even with no highlights', (
+    tester,
+  ) async {
+    await pumpFeed(
+      tester,
+      [_m('p1', tag: MomentTag.jinx)],
+      plays: [play('u_e', DailyGame.queens, 102000)],
+      puzzle: PuzzleState(
+        scores: [
+          PuzzleScore(
+            userId: 'u_e',
+            name: 'Ece',
+            solved: true,
+            guessCount: 3,
+            finishedAt: _now.subtract(const Duration(minutes: 2)),
+            feedback: const [],
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text(l10n.feedBoardActivityLabel), findsOneWidget);
+    expect(
+      find.text(l10n.momentActivityGameSolved(l10n.gameQueensName, 'Ece')),
+      findsOneWidget,
+    );
+    expect(find.text('1:42'), findsOneWidget);
+    // The code comes off the puzzle scoreboard, with its guess count.
+    expect(
+      find.text(l10n.momentActivityCodeSolved('Ece')),
+      findsOneWidget,
+    );
+    expect(find.text('3/6'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  test('a game rank needs somebody to rank against', () {
+    FeedStore.instance.applyBoard(
+      FeedBoard(
+        moments: const [],
+        serverNow: DateTime.now(),
+        plays: [play('u1', DailyGame.zip, 90000)],
+      ),
+    );
+    expect(FeedStore.instance.gameRank(DailyGame.zip, 'u1'), isNull);
+
+    FeedStore.instance.applyBoard(
+      FeedBoard(
+        moments: const [],
+        serverNow: DateTime.now(),
+        plays: [
+          play('u1', DailyGame.zip, 90000),
+          play('u_e', DailyGame.zip, 60000),
+          play('u_e', DailyGame.tango, 30000),
+        ],
+      ),
+    );
+    // Fastest first, and other games do not count.
+    expect(FeedStore.instance.gameRank(DailyGame.zip, 'u1'), 2);
+    expect(FeedStore.instance.gameRank(DailyGame.zip, 'u_e'), 1);
+    expect(FeedStore.instance.gameRank(DailyGame.queens, 'u1'), isNull);
+    FeedStore.instance.stop();
   });
 }

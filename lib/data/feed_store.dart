@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../backend/convex_client.dart';
 import '../backend/feed_api.dart';
 import '../models/daily_game.dart';
+import '../models/game_play.dart';
 import '../models/moment.dart';
 import '../models/puzzle.dart';
 import 'feed_day.dart';
@@ -58,6 +59,7 @@ class FeedStore extends ChangeNotifier {
   List<Moment> _moments = const [];
   PuzzleState _puzzle = const PuzzleState();
   Map<DailyGame, GameResult> _games = const {};
+  List<GamePlay> _plays = const [];
   DateTime _serverNow = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
   Object? _error;
@@ -117,6 +119,53 @@ class FeedStore extends ChangeNotifier {
   /// is true.
   List<Moment> get highlights =>
       List.unmodifiable(_moments.where((m) => m.tag == null));
+
+  /// Today's finished daily results, the viewer's and their friends', newest
+  /// first: the four timed games plus the code. The Activity list's second
+  /// source beside [highlights].
+  ///
+  /// The code comes from the puzzle scoreboard rather than a second copy in
+  /// the payload, so the two can never disagree about who finished it.
+  List<GamePlay> get plays {
+    final out = [
+      ..._plays,
+      for (final s in _puzzle.scores) GamePlay.fromPuzzle(s),
+    ];
+    out.sort((a, b) => b.finishedAt.compareTo(a.finishedAt));
+    return List.unmodifiable(out);
+  }
+
+  /// Where [userId] placed on [game] today among the viewer's friends, 1-based,
+  /// or null if they have not finished it.
+  ///
+  /// Ranked off the live board rather than `games.standings`, so the Feed's
+  /// tiles carry a rank without a fetch of their own and move the moment a
+  /// friend finishes. Same order as the server's standings: solved first, then
+  /// fastest, then earliest finish, then id.
+  int? gameRank(DailyGame game, String userId) {
+    final rows = _plays.where((p) => p.game == game).toList()
+      ..sort((a, b) {
+        if (a.solved != b.solved) return a.solved ? -1 : 1;
+        final at = a.durationMs ?? 1 << 52;
+        final bt = b.durationMs ?? 1 << 52;
+        if (at != bt) return at.compareTo(bt);
+        final f = a.finishedAt.compareTo(b.finishedAt);
+        if (f != 0) return f;
+        return a.userId.compareTo(b.userId);
+      });
+    // A rank nobody else is in is not a placing. "#1" on a board you finished
+    // alone reads as a win and is not one.
+    if (rows.length < 2) return null;
+    final i = rows.indexWhere((p) => p.userId == userId);
+    return i < 0 ? null : i + 1;
+  }
+
+  /// [userId]'s place on today's code, with the same "not alone" rule as
+  /// [gameRank].
+  int? puzzleRank(String userId) {
+    final scores = _puzzle.scores;
+    return scores.length < 2 ? null : _puzzle.rankOf(userId);
+  }
 
   /// Tagged moments — the POINTS board. Usually just a line of text.
   List<Moment> get points =>
@@ -308,6 +357,7 @@ class FeedStore extends ChangeNotifier {
     _moments = board.moments;
     _puzzle = board.puzzle;
     _games = board.games;
+    _plays = board.plays;
     _serverNow = board.serverNow;
     _loaded = true;
     _error = null;
@@ -326,6 +376,7 @@ class FeedStore extends ChangeNotifier {
     _moments = const [];
     _puzzle = const PuzzleState();
     _games = const {};
+    _plays = const [];
     _serverNow = DateTime.fromMillisecondsSinceEpoch(0);
     _loaded = false;
     _error = null;

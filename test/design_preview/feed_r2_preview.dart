@@ -25,6 +25,7 @@ import 'package:monkeyhub/family/family_service.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/daily_game.dart';
+import 'package:monkeyhub/models/game_play.dart';
 import 'package:monkeyhub/models/moment.dart';
 import 'package:monkeyhub/models/moment_comment.dart';
 import 'package:monkeyhub/models/puzzle.dart';
@@ -169,6 +170,27 @@ final _standings = GameStandings(
     ],
   },
 );
+
+/// The same results as Activity rows, finishing a few minutes apart.
+final _plays = [
+  for (final (i, r) in _standings.boards.values.expand((rows) => rows).indexed)
+    GamePlay(
+      userId: r.userId,
+      name: r.name,
+      game: r.game,
+      solved: r.solved,
+      result: r.solved ? formatGameTime(r.durationMs) : '',
+      durationMs: r.durationMs,
+      finishedAt: _now.subtract(Duration(minutes: 4 + i * 11)),
+    ),
+];
+
+/// The viewer's own rows, for the games band.
+final _mine = {
+  for (final rows in _standings.boards.values)
+    for (final r in rows)
+      if (r.userId == 'u1') r.game: r,
+};
 
 PuzzleScore _code(String id, String name, int guesses) => PuzzleScore(
   userId: id,
@@ -346,6 +368,8 @@ void main() {
         moments: _moments,
         serverNow: DateTime.now(),
         puzzle: empty ? const PuzzleState() : _puzzle,
+        plays: empty ? const [] : _plays,
+        games: empty ? const {} : _mine,
       ),
     );
   }

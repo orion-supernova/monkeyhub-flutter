@@ -373,6 +373,10 @@ export const board = query({
     const answer = answerFor(dayKey);
     const scores: any[] = [];
     let mine: any = null;
+    // Every finished daily-game result on this board, the viewer's and their
+    // friends', for the Activity list. Filled inside the puzzle loop below.
+    const plays: any[] = [];
+    let myGameRows: any[] = [];
 
     for (const playerId of authorIds) {
       const isMe = playerId === userId;
@@ -386,6 +390,34 @@ export const board = query({
         // per score would be another users read inside a subscribed query.
         playerName = player.name ?? player.username;
       }
+
+      // The four daily games ride the same loop and the same gate: the
+      // `visibility.puzzle` switch covers every daily (see `games.standings`),
+      // and the player row it needs is already loaded above. One indexed read
+      // per player, and it has to run before the puzzle check below, because
+      // somebody who played Queens but skipped the code still played.
+      const gameRows = await ctx.db
+        .query("gameResults")
+        .withIndex("by_user_day_game", (q: any) =>
+          q.eq("userId", playerId).eq("dayKey", dayKey)
+        )
+        .collect();
+      if (isMe) myGameRows = gameRows;
+      for (const g of gameRows) {
+        // Unfinished boards stay private for the same reason an in-progress
+        // puzzle attempt does, a few lines down.
+        if (g.finishedAt === undefined) continue;
+        plays.push({
+          userId: playerId,
+          name: playerName,
+          game: g.game,
+          solved: g.solved,
+          gaveUp: g.gaveUp,
+          durationMs: g.durationMs,
+          finishedAt: g.finishedAt,
+        });
+      }
+
       const row = await ctx.db
         .query("puzzleResults")
         .withIndex("by_user_day", (q: any) =>
@@ -444,21 +476,14 @@ export const board = query({
     });
 
     // ── The daily games ─────────────────────────────────────────────────────
-    // The viewer's OWN rows only, in one indexed read — no fan-out over
-    // friends. That is the whole reason the games rode into this payload at
-    // all: the board needs to show four tiles reading "solved in 1:42" or
-    // "not played", which is what makes a game people already own discoverable
-    // rather than something they have to remember to go and look for. Friends'
-    // times cost a read each and belong on the hub, where `games.standings`
-    // fetches them one-shot when it opens.
-    const games = (
-      await ctx.db
-        .query("gameResults")
-        .withIndex("by_user_day_game", (q: any) =>
-          q.eq("userId", userId).eq("dayKey", dayKey)
-        )
-        .collect()
-    ).map((row: any) => ({
+    // The viewer's own rows, read in the loop above. The band needs to show
+    // four tiles reading "solved in 1:42" or "not played", which is what makes
+    // a game people already own discoverable rather than something they have
+    // to remember to go and look for. Friends' FINISHED results ride along in
+    // `plays` for the Activity list; the full per-game leaderboards (hints,
+    // mistakes, ranking) stay on the hub, which `games.standings` serves
+    // one-shot when it opens.
+    const games = myGameRows.map((row: any) => ({
       game: row.game,
       solved: row.solved,
       gaveUp: row.gaveUp,
@@ -472,6 +497,7 @@ export const board = query({
       serverNow: now,
       puzzle: { slots: SLOTS, maxGuesses: MAX_GUESSES, mine, scores },
       games,
+      plays,
     };
   },
 });

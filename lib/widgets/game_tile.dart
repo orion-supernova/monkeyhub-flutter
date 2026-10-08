@@ -112,11 +112,15 @@ class CodePuzzleTile extends StatelessWidget {
     required this.puzzle,
     required this.width,
     required this.onTap,
+    this.rank,
   });
 
   final PuzzleState puzzle;
   final double width;
   final VoidCallback onTap;
+
+  /// Where the viewer placed among friends who have finished, if they have.
+  final int? rank;
 
   @override
   Widget build(BuildContext context) {
@@ -145,12 +149,23 @@ class CodePuzzleTile extends StatelessWidget {
               label: sentenceCaseOf(context, l10n.gameStatusUnfinished),
               tone: theme.accent,
             )
-          : StatusChip(
-              label: mine.solved
-                  ? '${mine.guesses.length}/$kPuzzleMaxGuesses'
-                  : 'X/$kPuzzleMaxGuesses',
-              tone: mine.solved ? theme.success : theme.inkMuted,
-              icon: mine.solved ? CupertinoIcons.checkmark_alt : null,
+          : Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                StatusChip(
+                  label: mine.solved
+                      ? '${mine.guesses.length}/$kPuzzleMaxGuesses'
+                      : 'X/$kPuzzleMaxGuesses',
+                  tone: mine.solved ? theme.success : theme.inkMuted,
+                  icon: mine.solved ? CupertinoIcons.checkmark_alt : null,
+                ),
+                if (rank != null)
+                  StatusChip(
+                    label: l10n.gameRankBadge('$rank'),
+                    tone: theme.accent,
+                  ),
+              ],
             ),
     );
   }

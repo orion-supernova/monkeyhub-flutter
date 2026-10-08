@@ -13,11 +13,9 @@ import '../../models/game_record.dart';
 import '../../models/puzzle.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/layout.dart';
-import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/filter_capsule.dart';
 import '../../widgets/game_records.dart';
-import '../../widgets/game_tile.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/skeleton_rows.dart';
 import '../feed/puzzle_screen.dart';
@@ -46,7 +44,14 @@ class LeaderboardScreen extends StatefulWidget {
     super.key,
     required this.feedApi,
     required this.userId,
+    this.initialTab = 0,
   });
+
+  /// The capsule to open on: 0 is "Today", [tabOf] names a game's.
+  final int initialTab;
+
+  /// The capsule index of one game's board; null is the code.
+  static int tabOf(DailyGame? game) => 1 + kLeaderboardGames.indexOf(game);
 
   /// Handed through to the symbol-code puzzle, which submits guesses on the
   /// Feed's own API rather than the games one.
@@ -60,7 +65,7 @@ class LeaderboardScreen extends StatefulWidget {
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   /// Index into the capsule row: 0 is "Today", 1… are [kLeaderboardGames].
-  int _tab = 0;
+  late int _tab = widget.initialTab.clamp(0, kLeaderboardGames.length);
 
   @override
   void initState() {
@@ -170,15 +175,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   child: _tab == 0
                       ? _overall(context)
                       : _perGame(context, kLeaderboardGames[_tab - 1]),
-                ),
-                const SizedBox(height: 32),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: PageSectionHeader(l10n.leaderboardGamesHeader),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _tiles(context),
                 ),
                 const SizedBox(height: 32),
                 Padding(
@@ -358,73 +354,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       ],
     );
   }
-
-  // ── Today's puzzles ────────────────────────────────────────────────────
-
-  Widget _tiles(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final motion = MotionScope.of(context);
-    final store = GamesStore.instance;
-    if (store.error != null && !store.boards.ready) {
-      return _Trouble(
-        onRetry: () => GamesStore.instance.load(widget.userId, force: true),
-      );
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Two columns on a phone, growing with the width there's actually
-        // room for — the tiles are square boards, so a fixed count would
-        // either crush them on a handset or leave a wide desktop pane stuck
-        // at the same phone-size tiles. Capped at 5: that's every tile.
-        const gap = 12.0;
-        const tileTarget = 150.0;
-        final columns = ((constraints.maxWidth + gap) / (tileTarget + gap))
-            .floor()
-            .clamp(2, 5);
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-        // The code puzzle leads, ahead of the four boards — the same order as
-        // the Feed's strip and the capsule row above.
-        final tiles = <Widget>[
-          CodePuzzleTile(
-            key: const ValueKey('tile_code'),
-            puzzle: FeedStore.instance.puzzle,
-            width: width,
-            onTap: () => _openGame(null),
-          ),
-          for (final game in DailyGame.values)
-            GameTile(
-              key: ValueKey('tile_${game.wire}'),
-              game: game,
-              boards: store.boards,
-              result: FeedStore.instance.games[game],
-              rank: store.standings.rankOf(game, widget.userId),
-              width: width,
-              onTap: () => _openGame(game),
-            ),
-        ];
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (var i = 0; i < tiles.length; i++)
-              TweenAnimationBuilder<double>(
-                key: tiles[i].key,
-                tween: Tween(begin: 0, end: 1),
-                duration: motion.stagger(theme.motionMed, i, strideMs: 60),
-                // Pops in on an overshoot, one after the other — the shelf
-                // being dealt out.
-                curve: motion.c(Curves.easeOutBack),
-                builder: (context, v, child) => Transform.scale(
-                  scale: 0.86 + 0.14 * v,
-                  child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
-                ),
-                child: tiles[i],
-              ),
-          ],
-        );
-      },
-    );
-  }
 }
 
 /// The game a capsule names; null is the code.
@@ -439,11 +368,34 @@ String leaderboardGameName(AppLocalizations l10n, DailyGame? game) =>
 
 /// "Today" then the five games, one horizontally scrolling row of
 /// [FilterCapsule]s, inset to the title's 20pt edge.
-class _Capsules extends StatelessWidget {
+class _Capsules extends StatefulWidget {
   const _Capsules({required this.selected, required this.onSelect});
 
   final int selected;
   final ValueChanged<int> onSelect;
+
+  @override
+  State<_Capsules> createState() => _CapsulesState();
+}
+
+class _CapsulesState extends State<_Capsules> {
+  /// One per capsule, stable for the row's life, so revealing the selected one
+  /// never remounts it (a key that followed the selection would).
+  final _keys = List.generate(kLeaderboardGames.length + 1, (_) => GlobalKey());
+
+  @override
+  void initState() {
+    super.initState();
+    // Opened straight onto a game's board (an Activity row does this), the
+    // selected capsule can sit past the right edge, and a highlighted tab you
+    // cannot see reads as nothing being selected.
+    if (widget.selected == 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _keys[widget.selected].currentContext;
+      if (!mounted || target == null) return;
+      Scrollable.ensureVisible(target, alignment: 0.5);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -459,11 +411,14 @@ class _Capsules extends StatelessWidget {
         children: [
           for (var i = 0; i < labels.length; i++) ...[
             if (i > 0) const SizedBox(width: 8),
-            FilterCapsule(
-              key: ValueKey('capsule_$i'),
-              label: sentenceCaseOf(context, labels[i]),
-              active: i == selected,
-              onTap: () => onSelect(i),
+            KeyedSubtree(
+              key: _keys[i],
+              child: FilterCapsule(
+                key: ValueKey('capsule_$i'),
+                label: sentenceCaseOf(context, labels[i]),
+                active: i == widget.selected,
+                onTap: () => widget.onSelect(i),
+              ),
             ),
           ],
         ],

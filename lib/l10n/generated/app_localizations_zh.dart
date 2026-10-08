@@ -5118,6 +5118,42 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name 解开了：$game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return '你解开了：$game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name 没解开：$game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return '你没解开：$game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name 破解了密码';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => '你破解了密码';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name 没破解密码';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => '你没破解密码';
+
+  @override
   String pointLineSelf(Object tag) {
     return '你 · $tag';
   }
@@ -10195,9 +10231,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get leaderboardEmptyBody => '解出一道题，你就是榜上第一名。';
-
-  @override
-  String get leaderboardGamesHeader => '今天的题目';
 
   @override
   String get pointComposerPickFirst => '先在上面选一个';

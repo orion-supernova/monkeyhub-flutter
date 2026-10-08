@@ -5414,6 +5414,42 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String momentActivityGameSolved(String game, String name) {
+    return '$name löste $game';
+  }
+
+  @override
+  String momentActivityGameSolvedSelf(String game) {
+    return 'Du löste $game';
+  }
+
+  @override
+  String momentActivityGameMissed(String game, String name) {
+    return '$name löste inte $game';
+  }
+
+  @override
+  String momentActivityGameMissedSelf(String game) {
+    return 'Du löste inte $game';
+  }
+
+  @override
+  String momentActivityCodeSolved(String name) {
+    return '$name knäckte koden';
+  }
+
+  @override
+  String get momentActivityCodeSolvedSelf => 'Du knäckte koden';
+
+  @override
+  String momentActivityCodeMissed(String name) {
+    return '$name knäckte inte koden';
+  }
+
+  @override
+  String get momentActivityCodeMissedSelf => 'Du knäckte inte koden';
+
+  @override
   String pointLineSelf(Object tag) {
     return 'Du · $tag';
   }
@@ -10759,9 +10795,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get leaderboardEmptyBody =>
       'Lös ett pussel så hamnar du först på listan.';
-
-  @override
-  String get leaderboardGamesHeader => 'Dagens pussel';
 
   @override
   String get pointComposerPickFirst => 'Välj en ovan först';
