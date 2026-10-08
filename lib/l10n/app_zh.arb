@@ -3110,7 +3110,7 @@
   "momentCommentsTitle": "评论",
   "momentCommentsCount": "{count, plural, =0{评论} other{{count} 条评论}}",
   "momentCommentsEmptyTitle": "还没有评论",
-  "momentCommentsEmptyBody": "开启对话吧 — 一句话、一张贴纸或一个 GIF。",
+  "momentCommentsEmptyBody": "用一句话、一张贴纸或一个 GIF 开启对话吧。",
   "momentCommentHint": "添加评论…",
   "momentCommentReplyHint": "回复 {name}…",
   "momentCommentReplyingTo": "正在回复 {name}",
@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "作者",
   "momentCommentLike": "赞",
   "momentCommentStickerAlt": "贴纸",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "评论已发布",
+  "momentCommentsViewAll": "{count, plural, other{查看全部 {count} 条评论}}",
+  "momentReactorsSummary": "{name} 和其他 {count, plural, other{{count} 人}}"
 }

@@ -11087,7 +11087,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reactionLimitMessageBody(int limit) {
-    return 'For the sake of speed, sanity and letting every emoji shine, you can add up to $limit reactions to a message — but no more. Take one back to make room for another.';
+    return 'For the sake of speed, sanity and letting every emoji shine, you can add up to $limit reactions to a message, but no more. Take one back to make room for another.';
   }
 
   @override
@@ -11126,7 +11126,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get momentCommentsEmptyBody =>
-      'Start the conversation — words, a sticker or a GIF.';
+      'Start the conversation with a few words, a sticker or a GIF.';
 
   @override
   String get momentCommentHint => 'Add a comment…';
@@ -11191,4 +11191,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'Comment posted';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'View all $count comments',
+      one: 'View 1 comment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count others',
+      one: '1 other',
+    );
+    return '$name and $_temp0';
+  }
 }

@@ -3695,7 +3695,12 @@ class _RoomScreenState extends State<RoomScreen>
     const reserved = 190.0;
     _expressions.setLayout(
       expanded: mq.size.height - mq.padding.top - bottomPadding - reserved,
-      room: mq.size.height - mq.padding.top - reserved,
+      // Searching, the composer folds away (see ComposerSearchTakeover) and
+      // its row is the panel's too.
+      room: mq.size.height -
+          mq.padding.top -
+          reserved +
+          ExpressionPanelController.composerRow,
       keyboardInset: mq.viewInsets.bottom,
       bottomPadding: bottomPadding,
       // Opens at half the screen: a few rows to browse without dragging,
@@ -4231,7 +4236,9 @@ class _RoomScreenState extends State<RoomScreen>
                   composer: _composer,
                   onSend: _sendSuggestedSticker,
                 ),
-                ChatComposerClassic(
+                ComposerSearchTakeover(
+                  controller: _expressions,
+                  child: ChatComposerClassic(
                   controller: _composer,
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
@@ -4250,6 +4257,7 @@ class _RoomScreenState extends State<RoomScreen>
                   expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
+                ),
                 ),
                 // The ancestor SafeArea already holds this clear of the home
                 // indicator.
@@ -4470,7 +4478,9 @@ class _RoomScreenState extends State<RoomScreen>
                   composer: _composer,
                   onSend: _sendSuggestedSticker,
                 ),
-                ChatComposerLiquid(
+                ComposerSearchTakeover(
+                  controller: _expressions,
+                  child: ChatComposerLiquid(
                   controller: _composer,
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
@@ -4495,6 +4505,7 @@ class _RoomScreenState extends State<RoomScreen>
                   padding: _expressions.isOpen
                       ? const EdgeInsets.fromLTRB(16, 8, 16, 8)
                       : null,
+                ),
                 ),
                 if (_expressions.isOpen)
                   _expressionPanel(bottomPadding: bottomSafe),

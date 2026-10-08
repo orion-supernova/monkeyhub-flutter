@@ -11282,7 +11282,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get momentCommentsEmptyBody =>
-      'ابدأ المحادثة — بكلمات أو ملصق أو صورة GIF.';
+      'ابدأ المحادثة بكلمات أو ملصق أو صورة GIF.';
 
   @override
   String get momentCommentHint => 'أضف تعليقًا…';
@@ -11350,4 +11350,35 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'تم نشر التعليق';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'عرض كل التعليقات ($count)',
+      many: 'عرض $count تعليقًا',
+      few: 'عرض $count تعليقات',
+      two: 'عرض التعليقين',
+      one: 'عرض تعليق واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count آخرين',
+      many: '$count شخصًا آخر',
+      few: '$count أشخاص آخرين',
+      two: 'شخصان آخران',
+      one: 'شخص آخر',
+    );
+    return '$name و$_temp0';
+  }
 }

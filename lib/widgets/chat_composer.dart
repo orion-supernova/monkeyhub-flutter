@@ -254,6 +254,28 @@ ContentInsertionConfiguration? _insertion(
 /// whenever the host re-ran `build` off a `SettingsStore` notification, which
 /// is exactly the contract the paragraph above exists to protect.
 
+/// The composer's trailing button slot (send, record, camera) and the gap
+/// before it. [collapsed] folds both away, animated, so a host with nothing
+/// to put there at rest gets a full-width field.
+class _TrailingSlot extends StatelessWidget {
+  const _TrailingSlot({required this.collapsed, required this.child});
+
+  final bool collapsed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: MotionScope.of(context).d(const Duration(milliseconds: 180)),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.centerRight,
+      child: collapsed
+          ? const SizedBox(height: 38)
+          : Padding(padding: const EdgeInsets.only(left: 10), child: child),
+    );
+  }
+}
+
 /// Bordered, flat composer. Assumes an ancestor `SafeArea`.
 class ChatComposerClassic extends StatelessWidget {
   const ChatComposerClassic({
@@ -275,6 +297,7 @@ class ChatComposerClassic extends StatelessWidget {
     this.expressionsOpen = false,
     this.onFieldTap,
     this.onContentInserted,
+    this.hint,
   });
 
   final TextEditingController controller;
@@ -308,6 +331,11 @@ class ChatComposerClassic extends StatelessWidget {
   /// A GIF or sticker the keyboard inserted (Gboard's GIF tab, the iOS sticker
   /// drawer). Null leaves the keyboard's insert button inert, as before.
   final ValueChanged<KeyboardInsertedContent>? onContentInserted;
+
+  /// The field's placeholder, for a host that is not a room — a highlight's
+  /// comments say "Add a comment…" rather than "Message". Null keeps the
+  /// room's own hint.
+  final String? hint;
 
   /// Overrides the default outer padding. Only needed by hosts that own
   /// their own keyboard insets; leave null inside a `Scaffold`.
@@ -435,9 +463,9 @@ class ChatComposerClassic extends StatelessWidget {
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
-                      hintText: ephemeral
+                      hintText: hint ?? (ephemeral
                           ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
-                          : AppLocalizations.of(context).deepOceanThemeDefaultHint,
+                          : AppLocalizations.of(context).deepOceanThemeDefaultHint),
                       hintStyle: theme.body
                           .copyWith(color: theme.inkMuted, fontSize: 17),
                       // One line, always. The field is `minLines: 1`, but a
@@ -462,10 +490,14 @@ class ChatComposerClassic extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
           _ComposerEmptiness(
             controller: controller,
-            builder: (context, hasText) => AnimatedSwitcher(
+            builder: (context, hasText) => _TrailingSlot(
+              // Nothing to offer at rest (no recorder, no camera): the slot
+              // takes no room until there is something to send, so the field
+              // runs the full width instead of stopping short of a hole.
+              collapsed: !hasText && capture == null && onCamera == null,
+              child: AnimatedSwitcher(
               // The floating composer's spring: pops in with overshoot the
               // moment there is something to send, slips out quickly.
               duration: MotionScope.of(context)
@@ -534,6 +566,7 @@ class ChatComposerClassic extends StatelessWidget {
                               height: 38,
                             ),
             ),
+            ),
           ),
         ],
         ),
@@ -563,6 +596,7 @@ class ChatComposerLiquid extends StatelessWidget {
     this.expressionsOpen = false,
     this.onFieldTap,
     this.onContentInserted,
+    this.hint,
   });
 
   final TextEditingController controller;
@@ -593,6 +627,11 @@ class ChatComposerLiquid extends StatelessWidget {
 
   /// See [ChatComposerClassic.onContentInserted].
   final ValueChanged<KeyboardInsertedContent>? onContentInserted;
+
+  /// The field's placeholder, for a host that is not a room — a highlight's
+  /// comments say "Add a comment…" rather than "Message". Null keeps the
+  /// room's own hint.
+  final String? hint;
 
   /// Overrides the default outer padding, including the bottom safe area
   /// this widget would otherwise add. Only needed by hosts that own their
@@ -682,9 +721,9 @@ class ChatComposerLiquid extends StatelessWidget {
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
-                      hintText: ephemeral
+                      hintText: hint ?? (ephemeral
                           ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
-                          : AppLocalizations.of(context).deepOceanThemeMessageHint,
+                          : AppLocalizations.of(context).deepOceanThemeMessageHint),
                       hintStyle: theme.body
                           .copyWith(color: theme.inkMuted, fontSize: 17),
                       // See the classic composer — a wrapping hint grew the
@@ -704,10 +743,14 @@ class ChatComposerLiquid extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
           _ComposerEmptiness(
             controller: controller,
-            builder: (context, hasText) => AnimatedSwitcher(
+            builder: (context, hasText) => _TrailingSlot(
+              // Nothing to offer at rest (no recorder, no camera): the slot
+              // takes no room until there is something to send, so the field
+              // runs the full width instead of stopping short of a hole.
+              collapsed: !hasText && capture == null && onCamera == null,
+              child: AnimatedSwitcher(
               // Springs in with a little overshoot the moment there is
               // something to send — the Telegram pop — and slips out quickly.
               duration: MotionScope.of(context)
@@ -777,6 +820,7 @@ class ChatComposerLiquid extends StatelessWidget {
                               width: 44,
                               height: 44,
                             ),
+            ),
             ),
           ),
         ],

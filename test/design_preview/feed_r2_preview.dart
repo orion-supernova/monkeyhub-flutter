@@ -13,6 +13,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:monkeyhub/auth/auth_service.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/feed_api.dart';
@@ -25,6 +26,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/daily_game.dart';
 import 'package:monkeyhub/models/moment.dart';
+import 'package:monkeyhub/models/moment_comment.dart';
 import 'package:monkeyhub/models/puzzle.dart';
 import 'package:monkeyhub/screens/feed/moment_viewer.dart';
 import 'package:monkeyhub/screens/feed/point_composer.dart';
@@ -34,6 +36,7 @@ import 'package:monkeyhub/screens/games/leaderboard_screen.dart';
 import 'package:monkeyhub/theme/app_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/game_info_sheet.dart';
+import 'package:monkeyhub/widgets/moment_comments_sheet.dart';
 
 import '../fakes/fake_games_api.dart';
 import 'preview_kit.dart';
@@ -89,6 +92,9 @@ Moment _m(
   String? media,
   int minutesAgo = 30,
   Map<String, int> reactions = const {},
+  Set<String> my = const {},
+  int comments = 0,
+  List<MomentReactor> reactors = const [],
 }) => Moment(
   id: id,
   userId: mine ? 'u1' : 'u_$who',
@@ -104,11 +110,22 @@ Moment _m(
   mediaStorageId: media,
   mediaKind: media == null ? MomentMedia.none : MomentMedia.image,
   reactionCounts: reactions,
+  myReactions: my,
+  commentCount: comments,
+  reactors: reactors,
 );
 
 final _moments = <Moment>[
   _m('h1', media: 's1', caption: 'Sunset over the Bosphorus', minutesAgo: 20,
-      reactions: const {'🔥': 3, '😮': 1}),
+      reactions: const {'🔥': 3, '😮': 1},
+      my: const {'🔥'},
+      comments: 12,
+      reactors: const [
+        MomentReactor(emoji: '🔥', userId: 'u1', name: 'Murat', username: 'murat'),
+        MomentReactor(emoji: '🔥', userId: 'u_d', name: 'Deniz Kaya', username: 'deniz'),
+        MomentReactor(emoji: '😮', userId: 'u_d', name: 'Deniz Kaya', username: 'deniz'),
+        MomentReactor(emoji: '🔥', userId: 'u_a', name: 'Arda', username: 'arda'),
+      ]),
   _m('h1b', media: 's1b', caption: 'and the ferry home', minutesAgo: 22),
   _m('h1c', media: 's1c', minutesAgo: 25),
   _m('h2', who: 'Deniz Kaya', media: 's2', minutesAgo: 70),
@@ -459,7 +476,7 @@ void main() {
           ThemeController.byId('basic'),
           _Opener(
             open: (c) => showMomentViewer(c,
-                moment: _moments[1],
+                moment: _moments[0],
                 api: _ChatApi(),
                 feedApi: _FeedApi(),
                 userId: 'u1',
@@ -477,6 +494,82 @@ void main() {
       );
     });
   }
+  // The swipe-up panel: reactions drawn big over the conversation and the
+  // composer, opened the way a comment notification opens it.
+  testWidgets('story panel', (tester) async {
+    debugStoryAssumeLoaded = true;
+    final now = DateTime.now();
+    MomentComment c(String id, String name, String text,
+            {String? parent, bool author = false, Map<String, int> counts = const {}}) =>
+        MomentComment(
+          id: id,
+          userId: name,
+          userName: name,
+          createdAt: now.subtract(const Duration(minutes: 9)),
+          isAuthor: author,
+          mine: false,
+          canDelete: false,
+          parentId: parent,
+          text: text,
+          reactionCounts: counts,
+          reactors: [
+            for (final e in counts.entries)
+              for (var i = 0; i < e.value; i++)
+                MomentReactor(emoji: e.key, userId: '$name$i', name: 'x'),
+          ],
+        );
+    MomentConversation.debugComments = [
+      c('a', 'Ece', 'the light in this one, where was this?', counts: {'❤️': 3}),
+      c('b', 'Deniz', 'Kaş, last night', parent: 'a', author: true),
+      c('d', 'Can', 'ok this is wallpaper material'),
+    ];
+    addTearDown(() => MomentConversation.debugComments = null);
+    await _shoot(
+      tester,
+      _app(
+        ThemeController.byId('basic'),
+        _Opener(
+          open: (c) => showMomentViewer(c,
+              moment: _moments[1],
+              api: _ChatApi(),
+              feedApi: _FeedApi(),
+              userId: 'u1',
+              siblings: _moments,
+              openComments: true),
+        ),
+      ),
+      'r2f_story_panel_basic.png',
+      frames: 80,
+    );
+  });
+  // The reply mode: the story dims, the reactions float big, the composer
+  // sits at the bottom. Opened from the comment bar.
+  testWidgets('story reply', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    debugStoryAssumeLoaded = true;
+    await _shoot(
+      tester,
+      _app(
+        ThemeController.byId('basic'),
+        _Opener(
+          open: (c) => showMomentViewer(c,
+              moment: _moments[0],
+              api: _ChatApi(),
+              feedApi: _FeedApi(),
+              userId: 'u1',
+              siblings: _moments),
+        ),
+      ),
+      'r2f_story_reply_basic.png',
+      frames: 60,
+      act: () async {
+        await tester.tap(find.text('Add a comment…'));
+        for (var i = 0; i < 40; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+      },
+    );
+  });
   testWidgets('story mine', (tester) async {
     debugStoryAssumeLoaded = true;
     await _shoot(

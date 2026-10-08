@@ -11357,4 +11357,29 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'Commentaire publié';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Voir les $count commentaires',
+      one: 'Voir 1 commentaire',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count autres personnes',
+      one: '1 autre personne',
+    );
+    return '$name et $_temp0';
+  }
 }

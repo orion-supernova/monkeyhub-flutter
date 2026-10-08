@@ -10697,7 +10697,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get momentCommentsEmptyTitle => '아직 댓글이 없어요';
 
   @override
-  String get momentCommentsEmptyBody => '대화를 시작해 보세요 — 한마디, 스티커 또는 GIF로.';
+  String get momentCommentsEmptyBody => '한마디, 스티커 또는 GIF로 대화를 시작해 보세요.';
 
   @override
   String get momentCommentHint => '댓글 달기…';
@@ -10760,4 +10760,27 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => '댓글을 게시했어요';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '댓글 $count개 모두 보기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명',
+    );
+    return '$name님 외 $_temp0';
+  }
 }

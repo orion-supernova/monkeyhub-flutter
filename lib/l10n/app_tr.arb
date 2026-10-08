@@ -3102,7 +3102,7 @@
   "galleryTrayEmpty": "Henüz fotoğraf yok",
   "galleryTrayPhotoLabel": "Fotoğraf {index}",
   "reactionLimitTitle": "Tepki sınırına ulaştın",
-  "reactionLimitMessageBody": "Hız, akıl sağlığı ve her emojinin hakkını vermek adına bir mesaja en fazla {limit} tepki ekleyebilirsin — daha fazla değil. Yeni bir tane için birini geri al.",
+  "reactionLimitMessageBody": "Hız, akıl sağlığı ve her emojinin hakkını vermek adına bir mesaja en fazla {limit} tepki ekleyebilirsin, daha fazla değil. Yeni bir tane için birini geri al.",
   "reactionLimitHighlightBody": "Öne çıkanlarda kişi başı {limit} tepki var, böylece her biri hâlâ bir şey anlatıyor. Yeni favorine yer açmak için birini geri al.",
   "reactionLimitDismiss": "Tamam",
   "reactionPickerYoursLabel": "Tepkilerin",
@@ -3110,7 +3110,7 @@
   "momentCommentsTitle": "Yorumlar",
   "momentCommentsCount": "{count, plural, =0{Yorum} one{1 yorum} other{{count} yorum}}",
   "momentCommentsEmptyTitle": "Henüz yorum yok",
-  "momentCommentsEmptyBody": "Sohbeti sen başlat — bir söz, bir çıkartma ya da bir GIF.",
+  "momentCommentsEmptyBody": "Sohbeti bir sözle, bir çıkartmayla ya da bir GIF ile başlat.",
   "momentCommentHint": "Yorum ekle…",
   "momentCommentReplyHint": "{name} kişisine yanıt ver…",
   "momentCommentReplyingTo": "{name} kişisine yanıt veriyorsun",
@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "Paylaşan",
   "momentCommentLike": "Beğen",
   "momentCommentStickerAlt": "Çıkartma",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "Yorum gönderildi",
+  "momentCommentsViewAll": "{count, plural, one{1 yorumu gör} other{{count} yorumun tümünü gör}}",
+  "momentReactorsSummary": "{name} ve {count, plural, one{1 kişi daha} other{{count} kişi daha}}"
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/gestures.dart';
@@ -11,6 +12,8 @@ import '../../backend/feed_api.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/media_aspect_cache.dart';
+import '../../models/chat_user.dart';
+import '../../models/expression_item.dart';
 import '../../models/moment.dart';
 import '../../theme/interaction.dart';
 import '../../theme/motion.dart';
@@ -19,14 +22,18 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/destructive_sheet.dart';
 import '../../widgets/glass_buttons.dart';
 import '../../widgets/moment_rail.dart';
-import '../../widgets/moment_reactor_sheet.dart';
-import '../../widgets/photo_backdrop.dart';
+import '../../widgets/moment_reactions.dart';
+import '../../widgets/photo_backdrop.dart' show photoFillsScreen;
 import '../../widgets/photo_dismiss_area.dart';
 import '../../widgets/remote_image.dart';
 import '../../widgets/route_landing.dart';
 import '../../widgets/photo_chrome.dart' show MediaPlayDisc;
 import '../../widgets/sheet_kit.dart'
-    show SheetBar, SheetCloseButton, SheetHandle, SheetTrashButton;
+    show
+        SheetBar,
+        SheetCloseButton,
+        SheetHandle,
+        SheetTrashButton;
 
 import '../../widgets/steady_hero.dart';
 import '../fullscreen_video_viewer.dart';
@@ -94,6 +101,10 @@ Future<void> showMomentViewer(
   List<Moment> siblings = const [],
   Rect? origin,
   bool openComments = false,
+
+  /// Opens someone's profile from the reactions or the comments. The viewer
+  /// has no repository of its own to build one with, so the host lends this.
+  void Function(ChatUser user)? onOpenProfile,
 }) {
   if (moment.thumbStorageId != null) {
     // Only the ones with something to look at. A caption-only highlight sitting
@@ -112,6 +123,7 @@ Future<void> showMomentViewer(
       feedApi: feedApi,
       userId: userId,
       openComments: openComments,
+      onOpenProfile: onOpenProfile,
     );
   }
   return _openCard(
@@ -122,6 +134,7 @@ Future<void> showMomentViewer(
     userId: userId,
     origin: origin,
     openComments: openComments,
+    onOpenProfile: onOpenProfile,
   );
 }
 
@@ -139,6 +152,7 @@ Future<void> _openStage(
   required FeedApi feedApi,
   required String userId,
   bool openComments = false,
+  void Function(ChatUser user)? onOpenProfile,
 }) {
   return Navigator.of(context).push(
     PageRouteBuilder(
@@ -156,6 +170,7 @@ Future<void> _openStage(
         feedApi: feedApi,
         userId: userId,
         openComments: openComments,
+        onOpenProfile: onOpenProfile,
       ),
       transitionsBuilder: (_, anim, _, child) =>
           FadeTransition(opacity: anim, child: child),
@@ -171,6 +186,7 @@ Future<void> _openCard(
   required String userId,
   Rect? origin,
   bool openComments = false,
+  void Function(ChatUser user)? onOpenProfile,
 }) {
   final theme = ThemeScope.of(context);
   final motion = MotionScope.of(context);
@@ -189,6 +205,7 @@ Future<void> _openCard(
         userId: userId,
         origin: origin,
         openComments: openComments,
+        onOpenProfile: onOpenProfile,
       ),
       // No transition here on purpose. The scrim, the card and the dismiss drag
       // all read the route's animation themselves — a page-wide FadeTransition
@@ -202,14 +219,6 @@ Future<void> _openCard(
 // ---------------------------------------------------------------------------
 // Reactions
 // ---------------------------------------------------------------------------
-
-/// One reactor's identity, as the moment already carries it — no live lookup,
-/// see `MomentReactor`.
-class _ReactorEntry {
-  const _ReactorEntry(this.userId, this.name);
-  final String userId;
-  final String name;
-}
 
 /// The optimistic local overlay on one moment's reaction state.
 ///
@@ -225,21 +234,16 @@ class _Reactions {
   _Reactions(Moment m)
       : mine = {...m.myReactions},
         counts = {...m.reactionCounts},
-        reactors = _group(m.reactors);
+        reactors = [...m.reactors];
 
   final Set<String> mine;
   final Map<String, int> counts;
-  final Map<String, List<_ReactorEntry>> reactors;
+
+  /// Every reaction with who left it, as the moment carries them (name,
+  /// handle and face denormalized on the server; see `MomentReactor`).
+  final List<MomentReactor> reactors;
 
   int get total => counts.values.fold(0, (a, b) => a + b);
-
-  static Map<String, List<_ReactorEntry>> _group(List<MomentReactor> rs) {
-    final out = <String, List<_ReactorEntry>>{};
-    for (final r in rs) {
-      out.putIfAbsent(r.emoji, () => []).add(_ReactorEntry(r.userId, r.name));
-    }
-    return out;
-  }
 }
 
 /// Owns every moment's reaction state for one route, and the round trips that
@@ -288,8 +292,20 @@ class _ReactionBook {
       r.mine.add(emoji);
       r.counts[emoji] = (r.counts[emoji] ?? 0) + 1;
       // Name left blank: the sheet substitutes the localized "you" for this
-      // user's own id, same as the puzzle scoreboard and leaderboard do.
-      r.reactors.putIfAbsent(emoji, () => []).add(_ReactorEntry(userId, ''));
+      // user's own id. Their face and handle ride along when one of their own
+      // earlier reactions already carries them.
+      MomentReactor? me;
+      for (final x in r.reactors) {
+        if (x.userId == userId) me = x;
+      }
+      r.reactors.add(MomentReactor(
+        emoji: emoji,
+        userId: userId,
+        name: me?.name ?? '',
+        username: me?.username,
+        avatarStorageId: me?.avatarStorageId,
+        createdAt: DateTime.now(),
+      ));
     } else {
       r.mine.remove(emoji);
       final n = (r.counts[emoji] ?? 1) - 1;
@@ -298,7 +314,7 @@ class _ReactionBook {
       } else {
         r.counts[emoji] = n;
       }
-      r.reactors[emoji]?.removeWhere((e) => e.userId == userId);
+      r.reactors.removeWhere((e) => e.userId == userId && e.emoji == emoji);
     }
   }
 
@@ -330,15 +346,6 @@ class _ReactionBook {
     }
   }
 
-  /// The localized names behind one pill, or an empty list when nobody is
-  /// recorded — which is not the same as nobody having reacted, see
-  /// [Moment.reactors].
-  List<String> namesFor(BuildContext context, Moment m, String emoji) {
-    final l10n = AppLocalizations.of(context);
-    return (of(m).reactors[emoji] ?? const <_ReactorEntry>[])
-        .map((r) => r.userId == userId ? l10n.momentRailYouLabel : r.name)
-        .toList();
-  }
 }
 
 /// Reacts to [m] with any emoji from the full picker — the same sheet chat
@@ -366,6 +373,7 @@ Future<void> _openComments(
   required ChatApi api,
   required FeedApi feedApi,
   required String userId,
+  void Function(ChatUser user)? onOpenProfile,
 }) {
   HapticFeedback.selectionClick();
   return showMomentComments(
@@ -375,6 +383,7 @@ Future<void> _openComments(
     feedApi: feedApi,
     userId: userId,
     onCount: (n) => book.noteComments(m, n),
+    onOpenProfile: onOpenProfile,
   );
 }
 
@@ -591,11 +600,15 @@ class _MomentStage extends StatefulWidget {
     required this.feedApi,
     required this.userId,
     this.openComments = false,
+    this.onOpenProfile,
   });
 
   /// Opens the first moment's comments once the stage is up — a comment
   /// notification's tap.
   final bool openComments;
+
+  /// See [showMomentViewer].
+  final void Function(ChatUser user)? onOpenProfile;
 
   final List<Moment> moments;
   final int initialIndex;
@@ -608,7 +621,7 @@ class _MomentStage extends StatefulWidget {
 }
 
 class _MomentStageState extends State<_MomentStage>
-    with RouteLanding, SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with RouteLanding, TickerProviderStateMixin, WidgetsBindingObserver {
   late final List<_StoryRun> _runs;
   late final PageController _pager;
 
@@ -694,16 +707,43 @@ class _MomentStageState extends State<_MomentStage>
     _pager = PageController(initialPage: _run);
     _drag.addListener(_onDrag);
     _arrive();
+    _panel.addListener(_onPanel);
     if (widget.openComments) {
-      // After the route's own flight, so the sheet rises over a settled stage
-      // rather than racing it. The clock pauses on its own while the sheet is
-      // up — the route stops being current.
+      // After the route's own flight, so the panel rises over a settled stage
+      // rather than racing it.
       Future<void>.delayed(const Duration(milliseconds: 320), () {
         if (mounted) _comments(_current);
       });
     }
   }
 
+  // ── The swipe-up panel ──────────────────────────────────────────────────
+  //
+  // Instagram's: swipe up on a story (or tap its comment bar) and a panel
+  // rises over it with the reactions drawn big, the conversation, and the
+  // composer. It follows the finger both ways, and pulling it down from
+  // anywhere, the list included, puts it away and lets the story play on.
+
+  /// 0 closed, 1 open. Driven by the finger while dragging.
+  late final AnimationController _panel = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+  );
+
+  /// Whether any of the panel is showing: the conversation is mounted (and
+  /// subscribed) only then, and the story's clock holds still.
+  bool _panelUp = false;
+
+  /// The comment composer's focus, held here so tapping the bar can open the
+  /// panel and raise the keyboard in one gesture.
+  final FocusNode _commentFocus = FocusNode(debugLabel: 'moment-comment');
+
+  /// How far a finger travels to open the reply mode all the way; the drag
+  /// is mapped onto [_panel] over this distance.
+  double get _panelHeight => MediaQuery.sizeOf(context).height * 0.4;
+
+  /// The full conversation, in a sheet over the stage (the clock pauses while
+  /// it is up: the route stops being current).
   Future<void> _comments(Moment m) => _openComments(
         context,
         _book,
@@ -711,7 +751,127 @@ class _MomentStageState extends State<_MomentStage>
         api: widget.api,
         feedApi: widget.feedApi,
         userId: widget.userId,
+        onOpenProfile: widget.onOpenProfile,
       );
+
+  /// Posts a comment from the reply mode, then puts the reply mode away.
+  Future<bool> _submitReply(Moment m, {String? text, ExpressionItem? item}) async {
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    try {
+      await widget.feedApi.comment(
+        userId: widget.userId,
+        momentId: m.id,
+        text: text,
+        expression: item,
+      );
+    } catch (_) {
+      toast.show(l10n.momentCommentFailed, tone: ToastTone.danger);
+      return false;
+    }
+    _book.noteComments(m, _book.commentsOf(m) + 1);
+    toast.show(l10n.momentCommentPosted, tone: ToastTone.success);
+    if (mounted) _closePanel();
+    return true;
+  }
+
+  /// A reaction from the big grid: leave it (or take it back) and get out of
+  /// the way, Instagram's way. At the cap the alert says so and the grid
+  /// stays, so another one can be taken back.
+  void _reactFromGrid(Moment m, String emoji, Offset origin) {
+    final r = _book.of(m);
+    final adding = !r.mine.contains(emoji);
+    final atCap = adding && r.mine.length >= kMaxMomentReactionsPerPerson;
+    _book.toggle(m, emoji);
+    if (atCap) return;
+    // The send, seen: copies of the emoji float up from where it was tapped
+    // as the reply mode gets out of the way. Only for a reaction left, not
+    // one taken back, and never under Reduce Motion.
+    if (adding && !MotionScope.of(context).calm) {
+      setState(() => _bursts.add((UniqueKey(), emoji, origin)));
+    }
+    _closePanel();
+  }
+
+  /// Reactions in flight, drawn over everything until they finish.
+  final _bursts = <(Key, String, Offset)>[];
+
+  void _onPanel() {
+    // Opening counts as up from its first tick, which can still read 0: going
+    // by the value alone flipped the panel back down for a frame, and the
+    // composer's focus request landed in exactly that frame.
+    final up = _panel.value > 0 || _panel.status == AnimationStatus.forward;
+    if (up == _panelUp) return;
+    setState(() => _panelUp = up);
+    _sync();
+  }
+
+  /// A drag of [dy] logical pixels, positive downward (closing).
+  void _panelDrag(double dy) {
+    _panel.value = (_panel.value - dy / _panelHeight).clamp(0.0, 1.0);
+  }
+
+  /// The finger let go at [velocity] (pixels per second, positive downward).
+  void _panelRelease(double velocity) {
+    final open = velocity < -350
+        ? true
+        : velocity > 350
+            ? false
+            : _panel.value > 0.5;
+    open ? _openPanel() : _closePanel();
+  }
+
+  /// Opens the reply mode with the keyboard coming up WITH it, not after:
+  /// the composer mounts on the panel's first frame, and the field takes
+  /// focus on the frame after that, so the keyboard and the reactions rise
+  /// together.
+  Future<void> _openPanel({bool keyboard = true}) async {
+    if (_panel.value == 0) HapticFeedback.selectionClick();
+    // Mounted NOW, not when the animation's first tick lands: the composer
+    // (and its focus node) has to be in the tree for the focus below to have
+    // anything to take. Waiting for the controller left the post-frame focus
+    // finding no field, and the keyboard needed a second tap.
+    if (!_panelUp) {
+      setState(() => _panelUp = true);
+      _sync();
+    }
+    if (keyboard) _focusComposerSoon();
+    final calm = MotionScope.of(context).calm;
+    if (calm) {
+      _panel.value = 1;
+    } else {
+      await _panel.animateTo(1, curve: Curves.easeOutCubic);
+    }
+  }
+
+  /// Focuses the composer as soon as its field exists.
+  ///
+  /// Retried frame by frame: the field mounts a frame or two after the panel
+  /// does (it sits under the reply mode's own builders), and a focus request
+  /// on a node not yet in the tree is simply dropped. That drop was the
+  /// "tap the field, get emojis but no keyboard" bug.
+  void _focusComposerSoon([int tries = 8]) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_panelUp || _commentFocus.hasFocus) return;
+      if (_commentFocus.context == null) {
+        if (tries > 0) _focusComposerSoon(tries - 1);
+        return;
+      }
+      _commentFocus.requestFocus();
+    });
+    // A post-frame callback only runs if a frame is coming.
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  void _closePanel() {
+    _commentFocus.unfocus();
+    final calm = MotionScope.of(context).calm;
+    if (calm) {
+      _panel.value = 0;
+    } else {
+      _panel.animateBack(0, curve: Curves.easeOutCubic);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -738,6 +898,9 @@ class _MomentStageState extends State<_MomentStage>
     _loadFallback?.cancel();
     _afterVideo?.cancel();
     _clock.dispose();
+    _panel.removeListener(_onPanel);
+    _panel.dispose();
+    _commentFocus.dispose();
     _pager.dispose();
     _drag.removeListener(_onDrag);
     _drag.dispose();
@@ -758,6 +921,7 @@ class _MomentStageState extends State<_MomentStage>
       _keyboard ||
       !_appActive ||
       _screenReader ||
+      _panelUp ||
       _closing;
 
   /// Runs or stops the clock to match [_paused]. Cheap and idempotent — it
@@ -953,8 +1117,16 @@ class _MomentStageState extends State<_MomentStage>
     final screen = MediaQuery.sizeOf(context);
     final current = _current;
     final chrome = !_holding;
+    final bar = _kCommentBar + MediaQuery.paddingOf(context).bottom;
+    final top = MediaQuery.paddingOf(context).top;
 
-    return Material(
+    return PopScope(
+      // Back (or Escape) puts the panel away first, as a swipe down would.
+      canPop: !_panelUp,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _closePanel();
+      },
+      child: Material(
       type: MaterialType.transparency,
       // Every media `LiquidGlass` under here calls `BackdropFilter.grouped`,
       // which shares ONE full-screen rasterization with its siblings — but only
@@ -972,32 +1144,46 @@ class _MomentStageState extends State<_MomentStage>
             },
             child: Stack(
               children: [
-                // Painted inside the route rather than left to the barrier, so
-                // it can fade to nothing as the drag commits — that is what
-                // makes the Hero return read as the picture going back where
-                // it came from rather than as a cut.
+                // Solid black, like every other photo viewer in the app: no
+                // blurred copy of the picture behind it. Painted inside the
+                // route rather than left to the barrier, so it can fade to
+                // nothing as the drag commits and the Hero return reads as
+                // the picture going back where it came from.
                 ValueListenableBuilder<Offset>(
                   valueListenable: _drag,
                   builder: (context, drag, _) => Positioned.fill(
                     child: IgnorePointer(
                       child: ColoredBox(
                         color: Colors.black.withValues(
-                          alpha: 0.95 * (1 - photoDismissProgress(drag, screen)),
+                          alpha: 1 - photoDismissProgress(drag, screen),
                         ),
                       ),
                     ),
                   ),
                 ),
+                // The story is a card, Instagram's: from just under the
+                // status bar to the comment bar, rounded at all four corners,
+                // with the progress bar and the author riding on its top
+                // edge. Never under the bar: the bar is the floor it stands
+                // on. One clip around the whole pager, not one per page.
                 ValueListenableBuilder<Offset>(
                   valueListenable: _drag,
                   builder: (context, drag, pages) {
                     final t = photoDismissProgress(drag, screen);
-                    return Positioned.fill(
+                    return Positioned(
+                      left: 0,
+                      right: 0,
+                      top: top,
+                      bottom: bar,
                       child: Transform.translate(
                         offset: drag,
                         child: Transform.scale(
                           scale: 1 - t * kPhotoDismissShrink,
-                          child: pages,
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(_kStoryCardRadius),
+                            child: pages,
+                          ),
                         ),
                       ),
                     );
@@ -1046,20 +1232,157 @@ class _MomentStageState extends State<_MomentStage>
                 ),
                 _FadingChrome(
                   drag: _drag,
-                  visible: chrome,
+                  // Gone under the reply mode: its own composer takes this
+                  // place, and the bar's outline would peek out beside it.
+                  visible: chrome && !_panelUp,
                   alignBottom: true,
-                  child: _StageFooter(
-                    moment: current,
-                    reactions: _book.of(current),
-                    onReact: (e) => _book.toggle(current, e),
-                    onMore: () => _reactWithAny(context, _book, current),
-                    onShowReactors: (e) => _showReactors(current, e),
-                    commentCount: _book.commentsOf(current),
-                    onComments: () => _comments(current),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _StageCaption(moment: current),
+                      // Who reacted: faces wearing their emoji, newest first.
+                      if (_book.of(current).reactors.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: MomentReactorStack(
+                              groups: groupReactors(_book.of(current).reactors),
+                              api: widget.api,
+                              viewerId: widget.userId,
+                              onTap: () => _showReactors(current),
+                            ),
+                          ),
+                        ),
+                      _StageCommentBar(
+                        height: _kCommentBar,
+                        count: _book.commentsOf(current),
+                        onField: _openPanel,
+                        onReactions: () => _openPanel(keyboard: false),
+                        onComments: () => _comments(current),
+                      ),
+                    ],
                   ),
                 ),
+                if (_panelUp) _panelLayer(current),
+                for (final (key, emoji, origin) in _bursts)
+                  Positioned.fill(
+                    child: _EmojiBurst(
+                      key: key,
+                      emoji: emoji,
+                      origin: origin,
+                      onDone: () {
+                        if (!mounted) return;
+                        setState(() => _bursts.removeWhere((b) => b.$1 == key));
+                      },
+                    ),
+                  ),
               ],
             ),
+          ),
+        ),
+      ),
+      ),
+    );
+  }
+
+  /// The reply mode, following [_panel]: the story dims, the preset
+  /// reactions float big over it, and the composer sits above the keyboard.
+  /// Instagram's reply overlay, down to the swipe down that puts it away.
+  Widget _panelLayer(Moment m) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final media = MediaQuery.of(context);
+    final reactions = _book.of(m);
+    final count = _book.commentsOf(m);
+    void drag(DragUpdateDetails d) => _panelDrag(d.delta.dy);
+    void release(DragEndDetails d) =>
+        _panelRelease(d.velocity.pixelsPerSecond.dy);
+    return AnimatedBuilder(
+      animation: _panel,
+      builder: (context, composer) {
+        final v = _panel.value;
+        final eased = Curves.easeOutCubic.transform(v);
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _closePanel,
+                onVerticalDragUpdate: drag,
+                onVerticalDragEnd: release,
+                child: ColoredBox(
+                  // Deep enough that the reactions and the composer, not the
+                  // photograph, are what the eye lands on.
+                  color: Colors.black.withValues(alpha: 0.78 * v),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Column(
+                children: [
+                  SizedBox(height: media.padding.top + _kTopBand),
+                  Expanded(
+                    child: IgnorePointer(
+                      ignoring: v < 0.5,
+                      child: Opacity(
+                        opacity: eased,
+                        child: Transform.translate(
+                          offset: Offset(0, 48 * (1 - eased)),
+                          child: Center(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _ReplyEmojiGrid(
+                                    emojis: quickReactionsFor(m.tag),
+                                    reactions: reactions,
+                                    onTap: (e, origin) =>
+                                        _reactFromGrid(m, e, origin),
+                                    onLongPress: (e) => _showReactors(m, e),
+                                    onMore: () async {
+                                      await _reactWithAny(context, _book, m);
+                                      if (mounted) _closePanel();
+                                    },
+                                  ),
+                                  if (count > 0) ...[
+                                    const SizedBox(height: 28),
+                                    _ViewCommentsLink(
+                                      label: l10n.momentCommentsViewAll(count),
+                                      onTap: () => _comments(m),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Opacity(opacity: eased, child: composer),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+      child: Theme(
+        // The composer is the app's own, drawn on the dimmed story.
+        data: Theme.of(context),
+        child: DefaultTextStyle(
+          style: theme.body.copyWith(color: theme.ink),
+          child: MomentCommentComposer(
+            key: ValueKey(m.id),
+            focus: _commentFocus,
+            hint: l10n.momentCommentHint,
+            maxPanel: media.size.height * 0.5,
+            // The stage's own black: the composer stands on the floor the
+            // story stands on, never as glass over the photograph.
+            floor: Colors.black,
+            onSubmit: ({text, item}) =>
+                _submitReply(m, text: text, item: item),
           ),
         ),
       ),
@@ -1108,6 +1431,8 @@ class _MomentStageState extends State<_MomentStage>
               fill: _fill,
               drag: _drag,
               onDismiss: _close,
+              onPanelDrag: _panelDrag,
+              onPanelEnd: _panelRelease,
               onTap: _onTap,
               onHold: _onHold,
               onReady: () => _onReady(m.id),
@@ -1123,11 +1448,19 @@ class _MomentStageState extends State<_MomentStage>
     );
   }
 
-  void _showReactors(Moment m, String emoji) {
-    final names = _book.namesFor(context, m, emoji);
-    if (names.isEmpty) return;
+  /// Who reacted, as a list; [emoji] narrows it to one reaction.
+  void _showReactors(Moment m, [String? emoji]) {
+    final reactors = _book.of(m).reactors;
+    if (reactors.isEmpty) return;
     HapticFeedback.mediumImpact();
-    showMomentReactorSheet(context, emoji: emoji, names: names);
+    showMomentReactions(
+      context,
+      reactors: reactors,
+      api: widget.api,
+      viewerId: widget.userId,
+      initialEmoji: emoji,
+      onOpenProfile: widget.onOpenProfile,
+    );
   }
 }
 
@@ -1141,6 +1474,8 @@ class _StagePage extends StatefulWidget {
     required this.fill,
     required this.drag,
     required this.onDismiss,
+    required this.onPanelDrag,
+    required this.onPanelEnd,
     required this.onTap,
     required this.onHold,
     required this.onReady,
@@ -1160,6 +1495,13 @@ class _StagePage extends StatefulWidget {
 
   final ValueNotifier<Offset> drag;
   final VoidCallback onDismiss;
+
+  /// A drag that started UPWARD: it opens the panel instead of dismissing.
+  /// Logical pixels, positive downward, as the panel reads them.
+  final ValueChanged<double> onPanelDrag;
+
+  /// That drag let go, with its vertical velocity.
+  final ValueChanged<double> onPanelEnd;
 
   /// A tap at x = the first argument on a page the second argument wide.
   final void Function(double dx, double width) onTap;
@@ -1243,15 +1585,33 @@ class _StagePageState extends State<_StagePage>
         _settleFrom * (1 - Curves.easeOutCubic.transform(_settle.value));
   }
 
-  void _onDragStart(DragStartDetails _) => _settle.stop();
+  /// Which way this drag went first: up opens the panel (Instagram), down
+  /// dismisses. Decided on the first movement and kept for the whole drag.
+  bool? _toPanel;
+
+  void _onDragStart(DragStartDetails _) {
+    _settle.stop();
+    _toPanel = null;
+  }
 
   void _onDragUpdate(DragUpdateDetails d) {
     // While zoomed the same gesture is panning the image.
     if (_zoomed || _dismissing) return;
+    _toPanel ??= d.delta.dy < 0 && widget.drag.value == Offset.zero;
+    if (_toPanel!) {
+      widget.onPanelDrag(d.delta.dy);
+      return;
+    }
     widget.drag.value += Offset(0, d.delta.dy);
   }
 
   void _onDragEnd(DragEndDetails d) {
+    if (_toPanel == true) {
+      _toPanel = null;
+      widget.onPanelEnd(d.velocity.pixelsPerSecond.dy);
+      return;
+    }
+    _toPanel = null;
     if (_dismissing) return;
     final dy = widget.drag.value.dy;
     final velocity = d.velocity.pixelsPerSecond.dy;
@@ -1293,18 +1653,6 @@ class _StagePageState extends State<_StagePage>
       builder: (context, box) => Stack(
         fit: StackFit.expand,
         children: [
-          // Only when the picture is NOT filling: behind a `cover` fit it is
-          // invisible, and an invisible blurred layer still costs a pass.
-          if (!fills)
-            PhotoBackdrop(
-              image: RemoteImage(
-                storageId: id,
-                api: widget.api,
-                fit: BoxFit.cover,
-                decodeWidth: momentThumbDecodeWidth,
-                borderRadius: BorderRadius.zero,
-              ),
-            ),
           // The stories' own gesture set: `PhotoDismissArea` (the chat
           // gallery's) answers a tap with "toggle the chrome" and a double tap
           // with a zoom, and both of those are wrong here.
@@ -1462,17 +1810,25 @@ class _StoryProgress extends StatelessWidget {
     return IgnorePointer(
       child: Stack(
         children: [
-          // White on white is not a colour scheme, and the top of a photograph
-          // is as likely to be sky as anything else. Lighter than
-          // `MediaScrim`, and spread over more of the frame, so it reads as a
-          // vignette rather than a bar.
-          Container(
-            height: pad.top + 96,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0x8C000000), Color(0x00000000)],
+          // A light shade at the top of the card, not a blur: enough that
+          // white bars and a white name stay legible over a bright sky, light
+          // enough that the photo still reads as the photo. Clipped to the
+          // card's own top edge and corners.
+          Padding(
+            padding: EdgeInsets.only(top: pad.top),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(_kStoryCardRadius),
+              ),
+              child: Container(
+                height: 104,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x66000000), Color(0x00000000)],
+                  ),
+                ),
               ),
             ),
           ),
@@ -1723,82 +2079,601 @@ class _AuthorDot extends StatelessWidget {
   }
 }
 
-/// The words and the reactions, on glass along the bottom edge.
-class _StageFooter extends StatelessWidget {
-  const _StageFooter({
-    required this.moment,
-    required this.reactions,
-    required this.onReact,
-    required this.onMore,
-    required this.onShowReactors,
-    required this.commentCount,
+/// The height of the black comment bar under a story, before the safe area.
+const double _kCommentBar = 60;
+
+/// How far the progress bar and the author row reach down into the story
+/// card, below the safe area. The reply mode keeps its content clear of it.
+const double _kTopBand = 62;
+
+/// The story card's corner radius: Instagram's, enough to read as a card on
+/// the black, not so much that it eats the corners of the photo.
+const double _kStoryCardRadius = 14;
+
+/// The tag and the words, over the bottom of the picture just above the bar.
+///
+/// No gradient and no glass under them: the stage is black, and a shadow is
+/// enough to keep white text legible where a photograph runs bright.
+class _StageCaption extends StatelessWidget {
+  const _StageCaption({required this.moment});
+
+  final Moment moment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final caption = moment.caption;
+    final hasCaption = caption != null && caption.isNotEmpty;
+    if (moment.tag == null && !hasCaption) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (moment.tag != null) ...[
+            MomentTagChip(tag: moment.tag!),
+            if (hasCaption) const SizedBox(height: 10),
+          ],
+          if (hasCaption)
+            Text(
+              caption,
+              style: theme.body.copyWith(
+                color: MediaGlass.ink,
+                shadows: const [
+                  Shadow(color: Color(0xCC000000), blurRadius: 10),
+                ],
+              ),
+              // Enough for a paragraph, capped so a wall of text cannot
+              // swallow the photograph it is about.
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The black floor of a story: a comment field and the reactions door.
+///
+/// Instagram's reply bar. The field is the door rather than a live text
+/// field: a tap opens the panel with the real composer focused in it, so
+/// typing always happens where the conversation is visible. The smiley opens
+/// the same panel without the keyboard, on the reactions.
+class _StageCommentBar extends StatelessWidget {
+  const _StageCommentBar({
+    required this.height,
+    required this.count,
+    required this.onField,
+    required this.onReactions,
     required this.onComments,
   });
 
-  final Moment moment;
-  final _Reactions reactions;
-  final void Function(String emoji) onReact;
-  final VoidCallback onMore;
-  final void Function(String emoji) onShowReactors;
-  final int commentCount;
+  final double height;
+  final int count;
+
+  /// Opens the reply mode with the keyboard up, to write.
+  final VoidCallback onField;
+
+  /// Opens it on the reactions alone, keyboard down, to react.
+  final VoidCallback onReactions;
+
+  /// Opens the whole conversation.
   final VoidCallback onComments;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final bottom = MediaQuery.paddingOf(context).bottom;
-    final caption = moment.caption;
-    final emojis = _emojisFor(moment, reactions);
-
-    // The gradient wraps the content rather than being a fixed-height band
-    // behind it: this column is one line tall on a bare photograph and six with
-    // a tag and a paragraph, and a 210pt scrim is either far too much furniture
-    // for the first or leaves the top of the caption sitting on unscrimmed sky
-    // in the second.
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [Color(0xD9000000), Color(0x00000000)],
+    final hint = l10n.momentCommentHint;
+    return ColoredBox(
+      color: Colors.black,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12, 8, 8, bottom),
+        child: SizedBox(
+          height: height - 8,
+          child: Row(
+            children: [
+              Expanded(
+                child: FocusableTap(
+                  onTap: onField,
+                  semanticLabel: hint,
+                  shape: FocusRingShape.capsule,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onField,
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: MediaGlass.ink.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              hint,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.body.copyWith(
+                                fontSize: 16,
+                                color: MediaGlass.inkDim,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              FocusableTap(
+                onTap: onReactions,
+                semanticLabel: l10n.reactionBubblePickerTitle,
+                shape: FocusRingShape.circle,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onReactions,
+                  child: const SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(
+                      CupertinoIcons.smiley,
+                      size: 26,
+                      color: MediaGlass.ink,
+                    ),
+                  ),
+                ),
+              ),
+              FocusableTap(
+                onTap: onComments,
+                semanticLabel: l10n.momentCommentsCount(count),
+                shape: FocusRingShape.circle,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onComments,
+                  child: SizedBox(
+                    height: 44,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.chat_bubble,
+                            size: 25,
+                            color: MediaGlass.ink,
+                          ),
+                          if (count > 0) ...[
+                            const SizedBox(width: 5),
+                            Text(
+                              '$count',
+                              style: theme.body.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: MediaGlass.ink,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Padding(
-        // Generous at the top so the fade has somewhere to happen before it
-        // reaches the words.
-        padding: EdgeInsets.fromLTRB(16, 56, 16, bottom + 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (moment.tag != null) ...[
-              MomentTagChip(tag: moment.tag!),
-              const SizedBox(height: 10),
-            ],
-            if (caption != null && caption.isNotEmpty) ...[
-              Text(
-                caption,
-                style: theme.body.copyWith(
-                  color: MediaGlass.ink,
-                  shadows: const [
-                    Shadow(color: Color(0x99000000), blurRadius: 8),
-                  ],
+    );
+  }
+}
+
+/// The preset reactions, big, in Instagram's three by two grid over the
+/// dimmed story, with a + for any emoji at all.
+///
+/// One tap leaves a reaction (or takes yours back) and closes the reply mode;
+/// a long press says who is behind one. Yours sit on an accent disc, and a
+/// small count under each says how many people chose it.
+class _ReplyEmojiGrid extends StatelessWidget {
+  const _ReplyEmojiGrid({
+    required this.emojis,
+    required this.reactions,
+    required this.onTap,
+    required this.onLongPress,
+    required this.onMore,
+  });
+
+  final List<String> emojis;
+  final _Reactions reactions;
+
+  /// [origin] is the tapped emoji's centre on screen, where its burst starts.
+  final void Function(String emoji, Offset origin) onTap;
+  final void Function(String emoji) onLongPress;
+  final VoidCallback onMore;
+
+  static const double _cell = 96;
+
+  @override
+  Widget build(BuildContext context) {
+    final more = AppLocalizations.of(context).stickerMakerMoreEmoji;
+    final cells = <Widget>[
+      for (final (i, e) in emojis.indexed)
+        _GridPop(
+          index: i,
+          child: _ReplyEmoji(
+            key: ValueKey(e),
+            emoji: e,
+            count: reactions.counts[e] ?? 0,
+            active: reactions.mine.contains(e),
+            onTap: (origin) => onTap(e, origin),
+            onLongPress: () => onLongPress(e),
+          ),
+        ),
+      _GridPop(
+        index: emojis.length,
+        child: SizedBox(
+        width: _cell,
+        height: _cell + 18,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: SpringPress(
+            onTap: onMore,
+            semanticLabel: more,
+            focusShape: FocusRingShape.circle,
+            child: Container(
+              width: 72,
+              height: 72,
+              margin: const EdgeInsets.only(top: 12),
+              // An outline, not a fill: a filled disc is what "yours" looks
+              // like in this grid, and the + must never read as chosen.
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.38),
+                  width: 1.5,
                 ),
-                // Enough for a paragraph, capped so a wall of text cannot
-                // swallow the photograph it is about.
-                maxLines: 5,
-                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 14),
+              child: const Icon(
+                CupertinoIcons.add,
+                size: 34,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+      ),
+    ];
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
+      children: cells,
+    );
+  }
+}
+
+class _ReplyEmoji extends StatelessWidget {
+  const _ReplyEmoji({
+    super.key,
+    required this.emoji,
+    required this.count,
+    required this.active,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final String emoji;
+  final int count;
+  final bool active;
+  final ValueChanged<Offset> onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    void tap() {
+      final box = context.findRenderObject() as RenderBox?;
+      final center = box == null || !box.attached
+          ? Offset.zero
+          : box.localToGlobal(
+              const Offset(_ReplyEmojiGrid._cell / 2, _ReplyEmojiGrid._cell / 2),
+            );
+      onTap(center);
+    }
+
+    return SizedBox(
+      width: _ReplyEmojiGrid._cell,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FocusableTap(
+            onTap: tap,
+            semanticLabel: emoji,
+            selected: active,
+            shape: FocusRingShape.circle,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: tap,
+              onLongPress: count > 0 ? onLongPress : null,
+              onSecondaryTap: count > 0 ? onLongPress : null,
+              // Yours sits on a soft frosted disc: the selected state of the
+              // reaction trays people already know (WhatsApp, iMessage),
+              // a filled background and nothing else. No outline, no accent
+              // tint: a ring read as a focus border, and a lone dot under the
+              // emoji did not read as "yours" at all.
+              child: SpringPress.passive(
+                child: SizedBox(
+                  width: _ReplyEmojiGrid._cell,
+                  height: _ReplyEmojiGrid._cell,
+                  child: Center(
+                    child: AnimatedContainer(
+                      duration: theme.motionFast,
+                      curve: Curves.easeOutCubic,
+                      width: 88,
+                      height: 88,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(
+                          alpha: active ? 0.24 : 0,
+                        ),
+                      ),
+                      child: Text(
+                        emoji,
+                        style: const TextStyle(
+                          fontSize: 58,
+                          height: 1.1,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 18,
+            child: count > 0
+                ? Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: active ? MediaGlass.ink : MediaGlass.inkDim,
+                      decoration: TextDecoration.none,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  )
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One cell of the reply grid arriving: a springy pop with a little twist,
+/// staggered across the grid, every time the reply mode opens (the grid is
+/// built fresh each time). Nothing under Reduce Motion.
+class _GridPop extends StatefulWidget {
+  const _GridPop({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_GridPop> createState() => _GridPopState();
+}
+
+class _GridPopState extends State<_GridPop> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: Duration(milliseconds: 620 + widget.index * 55),
+  );
+  late final Animation<double> _t = CurvedAnimation(
+    parent: _c,
+    curve: Interval(
+      (widget.index * 55) / (620 + widget.index * 55),
+      1,
+      curve: Curves.elasticOut,
+    ),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MotionScope.of(context).calm) {
+      _c.value = 1;
+    } else if (!_c.isAnimating && _c.value == 0) {
+      _c.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Alternate cells twist opposite ways, so the grid lands with some life
+    // rather than as one block scaling up.
+    final twist = widget.index.isEven ? -0.35 : 0.35;
+    return AnimatedBuilder(
+      animation: _t,
+      child: widget.child,
+      builder: (context, child) {
+        final v = _t.value;
+        if (v >= 1 && _c.isCompleted) return child!;
+        return Opacity(
+          opacity: (v * 3).clamp(0.0, 1.0),
+          child: Transform.rotate(
+            angle: twist * (1 - v.clamp(0.0, 1.0)),
+            child: Transform.scale(scale: 0.2 + 0.8 * v, child: child),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The reaction you just sent, rising: a handful of copies of the emoji
+/// floating up from where you tapped it and fading, Instagram's send.
+///
+/// One controller drives every copy; their paths are fixed per burst from a
+/// seeded random so a burst never jitters as it plays. Purely decorative and
+/// out of the hit test; it removes itself when done.
+class _EmojiBurst extends StatefulWidget {
+  const _EmojiBurst({
+    super.key,
+    required this.emoji,
+    required this.origin,
+    required this.onDone,
+  });
+
+  final String emoji;
+  final Offset origin;
+  final VoidCallback onDone;
+
+  @override
+  State<_EmojiBurst> createState() => _EmojiBurstState();
+}
+
+class _EmojiBurstState extends State<_EmojiBurst>
+    with SingleTickerProviderStateMixin {
+  static const _copies = 9;
+
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1250),
+  )
+    ..addStatusListener((s) {
+      if (s == AnimationStatus.completed) widget.onDone();
+    })
+    ..forward();
+
+  /// Per copy: sideways drift, rise, size, start delay (0..1 of the run), sway.
+  late final List<(double, double, double, double, double)> _paths = () {
+    final rnd = math.Random(widget.origin.hashCode ^ widget.emoji.hashCode);
+    return [
+      for (var i = 0; i < _copies; i++)
+        (
+          (rnd.nextDouble() * 2 - 1) * 110,
+          260 + rnd.nextDouble() * 260,
+          0.55 + rnd.nextDouble() * 0.7,
+          rnd.nextDouble() * 0.28,
+          (rnd.nextDouble() * 2 - 1) * 18,
+        ),
+    ];
+  }();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final t = _c.value;
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              for (final (dx, rise, size, delay, sway) in _paths)
+                _copy(t, dx, rise, size, delay, sway),
             ],
-            _GlassReactionRail(
-              emojis: emojis,
-              reactions: reactions,
-              onTap: onReact,
-              onLongPress: onShowReactors,
-              onMore: onMore,
-              commentCount: commentCount,
-              onComments: onComments,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _copy(
+    double t,
+    double dx,
+    double rise,
+    double size,
+    double delay,
+    double sway,
+  ) {
+    final local = ((t - delay) / (1 - delay)).clamp(0.0, 1.0);
+    if (local <= 0) return const SizedBox.shrink();
+    final up = Curves.easeOutCubic.transform(local);
+    final fade = local < 0.6 ? 1.0 : 1 - (local - 0.6) / 0.4;
+    final grow = Curves.easeOutBack.transform((local * 2.5).clamp(0.0, 1.0));
+    const glyph = 46.0;
+    return Positioned(
+      left: widget.origin.dx + dx * up + math.sin(local * math.pi * 2) * sway -
+          glyph / 2,
+      top: widget.origin.dy - rise * up - glyph / 2,
+      child: Opacity(
+        opacity: fade.clamp(0.0, 1.0),
+        child: Transform.scale(
+          scale: size * grow,
+          child: Text(
+            widget.emoji,
+            style: const TextStyle(
+              fontSize: glyph,
+              height: 1,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "View all 12 comments" under the reply grid: the way from the quick reply
+/// to the whole conversation.
+class _ViewCommentsLink extends StatelessWidget {
+  const _ViewCommentsLink({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: label,
+      focusShape: FocusRingShape.capsule,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(CupertinoIcons.chat_bubble_2, size: 17, color: MediaGlass.ink),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: theme.bodyEmph.copyWith(
+                fontSize: 15,
+                color: MediaGlass.ink,
+                decoration: TextDecoration.none,
+              ),
             ),
           ],
         ),
@@ -1807,179 +2682,8 @@ class _StageFooter extends StatelessWidget {
   }
 }
 
-/// The reaction row over a photograph.
-///
-/// Scrolls horizontally rather than wrapping: the quick set is five, but a
-/// moment can carry any number of extras from other clients, and a second row
-/// of pills growing upward would push the caption off a screen it shares.
-class _GlassReactionRail extends StatelessWidget {
-  const _GlassReactionRail({
-    required this.emojis,
-    required this.reactions,
-    required this.onTap,
-    required this.onLongPress,
-    required this.onMore,
-    required this.commentCount,
-    required this.onComments,
-  });
-
-  final List<String> emojis;
-  final _Reactions reactions;
-  final void Function(String emoji) onTap;
-  final void Function(String emoji) onLongPress;
-
-  /// Opens the full emoji picker: the quick set is a shortcut, not a limit.
-  final VoidCallback onMore;
-
-  final int commentCount;
-  final VoidCallback onComments;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-
-    // No grand total at the end of the row: an orphan number beside the pills
-    // read as noise. Each pill carries its own count; a long-press says who.
-    return Row(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            // Vertical room for FocusableTap's ring, which paints outside the
-            // child's bounds and would otherwise be clipped by this scroller.
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                for (final e in emojis)
-                  Padding(
-                    key: ValueKey(e),
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _GlassReactionPill(
-                      emoji: e,
-                      count: reactions.counts[e] ?? 0,
-                      active: reactions.mine.contains(e),
-                      accent: theme.accent,
-                      accentInk: theme.accentInk,
-                      onTap: () => onTap(e),
-                      onLongPress: () => onLongPress(e),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _MoreReactionsPill(onTap: onMore, overPhoto: true),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Outside the scroller, pinned to the trailing edge: the way into the
-        // conversation must not scroll away behind a long row of pills.
-        Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: _CommentsPill(
-            count: commentCount,
-            onTap: onComments,
-            overPhoto: true,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _GlassReactionPill extends StatelessWidget {
-  const _GlassReactionPill({
-    required this.emoji,
-    required this.count,
-    required this.active,
-    required this.accent,
-    required this.accentInk,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  final String emoji;
-  final int count;
-  final bool active;
-  final Color accent;
-  final Color accentInk;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: emoji,
-      selected: active,
-      shape: FocusRingShape.capsule,
-      child: RawGestureDetector(
-        gestures: {
-          TapGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-                () => TapGestureRecognizer(),
-                (instance) => instance
-                  ..onTap = onTap
-                  // Desktop/trackpad right-click reaches the same sheet, same
-                  // as the chat reaction chip's own long-press stand-in.
-                  ..onSecondaryTap = onLongPress,
-              ),
-          LongPressGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-                () => LongPressGestureRecognizer(duration: kReactorsLongPress),
-                (instance) => instance.onLongPress = onLongPress,
-              ),
-        },
-        child: LiquidGlass(
-          tone: GlassTone.media,
-          shape: LiquidGlassShape.capsule,
-          // Solid accent when it is yours, so a reaction you added is legible
-          // as *yours* over any photograph — glass-on-glass is not.
-          tint: active ? accent : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: SizedBox(
-              height: _kPillContent,
-              child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  emoji,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.1,
-                    decoration: TextDecoration.none,
-                  ),
-                ),
-                if (count > 0) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    '$count',
-                    style: TextStyle(
-                      // accentInk on an accent fill, never white — NeonNight's
-                      // accent is pure yellow and Graphite's is near-white.
-                      color: active ? accentInk : MediaGlass.ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      height: 1.1,
-                      decoration: TextDecoration.none,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Card viewer — points and caption-only moments
+// Card viewer: points and caption-only moments
 // ---------------------------------------------------------------------------
 
 /// A point, opened.
@@ -1996,6 +2700,7 @@ class _MomentCardViewer extends StatefulWidget {
     required this.userId,
     this.origin,
     this.openComments = false,
+    this.onOpenProfile,
   });
 
   final Moment moment;
@@ -2005,6 +2710,9 @@ class _MomentCardViewer extends StatefulWidget {
 
   /// See [showMomentViewer].
   final Rect? origin;
+
+  /// See [showMomentViewer].
+  final void Function(ChatUser user)? onOpenProfile;
 
   /// Opens the comments once the card has risen — a comment notification.
   final bool openComments;
@@ -2035,6 +2743,7 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
         api: widget.api,
         feedApi: widget.feedApi,
         userId: widget.userId,
+        onOpenProfile: widget.onOpenProfile,
       );
 
   /// Fraction of screen height that commits a slow drag to a dismiss.
@@ -2139,10 +2848,17 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
       (drag.abs() / (screen.height * _fadeSpan)).clamp(0.0, 1.0);
 
   void _showReactors(String emoji) {
-    final names = _book.namesFor(context, widget.moment, emoji);
-    if (names.isEmpty) return;
+    final reactors = _book.of(widget.moment).reactors;
+    if (reactors.isEmpty) return;
     HapticFeedback.mediumImpact();
-    showMomentReactorSheet(context, emoji: emoji, names: names);
+    showMomentReactions(
+      context,
+      reactors: reactors,
+      api: widget.api,
+      viewerId: widget.userId,
+      initialEmoji: emoji,
+      onOpenProfile: widget.onOpenProfile,
+    );
   }
 
   Future<void> _delete() async {

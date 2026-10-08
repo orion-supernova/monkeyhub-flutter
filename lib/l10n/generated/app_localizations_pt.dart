@@ -11203,7 +11203,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String reactionLimitMessageBody(int limit) {
-    return 'Pela rapidez, pela sanidade e para deixar cada emoji brilhar, podes adicionar até $limit reações a uma mensagem — nem mais uma. Retira uma para dar lugar a outra.';
+    return 'Pela rapidez, pela sanidade e para deixar cada emoji brilhar, podes adicionar até $limit reações a uma mensagem, nem mais uma. Retira uma para dar lugar a outra.';
   }
 
   @override
@@ -11242,7 +11242,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get momentCommentsEmptyBody =>
-      'Começa a conversa — palavras, um autocolante ou um GIF.';
+      'Começa a conversa com palavras, um autocolante ou um GIF.';
 
   @override
   String get momentCommentHint => 'Adiciona um comentário…';
@@ -11308,6 +11308,31 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'Comentário publicado';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ver os $count comentários',
+      one: 'Ver 1 comentário',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'mais $count pessoas',
+      one: 'mais 1 pessoa',
+    );
+    return '$name e $_temp0';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -22497,7 +22522,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String reactionLimitMessageBody(int limit) {
-    return 'Pela velocidade, pela sanidade e para deixar cada emoji brilhar, você pode adicionar até $limit reações a uma mensagem — nem uma a mais. Tire uma para abrir espaço para outra.';
+    return 'Pela velocidade, pela sanidade e para deixar cada emoji brilhar, você pode adicionar até $limit reações a uma mensagem, nem uma a mais. Tire uma para abrir espaço para outra.';
   }
 
   @override
@@ -22536,7 +22561,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get momentCommentsEmptyBody =>
-      'Comece a conversa — palavras, uma figurinha ou um GIF.';
+      'Comece a conversa com palavras, uma figurinha ou um GIF.';
 
   @override
   String get momentCommentHint => 'Adicione um comentário…';
@@ -22602,4 +22627,29 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'Comentário publicado';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ver todos os $count comentários',
+      one: 'Ver 1 comentário',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'mais $count pessoas',
+      one: 'mais 1 pessoa',
+    );
+    return '$name e $_temp0';
+  }
 }

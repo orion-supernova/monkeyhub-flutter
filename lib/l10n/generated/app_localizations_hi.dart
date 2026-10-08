@@ -11083,7 +11083,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String reactionLimitMessageBody(int limit) {
-    return 'रफ़्तार, सुकून और हर इमोजी को चमकने देने के लिए, आप एक मैसेज पर ज़्यादा से ज़्यादा $limit रिएक्शन जोड़ सकते हैं — इससे ज़्यादा नहीं। नए के लिए जगह बनाने को कोई एक वापस लें।';
+    return 'रफ़्तार, सुकून और हर इमोजी को चमकने देने के लिए, आप एक मैसेज पर ज़्यादा से ज़्यादा $limit रिएक्शन जोड़ सकते हैं, इससे ज़्यादा नहीं। नए के लिए जगह बनाने को कोई एक वापस लें।';
   }
 
   @override
@@ -11122,7 +11122,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get momentCommentsEmptyBody =>
-      'बातचीत शुरू करें — कुछ शब्द, एक स्टिकर या एक GIF।';
+      'कुछ शब्दों, एक स्टिकर या एक GIF से बातचीत शुरू करें।';
 
   @override
   String get momentCommentHint => 'कमेंट जोड़ें…';
@@ -11188,4 +11188,29 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'कमेंट पोस्ट हो गया';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'सभी $count कमेंट देखें',
+      one: '1 कमेंट देखें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count अन्य',
+      one: '1 अन्य',
+    );
+    return '$name और $_temp0';
+  }
 }

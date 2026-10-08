@@ -11043,7 +11043,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String reactionLimitMessageBody(int limit) {
-    return 'Hız, akıl sağlığı ve her emojinin hakkını vermek adına bir mesaja en fazla $limit tepki ekleyebilirsin — daha fazla değil. Yeni bir tane için birini geri al.';
+    return 'Hız, akıl sağlığı ve her emojinin hakkını vermek adına bir mesaja en fazla $limit tepki ekleyebilirsin, daha fazla değil. Yeni bir tane için birini geri al.';
   }
 
   @override
@@ -11082,7 +11082,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get momentCommentsEmptyBody =>
-      'Sohbeti sen başlat — bir söz, bir çıkartma ya da bir GIF.';
+      'Sohbeti bir sözle, bir çıkartmayla ya da bir GIF ile başlat.';
 
   @override
   String get momentCommentHint => 'Yorum ekle…';
@@ -11147,4 +11147,29 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'Yorum gönderildi';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yorumun tümünü gör',
+      one: '1 yorumu gör',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi daha',
+      one: '1 kişi daha',
+    );
+    return '$name ve $_temp0';
+  }
 }

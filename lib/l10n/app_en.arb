@@ -12934,7 +12934,7 @@
   "@reactionLimitTitle": {
     "description": "Title of the friendly alert shown when someone tries to add one reaction too many to a chat message or a highlight. Warm, not scolding."
   },
-  "reactionLimitMessageBody": "For the sake of speed, sanity and letting every emoji shine, you can add up to {limit} reactions to a message — but no more. Take one back to make room for another.",
+  "reactionLimitMessageBody": "For the sake of speed, sanity and letting every emoji shine, you can add up to {limit} reactions to a message, but no more. Take one back to make room for another.",
   "@reactionLimitMessageBody": {
     "description": "Body of the reaction-limit alert in chat. {limit} is the per-person cap (10). Sincere and lightly funny, in the spirit of Slack's 'brevity is the soul of wit' message.",
     "placeholders": {
@@ -12986,9 +12986,9 @@
   "@momentCommentsEmptyTitle": {
     "description": "Shown in an empty comments sheet."
   },
-  "momentCommentsEmptyBody": "Start the conversation — words, a sticker or a GIF.",
+  "momentCommentsEmptyBody": "Start the conversation with a few words, a sticker or a GIF.",
   "@momentCommentsEmptyBody": {
-    "description": "Line under momentCommentsEmptyTitle. Mentions what a comment may be: text, a sticker or a GIF (not photos)."
+    "description": "Line under momentCommentsEmptyTitle. Mentions what a comment may be: text, a sticker or a GIF (not photos). Never use dashes."
   },
   "momentCommentHint": "Add a comment…",
   "@momentCommentHint": {
@@ -13072,5 +13072,30 @@
   "momentCommentGifAlt": "GIF",
   "@momentCommentGifAlt": {
     "description": "Screen-reader fallback for a GIF comment with no title."
+  },
+  "momentCommentPosted": "Comment posted",
+  "@momentCommentPosted": {
+    "description": "Brief toast after a comment is sent from the story's reply overlay. No dashes."
+  },
+  "momentCommentsViewAll": "{count, plural, one{View 1 comment} other{View all {count} comments}}",
+  "@momentCommentsViewAll": {
+    "description": "Link in the story's reply overlay that opens the full comments list. {count} is the number of comments. No dashes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentReactorsSummary": "{name} and {count, plural, one{1 other} other{{count} others}}",
+  "@momentReactorsSummary": {
+    "description": "Line beside the stacked avatars of the people who reacted to a highlight. {name} is the most recent reactor, {count} how many others reacted. NOTE: parameters are emitted in ALPHABETICAL order (count, name). No dashes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

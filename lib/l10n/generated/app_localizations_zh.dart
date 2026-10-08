@@ -10568,7 +10568,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get momentCommentsEmptyTitle => '还没有评论';
 
   @override
-  String get momentCommentsEmptyBody => '开启对话吧 — 一句话、一张贴纸或一个 GIF。';
+  String get momentCommentsEmptyBody => '用一句话、一张贴纸或一个 GIF 开启对话吧。';
 
   @override
   String get momentCommentHint => '添加评论…';
@@ -10631,4 +10631,27 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => '评论已发布';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '查看全部 $count 条评论',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人',
+    );
+    return '$name 和其他 $_temp0';
+  }
 }

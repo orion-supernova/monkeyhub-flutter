@@ -3110,7 +3110,7 @@
   "momentCommentsTitle": "التعليقات",
   "momentCommentsCount": "{count, plural, =0{تعليق} one{تعليق واحد} two{تعليقان} few{{count} تعليقات} many{{count} تعليقًا} other{{count} تعليق}}",
   "momentCommentsEmptyTitle": "لا توجد تعليقات بعد",
-  "momentCommentsEmptyBody": "ابدأ المحادثة — بكلمات أو ملصق أو صورة GIF.",
+  "momentCommentsEmptyBody": "ابدأ المحادثة بكلمات أو ملصق أو صورة GIF.",
   "momentCommentHint": "أضف تعليقًا…",
   "momentCommentReplyHint": "الرد على {name}…",
   "momentCommentReplyingTo": "جارٍ الرد على {name}",
@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "الناشر",
   "momentCommentLike": "إعجاب",
   "momentCommentStickerAlt": "ملصق",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "تم نشر التعليق",
+  "momentCommentsViewAll": "{count, plural, one{عرض تعليق واحد} two{عرض التعليقين} few{عرض {count} تعليقات} many{عرض {count} تعليقًا} other{عرض كل التعليقات ({count})}}",
+  "momentReactorsSummary": "{name} و{count, plural, one{شخص آخر} two{شخصان آخران} few{{count} أشخاص آخرين} many{{count} شخصًا آخر} other{{count} آخرين}}"
 }

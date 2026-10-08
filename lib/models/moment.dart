@@ -74,11 +74,36 @@ class MomentReactor {
     required this.emoji,
     required this.userId,
     required this.name,
+    this.username,
+    this.avatarStorageId,
+    this.createdAt,
   });
 
   final String emoji;
   final String userId;
   final String name;
+
+  /// The reactor's handle, for the "who reacted" sheet. Null on reactions
+  /// from before it was recorded.
+  final String? username;
+
+  /// Their face, when this viewer may see it (the server applies the
+  /// reactor's avatar setting).
+  final String? avatarStorageId;
+
+  /// When they reacted; the avatar row puts the latest first.
+  final DateTime? createdAt;
+
+  static MomentReactor fromJson(Map r) => MomentReactor(
+        emoji: r['emoji']?.toString() ?? '',
+        userId: r['userId']?.toString() ?? '',
+        name: r['name']?.toString() ?? '',
+        username: r['username']?.toString(),
+        avatarStorageId: r['avatarStorageId']?.toString(),
+        createdAt: r['createdAt'] is num
+            ? DateTime.fromMillisecondsSinceEpoch((r['createdAt'] as num).toInt())
+            : null,
+      );
 }
 
 class Moment {
@@ -236,12 +261,7 @@ class Moment {
       commentCount: (j['commentCount'] as num?)?.toInt() ?? 0,
       reactors: [
         for (final r in (j['reactors'] as List?) ?? const [])
-          if (r is Map)
-            MomentReactor(
-              emoji: r['emoji']?.toString() ?? '',
-              userId: r['userId']?.toString() ?? '',
-              name: r['name']?.toString() ?? '',
-            ),
+          if (r is Map) MomentReactor.fromJson(r),
       ],
     );
   }

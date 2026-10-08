@@ -3110,7 +3110,7 @@
   "momentCommentsTitle": "댓글",
   "momentCommentsCount": "{count, plural, =0{댓글} other{댓글 {count}개}}",
   "momentCommentsEmptyTitle": "아직 댓글이 없어요",
-  "momentCommentsEmptyBody": "대화를 시작해 보세요 — 한마디, 스티커 또는 GIF로.",
+  "momentCommentsEmptyBody": "한마디, 스티커 또는 GIF로 대화를 시작해 보세요.",
   "momentCommentHint": "댓글 달기…",
   "momentCommentReplyHint": "{name}님에게 답글…",
   "momentCommentReplyingTo": "{name}님에게 답글 다는 중",
@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "작성자",
   "momentCommentLike": "좋아요",
   "momentCommentStickerAlt": "스티커",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "댓글을 게시했어요",
+  "momentCommentsViewAll": "{count, plural, other{댓글 {count}개 모두 보기}}",
+  "momentReactorsSummary": "{name}님 외 {count, plural, other{{count}명}}"
 }

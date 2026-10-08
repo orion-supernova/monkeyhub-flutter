@@ -104,6 +104,12 @@ function momentView(
      * already holds the users row) rather than per row.
      */
     authorAvatarVisible: boolean;
+    /**
+     * Whether the viewer is friends with [id] — for each reactor's face,
+     * which follows that reactor's own avatar setting (denormalized onto the
+     * reaction) the way `lens.canSee` would follow it on a users row.
+     */
+    isFriend: (id: any) => boolean;
   }
 ) {
   // An ARRAY of {emoji, count}, never an object keyed by the emoji.
@@ -149,11 +155,21 @@ function momentView(
     // reacts to anything again.
     reactors: opts.reactions
       .filter((r: any) => typeof r.userName === "string" && r.userName)
-      .map((r: any) => ({
-        emoji: r.emoji,
-        userId: r.userId,
-        name: r.userName,
-      })),
+      .map((r: any) => {
+        const level = r.userAvatarLevel ?? "public";
+        const face =
+          r.userId === opts.viewerId ||
+          level === "public" ||
+          (level === "friends" && opts.isFriend(r.userId));
+        return {
+          emoji: r.emoji,
+          userId: r.userId,
+          name: r.userName,
+          username: r.userUsername,
+          avatarStorageId: face ? r.userAvatarStorageId : undefined,
+          createdAt: r.createdAt,
+        };
+      }),
     // Resolved here rather than patched onto the result by each caller. Both
     // call sites used to do that themselves, which is one caller away from a
     // surface that silently reports nobody's own reactions.
@@ -335,6 +351,7 @@ export const board = query({
 
         out.push(
           momentView(m, {
+            isFriend: lens.isFriend,
             reactions,
             seen: mine || seenRow !== null,
             mine,
@@ -585,14 +602,15 @@ export const moment = query({
           .first()) !== null;
 
     let authorAvatarVisible = true;
+    const lens = await lensFor(ctx, userId);
     if (!mine) {
       const author = await ctx.db.get(m.userId);
       if (!author) return null;
-      const lens = await lensFor(ctx, userId);
       authorAvatarVisible = lens.canSee(author, "avatar");
     }
 
     return momentView(m, {
+      isFriend: lens.isFriend,
       reactions,
       seen,
       mine,
@@ -738,6 +756,9 @@ export const react = mutation({
       emoji,
       createdAt: Date.now(),
       userName,
+      userUsername: reactor?.username,
+      userAvatarStorageId: reactor?.avatarStorageId,
+      userAvatarLevel: reactor?.visibility?.avatar,
     });
     // Off the transaction; every gate is in `socialPush._reactionAudience`.
     await ctx.scheduler.runAfter(0, internal.socialPush.sendReactionPush, {
@@ -815,12 +836,12 @@ export const archive = query({
     let allowHighlights = true;
     let allowPoints = true;
     let authorAvatarVisible = true;
+    const lens = await lensFor(ctx, userId);
     if (!mine) {
       const author = await ctx.db.get(target);
       const vis = visibilityOf(author);
       allowHighlights = vis.feed;
       allowPoints = vis.points;
-      const lens = await lensFor(ctx, userId);
       authorAvatarVisible = lens.canSee(author, "avatar");
     }
 
@@ -848,6 +869,7 @@ export const archive = query({
         .collect();
       items.push(
         momentView(m, {
+          isFriend: lens.isFriend,
           reactions,
           seen: true,
           mine,

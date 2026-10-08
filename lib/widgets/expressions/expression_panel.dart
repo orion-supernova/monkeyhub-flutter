@@ -1667,6 +1667,40 @@ class _PackGrid extends StatelessWidget {
 /// toggling between keyboard and panel moves nothing above them — the way
 /// WhatsApp and Telegram behave. Before the keyboard has ever been seen (a
 /// desktop, or a fresh launch) it falls back to [defaultHeight].
+/// The composer row, folded away while a search inside the expression panel
+/// has the keyboard.
+///
+/// WhatsApp's answer to searching GIFs and stickers on a phone: the keyboard,
+/// the composer AND the panel cannot all share the bottom half of a screen,
+/// so while the search field has focus the composer steps aside and the panel
+/// takes its room. Leaving the search (the back chevron, a tab switch, a
+/// send) brings it back. Kept mounted, offstage, so the field's text, focus
+/// node and the recorder's state survive the round trip; the host adds
+/// [ExpressionPanelController.composerRow] to the panel's search budget.
+class ComposerSearchTakeover extends StatelessWidget {
+  const ComposerSearchTakeover({
+    super.key,
+    required this.controller,
+    required this.child,
+  });
+
+  final ExpressionPanelController controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) => Visibility(
+        visible: !(controller.isOpen && controller.searching),
+        maintainState: true,
+        child: child!,
+      ),
+      child: child,
+    );
+  }
+}
+
 class ExpressionPanelController extends ChangeNotifier {
   ExpressionPanelController({this.defaultHeight = 300});
 
@@ -1943,14 +1977,25 @@ class ExpressionPanelController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set once [dispose] has run. A search field reports losing focus from
+  /// its own `dispose`, a frame AFTER the tree it sat in went away, and by
+  /// then the host may have disposed this controller with that same tree:
+  /// the report must land on nothing rather than throw.
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     _closeTimer?.cancel();
     super.dispose();
   }
 
+  /// The extra room a host gives the panel while a search has the keyboard:
+  /// the composer row, which [ComposerSearchTakeover] folds away for it.
+  static const double composerRow = 60;
+
   void setSearching(bool v) {
-    if (_searching == v) return;
+    if (_disposed || _searching == v) return;
     if (v) {
       _searchFrom = (_dragHeight ?? (_expanded ? _expandedHeight : height)) +
           _pad -

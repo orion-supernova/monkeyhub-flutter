@@ -10671,7 +10671,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get momentCommentsEmptyTitle => 'まだコメントはありません';
 
   @override
-  String get momentCommentsEmptyBody => '会話を始めよう — ひとこと、ステッカー、GIFで。';
+  String get momentCommentsEmptyBody => 'ひとこと、ステッカー、GIFで会話を始めよう。';
 
   @override
   String get momentCommentHint => 'コメントを追加…';
@@ -10734,4 +10734,27 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'コメントを投稿しました';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'コメント$count件をすべて見る',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人',
+    );
+    return '$nameさん他$_temp0';
+  }
 }

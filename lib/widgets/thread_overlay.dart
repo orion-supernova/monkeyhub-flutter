@@ -1575,7 +1575,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
             // root-overlay entry for layering. What IS offered is the composer's
             // own inline recorders — see [_threadCapture] — which push nothing.
             if (classic)
-              ChatComposerClassic(
+              ComposerSearchTakeover(
+                controller: _expressions,
+                child: ChatComposerClassic(
                 controller: _composer,
                 focusNode: _composerFocus,
                 ephemeral: ephemeral,
@@ -1588,9 +1590,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 expressionsOpen: _expressions.isOpen && !_expressions.closing,
                 onFieldTap: _expressions.dismiss,
                 onContentInserted: _onKeyboardContent,
+              ),
               )
             else
-              ChatComposerLiquid(
+              ComposerSearchTakeover(
+                controller: _expressions,
+                child: ChatComposerLiquid(
                 controller: _composer,
                 focusNode: _composerFocus,
                 ephemeral: ephemeral,
@@ -1604,6 +1609,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 onFieldTap: _expressions.dismiss,
                 onContentInserted: _onKeyboardContent,
               ),
+              ),
             // No "make a sticker" here: that flow pushes a full-screen route,
             // which this root-overlay entry would sit on top of.
             if (_expressions.isOpen)
@@ -1615,7 +1621,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
                       190,
                   room: MediaQuery.sizeOf(context).height -
                       MediaQuery.paddingOf(context).top -
-                      190,
+                      190 +
+                      ExpressionPanelController.composerRow,
                   keyboardInset: MediaQuery.viewInsetsOf(context).bottom,
                   resting: MediaQuery.sizeOf(context).height * 0.5,
                 ),

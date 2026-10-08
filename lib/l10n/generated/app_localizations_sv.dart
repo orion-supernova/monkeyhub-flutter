@@ -11109,7 +11109,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String reactionLimitMessageBody(int limit) {
-    return 'För snabbhetens, förståndets och varje emojis skull kan du lägga till upp till $limit reaktioner på ett meddelande – men inte fler. Ta tillbaka en för att få plats med en ny.';
+    return 'För snabbhetens, förståndets och varje emojis skull kan du lägga till upp till $limit reaktioner på ett meddelande, men inte fler. Ta tillbaka en för att få plats med en ny.';
   }
 
   @override
@@ -11148,7 +11148,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get momentCommentsEmptyBody =>
-      'Starta samtalet – några ord, ett klistermärke eller en GIF.';
+      'Starta samtalet med några ord, ett klistermärke eller en GIF.';
 
   @override
   String get momentCommentHint => 'Skriv en kommentar…';
@@ -11214,4 +11214,29 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get momentCommentGifAlt => 'GIF';
+
+  @override
+  String get momentCommentPosted => 'Kommentaren publicerad';
+
+  @override
+  String momentCommentsViewAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Visa alla $count kommentarer',
+      one: 'Visa 1 kommentar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentReactorsSummary(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count till',
+      one: '1 till',
+    );
+    return '$name och $_temp0';
+  }
 }

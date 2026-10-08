@@ -1,3 +1,5 @@
+import '../models/chat_user.dart';
+import 'profile_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
@@ -387,6 +389,23 @@ class _FeedScreenState extends State<FeedScreen>
       siblings: siblings,
       origin: origin,
       openComments: openComments,
+      onOpenProfile: _openProfile,
+    );
+  }
+
+  /// Someone tapped in a highlight's reactions or comments. Their profile
+  /// screen applies their own privacy settings, so whatever they keep to
+  /// themselves stays there.
+  void _openProfile(ChatUser user) {
+    if (user.id == widget.repo.userId) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(
+          user: user,
+          repo: widget.repo,
+          api: widget.api,
+        ),
+      ),
     );
   }
 

@@ -1966,6 +1966,14 @@ export default defineSchema({
     // Optional because rows written before this field existed don't have it —
     // they just fall out of the reactor list until reacted again.
     userName: v.optional(v.string()),
+    // The reactor's handle and face, denormalized for the same reason, so the
+    // story can show WHO reacted (Instagram's avatar row) without the board
+    // ever touching a `users` row. `userAvatarLevel` is their avatar setting
+    // as of the reaction; `feed.momentView` applies it against the viewer's
+    // friendships, which the board already holds.
+    userUsername: v.optional(v.string()),
+    userAvatarStorageId: v.optional(v.id("_storage")),
+    userAvatarLevel: v.optional(v.string()),
   })
     .index("by_moment", ["momentId"])
     .index("by_moment_user", ["momentId", "userId"])

@@ -8,6 +8,7 @@ import 'package:monkeyhub/models/moment.dart';
 import 'package:monkeyhub/screens/feed/moment_viewer.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/moment_comments_sheet.dart';
 import 'package:monkeyhub/widgets/reaction_picker_sheet.dart';
 
 /// What this pins: which surface a moment opens on, and that the run comes with
@@ -168,11 +169,42 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.byIcon(CupertinoIcons.smiley), findsOneWidget);
-
-    await tester.tap(find.byIcon(CupertinoIcons.smiley));
+    // The comment bar opens the reply mode; the full picker is its big +.
+    await tester.tap(find.text('Add a comment…'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MomentCommentComposer), findsOneWidget);
+    await tester.tap(find.byIcon(CupertinoIcons.add));
     await tester.pumpAndSettle();
     expect(find.byType(ReactionPickerSheet), findsOneWidget);
+  });
+
+  // Tapping the story's comment bar opens the reply mode WITH the keyboard:
+  // the composer's field holds focus without a second tap.
+  testWidgets('the comment bar focuses the composer', (tester) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'm2', media: 'blob2', caption: 'focus')),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add a comment…'));
+    await tester.pumpAndSettle();
+    final field = tester.widget<EditableText>(find.byType(EditableText).last);
+    expect(field.focusNode.hasFocus, isTrue,
+        reason: 'primary focus: ${FocusManager.instance.primaryFocus}');
+  });
+
+  // The smiley beside it opens the same mode on the reactions alone.
+  testWidgets('the smiley opens the reactions without the keyboard', (tester) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'm3', media: 'blob3', caption: 'react')),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(CupertinoIcons.smiley).first);
+    await tester.pumpAndSettle();
+    expect(find.byType(MomentCommentComposer), findsOneWidget);
+    final field = tester.widget<EditableText>(find.byType(EditableText).last);
+    expect(field.focusNode.hasFocus, isFalse);
   });
 
   testWidgets('a point card has the picker too', (tester) async {

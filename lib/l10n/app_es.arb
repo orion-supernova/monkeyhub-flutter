@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "Autor",
   "momentCommentLike": "Me gusta",
   "momentCommentStickerAlt": "Sticker",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "Comentario publicado",
+  "momentCommentsViewAll": "{count, plural, one{Ver 1 comentario} other{Ver los {count} comentarios}}",
+  "momentReactorsSummary": "{name} y {count, plural, one{1 persona más} other{{count} personas más}}"
 }

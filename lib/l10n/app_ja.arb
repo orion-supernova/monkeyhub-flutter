@@ -3110,7 +3110,7 @@
   "momentCommentsTitle": "コメント",
   "momentCommentsCount": "{count, plural, =0{コメント} other{コメント{count}件}}",
   "momentCommentsEmptyTitle": "まだコメントはありません",
-  "momentCommentsEmptyBody": "会話を始めよう — ひとこと、ステッカー、GIFで。",
+  "momentCommentsEmptyBody": "ひとこと、ステッカー、GIFで会話を始めよう。",
   "momentCommentHint": "コメントを追加…",
   "momentCommentReplyHint": "{name}さんに返信…",
   "momentCommentReplyingTo": "{name}さんに返信中",
@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "投稿者",
   "momentCommentLike": "いいね",
   "momentCommentStickerAlt": "ステッカー",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "コメントを投稿しました",
+  "momentCommentsViewAll": "{count, plural, other{コメント{count}件をすべて見る}}",
+  "momentReactorsSummary": "{name}さん他{count, plural, other{{count}人}}"
 }

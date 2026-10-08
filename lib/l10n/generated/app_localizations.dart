@@ -18772,7 +18772,7 @@ abstract class AppLocalizations {
   /// Body of the reaction-limit alert in chat. {limit} is the per-person cap (10). Sincere and lightly funny, in the spirit of Slack's 'brevity is the soul of wit' message.
   ///
   /// In en, this message translates to:
-  /// **'For the sake of speed, sanity and letting every emoji shine, you can add up to {limit} reactions to a message — but no more. Take one back to make room for another.'**
+  /// **'For the sake of speed, sanity and letting every emoji shine, you can add up to {limit} reactions to a message, but no more. Take one back to make room for another.'**
   String reactionLimitMessageBody(int limit);
 
   /// Body of the reaction-limit alert on a highlight (a photo story) or a comment on one. {limit} is the per-person cap (5).
@@ -18817,10 +18817,10 @@ abstract class AppLocalizations {
   /// **'No comments yet'**
   String get momentCommentsEmptyTitle;
 
-  /// Line under momentCommentsEmptyTitle. Mentions what a comment may be: text, a sticker or a GIF (not photos).
+  /// Line under momentCommentsEmptyTitle. Mentions what a comment may be: text, a sticker or a GIF (not photos). Never use dashes.
   ///
   /// In en, this message translates to:
-  /// **'Start the conversation — words, a sticker or a GIF.'**
+  /// **'Start the conversation with a few words, a sticker or a GIF.'**
   String get momentCommentsEmptyBody;
 
   /// Placeholder in the comment field.
@@ -18924,6 +18924,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'GIF'**
   String get momentCommentGifAlt;
+
+  /// Brief toast after a comment is sent from the story's reply overlay. No dashes.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment posted'**
+  String get momentCommentPosted;
+
+  /// Link in the story's reply overlay that opens the full comments list. {count} is the number of comments. No dashes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{View 1 comment} other{View all {count} comments}}'**
+  String momentCommentsViewAll(int count);
+
+  /// Line beside the stacked avatars of the people who reacted to a highlight. {name} is the most recent reactor, {count} how many others reacted. NOTE: parameters are emitted in ALPHABETICAL order (count, name). No dashes.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} and {count, plural, one{1 other} other{{count} others}}'**
+  String momentReactorsSummary(int count, String name);
 }
 
 class _AppLocalizationsDelegate

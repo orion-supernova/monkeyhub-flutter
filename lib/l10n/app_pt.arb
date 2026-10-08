@@ -3102,7 +3102,7 @@
   "galleryTrayEmpty": "Ainda não há fotografias",
   "galleryTrayPhotoLabel": "Fotografia {index}",
   "reactionLimitTitle": "Atingiste o limite de reações",
-  "reactionLimitMessageBody": "Pela rapidez, pela sanidade e para deixar cada emoji brilhar, podes adicionar até {limit} reações a uma mensagem — nem mais uma. Retira uma para dar lugar a outra.",
+  "reactionLimitMessageBody": "Pela rapidez, pela sanidade e para deixar cada emoji brilhar, podes adicionar até {limit} reações a uma mensagem, nem mais uma. Retira uma para dar lugar a outra.",
   "reactionLimitHighlightBody": "Nos destaques, cada pessoa tem {limit} reações, para que cada uma continue a dizer algo. Retira uma para dar lugar a uma nova favorita.",
   "reactionLimitDismiss": "Entendido",
   "reactionPickerYoursLabel": "As tuas reações",
@@ -3110,7 +3110,7 @@
   "momentCommentsTitle": "Comentários",
   "momentCommentsCount": "{count, plural, =0{Comentar} one{1 comentário} other{{count} comentários}}",
   "momentCommentsEmptyTitle": "Ainda sem comentários",
-  "momentCommentsEmptyBody": "Começa a conversa — palavras, um autocolante ou um GIF.",
+  "momentCommentsEmptyBody": "Começa a conversa com palavras, um autocolante ou um GIF.",
   "momentCommentHint": "Adiciona um comentário…",
   "momentCommentReplyHint": "Responder a {name}…",
   "momentCommentReplyingTo": "A responder a {name}",
@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "Autor",
   "momentCommentLike": "Gosto",
   "momentCommentStickerAlt": "Autocolante",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "Comentário publicado",
+  "momentCommentsViewAll": "{count, plural, one{Ver 1 comentário} other{Ver os {count} comentários}}",
+  "momentReactorsSummary": "{name} e {count, plural, one{mais 1 pessoa} other{mais {count} pessoas}}"
 }

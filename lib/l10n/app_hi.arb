@@ -3102,7 +3102,7 @@
   "galleryTrayEmpty": "अभी कोई फ़ोटो नहीं",
   "galleryTrayPhotoLabel": "फ़ोटो {index}",
   "reactionLimitTitle": "आप रिएक्शन की सीमा तक पहुँच गए हैं",
-  "reactionLimitMessageBody": "रफ़्तार, सुकून और हर इमोजी को चमकने देने के लिए, आप एक मैसेज पर ज़्यादा से ज़्यादा {limit} रिएक्शन जोड़ सकते हैं — इससे ज़्यादा नहीं। नए के लिए जगह बनाने को कोई एक वापस लें।",
+  "reactionLimitMessageBody": "रफ़्तार, सुकून और हर इमोजी को चमकने देने के लिए, आप एक मैसेज पर ज़्यादा से ज़्यादा {limit} रिएक्शन जोड़ सकते हैं, इससे ज़्यादा नहीं। नए के लिए जगह बनाने को कोई एक वापस लें।",
   "reactionLimitHighlightBody": "हाइलाइट्स पर हर व्यक्ति {limit} रिएक्शन दे सकता है, ताकि हर रिएक्शन का मतलब बना रहे। नए पसंदीदा के लिए कोई एक वापस लें।",
   "reactionLimitDismiss": "ठीक है",
   "reactionPickerYoursLabel": "आपके रिएक्शन",
@@ -3110,7 +3110,7 @@
   "momentCommentsTitle": "कमेंट",
   "momentCommentsCount": "{count, plural, =0{कमेंट} one{1 कमेंट} other{{count} कमेंट}}",
   "momentCommentsEmptyTitle": "अभी कोई कमेंट नहीं",
-  "momentCommentsEmptyBody": "बातचीत शुरू करें — कुछ शब्द, एक स्टिकर या एक GIF।",
+  "momentCommentsEmptyBody": "कुछ शब्दों, एक स्टिकर या एक GIF से बातचीत शुरू करें।",
   "momentCommentHint": "कमेंट जोड़ें…",
   "momentCommentReplyHint": "{name} को जवाब दें…",
   "momentCommentReplyingTo": "{name} को जवाब दे रहे हैं",
@@ -3127,5 +3127,8 @@
   "momentCommentAuthorBadge": "लेखक",
   "momentCommentLike": "पसंद",
   "momentCommentStickerAlt": "स्टिकर",
-  "momentCommentGifAlt": "GIF"
+  "momentCommentGifAlt": "GIF",
+  "momentCommentPosted": "कमेंट पोस्ट हो गया",
+  "momentCommentsViewAll": "{count, plural, one{1 कमेंट देखें} other{सभी {count} कमेंट देखें}}",
+  "momentReactorsSummary": "{name} और {count, plural, one{1 अन्य} other{{count} अन्य}}"
 }
