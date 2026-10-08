@@ -57,11 +57,6 @@ class ViewerTopBar extends StatefulWidget {
 
   static const double _button = 40;
 
-  /// How far down the screen the bar reaches at its usual one-line height,
-  /// for content laid out to start below it rather than under it.
-  static double extentOf(BuildContext context) =>
-      MediaQuery.paddingOf(context).top + 6 + _button + 10;
-
   /// Whether the bar's discs are drawing blur-free right now — for trailing
   /// actions built by the caller, which cannot see the route's animation.
   static bool stillOf(BuildContext context) =>

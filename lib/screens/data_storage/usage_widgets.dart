@@ -12,6 +12,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../media/document_preview.dart';
 import '../../media/document_saver.dart';
 import '../../media/file_meta.dart';
+import '../../media/native_gallery.dart';
 import '../../media/storage/storage_kinds.dart';
 import '../../media/storage/storage_service.dart';
 import '../../models/chat_room.dart';
@@ -27,6 +28,7 @@ import '../../widgets/remote_image.dart';
 import '../../widgets/teardown_safe.dart';
 import '../../models/chat_message.dart';
 import '../../models/enums.dart';
+import '../fullscreen_video_viewer.dart';
 import '../media_pager_screen.dart';
 import 'storage_labels.dart';
 
@@ -815,10 +817,12 @@ mixin StorageSelection<T extends StatefulWidget> on State<T> {
 
   bool isPicked(MediaTileData t) => t.parts.every((p) => picked.contains(p.id));
 
-  /// A tap on a tile: picks while selecting; otherwise opens the photo or
-  /// video in the media gallery, swipeable across every other tile in [all]
-  /// that has something to show, the way the room's shared media is. A tile
-  /// with nothing to open (a GIF, a link preview) is picked instead.
+  /// A tap on a tile: picks while selecting; otherwise opens it swipeable
+  /// across every other tile in [all] that has something to show, exactly as
+  /// the room's shared media does: a photo in the media gallery, a video
+  /// straight in the OS player, carrying the same set so it swipes on through
+  /// it. A tile with nothing to open (a GIF, a link preview) is picked
+  /// instead.
   Future<void> tapTile(MediaTileData tile, List<MediaTileData> all) async {
     if (selecting) return togglePick(tile.parts);
     if (tile.video == null && tile.photoId == null) {
@@ -834,6 +838,16 @@ mixin StorageSelection<T extends StatefulWidget> on State<T> {
       set.add(m);
     }
     if (set.isEmpty) return;
+    final video = tile.video;
+    if (video != null) {
+      return FullscreenVideoViewer.open(
+        context,
+        storageId: video.id,
+        api: selectionApi,
+        posterStorageId: tile.photoId,
+        gallery: VideoGallery(items: set),
+      );
+    }
     await MediaPagerScreen.open(
       context,
       items: set,

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -9,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
+import '../media/native_gallery.dart';
 import '../media/storage/media_ledger.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
@@ -24,7 +23,7 @@ import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/spring_press.dart';
 import '../widgets/steady_hero.dart';
-import '../widgets/video_message.dart' show VideoPlayerSurface;
+import 'fullscreen_video_viewer.dart';
 import 'room_content_actions.dart';
 import '../widgets/viewer_chrome.dart';
 
@@ -122,14 +121,16 @@ class MediaPagerActions {
 /// `FullscreenImageViewer` is still the right screen for a lone picture with no
 /// set behind it — an avatar, a lifted bubble preview.
 ///
-/// **A video plays in place, inside this chrome.** It used to hand off to the
-/// OS player (see `FullscreenVideoViewer`), and a video tapped in a grid went
-/// straight there without passing through here, so the same clip was two
-/// different screens depending on whether it was tapped or swiped onto: a
-/// different close, different controls, a different way back. A gallery is
-/// one screen. Only the current page ever holds a player; see [_VideoPage].
-/// A video in the transcript still opens the OS player, where it is the only
-/// thing being looked at.
+/// **No page here ever owns a video player.** A video is a poster with a play
+/// disc on it, and playing hands off to [FullscreenVideoViewer] — which is to
+/// say, to `AVPlayerViewController` or ExoPlayer, exactly as a tap on a video
+/// in the transcript does. That is not a shortcut. The OS player is where
+/// scrubbing, skip, speed, AirPlay/Cast, Picture-in-Picture, the lock-screen
+/// transport controls and the system volume HUD already live, in the user's own
+/// language; a Flutter texture with a progress bar drawn under it is a worse
+/// copy of a player everyone already knows from Photos. The gallery used to
+/// mount that copy inline, so the one place in the app that shows nothing but
+/// media was the one place a video played worst.
 ///
 /// Only the current page takes part in a hero flight. `Hero` collects every
 /// hero in both routes' trees, visible or not, and a `PageView`'s neighbours
@@ -249,6 +250,34 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     with RouteLanding {
   late final PageController _pager;
   late int _index;
+
+  /// The native gallery a video page opened. It swipes through this same
+  /// set, so it REPLACES this pager rather than stacking on it: once it is on
+  /// screen the pager closes, unseen beneath it, and closing the OS player is
+  /// one close back to the grid or the chat, not two. Where the user ends up
+  /// still reaches the screen underneath, through [onPageChanged], the same
+  /// way swiping here does.
+  VideoGallery _nativeGallery() => VideoGallery(
+        items: _items,
+        onPresented: _stepAside,
+        onLanded: widget.onPageChanged,
+      );
+
+  /// Removes THIS pager's route, wherever it sits in the stack.
+  ///
+  /// Not [_close]: that pops, and a pop takes whatever route is on top. The
+  /// video viewer that opened the native gallery is popping itself in the
+  /// same moment, so a pop here could take the viewer a second time and
+  /// leave the pager standing, which was the "close twice" bug. Removed by
+  /// identity, the order cannot matter. Unanimated, because the OS player
+  /// covers it.
+  void _stepAside() {
+    if (!mounted || _closing) return;
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isActive) return;
+    _closing = true;
+    Navigator.of(context).removeRoute(route);
+  }
 
   /// The set as it stands now. A copy of [MediaPagerScreen.items] that only
   /// ever shrinks — Delete takes the picture out from under the reader and
@@ -540,10 +569,6 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
             onPageChanged: (i) {
               setState(() {
                 _index = i;
-                // A video's tap plays and pauses rather than toggling the
-                // chrome, so landing on one with the chrome hidden would leave
-                // no way to bring it back short of swiping away again.
-                if (_isMovie(_items[i])) _chrome = true;
                 // Belt and braces. A zoomed page cannot be swiped away, so this
                 // should already be false — but a stuck `true` would leave the
                 // gallery unswipeable with nothing on screen to explain why.
@@ -563,7 +588,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                 child: _Page(
                   message: _items[i],
                   api: widget.api,
-                  active: i == _index,
+                  gallery: _nativeGallery(),
                   heroTag: _heroTag(_items[i]),
                   // Only the page the flight actually opened on. The rest were
                   // never a thumbnail on the route below, so there is no warm
@@ -577,7 +602,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                       : null,
                   landed: landed,
                   drag: _drag,
-                  chromeClearance: _bottomChromeHeight(context),
+                  chromeClearance: _chrome ? _bottomChromeHeight(context) : 0,
                   onDismiss: _close,
                   onToggleChrome: () => setState(() => _chrome = !_chrome),
                   onZoomChanged: (z) {
@@ -789,7 +814,7 @@ class _Page extends StatelessWidget {
     required this.onDismiss,
     required this.onToggleChrome,
     required this.onZoomChanged,
-    required this.active,
+    this.gallery,
     this.chromeClearance = 0,
   });
 
@@ -797,8 +822,8 @@ class _Page extends StatelessWidget {
   final ChatApi api;
   final Object heroTag;
 
-  /// Whether this is the page on screen. See [_VideoPage.active].
-  final bool active;
+  /// The pager's whole set, for a video page's OS player to swipe through.
+  final VideoGallery? gallery;
 
   /// How much of the screen's bottom the gallery's chrome covers — see
   /// [_VideoPage.chromeClearance].
@@ -836,7 +861,7 @@ class _Page extends StatelessWidget {
       return _VideoPage(
         message: message,
         api: api,
-        active: active,
+        gallery: gallery,
         heroTag: heroTag,
         drag: drag,
         onDismiss: onDismiss,
@@ -925,199 +950,156 @@ class _Page extends StatelessWidget {
 Widget mediaFlight(Object tag, Widget child) =>
     SteadyHero(tag: tag, child: child);
 
-/// A video page: the poster with a play disc on it while the page is passing
-/// by, and the video itself, playing in place, once the reader has settled
-/// on it.
+/// A video page: a poster with a play disc on it, and nothing else.
 ///
-/// In place, inside this gallery's own chrome: the same top bar, the same
-/// filmstrip, the same toolbar as the photograph beside it. It used to hand
-/// off to [FullscreenVideoViewer] (the OS player, or the native gallery) on a
-/// tap, and a video tapped in a grid went straight there without passing
-/// through the pager at all. So one clip looked like two different screens
-/// depending on whether you tapped it or swiped onto it, with a different
-/// close, different controls and a different way back. Photos and Telegram
-/// both answer it the same way: a video in a gallery is a page of the
-/// gallery, and it plays where it is.
+/// Reached by *swiping* — a video tapped in the grid goes straight to the
+/// player and never comes through here, so nothing on this page plays by
+/// itself. That is deliberate twice over: a fullscreen OS player shoved up
+/// every time a video scrolled past would make the gallery unswipeable, and
+/// the page you actually asked for should not cost a second tap.
 ///
-/// It starts by itself once the page has been the current one for a moment
-/// ([_settle]), so a quick swipe past it costs nothing, and stops the instant
-/// the reader moves on: only the current page ever holds a player.
+/// Playing means [FullscreenVideoViewer], which resolves the file (from the
+/// cache when it is already there), hands it to the OS player and steps out of
+/// the way — leaving this pager underneath, so closing the player puts the
+/// gallery back exactly where it was. The reason it goes through a route
+/// rather than calling the platform channel from here is that the viewer
+/// already owns the parts nobody should write twice: the download with its
+/// progress ring, the capture shield's translated copy, and the Flutter player
+/// that covers web, desktop, and any build where the handoff declines.
 ///
-/// The poster and the player share one box, the screen minus the top bar
-/// and the bottom chrome, so the player's scrub rail is never under the
-/// filmstrip and the poster it replaces sits at exactly the same rect. The
-/// poster is what flies, both ways; a `VideoPlayer` texture cannot be carried
-/// between routes.
+/// A video was also the one thing in this gallery that arrived with no flight
+/// at all: you tapped a tile and the pager cross-faded in over it while every
+/// photo beside it flew. The cause was the obvious fix for a real problem — a
+/// `VideoPlayer` texture cannot be flown between routes, it arrives as a black
+/// rectangle where the poster was, so the active page carried no hero. But the
+/// active page is precisely the one a flight needs a destination on. With no
+/// player in the tree at all there is nothing left to work around: the poster
+/// is simply always there, and it flies both ways.
 class _VideoPage extends StatefulWidget {
   const _VideoPage({
     required this.message,
     required this.api,
+    this.gallery,
     required this.heroTag,
     required this.drag,
     required this.onDismiss,
-    required this.active,
     this.chromeClearance = 0,
   });
 
-  /// The bottom band the filmstrip and toolbar sit in, kept clear of the
-  /// video whether or not the chrome is showing, so toggling it never moves
-  /// the picture.
+  /// The bottom band the filmstrip and toolbar sit in. The duration badge
+  /// stays above it: under the chrome's scrim it was a grey smudge.
   final double chromeClearance;
 
   final ChatMessage message;
   final ChatApi api;
+
+  /// The pager's set, handed to the OS player so it swipes on through it.
+  final VideoGallery? gallery;
   final Object heroTag;
   final ValueNotifier<Offset> drag;
   final VoidCallback onDismiss;
-
-  /// Whether this is the page on screen. Only that one may play.
-  final bool active;
 
   @override
   State<_VideoPage> createState() => _VideoPageState();
 }
 
 class _VideoPageState extends State<_VideoPage> with RouteLanding {
-  /// How long a page has to stay current before it starts playing. Long
-  /// enough that flicking through ten pages never opens ten streams, short
-  /// enough that the one you stopped on starts before you reach for it.
-  static const _settle = Duration(milliseconds: 260);
-
   /// So the play disc gets out of the way on the way out, rather than hanging
   /// over the hole the poster just flew out of.
   @override
   bool get unlandsOnExit => true;
 
-  bool _playing = false;
-  Timer? _arm;
-
-  @override
-  void didUpdateWidget(covariant _VideoPage old) {
-    super.didUpdateWidget(old);
-    if (old.active == widget.active) return;
-    if (widget.active) {
-      _schedule();
-    } else {
-      _arm?.cancel();
-      _arm = null;
-      // Dropping the surface disposes its controller: a page swiped away
-      // stops making sound and stops downloading.
-      if (_playing) setState(() => _playing = false);
-    }
-  }
-
-  @override
-  void onRouteLandingChanged() => _schedule();
-
-  @override
-  void dispose() {
-    _arm?.cancel();
-    super.dispose();
-  }
-
-  void _schedule() {
-    if (!mounted || _playing || !widget.active || !landed) return;
-    if (widget.message.mediaStorageId == null) return;
-    _arm?.cancel();
-    _arm = Timer(_settle, _play);
-  }
-
   void _play() {
-    _arm?.cancel();
-    _arm = null;
-    if (!mounted || _playing || widget.message.mediaStorageId == null) return;
-    setState(() => _playing = true);
+    final id = widget.message.mediaStorageId;
+    if (id == null || !mounted) return;
+    // No hero tag: this poster and the viewer's are the same picture at the
+    // same size, so a flight between them would animate nothing.
+    FullscreenVideoViewer.open(
+      context,
+      storageId: id,
+      api: widget.api,
+      posterStorageId: widget.message.posterStorageId,
+      gallery: widget.gallery,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     // Poster if there is one, film glyph if not. The glyph flies too, so a
-    // posterless video still travels rather than snapping into place; the
-    // tile it left behind draws the same one.
+    // posterless video still travels rather than snapping into place — the tile
+    // it left behind draws the same one.
     final poster = widget.message.posterStorageId;
     final playable = widget.message.mediaStorageId != null;
-    final top = ViewerTopBar.extentOf(context);
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: Colors.black),
+        if (poster != null)
+          // Black void around a photo that doesn't fill the screen, like
+          // Photos — the blurred copy of the picture read as a smudge.
+          const ColoredBox(color: Colors.black),
         PhotoDismissArea(
           drag: widget.drag,
           onDismiss: widget.onDismiss,
-          // A tap on a resting video means play. Once it plays, the player's
-          // own tap (play/pause) is the one that answers.
-          onTap: playable && !_playing ? _play : null,
-          // A video is not a photograph to examine.
+          // A tap on a video means play, not "hide the chrome". The disc below
+          // is the same action with a smaller target and a focus ring on it.
+          onTap: playable ? _play : null,
+          // A poster is not a photograph to examine: zooming one would enlarge
+          // a still of something the OS player is one tap away from showing
+          // properly.
           maxScale: 1,
-          child: Padding(
-            padding:
-                EdgeInsets.only(top: top, bottom: widget.chromeClearance),
-            child: Stack(
-              fit: StackFit.expand,
-              alignment: Alignment.center,
-              children: [
-                Center(
-                  child: mediaFlight(
-                    widget.heroTag,
-                    // The film glyph only when there is nothing to play: under
-                    // the play disc's scrim it showed through as a second
-                    // mark. A playable posterless video flies an empty box.
-                    poster != null
-                        ? RemoteImage(
-                            storageId: poster,
-                            api: widget.api,
-                            fit: BoxFit.contain,
-                            onDark: true,
-                          )
-                        : playable
-                            ? const SizedBox(width: 34, height: 34)
-                            : const Icon(
-                                CupertinoIcons.film,
-                                size: 34,
-                                color: Colors.white24,
-                              ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              mediaFlight(
+                widget.heroTag,
+                // The film glyph only when there is nothing to play: under the
+                // play disc's scrim it showed through as a second mark. A
+                // playable posterless video flies an empty box — the disc
+                // below is the whole picture.
+                poster != null
+                    ? RemoteImage(
+                        storageId: poster,
+                        api: widget.api,
+                        fit: BoxFit.contain,
+                        onDark: true,
+                      )
+                    : playable
+                        ? const SizedBox(width: 34, height: 34)
+                        : const Icon(
+                            CupertinoIcons.film,
+                            size: 34,
+                            color: Colors.white24,
+                          ),
+              ),
+              if (playable)
+                // Held back until the picture has arrived. A disc fading in
+                // over a photograph that has come to rest reads as the page
+                // finishing; the same disc riding the flight in reads as a
+                // second thing moving.
+                IgnorePointer(
+                  ignoring: !landed,
+                  child: AnimatedOpacity(
+                    opacity: landed ? 1 : 0,
+                    duration: const Duration(milliseconds: 140),
+                    child: _PlayDisc(
+                      onTap: _play,
+                      semanticLabel:
+                          l10n.bubbleStyleScreenMediaTileVideoSemanticLabel,
+                    ),
                   ),
                 ),
-                if (_playing)
-                  Center(
-                    child: VideoPlayerSurface(
-                      api: widget.api,
-                      storageId: widget.message.mediaStorageId,
-                      posterStorageId: poster,
-                    ),
-                  )
-                else if (playable)
-                  // Held back until the picture has arrived. A disc fading in
-                  // over a photograph that has come to rest reads as the page
-                  // finishing; the same disc riding the flight in reads as a
-                  // second thing moving.
-                  Center(
-                    child: IgnorePointer(
-                      ignoring: !landed,
-                      child: AnimatedOpacity(
-                        opacity: landed ? 1 : 0,
-                        duration: const Duration(milliseconds: 140),
-                        child: _PlayDisc(
-                          onTap: _play,
-                          semanticLabel:
-                              l10n.bubbleStyleScreenMediaTileVideoSemanticLabel,
-                        ),
-                      ),
-                    ),
-                  ),
-                if (!_playing) ?_durationBadge(),
-              ],
-            ),
+            ],
           ),
         ),
+        ?_durationBadge(),
       ],
     );
   }
 
   /// The clip's length in the bottom-right corner of the PICTURE, where every
-  /// grid tile and bubble already puts it, not the screen's corner, which on
+  /// grid tile and bubble already puts it — not the screen's corner, which on
   /// a landscape clip is a long way from anything to do with the video.
   ///
   /// Only when the poster's shape is known, because that is what says where
@@ -1131,23 +1113,38 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
     if (aspect == null || !aspect.isFinite || aspect <= 0) return null;
     return Positioned.fill(
       child: IgnorePointer(
-        child: Center(
-          child: AspectRatio(
-            aspectRatio: aspect,
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: AnimatedOpacity(
-                  opacity: landed ? 1 : 0,
-                  duration: const Duration(milliseconds: 140),
-                  child: MediaDurationBadge(
-                    duration: Duration(milliseconds: ms),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            var w = box.maxWidth;
+            var h = w / aspect;
+            if (h > box.maxHeight) {
+              h = box.maxHeight;
+              w = h * aspect;
+            }
+            // Lifted clear of the chrome when the picture runs down into it.
+            final pictureBottom = (box.maxHeight + h) / 2;
+            final lift = (pictureBottom - (box.maxHeight - widget.chromeClearance))
+                .clamp(0.0, h / 2);
+            return Center(
+              child: SizedBox(
+                width: w,
+                height: h,
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(10, 10, 10, 10 + lift),
+                    child: AnimatedOpacity(
+                      opacity: landed ? 1 : 0,
+                      duration: const Duration(milliseconds: 140),
+                      child: MediaDurationBadge(
+                        duration: Duration(milliseconds: ms),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

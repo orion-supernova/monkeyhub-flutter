@@ -1,32 +1,36 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/media/file_url_cache.dart';
+import 'package:monkeyhub/media/native_gallery.dart';
 import 'package:monkeyhub/media/native_video_player.dart';
+import 'package:monkeyhub/media/video_file_cache.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/screens/media_pager_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
-import 'package:monkeyhub/widgets/video_message.dart' show VideoPlayerSurface;
 
-/// What this pins: **a video in the gallery plays in the gallery.**
+/// What this pins: **closing the native gallery is ONE close.**
 ///
-/// A video tapped in a grid used to skip the pager for the OS player, while
-/// one swiped onto showed a poster in the pager's chrome: the same clip was
-/// two different screens. Now the current page plays in place, inside the
-/// pager, and only the current page ever holds a player.
-class _GoneApi extends Fake implements ChatApi {
-  // No URL: the surface settles on "unavailable" at once, with no player
-  // plugin and no timer left behind.
+/// A video played from the Flutter media pager opens the OS gallery, which
+/// swipes through the same set. If the pager stays underneath, closing the OS
+/// player lands back on it and the user has to close a second time, which is
+/// what shipped first. The pager has to be gone the moment the OS gallery is
+/// up, whatever order the routes above it pop in.
+class _UrlApi extends Fake implements ChatApi {
   @override
-  Future<String?> getFileUrl(String storageId) async => null;
+  Future<String?> getFileUrl(String storageId) async =>
+      'https://example.test/$storageId';
 }
 
 void main() {
   const channel = MethodChannel('monkeyhub/video');
+  late Directory cacheDir;
   final calls = <MethodCall>[];
 
   setUp(() {
@@ -37,15 +41,27 @@ void main() {
       return true;
     });
     NativeVideoPlayer.debugSupportedOverride = true;
+    nativeGalleryImageStat = (_) async => null;
     FileUrlCache.instance
       ..debugReset()
       ..debugPersist = false;
+    cacheDir = Directory.systemTemp.createTempSync('mh_pager_native_test');
+    VideoFileCache.instance
+      ..debugReset()
+      ..debugDir = cacheDir;
+    // The tapped video is already on disk, so the viewer resolves it with no
+    // network and hands off at once.
+    File('${cacheDir.path}/stor_v1.mp4').writeAsBytesSync(List.filled(64, 0));
   });
 
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
     NativeVideoPlayer.debugSupportedOverride = null;
+    VideoFileCache.instance
+      ..debugReset()
+      ..debugDir = null;
+    if (cacheDir.existsSync()) cacheDir.deleteSync(recursive: true);
   });
 
   ChatMessage msg(String id, MessageType type) => ChatMessage(
@@ -61,7 +77,7 @@ void main() {
         mediaHeight: 1600,
       );
 
-  testWidgets('the current video plays in place; swiping away stops it',
+  testWidgets('playing a video from the pager leaves no pager behind',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -82,44 +98,32 @@ void main() {
 
     MediaPagerScreen.open(
       ctx,
-      // Posterless videos: the pages draw a film glyph, not an image, so
+      // Two posterless videos: the pages draw a film glyph, not an image, so
       // nothing reaches the image cache (which needs path_provider).
       items: [msg('v0', MessageType.video), msg('v1', MessageType.video)],
       initialIndex: 1,
-      api: _GoneApi(),
+      api: _UrlApi(),
     );
     // Fixed pumps, not pumpAndSettle: the pager's image shimmer never settles.
-    for (var i = 0; i < 12; i++) {
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.byType(MediaPagerScreen), findsOneWidget);
+
+    // Play: a tap on the video page.
+    await tester.tapAt(const Offset(195, 422));
+    for (var i = 0; i < 8; i++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
 
-    expect(find.byType(MediaPagerScreen), findsOneWidget);
-    expect(find.byType(VideoPlayerSurface), findsOneWidget,
-        reason: 'the page it opened on starts by itself, in the pager');
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('v1')),
-        matching: find.byType(VideoPlayerSurface),
-      ),
-      findsOneWidget,
-    );
-    expect(calls, isEmpty, reason: 'no hand-off to the OS player');
-
-    // Swipe back to the first video: the player moves with the reader.
-    await tester.drag(find.byType(PageView), const Offset(300, 0));
-    for (var i = 0; i < 12; i++) {
-      await tester.pump(const Duration(milliseconds: 50));
-    }
-    expect(find.byType(VideoPlayerSurface), findsOneWidget,
-        reason: 'one player, on the page on screen');
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('v0')),
-        matching: find.byType(VideoPlayerSurface),
-      ),
-      findsOneWidget,
-    );
-    expect(find.byType(MediaPagerScreen), findsOneWidget);
-    expect(calls, isEmpty);
+    expect(calls.map((c) => c.method), ['presentGallery']);
+    expect(find.byType(MediaPagerScreen), findsNothing,
+        reason: 'the pager must step aside, or closing the OS player lands '
+            'on it and needs a second close');
   });
 }
