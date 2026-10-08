@@ -113,6 +113,12 @@ DEPLOY_ANDROID=""
 DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
 DEPLOY_SITE=false  # --site: landing + downloads pages. No build. Also by --all.
 RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android: AAB to Play. Web: to the VM.
+# Delete a platform's build output (and its Xcode DerivedData) the moment its
+# upload succeeds, so the next platform builds into the space it leaves. This
+# Mac runs short of disk mid-deploy otherwise. Only after a real upload: a
+# --no-upload run, a failed upload or a manual-upload AAB keeps everything.
+# --keep-builds / the picker's last row turn it off.
+FREE_SPACE=true
 RUN_GIT=true
 DRY_RUN=false
 PLATFORM_ARGS=false
@@ -198,6 +204,10 @@ Behavior flags:
   --skip-version-bump   Re-ship the same version.
   --no-upload           Build/export but skip ASC upload AND the VM upload.
   --no-git              Don't commit/push the version bump.
+  --keep-builds         Keep each platform's build output after its upload.
+                        By default it is deleted once the upload succeeds
+                        (build/ folders plus that workspace's Xcode
+                        DerivedData) so the next platform has room to build.
   --dry                 --no-convex --no-upload --no-git --skip-version-bump.
   -h, --help            Show this help.
 EOF
@@ -210,6 +220,7 @@ while [[ $# -gt 0 ]]; do
         --no-homeserver)     RUN_HOMESERVER=false ;;
         --no-upload)         RUN_UPLOAD=false ;;
         --no-git)            RUN_GIT=false ;;
+        --keep-builds)       FREE_SPACE=false ;;
         --ios)               DEPLOY_IOS=true;  PLATFORM_ARGS=true ;;
         --ios-archive)        DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="${IOS_STAGES:+$IOS_STAGES }archive" ;;
         --ios-export)         DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="${IOS_STAGES:+$IOS_STAGES }export" ;;
@@ -787,11 +798,13 @@ pick_platforms() {
                   "macOS → App Store Connect"
                   "Android → Google Play (internal track)"
                   "Web  → $WEB_URL" "Site → $SITE_URL  (pages only, no build)"
-                  "Bump version (patch)")
+                  "Bump version (patch)"
+                  "Free disk space after each upload")
     # Menu starts on Convex only. Unlike --all (which ships everything), the
     # picker leaves the rest unticked so a bare Enter stays cheap and a stray
     # Enter can't kick off an App Store / Play upload by accident.
-    local selected=(1 0 0 0 0 0 0)
+    local selected=(1 0 0 0 0 0 0 0)
+    [ "$FREE_SPACE" = true ] && selected[7]=1
     # Honor explicit --no-convex / --macos / --web / --site even in interactive mode.
     [ "$RUN_CONVEX" = false ] && selected[0]=0
     [ "$DEPLOY_MACOS" = true ] && selected[2]=1
@@ -811,7 +824,7 @@ pick_platforms() {
     local prev_any_app=false
     { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ]; } \
         && prev_any_app=true
-    local cursor=0 count=7 extra=2 i marker arrow label
+    local cursor=0 count=8 extra=2 i marker arrow label
     # Per-platform stage override, set via Tab. Empty = full pipeline. Threaded
     # into IOS_STAGES etc. below once Enter is pressed — see "stage defaults".
     local pstage_ios="" pstage_macos="" pstage_android="" pstage_web=""
@@ -983,6 +996,7 @@ pick_platforms() {
     DEPLOY_WEB=$([ "${selected[4]}" = 1 ] && echo true || echo false)
     DEPLOY_SITE=$([ "${selected[5]}" = 1 ] && echo true || echo false)
     SKIP_VERSION_BUMP=$([ "${selected[6]}" = 1 ] && echo false || echo true)
+    FREE_SPACE=$([ "${selected[7]}" = 1 ] && echo true || echo false)
     [ -n "$pstage_ios" ]     && IOS_STAGES="$pstage_ios"
     [ -n "$pstage_macos" ]   && MACOS_STAGES="$pstage_macos"
     [ -n "$pstage_android" ] && ANDROID_STAGES="$pstage_android"
@@ -1084,6 +1098,7 @@ echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)
 echo "  • Landing/downloads:$([ "$DEPLOY_SITE" = true ] && echo " yes" || echo " no")"
 echo "  • Upload/publish:   $([ "$RUN_UPLOAD" = true ] && echo yes || echo no)"
 echo "  • Git commit/push:  $([ "$RUN_GIT" = true ] && echo yes || echo no)"
+echo "  • Free disk:        $([ "$FREE_SPACE" = true ] && echo "yes (each platform's build is deleted after its upload)" || echo no)"
 [ "$DRY_RUN" = true ] && echo "  • Mode: DRY (no side effects)"
 [ "$NEEDS_ARTIFACT_REUSE" = true ] && echo "  • Reusing build/ output from a previous run for at least one platform"
 echo ""
@@ -1203,6 +1218,61 @@ spinner() {
 # must only stop the CALLING platform's function (via its own `|| return 1`ing
 # each call site), not the whole run. Every call site is responsible for that
 # guard; this just stops pretending the step succeeded.
+# The Xcode DerivedData folder that belongs to [workspace] (a path relative to
+# the repo), matched on the WorkspacePath Xcode records in it, so another
+# project's folder (they are all called Runner-<hash>) is never touched.
+derived_data_for() {   # $1 = workspace path relative to the repo
+    local want="$PWD/$1" d
+    for d in "$HOME"/Library/Developer/Xcode/DerivedData/Runner-*; do
+        [ -f "$d/info.plist" ] || continue
+        [ "$(/usr/libexec/PlistBuddy -c 'Print WorkspacePath' "$d/info.plist" 2>/dev/null)" = "$want" ] \
+            && echo "$d"
+    done
+}
+
+# Free what [platform]'s build left on disk, once its upload has succeeded —
+# see FREE_SPACE. Every path is that platform's alone: nothing another
+# platform still has to build from, and nothing the deploy still reads (the
+# Android symbols are archived to build/symbols/ before this runs, and kept).
+free_platform_space() {   # $1 = ios | macos | android | web
+    [ "$FREE_SPACE" = true ] || return 0
+    local paths=() name
+    case "$1" in
+        ios)
+            paths=(build/ios build/Runner.xcarchive)
+            while IFS= read -r name; do [ -n "$name" ] && paths+=("$name"); done \
+                < <(derived_data_for ios/Runner.xcworkspace) ;;
+        macos)
+            paths=(build/macos build/macos-export build/Runner-macOS.xcarchive)
+            while IFS= read -r name; do [ -n "$name" ] && paths+=("$name"); done \
+                < <(derived_data_for macos/Runner.xcworkspace) ;;
+        android)
+            # Gradle builds the app and every plugin into build/<project name>
+            # (android/build.gradle.kts). The plugin names come from Flutter's
+            # own list rather than a pattern, so build/ios and friends can
+            # never match.
+            paths=(build/app)
+            if [ -f .flutter-plugins-dependencies ]; then
+                while IFS= read -r name; do
+                    case "$name" in ""|ios|macos|web|symbols|app) continue ;; esac
+                    paths+=("build/$name")
+                done < <(jq -r '.plugins.android[]?.name' .flutter-plugins-dependencies 2>/dev/null)
+            fi ;;
+        web)
+            paths=(build/web) ;;
+        *) return 0 ;;
+    esac
+    local existing=() p kb=0
+    for p in "${paths[@]}"; do
+        [ -e "$p" ] || continue
+        existing+=("$p")
+        kb=$((kb + $(du -sk "$p" 2>/dev/null | cut -f1)))
+    done
+    [ ${#existing[@]} -gt 0 ] || return 0
+    rm -rf "${existing[@]}"
+    echo "  🧹 Freed $(awk -v k="$kb" 'BEGIN { if (k >= 1048576) printf "%.1f GB", k/1048576; else printf "%d MB", k/1024 }') ($1 build output; $(df -h / | awk 'NR==2 { print $4 }') free now)"
+}
+
 run_with_spinner() {
     local description="$1"
     shift
@@ -2043,6 +2113,8 @@ run_ios() {
             # approved for sale — see DEPLOY.md for the one-liner that moves it.
             publish_release ios-testflight
             SHIPPED_SOMETHING=true
+            free_platform_space ios
+            IPA_PATH=""
         else
             echo "⏭️  Skipping App Store Connect upload (--no-upload)"
         fi
@@ -2156,6 +2228,8 @@ run_macos() {
 
             publish_release macos-testflight
             SHIPPED_SOMETHING=true
+            free_platform_space macos
+            PKG_PATH=""
         else
             echo "⏭️  Skipping App Store Connect upload (--no-upload)"
         fi
@@ -2236,6 +2310,7 @@ run_android() {
             # and, while the track is invite-only, an invite they may not have.
             # Locking them out of the app before that is a trap, not a prompt.
             publish_release android-apk "$HOSTING_URL/" "$APK_MIGRATION_NOTE"
+            free_platform_space android
         else
             echo "⏭️  No automated Play upload (needs PLAY_SERVICE_ACCOUNT_JSON in"
             echo "    .env.local + fastlane + a verified Play account — see DEPLOY.md)."
@@ -2356,6 +2431,7 @@ run_web() {
                 # than navigating anywhere.
                 publish_release web
                 SHIPPED_SOMETHING=true
+                free_platform_space web
             else
                 echo "❌ Web upload to $VM_USER@$VM_HOST failed."
                 echo "   The live build is untouched — the swap only happens after"
@@ -2469,7 +2545,11 @@ if [ "$DEPLOY_MACOS" = true ]; then
 fi
 if [ "$DEPLOY_ANDROID" = true ]; then
     if [ "$ANDROID_STATUS" = ok ]; then
-        echo "  ✅ Android AAB:    $AAB_PATH"
+        if [ -f "$AAB_PATH" ]; then
+            echo "  ✅ Android AAB:    $AAB_PATH"
+        else
+            echo "  ✅ Android AAB:    uploaded, then deleted to free disk space"
+        fi
         [ "$RUN_UPLOAD" = true ] && echo "     → Play internal track; sideloaders pointed at $HOSTING_URL/"
     else
         echo "  ❌ Android:        failed — retry with --android-build / --android-upload"
