@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/models/reaction_limits.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
@@ -454,6 +455,35 @@ void main() {
       api.reactionThrows = StateError('nope');
 
       await repo.toggleReaction(messageId: 'm1', emoji: '❤️');
+      expect(emojisOn('m1'), isEmpty);
+    });
+
+    test('the cap refuses before painting, and says so', () async {
+      serve([_row('m1')]);
+      const ten = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉', '🙏', '💯'];
+      expect(ten, hasLength(kMaxMessageReactionsPerPerson));
+      for (final e in ten) {
+        expect(await repo.toggleReaction(messageId: 'm1', emoji: e), isNull);
+      }
+
+      final error = await repo.toggleReaction(messageId: 'm1', emoji: '🤯');
+      expect(error, kReactionLimitError);
+      expect(emojisOn('m1'), ten,
+          reason: 'refused locally: nothing is painted and snatched back');
+      expect(api.reactionCalls, hasLength(10),
+          reason: 'and nothing is sent to be refused');
+
+      // Taking one back still works at the cap.
+      expect(await repo.toggleReaction(messageId: 'm1', emoji: '👍'), isNull);
+      expect(emojisOn('m1'), isNot(contains('👍')));
+    });
+
+    test("the server's refusal rolls back and reports the cap", () async {
+      serve([_row('m1')]);
+      api.reactionThrows = Exception('Uncaught Error: REACTION_LIMIT');
+
+      final error = await repo.toggleReaction(messageId: 'm1', emoji: '❤️');
+      expect(error, kReactionLimitError);
       expect(emojisOn('m1'), isEmpty);
     });
   });

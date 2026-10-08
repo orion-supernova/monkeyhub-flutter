@@ -1,6 +1,7 @@
-import { internalAction } from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { lensFor } from "./visibility";
 
 // What each kind of event says on a lock screen.
 //
@@ -427,6 +428,263 @@ export const sendMessagePush = internalAction({
     });
 
     await syncBadgeOnly();
+  },
+});
+
+/**
+ * The words of a message-reaction push, per language.
+ *
+ * Unlike a chat message — the sender's own words, never ours to translate —
+ * every word of this one is ours. `sendAlert` composes per recipient rather
+ * than per device, so the language is the one on the recipient's most
+ * recently used handset (`userDevices.locale`), which for nearly everyone is
+ * the only one. Mirrors the app's 12 shipped languages; falls back the way
+ * `socialPush.socialCopyFor` does.
+ */
+type ReactionCopy = {
+  /** `{emoji}` the reaction, `{quote}` what was reacted to. */
+  quoted: string;
+  /** No words worth quoting. `{emoji}` the reaction. */
+  bare: string;
+  kinds: Record<string, string>;
+};
+
+const REACTION_COPY: Record<string, ReactionCopy> = {
+  en: {
+    quoted: "Reacted {emoji} to “{quote}”",
+    bare: "Reacted {emoji} to your message",
+    kinds: { image: "📷 Photo", video: "🎥 Video", audio: "🎵 Voice message", file: "📎 File", location: "📍 Location", gif: "GIF", sticker: "Sticker", poll: "📊 Poll" },
+  },
+  tr: {
+    quoted: "“{quote}” mesajına {emoji} tepkisi verdi",
+    bare: "Mesajına {emoji} tepkisi verdi",
+    kinds: { image: "📷 Fotoğraf", video: "🎥 Video", audio: "🎵 Sesli mesaj", file: "📎 Dosya", location: "📍 Konum", gif: "GIF", sticker: "Çıkartma", poll: "📊 Anket" },
+  },
+  es: {
+    quoted: "Reaccionó con {emoji} a «{quote}»",
+    bare: "Reaccionó con {emoji} a tu mensaje",
+    kinds: { image: "📷 Foto", video: "🎥 Vídeo", audio: "🎵 Mensaje de voz", file: "📎 Archivo", location: "📍 Ubicación", gif: "GIF", sticker: "Sticker", poll: "📊 Encuesta" },
+  },
+  fr: {
+    quoted: "A réagi {emoji} à « {quote} »",
+    bare: "A réagi {emoji} à ton message",
+    kinds: { image: "📷 Photo", video: "🎥 Vidéo", audio: "🎵 Message vocal", file: "📎 Fichier", location: "📍 Position", gif: "GIF", sticker: "Sticker", poll: "📊 Sondage" },
+  },
+  pt: {
+    quoted: "Reagiu com {emoji} a “{quote}”",
+    bare: "Reagiu com {emoji} à tua mensagem",
+    kinds: { image: "📷 Foto", video: "🎥 Vídeo", audio: "🎵 Mensagem de voz", file: "📎 Ficheiro", location: "📍 Localização", gif: "GIF", sticker: "Autocolante", poll: "📊 Sondagem" },
+  },
+  "pt-br": {
+    quoted: "Reagiu com {emoji} a “{quote}”",
+    bare: "Reagiu com {emoji} à sua mensagem",
+    kinds: { image: "📷 Foto", video: "🎥 Vídeo", audio: "🎵 Mensagem de voz", file: "📎 Arquivo", location: "📍 Localização", gif: "GIF", sticker: "Figurinha", poll: "📊 Enquete" },
+  },
+  sv: {
+    quoted: "Reagerade med {emoji} på ”{quote}”",
+    bare: "Reagerade med {emoji} på ditt meddelande",
+    kinds: { image: "📷 Foto", video: "🎥 Video", audio: "🎵 Röstmeddelande", file: "📎 Fil", location: "📍 Plats", gif: "GIF", sticker: "Klistermärke", poll: "📊 Omröstning" },
+  },
+  ar: {
+    quoted: "تفاعل بـ {emoji} مع «{quote}»",
+    bare: "تفاعل بـ {emoji} مع رسالتك",
+    kinds: { image: "📷 صورة", video: "🎥 فيديو", audio: "🎵 رسالة صوتية", file: "📎 ملف", location: "📍 موقع", gif: "GIF", sticker: "ملصق", poll: "📊 استطلاع" },
+  },
+  hi: {
+    quoted: "“{quote}” पर {emoji} रिएक्शन दिया",
+    bare: "आपके मैसेज पर {emoji} रिएक्शन दिया",
+    kinds: { image: "📷 फ़ोटो", video: "🎥 वीडियो", audio: "🎵 वॉइस मैसेज", file: "📎 फ़ाइल", location: "📍 लोकेशन", gif: "GIF", sticker: "स्टिकर", poll: "📊 पोल" },
+  },
+  ja: {
+    quoted: "「{quote}」に{emoji}でリアクションしました",
+    bare: "あなたのメッセージに{emoji}でリアクションしました",
+    kinds: { image: "📷 写真", video: "🎥 動画", audio: "🎵 ボイスメッセージ", file: "📎 ファイル", location: "📍 位置情報", gif: "GIF", sticker: "ステッカー", poll: "📊 投票" },
+  },
+  ko: {
+    quoted: "\"{quote}\"에 {emoji} 반응을 남겼어요",
+    bare: "회원님의 메시지에 {emoji} 반응을 남겼어요",
+    kinds: { image: "📷 사진", video: "🎥 동영상", audio: "🎵 음성 메시지", file: "📎 파일", location: "📍 위치", gif: "GIF", sticker: "스티커", poll: "📊 투표" },
+  },
+  zh: {
+    quoted: "用 {emoji} 回应了“{quote}”",
+    bare: "用 {emoji} 回应了你的消息",
+    kinds: { image: "📷 照片", video: "🎥 视频", audio: "🎵 语音消息", file: "📎 文件", location: "📍 位置", gif: "GIF", sticker: "贴纸", poll: "📊 投票" },
+  },
+};
+
+/** Exposed for the test that checks every shipped language has a row. */
+export const REACTION_COPY_TABLE = REACTION_COPY;
+
+export function reactionCopyFor(tag: string | undefined): ReactionCopy {
+  if (!tag) return REACTION_COPY.en;
+  const norm = tag.toLowerCase().replace(/_/g, "-");
+  return REACTION_COPY[norm] ?? REACTION_COPY[norm.split("-")[0]] ?? REACTION_COPY.en;
+}
+
+/** The banner line for one reaction, in [copy]'s language. */
+export function reactionLine(
+  copy: ReactionCopy,
+  emoji: string,
+  quote: { text: string; kind: string | null },
+): string {
+  const q = quote.text || (quote.kind ? copy.kinds[quote.kind] ?? "" : "");
+  return q
+    ? copy.quoted.replace("{emoji}", emoji).replace("{quote}", q)
+    : copy.bare.replace("{emoji}", emoji);
+}
+
+/**
+ * What one message reaction push needs, or null when there is nobody to tell.
+ *
+ * The only recipient is the message's author — a reaction is addressed to the
+ * person who said the thing, not to the room. Null for every reason that
+ * should stay silent: the reaction was taken back before this ran, the
+ * message is gone or was a system line, somebody reacted to their own
+ * message, or the author has since left the room.
+ */
+export const _reactionPushPlan = internalQuery({
+  args: { reactionId: v.id("reactions") },
+  returns: v.any(),
+  handler: async (ctx, { reactionId }) => {
+    const r = await ctx.db.get(reactionId);
+    if (!r) return null;
+    const msg = await ctx.db.get(r.messageId);
+    if (!msg || msg.type === "system") return null;
+    if (msg.userId === r.userId) return null;
+    const stillMember = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q: any) =>
+        q.eq("roomId", msg.roomId).eq("userId", msg.userId),
+      )
+      .first();
+    if (!stillMember) return null;
+
+    const reactor = await ctx.db.get(r.userId);
+    if (!reactor) return null;
+    const room = await ctx.db.get(msg.roomId);
+    // The same rule `rooms.getMemberIds` uses, so the two cannot disagree.
+    const isGroup = !!room && !room.name.startsWith("dm:");
+
+    // The reactor's face only if the AUTHOR may see it — resolved through the
+    // author's own lens, exactly as a message push resolves its sender's.
+    let reactorAvatarUrl: string | null = null;
+    if (reactor.avatarStorageId) {
+      const lens = await lensFor(ctx, msg.userId);
+      if (lens.canSee(reactor, "avatar")) {
+        reactorAvatarUrl = await ctx.storage.getUrl(reactor.avatarStorageId);
+      }
+    }
+
+    return {
+      roomId: msg.roomId,
+      messageId: msg._id,
+      recipientId: msg.userId,
+      reactorId: r.userId,
+      reactorName: reactor.name ?? reactor.username ?? "",
+      reactorAvatarUrl,
+      emoji: r.emoji,
+      isGroup,
+      roomName: isGroup ? room!.name : undefined,
+      quote: reactionQuote(msg),
+      // The recipient's most recently used handset's language.
+      locale: (
+        await ctx.db
+          .query("userDevices")
+          .withIndex("by_user", (q: any) => q.eq("userId", msg.userId))
+          .take(50)
+      )
+        .filter((d: any) => typeof d.locale === "string" && d.locale)
+        .sort((a: any, b: any) => b.lastSeenAt - a.lastSeenAt)[0]?.locale,
+    };
+  },
+});
+
+/**
+ * What the reacted-to message was: its text (clipped), or its kind for the
+ * copy table to name. A view-once photo is never described beyond "photo" —
+ * the banner is a lock screen.
+ */
+function reactionQuote(msg: any): { text: string; kind: string | null } {
+  const text = typeof msg.content === "string" ? msg.content.trim() : "";
+  switch (msg.type) {
+    case "text":
+    case "url":
+      return { text: text.length > 60 ? `${text.slice(0, 59)}…` : text, kind: null };
+    case "liveLocation":
+      return { text: "", kind: "location" };
+    case "image":
+    case "video":
+    case "audio":
+    case "file":
+    case "location":
+    case "gif":
+    case "sticker":
+    case "poll":
+      return { text: "", kind: msg.type };
+    default:
+      return { text: "", kind: null };
+  }
+}
+
+/**
+ * "Reacted ❤️ to “see you at 8”" — to the author of a message, from the person
+ * who reacted.
+ *
+ * Sent as a `message` push on purpose. It belongs to the room: it honours the
+ * room's mute at `push.sendAlert`'s choke point, threads with that room's
+ * notifications, and its tap opens the room like any message does — with
+ * `focus: "message:<id>"` so the room then jumps to the bubble that was
+ * reacted to, however far up the transcript it is. Nothing about it is an
+ * unread message, so it carries none of what makes one: no `plain` or
+ * `createdAt` (so no device seeds a bubble from it, see
+ * `ChatRepository._stubFromPush`) and therefore no delivery proof either.
+ *
+ * Its collapse id is its own, never the message id: the message's id is what
+ * `revokeMessagePushes` and the original message banner key on, and reusing
+ * it would make the reaction REPLACE the message's own notification. One row
+ * per (message, reactor), so changing your mind from 👍 to ❤️ updates the row
+ * instead of stacking a second.
+ */
+export const sendReactionPush = internalAction({
+  args: { reactionId: v.id("reactions") },
+  returns: v.null(),
+  handler: async (ctx, { reactionId }) => {
+    const plan: any = await ctx.runQuery(
+      internal.notifications._reactionPushPlan,
+      { reactionId },
+    );
+    if (!plan) return null;
+    const body = reactionLine(
+      reactionCopyFor(plan.locale),
+      plan.emoji,
+      plan.quote,
+    );
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds: [plan.recipientId],
+      kind: "message",
+      title: plan.reactorName,
+      subtitle: plan.isGroup ? plan.roomName : undefined,
+      body,
+      data: {
+        kind: "message",
+        roomId: plan.roomId.toString(),
+        messageId: plan.messageId.toString(),
+        senderId: plan.reactorId.toString(),
+        senderName: plan.reactorName,
+        content: body,
+        type: "reaction",
+        mention: "false",
+        isGroup: plan.isGroup ? "true" : "false",
+        focus: `message:${plan.messageId}`,
+        ...(plan.isGroup && plan.roomName ? { roomName: plan.roomName } : {}),
+        ...(plan.reactorAvatarUrl
+          ? { senderAvatarUrl: plan.reactorAvatarUrl }
+          : {}),
+      },
+      roomId: plan.roomId,
+      collapseId: `reaction:${plan.messageId}:${plan.reactorId}`,
+    });
+    return null;
   },
 });
 

@@ -54,7 +54,13 @@ List<CategoryEmoji> _emojiSet(Locale locale) => fullEmojiSet;
 /// text entry is the search field, and it commits nothing — picking an emoji
 /// is still the only way out.
 class ReactionPickerSheet extends StatelessWidget {
-  const ReactionPickerSheet({super.key});
+  const ReactionPickerSheet({super.key, this.selected = const {}});
+
+  /// The reactions the viewer already left on the thing being reacted to.
+  /// Non-empty, they sit in a strip over the grid where a tap takes one back
+  /// — the package's grid has no notion of a selected cell, and forking the
+  /// whole view to give it one would be the wrong trade for a highlight.
+  final Set<String> selected;
 
   /// Sizes the grid to the box this sheet is actually handed, and lets the
   /// picker's own category list scroll inside it — the grid never shrinks its
@@ -123,7 +129,8 @@ class ReactionPickerSheet extends StatelessWidget {
     // viewport — landscape, a small phone, a split view — honouring it is
     // exactly what overflows the sheet, because the sheet sits above the
     // keyboard and cannot grow into it. A cramped grid beats a broken one.
-    final ceiling = available - bottomInset - _chromeHeight;
+    final strip = selected.isEmpty ? 0.0 : _yoursStripHeight;
+    final ceiling = available - bottomInset - _chromeHeight - strip;
     final totalPickerH = math.max(0.0, math.min(desiredH, ceiling));
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -152,12 +159,13 @@ class ReactionPickerSheet extends StatelessWidget {
               ),
               leading: const SheetCloseButton(),
             ),
+            if (selected.isNotEmpty) _YoursStrip(selected: selected),
             SizedBox(
               height: totalPickerH,
               child: EmojiPicker(
                 onEmojiSelected: (_, emoji) {
                   HapticFeedback.lightImpact();
-                  Navigator.of(context).pop(emoji.emoji);
+                  Navigator.of(context).pop(ReactionPick(emoji.emoji));
                 },
                 config: Config(
                   // Null, not `totalPickerH`: the SizedBox above already bounds
@@ -510,12 +518,29 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
   }
 }
 
-/// Helper: show the picker and return the chosen emoji (or null on dismiss).
+/// What the reaction picker answered.
+///
+/// Either an emoji to add — picked from the grid — or, with [remove], one of
+/// the `selected` reactions the viewer tapped in the "your reactions" strip to
+/// take back. Two shapes because the caller has to act differently on them: a
+/// grid pick of an emoji already held is a no-op (choosing it means "this
+/// one"), a strip tap is an explicit undo.
+class ReactionPick {
+  const ReactionPick(this.emoji, {this.remove = false});
+  final String emoji;
+  final bool remove;
+}
+
+/// Shows the picker for reacting to something the viewer may already have
+/// reacted to. Null on dismiss.
 ///
 /// `useSafeArea: true` is load-bearing, not decoration — it is the only place
 /// in this path where the window's real top inset is still readable. See
 /// [ReactionPickerSheet.build].
-Future<String?> showReactionPicker(BuildContext context) {
+Future<ReactionPick?> pickReaction(
+  BuildContext context, {
+  Set<String> selected = const {},
+}) {
   // Warm the search index while the sheet animates in. Building it means
   // reading a 75-250 KB asset and tokenising ~1,900 entries, which is fast but
   // not free, and the alternative is paying for it on the user's first
@@ -523,11 +548,101 @@ Future<String?> showReactionPicker(BuildContext context) {
   final locale = Localizations.maybeLocaleOf(context);
   if (locale != null) unawaited(EmojiSearchIndex.forLocale(locale));
 
-  return showAdaptiveSheet<String>(
+  return showAdaptiveSheet<ReactionPick>(
     context,
     useSafeArea: true,
-    builder: (_) => const ReactionPickerSheet(),
+    builder: (_) => ReactionPickerSheet(selected: selected),
   );
+}
+
+/// Helper: show the picker and return the chosen emoji (or null on dismiss).
+/// For pickers with nothing already chosen — the sticker maker's "which emoji
+/// is this" — where [pickReaction]'s take-back shape means nothing.
+Future<String?> showReactionPicker(BuildContext context) async =>
+    (await pickReaction(context))?.emoji;
+
+/// Height of [_YoursStrip], label and chips together. A constant for the
+/// reason [_chromeHeight] is one: the picker's height is decided before
+/// anything is laid out.
+const double _yoursStripHeight = 64;
+
+/// "Your reactions" — what the viewer already left, over the grid, each one a
+/// tap away from being taken back.
+class _YoursStrip extends StatelessWidget {
+  const _YoursStrip({required this.selected});
+  final Set<String> selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return SizedBox(
+      height: _yoursStripHeight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: Text(
+              sentenceCaseOf(context, l10n.reactionPickerYoursLabel),
+              style: theme.caption.copyWith(color: theme.inkMuted),
+            ),
+          ),
+          SizedBox(
+            height: 38,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                for (final e in selected)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FocusableTap(
+                      onTap: () => _takeBack(context, e),
+                      semanticLabel: l10n.reactionPickerTakeBackSemantic(e),
+                      selected: true,
+                      shape: FocusRingShape.capsule,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _takeBack(context, e),
+                        // The same accent wash the quick pill's selected disc
+                        // wears, so "this one is yours" reads the same in both.
+                        child: Container(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: theme.accent.withValues(alpha: 0.22),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(e, style: const TextStyle(fontSize: 22)),
+                              const SizedBox(width: 6),
+                              Icon(
+                                CupertinoIcons.xmark,
+                                size: 12,
+                                color: theme.inkSoft,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _takeBack(BuildContext context, String emoji) {
+    HapticFeedback.selectionClick();
+    Navigator.of(context).pop(ReactionPick(emoji, remove: true));
+  }
 }
 
 /// A grid cell that arrives with an overshooting scale, a few frames after

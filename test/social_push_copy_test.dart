@@ -30,6 +30,10 @@ void main() {
     'gameGaveUp',
     'codeSolved',
     'codeFailed',
+    'commented',
+    'replied',
+    'reacted',
+    'reactedComment',
   ];
 
   /// What each line MUST interpolate. A missing placeholder is not a crash —
@@ -40,6 +44,8 @@ void main() {
     'gameSolved': ['{game}', '{time}'],
     'gameGaveUp': ['{game}'],
     'codeSolved': ['{score}'],
+    'reacted': ['{emoji}'],
+    'reactedComment': ['{emoji}'],
   };
 
   /// The five tags `feed.ts` accepts and the four games `games.ts` serves.

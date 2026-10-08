@@ -10525,4 +10525,110 @@ class AppLocalizationsZh extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return '照片 $index';
   }
+
+  @override
+  String get reactionLimitTitle => '已达到回应上限';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return '为了速度、为了清净，也为了让每个表情都能闪耀，每条消息最多只能添加 $limit 个回应。想换一个的话，先撤回一个吧。';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return '精彩瞬间每人最多 $limit 个回应，让每一个都有分量。想添加新的最爱，先撤回一个吧。';
+  }
+
+  @override
+  String get reactionLimitDismiss => '知道了';
+
+  @override
+  String get reactionPickerYoursLabel => '你的回应';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return '撤回你的 $emoji 回应';
+  }
+
+  @override
+  String get momentCommentsTitle => '评论';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条评论',
+      zero: '评论',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => '还没有评论';
+
+  @override
+  String get momentCommentsEmptyBody => '开启对话吧 — 一句话、一张贴纸或一个 GIF。';
+
+  @override
+  String get momentCommentHint => '添加评论…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return '回复 $name…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return '正在回复 $name';
+  }
+
+  @override
+  String get momentCommentCancelReply => '取消回复';
+
+  @override
+  String get momentCommentReply => '回复';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '查看 $count 条回复',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => '隐藏回复';
+
+  @override
+  String get momentCommentDelete => '删除评论';
+
+  @override
+  String get momentCommentDeleteConfirm => '删除这条评论？它的回复也会一并删除。';
+
+  @override
+  String get momentCommentDeleteConfirmButton => '删除';
+
+  @override
+  String get momentCommentSend => '发送';
+
+  @override
+  String get momentCommentExpressions => '贴纸和 GIF';
+
+  @override
+  String get momentCommentFailed => '评论发布失败，请重试。';
+
+  @override
+  String get momentCommentAuthorBadge => '作者';
+
+  @override
+  String get momentCommentLike => '赞';
+
+  @override
+  String get momentCommentStickerAlt => '贴纸';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

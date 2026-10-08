@@ -61,6 +61,7 @@ import '../models/family.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_content_item.dart';
 import '../models/room_pin.dart';
+import '../models/reaction_limits.dart';
 import '../data/ui_selection_store.dart';
 import '../platform.dart';
 import '../theme/app_theme.dart';
@@ -105,6 +106,7 @@ import '../widgets/message_arrivals.dart';
 import '../widgets/message_departures.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
+import '../widgets/reaction_limit_notice.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/pending_placeholder.dart';
 import '../widgets/schedule_message_sheet.dart';
@@ -517,6 +519,14 @@ class _RoomScreenState extends State<RoomScreen>
         }
       });
     }
+    // "Ece reacted ❤️ to your message", tapped. The push opened this room by
+    // its roomId; this names the bubble, which may be days up the transcript.
+    // Consumed unconditionally here — a room that has just mounted IS the one
+    // the tap navigated to — and listened for afterwards, for the tap that
+    // arrives while this room is already on screen.
+    final focus = UiSelectionStore.instance.consumeMessageFocus(widget.roomId);
+    if (focus != null) unawaited(_focusMessageFromPush(focus));
+    UiSelectionStore.instance.addListener(_onSelectionStoreChange);
     // `this` is the ownership token: whichever State opened the room is the
     // only one allowed to close it. Route transitions dispose the outgoing
     // RoomScreen well after the incoming one has opened its room, so an
@@ -1304,8 +1314,69 @@ class _RoomScreenState extends State<RoomScreen>
   /// must not stack a sheet per photo on top of each other.
   bool _gateSheetOpen = false;
 
+  /// Takes a message-focus request meant for this room while it is already
+  /// open. Peeks first: [UiSelectionStore.consumeMessageFocus] clears on a
+  /// miss, and a request naming ANOTHER room belongs to the RoomScreen about to
+  /// mount for it — consuming it here would wipe it before that screen exists.
+  void _onSelectionStoreChange() {
+    final store = UiSelectionStore.instance;
+    if (store.messageFocusPendingRoomId != widget.roomId) return;
+    final id = store.consumeMessageFocus(widget.roomId);
+    if (id != null) unawaited(_focusMessageFromPush(id));
+  }
+
+  /// Lands on [messageId] and pulses it — the last hop of a reaction push.
+  ///
+  /// Waits for the transcript first: on a cold start the tap arrives before
+  /// the room has anything to scroll, and a jump into an empty list would
+  /// "fail" and toast about a message that is about to arrive. Then it is the
+  /// reply tether's trip ([_travelTo]): snap if loaded, page a window of
+  /// history in around it if not, the thread overlay if it is folded into one.
+  /// No back pill — there is nowhere in this room the reader came from.
+  Future<void> _focusMessageFromPush(String messageId) async {
+    final repo = widget.repo;
+    if (!repo.hasLoadedInitial(widget.roomId)) {
+      final loaded = Completer<void>();
+      void check() {
+        if (repo.hasLoadedInitial(widget.roomId) && !loaded.isCompleted) {
+          loaded.complete();
+        }
+      }
+      repo.addListener(check);
+      try {
+        await loaded.future.timeout(const Duration(seconds: 10));
+      } on TimeoutException {
+        // Offline or slow: try anyway — `_travelTo` fetches on its own.
+      } finally {
+        repo.removeListener(check);
+      }
+    }
+    // One frame for the first rows to lay out, so a loaded target can snap.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    ChatMessage? find() {
+      for (final m in repo.timelineFor(widget.roomId)) {
+        if (m.id == messageId) return m;
+      }
+      return null;
+    }
+
+    var target = find();
+    if (target == null) {
+      // `_travelTo` wants the message itself (its thread is the fallback
+      // surface), so bring its window in first when it is not loaded.
+      if (!await repo.jumpToMessage(widget.roomId, messageId)) return;
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      target = find();
+      if (target == null) return;
+    }
+    await _travelTo(messageId, from: target);
+  }
+
   @override
   void dispose() {
+    UiSelectionStore.instance.removeListener(_onSelectionStoreChange);
     // Compact/medium `openRoom` mirrors this room into `UiSelectionStore` too
     // (see open_room.dart), so a later resize to expanded can find it. Clear
     // it back out on a normal compact dismissal so a stale roomId can't
@@ -1602,6 +1673,19 @@ class _RoomScreenState extends State<RoomScreen>
   /// composer card slides into view. Idempotent — re-arming against the
   /// same message just replaces the target. The composer is focused on
   /// the next frame so the keyboard appears without a second tap.
+  /// Toggles one of the viewer's reactions on [m], and owns the one refusal
+  /// worth explaining: past [kMaxMessageReactionsPerPerson], the friendly
+  /// limit alert rather than a chip that silently does nothing.
+  Future<void> _toggleReaction(ChatMessage m, String emoji) async {
+    final error =
+        await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+    if (!mounted || error != kReactionLimitError) return;
+    await showReactionLimitNotice(
+      context,
+      surface: ReactionLimitSurface.message,
+    );
+  }
+
   void _armReply(ChatMessage m, {bool haptic = true}) {
     // The swipe path opts out: it already fired a medium impact when the pull
     // crossed the threshold, and now that the reply arms on release the two
@@ -4836,10 +4920,15 @@ class _RoomScreenState extends State<RoomScreen>
                   final anchor = anchorKey ??
                       _dateTracks['m_${_rowOwner(target.id)}']?.key;
                   if (anchor == null) return;
+                  final myReactions = {
+                    for (final r in target.reactions)
+                      if (r.userId == me) r.emoji,
+                  };
                   final result = await showMessageActionMenu(
                     context: context,
                     anchorKey: anchor,
                     isMine: isMine,
+                    myReactions: myReactions,
                     // Re-read for [target] rather than reused from the row:
                     // an album's tiles are separate messages, and what may be
                     // done to one of them is a function of which one.
@@ -4943,13 +5032,22 @@ class _RoomScreenState extends State<RoomScreen>
                   );
                   if (!mounted || result == null) return;
                   if (result.emoji != null) {
-                    await widget.repo.toggleReaction(messageId: target.id, emoji: result.emoji!);
+                    await _toggleReaction(target, result.emoji!);
                     return;
                   }
                   if (result.openFullReactionPicker) {
-                    final emoji = await showReactionPicker(this.context);
-                    if (emoji == null || emoji.isEmpty) return;
-                    await widget.repo.toggleReaction(messageId: target.id, emoji: emoji);
+                    final pick = await pickReaction(
+                      this.context,
+                      selected: myReactions,
+                    );
+                    if (pick == null || pick.emoji.isEmpty) return;
+                    // A grid pick of one already held is a no-op — choosing
+                    // it from a picker means "this one", not "take it back";
+                    // the picker's "your reactions" strip is for that.
+                    if (!pick.remove && myReactions.contains(pick.emoji)) {
+                      return;
+                    }
+                    await _toggleReaction(target, pick.emoji);
                     return;
                   }
                   switch (result.action!) {
@@ -5074,7 +5172,7 @@ class _RoomScreenState extends State<RoomScreen>
                 // row draws several messages, and a chip on the third
                 // photograph belongs to the third photograph.
                 void reactionTapOn(ChatMessage target, String e) {
-                  widget.repo.toggleReaction(messageId: target.id, emoji: e);
+                  _toggleReaction(target, e);
                 }
 
                 void onReactionTap(String e) => reactionTapOn(m, e);

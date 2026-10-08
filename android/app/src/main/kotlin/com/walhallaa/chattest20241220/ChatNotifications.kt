@@ -735,9 +735,15 @@ object ChatNotifications {
             // rewrites the first one's extras and both taps open the second
             // person's photo. The room case above is exactly this bug, already
             // fixed once.
+            //
+            // `focus` joins the key for the same reason once more: a reaction
+            // push names one bubble in a room ("message:<id>"), and sharing the
+            // room's PendingIntent would let the next ordinary message there
+            // rewrite that tap into a plain open — or a reaction rewrite an
+            // ordinary message's tap into a jump up the transcript.
             when {
-                roomId.isNotEmpty() -> roomId.hashCode()
-                momentId.isNotEmpty() -> momentId.hashCode()
+                roomId.isNotEmpty() -> (roomId + focus).hashCode()
+                momentId.isNotEmpty() -> (momentId + focus).hashCode()
                 else -> kind.hashCode()
             },
             launch,

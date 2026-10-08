@@ -10654,4 +10654,110 @@ class AppLocalizationsKo extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return '사진 $index';
   }
+
+  @override
+  String get reactionLimitTitle => '반응 한도에 도달했어요';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return '속도와 평온을 위해, 그리고 모든 이모지가 빛날 수 있도록 메시지 하나에 반응은 최대 $limit개까지 남길 수 있어요. 새 반응을 남기려면 하나를 취소해 주세요.';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return '하이라이트에는 한 사람당 $limit개의 반응만 남길 수 있어서, 하나하나가 의미 있어요. 새로운 최애를 위해 하나를 취소해 주세요.';
+  }
+
+  @override
+  String get reactionLimitDismiss => '알겠어요';
+
+  @override
+  String get reactionPickerYoursLabel => '내 반응';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return '내 $emoji 반응 취소';
+  }
+
+  @override
+  String get momentCommentsTitle => '댓글';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '댓글 $count개',
+      zero: '댓글',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => '아직 댓글이 없어요';
+
+  @override
+  String get momentCommentsEmptyBody => '대화를 시작해 보세요 — 한마디, 스티커 또는 GIF로.';
+
+  @override
+  String get momentCommentHint => '댓글 달기…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return '$name님에게 답글…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return '$name님에게 답글 다는 중';
+  }
+
+  @override
+  String get momentCommentCancelReply => '답글 취소';
+
+  @override
+  String get momentCommentReply => '답글 달기';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '답글 $count개 보기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => '답글 숨기기';
+
+  @override
+  String get momentCommentDelete => '댓글 삭제';
+
+  @override
+  String get momentCommentDeleteConfirm => '이 댓글을 삭제할까요? 답글도 함께 삭제돼요.';
+
+  @override
+  String get momentCommentDeleteConfirmButton => '삭제';
+
+  @override
+  String get momentCommentSend => '보내기';
+
+  @override
+  String get momentCommentExpressions => '스티커 및 GIF';
+
+  @override
+  String get momentCommentFailed => '댓글을 게시하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get momentCommentAuthorBadge => '작성자';
+
+  @override
+  String get momentCommentLike => '좋아요';
+
+  @override
+  String get momentCommentStickerAlt => '스티커';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

@@ -48,7 +48,7 @@ class PushManager {
   void Function(String roomId, {String? focus})? _onOpenRoom;
   VoidCallback? _onOpenRequests;
   VoidCallback? _onOpenGames;
-  void Function(String momentId)? _onOpenMoment;
+  void Function(String momentId, {bool comments})? _onOpenMoment;
   String? Function()? _activeRoomIdProvider;
 
   /// The language the app SETTLED on, reported by app.dart's `MaterialApp`
@@ -126,7 +126,8 @@ class PushManager {
   /// point of the notification is that it names a particular card — landing on
   /// today's board and leaving the person to find the photo they were just
   /// shown is the outcome this exists to avoid. See socialPush.ts.
-  void setOnOpenMoment(void Function(String momentId) handler) {
+  void setOnOpenMoment(
+      void Function(String momentId, {bool comments}) handler) {
     _onOpenMoment = handler;
   }
 
@@ -272,7 +273,12 @@ class PushManager {
         final args = (call.arguments as Map?) ?? const {};
         final momentId = args['momentId']?.toString();
         if (momentId != null && momentId.isNotEmpty) {
-          _onOpenMoment?.call(momentId);
+          // "comments" for a comment or reply push; anything else, or
+          // nothing, just opens the card.
+          _onOpenMoment?.call(
+            momentId,
+            comments: args['focus']?.toString() == 'comments',
+          );
         }
         return null;
     }

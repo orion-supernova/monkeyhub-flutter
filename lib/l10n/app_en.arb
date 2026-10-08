@@ -12929,5 +12929,148 @@
         "type": "int"
       }
     }
+  },
+  "reactionLimitTitle": "You've reached the reaction limit",
+  "@reactionLimitTitle": {
+    "description": "Title of the friendly alert shown when someone tries to add one reaction too many to a chat message or a highlight. Warm, not scolding."
+  },
+  "reactionLimitMessageBody": "For the sake of speed, sanity and letting every emoji shine, you can add up to {limit} reactions to a message — but no more. Take one back to make room for another.",
+  "@reactionLimitMessageBody": {
+    "description": "Body of the reaction-limit alert in chat. {limit} is the per-person cap (10). Sincere and lightly funny, in the spirit of Slack's 'brevity is the soul of wit' message.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "reactionLimitHighlightBody": "Highlights keep it to {limit} reactions per person, so each one still says something. Take one back to make room for a new favorite.",
+  "@reactionLimitHighlightBody": {
+    "description": "Body of the reaction-limit alert on a highlight (a photo story) or a comment on one. {limit} is the per-person cap (5).",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "reactionLimitDismiss": "Got it",
+  "@reactionLimitDismiss": {
+    "description": "The only button on the reaction-limit alert."
+  },
+  "reactionPickerYoursLabel": "Your reactions",
+  "@reactionPickerYoursLabel": {
+    "description": "Small label over the strip at the top of the full emoji picker listing the reactions the viewer already added. Tapping one takes it back."
+  },
+  "reactionPickerTakeBackSemantic": "Remove your {emoji} reaction",
+  "@reactionPickerTakeBackSemantic": {
+    "description": "Screen-reader label for one emoji in the picker's 'Your reactions' strip. {emoji} is the emoji itself.",
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      }
+    }
+  },
+  "momentCommentsTitle": "Comments",
+  "@momentCommentsTitle": {
+    "description": "Title of the comments sheet on a highlight."
+  },
+  "momentCommentsCount": "{count, plural, =0{Comment} one{1 comment} other{{count} comments}}",
+  "@momentCommentsCount": {
+    "description": "Screen-reader label for the comment button on a highlight. {count} is how many comments it has.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentCommentsEmptyTitle": "No comments yet",
+  "@momentCommentsEmptyTitle": {
+    "description": "Shown in an empty comments sheet."
+  },
+  "momentCommentsEmptyBody": "Start the conversation — words, a sticker or a GIF.",
+  "@momentCommentsEmptyBody": {
+    "description": "Line under momentCommentsEmptyTitle. Mentions what a comment may be: text, a sticker or a GIF (not photos)."
+  },
+  "momentCommentHint": "Add a comment…",
+  "@momentCommentHint": {
+    "description": "Placeholder in the comment field."
+  },
+  "momentCommentReplyHint": "Reply to {name}…",
+  "@momentCommentReplyHint": {
+    "description": "Placeholder in the comment field while replying. {name} is the person replied to.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentCommentReplyingTo": "Replying to {name}",
+  "@momentCommentReplyingTo": {
+    "description": "Small banner above the comment field while replying to someone. {name} is that person.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentCommentCancelReply": "Cancel reply",
+  "@momentCommentCancelReply": {
+    "description": "Screen-reader label for the × on the 'Replying to' banner."
+  },
+  "momentCommentReply": "Reply",
+  "@momentCommentReply": {
+    "description": "Small text button under a comment that starts a reply to it."
+  },
+  "momentCommentViewReplies": "{count, plural, one{View 1 reply} other{View {count} replies}}",
+  "@momentCommentViewReplies": {
+    "description": "Text button under a comment that expands its thread. {count} is the number of replies.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentCommentHideReplies": "Hide replies",
+  "@momentCommentHideReplies": {
+    "description": "Text button that collapses an expanded comment thread."
+  },
+  "momentCommentDelete": "Delete comment",
+  "@momentCommentDelete": {
+    "description": "Action in a comment's long-press menu."
+  },
+  "momentCommentDeleteConfirm": "Delete this comment? Any replies to it go too.",
+  "@momentCommentDeleteConfirm": {
+    "description": "Confirmation question before deleting a comment."
+  },
+  "momentCommentDeleteConfirmButton": "Delete",
+  "@momentCommentDeleteConfirmButton": {
+    "description": "Destructive confirm button for deleting a comment."
+  },
+  "momentCommentSend": "Send",
+  "@momentCommentSend": {
+    "description": "Screen-reader label for the send button of the comment field."
+  },
+  "momentCommentExpressions": "Stickers and GIFs",
+  "@momentCommentExpressions": {
+    "description": "Screen-reader label for the button that opens the sticker/GIF/emoji panel in the comment field."
+  },
+  "momentCommentFailed": "Couldn't post your comment. Try again.",
+  "@momentCommentFailed": {
+    "description": "Toast when a comment fails to post."
+  },
+  "momentCommentAuthorBadge": "Author",
+  "@momentCommentAuthorBadge": {
+    "description": "Tiny badge next to a comment written by the person who posted the highlight, like Instagram's 'Author' label."
+  },
+  "momentCommentLike": "Like",
+  "@momentCommentLike": {
+    "description": "Screen-reader label for the heart toggle on a comment."
+  },
+  "momentCommentStickerAlt": "Sticker",
+  "@momentCommentStickerAlt": {
+    "description": "Screen-reader fallback for a sticker comment with no alt text."
+  },
+  "momentCommentGifAlt": "GIF",
+  "@momentCommentGifAlt": {
+    "description": "Screen-reader fallback for a GIF comment with no title."
   }
 }

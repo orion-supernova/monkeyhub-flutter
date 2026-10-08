@@ -11234,4 +11234,120 @@ class AppLocalizationsAr extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return 'صورة $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'لقد بلغت الحد الأقصى للتفاعلات';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'من أجل السرعة وراحة البال وليتألق كل رمز تعبيري، يمكنك إضافة ما يصل إلى $limit تفاعلات على الرسالة الواحدة، ولا أكثر. احذف تفاعلًا لتفسح المجال لآخر.';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'في اللقطات المميزة، لكل شخص $limit تفاعلات فقط، ليبقى لكل تفاعل معنى. احذف تفاعلًا لتفسح المجال لمفضّل جديد.';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'حسنًا';
+
+  @override
+  String get reactionPickerYoursLabel => 'تفاعلاتك';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return 'إزالة تفاعلك $emoji';
+  }
+
+  @override
+  String get momentCommentsTitle => 'التعليقات';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تعليق',
+      many: '$count تعليقًا',
+      few: '$count تعليقات',
+      two: 'تعليقان',
+      one: 'تعليق واحد',
+      zero: 'تعليق',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'لا توجد تعليقات بعد';
+
+  @override
+  String get momentCommentsEmptyBody =>
+      'ابدأ المحادثة — بكلمات أو ملصق أو صورة GIF.';
+
+  @override
+  String get momentCommentHint => 'أضف تعليقًا…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return 'الرد على $name…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return 'جارٍ الرد على $name';
+  }
+
+  @override
+  String get momentCommentCancelReply => 'إلغاء الرد';
+
+  @override
+  String get momentCommentReply => 'رد';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'عرض $count رد',
+      many: 'عرض $count ردًا',
+      few: 'عرض $count ردود',
+      two: 'عرض ردين',
+      one: 'عرض رد واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => 'إخفاء الردود';
+
+  @override
+  String get momentCommentDelete => 'حذف التعليق';
+
+  @override
+  String get momentCommentDeleteConfirm =>
+      'هل تريد حذف هذا التعليق؟ ستُحذف ردوده أيضًا.';
+
+  @override
+  String get momentCommentDeleteConfirmButton => 'حذف';
+
+  @override
+  String get momentCommentSend => 'إرسال';
+
+  @override
+  String get momentCommentExpressions => 'الملصقات وصور GIF';
+
+  @override
+  String get momentCommentFailed => 'تعذّر نشر تعليقك. حاول مرة أخرى.';
+
+  @override
+  String get momentCommentAuthorBadge => 'الناشر';
+
+  @override
+  String get momentCommentLike => 'إعجاب';
+
+  @override
+  String get momentCommentStickerAlt => 'ملصق';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

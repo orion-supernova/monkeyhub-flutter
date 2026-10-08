@@ -175,6 +175,8 @@ class _FeedScreenState extends State<FeedScreen>
     if (pending == null) return;
     final userId = widget.repo.userId;
     if (userId == null) return;
+    // Read before consuming — consuming clears it.
+    final comments = UiSelectionStore.instance.momentCommentsPending;
     if (UiSelectionStore.instance.consumeMoment() == null) return;
 
     Moment? known;
@@ -188,15 +190,19 @@ class _FeedScreenState extends State<FeedScreen>
       // Opened with the run it belongs to: a point among the day's points, a
       // highlight among the highlights.
       known.tag == null
-          ? _openFromActivity(known, null)
-          : _openFromPoint(known, null);
+          ? _openFromActivity(known, null, openComments: comments)
+          : _openFromPoint(known, null, openComments: comments);
       return;
     }
     _momentOpening = true;
-    unawaited(_openFetchedMoment(userId, pending));
+    unawaited(_openFetchedMoment(userId, pending, openComments: comments));
   }
 
-  Future<void> _openFetchedMoment(String userId, String momentId) async {
+  Future<void> _openFetchedMoment(
+    String userId,
+    String momentId, {
+    bool openComments = false,
+  }) async {
     try {
       final moment = await widget.feedApi.moment(
         userId: userId,
@@ -207,7 +213,7 @@ class _FeedScreenState extends State<FeedScreen>
       // sent — saying "that's gone" about something they never saw would be
       // noise about a thing they cannot act on.
       if (!mounted || moment == null) return;
-      _open(moment);
+      _open(moment, openComments: openComments);
     } catch (_) {
       // Offline, or the fetch lost a race with a sign-out. Same reasoning.
     } finally {
@@ -342,18 +348,33 @@ class _FeedScreenState extends State<FeedScreen>
   /// Opens a point from the standings board. The picture-less ones rise out of
   /// the line that was tapped; the ones with a photo go full-screen, and the
   /// other scoring points of the day are the run behind them.
-  void _openFromPoint(Moment moment, Rect? origin) =>
-      _open(moment, origin: origin, siblings: FeedStore.instance.points);
+  void _openFromPoint(Moment moment, Rect? origin, {bool openComments = false}) =>
+      _open(
+        moment,
+        origin: origin,
+        siblings: FeedStore.instance.points,
+        openComments: openComments,
+      );
 
   /// Opens a moment from the activity river, whose run is the river itself —
   /// today's highlights, since the points live on the standings board.
-  void _openFromActivity(Moment moment, Rect? origin) =>
-      _open(moment, origin: origin, siblings: FeedStore.instance.highlights);
+  void _openFromActivity(
+    Moment moment,
+    Rect? origin, {
+    bool openComments = false,
+  }) =>
+      _open(
+        moment,
+        origin: origin,
+        siblings: FeedStore.instance.highlights,
+        openComments: openComments,
+      );
 
   void _open(
     Moment moment, {
     Rect? origin,
     List<Moment> siblings = const [],
+    bool openComments = false,
   }) {
     final userId = widget.repo.userId;
     if (userId == null) return;
@@ -365,6 +386,7 @@ class _FeedScreenState extends State<FeedScreen>
       userId: userId,
       siblings: siblings,
       origin: origin,
+      openComments: openComments,
     );
   }
 

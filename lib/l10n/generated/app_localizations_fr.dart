@@ -11246,4 +11246,115 @@ class AppLocalizationsFr extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return 'Photo $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'Tu as atteint la limite de réactions';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'Par souci de rapidité, de santé mentale et pour laisser chaque emoji briller, tu peux ajouter jusqu’à $limit réactions à un message, pas une de plus. Retires-en une pour faire de la place.';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'Dans les moments forts, chacun a droit à $limit réactions, pour que chacune garde du sens. Retires-en une pour faire de la place à une nouvelle préférée.';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'Compris';
+
+  @override
+  String get reactionPickerYoursLabel => 'Tes réactions';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return 'Retirer ta réaction $emoji';
+  }
+
+  @override
+  String get momentCommentsTitle => 'Commentaires';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commentaires',
+      one: '1 commentaire',
+      zero: 'Commenter',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'Pas encore de commentaires';
+
+  @override
+  String get momentCommentsEmptyBody =>
+      'Lance la conversation : quelques mots, un sticker ou un GIF.';
+
+  @override
+  String get momentCommentHint => 'Ajouter un commentaire…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return 'Répondre à $name…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return 'En réponse à $name';
+  }
+
+  @override
+  String get momentCommentCancelReply => 'Annuler la réponse';
+
+  @override
+  String get momentCommentReply => 'Répondre';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Voir $count réponses',
+      one: 'Voir 1 réponse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => 'Masquer les réponses';
+
+  @override
+  String get momentCommentDelete => 'Supprimer le commentaire';
+
+  @override
+  String get momentCommentDeleteConfirm =>
+      'Supprimer ce commentaire ? Ses réponses partiront aussi.';
+
+  @override
+  String get momentCommentDeleteConfirmButton => 'Supprimer';
+
+  @override
+  String get momentCommentSend => 'Envoyer';
+
+  @override
+  String get momentCommentExpressions => 'Stickers et GIF';
+
+  @override
+  String get momentCommentFailed =>
+      'Impossible de publier ton commentaire. Réessaie.';
+
+  @override
+  String get momentCommentAuthorBadge => 'Auteur';
+
+  @override
+  String get momentCommentLike => 'J’aime';
+
+  @override
+  String get momentCommentStickerAlt => 'Sticker';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

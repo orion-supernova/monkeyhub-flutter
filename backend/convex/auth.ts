@@ -21,6 +21,7 @@ import {
 } from "./systemAccount";
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { purgeUserExpressions } from "./expressions";
+import { purgeMomentComments, purgeUserComments } from "./momentComments";
 import {
   assertNotLocked,
   clearFailures,
@@ -764,6 +765,9 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_viewer", (q: any) => q.eq("viewerId", userId))
       .collect(),
   );
+  // What they said under other people's highlights, and their reactions to
+  // comments. Their own moments' conversations go with the moments below.
+  await purgeUserComments(ctx, userId);
   // Their personal stickers are cut out of their own photos, so they go with
   // the account — rows and blobs — along with their recents and favourites.
   await purgeUserExpressions(ctx, userId);
@@ -786,6 +790,7 @@ async function purgeUser(ctx: any, userId: any) {
       .collect()) {
       await ctx.db.delete(vw._id);
     }
+    await purgeMomentComments(ctx, m._id);
     await deleteStored(ctx, m.mediaStorageId);
     await deleteStored(ctx, m.posterStorageId);
   }

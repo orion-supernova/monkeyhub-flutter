@@ -11077,4 +11077,115 @@ class AppLocalizationsHi extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return 'फ़ोटो $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'आप रिएक्शन की सीमा तक पहुँच गए हैं';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'रफ़्तार, सुकून और हर इमोजी को चमकने देने के लिए, आप एक मैसेज पर ज़्यादा से ज़्यादा $limit रिएक्शन जोड़ सकते हैं — इससे ज़्यादा नहीं। नए के लिए जगह बनाने को कोई एक वापस लें।';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'हाइलाइट्स पर हर व्यक्ति $limit रिएक्शन दे सकता है, ताकि हर रिएक्शन का मतलब बना रहे। नए पसंदीदा के लिए कोई एक वापस लें।';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'ठीक है';
+
+  @override
+  String get reactionPickerYoursLabel => 'आपके रिएक्शन';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return 'अपना $emoji रिएक्शन हटाएँ';
+  }
+
+  @override
+  String get momentCommentsTitle => 'कमेंट';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count कमेंट',
+      one: '1 कमेंट',
+      zero: 'कमेंट',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'अभी कोई कमेंट नहीं';
+
+  @override
+  String get momentCommentsEmptyBody =>
+      'बातचीत शुरू करें — कुछ शब्द, एक स्टिकर या एक GIF।';
+
+  @override
+  String get momentCommentHint => 'कमेंट जोड़ें…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return '$name को जवाब दें…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return '$name को जवाब दे रहे हैं';
+  }
+
+  @override
+  String get momentCommentCancelReply => 'जवाब रद्द करें';
+
+  @override
+  String get momentCommentReply => 'जवाब दें';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count जवाब देखें',
+      one: '1 जवाब देखें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => 'जवाब छिपाएँ';
+
+  @override
+  String get momentCommentDelete => 'कमेंट हटाएँ';
+
+  @override
+  String get momentCommentDeleteConfirm =>
+      'यह कमेंट हटाएँ? इसके जवाब भी हट जाएँगे।';
+
+  @override
+  String get momentCommentDeleteConfirmButton => 'हटाएँ';
+
+  @override
+  String get momentCommentSend => 'भेजें';
+
+  @override
+  String get momentCommentExpressions => 'स्टिकर और GIF';
+
+  @override
+  String get momentCommentFailed =>
+      'आपका कमेंट पोस्ट नहीं हो सका। फिर से कोशिश करें।';
+
+  @override
+  String get momentCommentAuthorBadge => 'लेखक';
+
+  @override
+  String get momentCommentLike => 'पसंद';
+
+  @override
+  String get momentCommentStickerAlt => 'स्टिकर';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

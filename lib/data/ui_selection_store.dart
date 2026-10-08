@@ -114,16 +114,53 @@ class UiSelectionStore extends ChangeNotifier {
   String? _momentIdPending;
   String? get momentIdPending => _momentIdPending;
 
-  void requestMoment(String momentId) {
+  /// Whether the pending moment should open with its comments sheet up — a
+  /// comment or a reply notification, as opposed to a "posted" one. Rides with
+  /// [_momentIdPending] and is cleared with it.
+  bool _momentCommentsPending = false;
+  bool get momentCommentsPending => _momentCommentsPending;
+
+  void requestMoment(String momentId, {bool comments = false}) {
     _momentIdPending = momentId;
+    _momentCommentsPending = comments;
     _notify();
   }
 
-  /// Returns the pending moment id, clearing it either way.
+  /// Returns the pending moment id, clearing it either way. Read
+  /// [momentCommentsPending] first if it matters.
   String? consumeMoment() {
     final pending = _momentIdPending;
     _momentIdPending = null;
+    _momentCommentsPending = false;
     return pending;
+  }
+
+  /// "Once you are in this room, scroll to this message and pulse it."
+  ///
+  /// The last hop of a reaction notification: the tap is routed to the room by
+  /// `data.roomId` like any message push, and this names the bubble that was
+  /// reacted to — which may be days up the transcript, where landing at the
+  /// bottom would hide the one thing the banner was about. Keyed by room for
+  /// [roomChangeReviewPending]'s reason, and consumed the same way.
+  ({String roomId, String messageId})? _messageFocusPending;
+
+  /// Which room the pending focus is for, WITHOUT consuming it — so a room
+  /// already open can ignore a request meant for the one about to mount
+  /// instead of clearing it on a miss.
+  String? get messageFocusPendingRoomId => _messageFocusPending?.roomId;
+
+  void requestMessageFocus(String roomId, String messageId) {
+    _messageFocusPending = (roomId: roomId, messageId: messageId);
+    _notify();
+  }
+
+  /// The message to jump to when [roomId] was the room asked for; null
+  /// otherwise. Clears the request either way, as
+  /// [consumeRoomChangeReview] does.
+  String? consumeMessageFocus(String roomId) {
+    final pending = _messageFocusPending;
+    _messageFocusPending = null;
+    return pending?.roomId == roomId ? pending!.messageId : null;
   }
 
   /// "Once you are in this room, open the suggested-changes queue."

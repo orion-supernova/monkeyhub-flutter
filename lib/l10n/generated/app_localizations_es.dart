@@ -11190,4 +11190,115 @@ class AppLocalizationsEs extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return 'Foto $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'Has llegado al límite de reacciones';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'Por la velocidad, la cordura y para que cada emoji brille, puedes añadir hasta $limit reacciones a un mensaje, ni una más. Quita una para hacer sitio a otra.';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'En los destacados cada persona tiene $limit reacciones, para que cada una siga diciendo algo. Quita una para hacer sitio a tu nueva favorita.';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'Entendido';
+
+  @override
+  String get reactionPickerYoursLabel => 'Tus reacciones';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return 'Quitar tu reacción $emoji';
+  }
+
+  @override
+  String get momentCommentsTitle => 'Comentarios';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comentarios',
+      one: '1 comentario',
+      zero: 'Comentar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'Aún no hay comentarios';
+
+  @override
+  String get momentCommentsEmptyBody =>
+      'Empieza la conversación: unas palabras, un sticker o un GIF.';
+
+  @override
+  String get momentCommentHint => 'Añade un comentario…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return 'Responder a $name…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return 'Respondiendo a $name';
+  }
+
+  @override
+  String get momentCommentCancelReply => 'Cancelar respuesta';
+
+  @override
+  String get momentCommentReply => 'Responder';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ver $count respuestas',
+      one: 'Ver 1 respuesta',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => 'Ocultar respuestas';
+
+  @override
+  String get momentCommentDelete => 'Eliminar comentario';
+
+  @override
+  String get momentCommentDeleteConfirm =>
+      '¿Eliminar este comentario? Sus respuestas también se irán.';
+
+  @override
+  String get momentCommentDeleteConfirmButton => 'Eliminar';
+
+  @override
+  String get momentCommentSend => 'Enviar';
+
+  @override
+  String get momentCommentExpressions => 'Stickers y GIFs';
+
+  @override
+  String get momentCommentFailed =>
+      'No se pudo publicar tu comentario. Inténtalo de nuevo.';
+
+  @override
+  String get momentCommentAuthorBadge => 'Autor';
+
+  @override
+  String get momentCommentLike => 'Me gusta';
+
+  @override
+  String get momentCommentStickerAlt => 'Sticker';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

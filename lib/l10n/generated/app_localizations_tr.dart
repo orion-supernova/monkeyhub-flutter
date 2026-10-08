@@ -11037,4 +11037,114 @@ class AppLocalizationsTr extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return 'Fotoğraf $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'Tepki sınırına ulaştın';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'Hız, akıl sağlığı ve her emojinin hakkını vermek adına bir mesaja en fazla $limit tepki ekleyebilirsin — daha fazla değil. Yeni bir tane için birini geri al.';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'Öne çıkanlarda kişi başı $limit tepki var, böylece her biri hâlâ bir şey anlatıyor. Yeni favorine yer açmak için birini geri al.';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'Tamam';
+
+  @override
+  String get reactionPickerYoursLabel => 'Tepkilerin';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return '$emoji tepkini kaldır';
+  }
+
+  @override
+  String get momentCommentsTitle => 'Yorumlar';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yorum',
+      one: '1 yorum',
+      zero: 'Yorum',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'Henüz yorum yok';
+
+  @override
+  String get momentCommentsEmptyBody =>
+      'Sohbeti sen başlat — bir söz, bir çıkartma ya da bir GIF.';
+
+  @override
+  String get momentCommentHint => 'Yorum ekle…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return '$name kişisine yanıt ver…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return '$name kişisine yanıt veriyorsun';
+  }
+
+  @override
+  String get momentCommentCancelReply => 'Yanıtı iptal et';
+
+  @override
+  String get momentCommentReply => 'Yanıtla';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yanıtı gör',
+      one: '1 yanıtı gör',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => 'Yanıtları gizle';
+
+  @override
+  String get momentCommentDelete => 'Yorumu sil';
+
+  @override
+  String get momentCommentDeleteConfirm =>
+      'Bu yorum silinsin mi? Yanıtları da gider.';
+
+  @override
+  String get momentCommentDeleteConfirmButton => 'Sil';
+
+  @override
+  String get momentCommentSend => 'Gönder';
+
+  @override
+  String get momentCommentExpressions => 'Çıkartmalar ve GIF\'ler';
+
+  @override
+  String get momentCommentFailed => 'Yorumun gönderilemedi. Tekrar dene.';
+
+  @override
+  String get momentCommentAuthorBadge => 'Paylaşan';
+
+  @override
+  String get momentCommentLike => 'Beğen';
+
+  @override
+  String get momentCommentStickerAlt => 'Çıkartma';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

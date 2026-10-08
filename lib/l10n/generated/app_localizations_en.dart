@@ -11081,4 +11081,114 @@ class AppLocalizationsEn extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return 'Photo $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'You\'ve reached the reaction limit';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'For the sake of speed, sanity and letting every emoji shine, you can add up to $limit reactions to a message — but no more. Take one back to make room for another.';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'Highlights keep it to $limit reactions per person, so each one still says something. Take one back to make room for a new favorite.';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'Got it';
+
+  @override
+  String get reactionPickerYoursLabel => 'Your reactions';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return 'Remove your $emoji reaction';
+  }
+
+  @override
+  String get momentCommentsTitle => 'Comments';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comments',
+      one: '1 comment',
+      zero: 'Comment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'No comments yet';
+
+  @override
+  String get momentCommentsEmptyBody =>
+      'Start the conversation — words, a sticker or a GIF.';
+
+  @override
+  String get momentCommentHint => 'Add a comment…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return 'Reply to $name…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return 'Replying to $name';
+  }
+
+  @override
+  String get momentCommentCancelReply => 'Cancel reply';
+
+  @override
+  String get momentCommentReply => 'Reply';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'View $count replies',
+      one: 'View 1 reply',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => 'Hide replies';
+
+  @override
+  String get momentCommentDelete => 'Delete comment';
+
+  @override
+  String get momentCommentDeleteConfirm =>
+      'Delete this comment? Any replies to it go too.';
+
+  @override
+  String get momentCommentDeleteConfirmButton => 'Delete';
+
+  @override
+  String get momentCommentSend => 'Send';
+
+  @override
+  String get momentCommentExpressions => 'Stickers and GIFs';
+
+  @override
+  String get momentCommentFailed => 'Couldn\'t post your comment. Try again.';
+
+  @override
+  String get momentCommentAuthorBadge => 'Author';
+
+  @override
+  String get momentCommentLike => 'Like';
+
+  @override
+  String get momentCommentStickerAlt => 'Sticker';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

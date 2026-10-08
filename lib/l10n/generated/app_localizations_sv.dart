@@ -11103,4 +11103,115 @@ class AppLocalizationsSv extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return 'Foto $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'Du har nått reaktionsgränsen';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'För snabbhetens, förståndets och varje emojis skull kan du lägga till upp till $limit reaktioner på ett meddelande – men inte fler. Ta tillbaka en för att få plats med en ny.';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'I höjdpunkter har var och en $limit reaktioner, så att varje reaktion fortfarande betyder något. Ta tillbaka en för att få plats med en ny favorit.';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'Uppfattat';
+
+  @override
+  String get reactionPickerYoursLabel => 'Dina reaktioner';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return 'Ta bort din $emoji-reaktion';
+  }
+
+  @override
+  String get momentCommentsTitle => 'Kommentarer';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kommentarer',
+      one: '1 kommentar',
+      zero: 'Kommentera',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'Inga kommentarer än';
+
+  @override
+  String get momentCommentsEmptyBody =>
+      'Starta samtalet – några ord, ett klistermärke eller en GIF.';
+
+  @override
+  String get momentCommentHint => 'Skriv en kommentar…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return 'Svara $name…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return 'Svarar $name';
+  }
+
+  @override
+  String get momentCommentCancelReply => 'Avbryt svar';
+
+  @override
+  String get momentCommentReply => 'Svara';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Visa $count svar',
+      one: 'Visa 1 svar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => 'Dölj svar';
+
+  @override
+  String get momentCommentDelete => 'Radera kommentar';
+
+  @override
+  String get momentCommentDeleteConfirm =>
+      'Radera den här kommentaren? Svaren försvinner också.';
+
+  @override
+  String get momentCommentDeleteConfirmButton => 'Radera';
+
+  @override
+  String get momentCommentSend => 'Skicka';
+
+  @override
+  String get momentCommentExpressions => 'Klistermärken och GIF:ar';
+
+  @override
+  String get momentCommentFailed =>
+      'Det gick inte att publicera din kommentar. Försök igen.';
+
+  @override
+  String get momentCommentAuthorBadge => 'Skapare';
+
+  @override
+  String get momentCommentLike => 'Gilla';
+
+  @override
+  String get momentCommentStickerAlt => 'Klistermärke';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

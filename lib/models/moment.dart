@@ -101,6 +101,7 @@ class Moment {
     this.reactionCounts = const {},
     this.myReactions = const {},
     this.reactors = const [],
+    this.commentCount = 0,
   });
 
   final String id;
@@ -146,6 +147,11 @@ class Moment {
   /// reactions from before names were denormalized onto the row are dropped
   /// rather than shown with a blank name, so this can undercount briefly.
   final List<MomentReactor> reactors;
+
+  /// How many comments and replies it has. A stored counter on the server
+  /// (`moments.commentCount`), so the board can show it without reading the
+  /// conversation.
+  final int commentCount;
 
   /// The picture to show for this moment, or null when there is none to show.
   ///
@@ -227,6 +233,7 @@ class Moment {
       myReactions: {
         for (final e in (j['myReactions'] as List?) ?? const []) e.toString(),
       },
+      commentCount: (j['commentCount'] as num?)?.toInt() ?? 0,
       reactors: [
         for (final r in (j['reactors'] as List?) ?? const [])
           if (r is Map)

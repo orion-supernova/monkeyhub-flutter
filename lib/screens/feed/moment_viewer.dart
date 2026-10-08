@@ -31,7 +31,10 @@ import '../../widgets/sheet_kit.dart'
 import '../../widgets/steady_hero.dart';
 import '../fullscreen_video_viewer.dart';
 import '../../widgets/ios_kit.dart' show quietFill, SpringPress;
-import '../../widgets/reaction_picker_sheet.dart' show showReactionPicker;
+import '../../widgets/reaction_picker_sheet.dart' show pickReaction;
+import '../../widgets/reaction_limit_notice.dart';
+import '../../widgets/moment_comments_sheet.dart';
+import '../../models/reaction_limits.dart';
 import '../../l10n/text_case.dart';
 import '../../widgets/liquid_glass.dart';
 
@@ -90,6 +93,7 @@ Future<void> showMomentViewer(
   required String userId,
   List<Moment> siblings = const [],
   Rect? origin,
+  bool openComments = false,
 }) {
   if (moment.thumbStorageId != null) {
     // Only the ones with something to look at. A caption-only highlight sitting
@@ -107,6 +111,7 @@ Future<void> showMomentViewer(
       api: api,
       feedApi: feedApi,
       userId: userId,
+      openComments: openComments,
     );
   }
   return _openCard(
@@ -116,6 +121,7 @@ Future<void> showMomentViewer(
     feedApi: feedApi,
     userId: userId,
     origin: origin,
+    openComments: openComments,
   );
 }
 
@@ -132,6 +138,7 @@ Future<void> _openStage(
   required ChatApi api,
   required FeedApi feedApi,
   required String userId,
+  bool openComments = false,
 }) {
   return Navigator.of(context).push(
     PageRouteBuilder(
@@ -148,6 +155,7 @@ Future<void> _openStage(
         api: api,
         feedApi: feedApi,
         userId: userId,
+        openComments: openComments,
       ),
       transitionsBuilder: (_, anim, _, child) =>
           FadeTransition(opacity: anim, child: child),
@@ -162,6 +170,7 @@ Future<void> _openCard(
   required FeedApi feedApi,
   required String userId,
   Rect? origin,
+  bool openComments = false,
 }) {
   final theme = ThemeScope.of(context);
   final motion = MotionScope.of(context);
@@ -179,6 +188,7 @@ Future<void> _openCard(
         feedApi: feedApi,
         userId: userId,
         origin: origin,
+        openComments: openComments,
       ),
       // No transition here on purpose. The scrim, the card and the dismiss drag
       // all read the route's animation themselves — a page-wide FadeTransition
@@ -243,11 +253,29 @@ class _ReactionBook {
     required this.feedApi,
     required this.userId,
     required this.onChanged,
+    required this.onLimit,
   });
 
   final FeedApi feedApi;
   final String userId;
   final VoidCallback onChanged;
+
+  /// Says "you've reached the reaction limit" — before sending when the
+  /// local state already shows the cap, and after a server refusal when it
+  /// did not (another device of theirs got there first).
+  final VoidCallback onLimit;
+
+  /// Comment counts the open comments sheet has reported, which run ahead of
+  /// the board snapshot this route was opened with.
+  final _commentCounts = <String, int>{};
+
+  int commentsOf(Moment m) => _commentCounts[m.id] ?? m.commentCount;
+
+  void noteComments(Moment m, int count) {
+    if (_commentCounts[m.id] == count) return;
+    _commentCounts[m.id] = count;
+    onChanged();
+  }
 
   final _byMoment = <String, _Reactions>{};
 
@@ -277,6 +305,11 @@ class _ReactionBook {
   Future<void> toggle(Moment m, String emoji) async {
     final r = of(m);
     final had = r.mine.contains(emoji);
+    // The cap, said before anything is sent — see reaction_limits.dart.
+    if (!had && r.mine.length >= kMaxMomentReactionsPerPerson) {
+      onLimit();
+      return;
+    }
     _apply(r, emoji, !had);
     onChanged();
     // Haptic on the commitment, not on the animation — the house rule.
@@ -287,12 +320,13 @@ class _ReactionBook {
       } else {
         await feedApi.react(userId: userId, momentId: m.id, emoji: emoji);
       }
-    } catch (_) {
+    } catch (e) {
       // Roll the optimistic edit back rather than leaving a reaction that does
       // not exist on the server — the next board payload would silently
       // contradict it and the count would appear to flicker on its own.
       _apply(r, emoji, had);
       onChanged();
+      if (e.toString().contains(kReactionLimitError)) onLimit();
     }
   }
 
@@ -314,12 +348,107 @@ Future<void> _reactWithAny(
   _ReactionBook book,
   Moment m,
 ) async {
-  final emoji = await showReactionPicker(context);
-  if (emoji == null || emoji.isEmpty) return;
-  // Picking one you already sent would otherwise take it back, which is not
-  // what choosing it from a picker means.
-  if (book.of(m).mine.contains(emoji)) return;
-  await book.toggle(m, emoji);
+  final pick = await pickReaction(context, selected: {...book.of(m).mine});
+  if (pick == null || pick.emoji.isEmpty) return;
+  // A grid pick of one you already sent changes nothing — choosing it from a
+  // picker does not mean "take it back". The "Your reactions" strip over the
+  // grid is where one is taken back, and says so with `remove`.
+  if (pick.remove != book.of(m).mine.contains(pick.emoji)) return;
+  await book.toggle(m, pick.emoji);
+}
+
+/// Opens [m]'s comments over whichever viewer surface is up, keeping the
+/// pill's count in step with the conversation while it is open.
+Future<void> _openComments(
+  BuildContext context,
+  _ReactionBook book, {
+  required Moment m,
+  required ChatApi api,
+  required FeedApi feedApi,
+  required String userId,
+}) {
+  HapticFeedback.selectionClick();
+  return showMomentComments(
+    context,
+    moment: m,
+    api: api,
+    feedApi: feedApi,
+    userId: userId,
+    onCount: (n) => book.noteComments(m, n),
+  );
+}
+
+/// The comment pill at the end of a reaction row: a speech bubble and how many.
+class _CommentsPill extends StatelessWidget {
+  const _CommentsPill({
+    required this.count,
+    required this.onTap,
+    required this.overPhoto,
+  });
+
+  final int count;
+  final VoidCallback onTap;
+
+  /// Glass over a photograph; the card's quiet pill otherwise.
+  final bool overPhoto;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final label = AppLocalizations.of(context).momentCommentsCount(count);
+    final ink = overPhoto ? MediaGlass.ink : theme.inkSoft;
+    final glyph = SizedBox(
+      height: _kPillContent,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(CupertinoIcons.chat_bubble, size: 16, color: ink),
+          if (count > 0) ...[
+            const SizedBox(width: 6),
+            Text(
+              '$count',
+              style: TextStyle(
+                color: ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.1,
+                decoration: TextDecoration.none,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+    if (overPhoto) {
+      return Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: LiquidGlass(
+          tone: GlassTone.media,
+          shape: LiquidGlassShape.capsule,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: glyph,
+          ),
+        ),
+      );
+    }
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+          color: quietFill(theme),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: glyph,
+      ),
+    );
+  }
 }
 
 /// The last pill in a reaction row: a smiley-plus that opens the picker.
@@ -461,7 +590,12 @@ class _MomentStage extends StatefulWidget {
     required this.api,
     required this.feedApi,
     required this.userId,
+    this.openComments = false,
   });
+
+  /// Opens the first moment's comments once the stage is up — a comment
+  /// notification's tap.
+  final bool openComments;
 
   final List<Moment> moments;
   final int initialIndex;
@@ -490,6 +624,11 @@ class _MomentStageState extends State<_MomentStage>
     userId: widget.userId,
     onChanged: () {
       if (mounted) setState(() {});
+    },
+    onLimit: () {
+      if (mounted) {
+        showReactionLimitNotice(context, surface: ReactionLimitSurface.moment);
+      }
     },
   );
 
@@ -555,7 +694,24 @@ class _MomentStageState extends State<_MomentStage>
     _pager = PageController(initialPage: _run);
     _drag.addListener(_onDrag);
     _arrive();
+    if (widget.openComments) {
+      // After the route's own flight, so the sheet rises over a settled stage
+      // rather than racing it. The clock pauses on its own while the sheet is
+      // up — the route stops being current.
+      Future<void>.delayed(const Duration(milliseconds: 320), () {
+        if (mounted) _comments(_current);
+      });
+    }
   }
+
+  Future<void> _comments(Moment m) => _openComments(
+        context,
+        _book,
+        m: m,
+        api: widget.api,
+        feedApi: widget.feedApi,
+        userId: widget.userId,
+      );
 
   @override
   void didChangeDependencies() {
@@ -898,6 +1054,8 @@ class _MomentStageState extends State<_MomentStage>
                     onReact: (e) => _book.toggle(current, e),
                     onMore: () => _reactWithAny(context, _book, current),
                     onShowReactors: (e) => _showReactors(current, e),
+                    commentCount: _book.commentsOf(current),
+                    onComments: () => _comments(current),
                   ),
                 ),
               ],
@@ -1573,6 +1731,8 @@ class _StageFooter extends StatelessWidget {
     required this.onReact,
     required this.onMore,
     required this.onShowReactors,
+    required this.commentCount,
+    required this.onComments,
   });
 
   final Moment moment;
@@ -1580,6 +1740,8 @@ class _StageFooter extends StatelessWidget {
   final void Function(String emoji) onReact;
   final VoidCallback onMore;
   final void Function(String emoji) onShowReactors;
+  final int commentCount;
+  final VoidCallback onComments;
 
   @override
   Widget build(BuildContext context) {
@@ -1635,6 +1797,8 @@ class _StageFooter extends StatelessWidget {
               onTap: onReact,
               onLongPress: onShowReactors,
               onMore: onMore,
+              commentCount: commentCount,
+              onComments: onComments,
             ),
           ],
         ),
@@ -1655,6 +1819,8 @@ class _GlassReactionRail extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     required this.onMore,
+    required this.commentCount,
+    required this.onComments,
   });
 
   final List<String> emojis;
@@ -1664,6 +1830,9 @@ class _GlassReactionRail extends StatelessWidget {
 
   /// Opens the full emoji picker: the quick set is a shortcut, not a limit.
   final VoidCallback onMore;
+
+  final int commentCount;
+  final VoidCallback onComments;
 
   @override
   Widget build(BuildContext context) {
@@ -1702,6 +1871,16 @@ class _GlassReactionRail extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+        // Outside the scroller, pinned to the trailing edge: the way into the
+        // conversation must not scroll away behind a long row of pills.
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: _CommentsPill(
+            count: commentCount,
+            onTap: onComments,
+            overPhoto: true,
           ),
         ),
       ],
@@ -1816,6 +1995,7 @@ class _MomentCardViewer extends StatefulWidget {
     required this.feedApi,
     required this.userId,
     this.origin,
+    this.openComments = false,
   });
 
   final Moment moment;
@@ -1825,6 +2005,9 @@ class _MomentCardViewer extends StatefulWidget {
 
   /// See [showMomentViewer].
   final Rect? origin;
+
+  /// Opens the comments once the card has risen — a comment notification.
+  final bool openComments;
 
   @override
   State<_MomentCardViewer> createState() => _MomentCardViewerState();
@@ -1838,7 +2021,21 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
     onChanged: () {
       if (mounted) setState(() {});
     },
+    onLimit: () {
+      if (mounted) {
+        showReactionLimitNotice(context, surface: ReactionLimitSurface.moment);
+      }
+    },
   );
+
+  Future<void> _comments() => _openComments(
+        context,
+        _book,
+        m: widget.moment,
+        api: widget.api,
+        feedApi: widget.feedApi,
+        userId: widget.userId,
+      );
 
   /// Fraction of screen height that commits a slow drag to a dismiss.
   static const _dismissFraction = 0.16;
@@ -1888,6 +2085,11 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
         final t = _settleTween;
         if (t != null) _drag.value = t.value;
       });
+    if (widget.openComments) {
+      Future<void>.delayed(const Duration(milliseconds: 320), () {
+        if (mounted) _comments();
+      });
+    }
     if (!widget.moment.mine && !widget.moment.seen) {
       widget.feedApi
           .markSeen(userId: widget.userId, momentIds: [widget.moment.id])
@@ -2136,6 +2338,8 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
                   onTap: (e) => _book.toggle(m, e),
                   onLongPress: _showReactors,
                   onMore: () => _reactWithAny(context, _book, m),
+                  commentCount: _book.commentsOf(m),
+                  onComments: _comments,
                 ),
               ],
             ),
@@ -2153,6 +2357,8 @@ class _CardReactionRow extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     required this.onMore,
+    required this.commentCount,
+    required this.onComments,
   });
 
   final List<String> emojis;
@@ -2164,6 +2370,9 @@ class _CardReactionRow extends StatelessWidget {
 
   /// Opens the full emoji picker: the quick set is a shortcut, not a limit.
   final VoidCallback onMore;
+
+  final int commentCount;
+  final VoidCallback onComments;
 
   @override
   Widget build(BuildContext context) {
@@ -2196,6 +2405,14 @@ class _CardReactionRow extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: _CommentsPill(
+            count: commentCount,
+            onTap: onComments,
+            overPhoto: false,
           ),
         ),
       ],

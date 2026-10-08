@@ -1,5 +1,18 @@
 import { mutation, query } from "./functions";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
+
+/**
+ * How many distinct emoji one person may leave on one message.
+ *
+ * Per person, not per message: the thing prevented is one reactor spraying
+ * the whole picker onto a bubble, while ten different people each adding one
+ * is exactly what reactions are for. Mirrored client-side as
+ * `kMaxMessageReactionsPerPerson` (lib/models/reaction_limits.dart), which only
+ * checks first so the friendly alert can open before anything is sent — this
+ * is the one that enforces it.
+ */
+export const MAX_REACTIONS_PER_PERSON = 10;
 
 export const addReaction = mutation({
   args: {
@@ -19,15 +32,22 @@ export const addReaction = mutation({
       .first();
     if (!membership) throw new Error("NOT_A_MEMBER");
 
-    // Idempotent: one reaction per user per emoji per message
-    const existing = await ctx.db
+    // Idempotent: one reaction per user per emoji per message. Read as the
+    // viewer's whole set rather than a filtered `.first()`, because the cap
+    // below needs the count anyway and the set is at most ten rows.
+    const mine = await ctx.db
       .query("reactions")
       .withIndex("by_message_user", (q) =>
         q.eq("messageId", messageId).eq("userId", userId)
       )
-      .filter((q) => q.eq(q.field("emoji"), emoji))
-      .first();
+      .collect();
+    const existing = mine.find((r) => r.emoji === emoji);
     if (existing) return existing._id;
+    // Checked after the idempotency return on purpose: re-adding one you
+    // already have at the cap is a no-op, not a refusal.
+    if (mine.length >= MAX_REACTIONS_PER_PERSON) {
+      throw new Error("REACTION_LIMIT");
+    }
 
     const id = await ctx.db.insert("reactions", {
       messageId,
@@ -42,6 +62,12 @@ export const addReaction = mutation({
     if (msg.hasReactions !== true) {
       await ctx.db.patch(messageId, { hasReactions: true });
     }
+    // Only a NEW row tells anyone anything — the idempotent return above
+    // never gets here. Who hears it (the author, not the reactor, mute, …)
+    // is the sender's business; see `notifications.sendReactionPush`.
+    await ctx.scheduler.runAfter(0, internal.notifications.sendReactionPush, {
+      reactionId: id,
+    });
     return id;
   },
 });

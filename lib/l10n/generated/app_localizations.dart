@@ -18762,6 +18762,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Photo {index}'**
   String galleryTrayPhotoLabel(int index);
+
+  /// Title of the friendly alert shown when someone tries to add one reaction too many to a chat message or a highlight. Warm, not scolding.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the reaction limit'**
+  String get reactionLimitTitle;
+
+  /// Body of the reaction-limit alert in chat. {limit} is the per-person cap (10). Sincere and lightly funny, in the spirit of Slack's 'brevity is the soul of wit' message.
+  ///
+  /// In en, this message translates to:
+  /// **'For the sake of speed, sanity and letting every emoji shine, you can add up to {limit} reactions to a message — but no more. Take one back to make room for another.'**
+  String reactionLimitMessageBody(int limit);
+
+  /// Body of the reaction-limit alert on a highlight (a photo story) or a comment on one. {limit} is the per-person cap (5).
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights keep it to {limit} reactions per person, so each one still says something. Take one back to make room for a new favorite.'**
+  String reactionLimitHighlightBody(int limit);
+
+  /// The only button on the reaction-limit alert.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get reactionLimitDismiss;
+
+  /// Small label over the strip at the top of the full emoji picker listing the reactions the viewer already added. Tapping one takes it back.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reactions'**
+  String get reactionPickerYoursLabel;
+
+  /// Screen-reader label for one emoji in the picker's 'Your reactions' strip. {emoji} is the emoji itself.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove your {emoji} reaction'**
+  String reactionPickerTakeBackSemantic(String emoji);
+
+  /// Title of the comments sheet on a highlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get momentCommentsTitle;
+
+  /// Screen-reader label for the comment button on a highlight. {count} is how many comments it has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Comment} one{1 comment} other{{count} comments}}'**
+  String momentCommentsCount(int count);
+
+  /// Shown in an empty comments sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get momentCommentsEmptyTitle;
+
+  /// Line under momentCommentsEmptyTitle. Mentions what a comment may be: text, a sticker or a GIF (not photos).
+  ///
+  /// In en, this message translates to:
+  /// **'Start the conversation — words, a sticker or a GIF.'**
+  String get momentCommentsEmptyBody;
+
+  /// Placeholder in the comment field.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment…'**
+  String get momentCommentHint;
+
+  /// Placeholder in the comment field while replying. {name} is the person replied to.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to {name}…'**
+  String momentCommentReplyHint(String name);
+
+  /// Small banner above the comment field while replying to someone. {name} is that person.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying to {name}'**
+  String momentCommentReplyingTo(String name);
+
+  /// Screen-reader label for the × on the 'Replying to' banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel reply'**
+  String get momentCommentCancelReply;
+
+  /// Small text button under a comment that starts a reply to it.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get momentCommentReply;
+
+  /// Text button under a comment that expands its thread. {count} is the number of replies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{View 1 reply} other{View {count} replies}}'**
+  String momentCommentViewReplies(int count);
+
+  /// Text button that collapses an expanded comment thread.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide replies'**
+  String get momentCommentHideReplies;
+
+  /// Action in a comment's long-press menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete comment'**
+  String get momentCommentDelete;
+
+  /// Confirmation question before deleting a comment.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this comment? Any replies to it go too.'**
+  String get momentCommentDeleteConfirm;
+
+  /// Destructive confirm button for deleting a comment.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get momentCommentDeleteConfirmButton;
+
+  /// Screen-reader label for the send button of the comment field.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get momentCommentSend;
+
+  /// Screen-reader label for the button that opens the sticker/GIF/emoji panel in the comment field.
+  ///
+  /// In en, this message translates to:
+  /// **'Stickers and GIFs'**
+  String get momentCommentExpressions;
+
+  /// Toast when a comment fails to post.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t post your comment. Try again.'**
+  String get momentCommentFailed;
+
+  /// Tiny badge next to a comment written by the person who posted the highlight, like Instagram's 'Author' label.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get momentCommentAuthorBadge;
+
+  /// Screen-reader label for the heart toggle on a comment.
+  ///
+  /// In en, this message translates to:
+  /// **'Like'**
+  String get momentCommentLike;
+
+  /// Screen-reader fallback for a sticker comment with no alt text.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticker'**
+  String get momentCommentStickerAlt;
+
+  /// Screen-reader fallback for a GIF comment with no title.
+  ///
+  /// In en, this message translates to:
+  /// **'GIF'**
+  String get momentCommentGifAlt;
 }
 
 class _AppLocalizationsDelegate

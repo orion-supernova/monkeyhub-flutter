@@ -10628,4 +10628,110 @@ class AppLocalizationsJa extends AppLocalizations {
   String galleryTrayPhotoLabel(int index) {
     return '写真 $index';
   }
+
+  @override
+  String get reactionLimitTitle => 'リアクションの上限に達しました';
+
+  @override
+  String reactionLimitMessageBody(int limit) {
+    return 'スピードと平穏のため、そして一つひとつの絵文字が輝けるように、1つのメッセージにつけられるリアクションは$limit個までです。新しいものをつけるには、どれかを取り消してください。';
+  }
+
+  @override
+  String reactionLimitHighlightBody(int limit) {
+    return 'ハイライトへのリアクションは1人$limit個まで。だからこそ、一つひとつに気持ちがこもります。新しいお気に入りをつけるには、どれかを取り消してください。';
+  }
+
+  @override
+  String get reactionLimitDismiss => 'OK';
+
+  @override
+  String get reactionPickerYoursLabel => 'あなたのリアクション';
+
+  @override
+  String reactionPickerTakeBackSemantic(String emoji) {
+    return '$emojiのリアクションを取り消す';
+  }
+
+  @override
+  String get momentCommentsTitle => 'コメント';
+
+  @override
+  String momentCommentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'コメント$count件',
+      zero: 'コメント',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentsEmptyTitle => 'まだコメントはありません';
+
+  @override
+  String get momentCommentsEmptyBody => '会話を始めよう — ひとこと、ステッカー、GIFで。';
+
+  @override
+  String get momentCommentHint => 'コメントを追加…';
+
+  @override
+  String momentCommentReplyHint(String name) {
+    return '$nameさんに返信…';
+  }
+
+  @override
+  String momentCommentReplyingTo(String name) {
+    return '$nameさんに返信中';
+  }
+
+  @override
+  String get momentCommentCancelReply => '返信をキャンセル';
+
+  @override
+  String get momentCommentReply => '返信';
+
+  @override
+  String momentCommentViewReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の返信を表示',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentCommentHideReplies => '返信を非表示';
+
+  @override
+  String get momentCommentDelete => 'コメントを削除';
+
+  @override
+  String get momentCommentDeleteConfirm => 'このコメントを削除しますか？返信も削除されます。';
+
+  @override
+  String get momentCommentDeleteConfirmButton => '削除';
+
+  @override
+  String get momentCommentSend => '送信';
+
+  @override
+  String get momentCommentExpressions => 'ステッカーとGIF';
+
+  @override
+  String get momentCommentFailed => 'コメントを投稿できませんでした。もう一度お試しください。';
+
+  @override
+  String get momentCommentAuthorBadge => '投稿者';
+
+  @override
+  String get momentCommentLike => 'いいね';
+
+  @override
+  String get momentCommentStickerAlt => 'ステッカー';
+
+  @override
+  String get momentCommentGifAlt => 'GIF';
 }

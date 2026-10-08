@@ -154,6 +154,11 @@ Future<MessageActionResult?> showMessageActionMenu({
   /// out of one file. This is where the whole thing is legible: the menu prints
   /// it in full, over as many lines as it takes, and offers to copy it.
   String? fileName,
+
+  /// The emoji the viewer has already left on this message. Drawn selected in
+  /// the quick pill — and, when one is not among the quick six, drawn there
+  /// anyway (WhatsApp's way), so a long-press always shows what you said.
+  Set<String> myReactions = const {},
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -195,6 +200,7 @@ Future<MessageActionResult?> showMessageActionMenu({
       isSaved: isSaved,
       isTranslated: isTranslated,
       fileName: fileName,
+      myReactions: myReactions,
       backdrop: backdrop,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
@@ -222,9 +228,12 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.isSaved,
     required this.isTranslated,
     required this.fileName,
+    required this.myReactions,
     required this.backdrop,
     required this.onResolve,
   });
+
+  final Set<String> myReactions;
 
   final Rect bubbleRect;
 
@@ -518,6 +527,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
             child: _ReactionPill(
               isMine: widget.isMine,
+              selected: widget.myReactions,
               onEmoji: (e) {
                 HapticFeedback.lightImpact();
                 _resolve(MessageActionResult.emoji(e));
@@ -781,9 +791,43 @@ class _AnimatedEntry extends StatelessWidget {
 
 // ───────────────────────── reaction pill ─────────────────────────
 
+/// The six emoji the pill shows, given what the viewer already reacted with.
+///
+/// The quick set, unless the viewer used something outside it: then their own
+/// emoji take the TRAILING quick slots (WhatsApp's behaviour), so a reaction
+/// you left is always in the pill to see and take back, and the pill never
+/// grows past six — it is sized to fit a phone's width with the `+`.
+/// Selected quick emoji keep their place; only unselected ones give theirs up.
+@visibleForTesting
+List<String> quickPillEmojis(Set<String> selected) {
+  final extras = [
+    for (final e in selected)
+      if (!_kQuickReactions.contains(e)) e,
+  ];
+  if (extras.isEmpty) return _kQuickReactions;
+  final out = [..._kQuickReactions];
+  // Walk from the end, replacing quick emoji the viewer did NOT use.
+  var i = out.length - 1;
+  for (final e in extras.take(_kQuickReactions.length)) {
+    while (i >= 0 && selected.contains(out[i])) {
+      i--;
+    }
+    if (i < 0) break;
+    out[i] = e;
+    i--;
+  }
+  return out;
+}
+
 class _ReactionPill extends StatelessWidget {
-  const _ReactionPill({required this.isMine, required this.onEmoji, required this.onMore});
+  const _ReactionPill({
+    required this.isMine,
+    required this.selected,
+    required this.onEmoji,
+    required this.onMore,
+  });
   final bool isMine;
+  final Set<String> selected;
   final ValueChanged<String> onEmoji;
   final VoidCallback onMore;
 
@@ -796,7 +840,12 @@ class _ReactionPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final e in _kQuickReactions) _PillEmoji(emoji: e, onTap: () => onEmoji(e)),
+          for (final e in quickPillEmojis(selected))
+            _PillEmoji(
+              emoji: e,
+              selected: selected.contains(e),
+              onTap: () => onEmoji(e),
+            ),
           _PillMore(onTap: onMore, theme: theme),
         ],
       ),
@@ -805,9 +854,16 @@ class _ReactionPill extends StatelessWidget {
 }
 
 class _PillEmoji extends StatefulWidget {
-  const _PillEmoji({required this.emoji, required this.onTap});
+  const _PillEmoji({
+    required this.emoji,
+    required this.onTap,
+    this.selected = false,
+  });
   final String emoji;
   final VoidCallback onTap;
+
+  /// Already one of the viewer's reactions — tapping it takes it back.
+  final bool selected;
 
   @override
   State<_PillEmoji> createState() => _PillEmojiState();
@@ -821,9 +877,11 @@ class _PillEmojiState extends State<_PillEmoji>
   Widget build(BuildContext context) {
     // FocusableTap so a keyboard can reach it; the pointer keeps its own
     // press below.
+    final theme = ThemeScope.of(context);
     return FocusableTap(
       onTap: widget.onTap,
       semanticLabel: widget.emoji,
+      selected: widget.selected,
       shape: FocusRingShape.circle,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -835,10 +893,19 @@ class _PillEmojiState extends State<_PillEmoji>
           scale: _pressed ? 1.22 : 1.0,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutBack,
+          // The selected disc is the iMessage tapback's: a soft accent wash
+          // behind the glyph, no outline — the glass pill already has an
+          // edge, and a ring inside it read as a second border.
           child: Container(
             width: 38,
             height: 38,
             alignment: Alignment.center,
+            decoration: widget.selected
+                ? BoxDecoration(
+                    color: theme.accent.withValues(alpha: 0.22),
+                    shape: BoxShape.circle,
+                  )
+                : null,
             child: Text(widget.emoji, style: const TextStyle(fontSize: 22)),
           ),
         ),

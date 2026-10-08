@@ -84,6 +84,17 @@ export type SocialCopy = {
   codeSolved: string;
   /** The code puzzle, out of guesses. */
   codeFailed: string;
+  /**
+   * Someone commented on the recipient's highlight. Followed by the comment
+   * itself, quoted, when it has words.
+   */
+  commented: string;
+  /** Someone answered the recipient's comment (or their reply in a thread). */
+  replied: string;
+  /** A reaction on the recipient's highlight. `{emoji}` is the reaction. */
+  reacted: string;
+  /** A reaction on the recipient's comment. `{emoji}` is the reaction. */
+  reactedComment: string;
   /** The five point tags, as the composer spells them. */
   tags: Record<string, string>;
   /** The four daily games, as their tiles spell them. */
@@ -98,6 +109,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "gave up on {game}",
     codeSolved: "cracked the code in {score}",
     codeFailed: "couldn’t crack today’s code",
+    commented: "commented on your highlight",
+    replied: "replied to your comment",
+    reacted: "reacted {emoji} to your highlight",
+    reactedComment: "reacted {emoji} to your comment",
     tags: {
       fate: "FATE",
       jinx: "JINX",
@@ -119,6 +134,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "{game} oyununda pes etti",
     codeSolved: "şifreyi {score} denemede çözdü",
     codeFailed: "bugünkü şifreyi çözemedi",
+    commented: "öne çıkanına yorum yaptı",
+    replied: "yorumuna yanıt verdi",
+    reacted: "öne çıkanına {emoji} tepkisi verdi",
+    reactedComment: "yorumuna {emoji} tepkisi verdi",
     tags: {
       fate: "TESADÜF",
       jinx: "KERİZLİK",
@@ -140,6 +159,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "se rindió en {game}",
     codeSolved: "descifró el código en {score}",
     codeFailed: "no pudo descifrar el código de hoy",
+    commented: "comentó tu momento",
+    replied: "respondió a tu comentario",
+    reacted: "reaccionó con {emoji} a tu momento",
+    reactedComment: "reaccionó con {emoji} a tu comentario",
     tags: {
       fate: "DESTINO",
       jinx: "GAFE",
@@ -161,6 +184,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "a abandonné {game}",
     codeSolved: "a déchiffré le code en {score}",
     codeFailed: "n’a pas réussi à déchiffrer le code du jour",
+    commented: "a commenté ton moment fort",
+    replied: "a répondu à ton commentaire",
+    reacted: "a réagi {emoji} à ton moment fort",
+    reactedComment: "a réagi {emoji} à ton commentaire",
     tags: {
       fate: "DESTIN",
       jinx: "POISSE",
@@ -182,6 +209,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "desistiu de {game}",
     codeSolved: "decifrou o código em {score}",
     codeFailed: "não conseguiu decifrar o código de hoje",
+    commented: "comentou o teu destaque",
+    replied: "respondeu ao teu comentário",
+    reacted: "reagiu com {emoji} ao teu destaque",
+    reactedComment: "reagiu com {emoji} ao teu comentário",
     tags: {
       fate: "DESTINO",
       jinx: "AZAR",
@@ -203,6 +234,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "desistiu de {game}",
     codeSolved: "decifrou o código em {score}",
     codeFailed: "não conseguiu decifrar o código de hoje",
+    commented: "comentou no seu destaque",
+    replied: "respondeu ao seu comentário",
+    reacted: "reagiu com {emoji} ao seu destaque",
+    reactedComment: "reagiu com {emoji} ao seu comentário",
     tags: {
       fate: "DESTINO",
       jinx: "AZAR",
@@ -224,6 +259,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "gav upp {game}",
     codeSolved: "knäckte koden på {score}",
     codeFailed: "knäckte inte dagens kod",
+    commented: "kommenterade din höjdpunkt",
+    replied: "svarade på din kommentar",
+    reacted: "reagerade med {emoji} på din höjdpunkt",
+    reactedComment: "reagerade med {emoji} på din kommentar",
     tags: {
       fate: "ÖDE",
       jinx: "OTUR",
@@ -245,6 +284,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "استسلم في {game}",
     codeSolved: "فكّ الرمز في {score}",
     codeFailed: "لم يتمكن من فكّ رمز اليوم",
+    commented: "علّق على لقطتك المميزة",
+    replied: "ردّ على تعليقك",
+    reacted: "تفاعل بـ {emoji} مع لقطتك المميزة",
+    reactedComment: "تفاعل بـ {emoji} مع تعليقك",
     tags: {
       fate: "مصادفة",
       jinx: "نحس",
@@ -266,6 +309,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "{game} छोड़ दिया",
     codeSolved: "{score} में कोड तोड़ दिया",
     codeFailed: "आज का कोड नहीं तोड़ पाया",
+    commented: "आपकी हाइलाइट पर कमेंट किया",
+    replied: "आपके कमेंट का जवाब दिया",
+    reacted: "आपकी हाइलाइट पर {emoji} रिएक्शन दिया",
+    reactedComment: "आपके कमेंट पर {emoji} रिएक्शन दिया",
     tags: {
       fate: "संयोग",
       jinx: "अपनी करनी",
@@ -287,6 +334,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "{game}をあきらめました",
     codeSolved: "{score}でコードを解読しました",
     codeFailed: "今日のコードを解読できませんでした",
+    commented: "あなたのハイライトにコメントしました",
+    replied: "あなたのコメントに返信しました",
+    reacted: "あなたのハイライトに{emoji}でリアクションしました",
+    reactedComment: "あなたのコメントに{emoji}でリアクションしました",
     tags: {
       fate: "偶然",
       jinx: "自爆",
@@ -308,6 +359,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "{game}을(를) 포기했어요",
     codeSolved: "{score} 만에 코드를 풀었어요",
     codeFailed: "오늘의 코드를 풀지 못했어요",
+    commented: "회원님의 하이라이트에 댓글을 남겼어요",
+    replied: "회원님의 댓글에 답글을 남겼어요",
+    reacted: "회원님의 하이라이트에 {emoji} 반응을 남겼어요",
+    reactedComment: "회원님의 댓글에 {emoji} 반응을 남겼어요",
     tags: {
       fate: "우연",
       jinx: "자충수",
@@ -329,6 +384,10 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
     gameGaveUp: "放弃了{game}",
     codeSolved: "用 {score} 破解了密码",
     codeFailed: "没能破解今天的密码",
+    commented: "评论了你的精彩瞬间",
+    replied: "回复了你的评论",
+    reacted: "用 {emoji} 回应了你的精彩瞬间",
+    reactedComment: "用 {emoji} 回应了你的评论",
     tags: {
       fate: "巧合",
       jinx: "自作自受",
@@ -471,25 +530,39 @@ async function audienceOf(
 
   const out: Recipient[] = [];
   for (const friendId of friendIds) {
-    const rows: Array<Doc<"userDevices">> = await ctx.db
-      .query("userDevices")
-      .withIndex("by_user", (q: any) => q.eq("userId", friendId))
-      .take(DEVICES_PER_USER);
-    if (rows.length === 0) continue;
-    // Signed out on this handset. A `userDevices` row outlives the session
-    // whenever the client could not delete it, and telling somebody about
-    // their friend's photo on an account that phone can no longer open is
-    // exactly the complaint `push._loadAlertTargets` documents.
-    const live = await liveSessionDeviceIds(ctx, friendId);
-    const devices: SocialDevice[] = [];
-    for (const r of rows) {
-      if (!live.has(r.deviceId)) continue;
-      const d = reachableDevice(r);
-      if (d) devices.push(d);
-    }
-    if (devices.length > 0) out.push({ userId: friendId, devices });
+    const r = await recipientOf(ctx, friendId);
+    if (r) out.push(r);
   }
   return out;
+}
+
+/**
+ * One person's reachable devices, or null when none of them is.
+ *
+ * Split out of [audienceOf] for the comment push, whose audience is a named
+ * person or two rather than a friend list.
+ */
+async function recipientOf(
+  ctx: any,
+  userId: Id<"users">,
+): Promise<Recipient | null> {
+  const rows: Array<Doc<"userDevices">> = await ctx.db
+    .query("userDevices")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .take(DEVICES_PER_USER);
+  if (rows.length === 0) return null;
+  // Signed out on this handset. A `userDevices` row outlives the session
+  // whenever the client could not delete it, and telling somebody about
+  // their friend's photo on an account that phone can no longer open is
+  // exactly the complaint `push._loadAlertTargets` documents.
+  const live = await liveSessionDeviceIds(ctx, userId);
+  const devices: SocialDevice[] = [];
+  for (const r of rows) {
+    if (!live.has(r.deviceId)) continue;
+    const d = reachableDevice(r);
+    if (d) devices.push(d);
+  }
+  return devices.length > 0 ? { userId, devices } : null;
 }
 
 /**
@@ -651,6 +724,308 @@ export function momentLine(copy: SocialCopy, plan: any): string {
   const lead = tagLabel ?? copy.highlight;
   return caption ? `${lead}: “${caption}”` : lead;
 }
+
+// ────────────────────────── a comment ──────────────────────────
+
+/**
+ * Who hears about one comment, and what each of them is told.
+ *
+ * At most two people, never the commenter: the moment's author ("commented on
+ * your highlight"), and — for a reply — whoever wrote the comment being
+ * answered ("replied to your comment"). The author of a highlight who is also
+ * the person being answered hears it once, as a reply, which is the more
+ * specific of the two.
+ *
+ * Each recipient is re-checked against what `momentComments.list` would show
+ * them, so a push never announces a comment its reader cannot open — the
+ * supervised-account rule in particular, under which a child's comment is not
+ * visible to a stranger and a stranger's is not visible to a child.
+ *
+ * Sent as `friend_moment`, not a kind of its own. That kind already routes a
+ * tap to the moment's viewer on iOS, Android and the web, already rides the
+ * social channel, carries no badge and obeys `friendActivityEnabled`; a new
+ * kind would have to be taught to three native layers to do exactly the same.
+ * Collapsed per moment and recipient, so a lively thread is one row in the
+ * shade that keeps its latest line.
+ */
+export const _commentAudience = internalQuery({
+  args: { commentId: v.id("momentComments") },
+  returns: v.any(),
+  handler: async (ctx, { commentId }) => {
+    const c = await ctx.db.get(commentId);
+    if (!c) return null;
+    const m = await ctx.db.get(c.momentId);
+    if (!m) return null;
+    const commenter = await ctx.db.get(c.userId);
+    if (!commenter) return null;
+
+    const wanted = new Map<string, "commented" | "replied">();
+    if (c.parentId !== undefined) {
+      const parent = await ctx.db.get(c.parentId);
+      // Replying to a reply answers that reply's author; replying to the root
+      // answers the root's.
+      const answered = c.replyToUserId ?? parent?.userId;
+      if (answered) wanted.set(answered.toString(), "replied");
+    }
+    if (!wanted.has(m.userId.toString())) {
+      wanted.set(m.userId.toString(), "commented");
+    }
+    wanted.delete(c.userId.toString());
+    if (wanted.size === 0) return null;
+
+    const commenterIsChild = commenter.accountType === "child";
+    const friendsOfCommenter = new Set<string>(
+      (
+        await ctx.db
+          .query("friendships")
+          .withIndex("by_user", (q: any) => q.eq("userId", c.userId))
+          .collect()
+      )
+        .filter((f: any) => f.status === "accepted")
+        .map((f: any) => f.friendId.toString()),
+    );
+
+    const recipients: Array<Recipient & { line: string; face: boolean }> = [];
+    for (const [id, line] of wanted) {
+      const isAuthor = id === m.userId.toString();
+      const friend = friendsOfCommenter.has(id);
+      const reader = await ctx.db.get(id as Id<"users">);
+      if (!reader) continue;
+      // The child rule, both directions — see `momentComments.list`.
+      if (!isAuthor && !friend) {
+        if (commenterIsChild || reader.accountType === "child") continue;
+      }
+      if (!isAuthor) {
+        // Still allowed to see the moment at all: a friendship ended, or the
+        // author made their highlights private, since they commented.
+        const link = await ctx.db
+          .query("friendships")
+          .withIndex("by_pair", (q: any) =>
+            q.eq("userId", reader._id).eq("friendId", m.userId),
+          )
+          .first();
+        if (!link || link.status !== "accepted") continue;
+        const author = await ctx.db.get(m.userId);
+        const vis = author?.visibility ?? {};
+        const allowed =
+          m.tag === undefined ? vis.feed !== "nobody" : vis.points !== "nobody";
+        if (!allowed) continue;
+      }
+      const r = await recipientOf(ctx, reader._id);
+      if (!r) continue;
+      // Per recipient, unlike `actorFace` elsewhere in this file: these
+      // readers are not all the commenter's friends, so "friends" means yes
+      // for some of them and no for others.
+      const level = levelOf(commenter, "avatar");
+      const face = level === "public" || (level === "friends" && friend);
+      recipients.push({ ...r, line, face });
+    }
+    if (recipients.length === 0) return null;
+
+    return {
+      momentId: m._id,
+      authorId: m.userId,
+      commenterName: commenter.name ?? commenter.username ?? c.userName,
+      commenterAvatarUrl: commenter.avatarStorageId
+        ? await ctx.storage.getUrl(commenter.avatarStorageId)
+        : null,
+      text: c.text ?? null,
+      alt: c.alt ?? null,
+      recipients,
+    };
+  },
+});
+
+/** Tells the people a comment is addressed to. Scheduled by `momentComments.add`. */
+export const sendCommentPush = internalAction({
+  args: { commentId: v.id("momentComments") },
+  returns: v.null(),
+  handler: async (ctx, { commentId }) => {
+    const plan: any = await ctx.runQuery(internal.socialPush._commentAudience, {
+      commentId,
+    });
+    if (!plan) return null;
+
+    const targets: Array<{
+      userId: Id<"users">;
+      device: SocialDevice;
+      spec: AlertSpec;
+    }> = [];
+    for (const r of plan.recipients) {
+      for (const device of r.devices as SocialDevice[]) {
+        const copy = socialCopyFor(device.locale);
+        targets.push({
+          userId: r.userId,
+          device,
+          spec: {
+            kind: "friend_moment",
+            title: plan.commenterName,
+            body: commentLine(copy, r.line, plan),
+            data: {
+              kind: "friend_moment",
+              momentId: plan.momentId.toString(),
+              authorId: plan.authorId.toString(),
+              // Opens the card with its conversation up — see app.dart.
+              focus: "comments",
+              ...(r.face && plan.commenterAvatarUrl
+                ? { senderAvatarUrl: plan.commenterAvatarUrl }
+                : {}),
+            },
+            badge: 0,
+            collapseId: `moment_comment:${plan.momentId}:${r.userId}`,
+          },
+        });
+      }
+    }
+    if (targets.length > 0) {
+      await ctx.runAction(internal.push.sendAlertToDevices, { targets });
+    }
+    return null;
+  },
+});
+
+/**
+ * "commented on your highlight: “nice!”" — what happened first, then the words,
+ * the same order `momentLine` uses. A sticker brings its emoji; a GIF has
+ * nothing worth quoting and stands on the action alone.
+ */
+export function commentLine(
+  copy: SocialCopy,
+  line: "commented" | "replied",
+  plan: { text: string | null; alt: string | null },
+): string {
+  const lead = copy[line];
+  const text = typeof plan.text === "string" ? plan.text.trim() : "";
+  if (text) return `${lead}: “${text}”`;
+  if (plan.alt) return `${lead}: ${plan.alt}`;
+  return lead;
+}
+
+// ────────────────────────── a reaction ──────────────────────────
+
+/**
+ * Who hears about one reaction on a highlight or on a comment under one: the
+ * person who posted the thing reacted to, and only them. Null to stay silent —
+ * the reaction was taken back before this ran, it was their own, or the
+ * reactor is somebody the recipient would not be shown (the supervised-account
+ * rule, see `momentComments.list`).
+ *
+ * Sent as `friend_moment` for the reason `_commentAudience` gives, collapsed
+ * per (thing, reactor) so changing 👍 to ❤️ updates one row rather than
+ * stacking two. A comment reaction carries `focus: "comments"`, so the tap
+ * opens the card with the conversation up.
+ */
+export const _reactionAudience = internalQuery({
+  args: {
+    momentReactionId: v.optional(v.id("momentReactions")),
+    commentReactionId: v.optional(v.id("momentCommentReactions")),
+  },
+  returns: v.any(),
+  handler: async (ctx, { momentReactionId, commentReactionId }) => {
+    const r: any = momentReactionId
+      ? await ctx.db.get(momentReactionId)
+      : commentReactionId
+        ? await ctx.db.get(commentReactionId)
+        : null;
+    if (!r) return null;
+    const m = await ctx.db.get(r.momentId as Id<"moments">);
+    if (!m) return null;
+    let recipientId: Id<"users"> = m.userId;
+    let commentKey = "";
+    if (commentReactionId) {
+      const c = await ctx.db.get(r.commentId as Id<"momentComments">);
+      if (!c) return null;
+      recipientId = c.userId;
+      commentKey = c._id.toString();
+    }
+    if (recipientId === r.userId) return null;
+
+    const reactor = await ctx.db.get(r.userId as Id<"users">);
+    const reader = await ctx.db.get(recipientId);
+    if (!reactor || !reader) return null;
+    const link = await ctx.db
+      .query("friendships")
+      .withIndex("by_pair", (q: any) =>
+        q.eq("userId", recipientId).eq("friendId", reactor._id),
+      )
+      .first();
+    const friend = !!link && link.status === "accepted";
+    if (!friend && (reactor.accountType === "child" || reader.accountType === "child")) {
+      return null;
+    }
+    const recipient = await recipientOf(ctx, recipientId);
+    if (!recipient) return null;
+    const level = levelOf(reactor, "avatar");
+    const face = level === "public" || (level === "friends" && friend);
+
+    return {
+      momentId: m._id,
+      authorId: m.userId,
+      reactorId: reactor._id,
+      reactorName: reactor.name ?? reactor.username ?? r.userName ?? "",
+      reactorAvatarUrl:
+        face && reactor.avatarStorageId
+          ? await ctx.storage.getUrl(reactor.avatarStorageId)
+          : null,
+      emoji: r.emoji,
+      onComment: commentReactionId !== undefined,
+      commentKey,
+      recipient,
+    };
+  },
+});
+
+/** Scheduled by `feed.react` and `momentComments.react` on a NEW reaction. */
+export const sendReactionPush = internalAction({
+  args: {
+    momentReactionId: v.optional(v.id("momentReactions")),
+    commentReactionId: v.optional(v.id("momentCommentReactions")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const plan: any = await ctx.runQuery(
+      internal.socialPush._reactionAudience,
+      args,
+    );
+    if (!plan) return null;
+    const targets: Array<{
+      userId: Id<"users">;
+      device: SocialDevice;
+      spec: AlertSpec;
+    }> = [];
+    for (const device of plan.recipient.devices as SocialDevice[]) {
+      const copy = socialCopyFor(device.locale);
+      targets.push({
+        userId: plan.recipient.userId,
+        device,
+        spec: {
+          kind: "friend_moment",
+          title: plan.reactorName,
+          body: fill(plan.onComment ? copy.reactedComment : copy.reacted, {
+            emoji: plan.emoji,
+          }),
+          data: {
+            kind: "friend_moment",
+            momentId: plan.momentId.toString(),
+            authorId: plan.authorId.toString(),
+            ...(plan.onComment ? { focus: "comments" } : {}),
+            ...(plan.reactorAvatarUrl
+              ? { senderAvatarUrl: plan.reactorAvatarUrl }
+              : {}),
+          },
+          badge: 0,
+          collapseId: plan.onComment
+            ? `comment_reaction:${plan.commentKey}:${plan.reactorId}`
+            : `moment_reaction:${plan.momentId}:${plan.reactorId}`,
+        },
+      });
+    }
+    if (targets.length > 0) {
+      await ctx.runAction(internal.push.sendAlertToDevices, { targets });
+    }
+    return null;
+  },
+});
 
 // ────────────────────────── a shared game result ──────────────────────────
 

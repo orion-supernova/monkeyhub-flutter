@@ -434,6 +434,7 @@ class MessageBubble extends StatelessWidget {
                   onToggle: onReactionTap!,
                   onShowReactors: onReactionLongPress,
                   alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+                  hanging: true,
                 ),
               )
             : null,
@@ -984,6 +985,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                   onToggle: onReactionTap!,
                   onShowReactors: onReactionLongPress,
                   alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+                  hanging: true,
                 ),
               )
             : null,
@@ -1117,6 +1119,9 @@ class _SenderNameLabel extends StatelessWidget {
 /// and a half below the bubble it belongs to. Everything outside the row is
 /// instead indented by the avatar's width so it still lines up with the
 /// bubble.
+/// How far hanging reaction badges sit in from the bubble's body edge.
+const double _kReactionInset = 10;
+
 class _BubbleLayout extends StatelessWidget {
   const _BubbleLayout({
     required this.isMine,
@@ -1186,13 +1191,25 @@ class _BubbleLayout extends StatelessWidget {
             Flexible(child: bubble),
           ],
         ),
+        // Hung off the bubble's bottom edge, WhatsApp's way, rather than sat
+        // in a row of their own beneath it — see [HangingReactions], which is
+        // why the inset is INSIDE it rather than a Padding around it. Inset
+        // from the body's edge on the sender's side, so the badges tuck under
+        // the bubble's corner instead of lining up flush with it.
         if (reactions != null)
-          Padding(
-            padding: EdgeInsets.only(
-              left: leadingIndent + (isMine ? 0 : tailGutter),
-              right: isMine ? tailGutter : 0,
+          HangingReactions(
+            child: Padding(
+              // The 4 underneath is the air a hanging badge needs from the
+              // next bubble: inside a run that gap is only 2, and a badge
+              // nearly touching the bubble below read as belonging to it.
+              padding: EdgeInsets.only(
+                left: leadingIndent +
+                    (isMine ? 0 : tailGutter + _kReactionInset),
+                right: isMine ? tailGutter + _kReactionInset : 0,
+                bottom: 4,
+              ),
+              child: reactions,
             ),
-            child: reactions,
           ),
         if (meta != null)
           Padding(

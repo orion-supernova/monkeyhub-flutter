@@ -6,6 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import { assertChildPolicy } from "./childGuard";
 import { deleteStored } from "./files";
 import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
+import { purgeMomentComments } from "./momentComments";
 import { lensFor } from "./visibility";
 
 /**
@@ -52,6 +53,18 @@ const TAGS = new Set(["fate", "jinx", "luck", "calledIt", "npc"]);
  * limiting someone's photos would be hostile.
  */
 const MAX_TAGGED_PER_DAY = 5;
+
+/**
+ * How many different emoji one person may leave on one moment — and, in
+ * momentComments.ts, on one comment under it. Mirrored as
+ * `kMaxMomentReactionsPerPerson` in lib/models/reaction_limits.dart, which
+ * exists only so the client can explain the cap before sending; this is the
+ * one that holds.
+ *
+ * Per person rather than per moment: what is being prevented is one friend
+ * spraying the picker across a photo, not a popular photo collecting a crowd.
+ */
+export const MAX_MOMENT_REACTIONS_PER_PERSON = 5;
 
 /** Longest caption we will store. Matches the composer's own counter. */
 const MAX_CAPTION = 280;
@@ -127,6 +140,8 @@ function momentView(
       ? m.authorAvatarStorageId
       : undefined,
     reactionCounts: counts,
+    // A stored counter, not a count — see `moments.commentCount`.
+    commentCount: m.commentCount ?? 0,
     // Who's behind each count. A flat array of (emoji, name) pairs, not an
     // object keyed by emoji — same reason `reactionCounts` is an array above.
     // Rows written before `userName` existed are filtered out rather than
@@ -181,7 +196,7 @@ function visibilityOf(user: any) {
  * is a HIGHLIGHT and obeys `feed`. They are separate settings because sharing
  * your running joke but not your camera roll is a reasonable position.
  */
-async function canSeeMoment(ctx: any, viewerId: any, moment: any) {
+export async function canSeeMoment(ctx: any, viewerId: any, moment: any) {
   if (moment.userId === viewerId) return true;
   const link = await ctx.db
     .query("friendships")
@@ -615,6 +630,7 @@ export const remove = mutation({
       .collect()) {
       await ctx.db.delete(vw._id);
     }
+    await purgeMomentComments(ctx, momentId);
     await ctx.db.delete(momentId);
 
     for (const id of [m.mediaStorageId, m.posterStorageId]) {
@@ -673,7 +689,10 @@ export function isReactionEmoji(emoji: string): boolean {
   return true;
 }
 
-/** Adds a reaction. One row per (moment, user, emoji); re-adding is a no-op. */
+/**
+ * Adds a reaction. One row per (moment, user, emoji); re-adding is a no-op.
+ * Throws `REACTION_LIMIT` past `MAX_MOMENT_REACTIONS_PER_PERSON`.
+ */
 export const react = mutation({
   args: {
     userId: v.id("users"),
@@ -694,27 +713,37 @@ export const react = mutation({
     // not a message smuggled into a reaction pill on someone's photo.
     if (!isReactionEmoji(emoji)) throw new Error("INVALID_EMOJI");
 
-    const existing = await ctx.db
+    const mine = await ctx.db
       .query("momentReactions")
       .withIndex("by_moment_user", (q: any) =>
         q.eq("momentId", momentId).eq("userId", userId)
       )
-      .filter((q: any) => q.eq(q.field("emoji"), emoji))
-      .first();
+      .collect();
+    const existing = mine.find((r: any) => r.emoji === emoji);
     if (existing) return existing._id;
+    // Checked after the idempotency read, so re-sending one you already have
+    // at the cap is still the quiet no-op it always was.
+    if (mine.length >= MAX_MOMENT_REACTIONS_PER_PERSON) {
+      throw new Error("REACTION_LIMIT");
+    }
 
     // Safe to read here — this is a mutation, not the subscribed `board`
     // query, so it doesn't join anyone's invalidation set.
     const reactor = await ctx.db.get(userId);
     const userName = reactor?.name ?? reactor?.username;
 
-    return await ctx.db.insert("momentReactions", {
+    const id = await ctx.db.insert("momentReactions", {
       momentId,
       userId,
       emoji,
       createdAt: Date.now(),
       userName,
     });
+    // Off the transaction; every gate is in `socialPush._reactionAudience`.
+    await ctx.scheduler.runAfter(0, internal.socialPush.sendReactionPush, {
+      momentReactionId: id,
+    });
+    return id;
   },
 });
 

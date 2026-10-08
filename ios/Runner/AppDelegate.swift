@@ -323,7 +323,10 @@ import flutter_callkit_incoming
     // See backend/convex/socialPush.ts.
     if (info["kind"] as? String) == "friend_moment",
        let momentId = info["momentId"] as? String, !momentId.isEmpty {
-      invokeNotifOrQueue("onOpenMoment", args: ["momentId": momentId])
+      // `focus` as for a room: "comments" on a comment or reply push, which
+      // opens the card with its conversation up. Empty when absent.
+      let focus = info["focus"] as? String ?? ""
+      invokeNotifOrQueue("onOpenMoment", args: ["momentId": momentId, "focus": focus])
       completionHandler()
       return
     }

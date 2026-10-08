@@ -15,6 +15,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/location_share.dart' show formatCoordinates;
+import '../models/reaction_limits.dart';
 import '../companions/companion.dart';
 import '../companions/sebastian.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -46,6 +47,7 @@ import 'message_action_menu.dart';
 import 'interaction_bubble.dart' show InteractionActions;
 import 'interaction_respondents_sheet.dart';
 import 'message_bubble.dart';
+import 'reaction_limit_notice.dart';
 import 'reaction_picker_sheet.dart';
 import 'report_sheet.dart';
 import 'scroll_to_latest.dart';
@@ -638,6 +640,17 @@ class _ThreadSheetState extends State<_ThreadSheet>
   /// room; this one deliberately does not. A thread is a slice of a room the
   /// reader opened on purpose, and answering "translate this one message" with
   /// an offer about the room behind it changes the subject.
+  /// Toggles one reaction, and owns the one refusal worth explaining.
+  Future<void> _toggleReaction(ChatMessage m, String emoji) async {
+    final error =
+        await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+    if (!mounted || error != kReactionLimitError) return;
+    await showReactionLimitNotice(
+      context,
+      surface: ReactionLimitSurface.message,
+    );
+  }
+
   Future<void> _translate(ChatMessage m) async {
     final sebastian = Sebastian.instance;
     if (!sebastian.isInstalled) {
@@ -919,10 +932,16 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final next = j == -1 || j + 1 >= messages.length ? null : messages[j + 1];
     final lastInRun = next == null || !continuesRun(m, next);
 
+    final me = widget.repo.userId;
+    final mine = {
+      for (final r in m.reactions)
+        if (r.userId == me) r.emoji,
+    };
     final result = await showMessageActionMenu(
       context: context,
       anchorKey: anchor,
       isMine: isMine,
+      myReactions: mine,
       // Withheld only where a companion cannot run at all — the same shape
       // the room screen uses, and for the same reason: not being installed
       // yet is the discovery path, not a refusal.
@@ -950,13 +969,16 @@ class _ThreadSheetState extends State<_ThreadSheet>
     );
     if (!mounted || result == null) return;
     if (result.emoji != null) {
-      await widget.repo.toggleReaction(messageId: m.id, emoji: result.emoji!);
+      await _toggleReaction(m, result.emoji!);
       return;
     }
     if (result.openFullReactionPicker) {
-      final emoji = await showReactionPicker(context);
-      if (emoji == null || emoji.isEmpty) return;
-      await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+      final pick = await pickReaction(context, selected: mine);
+      if (pick == null || pick.emoji.isEmpty) return;
+      // A grid pick of one already held is a no-op — choosing it from a
+      // picker means "this one", not "take it back"; the strip is for that.
+      if (!pick.remove && mine.contains(pick.emoji)) return;
+      await _toggleReaction(m, pick.emoji);
       return;
     }
     switch (result.action!) {

@@ -554,8 +554,11 @@ class MainActivity : FlutterActivity() {
             // momentId falls through to the games/else branches rather than
             // invoking with an empty id — Dart would ignore it anyway, and
             // raising the app is the better failure.
+            //
+            // `focus` rides along here too: "comments" for a comment or reply
+            // push, which opens the card with its conversation already up.
             kind == "friend_moment" && momentId.isNotEmpty() ->
-                mapOf("method" to "onOpenMoment", "momentId" to momentId)
+                mapOf("method" to "onOpenMoment", "momentId" to momentId, "focus" to focus)
             // A friend's shared game result: the games shelf and its standings.
             kind == "game_result" -> mapOf("method" to "onOpenGames")
             else -> return

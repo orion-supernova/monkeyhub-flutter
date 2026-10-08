@@ -1913,6 +1913,15 @@ export default defineSchema({
     authorName: v.string(),
     authorUsername: v.string(),
     authorAvatarStorageId: v.optional(v.id("_storage")),
+
+    // How many rows `momentComments` holds for this moment, replies included.
+    // A counter rather than a count: the board renders a comment pill on every
+    // card, and counting would mean one more indexed `.collect()` per moment
+    // inside a subscribed query whose cost already scales with friends ×
+    // moments. Written in the same transaction as the comment it counts, so it
+    // cannot drift. Optional — every moment from before comments existed has
+    // none, which reads as 0.
+    commentCount: v.optional(v.number()),
   })
     // The author's own archive, newest first. Also the per-friend read the
     // board fans out over.
@@ -1960,6 +1969,72 @@ export default defineSchema({
   })
     .index("by_moment", ["momentId"])
     .index("by_moment_user", ["momentId", "userId"])
+    // Account teardown.
+    .index("by_user", ["userId"]),
+
+  // A comment on a highlight, or a reply to one.
+  //
+  // Instagram's shape: ONE level of threading. A reply always hangs off a
+  // top-level comment (`parentId` is that root, never another reply), and
+  // replying to a reply keeps it in the same thread with `replyToName` saying
+  // who it answers. Deeper trees read as a maze on a phone, and every
+  // big-platform comment surface has converged on exactly this.
+  //
+  // Words, a sticker, or a GIF — never a photo. A photo comment would be a
+  // second highlight posted onto somebody else's, outside their control; a
+  // sticker or a GIF is a reaction with more to say. So there is no storage-id
+  // column for the commenter to fill: the sticker blob is resolved from the
+  // `stickers` row server-side (see `messages.expressionFieldsFor`), and a GIF
+  // is a KLIPY URL that passed `isKlipyUrl`.
+  momentComments: defineTable({
+    momentId: v.id("moments"),
+    userId: v.id("users"),
+    // Denormalized at write time, as `momentReactions.userName` is.
+    userName: v.string(),
+    // The thread root this replies to. Absent on a top-level comment.
+    parentId: v.optional(v.id("momentComments")),
+    // Who a reply answers, when it answers a reply rather than the root —
+    // rendered as a leading "@name". Denormalized for the same reason as
+    // `userName`.
+    replyToUserId: v.optional(v.id("users")),
+    replyToName: v.optional(v.string()),
+    text: v.optional(v.string()),
+    // "gif" | "sticker" when the comment carries one. Absent for words alone.
+    expressionKind: v.optional(v.string()),
+    mediaSource: v.optional(v.string()), // "klipy" | "pack" | "personal"
+    mediaUrl: v.optional(v.string()),
+    mediaPreviewUrl: v.optional(v.string()),
+    mediaRef: v.optional(v.string()),
+    mediaWidth: v.optional(v.number()),
+    mediaHeight: v.optional(v.number()),
+    stickerId: v.optional(v.id("stickers")),
+    stickerStorageId: v.optional(v.id("_storage")),
+    stickerFormat: v.optional(v.string()),
+    // The sticker's emoji, as alt text.
+    alt: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    // A moment's whole conversation, oldest first.
+    .index("by_moment_created", ["momentId", "createdAt"])
+    // A thread's replies, for cascading a root's delete.
+    .index("by_parent", ["parentId"])
+    // Account teardown.
+    .index("by_user", ["userId"]),
+
+  // Reactions on a comment. `momentReactions` again, one level down — and
+  // carrying `momentId` so the comments query can read every reaction on a
+  // moment's conversation in ONE indexed range instead of one per comment.
+  momentCommentReactions: defineTable({
+    commentId: v.id("momentComments"),
+    momentId: v.id("moments"),
+    userId: v.id("users"),
+    userName: v.optional(v.string()),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_moment", ["momentId"])
+    .index("by_comment", ["commentId"])
+    .index("by_comment_user", ["commentId", "userId"])
     // Account teardown.
     .index("by_user", ["userId"]),
 

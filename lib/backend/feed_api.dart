@@ -1,5 +1,7 @@
 import '../models/daily_game.dart';
+import '../models/expression_item.dart';
 import '../models/moment.dart';
+import '../models/moment_comment.dart';
 import '../models/puzzle.dart';
 import 'convex_client.dart';
 
@@ -122,6 +124,94 @@ class FeedApi {
     await _cv.mutation('feed:unreact', {
       'userId': userId,
       'momentId': momentId,
+      'emoji': emoji,
+    });
+  }
+
+  // ── comments ────────────────────────────────────────────────────────────
+
+  /// Subscribes to one moment's conversation while its comments sheet is open.
+  ///
+  /// A subscription of its own, which this facade otherwise avoids — but one
+  /// that exists only while the sheet is up, and closing the sheet closes it.
+  /// `onData` gets null when the moment is gone or no longer the viewer's to
+  /// see, and the sheet closes on that.
+  Future<Subscription> subscribeComments({
+    required String userId,
+    required String momentId,
+    required void Function(List<MomentComment>? comments) onData,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'momentComments:list',
+      {'userId': userId, 'momentId': momentId},
+      onData: (raw) {
+        if (raw is! Map) return onData(null);
+        onData([
+          for (final c in (raw['comments'] as List?) ?? const [])
+            if (c is Map) MomentComment.fromJson(c.cast<String, dynamic>()),
+        ]);
+      },
+      onError: onError,
+    );
+  }
+
+  /// Posts a comment — words, a sticker or GIF ([expression]), or both.
+  /// [replyToId] is the comment being answered, root or reply.
+  ///
+  /// Throws `COMMENT_TOO_LONG` past 500 characters, `EMPTY_COMMENT`,
+  /// `COMMENTS_FULL` at the per-moment cap, `NOT_A_FRIEND`, and
+  /// `CHILD_NOT_ALLOWED` for an outside picture a guardian has switched off.
+  Future<String> comment({
+    required String userId,
+    required String momentId,
+    String? text,
+    String? replyToId,
+    ExpressionItem? expression,
+  }) async {
+    final res = await _cv.mutation('momentComments:add', {
+      'userId': userId,
+      'momentId': momentId,
+      'text': ?text,
+      'replyToId': ?replyToId,
+      ...?expression?.toSendArgs(),
+    });
+    return res.toString();
+  }
+
+  /// Deletes a comment (and its replies, when it is a thread root). Allowed to
+  /// the commenter and to the highlight's author.
+  Future<void> deleteComment({
+    required String userId,
+    required String commentId,
+  }) async {
+    await _cv.mutation('momentComments:remove', {
+      'userId': userId,
+      'commentId': commentId,
+    });
+  }
+
+  /// Reacts to a comment. Throws `REACTION_LIMIT` past five per person.
+  Future<void> reactToComment({
+    required String userId,
+    required String commentId,
+    required String emoji,
+  }) async {
+    await _cv.mutation('momentComments:react', {
+      'userId': userId,
+      'commentId': commentId,
+      'emoji': emoji,
+    });
+  }
+
+  Future<void> unreactComment({
+    required String userId,
+    required String commentId,
+    required String emoji,
+  }) async {
+    await _cv.mutation('momentComments:unreact', {
+      'userId': userId,
+      'commentId': commentId,
       'emoji': emoji,
     });
   }

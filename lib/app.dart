@@ -657,8 +657,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// here the way `_pendingPushRoomId` does. (A room has to be stashed locally
   /// because its destination is a `Navigator.push` this widget performs; the
   /// Feed's viewer is opened by the Feed, inside its own nested navigator.)
-  void _openMomentFromPush(String momentId) {
-    UiSelectionStore.instance.requestMoment(momentId);
+  ///
+  /// [comments] is a comment or reply push: the card opens with its
+  /// conversation already up, because the comment is what the banner said.
+  void _openMomentFromPush(String momentId, {bool comments = false}) {
+    UiSelectionStore.instance.requestMoment(momentId, comments: comments);
     SettingsStore.instance.setSection(HomeSection.feed, persist: false);
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
@@ -682,6 +685,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _openRoomFromPush(String roomId, {String? focus}) {
     if (focus == 'roomChanges') {
       UiSelectionStore.instance.requestRoomChangeReview(roomId);
+    }
+    // A reaction push: "message:<id>" names the bubble that was reacted to,
+    // and the room jumps to it once it is open.
+    if (focus != null && focus.startsWith('message:')) {
+      final messageId = focus.substring('message:'.length);
+      if (messageId.isNotEmpty) {
+        UiSelectionStore.instance.requestMessageFocus(roomId, messageId);
+      }
     }
     // On a cold start from a notification tap, the platform's tap event can
     // fire before _bootstrap finishes restoring auth and before the root

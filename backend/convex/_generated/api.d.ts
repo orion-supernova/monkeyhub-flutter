@@ -38,6 +38,7 @@ import type * as interactionCore from "../interactionCore.js";
 import type * as interactions from "../interactions.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
+import type * as momentComments from "../momentComments.js";
 import type * as mute from "../mute.js";
 import type * as notifications from "../notifications.js";
 import type * as pins from "../pins.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   interactions: typeof interactions;
   messages: typeof messages;
   migrations: typeof migrations;
+  momentComments: typeof momentComments;
   mute: typeof mute;
   notifications: typeof notifications;
   pins: typeof pins;

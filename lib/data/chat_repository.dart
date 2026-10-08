@@ -21,6 +21,7 @@ import '../models/message_capabilities.dart';
 import '../models/message_formatting.dart';
 import '../models/message_interaction.dart';
 import '../models/message_reaction.dart';
+import '../models/reaction_limits.dart';
 import '../models/pending_upload.dart';
 import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
@@ -4982,12 +4983,18 @@ class ChatRepository extends ChangeNotifier {
   /// [_patchMessageEverywhere]) and reverted if the mutation throws. The
   /// subscription echo that follows a success is identical to what is already
   /// on screen, so it lands as a no-op rather than a second repaint.
-  Future<void> toggleReaction({
+  ///
+  /// Returns null when the toggle went through, or [kReactionLimitError] when
+  /// adding would take the viewer past [kMaxMessageReactionsPerPerson] on this
+  /// message — shaped like [pinMessage] for its reason: a refusal the user has
+  /// to see. The cap is checked here first so nothing is painted and then
+  /// snatched back; the server's own refusal is the backstop for a stale row.
+  Future<String?> toggleReaction({
     required String messageId,
     required String emoji,
   }) async {
     final id = _userId;
-    if (id == null) return;
+    if (id == null) return null;
     final roomId = _activeRoomId;
     // Read the CURRENT state from the row we are about to patch, not from a
     // scan of every room: after the patch below the answer changes, and the
@@ -4995,6 +5002,10 @@ class ChatRepository extends ChangeNotifier {
     final held = roomId == null ? null : _findMessage(roomId, messageId);
     final mineExists =
         held?.reactions.any((r) => r.userId == id && r.emoji == emoji) ?? false;
+    if (!mineExists && held != null) {
+      final mineCount = held.reactions.where((r) => r.userId == id).length;
+      if (mineCount >= kMaxMessageReactionsPerPerson) return kReactionLimitError;
+    }
 
     final undo = roomId == null
         ? const <_MessagePatch>[]
@@ -5024,13 +5035,15 @@ class ChatRepository extends ChangeNotifier {
       } else {
         await api.addReaction(messageId: messageId, userId: id, emoji: emoji);
       }
-    } catch (_) {
+    } catch (e) {
       // Put it back rather than leaving the optimistic row to be corrected by
       // the next delivery — on the failure that matters here nothing was
       // written, so nothing invalidates and no delivery is coming.
       _revertMessagePatches(undo);
       if (undo.isNotEmpty) notifyListeners();
+      if (e.toString().contains(kReactionLimitError)) return kReactionLimitError;
     }
+    return null;
   }
 
   /// Messages this device learned about from a push and has not yet seen on
