@@ -413,7 +413,7 @@ void main() {
 
     test('a board with no time shows a dash rather than zero', () {
       // 0:00 would read as an impossibly fast solve on a leaderboard row.
-      expect(formatGameTime(null), '—');
+      expect(formatGameTime(null), '–');
     });
   });
 }

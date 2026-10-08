@@ -341,7 +341,8 @@ class GameStandings {
 /// the next — on a leaderboard where the whole point is comparing the numbers
 /// side by side.
 String formatGameTime(int? ms) {
-  if (ms == null) return '—';
+  // An en dash, never an em dash: em dashes are banned from the UI.
+  if (ms == null) return '–';
   final total = ms ~/ 1000;
   final seconds = (total % 60).toString().padLeft(2, '0');
   final minutes = total ~/ 60;

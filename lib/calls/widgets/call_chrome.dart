@@ -1792,8 +1792,8 @@ class NetworkStatsPanel extends StatelessWidget {
   const NetworkStatsPanel({super.key, required this.snapshot});
   final CallQualitySnapshot snapshot;
 
-  String _fmtKbps(double? v) => v == null ? '—' : '${v.round()} kbps';
-  String _fmtMs(double? v) => v == null ? '—' : '${v.round()} ms';
+  String _fmtKbps(double? v) => v == null ? '–' : '${v.round()} kbps';
+  String _fmtMs(double? v) => v == null ? '–' : '${v.round()} ms';
 
   IconData _qualityIcon(CallQuality q) => switch (q) {
     // The tint carries the tier; the bars glyph only says "connection".
@@ -1855,7 +1855,7 @@ class NetworkStatsPanel extends StatelessWidget {
                 _metric(
                   style,
                   _qualityIcon(q.quality),
-                  q.candidateType ?? '—',
+                  q.candidateType ?? '–',
                   tint,
                 ),
               ],

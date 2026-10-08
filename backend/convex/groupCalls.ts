@@ -870,7 +870,7 @@ export const sendGroupInvitePush = internalAction({
       userIds: inviteeIds,
       kind: "group_call_invite",
       title: roomName,
-      body: `${starterName} started a ${verb} — tap to join`,
+      body: `${starterName} started a ${verb}. Tap to join`,
       data: {
         kind: "group_call_invite",
         groupCallId: groupCallId.toString(),

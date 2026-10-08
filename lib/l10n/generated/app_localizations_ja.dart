@@ -488,7 +488,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenRedactedFriend => '一部の項目は本人の設定で非表示になっています。';
 
   @override
-  String get profileScreenRedactedStranger => '限定表示中 — 友達にはもっと多く公開されています。';
+  String get profileScreenRedactedStranger => '限定表示中です。友達にはもっと多く公開されています。';
 
   @override
   String get profileScreenReportAction => '報告';
@@ -657,19 +657,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get glassScreenPresetEditedSubtitle =>
-      '編集済み — 新しいルックとして保存するか、リセットしてください';
+      '編集済み。新しいルックとして保存するか、リセットしてください';
 
   @override
   String get glassScreenCustomPresetName => 'カスタム';
 
   @override
-  String get glassScreenUnsavedSubtitle => '未保存 — 名前をつけると保存されます';
+  String get glassScreenUnsavedSubtitle => '未保存です。名前をつけると保存されます';
 
   @override
   String get glassScreenSaveDialogTitle => 'この見た目に名前を付けて保存';
 
   @override
-  String get glassScreenNoRoomToast => '空きがありません — 先に見た目を削除してください';
+  String get glassScreenNoRoomToast => '空きがありません。先に見た目を削除してください';
 
   @override
   String get glassScreenRenameDialogTitle => '名前を変更';
@@ -850,7 +850,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String roomInfoScreenEndConversationConfirmBody(String peerName) {
-    return '$peerNameもこの会話を失います — お互いのメッセージがすべて消えます。元に戻せません。';
+    return '$peerNameもこの会話を失います。お互いのメッセージがすべて消えます。元に戻せません。';
   }
 
   @override
@@ -1032,7 +1032,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String childPolicyScreenAddGuardianBlurb(Object name) {
-    return 'あなたとまったく同じ権限を持つことになります——承認待ちのリクエストすべて、変更できる設定すべて、そしてあなたを削除する権限も。$nameはその人をすぐに家族として認識します。';
+    return 'あなたとまったく同じ権限を持つことになります。承認待ちのリクエストすべて、変更できる設定すべて、そしてあなたを削除する権限も。$nameはその人をすぐに家族として認識します。';
   }
 
   @override
@@ -1056,7 +1056,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get childPolicyScreenAskToAddLabel => '追加をリクエスト';
 
   @override
-  String get childPolicyScreenAskToAddOffDesc => '家族のみ — 新規リクエストなし';
+  String get childPolicyScreenAskToAddOffDesc => '家族のみ。新規リクエストなし';
 
   @override
   String get childPolicyScreenAskToAddOnDesc => '新しい人について保護者に確認できます';
@@ -1081,7 +1081,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get childPolicyScreenCancelSemanticLabel => 'キャンセル';
 
   @override
-  String get childPolicyScreenContactAddedRequestSent => '追加しました — リクエストを送信中です';
+  String get childPolicyScreenContactAddedRequestSent => '追加しました。リクエストを送信中です';
 
   @override
   String get childPolicyScreenContactAddedToList => '許可リストに追加しました';
@@ -1097,11 +1097,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get childPolicyScreenDeleteAccountBody =>
-      'メッセージ、写真、ルーム、フレンド——すべてが削除されます。この操作は取り消せず、ユーザー名は誰でも使えるようになります。';
+      'メッセージ、写真、ルーム、フレンド、すべてが削除されます。この操作は取り消せず、ユーザー名は誰でも使えるようになります。';
 
   @override
   String get childPolicyScreenDeleteAccountFailed =>
-      'アカウントを削除できませんでした — もう一度お試しください';
+      'アカウントを削除できませんでした。もう一度お試しください';
 
   @override
   String childPolicyScreenDeleteAccountHeadline(Object name) {
@@ -1122,7 +1122,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorAddContactGeneric =>
-      '追加できませんでした — もう一度お試しください';
+      '追加できませんでした。もう一度お試しください';
 
   @override
   String get childPolicyScreenErrorCannotAddSelf => 'それは本人のユーザー名です';
@@ -1537,7 +1537,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String themeScreenCarouselActiveLabel(Object name) {
-    return '適用中 — $name';
+    return '適用中：$name';
   }
 
   @override
@@ -1775,7 +1775,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get discoverScreenYourPeopleLabel => '友だち';
 
   @override
-  String get discoverScreenNoFriendsYetWithHint => 'まだ誰もいない — 上で人をさがそう';
+  String get discoverScreenNoFriendsYetWithHint => 'まだ誰もいない。上で人をさがそう';
 
   @override
   String get discoverScreenNoFriendsYet => 'まだ誰もいない';
@@ -2150,7 +2150,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recoveryPhraseScreenBackLink => '← 戻る';
 
   @override
-  String get recoveryPhraseScreenKeepPhraseLink => '今はしない — 今のフレーズのままにする';
+  String get recoveryPhraseScreenKeepPhraseLink => '今はしない。今のフレーズのままにする';
 
   @override
   String get homeScreenProfileSemanticLabel => 'あなたのプロフィール';
@@ -2164,7 +2164,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeScreenNewRoomSemanticLabel => '新しいルーム';
 
   @override
-  String get homeScreenEmptyRoomsMessage => 'まだルームがありません — 作ってみましょう';
+  String get homeScreenEmptyRoomsMessage => 'まだルームがありません。作ってみましょう';
 
   @override
   String get groupCallScreenTitleVideo => 'グループビデオ通話';
@@ -2878,7 +2878,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get textFileViewerTruncatedNotice =>
-      'このファイルの一部のみ表示しています — 残りを見るにはダウンロードしてください。';
+      'このファイルの一部のみ表示しています。残りを見るにはダウンロードしてください。';
 
   @override
   String get fileMessageUploadFailedLabel => '失敗';
@@ -4216,7 +4216,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get feedBoardActivityNoFriends => '友だちを追加すると、その一日がここに表示されます';
 
   @override
-  String get feedBoardLoadFailed => 'ボードを読み込めませんでした — 少ししてからもう一度お試しください';
+  String get feedBoardLoadFailed => 'ボードを読み込めませんでした。少ししてからもう一度お試しください';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => '公開';
@@ -4315,7 +4315,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get linkOpenerRecoveryBannerMessage =>
-      'リカバリーフレーズ未設定 — このままではアカウントに戻れなくなります。';
+      'リカバリーフレーズ未設定です。このままではアカウントに戻れなくなります。';
 
   @override
   String get destinationsChatLabel => 'チャット';
@@ -4594,18 +4594,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsScreenLinksUrlsOffBody =>
-      '現在はプレビューのみ — すっきりした吹き出しで、タップで開けます';
+      '現在はプレビューのみ。すっきりした吹き出しで、タップで開けます';
 
   @override
   String get settingsScreenMenuBarLabel => 'メニューバーアイコン';
 
   @override
   String get settingsScreenMenuBarOnBody =>
-      'MonkeyHub が未読数と一緒にメニューバーに常駐します — クリックでウインドウを表示';
+      'MonkeyHub が未読数と一緒にメニューバーに常駐します。クリックでウインドウを表示';
 
   @override
   String get settingsScreenMenuBarOffBody =>
-      '現在オフ — 隠れたウインドウに戻る手段は Dock アイコンだけです';
+      '現在オフ。隠れたウインドウに戻る手段は Dock アイコンだけです';
 
   @override
   String get settingsScreenSectionCalls => '通話';
@@ -4639,10 +4639,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get videoQualityScreenAutoSubtitle => '接続状況に自動的に適応します';
 
   @override
-  String get videoQualityScreenHd1080Subtitle => 'フルHD — よりシャープですがデータ消費が増えます';
+  String get videoQualityScreenHd1080Subtitle => 'フルHD：よりシャープですがデータ消費が増えます';
 
   @override
-  String get videoQualityScreenUhd4kSubtitle => '4K — 高速な接続で最適です';
+  String get videoQualityScreenUhd4kSubtitle => '4K：高速な接続で最適です';
 
   @override
   String get videoQualityScreenFootnote =>
@@ -4673,7 +4673,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenPushOnBody => '新着メッセージやリクエストをお知らせします';
 
   @override
-  String get settingsScreenPushOffBody => '通知なし — アプリを開いたときだけ確認できます';
+  String get settingsScreenPushOffBody => '通知なし。アプリを開いたときだけ確認できます';
 
   @override
   String get settingsScreenGameRemindersLabel => '毎日のゲーム通知';
@@ -4682,7 +4682,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenGameRemindersOnBody => 'お昼に一度だけ、まだ遊んでいないときに';
 
   @override
-  String get settingsScreenGameRemindersOffBody => '通知なし — ゲームはいつでもそこにあります';
+  String get settingsScreenGameRemindersOffBody => '通知なし。ゲームはいつでもそこにあります';
 
   @override
   String get authErrorUsernameTaken => 'そのユーザー名はすでに使われています。';
@@ -4949,7 +4949,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get motionScreenCalmLabel => '控えめ';
 
   @override
-  String get motionScreenCalmSubtitle => '装飾は静止します — ほかは変わりません';
+  String get motionScreenCalmSubtitle => '装飾は静止します。ほかは変わりません';
 
   @override
   String get momentRailCaptureLabel => '撮る';
@@ -5014,19 +5014,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get momentComposerPost => '投稿';
 
   @override
-  String get momentComposerErrorDailyCap => '今日はもう5件 — 明日の分も残して';
+  String get momentComposerErrorDailyCap => '今日はもう5件。明日の分も残して';
 
   @override
   String get momentComposerErrorNotAllowed => '保護者が写真の共有をオフにしています';
 
   @override
-  String get momentComposerErrorTooLong => '少し長すぎます — 短くしてください';
+  String get momentComposerErrorTooLong => '少し長すぎます。短くしてください';
 
   @override
   String get momentComposerErrorEmpty => '写真か、ひとことを追加してください';
 
   @override
-  String get momentComposerErrorGeneric => '投稿できませんでした — もう一度お試しください';
+  String get momentComposerErrorGeneric => '投稿できませんでした。もう一度お試しください';
 
   @override
   String get momentViewerDelete => '削除';
@@ -5038,7 +5038,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get momentViewerDeleteConfirmBody => 'みんなのボードからもアーカイブからも完全に消えます';
 
   @override
-  String get momentViewerDeleteFailed => '削除できませんでした — もう一度お試しください';
+  String get momentViewerDeleteFailed => '削除できませんでした。もう一度お試しください';
 
   @override
   String momentActivityPostedHighlight(Object who) {
@@ -5105,7 +5105,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get puzzleShare => '結果をコピー';
 
   @override
-  String get puzzleShareCopied => 'コピーしました — 友だちに貼り付けて';
+  String get puzzleShareCopied => 'コピーしました。友だちに貼り付けて';
 
   @override
   String puzzleShareHeader(Object edition, Object score) {
@@ -5119,7 +5119,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get puzzleErrorOutOfGuesses => '今日の回数は残っていません';
 
   @override
-  String get puzzleErrorGeneric => '送信できませんでした — もう一度お試しください';
+  String get puzzleErrorGeneric => '送信できませんでした。もう一度お試しください';
 
   @override
   String get puzzleGuessWaiting => '接続がありません。予想は保存済みで、つながり次第送信されます';
@@ -5167,13 +5167,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsPastDesc =>
-      '今日はつねに友だちと共有されます — これはそれ以前のすべてを開きます';
+      '今日はつねに友だちと共有されます。これはそれ以前のすべてを開きます';
 
   @override
   String get momentComposerVideo => '動画';
 
   @override
-  String get momentComposerErrorTooBig => 'この動画は大きすぎます — 最大20MB';
+  String get momentComposerErrorTooBig => 'この動画は大きすぎます（最大20MB）';
 
   @override
   String get momentActivityPostedHighlightSelf => 'ハイライトを投稿しました';
@@ -5256,7 +5256,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleHonour =>
-      'ポイントは自己申告です。誰も確認しません — そこが面白いところで、やりすぎれば友だちが言ってくれます。';
+      'ポイントは自己申告です。誰も確認しません。そこが面白いところで、やりすぎれば友だちが言ってくれます。';
 
   @override
   String get pointsExplainerRuleToday =>
@@ -5503,11 +5503,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameShare => '結果をコピー';
 
   @override
-  String get gameShareCopied => 'コピーしました — 友だちに貼り付けて';
+  String get gameShareCopied => 'コピーしました。友だちに貼り付けて';
 
   @override
   String gameShareLine(Object name, Object number, Object time) {
-    return 'MonkeyHub $name №$number — $time';
+    return 'MonkeyHub $name №$number · $time';
   }
 
   @override
@@ -5526,7 +5526,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameErrorNoHint => 'これにはヒントがありません';
 
   @override
-  String get gameErrorGeneric => 'ゲームに接続できませんでした — もう一度お試しください';
+  String get gameErrorGeneric => 'ゲームに接続できませんでした。もう一度お試しください';
 
   @override
   String get gameInfoOpen => '遊び方';
@@ -5888,7 +5888,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get locationBackgroundSheetBody =>
-      'MonkeyHub を離れてもライブ共有は続きます。バックグラウンドの許可は残りを引き受けます — 再起動、強制終了、バッテリー切れからの復帰。';
+      'MonkeyHub を離れてもライブ共有は続きます。バックグラウンドの許可は残りを引き受けます：再起動、強制終了、バッテリー切れからの復帰。';
 
   @override
   String get locationBackgroundSheetKeepRunning => '自動で再開する';
@@ -7612,7 +7612,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get companionSebastianBlurb =>
-      'Sebastian は別の言語で書かれたメッセージを読んで、その意味を教えてくれます — この端末の中だけで、どこにも何も送らずに。';
+      'Sebastian は別の言語で書かれたメッセージを読んで、その意味を教えてくれます。この端末の中だけで、どこにも何も送らずに。';
 
   @override
   String get companionMarloweTagline => '汎用アシスタント';
@@ -7683,7 +7683,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sebastianTierJuniorDetail => 'どの端末でも動作します';
 
   @override
-  String get sebastianLanguageUnlisted => '対応言語ではありません — 精度は落ちます';
+  String get sebastianLanguageUnlisted => '対応言語ではありません。精度は落ちます';
 
   @override
   String get companionStatusNotInstalled => '未インストール';
@@ -7710,7 +7710,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get companionStorageEmpty => '何もダウンロードしていません — コンパニオンは容量を使っていません';
+  String get companionStorageEmpty => '何もダウンロードしていません。コンパニオンは容量を使っていません';
 
   @override
   String companionStorageUsed(Object size) {
@@ -7776,7 +7776,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get marloweSkillsComingSoon =>
-      'Marlowe はまだ何もできません — できることは準備中です。いまできるのは頭脳を用意しておくこと。そうすれば、機能が届いたときにダウンロードを待たずにすみます。';
+      'Marlowe はまだ何もできません。できることは準備中です。いまできるのは頭脳を用意しておくこと。そうすれば、機能が届いたときにダウンロードを待たずにすみます。';
 
   @override
   String get marloweBrainsSection => '頭脳';
@@ -7886,7 +7886,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String companionInstallContinuesInBackground(Object name) {
-    return '$name のダウンロードは続きます — 設定 › コンパニオン';
+    return '$name のダウンロードは続きます：設定 › コンパニオン';
   }
 
   @override
@@ -8027,7 +8027,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get screenSharePickerEmpty =>
-      '共有できるものがまだありません — システム設定で画面収録を許可してからもう一度お試しください';
+      '共有できるものがまだありません。システム設定で画面収録を許可してからもう一度お試しください';
 
   @override
   String get gameTellFriends => '友だちに知らせる';
@@ -8063,7 +8063,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenFriendActivityOnBody => '投稿されたハイライト・ポイント・ゲーム結果';
 
   @override
-  String get settingsScreenFriendActivityOffBody => '通知なし — ボードは見に行けばあります';
+  String get settingsScreenFriendActivityOffBody => '通知なし。ボードは見に行けばあります';
 
   @override
   String get searchScreenActionWithGrownUp => 'おとなが確認中';
@@ -8072,13 +8072,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get newChatMenuSearchHint => '友だちを検索';
 
   @override
-  String get newChatMenuNoFriendsYet => 'まだ友だちがいません — 「見つける」で探してみよう';
+  String get newChatMenuNoFriendsYet => 'まだ友だちがいません。「見つける」で探してみよう';
 
   @override
   String get newChatMenuNoFriendsMatch => '該当する友だちがいません';
 
   @override
-  String get newChatMenuOpenDmFailed => 'そのチャットを開けませんでした — もう一度お試しください';
+  String get newChatMenuOpenDmFailed => 'そのチャットを開けませんでした。もう一度お試しください';
 
   @override
   String get childPolicyScreenAddSomeoneLabel => '自分の知り合いから選ぶ';
@@ -8088,7 +8088,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get childPolicyScreenPickPersonEmpty =>
-      '友だちから追加できる人はもういません —\\nほかの人を検索できます';
+      '友だちから追加できる人はもういません。\\nほかの人を検索できます';
 
   @override
   String get childPolicyScreenPickPersonNoMatch => '該当する人がいません';
@@ -8126,7 +8126,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorAddRoomGeneric =>
-      'そのルームを追加できませんでした — もう一度お試しください';
+      'そのルームを追加できませんでした。もう一度お試しください';
 
   @override
   String get childPolicyScreenErrorRoomNotAllowed => 'そのルームはこの方法では追加できません';
@@ -8177,7 +8177,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomChangeRequestsUnknownLabel => 'このアプリではまだ表示できない変更';
 
   @override
-  String get roomChangeRequestsClearedValue => 'なし — 削除する';
+  String get roomChangeRequestsClearedValue => 'なし（削除する）';
 
   @override
   String roomChangeRequestsSuggestedBy(Object name) {
@@ -8200,7 +8200,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomInfoScreenSuggestionSentToast => '管理者に送りました';
 
   @override
-  String get roomInfoScreenSuggestionAppliedToast => '完了 — このグループは編集できます';
+  String get roomInfoScreenSuggestionAppliedToast => '完了。このグループは編集できます';
 
   @override
   String get roomInfoScreenSuggestionWithdrawnToast => '取り下げました';
@@ -8344,7 +8344,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recordsLabel => '歴代記録';
 
   @override
-  String get recordsBlurb => 'これまでのベスト — あなたと友達';
+  String get recordsBlurb => 'これまでのベスト：あなたと友達';
 
   @override
   String recordsYourBest(Object value) {
@@ -8395,7 +8395,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appearanceMatchDevice => '端末に合わせる';
 
   @override
-  String get appearanceMatchDeviceSub => '昼はライト、夜はダーク — スマホに合わせて';
+  String get appearanceMatchDeviceSub => '昼はライト、夜はダーク。スマホに合わせて';
 
   @override
   String get appearanceOneTheme => 'ひとつのテーマ';
@@ -10550,7 +10550,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '以前のイベント$count件を破棄しました — ログは途中から始まります',
+      other: '以前のイベント$count件を破棄しました。ログは途中から始まります',
     );
     return '$_temp0';
   }

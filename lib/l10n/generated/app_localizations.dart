@@ -222,7 +222,7 @@ abstract class AppLocalizations {
   /// SnackBar shown when the child-guard approval request itself fails to send (network/API error) after tapping ASK.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t ask right now — try again'**
+  /// **'Couldn’t ask right now. Try again'**
   String get roomScreenAskGrownUpFailedSnack;
 
   /// The 'what' fragment passed to the shared approval-gate sheet when a send is blocked by a family/child guard; the sheet embeds it into a sentence like 'You need a grown-up to say yes before you can {what}.'
@@ -324,7 +324,7 @@ abstract class AppLocalizations {
   /// SnackBar shown when pinning a message fails because the room already has the maximum number of pinned messages.
   ///
   /// In en, this message translates to:
-  /// **'Too many pins — unpin one first'**
+  /// **'Too many pins. Unpin one first'**
   String get roomScreenPinLimitSnack;
 
   /// SnackBar shown for any other (non-limit) failure to pin a message.
@@ -666,7 +666,7 @@ abstract class AppLocalizations {
   /// Hint text under the email field explaining it's an optional, private note.
   ///
   /// In en, this message translates to:
-  /// **'optional — never shown to anyone'**
+  /// **'optional, never shown to anyone'**
   String get profileScreenEmailHint;
 
   /// All-caps field label in the read-only profile view of someone else's profile.
@@ -696,7 +696,7 @@ abstract class AppLocalizations {
   /// SnackBar error shown when trying to send a request to someone who already sent you one.
   ///
   /// In en, this message translates to:
-  /// **'they already sent you a request — check requests.'**
+  /// **'they already sent you a request. Check requests.'**
   String get profileScreenErrorRequestAlreadyReceived;
 
   /// SnackBar error shown when a friend request was already sent and pending.
@@ -708,7 +708,7 @@ abstract class AppLocalizations {
   /// SnackBar error shown when trying to friend/DM someone the current user has blocked.
   ///
   /// In en, this message translates to:
-  /// **'you blocked this user — unblock them first.'**
+  /// **'you blocked this user. Unblock them first.'**
   String get profileScreenErrorUnblockFirst;
 
   /// Deliberately vague SnackBar error shown for USER_NOT_FOUND, which also covers being blocked by the other user — must stay non-specific.
@@ -750,7 +750,7 @@ abstract class AppLocalizations {
   /// Explanatory note under the 'hand this phone back' action on a child's account.
   ///
   /// In en, this message translates to:
-  /// **'Only a grown-up can do this — it needs their code or password.'**
+  /// **'Only a grown-up can do this. It needs their code or password.'**
   String get profileScreenGrownUpOnlyNote;
 
   /// Explanatory line under the guardians list on a child's account, describing what guardians can see.
@@ -960,7 +960,7 @@ abstract class AppLocalizations {
   /// Banner text on a non-friend's profile when their view is limited by visibility settings.
   ///
   /// In en, this message translates to:
-  /// **'limited view — they share more with friends.'**
+  /// **'limited view. They share more with friends.'**
   String get profileScreenRedactedStranger;
 
   /// All-caps danger button on another user's profile that opens the report flow.
@@ -1272,7 +1272,7 @@ abstract class AppLocalizations {
   /// Explanatory note under the 'other surfaces' panel header describing which UI elements those dials affect.
   ///
   /// In en, this message translates to:
-  /// **'The composer, headers, call buttons — anything that sits over text rather than over scrolling content'**
+  /// **'The composer, headers, call buttons: anything that sits over text rather than over scrolling content'**
   String get glassScreenSurfacesNote;
 
   /// All-caps button label that copies the bottom bar's glass tuning onto the other-surfaces config.
@@ -1284,7 +1284,7 @@ abstract class AppLocalizations {
   /// Subtitle under the active preset row once its dials have drifted from the preset's saved values.
   ///
   /// In en, this message translates to:
-  /// **'Edited — save it as a new look, or reset it'**
+  /// **'Edited. Save it as a new look, or reset it'**
   String get glassScreenPresetEditedSubtitle;
 
   /// Display name for the synthetic 'no preset selected' row shown when the tuning has no name yet.
@@ -1296,7 +1296,7 @@ abstract class AppLocalizations {
   /// Subtitle under the synthetic 'Custom' preset row explaining the tuning isn't saved yet.
   ///
   /// In en, this message translates to:
-  /// **'Unsaved — give it a name to keep it'**
+  /// **'Unsaved. Give it a name to keep it'**
   String get glassScreenUnsavedSubtitle;
 
   /// Lowercase dialog title prompting for a name when saving the current glass tuning as a new preset.
@@ -1308,7 +1308,7 @@ abstract class AppLocalizations {
   /// Snackbar message shown when trying to save a new preset but all slots are full.
   ///
   /// In en, this message translates to:
-  /// **'No room — delete a look first'**
+  /// **'No room. Delete a look first'**
   String get glassScreenNoRoomToast;
 
   /// Lowercase dialog title prompting for a new name when renaming an existing preset.
@@ -1326,7 +1326,7 @@ abstract class AppLocalizations {
   /// Body text in the delete-preset confirmation dialog explaining the tuning itself isn't lost.
   ///
   /// In en, this message translates to:
-  /// **'The look stays on screen — it just stops having a name.'**
+  /// **'The look stays on screen. It just stops having a name.'**
   String get glassScreenDeleteConfirmBody;
 
   /// Lowercase button label to cancel deleting a preset and keep it.
@@ -1428,7 +1428,7 @@ abstract class AppLocalizations {
   /// Sample chat-message body in the glass screen's scrolling backdrop preview, used only to show glass blur over realistic content.
   ///
   /// In en, this message translates to:
-  /// **'sent the roof photos — the tiles are all cracked'**
+  /// **'sent the roof photos, the tiles are all cracked'**
   String get glassScreenBackdropMsgDilan;
 
   /// Sample chat-message body in the backdrop preview list.
@@ -1542,7 +1542,7 @@ abstract class AppLocalizations {
   /// Toast shown when the user tries to reply to a message that is itself still a pending/unsent (optimistic) message in the thread overlay.
   ///
   /// In en, this message translates to:
-  /// **'Still sending — try again in a second'**
+  /// **'Still sending. Try again in a second'**
   String get threadOverlayStillSending;
 
   /// Toast shown in the thread overlay after copying a message's text content to the clipboard via the long-press action menu.
@@ -1566,7 +1566,7 @@ abstract class AppLocalizations {
   /// Toast shown in the thread overlay when pinning a message fails because the room has hit its pin limit (backend returns PIN_LIMIT_REACHED).
   ///
   /// In en, this message translates to:
-  /// **'Too many pins — unpin one first'**
+  /// **'Too many pins. Unpin one first'**
   String get threadOverlayPinLimitToast;
 
   /// Generic toast shown in the thread overlay when pinning a message fails for any reason other than the pin limit.
@@ -1644,7 +1644,7 @@ abstract class AppLocalizations {
   /// Body text of the end-conversation confirmation dialog for a DM, warning that deleting it removes it for the other participant as well.
   ///
   /// In en, this message translates to:
-  /// **'{peerName} loses this conversation too — every message disappears for both of you. This is permanent.'**
+  /// **'{peerName} loses this conversation too: every message disappears for both of you. This is permanent.'**
   String roomInfoScreenEndConversationConfirmBody(String peerName);
 
   /// All-caps confirm button label in the end-conversation (DM delete) confirmation dialog.
@@ -1794,7 +1794,7 @@ abstract class AppLocalizations {
   /// Explanatory caption shown under the PASSWORD section when the room already has a password, before the replace-password field.
   ///
   /// In en, this message translates to:
-  /// **'this room is protected. the existing passphrase isn’t shown for security — enter a new one to replace it.'**
+  /// **'this room is protected. the existing passphrase isn’t shown for security, so enter a new one to replace it.'**
   String get roomInfoScreenPasswordProtectedNote;
 
   /// Placeholder hint text in the password field when the room already has a password (entering one replaces it).
@@ -2004,7 +2004,7 @@ abstract class AppLocalizations {
   /// Explanatory body text on the allow-a-contact-by-username sheet; {childName} is the child's display name, used twice.
   ///
   /// In en, this message translates to:
-  /// **'You won’t be asked about them again — whether {childName} adds them or they add {childName}.'**
+  /// **'You won’t be asked about them again, whether {childName} adds them or they add {childName}.'**
   String childPolicyScreenAllowSomeoneBlurb(Object childName);
 
   /// All-caps heading of the allow-a-contact-by-username sheet.
@@ -2022,7 +2022,7 @@ abstract class AppLocalizations {
   /// Toggle sub-description shown when the ASK TO ADD permission is off.
   ///
   /// In en, this message translates to:
-  /// **'Family only — no new requests'**
+  /// **'Family only, no new requests'**
   String get childPolicyScreenAskToAddOffDesc;
 
   /// Toggle sub-description shown when the ASK TO ADD permission is on.
@@ -2070,7 +2070,7 @@ abstract class AppLocalizations {
   /// Snackbar shown after allowing a contact by username, when the friend request is sent immediately.
   ///
   /// In en, this message translates to:
-  /// **'Added — the request is on its way'**
+  /// **'Added. The request is on its way'**
   String get childPolicyScreenContactAddedRequestSent;
 
   /// Snackbar shown after allowing a contact by username, when the request is deferred (not sent immediately).
@@ -2106,7 +2106,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when deleting the child's account fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t delete the account — try again'**
+  /// **'Couldn’t delete the account. Try again'**
   String get childPolicyScreenDeleteAccountFailed;
 
   /// All-caps headline of the confirmation sheet before deleting the child's account; {name} is already upper-cased by the caller.
@@ -2136,7 +2136,7 @@ abstract class AppLocalizations {
   /// Fallback error snackbar when adding a contact by username fails for an unrecognized reason.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t add them — try again'**
+  /// **'Couldn’t add them. Try again'**
   String get childPolicyScreenErrorAddContactGeneric;
 
   /// Error snackbar when the guardian tries to add the child's own username as a contact.
@@ -2154,13 +2154,13 @@ abstract class AppLocalizations {
   /// Fallback error snackbar for guardian-management actions (add/remove) that fail for an unrecognized reason.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t do that — try again'**
+  /// **'Couldn’t do that. Try again'**
   String get childPolicyScreenErrorGenericGuardian;
 
   /// Error snackbar when trying to remove the child's only remaining guardian.
   ///
   /// In en, this message translates to:
-  /// **'Someone has to look after them — add another grown-up first'**
+  /// **'Someone has to look after them. Add another grown-up first'**
   String get childPolicyScreenErrorLastGuardian;
 
   /// Error snackbar when the current user isn't authorized to make this change (used for both add-contact and guardian actions).
@@ -2178,7 +2178,7 @@ abstract class AppLocalizations {
   /// Explanatory body text on the graduate-child-to-adult-account prompt sheet.
   ///
   /// In en, this message translates to:
-  /// **'They become a normal account with this password, and every grown-up loses all visibility. There is no way back — you would have to be invited like anyone else.'**
+  /// **'They become a normal account with this password, and every grown-up loses all visibility. There is no way back: you would have to be invited like anyone else.'**
   String get childPolicyScreenGraduateBlurb;
 
   /// All-caps CTA button label on the graduate-child prompt sheet.
@@ -2202,7 +2202,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when graduating the child to an adult account fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t graduate them — try again'**
+  /// **'Couldn’t graduate them. Try again'**
   String get childPolicyScreenGraduateFailed;
 
   /// All-caps headline of the graduate-child prompt sheet; {name} is already upper-cased by the caller.
@@ -2220,19 +2220,19 @@ abstract class AppLocalizations {
   /// Footnote under the ROOMS YOU'VE ALLOWED list explaining what revoking does.
   ///
   /// In en, this message translates to:
-  /// **'Taking a room back also removes them from it. Taking a person back deletes their chat as well — for both of them.'**
+  /// **'Taking a room back also removes them from it. Taking a person back deletes their chat as well, for both of them.'**
   String get childPolicyScreenGrantsFooterNote;
 
   /// Explanatory text under the GROWN-UPS section header.
   ///
   /// In en, this message translates to:
-  /// **'Everyone here can approve, change settings, and see everything. Any of them can act alone — nothing waits on the others.'**
+  /// **'Everyone here can approve, change settings, and see everything. Any of them can act alone; nothing waits on the others.'**
   String get childPolicyScreenGrownUpsDesc;
 
   /// Snackbar shown after successfully adding a new guardian.
   ///
   /// In en, this message translates to:
-  /// **'Added — they can look after them now'**
+  /// **'Added. They can look after them now'**
   String get childPolicyScreenGuardianAdded;
 
   /// Snackbar shown after successfully removing another guardian; {name} is that guardian's display name.
@@ -2286,13 +2286,13 @@ abstract class AppLocalizations {
   /// Explanatory text under the PEOPLE YOU'VE ALLOWED section header.
   ///
   /// In en, this message translates to:
-  /// **'Anyone here can be added without asking you again — whichever of them starts it.'**
+  /// **'Anyone here can be added without asking you again, whichever of them starts it.'**
   String get childPolicyScreenPeopleAllowedDesc;
 
   /// Explanatory body text for the fixed (locked) PUBLIC ROOMS policy note.
   ///
   /// In en, this message translates to:
-  /// **'Always off for kids. Discover — the list of rooms belonging to people you don’t know — is hidden completely and can’t be switched on. Rooms someone invites them to still work as normal.'**
+  /// **'Always off for kids. Discover (the list of rooms belonging to people you don’t know) is hidden completely and can’t be switched on. Rooms someone invites them to still work as normal.'**
   String get childPolicyScreenPublicRoomsBody;
 
   /// All-caps label for the fixed (locked) public-rooms policy note.
@@ -2376,7 +2376,7 @@ abstract class AppLocalizations {
   /// Note under WHEN THEY'RE DONE shown when the current guardian is the child's only guardian; {name} is the child's display name.
   ///
   /// In en, this message translates to:
-  /// **'You’re {name}’s only grown-up, so you can’t just step away — add another first, or use one of these.'**
+  /// **'You’re {name}’s only grown-up, so you can’t just step away. Add another first, or use one of these.'**
   String childPolicyScreenSoleGuardianNote(Object name);
 
   /// All-caps inline row action label for the current user to remove themself as guardian.
@@ -2388,7 +2388,7 @@ abstract class AppLocalizations {
   /// Body text of the confirmation sheet when the current guardian removes themself; {name} is the child's display name.
   ///
   /// In en, this message translates to:
-  /// **'You’ll lose every bit of visibility into {name}’s account — their requests, their people, their rooms. The other grown-ups keep looking after them.'**
+  /// **'You’ll lose every bit of visibility into {name}’s account: their requests, their people, their rooms. The other grown-ups keep looking after them.'**
   String childPolicyScreenStopSupervisingBody(Object name);
 
   /// All-caps confirm button label when the current guardian removes themself.
@@ -2406,7 +2406,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when revoking a contact or room grant fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t take them back — try again'**
+  /// **'Couldn’t take them back. Try again'**
   String get childPolicyScreenTakeBackFailed;
 
   /// Default all-caps inline row action label to revoke an allowed contact or room.
@@ -2538,7 +2538,7 @@ abstract class AppLocalizations {
   /// Empty-state copy for the SAVED tab of the shared-content browser. Longer than the other four on purpose: this is where a reader is most likely to be wondering what the list is, so it names the gesture that fills it AND states the thing they must not guess wrong — saved is private to them, pinned is what everyone sees. 'SAVE' refers to messageActionMenuSaveLabel; keep the two identical.
   ///
   /// In en, this message translates to:
-  /// **'Nothing saved yet. Hold a message and choose Save.\n\nWhat you keep here is private to you — a pinned message is what the whole room sees.'**
+  /// **'Nothing saved yet. Hold a message and choose Save.\n\nWhat you keep here is private to you. A pinned message is what the whole room sees.'**
   String get roomContentScreenEmptySaved;
 
   /// Empty-state copy shown in place of the tab's normal empty message when loading the shared-content list failed.
@@ -2616,7 +2616,7 @@ abstract class AppLocalizations {
   /// Accessibility label on the dust veil covering spoiler text in a chat bubble. Sighted users wipe the veil with a finger; screen-reader activation reveals the whole hidden text at once.
   ///
   /// In en, this message translates to:
-  /// **'Spoiler — activate to reveal the hidden text'**
+  /// **'Spoiler. Activate to reveal the hidden text'**
   String get spoilerRevealHint;
 
   /// Item added to the composer's native text-selection toolbar (next to Copy/Paste); tapping it swaps the toolbar for a row of text-formatting chips (bold, italic, spoiler, link...). Match the platform's toolbar capitalization style, like Copy/Paste.
@@ -2718,7 +2718,7 @@ abstract class AppLocalizations {
   /// Snackbar shown when an edit is refused because the server's 15-minute edit window closed while the user was typing.
   ///
   /// In en, this message translates to:
-  /// **'Too late to edit — messages can only be edited for 15 minutes.'**
+  /// **'Too late to edit. Messages can only be edited for 15 minutes.'**
   String get roomScreenEditExpiredSnack;
 
   /// Snackbar shown when saving a message edit fails for a transient reason (usually network); the edit is restored in the composer so the user can retry.
@@ -2856,7 +2856,7 @@ abstract class AppLocalizations {
   /// All-caps CTA pill label in the full-screen theme preview carousel when the shown theme is already applied; {name} is the theme's display name, already uppercased.
   ///
   /// In en, this message translates to:
-  /// **'ACTIVE — {name}'**
+  /// **'ACTIVE: {name}'**
   String themeScreenCarouselActiveLabel(Object name);
 
   /// All-caps CTA pill label in the full-screen theme preview carousel when the shown theme is not yet applied; {name} is the theme's display name, already uppercased.
@@ -3060,7 +3060,7 @@ abstract class AppLocalizations {
   /// Error snackbar when trying to message someone you've blocked, in the friend request draft composer
   ///
   /// In en, this message translates to:
-  /// **'You blocked this user — unblock first.'**
+  /// **'You blocked this user. Unblock first.'**
   String get friendRequestDraftScreenErrorBlocked;
 
   /// Error snackbar when the target user currently has friend requests disabled
@@ -3282,7 +3282,7 @@ abstract class AppLocalizations {
   /// Empty-state line for the friends list when people search is available, pointing up at the search door.
   ///
   /// In en, this message translates to:
-  /// **'No one yet — find people above'**
+  /// **'No one yet. Find people above'**
   String get discoverScreenNoFriendsYetWithHint;
 
   /// Empty-state line for the friends list when people search is not available (no hint to search).
@@ -3636,7 +3636,7 @@ abstract class AppLocalizations {
   /// People-search no-results state for a child account; explains new people need the exact full username. Contains a literal newline (\n) for a two-line message — preserve it.
   ///
   /// In en, this message translates to:
-  /// **'No one matches — new people need their\nwhole username, spelled exactly'**
+  /// **'No one matches. New people need their\nwhole username, spelled exactly'**
   String get searchScreenNoMatchChild;
 
   /// People-search no-results state for a regular (non-child) account.
@@ -3702,7 +3702,7 @@ abstract class AppLocalizations {
   /// Caption under the screen title explaining what the screen does
   ///
   /// In en, this message translates to:
-  /// **'control what others see — and how they can reach you.'**
+  /// **'control what others see, and how they can reach you.'**
   String get profileVisibilityScreenSubtitle;
 
   /// All-caps section header grouping avatar/status/last-seen visibility rows
@@ -3918,7 +3918,7 @@ abstract class AppLocalizations {
   /// SnackBar message shown after the user taps COPY and the recovery phrase is copied to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'Copied — paste it somewhere safe'**
+  /// **'Copied. Paste it somewhere safe'**
   String get recoveryPhraseScreenCopiedSnackbar;
 
   /// Muted (dim) first line of the two-line hero heading on the password-confirmation step, paired with recoveryPhraseScreenConfirmHeroInk on the next line.
@@ -4008,7 +4008,7 @@ abstract class AppLocalizations {
   /// Lowercase text link letting the user decline regenerating/rotating their recovery phrase and keep the existing one.
   ///
   /// In en, this message translates to:
-  /// **'not now — keep my current phrase'**
+  /// **'not now, keep my current phrase'**
   String get recoveryPhraseScreenKeepPhraseLink;
 
   /// Accessibility/semantic label for the tappable avatar in the home screen header that opens the signed-in user's own profile.
@@ -4032,7 +4032,7 @@ abstract class AppLocalizations {
   /// Lowercase empty-state message shown on the home screen when the signed-in user has zero rooms at all (genuinely empty account, not just filtered down to nothing).
   ///
   /// In en, this message translates to:
-  /// **'No rooms yet — create one'**
+  /// **'No rooms yet. Create one'**
   String get homeScreenEmptyRoomsMessage;
 
   /// Header title on the group call screen when the call is a video call.
@@ -4734,7 +4734,7 @@ abstract class AppLocalizations {
   /// Link shown under a 'username taken' error, offering to switch into link-existing-account mode.
   ///
   /// In en, this message translates to:
-  /// **'That one’s mine — sign in'**
+  /// **'That one’s mine. Sign in'**
   String get audioMessageSwitchToLinkPrompt;
 
   /// All-caps primary CTA button label in create-account mode.
@@ -4794,7 +4794,7 @@ abstract class AppLocalizations {
   /// Generic snackbar error shown when approving/denying a queue item fails to save.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t save that — try again'**
+  /// **'couldn\'t save that, try again'**
   String get approvalsScreenErrorGeneric;
 
   /// Queue card headline: the guardian's own child wants to add someone as a contact. {child} and {other} are display names.
@@ -5154,7 +5154,7 @@ abstract class AppLocalizations {
   /// Fallback message shown inside the scanner panel when the camera is denied or unavailable, on the child pairing screen.
   ///
   /// In en, this message translates to:
-  /// **'No camera here — type the six numbers instead.'**
+  /// **'No camera here. Type the six numbers instead.'**
   String get childPairScreenNoCameraMessage;
 
   /// Lowercase tappable label under the live QR scanner preview that cancels scanning and returns to the scan button.
@@ -5214,7 +5214,7 @@ abstract class AppLocalizations {
   /// Banner shown above the text body in TextFileViewerScreen when the file was too large to preview in full and was cut off.
   ///
   /// In en, this message translates to:
-  /// **'Showing part of this file — download to see the rest.'**
+  /// **'Showing part of this file. Download to see the rest.'**
   String get textFileViewerTruncatedNotice;
 
   /// Caption under a document's name in OutboundFileRow when the upload of that file failed.
@@ -5328,7 +5328,7 @@ abstract class AppLocalizations {
   /// Error message on the pairing/release code screen (lib/screens/pairing_code_screen.dart) shown when minting a new code fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t make a code — try again.'**
+  /// **'Couldn’t make a code. Try again.'**
   String get destructiveSheetPairingMintError;
 
   /// All-caps header prefix (followed by the child's name) shown when this screen is generating a "hand phone back" release code.
@@ -5352,7 +5352,7 @@ abstract class AppLocalizations {
   /// Instructional body text on the pairing-code screen telling the guardian what to do on the child's phone. {name} is the child's display name.
   ///
   /// In en, this message translates to:
-  /// **'On {name}’s phone, open MonkeyHub and scan this — or type the numbers.'**
+  /// **'On {name}’s phone, open MonkeyHub and scan this, or type the numbers.'**
   String destructiveSheetPairingPairInstructions(Object name);
 
   /// Lowercase status line shown under the code once its countdown reaches zero.
@@ -5502,7 +5502,7 @@ abstract class AppLocalizations {
   /// Error line shown when the OS picker itself refused to hand over what the user chose — typically an iOS photo still in iCloud. Covers photos and videos, one or many, so keep it about 'that' rather than naming a count or a kind.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t open that — try picking it again'**
+  /// **'Couldn’t open that. Try picking it again'**
   String get mediaPickFailedMessage;
 
   /// Typing indicator label (room header, typing row, compact pill) when exactly one person is typing; {name} is the typist's display name.
@@ -5740,7 +5740,7 @@ abstract class AppLocalizations {
   /// Explanatory body text at the top of the release-device screen describing what releasing does. {name} is the child's display name.
   ///
   /// In en, this message translates to:
-  /// **'This signs {name} out of this phone and hands it back — the phone returns to the normal sign-in screen, and anyone can use it.'**
+  /// **'This signs {name} out of this phone and hands it back. The phone returns to the normal sign-in screen, and anyone can use it.'**
   String releaseDeviceScreenIntro(Object name);
 
   /// Reassurance note clarifying that releasing the device does not delete the child's account.
@@ -6046,7 +6046,7 @@ abstract class AppLocalizations {
   /// Lowercase descriptive sentence under the CLASSIC reply-style card explaining how it looks.
   ///
   /// In en, this message translates to:
-  /// **'accent-tinted quote pill with a tether bar and avatar — the familiar WhatsApp-style look.'**
+  /// **'accent-tinted quote pill with a tether bar and avatar: the familiar WhatsApp-style look.'**
   String get callButtonReplyStyleClassicDescription;
 
   /// Small ALL-CAPS badge on the currently-selected reply-style card in the picker.
@@ -6088,7 +6088,7 @@ abstract class AppLocalizations {
   /// Fallback inline error on the Add a Child form for any unrecognized failure creating the child account.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t create the account — try again.'**
+  /// **'Couldn’t create the account. Try again.'**
   String get childSetupScreenErrorGeneric;
 
   /// All-caps header label next to the back arrow at the top of the Add a Child screen.
@@ -6142,7 +6142,7 @@ abstract class AppLocalizations {
   /// Second bullet in the 'what they get' explainer list on the Add a Child form, explaining the guardian-approval gate on new contacts.
   ///
   /// In en, this message translates to:
-  /// **'Everyone else needs your OK first — both people they ask for, and people who ask for them.'**
+  /// **'Everyone else needs your OK first: both people they ask for, and people who ask for them.'**
   String get childSetupScreenBulletNeedsApproval;
 
   /// Third bullet in the 'what they get' explainer list on the Add a Child form.
@@ -6226,7 +6226,7 @@ abstract class AppLocalizations {
   /// Small mono-caption description under the SOFT option card, explaining the visual behavior.
   ///
   /// In en, this message translates to:
-  /// **'no tail — a run holds together through its tightened inner corners alone.'**
+  /// **'no tail. A run holds together through its tightened inner corners alone.'**
   String get bubbleStyleScreenSoftDescription;
 
   /// All-caps option label for the 'pill' bubble style card.
@@ -6250,7 +6250,7 @@ abstract class AppLocalizations {
   /// Small mono-caption description under the SLAB option card, explaining the visual behavior.
   ///
   /// In en, this message translates to:
-  /// **'square shoulders — sharp, printed, deliberate.'**
+  /// **'square shoulders: sharp, printed, deliberate.'**
   String get bubbleStyleScreenSlabDescription;
 
   /// Small all-caps badge shown next to the currently selected bubble style card.
@@ -6761,7 +6761,7 @@ abstract class AppLocalizations {
   /// Reassurance line in the report sheet explaining reports are anonymous.
   ///
   /// In en, this message translates to:
-  /// **'reports are private — the other person isn’t notified.'**
+  /// **'reports are private. The other person isn’t notified.'**
   String get reportSheetPrivacyNote;
 
   /// All-caps report-reason option label (report_sheet.dart). Underlying code value 'SPAM' is unchanged — only the displayed label is localized.
@@ -7160,7 +7160,7 @@ abstract class AppLocalizations {
   /// Second sentence of the block-confirmation sheet's subtitle, shown when the target is currently a friend.
   ///
   /// In en, this message translates to:
-  /// **'You’re currently friends — blocking removes the friendship, so to reconnect later you’d have to send a new friend request.'**
+  /// **'You’re currently friends. Blocking removes the friendship, so to reconnect later you’d have to send a new friend request.'**
   String get bulkActionBarBlockSheetFriendWarning;
 
   /// Second sentence of the block-confirmation sheet's subtitle, shown when the target is not currently a friend.
@@ -7220,7 +7220,7 @@ abstract class AppLocalizations {
   /// Subtitle of the block-and-delete-DM choice tile.
   ///
   /// In en, this message translates to:
-  /// **'Also wipes your DM with them — every message, reaction, and media file is gone.'**
+  /// **'Also wipes your DM with them: every message, reaction, and media file is gone.'**
   String get bulkActionBarBlockDeleteDmSub;
 
   /// Screen-reader label for the cancel control at the bottom of the block-confirmation sheet.
@@ -7328,7 +7328,7 @@ abstract class AppLocalizations {
   /// SnackBar shown to a child when their request to ask a guardian for permission to join a room fails to submit.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t ask right now — try again'**
+  /// **'Couldn\'t ask right now. Try again'**
   String get enterPublicRoomAskFailedMessage;
 
   /// SnackBar shown when joining a password-protected public room fails because the entered password was wrong.
@@ -7340,7 +7340,7 @@ abstract class AppLocalizations {
   /// SnackBar shown when joining a public room fails for any reason other than a wrong password.
   ///
   /// In en, this message translates to:
-  /// **'couldn\'t join — try again'**
+  /// **'couldn\'t join, try again'**
   String get enterPublicRoomJoinFailedMessage;
 
   /// All-caps wordmark in the masthead of the Feed tab's board, beside the app brand mark. Everything on the board is scoped to the current day, which is what this names.
@@ -7412,7 +7412,7 @@ abstract class AppLocalizations {
   /// Board-level failure line shown above every section when the feed subscription errored and no payload ever arrived. Deliberately distinct from the per-section empty states, which mean 'nothing happened today' rather than 'this did not load'.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load the board — try again in a moment'**
+  /// **'Couldn\'t load the board. Try again in a moment'**
   String get feedBoardLoadFailed;
 
   /// All-caps badge label shown on a room card/chip when the room is public (widgets/visibility_badge.dart).
@@ -7466,7 +7466,7 @@ abstract class AppLocalizations {
   /// Tap-to-explain tooltip on the PRIVATE room badge (widgets/visibility_badge.dart). Never shown for DMs.
   ///
   /// In en, this message translates to:
-  /// **'Invite only — it won\'t show up in Discover'**
+  /// **'Invite only. It won\'t show up in Discover'**
   String get roomBadgePrivateTooltip;
 
   /// Tap-to-explain tooltip on the LOCKED room badge, shown when the room needs a password to join.
@@ -7580,7 +7580,7 @@ abstract class AppLocalizations {
   /// Body copy inside the same recovery-phrase warning banner, lowercase sentence-fragment style, telling the user they risk permanent lockout without a recovery phrase set.
   ///
   /// In en, this message translates to:
-  /// **'No recovery phrase — you could not get back in.'**
+  /// **'No recovery phrase. You could not get back in.'**
   String get linkOpenerRecoveryBannerMessage;
 
   /// Nav label for the Chat section, shown under the icon in the bottom pill / side rail.
@@ -7850,7 +7850,7 @@ abstract class AppLocalizations {
   /// Short paragraph at the top of the problem-report screen explaining what will be sent.
   ///
   /// In en, this message translates to:
-  /// **'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing — that’s what helps us find the cause.'**
+  /// **'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing. That’s what helps us find the cause.'**
   String get reportProblemIntro;
 
   /// All-caps section header above the free-text field where the user describes the problem.
@@ -7904,7 +7904,7 @@ abstract class AppLocalizations {
   /// Confirmation shown after the problem report has been sent successfully.
   ///
   /// In en, this message translates to:
-  /// **'Report sent — thank you!'**
+  /// **'Report sent. Thank you!'**
   String get reportProblemSent;
 
   /// Shown when sending the problem report failed for a technical reason, e.g. no connection.
@@ -8126,7 +8126,7 @@ abstract class AppLocalizations {
   /// Caption under SHOW LINK URLS when the toggle is off.
   ///
   /// In en, this message translates to:
-  /// **'currently preview only — cleaner bubbles, tap to open'**
+  /// **'currently preview only: cleaner bubbles, tap to open'**
   String get settingsScreenLinksUrlsOffBody;
 
   /// All-caps label on the macOS menu-bar icon toggle row.
@@ -8138,13 +8138,13 @@ abstract class AppLocalizations {
   /// Caption under MENU BAR ICON when the toggle is on.
   ///
   /// In en, this message translates to:
-  /// **'MonkeyHub sits in the menu bar with its unread count — click it for the window'**
+  /// **'MonkeyHub sits in the menu bar with its unread count. Click it for the window'**
   String get settingsScreenMenuBarOnBody;
 
   /// Caption under MENU BAR ICON when the toggle is off.
   ///
   /// In en, this message translates to:
-  /// **'currently off — the Dock icon is the only way back to a hidden window'**
+  /// **'currently off. The Dock icon is the only way back to a hidden window'**
   String get settingsScreenMenuBarOffBody;
 
   /// All-caps section header above the call-related settings (video quality, network stats).
@@ -8210,13 +8210,13 @@ abstract class AppLocalizations {
   /// Description under the 1080p tier card.
   ///
   /// In en, this message translates to:
-  /// **'Full HD — sharper, uses more data'**
+  /// **'Full HD: sharper, uses more data'**
   String get videoQualityScreenHd1080Subtitle;
 
   /// Description under the 4K tier card.
   ///
   /// In en, this message translates to:
-  /// **'Ultra HD — best on a strong connection'**
+  /// **'Ultra HD: best on a strong connection'**
   String get videoQualityScreenUhd4kSubtitle;
 
   /// Small print at the bottom of the Video quality screen — no capability check backs the tiers, so hardware or network can still negotiate a call down from what's selected.
@@ -8276,7 +8276,7 @@ abstract class AppLocalizations {
   /// Caption under PUSH NOTIFICATIONS when the toggle is off.
   ///
   /// In en, this message translates to:
-  /// **'silent — you’ll only see things when you open the app'**
+  /// **'silent. You’ll only see things when you open the app'**
   String get settingsScreenPushOffBody;
 
   /// All-caps label for the switch controlling the once-a-day reminder to play the daily games. Sits directly under PUSH NOTIFICATIONS and is hidden entirely while that one is off.
@@ -8294,7 +8294,7 @@ abstract class AppLocalizations {
   /// Caption under DAILY GAME REMINDER when the switch is off. Reassures that turning it off costs nothing but the reminder — message and call notifications are governed by the switch above.
   ///
   /// In en, this message translates to:
-  /// **'no reminder — the games are still there when you look'**
+  /// **'no reminder. The games are still there when you look'**
   String get settingsScreenGameRemindersOffBody;
 
   /// Shown on signup when USERNAME_TAKEN comes back from the backend.
@@ -8342,7 +8342,7 @@ abstract class AppLocalizations {
   /// Shown on login when CHILD_MUST_PAIR comes back — a child account can't password-login, only pair.
   ///
   /// In en, this message translates to:
-  /// **'That’s a kid’s account — ask a grown-up for a pairing code.'**
+  /// **'That’s a kid’s account. Ask a grown-up for a pairing code.'**
   String get authErrorChildMustPair;
 
   /// Shown on the child pairing screen when PAIRING_CODE_EXPIRED comes back.
@@ -8360,7 +8360,7 @@ abstract class AppLocalizations {
   /// Shown on login when USE_SOCIAL_SIGN_IN comes back — the account has no password because it was created via a social provider.
   ///
   /// In en, this message translates to:
-  /// **'That account signs in with Apple or Google — use the buttons below.'**
+  /// **'That account signs in with Apple or Google. Use the buttons below.'**
   String get authErrorUseSocialSignIn;
 
   /// Shown when SOCIAL_TOKEN_INVALID comes back from a failed Apple/Google sign-in.
@@ -8816,7 +8816,7 @@ abstract class AppLocalizations {
   /// Sub-line under the CALM motion option. Reassures the user that only decorative motion stops: scrolling, sheets and gestures behave exactly as before.
   ///
   /// In en, this message translates to:
-  /// **'decoration holds still — nothing else changes'**
+  /// **'decoration holds still, nothing else changes'**
   String get motionScreenCalmSubtitle;
 
   /// All-caps label on the leading tile of the Feed highlights rail, which opens the composer to capture or pick a photo.
@@ -8942,7 +8942,7 @@ abstract class AppLocalizations {
   /// Error under the composer when the user has already awarded themselves the daily maximum (20) of one scoring category. Light-hearted; the cap exists so the standings board stays meaningful, not as a punishment.
   ///
   /// In en, this message translates to:
-  /// **'That\'s five of those today — save some for tomorrow'**
+  /// **'That\'s five of those today. Save some for tomorrow'**
   String get momentComposerErrorDailyCap;
 
   /// Error under the composer when a supervised (child) account tries to post a photo but their guardian has disabled media.
@@ -8954,7 +8954,7 @@ abstract class AppLocalizations {
   /// Error under the composer when the caption exceeds 280 characters.
   ///
   /// In en, this message translates to:
-  /// **'That\'s a bit long — trim it down'**
+  /// **'That\'s a bit long. Trim it down'**
   String get momentComposerErrorTooLong;
 
   /// Error under the composer when the user tries to post with neither a photo nor any text.
@@ -8966,7 +8966,7 @@ abstract class AppLocalizations {
   /// Generic error under the composer when publishing fails for an unrecognised reason.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t post that — try again'**
+  /// **'Couldn\'t post that. Try again'**
   String get momentComposerErrorGeneric;
 
   /// Label on the action that permanently removes the viewer's own moment from the Feed, shown only on moments they wrote.
@@ -8990,7 +8990,7 @@ abstract class AppLocalizations {
   /// Toast shown when deleting a moment from the viewer fails (network/API error). Lowercase, matching momentComposerErrorGeneric.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t delete that — try again'**
+  /// **'Couldn\'t delete that. Try again'**
   String get momentViewerDeleteFailed;
 
   /// Activity-river line for an untagged moment. {who} is a display name, or the localized word for 'you' when it is the viewer's own.
@@ -9086,7 +9086,7 @@ abstract class AppLocalizations {
   /// Confirmation shown after the puzzle result grid is copied to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'Copied — paste it to a friend'**
+  /// **'Copied. Paste it to a friend'**
   String get puzzleShareCopied;
 
   /// First line of the copied puzzle result, above the emoji grid. {edition} is the day number; {score} is the number of guesses used, or the letter X if unsolved. 'MonkeyHub' is a proper noun — keep it identical across locales. NOTE: parameters are emitted in ALPHABETICAL order (edition, score), which here matches reading order.
@@ -9110,7 +9110,7 @@ abstract class AppLocalizations {
   /// Generic error when submitting a puzzle guess fails for an unrecognised reason.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t send that guess — try again'**
+  /// **'Couldn\'t send that guess. Try again'**
   String get puzzleErrorGeneric;
 
   /// Shown under the code puzzle's grid when a guess could not reach the server. The guess is kept, the keypad stays locked, and it is resent automatically; the banner's action retries at once.
@@ -9194,7 +9194,7 @@ abstract class AppLocalizations {
   /// Explanation under the 'my past' visibility control. Makes clear that turning it off does NOT hide today, only history.
   ///
   /// In en, this message translates to:
-  /// **'today is always shared with friends — this opens up everything before it'**
+  /// **'today is always shared with friends. This opens up everything before it'**
   String get profileVisibilityScreenPointsPastDesc;
 
   /// Label on the button in the moment composer that picks a video from the device library.
@@ -9206,7 +9206,7 @@ abstract class AppLocalizations {
   /// Error under the composer when a picked video exceeds the 20 MB upload limit. Shown at pick time, before any upload starts.
   ///
   /// In en, this message translates to:
-  /// **'That video\'s too large — 20 MB max'**
+  /// **'That video\'s too large. 20 MB max'**
   String get momentComposerErrorTooBig;
 
   /// Activity-river line for the VIEWER'S OWN untagged moment. Separate from momentActivityPostedHighlight (which names another person) because languages with verb agreement — Turkish, Japanese, Korean and others — cannot conjugate correctly from an interpolated name. Write this in the second person.
@@ -9326,13 +9326,13 @@ abstract class AppLocalizations {
   /// Opening paragraph of the points explainer. Sets up that this is a game friends play about real life, not a social feed.
   ///
   /// In en, this message translates to:
-  /// **'A running joke you keep score of. When something happens to you — good, bad or just strange — you log it and it goes on the board for the day.'**
+  /// **'A running joke you keep score of. When something happens to you (good, bad or just strange), you log it and it goes on the board for the day.'**
   String get pointsExplainerIntro;
 
   /// Bullet in the points explainer covering the honour system.
   ///
   /// In en, this message translates to:
-  /// **'You award your own points. Nobody checks — that\'s the fun, and your friends will tell you if you\'re pushing it.'**
+  /// **'You award your own points. Nobody checks. That\'s the fun, and your friends will tell you if you\'re pushing it.'**
   String get pointsExplainerRuleHonour;
 
   /// Bullet in the points explainer covering the daily reset.
@@ -9542,7 +9542,7 @@ abstract class AppLocalizations {
   /// Queens' rules in one line, under its title. Exactly one crown goes in each row, each column and each coloured region, and no two crowns may be adjacent, including diagonally.
   ///
   /// In en, this message translates to:
-  /// **'One crown per row, column and colour — never touching'**
+  /// **'One crown per row, column and colour, never touching'**
   String get gameQueensRule;
 
   /// Name of the Tango daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game fills a grid with suns and moons.
@@ -9758,13 +9758,13 @@ abstract class AppLocalizations {
   /// Confirmation shown after a game result is copied to the clipboard.
   ///
   /// In en, this message translates to:
-  /// **'Copied — paste it to a friend'**
+  /// **'Copied. Paste it to a friend'**
   String get gameShareCopied;
 
   /// The whole copied game result, one line. {name} is the game's own localized name, {number} the day's edition number, {time} a stopwatch reading or the localized 'gave up'. 'MonkeyHub' is a proper noun — keep it identical across locales. NOTE: parameters are emitted in ALPHABETICAL order (name, number, time), which here matches reading order.
   ///
   /// In en, this message translates to:
-  /// **'MonkeyHub {name} №{number} — {time}'**
+  /// **'MonkeyHub {name} №{number} · {time}'**
   String gameShareLine(Object name, Object number, Object time);
 
   /// Tooltip on the back arrow in a game board's top bar, which returns to the games hub.
@@ -9800,7 +9800,7 @@ abstract class AppLocalizations {
   /// Generic error when a daily-game action fails for an unrecognised reason.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t reach the games — try again'**
+  /// **'Couldn\'t reach the games. Try again'**
   String get gameErrorGeneric;
 
   /// Screen-reader label and tooltip for the small question-mark button on a game tile, which opens the sheet explaining that game.
@@ -10100,7 +10100,7 @@ abstract class AppLocalizations {
   /// SnackBar shown when saving a message fails because this reader has already saved the maximum number of messages in this room (backend returns SAVE_LIMIT_REACHED). Lowercase, matching roomScreenPinLimitSnack.
   ///
   /// In en, this message translates to:
-  /// **'Too many saved here — unsave one first'**
+  /// **'Too many saved here. Unsave one first'**
   String get roomScreenSaveLimitSnack;
 
   /// SnackBar shown for any other (non-limit) failure to save a message. Lowercase, matching roomScreenPinFailedSnack.
@@ -10112,7 +10112,7 @@ abstract class AppLocalizations {
   /// Toast shown in the thread overlay when saving a message fails because this reader has hit the per-room save limit (backend returns SAVE_LIMIT_REACHED).
   ///
   /// In en, this message translates to:
-  /// **'Too many saved here — unsave one first'**
+  /// **'Too many saved here. Unsave one first'**
   String get threadOverlaySaveLimitToast;
 
   /// Generic toast shown in the thread overlay when saving a message fails for any reason other than the save limit.
@@ -10124,7 +10124,7 @@ abstract class AppLocalizations {
   /// Caption under the SHARED CONTENT group in room info, explaining the SAVED row that sits in it. The contrast with pinning is the whole point of the sentence — saved is per-reader, pinned is room state — so keep both halves.
   ///
   /// In en, this message translates to:
-  /// **'only you can see the messages you save — a pinned message is the opposite: the whole room sees it.'**
+  /// **'only you can see the messages you save. A pinned message is the opposite: the whole room sees it.'**
   String get roomInfoScreenSharedContentSavedNote;
 
   /// Caption under the member roster in room info, shown only when the roster includes the room's owner. Explains the medal icon RoleChip adds to that one member's ADMIN badge (see room_member_actions_sheet.dart) — the badge itself no longer spells out the word 'owner' in any language, so this sentence is the only place that fact is stated.
@@ -10232,7 +10232,7 @@ abstract class AppLocalizations {
   /// Sentence in the mute sheet when BOTH switches are on, stating that neither notifications nor unread counts will reach the user.
   ///
   /// In en, this message translates to:
-  /// **'Nothing from this chat reaches you — no notifications, no unread count.'**
+  /// **'Nothing from this chat reaches you: no notifications, no unread count.'**
   String get muteSummaryAll;
 
   /// Sentence in the mute sheet when only the notifications switch is on: no banners, but the unread count still rises.
@@ -11144,7 +11144,7 @@ abstract class AppLocalizations {
   /// Caption under the onboarding heading, explaining that this build has no bundled server.
   ///
   /// In en, this message translates to:
-  /// **'This build didn\'t come with one — point it at yours'**
+  /// **'This build didn\'t come with one. Point it at yours'**
   String get serverOnboardingSubtitle;
 
   /// All-caps status label on the server screen when the app is connected to the server.
@@ -11486,7 +11486,7 @@ abstract class AppLocalizations {
   /// Explains that the operator moved traffic to their home server on purpose, and that it is temporary.
   ///
   /// In en, this message translates to:
-  /// **'The people who run MonkeyHub have moved traffic to their home server for a while. Everything works the same way — this is deliberate, not a fault.'**
+  /// **'The people who run MonkeyHub have moved traffic to their home server for a while. Everything works the same way. This is deliberate, not a fault.'**
   String get serverRoleHomeserverBody;
 
   /// The warning that costs something to admit: writes made on the homeserver may not survive the move back.
@@ -11564,7 +11564,7 @@ abstract class AppLocalizations {
   /// Body copy under the hero heading on the desktop/web device-login screen, explaining how to approve this sign-in from a phone.
   ///
   /// In en, this message translates to:
-  /// **'Open MonkeyHub on your phone, go to your profile, tap “Scan to sign in” and point the camera here — or type the code below.'**
+  /// **'Open MonkeyHub on your phone, go to your profile, tap “Scan to sign in” and point the camera here, or type the code below.'**
   String get deviceLoginScreenIntro;
 
   /// Lowercase status line on the desktop/web device-login screen while the request is still pending on the phone.
@@ -11576,7 +11576,7 @@ abstract class AppLocalizations {
   /// Lowercase status line on the desktop/web device-login screen the moment the phone approves the request, while the session exchange is in flight.
   ///
   /// In en, this message translates to:
-  /// **'Approved — signing you in…'**
+  /// **'Approved. Signing you in…'**
   String get deviceLoginScreenApproved;
 
   /// Status line on the desktop/web device-login screen when the phone explicitly declines the request.
@@ -11588,7 +11588,7 @@ abstract class AppLocalizations {
   /// Fallback status line on the desktop/web device-login screen for an unrecognized failure (expired, invalid, or a network error), directing the user to mint a fresh code.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong — try a new code'**
+  /// **'Something went wrong. Try a new code'**
   String get deviceLoginScreenGenericError;
 
   /// All-caps label on the Profile row (mobile only) that opens the device-login scan screen, for approving a QR/short-code sign-in shown on another device. Doubles as the header title on that screen.
@@ -11654,7 +11654,7 @@ abstract class AppLocalizations {
   /// Fallback error message on the phone's device-login scan screen for an unrecognized failure.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t approve — try again'**
+  /// **'Couldn’t approve. Try again'**
   String get deviceLoginScanScreenGenericError;
 
   /// deviceLogin.ERR_CODE_INVALID / ERR_REQUEST_INVALID — the typed code or scanned QR doesn't match any live sign-in request.
@@ -11666,7 +11666,7 @@ abstract class AppLocalizations {
   /// deviceLogin.ERR_CODE_EXPIRED / ERR_REQUEST_EXPIRED — the sign-in request's short TTL has passed.
   ///
   /// In en, this message translates to:
-  /// **'That code has expired — get a new one on the other device.'**
+  /// **'That code has expired. Get a new one on the other device.'**
   String get authErrorDeviceLoginExpired;
 
   /// Confirmation message on the phone's device-login scan screen after DENY succeeds — deliberately not the same 'on your phone' wording the desktop side shows, since that phrase would read oddly on the phone that just did the denying.
@@ -12862,7 +12862,7 @@ abstract class AppLocalizations {
   /// Honest footnote at the bottom of the Devices screen explaining the limits of Remove. Accuracy matters more than brevity here: this screen is opened by people who think a device was stolen.
   ///
   /// In en, this message translates to:
-  /// **'Removing a device signs it out and stops its notifications. It takes effect immediately — the next thing that device tries to do will send it back to the login screen.'**
+  /// **'Removing a device signs it out and stops its notifications. It takes effect immediately: the next thing that device tries to do will send it back to the login screen.'**
   String get devicesScreenFootnote;
 
   /// Label under the poll icon in the attachment picker sheet (attachment_menu.dart). Lower case, matching the other tiles.
@@ -13474,7 +13474,7 @@ abstract class AppLocalizations {
   /// Longer description of Sebastian, shown on his detail screen and in his install sheet.
   ///
   /// In en, this message translates to:
-  /// **'Sebastian reads a message written in another language and tells you what it says — here on your phone, with nothing sent anywhere.'**
+  /// **'Sebastian reads a message written in another language and tells you what it says, here on your phone, with nothing sent anywhere.'**
   String get companionSebastianBlurb;
 
   /// One-line description of the companion Marlowe, shown under the name. 'Marlowe' is a proper noun and is never translated. Marlowe's gender is deliberately unstated — keep the wording free of gendered pronouns and articles.
@@ -13594,7 +13594,7 @@ abstract class AppLocalizations {
   /// Shown under a language in Sebastian's picker that his current brain does not officially support.
   ///
   /// In en, this message translates to:
-  /// **'Not one of his languages — expect rough results'**
+  /// **'Not one of his languages, so expect rough results'**
   String get sebastianLanguageUnlisted;
 
   /// Status line under a companion's name in the Companions list, when nothing has been downloaded for them.
@@ -13630,7 +13630,7 @@ abstract class AppLocalizations {
   /// Storage summary at the bottom of the Companions screen when nothing is installed.
   ///
   /// In en, this message translates to:
-  /// **'Nothing downloaded — companions are using no space'**
+  /// **'Nothing downloaded. Companions are using no space'**
   String get companionStorageEmpty;
 
   /// Storage summary at the bottom of the Companions screen. {size} is an already-formatted size, e.g. '1.2 GB'.
@@ -13726,7 +13726,7 @@ abstract class AppLocalizations {
   /// Honest note at the top of Marlowe's screen explaining there are no working features yet, only the downloadable model. Marlowe's gender is deliberately unstated — keep the wording free of gendered pronouns and articles.
   ///
   /// In en, this message translates to:
-  /// **'Marlowe can\'t do anything yet — the skills are still on the way. What you can do now is get a brain ready, so nothing is waiting on a download when they land.'**
+  /// **'Marlowe can\'t do anything yet; the skills are still on the way. What you can do now is get a brain ready, so nothing is waiting on a download when they land.'**
   String get marloweSkillsComingSoon;
 
   /// All-caps section label above Marlowe's list of downloadable models. 'Brain' is this app's user-facing word for a model.
@@ -13912,7 +13912,7 @@ abstract class AppLocalizations {
   /// Toast shown when the install sheet is dismissed while a download is still running, telling the user it did not stop and where to find it. {name} is the companion's name.
   ///
   /// In en, this message translates to:
-  /// **'{name} keeps downloading — Settings › Companions'**
+  /// **'{name} keeps downloading. Settings › Companions'**
   String companionInstallContinuesInBackground(Object name);
 
   /// Value column of the Companions settings row while a model is downloading. {percent} is 0-100.
@@ -14152,7 +14152,7 @@ abstract class AppLocalizations {
   /// Empty state of the desktop share picker when no source could be listed (macOS needs the Screen Recording permission).
   ///
   /// In en, this message translates to:
-  /// **'Nothing to share yet — allow screen recording in System Settings and try again'**
+  /// **'Nothing to share yet. Allow screen recording in System Settings and try again'**
   String get screenSharePickerEmpty;
 
   /// All-caps action on a finished game's result card; sends a push notification with this result to the player's friends. Distinct from gameShare, which only copies text.
@@ -14194,7 +14194,7 @@ abstract class AppLocalizations {
   /// Toast shown after a game result was pushed to the player's friends.
   ///
   /// In en, this message translates to:
-  /// **'Sent — they know'**
+  /// **'Sent. They know'**
   String get gameTellFriendsSent;
 
   /// Toast shown when the send was refused because the player's own daily-score visibility is set to nobody, so friends could not see the result anyway. The fix is a setting they own.
@@ -14224,7 +14224,7 @@ abstract class AppLocalizations {
   /// Sub-line when friend-activity notifications are off.
   ///
   /// In en, this message translates to:
-  /// **'nothing — their boards are still there when you look'**
+  /// **'nothing. Their boards are still there when you look'**
   String get settingsScreenFriendActivityOffBody;
 
   /// Shown in place of an action button when a request between the viewer and this person is still parked at the VIEWER'S OWN guardian. Never shown for the other side's guardian — that would reveal that the other person is a child.
@@ -14242,7 +14242,7 @@ abstract class AppLocalizations {
   /// Empty state in the new-chat sheet when the account has no friends at all.
   ///
   /// In en, this message translates to:
-  /// **'No friends yet — find people in Discover'**
+  /// **'No friends yet. Find people in Discover'**
   String get newChatMenuNoFriendsYet;
 
   /// Empty state in the new-chat sheet when the search filtered everyone out.
@@ -14254,7 +14254,7 @@ abstract class AppLocalizations {
   /// Toast shown when opening a DM from the new-chat sheet fails.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t open that chat — try again'**
+  /// **'Couldn’t open that chat. Try again'**
   String get newChatMenuOpenDmFailed;
 
   /// Outline button on the child settings screen that opens the person picker.
@@ -14272,7 +14272,7 @@ abstract class AppLocalizations {
   /// Shown when every one of the guardian's own friends is already allowed.
   ///
   /// In en, this message translates to:
-  /// **'No one left to add from your friends —\\nsearch for anyone else'**
+  /// **'No one left to add from your friends,\\nsearch for anyone else'**
   String get childPolicyScreenPickPersonEmpty;
 
   /// Shown when the guardian's person search found nobody.
@@ -14338,7 +14338,7 @@ abstract class AppLocalizations {
   /// Generic failure adding a room to a child.
   ///
   /// In en, this message translates to:
-  /// **'Couldn’t add that room — try again'**
+  /// **'Couldn’t add that room. Try again'**
   String get childPolicyScreenErrorAddRoomGeneric;
 
   /// Refused because the target is a DM or a system room.
@@ -14362,7 +14362,7 @@ abstract class AppLocalizations {
   /// Error shown when a suggested room change can no longer be found — usually because another admin already answered it.
   ///
   /// In en, this message translates to:
-  /// **'That suggestion is gone — an admin may have answered it.'**
+  /// **'That suggestion is gone. An admin may have answered it.'**
   String get roomChangeErrorGone;
 
   /// Error shown when somebody tries to withdraw a suggestion they did not make.
@@ -14440,7 +14440,7 @@ abstract class AppLocalizations {
   /// Stands in for an empty proposed description — the suggestion is to remove it altogether.
   ///
   /// In en, this message translates to:
-  /// **'Nothing — take it off'**
+  /// **'Nothing, take it off'**
   String get roomChangeRequestsClearedValue;
 
   /// Attribution line above a suggested change. {name} is the member's display name.
@@ -14482,7 +14482,7 @@ abstract class AppLocalizations {
   /// Toast shown when a suggestion applied straight away because the sender turned out to be an admin.
   ///
   /// In en, this message translates to:
-  /// **'Done — you can edit this group'**
+  /// **'Done. You can edit this group'**
   String get roomInfoScreenSuggestionAppliedToast;
 
   /// Toast confirming a suggestion was taken back.
@@ -14680,7 +14680,7 @@ abstract class AppLocalizations {
   /// One line under the ALL-TIME label on the games hub.
   ///
   /// In en, this message translates to:
-  /// **'The best anyone has ever done — you and your friends'**
+  /// **'The best anyone has ever done: you and your friends'**
   String get recordsBlurb;
 
   /// Under a game's record holder on the games hub: the viewer's own all-time best at that game. {value} is a time like 1:42 or a guess count like 3/6.
@@ -14752,7 +14752,7 @@ abstract class AppLocalizations {
   /// Line under 'Match device'.
   ///
   /// In en, this message translates to:
-  /// **'Light by day, dark by night — with your phone'**
+  /// **'Light by day, dark by night, with your phone'**
   String get appearanceMatchDeviceSub;
 
   /// Option: one fixed theme regardless of the device's light/dark mode.
@@ -15124,7 +15124,7 @@ abstract class AppLocalizations {
   /// Toast after a GIF or sticker was reported.
   ///
   /// In en, this message translates to:
-  /// **'Thanks — it’s been reported.'**
+  /// **'Thanks, it’s been reported.'**
   String get expressionReported;
 
   /// Button that retries loading GIFs or stickers.
@@ -17206,7 +17206,7 @@ abstract class AppLocalizations {
   /// Explanation under My past.
   ///
   /// In en, this message translates to:
-  /// **'Today is always shared with friends — this opens up everything before it'**
+  /// **'Today is always shared with friends. This opens up everything before it'**
   String get pvPastDesc;
 
   /// Feed setting.
@@ -17308,7 +17308,7 @@ abstract class AppLocalizations {
   /// Footer under shared content explaining saved vs pinned.
   ///
   /// In en, this message translates to:
-  /// **'Only you see what you save. A pinned message is the opposite — the whole room sees it.'**
+  /// **'Only you see what you save. A pinned message is the opposite: the whole room sees it.'**
   String get riSavedNote;
 
   /// Footer under the member list explaining the owner medal.
@@ -17482,7 +17482,7 @@ abstract class AppLocalizations {
   /// Text link leaving the flow without changing the existing phrase.
   ///
   /// In en, this message translates to:
-  /// **'Not now — keep my current phrase'**
+  /// **'Not now, keep my current phrase'**
   String get rpKeep;
 
   /// Large title on the Add a child screen, iOS sentence case.
@@ -18616,7 +18616,7 @@ abstract class AppLocalizations {
   /// Diagnostics warning line when the ring buffer dropped early events.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{{count} earlier event dropped — the log starts mid-story} other{{count} earlier events dropped — the log starts mid-story}}'**
+  /// **'{count, plural, one{{count} earlier event dropped, so the log starts mid-story} other{{count} earlier events dropped, so the log starts mid-story}}'**
   String diagDropped(int count);
 
   /// Diagnostics collapsed row: how many repeats over how many seconds (seconds pre-formatted, e.g. 1.4).

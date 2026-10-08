@@ -484,7 +484,7 @@ export async function purgeUserExpressions(ctx: any, userId: any) {
 // publishes because it is about a tenth of the size (a 40 KB JSON against a
 // 400 KB WebP) and draws crisp at any size.
 
-const NOTO_AUTHOR = "Google — Noto Emoji Animation";
+const NOTO_AUTHOR = "Noto Emoji Animation by Google";
 const NOTO_LICENSE = "CC BY 4.0";
 const NOTO_SOURCE = "https://googlefonts.github.io/noto-emoji-animation/";
 const notoUrl = (code: string) =>

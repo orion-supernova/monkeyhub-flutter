@@ -44,14 +44,14 @@ Future<void> main() async {
   // the app ships.
   LicenseRegistry.addLicense(() => Stream.value(const LicenseEntryWithLineBreaks(
         ['Noto Emoji Animation (sticker packs)'],
-        'Animated emoji by Google — Noto Emoji Animation\n'
+        'Noto Emoji Animation, animated emoji by Google\n'
         'https://googlefonts.github.io/noto-emoji-animation/\n\n'
         'Licensed under the Creative Commons Attribution 4.0 International '
         'License (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/',
       )));
   LicenseRegistry.addLicense(() => Stream.value(const LicenseEntryWithLineBreaks(
         ['Fluent Emoji (sticker packs)'],
-        'Animated 3D emoji by Microsoft — Fluent Emoji\n'
+        'Fluent Emoji, animated 3D emoji by Microsoft\n'
         'https://github.com/microsoft/fluentui-emoji-animated\n\n'
         'MIT License\n\nCopyright (c) Microsoft Corporation.\n\n'
         'Permission is hereby granted, free of charge, to any person obtaining '

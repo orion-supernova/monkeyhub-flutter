@@ -62,7 +62,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomScreenAskGrownUpFailedSnack =>
-      'Kunde inte fråga just nu — försök igen';
+      'Kunde inte fråga just nu. Försök igen';
 
   @override
   String get roomScreenGateSendMessages => 'skicka meddelanden här';
@@ -129,7 +129,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomScreenPinLimitSnack =>
-      'För många nålade meddelanden — nåla av ett först';
+      'För många nålade meddelanden. Nåla av ett först';
 
   @override
   String get roomScreenPinFailedSnack => 'Kunde inte nåla det';
@@ -338,7 +338,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileScreenDeleteAccount => 'RADERA KONTO';
 
   @override
-  String get profileScreenEmailHint => 'valfritt — visas aldrig för någon';
+  String get profileScreenEmailHint => 'valfritt, visas aldrig för någon';
 
   @override
   String get profileScreenEmailSectionLabel => 'E-POST';
@@ -355,14 +355,14 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get profileScreenErrorRequestAlreadyReceived =>
-      'de har redan skickat dig en förfrågan — kolla dina förfrågningar.';
+      'de har redan skickat dig en förfrågan, kolla dina förfrågningar.';
 
   @override
   String get profileScreenErrorRequestAlreadySent => 'förfrågan redan skickad.';
 
   @override
   String get profileScreenErrorUnblockFirst =>
-      'du har blockerat den här användaren — ta bort blockeringen först.';
+      'du har blockerat den här användaren, ta bort blockeringen först.';
 
   @override
   String get profileScreenErrorUserNotFound => 'det går inte just nu.';
@@ -393,7 +393,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get profileScreenGrownUpOnlyNote =>
-      'Bara en vuxen kan göra det här — det behövs deras kod eller lösenord.';
+      'Bara en vuxen kan göra det här. Det behövs deras kod eller lösenord.';
 
   @override
   String get profileScreenGuardiansCanSee =>
@@ -510,7 +510,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get profileScreenRedactedStranger =>
-      'begränsad vy — de delar mer med vänner.';
+      'begränsad vy: de delar mer med vänner.';
 
   @override
   String get profileScreenReportAction => 'ANMÄL';
@@ -677,27 +677,27 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get glassScreenSurfacesNote =>
-      'Skrivfältet, rubriker, samtalsknappar — allt som ligger ovanpå text snarare än ovanpå skrollande innehåll';
+      'Skrivfältet, rubriker, samtalsknappar: allt som ligger ovanpå text snarare än ovanpå skrollande innehåll';
 
   @override
   String get glassScreenMatchBottomBar => 'Matcha det nedre fältet';
 
   @override
   String get glassScreenPresetEditedSubtitle =>
-      'Redigerad — spara som en ny stil, eller återställ den';
+      'Redigerad. Spara som en ny stil, eller återställ den';
 
   @override
   String get glassScreenCustomPresetName => 'Anpassad';
 
   @override
   String get glassScreenUnsavedSubtitle =>
-      'Osparad — ge den ett namn för att behålla den';
+      'Osparad. Ge den ett namn för att behålla den';
 
   @override
   String get glassScreenSaveDialogTitle => 'Spara den här looken som';
 
   @override
-  String get glassScreenNoRoomToast => 'Ingen plats — ta bort en look först';
+  String get glassScreenNoRoomToast => 'Ingen plats. Ta bort en look först';
 
   @override
   String get glassScreenRenameDialogTitle => 'Byt namn';
@@ -709,7 +709,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get glassScreenDeleteConfirmBody =>
-      'Looken stannar kvar på skärmen — den blir bara namnlös.';
+      'Looken stannar kvar på skärmen, den blir bara namnlös.';
 
   @override
   String get glassScreenKeepButton => 'Behåll';
@@ -769,7 +769,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get glassScreenBackdropMsgDilan =>
-      'skickade takfotona — takpannorna är helt spruckna';
+      'skickade takfotona, takpannorna är helt spruckna';
 
   @override
   String get glassScreenBackdropMsgMert =>
@@ -837,7 +837,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get threadOverlayStillSending =>
-      'Skickas fortfarande — försök igen om en stund';
+      'Skickas fortfarande. Försök igen om en stund';
 
   @override
   String get threadOverlayCopiedToast => 'Kopierat';
@@ -850,7 +850,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get threadOverlayPinLimitToast =>
-      'För många nålade meddelanden — avnåla ett först';
+      'För många nålade meddelanden. Avnåla ett först';
 
   @override
   String get threadOverlayPinFailedToast => 'Kunde inte nåla det';
@@ -893,7 +893,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String roomInfoScreenEndConversationConfirmBody(String peerName) {
-    return '$peerName förlorar också konversationen — alla meddelanden försvinner för er båda. Det här är permanent.';
+    return '$peerName förlorar också konversationen: alla meddelanden försvinner för er båda. Det här är permanent.';
   }
 
   @override
@@ -978,7 +978,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInfoScreenPasswordProtectedNote =>
-      'det här rummet är skyddat. av säkerhetsskäl visas inte det befintliga lösenordet — ange ett nytt för att ersätta det.';
+      'det här rummet är skyddat. av säkerhetsskäl visas inte det befintliga lösenordet, ange ett nytt för att ersätta det.';
 
   @override
   String get roomInfoScreenReplacePasswordHint => 'Byt lösenord';
@@ -1094,7 +1094,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String childPolicyScreenAllowSomeoneBlurb(Object childName) {
-    return 'Du kommer inte att tillfrågas om dem igen — oavsett om $childName lägger till dem eller de lägger till $childName.';
+    return 'Du kommer inte att tillfrågas om dem igen, oavsett om $childName lägger till dem eller de lägger till $childName.';
   }
 
   @override
@@ -1105,7 +1105,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenAskToAddOffDesc =>
-      'Bara familj — inga nya förfrågningar';
+      'Bara familj, inga nya förfrågningar';
 
   @override
   String get childPolicyScreenAskToAddOnDesc =>
@@ -1133,7 +1133,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenContactAddedRequestSent =>
-      'Tillagd — förfrågan är på väg';
+      'Tillagd. Förfrågan är på väg';
 
   @override
   String get childPolicyScreenContactAddedToList =>
@@ -1155,7 +1155,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenDeleteAccountFailed =>
-      'Det gick inte att radera kontot — försök igen';
+      'Det gick inte att radera kontot. Försök igen';
 
   @override
   String childPolicyScreenDeleteAccountHeadline(Object name) {
@@ -1176,7 +1176,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorAddContactGeneric =>
-      'Det gick inte att lägga till dem — försök igen';
+      'Det gick inte att lägga till dem. Försök igen';
 
   @override
   String get childPolicyScreenErrorCannotAddSelf =>
@@ -1188,11 +1188,11 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorGenericGuardian =>
-      'Det gick inte — försök igen';
+      'Det gick inte. Försök igen';
 
   @override
   String get childPolicyScreenErrorLastGuardian =>
-      'Någon måste ta hand om dem — lägg till en till vuxen först';
+      'Någon måste ta hand om dem. Lägg till en till vuxen först';
 
   @override
   String get childPolicyScreenErrorNotYours =>
@@ -1204,7 +1204,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenGraduateBlurb =>
-      'De blir ett vanligt konto med det här lösenordet, och alla vuxna förlorar all insyn. Det finns ingen väg tillbaka — du skulle behöva bli inbjuden som vem som helst.';
+      'De blir ett vanligt konto med det här lösenordet, och alla vuxna förlorar all insyn. Det finns ingen väg tillbaka: du skulle behöva bli inbjuden som vem som helst.';
 
   @override
   String get childPolicyScreenGraduateCta => 'Gör vuxen';
@@ -1218,7 +1218,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenGraduateFailed =>
-      'Kunde inte göra dem vuxna — försök igen';
+      'Kunde inte göra dem vuxna. Försök igen';
 
   @override
   String childPolicyScreenGraduateHeading(Object name) {
@@ -1230,15 +1230,15 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenGrantsFooterNote =>
-      'Att ta tillbaka ett rum tar också bort dem från det. Att ta tillbaka en person raderar även chatten — för dem båda.';
+      'Att ta tillbaka ett rum tar också bort dem från det. Att ta tillbaka en person raderar även chatten, för dem båda.';
 
   @override
   String get childPolicyScreenGrownUpsDesc =>
-      'Alla här kan godkänna, ändra inställningar och se allt. Vem som helst av dem kan agera på egen hand — ingen behöver vänta på de andra.';
+      'Alla här kan godkänna, ändra inställningar och se allt. Vem som helst av dem kan agera på egen hand. Ingen behöver vänta på de andra.';
 
   @override
   String get childPolicyScreenGuardianAdded =>
-      'Tillagd — hen kan ta hand om dem nu';
+      'Tillagd. Hen kan ta hand om dem nu';
 
   @override
   String childPolicyScreenGuardianRemoved(Object name) {
@@ -1271,11 +1271,11 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenPeopleAllowedDesc =>
-      'Vem som helst här kan läggas till utan att du tillfrågas igen — oavsett vem av dem som tar initiativet.';
+      'Vem som helst här kan läggas till utan att du tillfrågas igen, oavsett vem av dem som tar initiativet.';
 
   @override
   String get childPolicyScreenPublicRoomsBody =>
-      'Alltid avstängt för barn. Upptäck — listan över rum som tillhör personer du inte känner — är helt dold och kan inte slås på. Rum som någon bjuder in dem till fungerar fortfarande som vanligt.';
+      'Alltid avstängt för barn. Upptäck (listan över rum som tillhör personer du inte känner) är helt dold och kan inte slås på. Rum som någon bjuder in dem till fungerar fortfarande som vanligt.';
 
   @override
   String get childPolicyScreenPublicRoomsLabel => 'Offentliga rum';
@@ -1332,7 +1332,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String childPolicyScreenSoleGuardianNote(Object name) {
-    return 'Du är ${name}s enda vuxna, så du kan inte bara kliva av — lägg till en till först, eller använd ett av dessa.';
+    return 'Du är ${name}s enda vuxna, så du kan inte bara kliva av. Lägg till en till först, eller använd ett av dessa.';
   }
 
   @override
@@ -1340,7 +1340,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String childPolicyScreenStopSupervisingBody(Object name) {
-    return 'Du förlorar all insyn i ${name}s konto — deras förfrågningar, deras kontakter, deras rum. De andra vuxna fortsätter att ta hand om dem.';
+    return 'Du förlorar all insyn i ${name}s konto: deras förfrågningar, deras kontakter, deras rum. De andra vuxna fortsätter att ta hand om dem.';
   }
 
   @override
@@ -1351,7 +1351,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenTakeBackFailed =>
-      'Kunde inte ta tillbaka det — försök igen';
+      'Kunde inte ta tillbaka det. Försök igen';
 
   @override
   String get childPolicyScreenTakeBackLabel => 'Ta tillbaka';
@@ -1444,7 +1444,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomContentScreenEmptySaved =>
-      'Inget sparat än. Håll in ett meddelande och välj Spara.\n\nDet du sparar här är bara ditt — ett fäst meddelande är det hela rummet ser.';
+      'Inget sparat än. Håll in ett meddelande och välj Spara.\n\nDet du sparar här är bara ditt. Ett fäst meddelande är det hela rummet ser.';
 
   @override
   String get roomContentScreenLoadFailed => 'Kunde inte läsa in det';
@@ -1486,7 +1486,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get spoilerRevealHint =>
-      'Spoiler — aktivera för att visa den dolda texten';
+      'Spoiler: aktivera för att visa den dolda texten';
 
   @override
   String get formatToolbarFormatLabel => 'Formatera';
@@ -1539,7 +1539,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomScreenEditExpiredSnack =>
-      'För sent att redigera — meddelanden kan bara redigeras i 15 minuter.';
+      'För sent att redigera. Meddelanden kan bara redigeras i 15 minuter.';
 
   @override
   String get roomScreenEditFailedSnack =>
@@ -1612,7 +1612,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String themeScreenCarouselActiveLabel(Object name) {
-    return 'AKTIV — $name';
+    return 'AKTIV: $name';
   }
 
   @override
@@ -1727,7 +1727,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get friendRequestDraftScreenErrorBlocked =>
-      'Du har blockerat den här användaren — häv blockeringen först.';
+      'Du har blockerat den här användaren. Häv blockeringen först.';
 
   @override
   String get friendRequestDraftScreenErrorNotAccepting =>
@@ -1857,7 +1857,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get discoverScreenNoFriendsYetWithHint =>
-      'Ingen än — hitta personer ovan';
+      'Ingen än. Hitta personer ovan';
 
   @override
   String get discoverScreenNoFriendsYet => 'Ingen än';
@@ -2046,7 +2046,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get searchScreenNoMatchChild =>
-      'Ingen matchar — nya personer behöver sitt\nhela användarnamn, exakt stavat';
+      'Ingen matchar. Nya personer behöver sitt\nhela användarnamn, exakt stavat';
 
   @override
   String get searchScreenNoMatchDefault => 'Ingen matchar';
@@ -2080,7 +2080,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenSubtitle =>
-      'bestäm vad andra ser — och hur de kan nå dig.';
+      'bestäm vad andra ser, och hur de kan nå dig.';
 
   @override
   String get profileVisibilityScreenSectionProfile => 'PROFIL';
@@ -2200,7 +2200,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get recoveryPhraseScreenCopiedSnackbar =>
-      'Kopierad — klistra in den på ett säkert ställe';
+      'Kopierad. Klistra in den på ett säkert ställe';
 
   @override
   String get recoveryPhraseScreenConfirmHeroMuted => 'Bekräfta\n';
@@ -2249,7 +2249,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get recoveryPhraseScreenKeepPhraseLink =>
-      'inte nu — behåll min nuvarande fras';
+      'inte nu, behåll min nuvarande fras';
 
   @override
   String get homeScreenProfileSemanticLabel => 'Din profil';
@@ -2263,7 +2263,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get homeScreenNewRoomSemanticLabel => 'Nytt rum';
 
   @override
-  String get homeScreenEmptyRoomsMessage => 'Inga rum än — skapa ett';
+  String get homeScreenEmptyRoomsMessage => 'Inga rum än. Skapa ett';
 
   @override
   String get groupCallScreenTitleVideo => 'Gruppvideosamtal';
@@ -2697,7 +2697,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get audioMessagePasswordHint => 'Lösenord';
 
   @override
-  String get audioMessageSwitchToLinkPrompt => 'Det kontot är mitt — logga in';
+  String get audioMessageSwitchToLinkPrompt => 'Det kontot är mitt. Logga in';
 
   @override
   String get audioMessageCreateAccountButton => 'Skapa konto';
@@ -2731,7 +2731,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get approvalsScreenErrorGeneric =>
-      'det gick inte att spara — försök igen';
+      'det gick inte att spara, försök igen';
 
   @override
   String approvalsScreenHeadlineContactOutgoing(Object child, Object other) {
@@ -2966,7 +2966,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPairScreenNoCameraMessage =>
-      'Ingen kamera här — skriv in de sex siffrorna istället.';
+      'Ingen kamera här. Skriv in de sex siffrorna istället.';
 
   @override
   String get childPairScreenStopScanning => 'Sluta skanna';
@@ -3001,7 +3001,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get textFileViewerTruncatedNotice =>
-      'Visar en del av filen — ladda ner för att se resten.';
+      'Visar en del av filen. Ladda ner för att se resten.';
 
   @override
   String get fileMessageUploadFailedLabel => 'misslyckades';
@@ -3085,7 +3085,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get destructiveSheetPairingMintError =>
-      'Kunde inte skapa en kod — försök igen.';
+      'Kunde inte skapa en kod. Försök igen.';
 
   @override
   String get destructiveSheetPairingReleaseTitle => 'FRIGÖR';
@@ -3100,7 +3100,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String destructiveSheetPairingPairInstructions(Object name) {
-    return 'Öppna MonkeyHub på ${name}s telefon och skanna den här — eller skriv in siffrorna.';
+    return 'Öppna MonkeyHub på ${name}s telefon och skanna den här, eller skriv in siffrorna.';
   }
 
   @override
@@ -3194,7 +3194,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'Några av de fotona gick inte att öppna';
 
   @override
-  String get mediaPickFailedMessage => 'Kunde inte öppna — försök välja igen';
+  String get mediaPickFailedMessage => 'Kunde inte öppna. Försök välja igen';
 
   @override
   String typingIndicatorOnePersonTyping(Object name) {
@@ -3330,7 +3330,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String releaseDeviceScreenIntro(Object name) {
-    return 'Detta loggar ut $name från den här telefonen och lämnar tillbaka den — telefonen återgår till den vanliga inloggningsskärmen, och vem som helst kan använda den.';
+    return 'Detta loggar ut $name från den här telefonen och lämnar tillbaka den. Telefonen återgår till den vanliga inloggningsskärmen, och vem som helst kan använda den.';
   }
 
   @override
@@ -3509,7 +3509,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get callButtonReplyStyleClassicDescription =>
-      'en accentfärgad citatbricka i rundad form, med en kopplingslinje och avatar — den bekanta känslan från WhatsApp.';
+      'en accentfärgad citatbricka i rundad form, med en kopplingslinje och avatar: den bekanta känslan från WhatsApp.';
 
   @override
   String get callButtonReplyStyleActiveBadge => 'AKTIV';
@@ -3536,7 +3536,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childSetupScreenErrorGeneric =>
-      'Det gick inte att skapa kontot — försök igen.';
+      'Det gick inte att skapa kontot. Försök igen.';
 
   @override
   String get childSetupScreenTitle => 'LÄGG TILL BARN';
@@ -3565,7 +3565,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childSetupScreenBulletNeedsApproval =>
-      'Alla andra behöver ditt godkännande först — både de hen vill lägga till, och de som vill lägga till hen.';
+      'Alla andra behöver ditt godkännande först: både de hen vill lägga till, och de som vill lägga till hen.';
 
   @override
   String get childSetupScreenBulletPublicRoomsOff =>
@@ -3992,7 +3992,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get reportSheetPrivacyNote =>
-      'anmälningar är privata — den andra personen meddelas inte.';
+      'anmälningar är privata, den andra personen meddelas inte.';
 
   @override
   String get reportSheetReasonSpamLabel => 'SPAM';
@@ -4238,7 +4238,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get bulkActionBarBlockSheetFriendWarning =>
-      'Ni är vänner just nu — att blockera tar bort vänskapen, så för att återansluta senare behöver du skicka en ny vänförfrågan.';
+      'Ni är vänner just nu. Att blockera tar bort vänskapen, så för att återansluta senare behöver du skicka en ny vänförfrågan.';
 
   @override
   String get bulkActionBarBlockSheetStrangerWarning =>
@@ -4283,7 +4283,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get bulkActionBarBlockDeleteDmSub =>
-      'Raderar även din DM med dem — alla meddelanden, reaktioner och mediafiler försvinner.';
+      'Raderar även din DM med dem: alla meddelanden, reaktioner och mediafiler försvinner.';
 
   @override
   String get bulkActionBarBlockSheetCancelSemanticLabel => 'Avbryt';
@@ -4344,14 +4344,14 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get enterPublicRoomAskFailedMessage =>
-      'Kunde inte fråga just nu — försök igen';
+      'Kunde inte fråga just nu. Försök igen';
 
   @override
   String get enterPublicRoomWrongPasswordMessage => 'fel lösenord';
 
   @override
   String get enterPublicRoomJoinFailedMessage =>
-      'kunde inte gå med — försök igen';
+      'kunde inte gå med, försök igen';
 
   @override
   String get feedBoardTitle => 'IDAG';
@@ -4391,7 +4391,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get feedBoardLoadFailed =>
-      'Kunde inte ladda tavlan — försök igen om en stund';
+      'Kunde inte ladda tavlan. Försök igen om en stund';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'Offentlig';
@@ -4496,7 +4496,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get linkOpenerRecoveryBannerMessage =>
-      'Ingen återställningsfras — du kan bli utelåst för gott.';
+      'Ingen återställningsfras. Du kan bli utelåst för gott.';
 
   @override
   String get destinationsChatLabel => 'Chatt';
@@ -4637,7 +4637,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      'Berätta vad som gick fel. Uppgifter om appen och din enhet skickas med automatiskt, tillsammans med en teknisk logg över vad appen gjorde — det är det som hjälper oss att hitta orsaken.';
+      'Berätta vad som gick fel. Uppgifter om appen och din enhet skickas med automatiskt, tillsammans med en teknisk logg över vad appen gjorde. Det är det som hjälper oss att hitta orsaken.';
 
   @override
   String get reportProblemDescribeLabel => 'Vad hände';
@@ -4665,7 +4665,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get reportProblemSend => 'Skicka rapport';
 
   @override
-  String get reportProblemSent => 'Rapporten är skickad — tack!';
+  String get reportProblemSent => 'Rapporten är skickad. Tack!';
 
   @override
   String get reportProblemSendFailed =>
@@ -4783,18 +4783,18 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get settingsScreenLinksUrlsOffBody =>
-      'bara förhandsgranskning — renare bubblor, tryck för att öppna';
+      'bara förhandsgranskning: renare bubblor, tryck för att öppna';
 
   @override
   String get settingsScreenMenuBarLabel => 'MENYRADSIKON';
 
   @override
   String get settingsScreenMenuBarOnBody =>
-      'MonkeyHub ligger i menyraden med antalet olästa — klicka för att ta fram fönstret';
+      'MonkeyHub ligger i menyraden med antalet olästa. Klicka för att ta fram fönstret';
 
   @override
   String get settingsScreenMenuBarOffBody =>
-      'avstängd just nu — Dock-ikonen är enda vägen tillbaka till ett dolt fönster';
+      'avstängd just nu. Dock-ikonen är enda vägen tillbaka till ett dolt fönster';
 
   @override
   String get settingsScreenSectionCalls => 'SAMTAL';
@@ -4831,11 +4831,11 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get videoQualityScreenHd1080Subtitle =>
-      'Full HD — skarpare, använder mer data';
+      'Full HD: skarpare, använder mer data';
 
   @override
   String get videoQualityScreenUhd4kSubtitle =>
-      'Ultra HD — bäst med en stark anslutning';
+      'Ultra HD: bäst med en stark anslutning';
 
   @override
   String get videoQualityScreenFootnote =>
@@ -4868,7 +4868,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get settingsScreenPushOffBody =>
-      'tyst — du ser bara saker när du öppnar appen';
+      'tyst: du ser bara saker när du öppnar appen';
 
   @override
   String get settingsScreenGameRemindersLabel => 'DAGLIG SPELPÅMINNELSE';
@@ -4879,7 +4879,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get settingsScreenGameRemindersOffBody =>
-      'ingen påminnelse — spelen finns kvar när du tittar';
+      'ingen påminnelse, spelen finns kvar när du tittar';
 
   @override
   String get authErrorUsernameTaken => 'Det användarnamnet är redan taget.';
@@ -4908,7 +4908,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get authErrorChildMustPair =>
-      'Det där är ett barnkonto — be en vuxen om en parningskod.';
+      'Det där är ett barnkonto. Be en vuxen om en parningskod.';
 
   @override
   String get authErrorPairingCodeExpired =>
@@ -4920,7 +4920,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get authErrorUseSocialSignIn =>
-      'Det kontot loggar in med Apple eller Google — använd knapparna nedan.';
+      'Det kontot loggar in med Apple eller Google. Använd knapparna nedan.';
 
   @override
   String get authErrorSocialTokenInvalid =>
@@ -5172,7 +5172,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get motionScreenCalmSubtitle =>
-      'dekoren står stilla — inget annat ändras';
+      'dekoren står stilla, inget annat ändras';
 
   @override
   String get momentRailCaptureLabel => 'Fånga';
@@ -5238,20 +5238,20 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'Det blev fem idag — spara något till imorgon';
+      'Det blev fem idag. Spara något till imorgon';
 
   @override
   String get momentComposerErrorNotAllowed =>
       'En vårdnadshavare har stängt av fotodelning';
 
   @override
-  String get momentComposerErrorTooLong => 'Lite väl långt — korta ner';
+  String get momentComposerErrorTooLong => 'Lite väl långt. Korta ner';
 
   @override
   String get momentComposerErrorEmpty => 'Lägg till ett foto eller några ord';
 
   @override
-  String get momentComposerErrorGeneric => 'Kunde inte publicera — försök igen';
+  String get momentComposerErrorGeneric => 'Kunde inte publicera. Försök igen';
 
   @override
   String get momentViewerDelete => 'Radera';
@@ -5264,7 +5264,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'Den försvinner från allas tavla och från ditt arkiv, för alltid';
 
   @override
-  String get momentViewerDeleteFailed => 'Kunde inte radera — försök igen';
+  String get momentViewerDeleteFailed => 'Kunde inte radera. Försök igen';
 
   @override
   String momentActivityPostedHighlight(Object who) {
@@ -5332,7 +5332,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get puzzleShare => 'Kopiera resultat';
 
   @override
-  String get puzzleShareCopied => 'Kopierat — klistra in till en vän';
+  String get puzzleShareCopied => 'Kopierat. Klistra in till en vän';
 
   @override
   String puzzleShareHeader(Object edition, Object score) {
@@ -5346,7 +5346,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get puzzleErrorOutOfGuesses => 'Inga försök kvar idag';
 
   @override
-  String get puzzleErrorGeneric => 'Kunde inte skicka — försök igen';
+  String get puzzleErrorGeneric => 'Kunde inte skicka. Försök igen';
 
   @override
   String get puzzleGuessWaiting =>
@@ -5397,13 +5397,13 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsPastDesc =>
-      'idag delas alltid med vänner — det här öppnar allt dessförinnan';
+      'idag delas alltid med vänner, det här öppnar allt dessförinnan';
 
   @override
   String get momentComposerVideo => 'Video';
 
   @override
-  String get momentComposerErrorTooBig => 'Videon är för stor — max 20 MB';
+  String get momentComposerErrorTooBig => 'Videon är för stor. Max 20 MB';
 
   @override
   String get momentActivityPostedHighlightSelf => 'Du lade upp ett ögonblick';
@@ -5482,11 +5482,11 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get pointsExplainerIntro =>
-      'Ett återkommande skämt som ni för protokoll över. När något händer dig — bra, dåligt eller bara märkligt — noterar du det och det ligger på tavlan den dagen.';
+      'Ett återkommande skämt som ni för protokoll över. När något händer dig (bra, dåligt eller bara märkligt) noterar du det och det ligger på tavlan den dagen.';
 
   @override
   String get pointsExplainerRuleHonour =>
-      'Du delar ut dina egna poäng. Ingen kontrollerar — det är själva poängen, och dina vänner säger till om du tänjer på det.';
+      'Du delar ut dina egna poäng. Ingen kontrollerar. Det är själva poängen, och dina vänner säger till om du tänjer på det.';
 
   @override
   String get pointsExplainerRuleToday =>
@@ -5612,7 +5612,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get gameQueensRule =>
-      'En krona per rad, kolumn och färg — aldrig intill varandra';
+      'En krona per rad, kolumn och färg. Aldrig intill varandra';
 
   @override
   String get gameTangoName => 'Tango';
@@ -5742,11 +5742,11 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameShare => 'Kopiera resultat';
 
   @override
-  String get gameShareCopied => 'Kopierat — klistra in till en vän';
+  String get gameShareCopied => 'Kopierat. Klistra in till en vän';
 
   @override
   String gameShareLine(Object name, Object number, Object time) {
-    return 'MonkeyHub $name №$number — $time';
+    return 'MonkeyHub $name №$number · $time';
   }
 
   @override
@@ -5765,7 +5765,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameErrorNoHint => 'Ingen ledtråd för den här';
 
   @override
-  String get gameErrorGeneric => 'Kunde inte nå spelen — försök igen';
+  String get gameErrorGeneric => 'Kunde inte nå spelen. Försök igen';
 
   @override
   String get gameInfoOpen => 'Så spelar du';
@@ -5932,21 +5932,21 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomScreenSaveLimitSnack =>
-      'För många sparade här — ta bort en först';
+      'För många sparade här. Ta bort en först';
 
   @override
   String get roomScreenSaveFailedSnack => 'Kunde inte spara det';
 
   @override
   String get threadOverlaySaveLimitToast =>
-      'För många sparade här — ta bort en först';
+      'För många sparade här. Ta bort en först';
 
   @override
   String get threadOverlaySaveFailedToast => 'Kunde inte spara det';
 
   @override
   String get roomInfoScreenSharedContentSavedNote =>
-      'bara du ser meddelandena du sparar — ett fäst meddelande är tvärtom: hela rummet ser det.';
+      'bara du ser meddelandena du sparar. Ett fäst meddelande är tvärtom: hela rummet ser det.';
 
   @override
   String get roomInfoScreenOwnerBadgeNote =>
@@ -7580,7 +7580,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get devicesScreenFootnote =>
-      'Att ta bort en enhet loggar ut den och stoppar dess aviseringar. Det gäller direkt — nästa sak enheten försöker göra skickar den till inloggningsskärmen.';
+      'Att ta bort en enhet loggar ut den och stoppar dess aviseringar. Det gäller direkt: nästa sak enheten försöker göra skickar den till inloggningsskärmen.';
 
   @override
   String get attachmentMenuPollLabel => 'Omröstning';
@@ -7948,7 +7948,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get companionSebastianBlurb =>
-      'Sebastian läser ett meddelande på ett annat språk och berättar vad det står — här i telefonen, utan att något skickas någonstans.';
+      'Sebastian läser ett meddelande på ett annat språk och berättar vad det står, här i telefonen, utan att något skickas någonstans.';
 
   @override
   String get companionMarloweTagline => 'Allmän hjälp';
@@ -8054,7 +8054,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get companionStorageEmpty =>
-      'Inget nedladdat — följeslagarna tar ingen plats';
+      'Inget nedladdat. Följeslagarna tar ingen plats';
 
   @override
   String companionStorageUsed(Object size) {
@@ -8122,7 +8122,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get marloweSkillsComingSoon =>
-      'Marlowe kan inte göra något än — färdigheterna är på väg. Det du kan göra nu är att ha en hjärna redo, så att inget väntar på en nedladdning när de landar.';
+      'Marlowe kan inte göra något än: färdigheterna är på väg. Det du kan göra nu är att ha en hjärna redo, så att inget väntar på en nedladdning när de landar.';
 
   @override
   String get marloweBrainsSection => 'Hjärna';
@@ -8235,7 +8235,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String companionInstallContinuesInBackground(Object name) {
-    return '$name fortsätter laddas ner — Inställningar › Följeslagare';
+    return '$name fortsätter laddas ner. Inställningar › Följeslagare';
   }
 
   @override
@@ -8378,7 +8378,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get screenSharePickerEmpty =>
-      'Inget att dela än — tillåt skärminspelning i Systeminställningar och försök igen';
+      'Inget att dela än. Tillåt skärminspelning i Systeminställningar och försök igen';
 
   @override
   String get gameTellFriends => 'Berätta för vänner';
@@ -8400,7 +8400,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameTellFriendsConfirm => 'Skicka';
 
   @override
-  String get gameTellFriendsSent => 'Skickat — de vet';
+  String get gameTellFriendsSent => 'Skickat. De vet';
 
   @override
   String get gameTellFriendsPrivate =>
@@ -8418,7 +8418,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get settingsScreenFriendActivityOffBody =>
-      'inget — deras tavlor finns kvar när du tittar';
+      'inget, deras tavlor finns kvar när du tittar';
 
   @override
   String get searchScreenActionWithGrownUp => 'Hos en vuxen';
@@ -8427,14 +8427,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get newChatMenuSearchHint => 'Sök bland dina vänner';
 
   @override
-  String get newChatMenuNoFriendsYet => 'Inga vänner än — hitta folk i Upptäck';
+  String get newChatMenuNoFriendsYet => 'Inga vänner än. Hitta folk i Upptäck';
 
   @override
   String get newChatMenuNoFriendsMatch => 'Ingen vän matchar';
 
   @override
   String get newChatMenuOpenDmFailed =>
-      'Kunde inte öppna den chatten — försök igen';
+      'Kunde inte öppna den chatten. Försök igen';
 
   @override
   String get childPolicyScreenAddSomeoneLabel => 'Välj bland dina personer';
@@ -8445,7 +8445,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenPickPersonEmpty =>
-      'Ingen kvar att lägga till bland dina vänner —\\nsök efter någon annan';
+      'Ingen kvar att lägga till bland dina vänner,\\nsök efter någon annan';
 
   @override
   String get childPolicyScreenPickPersonNoMatch => 'Ingen matchar';
@@ -8483,7 +8483,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorAddRoomGeneric =>
-      'Kunde inte lägga till det rummet — försök igen';
+      'Kunde inte lägga till det rummet. Försök igen';
 
   @override
   String get childPolicyScreenErrorRoomNotAllowed =>
@@ -8497,7 +8497,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomChangeErrorGone =>
-      'Förslaget är borta — en admin kan ha svarat på det.';
+      'Förslaget är borta. En admin kan ha svarat på det.';
 
   @override
   String get roomChangeErrorNotYours =>
@@ -8539,7 +8539,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'En ändring appen inte kan visa än';
 
   @override
-  String get roomChangeRequestsClearedValue => 'Inget — ta bort den';
+  String get roomChangeRequestsClearedValue => 'Inget, ta bort den';
 
   @override
   String roomChangeRequestsSuggestedBy(Object name) {
@@ -8563,7 +8563,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInfoScreenSuggestionAppliedToast =>
-      'Klart — du kan redigera gruppen';
+      'Klart. Du kan redigera gruppen';
 
   @override
   String get roomInfoScreenSuggestionWithdrawnToast => 'Tillbakataget';
@@ -8712,7 +8712,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get recordsLabel => 'Genom tiderna';
 
   @override
-  String get recordsBlurb => 'Det bästa någon har gjort — du och dina vänner';
+  String get recordsBlurb => 'Det bästa någon har gjort: du och dina vänner';
 
   @override
   String recordsYourBest(Object value) {
@@ -8765,7 +8765,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get appearanceMatchDeviceSub =>
-      'Ljust på dagen, mörkt på natten — som din telefon';
+      'Ljust på dagen, mörkt på natten, som din telefon';
 
   @override
   String get appearanceOneTheme => 'Ett tema';
@@ -10187,7 +10187,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get pvPastDesc =>
-      'Idag delas alltid med vänner — det här öppnar allt före det';
+      'Idag delas alltid med vänner. Det här öppnar allt före det';
 
   @override
   String get pvPoints => 'Mina poäng';
@@ -10243,7 +10243,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get riSavedNote =>
-      'Bara du ser det du sparar. Ett fäst meddelande är tvärtom — hela rummet ser det.';
+      'Bara du ser det du sparar. Ett fäst meddelande är tvärtom: hela rummet ser det.';
 
   @override
   String get riOwnerNote => 'Medaljen visar vem som skapade rummet.';

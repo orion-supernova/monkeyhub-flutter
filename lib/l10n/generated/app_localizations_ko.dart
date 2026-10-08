@@ -60,7 +60,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get languageValueTurkish => 'Türkçe';
 
   @override
-  String get roomScreenAskGrownUpFailedSnack => '지금은 요청할 수 없어요 — 다시 시도해 주세요';
+  String get roomScreenAskGrownUpFailedSnack => '지금은 요청할 수 없어요. 다시 시도해 주세요';
 
   @override
   String get roomScreenGateSendMessages => '여기서 메시지 보내기';
@@ -124,7 +124,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomScreenNameCopiedSnack => '이름 복사됨';
 
   @override
-  String get roomScreenPinLimitSnack => '고정 개수가 다 찼어요 — 하나를 먼저 해제하세요';
+  String get roomScreenPinLimitSnack => '고정 개수가 다 찼어요. 하나를 먼저 해제하세요';
 
   @override
   String get roomScreenPinFailedSnack => '고정할 수 없어요';
@@ -327,7 +327,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileScreenDeleteAccount => '계정 삭제';
 
   @override
-  String get profileScreenEmailHint => '선택 사항 — 아무에게도 공개되지 않아요';
+  String get profileScreenEmailHint => '선택 사항, 아무에게도 공개되지 않아요';
 
   @override
   String get profileScreenEmailSectionLabel => '이메일';
@@ -343,13 +343,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileScreenErrorRequestAlreadyReceived =>
-      '상대방이 이미 나에게 요청을 보냈어요 — 요청 목록을 확인해 보세요.';
+      '상대방이 이미 나에게 요청을 보냈어요. 요청 목록을 확인해 보세요.';
 
   @override
   String get profileScreenErrorRequestAlreadySent => '이미 요청을 보냈어요.';
 
   @override
-  String get profileScreenErrorUnblockFirst => '이 사용자를 차단했어요 — 먼저 차단을 해제해 주세요.';
+  String get profileScreenErrorUnblockFirst => '이 사용자를 차단했어요. 먼저 차단을 해제해 주세요.';
 
   @override
   String get profileScreenErrorUserNotFound => '지금은 할 수 없어요.';
@@ -378,7 +378,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileScreenGrownUpOnlyNote =>
-      '보호자만 할 수 있어요 — 보호자의 코드나 비밀번호가 필요해요.';
+      '보호자만 할 수 있어요. 보호자의 코드나 비밀번호가 필요해요.';
 
   @override
   String get profileScreenGuardiansCanSee => '보호자는 온라인 상태와 대화 상대를 볼 수 있어요.';
@@ -488,8 +488,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileScreenRedactedFriend => '친구의 설정에 따라 일부 정보가 숨겨져 있어요.';
 
   @override
-  String get profileScreenRedactedStranger =>
-      '제한된 화면이에요 — 친구에게는 더 많은 정보를 공개해요.';
+  String get profileScreenRedactedStranger => '제한된 화면이에요. 친구에게는 더 많은 정보를 공개해요.';
 
   @override
   String get profileScreenReportAction => '신고하기';
@@ -657,19 +656,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get glassScreenMatchBottomBar => '하단 바에 맞추기';
 
   @override
-  String get glassScreenPresetEditedSubtitle => '수정됨 — 새 룩으로 저장하거나 초기화하세요';
+  String get glassScreenPresetEditedSubtitle => '수정됨. 새 룩으로 저장하거나 초기화하세요';
 
   @override
   String get glassScreenCustomPresetName => '커스텀';
 
   @override
-  String get glassScreenUnsavedSubtitle => '저장 안 됨 — 이름을 지으면 저장돼요';
+  String get glassScreenUnsavedSubtitle => '저장 안 됨. 이름을 지으면 저장돼요';
 
   @override
   String get glassScreenSaveDialogTitle => '이 룩 저장하기';
 
   @override
-  String get glassScreenNoRoomToast => '공간이 없어요 — 룩을 먼저 삭제하세요';
+  String get glassScreenNoRoomToast => '공간이 없어요. 룩을 먼저 삭제하세요';
 
   @override
   String get glassScreenRenameDialogTitle => '이름 바꾸기';
@@ -680,7 +679,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get glassScreenDeleteConfirmBody => '룩은 화면에 그대로 남아요 — 이름만 없어질 뿐이에요.';
+  String get glassScreenDeleteConfirmBody => '룩은 화면에 그대로 남아요. 이름만 없어질 뿐이에요.';
 
   @override
   String get glassScreenKeepButton => '유지';
@@ -739,7 +738,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get glassScreenBackdropMsgDilan => '지붕 사진 보냈어 — 타일이 다 깨졌더라';
+  String get glassScreenBackdropMsgDilan => '지붕 사진 보냈어. 타일이 다 깨졌더라';
 
   @override
   String get glassScreenBackdropMsgMert => '근데 스피커는 진짜 누가 가져와?';
@@ -851,7 +850,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String roomInfoScreenEndConversationConfirmBody(String peerName) {
-    return '$peerName님도 이 대화를 잃게 돼요 — 두 사람 모두의 메시지가 사라져요. 이 작업은 되돌릴 수 없어요.';
+    return '$peerName님도 이 대화를 잃게 돼요. 두 사람 모두의 메시지가 사라져요. 이 작업은 되돌릴 수 없어요.';
   }
 
   @override
@@ -1057,7 +1056,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPolicyScreenAskToAddLabel => '추가 요청';
 
   @override
-  String get childPolicyScreenAskToAddOffDesc => '가족만 — 새 요청 없음';
+  String get childPolicyScreenAskToAddOffDesc => '가족만, 새 요청 없음';
 
   @override
   String get childPolicyScreenAskToAddOnDesc => '새로운 사람에 대해 물어볼 수 있어요';
@@ -1082,7 +1081,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPolicyScreenCancelSemanticLabel => '취소';
 
   @override
-  String get childPolicyScreenContactAddedRequestSent => '추가됨 — 요청을 보내는 중이에요';
+  String get childPolicyScreenContactAddedRequestSent => '추가됨. 요청을 보내는 중이에요';
 
   @override
   String get childPolicyScreenContactAddedToList => '허용 목록에 추가됐어요';
@@ -1102,7 +1101,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenDeleteAccountFailed =>
-      '계정을 삭제하지 못했어요 — 다시 시도해 주세요';
+      '계정을 삭제하지 못했어요. 다시 시도해 주세요';
 
   @override
   String childPolicyScreenDeleteAccountHeadline(Object name) {
@@ -1122,8 +1121,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPolicyScreenDeleteForeverCta => '완전히 삭제';
 
   @override
-  String get childPolicyScreenErrorAddContactGeneric =>
-      '추가하지 못했어요 — 다시 시도해 주세요';
+  String get childPolicyScreenErrorAddContactGeneric => '추가하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get childPolicyScreenErrorCannotAddSelf => '그건 아이 본인의 사용자 이름이에요';
@@ -1132,11 +1130,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPolicyScreenErrorChildNotAllowed => '아이는 보호자가 될 수 없어요';
 
   @override
-  String get childPolicyScreenErrorGenericGuardian => '처리하지 못했어요 — 다시 시도해 주세요';
+  String get childPolicyScreenErrorGenericGuardian => '처리하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get childPolicyScreenErrorLastGuardian =>
-      '돌봐줄 보호자가 있어야 해요 — 먼저 다른 보호자를 추가해 주세요';
+      '돌봐줄 보호자가 있어야 해요. 먼저 다른 보호자를 추가해 주세요';
 
   @override
   String get childPolicyScreenErrorNotYours => '이건 변경할 권한이 없어요';
@@ -1159,7 +1157,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPolicyScreenGraduateDangerLabel => '정식 계정으로 전환하기';
 
   @override
-  String get childPolicyScreenGraduateFailed => '전환하지 못했어요 — 다시 시도해 주세요';
+  String get childPolicyScreenGraduateFailed => '전환하지 못했어요. 다시 시도해 주세요';
 
   @override
   String childPolicyScreenGraduateHeading(Object name) {
@@ -1171,14 +1169,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenGrantsFooterNote =>
-      '방 허용을 취소하면 그 방에서도 나가게 돼요. 사람 허용을 취소하면 채팅방도 함께 삭제돼요 — 양쪽 모두에서요.';
+      '방 허용을 취소하면 그 방에서도 나가게 돼요. 사람 허용을 취소하면 채팅방도 함께 삭제돼요. 양쪽 모두에서요.';
 
   @override
   String get childPolicyScreenGrownUpsDesc =>
       '여기 있는 보호자는 모두 승인하고, 설정을 바꾸고, 모든 걸 볼 수 있어요. 누구든 혼자서 처리할 수 있고, 다른 사람의 동의를 기다릴 필요는 없어요.';
 
   @override
-  String get childPolicyScreenGuardianAdded => '추가됐어요 — 이제 함께 돌볼 수 있어요';
+  String get childPolicyScreenGuardianAdded => '추가됐어요. 이제 함께 돌볼 수 있어요';
 
   @override
   String childPolicyScreenGuardianRemoved(Object name) {
@@ -1210,7 +1208,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenPeopleAllowedDesc =>
-      '여기 있는 사람은 누구든 다시 묻지 않고 추가할 수 있어요 — 누가 먼저 시작하든요.';
+      '여기 있는 사람은 누구든 다시 묻지 않고 추가할 수 있어요. 누가 먼저 시작하든요.';
 
   @override
   String get childPolicyScreenPublicRoomsBody =>
@@ -1277,7 +1275,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String childPolicyScreenStopSupervisingBody(Object name) {
-    return '$name의 계정에 대한 모든 정보를 볼 수 없게 돼요 — 요청도, 친구도, 채팅방도요. 다른 보호자들이 계속 돌봐줄 거예요.';
+    return '$name의 계정에 대한 모든 정보를 볼 수 없게 돼요. 요청도, 친구도, 채팅방도요. 다른 보호자들이 계속 돌봐줄 거예요.';
   }
 
   @override
@@ -1287,7 +1285,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get childPolicyScreenStopSupervisingHeadline => '보호자를 그만두시겠어요?';
 
   @override
-  String get childPolicyScreenTakeBackFailed => '회수하지 못했어요 — 다시 시도해 주세요';
+  String get childPolicyScreenTakeBackFailed => '회수하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get childPolicyScreenTakeBackLabel => '회수하기';
@@ -1417,7 +1415,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get composerEditCardTitle => '메시지 수정';
 
   @override
-  String get spoilerRevealHint => '스포일러 — 활성화하면 숨겨진 텍스트가 표시돼요';
+  String get spoilerRevealHint => '스포일러: 활성화하면 숨겨진 텍스트가 표시돼요';
 
   @override
   String get formatToolbarFormatLabel => '서식';
@@ -1469,7 +1467,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomScreenEditExpiredSnack =>
-      '수정하기엔 너무 늦었어요 — 메시지는 15분 동안만 수정할 수 있어요.';
+      '수정하기엔 너무 늦었어요. 메시지는 15분 동안만 수정할 수 있어요.';
 
   @override
   String get roomScreenEditFailedSnack =>
@@ -1540,7 +1538,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String themeScreenCarouselActiveLabel(Object name) {
-    return '적용됨 — $name';
+    return '적용됨: $name';
   }
 
   @override
@@ -1654,7 +1652,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get friendRequestDraftScreenErrorBlocked =>
-      '이 사용자를 차단했어요 — 먼저 차단을 해제해 주세요.';
+      '이 사용자를 차단했어요. 먼저 차단을 해제해 주세요.';
 
   @override
   String get friendRequestDraftScreenErrorNotAccepting =>
@@ -1777,7 +1775,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get discoverScreenYourPeopleLabel => '친구';
 
   @override
-  String get discoverScreenNoFriendsYetWithHint => '아직 아무도 없어요 — 위에서 사람 찾기';
+  String get discoverScreenNoFriendsYetWithHint => '아직 아무도 없어요. 위에서 사람 찾기';
 
   @override
   String get discoverScreenNoFriendsYet => '아직 아무도 없어요';
@@ -1959,7 +1957,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get searchScreenNoMatchChild =>
-      '일치하는 사람이 없어요 — 새로운 사람은\n아이디 전체를 정확히 입력해야 찾을 수 있어요';
+      '일치하는 사람이 없어요. 새로운 사람은\n아이디 전체를 정확히 입력해야 찾을 수 있어요';
 
   @override
   String get searchScreenNoMatchDefault => '일치하는 사람이 없어요';
@@ -2107,7 +2105,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get logoScreenThemesHeader => '테마';
 
   @override
-  String get recoveryPhraseScreenCopiedSnackbar => '복사했어요 — 안전한 곳에 붙여넣어 두세요.';
+  String get recoveryPhraseScreenCopiedSnackbar => '복사했어요. 안전한 곳에 붙여넣어 두세요.';
 
   @override
   String get recoveryPhraseScreenConfirmHeroMuted => '확인\n';
@@ -2155,7 +2153,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get recoveryPhraseScreenBackLink => '← 뒤로';
 
   @override
-  String get recoveryPhraseScreenKeepPhraseLink => '지금은 아니에요 — 기존 문구 유지';
+  String get recoveryPhraseScreenKeepPhraseLink => '지금은 아니에요, 기존 문구 유지';
 
   @override
   String get homeScreenProfileSemanticLabel => '내 프로필';
@@ -2169,7 +2167,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeScreenNewRoomSemanticLabel => '새 채팅방';
 
   @override
-  String get homeScreenEmptyRoomsMessage => '아직 채팅방이 없어요 — 하나 만들어 보세요';
+  String get homeScreenEmptyRoomsMessage => '아직 채팅방이 없어요. 하나 만들어 보세요';
 
   @override
   String get groupCallScreenTitleVideo => '그룹 영상 통화';
@@ -2589,7 +2587,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get audioMessagePasswordHint => '비밀번호';
 
   @override
-  String get audioMessageSwitchToLinkPrompt => '제 계정이에요 — 로그인하기';
+  String get audioMessageSwitchToLinkPrompt => '제 계정이에요, 로그인하기';
 
   @override
   String get audioMessageCreateAccountButton => '계정 만들기';
@@ -2621,7 +2619,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get approvalsScreenErrorAlreadyHandled => '다른 곳에서 이미 처리됐어요';
 
   @override
-  String get approvalsScreenErrorGeneric => '저장하지 못했어요 — 다시 시도해 주세요';
+  String get approvalsScreenErrorGeneric => '저장하지 못했어요. 다시 시도해 주세요';
 
   @override
   String approvalsScreenHeadlineContactOutgoing(Object child, Object other) {
@@ -2852,7 +2850,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPairScreenNoCameraMessage =>
-      '카메라를 사용할 수 없어요 — 대신 여섯 자리 숫자를 입력하세요.';
+      '카메라를 사용할 수 없어요. 대신 여섯 자리 숫자를 입력하세요.';
 
   @override
   String get childPairScreenStopScanning => '스캔 중지';
@@ -2887,7 +2885,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get textFileViewerTruncatedNotice =>
-      '이 파일의 일부만 표시됩니다 — 나머지를 보려면 다운로드하세요.';
+      '이 파일의 일부만 표시됩니다. 나머지를 보려면 다운로드하세요.';
 
   @override
   String get fileMessageUploadFailedLabel => '실패';
@@ -3075,7 +3073,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get photoTrayLoadFailedSnack => '일부 사진을 열 수 없었어요';
 
   @override
-  String get mediaPickFailedMessage => '열 수 없었어요 — 다시 선택해 주세요';
+  String get mediaPickFailedMessage => '열 수 없었어요. 다시 선택해 주세요';
 
   @override
   String typingIndicatorOnePersonTyping(Object name) {
@@ -3210,7 +3208,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String releaseDeviceScreenIntro(Object name) {
-    return '$name님을 이 휴대폰에서 로그아웃시키고 원래대로 돌려놔요 — 휴대폰은 원래의 로그인 화면으로 돌아가고, 누구나 사용할 수 있어요.';
+    return '$name님을 이 휴대폰에서 로그아웃시키고 원래대로 돌려놔요. 휴대폰은 원래의 로그인 화면으로 돌아가고, 누구나 사용할 수 있어요.';
   }
 
   @override
@@ -3436,7 +3434,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childSetupScreenBulletNeedsApproval =>
-      '그 밖의 모든 사람은 먼저 보호자의 승인이 필요해요 — 아이가 요청한 사람이든, 아이에게 요청한 사람이든요.';
+      '그 밖의 모든 사람은 먼저 보호자의 승인이 필요해요. 아이가 요청한 사람이든, 아이에게 요청한 사람이든요.';
 
   @override
   String get childSetupScreenBulletPublicRoomsOff =>
@@ -3488,7 +3486,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get bubbleStyleScreenSoftDescription =>
-      '꼬리 없음 — 이어지는 말풍선이 안쪽 모서리만 좁아지며 하나로 붙어요.';
+      '꼬리 없음. 이어지는 말풍선이 안쪽 모서리만 좁아지며 하나로 붙어요.';
 
   @override
   String get bubbleStyleScreenPillLabel => '캡슐';
@@ -3501,7 +3499,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get bubbleStyleScreenSlabDescription =>
-      '각진 모서리 — 날카롭고, 인쇄된 듯하고, 의도적이에요.';
+      '각진 모서리. 날카롭고, 인쇄된 듯하고, 의도적이에요.';
 
   @override
   String get bubbleStyleScreenActiveBadge => '적용됨';
@@ -4084,7 +4082,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get bulkActionBarBlockSheetFriendWarning =>
-      '현재 친구 사이예요 — 차단하면 친구 관계가 해제되며, 나중에 다시 연결하려면 새로 친구 요청을 보내야 해요.';
+      '현재 친구 사이예요. 차단하면 친구 관계가 해제되며, 나중에 다시 연결하려면 새로 친구 요청을 보내야 해요.';
 
   @override
   String get bulkActionBarBlockSheetStrangerWarning =>
@@ -4128,7 +4126,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get bulkActionBarBlockDeleteDmSub =>
-      '상대방과의 DM도 함께 삭제돼요 — 모든 메시지, 반응, 미디어 파일이 사라져요.';
+      '상대방과의 DM도 함께 삭제돼요. 모든 메시지, 반응, 미디어 파일이 사라져요.';
 
   @override
   String get bulkActionBarBlockSheetCancelSemanticLabel => '취소';
@@ -4186,7 +4184,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get enterPublicRoomAskFailedMessage => '지금은 요청할 수 없어요 — 다시 시도해 주세요';
+  String get enterPublicRoomAskFailedMessage => '지금은 요청할 수 없어요. 다시 시도해 주세요';
 
   @override
   String get enterPublicRoomWrongPasswordMessage => '비밀번호가 틀렸어요';
@@ -4230,7 +4228,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get feedBoardActivityNoFriends => '친구를 추가하면 친구의 하루가 여기에 나타나요';
 
   @override
-  String get feedBoardLoadFailed => '보드를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요';
+  String get feedBoardLoadFailed => '보드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => '공개';
@@ -4329,7 +4327,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get linkOpenerRecoveryBannerMessage =>
-      '복구 문구가 없어요 — 계정을 잃으면 다시 들어올 수 없어요.';
+      '복구 문구가 없어요. 계정을 잃으면 다시 들어올 수 없어요.';
 
   @override
   String get destinationsChatLabel => '채팅';
@@ -4608,18 +4606,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsScreenLinksUrlsOffBody =>
-      '지금은 미리보기만 표시돼요 — 말풍선이 깔끔해지고, 탭하면 열려요';
+      '지금은 미리보기만 표시돼요. 말풍선이 깔끔해지고, 탭하면 열려요';
 
   @override
   String get settingsScreenMenuBarLabel => '메뉴 막대 아이콘';
 
   @override
   String get settingsScreenMenuBarOnBody =>
-      'MonkeyHub가 읽지 않은 개수와 함께 메뉴 막대에 표시됩니다 — 클릭하면 창이 열립니다';
+      'MonkeyHub가 읽지 않은 개수와 함께 메뉴 막대에 표시됩니다. 클릭하면 창이 열립니다';
 
   @override
   String get settingsScreenMenuBarOffBody =>
-      '현재 꺼짐 — 숨긴 창으로 돌아가는 방법은 Dock 아이콘뿐입니다';
+      '현재 꺼짐. 숨긴 창으로 돌아가는 방법은 Dock 아이콘뿐입니다';
 
   @override
   String get settingsScreenSectionCalls => '통화';
@@ -4653,11 +4651,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get videoQualityScreenAutoSubtitle => '연결 상태에 자동으로 맞춰져요';
 
   @override
-  String get videoQualityScreenHd1080Subtitle =>
-      'Full HD — 더 선명하지만 데이터를 더 사용해요';
+  String get videoQualityScreenHd1080Subtitle => 'Full HD: 더 선명하지만 데이터를 더 사용해요';
 
   @override
-  String get videoQualityScreenUhd4kSubtitle => 'Ultra HD — 강한 연결에서 가장 좋아요';
+  String get videoQualityScreenUhd4kSubtitle => 'Ultra HD: 강한 연결에서 가장 좋아요';
 
   @override
   String get videoQualityScreenFootnote =>
@@ -4688,7 +4685,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenPushOnBody => '새 메시지와 요청이 오면 알려드려요';
 
   @override
-  String get settingsScreenPushOffBody => '알림 없이 조용해요 — 앱을 열어야 확인할 수 있어요';
+  String get settingsScreenPushOffBody => '알림 없이 조용해요. 앱을 열어야 확인할 수 있어요';
 
   @override
   String get settingsScreenGameRemindersLabel => '매일 게임 알림';
@@ -4697,7 +4694,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenGameRemindersOnBody => '점심 무렵에 한 번, 아직 안 했을 때만';
 
   @override
-  String get settingsScreenGameRemindersOffBody => '알림 없음 — 게임은 열어보면 그대로 있어요';
+  String get settingsScreenGameRemindersOffBody => '알림 없음. 게임은 열어보면 그대로 있어요';
 
   @override
   String get authErrorUsernameTaken => '이미 사용 중인 사용자 이름이에요.';
@@ -4721,7 +4718,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrorTooManyAttempts => '시도 횟수가 너무 많아요. 15분 후 다시 시도해 주세요.';
 
   @override
-  String get authErrorChildMustPair => '아이 계정이에요 — 보호자에게 페어링 코드를 요청해 주세요.';
+  String get authErrorChildMustPair => '아이 계정이에요. 보호자에게 페어링 코드를 요청해 주세요.';
 
   @override
   String get authErrorPairingCodeExpired => '코드가 만료됐어요. 새 코드를 요청해 주세요.';
@@ -4731,7 +4728,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrorUseSocialSignIn =>
-      '이 계정은 Apple 또는 Google로 로그인해요 — 아래 버튼을 이용해 주세요.';
+      '이 계정은 Apple 또는 Google로 로그인해요. 아래 버튼을 이용해 주세요.';
 
   @override
   String get authErrorSocialTokenInvalid => '로그인이 완료되지 않았어요. 다시 시도해 주세요.';
@@ -4966,7 +4963,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get motionScreenCalmLabel => '차분';
 
   @override
-  String get motionScreenCalmSubtitle => '장식이 멈춰요 — 다른 건 그대로예요';
+  String get motionScreenCalmSubtitle => '장식이 멈춰요. 다른 건 그대로예요';
 
   @override
   String get momentRailCaptureLabel => '촬영';
@@ -5031,19 +5028,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get momentComposerPost => '올리기';
 
   @override
-  String get momentComposerErrorDailyCap => '오늘 다섯 개째예요 — 내일도 남겨두세요';
+  String get momentComposerErrorDailyCap => '오늘 다섯 개째예요. 내일도 남겨두세요';
 
   @override
   String get momentComposerErrorNotAllowed => '보호자가 사진 공유를 꺼두었어요';
 
   @override
-  String get momentComposerErrorTooLong => '조금 길어요 — 줄여주세요';
+  String get momentComposerErrorTooLong => '조금 길어요. 줄여주세요';
 
   @override
   String get momentComposerErrorEmpty => '사진이나 몇 마디를 더해주세요';
 
   @override
-  String get momentComposerErrorGeneric => '올리지 못했어요 — 다시 시도해주세요';
+  String get momentComposerErrorGeneric => '올리지 못했어요. 다시 시도해주세요';
 
   @override
   String get momentViewerDelete => '삭제';
@@ -5055,7 +5052,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get momentViewerDeleteConfirmBody => '모두의 보드와 내 보관함에서 영영 사라져요';
 
   @override
-  String get momentViewerDeleteFailed => '삭제하지 못했어요 — 다시 시도해주세요';
+  String get momentViewerDeleteFailed => '삭제하지 못했어요. 다시 시도해주세요';
 
   @override
   String momentActivityPostedHighlight(Object who) {
@@ -5122,7 +5119,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get puzzleShare => '결과 복사';
 
   @override
-  String get puzzleShareCopied => '복사했어요 — 친구에게 붙여넣기';
+  String get puzzleShareCopied => '복사했어요. 친구에게 붙여넣기';
 
   @override
   String puzzleShareHeader(Object edition, Object score) {
@@ -5136,7 +5133,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get puzzleErrorOutOfGuesses => '오늘 남은 기회가 없어요';
 
   @override
-  String get puzzleErrorGeneric => '보내지 못했어요 — 다시 시도해주세요';
+  String get puzzleErrorGeneric => '보내지 못했어요. 다시 시도해주세요';
 
   @override
   String get puzzleGuessWaiting => '연결이 없어요. 추측은 저장됐고 연결되면 전송돼요';
@@ -5184,13 +5181,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsPastDesc =>
-      '오늘은 항상 친구와 공유돼요 — 이 설정은 그 이전 전부를 열어요';
+      '오늘은 항상 친구와 공유돼요. 이 설정은 그 이전 전부를 열어요';
 
   @override
   String get momentComposerVideo => '동영상';
 
   @override
-  String get momentComposerErrorTooBig => '동영상이 너무 커요 — 최대 20MB';
+  String get momentComposerErrorTooBig => '동영상이 너무 커요 (최대 20MB)';
 
   @override
   String get momentActivityPostedHighlightSelf => '하이라이트를 올렸어요';
@@ -5273,7 +5270,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleHonour =>
-      '점수는 스스로 줍니다. 아무도 확인하지 않아요 — 그게 재미고, 과하면 친구들이 말해줄 거예요.';
+      '점수는 스스로 줍니다. 아무도 확인하지 않아요. 그게 재미고, 과하면 친구들이 말해줄 거예요.';
 
   @override
   String get pointsExplainerRuleToday =>
@@ -5521,11 +5518,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameShare => '결과 복사';
 
   @override
-  String get gameShareCopied => '복사됨 — 친구에게 붙여넣어';
+  String get gameShareCopied => '복사됨. 친구에게 붙여넣어';
 
   @override
   String gameShareLine(Object name, Object number, Object time) {
-    return 'MonkeyHub $name №$number — $time';
+    return 'MonkeyHub $name №$number · $time';
   }
 
   @override
@@ -5544,7 +5541,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameErrorNoHint => '이건 힌트가 없어';
 
   @override
-  String get gameErrorGeneric => '게임에 연결하지 못했어 — 다시 시도해';
+  String get gameErrorGeneric => '게임에 연결하지 못했어. 다시 시도해';
 
   @override
   String get gameInfoOpen => '게임 방법';
@@ -5703,13 +5700,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messageActionMenuUnsaveLabel => '저장 해제';
 
   @override
-  String get roomScreenSaveLimitSnack => '여기 저장한 게 너무 많아요 — 하나를 먼저 해제하세요';
+  String get roomScreenSaveLimitSnack => '여기 저장한 게 너무 많아요. 하나를 먼저 해제하세요';
 
   @override
   String get roomScreenSaveFailedSnack => '저장할 수 없어요';
 
   @override
-  String get threadOverlaySaveLimitToast => '여기 저장한 게 너무 많아요 — 하나를 먼저 해제하세요';
+  String get threadOverlaySaveLimitToast => '여기 저장한 게 너무 많아요. 하나를 먼저 해제하세요';
 
   @override
   String get threadOverlaySaveFailedToast => '저장할 수 없어요';
@@ -6301,7 +6298,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get serverOnboardingTitle => '서버를 선택하세요.';
 
   @override
-  String get serverOnboardingSubtitle => '이 빌드에는 서버가 없습니다 — 직접 운영하는 서버를 지정하세요';
+  String get serverOnboardingSubtitle => '이 빌드에는 서버가 없습니다. 직접 운영하는 서버를 지정하세요';
 
   @override
   String get serverStatusConnected => '연결됨';
@@ -6531,13 +6528,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deviceLoginScreenWaiting => '승인을 기다리는 중…';
 
   @override
-  String get deviceLoginScreenApproved => '승인됐어요 — 로그인하는 중…';
+  String get deviceLoginScreenApproved => '승인됐어요. 로그인하는 중…';
 
   @override
   String get deviceLoginScreenDenied => '휴대폰에서 로그인 요청을 거부했어요';
 
   @override
-  String get deviceLoginScreenGenericError => '문제가 생겼어요 — 새 코드로 다시 해 보세요';
+  String get deviceLoginScreenGenericError => '문제가 생겼어요. 새 코드로 다시 해 보세요';
 
   @override
   String get profileScreenScanToSignInLabel => '스캔해서 로그인';
@@ -6572,13 +6569,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deviceLoginScanScreenSuccess => '다른 기기에서 로그인했어요';
 
   @override
-  String get deviceLoginScanScreenGenericError => '승인하지 못했어요 — 다시 시도해 주세요';
+  String get deviceLoginScanScreenGenericError => '승인하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get authErrorDeviceLoginInvalid => '코드가 올바르지 않아요.';
 
   @override
-  String get authErrorDeviceLoginExpired => '코드가 만료됐어요 — 다른 기기에서 새 코드를 받으세요.';
+  String get authErrorDeviceLoginExpired => '코드가 만료됐어요. 다른 기기에서 새 코드를 받으세요.';
 
   @override
   String get deviceLoginScanScreenDeniedConfirmation => '로그인 요청을 거부했어요';
@@ -7633,7 +7630,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get companionSebastianBlurb =>
-      'Sebastian은 다른 언어로 쓰인 메시지를 읽고 무슨 뜻인지 알려줍니다 — 이 휴대폰 안에서, 아무것도 밖으로 보내지 않고요.';
+      'Sebastian은 다른 언어로 쓰인 메시지를 읽고 무슨 뜻인지 알려줍니다. 이 휴대폰 안에서, 아무것도 밖으로 보내지 않고요.';
 
   @override
   String get companionMarloweTagline => '일반 도우미';
@@ -7704,7 +7701,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sebastianTierJuniorDetail => '어떤 기기에서도 작동';
 
   @override
-  String get sebastianLanguageUnlisted => '지원 언어가 아닙니다 — 결과가 거칠 수 있어요';
+  String get sebastianLanguageUnlisted => '지원 언어가 아닙니다. 결과가 거칠 수 있어요';
 
   @override
   String get companionStatusNotInstalled => '설치되지 않음';
@@ -7731,7 +7728,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get companionStorageEmpty => '내려받은 것이 없습니다 — 동반자가 차지하는 공간 없음';
+  String get companionStorageEmpty => '내려받은 것이 없습니다. 동반자가 차지하는 공간 없음';
 
   @override
   String companionStorageUsed(Object size) {
@@ -7797,7 +7794,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get marloweSkillsComingSoon =>
-      'Marlowe는 아직 아무것도 하지 못합니다 — 기능이 준비되는 중이에요. 지금 할 수 있는 일은 두뇌를 미리 준비해 두는 것, 그러면 기능이 도착했을 때 다운로드를 기다릴 일이 없습니다.';
+      'Marlowe는 아직 아무것도 하지 못합니다. 기능이 준비되는 중이에요. 지금 할 수 있는 일은 두뇌를 미리 준비해 두는 것, 그러면 기능이 도착했을 때 다운로드를 기다릴 일이 없습니다.';
 
   @override
   String get marloweBrainsSection => '두뇌';
@@ -7908,7 +7905,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String companionInstallContinuesInBackground(Object name) {
-    return '$name 다운로드가 계속됩니다 — 설정 › 동반자';
+    return '$name 다운로드가 계속됩니다: 설정 › 동반자';
   }
 
   @override
@@ -8049,7 +8046,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get screenSharePickerEmpty =>
-      '아직 공유할 것이 없어요 — 시스템 설정에서 화면 기록을 허용한 뒤 다시 시도하세요';
+      '아직 공유할 것이 없어요. 시스템 설정에서 화면 기록을 허용한 뒤 다시 시도하세요';
 
   @override
   String get gameTellFriends => '친구들에게 알리기';
@@ -8085,7 +8082,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenFriendActivityOnBody => '올라오는 대로 하이라이트, 포인트, 게임 결과';
 
   @override
-  String get settingsScreenFriendActivityOffBody => '없음 — 보드는 찾아가면 그대로 있어요';
+  String get settingsScreenFriendActivityOffBody => '없음. 보드는 찾아가면 그대로 있어요';
 
   @override
   String get searchScreenActionWithGrownUp => '보호자 확인 중';
@@ -8094,13 +8091,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get newChatMenuSearchHint => '친구 검색';
 
   @override
-  String get newChatMenuNoFriendsYet => '아직 친구가 없어요 — 탐색에서 사람을 찾아보세요';
+  String get newChatMenuNoFriendsYet => '아직 친구가 없어요. 탐색에서 사람을 찾아보세요';
 
   @override
   String get newChatMenuNoFriendsMatch => '일치하는 친구가 없어요';
 
   @override
-  String get newChatMenuOpenDmFailed => '그 채팅을 열지 못했어요 — 다시 시도해 주세요';
+  String get newChatMenuOpenDmFailed => '그 채팅을 열지 못했어요. 다시 시도해 주세요';
 
   @override
   String get childPolicyScreenAddSomeoneLabel => '내 사람 중에서 고르기';
@@ -8110,7 +8107,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenPickPersonEmpty =>
-      '친구 중에 더 추가할 사람이 없어요 —\\n다른 사람을 검색해 보세요';
+      '친구 중에 더 추가할 사람이 없어요.\\n다른 사람을 검색해 보세요';
 
   @override
   String get childPolicyScreenPickPersonNoMatch => '일치하는 사람이 없어요';
@@ -8148,7 +8145,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorAddRoomGeneric =>
-      '그 방을 추가하지 못했어요 — 다시 시도해 주세요';
+      '그 방을 추가하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get childPolicyScreenErrorRoomNotAllowed => '그 방은 이렇게 추가할 수 없어요';
@@ -8160,7 +8157,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get newChatMenuFriendsHeader => '친구';
 
   @override
-  String get roomChangeErrorGone => '그 제안은 사라졌어요 — 관리자가 이미 처리했을 수 있어요.';
+  String get roomChangeErrorGone => '그 제안은 사라졌어요. 관리자가 이미 처리했을 수 있어요.';
 
   @override
   String get roomChangeErrorNotYours => '제안한 사람만 취소할 수 있어요.';
@@ -8200,7 +8197,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomChangeRequestsUnknownLabel => '이 앱이 아직 보여줄 수 없는 변경';
 
   @override
-  String get roomChangeRequestsClearedValue => '없음 — 지우기';
+  String get roomChangeRequestsClearedValue => '없음 (지우기)';
 
   @override
   String roomChangeRequestsSuggestedBy(Object name) {
@@ -8223,7 +8220,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomInfoScreenSuggestionSentToast => '관리자에게 보냈어요';
 
   @override
-  String get roomInfoScreenSuggestionAppliedToast => '완료 — 이 그룹을 편집할 수 있어요';
+  String get roomInfoScreenSuggestionAppliedToast => '완료. 이 그룹을 편집할 수 있어요';
 
   @override
   String get roomInfoScreenSuggestionWithdrawnToast => '취소했어요';
@@ -8367,7 +8364,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get recordsLabel => '역대 기록';
 
   @override
-  String get recordsBlurb => '지금까지의 최고 기록 — 나와 친구들';
+  String get recordsBlurb => '지금까지의 최고 기록: 나와 친구들';
 
   @override
   String recordsYourBest(Object value) {
@@ -8418,7 +8415,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appearanceMatchDevice => '기기 설정 따르기';
 
   @override
-  String get appearanceMatchDeviceSub => '낮엔 밝게, 밤엔 어둡게 — 휴대폰에 맞춰서';
+  String get appearanceMatchDeviceSub => '낮엔 밝게, 밤엔 어둡게. 휴대폰에 맞춰서';
 
   @override
   String get appearanceOneTheme => '테마 하나';
@@ -8684,7 +8681,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get expressionReport => '신고';
 
   @override
-  String get expressionReported => '감사합니다 — 신고했어요.';
+  String get expressionReported => '감사합니다. 신고했어요.';
 
   @override
   String get expressionRetry => '다시 시도';
@@ -9922,7 +9919,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get rpBack => '뒤로';
 
   @override
-  String get rpKeep => '나중에 — 현재 문구 유지';
+  String get rpKeep => '나중에, 현재 문구 유지';
 
   @override
   String get childSetupHeadingIos => '누구인가요?';
@@ -10576,7 +10573,7 @@ class AppLocalizationsKo extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '이전 이벤트 $count개를 버렸어요 — 로그가 중간부터 시작돼요',
+      other: '이전 이벤트 $count개를 버렸어요. 로그가 중간부터 시작돼요',
     );
     return '$_temp0';
   }
