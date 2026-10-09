@@ -221,4 +221,39 @@ void main() {
     expect(tester.getTopLeft(find.text('row3')), before);
     expect(controller.offset, offset);
   });
+
+  testWidgets('landing on the bottom as new rows arrive follows the tail', (
+    tester,
+  ) async {
+    // The frame a scroll-to-latest reaches 0 can be the frame a message
+    // lands, the typing row toggles or a history window swaps back to live.
+    // The anchor taken while still scrolled up must not push the
+    // transcript back off the bottom it just reached.
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    final mounts = <String, int>{};
+    var rows = List.generate(30, (i) => 'row$i');
+    late StateSetter update;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            update = setState;
+            return TimelineListView(
+              controller: controller,
+              rowKeys: [for (final row in rows) ValueKey(row)],
+              itemBuilder: (context, i) => _LoadedMedia(rows[i], mounts),
+            );
+          },
+        ),
+      ),
+    );
+    controller.jumpTo(400);
+    await tester.pumpAndSettle();
+    update(() => rows = ['newest', ...rows]);
+    controller.jumpTo(0);
+    await tester.pump();
+    expect(controller.offset, 0);
+    expect(find.text('newest'), findsOneWidget);
+  });
 }

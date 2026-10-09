@@ -136,7 +136,12 @@ class _AnchoredRenderList extends RenderSliverList {
   void performLayout() {
     // A decode or link preview can resize existing rows without changing any
     // keys. Anchor those layouts too, using their offsets from the last frame.
-    final anchor = _anchor ?? _captureAnchor();
+    var anchor = _anchor ?? _captureAnchor();
+    // The setter took its anchor from the last frame's offset. If this frame
+    // lands on the live tail (a scroll-to-latest finishing as a message
+    // arrives), the tail wins: holding the old row would push the
+    // transcript back off the bottom it just reached.
+    if (constraints.scrollOffset <= 0 && !preserveAtStart) anchor = null;
     for (final child in _retained.keys) {
       final data = child.parentData;
       if (data is SliverMultiBoxAdaptorParentData) data.keepAlive = true;
