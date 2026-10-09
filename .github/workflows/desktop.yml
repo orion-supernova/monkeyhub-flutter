@@ -63,6 +63,26 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
+      # flutter_webrtc 1.4.x downloads libwebrtc.zip at configure time and
+      # extracts it through windows/flutter/ephemeral/.plugin_symlinks, which
+      # CMake on Windows refuses ("Cannot extract through symlink"). Unpacking
+      # it into the package's real directory first makes its CMake skip both
+      # steps. 1.5.x resolves the symlink itself; there the URL pattern below
+      # stops matching and this is a no-op.
+      - name: Pre-extract libwebrtc
+        shell: pwsh
+        run: |
+          $cfg = Get-Content .dart_tool/package_config.json | ConvertFrom-Json
+          $pkg = $cfg.packages | Where-Object name -eq 'flutter_webrtc'
+          $tp = Join-Path ([System.Uri]::new($pkg.rootUri).LocalPath) 'third_party'
+          $m = Select-String -Path (Join-Path $tp 'CMakeLists.txt') -Pattern 'https://\S+/libwebrtc\.zip'
+          if ($m -and -not (Test-Path (Join-Path $tp 'libwebrtc'))) {
+            $zip = Join-Path $tp 'downloads/libwebrtc.zip'
+            New-Item -ItemType Directory -Force (Split-Path $zip) | Out-Null
+            Invoke-WebRequest $m.Matches[0].Value -OutFile $zip
+            Expand-Archive $zip -DestinationPath $tp -Force
+            Write-Host "libwebrtc unpacked into $tp"
+          }
       - name: flutter build windows
         run: >
           flutter build windows --release
