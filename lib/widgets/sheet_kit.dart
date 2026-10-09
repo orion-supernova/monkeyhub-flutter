@@ -92,8 +92,23 @@ class SheetFrame extends StatelessWidget {
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 16),
     this.maxHeightFraction,
     this.handle = true,
-  }) : assert(confirm == null || trash == null,
-            'the trailing slot holds one of ✓ or trash');
+    this.scrollsUnderInset = false,
+    this.help,
+    this.helpLabel,
+  }) : assert(
+          (confirm == null || trash == null) &&
+              (help == null || (confirm == null && trash == null)),
+          'the trailing slot holds one of ✓, trash or help',
+        );
+
+  /// Opens this sheet's explanation, from a "?" in the bar's trailing slot
+  /// ([SheetHelpButton]): the native place for help, where it costs the
+  /// content no height. For a sheet that commits from its footer, whose
+  /// trailing slot is otherwise empty.
+  final VoidCallback? help;
+
+  /// What a screen reader says for [help].
+  final String? helpLabel;
 
   final Widget child;
   final String? title;
@@ -127,6 +142,12 @@ class SheetFrame extends StatelessWidget {
   final double? maxHeightFraction;
   final bool handle;
 
+  /// The child is a scroll view that pads its own end by the home
+  /// indicator (see [sheetListPadding]), so the list runs to the sheet's
+  /// bottom edge and scrolls under it, rather than stopping above a solid
+  /// band the frame would otherwise reserve there.
+  final bool scrollsUnderInset;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -135,7 +156,8 @@ class SheetFrame extends StatelessWidget {
     final hasBar = title != null ||
         close ||
         confirm != null ||
-        trash != null;
+        trash != null ||
+        help != null;
     final fraction = maxHeightFraction;
     final inset = media.viewInsets.bottom > media.padding.bottom
         ? media.viewInsets.bottom
@@ -168,13 +190,19 @@ class SheetFrame extends StatelessWidget {
                         )
                       : trash != null
                           ? SheetTrashButton(onTap: trash!)
-                          : null,
+                          : help != null
+                              ? SheetHelpButton(
+                                  onTap: help!,
+                                  semanticLabel: helpLabel,
+                                )
+                              : null,
                 ),
               Flexible(
                 fit: fraction == null ? FlexFit.loose : FlexFit.tight,
                 child: Padding(
                   padding: padding.copyWith(
-                    bottom: padding.bottom + (foot == null ? inset : 0),
+                    bottom: padding.bottom +
+                        (foot == null && !scrollsUnderInset ? inset : 0),
                   ),
                   child: child,
                 ),
@@ -204,6 +232,18 @@ class SheetFrame extends StatelessWidget {
             ),
     );
   }
+}
+
+/// A list sheet's padding: the frame's 16pt sides, and at the end room for
+/// the home indicator, inside the scroll, so the last row can scroll clear
+/// of it while every other row runs under it. Pairs with
+/// [SheetFrame.scrollsUnderInset].
+EdgeInsets sheetListPadding(BuildContext context) {
+  final media = MediaQuery.of(context);
+  final inset = media.viewInsets.bottom > media.padding.bottom
+      ? media.viewInsets.bottom
+      : media.padding.bottom;
+  return EdgeInsets.fromLTRB(16, 0, 16, 20 + inset);
 }
 
 /// The ✓ a [SheetFrame] wears on its trailing edge. A null [onTap] draws it
@@ -348,6 +388,27 @@ class SheetConfirmButton extends StatelessWidget {
 /// when the sheet shows something of yours and deleting it is the one
 /// action (§0.1 of the round-2 rulings). The still chrome disc with a red
 /// 18pt glyph. Follow the tap with `showConfirmSheet`.
+/// The "?" a [SheetFrame] wears on its trailing edge when it has [SheetFrame.help]:
+/// the same glass disc as the ×, so the bar reads as one piece of chrome.
+class SheetHelpButton extends StatelessWidget {
+  const SheetHelpButton({super.key, required this.onTap, this.semanticLabel});
+  final VoidCallback onTap;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GlassIconButton(
+      still: true,
+      icon: CupertinoIcons.question,
+      iconSize: 18,
+      color: theme.ink,
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+    );
+  }
+}
+
 class SheetTrashButton extends StatelessWidget {
   const SheetTrashButton({super.key, required this.onTap, this.semanticLabel});
   final VoidCallback onTap;

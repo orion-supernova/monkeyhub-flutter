@@ -295,6 +295,10 @@ class GamesStore extends ChangeNotifier {
       mine: {..._standings.mine, game: result},
       progress: _standings.progress,
       boards: _standings.boards,
+      streaks: _standings.streaks,
+      myStreaks: _standings.myStreaks,
+      avatars: _standings.avatars,
+      names: _standings.names,
     );
     _notify();
   }

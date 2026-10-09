@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "agora",
   "momentActivityMinutesAgo": "{count}min",
   "momentActivityHoursAgo": "{count}h",
-  "momentActivityMoreCount": "{count, plural, one{mais 1 hoje} other{mais {count} hoje}}",
   "puzzleScreenTitle": "o enigma.",
   "puzzleScreenSubtitle": "Quatro símbolos, seis tentativas",
   "puzzleSubmit": "Adivinhar",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "Nada desse tipo está em cache agora.",
   "storageChatHistoryFooter": "Só a cópia neste aparelho é removida. As mensagens continuam no chat e carregam de novo na próxima vez que você abrir.",
   "storageCategoryHint": "Toque numa categoria para ver o que tem dentro, ou no círculo para deixá-la de fora.",
-  "storageChatRemovedNamed": "{names} · conversa removida"
+  "storageChatRemovedNamed": "{names} · conversa removida",
+  "streaksLabel": "Sequências",
+  "streakAtRiskFooter": "Jogue hoje para manter sua sequência.",
+  "streakDays": "{count, plural, =1{Sequência de 1 dia} other{Sequência de {count} dias}}",
+  "recordsCheersMore": "{count, plural, =1{e mais 1} other{e mais {count}}}",
+  "recordsCheer": "Aplaudir",
+  "myStreaksLabel": "Minhas sequências",
+  "streakLongest": "Sua mais longa: {count, plural, =1{1 dia} other{{count} dias}}",
+  "streaksEmpty": "Ninguém tem uma sequência aqui ainda."
 }

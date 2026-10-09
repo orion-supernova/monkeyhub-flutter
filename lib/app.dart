@@ -694,8 +694,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     nav.popUntil((r) => r.isFirst);
   }
 
-  /// A tapped daily-games nudge: the Feed, with today's games open on top of
-  /// it. Same three moves as the requests tap above, and for the same reasons —
+  /// A tapped daily-games nudge or shared result: the Feed, scrolled to its
+  /// Games band (see `FeedScreen._consumePendingGames`). Same three moves as the requests tap above, and for the same reasons —
   /// the section is steered without persisting (a notification is not a
   /// preference), and whatever was pushed over the shell is popped first so the
   /// tab the user is being sent to is actually the thing they see.

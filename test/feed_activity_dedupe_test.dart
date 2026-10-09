@@ -53,6 +53,9 @@ class _Family extends Fake implements FamilyService {
 class _Repo extends Fake implements ChatRepository {
   @override
   String? get userId => 'u1';
+  // Friends' faces for game results on Activity; nobody here has a picture.
+  @override
+  ChatUser? userById(String id) => null;
   @override
   List<ChatUser> get friends => [
     ChatUser(id: 'u_e', username: 'ece', name: 'Ece'),

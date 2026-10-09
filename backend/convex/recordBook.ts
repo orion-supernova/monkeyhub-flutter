@@ -1,4 +1,5 @@
 import type { Doc, Id } from "./_generated/dataModel";
+import { dayOrdinal } from "./dayKeys";
 
 /**
  * The write side of the all-time records (`records.ts`), in a module of its own.
@@ -56,6 +57,9 @@ export async function noteSolve(
       dayKey,
       achievedAt,
       solves: 1,
+      streak: 1,
+      bestStreak: 1,
+      lastSolvedDayKey: dayKey,
     });
     return;
   }
@@ -63,10 +67,54 @@ export async function noteSolve(
   await ctx.db.patch(row._id, {
     solves: row.solves + 1,
     ...(beaten ? { best: score, dayKey, achievedAt } : {}),
+    ...extendStreak(row, dayKey),
   });
   if (beaten) {
     for (const r of await reactionsOn(ctx, row._id)) await ctx.db.delete(r._id);
   }
+}
+
+/**
+ * The streak fields after a solve on [dayKey]: one longer when the last solve
+ * was the day before, a fresh run of one after a gap.
+ *
+ * A [dayKey] at or before the last solve leaves the run alone. One board a
+ * day makes a second solve of the same day impossible, and an EARLIER day is
+ * a client whose clock disagrees with the last one it used (a timezone hop
+ * west); counting it would break a run the player never broke.
+ */
+export function extendStreak(
+  row: Pick<Doc<"gameRecords">, "streak" | "bestStreak" | "lastSolvedDayKey">,
+  dayKey: string,
+): { streak: number; bestStreak: number; lastSolvedDayKey: string } | {} {
+  const last = row.lastSolvedDayKey;
+  const gap = last === undefined ? Infinity : dayOrdinal(dayKey) - dayOrdinal(last);
+  if (gap <= 0) return {};
+  const streak = gap === 1 ? (row.streak ?? 0) + 1 : 1;
+  return {
+    streak,
+    bestStreak: Math.max(row.bestStreak ?? 0, streak),
+    lastSolvedDayKey: dayKey,
+  };
+}
+
+/**
+ * The streak [row] is on as of [dayKey], or 0 when it has lapsed.
+ *
+ * Still alive the day after the last solve: today's board is not missed until
+ * today is over, and a ring that went out at midnight would tell somebody who
+ * has not played YET that they had already lost it.
+ */
+export function liveStreak(
+  row: Pick<Doc<"gameRecords">, "streak" | "lastSolvedDayKey">,
+  dayKey: string,
+): number {
+  const last = row.lastSolvedDayKey;
+  if (last === undefined || !row.streak) return 0;
+  const gap = dayOrdinal(dayKey) - dayOrdinal(last);
+  // A negative gap is a solve on a day the asker has not reached yet (they
+  // are west of the player): the run is current, and counts that day too.
+  return gap <= 1 ? row.streak : 0;
 }
 
 /**

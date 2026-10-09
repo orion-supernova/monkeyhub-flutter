@@ -4,7 +4,8 @@ import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { GAMES } from "./games";
-import { CODE_GAME, reactionsOn } from "./recordBook";
+import { CODE_GAME, extendStreak, reactionsOn } from "./recordBook";
+import { lensFor } from "./visibility";
 
 /**
  * ALL-TIME RECORDS — everyone's best at every game, and the friends cheering it.
@@ -102,9 +103,20 @@ export const board = query({
   handler: async (ctx, { userId }) => {
     type Person = { id: Id<"users">; name: string; isMe: boolean };
     const people: Person[] = [{ id: userId, name: "", isMe: true }];
+    // Faces by person, for the holders and the cheerers: through the lens the
+    // Feed draws authors with, so a friend who keeps their picture from
+    // friends is a monogram here too. Read off the user rows this loop
+    // already fetches; the viewer's own costs one more.
+    const lens = await lensFor(ctx, userId);
+    const avatars: Record<string, string> = {};
+    const me: any = await ctx.db.get(userId);
+    if (me?.avatarStorageId) avatars[userId] = me.avatarStorageId;
     for (const friendId of await acceptedFriendIds(ctx, userId)) {
       const friend: any = await ctx.db.get(friendId);
       if (!friend || isHidden(friend)) continue;
+      if (friend.avatarStorageId && lens.canSee(friend, "avatar")) {
+        avatars[friendId] = friend.avatarStorageId;
+      }
       people.push({
         id: friendId,
         name: friend.name ?? friend.username ?? "",
@@ -163,13 +175,17 @@ export const board = query({
           reactors: live
             .sort((a: any, b: any) => b.createdAt - a.createdAt)
             .slice(0, MAX_REACTORS)
-            .map((x: any) => ({ name: x.userName ?? "", emoji: x.emoji })),
+            .map((x: any) => ({
+              userId: x.userId,
+              name: x.userName ?? "",
+              emoji: x.emoji,
+            })),
           mine: live.find((x: any) => x.userId === userId)?.emoji ?? null,
         });
       }
       games[g] = out;
     }
-    return { games, palette: RECORD_REACTIONS };
+    return { games, palette: RECORD_REACTIONS, avatars };
   },
 });
 
@@ -248,8 +264,8 @@ export const unreact = mutation({
  * One-off: builds `gameRecords` from every result that predates it.
  *
  * Walks USERS rather than results, and recomputes each person's records from
- * scratch — best, the day and moment it was set, and the solve count — then
- * writes them. That makes it idempotent and safe to re-run or resume: a solve
+ * scratch — best, the day and moment it was set, the solve count, and the
+ * current and longest streak — then writes them. That makes it idempotent and safe to re-run or resume: a solve
  * that lands while it runs is either already in the rows it reads, or counted
  * by `noteSolve` on top of a record that is then recomputed to the same
  * answer. A person's whole history is read in one transaction, which at four
@@ -276,7 +292,10 @@ export const backfill = internalMutation({
       totalUsers++;
       type Tally = { best: number; dayKey: string; achievedAt: number; solves: number };
       const tally = new Map<string, Tally>();
+      // Every day each game was solved on, for the streaks below.
+      const days = new Map<string, string[]>();
       const note = (game: string, score: number, dayKey: string, at: number) => {
+        days.set(game, [...(days.get(game) ?? []), dayKey]);
         const t = tally.get(game);
         if (!t) {
           tally.set(game, { best: score, dayKey, achievedAt: at, solves: 1 });
@@ -312,7 +331,15 @@ export const backfill = internalMutation({
         );
       }
 
-      for (const [game, t] of tally) {
+      for (const [game, base] of tally) {
+        // The streaks, replayed through the same rule `noteSolve` applies one
+        // solve at a time, in day order: what the row would hold had streaks
+        // existed from the first solve.
+        let run: { streak?: number; bestStreak?: number; lastSolvedDayKey?: string } = {};
+        for (const day of [...days.get(game)!].sort()) {
+          run = { ...run, ...extendStreak(run, day) };
+        }
+        const t = { ...base, ...run };
         const existing = await ctx.db
           .query("gameRecords")
           .withIndex("by_user_game", (q: any) =>
@@ -328,7 +355,10 @@ export const backfill = internalMutation({
           existing.best !== t.best ||
           existing.achievedAt !== t.achievedAt ||
           existing.solves !== t.solves ||
-          existing.dayKey !== t.dayKey
+          existing.dayKey !== t.dayKey ||
+          existing.streak !== t.streak ||
+          existing.bestStreak !== t.bestStreak ||
+          existing.lastSolvedDayKey !== t.lastSolvedDayKey
         ) {
           await ctx.db.patch(existing._id, t);
           totalWritten++;

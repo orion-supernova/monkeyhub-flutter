@@ -5320,17 +5320,6 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count till idag',
-      one: '1 till idag',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => 'pusslet.';
 
   @override
@@ -11708,4 +11697,52 @@ class AppLocalizationsSv extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · borttagen chatt';
   }
+
+  @override
+  String get streaksLabel => 'Sviter';
+
+  @override
+  String get streakAtRiskFooter => 'Spela i dag för att behålla din svit.';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dagar i rad',
+      one: '1 dag i rad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'och $count till',
+      one: 'och 1 till',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => 'Heja';
+
+  @override
+  String get myStreaksLabel => 'Mina sviter';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dagar',
+      one: '1 dag',
+    );
+    return 'Din längsta: $_temp0';
+  }
+
+  @override
+  String get streaksEmpty => 'Ingen har en svit här än.';
 }

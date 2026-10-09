@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
@@ -127,32 +128,65 @@ class _FeedScreenState extends State<FeedScreen>
     UiSelectionStore.instance.addListener(_consumePendingMoment);
   }
 
-  /// Whether the leaderboard is already up, so a second request does not
-  /// stack a second copy of it on top of the first.
-  bool _leaderboardOpen = false;
+  /// The Games band, for a tapped games notification to scroll to.
+  final _gamesKey = GlobalKey(debugLabel: 'feed-games');
 
-  /// Opens the leaderboard for a tapped daily nudge — the page that holds
-  /// today's five games as well as who is winning them.
+  /// A games notification is waiting for the board to settle before it
+  /// scrolls; see [_revealGames].
+  bool _gamesRevealPending = false;
+
+  /// Takes a tapped daily-games notification (the nudge, or a friend's
+  /// shared result) to the Games band on this Feed: where the five games are,
+  /// with the viewer's time and rank on each. It used to open the
+  /// leaderboard, which since the band landed holds the standings only.
   ///
-  /// Pushed from HERE rather than from app.dart's push handler so the route
-  /// lands on whichever navigator this Feed belongs to — the root one on a
-  /// phone, and the section's own on a wide window, where a root push would
-  /// cover the shell it was just told to show.
-  ///
-  /// Peeks [gamesViewPending] rather than consuming it up front: on a cold
-  /// start, `HomeShell`/this screen can mount before `ChatRepository.attach`
-  /// has run — `_applyAuthChange` in app.dart awaits the call-stack attach
-  /// first — so `widget.repo.userId` (and therefore [_openLeaderboard], which
-  /// needs it) is briefly unavailable. Consuming the one-shot here regardless
-  /// would drop the notification on the floor with nothing left to retry it.
-  /// [_onChange] re-runs this once the repo attaches and notifies.
+  /// Anything this Feed's own navigator has open over it is popped first,
+  /// for the reason app.dart pops the root one: a wide window keeps the
+  /// section's pages on a navigator of its own, which the root pop misses.
   void _consumePendingGames() {
     if (!mounted) return;
-    if (!UiSelectionStore.instance.gamesViewPending) return;
-    if (widget.repo.userId == null) return;
     if (!UiSelectionStore.instance.consumeGamesView()) return;
-    if (_leaderboardOpen) return;
-    _openLeaderboard();
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    _gamesRevealPending = true;
+    _revealGames();
+  }
+
+  /// Scrolls the Games band to just under the top, leaving a sliver of the
+  /// section above showing, so it reads as a place on the Feed rather than a
+  /// page of its own.
+  ///
+  /// Waits for the board: before it lands the sections above are skeletons
+  /// of another height, and a scroll aimed at a band that then moves lands
+  /// somewhere else. [_onChange] re-runs this when the board arrives, and a
+  /// band the list has not built yet is retried on the next frame.
+  void _revealGames([int tries = 10]) {
+    if (!mounted || !_gamesRevealPending) return;
+    if (!FeedStore.instance.loaded) return;
+    final target = _gamesKey.currentContext?.findRenderObject();
+    if (target == null || !_scroll.hasClients) {
+      if (tries > 0) {
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _revealGames(tries - 1));
+      }
+      return;
+    }
+    _gamesRevealPending = false;
+    final position = _scroll.position;
+    final reveal = RenderAbstractViewport.maybeOf(target)
+        ?.getOffsetToReveal(target, 0)
+        .offset;
+    if (reveal == null) return;
+    final offset = (reveal - _kGamesRevealPeek)
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if (MotionScope.of(context).calm) {
+      _scroll.jumpTo(offset);
+    } else {
+      _scroll.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   /// Whether a tapped moment is already being fetched or shown, so a rebuild
@@ -241,6 +275,7 @@ class _FeedScreenState extends State<FeedScreen>
     // The repo attaching (userId becoming available) is one of the reasons
     // this fires — see [_consumePendingGames].
     _consumePendingGames();
+    _revealGames();
     _consumePendingMoment();
   }
 
@@ -314,20 +349,15 @@ class _FeedScreenState extends State<FeedScreen>
   Future<void> _openLeaderboard({int tab = 0}) async {
     final userId = widget.repo.userId;
     if (userId == null) return;
-    _leaderboardOpen = true;
-    try {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => LeaderboardScreen(
-            feedApi: widget.feedApi,
-            userId: userId,
-            initialTab: tab,
-          ),
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LeaderboardScreen(
+          feedApi: widget.feedApi,
+          userId: userId,
+          initialTab: tab,
         ),
-      );
-    } finally {
-      _leaderboardOpen = false;
-    }
+      ),
+    );
   }
 
   void _openGame(DailyGame game) {
@@ -477,8 +507,13 @@ class _FeedScreenState extends State<FeedScreen>
           label: l10n.feedBoardHighlightsLabel,
           // Highlights leave friends' boards after a day but are kept
           // forever — without a way in, that promise was invisible.
-          actionLabel: l10n.feedBoardOpenArchive,
-          onAction: _openArchive,
+          actions: [
+            SectionAction(
+              icon: CupertinoIcons.archivebox,
+              label: l10n.feedBoardOpenArchive,
+              onTap: _openArchive,
+            ),
+          ],
           body: store.loaded && store.highlights.isEmpty && !_canCapture
               // A supervised account with media switched off has no way to
               // fill this, so offer the explanation rather than a dead rail.
@@ -503,6 +538,7 @@ class _FeedScreenState extends State<FeedScreen>
       (
         id: 'games',
         child: _SectionShell(
+          key: _gamesKey,
           bleed: true,
           label: l10n.feedBoardGamesLabel,
           // The band is an entry point as much as a status line, so the header
@@ -515,8 +551,13 @@ class _FeedScreenState extends State<FeedScreen>
           // above this one — it's a daily game exactly like the other four,
           // and giving it its own differently-shaped section was the
           // inconsistency, not this shelf.
-          actionLabel: l10n.feedBoardGamesOpen,
-          onAction: _openLeaderboard,
+          actions: [
+            SectionAction(
+              icon: CupertinoIcons.rosette,
+              label: l10n.feedBoardGamesOpen,
+              onTap: _openLeaderboard,
+            ),
+          ],
           body: GamesStrip(
             inset: _kGutter,
             boards: GamesStore.instance.boards,
@@ -539,11 +580,13 @@ class _FeedScreenState extends State<FeedScreen>
           // The concept is new enough that the header carries its own
           // explainer — this is not a feed of photos with a score attached, it
           // is a game, and nobody arrives knowing that.
-          actionLabel: l10n.pointsExplainerOpen,
-          onAction: () => showPointsExplainer(context),
+          // Adding a point is the board's own button, under it; the board
+          // is short enough now that it never sits below a long list.
+          actions: [pointsExplainerAction(context)],
           body: PointsBoard(
             points: store.points,
             viewerId: widget.repo.userId ?? '',
+            api: widget.api,
             onAdd: _addPoint,
             onOpen: _openFromPoint,
           ),
@@ -566,6 +609,10 @@ class _FeedScreenState extends State<FeedScreen>
                     moments: activity,
                     plays: plays,
                     viewerId: widget.repo.userId ?? '',
+                    api: widget.api,
+                    // A game result carries no face; friends' come from the
+                    // list the app already holds.
+                    faceOf: (id) => widget.repo.userById(id)?.avatarStorageId,
                     onOpen: _openFromActivity,
                     onOpenPlay: (play) => _openLeaderboard(
                       tab: LeaderboardScreen.tabOf(play.game),
@@ -874,12 +921,17 @@ class _EditionStamp extends StatelessWidget {
 /// view, so a full-bleed row can ignore it.
 const double _kGutter = 20;
 
+/// How much of the section above the Games band stays in view when a games
+/// notification scrolls to it: enough to read that the Feed scrolled, not so
+/// much that the band sits mid-screen.
+const _kGamesRevealPeek = 28.0;
+
 class _SectionShell extends StatelessWidget {
   const _SectionShell({
+    super.key,
     required this.label,
     required this.body,
-    this.actionLabel,
-    this.onAction,
+    this.actions = const [],
     this.bleed = false,
   });
 
@@ -891,11 +943,10 @@ class _SectionShell extends StatelessWidget {
   /// margin. Otherwise the whole band sits in the margin.
   final bool bleed;
 
-  /// Optional trailing action on the band: the archive, the leaderboard, the
-  /// points explainer. Drawn "Label ›" by [PageSectionHeader] — one shape for
-  /// all three, and the same one Discover and the Settings hub use.
-  final String? actionLabel;
-  final VoidCallback? onAction;
+  /// The band's buttons on its header: the archive, the leaderboard, the
+  /// points explainer and Add. Capsules ([SectionActionButton]), one shape
+  /// for all of them, so a header's way in reads as a real destination.
+  final List<SectionAction> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -908,11 +959,7 @@ class _SectionShell extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(horizontal: bleed ? _kGutter : 0),
-            child: PageSectionHeader(
-              label,
-              actionLabel: actionLabel,
-              onAction: onAction,
-            ),
+            child: PageSectionHeader(label, actions: actions),
           ),
           body,
         ],

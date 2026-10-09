@@ -382,7 +382,9 @@ abstract interface class GroupedInsetRow {
 double groupedDividerInset(Widget row) {
   if (row is GroupedInsetRow) return (row as GroupedInsetRow).groupedInset;
   if (row is GroupedRow && row.icon != null) return 60;
-  if (row is PersonRow) return kPersonRowTextInset;
+  if (row is PersonRow) {
+    return kPersonRowTextInset + (row.lead != null ? kPersonRowLead : 0);
+  }
   return 16;
 }
 
@@ -417,6 +419,52 @@ Color quietFill(AppTheme theme) =>
 /// coloured squares. Named roles rather than raw colours so every screen
 /// picks from the same set and a theme could one day restyle them.
 enum TileTone { blue, green, orange, red, purple, pink, teal, indigo, gray, accent }
+
+/// The colour of a streak's flame. A named role rather than a literal at each
+/// use, so a theme that wants its own flame changes it in one place; until
+/// one does, it is the orange tile, the one warm hue every theme already
+/// carries.
+Color streakColor(AppTheme theme) => tileColor(theme, TileTone.orange);
+
+/// THE coloured tile: an icon in white on a rounded square of one of the
+/// fixed [TileTone]s, the iOS Settings mark. A settings row's icon, and a
+/// point category's mark wherever the category appears, so the two can never
+/// drift apart.
+class ToneTile extends StatelessWidget {
+  const ToneTile({
+    super.key,
+    required this.icon,
+    required this.tone,
+    this.size = 30,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final TileTone tone;
+  final double size;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: destructive ? theme.danger : tileColor(theme, tone),
+        borderRadius: BorderRadius.circular(size * 0.25),
+      ),
+      child: Icon(
+        icon,
+        size: size * 0.6,
+        color: tone == TileTone.accent && !destructive
+            ? theme.accentInk
+            : Colors.white,
+      ),
+    );
+  }
+}
 
 Color tileColor(AppTheme theme, TileTone tone) => switch (tone) {
       TileTone.blue => const Color(0xFF0A84FF),
@@ -553,24 +601,7 @@ class _GroupedRowState extends State<GroupedRow>
         child: Row(
           children: [
             if (w.icon != null) ...[
-              Container(
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: w.destructive
-                      ? theme.danger
-                      : tileColor(theme, w.tone),
-                  borderRadius: BorderRadius.circular(7.5),
-                ),
-                child: Icon(
-                  w.icon,
-                  size: 18,
-                  color: w.tone == TileTone.accent && !w.destructive
-                      ? theme.accentInk
-                      : Colors.white,
-                ),
-              ),
+              ToneTile(icon: w.icon!, tone: w.tone, destructive: w.destructive),
               const SizedBox(width: 14),
             ],
             Expanded(
@@ -831,6 +862,10 @@ const double kPersonRowAvatar = 40;
 /// starts in a [GroupedSection] / [SheetGroup].
 const double kPersonRowTextInset = 16 + kPersonRowAvatar + 12;
 
+/// What a [PersonRow.lead] adds before the avatar: its 22pt slot and the
+/// 10pt after it.
+const double kPersonRowLead = 22 + 10;
+
 /// THE row for a person or a room: a 40pt avatar, the name at 17 regular, an
 /// optional 15pt subtitle (handle, member count, last seen) and a trailing
 /// slot ([SelectionCheck], [RowPillButton], a value). Pickers, friend lists,
@@ -852,7 +887,22 @@ class PersonRow extends StatelessWidget {
     this.onLongPress,
     this.enabled = true,
     this.semanticLabel,
+    this.lead,
+    this.emphasis = false,
+    this.titleMaxLines = 1,
   });
+
+  /// Lines the title may wrap to before it ellipsizes: a name is one, a
+  /// sentence ("Bilgekaan solved Mini Sudoku") gets the room to finish.
+  final int titleMaxLines;
+
+  /// A narrow slot before the avatar, [kPersonRowLead] wide with its gap: a
+  /// leaderboard's rank. Centred, so a column of them lines up.
+  final Widget? lead;
+
+  /// The row is the viewer's own: the name in the accent at w600 on the
+  /// quiet fill, the way every scoreboard marks "you".
+  final bool emphasis;
 
   /// Sized to [kPersonRowAvatar] by the row; pass the avatar widget at 40.
   final Widget avatar;
@@ -878,6 +928,10 @@ class PersonRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 14, 8),
         child: Row(
           children: [
+            if (lead != null) ...[
+              SizedBox(width: 22, child: Center(child: lead)),
+              const SizedBox(width: 10),
+            ],
             SizedBox.square(dimension: kPersonRowAvatar, child: avatar),
             const SizedBox(width: 12),
             Expanded(
@@ -890,9 +944,14 @@ class PersonRow extends StatelessWidget {
                       Flexible(
                         child: Text(
                           title,
-                          maxLines: 1,
+                          maxLines: titleMaxLines,
                           overflow: TextOverflow.ellipsis,
-                          style: groupedTitleStyle(theme),
+                          style: emphasis
+                              ? groupedTitleStyle(theme).copyWith(
+                                  color: theme.accent,
+                                  fontWeight: FontWeight.w600,
+                                )
+                              : groupedTitleStyle(theme),
                         ),
                       ),
                       if (titleTrailing != null) ...[
@@ -921,7 +980,8 @@ class PersonRow extends StatelessWidget {
         ),
       ),
     );
-    final body = Opacity(opacity: enabled ? 1 : 0.45, child: row);
+    final filled = emphasis ? ColoredBox(color: quietFill(theme), child: row) : row;
+    final body = Opacity(opacity: enabled ? 1 : 0.45, child: filled);
     if (onTap == null && onLongPress == null) {
       return Semantics(label: semanticLabel, child: body);
     }
@@ -963,10 +1023,17 @@ class PageSectionHeader extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.actionSemanticLabel,
+    this.actions = const [],
     this.padding = const EdgeInsets.fromLTRB(0, 0, 0, 10),
   });
 
   final String title;
+
+  /// The band's own buttons, drawn as [SectionActionButton]s in place of the
+  /// "Label ›" link: for a tab root whose sections each have a real thing to
+  /// do (the Feed's archive, leaderboard, add and explainer). Wins over
+  /// [actionLabel] when given.
+  final List<SectionAction> actions;
 
   /// A number after the title ("12"). Null or empty draws none.
   final String? count;
@@ -1015,7 +1082,12 @@ class PageSectionHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(child: heading),
-          if (label != null && onAction != null) ...[
+          if (actions.isNotEmpty)
+            for (final a in actions) ...[
+              const SizedBox(width: 8),
+              SectionActionButton(a),
+            ]
+          else if (label != null && onAction != null) ...[
             const SizedBox(width: 8),
             TextLinkButton(
               label: label,
@@ -1025,6 +1097,94 @@ class PageSectionHeader extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// One button on a section header. [label] null draws it as a round icon
+/// button (a quiet "What's this?"), with [semanticLabel] read aloud.
+class SectionAction {
+  const SectionAction({
+    required this.icon,
+    required this.onTap,
+    this.label,
+    this.semanticLabel,
+    this.primary = false,
+  });
+
+  final IconData icon;
+  final String? label;
+  final String? semanticLabel;
+  final VoidCallback onTap;
+
+  /// The band's one main thing to do, filled in the accent ("Add a point").
+  /// The rest sit quietly on the fill, accent ink.
+  final bool primary;
+}
+
+/// A section header's button: a 32pt capsule with its icon leading, or a
+/// 32pt circle when it has no label.
+///
+/// Built for the Feed's bands, where a header's action is a real
+/// destination (the archive, the leaderboard) or the band's own primary
+/// verb (add a point), and a bare "Label ›" link read as an afterthought.
+/// Capsules rather than links so a header can carry two without them
+/// reading as one sentence.
+class SectionActionButton extends StatelessWidget {
+  const SectionActionButton(this.action, {super.key});
+
+  final SectionAction action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final a = action;
+    final label = a.label;
+    final fill = a.primary ? theme.accent : quietFill(theme);
+    final ink = a.primary ? theme.accentInk : theme.accent;
+    return SpringPress(
+      onTap: a.onTap,
+      scale: PressSpec.scaleSmall,
+      semanticLabel: a.semanticLabel ?? label,
+      focusShape:
+          label == null ? FocusRingShape.circle : FocusRingShape.rounded,
+      focusRadius: 16,
+      child: Container(
+        height: 32,
+        width: label == null ? 32 : null,
+        padding: label == null
+            ? null
+            : const EdgeInsets.symmetric(horizontal: 12),
+        // No `alignment`: a Container that aligns its child grows to all the
+        // width it is offered, and outside a header's Row that turned the
+        // capsule into a full-width bar. The Row centres instead.
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(a.icon, size: label == null ? 17 : 15, color: ink),
+              if (label != null) ...[
+                const SizedBox(width: 5),
+                Text(
+                  sentenceCaseOf(context, label),
+                  maxLines: 1,
+                  style: groupedMetaStyle(theme).copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: ink,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

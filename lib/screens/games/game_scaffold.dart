@@ -16,6 +16,7 @@ import '../../widgets/game_celebration.dart';
 import '../../widgets/game_layout_shell.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/ios_kit.dart';
+import '../../widgets/score_row.dart';
 import '../../widgets/sheet_kit.dart';
 import '../../l10n/text_case.dart';
 
@@ -556,6 +557,31 @@ class GameStandingsList extends StatelessWidget {
   final String viewerId;
   final int max;
 
+  /// One finisher, as every scoreboard draws them ([ScoreRow]).
+  Widget _standingRow(BuildContext context, int rank, GameResult row) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final score = row.solved
+        ? formatGameTime(row.durationMs)
+        : sentenceCaseOf(context, l10n.gameStatusGaveUp);
+    return ScoreRow(
+      rank: rank,
+      medal: row.solved,
+      userId: row.userId,
+      name: row.name,
+      isViewer: row.userId == viewerId,
+      streak: row.solved
+          ? GamesStore.instance.standings.streakOf(row.userId, game)
+          : 0,
+      semantics: score,
+      // Advisory, never ranked on: a hint was used.
+      extra: row.hintsUsed > 0
+          ? Icon(CupertinoIcons.lightbulb, size: 15, color: theme.inkMuted)
+          : null,
+      trailing: ScoreText(score, muted: !row.solved),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -598,14 +624,12 @@ class GameStandingsList extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _StandingRow(
-                    rank: i + 1,
-                    row: rows[i],
-                    isViewer: rows[i].userId == viewerId,
-                  ),
+                  _standingRow(context, i + 1, rows[i]),
                   if (i < shown - 1)
                     Padding(
-                      padding: const EdgeInsets.only(left: 56),
+                      padding: const EdgeInsets.only(
+                        left: kPersonRowTextInset + kPersonRowLead,
+                      ),
                       child: Container(
                         height: hairline,
                         color: theme.ink.withValues(alpha: 0.10),
@@ -619,96 +643,6 @@ class GameStandingsList extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StandingRow extends StatelessWidget {
-  const _StandingRow({
-    required this.rank,
-    required this.row,
-    required this.isViewer,
-  });
-
-  final int rank;
-  final GameResult row;
-  final bool isViewer;
-
-  /// Gold, silver, bronze for the podium; everyone after gets a plain number.
-  static const _medals = [
-    [Color(0xFFFFD86B), Color(0xFFF0A81E)],
-    [Color(0xFFE4E7EC), Color(0xFFA9AFB8)],
-    [Color(0xFFF2B48A), Color(0xFFC77A44)],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final medal = rank <= 3 && row.solved ? _medals[rank - 1] : null;
-    return Container(
-      color: isViewer ? quietFill(theme) : null,
-      padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
-      child: Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: medal == null
-                  ? null
-                  : LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: medal,
-                    ),
-              color: medal == null ? theme.ink.withValues(alpha: 0.07) : null,
-            ),
-            child: Text(
-              '$rank',
-              style: theme.body.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: medal == null ? theme.inkMuted : const Color(0xFF3A2A00),
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              isViewer ? sentenceCaseOf(context, l10n.momentRailYouLabel) : row.name,
-              style: isViewer
-                  ? theme.bodyEmph.copyWith(color: theme.accent)
-                  : theme.body.copyWith(color: theme.ink),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (row.hintsUsed > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Icon(
-                CupertinoIcons.lightbulb,
-                size: 15,
-                color: theme.inkMuted,
-              ),
-            ),
-          Text(
-            row.solved
-                ? formatGameTime(row.durationMs)
-                : sentenceCaseOf(context, l10n.gameStatusGaveUp),
-            style: theme.body.copyWith(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: row.solved ? theme.ink : theme.inkMuted,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

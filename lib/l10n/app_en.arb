@@ -1899,7 +1899,9 @@
   "@callScreenStatusCalling": {
     "description": "Status line shown while an outgoing call is placed but no device of the callee has started ringing yet (the push may still be on its way). Distinct from callScreenStatusRinging, which means the callee's phone is ringing now. {kind} is the localized 'Video call'/'Voice call' label.",
     "placeholders": {
-      "kind": {"type": "String"}
+      "kind": {
+        "type": "String"
+      }
     }
   },
   "callScreenStatusRinging": "{kind} · ringing…",
@@ -5971,10 +5973,6 @@
   "momentActivityHoursAgo": "{count}h",
   "@momentActivityHoursAgo": {
     "description": "Compact timestamp on an activity row, in hours. Keep it very short (one letter suffix) — it sits in a narrow column beside a name."
-  },
-  "momentActivityMoreCount": "{count, plural, one{1 more today} other{{count} more today}}",
-  "@momentActivityMoreCount": {
-    "description": "Muted line at the end of a truncated activity river, stating how many entries are not shown. Says what was hidden rather than letting the list stop silently."
   },
   "puzzleScreenTitle": "the puzzle.",
   "@puzzleScreenTitle": {
@@ -13744,5 +13742,52 @@
         "type": "String"
       }
     }
+  },
+  "streaksLabel": "Streaks",
+  "@streaksLabel": {
+    "description": "Leaderboard section header over the viewer's per-game streaks (consecutive days solved)."
+  },
+  "streakAtRiskFooter": "Play today to keep your streak.",
+  "@streakAtRiskFooter": {
+    "description": "Under the streaks card when a streak is still alive but today's game is not played yet; it ends at midnight."
+  },
+  "streakDays": "{count, plural, =1{1 day streak} other{{count} day streak}}",
+  "@streakDays": {
+    "description": "Screen reader text for a streak: consecutive days this person has solved a game.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsCheersMore": "{count, plural, =1{and 1 more} other{and {count} more}}",
+  "@recordsCheersMore": {
+    "description": "After the first names of the friends who cheered a record: how many more cheered it.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordsCheer": "Cheer",
+  "@recordsCheer": {
+    "description": "Button on a friend's all-time record that opens the emoji to cheer it with."
+  },
+  "myStreaksLabel": "My streaks",
+  "@myStreaksLabel": {
+    "description": "Leaderboard section header over the viewer's OWN per-game streaks."
+  },
+  "streakLongest": "Your longest: {count, plural, =1{1 day} other{{count} days}}",
+  "@streakLongest": {
+    "description": "Under a game's streak ranking: the viewer's longest run of consecutive days ever at that game.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streaksEmpty": "Nobody is on a streak here yet.",
+  "@streaksEmpty": {
+    "description": "A game's streak ranking when nobody (viewer included) has a live streak on it."
   }
 }

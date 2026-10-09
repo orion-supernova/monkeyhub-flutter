@@ -5267,16 +5267,6 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'bugün $count tane daha',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => 'bulmaca.';
 
   @override
@@ -11638,4 +11628,49 @@ class AppLocalizationsTr extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · kaldırılan sohbet';
   }
+
+  @override
+  String get streaksLabel => 'Seriler';
+
+  @override
+  String get streakAtRiskFooter => 'Serini korumak için bugün oyna.';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count günlük seri',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 've $count kişi daha',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => 'Tebrik et';
+
+  @override
+  String get myStreaksLabel => 'Serilerim';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gün',
+    );
+    return 'En uzun serin: $_temp0';
+  }
+
+  @override
+  String get streaksEmpty => 'Burada henüz kimse seride değil.';
 }

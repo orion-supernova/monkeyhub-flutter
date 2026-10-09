@@ -5106,16 +5106,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '오늘 $count개 더',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => '퍼즐.';
 
   @override
@@ -11233,4 +11223,49 @@ class AppLocalizationsKo extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · 삭제된 채팅';
   }
+
+  @override
+  String get streaksLabel => '연속 기록';
+
+  @override
+  String get streakAtRiskFooter => '오늘 플레이해서 연속 기록을 이어가세요.';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count일 연속',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '외 $count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => '응원하기';
+
+  @override
+  String get myStreaksLabel => '내 연속 기록';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count일',
+    );
+    return '최장 기록: $_temp0';
+  }
+
+  @override
+  String get streaksEmpty => '아직 연속 기록이 있는 사람이 없어요.';
 }

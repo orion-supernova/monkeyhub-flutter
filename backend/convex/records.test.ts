@@ -20,6 +20,9 @@ import { noteSolve, purgeRecordsOf } from "./recordBook";
  *   4. **Only a friend reacts, and not to themselves.**
  *   5. **The backfill is idempotent** — re-running it changes nothing.
  *   6. **The code puzzle can be shared once, like the other four.**
+ *   7. **A streak is consecutive days solved,** per game: a skipped or
+ *      surrendered day restarts it, and it stays alive until the day after
+ *      the last solve is over.
  */
 
 const DEVICE = "device-a";
@@ -183,7 +186,10 @@ describe("reactions", () => {
     let row = (await board(t, me)).games.sudoku[0];
     expect(row.reactions).toEqual([{ emoji: "🔥", count: 1 }]);
     expect(row.mine).toBe("🔥");
-    expect(row.reactors).toEqual([{ name: "me", emoji: "🔥" }]);
+    // The reactor's id rides along, for their face on the cheer stack.
+    expect(row.reactors).toEqual([
+      { userId: me.userId, name: "me", emoji: "🔥" },
+    ]);
 
     await t.mutation(api.records.react, {
       sessionToken: me.token,
@@ -336,8 +342,13 @@ describe("the backfill", () => {
     expect(queens.dayKey).toBe("2026-09-02");
     expect(queens.achievedAt).toBe(200);
     expect(queens.solves).toBe(2);
+    // 09-01 and 09-02 in a row; the 09-03 surrender is not a third.
+    expect(queens.streak).toBe(2);
+    expect(queens.bestStreak).toBe(2);
+    expect(queens.lastSolvedDayKey).toBe("2026-09-02");
     const code: any = await recordOf(t, me.userId, "code");
     expect(code.best).toBe(3);
+    expect(code.streak).toBe(1);
 
     const again: any = await t.mutation(internal.records.backfill, {});
     expect(again.written).toBe(0);
@@ -433,5 +444,97 @@ describe("sharing the code puzzle", () => {
         dayKey: DAY,
       }),
     ).rejects.toThrow(/RESULT_PRIVATE/);
+  });
+});
+
+describe("a streak", () => {
+  test("grows on consecutive days and restarts after a gap", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "me");
+    await solve(t, me.userId, "zip", 50_000, 1, "2026-09-01");
+    await solve(t, me.userId, "zip", 50_000, 2, "2026-09-02");
+    await solve(t, me.userId, "zip", 50_000, 3, "2026-09-03");
+    let r: any = await recordOf(t, me.userId, "zip");
+    expect(r.streak).toBe(3);
+    expect(r.bestStreak).toBe(3);
+
+    // 09-04 skipped.
+    await solve(t, me.userId, "zip", 50_000, 4, "2026-09-05");
+    r = await recordOf(t, me.userId, "zip");
+    expect(r.streak).toBe(1);
+    expect(r.bestStreak).toBe(3);
+
+    // Across a month boundary, which a string compare would get wrong.
+    await solve(t, me.userId, "tango", 1, 5, "2026-09-30");
+    await solve(t, me.userId, "tango", 1, 6, "2026-10-01");
+    expect(((await recordOf(t, me.userId, "tango")) as any).streak).toBe(2);
+  });
+
+  test("each game keeps its own", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "me");
+    await solve(t, me.userId, "queens", 1, 1, "2026-09-01");
+    await solve(t, me.userId, "queens", 1, 2, "2026-09-02");
+    await solve(t, me.userId, "sudoku", 1, 3, "2026-09-02");
+    expect(((await recordOf(t, me.userId, "queens")) as any).streak).toBe(2);
+    expect(((await recordOf(t, me.userId, "sudoku")) as any).streak).toBe(1);
+  });
+
+  test("standings show it while alive, and drop it once a day is missed", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "me");
+    const ece = await signUp(t, "ece");
+    await befriend(t, me, ece, "ece");
+    await solve(t, ece.userId, "queens", 1, 1, "2026-09-01");
+    await solve(t, ece.userId, "queens", 1, 2, "2026-09-02");
+    await solve(t, me.userId, "zip", 1, 3, "2026-09-02");
+
+    const standings = async (dayKey: string) =>
+      (await t.query(api.games.standings, {
+        sessionToken: me.token,
+        userId: me.userId,
+        dayKey,
+      })) as any;
+
+    // The day after: not played yet, still alive.
+    const next = await standings("2026-09-03");
+    expect(next.streaks[ece.userId]).toEqual({ queens: 2 });
+    // Named, for the streak rankings, though she has no row that day.
+    expect(next.names[ece.userId]).toBe("ece");
+    expect(next.myStreaks.zip).toEqual({ current: 1, best: 1, today: false });
+
+    // Two days on: lapsed, the best remains.
+    const later = await standings("2026-09-04");
+    expect(later.streaks[ece.userId]).toBeUndefined();
+    expect(later.myStreaks.zip).toEqual({ current: 0, best: 1, today: false });
+
+    const same = await standings("2026-09-02");
+    expect(same.myStreaks.zip.today).toBe(true);
+  });
+
+  test("standings carry faces, and hide one its owner keeps from friends", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "me");
+    const ece = await signUp(t, "ece");
+    const ali = await signUp(t, "ali");
+    await befriend(t, me, ece, "ece");
+    await befriend(t, me, ali, "ali");
+    await t.run(async (ctx: any) => {
+      const pic = await ctx.storage.store(new Blob(["x"]));
+      await ctx.db.patch(ece.userId, { avatarStorageId: pic });
+      await ctx.db.patch(ali.userId, {
+        avatarStorageId: pic,
+        visibility: { avatar: "nobody" },
+      });
+    });
+    await solve(t, ece.userId, "queens", 1, 1, DAY);
+    await solve(t, ali.userId, "queens", 1, 1, DAY);
+    const s: any = await t.query(api.games.standings, {
+      sessionToken: me.token,
+      userId: me.userId,
+      dayKey: DAY,
+    });
+    expect(s.avatars[ece.userId]).toBeDefined();
+    expect(s.avatars[ali.userId]).toBeUndefined();
   });
 });

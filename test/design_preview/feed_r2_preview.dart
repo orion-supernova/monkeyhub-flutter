@@ -70,6 +70,9 @@ class _Family extends Fake implements FamilyService {
 }
 
 class _Repo extends Fake implements ChatRepository {
+  // Friends' faces for game results on Activity: none in the fixture.
+  @override
+  ChatUser? userById(String id) => null;
   @override
   String? get userId => 'u1';
   @override
@@ -138,6 +141,11 @@ final _moments = <Moment>[
       caption: 'Ran into my dentist in Lisbon', minutesAgo: 45),
   _m('p3', mine: true, tag: MomentTag.luck,
       caption: 'Found 50 lira in an old coat', minutesAgo: 60),
+  // Enough points that the board caps them and offers "See all".
+  _m('p4', who: 'Deniz Kaya', tag: MomentTag.jinx,
+      caption: 'Umbrella broke on the one rainy day', minutesAgo: 95),
+  _m('p5', tag: MomentTag.fate,
+      caption: 'Same song on three radios', minutesAgo: 120),
 ];
 
 GameResult _r(DailyGame g, String id, String name, int secs,
@@ -445,6 +453,18 @@ void main() {
         'r2f_feed_scrolled_$id.png',
         act: () async {
           await tester.drag(find.byType(Scrollable).first, const Offset(0, -620));
+        },
+      );
+    });
+    testWidgets('feed activity sheet $id', (tester) async {
+      await _shoot(
+        tester,
+        _app(ThemeController.byId(id), feed()),
+        'r2f_activity_sheet_$id.png',
+        act: () async {
+          await tester.drag(find.byType(Scrollable).first, const Offset(0, -1400));
+          await tester.pumpAndSettle(const Duration(milliseconds: 100));
+          await tester.tap(find.text('See all').last);
         },
       );
     });

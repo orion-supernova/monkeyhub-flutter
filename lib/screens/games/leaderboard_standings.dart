@@ -1,3 +1,4 @@
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../models/puzzle.dart';
 
@@ -9,6 +10,16 @@ import '../../models/puzzle.dart';
 /// Null is the code — the same convention `showCodePuzzleInfo` uses for "the
 /// one game that is not a [DailyGame]".
 const List<DailyGame?> kLeaderboardGames = [null, ...DailyGame.values];
+
+/// The game a capsule names; null is the code.
+String leaderboardGameName(AppLocalizations l10n, DailyGame? game) =>
+    switch (game) {
+      null => l10n.gameCodeName,
+      DailyGame.queens => l10n.gameQueensName,
+      DailyGame.tango => l10n.gameTangoName,
+      DailyGame.zip => l10n.gameZipName,
+      DailyGame.sudoku => l10n.gameSudokuName,
+    };
 
 /// One player's line on the overall ("Today") leaderboard.
 class LeaderRow {

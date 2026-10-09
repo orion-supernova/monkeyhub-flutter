@@ -5092,16 +5092,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '今日はあと$count件',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => 'パズル。';
 
   @override
@@ -11212,4 +11202,49 @@ class AppLocalizationsJa extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · 削除されたチャット';
   }
+
+  @override
+  String get streaksLabel => '連続記録';
+
+  @override
+  String get streakAtRiskFooter => '今日プレイして連続記録をキープしよう。';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count日連続',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ほか$count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => '応援する';
+
+  @override
+  String get myStreaksLabel => '自分の連続記録';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count日',
+    );
+    return '最長記録: $_temp0';
+  }
+
+  @override
+  String get streaksEmpty => 'まだ誰も連続記録がありません。';
 }

@@ -5386,21 +5386,6 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count أخرى اليوم',
-      many: '$count أخرى اليوم',
-      few: '$count أخرى اليوم',
-      two: 'اثنان آخران اليوم',
-      one: 'واحد آخر اليوم',
-      zero: 'لا مزيد اليوم',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => 'اللغز.';
 
   @override
@@ -11855,4 +11840,61 @@ class AppLocalizationsAr extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · محادثة محذوفة';
   }
+
+  @override
+  String get streaksLabel => 'السلاسل';
+
+  @override
+  String get streakAtRiskFooter => 'العب اليوم للحفاظ على سلسلتك.';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'سلسلة $count يوم',
+      many: 'سلسلة $count يومًا',
+      few: 'سلسلة $count أيام',
+      two: 'سلسلة يومين',
+      one: 'سلسلة يوم واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'و$count آخرين',
+      many: 'و$count آخرين',
+      few: 'و$count آخرين',
+      two: 'وشخصان آخران',
+      one: 'وشخص آخر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => 'شجّع';
+
+  @override
+  String get myStreaksLabel => 'سلاسلي';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count يوم',
+      many: '$count يومًا',
+      few: '$count أيام',
+      two: 'يومان',
+      one: 'يوم واحد',
+    );
+    return 'أطول سلسلة لك: $_temp0';
+  }
+
+  @override
+  String get streaksEmpty => 'لا أحد في سلسلة هنا بعد.';
 }

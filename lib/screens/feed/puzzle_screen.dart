@@ -21,7 +21,9 @@ import '../../widgets/game_layout_shell.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/game_celebration.dart';
 import '../../widgets/adaptive_page_body.dart';
+import '../../data/games_store.dart';
 import '../../widgets/ios_kit.dart';
+import '../../widgets/score_row.dart';
 import '../../widgets/labeled_field.dart' show FormErrorBanner;
 import '../../widgets/puzzle_symbol.dart';
 import '../../l10n/text_case.dart';
@@ -95,12 +97,17 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   void initState() {
     super.initState();
     FeedStore.instance.addListener(_onChange);
+    // The scores ride the Feed's live board; the faces and streak flames on
+    // them come with the games' standings, a one-shot read.
+    GamesStore.instance.addListener(_onChange);
+    GamesStore.instance.load(widget.userId);
   }
 
   @override
   void dispose() {
     _retry?.cancel();
     FeedStore.instance.removeListener(_onChange);
+    GamesStore.instance.removeListener(_onChange);
     super.dispose();
   }
 
@@ -909,6 +916,10 @@ class _Scoreboard extends StatelessWidget {
   final PuzzleState state;
   final String viewerId;
 
+  static String _score(PuzzleScore s) => s.solved
+      ? '${s.guessCount}/$kPuzzleMaxGuesses'
+      : 'X/$kPuzzleMaxGuesses';
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -935,68 +946,28 @@ class _Scoreboard extends StatelessWidget {
                   EmptyLine(l10n.puzzleScoreboardEmpty)
                 else
                   for (var i = 0; i < scores.length; i++) ...[
-                    Container(
+                    ScoreRow(
                       key: ValueKey(scores[i].userId),
-                      color: scores[i].userId == viewerId
-                          ? theme.accent.withValues(alpha: 0.10)
-                          : null,
-                      padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: theme.ink.withValues(alpha: 0.07),
-                            ),
-                            child: Text(
-                              '${i + 1}',
-                              style: theme.body.copyWith(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: theme.inkMuted,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              scores[i].userId == viewerId
-                                  ? sentenceCaseOf(
-                                      context,
-                                      l10n.momentRailYouLabel,
-                                    )
-                                  : scores[i].name,
-                              style: scores[i].userId == viewerId
-                                  ? theme.bodyEmph.copyWith(color: theme.accent)
-                                  : theme.body.copyWith(color: theme.ink),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            scores[i].solved
-                                ? '${scores[i].guessCount}/$kPuzzleMaxGuesses'
-                                : 'X/$kPuzzleMaxGuesses',
-                            style: theme.body.copyWith(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: scores[i].solved
-                                  ? theme.ink
-                                  : theme.inkMuted,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ],
+                      rank: i + 1,
+                      medal: scores[i].solved,
+                      userId: scores[i].userId,
+                      name: scores[i].name,
+                      isViewer: scores[i].userId == viewerId,
+                      streak: scores[i].solved
+                          ? GamesStore.instance.standings
+                              .streakOf(scores[i].userId, null)
+                          : 0,
+                      semantics: _score(scores[i]),
+                      trailing: ScoreText(
+                        _score(scores[i]),
+                        muted: !scores[i].solved,
                       ),
                     ),
                     if (i < scores.length - 1)
                       Padding(
-                        padding: const EdgeInsets.only(left: 56),
+                        padding: const EdgeInsets.only(
+                          left: kPersonRowTextInset + kPersonRowLead,
+                        ),
                         child: Container(
                           height: hairline,
                           color: theme.ink.withValues(alpha: 0.10),

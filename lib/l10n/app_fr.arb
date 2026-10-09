@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "à l’instant",
   "momentActivityMinutesAgo": "{count}min",
   "momentActivityHoursAgo": "{count}h",
-  "momentActivityMoreCount": "{count, plural, one{1 de plus aujourd’hui} other{{count} de plus aujourd’hui}}",
   "puzzleScreenTitle": "l’énigme.",
   "puzzleScreenSubtitle": "Quatre symboles, six essais",
   "puzzleSubmit": "Deviner",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "Rien de ce type n'est en cache pour l'instant.",
   "storageChatHistoryFooter": "Seule la copie sur cet appareil est supprimée. Les messages restent dans la discussion et se rechargent à la prochaine ouverture.",
   "storageCategoryHint": "Touchez une catégorie pour voir son contenu, ou son cercle pour l’exclure.",
-  "storageChatRemovedNamed": "{names} · discussion supprimée"
+  "storageChatRemovedNamed": "{names} · discussion supprimée",
+  "streaksLabel": "Séries",
+  "streakAtRiskFooter": "Joue aujourd'hui pour garder ta série.",
+  "streakDays": "{count, plural, =1{Série de 1 jour} other{Série de {count} jours}}",
+  "recordsCheersMore": "{count, plural, =1{et 1 autre} other{et {count} autres}}",
+  "recordsCheer": "Applaudir",
+  "myStreaksLabel": "Mes séries",
+  "streakLongest": "Ta plus longue : {count, plural, =1{1 jour} other{{count} jours}}",
+  "streaksEmpty": "Personne n'a encore de série ici."
 }

@@ -7,15 +7,15 @@ import 'package:image_picker/image_picker.dart';
 import '../../backend/chat_api.dart';
 import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
-import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/image_raster.dart';
 import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../models/moment.dart';
-import '../../theme/app_theme.dart';
+import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
+import '../../widgets/filter_capsule.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/photo_chrome.dart' show MediaOverlayChip;
@@ -374,6 +374,12 @@ class _PointComposerState extends State<_PointComposer> {
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.pointComposerTitle),
       padding: EdgeInsets.zero,
+      // "What's this?" as the bar's "?", the native place for help: it costs
+      // the sheet no height and no longer sits between the choice and the
+      // writing. The explainer opens on this navigator, so coming back keeps
+      // what was typed.
+      help: () => showPointsExplainer(context),
+      helpLabel: l10n.pointsExplainerOpen,
       footer: SheetActionButton(
         label: action,
         busy: _busy,
@@ -386,7 +392,10 @@ class _PointComposerState extends State<_PointComposer> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // The decision first: the category is what makes this a point.
-            _TagGrid(
+            // Two rows of capsules in each category's own colour, small
+            // enough to stay in view with the keyboard up, so the choice can
+            // change mid-sentence without a scroll.
+            _TagPicker(
               selected: _tag,
               enabled: !_busy,
               onPick: (t) {
@@ -394,20 +403,8 @@ class _PointComposerState extends State<_PointComposer> {
                 HapticFeedback.selectionClick();
               },
             ),
-            const SizedBox(height: 6),
-            // "Kerizlik points" is not a thing anyone has met before, so the
-            // explainer is one tap away — under the choices it explains, not
-            // above them where it used to push the decision down.
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextLinkButton(
-                label: l10n.pointsExplainerOpen,
-                icon: CupertinoIcons.chevron_forward,
-                fontSize: 15,
-                onTap: () => showPointsExplainer(context),
-              ),
-            ),
-            const SizedBox(height: 10),
+            _TagHint(tag: _tag),
+            const SizedBox(height: 14),
             // The shared composer field, with the countdown inside it once
             // it matters.
             SheetTextField(
@@ -438,20 +435,27 @@ class _PointComposerState extends State<_PointComposer> {
               // Two ways in, both offered — the camera FIRST, because a
               // point is usually logged in the thirty seconds after the
               // thing happened, when the picture does not exist yet.
+              // The shared quiet capsule: one capsule shape per role on the
+              // sheet, and an afterthought that must not out-shout the
+              // sentence above it.
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _SourceButton(
+                  SectionActionButton(SectionAction(
                     icon: CupertinoIcons.camera_fill,
                     label: l10n.momentComposerCapture,
-                    onTap: _busy ? null : _capture,
-                  ),
-                  _SourceButton(
+                    onTap: () {
+                      if (!_busy) _capture();
+                    },
+                  )),
+                  SectionActionButton(SectionAction(
                     icon: CupertinoIcons.photo_fill_on_rectangle_fill,
                     label: l10n.momentComposerLibrary,
-                    onTap: _busy ? null : _pickPhoto,
-                  ),
+                    onTap: () {
+                      if (!_busy) _pickPhoto();
+                    },
+                  )),
                 ],
               )
             else
@@ -546,71 +550,11 @@ class _Thumb extends StatelessWidget {
   }
 }
 
-/// One of the two ways to attach a picture.
-///
-/// A bordered capsule rather than the highlight composer's big square tiles:
-/// there the picture is the *point* and its slot deserves the room, here it is
-/// an afterthought that must not out-shout the sentence above it or push ADD
-/// POINT down the sheet.
-class _SourceButton extends StatelessWidget {
-  const _SourceButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: label,
-      focusShape: FocusRingShape.capsule,
-      child: Opacity(
-        // Matches the rail's capture tile: show the control dimmed rather
-        // than hiding it, so the surface still makes sense while it is busy.
-        opacity: onTap == null ? 0.45 : 1,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 36),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: quietFill(theme),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 17, color: theme.accent),
-              const SizedBox(width: 6),
-              Text(
-                sentenceCaseOf(context, label),
-                style: groupedSubtitleStyle(theme).copyWith(color: theme.ink),
-                maxLines: 1,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The five categories as an equal-width grid.
-///
-/// A grid rather than the highlight composer's scrolling chip row: here the
-/// category is the FIRST decision, not an afterthought, so every option has to
-/// be visible at once. A horizontal scroller hides two of five behind a swipe
-/// nobody performs.
-///
-/// Two equal columns, each row as tall as its taller cell, and the odd fifth
-/// spanning the full width. A content-sized Wrap gave five different widths
-/// and a ragged right edge that swung wildly between languages.
-class _TagGrid extends StatelessWidget {
-  const _TagGrid({
+/// The five categories as capsules, each in its own colour ([MomentTagTile]
+/// at rest, the capsule filled in that colour once picked). The same colours
+/// the explainer teaches them in, from the same primitives.
+class _TagPicker extends StatelessWidget {
+  const _TagPicker({
     required this.selected,
     required this.enabled,
     required this.onPick,
@@ -618,187 +562,99 @@ class _TagGrid extends StatelessWidget {
 
   final MomentTag? selected;
   final bool enabled;
-  final void Function(MomentTag) onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    Widget cell(MomentTag t) => _TagChoice(
-          key: ValueKey(t.wire),
-          tag: t,
-          label: MomentTagChip.labelFor(l10n, t),
-          hint: MomentTagChip.hintFor(l10n, t),
-          active: selected == t,
-          onTap: enabled ? () => onPick(t) : null,
-        );
-    const tags = MomentTag.values;
-    final rows = <Widget>[];
-    for (var i = 0; i < tags.length; i += 2) {
-      if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
-      rows.add(
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: cell(tags[i])),
-              if (i + 1 < tags.length) ...[
-                const SizedBox(width: 8),
-                Expanded(child: cell(tags[i + 1])),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: rows,
-    );
-  }
-}
-
-class _TagChoice extends StatelessWidget {
-  const _TagChoice({
-    super.key,
-    required this.tag,
-    required this.label,
-    required this.hint,
-    required this.active,
-    required this.onTap,
-  });
-
-  final MomentTag tag;
-  final String label;
-  final String hint;
-  final bool active;
-  final VoidCallback? onTap;
+  final ValueChanged<MomentTag> onPick;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // accentInk on an accent fill, never white — NeonNight's accent is pure
-    // yellow and Graphite's is near-white.
-    final ink = active ? theme.accentInk : theme.ink;
-    return Semantics(
-      selected: active,
-      child: SpringPress(
-        onTap: onTap,
-        semanticLabel: '$label — $hint',
-        focusRadius: 14,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          constraints: const BoxConstraints(minHeight: 64),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            // The accent, not bubbleFill: a picked option is a control state,
-            // not a message.
-            color: active ? theme.accent : quietFill(theme),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  AnimatedContainer(
-                    duration: theme.motionFast,
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: active
-                          ? theme.accentInk.withValues(alpha: 0.18)
-                          : theme.accent.withValues(alpha: 0.14),
-                    ),
-                    child: Icon(
+    final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final tag in MomentTag.values)
+          FilterCapsule(
+            key: ValueKey(tag.wire),
+            label: sentenceCaseOf(context, MomentTagChip.labelFor(l10n, tag)),
+            active: tag == selected,
+            activeColor: momentTagColor(theme, tag),
+            activeInk: Colors.white,
+            semanticLabel:
+                '${MomentTagChip.labelFor(l10n, tag)}, ${MomentTagChip.hintFor(l10n, tag)}',
+            onTap: enabled ? () => onPick(tag) : null,
+            // A coloured tile on a capsule of the same colour would vanish;
+            // picked, it is the bare glyph in white.
+            leading: AnimatedSwitcher(
+              duration: motion.d(theme.motionFast),
+              child: tag == selected
+                  ? Icon(
                       MomentTagChip.iconFor(tag),
-                      size: 15,
-                      color: active ? theme.accentInk : theme.accent,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(child: _ChipTitle(text: sentenceCaseOf(context, label), color: ink)),
-                  const SizedBox(width: 4),
-                  // Its slot is always there, so picking a chip never
-                  // re-wraps its title.
-                  SizedBox.square(
-                    dimension: 20,
-                    child: AnimatedOpacity(
-                      duration: theme.motionFast,
-                      opacity: active ? 1 : 0,
-                      child: _PickedCheck(theme: theme),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                sentenceCaseOf(context, hint),
-                style: groupedMetaStyle(theme).copyWith(
-                  color: active
-                      ? theme.accentInk.withValues(alpha: 0.85)
-                      : theme.inkMuted,
-                ),
-                maxLines: 2,
-              ),
-            ],
+                      key: const ValueKey('on'),
+                      size: 14,
+                      color: Colors.white,
+                    )
+                  : MomentTagTile(tag, key: const ValueKey('off'), size: 20),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// What the picked category means, in one line under the picker, its glyph
+/// in the category's colour. Changes with the pick; absent until one.
+class _TagHint extends StatelessWidget {
+  const _TagHint({required this.tag});
+
+  final MomentTag? tag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final t = tag;
+    return AnimatedSize(
+      duration: motion.d(theme.motionFast),
+      curve: motion.c(theme.motionEntrance),
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: motion.d(theme.motionFast),
+        transitionBuilder: (child, anim) => FadeTransition(
+          opacity: anim,
+          child: SlideTransition(
+            position: Tween(
+              begin: const Offset(0, 0.15),
+              end: Offset.zero,
+            ).animate(anim),
+            child: child,
           ),
         ),
+        child: t == null
+            ? const SizedBox(width: double.infinity, height: 0)
+            : Padding(
+                key: ValueKey(t.wire),
+                padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+                child: Row(
+                  children: [
+                    Icon(
+                      MomentTagChip.iconFor(t),
+                      size: 15,
+                      color: momentTagColor(theme, t),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        sentenceCaseOf(context, MomentTagChip.hintFor(l10n, t)),
+                        style: groupedFooterStyle(theme)
+                            .copyWith(color: theme.inkSoft),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }
-}
-
-/// A chip's title: never an ellipsis, never a word broken in half.
-///
-/// Several words wrap onto a second line. One long word ("Demiştim" at 1.3×
-/// in a phone-width half column) shrinks to fit instead — wrapping it would
-/// split it mid-word. Not FitLabel: the grid's rows are IntrinsicHeight
-/// (equal heights per row), and FitLabel measures with a LayoutBuilder, which
-/// cannot answer intrinsic queries; a FittedBox can.
-class _ChipTitle extends StatelessWidget {
-  const _ChipTitle({required this.text, required this.color});
-
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final style = groupedTitleStyle(theme).copyWith(
-      fontWeight: FontWeight.w600,
-      color: color,
-    );
-    if (text.trim().contains(' ')) return Text(text, style: style);
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: AlignmentDirectional.centerStart,
-      child: Text(text, style: style, maxLines: 1, softWrap: false),
-    );
-  }
-}
-
-/// [SelectionCheck]'s picked state, inverted for a chip that is itself
-/// accent-filled: an accentInk disc with an accent tick. The stock check is
-/// accent on accent there — invisible.
-class _PickedCheck extends StatelessWidget {
-  const _PickedCheck({required this.theme});
-
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: theme.accentInk,
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          CupertinoIcons.checkmark_alt,
-          size: 14,
-          color: theme.accent,
-        ),
-      );
 }

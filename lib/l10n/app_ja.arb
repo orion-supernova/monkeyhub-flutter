@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "たった今",
   "momentActivityMinutesAgo": "{count}分",
   "momentActivityHoursAgo": "{count}時間",
-  "momentActivityMoreCount": "{count, plural, other{今日はあと{count}件}}",
   "puzzleScreenTitle": "パズル。",
   "puzzleScreenSubtitle": "4つの記号、6回まで",
   "puzzleSubmit": "予想する",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "現在、この種類のキャッシュはありません。",
   "storageChatHistoryFooter": "削除されるのはこの端末上のコピーだけです。メッセージはチャットに残り、次に開いたときに再度読み込まれます。",
   "storageCategoryHint": "カテゴリをタップすると中身を表示、丸をタップすると対象から外せます。",
-  "storageChatRemovedNamed": "{names} · 削除されたチャット"
+  "storageChatRemovedNamed": "{names} · 削除されたチャット",
+  "streaksLabel": "連続記録",
+  "streakAtRiskFooter": "今日プレイして連続記録をキープしよう。",
+  "streakDays": "{count, plural, other{{count}日連続}}",
+  "recordsCheersMore": "{count, plural, other{ほか{count}人}}",
+  "recordsCheer": "応援する",
+  "myStreaksLabel": "自分の連続記録",
+  "streakLongest": "最長記録: {count, plural, other{{count}日}}",
+  "streaksEmpty": "まだ誰も連続記録がありません。"
 }

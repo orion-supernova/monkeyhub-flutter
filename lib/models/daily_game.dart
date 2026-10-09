@@ -277,6 +277,10 @@ class GameStandings {
     this.mine = const {},
     this.progress = const {},
     this.boards = const {},
+    this.streaks = const {},
+    this.myStreaks = const {},
+    this.avatars = const {},
+    this.names = const {},
   });
 
   /// The viewer's row per game, whether or not it is finished.
@@ -290,6 +294,47 @@ class GameStandings {
   /// leaks how hard today is, and a live counter turns a quiet daily into a
   /// race.
   final Map<DailyGame, List<GameResult>> boards;
+
+  /// Live streaks by person, then game (null is the code). Only runs still
+  /// alive today: a lapsed one is absent rather than zero.
+  final Map<String, Map<DailyGame?, int>> streaks;
+
+  /// The viewer's own streak per game they have ever solved, lapsed or not.
+  final Map<DailyGame?, GameStreak> myStreaks;
+
+  /// Profile pictures by person, the viewer's included: only the ones each
+  /// owner lets friends see. Absent draws a monogram.
+  final Map<String, String> avatars;
+
+  /// Names of the friends on a streak, rows today or not, for the streak
+  /// rankings. The viewer is "You" and absent.
+  final Map<String, String> names;
+
+  /// Everyone on a live streak at [game] (null is the code), longest first,
+  /// the viewer under [viewerId]; ties by name, so the order holds still.
+  List<({String userId, String name, int streak})> streakRanking(
+    DailyGame? game,
+    String viewerId,
+  ) {
+    // The viewer's own run from [myStreaks], the number the streak card
+    // shows, so the ranking and the card can never disagree about it.
+    final mine = myStreaks[game]?.current ?? 0;
+    final out = [
+      for (final id in streaks.keys)
+        if (id != viewerId && streakOf(id, game) > 0)
+          (userId: id, name: names[id] ?? '', streak: streakOf(id, game)),
+      if (mine > 0) (userId: viewerId, name: '', streak: mine),
+    ];
+    out.sort((a, b) {
+      final by = b.streak.compareTo(a.streak);
+      if (by != 0) return by;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return out;
+  }
+
+  /// [userId]'s live streak on [game] (null is the code), 0 when none.
+  int streakOf(String userId, DailyGame? game) => streaks[userId]?[game] ?? 0;
 
   /// Where the viewer placed on [game], 1-based, or null if unfinished.
   int? rankOf(DailyGame game, String userId) {
@@ -329,7 +374,85 @@ class GameStandings {
       ];
     }
 
-    return GameStandings(mine: mine, progress: progress, boards: boards);
+    final streaks = <String, Map<DailyGame?, int>>{};
+    for (final e in ((j['streaks'] as Map?) ?? const {}).entries) {
+      final byGame = <DailyGame?, int>{};
+      for (final g in ((e.value as Map?) ?? const {}).entries) {
+        final key = g.key.toString();
+        final n = (g.value as num?)?.toInt() ?? 0;
+        if (n <= 0) continue;
+        if (key == _kCodeGame) {
+          byGame[null] = n;
+        } else if (DailyGame.parse(key) case final game?) {
+          byGame[game] = n;
+        }
+      }
+      if (byGame.isNotEmpty) streaks[e.key.toString()] = byGame;
+    }
+
+    final myStreaks = <DailyGame?, GameStreak>{};
+    for (final e in ((j['myStreaks'] as Map?) ?? const {}).entries) {
+      final key = e.key.toString();
+      final s = GameStreak.fromJson((e.value as Map?)?.cast<String, dynamic>());
+      if (s == null) continue;
+      if (key == _kCodeGame) {
+        myStreaks[null] = s;
+      } else if (DailyGame.parse(key) case final game?) {
+        myStreaks[game] = s;
+      }
+    }
+
+    final avatars = <String, String>{
+      for (final e in ((j['avatars'] as Map?) ?? const {}).entries)
+        if (e.value is String && (e.value as String).isNotEmpty)
+          e.key.toString(): e.value as String,
+    };
+
+    return GameStandings(
+      mine: mine,
+      progress: progress,
+      boards: boards,
+      streaks: streaks,
+      myStreaks: myStreaks,
+      avatars: avatars,
+      names: {
+        for (final e in ((j['names'] as Map?) ?? const {}).entries)
+          e.key.toString(): e.value?.toString() ?? '',
+      },
+    );
+  }
+}
+
+/// The code puzzle's id where the server lists it beside the four dailies.
+const _kCodeGame = 'code';
+
+/// The viewer's run of consecutive days on one game.
+class GameStreak {
+  const GameStreak({
+    required this.current,
+    required this.best,
+    required this.today,
+  });
+
+  /// Days in a row, ending today or yesterday; 0 once a day was missed.
+  final int current;
+
+  /// The longest run ever.
+  final int best;
+
+  /// Whether today's board is already in [current]. A live run without it is
+  /// one more day from lapsing: play today or it goes out at midnight.
+  final bool today;
+
+  bool get atRisk => current > 0 && !today;
+
+  static GameStreak? fromJson(Map<String, dynamic>? j) {
+    if (j == null) return null;
+    return GameStreak(
+      current: (j['current'] as num?)?.toInt() ?? 0,
+      best: (j['best'] as num?)?.toInt() ?? 0,
+      today: j['today'] == true,
+    );
   }
 }
 

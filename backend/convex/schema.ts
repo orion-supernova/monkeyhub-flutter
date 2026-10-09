@@ -2151,6 +2151,13 @@ export default defineSchema({
     achievedAt: v.number(),
     // Every solve of this game, best or not. Surrenders do not count.
     solves: v.number(),
+    // Consecutive days solved, ending on `lastSolvedDayKey`, and the longest
+    // run ever. Optional only for rows written before streaks existed;
+    // `records.backfill` fills them. A surrender is not a solve, so a day
+    // given up breaks the run exactly as a day skipped does.
+    streak: v.optional(v.number()),
+    bestStreak: v.optional(v.number()),
+    lastSolvedDayKey: v.optional(v.string()),
   })
     // Its [userId] prefix is both "everything this person holds" (the board,
     // account teardown) and, with the game, the upsert on every solve.

@@ -5304,17 +5304,6 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'आज $count और',
-      one: 'आज 1 और',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => 'पहेली।';
 
   @override
@@ -11676,4 +11665,52 @@ class AppLocalizationsHi extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · हटाई गई चैट';
   }
+
+  @override
+  String get streaksLabel => 'स्ट्रीक';
+
+  @override
+  String get streakAtRiskFooter => 'अपनी स्ट्रीक बनाए रखने के लिए आज खेलें।';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दिन की स्ट्रीक',
+      one: '1 दिन की स्ट्रीक',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'और $count अन्य',
+      one: 'और 1 अन्य',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => 'शाबाशी दें';
+
+  @override
+  String get myStreaksLabel => 'मेरी स्ट्रीक';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दिन',
+      one: '1 दिन',
+    );
+    return 'आपकी सबसे लंबी: $_temp0';
+  }
+
+  @override
+  String get streaksEmpty => 'यहाँ अभी किसी की स्ट्रीक नहीं है।';
 }

@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "방금",
   "momentActivityMinutesAgo": "{count}분",
   "momentActivityHoursAgo": "{count}시간",
-  "momentActivityMoreCount": "{count, plural, other{오늘 {count}개 더}}",
   "puzzleScreenTitle": "퍼즐.",
   "puzzleScreenSubtitle": "기호 네 개, 여섯 번의 기회",
   "puzzleSubmit": "추측",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "지금은 이 종류로 캐시된 항목이 없어요.",
   "storageChatHistoryFooter": "이 기기에 저장된 사본만 삭제돼요. 메시지는 채팅에 남아 있고 다음에 열 때 다시 불러와요.",
   "storageCategoryHint": "카테고리를 탭하면 내용을 볼 수 있고, 동그라미를 탭하면 제외할 수 있어요.",
-  "storageChatRemovedNamed": "{names} · 삭제된 채팅"
+  "storageChatRemovedNamed": "{names} · 삭제된 채팅",
+  "streaksLabel": "연속 기록",
+  "streakAtRiskFooter": "오늘 플레이해서 연속 기록을 이어가세요.",
+  "streakDays": "{count, plural, other{{count}일 연속}}",
+  "recordsCheersMore": "{count, plural, other{외 {count}명}}",
+  "recordsCheer": "응원하기",
+  "myStreaksLabel": "내 연속 기록",
+  "streakLongest": "최장 기록: {count, plural, other{{count}일}}",
+  "streaksEmpty": "아직 연속 기록이 있는 사람이 없어요."
 }

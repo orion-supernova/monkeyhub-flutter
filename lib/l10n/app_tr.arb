@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "şimdi",
   "momentActivityMinutesAgo": "{count}dk",
   "momentActivityHoursAgo": "{count}sa",
-  "momentActivityMoreCount": "{count, plural, other{bugün {count} tane daha}}",
   "puzzleScreenTitle": "bulmaca.",
   "puzzleScreenSubtitle": "Dört sembol, altı hak",
   "puzzleSubmit": "Tahmin",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "Şu anda bu türde önbelleğe alınmış bir şey yok.",
   "storageChatHistoryFooter": "Yalnızca bu cihazdaki kopya silinir. Mesajlar sohbette kalır ve sohbeti bir sonraki açışında yeniden yüklenir.",
   "storageCategoryHint": "İçinde ne olduğunu görmek için bir kategoriye, hariç tutmak için dairesine dokun.",
-  "storageChatRemovedNamed": "{names} · kaldırılan sohbet"
+  "storageChatRemovedNamed": "{names} · kaldırılan sohbet",
+  "streaksLabel": "Seriler",
+  "streakAtRiskFooter": "Serini korumak için bugün oyna.",
+  "streakDays": "{count, plural, other{{count} günlük seri}}",
+  "recordsCheersMore": "{count, plural, other{ve {count} kişi daha}}",
+  "recordsCheer": "Tebrik et",
+  "myStreaksLabel": "Serilerim",
+  "streakLongest": "En uzun serin: {count, plural, other{{count} gün}}",
+  "streaksEmpty": "Burada henüz kimse seride değil."
 }

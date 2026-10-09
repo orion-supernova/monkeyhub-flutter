@@ -77,11 +77,10 @@ class UiSelectionStore extends ChangeNotifier {
   /// The same one-shot, for the daily games nudge: show the Feed's games shelf.
   ///
   /// Paired with `SettingsStore.setSection(HomeSection.feed)` by the caller, and
-  /// consumed by [FeedScreen], which opens the games hub. Routed through here
-  /// rather than pushed straight onto the root navigator because on a wide
-  /// window the Feed lives inside its own nested navigator — a root push would
-  /// cover the shell instead of opening inside it, and the tab the user was
-  /// steered to would be behind the screen they were steered to.
+  /// consumed by [FeedScreen], which scrolls to its Games band. Routed through
+  /// here rather than handled in app.dart because on a wide window the Feed
+  /// lives inside its own nested navigator and owns its own scroll position,
+  /// neither of which the root can reach.
   ///
   /// Outlives widget mounting for the same reason [requestRequestsView] does: a
   /// notification tapped on a cold start lands long before any screen exists.

@@ -6,7 +6,8 @@ import * as queens from "./games/queens";
 import * as sudoku from "./games/sudoku";
 import * as tango from "./games/tango";
 import * as zip from "./games/zip";
-import { noteSolve } from "./recordBook";
+import { liveStreak, noteSolve } from "./recordBook";
+import { lensFor } from "./visibility";
 
 /**
  * THE DAILY GAMES — Queens, Tango, Zip and Mini Sudoku.
@@ -148,6 +149,14 @@ async function rowsFor(ctx: any, userId: any, dayKey: string) {
   return byGame;
 }
 
+/** [userId]'s all-time rows, one per game they have solved. One indexed read. */
+async function recordsOf(ctx: any, userId: any): Promise<any[]> {
+  return await ctx.db
+    .query("gameRecords")
+    .withIndex("by_user_game", (q: any) => q.eq("userId", userId))
+    .collect();
+}
+
 /**
  * Today's four boards.
  *
@@ -216,9 +225,49 @@ export const standings = query({
     const boards: Record<string, any[]> = {};
     for (const id of GAMES) boards[id] = [];
 
+    // Live streaks by person, then game ("code" included), for the flame on
+    // each row: only runs still alive on [dayKey], so a run that lapsed last
+    // week does not ride on somebody's time. The viewer's under their own id.
+    const streaks: Record<string, Record<string, number>> = {};
+    const noteStreaks = (id: string, records: any[]) => {
+      const live: Record<string, number> = {};
+      for (const rec of records) {
+        const n = liveStreak(rec, dayKey);
+        if (n > 0) live[rec.game] = n;
+      }
+      if (Object.keys(live).length > 0) streaks[id] = live;
+    };
+
+    // Faces for the rows and the podium, by person, through the same lens
+    // the Feed draws authors with: a friend who keeps their picture from
+    // friends stays a monogram here too.
+    const lens = await lensFor(ctx, userId);
+    const avatars: Record<string, string> = {};
+    const names: Record<string, string> = {};
+    const me: any = await ctx.db.get(userId);
+    if (me?.avatarStorageId) avatars[userId] = me.avatarStorageId;
+
+    const myRecords = await recordsOf(ctx, userId);
+    noteStreaks(userId, myRecords);
+    // The viewer's own streak area: every game they have ever solved, the run
+    // they are on (0 when it lapsed), their longest, and whether today's
+    // board is already in it.
+    const myStreaks: Record<string, any> = {};
+    for (const rec of myRecords) {
+      myStreaks[rec.game] = {
+        current: liveStreak(rec, dayKey),
+        best: rec.bestStreak ?? 0,
+        today: rec.lastSolvedDayKey === dayKey,
+      };
+    }
+
     for (const friendId of friendIds) {
       const rows = await rowsFor(ctx, friendId, dayKey);
-      if (rows.size === 0) continue;
+      // One more indexed read per friend: the code puzzle's scores live on
+      // the Feed's board rather than here, so its scorers' streaks have no
+      // other way onto the leaderboard.
+      const records = await recordsOf(ctx, friendId);
+      if (rows.size === 0 && records.length === 0) continue;
       // One `users` read per friend who actually played, not per friend.
       // Someone who has not touched today's games costs nothing here.
       const friend: any = await ctx.db.get(friendId);
@@ -229,6 +278,15 @@ export const standings = query({
       // two switches means the one they already set silently stops covering
       // half the feature.
       if ((friend.visibility?.puzzle ?? "friends") === "nobody") continue;
+      noteStreaks(friendId, records);
+      // A name for everyone on a streak, for the streak rankings: a friend
+      // alive since yesterday has no row today to carry it.
+      if (streaks[friendId]) {
+        names[friendId] = friend.name ?? friend.username ?? "";
+      }
+      if (friend.avatarStorageId && lens.canSee(friend, "avatar")) {
+        avatars[friendId] = friend.avatarStorageId;
+      }
       const name = friend.name ?? friend.username ?? "";
       for (const [game, row] of rows) {
         if (!row.finishedAt) continue;
@@ -255,7 +313,16 @@ export const standings = query({
       });
     }
 
-    return { dayKey, mine, progress, boards };
+    return {
+      dayKey,
+      mine,
+      progress,
+      boards,
+      streaks,
+      myStreaks,
+      avatars,
+      names,
+    };
   },
 });
 

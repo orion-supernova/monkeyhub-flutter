@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "nyss",
   "momentActivityMinutesAgo": "{count}m",
   "momentActivityHoursAgo": "{count}h",
-  "momentActivityMoreCount": "{count, plural, one{1 till idag} other{{count} till idag}}",
   "puzzleScreenTitle": "pusslet.",
   "puzzleScreenSubtitle": "Fyra symboler, sex försök",
   "puzzleSubmit": "Gissa",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "Inget av den här typen är cachat just nu.",
   "storageChatHistoryFooter": "Bara kopian på den här enheten tas bort. Meddelandena finns kvar i chatten och laddas igen nästa gång du öppnar den.",
   "storageCategoryHint": "Tryck på en kategori för att se vad den innehåller, eller på cirkeln för att lämna den utanför.",
-  "storageChatRemovedNamed": "{names} · borttagen chatt"
+  "storageChatRemovedNamed": "{names} · borttagen chatt",
+  "streaksLabel": "Sviter",
+  "streakAtRiskFooter": "Spela i dag för att behålla din svit.",
+  "streakDays": "{count, plural, =1{1 dag i rad} other{{count} dagar i rad}}",
+  "recordsCheersMore": "{count, plural, =1{och 1 till} other{och {count} till}}",
+  "recordsCheer": "Heja",
+  "myStreaksLabel": "Mina sviter",
+  "streakLongest": "Din längsta: {count, plural, =1{1 dag} other{{count} dagar}}",
+  "streaksEmpty": "Ingen har en svit här än."
 }

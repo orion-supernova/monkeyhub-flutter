@@ -35,6 +35,24 @@ Future<void> showPointsExplainer(BuildContext context) {
   );
 }
 
+/// THE way into the points explainer, wherever points are: the Feed's
+/// header, the full list's foot, the add-point sheet. One button so the
+/// question "what is this?" looks and lands the same everywhere it is asked.
+SectionAction pointsExplainerAction(BuildContext context) => SectionAction(
+      icon: CupertinoIcons.question_circle,
+      label: AppLocalizations.of(context).pointsExplainerOpen,
+      onTap: () => showPointsExplainer(context),
+    );
+
+/// [pointsExplainerAction] drawn on its own, outside a header.
+class PointsExplainerButton extends StatelessWidget {
+  const PointsExplainerButton({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      SectionActionButton(pointsExplainerAction(context));
+}
+
 class PointsExplainerScreen extends StatelessWidget {
   const PointsExplainerScreen({super.key});
 
@@ -70,7 +88,7 @@ class PointsExplainerScreen extends StatelessWidget {
               GroupedRow(
                 key: ValueKey(MomentTag.values[i].wire),
                 icon: MomentTagChip.iconFor(MomentTag.values[i]),
-                tone: _tones[i % _tones.length],
+                tone: MomentTagChip.toneFor(MomentTag.values[i]),
                 title: sentenceCaseOf(
                   context,
                   MomentTagChip.labelFor(l10n, MomentTag.values[i]),
@@ -105,16 +123,6 @@ class PointsExplainerScreen extends StatelessWidget {
     );
   }
 }
-
-/// One tile colour per kind, in [MomentTag.values] order: fate, jinx, luck,
-/// called it, NPC.
-const _tones = [
-  TileTone.purple,
-  TileTone.orange,
-  TileTone.green,
-  TileTone.blue,
-  TileTone.gray,
-];
 
 class _Rule extends StatelessWidget {
   const _Rule({required this.icon, required this.text});

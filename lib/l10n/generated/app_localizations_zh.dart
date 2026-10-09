@@ -5026,16 +5026,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '今天还有 $count 条',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => '谜题。';
 
   @override
@@ -11099,4 +11089,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · 已移除的聊天';
   }
+
+  @override
+  String get streaksLabel => '连胜';
+
+  @override
+  String get streakAtRiskFooter => '今天玩一局，保持你的连胜。';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '连续 $count 天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '等另外 $count 人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => '点赞';
+
+  @override
+  String get myStreaksLabel => '我的连胜';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 天',
+    );
+    return '你的最长连胜：$_temp0';
+  }
+
+  @override
+  String get streaksEmpty => '这里还没有人在连胜。';
 }

@@ -6,6 +6,7 @@ import {
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
+import { dayOrdinal } from "./dayKeys";
 import { GAMES } from "./games";
 import { mayReachDevices } from "./deployment";
 import type { AlertSpec } from "./push";
@@ -700,22 +701,9 @@ export function poolFor(copy: NudgeCopy, s: Signals): Line[] {
   return pool;
 }
 
-/**
- * Days since the Unix epoch for a `YYYY-MM-DD` key.
- *
- * The rotation index, and a calendar day rather than a hash on purpose:
- * consecutive days must land on consecutive lines, or two days running can
- * collide and the whole point of having more than one line is lost. It also
- * means everyone in a language reads the same line on the same day, which is
- * what makes the copy something friends can mention to each other.
- */
-export function dayOrdinal(dayKey: string): number {
-  const [y, m, d] = dayKey.split("-").map(Number);
-  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
-    return 0;
-  }
-  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
-}
+// Lives in `dayKeys.ts` now (`recordBook` needs it too); re-exported so
+// existing importers keep working.
+export { dayOrdinal };
 
 /** Index [ordinal] into [items], safe for an empty or short list. */
 function rotate<T>(items: T[], ordinal: number): T | undefined {

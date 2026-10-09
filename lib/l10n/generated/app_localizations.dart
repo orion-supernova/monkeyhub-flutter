@@ -9047,12 +9047,6 @@ abstract class AppLocalizations {
   /// **'{count}h'**
   String momentActivityHoursAgo(Object count);
 
-  /// Muted line at the end of a truncated activity river, stating how many entries are not shown. Says what was hidden rather than letting the list stop silently.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one{1 more today} other{{count} more today}}'**
-  String momentActivityMoreCount(num count);
-
   /// Lowercase page title of the daily puzzle screen, with a full stop, matching the house style of the other sub-screens ('language.', 'motion.').
   ///
   /// In en, this message translates to:
@@ -19698,6 +19692,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{names} · removed chat'**
   String storageChatRemovedNamed(String names);
+
+  /// Leaderboard section header over the viewer's per-game streaks (consecutive days solved).
+  ///
+  /// In en, this message translates to:
+  /// **'Streaks'**
+  String get streaksLabel;
+
+  /// Under the streaks card when a streak is still alive but today's game is not played yet; it ends at midnight.
+  ///
+  /// In en, this message translates to:
+  /// **'Play today to keep your streak.'**
+  String get streakAtRiskFooter;
+
+  /// Screen reader text for a streak: consecutive days this person has solved a game.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day streak} other{{count} day streak}}'**
+  String streakDays(int count);
+
+  /// After the first names of the friends who cheered a record: how many more cheered it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{and 1 more} other{and {count} more}}'**
+  String recordsCheersMore(int count);
+
+  /// Button on a friend's all-time record that opens the emoji to cheer it with.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheer'**
+  String get recordsCheer;
+
+  /// Leaderboard section header over the viewer's OWN per-game streaks.
+  ///
+  /// In en, this message translates to:
+  /// **'My streaks'**
+  String get myStreaksLabel;
+
+  /// Under a game's streak ranking: the viewer's longest run of consecutive days ever at that game.
+  ///
+  /// In en, this message translates to:
+  /// **'Your longest: {count, plural, =1{1 day} other{{count} days}}'**
+  String streakLongest(int count);
+
+  /// A game's streak ranking when nobody (viewer included) has a live streak on it.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody is on a streak here yet.'**
+  String get streaksEmpty;
 }
 
 class _AppLocalizationsDelegate

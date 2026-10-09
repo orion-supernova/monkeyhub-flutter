@@ -108,6 +108,9 @@ ChatRoom _room(String id, String name, int members) => ChatRoom(
     );
 
 class _Repo extends Fake implements ChatRepository {
+  // Friends' faces for game results on Activity: none in the fixture.
+  @override
+  ChatUser? userById(String id) => null;
   _Repo({this.empty = false});
   final bool empty;
   @override

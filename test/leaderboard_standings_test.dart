@@ -115,4 +115,24 @@ void main() {
     );
     expect(overallStandings(s, const PuzzleState(), 'me').single.name, 'Nia');
   });
+
+  test('a streak ranking is longest first, the viewer in it, lapsed absent', () {
+    final s = GameStandings(
+      streaks: {
+        'u1': {DailyGame.zip: 3},
+        'a': {DailyGame.zip: 7, DailyGame.queens: 2},
+        'b': {DailyGame.zip: 3},
+        'c': {DailyGame.queens: 9},
+      },
+      names: const {'a': 'Ada', 'b': 'Bo', 'c': 'Cem'},
+      myStreaks: const {
+        DailyGame.zip: GameStreak(current: 3, best: 5, today: true),
+      },
+    );
+    final zip = s.streakRanking(DailyGame.zip, 'u1');
+    expect([for (final r in zip) r.userId], ['a', 'u1', 'b']);
+    // The viewer is "You", never their own name back at them.
+    expect(zip[1].name, '');
+    expect(s.streakRanking(DailyGame.tango, 'u1'), isEmpty);
+  });
 }

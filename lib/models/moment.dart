@@ -307,4 +307,17 @@ class MomentTally {
     });
     return out;
   }
+
+  /// The 1-based place of each of [tallies] (in their order), equal totals
+  /// sharing one: "1, 1, 3". A tie is a tie, and ranking one of two equal
+  /// scores higher would be inventing an order the board does not have.
+  static List<int> placesOf(List<MomentTally> tallies) {
+    final out = <int>[];
+    for (var i = 0; i < tallies.length; i++) {
+      out.add(i > 0 && tallies[i].total == tallies[i - 1].total
+          ? out[i - 1]
+          : i + 1);
+    }
+    return out;
+  }
 }

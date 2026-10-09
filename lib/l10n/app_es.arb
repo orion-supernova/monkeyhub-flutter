@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "ahora",
   "momentActivityMinutesAgo": "{count}m",
   "momentActivityHoursAgo": "{count}h",
-  "momentActivityMoreCount": "{count, plural, one{1 más hoy} other{{count} más hoy}}",
   "puzzleScreenTitle": "el puzle.",
   "puzzleScreenSubtitle": "Cuatro símbolos, seis intentos",
   "puzzleSubmit": "Adivinar",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "Ahora mismo no hay nada de este tipo en caché.",
   "storageChatHistoryFooter": "Solo se elimina la copia de este dispositivo. Los mensajes siguen en el chat y se vuelven a cargar la próxima vez que lo abras.",
   "storageCategoryHint": "Toca una categoría para ver qué contiene, o su círculo para dejarla fuera.",
-  "storageChatRemovedNamed": "{names} · chat eliminado"
+  "storageChatRemovedNamed": "{names} · chat eliminado",
+  "streaksLabel": "Rachas",
+  "streakAtRiskFooter": "Juega hoy para mantener tu racha.",
+  "streakDays": "{count, plural, =1{Racha de 1 día} other{Racha de {count} días}}",
+  "recordsCheersMore": "{count, plural, =1{y 1 más} other{y {count} más}}",
+  "recordsCheer": "Aplaudir",
+  "myStreaksLabel": "Mis rachas",
+  "streakLongest": "Tu racha más larga: {count, plural, =1{1 día} other{{count} días}}",
+  "streaksEmpty": "Aquí nadie tiene racha todavía."
 }

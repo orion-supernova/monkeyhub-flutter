@@ -3,29 +3,32 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
 
+import '../data/games_store.dart';
 import '../data/records_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/game_record.dart';
 import '../theme/app_theme.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
 import 'sheet_kit.dart';
 import 'skeleton_rows.dart';
 import 'ios_kit.dart';
-import 'meta_text.dart';
+import 'medal_disc.dart';
+import 'odometer_number.dart';
+import 'score_row.dart';
 import '../l10n/text_case.dart';
 
 /// All-time records — the surfaces that show them.
 ///
 /// Three pieces, one store ([RecordsStore]):
 ///
-///  * [RecordsSection], on the games hub: every game's record holder in one
-///    glance, with your own best under it. The "proper place" for an all-time
-///    board is beside the games themselves, not a screen of its own that
-///    nobody would find.
-///  * [showRecordsSheet], the whole board for one game, where friends react.
+///  * [RecordsSection], on the leaderboard: every game's record as a row on
+///    "Today", or one game's as a [RecordHero] on that game's board.
+///  * [showRecordsSheet], the whole board for one game: the record as a hero
+///    with the cheering under it, then everyone else's best.
 ///  * [AllTimeLink], beside each game's TODAY standings, so the question
 ///    "is that good?" is one tap from the answer.
 
@@ -57,16 +60,31 @@ class AllTimeLink extends StatelessWidget {
   }
 }
 
-/// The hub's ALL-TIME block: one row per game, holder and your own best.
+/// The leaderboard's ALL-TIME block.
 ///
-/// Reads the store; the hub asks it to load. Distinguishes "not answered yet"
-/// (a skeleton the shape of the real rows) from "answered and empty" — an
-/// empty records board on a slow network must not read as "nobody has ever
-/// played".
+/// On "Today", one [_RecordRow] per game: the holder's face with the gold
+/// medal set into it, the game, who holds it and your own best beside, and
+/// the time. On a game's board ([only]), that one record as a [RecordHero]:
+/// the place on the page where the number to beat deserves the most weight.
+///
+/// Distinguishes "not answered yet" (a skeleton the shape of the real rows)
+/// from "answered and empty": an empty board on a slow network must not read
+/// as "nobody has ever played".
 class RecordsSection extends StatelessWidget {
-  const RecordsSection({super.key, required this.viewerId});
+  const RecordsSection({
+    super.key,
+    required this.viewerId,
+    this.only,
+    this.onPlay,
+  });
 
   final String viewerId;
+
+  /// Just this game's record, as a hero; every game's as rows when null.
+  final RecordGame? only;
+
+  /// Opens a game, for a record nobody holds yet.
+  final ValueChanged<RecordGame>? onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -77,56 +95,57 @@ class RecordsSection extends StatelessWidget {
       builder: (context, _) {
         final store = RecordsStore.instance;
         final board = store.board;
+        final one = only;
         final Widget body;
         if (!store.answered && store.error == null) {
-          body = const SkeletonRows(count: 5, avatarSize: 28, circular: false);
-        } else if (!store.answered) {
-          body = _Retry(onRetry: () => store.load(viewerId, force: true));
-        } else if (board.isEmpty) {
-          body = EmptyLine(l10n.recordsEmpty);
-        } else {
           body = ClipRRect(
             borderRadius: BorderRadius.circular(groupedRadius(theme)),
             child: ColoredBox(
               color: groupedFill(theme),
-              child: Column(
-                children: [
-                  for (var i = 0; i < RecordGame.values.length; i++) ...[
-                    if (i > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: Container(
-                          height: 1 / MediaQuery.devicePixelRatioOf(context),
-                          color: theme.ink.withValues(alpha: 0.10),
-                        ),
-                      ),
-                    _SectionRow(
-                      game: RecordGame.values[i],
-                      board: board,
-                      viewerId: viewerId,
-                    ),
-                  ],
-                ],
+              child: SkeletonRows(
+                count: one == null ? RecordGame.values.length : 1,
+                avatarSize: kPersonRowAvatar,
               ),
             ),
+          );
+        } else if (!store.answered) {
+          body = _Retry(onRetry: () => store.load(viewerId, force: true));
+        } else if (one != null) {
+          body = RecordHero(
+            game: one,
+            board: board,
+            viewerId: viewerId,
+            onPlay: onPlay == null ? null : () => onPlay!(one),
+          );
+        } else if (board.isEmpty) {
+          body = EmptyLine(l10n.recordsEmpty);
+        } else {
+          body = GroupedSection(
+            margin: EdgeInsets.zero,
+            children: [
+              for (final g in RecordGame.values)
+                _RecordRow(
+                  game: g,
+                  board: board,
+                  viewerId: viewerId,
+                  onPlay: onPlay == null ? null : () => onPlay!(g),
+                ),
+            ],
           );
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // The page's shared shelf header, like the hub's other sections.
-            PageSectionHeader(l10n.recordsLabel),
-            // Body face, never the theme's caption (tracked mono on the
-            // character themes).
-            Text(
-              sentenceCaseOf(context, l10n.recordsBlurb),
-              style: groupedFooterStyle(theme),
+            // The page's shared shelf header, on the title's 20pt edge over
+            // a card at 16. What a record is lives at the foot of the sheet.
+            PageSectionHeader(
+              l10n.recordsLabel,
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
             ),
-            const SizedBox(height: 12),
             AnimatedSwitcher(
-              duration: theme.motionFast,
+              duration: MotionScope.of(context).d(theme.motionFast),
               child: KeyedSubtree(
-                key: ValueKey(store.answered),
+                key: ValueKey((store.answered, one)),
                 child: body,
               ),
             ),
@@ -137,16 +156,71 @@ class RecordsSection extends StatelessWidget {
   }
 }
 
-class _SectionRow extends StatelessWidget {
-  const _SectionRow({
+/// A record holder's face: their picture with the gold medal set into it,
+/// the podium's "coin on the face". Bottom centre on a big face, the lower
+/// right on a row's 40pt one. Nobody holding it is an [EmptyFace].
+class RecordFace extends StatelessWidget {
+  const RecordFace({
+    super.key,
+    required this.holder,
+    required this.board,
+    required this.viewerId,
+    required this.size,
+    required this.ring,
+  });
+
+  final GameRecordRow? holder;
+  final RecordBoard board;
+  final String viewerId;
+  final double size;
+
+  /// The fill behind the face, cut around the medal.
+  final Color ring;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final h = holder;
+    if (h == null) return EmptyFace(size: size);
+    final big = size >= 56;
+    final medal = big ? 24.0 : 18.0;
+    return SizedBox.square(
+      dimension: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          PlayerFace(
+            userId: h.userId,
+            label: h.userId == viewerId ? l10n.momentRailYouLabel : h.name,
+            size: size,
+            storageId: board.avatars[h.userId],
+          ),
+          Positioned(
+            left: big ? (size - medal) / 2 : null,
+            right: big ? null : -3,
+            bottom: big ? -8 : -3,
+            child: MedalDisc(rank: 1, medal: true, size: medal, border: ring),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One game's record as a row on "Today": the holder's face, the game, who
+/// holds it (and your own best beside it, the gap worth chasing), the time.
+class _RecordRow extends StatelessWidget {
+  const _RecordRow({
     required this.game,
     required this.board,
     required this.viewerId,
+    this.onPlay,
   });
 
   final RecordGame game;
   final RecordBoard board;
   final String viewerId;
+  final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -154,15 +228,30 @@ class _SectionRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final holder = board.holderOf(game);
     final mine = board.mineFor(game, viewerId);
-    final name = recordGameName(l10n, game);
+    final name = sentenceCaseOf(context, recordGameName(l10n, game));
     final holderName = holder == null
         ? null
-        : (holder.userId == viewerId ? l10n.momentRailYouLabel : holder.name);
-    void open() => showRecordsSheet(context, game: game, viewerId: viewerId);
+        : (holder.userId == viewerId
+            ? sentenceCaseOf(context, l10n.momentRailYouLabel)
+            : holder.name);
+    final subtitle = holder == null
+        ? sentenceCaseOf(context, l10n.recordsNoneYet)
+        : [
+            holderName!,
+            if (mine != null && holder.userId != viewerId)
+              l10n.recordsYourBest(game.formatBest(mine.best)),
+          ].join(' · ');
 
-    return SpringPress(
-      onTap: open,
-      scale: PressSpec.scaleSmall,
+    return PersonRow(
+      avatar: RecordFace(
+        holder: holder,
+        board: board,
+        viewerId: viewerId,
+        size: kPersonRowAvatar,
+        ring: groupedFill(theme),
+      ),
+      title: name,
+      subtitle: subtitle,
       semanticLabel: holder == null
           ? '$name: ${l10n.recordsNoneYet}'
           : l10n.recordsHolderSemantic(
@@ -170,96 +259,581 @@ class _SectionRow extends StatelessWidget {
               game.formatBest(holder.best),
               holderName!,
             ),
-      focusRadius: theme.radiusMd,
-      child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      sentenceCaseOf(context, name),
-                      style: groupedTitleStyle(theme),
-                    ),
-                    const SizedBox(height: 3),
-                    if (holder == null)
-                      Text(
-                        sentenceCaseOf(context, l10n.recordsNoneYet),
-                        style: groupedSubtitleStyle(theme),
-                      )
-                    else
-                      Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.rosette,
-                            size: 13,
-                            color: theme.accent,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              holderName!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: groupedSubtitleStyle(theme).copyWith(
-                                color: holder.userId == viewerId
-                                    ? theme.accent
-                                    : theme.inkSoft,
-                              ),
-                            ),
-                          ),
-                          if (holder.reactionCount > 0) ...[
-                            const SizedBox(width: 8),
-                            _ReactionSummary(row: holder, compact: true),
-                          ],
-                        ],
-                      ),
-                  ],
+      onTap: holder == null
+          ? onPlay
+          : () => showRecordsSheet(context, game: game, viewerId: viewerId),
+      trailing: holder == null
+          ? (onPlay == null
+              ? null
+              : RowPillButton(
+                  label: l10n.leaderboardPlay,
+                  filled: true,
+                  onTap: onPlay,
+                ))
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ScoreText(game.formatBest(holder.best)),
+                const SizedBox(width: 6),
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 15,
+                  color: theme.inkMuted,
                 ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (holder != null)
-                    Text(
-                      game.formatBest(holder.best),
-                      style: _bestStyle(theme, theme.ink),
-                    ),
-                  // Your own best, when the record is somebody else's — the
-                  // number worth chasing is the gap between the two.
-                  if (mine != null && holder?.userId != viewerId) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.recordsYourBest(game.formatBest(mine.best)),
-                      style: metaText(theme, color: theme.inkMuted),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(width: 6),
-              Icon(CupertinoIcons.chevron_forward, size: 15, color: theme.inkMuted),
-            ],
-          ),
-        ),
+              ],
+            ),
     );
   }
 }
 
-/// A record time or guess count: the body face at 17 with tabular figures, so
-/// the column lines up without the theme's monospace (tracked terminal digits
-/// on the character themes).
-TextStyle _bestStyle(AppTheme theme, Color color) => theme.bodyEmph.copyWith(
-      fontSize: 17,
-      fontWeight: FontWeight.w600,
+/// A record time or guess count: the body face with tabular figures, so a
+/// column of them lines up without the theme's monospace (tracked terminal
+/// digits on the character themes). [size] 17 in a row, 34 on a hero.
+TextStyle _bestStyle(AppTheme theme, Color color, {double size = 17}) =>
+    theme.bodyEmph.copyWith(
+      fontSize: size,
+      fontWeight: size > 20 ? FontWeight.w700 : FontWeight.w600,
       fontStyle: FontStyle.normal,
+      height: size > 20 ? 1.05 : null,
       color: color,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
-/// Every friend's best at [game], with the reactions on each.
+/// One game's record, big: the holder's face with the gold medal, the time
+/// in large figures, who holds it and when.
+///
+/// The record's own hero rather than a second podium: a podium is three
+/// people racing today, this is one number to beat, ever, and drawn the
+/// same way the page would say the same thing twice.
+///
+/// On the page ([sheet] false) the card opens the sheet, with the cheers as
+/// a tally and "See all". In the sheet it carries the cheering itself: the
+/// palette, one tap, and the faces of who cheered.
+class RecordHero extends StatelessWidget {
+  const RecordHero({
+    super.key,
+    required this.game,
+    required this.board,
+    required this.viewerId,
+    this.sheet = false,
+    this.onPlay,
+    this.onCheer,
+  });
+
+  final RecordGame game;
+  final RecordBoard board;
+  final String viewerId;
+  final bool sheet;
+
+  /// Opens the game, for a record nobody holds yet.
+  final VoidCallback? onPlay;
+
+  /// Cheers the holder (in the sheet).
+  final ValueChanged<String>? onCheer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final fill = sheet ? sheetGroupFill(theme) : groupedFill(theme);
+    final holder = board.holderOf(game);
+    final mine = board.mineFor(game, viewerId);
+    final yours = holder?.userId == viewerId;
+    final date = holder == null ? null : DateTime.tryParse(holder.dayKey);
+
+    final String? meta;
+    if (holder == null) {
+      meta = null;
+    } else if (sheet && date != null) {
+      // The full date, spelled out: the medium one abbreviates both the
+      // weekday and the month ("1 Eki Per") and reads as a stamp.
+      meta = l10n.recordsSetOn(
+        MaterialLocalizations.of(context).formatFullDate(date),
+      );
+    } else if (!yours && mine != null) {
+      meta = l10n.recordsYourBest(game.formatBest(mine.best));
+    } else {
+      meta = null;
+    }
+
+    final top = Row(
+      children: [
+        RecordFace(
+          holder: holder,
+          board: board,
+          viewerId: viewerId,
+          size: 64,
+          ring: fill,
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (holder == null)
+                Text(
+                  sentenceCaseOf(context, l10n.recordsNoneYet),
+                  style: groupedHeaderStyle(theme)
+                      .copyWith(color: theme.inkMuted),
+                )
+              else ...[
+                Text(
+                  game.formatBest(holder.best),
+                  maxLines: 1,
+                  style: _bestStyle(theme, theme.ink, size: 34),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  yours
+                      ? sentenceCaseOf(context, l10n.momentRailYouLabel)
+                      : holder.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: groupedTitleStyle(theme).copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: yours ? theme.accent : null,
+                  ),
+                ),
+              ],
+              if (meta != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  sentenceCaseOf(context, meta),
+                  maxLines: 2,
+                  style: groupedMetaStyle(theme)
+                      .copyWith(color: theme.inkMuted),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final List<Widget> foot;
+    if (holder == null) {
+      foot = [
+        if (onPlay != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: RowPillButton(
+              label: l10n.leaderboardPlay,
+              filled: true,
+              onTap: onPlay,
+            ),
+          ),
+      ];
+    } else if (!sheet) {
+      foot = [
+        Row(
+          children: [
+            Expanded(child: ReactionTally(row: holder, pills: true)),
+            TextLinkButton(
+              label: l10n.pageSectionSeeAll,
+              icon: CupertinoIcons.chevron_forward,
+              onTap: () =>
+                  showRecordsSheet(context, game: game, viewerId: viewerId),
+            ),
+          ],
+        ),
+      ];
+    } else {
+      foot = [
+        // You do not cheer yourself: your own record shows only who did.
+        if (!yours) ...[
+          _hairline(context),
+          const SizedBox(height: 12),
+          _CheerButton(
+            palette: board.palette,
+            mine: holder.mine,
+            onPick: (e) => onCheer?.call(e),
+            semanticName: holder.name,
+          ),
+        ],
+        if (holder.reactors.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          CheererStack(row: holder, board: board, viewerId: viewerId),
+        ],
+      ];
+    }
+
+    final card = Container(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Room for the medal set into the face's lower edge.
+          Padding(padding: const EdgeInsets.only(bottom: 8), child: top),
+          if (foot.isNotEmpty) ...[const SizedBox(height: 8), ...foot],
+        ],
+      ),
+    );
+    if (sheet || holder == null) return card;
+    return SpringPress(
+      onTap: () => showRecordsSheet(context, game: game, viewerId: viewerId),
+      scale: PressSpec.scaleSmall,
+      focusRadius: groupedRadius(theme),
+      semanticLabel: l10n.recordsHolderSemantic(
+        sentenceCaseOf(context, recordGameName(l10n, game)),
+        game.formatBest(holder.best),
+        yours ? l10n.momentRailYouLabel : holder.name,
+      ),
+      child: card,
+    );
+  }
+
+  static Widget _hairline(BuildContext context) => Container(
+        height: 1 / MediaQuery.devicePixelRatioOf(context),
+        color: ThemeScope.of(context).ink.withValues(alpha: 0.10),
+      );
+}
+
+/// The emoji on a record and how many chose each. As [pills] on the hero,
+/// each in a quiet capsule with its count rolling; as plain text, the top
+/// three, for a row's subtitle ([tallyText]).
+class ReactionTally extends StatelessWidget {
+  const ReactionTally({super.key, required this.row, this.pills = false});
+
+  final GameRecordRow row;
+  final bool pills;
+
+  /// "🔥 2  👏 1", the top three, or null with none.
+  static String? tallyText(GameRecordRow row) => row.reactions.isEmpty
+      ? null
+      : [for (final r in row.reactions.take(3)) '${r.emoji} ${r.count}']
+          .join('  ');
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    if (row.reactions.isEmpty) return const SizedBox.shrink();
+    final style = groupedMetaStyle(theme).copyWith(
+      fontWeight: FontWeight.w600,
+      color: theme.inkSoft,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    if (!pills) return Text(tallyText(row)!, style: style);
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final r in row.reactions.take(6))
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: quietFill(theme),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(r.emoji, style: style),
+                const SizedBox(width: 4),
+                OdometerNumber(value: r.count, style: style),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The reactions a record can be given, all six in one row: one tap sends,
+/// a tap on the one already chosen takes it back. The chosen one wears the
+/// accent ring, and gives a small pop on the frame it is picked.
+class CheerBar extends StatefulWidget {
+  const CheerBar({
+    super.key,
+    required this.palette,
+    required this.mine,
+    required this.onPick,
+    required this.semanticName,
+    this.compact = false,
+  });
+
+  final List<String> palette;
+  final String? mine;
+  final ValueChanged<String> onPick;
+
+  /// Whose record, for VoiceOver.
+  final String semanticName;
+
+  /// The smaller discs that open under a row in the sheet.
+  final bool compact;
+
+  @override
+  State<CheerBar> createState() => _CheerBarState();
+}
+
+class _CheerBarState extends State<CheerBar> {
+  /// The emoji just picked and how many picks so far, so each pick pops once.
+  (String, int)? _pop;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final disc = widget.compact ? 34.0 : 40.0;
+    final glyph = widget.compact ? 17.0 : 20.0;
+    return Semantics(
+      label: l10n.recordsReactSemantic(widget.semanticName),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          for (final emoji in widget.palette)
+            Semantics(
+              selected: emoji == widget.mine,
+              child: SpringPress(
+                onTap: () {
+                  if (!motion.calm) {
+                    setState(() => _pop = (emoji, (_pop?.$2 ?? 0) + 1));
+                  }
+                  widget.onPick(emoji);
+                },
+                semanticLabel: emoji,
+                focusShape: FocusRingShape.circle,
+                focusRadius: disc / 2,
+                child: AnimatedContainer(
+                  duration: motion.d(theme.motionFast),
+                  width: disc,
+                  height: disc,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: emoji == widget.mine
+                        ? quietFill(theme)
+                        : theme.ink.withValues(alpha: 0.07),
+                    border: Border.all(
+                      color: emoji == widget.mine
+                          ? theme.accent
+                          : Colors.transparent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: _pop?.$1 == emoji
+                      ? TweenAnimationBuilder<double>(
+                          key: ValueKey(_pop),
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 260),
+                          curve: theme.motionEntrance,
+                          builder: (_, t, child) => Transform.scale(
+                            // Up to 1.18 at the middle, home at the end.
+                            scale: 1 + 0.18 * (1 - (2 * t - 1).abs()),
+                            child: child,
+                          ),
+                          child: Text(emoji, style: TextStyle(fontSize: glyph)),
+                        )
+                      : Text(emoji, style: TextStyle(fontSize: glyph)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Cheer" until it is pressed, then the six emoji to cheer with: a record
+/// is cheered on purpose, and a row of emoji that sends on the first touch
+/// sends by accident. Wears the chosen emoji once there is one, and folds
+/// away again after a pick.
+class _CheerButton extends StatefulWidget {
+  const _CheerButton({
+    required this.palette,
+    required this.mine,
+    required this.onPick,
+    required this.semanticName,
+  });
+
+  final List<String> palette;
+  final String? mine;
+  final ValueChanged<String> onPick;
+  final String semanticName;
+
+  @override
+  State<_CheerButton> createState() => _CheerButtonState();
+}
+
+class _CheerButtonState extends State<_CheerButton> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final mine = widget.mine;
+    final label = sentenceCaseOf(context, l10n.recordsCheer);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: RowPillButton(
+            label: mine == null ? label : '$mine  $label',
+            // Filled until you have cheered: the one thing to do here.
+            filled: mine == null,
+            semanticLabel: l10n.recordsReactSemantic(widget.semanticName),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _open = !_open);
+            },
+          ),
+        ),
+        AnimatedSize(
+          duration: motion.d(theme.motionFast),
+          curve: theme.motionEntrance,
+          alignment: Alignment.topCenter,
+          child: _open
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: CheerBar(
+                    palette: widget.palette,
+                    mine: mine,
+                    semanticName: widget.semanticName,
+                    onPick: (e) {
+                      setState(() => _open = false);
+                      widget.onPick(e);
+                    },
+                  ),
+                )
+              : const SizedBox(width: double.infinity, height: 0),
+        ),
+      ],
+    );
+  }
+}
+
+/// Who cheered a record, as faces: the newest three, overlapping, each with
+/// their emoji at its corner, and "Mert, Selin and 3 more". A tap lays the
+/// whole list out in place.
+class CheererStack extends StatefulWidget {
+  const CheererStack({
+    super.key,
+    required this.row,
+    required this.board,
+    required this.viewerId,
+  });
+
+  final GameRecordRow row;
+  final RecordBoard board;
+  final String viewerId;
+
+  @override
+  State<CheererStack> createState() => _CheererStackState();
+}
+
+class _CheererStackState extends State<CheererStack> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final you = sentenceCaseOf(context, l10n.momentRailYouLabel);
+    final people = [
+      for (final r in widget.row.reactors)
+        (
+          id: r.userId,
+          name: r.userId == widget.viewerId ? you : r.name,
+          emoji: r.emoji,
+        ),
+    ];
+    if (people.isEmpty) return const SizedBox.shrink();
+    final named = people.take(2).map((p) => p.name).join(', ');
+    final more = people.length - 2;
+    final line = more > 0 ? '$named ${l10n.recordsCheersMore(more)}' : named;
+    const face = 22.0;
+    const step = face - 6;
+    final shown = people.take(3).toList();
+    final ring = sheetGroupFill(theme);
+
+    return SpringPress(
+      onTap: () => setState(() => _open = !_open),
+      scale: PressSpec.scaleSmall,
+      haptic: false,
+      semanticLabel: line,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: step * (shown.length - 1) + face + 4,
+                height: face + 4,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (var i = shown.length - 1; i >= 0; i--)
+                      Positioned(
+                        left: step * i,
+                        child: Container(
+                          padding: const EdgeInsets.all(1.5),
+                          decoration:
+                              BoxDecoration(shape: BoxShape.circle, color: ring),
+                          child: PlayerFace(
+                            userId: shown[i].id,
+                            label: shown[i].name,
+                            size: face,
+                            storageId: widget.board.avatars[shown[i].id],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  line,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: groupedMetaStyle(theme).copyWith(color: theme.inkSoft),
+                ),
+              ),
+            ],
+          ),
+          AnimatedSize(
+            duration: motion.d(theme.motionFast),
+            curve: theme.motionEntrance,
+            alignment: Alignment.topCenter,
+            child: _open
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final p in people)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: Text(
+                              '${p.emoji}  ${p.name}',
+                              style: groupedMetaStyle(theme)
+                                  .copyWith(color: theme.inkSoft),
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Every friend's best at [game], with the cheering on each.
 ///
 /// Refreshes the board as it opens: this is reached from a game screen, very
 /// often straight after a solve that may just have set a record, and the sheet
@@ -287,8 +861,8 @@ class _RecordsSheet extends StatefulWidget {
 }
 
 class _RecordsSheetState extends State<_RecordsSheet> {
-  /// The row whose reaction choices are open. One at a time: a list where
-  /// every row can sprout a palette at once is a list nobody can read.
+  /// The row whose cheer bar is open. One at a time: a list where every row
+  /// can sprout six emoji at once is a list nobody can read.
   String? _picking;
 
   @override
@@ -310,7 +884,6 @@ class _RecordsSheetState extends State<_RecordsSheet> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
     // The game's name in the bar like every sheet's title, "All-time" under
     // it, the shared × leading.
     return SheetFrame(
@@ -318,258 +891,199 @@ class _RecordsSheetState extends State<_RecordsSheet> {
       subtitle: sentenceCaseOf(context, l10n.recordsLabel),
       showClose: true,
       padding: EdgeInsets.zero,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: AnimatedBuilder(
-          animation: RecordsStore.instance,
-          builder: (context, _) {
-            final store = RecordsStore.instance;
-            final rows = store.board.rowsFor(widget.game);
-            final Widget body;
-            if (!store.answered && store.error == null) {
-              body = const SkeletonRows(count: 4, avatarSize: 28, circular: false);
-            } else if (!store.answered) {
-              body = _Retry(
-                onRetry: () => store.load(widget.viewerId, force: true),
-              );
-            } else if (rows.isEmpty) {
-              body = EmptyLine(l10n.recordsEmpty);
-            } else {
-              body = ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxHeight),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  itemCount: rows.length,
-                  // A hairline from the name, past the rank column.
-                  separatorBuilder: (_, i) => Padding(
-                    padding: const EdgeInsets.only(left: 28),
-                    child: Container(
-                      height: 1 / MediaQuery.devicePixelRatioOf(context),
-                      color: theme.ink.withValues(alpha: 0.10),
-                    ),
-                  ),
-                  itemBuilder: (context, i) => _RecordRow(
-                    row: rows[i],
-                    game: widget.game,
-                    viewerId: widget.viewerId,
-                    palette: store.board.palette,
-                    picking: _picking == rows[i].recordId,
-                    onTogglePicker: () => setState(() {
-                      _picking =
-                          _picking == rows[i].recordId ? null : rows[i].recordId;
-                    }),
-                    onReact: (emoji) => _react(rows[i], emoji),
+      // As tall as its rows, and the list runs to the bottom edge under
+      // the home indicator rather than stopping above a solid foot.
+      scrollsUnderInset: true,
+      child: AnimatedBuilder(
+        animation: RecordsStore.instance,
+        builder: (context, _) {
+          final store = RecordsStore.instance;
+          final board = store.board;
+          final rows = board.rowsFor(widget.game);
+          final List<Widget> content;
+          if (!store.answered && store.error == null) {
+            content = [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(groupedRadius(theme)),
+                child: ColoredBox(
+                  color: sheetGroupFill(theme),
+                  child: const SkeletonRows(
+                    count: 4,
+                    avatarSize: kPersonRowAvatar,
                   ),
                 ),
-              );
-            }
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  sentenceCaseOf(context, l10n.recordsBlurb),
-                  style: groupedFooterStyle(theme),
+              ),
+            ];
+          } else if (!store.answered) {
+            content = [
+              _Retry(onRetry: () => store.load(widget.viewerId, force: true)),
+            ];
+          } else if (rows.isEmpty) {
+            content = [EmptyLine(l10n.recordsEmpty)];
+          } else {
+            // The holder is the hero and only the hero; the group starts at
+            // second place.
+            final rest = rows.skip(1).toList();
+            content = [
+              SheetRise(
+                child: RecordHero(
+                  game: widget.game,
+                  board: board,
+                  viewerId: widget.viewerId,
+                  sheet: true,
+                  onCheer: (e) => _react(rows.first, e),
                 ),
-                const SizedBox(height: 10),
-                AnimatedSize(
-                  duration: theme.motionFast,
-                  curve: theme.motionEntrance,
-                  alignment: Alignment.topCenter,
-                  child: body,
+              ),
+              if (rest.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SheetRise(
+                  index: 1,
+                  child: SheetGroup(
+                    children: [
+                      for (final row in rest)
+                        _CheerableRow(
+                          key: ValueKey(row.recordId),
+                          row: row,
+                          game: widget.game,
+                          board: board,
+                          viewerId: widget.viewerId,
+                          open: _picking == row.recordId,
+                          onToggle: () => setState(() {
+                            _picking =
+                                _picking == row.recordId ? null : row.recordId;
+                          }),
+                          onPick: (e) => _react(row, e),
+                        ),
+                    ],
+                  ),
                 ),
               ],
-            );
-          },
-        ),
+            ];
+          }
+          // ONE scroller: the rows, the hero and the blurb in a single list,
+          // so a drag never has to choose between two.
+          return ListView(
+            shrinkWrap: true,
+            padding: sheetListPadding(context),
+            children: [
+              ...content,
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  sentenceCaseOf(context, l10n.recordsBlurb),
+                  style: groupedMetaStyle(theme)
+                      .copyWith(color: theme.inkMuted),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-class _RecordRow extends StatelessWidget {
-  const _RecordRow({
+/// A friend's best in the sheet, as every scoreboard row looks ([ScoreRow]),
+/// with their cheers as its second line, and a small cheer button by the
+/// time. Like the record's own "Cheer", the emoji wait behind the button:
+/// nothing sends on a stray touch. Your own row keeps the button's slot
+/// empty, so every time sits in one column; you do not cheer yourself.
+class _CheerableRow extends StatelessWidget implements GroupedInsetRow {
+  const _CheerableRow({
+    super.key,
     required this.row,
     required this.game,
+    required this.board,
     required this.viewerId,
-    required this.palette,
-    required this.picking,
-    required this.onTogglePicker,
-    required this.onReact,
+    required this.open,
+    required this.onToggle,
+    required this.onPick,
   });
 
   final GameRecordRow row;
   final RecordGame game;
+  final RecordBoard board;
   final String viewerId;
-  final List<String> palette;
-  final bool picking;
-  final VoidCallback onTogglePicker;
-  final ValueChanged<String> onReact;
+  final bool open;
+  final VoidCallback onToggle;
+  final ValueChanged<String> onPick;
+
+  @override
+  double get groupedInset => kPersonRowTextInset + kPersonRowLead;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
     final isMe = row.userId == viewerId;
-    final name = isMe ? l10n.momentRailYouLabel : row.name;
-    final date = DateTime.tryParse(row.dayKey);
-    final details = [
-      if (date != null)
-        // The full date, spelled out: the medium one abbreviates both the
-        // weekday and the month ("1 Eki Per") and reads as a stamp. The meta
-        // line wraps to two lines, so the long form has the room.
-        l10n.recordsSetOn(MaterialLocalizations.of(context).formatFullDate(date)),
-      l10n.recordsSolves(row.solves),
-    ].join(' · ');
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    final best = game.formatBest(row.best);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ScoreRow(
+          rank: row.rank,
+          medal: row.rank <= 3,
+          userId: row.userId,
+          name: row.name,
+          isViewer: isMe,
+          streak: GamesStore.instance.standings.streakOf(row.userId, game.daily),
+          semantics: best,
+          subtitle: ReactionTally.tallyText(row),
+          avatarStorageId: board.avatars[row.userId],
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 28,
-                child: row.rank == 1
-                    ? Icon(CupertinoIcons.rosette, size: 18, color: theme.accent)
-                    : Text('${row.rank}', style: groupedMetaStyle(theme)),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: isMe
-                          ? theme.bodyEmph.copyWith(color: theme.accent)
-                          : theme.body,
-                    ),
-                    const SizedBox(height: 2),
-                    // Two lines before it gives up: in Turkish at large text
-                    // one line cut the solve count to "12 ç…".
-                    Text(
-                      details,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: groupedMetaStyle(theme),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                game.formatBest(row.best),
-                style: _bestStyle(
-                  theme,
-                  row.rank == 1 ? theme.ink : theme.inkSoft,
-                ),
-              ),
-              // Friends' rows only: your own record is for them to cheer.
-              if (!isMe)
-                _ReactButton(
-                  mine: row.mine,
-                  active: picking,
-                  semanticLabel: l10n.recordsReactSemantic(name),
-                  onTap: onTogglePicker,
-                )
+              Text(best, style: _bestStyle(theme, theme.inkSoft)),
+              const SizedBox(width: 8),
+              if (isMe)
+                const SizedBox(width: _kCheerSlot)
               else
-                // The same slot, empty, so every time sits in one column.
-                const SizedBox(width: _kReactSlot),
+                _RowCheerButton(
+                  mine: row.mine,
+                  active: open,
+                  semanticLabel: l10n.recordsReactSemantic(row.name),
+                  onTap: onToggle,
+                ),
             ],
           ),
-          if (row.reactionCount > 0)
-            Padding(
-              padding: const EdgeInsets.only(left: 28, top: 6),
-              child: _ReactionSummary(row: row),
-            ),
-          AnimatedSize(
-            duration: theme.motionFast,
-            curve: theme.motionEntrance,
-            alignment: Alignment.topCenter,
-            child: picking
-                ? Padding(
-                    padding: const EdgeInsets.only(left: 28, top: 8),
-                    child: _Palette(
-                      palette: palette,
-                      mine: row.mine,
-                      onPick: onReact,
-                    ),
-                  )
-                : const SizedBox(width: double.infinity, height: 0),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The emoji on a record and how many chose each; under it, who.
-class _ReactionSummary extends StatelessWidget {
-  const _ReactionSummary({required this.row, this.compact = false});
-  final GameRecordRow row;
-
-  /// Just the counts, for the hub's one-line rows.
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final chips = Wrap(
-      spacing: 6,
-      runSpacing: 4,
-      children: [
-        for (final r in row.reactions.take(compact ? 3 : 6))
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: compact ? 5 : 7,
-              vertical: compact ? 1 : 2,
-            ),
-            decoration: BoxDecoration(
-              color: r.emoji == row.mine
-                  ? quietFill(theme)
-                  : theme.ink.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '${r.emoji} ${r.count}',
-              style: groupedMetaStyle(theme).copyWith(
-                color: theme.inkSoft,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-      ],
-    );
-    if (compact || row.reactors.isEmpty) return chips;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        chips,
-        const SizedBox(height: 4),
-        Text(
-          [
-            for (final r in row.reactors)
-              if (r.name.isNotEmpty) '${r.name} ${r.emoji}',
-          ].join('  ·  '),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: groupedMetaStyle(theme),
+        ),
+        AnimatedSize(
+          duration: motion.d(theme.motionFast),
+          curve: theme.motionEntrance,
+          alignment: Alignment.topCenter,
+          child: open
+              ? Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    kPersonRowTextInset + kPersonRowLead,
+                    0,
+                    14,
+                    12,
+                  ),
+                  child: CheerBar(
+                    palette: board.palette,
+                    mine: row.mine,
+                    onPick: onPick,
+                    semanticName: row.name,
+                    compact: true,
+                  ),
+                )
+              : const SizedBox(width: double.infinity, height: 0),
         ),
       ],
     );
   }
 }
 
-/// Width of the react button's slot at the end of a record row.
-const double _kReactSlot = 44;
+/// Width of a row's cheer button.
+const double _kCheerSlot = 32;
 
-class _ReactButton extends StatelessWidget {
-  const _ReactButton({
+/// A row's cheer button: a smiley until you have cheered, your emoji after.
+/// It opens the six; it never sends one itself.
+class _RowCheerButton extends StatelessWidget {
+  const _RowCheerButton({
     required this.mine,
     required this.active,
     required this.semanticLabel,
@@ -584,87 +1098,35 @@ class _ReactButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final chosen = mine;
     return Semantics(
       selected: active,
       child: SpringPress(
         onTap: onTap,
         semanticLabel: semanticLabel,
         focusShape: FocusRingShape.circle,
-        focusRadius: 18,
-        child: SizedBox(
-          width: _kReactSlot,
-          height: 40,
-          child: Center(
-            child: AnimatedContainer(
-              duration: theme.motionFast,
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: active || mine != null
-                    ? quietFill(theme)
-                    : theme.ink.withValues(alpha: 0.07),
-              ),
-              child: mine != null
-                  ? Text(mine!, style: const TextStyle(fontSize: 16))
-                  : Icon(
-                      CupertinoIcons.smiley,
-                      size: 17,
-                      color: theme.inkSoft,
-                    ),
+        focusRadius: _kCheerSlot / 2,
+        child: AnimatedContainer(
+          duration: motion.d(theme.motionFast),
+          width: _kCheerSlot,
+          height: _kCheerSlot,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active || chosen != null
+                ? quietFill(theme)
+                : theme.ink.withValues(alpha: 0.07),
+            border: Border.all(
+              color: active ? theme.accent : Colors.transparent,
+              width: 1.5,
             ),
           ),
+          child: chosen != null
+              ? Text(chosen, style: const TextStyle(fontSize: 15))
+              : Icon(CupertinoIcons.smiley, size: 17, color: theme.inkSoft),
         ),
       ),
-    );
-  }
-}
-
-/// The reactions a record can be given. Tapping the one already chosen takes
-/// it back off.
-class _Palette extends StatelessWidget {
-  const _Palette({
-    required this.palette,
-    required this.mine,
-    required this.onPick,
-  });
-
-  final List<String> palette;
-  final String? mine;
-  final ValueChanged<String> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        for (final emoji in palette)
-          Semantics(
-            selected: emoji == mine,
-            child: SpringPress(
-              onTap: () => onPick(emoji),
-              semanticLabel: emoji,
-              focusShape: FocusRingShape.circle,
-              focusRadius: 20,
-              child: AnimatedContainer(
-                duration: theme.motionFast,
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: emoji == mine
-                      ? quietFill(theme)
-                      : theme.ink.withValues(alpha: 0.07),
-                ),
-                child: Text(emoji, style: const TextStyle(fontSize: 20)),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

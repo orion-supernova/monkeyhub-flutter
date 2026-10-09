@@ -11,34 +11,37 @@ import '../../l10n/text_case.dart';
 import '../../models/daily_game.dart';
 import '../../models/game_record.dart';
 import '../../models/puzzle.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/layout.dart';
+import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/filter_capsule.dart';
 import '../../widgets/game_records.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/skeleton_rows.dart';
+import '../../widgets/score_row.dart';
 import '../feed/puzzle_screen.dart';
+import 'leader_podium.dart';
 import 'leaderboard_standings.dart';
 import 'queens_screen.dart';
+import 'streak_card.dart';
 import 'sudoku_screen.dart';
 import 'tango_screen.dart';
 import 'zip_screen.dart';
 
-/// The leaderboard — who is winning today, and today's five games under it.
+/// The leaderboard: your streaks, who is winning today, and the all-time
+/// records.
 ///
-/// It replaced the "All games" hub. A person who has just glanced at the
-/// Feed's five tiles already knows what the games are; the question left is
-/// "how am I doing against everyone", so the page leads with that and keeps
-/// the tiles as the second section rather than the reason for the page.
+/// Three blocks, each with one job, so the eye has somewhere to land:
 ///
-/// "Today" is the overall standings across all five games, computed on the
-/// device from the per-game boards this page already loads
-/// ([overallStandings]) — no new query, no subscription. Each game's capsule
-/// shows that game's own board.
-///
-/// Every tile below still draws the **real board** for today, small and
-/// inert, from the same painter that draws the playable one.
+///  * **Streaks** — yours, one column per game ([StreakCard]). The personal
+///    reason to come back tomorrow.
+///  * **The board** — "Today" (the overall standings across all five games,
+///    computed on the device by [overallStandings] from boards this page
+///    already loads) or one game's own. The top three stand on a
+///    [LeaderPodium]; everyone after is a one-line [PersonRow] with their
+///    rank, face, streak flame and score.
+///  * **All-time** — every game's record on "Today", only the selected
+///    game's on a game's board ([RecordsSection.only]).
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({
     super.key,
@@ -132,13 +135,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final game = _tab == 0 ? null : kLeaderboardGames[_tab - 1];
 
-    // The shared pushed page: back chevron, large title and subtitle at the
-    // standard inset, iOS pull-to-refresh above the title. No gutter of its
-    // own — the capsule row scrolls edge to edge, so each block pads itself.
+    // The shared pushed page: back chevron, large title, iOS pull-to-refresh
+    // above the title. No subtitle: the capsules already say "Today". No
+    // gutter of its own: the capsule row scrolls edge to edge, so each block
+    // pads itself, cards at 16 and headers at the title's 20.
     return IosPage(
       title: l10n.gamesHubTitle,
-      subtitle: l10n.gamesHubSubtitle,
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
       onRefresh: () {
         HapticFeedback.lightImpact();
@@ -160,26 +166,50 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 2),
-                _Capsules(
-                  selected: _tab,
-                  onSelect: (i) {
-                    if (i == _tab) return;
-                    HapticFeedback.selectionClick();
-                    setState(() => _tab = i);
-                  },
-                ),
+                const SizedBox(height: 8),
+                if (GamesStore.instance.standingsReady) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                    child: PageSectionHeader(
+                      l10n.myStreaksLabel,
+                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: StreakCard(
+                      streaks: GamesStore.instance.standings.myStreaks,
+                      viewerId: widget.userId,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                ],
+                _Capsules(selected: _tab, onSelect: _select),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _tab == 0
-                      ? _overall(context)
-                      : _perGame(context, kLeaderboardGames[_tab - 1]),
+                AnimatedSwitcher(
+                  duration: motion.d(theme.motionFast),
+                  switchInCurve: theme.motionEntrance,
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.topCenter,
+                    children: [...previous, ?current],
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey(_tab),
+                    child: _tab == 0
+                        ? _overall(context)
+                        : _perGame(context, game),
+                  ),
                 ),
                 const SizedBox(height: 32),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: RecordsSection(viewerId: widget.userId),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: RecordsSection(
+                    viewerId: widget.userId,
+                    onPlay: (g) => _openGame(g.daily),
+                    only: _tab == 0
+                        ? null
+                        : (game == null ? RecordGame.code : RecordGame.of(game)),
+                  ),
                 ),
               ],
             ),
@@ -189,77 +219,87 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
+  void _select(int i) {
+    if (i == _tab) return;
+    HapticFeedback.selectionClick();
+    setState(() => _tab = i);
+  }
+
+  /// [userId]'s flame on "Today": their longest live run across the five
+  /// games. Which game it is on is the streaks card's question; here it only
+  /// says "this person keeps coming back".
+  int _overallStreak(String userId) {
+    final standings = GamesStore.instance.standings;
+    var best = 0;
+    for (final g in kLeaderboardGames) {
+      final n = standings.streakOf(userId, g);
+      if (n > best) best = n;
+    }
+    return best;
+  }
+
   // ── Today ──────────────────────────────────────────────────────────────
 
   Widget _overall(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final games = GamesStore.instance;
     if (games.error != null && !games.standingsReady) {
-      return _Trouble(
+      return _inset(_Trouble(
         onRetry: () => GamesStore.instance.load(widget.userId, force: true),
-      );
+      ));
     }
-    if (!games.standingsReady) return const _Skeleton();
+    if (!games.standingsReady) return _inset(const _Skeleton());
 
     final rows = overallStandings(
       games.standings,
       FeedStore.instance.puzzle,
       widget.userId,
     );
-    final viewerIn = rows.any((r) => r.isViewer);
     if (rows.isEmpty) {
       // Nobody, the viewer included, has finished anything today.
-      return EmptyState(
+      return _inset(EmptyState(
         compact: true,
         icon: CupertinoIcons.rosette,
         title: l10n.leaderboardEmptyTitle,
         message: l10n.leaderboardEmptyBody,
         actionLabel: l10n.leaderboardEmptyAction(l10n.gameCodeName),
         onAction: () => _openGame(null),
-      );
+      ));
     }
 
     final total = kLeaderboardGames.length;
     final unplayed = _firstUnplayed;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Block(
-          pinned: viewerIn
-              ? null
-              : _PinnedYou(
-                  status: l10n.leaderboardNotPlayed,
-                  onPlay: unplayed == null && _finished(null)
-                      ? null
-                      : () => _openGame(unplayed),
-                ),
-          rows: [
-            for (var i = 0; i < rows.length; i++)
-              _LeaderTile(
-                key: ValueKey('overall_${rows[i].userId}'),
-                rank: i + 1,
-                medal: i < 3 && rows[i].solved > 0,
-                name: rows[i].name,
-                isViewer: rows[i].isViewer,
-                subtitle: [
-                  l10n.leaderboardSolved(rows[i].solved, total),
-                  if (rows[i].wins > 0) l10n.leaderboardWins(rows[i].wins),
-                ].join(' · '),
-                trailing: _Score(
-                  score: rows[i].solved,
-                  dots: rows[i].solvedByGame,
-                ),
-              ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Text(
-            sentenceCaseOf(context, l10n.leaderboardFooter),
-            style: groupedFooterStyle(ThemeScope.of(context)),
+    final viewerIn = rows.any((r) => r.isViewer);
+    return _Board(
+      entries: [
+        for (var i = 0; i < rows.length; i++)
+          _Entry(
+            userId: rows[i].userId,
+            name: rows[i].name,
+            isViewer: rows[i].isViewer,
+            medal: rows[i].solved > 0,
+            streak: _overallStreak(rows[i].userId),
+            semantics: l10n.leaderboardSolved(rows[i].solved, total),
+            podiumMetric: SolvedDots(
+              dots: rows[i].solvedByGame,
+              score: rows[i].solved,
+            ),
+            trailing: SolvedDots(
+              dots: rows[i].solvedByGame,
+              score: rows[i].solved,
+            ),
           ),
-        ),
       ],
+      pinned: viewerIn
+          ? null
+          : _pinnedYou(
+              context,
+              l10n.leaderboardNotPlayed,
+              unplayed == null && _finished(null)
+                  ? null
+                  : () => _openGame(unplayed),
+            ),
+      footer: l10n.leaderboardFooter,
     );
   }
 
@@ -271,100 +311,229 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final viewerId = widget.userId;
     const max = 50;
 
-    final List<_LeaderTile> tiles;
+    final List<_Entry> entries;
     final String empty;
     if (game == null) {
       final scores = FeedStore.instance.puzzle.scores;
       empty = l10n.puzzleScoreboardEmpty;
-      tiles = [
+      entries = [
         for (var i = 0; i < scores.length && i < max; i++)
-          _LeaderTile(
-            key: ValueKey('code_${scores[i].userId}'),
-            rank: i + 1,
-            medal: i < 3 && scores[i].solved,
+          _entry(
+            userId: scores[i].userId,
             name: scores[i].name,
-            isViewer: scores[i].userId == viewerId,
-            trailing: _Trailing(
-              scores[i].solved
-                  ? '${scores[i].guessCount}/$kPuzzleMaxGuesses'
-                  : 'X/$kPuzzleMaxGuesses',
-              muted: !scores[i].solved,
-            ),
+            solved: scores[i].solved,
+            game: null,
+            text: scores[i].solved
+                ? '${scores[i].guessCount}/$kPuzzleMaxGuesses'
+                : 'X/$kPuzzleMaxGuesses',
           ),
       ];
     } else {
       // The code reads the Feed's live board; the four timed boards need the
       // standings fetch this page started.
       if (store.error != null && !store.standingsReady) {
-        return _Trouble(
+        return _inset(_Trouble(
           onRetry: () => GamesStore.instance.load(viewerId, force: true),
-        );
+        ));
       }
-      if (!store.standingsReady) return const _Skeleton();
+      if (!store.standingsReady) return _inset(const _Skeleton());
       final rows = store.standings.boards[game] ?? const <GameResult>[];
       empty = l10n.gameStandingsEmpty;
-      tiles = [
+      entries = [
         for (var i = 0; i < rows.length && i < max; i++)
-          _LeaderTile(
-            key: ValueKey('${game.wire}_${rows[i].userId}'),
-            rank: i + 1,
-            medal: i < 3 && rows[i].solved,
+          _entry(
+            userId: rows[i].userId,
             name: rows[i].name,
-            isViewer: rows[i].userId == viewerId,
-            trailing: _Trailing(
-              rows[i].solved
-                  ? formatGameTime(rows[i].durationMs)
-                  : sentenceCaseOf(context, l10n.gameStatusGaveUp),
-              muted: !rows[i].solved,
-            ),
+            solved: rows[i].solved,
+            game: game,
+            text: rows[i].solved
+                ? formatGameTime(rows[i].durationMs)
+                : sentenceCaseOf(context, l10n.gameStatusGaveUp),
           ),
       ];
     }
 
-    final viewerIn = tiles.any((t) => t.isViewer);
+    final viewerIn = entries.any((e) => e.isViewer);
     final started = game == null
         ? FeedStore.instance.puzzle.mine?.started ?? false
         : (store.standings.mine[game] ?? FeedStore.instance.games[game]) !=
             null;
+    return _Board(
+      entries: entries,
+      empty: empty,
+      pinned: viewerIn || _finished(game)
+          ? null
+          : _pinnedYou(
+              context,
+              started ? l10n.gameStatusUnfinished : l10n.leaderboardNotPlayed,
+              () => _openGame(game),
+            ),
+    );
+  }
+
+  _Entry _entry({
+    required String userId,
+    required String name,
+    required bool solved,
+    required DailyGame? game,
+    required String text,
+  }) {
+    final isViewer = userId == widget.userId;
+    return _Entry(
+      userId: userId,
+      name: name,
+      isViewer: isViewer,
+      medal: solved,
+      streak: solved ? GamesStore.instance.standings.streakOf(userId, game) : 0,
+      semantics: text,
+      podiumMetric: ScoreText(text, muted: !solved, large: true),
+      trailing: ScoreText(text, muted: !solved),
+    );
+  }
+
+  /// The viewer, under the board when they are not on it yet: the board
+  /// always answers "where am I", and the answer comes with the way onto it.
+  Widget _pinnedYou(BuildContext context, String status, VoidCallback? onPlay) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final you = sentenceCaseOf(context, l10n.momentRailYouLabel);
+    return PersonRow(
+      emphasis: true,
+      lead: Text('–', style: scoreRankStyle(theme)),
+      avatar: PlayerFace(
+        userId: widget.userId,
+        label: you,
+        size: kPersonRowAvatar,
+      ),
+      title: you,
+      subtitle: sentenceCaseOf(context, status),
+      semanticLabel: '$you, ${sentenceCaseOf(context, status)}',
+      trailing: onPlay == null
+          ? null
+          : RowPillButton(
+              label: l10n.leaderboardPlay,
+              filled: true,
+              onTap: onPlay,
+            ),
+    );
+  }
+
+  static Widget _inset(Widget child) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: child,
+      );
+}
+
+/// One person on a board, before it is split into podium and rows.
+class _Entry {
+  const _Entry({
+    required this.userId,
+    required this.name,
+    required this.isViewer,
+    required this.medal,
+    required this.streak,
+    required this.semantics,
+    required this.podiumMetric,
+    required this.trailing,
+  });
+
+  final String userId;
+  final String name;
+  final bool isViewer;
+
+  /// Earned a place at all: solved something. A podium needs it.
+  final bool medal;
+  final int streak;
+  final String semantics;
+  final Widget podiumMetric;
+  final Widget trailing;
+}
+
+/// A board: the top three on a [LeaderPodium], everyone else as rows under
+/// it, and the viewer pinned last when they are not on it yet.
+///
+/// The same shape on every tab, however many have played: a place nobody has
+/// taken yet is an empty seat on the podium rather than the podium giving
+/// way to a list, which made each capsule look like a different screen.
+class _Board extends StatelessWidget {
+  const _Board({
+    required this.entries,
+    this.pinned,
+    this.empty,
+    this.footer,
+  });
+
+  final List<_Entry> entries;
+  final Widget? pinned;
+  final String? empty;
+  final String? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    // Medal places only: a gave-up row at the top of a board is first, but
+    // it did not win a place to stand on.
+    var podium = 0;
+    while (podium < 3 &&
+        podium < entries.length &&
+        entries[podium].medal) {
+      podium++;
+    }
+    final rest = entries.sublist(podium);
+    final none = empty;
+
+    final rows = <Widget>[
+      if (entries.isEmpty && none != null) EmptyLine(none),
+      for (var i = 0; i < rest.length; i++)
+        _row(context, rank: podium + i + 1, entry: rest[i]),
+      ?pinned,
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Block(
-          empty: tiles.isEmpty ? empty : null,
-          pinned: viewerIn || _finished(game)
-              ? null
-              : _PinnedYou(
-                  status: started
-                      ? l10n.gameStatusUnfinished
-                      : l10n.leaderboardNotPlayed,
-                  onPlay: () => _openGame(game),
+        LeaderPodium(
+            entries: [
+              for (final e in entries.take(podium))
+                PodiumEntry(
+                  userId: e.userId,
+                  name: e.isViewer ? '' : e.name,
+                  isViewer: e.isViewer,
+                  metric: e.podiumMetric,
+                  semantics: e.semantics,
+                  streak: e.streak,
                 ),
-          rows: tiles,
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: AllTimeLink(
-              game: game == null ? RecordGame.code : RecordGame.of(game),
-              viewerId: viewerId,
+            ],
+          ),
+        if (rows.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: GroupedSection(margin: EdgeInsets.zero, children: rows),
+          ),
+        if (footer != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Text(
+              sentenceCaseOf(context, footer!),
+              style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
             ),
           ),
-        ),
       ],
     );
   }
-}
 
-/// The game a capsule names; null is the code.
-String leaderboardGameName(AppLocalizations l10n, DailyGame? game) =>
-    switch (game) {
-      null => l10n.gameCodeName,
-      DailyGame.queens => l10n.gameQueensName,
-      DailyGame.tango => l10n.gameTangoName,
-      DailyGame.zip => l10n.gameZipName,
-      DailyGame.sudoku => l10n.gameSudokuName,
-    };
+  Widget _row(BuildContext context, {required int rank, required _Entry entry}) =>
+      ScoreRow(
+        key: ValueKey('row_${entry.userId}'),
+        rank: rank,
+        userId: entry.userId,
+        name: entry.name,
+        isViewer: entry.isViewer,
+        streak: entry.streak,
+        semantics: entry.semantics,
+        trailing: entry.trailing,
+      );
+}
 
 /// "Today" then the five games, one horizontally scrolling row of
 /// [FilterCapsule]s, inset to the title's 20pt edge.
@@ -427,195 +596,35 @@ class _CapsulesState extends State<_Capsules> {
   }
 }
 
-/// The grouped block the rows sit in: hairlines from the name's edge, and an
-/// optional pinned "You" row under its own full-width hairline.
-class _Block extends StatelessWidget {
-  const _Block({required this.rows, this.pinned, this.empty});
+/// The overall score: the number, then one dot per game, solved in the
+/// success colour and the rest a faint ink. The number steps back to the
+/// soft ink so the name stays the loudest thing on the row.
+class SolvedDots extends StatelessWidget {
+  const SolvedDots({super.key, required this.dots, this.score});
 
-  final List<Widget> rows;
-  final Widget? pinned;
-
-  /// Shown in place of the rows when there are none.
-  final String? empty;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
-    final rule = theme.ink.withValues(alpha: 0.10);
-    final none = empty;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      child: ColoredBox(
-        color: groupedFill(theme),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (rows.isEmpty && none != null) EmptyLine(none),
-            for (var i = 0; i < rows.length; i++) ...[
-              rows[i],
-              if (i < rows.length - 1)
-                Padding(
-                  padding: const EdgeInsets.only(left: 56),
-                  child: Container(height: hairline, color: rule),
-                ),
-            ],
-            if (pinned != null) ...[
-              if (rows.isNotEmpty || none != null)
-                Container(height: hairline, color: rule),
-              pinned!,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// One player's line: rank (a medal disc for the podium), name, an optional
-/// subtitle, and whatever the board ranks by on the trailing edge.
-class _LeaderTile extends StatelessWidget {
-  const _LeaderTile({
-    super.key,
-    required this.rank,
-    required this.medal,
-    required this.name,
-    required this.isViewer,
-    required this.trailing,
-    this.subtitle,
-  });
-
-  final int rank;
-  final bool medal;
-  final String name;
-  final bool isViewer;
-  final String? subtitle;
-  final Widget trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final label = isViewer ? sentenceCaseOf(context, l10n.momentRailYouLabel) : name;
-    final sub = subtitle;
-    return Semantics(
-      container: true,
-      label: '$rank. $label${sub == null ? '' : ', $sub'}',
-      child: Container(
-        color: isViewer ? quietFill(theme) : null,
-        constraints: const BoxConstraints(minHeight: kGroupedRowMinHeight),
-        padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
-        // One announcement per row — "2. Ece, 3 of 5 solved" — rather than
-        // the disc, the name and the score read out as three stops.
-        child: ExcludeSemantics(
-          child: Row(
-            children: [
-              _MedalDisc(rank: rank, medal: medal),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: isViewer
-                          ? groupedTitleStyle(theme).copyWith(
-                              color: theme.accent,
-                              fontWeight: FontWeight.w600,
-                            )
-                          : groupedTitleStyle(theme),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (sub != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        sentenceCaseOf(context, sub),
-                        style: groupedSubtitleStyle(theme),
-                        maxLines: 2,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              trailing,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Gold, silver, bronze for the podium; everyone after gets a quiet numbered
-/// disc. The same three gradients the game screens' standings use.
-class _MedalDisc extends StatelessWidget {
-  const _MedalDisc({required this.rank, required this.medal});
-
-  final int rank;
-  final bool medal;
-
-  static const _medals = [
-    [Color(0xFFFFD86B), Color(0xFFF0A81E)],
-    [Color(0xFFE4E7EC), Color(0xFFA9AFB8)],
-    [Color(0xFFF2B48A), Color(0xFFC77A44)],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final colors = medal && rank <= 3 ? _medals[rank - 1] : null;
-    return Container(
-      width: 28,
-      height: 28,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: colors == null
-            ? null
-            : LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: colors,
-              ),
-        color: colors == null ? quietFill(theme) : null,
-      ),
-      child: Text(
-        '$rank',
-        style: groupedMetaStyle(theme).copyWith(
-          fontWeight: FontWeight.w700,
-          color: colors == null ? theme.inkMuted : const Color(0xFF3A2A00),
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
-    );
-  }
-}
-
-/// The overall row's trailing edge: the score, then one dot per game —
-/// solved in the success colour, not solved a faint ink.
-class _Score extends StatelessWidget {
-  const _Score({required this.score, required this.dots});
-
-  final int score;
   final List<bool> dots;
 
+  /// Drawn before the dots when given.
+  final int? score;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final n = score;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          '$score',
-          style: groupedTitleStyle(theme).copyWith(
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
+        if (n != null) ...[
+          Text(
+            '$n',
+            style: groupedValueStyle(theme).copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.inkSoft,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
+          const SizedBox(width: 8),
+        ],
         for (var i = 0; i < dots.length; i++) ...[
           if (i > 0) const SizedBox(width: 3),
           Container(
@@ -634,103 +643,6 @@ class _Score extends StatelessWidget {
   }
 }
 
-/// A per-game row's trailing edge: a time or "4/6", tabular so the column of
-/// them lines up.
-class _Trailing extends StatelessWidget {
-  const _Trailing(this.text, {this.muted = false});
-
-  final String text;
-  final bool muted;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Text(
-      text,
-      style: groupedTitleStyle(theme).copyWith(
-        fontWeight: FontWeight.w600,
-        color: muted ? theme.inkMuted : theme.ink,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
-    );
-  }
-}
-
-/// The viewer, pinned under the board when they are not on it yet — so the
-/// leaderboard always answers "where am I", and the answer comes with the
-/// way onto it.
-class _PinnedYou extends StatelessWidget {
-  const _PinnedYou({required this.status, required this.onPlay});
-
-  final String status;
-  final VoidCallback? onPlay;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      color: quietFill(theme),
-      constraints: const BoxConstraints(minHeight: kGroupedRowMinHeight),
-      padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
-      child: Row(
-        children: [
-          _QuietDash(theme: theme),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  sentenceCaseOf(context, l10n.momentRailYouLabel),
-                  style: groupedTitleStyle(theme).copyWith(
-                    color: theme.accent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  sentenceCaseOf(context, status),
-                  style: groupedSubtitleStyle(theme),
-                ),
-              ],
-            ),
-          ),
-          if (onPlay != null)
-            RowPillButton(
-              label: l10n.leaderboardPlay,
-              filled: true,
-              onTap: onPlay,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The rank disc's place on the pinned row: no rank yet, so a dash.
-class _QuietDash extends StatelessWidget {
-  const _QuietDash({required this.theme});
-
-  final AppTheme theme;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 28,
-        height: 28,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: quietFill(theme),
-        ),
-        child: Text(
-          '–',
-          style: groupedMetaStyle(theme).copyWith(fontWeight: FontWeight.w700),
-        ),
-      );
-}
-
 /// Four placeholder rows the shape of the real ones, until the standings
 /// answer.
 class _Skeleton extends StatelessWidget {
@@ -743,7 +655,7 @@ class _Skeleton extends StatelessWidget {
       borderRadius: BorderRadius.circular(groupedRadius(theme)),
       child: ColoredBox(
         color: groupedFill(theme),
-        child: const SkeletonRows(count: 4, avatarSize: 28),
+        child: const SkeletonRows(count: 4, avatarSize: kPersonRowAvatar),
       ),
     );
   }

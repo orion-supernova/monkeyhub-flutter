@@ -93,7 +93,7 @@ class GameRecordRow {
   final List<RecordReaction> reactions;
 
   /// Who reacted, newest first, with what — for the "who" line.
-  final List<({String name, String emoji})> reactors;
+  final List<({String userId, String name, String emoji})> reactors;
 
   /// The viewer's own reaction on this record, if any.
   final String? mine;
@@ -102,7 +102,7 @@ class GameRecordRow {
 
   GameRecordRow copyWith({
     List<RecordReaction>? reactions,
-    List<({String name, String emoji})>? reactors,
+    List<({String userId, String name, String emoji})>? reactors,
     String? mine,
     bool clearMine = false,
   }) =>
@@ -143,6 +143,7 @@ class GameRecordRow {
           for (final r in (j['reactors'] as List?) ?? const [])
             if (r is Map)
               (
+                userId: r['userId']?.toString() ?? '',
                 name: r['name']?.toString() ?? '',
                 emoji: r['emoji']?.toString() ?? '',
               ),
@@ -156,10 +157,15 @@ class RecordBoard {
   const RecordBoard({
     this.games = const {},
     this.palette = kRecordReactions,
+    this.avatars = const {},
   });
 
   final Map<RecordGame, List<GameRecordRow>> games;
   final List<String> palette;
+
+  /// Profile pictures by person, holders and cheerers alike: only the ones
+  /// each owner lets friends see. Absent draws a monogram.
+  final Map<String, String> avatars;
 
   List<GameRecordRow> rowsFor(RecordGame game) => games[game] ?? const [];
 
@@ -183,6 +189,7 @@ class RecordBoard {
   /// A copy with one record's row replaced, for an optimistic reaction.
   RecordBoard replacing(GameRecordRow row) => RecordBoard(
         palette: palette,
+        avatars: avatars,
         games: {
           for (final e in games.entries)
             e.key: [
@@ -211,6 +218,11 @@ class RecordBoard {
     return RecordBoard(
       games: games,
       palette: palette.isEmpty ? kRecordReactions : palette,
+      avatars: {
+        for (final e in ((raw['avatars'] as Map?) ?? const {}).entries)
+          if (e.value is String && (e.value as String).isNotEmpty)
+            e.key.toString(): e.value as String,
+      },
     );
   }
 }

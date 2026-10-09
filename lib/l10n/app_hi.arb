@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "अभी",
   "momentActivityMinutesAgo": "{count}मि",
   "momentActivityHoursAgo": "{count}घं",
-  "momentActivityMoreCount": "{count, plural, one{आज 1 और} other{आज {count} और}}",
   "puzzleScreenTitle": "पहेली।",
   "puzzleScreenSubtitle": "चार चिह्न, छह मौके",
   "puzzleSubmit": "अनुमान",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "अभी इस तरह का कुछ भी कैश में नहीं है।",
   "storageChatHistoryFooter": "सिर्फ़ इस डिवाइस की कॉपी हटती है। मैसेज चैट में रहते हैं और अगली बार खोलने पर फिर से लोड हो जाते हैं।",
   "storageCategoryHint": "अंदर क्या है देखने के लिए किसी कैटेगरी पर टैप करें, या उसे छोड़ने के लिए उसके गोले पर।",
-  "storageChatRemovedNamed": "{names} · हटाई गई चैट"
+  "storageChatRemovedNamed": "{names} · हटाई गई चैट",
+  "streaksLabel": "स्ट्रीक",
+  "streakAtRiskFooter": "अपनी स्ट्रीक बनाए रखने के लिए आज खेलें।",
+  "streakDays": "{count, plural, =1{1 दिन की स्ट्रीक} other{{count} दिन की स्ट्रीक}}",
+  "recordsCheersMore": "{count, plural, =1{और 1 अन्य} other{और {count} अन्य}}",
+  "recordsCheer": "शाबाशी दें",
+  "myStreaksLabel": "मेरी स्ट्रीक",
+  "streakLongest": "आपकी सबसे लंबी: {count, plural, =1{1 दिन} other{{count} दिन}}",
+  "streaksEmpty": "यहाँ अभी किसी की स्ट्रीक नहीं है।"
 }

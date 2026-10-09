@@ -1484,7 +1484,6 @@
   "momentActivityJustNow": "刚刚",
   "momentActivityMinutesAgo": "{count}分",
   "momentActivityHoursAgo": "{count}小时",
-  "momentActivityMoreCount": "{count, plural, other{今天还有 {count} 条}}",
   "puzzleScreenTitle": "谜题。",
   "puzzleScreenSubtitle": "四个符号，六次机会",
   "puzzleSubmit": "猜",
@@ -3256,5 +3255,13 @@
   "storageCategoryEmpty": "目前没有此类缓存。",
   "storageChatHistoryFooter": "只会删除此设备上的副本。消息仍保留在聊天中，下次打开时会重新加载。",
   "storageCategoryHint": "轻点类别查看其中内容，轻点圆圈可将其排除。",
-  "storageChatRemovedNamed": "{names} · 已移除的聊天"
+  "storageChatRemovedNamed": "{names} · 已移除的聊天",
+  "streaksLabel": "连胜",
+  "streakAtRiskFooter": "今天玩一局，保持你的连胜。",
+  "streakDays": "{count, plural, other{连续 {count} 天}}",
+  "recordsCheersMore": "{count, plural, other{等另外 {count} 人}}",
+  "recordsCheer": "点赞",
+  "myStreaksLabel": "我的连胜",
+  "streakLongest": "你的最长连胜：{count, plural, other{{count} 天}}",
+  "streaksEmpty": "这里还没有人在连胜。"
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/painting.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 /// Small supporting text — times, counts, "2 days ago" — in the theme's body
@@ -24,3 +25,14 @@ TextStyle labelText(AppTheme theme, {Color? color}) => theme.body.copyWith(
       letterSpacing: 0,
       color: color ?? theme.ink,
     );
+
+/// Compact relative time for today's boards: "now", "4m", "2h".
+///
+/// Everything on the Feed is from today, so this never needs a date, and
+/// capping at hours keeps it narrow enough to sit beside a name.
+String relativeAgo(AppLocalizations l10n, DateTime at) {
+  final d = DateTime.now().difference(at);
+  if (d.inMinutes < 1) return l10n.momentActivityJustNow;
+  if (d.inHours < 1) return l10n.momentActivityMinutesAgo(d.inMinutes);
+  return l10n.momentActivityHoursAgo(d.inHours);
+}

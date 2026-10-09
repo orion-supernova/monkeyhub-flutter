@@ -1,46 +1,51 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
+import '../backend/chat_api.dart';
+import '../data/feed_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../models/game_play.dart';
 import '../models/moment.dart';
-import '../screens/games/leaderboard_screen.dart' show leaderboardGameName;
+import '../screens/games/leaderboard_standings.dart' show leaderboardGameName;
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
-import 'moment_rail.dart';
+import 'adaptive_sheet.dart';
+import 'ios_kit.dart';
 import 'meta_text.dart';
+import 'moment_rail.dart';
+import 'remote_image.dart';
+import 'score_row.dart';
+import 'sheet_kit.dart';
 
-/// The chronological tail of the board: today's highlights and finished daily
-/// games, newest first, one line each.
+/// The chronological tail of the board: what FRIENDS did today, newest
+/// first, one line each with their face.
 ///
-/// Highlights, not points. Points have their own home on the standings board,
-/// which tallies them and tells each one's story, and handing them to this list
-/// as well drew every point twice on one screen — the Feed passes
-/// `FeedStore.highlights`, never `moments`. Game results are the opposite case:
-/// the games band above shows only the viewer's own tiles, so a friend's score
-/// had nowhere on the Feed to appear but here.
+/// Highlights, not points: points have their own board, and handing them
+/// here as well drew every point twice. And friends, not you: your own
+/// games are on the games band right above, and your own highlights on the
+/// rail; listing them again here was the board restating itself.
 ///
-/// Deliberately text-forward and low-key. The blocks above it — the rail, the
-/// games, the standings — are the curated summary; this is the plain log
-/// under them. Without that split the sections end up restating each other,
-/// which is the usual way a feed screen dies.
+/// The newest [inline] rows, then "See all" for the rest ([showActivitySheet]).
+/// A summary of one day, not an infinite scroll.
 class MomentActivity extends StatelessWidget {
   const MomentActivity({
     super.key,
     required this.moments,
     required this.viewerId,
+    required this.api,
     required this.onOpen,
     this.plays = const [],
     this.onOpenPlay,
-    this.max = 12,
+    this.faceOf,
+    this.inline = 10,
   });
 
   final List<Moment> moments;
   final String viewerId;
+  final ChatApi api;
 
-  /// Opens a moment. The rect is the row's own place on screen — a row shows no
-  /// picture, so the viewer's card grows out of the row instead of flying one.
+  /// Opens a moment. The rect is the row's own place on screen.
   final void Function(Moment moment, Rect? origin) onOpen;
 
   /// Finished daily results, interleaved with [moments] by time.
@@ -49,24 +54,31 @@ class MomentActivity extends StatelessWidget {
   /// Opens the scoreboard a result was posted on.
   final void Function(GamePlay play)? onOpenPlay;
 
-  /// How many rows to show before stopping.
-  ///
-  /// The board is a summary of one day, not an infinite scroll, and a phone
-  /// screen that needs six flicks before anything interesting is a board
-  /// nobody reaches the bottom of.
-  final int max;
+  /// A friend's profile picture, for a game result (which carries no face of
+  /// its own). Highlights bring theirs.
+  final String? Function(String userId)? faceOf;
+
+  final int inline;
+
+  /// Every entry, friends' only, newest first.
+  static List<({DateTime at, Moment? moment, GamePlay? play})> entriesOf(
+    List<Moment> moments,
+    List<GamePlay> plays,
+    String viewerId,
+  ) =>
+      [
+        for (final m in moments)
+          if (!m.mine && m.userId != viewerId)
+            (at: m.createdAt, moment: m, play: null),
+        for (final p in plays)
+          if (p.userId != viewerId) (at: p.finishedAt, moment: null, play: p),
+      ]..sort((a, b) => b.at.compareTo(a.at));
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-
-    // Records rather than a shared base class: the two rows have nothing in
-    // common but a timestamp, and a highlight is not something a game is.
-    final entries = <({DateTime at, Moment? moment, GamePlay? play})>[
-      for (final m in moments) (at: m.createdAt, moment: m, play: null),
-      for (final p in plays) (at: p.finishedAt, moment: null, play: p),
-    ]..sort((a, b) => b.at.compareTo(a.at));
+    final entries = entriesOf(moments, plays, viewerId);
 
     if (entries.isEmpty) {
       return Text(
@@ -75,73 +87,90 @@ class MomentActivity extends StatelessWidget {
       );
     }
 
-    final shown = entries.take(max).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final shown = entries.take(inline).toList();
+    return GroupedSection(
+      margin: EdgeInsets.zero,
       children: [
         for (var i = 0; i < shown.length; i++)
-          if (shown[i].moment case final m?)
-            _ActivityRow(
-              // Identity, never index — this list reorders as moments arrive.
-              key: ValueKey('act_${m.id}'),
-              moment: m,
-              viewerId: viewerId,
-              index: i,
-              onTap: (origin) => onOpen(m, origin),
-            )
-          else if (shown[i].play case final p?)
-            _PlayRow(
-              key: ValueKey('play_${p.id}'),
-              play: p,
-              viewerId: viewerId,
-              index: i,
-              onTap: onOpenPlay == null ? null : () => onOpenPlay!(p),
-            ),
-        if (entries.length > shown.length) ...[
-          const SizedBox(height: 6),
-          // States what is hidden rather than silently truncating — a list that
-          // stops without saying so reads as "that was everything".
-          Text(
-            l10n.momentActivityMoreCount(entries.length - shown.length),
-            style: metaText(theme, color: theme.inkMuted),
+          ActivityRow(
+            // Identity, never index: this list reorders as things arrive.
+            key: ValueKey(_keyOf(shown[i].moment, shown[i].play)),
+            moment: shown[i].moment,
+            play: shown[i].play,
+            viewerId: viewerId,
+            api: api,
+            index: i,
+            faceOf: faceOf,
+            onOpen: onOpen,
+            onOpenPlay: onOpenPlay,
           ),
-        ],
+        if (entries.length > shown.length)
+          GroupedRow(
+            title: sentenceCaseOf(context, l10n.pageSectionSeeAll),
+            value: '${entries.length}',
+            chevron: true,
+            onTap: () => showActivitySheet(
+              context,
+              viewerId: viewerId,
+              api: api,
+              faceOf: faceOf,
+              onOpen: onOpen,
+              onOpenPlay: onOpenPlay,
+            ),
+          ),
       ],
     );
   }
 }
 
-class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({
+/// A row's identity: `act_<moment>` or `play_<result>`, never its index.
+String _keyOf(Moment? m, GamePlay? p) =>
+    m != null ? 'act_${m.id}' : 'play_${p!.id}';
+
+/// One thing a friend did: their face, one line saying it, and on the
+/// trailing edge the score (a game) or the picture (a highlight).
+class ActivityRow extends StatelessWidget {
+  const ActivityRow({
     super.key,
-    required this.moment,
     required this.viewerId,
-    required this.index,
-    required this.onTap,
+    required this.api,
+    required this.onOpen,
+    this.moment,
+    this.play,
+    this.onOpenPlay,
+    this.faceOf,
+    this.index = 0,
   });
 
-  final Moment moment;
+  final Moment? moment;
+  final GamePlay? play;
   final String viewerId;
+  final ChatApi api;
+  final void Function(Moment moment, Rect? origin) onOpen;
+  final void Function(GamePlay play)? onOpenPlay;
+  final String? Function(String userId)? faceOf;
   final int index;
-
-  /// Handed this row's own screen rect — see [MomentActivity.onOpen].
-  final void Function(Rect? origin) onTap;
 
   @override
   Widget build(BuildContext context) {
+    final m = moment;
+    final p = play;
+    final Widget row;
+    if (m != null) {
+      row = _momentRow(context, m);
+    } else if (p != null) {
+      row = _playRow(context, p);
+    } else {
+      return const SizedBox.shrink();
+    }
+    return _Entrance(index: index, child: row);
+  }
+
+  Widget _momentRow(BuildContext context, Moment moment) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final mine = moment.userId == viewerId;
-    // `moment.mine` rather than the id comparison above: the server decides
-    // what counts as yours, and your own rows are always seen.
-    final unseen = !moment.mine && !moment.seen;
     final tag = moment.tag;
-    // Verb agreement rules this out of a single interpolated template. Turkish
-    // conjugates the verb for person, so "{who} paylaştı" with who="sen" reads
-    // as "you posted[3rd person]" — wrong, and invisibly so to anyone reading
-    // only the English. Japanese and Korean have the same problem via
-    // politeness forms. Two keys per sentence, one per grammatical person, is
-    // the only shape that can be correct in all twelve locales.
+    final mine = moment.userId == viewerId;
     final headline = mine
         ? (tag == null
               ? l10n.momentActivityPostedHighlightSelf
@@ -155,39 +184,46 @@ class _ActivityRow extends StatelessWidget {
                   MomentTagChip.labelFor(l10n, tag),
                 ));
 
-    return _RowFrame(
-      index: index,
-      headline: headline,
-      detail: moment.caption,
-      at: moment.createdAt,
-      badge: unseen,
-      onTap: () => onTap(tapOriginRect(context)),
-      icon: Icon(
-        tag == null ? CupertinoIcons.photo : MomentTagChip.iconFor(tag),
-        size: 13,
-        color: tag == null ? theme.inkMuted : theme.accent,
+    final caption = moment.caption?.trim() ?? '';
+    final thumb = moment.thumbStorageId;
+    return Builder(
+      builder: (context) => PersonRow(
+        avatar: PlayerFace(
+          userId: moment.userId,
+          label: moment.authorName,
+          size: kPersonRowAvatar,
+          storageId: moment.authorAvatarStorageId,
+          dot: !moment.mine && !moment.seen,
+          badge: tag == null
+              ? null
+              : Icon(
+                  MomentTagChip.iconFor(tag),
+                  size: 11,
+                  color: momentTagColor(theme, tag),
+                ),
+        ),
+        title: headline,
+        titleMaxLines: 2,
+        subtitle: [
+          if (caption.isNotEmpty) caption,
+          relativeAgo(l10n, moment.createdAt),
+        ].join(' · '),
+        semanticLabel: headline,
+        onTap: () => onOpen(moment, tapOriginRect(context)),
+        trailing: thumb == null
+            ? null
+            : RemoteImage(
+                storageId: thumb,
+                api: api,
+                width: 36,
+                height: 36,
+                borderRadius: BorderRadius.circular(theme.radiusSm),
+              ),
       ),
     );
   }
-}
 
-/// One finished daily result: "Ece solved Queens", with the score under it.
-class _PlayRow extends StatelessWidget {
-  const _PlayRow({
-    super.key,
-    required this.play,
-    required this.viewerId,
-    required this.index,
-    required this.onTap,
-  });
-
-  final GamePlay play;
-  final String viewerId;
-  final int index;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _playRow(BuildContext context, GamePlay play) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final mine = play.userId == viewerId;
@@ -215,103 +251,45 @@ class _PlayRow extends StatelessWidget {
                 ? l10n.momentActivityGameMissedSelf(name)
                 : l10n.momentActivityGameMissed(name, play.name));
     }
-    return _RowFrame(
-      index: index,
-      headline: headline,
-      detail: play.result,
-      at: play.finishedAt,
-      onTap: onTap,
-      icon: Icon(
-        CupertinoIcons.game_controller,
-        size: 13,
-        color: play.solved ? theme.accent : theme.inkMuted,
+    final open = onOpenPlay;
+    return PersonRow(
+      avatar: PlayerFace(
+        userId: play.userId,
+        label: play.name,
+        size: kPersonRowAvatar,
+        storageId: faceOf?.call(play.userId),
+        // A miss reads as one at a glance; a solve needs no mark.
+        badge: play.solved
+            ? null
+            : Icon(
+                CupertinoIcons.game_controller,
+                size: 11,
+                color: theme.inkMuted,
+              ),
       ),
+      title: headline,
+      titleMaxLines: 2,
+      subtitle: relativeAgo(l10n, play.finishedAt),
+      semanticLabel: '$headline, ${play.result}',
+      onTap: open == null ? null : () => open(play),
+      trailing: ScoreText(play.result, muted: !play.solved),
     );
   }
 }
 
-/// The row both kinds of entry draw: a glyph in the gutter, a headline with an
-/// optional muted second line, and the time on the right.
-///
-/// Shared so a game result and a highlight sit on exactly the same grid; the
-/// list's left edge is what makes it scannable.
-class _RowFrame extends StatelessWidget {
-  const _RowFrame({
-    required this.index,
-    required this.headline,
-    required this.icon,
-    required this.at,
-    required this.onTap,
-    this.detail,
-    this.badge = false,
-  });
+/// A row's first appearance: risen and faded in, staggered by [index].
+/// Keyed by identity upstream, so only a NEW row plays it.
+class _Entrance extends StatelessWidget {
+  const _Entrance({required this.index, required this.child});
 
   final int index;
-  final String headline;
-  final Widget icon;
-  final DateTime at;
-  final VoidCallback? onTap;
-  final String? detail;
-
-  /// Whether the glyph carries the unseen dot.
-  final bool badge;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 3, right: 10),
-            // The category glyph, badged when this row has not been looked at.
-            // Badged rather than given its own column: an unread marker in the
-            // gutter would indent every unseen row differently from every seen
-            // one, and the list's left edge is the thing that makes it
-            // scannable.
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                icon,
-                if (badge)
-                  const Positioned(
-                    top: -5,
-                    right: -6,
-                    child: MomentUnseenDot(size: 9),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  headline,
-                  style: theme.body,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (detail?.isNotEmpty == true)
-                  Text(
-                    detail!,
-                    style: theme.bodySoft.copyWith(color: theme.inkMuted),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(_ago(l10n, at), style: metaText(theme)),
-        ],
-      ),
-    );
-
+    if (motion.calm) return child;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: motion.stagger(theme.motionMed, index, strideMs: 35),
@@ -320,30 +298,72 @@ class _RowFrame extends StatelessWidget {
         offset: Offset(0, (1 - v) * 8),
         child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
       ),
-      child: onTap == null
-          ? row
-          : FocusableTap(
-              onTap: onTap!,
-              semanticLabel: headline,
-              radius: theme.radiusSm,
-              child: GestureDetector(
-                onTap: onTap,
-                behavior: HitTestBehavior.opaque,
-                child: row,
-              ),
-            ),
+      child: child,
     );
   }
+}
 
-  /// Compact relative time.
-  ///
-  /// Everything on this board is from today, so this never needs a date — and
-  /// capping at hours is what keeps the column narrow enough to sit beside a
-  /// name without squeezing it.
-  static String _ago(AppLocalizations l10n, DateTime at) {
-    final d = DateTime.now().difference(at);
-    if (d.inMinutes < 1) return l10n.momentActivityJustNow;
-    if (d.inHours < 1) return l10n.momentActivityMinutesAgo(d.inMinutes);
-    return l10n.momentActivityHoursAgo(d.inHours);
-  }
+/// Everything friends did today, newest first, in a sheet; what "See all"
+/// opens. Reads the board live.
+Future<void> showActivitySheet(
+  BuildContext context, {
+  required String viewerId,
+  required ChatApi api,
+  required void Function(Moment moment, Rect? origin) onOpen,
+  void Function(GamePlay play)? onOpenPlay,
+  String? Function(String userId)? faceOf,
+}) {
+  return showAdaptiveSheet<void>(
+    context,
+    useSafeArea: true,
+    builder: (sheet) {
+      final l10n = AppLocalizations.of(sheet);
+      return SheetFrame(
+        title: sentenceCaseOf(sheet, l10n.feedBoardActivityLabel),
+        showClose: true,
+        padding: EdgeInsets.zero,
+        // Tall, and the list runs to the bottom edge under the home
+        // indicator: a long list, not a card with a solid foot.
+        maxHeightFraction: 0.92,
+        scrollsUnderInset: true,
+        child: ListenableBuilder(
+          listenable: FeedStore.instance,
+          builder: (context, _) {
+            final store = FeedStore.instance;
+            final entries =
+                MomentActivity.entriesOf(store.highlights, store.plays, viewerId);
+            return ListView(
+              padding: sheetListPadding(context),
+              children: [
+                SheetRise(
+                  child: SheetGroup(
+                    children: [
+                      for (final e in entries)
+                        ActivityRow(
+                          key: ValueKey(_keyOf(e.moment, e.play)),
+                          moment: e.moment,
+                          play: e.play,
+                          viewerId: viewerId,
+                          api: api,
+                          faceOf: faceOf,
+                          onOpen: onOpen,
+                          // The leaderboard is a page: leave the sheet first,
+                          // or it would open behind it.
+                          onOpenPlay: onOpenPlay == null
+                              ? null
+                              : (p) {
+                                  Navigator.of(context).pop();
+                                  onOpenPlay(p);
+                                },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    },
+  );
 }

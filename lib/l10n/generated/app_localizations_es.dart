@@ -5346,17 +5346,6 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String momentActivityMoreCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count más hoy',
-      one: '1 más hoy',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get puzzleScreenTitle => 'el puzle.';
 
   @override
@@ -11797,4 +11786,52 @@ class AppLocalizationsEs extends AppLocalizations {
   String storageChatRemovedNamed(String names) {
     return '$names · chat eliminado';
   }
+
+  @override
+  String get streaksLabel => 'Rachas';
+
+  @override
+  String get streakAtRiskFooter => 'Juega hoy para mantener tu racha.';
+
+  @override
+  String streakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Racha de $count días',
+      one: 'Racha de 1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsCheersMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'y $count más',
+      one: 'y 1 más',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsCheer => 'Aplaudir';
+
+  @override
+  String get myStreaksLabel => 'Mis rachas';
+
+  @override
+  String streakLongest(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count días',
+      one: '1 día',
+    );
+    return 'Tu racha más larga: $_temp0';
+  }
+
+  @override
+  String get streaksEmpty => 'Aquí nadie tiene racha todavía.';
 }

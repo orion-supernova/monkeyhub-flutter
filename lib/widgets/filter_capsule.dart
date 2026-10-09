@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 
 /// THE filter chip: a soft neutral capsule at rest, solid accent when on —
@@ -19,7 +20,16 @@ class FilterCapsule extends StatelessWidget {
     this.faded = false,
     this.onLongPress,
     this.semanticLabel,
+    this.activeColor,
+    this.activeInk,
   });
+
+  /// The fill when [active], in place of the accent: a point category wears
+  /// its own colour.
+  final Color? activeColor;
+
+  /// The label's colour on [activeColor].
+  final Color? activeInk;
 
   final String label;
   final bool active;
@@ -41,6 +51,8 @@ class FilterCapsule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final onFill = activeInk ?? theme.accentInk;
     final n = count;
     final empty = n == 0;
     final showCount = n != null && (n > 0 || showZeroCount);
@@ -58,12 +70,14 @@ class FilterCapsule extends StatelessWidget {
         child: Opacity(
           opacity: faded && !active ? 0.5 : 1,
           child: AnimatedContainer(
-            duration: theme.motionFast,
+            duration: motion.d(theme.motionFast),
             curve: Curves.easeOutCubic,
             constraints: const BoxConstraints(minHeight: 34),
             padding: EdgeInsets.fromLTRB(leading == null ? 14 : 11, 0, 14, 0),
             decoration: BoxDecoration(
-              color: active ? theme.accent : theme.ink.withValues(alpha: 0.07),
+              color: active
+                  ? (activeColor ?? theme.accent)
+                  : theme.ink.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(999),
             ),
             // Hugs its label (a Container `alignment` would stretch the
@@ -78,13 +92,13 @@ class FilterCapsule extends StatelessWidget {
                     const SizedBox(width: 6),
                   ],
                   AnimatedDefaultTextStyle(
-                    duration: theme.motionFast,
+                    duration: motion.d(theme.motionFast),
                     style: theme.bodySoft.copyWith(
                       fontSize: 15,
                       fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                       letterSpacing: -0.2,
                       color: active
-                          ? theme.accentInk
+                          ? onFill
                           // A filter matching nothing is dimmed rather than
                           // hidden — a row that reshuffled itself every time a
                           // count hit zero would be impossible to aim at.
@@ -103,7 +117,7 @@ class FilterCapsule extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                         fontFeatures: const [FontFeature.tabularFigures()],
                         color: active
-                            ? theme.accentInk.withValues(alpha: 0.75)
+                            ? onFill.withValues(alpha: 0.75)
                             : theme.inkMuted,
                       ),
                     ),

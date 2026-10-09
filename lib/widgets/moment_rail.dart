@@ -20,7 +20,7 @@ import 'remote_image.dart';
 import 'steady_hero.dart';
 import 'user_avatar.dart';
 
-import 'ios_kit.dart' show SpringPress, groupedFill;
+import 'ios_kit.dart' show SpringPress, TileTone, ToneTile, groupedFill, tileColor;
 import 'chat_list_row.dart' show monogramGradient;
 import '../l10n/text_case.dart';
 
@@ -846,6 +846,17 @@ class MomentTagChip extends StatelessWidget {
     MomentTag.npc => CupertinoIcons.zzz,
   };
 
+  /// Each category's own colour, a fixed tile tone: the explainer's tiles,
+  /// the composer's picker and every mark on the board share it, so Jinx is
+  /// orange wherever it is.
+  static TileTone toneFor(MomentTag tag) => switch (tag) {
+    MomentTag.fate => TileTone.purple,
+    MomentTag.jinx => TileTone.orange,
+    MomentTag.luck => TileTone.green,
+    MomentTag.calledIt => TileTone.blue,
+    MomentTag.npc => TileTone.gray,
+  };
+
   /// The localized name of a category.
   static String labelFor(AppLocalizations l10n, MomentTag tag) => switch (tag) {
     MomentTag.fate => l10n.momentTagFate,
@@ -915,4 +926,23 @@ class MomentTagChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A category's colour; see [MomentTagChip.toneFor].
+Color momentTagColor(AppTheme theme, MomentTag tag) =>
+    tileColor(theme, MomentTagChip.toneFor(tag));
+
+/// THE mark of a point category: its glyph on its colour, a [ToneTile].
+class MomentTagTile extends StatelessWidget {
+  const MomentTagTile(this.tag, {super.key, this.size = 30});
+
+  final MomentTag tag;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ToneTile(
+        icon: MomentTagChip.iconFor(tag),
+        tone: MomentTagChip.toneFor(tag),
+        size: size,
+      );
 }

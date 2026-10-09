@@ -172,9 +172,9 @@ void main() {
       await t.pumpWidget(_host(const RecordsSection(viewerId: 'me')));
       await t.pumpAndSettle();
 
-      expect(find.text('Ada'), findsOneWidget);
+      // Holder and your own best on one line: the gap worth chasing.
+      expect(find.text('Ada · Yours 1:15'), findsOneWidget);
       expect(find.text('1:01'), findsOneWidget);
-      expect(find.text('Yours 1:15'), findsOneWidget);
       // Every game has a row, solved or not.
       expect(find.text('Nobody yet'), findsNWidgets(RecordGame.values.length - 1));
     });
@@ -205,15 +205,55 @@ void main() {
       await t.tap(find.text('open'));
       await t.pumpAndSettle();
 
-      // One react button: Ada's. Your own record is for others to cheer.
-      expect(find.byIcon(CupertinoIcons.smiley), findsOneWidget);
-      await t.tap(find.byIcon(CupertinoIcons.smiley));
+      // Nothing sends on a stray touch: the emoji wait behind "Cheer".
+      expect(find.text('🔥'), findsNothing);
+      await t.tap(find.text('Cheer'));
       await t.pumpAndSettle();
+      // The holder's six; your own row (second) offers none.
+      expect(find.text('🔥'), findsOneWidget);
       await t.tap(find.text('🔥'));
       await t.pumpAndSettle();
 
       expect(api.reactions, ['r1:🔥']);
-      expect(find.text('🔥 1'), findsOneWidget);
+      // Chosen, so the disc wears it and a second tap would take it back.
+      expect(
+        RecordsStore.instance.board.rowsFor(RecordGame.queens).first.mine,
+        '🔥',
+      );
+    });
+
+    testWidgets('a friend further down is cheered from their button', (t) async {
+      t.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (_) async => null);
+      addTearDown(() => t.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null));
+      api.records = RecordBoard(games: {
+        RecordGame.queens: [
+          _row(userId: 'me', name: ''),
+          _row(id: 'r2', userId: 'lin', name: 'Lin', rank: 2, best: 75000),
+        ],
+      });
+      await t.pumpWidget(_host(Builder(
+        builder: (context) => TextButton(
+          onPressed: () => showRecordsSheet(
+            context,
+            game: RecordGame.queens,
+            viewerId: 'me',
+          ),
+          child: const Text('open'),
+        ),
+      )));
+      await t.tap(find.text('open'));
+      await t.pumpAndSettle();
+
+      // Your own record has no Cheer; Lin's row shows only its button.
+      expect(find.text('Cheer'), findsNothing);
+      expect(find.text('🔥'), findsNothing);
+      await t.tap(find.byIcon(CupertinoIcons.smiley));
+      await t.pumpAndSettle();
+      await t.tap(find.text('🔥'));
+      await t.pumpAndSettle();
+      expect(api.reactions, ['r2:🔥']);
     });
   });
 }
