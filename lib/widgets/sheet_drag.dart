@@ -18,6 +18,14 @@ import '../theme/motion.dart';
 // part past the top to the sheet, and take it back when the finger turns
 // round, without the content and the sheet ever fighting for the same
 // pixels.
+//
+// The host hands those physics to EVERY vertical scroll view under it,
+// through the [ScrollConfiguration], so a sheet's list pulls it closed
+// without opting in. A scroll view's own physics (a `ClampingScrollPhysics`,
+// an `AlwaysScrollableScrollPhysics`) wraps them as its parent, and the
+// pull still sees every pixel: neither of those overrides the user offset.
+// `BouncingScrollPhysics` does, and never asks its parent, so a sheet's
+// scroller must not name it.
 
 /// The host of a sheet's pull: translates the sheet by the drag, decides on
 /// release whether to close it or spring it home. `showAdaptiveSheet` wraps
@@ -56,6 +64,10 @@ class _SheetDragHostState extends State<SheetDragHost>
     vsync: this,
     duration: const Duration(milliseconds: 220),
   )..addListener(_onSettleTick);
+
+  /// One instance for the host's life: a fresh one per build would read as
+  /// a configuration change to every scroll view under it.
+  late final ScrollPhysics _physics = SheetPullPhysics._(this);
 
   double _settleFrom = 0;
   bool _dragging = false;
@@ -136,6 +148,25 @@ class _SheetDragHostState extends State<SheetDragHost>
 
   @override
   Widget build(BuildContext context) {
+    Widget body = widget.child;
+    if (widget.enabled) {
+      body = ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context)
+            .copyWith(physics: _physics),
+        // The drag can end without the pull physics' ballistic hand-off: a
+        // scroll view whose own physics override the ballistic (clamping
+        // does), a disposed scrollable, a cancelled pointer. The end of the
+        // scroll settles the sheet either way, with the finger's speed when
+        // a drag ended it.
+        child: NotificationListener<ScrollEndNotification>(
+          onNotification: (n) {
+            if (_dragging) release(n.dragDetails?.primaryVelocity ?? 0);
+            return false;
+          },
+          child: body,
+        ),
+      );
+    }
     return _SheetDragScope(
       host: this,
       // Always the Transform, even at rest: swapping it in and out would
@@ -146,7 +177,7 @@ class _SheetDragHostState extends State<SheetDragHost>
           offset: Offset(0, dy),
           child: child,
         ),
-        child: widget.child,
+        child: body,
       ),
     );
   }
@@ -172,7 +203,9 @@ class _SheetDragScope extends InheritedWidget {
 /// THE scrolling body of a sheet: a [SingleChildScrollView] whose drag, once
 /// the content is at its top, pulls the whole sheet down — and closes it past
 /// a quarter of its height or on a flick. Scrolled down, a downward drag
-/// scrolls the content back first, exactly like iOS.
+/// scrolls the content back first, exactly like iOS. (Any vertical scroll
+/// view in a compact sheet does this, through the host; this one is the
+/// ready-made body.)
 ///
 /// Clamping, not bouncing: a bounce at the top would eat the very pixels
 /// that should move the sheet. Outside a compact sheet (the desktop popover,
@@ -194,32 +227,19 @@ class SheetScrollBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final host = _SheetDragScope.hostOf(context);
-    final view = SingleChildScrollView(
+    return SingleChildScrollView(
       controller: controller,
       padding: padding,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
-      physics: host == null
-          ? const ClampingScrollPhysics()
-          : SheetPullPhysics._(host),
+      physics: SheetPullPhysics.of(context),
       child: child,
-    );
-    if (host == null) return view;
-    // A drag can end without a ballistic hand-off (the scrollable was
-    // disposed, the pointer was cancelled); settle the sheet either way.
-    return NotificationListener<ScrollEndNotification>(
-      onNotification: (_) {
-        if (host.dragging) host.release(0);
-        return false;
-      },
-      child: view,
     );
   }
 }
 
-/// The physics of a [SheetScrollBody]. Public only so a sheet with its own
-/// scroll view (a list, a grid) can opt in: pass
-/// `SheetPullPhysics.of(context)` as its physics.
+/// The physics of a [SheetScrollBody], and of every other vertical scroll
+/// view in a compact sheet (the host supplies them). Horizontal scroll views
+/// pass through untouched.
 class SheetPullPhysics extends ClampingScrollPhysics {
   const SheetPullPhysics._(this._host, {super.parent});
 
@@ -238,30 +258,47 @@ class SheetPullPhysics extends ClampingScrollPhysics {
   SheetPullPhysics applyTo(ScrollPhysics? ancestor) =>
       SheetPullPhysics._(_host, parent: buildParent(ancestor));
 
-  // `offset` is the finger's movement: positive is DOWN (towards the top of
-  // the content).
+  // `offset` is in scroll terms: positive moves towards minScrollExtent. On
+  // an ordinary list that is the finger moving DOWN; on a reversed one
+  // (newest at the bottom) it is the finger moving up, and the screen's top
+  // of the content is maxScrollExtent.
   @override
   double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {
-    if (offset > 0 && position.pixels <= position.minScrollExtent) {
-      _host.pull(offset);
+    if (position.axis != Axis.vertical) {
+      return super.applyPhysicsToUserOffset(position, offset);
+    }
+    final reversed = axisDirectionIsReversed(position.axisDirection);
+    final down = reversed ? -offset : offset;
+    final atTop = reversed
+        ? position.pixels >= position.maxScrollExtent
+        : position.pixels <= position.minScrollExtent;
+    if (down > 0 && atTop) {
+      _host.pull(down);
       if (_host.dragging) return 0;
-    } else if (offset < 0 && _host.offset.value > 0) {
-      final took = _host.giveBack(-offset);
-      return super.applyPhysicsToUserOffset(position, offset + took);
+    } else if (down < 0 && _host.offset.value > 0) {
+      final took = _host.giveBack(-down);
+      final rest = down + took;
+      return super.applyPhysicsToUserOffset(
+        position,
+        reversed ? -rest : rest,
+      );
     }
     return super.applyPhysicsToUserOffset(position, offset);
   }
 
-  // `velocity` is in scroll terms: positive scrolls forward, which is the
-  // finger moving UP — so the finger's downward speed is its negation.
+  // `velocity` is in scroll terms: positive scrolls forward, which on an
+  // ordinary list is the finger moving UP, so the finger's downward speed
+  // is its negation (and on a reversed list, the velocity itself).
   @override
   Simulation? createBallisticSimulation(
     ScrollMetrics position,
     double velocity,
   ) {
-    if (_host.dragging) {
+    if (_host.dragging && position.axis == Axis.vertical) {
       final pulled = _host.offset.value > 0;
-      _host.release(-velocity);
+      _host.release(
+        axisDirectionIsReversed(position.axisDirection) ? velocity : -velocity,
+      );
       if (pulled) return null;
     }
     return super.createBallisticSimulation(position, velocity);

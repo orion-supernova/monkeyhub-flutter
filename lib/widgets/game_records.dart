@@ -319,9 +319,7 @@ class _RecordsSheetState extends State<_RecordsSheet> {
       showClose: true,
       padding: EdgeInsets.zero,
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: AnimatedBuilder(
           animation: RecordsStore.instance,

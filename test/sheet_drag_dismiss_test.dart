@@ -143,4 +143,140 @@ void main() {
     final top = tester.getTopLeft(find.byType(SheetFrame)).dy;
     expect(top, greaterThanOrEqualTo(59 + 8 - 0.5));
   });
+
+  // Any vertical list in a sheet pulls it, not just a SheetScrollBody: the
+  // highlight comments list names its own physics and could only scroll,
+  // so the sheet closed only from its handle or its ×. The user: "I wanna
+  // be able to close the sheet with swiping down from anywhere on that
+  // sheet".
+  group('a list with its own physics', () {
+    Widget hostWith(Widget Function() body) => ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: TextButton(
+                    onPressed: () => showAdaptiveSheet<void>(
+                      context,
+                      builder: (_) => SizedBox(
+                        height: 600,
+                        child: Column(
+                          children: [
+                            const SheetHandle(),
+                            const Text('Sheet'),
+                            Expanded(child: body()),
+                          ],
+                        ),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    Future<void> openWith(WidgetTester tester, Widget Function() body) async {
+      tester.view.physicalSize = const Size(393, 852);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(hostWith(body));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sheet'), findsOneWidget);
+    }
+
+    List<Widget> rows() => [
+          for (var i = 0; i < 40; i++)
+            SizedBox(height: 60, child: Text('row $i')),
+        ];
+
+    testWidgets('clamping + always-scrollable: a pull closes the sheet', (
+      tester,
+    ) async {
+      await openWith(
+        tester,
+        () => ListView(
+          physics: const ClampingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          children: rows(),
+        ),
+      );
+      await tester.fling(find.text('row 2'), const Offset(0, 300), 1500);
+      await tester.pumpAndSettle();
+      expect(find.text('Sheet'), findsNothing);
+    });
+
+    testWidgets('a short slow pull on it springs back', (tester) async {
+      await openWith(
+        tester,
+        () => ListView(
+          physics: const ClampingScrollPhysics(),
+          children: rows(),
+        ),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('row 2')),
+      );
+      for (var i = 0; i < 8; i++) {
+        await gesture.moveBy(const Offset(0, 6));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(find.text('Sheet'), findsOneWidget);
+    });
+
+    testWidgets('reversed (newest at the bottom): pulls from its top end', (
+      tester,
+    ) async {
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      await openWith(
+        tester,
+        () => ListView(
+          controller: scroll,
+          reverse: true,
+          children: rows(),
+        ),
+      );
+      // At rest a reversed list shows its newest rows; a downward drag
+      // scrolls back through history and must not move the sheet.
+      await tester.timedDrag(
+        find.text('row 2'),
+        const Offset(0, 150),
+        const Duration(milliseconds: 600),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Sheet'), findsOneWidget);
+      expect(scroll.position.pixels, greaterThan(0));
+
+      scroll.jumpTo(scroll.position.maxScrollExtent);
+      await tester.pump();
+      await tester.fling(find.text('row 37'), const Offset(0, 300), 1500);
+      await tester.pumpAndSettle();
+      expect(find.text('Sheet'), findsNothing);
+    });
+
+    testWidgets('a horizontal strip never pulls', (tester) async {
+      await openWith(
+        tester,
+        () => ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (var i = 0; i < 20; i++)
+              SizedBox(width: 120, child: Text('cell $i')),
+          ],
+        ),
+      );
+      await tester.fling(find.text('cell 1'), const Offset(-300, 0), 1500);
+      await tester.pumpAndSettle();
+      expect(find.text('Sheet'), findsOneWidget);
+    });
+  });
 }

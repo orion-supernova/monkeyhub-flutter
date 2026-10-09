@@ -307,9 +307,7 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
       title: sentenceCaseOf(context, l10n.roomInviteSheetTitle),
       padding: EdgeInsets.zero,
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,

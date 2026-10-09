@@ -91,12 +91,12 @@ class SheetSurface extends StatelessWidget {
           // actions at the bottom were simply unreachable.
           Flexible(
             child: SingleChildScrollView(
-              // Bounces at both ends like every other scroller in the app,
-              // instead of the platform default that only bounces when the
-              // content actually overflows.
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
+              // Always draggable, even when the content fits, so a pull
+              // from anywhere on the panel closes it. Not bouncing: the
+              // sheet's pull physics come from the host as this one's
+              // parent, and a bounce never hands them the drag (see
+              // sheet_drag.dart).
+              physics: const AlwaysScrollableScrollPhysics(),
               // The breathing room lives HERE, inside the scroller: the
               // panel's own padding, the home indicator, and the keyboard when
               // one is up. `isScrollControlled` sheets are not moved by the

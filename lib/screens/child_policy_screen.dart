@@ -1204,9 +1204,7 @@ class _PickRoomSheetState extends State<_PickRoomSheet> {
                       // shell is the shared PeoplePicker, which lists bare
                       // rows, and the two pickers should read as one.
                       : ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(
-                            parent: BouncingScrollPhysics(),
-                          ),
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.zero,
                           itemCount: visible.length,
                           itemBuilder: (context, i) {
