@@ -7,8 +7,10 @@ enum AlertSound {
   /// New message.
   ping('assets/audio/ping.mp3', 'audio/mpeg'),
 
-  /// The caller's "their phone is ringing": 425 Hz, 1 s on, 4 s off.
-  ringback('assets/audio/ringback.wav', 'audio/wav', loop: true),
+  /// The caller's "their phone is ringing": one 6 s cycle, a 1 s ring
+  /// then 5 s of quiet, cut to open on the ring so it starts the moment
+  /// the screen says "ringing".
+  ringback('assets/audio/ringback.mp3', 'audio/mpeg', loop: true),
 
   /// The caller's "they picked up".
   connected('assets/audio/connected.wav', 'audio/wav');
