@@ -133,6 +133,20 @@ jobs:
           flutter build linux --release
           --build-name ${{ needs.meta.outputs.version }} --build-number 1
           --dart-define=MH_CHANNEL=linux
+      # Nobody on the team runs Linux, so this is the only proof the bundle
+      # launches before it goes on the downloads page and the AUR: no missing
+      # shared libraries, and still alive after 20s on a virtual display
+      # (timeout's 124 = we killed it = it didn't crash on its own).
+      - name: Launch smoke test
+        run: |
+          sudo apt-get install -y xvfb
+          b=build/linux/x64/release/bundle
+          if ldd "$b/monkeyhub" "$b"/lib/*.so | grep 'not found'; then exit 1; fi
+          set +e
+          timeout 20 xvfb-run -a "$b/monkeyhub" > smoke.log 2>&1
+          rc=$?
+          tail -n 40 smoke.log
+          [ $rc -eq 124 ] || { echo "monkeyhub exited with $rc before 20s"; exit 1; }
       # One self-contained folder: the bundle plus the launcher entry and icon,
       # which the AUR package installs into /usr/share and a tarball user can
       # copy there by hand.
