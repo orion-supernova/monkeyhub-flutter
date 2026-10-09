@@ -76,6 +76,7 @@ void main() {
     bool seenByOthers = false,
     bool deliveredToOthers = false,
     bool saved = false,
+    bool pinned = false,
   }) => MessageBubble(
     message: m,
     now: DateTime(2026, 3, 1, 12, 4),
@@ -84,6 +85,7 @@ void main() {
     seenByOthers: seenByOthers,
     deliveredToOthers: deliveredToOthers,
     saved: saved,
+    pinned: pinned,
     author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
   );
 
@@ -403,6 +405,41 @@ void main() {
       // still lands on the top rung rather than falling back to one tick.
       expect(at(seen: true), MessageReceipt.seen);
       expect(at(isMine: false, delivered: true, seen: true), isNull);
+    });
+  });
+
+  group('the pin a room-pinned message wears', () {
+    Finder pin = find.descendant(
+      of: visibleStamp,
+      matching: find.byIcon(CupertinoIcons.pin_fill),
+    );
+
+    testWidgets('is absent on a message nobody pinned', (tester) async {
+      await tester.pumpWidget(host(bubble(msg())));
+      expect(pin, findsNothing);
+    });
+
+    testWidgets('appears in the stamp, ahead of the bookmark and the clock', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(bubble(msg(), isMine: true, saved: true, pinned: true)),
+      );
+
+      expect(pin, findsOneWidget);
+      final p = tester.getRect(pin).center.dx;
+      final bookmark = tester
+          .getRect(
+            find.descendant(
+              of: visibleStamp,
+              matching: find.byIcon(CupertinoIcons.bookmark_fill),
+            ),
+          )
+          .center
+          .dx;
+      final time = tester.getRect(stampText('12:04')).center.dx;
+      expect(p, lessThan(bookmark));
+      expect(bookmark, lessThan(time));
     });
   });
 

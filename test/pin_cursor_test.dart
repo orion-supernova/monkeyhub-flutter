@@ -57,4 +57,35 @@ void main() {
       expect(active(3, 0), 0);
     });
   });
+
+  group('pinIndexForCursor', () {
+    test('a fresh cursor shows the newest pin, not the oldest', () {
+      // Chronological list: index 2 is the latest.
+      expect(pinIndexForCursor(0, 3), 2);
+    });
+
+    test('advancing walks back into the past, then wraps to the newest', () {
+      var c = 0;
+      final seen = <int>[];
+      for (var n = 0; n < 4; n++) {
+        seen.add(pinIndexForCursor(c, 3));
+        c = nextPinCursor(c, 3);
+      }
+      expect(seen, [2, 1, 0, 2]);
+    });
+
+    test('a stale cursor lands in range after the list shrinks', () {
+      expect(pinIndexForCursor(3, 2), inInclusiveRange(0, 1));
+    });
+
+    test('an empty list yields 0', () {
+      expect(pinIndexForCursor(3, 0), 0);
+    });
+
+    test('pinCursorForIndex is its inverse', () {
+      for (var i = 0; i < 4; i++) {
+        expect(pinIndexForCursor(pinCursorForIndex(i, 4), 4), i);
+      }
+    });
+  });
 }

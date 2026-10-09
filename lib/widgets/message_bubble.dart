@@ -77,6 +77,7 @@ class MessageBubble extends StatelessWidget {
     this.seenByOthers = false,
     this.deliveredToOthers = false,
     this.saved = false,
+    this.pinned = false,
     this.grouped = false,
     this.lastInRun = true,
     this.showAvatarSlot = true,
@@ -232,6 +233,11 @@ class MessageBubble extends StatelessWidget {
   /// previews and chrome that have no repository, and false is the right answer
   /// there. See [MessageStamp.saved].
   final bool saved;
+
+  /// Whether this message is one of the room's pins, which puts a pin on its
+  /// stamp beside the bookmark. Passed in for the same reason [saved] is.
+  /// See [MessageStamp.pinned].
+  final bool pinned;
 
   /// When true this message continues a run from the same sender: the vertical
   /// gap tightens and [senderName] is left null by the caller. Nothing
@@ -459,6 +465,7 @@ class MessageBubble extends StatelessWidget {
                 seenByOthers: seenByOthers,
                 deliveredToOthers: deliveredToOthers,
                 saved: saved,
+                pinned: pinned,
               ),
       ),
     );
@@ -485,6 +492,7 @@ class MessageBubble extends StatelessWidget {
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
       saved: saved,
+      pinned: pinned,
       onOpenViewOnce: onOpenViewOnce,
       onStopLiveShare: onStopLiveShare,
       publishingLiveShare: publishingLiveShare,
@@ -555,6 +563,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.seenByOthers = false,
     this.deliveredToOthers = false,
     this.saved = false,
+    this.pinned = false,
     this.grouped = false,
     this.lastInRun = true,
     this.showAvatarSlot = true,
@@ -653,6 +662,9 @@ class EphemeralMessageBubble extends StatelessWidget {
   /// be bookmarked, and the bookmark simply goes with it when it burns —
   /// `removeMessageAndFanout` drops both.
   final bool saved;
+
+  /// See [MessageBubble.pinned].
+  final bool pinned;
 
   /// See [MessageBubble.grouped].
   final bool grouped;
@@ -791,6 +803,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
       saved: saved,
+      pinned: pinned,
       onOpenViewOnce: onOpenViewOnce,
       onStopLiveShare: onStopLiveShare,
       publishingLiveShare: publishingLiveShare,
@@ -1012,6 +1025,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                 seenByOthers: seenByOthers,
                 deliveredToOthers: deliveredToOthers,
                 saved: saved,
+                pinned: pinned,
               ),
       ),
     );
@@ -1410,6 +1424,9 @@ Widget buildMessageContent({
   /// See [MessageStamp.saved].
   bool saved = false,
 
+  /// Whether the message is one of the room's pins. See [MessageStamp.pinned].
+  bool pinned = false,
+
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// where no repository is wired up (tests, previews), which leaves the sealed
   /// tile inert rather than half-working.
@@ -1528,6 +1545,7 @@ Widget buildMessageContent({
             seenByOthers: seenByOthers,
           ),
           saved: saved,
+          pinned: pinned,
           edited: message.edited,
           tone: tone,
         )
@@ -3476,6 +3494,7 @@ class _MetaRow extends StatelessWidget {
     this.seenByOthers = false,
     this.deliveredToOthers = false,
     this.saved = false,
+    this.pinned = false,
   });
   final ChatMessage message;
   final bool isMine;
@@ -3490,6 +3509,9 @@ class _MetaRow extends StatelessWidget {
   /// same two shapes it carries the clock for — a standalone link card has no
   /// surface of ours to mark either.
   final bool saved;
+
+  /// See [MessageStamp.pinned]. Carried here for the same reason as [saved].
+  final bool pinned;
 
   @override
   Widget build(BuildContext context) {
@@ -3508,6 +3530,7 @@ class _MetaRow extends StatelessWidget {
           seenByOthers: seenByOthers,
         ),
         saved: saved,
+        pinned: pinned,
         edited: message.edited,
         tone: StampTone.onSurface,
       ),

@@ -1135,6 +1135,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // copies on screen, and a bookmark visible in the transcript underneath but
     // not in the overlay would read as two different messages.
     final saved = widget.repo.isMessageSaved(widget.roomId, m.id);
+    final pinned = widget.repo.isMessagePinned(widget.roomId, m.id);
     // A poll can be replied to, so a poll can be IN a thread — and the overlay
     // reads the same repository the transcript does, so the card behind it is
     // the same object with the same tally. Without this it would render as its
@@ -1148,6 +1149,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         seenByOthers: seenByOthers,
         deliveredToOthers: deliveredToOthers,
         saved: saved,
+        pinned: pinned,
         bubbleKey: bubbleKey,
         message: m,
         now: _fadeNow,
@@ -1178,6 +1180,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
       saved: saved,
+      pinned: pinned,
       bubbleKey: bubbleKey,
       message: m,
       now: _now,

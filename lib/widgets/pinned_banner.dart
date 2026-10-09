@@ -46,6 +46,27 @@ int nextPinCursor(int cursor, int length) {
   return (cursor + 1) % length;
 }
 
+/// Which pin a cursor describes, as an index into the chronological list.
+///
+/// The cursor counts BACK from the newest pin, so a fresh room screen (cursor
+/// 0) opens on the latest pin rather than the oldest, and each tap walks one
+/// further into the past — the order every neighbouring chat app uses. It also
+/// means a pin added while the reader sits at 0 becomes the one on show.
+///
+/// Read through `%`, never clamped in place: a pinned message can self-destruct
+/// between subscription frames, so the cursor is allowed to be briefly stale.
+int pinIndexForCursor(int cursor, int length) {
+  if (length <= 0) return 0;
+  return length - 1 - (cursor % length);
+}
+
+/// The cursor that puts [index] on show — the inverse of [pinIndexForCursor],
+/// for the sheet, which picks a pin by its place in the list.
+int pinCursorForIndex(int index, int length) {
+  if (length <= 0) return 0;
+  return length - 1 - index.clamp(0, length - 1);
+}
+
 /// Geometry of the segmented marker down the banner's left edge, top to bottom.
 ///
 /// Returns one rect per pin while that stays legible, and a two-rect

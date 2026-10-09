@@ -368,9 +368,9 @@ class _RoomScreenState extends State<RoomScreen>
   static const Duration _kUnreadLandingWindow = Duration(seconds: 12);
   DateTime? _unreadLandingDeadline;
 
-  /// Which pin the banner is describing. Read as `_pinCursor % pins.length` at
-  /// build time and never clamped in place: a pinned message can self-destruct
-  /// between subscription frames, so this is allowed to be briefly stale.
+  /// Which pin the banner is describing, counted back from the newest — see
+  /// [pinIndexForCursor], which is the only way it is read. 0 is the latest
+  /// pin, so that is what a room opens on.
   int _pinCursor = 0;
 
   // ──── multi-select ────
@@ -2098,10 +2098,10 @@ class _RoomScreenState extends State<RoomScreen>
   Future<void> _onPinBannerTap() async {
     final pins = widget.repo.pinsFor(widget.roomId);
     if (pins.isEmpty) return;
-    final i = _pinCursor % pins.length;
-    await _jumpToPin(pins[i]);
+    final c = _pinCursor % pins.length;
+    await _jumpToPin(pins[pinIndexForCursor(c, pins.length)]);
     if (!mounted) return;
-    setState(() => _pinCursor = nextPinCursor(i, pins.length));
+    setState(() => _pinCursor = nextPinCursor(c, pins.length));
   }
 
   Future<void> _openPinList(ChatRoom room) async {
@@ -2115,7 +2115,9 @@ class _RoomScreenState extends State<RoomScreen>
         final i = pins.indexWhere((p) => p.message.id == pin.message.id);
         // Leave the cursor on what was just opened, so the next banner tap
         // continues from there rather than resuming an unrelated walk.
-        if (i >= 0) setState(() => _pinCursor = i);
+        if (i >= 0) {
+          setState(() => _pinCursor = pinCursorForIndex(i, pins.length));
+        }
         _jumpToPin(pin);
       },
     );
@@ -4206,7 +4208,10 @@ class _RoomScreenState extends State<RoomScreen>
           // unwrapped by ChatColumn, matching GroupCallBanner above.
           PinnedMessageBanner(
             pins: widget.repo.pinsFor(room.id),
-            activeIndex: _pinCursor,
+            activeIndex: pinIndexForCursor(
+              _pinCursor,
+              widget.repo.pinsFor(room.id).length,
+            ),
             onTap: _onPinBannerTap,
             onOpenList: () => _openPinList(room),
           ),
@@ -4461,7 +4466,7 @@ class _RoomScreenState extends State<RoomScreen>
                     // it, and `topChromeH` above has already reserved its space.
                     PinnedMessageBanner(
                       pins: pins,
-                      activeIndex: _pinCursor,
+                      activeIndex: pinIndexForCursor(_pinCursor, pins.length),
                       onTap: _onPinBannerTap,
                       onOpenList: () => _openPinList(room),
                       glass: true,
@@ -4940,6 +4945,9 @@ class _RoomScreenState extends State<RoomScreen>
                 // bookmark subscription notifies the repository, and this list
                 // already rebuilds on that.
                 final saved = widget.repo.isMessageSaved(room.id, m.id);
+                // Same read-every-build posture: the pins subscription notifies
+                // the repository, so pinning marks the bubble on the next frame.
+                final pinned = widget.repo.isMessagePinned(room.id, m.id);
                 final isPending = m.id.startsWith('tmp_');
                 final selecting = _selection.active;
                 // Every menu gate in one object — the predicates that used to
@@ -5066,6 +5074,8 @@ class _RoomScreenState extends State<RoomScreen>
                               parentAuthor: parentAuthor,
                               saved: widget.repo
                                   .isMessageSaved(room.id, target.id),
+                              pinned: widget.repo
+                                  .isMessagePinned(room.id, target.id),
                               replyMarker: liftedMarker,
                               grouped: sameRow && grouped,
                               lastInRun: !sameRow || messageItem.lastInRun,
@@ -5085,6 +5095,8 @@ class _RoomScreenState extends State<RoomScreen>
                               deliveredToOthers: deliveredToOthers,
                               saved: widget.repo
                                   .isMessageSaved(room.id, target.id),
+                              pinned: widget.repo
+                                  .isMessagePinned(room.id, target.id),
                               replyMarker: liftedMarker,
                               grouped: sameRow && grouped,
                               lastInRun: !sameRow || messageItem.lastInRun,
@@ -5325,6 +5337,7 @@ class _RoomScreenState extends State<RoomScreen>
                         seenByOthers: seenByOthers,
                         deliveredToOthers: deliveredToOthers,
                         saved: saved,
+                        pinned: pinned,
                         replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,
@@ -5374,6 +5387,7 @@ class _RoomScreenState extends State<RoomScreen>
                         seenByOthers: seenByOthers,
                         deliveredToOthers: deliveredToOthers,
                         saved: saved,
+                        pinned: pinned,
                         replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,

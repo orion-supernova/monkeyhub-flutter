@@ -117,6 +117,7 @@ class MessageStamp extends StatelessWidget {
     this.receipt,
     this.countdown,
     this.saved = false,
+    this.pinned = false,
     this.edited = false,
   });
 
@@ -154,6 +155,16 @@ class MessageStamp extends StatelessWidget {
   /// leads the row instead of joining the ladder — a mark on the cluster rather
   /// than the cluster's last word.
   final bool saved;
+
+  /// Whether this message is one of the ROOM's pins — the shared state the
+  /// banner under the header cycles through, as opposed to [saved].
+  ///
+  /// Leads the row for the same reason [saved] does: it is true alongside any
+  /// rung of the status chain. In the quiet ink rather than the loud one,
+  /// because it is a fact about the room that everybody sees on every visit,
+  /// and a glyph that shouts on every pinned message stops meaning anything.
+  /// The tap target for pins is the banner; this only answers "which one?".
+  final bool pinned;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +219,16 @@ class MessageStamp extends StatelessWidget {
         // rather than the outline: it is the same glyph the action menu turns
         // solid when you save, so the bubble ends up wearing the mark the menu
         // just handed it.
+        // Ahead of the bookmark: the room's mark first, then the reader's own.
+        // `pin_fill`, the glyph the banner leads with, so the bubble wears the
+        // same pin the strip above it shows.
+        if (pinned) ...[
+          Icon(CupertinoIcons.pin_fill,
+              size: 10,
+              color: quiet,
+              semanticLabel: l10n.pinnedBannerTitleSingle),
+          const SizedBox(width: 4),
+        ],
         if (saved) ...[
           Icon(CupertinoIcons.bookmark_fill,
               size: 10,
