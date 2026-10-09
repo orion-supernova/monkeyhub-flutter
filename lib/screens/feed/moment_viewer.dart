@@ -591,9 +591,11 @@ const kStoryPhotoDuration = Duration(seconds: 10);
 /// a tap (next/previous).
 const _kStoryHold = Duration(milliseconds: 200);
 
-/// How long an item must be on screen before it counts as seen — so a fast
-/// tap-through does not clear rings on pictures nobody looked at.
-const _kStorySeenAfter = Duration(seconds: 1);
+/// How long arrivals collect before they go to the server as one `markSeen`.
+/// An item counts as seen the moment it is on screen (a tap to the next one
+/// is "seen it, next", the stories convention); this only batches a quick
+/// tap-through into one write instead of one per picture.
+const _kStorySeenFlush = Duration(milliseconds: 600);
 
 /// The share of the width, from the leading edge, that a tap goes BACK in.
 /// The rest goes forward — the stories convention, which favours the more
@@ -746,6 +748,9 @@ class _MomentStageState extends State<_MomentStage>
   /// Ids already reported, so paging back and forth does not fire the same
   /// mutation once per swipe.
   final _seenSent = <String>{};
+
+  /// Ids seen but not yet sent; flushed by [_seenTimer] or on dispose.
+  final _seenPending = <String>[];
 
   @override
   void initState() {
@@ -948,6 +953,7 @@ class _MomentStageState extends State<_MomentStage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _seenTimer?.cancel();
+    _flushSeen();
     _loadFallback?.cancel();
     _afterVideo?.cancel();
     _clock.dispose();
@@ -996,14 +1002,13 @@ class _MomentStageState extends State<_MomentStage>
   }
 
   /// A new item is on screen: reset the clock, wait for its picture, and
-  /// count it as seen once it has been looked at for a second.
+  /// count it as seen.
   void _arrive() {
     _clock.value = 0;
     _ready = false;
-    _seenTimer?.cancel();
     _loadFallback?.cancel();
     final m = _current;
-    _seenTimer = Timer(_kStorySeenAfter, () => _markSeen(m));
+    _markSeen(m);
     // A picture that never decodes (deleted since the board loaded, a dead
     // link) must not trap the run on a spinner: after a while it plays on.
     _loadFallback = Timer(const Duration(seconds: 8), () => _onReady(m.id));
@@ -1038,8 +1043,17 @@ class _MomentStageState extends State<_MomentStage>
 
   void _markSeen(Moment m) {
     if (m.mine || m.seen || !_seenSent.add(m.id)) return;
+    _seenPending.add(m.id);
+    _seenTimer?.cancel();
+    _seenTimer = Timer(_kStorySeenFlush, _flushSeen);
+  }
+
+  void _flushSeen() {
+    if (_seenPending.isEmpty) return;
+    final ids = List.of(_seenPending);
+    _seenPending.clear();
     widget.feedApi
-        .markSeen(userId: widget.userId, momentIds: [m.id])
+        .markSeen(userId: widget.userId, momentIds: ids)
         .catchError((_) {});
   }
 
