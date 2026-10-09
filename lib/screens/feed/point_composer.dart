@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
@@ -119,6 +121,7 @@ class _PointComposerState extends State<_PointComposer> {
 
   @override
   void dispose() {
+    _revealTimer?.cancel();
     _note.removeListener(_onTyped);
     _focus.removeListener(_onFocus);
     _note.dispose();
@@ -329,9 +332,14 @@ class _PointComposerState extends State<_PointComposer> {
   /// Keeps the note field in view once the keyboard is up. The body scrolls
   /// (a [SheetScrollBody]); without this, focusing the field on a small phone
   /// left it under the keyboard with the grid filling the view.
+  /// A timer rather than a bare delayed future so closing the sheet inside
+  /// the wait cancels it instead of leaving it pending.
+  Timer? _revealTimer;
+
   void _onFocus() {
     if (!_focus.hasFocus) return;
-    Future<void>.delayed(const Duration(milliseconds: 320), () {
+    _revealTimer?.cancel();
+    _revealTimer = Timer(const Duration(milliseconds: 320), () {
       final target = _fieldKey.currentContext;
       if (!mounted || target == null || !target.mounted) return;
       if (!_focus.hasFocus) return;
