@@ -4902,6 +4902,29 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个精彩瞬间',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个新的',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => '添加精彩瞬间';
+
+  @override
   String get momentTagFate => '巧合';
 
   @override

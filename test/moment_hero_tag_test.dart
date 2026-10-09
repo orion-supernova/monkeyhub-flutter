@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/moment.dart';
+import 'package:monkeyhub/models/moment_group.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/moment_rail.dart';
@@ -43,7 +44,7 @@ Widget _host(Moment moment) => ThemeScope(
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: MomentRail(
-        moments: [moment],
+        groups: MomentGroup.of([moment]),
         api: _FakeChatApi(),
         serverNow: DateTime(2026, 8, 8, 12),
         onCapture: () {},

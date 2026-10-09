@@ -5223,6 +5223,31 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count destaques',
+      one: '1 destaque',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count novos',
+      one: '1 novo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => 'Adicionar um destaque';
+
+  @override
   String get momentTagFate => 'Destino';
 
   @override
@@ -16995,6 +17020,31 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String momentRailCardSemanticLabel(Object author, Object caption) {
     return '$author: $caption';
   }
+
+  @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count destaques',
+      one: '1 destaque',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count novos',
+      one: '1 novo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => 'Adicionar um destaque';
 
   @override
   String get momentTagFate => 'Destino';

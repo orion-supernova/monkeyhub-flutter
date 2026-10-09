@@ -5248,6 +5248,31 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moments forts',
+      one: '1 moment fort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nouveaux',
+      one: '1 nouveau',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => 'Ajouter un moment fort';
+
+  @override
   String get momentTagFate => 'Destin';
 
   @override

@@ -42,7 +42,13 @@ class RemoteImage extends StatefulWidget {
     this.decodeWidth,
     this.onAspectRatio,
     this.onDark = false,
+    this.quiet = false,
   });
+
+  /// Nothing while loading or on failure, instead of the shimmer and the
+  /// broken tile: for a picture that is decoration over its own fallback (a
+  /// card peeking from behind another), where either would be noise.
+  final bool quiet;
 
   final String storageId;
   final ChatApi api;
@@ -279,6 +285,9 @@ class _RemoteImageState extends State<RemoteImage> {
     final theme = ThemeScope.of(context);
     final radius = widget.borderRadius ?? BorderRadius.circular(theme.radiusMd);
 
+    if (widget.quiet && (_error != null || _url == null)) {
+      return const SizedBox.shrink();
+    }
     if (_error != null) return _broken(theme, radius);
     if (_url == null) {
       return _ShimmerBox(
@@ -306,8 +315,12 @@ class _RemoteImageState extends State<RemoteImage> {
         fadeInDuration:
             _wasCold ? const Duration(milliseconds: 180) : Duration.zero,
         fadeOutDuration: Duration.zero,
-        placeholder: (_, url) => _placeholder(url, radius),
-        errorWidget: (_, _, _) => _broken(theme, radius),
+        placeholder: (_, url) => widget.quiet
+            ? const SizedBox.shrink()
+            : _placeholder(url, radius),
+        errorWidget: (_, _, _) => widget.quiet
+            ? const SizedBox.shrink()
+            : _broken(theme, radius),
       ),
     );
   }

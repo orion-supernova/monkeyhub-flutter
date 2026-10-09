@@ -5251,6 +5251,39 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count لحظة',
+      many: '$count لحظة',
+      few: '$count لحظات',
+      two: 'لحظتان',
+      one: 'لحظة واحدة',
+      zero: 'لا لحظات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count جديدة',
+      many: '$count جديدة',
+      few: '$count جديدة',
+      two: 'اثنتان جديدتان',
+      one: 'واحدة جديدة',
+      zero: 'لا جديد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => 'أضف لحظة';
+
+  @override
   String get momentTagFate => 'مصادفة';
 
   @override

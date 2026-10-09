@@ -5137,6 +5137,31 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count öne çıkan',
+      one: '1 öne çıkan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yeni',
+      one: '1 yeni',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => 'Öne çıkan ekle';
+
+  @override
   String get momentTagFate => 'Tesadüf';
 
   @override

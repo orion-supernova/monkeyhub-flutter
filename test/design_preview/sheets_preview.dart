@@ -12,6 +12,7 @@ import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/moment.dart';
+import 'package:monkeyhub/models/moment_group.dart';
 import 'package:monkeyhub/screens/create_room_sheet.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/adaptive_sheet.dart';
@@ -202,12 +203,12 @@ class _Bits extends StatelessWidget {
                 FriendRow(user: _friends[0], api: _FakeApi(), onTap: () {}),
                 const SizedBox(height: 16),
                 MomentRail(
-                  moments: [
+                  groups: MomentGroup.of([
                     _moment('m1', 'Ece', caption: 'first snow on the balcony'),
                     _moment('m2', 'Deniz Kaya', seen: true,
                         caption: 'new job!!'),
                     _moment('m3', 'Arda', caption: 'guess where'),
-                  ],
+                  ]),
                   api: _FakeApi(),
                   serverNow: DateTime(2026, 10, 3),
                   onCapture: () {},

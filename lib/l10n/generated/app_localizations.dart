@@ -8843,6 +8843,24 @@ abstract class AppLocalizations {
   /// **'{author}: {caption}'**
   String momentRailCardSemanticLabel(Object author, Object caption);
 
+  /// Screen-reader part of a person's card on the Feed highlights rail: how many highlights they have today. Joined after their name with a comma.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 highlight} other{{count} highlights}}'**
+  String momentRailPersonCount(int count);
+
+  /// Screen-reader part of a person's card on the Feed highlights rail: how many of their highlights the viewer has not opened yet. Joined after the count with a comma.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new} other{{count} new}}'**
+  String momentRailPersonNewCount(int count);
+
+  /// Screen-reader label for the small plus button on the viewer's own highlights card, which opens the composer to add another highlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a highlight'**
+  String get momentRailAddHighlight;
+
   /// All-caps name of the scoring category for an improbable coincidence — running into your dentist abroad, spotting a celebrity. 'What are the odds', with no benefit implied.
   ///
   /// In en, this message translates to:

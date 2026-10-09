@@ -5191,6 +5191,31 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count höjdpunkter',
+      one: '1 höjdpunkt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nya',
+      one: '1 ny',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => 'Lägg till en höjdpunkt';
+
+  @override
   String get momentTagFate => 'Öde';
 
   @override

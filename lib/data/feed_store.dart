@@ -7,6 +7,7 @@ import '../backend/feed_api.dart';
 import '../models/daily_game.dart';
 import '../models/game_play.dart';
 import '../models/moment.dart';
+import '../models/moment_group.dart';
 import '../models/puzzle.dart';
 import 'feed_day.dart';
 
@@ -119,6 +120,14 @@ class FeedStore extends ChangeNotifier {
   /// is true.
   List<Moment> get highlights =>
       List.unmodifiable(_moments.where((m) => m.tag == null));
+
+  /// [highlights] as the rail shows them: one group per person. See
+  /// [MomentGroup.of] for the order.
+  List<MomentGroup> get highlightGroups => MomentGroup.of(highlights);
+
+  /// Every highlight in the order the viewer plays them: person by person
+  /// along the rail, each person's oldest first.
+  List<Moment> get highlightStories => MomentGroup.flatten(highlightGroups);
 
   /// Today's finished daily results, the viewer's and their friends', newest
   /// first: the four timed games plus the code. The Activity list's second

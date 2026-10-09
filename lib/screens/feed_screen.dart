@@ -350,7 +350,7 @@ class _FeedScreenState extends State<FeedScreen>
   /// because "the next highlight" plainly has a meaning here and backing out to
   /// tap the tile beside the one you just looked at is not an answer to it.
   void _openFromRail(Moment moment) =>
-      _open(moment, siblings: FeedStore.instance.highlights);
+      _open(moment, siblings: FeedStore.instance.highlightStories);
 
   /// Opens a point from the standings board. The picture-less ones rise out of
   /// the line that was tapped; the ones with a photo go full-screen, and the
@@ -373,7 +373,9 @@ class _FeedScreenState extends State<FeedScreen>
       _open(
         moment,
         origin: origin,
-        siblings: FeedStore.instance.highlights,
+        // The rail's order, so the viewer groups the river's pick with the
+        // rest of that person's day, oldest first, like the rail does.
+        siblings: FeedStore.instance.highlightStories,
         openComments: openComments,
       );
 
@@ -471,6 +473,7 @@ class _FeedScreenState extends State<FeedScreen>
       (
         id: 'highlights',
         child: _SectionShell(
+          bleed: true,
           label: l10n.feedBoardHighlightsLabel,
           // Highlights leave friends' boards after a day but are kept
           // forever — without a way in, that promise was invisible.
@@ -481,10 +484,14 @@ class _FeedScreenState extends State<FeedScreen>
               // fill this, so offer the explanation rather than a dead rail.
               ? EmptyLine(
                   l10n.feedBoardHighlightsEmpty,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _kGutter,
+                    vertical: 12,
+                  ),
                 )
               : MomentRail(
-                  moments: store.highlights,
+                  inset: _kGutter,
+                  groups: store.highlightGroups,
                   api: widget.api,
                   serverNow: store.serverNow,
                   canCapture: _canCapture,
@@ -496,6 +503,7 @@ class _FeedScreenState extends State<FeedScreen>
       (
         id: 'games',
         child: _SectionShell(
+          bleed: true,
           label: l10n.feedBoardGamesLabel,
           // The band is an entry point as much as a status line, so the header
           // carries the way in to who is winning. The games themselves live
@@ -510,6 +518,7 @@ class _FeedScreenState extends State<FeedScreen>
           actionLabel: l10n.feedBoardGamesOpen,
           onAction: _openLeaderboard,
           body: GamesStrip(
+            inset: _kGutter,
             boards: GamesStore.instance.boards,
             results: store.games,
             onOpen: _openGame,
@@ -577,7 +586,16 @@ class _FeedScreenState extends State<FeedScreen>
     Widget staggered(String id) {
       final entry = byId[id];
       if (entry == null) return const SizedBox.shrink();
-      final (index, child) = entry;
+      final (index, section) = entry;
+      // The page margin lives on each section, not on the scroll view, so
+      // the sideways rows can run to the screen's edges (see
+      // [_SectionShell.bleed]).
+      final child = section is _SectionShell && section.bleed
+          ? section
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _kGutter),
+              child: section,
+            );
       return TweenAnimationBuilder<double>(
         // Stable section id, never the index. The board's sections will start
         // appearing and disappearing conditionally in later phases, and an
@@ -618,9 +636,9 @@ class _FeedScreenState extends State<FeedScreen>
             controller: _scroll,
             key: const PageStorageKey('feed_board_v2_wide'),
             padding: EdgeInsets.fromLTRB(
-              20,
+              0,
               28,
-              20,
+              0,
               sectionBottomPadding(context),
             ),
             child: Align(
@@ -641,8 +659,8 @@ class _FeedScreenState extends State<FeedScreen>
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // 40 between them: each column's own 20pt margin.
                         Expanded(child: staggered('standings')),
-                        const SizedBox(width: 40),
                         Expanded(child: staggered('activity')),
                       ],
                     ),
@@ -663,9 +681,9 @@ class _FeedScreenState extends State<FeedScreen>
               // 14 + the masthead's own 38 lands the large title exactly
               // where the chat list's sits, so switching tabs never jumps it.
               padding: EdgeInsets.fromLTRB(
-                20,
+                0,
                 14,
-                20,
+                0,
                 sectionBottomPadding(context),
               ),
               children: [for (final s in sections) staggered(s.id)],
@@ -852,16 +870,26 @@ class _EditionStamp extends StatelessWidget {
 ///
 /// The header is [PageSectionHeader], the same one Discover uses, so the two
 /// tabs cannot drift apart. No rule — the air above separates the bands.
+/// The board's side margin. Applied per section rather than on the scroll
+/// view, so a full-bleed row can ignore it.
+const double _kGutter = 20;
+
 class _SectionShell extends StatelessWidget {
   const _SectionShell({
     required this.label,
     required this.body,
     this.actionLabel,
     this.onAction,
+    this.bleed = false,
   });
 
   final String label;
   final Widget body;
+
+  /// The body runs to the screen's edges (a sideways row that lays the
+  /// margin inside its own scroll view); only the header keeps the page
+  /// margin. Otherwise the whole band sits in the margin.
+  final bool bleed;
 
   /// Optional trailing action on the band: the archive, the leaderboard, the
   /// points explainer. Drawn "Label ›" by [PageSectionHeader] — one shape for
@@ -878,10 +906,13 @@ class _SectionShell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PageSectionHeader(
-            label,
-            actionLabel: actionLabel,
-            onAction: onAction,
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: bleed ? _kGutter : 0),
+            child: PageSectionHeader(
+              label,
+              actionLabel: actionLabel,
+              onAction: onAction,
+            ),
           ),
           body,
         ],

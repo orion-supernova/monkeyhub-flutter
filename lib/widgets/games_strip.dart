@@ -30,7 +30,13 @@ class GamesStrip extends StatelessWidget {
     required this.onOpenPuzzle,
     this.ranks = const {},
     this.puzzleRank,
+    this.inset = 0,
   });
+
+  /// The page's side margin, laid INSIDE the scroll view: the row runs to
+  /// the screen's edges and tiles scroll off them, while at rest the first
+  /// one still lines up with the band's header.
+  final double inset;
 
   final DailyBoards boards;
 
@@ -54,7 +60,7 @@ class GamesStrip extends StatelessWidget {
     const count = 5;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final room = constraints.maxWidth;
+        final room = constraints.maxWidth - inset * 2;
         // All five across when they fit at a comfortable size (a wide window),
         // with nothing to scroll. Otherwise 2.4 to a screen: the fraction is
         // the affordance, a cut tile is what says "swipe".
@@ -86,7 +92,7 @@ class GamesStrip extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           // Vertical room for the press spring and the focus ring, which
           // paint outside a tile's bounds and a scroll view would clip.
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: inset, vertical: 4),
           clipBehavior: Clip.none,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

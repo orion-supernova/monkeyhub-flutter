@@ -4982,6 +4982,29 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '하이라이트 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '새 항목 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => '하이라이트 추가';
+
+  @override
   String get momentTagFate => '우연';
 
   @override

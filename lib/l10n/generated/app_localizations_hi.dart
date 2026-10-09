@@ -5176,6 +5176,31 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String momentRailPersonCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ख़ास पल',
+      one: '1 ख़ास पल',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String momentRailPersonNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count नए',
+      one: '1 नया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get momentRailAddHighlight => 'ख़ास पल जोड़ें';
+
+  @override
   String get momentTagFate => 'संयोग';
 
   @override
