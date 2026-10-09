@@ -1,0 +1,131 @@
+# Windows + Linux release builds, driven by ./deploy.sh --windows / --linux.
+#
+# Flutter cannot cross-compile desktop targets, so the Mac that runs deploy.sh
+# cannot build either of these itself. deploy.sh pushes a tag instead:
+#
+#   desktop-build/<platforms>/<version>/<epoch>
+#   e.g. desktop-build/windows+linux/1.3.90/1760000000
+#
+# waits for this run, downloads the artifacts into build/ and does the store /
+# VM upload locally, exactly like every other platform. The tag is deleted again
+# once the run is done; it exists only to point the run at a commit.
+#
+# A tag rather than workflow_dispatch: dispatch only works for workflows that
+# exist on the default branch (main), and releases ship from dev.
+#
+# The version comes from the tag, not pubspec.yaml: deploy.sh bumps pubspec
+# locally and commits it only once everything has shipped, so the pushed
+# commit still carries the previous number.
+#
+# env.local (runtime config, gitignored, bundled as an asset) comes from the
+# ENV_LOCAL secret, which deploy.sh refreshes from the local file before every
+# tag — so CI always bundles what this Mac would have.
+name: desktop
+
+on:
+  push:
+    tags: ['desktop-build/**']
+
+env:
+  # Keep in step with the Flutter this Mac builds iOS/Android with — deploy.sh
+  # warns when they drift.
+  FLUTTER_VERSION: '3.47.0'
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      platforms: ${{ steps.parse.outputs.platforms }}
+      version: ${{ steps.parse.outputs.version }}
+    steps:
+      - id: parse
+        run: |
+          IFS=/ read -r _ platforms version _ <<< "$GITHUB_REF_NAME"
+          echo "platforms=$platforms" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building $platforms at $version"
+
+  windows:
+    needs: meta
+    if: contains(needs.meta.outputs.platforms, 'windows')
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: env.local
+        env:
+          ENV_LOCAL: ${{ secrets.ENV_LOCAL }}
+        run: printf '%s\n' "$ENV_LOCAL" > env.local
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: flutter build windows
+        run: >
+          flutter build windows --release
+          --build-name ${{ needs.meta.outputs.version }} --build-number 1
+          --dart-define=MH_CHANNEL=windows
+      # Unsigned on purpose (--store): Partner Center signs the package with
+      # the Store's certificate. Global activation keeps msix out of
+      # pubspec.lock; it reads msix_config from pubspec.yaml in the cwd.
+      - name: MSIX
+        run: |
+          dart pub global activate msix 3.18.0
+          dart pub global run msix:create --store --build-windows false \
+            --version ${{ needs.meta.outputs.version }}.0 \
+            --output-path build/msix --output-name MonkeyHub
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix
+          path: build/msix/MonkeyHub.msix
+          if-no-files-found: error
+          retention-days: 14
+
+  linux:
+    needs: meta
+    if: contains(needs.meta.outputs.platforms, 'linux')
+    # 22.04, not latest: the binary links against the build box's glibc, and
+    # the older one runs on more distros (Arch is never the problem; Debian
+    # stable and Mint are).
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: env.local
+        env:
+          ENV_LOCAL: ${{ secrets.ENV_LOCAL }}
+        run: printf '%s\n' "$ENV_LOCAL" > env.local
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libsecret-1-dev libjsoncpp-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: flutter build linux
+        run: >
+          flutter build linux --release
+          --build-name ${{ needs.meta.outputs.version }} --build-number 1
+          --dart-define=MH_CHANNEL=linux
+      # One self-contained folder: the bundle plus the launcher entry and icon,
+      # which the AUR package installs into /usr/share and a tarball user can
+      # copy there by hand.
+      - name: Tarball
+        run: |
+          v=${{ needs.meta.outputs.version }}
+          mkdir -p stage/monkeyhub
+          cp -r build/linux/x64/release/bundle/. stage/monkeyhub/
+          cp linux/packaging/monkeyhub.desktop linux/packaging/monkeyhub.png stage/monkeyhub/
+          tar -czf "monkeyhub-linux-x64-$v.tar.gz" -C stage monkeyhub
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-tarball
+          path: monkeyhub-linux-x64-*.tar.gz
+          if-no-files-found: error
+          retention-days: 14

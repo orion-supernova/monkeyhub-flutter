@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=MonkeyHub
+GenericName=Messenger
+Comment=Chats, calls and moments with your inner circle
+Exec=monkeyhub %U
+Icon=monkeyhub
+Terminal=false
+Categories=Network;InstantMessaging;Chat;
+Keywords=chat;messenger;calls;friends;
+StartupWMClass=com.walhallaa.monkeyhub

@@ -1,0 +1,18 @@
+pkgbase = monkeyhub-bin
+	pkgdesc = Chats, calls and moments with your inner circle
+	pkgver = __VERSION__
+	pkgrel = 1
+	url = https://monkeyhub.walhallaa.com
+	arch = x86_64
+	license = LicenseRef-proprietary
+	depends = gtk3
+	depends = libsecret
+	depends = jsoncpp
+	provides = monkeyhub
+	conflicts = monkeyhub
+	options = !strip
+	options = !debug
+	source = monkeyhub-linux-x64-__VERSION__.tar.gz::__URL__
+	sha256sums = __SHA256__
+
+pkgname = monkeyhub-bin

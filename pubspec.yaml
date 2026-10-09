@@ -571,3 +571,19 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Microsoft Store package (`dart pub global run msix:create --store`, run by
+# .github/workflows/desktop.yml — Windows can't be built on a Mac). The identity
+# triple comes from Partner Center → Product identity and must match it exactly
+# or the upload is refused. --store leaves the package unsigned: the Store signs
+# it. The version is passed on the command line per build (x.y.z.0 — the Store
+# reserves the fourth digit), so there is no msix_version here to go stale.
+msix_config:
+  display_name: MonkeyHub
+  publisher_display_name: WalhallaApps
+  identity_name: WalhallaApps.MonkeyHubYourInnerCircle
+  publisher: CN=6624AB77-7E86-4DE0-92F0-59C388F03040
+  logo_path: branding/logo.png
+  languages: en-us
+  capabilities: internetClient,microphone,webcam,location
+  store: true

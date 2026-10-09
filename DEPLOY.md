@@ -9,6 +9,8 @@ Select what to deploy  (↑/↓ move · space toggle · enter go · tab stage ·
     ◯ iOS  → App Store Connect
     ◯ macOS → App Store Connect (TestFlight)
     ◯ Android → Google Play (internal track)
+    ◯ Windows → Microsoft Store (built on GitHub Actions)
+    ◯ Linux → downloads page + AUR (built on GitHub Actions)
     ◯ Web  → https://monkeyhub.walhallaa.com/web/
     ◯ Site → https://monkeyhub.walhallaa.com  (pages only, no build)
     ◯ Bump version (patch)
@@ -38,6 +40,69 @@ never been published to is dropped with a warning instead of failing the batch.
 Esc at any step backs out to the checklist too, same as Tab. Android means one
 thing now: an AAB to the Play internal testing track. The self-hosted APK is
 retired — see [Retired: the APK](#retired-the-apk).
+
+## Windows and Linux
+
+Flutter only builds desktop apps on their own OS, so this Mac can't compile
+either. `--windows` / `--linux` (or their picker rows) push a throwaway tag,
+`desktop-build/<platforms>/<version>/<epoch>`, which starts
+`.github/workflows/desktop.yml` on GitHub Actions. The run starts right after
+the version bump, so it builds while the Mac does iOS/Android. deploy.sh
+then collects the artifacts into `build/`, deletes the tag, and does the
+uploads locally like every other platform. Stages: `--windows-build`
+`--windows-upload` `--linux-build` `--linux-upload` (build = CI + download).
+Neither is in `--all` yet.
+
+What CI sees: **HEAD as pushed to origin**, not your working tree. deploy.sh
+pushes the branch if origin doesn't have HEAD, and warns about uncommitted
+edits. The version comes from the tag (pubspec's bump is only committed at
+the end). `env.local` reaches CI as the `ENV_LOCAL` repo secret, refreshed
+from the local file on every run. The Flutter version is pinned in the
+workflow, and deploy.sh warns when it drifts from this Mac's.
+
+### Windows → Microsoft Store
+
+Product `9PLTX7L6B52S` ("MonkeyHub: Your Inner Circle"). `msix_config` in
+pubspec.yaml carries the Partner Center identity (Product identity page). It
+must match exactly, or the upload is refused. The package is unsigned (`--store`)
+because the Store signs it.
+
+1. **First submission is manual** (the API refuses apps with none): upload
+   `build/windows-store/MonkeyHub.msix` under Packages and submit for
+   certification. `./deploy.sh --windows --no-convex` builds it and tells you
+   where it is.
+2. **Then automate.** Partner Center → Account settings → User management →
+   Microsoft Entra applications → add one (a client secret), and put in
+   `.env.local`:
+   ```
+   MS_STORE_TENANT_ID=…
+   MS_STORE_SELLER_ID=…
+   MS_STORE_CLIENT_ID=…
+   MS_STORE_CLIENT_SECRET=…
+   ```
+   plus `brew install microsoft/msstore-cli/msstore-cli` (needs the .NET 9
+   runtime). From then on the upload stage runs `msstore publish` and announces
+   the `windows` release row pointing at the Store page.
+
+### Linux → downloads page + AUR
+
+CI builds on Ubuntu 22.04 (older glibc runs on more distros) and produces
+`monkeyhub-linux-x64-<version>.tar.gz`: the Flutter bundle plus
+`monkeyhub.desktop` and an icon. The upload stage puts it on `/downloads/`
+(the page grows a Linux card from `artifacts.json`, keeps the last three
+tarballs), announces the `linux` release row, then pushes the AUR package.
+
+**AUR (`monkeyhub-bin`)**, one-time setup: create an account at
+aur.archlinux.org, generate a key (`ssh-keygen -t ed25519 -f ~/.ssh/aur`), and
+paste `~/.ssh/aur.pub` into My Account → SSH Public Key. Set `AUR_SSH_KEY` in
+`.env.local` if the key lives elsewhere. The first push creates the package.
+Its PKGBUILD downloads the tarball from `/downloads/` and is generated from
+`linux/packaging/aur/PKGBUILD.template`. `.SRCINFO` comes from
+`SRCINFO.template`, kept in step by hand because there is no `makepkg` on a Mac.
+Without the key the AUR step is skipped with a note.
+
+Snap Store/Flathub aren't wired up. Snap is the natural next one (Canonical
+maintains Flutter's snap tooling, and `snapcraft upload` takes a login token).
 
 ## Moving traffic between the two backends
 

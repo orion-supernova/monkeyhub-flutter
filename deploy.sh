@@ -19,6 +19,15 @@
 #                     (https://monkeyhub.walhallaa.com/web/)
 #   Site     → --site: stamp the landing + downloads pages and push them. No
 #                      build, so it takes seconds.
+#   Windows  → --windows: built on GitHub Actions (.github/workflows/desktop.yml,
+#                         Flutter can't cross-compile desktop) → MSIX downloaded
+#                         here → Microsoft Store via the msstore CLI.
+#   Linux    → --linux: built on GitHub Actions → tarball downloaded here →
+#                       /downloads/ on the VM, then the AUR (monkeyhub-bin)
+#                       when an AUR SSH key is set up. See DEPLOY.md.
+#   Windows and Linux share ONE workflow run, started right after the version
+#   bump so it builds while this Mac does iOS/Android, and collected when their
+#   turn comes. Neither is in --all yet, same as macOS was.
 #
 # One host, three paths (see hosting/caddy-monkeyhub.conf):
 #   /            landing page      /srv/monkeyhub/site
@@ -46,6 +55,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 ANDROID_PACKAGE="com.walhallaa.chattest20241220"
+# Partner Center → MonkeyHub: Your Inner Circle. Also the public Store URL.
+MS_STORE_PRODUCT_ID="9PLTX7L6B52S"
+MS_STORE_URL="https://apps.microsoft.com/detail/$MS_STORE_PRODUCT_ID"
+DESKTOP_WORKFLOW="desktop.yml"
+AUR_PACKAGE="monkeyhub-bin"
 
 # ----- self-hosted site (Oracle Ampere + Caddy + cloudflared) -----
 # Override any of these from .env.local if the box or key ever moves.
@@ -112,6 +126,8 @@ DEPLOY_MACOS=false # --macos: App Store Connect. NOT in --all yet.
 DEPLOY_ANDROID=""
 DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
 DEPLOY_SITE=false  # --site: landing + downloads pages. No build. Also by --all.
+DEPLOY_WINDOWS=false # --windows: CI build → Microsoft Store. NOT in --all yet.
+DEPLOY_LINUX=false   # --linux: CI build → /downloads/ + AUR. NOT in --all yet.
 RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android: AAB to Play. Web: to the VM.
 # Delete a platform's build output (and its Xcode DerivedData) the moment its
 # upload succeeds, so the next platform builds into the space it leaves. This
@@ -133,11 +149,14 @@ SET_MIN_VERSION=""
 # replacing, so e.g. `--ios-export --ios-upload` composes into "export upload"
 # and skips only the build+archive stage — this is how a failed-then-retried
 # upload resumes without rebuilding. iOS/macOS: archive → export → upload.
-# Android/web: build → upload.
+# Android/web/Windows/Linux: build → upload. (Windows/Linux "build" is the CI
+# run plus downloading its artifact into build/.)
 IOS_STAGES=""
 MACOS_STAGES=""
 ANDROID_STAGES=""
 WEB_STAGES=""
+WINDOWS_STAGES=""
+LINUX_STAGES=""
 has_stage() { case " $1 " in *" $2 "*) return 0 ;; *) return 1 ;; esac; }
 
 print_help() {
@@ -154,6 +173,10 @@ Platform flags (any of these skips the picker):
   --android             Ship Android: AAB to the Google Play internal track.
   --web                 Build Flutter web and publish it at $WEB_URL.
   --site                Landing + downloads pages only. No build — seconds.
+  --windows             Build on GitHub Actions, submit the MSIX to the
+                        Microsoft Store. Not included in --all yet.
+  --linux               Build on GitHub Actions, publish the tarball on
+                        /downloads/ and push the AUR package. Not in --all yet.
   --all                 Convex + iOS + Android + web + site.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
@@ -172,7 +195,7 @@ Standalone actions (run alone and exit):
                         channel's published version untouched. <version> may
                         be "clear" to lift the requirement. Channels:
                         ios-testflight, macos-testflight, android-play,
-                        android-apk, web. One channel per run; press 'f' in the
+                        android-apk, web, windows, linux. One channel per run; press 'f' in the
                         interactive picker to tick several at once.
   --sync-releases       Copy every channel's release row from the VPS onto the
                         home server. Repairs the drift left by deploys from
@@ -185,12 +208,14 @@ Per-platform stages: each platform's pipeline is independent stages that can be
 run on their own — most useful to resume after a partial failure (e.g. iOS
 archived fine but the App Store Connect upload timed out) without redoing the
 earlier, already-successful, expensive stages. Combine flags to run more than
-one stage (e.g. --ios-export --ios-upload); a bare --ios/--macos/--android/--web
-still runs every stage, same as always.
+one stage (e.g. --ios-export --ios-upload); a bare --ios/--macos/--android/--web/
+--windows/--linux still runs every stage, same as always.
   iOS:      --ios-archive   --ios-export   --ios-upload
   macOS:    --macos-archive --macos-export --macos-upload
   Android:  --android-build --android-upload
   Web:      --web-build     --web-upload
+  Windows:  --windows-build --windows-upload
+  Linux:    --linux-build   --linux-upload
 A stage-only run that skips its platform's first stage leaves the version bump
 and 'flutter clean' out too — it's shipping whatever is already built, so the
 version must match what's actually in that build.
@@ -246,11 +271,17 @@ while [[ $# -gt 0 ]]; do
         --web-build)          DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="${WEB_STAGES:+$WEB_STAGES }build" ;;
         --web-upload)         DEPLOY_WEB=true; PLATFORM_ARGS=true; WEB_STAGES="${WEB_STAGES:+$WEB_STAGES }upload" ;;
         --site)              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
+        --windows)           DEPLOY_WINDOWS=true; PLATFORM_ARGS=true ;;
+        --windows-build)      DEPLOY_WINDOWS=true; PLATFORM_ARGS=true; WINDOWS_STAGES="${WINDOWS_STAGES:+$WINDOWS_STAGES }build" ;;
+        --windows-upload)     DEPLOY_WINDOWS=true; PLATFORM_ARGS=true; WINDOWS_STAGES="${WINDOWS_STAGES:+$WINDOWS_STAGES }upload" ;;
+        --linux)             DEPLOY_LINUX=true; PLATFORM_ARGS=true ;;
+        --linux-build)        DEPLOY_LINUX=true; PLATFORM_ARGS=true; LINUX_STAGES="${LINUX_STAGES:+$LINUX_STAGES }build" ;;
+        --linux-upload)       DEPLOY_LINUX=true; PLATFORM_ARGS=true; LINUX_STAGES="${LINUX_STAGES:+$LINUX_STAGES }upload" ;;
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
                              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         # Zeroes web and site too, so "backend only" holds even after --all.
         --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_MACOS=false
-                             DEPLOY_ANDROID=false
+                             DEPLOY_ANDROID=false; DEPLOY_WINDOWS=false; DEPLOY_LINUX=false
                              DEPLOY_WEB=false; DEPLOY_SITE=false
                              SKIP_VERSION_BUMP=true; PLATFORM_ARGS=true ;;
         --rollback-web)      ACTION="rollback-web" ;;
@@ -797,37 +828,44 @@ pick_platforms() {
     local labels=("Convex backend" "iOS  → App Store Connect"
                   "macOS → App Store Connect"
                   "Android → Google Play (internal track)"
+                  "Windows → Microsoft Store (built on GitHub Actions)"
+                  "Linux → downloads page + AUR (built on GitHub Actions)"
                   "Web  → $WEB_URL" "Site → $SITE_URL  (pages only, no build)"
                   "Bump version (patch)"
                   "Free disk space after each upload")
     # Menu starts on Convex only. Unlike --all (which ships everything), the
     # picker leaves the rest unticked so a bare Enter stays cheap and a stray
     # Enter can't kick off an App Store / Play upload by accident.
-    local selected=(1 0 0 0 0 0 0 0)
-    [ "$FREE_SPACE" = true ] && selected[7]=1
+    local selected=(1 0 0 0 0 0 0 0 0 0)
+    [ "$FREE_SPACE" = true ] && selected[9]=1
     # Honor explicit --no-convex / --macos / --web / --site even in interactive mode.
     [ "$RUN_CONVEX" = false ] && selected[0]=0
     [ "$DEPLOY_MACOS" = true ] && selected[2]=1
-    [ "$DEPLOY_WEB" = true ] && selected[4]=1
-    [ "$DEPLOY_SITE" = true ] && selected[5]=1
+    [ "$DEPLOY_WINDOWS" = true ] && selected[4]=1
+    [ "$DEPLOY_LINUX" = true ] && selected[5]=1
+    [ "$DEPLOY_WEB" = true ] && selected[6]=1
+    [ "$DEPLOY_SITE" = true ] && selected[7]=1
     # "Bump version" only does anything once an app platform ships (see
     # "Version bump only makes sense..." below) — a Convex- or Site-only run
     # would show it pre-checked for no reason. It defaults on the moment
-    # iOS/macOS/Android is (matching --skip-version-bump's own default: bump
+    # an app platform is (iOS/macOS/Android/Windows/Linux — matching --skip-version-bump's own default: bump
     # unless told not to) and off again the moment none of them are, tracked
     # live as those three rows get toggled — see the space-key handling below.
     # --skip-version-bump always wins, even over a pre-set --macos.
     if [ "$SKIP_VERSION_BUMP" != true ]; then
-        { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ]; } \
-            && selected[6]=1
+        { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ] \
+          || [ "${selected[4]}" = 1 ] || [ "${selected[5]}" = 1 ]; } \
+            && selected[8]=1
     fi
     local prev_any_app=false
-    { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ]; } \
+    { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ] \
+      || [ "${selected[4]}" = 1 ] || [ "${selected[5]}" = 1 ]; } \
         && prev_any_app=true
-    local cursor=0 count=8 extra=2 i marker arrow label
+    local cursor=0 count=10 extra=2 i marker arrow label
     # Per-platform stage override, set via Tab. Empty = full pipeline. Threaded
     # into IOS_STAGES etc. below once Enter is pressed — see "stage defaults".
     local pstage_ios="" pstage_macos="" pstage_android="" pstage_web=""
+    local pstage_windows="" pstage_linux=""
 
     exec 3</dev/tty
     tput civis 2>/dev/null || true
@@ -842,7 +880,9 @@ pick_platforms() {
                 1) [ -n "$pstage_ios" ]     && label="$label  [$pstage_ios]" ;;
                 2) [ -n "$pstage_macos" ]   && label="$label  [$pstage_macos]" ;;
                 3) [ -n "$pstage_android" ] && label="$label  [$pstage_android]" ;;
-                4) [ -n "$pstage_web" ]     && label="$label  [$pstage_web]" ;;
+                4) [ -n "$pstage_windows" ] && label="$label  [$pstage_windows]" ;;
+                5) [ -n "$pstage_linux" ]   && label="$label  [$pstage_linux]" ;;
+                6) [ -n "$pstage_web" ]     && label="$label  [$pstage_web]" ;;
             esac
             printf "  %s %s %s\033[K\n" "$arrow" "$marker" "$label"
         done
@@ -857,14 +897,15 @@ pick_platforms() {
         elif [ "$KEY_KIND" = "PLAIN" ] && [ "$KEY_CHAR" = " " ]; then
             selected[$cursor]=$(( 1 - selected[$cursor] ))
             case "$cursor" in
-                1|2|3)
+                1|2|3|4|5)
                     local any_app=false
-                    { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ]; } \
+                    { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ] \
+                      || [ "${selected[4]}" = 1 ] || [ "${selected[5]}" = 1 ]; } \
                         && any_app=true
                     if [ "$any_app" = true ] && [ "$prev_any_app" = false ]; then
-                        selected[6]=1  # first app platform checked — default the bump back on
+                        selected[8]=1  # first app platform checked — default the bump back on
                     elif [ "$any_app" = false ]; then
-                        selected[6]=0  # no app platform left — bump would be a no-op
+                        selected[8]=0  # no app platform left — bump would be a no-op
                     fi
                     prev_any_app=$any_app
                     ;;
@@ -880,7 +921,11 @@ pick_platforms() {
                                 "upload:Upload only"); rc=$? ;;
                 3) choice=$(pick_stage_menu "Android — pick a stage" "full:Full pipeline" \
                                 "build:Build only" "upload:Upload only"); rc=$? ;;
-                4) choice=$(pick_stage_menu "Web — pick a stage" "full:Full pipeline" \
+                4) choice=$(pick_stage_menu "Windows — pick a stage" "full:Full pipeline" \
+                                "build:Build only (CI + download)" "upload:Upload only"); rc=$? ;;
+                5) choice=$(pick_stage_menu "Linux — pick a stage" "full:Full pipeline" \
+                                "build:Build only (CI + download)" "upload:Upload only"); rc=$? ;;
+                6) choice=$(pick_stage_menu "Web — pick a stage" "full:Full pipeline" \
                                 "build:Build only" "upload:Upload only"); rc=$? ;;
             esac
             if [ "$rc" = 0 ]; then
@@ -889,7 +934,9 @@ pick_platforms() {
                     1) pstage_ios="$choice";     selected[1]=1 ;;
                     2) pstage_macos="$choice";   selected[2]=1 ;;
                     3) pstage_android="$choice"; selected[3]=1 ;;
-                    4) pstage_web="$choice";     selected[4]=1 ;;
+                    4) pstage_windows="$choice"; selected[4]=1 ;;
+                    5) pstage_linux="$choice";   selected[5]=1 ;;
+                    6) pstage_web="$choice";     selected[6]=1 ;;
                 esac
             fi
         elif [ "$KEY_KIND" = "PLAIN" ] && { [ "$KEY_CHAR" = "f" ] || [ "$KEY_CHAR" = "F" ]; }; then
@@ -905,7 +952,7 @@ pick_platforms() {
             fu_channels=$(pick_multi_menu "Force-update which channels?" \
                 "ios-testflight:iOS · TestFlight" "macos-testflight:macOS · TestFlight" \
                 "android-play:Android · Play" "android-apk:Android · sideloaded APK" \
-                "web:Web"); rc=$?
+                "web:Web" "windows:Windows" "linux:Linux"); rc=$?
             if [ "$rc" = 0 ]; then
                 # A `releases:latest` round-trip per ticked channel, so say so
                 # rather than sit there looking hung. The line is erased again
@@ -993,17 +1040,22 @@ pick_platforms() {
     DEPLOY_IOS=$([ "${selected[1]}" = 1 ] && echo true || echo false)
     DEPLOY_MACOS=$([ "${selected[2]}" = 1 ] && echo true || echo false)
     DEPLOY_ANDROID=$([ "${selected[3]}" = 1 ] && echo true || echo false)
-    DEPLOY_WEB=$([ "${selected[4]}" = 1 ] && echo true || echo false)
-    DEPLOY_SITE=$([ "${selected[5]}" = 1 ] && echo true || echo false)
-    SKIP_VERSION_BUMP=$([ "${selected[6]}" = 1 ] && echo false || echo true)
-    FREE_SPACE=$([ "${selected[7]}" = 1 ] && echo true || echo false)
+    DEPLOY_WINDOWS=$([ "${selected[4]}" = 1 ] && echo true || echo false)
+    DEPLOY_LINUX=$([ "${selected[5]}" = 1 ] && echo true || echo false)
+    DEPLOY_WEB=$([ "${selected[6]}" = 1 ] && echo true || echo false)
+    DEPLOY_SITE=$([ "${selected[7]}" = 1 ] && echo true || echo false)
+    SKIP_VERSION_BUMP=$([ "${selected[8]}" = 1 ] && echo false || echo true)
+    FREE_SPACE=$([ "${selected[9]}" = 1 ] && echo true || echo false)
     [ -n "$pstage_ios" ]     && IOS_STAGES="$pstage_ios"
     [ -n "$pstage_macos" ]   && MACOS_STAGES="$pstage_macos"
     [ -n "$pstage_android" ] && ANDROID_STAGES="$pstage_android"
     [ -n "$pstage_web" ]     && WEB_STAGES="$pstage_web"
+    [ -n "$pstage_windows" ] && WINDOWS_STAGES="$pstage_windows"
+    [ -n "$pstage_linux" ]   && LINUX_STAGES="$pstage_linux"
 
     if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_MACOS" = false ] \
-       && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
+       && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ] \
+       && [ "$DEPLOY_WINDOWS" = false ] && [ "$DEPLOY_LINUX" = false ]; then
         echo "Nothing selected — exiting."
         exit 0
     fi
@@ -1022,14 +1074,16 @@ fi
 # effect would turn a five-second copy-fix into a full deploy nobody asked for —
 # so --site on its own leaves Convex alone. Ask for both and you get both.
 if [ -z "$RUN_CONVEX" ] && [ "$DEPLOY_SITE" = true ] \
-   && [ "$DEPLOY_IOS" != true ] && [ "$DEPLOY_ANDROID" != true ] && [ "$DEPLOY_WEB" != true ]; then
+   && [ "$DEPLOY_IOS" != true ] && [ "$DEPLOY_ANDROID" != true ] && [ "$DEPLOY_WEB" != true ] \
+   && [ "$DEPLOY_WINDOWS" != true ] && [ "$DEPLOY_LINUX" != true ]; then
     RUN_CONVEX=false
 fi
 [ -z "$RUN_CONVEX" ] && RUN_CONVEX=true
 [ -z "$DEPLOY_IOS" ] && DEPLOY_IOS=false
 [ -z "$DEPLOY_ANDROID" ] && DEPLOY_ANDROID=false
 # Version bump only makes sense when an app ships.
-if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_MACOS" = false ]; then
+if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_MACOS" = false ] \
+   && [ "$DEPLOY_WINDOWS" = false ] && [ "$DEPLOY_LINUX" = false ]; then
     SKIP_VERSION_BUMP=true
 fi
 
@@ -1039,6 +1093,8 @@ fi
 [ "$DEPLOY_MACOS" = true ]   && [ -z "$MACOS_STAGES" ]   && MACOS_STAGES="archive export upload"
 [ "$DEPLOY_ANDROID" = true ] && [ -z "$ANDROID_STAGES" ] && ANDROID_STAGES="build upload"
 [ "$DEPLOY_WEB" = true ]     && [ -z "$WEB_STAGES" ]     && WEB_STAGES="build upload"
+[ "$DEPLOY_WINDOWS" = true ] && [ -z "$WINDOWS_STAGES" ] && WINDOWS_STAGES="build upload"
+[ "$DEPLOY_LINUX" = true ]   && [ -z "$LINUX_STAGES" ]   && LINUX_STAGES="build upload"
 
 # A platform whose stage set skips its own first stage (archive/build) is
 # resuming from an artifact a previous run already produced — 'flutter clean'
@@ -1063,6 +1119,15 @@ fi
 if [ "$DEPLOY_WEB" = true ]; then
     has_stage "$WEB_STAGES" build && NEEDS_FLUTTER_BUILD=true || NEEDS_ARTIFACT_REUSE=true
 fi
+# Windows/Linux compile on CI, so they never need the local clean + pub get —
+# but an upload-only run reuses the artifact an earlier run downloaded into
+# build/, which a 'flutter clean' for another platform would delete.
+if [ "$DEPLOY_WINDOWS" = true ] && ! has_stage "$WINDOWS_STAGES" build; then
+    NEEDS_ARTIFACT_REUSE=true
+fi
+if [ "$DEPLOY_LINUX" = true ] && ! has_stage "$LINUX_STAGES" build; then
+    NEEDS_ARTIFACT_REUSE=true
+fi
 if [ "$NEEDS_ARTIFACT_REUSE" = true ] && [ "$SKIP_VERSION_BUMP" = false ]; then
     echo "⏭️  Skipping version bump — a stage-only platform is reusing a previous"
     echo "    build/ output, so the version must match what's already baked into it."
@@ -1076,8 +1141,8 @@ fi
 #
 # Android is deliberately NOT in here any more: it ships to Play and puts
 # nothing on the VM, so a Play deploy has no page to refresh.
-if [ "$RUN_UPLOAD" = true ] && [ "$DEPLOY_WEB" = true ]; then
-    DEPLOY_SITE=true
+if [ "$RUN_UPLOAD" = true ] && { [ "$DEPLOY_WEB" = true ] || [ "$DEPLOY_LINUX" = true ]; }; then
+    DEPLOY_SITE=true   # Linux adds a card to the downloads page
 fi
 
 # Stages shown only when they're a strict subset of the platform's full
@@ -1094,6 +1159,8 @@ echo "  • Version bump:     $([ "$SKIP_VERSION_BUMP" = false ] && echo yes || 
 echo "  • iOS build:        $([ "$DEPLOY_IOS" = true ] && echo yes || echo no)$([ "$DEPLOY_IOS" = true ] && stage_note "$IOS_STAGES" "archive export upload")"
 echo "  • macOS build:      $([ "$DEPLOY_MACOS" = true ] && echo yes || echo no)$([ "$DEPLOY_MACOS" = true ] && stage_note "$MACOS_STAGES" "archive export upload")"
 echo "  • Android build:    $([ "$DEPLOY_ANDROID" = true ] && echo "yes (AAB → Play)" || echo no)$([ "$DEPLOY_ANDROID" = true ] && stage_note "$ANDROID_STAGES" "build upload")"
+echo "  • Windows build:    $([ "$DEPLOY_WINDOWS" = true ] && echo "yes (CI → Microsoft Store)" || echo no)$([ "$DEPLOY_WINDOWS" = true ] && stage_note "$WINDOWS_STAGES" "build upload")"
+echo "  • Linux build:      $([ "$DEPLOY_LINUX" = true ] && echo "yes (CI → downloads + AUR)" || echo no)$([ "$DEPLOY_LINUX" = true ] && stage_note "$LINUX_STAGES" "build upload")"
 echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)$([ "$DEPLOY_WEB" = true ] && stage_note "$WEB_STAGES" "build upload")"
 echo "  • Landing/downloads:$([ "$DEPLOY_SITE" = true ] && echo " yes" || echo " no")"
 echo "  • Upload/publish:   $([ "$RUN_UPLOAD" = true ] && echo yes || echo no)"
@@ -1134,6 +1201,12 @@ if [ "$NEEDS_ARTIFACT_REUSE" = true ] && [ "$RUN_UPLOAD" = true ] && [ -t 0 ] &&
     fi
     if [ "$DEPLOY_WEB" = true ] && ! has_stage "$WEB_STAGES" build; then
         echo "   Web upload:     build/web/ (no single file to date-check)"
+    fi
+    if [ "$DEPLOY_WINDOWS" = true ] && ! has_stage "$WINDOWS_STAGES" build; then
+        echo "   Windows upload: $(describe_artifact build/windows-store '*.msix')"
+    fi
+    if [ "$DEPLOY_LINUX" = true ] && ! has_stage "$LINUX_STAGES" build; then
+        echo "   Linux upload:   $(describe_artifact build/linux-release '*.tar.gz')"
     fi
     echo "   Version to be announced: $(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1)"
     read -rp "Continue? [y/N] " confirm_reuse
@@ -1178,6 +1251,8 @@ MACOS_STATUS="skip"
 ANDROID_STATUS="skip"
 WEB_STATUS="skip"
 SITE_STATUS="skip"
+WINDOWS_STATUS="skip"
+LINUX_STATUS="skip"
 function finish {
     local rc=$?
     tput cnorm 2>/dev/null || true
@@ -1234,7 +1309,7 @@ derived_data_for() {   # $1 = workspace path relative to the repo
 # see FREE_SPACE. Every path is that platform's alone: nothing another
 # platform still has to build from, and nothing the deploy still reads (the
 # Android symbols are archived to build/symbols/ before this runs, and kept).
-free_platform_space() {   # $1 = ios | macos | android | web
+free_platform_space() {   # $1 = ios | macos | android | web | windows | linux
     [ "$FREE_SPACE" = true ] || return 0
     local paths=() name
     case "$1" in
@@ -1260,6 +1335,10 @@ free_platform_space() {   # $1 = ios | macos | android | web
             fi ;;
         web)
             paths=(build/web) ;;
+        windows)
+            paths=(build/windows-store) ;;
+        linux)
+            paths=(build/linux-release build/aur) ;;
         *) return 0 ;;
     esac
     local existing=() p kb=0
@@ -1424,7 +1503,8 @@ validate_environment() {
 
     # Runtime app config — bundled into the app. Builds silently miss
     # CONVEX_URL / VAPID_PUBLIC_KEY if this is absent.
-    if { [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_MACOS" = true ] || [ "$DEPLOY_ANDROID" = true ]; } \
+    if { [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_MACOS" = true ] || [ "$DEPLOY_ANDROID" = true ] \
+         || [ "$DEPLOY_WINDOWS" = true ] || [ "$DEPLOY_LINUX" = true ]; } \
        && [ ! -f "env.local" ]; then
         echo "❌ Missing env.local at project root (runtime app secrets)."
         echo "   Copy env.example to env.local and fill in values."
@@ -1540,6 +1620,40 @@ validate_environment() {
         fi
     fi
 
+    # Windows/Linux: the build is a GitHub Actions run, so gh has to be logged
+    # in and able to see this repo. Checked now, not after iOS has spent 15
+    # minutes archiving.
+    if [ "$DEPLOY_WINDOWS" = true ] || [ "$DEPLOY_LINUX" = true ]; then
+        if ! command -v gh >/dev/null 2>&1; then
+            echo "❌ gh not found — Windows/Linux build on GitHub Actions."
+            echo "   brew install gh && gh auth login"
+            exit 1
+        fi
+        if ! gh auth status >/dev/null 2>&1; then
+            echo "❌ gh is not logged in. Run: gh auth login"
+            exit 1
+        fi
+        if ! command -v jq >/dev/null 2>&1; then
+            echo "❌ jq not found — needed to read the CI run. brew install jq"
+            exit 1
+        fi
+    fi
+    # The Store upload is optional — without it the MSIX is handed over for a
+    # manual Partner Center upload, same as the AAB before Play was automated.
+    # But a half-configured setup should fail now, not after the build.
+    if [ "$DEPLOY_WINDOWS" = true ] && [ "$RUN_UPLOAD" = true ] && [ -n "${MS_STORE_CLIENT_ID:-}" ]; then
+        check_key MS_STORE_TENANT_ID
+        check_key MS_STORE_SELLER_ID
+        check_key MS_STORE_CLIENT_SECRET
+        if ! command -v msstore >/dev/null 2>&1; then
+            echo "❌ msstore not found — needed for the automated Microsoft Store upload."
+            echo "   brew install microsoft/msstore-cli/msstore-cli"
+            echo "   (needs the .NET 9 runtime), or unset MS_STORE_CLIENT_ID to upload"
+            echo "   the MSIX by hand."
+            exit 1
+        fi
+    fi
+
     # The page templates are needed by every VM-publishing path, not just
     # Android — the landing page now ships on its own.
     if [ "$DEPLOY_SITE" = true ]; then
@@ -1564,7 +1678,7 @@ validate_environment() {
     # The VM serves the pages and the web build — prove it's reachable BEFORE
     # burning 15 minutes on a build we then can't publish. Android is not in
     # here: it goes to Play and never touches the VM.
-    if [ "$DEPLOY_WEB" = true ] || [ "$DEPLOY_SITE" = true ]; then
+    if [ "$DEPLOY_WEB" = true ] || [ "$DEPLOY_SITE" = true ] || [ "$DEPLOY_LINUX" = true ]; then
         if [ "$RUN_UPLOAD" = true ]; then
             require_vm
         fi
@@ -1817,8 +1931,8 @@ platform_meta() {   # $1 = platform key → sets PM_ICON / PM_NAME / PM_KIND / P
                      PM_BTN="Download the DMG" ;;
         windows)     PM_ICON="🪟"; PM_NAME="Windows"; PM_KIND="Installer"
                      PM_BTN="Download for Windows" ;;
-        linux)       PM_ICON="🐧"; PM_NAME="Linux";   PM_KIND="AppImage"
-                     PM_BTN="Download the AppImage" ;;
+        linux)       PM_ICON="🐧"; PM_NAME="Linux";   PM_KIND="x86_64 tarball"
+                     PM_BTN="Download for Linux" ;;
         *)           PM_ICON="📦"; PM_NAME="$1";      PM_KIND="File"
                      PM_BTN="Download" ;;
     esac
@@ -1946,7 +2060,8 @@ deploy_site() {
 
 # Nothing app-side selected → done after Convex.
 if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_MACOS" = false ] && [ "$DEPLOY_ANDROID" = false ] \
-   && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
+   && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ] \
+   && [ "$DEPLOY_WINDOWS" = false ] && [ "$DEPLOY_LINUX" = false ]; then
     echo ""
     if [ "$ANY_STEP_FAILED" = true ]; then
         echo "❌ Backend-only deploy failed"
@@ -2004,6 +2119,177 @@ DISPLAY_VERSION="${NEW_VERSION%%+*}"
 # One timestamp for the whole run, so the landing page, the downloads page and
 # the manifest entry all agree about when this shipped.
 STAMP_DATE=$(date '+%b %d, %Y')
+
+# ----- Windows + Linux: GitHub Actions -----
+# Flutter builds desktop only on its own OS, so this Mac cannot compile either.
+# One workflow run (.github/workflows/desktop.yml) builds both, triggered by a
+# throwaway tag that names the platforms and the version:
+#
+#   desktop-build/windows+linux/1.3.90/1760000000
+#
+# It is started HERE, right after the version bump and before iOS, so the
+# ~15-minute CI build overlaps the local iOS/Android ones; run_windows /
+# run_linux collect it when their turn comes. Only the compile is remote — the
+# Store submission, the VM upload, the release rows and the AUR push all happen
+# below, from this Mac, like every other platform.
+#
+# CI builds what is on origin, not this working tree. The tag points at HEAD,
+# so HEAD is pushed first if origin doesn't have it; uncommitted edits are
+# NOT in the build, and the start says so. pubspec.yaml's bump is the one
+# exception that doesn't matter: the version travels in the tag.
+DESKTOP_TAG=""
+DESKTOP_RUN_ID=""
+DESKTOP_RUN_URL=""
+DESKTOP_COLLECTED=false
+DESKTOP_START_FAILED=false
+DESKTOP_LOG="/tmp/monkeyhub_desktop_ci.log"
+WINDOWS_BUILD_TIME=0
+LINUX_BUILD_TIME=0
+MSIX_PATH="build/windows-store/MonkeyHub.msix"
+LINUX_TARBALL=""
+
+desktop_ci_start() {
+    local platforms=""
+    [ "$DEPLOY_WINDOWS" = true ] && has_stage "$WINDOWS_STAGES" build && platforms="windows"
+    [ "$DEPLOY_LINUX" = true ] && has_stage "$LINUX_STAGES" build && platforms="${platforms:+$platforms+}linux"
+    [ -n "$platforms" ] || return 0
+
+    echo "☁️  Desktop: starting the GitHub Actions build ($platforms)"
+    if [ "$DRY_RUN" = true ]; then
+        echo "  ⏭️  --dry: not pushing a build tag (that is a side effect)."
+        DESKTOP_START_FAILED=true
+        return 0
+    fi
+    if ! git cat-file -e "HEAD:.github/workflows/$DESKTOP_WORKFLOW" 2>/dev/null; then
+        echo "  ❌ .github/workflows/$DESKTOP_WORKFLOW is not committed — CI has nothing to run."
+        DESKTOP_START_FAILED=true
+        return 1
+    fi
+
+    # The workflow pins a Flutter version; a drift from this Mac's means the
+    # desktop builds and the mobile ones were made by different toolchains.
+    local local_flutter ci_flutter
+    local_flutter=$(flutter --version --machine 2>/dev/null | jq -r '.frameworkVersion // empty')
+    ci_flutter=$(sed -n "s/^  FLUTTER_VERSION: '\(.*\)'/\1/p" ".github/workflows/$DESKTOP_WORKFLOW")
+    if [ -n "$local_flutter" ] && [ -n "$ci_flutter" ] && [ "$local_flutter" != "$ci_flutter" ]; then
+        echo "  ⚠️  CI builds with Flutter $ci_flutter, this Mac has $local_flutter."
+        echo "     Update FLUTTER_VERSION in .github/workflows/$DESKTOP_WORKFLOW."
+    fi
+
+    local dirty
+    dirty=$(git status --porcelain | grep -v ' pubspec.yaml$' || true)
+    if [ -n "$dirty" ]; then
+        echo "  ⚠️  Uncommitted changes are NOT in the Windows/Linux build (CI builds HEAD):"
+        printf '%s\n' "$dirty" | head -n 8 | sed 's/^/       /'
+    fi
+
+    local branch
+    branch=$(git branch --show-current)
+    git fetch -q origin 2>/dev/null || true
+    if [ -z "$(git branch -r --contains HEAD 2>/dev/null | grep 'origin/')" ]; then
+        if [ "$RUN_GIT" != true ]; then
+            echo "  ❌ HEAD isn't on origin and --no-git forbids pushing it — CI can't see it."
+            DESKTOP_START_FAILED=true
+            return 1
+        fi
+        echo "  • Pushing $branch so CI can build HEAD"
+        if ! git push -q origin "$branch"; then
+            echo "  ❌ git push origin $branch failed."
+            DESKTOP_START_FAILED=true
+            return 1
+        fi
+    fi
+
+    # env.local is gitignored but bundled into the app, so CI gets it from a
+    # secret. Refreshed every run: a stale copy would ship a desktop build
+    # pointed at last month's backend, and nothing would say so.
+    if ! gh secret set ENV_LOCAL < env.local >/dev/null; then
+        echo "  ❌ Could not update the ENV_LOCAL repo secret (gh secret set)."
+        DESKTOP_START_FAILED=true
+        return 1
+    fi
+
+    DESKTOP_TAG="desktop-build/$platforms/$DISPLAY_VERSION/$(date +%s)"
+    if ! { git tag "$DESKTOP_TAG" HEAD && git push -q origin "refs/tags/$DESKTOP_TAG"; }; then
+        echo "  ❌ Could not push the build tag $DESKTOP_TAG."
+        git tag -d "$DESKTOP_TAG" >/dev/null 2>&1
+        DESKTOP_TAG=""
+        DESKTOP_START_FAILED=true
+        return 1
+    fi
+    echo "  ✅ Build started at $(git rev-parse --short HEAD) — collected after the local platforms"
+}
+
+# The run behind DESKTOP_TAG: wait for it, then download whatever artifacts it
+# produced. Once per deploy — Windows and Linux share the run, and whichever
+# asks first does the waiting. A failed job doesn't stop the other platform's
+# artifact from being collected.
+desktop_ci_collect() {
+    [ "$DESKTOP_COLLECTED" = true ] && return 0
+    DESKTOP_COLLECTED=true
+    [ -n "$DESKTOP_TAG" ] || return 1
+
+    local i
+    for i in $(seq 1 30); do
+        DESKTOP_RUN_ID=$(gh run list --workflow "$DESKTOP_WORKFLOW" --branch "$DESKTOP_TAG" \
+            --limit 1 --json databaseId -q '.[0].databaseId // empty' 2>/dev/null)
+        [ -n "$DESKTOP_RUN_ID" ] && break
+        sleep 4
+    done
+    if [ -z "$DESKTOP_RUN_ID" ]; then
+        echo "  ❌ No workflow run appeared for $DESKTOP_TAG after 2 minutes."
+        echo "     Check https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions"
+        return 1
+    fi
+    DESKTOP_RUN_URL=$(gh run view "$DESKTOP_RUN_ID" --json url -q .url 2>/dev/null)
+    echo "  • $DESKTOP_RUN_URL"
+
+    # The exit code is not the verdict: one job can fail while the other's
+    # artifact is perfectly good. Each platform checks its own job below.
+    run_with_spinner "Waiting for the GitHub Actions build" \
+        sh -c "gh run watch '$DESKTOP_RUN_ID' --interval 20 --exit-status > '$DESKTOP_LOG' 2>&1" || true
+
+    rm -rf build/desktop-ci
+    gh run download "$DESKTOP_RUN_ID" -D build/desktop-ci >/dev/null 2>&1 || true
+    if [ -f build/desktop-ci/windows-msix/MonkeyHub.msix ]; then
+        mkdir -p build/windows-store
+        mv -f build/desktop-ci/windows-msix/MonkeyHub.msix "$MSIX_PATH"
+    fi
+    local tarball
+    tarball=$(find build/desktop-ci/linux-tarball -name '*.tar.gz' 2>/dev/null | head -n 1)
+    if [ -n "$tarball" ]; then
+        rm -rf build/linux-release && mkdir -p build/linux-release
+        mv -f "$tarball" build/linux-release/
+    fi
+    rm -rf build/desktop-ci
+
+    # The tag only existed to aim the run; leaving it would pile one up per deploy.
+    git push -q origin ":refs/tags/$DESKTOP_TAG" 2>/dev/null || true
+    git tag -d "$DESKTOP_TAG" >/dev/null 2>&1 || true
+}
+
+desktop_job_conclusion() {   # $1 = job name (windows | linux)
+    gh run view "$DESKTOP_RUN_ID" --json jobs \
+        -q ".jobs[] | select(.name == \"$1\") | .conclusion" 2>/dev/null
+}
+
+# Shared by run_windows/run_linux: collect the run and say why a platform's
+# artifact is missing, pointing at the failing job's log rather than at ours.
+desktop_build_stage() {   # $1 = windows | linux, $2 = expected artifact path
+    if [ "$DESKTOP_START_FAILED" = true ] || [ -z "$DESKTOP_TAG" ]; then
+        echo "  ❌ The CI build never started (see ☁️ above)."
+        return 1
+    fi
+    desktop_ci_collect || return 1
+    if [ "$(desktop_job_conclusion "$1")" != "success" ] || [ ! -f "$2" ]; then
+        echo "  ❌ The $1 job did not produce $2."
+        echo "     Logs: gh run view $DESKTOP_RUN_ID --log-failed   ($DESKTOP_RUN_URL)"
+        return 1
+    fi
+    echo "  ✅ $(basename "$2") ($(du -h "$2" | cut -f1 | tr -d ' ')) from CI"
+}
+
+desktop_ci_start || true
 
 # ----- iOS build -----
 # Three independent stages (see IOS_STAGES / "stage defaults" above): archive
@@ -2333,6 +2619,198 @@ if [ "$DEPLOY_ANDROID" = true ]; then
     fi
 fi
 
+# ----- Windows (--windows) -----
+# build  = collect the CI run's MSIX into build/windows-store/
+# upload = submit it to the Microsoft Store with the msstore CLI.
+#
+# The submission API only works once the app has ONE submission finished in
+# Partner Center by hand, and needs an Entra ID app registered there (Account
+# settings → User management → Microsoft Entra applications) — MS_STORE_* in
+# .env.local. Until both exist the MSIX is handed over for a manual upload,
+# exactly how Android worked before Play was automated. See DEPLOY.md.
+#
+# Announced the moment the submission is in, like TestFlight, even though
+# certification takes hours to days: the release row points at the Store page,
+# which serves the update the moment it clears.
+run_windows() {
+    local do_build=false do_upload=false
+    has_stage "$WINDOWS_STAGES" build && do_build=true
+    has_stage "$WINDOWS_STAGES" upload && do_upload=true
+    local start=$(date +%s)
+    if [ "$DRY_RUN" = true ]; then
+        echo "⏭️  Windows: skipped under --dry (its build is a CI run started by a pushed tag)."
+        return 0
+    fi
+
+    if [ "$do_build" = true ]; then
+        echo "🪟 Windows: build (GitHub Actions → MSIX)"
+        desktop_build_stage windows "$MSIX_PATH" || return 1
+    fi
+
+    if [ "$do_upload" = true ]; then
+        if [ ! -f "$MSIX_PATH" ]; then
+            echo "❌ No MSIX at $MSIX_PATH — run --windows-build (or --windows) first."
+            return 1
+        fi
+        if [ "$RUN_UPLOAD" = true ] && [ -n "${MS_STORE_CLIENT_ID:-}" ]; then
+            run_with_spinner "Configuring the Microsoft Store CLI" \
+                sh -c 'msstore reconfigure --tenantId "$MS_STORE_TENANT_ID" --sellerId "$MS_STORE_SELLER_ID" \
+                        --clientId "$MS_STORE_CLIENT_ID" --clientSecret "$MS_STORE_CLIENT_SECRET" \
+                        >/tmp/monkeyhub_msstore.log 2>&1' || return 1
+            run_with_spinner "Submitting to the Microsoft Store" \
+                sh -c "msstore publish '$PWD' -i '$MSIX_PATH' -id '$MS_STORE_PRODUCT_ID' \
+                        >>/tmp/monkeyhub_msstore.log 2>&1" \
+                || { echo "     Log: /tmp/monkeyhub_msstore.log"; return 1; }
+            publish_release windows "$MS_STORE_URL"
+            SHIPPED_SOMETHING=true
+            free_platform_space windows
+        elif [ "$RUN_UPLOAD" = true ]; then
+            echo "⏭️  No automated Store upload (needs MS_STORE_* in .env.local + msstore — see DEPLOY.md)."
+            echo "    Upload manually: Partner Center → MonkeyHub → current submission →"
+            echo "    Packages → drop in $MSIX_PATH → Submit for certification."
+        else
+            echo "⏭️  Skipping Microsoft Store upload (--no-upload). MSIX at $MSIX_PATH"
+        fi
+    fi
+
+    WINDOWS_BUILD_TIME=$(( $(date +%s) - start ))
+    return 0
+}
+if [ "$DEPLOY_WINDOWS" = true ]; then
+    if run_windows; then
+        WINDOWS_STATUS="ok"
+    else
+        WINDOWS_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  Windows failed — continuing with the rest of the run."
+    fi
+fi
+
+# ----- Linux (--linux) -----
+# build  = collect the CI run's tarball into build/linux-release/
+# upload = put it on /downloads/ (the page grows a Linux card from
+#          artifacts.json), announce it, then push the AUR package.
+#
+# The AUR step is optional and skipped quietly until it is set up: an AUR
+# account with this Mac's key on it (AUR_SSH_KEY in .env.local, default
+# ~/.ssh/aur). The package is monkeyhub-bin — "-bin" because it repackages our
+# tarball rather than building from source, which is what the AUR expects a
+# closed-source binary to be called. Its PKGBUILD downloads the tarball from
+# /downloads/, so the VM upload has to land first.
+#
+# Older tarballs stay on the VM (the AUR's sha256 pins an exact file, and a
+# user mid-upgrade may still be fetching the previous one), pruned to three.
+dl_manifest_put() {   # $1 = key, $2 = file, $3 = size
+    local current
+    current=$(dl_manifest_fetch)
+    printf '%s' "$current" | jq --arg k "$1" --arg f "$2" --arg v "$DISPLAY_VERSION" \
+        --arg s "$3" --arg d "$STAMP_DATE" \
+        '.[$k] = {file: $f, version: $v, size: $s, updatedAt: $d}' \
+        | vm_ssh "cat > $DL_MANIFEST.tmp && mv $DL_MANIFEST.tmp $DL_MANIFEST"
+}
+
+aur_publish() {   # $1 = tarball path
+    local key="${AUR_SSH_KEY:-$HOME/.ssh/aur}"
+    if [ ! -f "$key" ]; then
+        echo "⏭️  No AUR key at $key — skipping the AUR (see DEPLOY.md → Linux)."
+        return 0
+    fi
+    local sha url dir="build/aur"
+    sha=$(shasum -a 256 "$1" | cut -d' ' -f1)
+    url="$HOSTING_URL/$(basename "$1")"
+    export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+    rm -rf "$dir"
+    # Cloning an AUR name nobody has pushed yet gives an empty repo — the first
+    # push is what creates the package.
+    if ! git clone -q "ssh://aur@aur.archlinux.org/$AUR_PACKAGE.git" "$dir" 2>/dev/null; then
+        unset GIT_SSH_COMMAND
+        echo "  ❌ Could not clone the AUR repo — is $key registered on your AUR account?"
+        return 1
+    fi
+    sed -e "s|__VERSION__|$DISPLAY_VERSION|g" -e "s|__SHA256__|$sha|g" -e "s|__URL__|$url|g" \
+        linux/packaging/aur/PKGBUILD.template > "$dir/PKGBUILD"
+    sed -e "s|__VERSION__|$DISPLAY_VERSION|g" -e "s|__SHA256__|$sha|g" -e "s|__URL__|$url|g" \
+        linux/packaging/aur/SRCINFO.template > "$dir/.SRCINFO"
+    (
+        cd "$dir" &&
+        git add PKGBUILD .SRCINFO &&
+        { git diff --cached --quiet || git -c user.name="$(git -C "$SCRIPT_DIR" config user.name)" \
+              -c user.email="$(git -C "$SCRIPT_DIR" config user.email)" \
+              commit -q -m "$DISPLAY_VERSION"; } &&
+        git push -q origin HEAD:master
+    )
+    local rc=$?
+    unset GIT_SSH_COMMAND
+    if [ $rc -eq 0 ]; then
+        echo "  ✅ AUR: $AUR_PACKAGE $DISPLAY_VERSION (https://aur.archlinux.org/packages/$AUR_PACKAGE)"
+    else
+        echo "  ❌ AUR push failed. Retry with:   ./deploy.sh --linux-upload --no-convex"
+    fi
+    return $rc
+}
+
+run_linux() {
+    local do_build=false do_upload=false
+    has_stage "$LINUX_STAGES" build && do_build=true
+    has_stage "$LINUX_STAGES" upload && do_upload=true
+    local start=$(date +%s)
+    if [ "$DRY_RUN" = true ]; then
+        echo "⏭️  Linux: skipped under --dry (its build is a CI run started by a pushed tag)."
+        return 0
+    fi
+    LINUX_TARBALL="build/linux-release/monkeyhub-linux-x64-$DISPLAY_VERSION.tar.gz"
+
+    if [ "$do_build" = true ]; then
+        echo "🐧 Linux: build (GitHub Actions → tarball)"
+        desktop_build_stage linux "$LINUX_TARBALL" || return 1
+    fi
+
+    if [ "$do_upload" = true ]; then
+        if [ ! -f "$LINUX_TARBALL" ]; then
+            LINUX_TARBALL=$(find build/linux-release -name '*.tar.gz' 2>/dev/null | head -n 1)
+        fi
+        if [ -z "$LINUX_TARBALL" ] || [ ! -f "$LINUX_TARBALL" ]; then
+            echo "❌ No tarball in build/linux-release/ — run --linux-build (or --linux) first."
+            return 1
+        fi
+        if [ "$RUN_UPLOAD" = true ]; then
+            local name size
+            name=$(basename "$LINUX_TARBALL")
+            size=$(du -h "$LINUX_TARBALL" | cut -f1 | tr -d ' ')B
+            vm_ensure_dirs || return 1
+            run_with_spinner "Uploading $name to the VM" \
+                rsync -a -e "ssh $VM_SSH_OPTS" "$LINUX_TARBALL" "$VM_USER@$VM_HOST:$VM_DL_DIR/" || return 1
+            vm_ssh "cd $VM_DL_DIR && ls -1t monkeyhub-linux-x64-*.tar.gz 2>/dev/null | tail -n +4 | xargs -r rm -f" || true
+            if ! dl_manifest_put linux "$name" "$size"; then
+                echo "  ❌ Uploaded, but could not record it in $DL_MANIFEST."
+                return 1
+            fi
+            echo "  ✅ $HOSTING_URL/$name"
+            publish_release linux "$HOSTING_URL/"
+            SHIPPED_SOMETHING=true
+            # The AUR is a second channel for the same file: its failure is
+            # reported, but the tarball already shipped, so it doesn't fail Linux.
+            aur_publish "$LINUX_TARBALL" || LINUX_AUR_FAILED=true
+            free_platform_space linux
+        else
+            echo "⏭️  Skipping Linux upload (--no-upload). Tarball at $LINUX_TARBALL"
+        fi
+    fi
+
+    LINUX_BUILD_TIME=$(( $(date +%s) - start ))
+    return 0
+}
+LINUX_AUR_FAILED=false
+if [ "$DEPLOY_LINUX" = true ]; then
+    if run_linux; then
+        LINUX_STATUS="ok"
+    else
+        LINUX_STATUS="failed"
+        ANY_STEP_FAILED=true
+        echo "  ⚠️  Linux failed — continuing with the rest of the run."
+    fi
+fi
+
 # ----- Web build (--web, or as part of --all) -----
 # Published under /web/, with the landing page owning the root. --base-href is
 # what makes that work and it is baked in at build time, so a build made without
@@ -2555,6 +3033,29 @@ if [ "$DEPLOY_ANDROID" = true ]; then
         echo "  ❌ Android:        failed — retry with --android-build / --android-upload"
     fi
 fi
+if [ "$DEPLOY_WINDOWS" = true ] && [ "$DRY_RUN" = true ]; then
+    echo "  ⏭️  Windows:        skipped (--dry)"
+elif [ "$DEPLOY_WINDOWS" = true ]; then
+    if [ "$WINDOWS_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ] && [ -n "${MS_STORE_CLIENT_ID:-}" ]; then
+        echo "  ✅ Windows:        submitted to the Microsoft Store (certification: hours to days)"
+    elif [ "$WINDOWS_STATUS" = ok ]; then
+        echo "  ✅ Windows MSIX:   $MSIX_PATH"
+    else
+        echo "  ❌ Windows:        failed — retry with --windows-build / --windows-upload"
+    fi
+fi
+if [ "$DEPLOY_LINUX" = true ] && [ "$DRY_RUN" = true ]; then
+    echo "  ⏭️  Linux:          skipped (--dry)"
+elif [ "$DEPLOY_LINUX" = true ]; then
+    if [ "$LINUX_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
+        echo "  ✅ Linux:          $HOSTING_URL/"
+        [ "$LINUX_AUR_FAILED" = true ] && echo "     ⚠️  AUR push failed — see above"
+    elif [ "$LINUX_STATUS" = ok ]; then
+        echo "  ✅ Linux tarball:  $LINUX_TARBALL"
+    else
+        echo "  ❌ Linux:          failed — retry with --linux-build / --linux-upload"
+    fi
+fi
 if [ "$DEPLOY_WEB" = true ]; then
     if [ "$WEB_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
         echo "  ✅ Web:            $WEB_URL"
@@ -2584,6 +3085,8 @@ echo "⏱️  Timing:"
 [ "$DEPLOY_IOS" = true ]     && echo "  🍎 iOS build:      ${IOS_BUILD_TIME}s"
 [ "$DEPLOY_MACOS" = true ]   && echo "  🖥️  macOS build:    ${MACOS_BUILD_TIME}s"
 [ "$DEPLOY_ANDROID" = true ] && echo "  🤖 Android build:  ${ANDROID_BUILD_TIME}s"
+[ "$DEPLOY_WINDOWS" = true ] && echo "  🪟 Windows:        ${WINDOWS_BUILD_TIME}s (mostly waiting on CI)"
+[ "$DEPLOY_LINUX" = true ]   && echo "  🐧 Linux:          ${LINUX_BUILD_TIME}s (mostly waiting on CI)"
 [ "$DEPLOY_WEB" = true ]     && echo "  🌐 Web build:      ${WEB_BUILD_TIME}s"
 echo "  📊 Total:          ${TOTAL_TIME}s"
 
