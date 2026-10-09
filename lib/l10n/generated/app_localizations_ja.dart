@@ -11308,4 +11308,220 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => '一般';
+
+  @override
+  String get kbdGroupNavigation => 'ナビゲーション';
+
+  @override
+  String get kbdGroupChat => 'チャット内';
+
+  @override
+  String get kbdGroupComposer => '入力';
+
+  @override
+  String get kbdGroupViewer => '写真と動画';
+
+  @override
+  String get kbdGroupCall => '通話';
+
+  @override
+  String get kbdCommandPalette => 'チャットとコマンドを検索';
+
+  @override
+  String get kbdShowShortcuts => 'キーボードショートカット';
+
+  @override
+  String get kbdSearch => '検索';
+
+  @override
+  String get kbdNewChat => '新しいチャット';
+
+  @override
+  String get kbdSettings => '設定';
+
+  @override
+  String get kbdBack => '戻る/閉じる';
+
+  @override
+  String kbdGoTo(String section) {
+    return '$sectionに移動';
+  }
+
+  @override
+  String get kbdNextChat => '次のチャット';
+
+  @override
+  String get kbdPreviousChat => '前のチャット';
+
+  @override
+  String get kbdNextUnread => '次の未読チャット';
+
+  @override
+  String get kbdCloseChat => 'チャットを閉じる';
+
+  @override
+  String get kbdRoomInfo => 'チャット情報';
+
+  @override
+  String get kbdSearchInChat => 'このチャット内を検索';
+
+  @override
+  String get kbdJumpToLatest => '最新のメッセージへ移動';
+
+  @override
+  String get kbdAttach => 'ファイルを添付';
+
+  @override
+  String get kbdVoiceCall => '音声通話';
+
+  @override
+  String get kbdVideoCall => 'ビデオ通話';
+
+  @override
+  String get kbdSend => '送信';
+
+  @override
+  String get kbdNewline => '改行';
+
+  @override
+  String get kbdEditLast => '最後のメッセージを編集';
+
+  @override
+  String get kbdBold => '太字';
+
+  @override
+  String get kbdItalic => '斜体';
+
+  @override
+  String get kbdUnderline => '下線';
+
+  @override
+  String get kbdPasteMedia => '写真やファイルをペースト';
+
+  @override
+  String get kbdEmoji => '絵文字とステッカー';
+
+  @override
+  String get kbdViewerPrevious => '前へ';
+
+  @override
+  String get kbdViewerNext => '次へ';
+
+  @override
+  String get kbdZoomIn => '拡大';
+
+  @override
+  String get kbdZoomOut => '縮小';
+
+  @override
+  String get kbdZoomFit => 'ウインドウに合わせる';
+
+  @override
+  String get kbdPlayPause => '再生/一時停止';
+
+  @override
+  String get kbdCopyMedia => 'コピー';
+
+  @override
+  String get kbdSaveMedia => '保存';
+
+  @override
+  String get kbdToggleMute => 'マイクのオン/オフ';
+
+  @override
+  String get kbdToggleCamera => 'カメラのオン/オフ';
+
+  @override
+  String get kbdHangUp => '通話を終了';
+
+  @override
+  String get kbdPanelTitle => 'キーボードショートカット';
+
+  @override
+  String get kbdPanelSearchHint => 'ショートカットを検索';
+
+  @override
+  String get kbdPanelEmpty => '一致するショートカットはありません';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'いつでも$keyを長押しすると、今の画面のショートカットが表示されます';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return '$keyの長押しでショートカットを表示';
+  }
+
+  @override
+  String get kbdPaletteHint => 'チャットに移動、またはコマンドを実行';
+
+  @override
+  String get kbdPaletteChats => 'チャット';
+
+  @override
+  String get kbdPaletteCommands => 'コマンド';
+
+  @override
+  String get kbdPaletteEmpty => '見つかりませんでした';
+
+  @override
+  String get kbdPaletteMove => '移動';
+
+  @override
+  String get kbdPaletteOpen => '開く';
+
+  @override
+  String get kbdPaletteClose => '閉じる';
+
+  @override
+  String get msgDeskReactLabel => 'リアクション';
+
+  @override
+  String get msgDeskMoreLabel => 'その他';
+
+  @override
+  String get msgDeskInfoLabel => '情報';
+
+  @override
+  String get kbdSeekBackward => '5秒戻る';
+
+  @override
+  String get kbdSeekForward => '5秒進む';
+
+  @override
+  String get kbdMuteVideo => '動画の消音/消音解除';
+
+  @override
+  String get viewerSavedToDownloads => 'ダウンロードに保存しました';
+
+  @override
+  String get viewerDownloaded => 'ダウンロードしました';
+
+  @override
+  String get viewerShowInFinder => 'Finderに表示';
+
+  @override
+  String get viewerShowInFolder => 'フォルダに表示';
+
+  @override
+  String get viewerCopied => 'コピーしました';
+
+  @override
+  String get viewerCopyFailed => 'コピーできませんでした';
+
+  @override
+  String get hoverCompactLayoutTitle => 'コンパクトレイアウト';
+
+  @override
+  String get hoverCompactLayoutSubtitle => '行の高さとボタンを小さくして、マウスと大きな画面向けにします。';
+
+  @override
+  String get layoutPagerPrevious => '前へ';
+
+  @override
+  String get layoutPagerNext => '次へ';
 }

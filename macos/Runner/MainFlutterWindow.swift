@@ -24,9 +24,30 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
-    // Floor the window size so the responsive shell always has room for its
-    // rail + panes and never collapses into a degenerate sliver.
-    self.minSize = NSSize(width: 480, height: 600)
+    // Floor the CONTENT size (not the frame, which counts the title bar) at
+    // the width the side rail + split shell needs — `Breakpoints.split` in
+    // lib/theme/layout.dart is 720, and this sits above it with room to
+    // spare. A desktop window that could shrink to phone width would swap
+    // its whole chrome for the bottom pill mid-drag, which no Mac app does.
+    let minContent = NSSize(width: 760, height: 560)
+    self.contentMinSize = minContent
+    // Come back where the user left it, like every Mac app. The saved frame
+    // is read BEFORE the autosave name is set, because setting the name
+    // first would immediately write the nib's default frame over it. A frame
+    // saved under an older, smaller floor is grown to the new one rather than
+    // trusted, so the first launch after this change cannot open in the
+    // phone layout.
+    let autosaveName = "MonkeyHubMainWindow"
+    if self.setFrameUsingName(autosaveName) {
+      let content = self.contentRect(forFrameRect: self.frame)
+      if content.width < minContent.width || content.height < minContent.height {
+        var grown = content
+        grown.size.width = max(content.width, minContent.width)
+        grown.size.height = max(content.height, minContent.height)
+        self.setFrame(self.frameRect(forContentRect: grown), display: true)
+      }
+    }
+    self.setFrameAutosaveName(autosaveName)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

@@ -114,6 +114,16 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+  // Floor the window at the width the side rail + split shell needs
+  // (`Breakpoints.split` in lib/theme/layout.dart is 720). Without it the
+  // window could be dragged down to phone width and the whole chrome would
+  // swap to the bottom pill mid-drag. GTK sizes are logical, so this needs no
+  // scaling of its own.
+  GdkGeometry min_geometry = {};
+  min_geometry.min_width = 760;
+  min_geometry.min_height = 560;
+  gtk_window_set_geometry_hints(window, nullptr, &min_geometry,
+                                GDK_HINT_MIN_SIZE);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

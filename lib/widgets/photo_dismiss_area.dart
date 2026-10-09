@@ -1,4 +1,11 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart' show HardwareKeyboard, SystemMouseCursors;
 import 'package:flutter/widgets.dart';
+
+import '../platform.dart';
 
 /// The gesture layer under every fullscreen picture: pinch and double-tap to
 /// zoom, drag in either vertical direction to dismiss.
@@ -24,6 +31,11 @@ class PhotoDismissArea extends StatefulWidget {
     this.onTap,
     this.onZoomChanged,
     this.maxScale = 5,
+    this.zoom,
+    this.onBackdropClick,
+    this.onWheelStep,
+    this.pixelSize,
+    this.cursorHidden = false,
   });
 
   /// The picture. Mounted inside the [InteractiveViewer], so it is what zooms.
@@ -50,6 +62,51 @@ class PhotoDismissArea extends StatefulWidget {
   final void Function(bool zoomed)? onZoomChanged;
 
   final double maxScale;
+
+  // ── Desktop and web. None of these do anything on a phone: they answer a
+  // mouse, a wheel or a keyboard, which a phone does not have.
+
+  /// Lets a screen's keyboard shortcuts (⌘= ⌘− ⌘0) drive this picture's zoom.
+  /// Hand it to the one page that is on screen and null to the rest.
+  final PhotoZoomController? zoom;
+
+  /// A mouse click on the black around the picture, Quick Look's "click
+  /// outside to close". A click ON the picture does nothing with a mouse:
+  /// toggling the chrome on every click made a desktop viewer flicker under
+  /// the reader's hand while they were only trying to focus the window.
+  /// Touch keeps [onTap] whatever this is.
+  final VoidCallback? onBackdropClick;
+
+  /// The plain mouse wheel at fit, or a trackpad's two-finger sideways
+  /// swipe: -1 back, 1 on, Telegram Desktop's wheel and Photos' swipe. Null
+  /// leaves both doing nothing at fit.
+  ///
+  /// The swipe has to be caught here. A trackpad's two fingers reach Flutter
+  /// as one pan-zoom gesture, and the viewer's scale recognizer (which needs
+  /// it for the pinch) wins that arena against the pager's drag every time,
+  /// so at fit a sideways swipe used to move nothing at all. Zoomed, the wheel pans instead, and ⌘/Ctrl+wheel
+  /// always zooms around the cursor.
+  final ValueChanged<int>? onWheelStep;
+
+  /// The picture's size in image pixels, for a double-click's "100%". Asked
+  /// once, on the first double-click; null or a null answer falls back to the
+  /// phone's 2.5×.
+  final Future<Size?> Function()? pixelSize;
+
+  /// Hides the mouse pointer over the picture, with the chrome, after the
+  /// reader has stopped moving it. Without this the grab hand of a zoomed
+  /// photo would sit in the middle of it forever.
+  final bool cursorHidden;
+
+  /// The zoom the picture last came to rest at, for whatever is drawn inside
+  /// it — see [PhotoSharpOnZoom]. Rebuilds a dependant only when the zoom has
+  /// settled, never on every frame of a pinch.
+  static double settledScaleOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<_SettledScale>()
+          ?.notifier
+          ?.value ??
+      1;
 
   @override
   State<PhotoDismissArea> createState() => _PhotoDismissAreaState();
@@ -84,6 +141,31 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
 
   bool _dismissing = false;
   bool _held = false;
+
+  /// Whether the last pointer to go down was a mouse on a desktop: a mouse
+  /// drag pans a zoomed photo and never starts a dismiss, which on a desk
+  /// would be the window throwing the picture away under a click-and-drag.
+  bool _mouse = false;
+
+  /// A mouse button is down on a zoomed picture: the grab hand closes.
+  bool _grabbing = false;
+
+  /// [_zoomed] as last built, so the grab cursor follows the zoom with a
+  /// rebuild only when it actually flips.
+  bool _zoomedUi = false;
+
+  final ValueNotifier<double> _settled = ValueNotifier(1);
+  Timer? _settleScale;
+  Size? _pixels;
+  bool _pixelsAsked = false;
+
+  /// The current trackpad gesture may still turn out to be a sideways swipe:
+  /// it began at fit and has not scaled.
+  bool _swipeArmed = false;
+
+  double _wheelAcc = 0;
+  Duration _wheelLast = Duration.zero;
+  Duration _wheelLockedUntil = Duration.zero;
   bool _clamping = false;
   int _pointers = 0;
   _Pan _pan = _Pan.undecided;
@@ -111,10 +193,24 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
     _xform
       ..addListener(_clampToPicture)
       ..addListener(_report);
+    if (isWebOrDesktop) _xform.addListener(_scheduleSettled);
+    widget.zoom?._attach(this);
+  }
+
+  @override
+  void didUpdateWidget(PhotoDismissArea old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.zoom, widget.zoom)) {
+      old.zoom?._detach(this);
+      widget.zoom?._attach(this);
+    }
   }
 
   @override
   void dispose() {
+    widget.zoom?._detach(this);
+    _settleScale?.cancel();
+    _settled.dispose();
     _xform.dispose();
     _zoomCtrl.dispose();
     _settleCtrl.dispose();
@@ -127,20 +223,197 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   /// "this page owns the gesture": locking the `PageView` only once the scale
   /// moved let a pinch whose fingers drifted sideways turn into a page swipe.
   void _report() {
-    final now = _zoomed || _pointers >= 2;
+    final zoomed = _zoomed;
+    if (zoomed != _zoomedUi && isWebOrDesktop && mounted) {
+      setState(() => _zoomedUi = zoomed);
+    }
+    final now = zoomed || _pointers >= 2;
     if (now == _held) return;
     _held = now;
     widget.onZoomChanged?.call(now);
   }
 
-  void _onPointerDown(PointerDownEvent _) {
+  /// Publishes the zoom once it has been still for a moment. A timer, not
+  /// the end of a gesture, because a wheel and a trackpad pinch on the web
+  /// have no end: they are a stream of separate events.
+  void _scheduleSettled() {
+    _settleScale?.cancel();
+    _settleScale = Timer(const Duration(milliseconds: 160), () {
+      if (!mounted) return;
+      final s = (_xform.value.getMaxScaleOnAxis() * 100).round() / 100;
+      _settled.value = s;
+    });
+  }
+
+  void _onPointerDown(PointerDownEvent e) {
     _pointers++;
+    _mouse = isWebOrDesktop && e.kind == PointerDeviceKind.mouse;
+    if (_mouse && _zoomed && !_grabbing) setState(() => _grabbing = true);
     _report();
   }
 
   void _onPointerGone(PointerEvent _) {
     if (_pointers > 0) _pointers--;
+    if (_grabbing) setState(() => _grabbing = false);
     _report();
+  }
+
+  // ───────────────────────── desktop zoom ─────────────────────────
+
+  /// Scales by [factor] about [focal] (this widget's own coordinates), which
+  /// stays put under the cursor: the point you zoom at is the point you see.
+  /// Below 1.01× it lands exactly on fit, so a zoom out never leaves the
+  /// picture a hair off its letterbox.
+  void _zoomAt(Offset focal, double factor, {bool animate = false}) {
+    final m = _xform.value;
+    final s = m.getMaxScaleOnAxis();
+    final target = (s * factor).clamp(1.0, widget.maxScale);
+    Matrix4 next;
+    if (target < 1.01) {
+      next = Matrix4.identity();
+    } else {
+      final f = target / s;
+      if ((f - 1).abs() < 0.0001) return;
+      next = Matrix4.identity()
+        ..translateByDouble(focal.dx, focal.dy, 0, 1)
+        ..scaleByDouble(f, f, 1, 1)
+        ..translateByDouble(-focal.dx, -focal.dy, 0, 1)
+        ..multiply(m);
+    }
+    if (animate) {
+      _animateTo(next);
+    } else {
+      _zoomCtrl.stop();
+      _xform.value = next;
+    }
+  }
+
+  void _animateTo(Matrix4 target) {
+    _zoomTween = Matrix4Tween(begin: _xform.value, end: target).animate(
+      CurvedAnimation(parent: _zoomCtrl, curve: Curves.easeOutCubic),
+    );
+    _zoomCtrl
+      ..value = 0
+      ..forward();
+  }
+
+  Offset get _centre {
+    final box = context.findRenderObject();
+    return box is RenderBox && box.hasSize
+        ? box.size.center(Offset.zero)
+        : Offset.zero;
+  }
+
+  /// The picture's rectangle on screen right now, zoom included.
+  Rect? _pictureOnScreen() {
+    final content = _contentKey.currentContext?.findRenderObject();
+    final picture = _pictureKey.currentContext?.findRenderObject();
+    if (content is! RenderBox || picture is! RenderBox) return null;
+    if (!content.hasSize || !picture.hasSize || !picture.attached) return null;
+    final scene =
+        picture.localToGlobal(Offset.zero, ancestor: content) & picture.size;
+    return MatrixUtils.transformRect(_xform.value, scene);
+  }
+
+  void _onPanZoomStart(PointerPanZoomStartEvent e) {
+    _swipeArmed = !_zoomed && widget.onWheelStep != null;
+  }
+
+  /// Steps once per swipe, as soon as it is plainly sideways and plainly not
+  /// a pinch. Photos moves on the same gesture; the picture does not follow
+  /// the fingers here, it slides when the swipe has said where it is going.
+  void _onPanZoomUpdate(PointerPanZoomUpdateEvent e) {
+    if (!_swipeArmed) return;
+    if ((e.scale - 1).abs() > 0.05 || _zoomed) {
+      _swipeArmed = false;
+      return;
+    }
+    final p = e.pan;
+    if (p.dx.abs() < 60 || p.dx.abs() < p.dy.abs() * 2) return;
+    _swipeArmed = false;
+    final rtl = Directionality.maybeOf(context) == TextDirection.rtl;
+    // Fingers moving left pull the next picture in, as a swipe does.
+    final dir = p.dx < 0 ? 1 : -1;
+    widget.onWheelStep?.call(rtl ? -dir : dir);
+  }
+
+  void _onSignal(PointerSignalEvent e) {
+    if (!isWebOrDesktop || e is! PointerScrollEvent) return;
+    // Claimed, so the pager behind does not scroll a fraction of a page on
+    // the same event. Registration is first come, and this sits inside it.
+    GestureBinding.instance.pointerSignalResolver.register(e, (event) {
+      final ev = event as PointerScrollEvent;
+      final keys = HardwareKeyboard.instance;
+      if (keys.isControlPressed || keys.isMetaPressed) {
+        // 200 is the factor InteractiveViewer itself uses for a wheel.
+        _zoomAt(ev.localPosition, math.exp(-ev.scrollDelta.dy / 200));
+        return;
+      }
+      if (_zoomed) {
+        // A trackpad's scroll is already a pan inside the viewer.
+        if (ev.kind == PointerDeviceKind.trackpad) return;
+        // The wheel pans, Shift turning it sideways, as in Preview.
+        final d = keys.isShiftPressed
+            ? Offset(ev.scrollDelta.dy, 0)
+            : ev.scrollDelta;
+        _xform.value = _xform.value.clone()
+          ..leftTranslateByDouble(-d.dx, -d.dy, 0, 1);
+        return;
+      }
+      _wheelStep(ev);
+    });
+  }
+
+  /// One page per deliberate turn of the wheel. A free-spinning wheel and a
+  /// trackpad's momentum both send a long tail of events after the reader
+  /// has stopped; the lock swallows them, and for a trackpad keeps
+  /// swallowing for as long as the tail keeps coming.
+  void _wheelStep(PointerScrollEvent e) {
+    final step = widget.onWheelStep;
+    if (step == null) return;
+    final now = e.timeStamp;
+    final trackpad = e.kind == PointerDeviceKind.trackpad;
+    if (now < _wheelLockedUntil) {
+      if (trackpad) _wheelLockedUntil = now + const Duration(milliseconds: 160);
+      return;
+    }
+    if (now - _wheelLast > const Duration(milliseconds: 300)) _wheelAcc = 0;
+    _wheelLast = now;
+    final d = e.scrollDelta;
+    _wheelAcc += d.dy.abs() >= d.dx.abs() ? d.dy : d.dx;
+    if (_wheelAcc.abs() < (trackpad ? 40 : 10)) return;
+    final dir = _wheelAcc > 0 ? 1 : -1;
+    _wheelAcc = 0;
+    _wheelLockedUntil = now + const Duration(milliseconds: 220);
+    final rtl = Directionality.maybeOf(context) == TextDirection.rtl;
+    // Sideways on a trackpad follows the content, like a swipe; RTL flips
+    // only that, a wheel's down is "on" in every script.
+    step(trackpad && d.dx.abs() > d.dy.abs() && rtl ? -dir : dir);
+  }
+
+  /// A click with a mouse: on the black around the picture it closes; on the
+  /// picture it does nothing. Touch toggles the chrome, as it always has.
+  void _onTapUp(TapUpDetails d) {
+    if (isWebOrDesktop && d.kind == PointerDeviceKind.mouse) {
+      final click = widget.onBackdropClick;
+      if (click == null) return;
+      final picture = _pictureOnScreen();
+      if (picture != null && !picture.contains(d.localPosition)) click();
+      return;
+    }
+    widget.onTap?.call();
+  }
+
+  /// "100%": one image pixel to one screen pixel, which is what a desk
+  /// means by actual size. Null when the picture's size is not known.
+  double? _actualScale() {
+    final px = _pixels;
+    final content = _contentKey.currentContext?.findRenderObject();
+    final picture = _pictureKey.currentContext?.findRenderObject();
+    if (px == null || picture is! RenderBox || !picture.hasSize) return null;
+    if (content is! RenderBox || picture.size.width <= 0) return null;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return px.width / dpr / picture.size.width;
   }
 
   /// Keeps the zoomed picture covering the screen on any axis where it is
@@ -175,8 +448,28 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
     _clamping = false;
   }
 
-  void _handleDoubleTap(TapDownDetails d) {
+  Future<void> _handleDoubleTap(TapDownDetails d) async {
     if (widget.maxScale <= 1) return;
+    if (isWebOrDesktop && d.kind == PointerDeviceKind.mouse) {
+      if (_zoomed) {
+        _animateTo(Matrix4.identity());
+        return;
+      }
+      final ask = widget.pixelSize;
+      if (_pixels == null && ask != null && !_pixelsAsked) {
+        _pixelsAsked = true;
+        _pixels = await ask();
+        if (!mounted) return;
+      }
+      // Actual size when it is a real zoom; a picture already shown at or
+      // near its own size gets the phone's 2.5× rather than a twitch.
+      final actual = _actualScale();
+      final target = actual != null && actual > 1.25
+          ? actual
+          : (widget.maxScale < 2.5 ? widget.maxScale : 2.5);
+      _zoomAt(d.localPosition, target, animate: true);
+      return;
+    }
     Matrix4 target;
     if (_zoomed) {
       target = Matrix4.identity();
@@ -207,7 +500,9 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   void _onInteractionStart(ScaleStartDetails d) {
     _settleCtrl.stop();
     _zoomCtrl.stop();
-    _pan = d.pointerCount == 1 && !_zoomed ? _Pan.undecided : _Pan.picture;
+    _pan = d.pointerCount == 1 && !_zoomed && !_mouse
+        ? _Pan.undecided
+        : _Pan.picture;
   }
 
   void _onInteractionUpdate(ScaleUpdateDetails d) {
@@ -263,13 +558,22 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
+    final desktop = isWebOrDesktop;
+    final Widget area = Listener(
       onPointerDown: _onPointerDown,
       onPointerUp: _onPointerGone,
       onPointerCancel: _onPointerGone,
+      onPointerSignal: desktop ? _onSignal : null,
+      onPointerPanZoomStart: desktop ? _onPanZoomStart : null,
+      onPointerPanZoomUpdate: desktop ? _onPanZoomUpdate : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
+        // onTapUp rather than onTap for the pointer's kind; it fires at the
+        // same moment, after the double-tap window, as onTap did.
+        onTapUp: widget.onTap != null ||
+                (desktop && widget.onBackdropClick != null)
+            ? _onTapUp
+            : null,
         onDoubleTapDown: _handleDoubleTap,
         onDoubleTap: () {},
         // The viewer fills the whole area, not just the picture: a pinch
@@ -281,6 +585,13 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
           minScale: 1,
           maxScale: widget.maxScale,
           clipBehavior: Clip.none,
+          // The wheel is this widget's (see [_onSignal]): left to the viewer
+          // a plain scroll zoomed, which is not what a wheel does over a
+          // photograph anywhere else on a desk. Infinity makes the viewer's
+          // own wheel zoom a factor of exactly 1. A trackpad pinch (and on
+          // the web ⌘+pinch, which arrives as a scale event) still zooms
+          // through the viewer, around the fingers.
+          scaleFactor: desktop ? double.infinity : 200,
           onInteractionStart: _onInteractionStart,
           onInteractionUpdate: _onInteractionUpdate,
           onInteractionEnd: _onInteractionEnd,
@@ -293,7 +604,111 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
         ),
       ),
     );
+    if (!desktop) return area;
+    return _SettledScale(
+      notifier: _settled,
+      child: MouseRegion(
+        cursor: widget.cursorHidden
+            ? SystemMouseCursors.none
+            : _zoomedUi
+                ? (_grabbing
+                    ? SystemMouseCursors.grabbing
+                    : SystemMouseCursors.grab)
+                : MouseCursor.defer,
+        child: area,
+      ),
+    );
   }
+}
+
+/// Commands for the picture on screen, from a screen's keyboard shortcuts.
+///
+/// One per viewer, attached to whichever [PhotoDismissArea] it is handed to;
+/// the gallery hands it only to the page being looked at, so ⌘= zooms the
+/// photograph you see and not a neighbour built off screen.
+class PhotoZoomController {
+  _PhotoDismissAreaState? _area;
+
+  void _attach(_PhotoDismissAreaState a) => _area = a;
+  void _detach(_PhotoDismissAreaState a) {
+    if (identical(_area, a)) _area = null;
+  }
+
+  /// Whether a zoomable picture is attached at all (a video's poster is not).
+  bool get canZoom => (_area?.widget.maxScale ?? 1) > 1;
+
+  void zoomIn() => _step(1.5);
+  void zoomOut() => _step(1 / 1.5);
+
+  /// Back to the whole picture.
+  void fit() {
+    final a = _area;
+    if (a == null || !a._zoomed) return;
+    a._animateTo(Matrix4.identity());
+  }
+
+  void _step(double factor) {
+    final a = _area;
+    if (a == null || !canZoom) return;
+    a._zoomAt(a._centre, factor, animate: true);
+  }
+}
+
+/// Draws a sharper decode of the picture over [child] once it has been zoomed
+/// past what the screen-sized decode can show.
+///
+/// The viewer decodes a photograph at the screen's longest edge, which is
+/// exactly right at fit and soft at 2×. The file on disk is full resolution
+/// (see `RemoteImage`), so sharpening is a second DECODE of bytes already
+/// here, not a download: [sharp] builds the same picture at a bigger decode
+/// width, quiet while it decodes, and the fit-sized one stays underneath so
+/// nothing blinks. Bucketed to 2× and 4× so a pinch that wanders does not
+/// decode again for every tenth of a step, and decided only when the zoom
+/// has settled ([PhotoDismissArea.settledScaleOf]), never mid-gesture.
+///
+/// Desktop and web only: a phone's pinch is brief and its memory is not
+/// the place to hold a 12 MP bitmap for it.
+class PhotoSharpOnZoom extends StatelessWidget {
+  const PhotoSharpOnZoom({super.key, required this.child, required this.sharp});
+
+  final Widget child;
+  final Widget Function(int decodeWidth) sharp;
+
+  /// A decode this wide is 64 MB at 4:3. Past it the picture is very
+  /// unlikely to have the pixels anyway.
+  static const int _maxDecode = 8192;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isWebOrDesktop) return child;
+    final scale = PhotoDismissArea.settledScaleOf(context);
+    final bucket = scale <= 2 ? 2 : 4;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final screen = MediaQuery.sizeOf(context);
+    final base = math.max(screen.width, screen.height) * dpr;
+    // One shape whether or not the overlay is up, so zooming in never
+    // remounts the picture underneath it.
+    return LayoutBuilder(
+      builder: (context, box) {
+        final want = box.maxWidth.isFinite
+            ? math.min(_maxDecode, (box.maxWidth * dpr * bucket).round())
+            : 0;
+        final sharpen = scale >= 1.25 && want > base * 1.05;
+        return Stack(
+          fit: StackFit.passthrough,
+          children: [
+            child,
+            if (sharpen)
+              Positioned.fill(child: IgnorePointer(child: sharp(want))),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SettledScale extends InheritedNotifier<ValueNotifier<double>> {
+  const _SettledScale({required super.notifier, required super.child});
 }
 
 /// How far along a dismiss drag of [drag] is on a screen of [screen]: 0 at

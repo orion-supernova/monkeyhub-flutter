@@ -11814,4 +11814,221 @@ class AppLocalizationsSv extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'Allmänt';
+
+  @override
+  String get kbdGroupNavigation => 'Navigering';
+
+  @override
+  String get kbdGroupChat => 'I en chatt';
+
+  @override
+  String get kbdGroupComposer => 'Skriva';
+
+  @override
+  String get kbdGroupViewer => 'Bilder och videor';
+
+  @override
+  String get kbdGroupCall => 'Samtal';
+
+  @override
+  String get kbdCommandPalette => 'Sök chattar och kommandon';
+
+  @override
+  String get kbdShowShortcuts => 'Kortkommandon';
+
+  @override
+  String get kbdSearch => 'Sök';
+
+  @override
+  String get kbdNewChat => 'Ny chatt';
+
+  @override
+  String get kbdSettings => 'Inställningar';
+
+  @override
+  String get kbdBack => 'Gå tillbaka eller stäng';
+
+  @override
+  String kbdGoTo(String section) {
+    return 'Gå till $section';
+  }
+
+  @override
+  String get kbdNextChat => 'Nästa chatt';
+
+  @override
+  String get kbdPreviousChat => 'Föregående chatt';
+
+  @override
+  String get kbdNextUnread => 'Nästa olästa chatt';
+
+  @override
+  String get kbdCloseChat => 'Stäng chatt';
+
+  @override
+  String get kbdRoomInfo => 'Chattinfo';
+
+  @override
+  String get kbdSearchInChat => 'Sök i den här chatten';
+
+  @override
+  String get kbdJumpToLatest => 'Hoppa till senaste meddelandet';
+
+  @override
+  String get kbdAttach => 'Bifoga filer';
+
+  @override
+  String get kbdVoiceCall => 'Röstsamtal';
+
+  @override
+  String get kbdVideoCall => 'Videosamtal';
+
+  @override
+  String get kbdSend => 'Skicka';
+
+  @override
+  String get kbdNewline => 'Ny rad';
+
+  @override
+  String get kbdEditLast => 'Redigera ditt senaste meddelande';
+
+  @override
+  String get kbdBold => 'Fet';
+
+  @override
+  String get kbdItalic => 'Kursiv';
+
+  @override
+  String get kbdUnderline => 'Understruken';
+
+  @override
+  String get kbdPasteMedia => 'Klistra in en bild eller fil';
+
+  @override
+  String get kbdEmoji => 'Emojier och klistermärken';
+
+  @override
+  String get kbdViewerPrevious => 'Föregående';
+
+  @override
+  String get kbdViewerNext => 'Nästa';
+
+  @override
+  String get kbdZoomIn => 'Zooma in';
+
+  @override
+  String get kbdZoomOut => 'Zooma ut';
+
+  @override
+  String get kbdZoomFit => 'Anpassa till fönster';
+
+  @override
+  String get kbdPlayPause => 'Spela upp eller pausa';
+
+  @override
+  String get kbdCopyMedia => 'Kopiera';
+
+  @override
+  String get kbdSaveMedia => 'Spara';
+
+  @override
+  String get kbdToggleMute => 'Mikrofon av eller på';
+
+  @override
+  String get kbdToggleCamera => 'Kamera på eller av';
+
+  @override
+  String get kbdHangUp => 'Lägg på';
+
+  @override
+  String get kbdPanelTitle => 'Kortkommandon';
+
+  @override
+  String get kbdPanelSearchHint => 'Sök kortkommandon';
+
+  @override
+  String get kbdPanelEmpty => 'Inga kortkommandon matchar';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'Håll ned $key när som helst för att se kortkommandona för skärmen du är på';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return 'Visa kortkommandon när du håller ned $key';
+  }
+
+  @override
+  String get kbdPaletteHint => 'Hoppa till en chatt eller kör ett kommando';
+
+  @override
+  String get kbdPaletteChats => 'Chattar';
+
+  @override
+  String get kbdPaletteCommands => 'Kommandon';
+
+  @override
+  String get kbdPaletteEmpty => 'Inget hittades';
+
+  @override
+  String get kbdPaletteMove => 'Flytta';
+
+  @override
+  String get kbdPaletteOpen => 'Öppna';
+
+  @override
+  String get kbdPaletteClose => 'Stäng';
+
+  @override
+  String get msgDeskReactLabel => 'Reagera';
+
+  @override
+  String get msgDeskMoreLabel => 'Mer';
+
+  @override
+  String get msgDeskInfoLabel => 'Info';
+
+  @override
+  String get kbdSeekBackward => 'Bakåt 5 sekunder';
+
+  @override
+  String get kbdSeekForward => 'Framåt 5 sekunder';
+
+  @override
+  String get kbdMuteVideo => 'Videoljud av eller på';
+
+  @override
+  String get viewerSavedToDownloads => 'Sparat i Hämtade filer';
+
+  @override
+  String get viewerDownloaded => 'Hämtat';
+
+  @override
+  String get viewerShowInFinder => 'Visa i Finder';
+
+  @override
+  String get viewerShowInFolder => 'Visa i mapp';
+
+  @override
+  String get viewerCopied => 'Kopierat';
+
+  @override
+  String get viewerCopyFailed => 'Kunde inte kopiera det';
+
+  @override
+  String get hoverCompactLayoutTitle => 'Kompakt layout';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'Lägre rader och mindre knappar, anpassade för mus och stor skärm.';
+
+  @override
+  String get layoutPagerPrevious => 'Föregående';
+
+  @override
+  String get layoutPagerNext => 'Nästa';
 }

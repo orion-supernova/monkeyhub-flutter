@@ -25,6 +25,7 @@ import 'diagnostics/diag_event_row.dart';
 import 'diagnostics/diag_filter_sheet.dart';
 import 'diagnostics/diag_palette.dart';
 import '../widgets/filter_capsule.dart';
+import '../widgets/desktop_scroll.dart';
 
 /// The captured timeline.
 ///
@@ -613,39 +614,41 @@ class _QuickCats extends StatelessWidget {
         MediaQuery.textScalerOf(context).scale(32).clamp(32.0, 56.0);
     return SizedBox(
       height: height,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _CatChip(
-              label: l10n.diagAll,
-              count: total,
-              on: selected.isEmpty,
-              onTap: onAll,
-            ),
-            // A rule, so All reads as the reset it is rather than as one more
-            // category sitting alongside the others.
-            Container(
-              width: 0.5,
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              color: theme.divider,
-            ),
-            for (final e in present) ...[
+      child: HorizontalWheelScroll(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               _CatChip(
-                label: diagCategoryLabel(l10n, e.key),
-                count: e.value,
-                colour: DiagPalette.cat(e.key),
-                on: selected.contains(e.key),
-                hidden: hidden.contains(e.key),
-                onTap: () => onToggle(e.key),
-                onLongPress: () => onHide(e.key),
+                label: l10n.diagAll,
+                count: total,
+                on: selected.isEmpty,
+                onTap: onAll,
               ),
-              const SizedBox(width: 6),
+              // A rule, so All reads as the reset it is rather than as one more
+              // category sitting alongside the others.
+              Container(
+                width: 0.5,
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                color: theme.divider,
+              ),
+              for (final e in present) ...[
+                _CatChip(
+                  label: diagCategoryLabel(l10n, e.key),
+                  count: e.value,
+                  colour: DiagPalette.cat(e.key),
+                  on: selected.contains(e.key),
+                  hidden: hidden.contains(e.key),
+                  onTap: () => onToggle(e.key),
+                  onLongPress: () => onHide(e.key),
+                ),
+                const SizedBox(width: 6),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

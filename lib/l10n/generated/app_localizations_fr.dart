@@ -11957,4 +11957,221 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'Général';
+
+  @override
+  String get kbdGroupNavigation => 'Navigation';
+
+  @override
+  String get kbdGroupChat => 'Dans une discussion';
+
+  @override
+  String get kbdGroupComposer => 'Rédaction';
+
+  @override
+  String get kbdGroupViewer => 'Photos et vidéos';
+
+  @override
+  String get kbdGroupCall => 'Appels';
+
+  @override
+  String get kbdCommandPalette => 'Rechercher des discussions et commandes';
+
+  @override
+  String get kbdShowShortcuts => 'Raccourcis clavier';
+
+  @override
+  String get kbdSearch => 'Rechercher';
+
+  @override
+  String get kbdNewChat => 'Nouvelle discussion';
+
+  @override
+  String get kbdSettings => 'Réglages';
+
+  @override
+  String get kbdBack => 'Revenir ou fermer';
+
+  @override
+  String kbdGoTo(String section) {
+    return 'Aller à $section';
+  }
+
+  @override
+  String get kbdNextChat => 'Discussion suivante';
+
+  @override
+  String get kbdPreviousChat => 'Discussion précédente';
+
+  @override
+  String get kbdNextUnread => 'Discussion non lue suivante';
+
+  @override
+  String get kbdCloseChat => 'Fermer la discussion';
+
+  @override
+  String get kbdRoomInfo => 'Infos de la discussion';
+
+  @override
+  String get kbdSearchInChat => 'Rechercher dans cette discussion';
+
+  @override
+  String get kbdJumpToLatest => 'Aller au dernier message';
+
+  @override
+  String get kbdAttach => 'Joindre des fichiers';
+
+  @override
+  String get kbdVoiceCall => 'Appel vocal';
+
+  @override
+  String get kbdVideoCall => 'Appel vidéo';
+
+  @override
+  String get kbdSend => 'Envoyer';
+
+  @override
+  String get kbdNewline => 'Nouvelle ligne';
+
+  @override
+  String get kbdEditLast => 'Modifier ton dernier message';
+
+  @override
+  String get kbdBold => 'Gras';
+
+  @override
+  String get kbdItalic => 'Italique';
+
+  @override
+  String get kbdUnderline => 'Souligné';
+
+  @override
+  String get kbdPasteMedia => 'Coller une photo ou un fichier';
+
+  @override
+  String get kbdEmoji => 'Emojis et stickers';
+
+  @override
+  String get kbdViewerPrevious => 'Précédent';
+
+  @override
+  String get kbdViewerNext => 'Suivant';
+
+  @override
+  String get kbdZoomIn => 'Zoom avant';
+
+  @override
+  String get kbdZoomOut => 'Zoom arrière';
+
+  @override
+  String get kbdZoomFit => 'Ajuster à la fenêtre';
+
+  @override
+  String get kbdPlayPause => 'Lecture ou pause';
+
+  @override
+  String get kbdCopyMedia => 'Copier';
+
+  @override
+  String get kbdSaveMedia => 'Enregistrer';
+
+  @override
+  String get kbdToggleMute => 'Couper ou activer le micro';
+
+  @override
+  String get kbdToggleCamera => 'Activer ou couper la caméra';
+
+  @override
+  String get kbdHangUp => 'Raccrocher';
+
+  @override
+  String get kbdPanelTitle => 'Raccourcis clavier';
+
+  @override
+  String get kbdPanelSearchHint => 'Rechercher un raccourci';
+
+  @override
+  String get kbdPanelEmpty => 'Aucun raccourci trouvé';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'Maintiens $key à tout moment pour voir les raccourcis de l’écran actuel';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return 'Afficher les raccourcis en maintenant $key';
+  }
+
+  @override
+  String get kbdPaletteHint => 'Ouvrir une discussion ou lancer une commande';
+
+  @override
+  String get kbdPaletteChats => 'Discussions';
+
+  @override
+  String get kbdPaletteCommands => 'Commandes';
+
+  @override
+  String get kbdPaletteEmpty => 'Aucun résultat';
+
+  @override
+  String get kbdPaletteMove => 'Naviguer';
+
+  @override
+  String get kbdPaletteOpen => 'Ouvrir';
+
+  @override
+  String get kbdPaletteClose => 'Fermer';
+
+  @override
+  String get msgDeskReactLabel => 'Réagir';
+
+  @override
+  String get msgDeskMoreLabel => 'Plus';
+
+  @override
+  String get msgDeskInfoLabel => 'Infos';
+
+  @override
+  String get kbdSeekBackward => 'Reculer de 5 secondes';
+
+  @override
+  String get kbdSeekForward => 'Avancer de 5 secondes';
+
+  @override
+  String get kbdMuteVideo => 'Couper ou activer le son de la vidéo';
+
+  @override
+  String get viewerSavedToDownloads => 'Enregistré dans Téléchargements';
+
+  @override
+  String get viewerDownloaded => 'Téléchargé';
+
+  @override
+  String get viewerShowInFinder => 'Afficher dans le Finder';
+
+  @override
+  String get viewerShowInFolder => 'Afficher dans le dossier';
+
+  @override
+  String get viewerCopied => 'Copié';
+
+  @override
+  String get viewerCopyFailed => 'Impossible de copier';
+
+  @override
+  String get hoverCompactLayoutTitle => 'Disposition compacte';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'Lignes plus basses et boutons plus petits, adaptés à une souris et un grand écran.';
+
+  @override
+  String get layoutPagerPrevious => 'Précédent';
+
+  @override
+  String get layoutPagerNext => 'Suivant';
 }

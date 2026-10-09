@@ -11908,6 +11908,223 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'Geral';
+
+  @override
+  String get kbdGroupNavigation => 'Navegação';
+
+  @override
+  String get kbdGroupChat => 'Numa conversa';
+
+  @override
+  String get kbdGroupComposer => 'Escrita';
+
+  @override
+  String get kbdGroupViewer => 'Fotos e vídeos';
+
+  @override
+  String get kbdGroupCall => 'Chamadas';
+
+  @override
+  String get kbdCommandPalette => 'Pesquisar conversas e comandos';
+
+  @override
+  String get kbdShowShortcuts => 'Atalhos de teclado';
+
+  @override
+  String get kbdSearch => 'Pesquisar';
+
+  @override
+  String get kbdNewChat => 'Nova conversa';
+
+  @override
+  String get kbdSettings => 'Definições';
+
+  @override
+  String get kbdBack => 'Voltar ou fechar';
+
+  @override
+  String kbdGoTo(String section) {
+    return 'Ir para $section';
+  }
+
+  @override
+  String get kbdNextChat => 'Conversa seguinte';
+
+  @override
+  String get kbdPreviousChat => 'Conversa anterior';
+
+  @override
+  String get kbdNextUnread => 'Conversa não lida seguinte';
+
+  @override
+  String get kbdCloseChat => 'Fechar conversa';
+
+  @override
+  String get kbdRoomInfo => 'Informações da conversa';
+
+  @override
+  String get kbdSearchInChat => 'Pesquisar nesta conversa';
+
+  @override
+  String get kbdJumpToLatest => 'Saltar para a última mensagem';
+
+  @override
+  String get kbdAttach => 'Anexar ficheiros';
+
+  @override
+  String get kbdVoiceCall => 'Chamada de voz';
+
+  @override
+  String get kbdVideoCall => 'Videochamada';
+
+  @override
+  String get kbdSend => 'Enviar';
+
+  @override
+  String get kbdNewline => 'Nova linha';
+
+  @override
+  String get kbdEditLast => 'Editar a tua última mensagem';
+
+  @override
+  String get kbdBold => 'Negrito';
+
+  @override
+  String get kbdItalic => 'Itálico';
+
+  @override
+  String get kbdUnderline => 'Sublinhado';
+
+  @override
+  String get kbdPasteMedia => 'Colar uma foto ou ficheiro';
+
+  @override
+  String get kbdEmoji => 'Emojis e autocolantes';
+
+  @override
+  String get kbdViewerPrevious => 'Anterior';
+
+  @override
+  String get kbdViewerNext => 'Seguinte';
+
+  @override
+  String get kbdZoomIn => 'Ampliar';
+
+  @override
+  String get kbdZoomOut => 'Reduzir';
+
+  @override
+  String get kbdZoomFit => 'Ajustar à janela';
+
+  @override
+  String get kbdPlayPause => 'Reproduzir ou pausar';
+
+  @override
+  String get kbdCopyMedia => 'Copiar';
+
+  @override
+  String get kbdSaveMedia => 'Guardar';
+
+  @override
+  String get kbdToggleMute => 'Silenciar ou ativar o microfone';
+
+  @override
+  String get kbdToggleCamera => 'Ligar ou desligar a câmara';
+
+  @override
+  String get kbdHangUp => 'Desligar';
+
+  @override
+  String get kbdPanelTitle => 'Atalhos de teclado';
+
+  @override
+  String get kbdPanelSearchHint => 'Pesquisar atalhos';
+
+  @override
+  String get kbdPanelEmpty => 'Nenhum atalho corresponde';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'Mantém $key premida a qualquer momento para ver os atalhos deste ecrã';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return 'Mostrar atalhos ao manter $key premida';
+  }
+
+  @override
+  String get kbdPaletteHint => 'Ir para uma conversa ou executar um comando';
+
+  @override
+  String get kbdPaletteChats => 'Conversas';
+
+  @override
+  String get kbdPaletteCommands => 'Comandos';
+
+  @override
+  String get kbdPaletteEmpty => 'Nada encontrado';
+
+  @override
+  String get kbdPaletteMove => 'Navegar';
+
+  @override
+  String get kbdPaletteOpen => 'Abrir';
+
+  @override
+  String get kbdPaletteClose => 'Fechar';
+
+  @override
+  String get msgDeskReactLabel => 'Reagir';
+
+  @override
+  String get msgDeskMoreLabel => 'Mais';
+
+  @override
+  String get msgDeskInfoLabel => 'Info';
+
+  @override
+  String get kbdSeekBackward => 'Recuar 5 segundos';
+
+  @override
+  String get kbdSeekForward => 'Avançar 5 segundos';
+
+  @override
+  String get kbdMuteVideo => 'Silenciar ou ativar o som do vídeo';
+
+  @override
+  String get viewerSavedToDownloads => 'Guardado em Transferências';
+
+  @override
+  String get viewerDownloaded => 'Transferido';
+
+  @override
+  String get viewerShowInFinder => 'Mostrar no Finder';
+
+  @override
+  String get viewerShowInFolder => 'Mostrar na pasta';
+
+  @override
+  String get viewerCopied => 'Copiado';
+
+  @override
+  String get viewerCopyFailed => 'Não foi possível copiar';
+
+  @override
+  String get hoverCompactLayoutTitle => 'Esquema compacto';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'Linhas mais baixas e botões mais pequenos, pensados para rato e ecrã grande.';
+
+  @override
+  String get layoutPagerPrevious => 'Anterior';
+
+  @override
+  String get layoutPagerNext => 'Seguinte';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -23800,4 +24017,221 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'Geral';
+
+  @override
+  String get kbdGroupNavigation => 'Navegação';
+
+  @override
+  String get kbdGroupChat => 'Em uma conversa';
+
+  @override
+  String get kbdGroupComposer => 'Escrita';
+
+  @override
+  String get kbdGroupViewer => 'Fotos e vídeos';
+
+  @override
+  String get kbdGroupCall => 'Chamadas';
+
+  @override
+  String get kbdCommandPalette => 'Buscar conversas e comandos';
+
+  @override
+  String get kbdShowShortcuts => 'Atalhos de teclado';
+
+  @override
+  String get kbdSearch => 'Buscar';
+
+  @override
+  String get kbdNewChat => 'Nova conversa';
+
+  @override
+  String get kbdSettings => 'Configurações';
+
+  @override
+  String get kbdBack => 'Voltar ou fechar';
+
+  @override
+  String kbdGoTo(String section) {
+    return 'Ir para $section';
+  }
+
+  @override
+  String get kbdNextChat => 'Próxima conversa';
+
+  @override
+  String get kbdPreviousChat => 'Conversa anterior';
+
+  @override
+  String get kbdNextUnread => 'Próxima conversa não lida';
+
+  @override
+  String get kbdCloseChat => 'Fechar conversa';
+
+  @override
+  String get kbdRoomInfo => 'Informações da conversa';
+
+  @override
+  String get kbdSearchInChat => 'Buscar nesta conversa';
+
+  @override
+  String get kbdJumpToLatest => 'Ir para a última mensagem';
+
+  @override
+  String get kbdAttach => 'Anexar arquivos';
+
+  @override
+  String get kbdVoiceCall => 'Chamada de voz';
+
+  @override
+  String get kbdVideoCall => 'Chamada de vídeo';
+
+  @override
+  String get kbdSend => 'Enviar';
+
+  @override
+  String get kbdNewline => 'Nova linha';
+
+  @override
+  String get kbdEditLast => 'Editar sua última mensagem';
+
+  @override
+  String get kbdBold => 'Negrito';
+
+  @override
+  String get kbdItalic => 'Itálico';
+
+  @override
+  String get kbdUnderline => 'Sublinhado';
+
+  @override
+  String get kbdPasteMedia => 'Colar uma foto ou arquivo';
+
+  @override
+  String get kbdEmoji => 'Emojis e figurinhas';
+
+  @override
+  String get kbdViewerPrevious => 'Anterior';
+
+  @override
+  String get kbdViewerNext => 'Próximo';
+
+  @override
+  String get kbdZoomIn => 'Ampliar';
+
+  @override
+  String get kbdZoomOut => 'Reduzir';
+
+  @override
+  String get kbdZoomFit => 'Ajustar à janela';
+
+  @override
+  String get kbdPlayPause => 'Reproduzir ou pausar';
+
+  @override
+  String get kbdCopyMedia => 'Copiar';
+
+  @override
+  String get kbdSaveMedia => 'Salvar';
+
+  @override
+  String get kbdToggleMute => 'Ativar ou desativar o microfone';
+
+  @override
+  String get kbdToggleCamera => 'Ligar ou desligar a câmera';
+
+  @override
+  String get kbdHangUp => 'Desligar';
+
+  @override
+  String get kbdPanelTitle => 'Atalhos de teclado';
+
+  @override
+  String get kbdPanelSearchHint => 'Buscar atalhos';
+
+  @override
+  String get kbdPanelEmpty => 'Nenhum atalho encontrado';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'Segure $key a qualquer momento para ver os atalhos desta tela';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return 'Mostrar atalhos ao segurar $key';
+  }
+
+  @override
+  String get kbdPaletteHint => 'Ir para uma conversa ou executar um comando';
+
+  @override
+  String get kbdPaletteChats => 'Conversas';
+
+  @override
+  String get kbdPaletteCommands => 'Comandos';
+
+  @override
+  String get kbdPaletteEmpty => 'Nada encontrado';
+
+  @override
+  String get kbdPaletteMove => 'Navegar';
+
+  @override
+  String get kbdPaletteOpen => 'Abrir';
+
+  @override
+  String get kbdPaletteClose => 'Fechar';
+
+  @override
+  String get msgDeskReactLabel => 'Reagir';
+
+  @override
+  String get msgDeskMoreLabel => 'Mais';
+
+  @override
+  String get msgDeskInfoLabel => 'Info';
+
+  @override
+  String get kbdSeekBackward => 'Voltar 5 segundos';
+
+  @override
+  String get kbdSeekForward => 'Avançar 5 segundos';
+
+  @override
+  String get kbdMuteVideo => 'Ativar ou desativar o som do vídeo';
+
+  @override
+  String get viewerSavedToDownloads => 'Salvo em Downloads';
+
+  @override
+  String get viewerDownloaded => 'Baixado';
+
+  @override
+  String get viewerShowInFinder => 'Mostrar no Finder';
+
+  @override
+  String get viewerShowInFolder => 'Mostrar na pasta';
+
+  @override
+  String get viewerCopied => 'Copiado';
+
+  @override
+  String get viewerCopyFailed => 'Não deu pra copiar';
+
+  @override
+  String get hoverCompactLayoutTitle => 'Layout compacto';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'Linhas mais baixas e botões menores, pensados para mouse e tela grande.';
+
+  @override
+  String get layoutPagerPrevious => 'Anterior';
+
+  @override
+  String get layoutPagerNext => 'Próximo';
 }

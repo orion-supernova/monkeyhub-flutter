@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
+import '../theme/density.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
@@ -252,6 +253,7 @@ class GroupedSection extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final rows = children;
     final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
+    final density = Density.of(context);
     return Padding(
       padding: margin,
       child: Column(
@@ -275,7 +277,9 @@ class GroupedSection extends StatelessWidget {
                     rows[i],
                     if (i < rows.length - 1)
                       Padding(
-                        padding: EdgeInsets.only(left: _dividerInset(rows[i])),
+                        padding: EdgeInsets.only(
+                          left: groupedDividerInset(rows[i], density),
+                        ),
                         child: Container(
                           height: hairline,
                           color: theme.ink.withValues(alpha: 0.10),
@@ -295,8 +299,6 @@ class GroupedSection extends StatelessWidget {
       ),
     );
   }
-
-  static double _dividerInset(Widget row) => groupedDividerInset(row);
 }
 
 // ── The settings type scale ─────────────────────────────────────────────
@@ -378,10 +380,11 @@ abstract interface class GroupedInsetRow {
 
 /// Where the hairline under [row] starts inside a grouped block: under the
 /// text, past a row's tile or avatar. Shared by [GroupedSection] and
-/// `SheetGroup`.
-double groupedDividerInset(Widget row) {
+/// `SheetGroup`. Pass the context's [Density] so a compact row's hairline
+/// starts where its smaller tile puts the text.
+double groupedDividerInset(Widget row, [Density density = Density.regular]) {
   if (row is GroupedInsetRow) return (row as GroupedInsetRow).groupedInset;
-  if (row is GroupedRow && row.icon != null) return 60;
+  if (row is GroupedRow && row.icon != null) return density.groupedTextInset;
   if (row is PersonRow) {
     return kPersonRowTextInset + (row.lead != null ? kPersonRowLead : 0);
   }
@@ -481,6 +484,8 @@ Color tileColor(AppTheme theme, TileTone tone) => switch (tone) {
 
 /// The height of a one-line [GroupedRow] — and the floor every grouped row
 /// (a hub row with a custom leading, an `InsetGroup` row) should share.
+/// The phone value; a row that can read context wants
+/// `Density.of(context).groupedRowMinHeight`, which is 40 on desktop.
 const double kGroupedRowMinHeight = 52;
 
 /// One row in a [GroupedSection].
@@ -589,20 +594,30 @@ class _GroupedRowState extends State<GroupedRow>
     final showChevron =
         w.chevron ?? (tappable && w.trailing == null && !w.destructive);
     final titleColor = w.destructive ? theme.danger : theme.ink;
+    final density = Density.of(context);
 
     // iOS 26 Settings density: a one-line row is 52pt (11 + a 30pt tile +
     // 11). At 48 with 7pt padding the tile all but touched the hairlines and
     // the hub read cramped. Text starts at 16 + 30 + 14 = 60, where the
-    // hairline does.
+    // hairline does. Under a mouse ([Density.compact]) it is 40: 7 + 26 + 7,
+    // text at 54, the macOS Settings row.
     final row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: kGroupedRowMinHeight),
+      constraints: BoxConstraints(minHeight: density.groupedRowMinHeight),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
+        padding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: density.groupedRowPadding,
+        ),
         child: Row(
           children: [
             if (w.icon != null) ...[
-              ToneTile(icon: w.icon!, tone: w.tone, destructive: w.destructive),
-              const SizedBox(width: 14),
+              ToneTile(
+                icon: w.icon!,
+                tone: w.tone,
+                destructive: w.destructive,
+                size: density.groupedTile,
+              ),
+              SizedBox(width: density.groupedTileGap),
             ],
             Expanded(
               child: _TitleValue(
@@ -638,6 +653,9 @@ class _GroupedRowState extends State<GroupedRow>
     return FocusableTap(
       onTap: w.onTap,
       semanticLabel: w.title,
+      // Square: the grouped block's own clip rounds the first and last row.
+      hover: HoverEffect.tint,
+      hoverRadius: 0,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _set(true),
@@ -990,6 +1008,7 @@ class PersonRow extends StatelessWidget {
       onLongPress: enabled ? onLongPress : null,
       scale: 0.98,
       haptic: false,
+      hoverRadius: 0,
       semanticLabel: semanticLabel ?? title,
       child: ColoredBox(color: Colors.transparent, child: body),
     );

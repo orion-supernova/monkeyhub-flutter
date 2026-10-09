@@ -16,6 +16,7 @@ import 'adaptive_sheet.dart';
 import 'search_field.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
+import 'desktop_scroll.dart';
 
 /// Height of the resting search bar under the grid, before safe-area padding.
 const double _searchBarHeight = 44;
@@ -590,48 +591,50 @@ class _YoursStrip extends StatelessWidget {
           ),
           SizedBox(
             height: 38,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                for (final e in selected)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: FocusableTap(
-                      onTap: () => _takeBack(context, e),
-                      semanticLabel: l10n.reactionPickerTakeBackSemantic(e),
-                      selected: true,
-                      shape: FocusRingShape.capsule,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
+            child: HorizontalWheelScroll(
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  for (final e in selected)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: FocusableTap(
                         onTap: () => _takeBack(context, e),
-                        // The same accent wash the quick pill's selected disc
-                        // wears, so "this one is yours" reads the same in both.
-                        child: Container(
-                          height: 38,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: theme.accent.withValues(alpha: 0.22),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(e, style: const TextStyle(fontSize: 22)),
-                              const SizedBox(width: 6),
-                              Icon(
-                                CupertinoIcons.xmark,
-                                size: 12,
-                                color: theme.inkSoft,
-                              ),
-                            ],
+                        semanticLabel: l10n.reactionPickerTakeBackSemantic(e),
+                        selected: true,
+                        shape: FocusRingShape.capsule,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _takeBack(context, e),
+                          // The same accent wash the quick pill's selected disc
+                          // wears, so "this one is yours" reads the same in both.
+                          child: Container(
+                            height: 38,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: theme.accent.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(e, style: const TextStyle(fontSize: 22)),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  CupertinoIcons.xmark,
+                                  size: 12,
+                                  color: theme.inkSoft,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import '../platform.dart';
+
 /// Responsive layout foundation.
 ///
 /// The app is otherwise mobile-first; this file introduces the single
@@ -21,7 +23,8 @@ enum WindowClass {
   compact,
 
   /// Tablet / split window. Content centers into a readable column; some grids
-  /// gain a column. No two-pane yet.
+  /// gain a column. Two-pane only on a pointer-first platform from
+  /// [Breakpoints.split] up — ask [LayoutX.usesSplitShell], not this.
   medium,
 
   /// Desktop / wide window. Side rail + two-pane master/detail.
@@ -42,7 +45,37 @@ class Breakpoints {
       : width >= medium
           ? WindowClass.medium
           : WindowClass.compact;
+
+  /// Narrowest window that gets the side rail + split shell on a platform
+  /// where it is the native shape (see [splitShellFor]). Below it a desktop
+  /// browser tab falls back to the phone chrome: at 720 the rail (84) and the
+  /// narrowest chat list (280) still leave a room as wide as a phone, and any
+  /// narrower would squeeze the room under one.
+  ///
+  /// The native desktop runners floor their windows at 760 (MainFlutterWindow
+  /// .swift, win32_window.cpp, my_application.cc), so a desktop app is never
+  /// below this and never sees the phone shell at all.
+  static const double split = 720;
+
+  /// Whether a [width]-wide window shows the side rail + split panes (rather
+  /// than the phone's bottom nav and full-screen pushes).
+  ///
+  /// Always at [expanded]. Between [split] and [expanded] only where a mouse
+  /// and keyboard are the primary input: a desktop app or a desktop browser
+  /// in a half-screen window wants a desktop app's shape, while a tablet or a
+  /// foldable in that band keeps the touch chrome it has always had.
+  static bool splitShellFor(double width) =>
+      width >= expanded || (width >= split && prefersSplitShellPlatform);
 }
+
+/// Pointer-first platforms, where the split shell starts at
+/// [Breakpoints.split] instead of [Breakpoints.expanded].
+///
+/// Exactly [isPhysicalKeyboardPlatform]: on web it follows the browser's user
+/// agent, so a desktop browser opts in and a phone or Android tablet stays
+/// out. A getter, not a const, so a test can flip it with
+/// `debugDefaultTargetPlatformOverride`.
+bool get prefersSplitShellPlatform => isPhysicalKeyboardPlatform;
 
 /// Bottom padding for the scroller on a screen that runs edge to edge.
 ///
@@ -144,6 +177,12 @@ class ContentWidth {
 /// descendant context. Updated synchronously during the shell's build.
 WindowClass gLastWindowClass = WindowClass.compact;
 
+/// Same mirror as [gLastWindowClass] for [LayoutX.usesSplitShell], for the
+/// same callers: "is there a chat pane to fill, or must this push?" is a
+/// question about the shell on screen, and from [Breakpoints.split] up on a
+/// desktop that is the split shell even though the class is still medium.
+bool gLastSplitShell = false;
+
 /// Publishes the current [WindowClass] to the subtree. One instance, created by
 /// [HomeShell]. Mirrors the `ThemeScope.of(context)` idiom used across the app.
 class LayoutScope extends InheritedWidget {
@@ -160,17 +199,28 @@ class LayoutScope extends InheritedWidget {
   /// max). Prefer [windowClass] — reading width couples you to resize frames.
   final double width;
 
+  /// Whether this window shows the side rail + split panes. Derived from
+  /// [width] rather than passed in, so the one place that builds this scope
+  /// cannot hand it a pair that disagree. See [Breakpoints.splitShellFor].
+  bool get splitShell => Breakpoints.splitShellFor(width);
+
   static WindowClass of(BuildContext context) =>
       context
           .dependOnInheritedWidgetOfExactType<LayoutScope>()
           ?.windowClass ??
       WindowClass.compact;
 
-  /// Only rebuild dependents when the *class* flips, not on every pixel of a
-  /// drag-resize. This is the load-bearing perf decision of the whole redesign.
+  static bool splitShellOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<LayoutScope>()?.splitShell ??
+      false;
+
+  /// Only rebuild dependents when the *class* (or the shell it implies) flips,
+  /// not on every pixel of a drag-resize. This is the load-bearing perf
+  /// decision of the whole redesign.
   @override
   bool updateShouldNotify(LayoutScope oldWidget) =>
-      oldWidget.windowClass != windowClass;
+      oldWidget.windowClass != windowClass ||
+      oldWidget.splitShell != splitShell;
 }
 
 extension LayoutX on BuildContext {
@@ -178,6 +228,17 @@ extension LayoutX on BuildContext {
   bool get isCompact => windowClass == WindowClass.compact;
   bool get isMedium => windowClass == WindowClass.medium;
   bool get isExpanded => windowClass == WindowClass.expanded;
+
+  /// The shell on screen is the side rail + split panes, so a room opens into
+  /// the chat pane and a settings page into the settings pane rather than as a
+  /// full-screen push.
+  ///
+  /// Use THIS, not [isExpanded], for every "fill a pane or push a route"
+  /// decision: on a desktop it is also true for a medium window (see
+  /// [Breakpoints.split]), and a decision keyed off [isExpanded] would push a
+  /// phone-shaped page over the rail there. [isExpanded] stays the right
+  /// question for how much content fits — a two-column feed, a wider grid.
+  bool get usesSplitShell => LayoutScope.splitShellOf(this);
 }
 
 /// Max width for a chat message bubble.

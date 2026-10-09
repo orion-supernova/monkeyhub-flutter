@@ -47,20 +47,23 @@ const double kFloatingNavClearance = 110;
 
 /// Bottom padding a scrolling section needs at the current window class.
 ///
-/// [kFloatingNavClearance] only means something on compact, where the pill
-/// floats over the bottom of the content. Medium and expanded windows swap it
-/// for a persistent side rail that sits beside the content rather than over
-/// it, so the same clearance there was just 110pt of dead air under the last
-/// row — use a plain footer gap instead, matching the screens (Discover's
-/// full-list pages, the games hub, …) that never had a floating nav to clear
-/// in the first place.
+/// [kFloatingNavClearance] only means something in the phone shell, where the
+/// pill floats over the bottom of the content. The split shell (see
+/// [LayoutX.usesSplitShell]) swaps it for a persistent side rail that sits
+/// beside the content rather than over it, so the same clearance there was
+/// just 110pt of dead air under the last row — use a plain footer gap instead,
+/// matching the screens (Discover's full-list pages, the games hub, …) that
+/// never had a floating nav to clear in the first place.
+///
+/// Keyed off the shell rather than the window class: a tablet's medium window
+/// still has the floating pill, and a desktop's medium window does not.
 ///
 /// Plus whatever of the bottom inset the pill has to climb over beyond the
 /// indicator — nothing on a gesture phone, the whole button bar on Android's
 /// 3-button navigation. The pill rises by exactly that much (see
 /// [navBottomKeepOut]), so a fixed clearance left the last row behind it.
 double sectionBottomPadding(BuildContext context) {
-  if (!context.isCompact) return 40;
+  if (context.usesSplitShell) return 40;
   final inset = MediaQuery.viewPaddingOf(context).bottom;
   final extra = navBottomKeepOut(inset) - kIndicatorKeepOut;
   return kFloatingNavClearance + (extra > 0 ? extra : 0);

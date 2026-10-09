@@ -191,11 +191,17 @@ class VideoPlayerSurface extends StatefulWidget {
     required this.storageId,
     this.posterStorageId,
     this.autoplay = true,
+    this.onController,
   });
 
   final ChatApi api;
   final String? storageId;
   final String? posterStorageId;
+
+  /// Hears the controller once it is playing, and null when it goes, so the
+  /// fullscreen viewer can bind Space, ← → and M to it on a desk. The
+  /// surface still owns it: never dispose what this hands you.
+  final ValueChanged<VideoPlayerController?>? onController;
 
   /// Starts playback the instant the controller is ready. On, because both
   /// call sites are a direct response to a tap that asked to watch this —
@@ -251,6 +257,7 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
   }
 
   void _disposeController() {
+    if (_controller != null) widget.onController?.call(null);
     _controller?.removeListener(_onControllerTick);
     _controller?.dispose();
     _controller = null;
@@ -316,6 +323,7 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
         _controller = c;
         _phase = _SurfacePhase.ready;
       });
+      widget.onController?.call(c);
     } on FileUnavailable {
       if (!mounted || gen != _gen) return;
       setState(() => _phase = _SurfacePhase.unavailable);

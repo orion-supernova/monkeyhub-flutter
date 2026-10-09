@@ -227,12 +227,20 @@ class _Body extends StatelessWidget {
     // The label goes on a container node rather than on the monogram: what a
     // screen reader should hear is the strip, once, and then the action beside
     // it — not a decorative glyph competing with the button for attention.
+    //
+    // FocusableTap for the hand cursor, a Tab stop and the hover fill; it adds
+    // no gesture of its own, so the action's hit test still wins.
     Widget tappable = onTap == null
         ? content
-        : GestureDetector(
+        : FocusableTap(
             onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: content,
+            radius: glass ? _kGlassRadius : 0,
+            hover: HoverEffect.tint,
+            child: GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: content,
+            ),
           );
     if (semanticLabel != null) {
       tappable = Semantics(

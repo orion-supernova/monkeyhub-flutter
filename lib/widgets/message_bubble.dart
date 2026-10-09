@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SelectedContent;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
@@ -16,6 +18,7 @@ import '../keyboard/focusable_tap.dart';
 import '../media/media_aspect_cache.dart';
 import '../media/storage/auto_download.dart';
 import '../media/storage/media_ledger.dart';
+import '../platform.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
@@ -48,6 +51,7 @@ import 'translation_slab.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
 import 'message_departures.dart';
+import 'message_hover_actions.dart';
 import 'video_message.dart';
 import 'video_note_message.dart';
 import 'expressions/expression_bubble.dart';
@@ -63,6 +67,8 @@ class MessageBubble extends StatelessWidget {
     this.author,
     this.onLongPress,
     this.onDoubleTap,
+    this.onContextMenu,
+    this.hover,
     this.onReactionTap,
     this.onReactionLongPress,
     this.onAuthorTap,
@@ -165,6 +171,15 @@ class MessageBubble extends StatelessWidget {
   final ChatUser? author;
   final VoidCallback? onLongPress;
   final VoidCallback? onDoubleTap;
+
+  /// A mouse's secondary click, at its global position: the compact pointer
+  /// menu rather than the long-press overlay. Null falls back to
+  /// [onLongPress], which is what a right-click did before there was one.
+  final void Function(Offset globalPosition)? onContextMenu;
+
+  /// What the hover strip offers for this bubble. Inert without a
+  /// [MessageHoverScope] above, so passing it costs a phone nothing.
+  final MessageHoverTarget? hover;
   final void Function(String emoji)? onReactionTap;
 
   /// Long-press a reaction chip to see who is behind that emoji.
@@ -437,6 +452,8 @@ class MessageBubble extends StatelessWidget {
         bubble: _BubbleGestureDetector(
           onLongPress: onLongPress,
           onDoubleTap: _contentHandlesTap(message) ? null : onDoubleTap,
+          onContextMenu: onContextMenu,
+          hover: hover,
           child: bubbleArea,
         ),
         // An album's chips are drawn on the tiles that earned them — a row
@@ -550,6 +567,8 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.author,
     this.onLongPress,
     this.onDoubleTap,
+    this.onContextMenu,
+    this.hover,
     this.onReactionTap,
     this.onReactionLongPress,
     this.onAuthorTap,
@@ -631,6 +650,15 @@ class EphemeralMessageBubble extends StatelessWidget {
   final ChatUser? author;
   final VoidCallback? onLongPress;
   final VoidCallback? onDoubleTap;
+
+  /// A mouse's secondary click, at its global position: the compact pointer
+  /// menu rather than the long-press overlay. Null falls back to
+  /// [onLongPress], which is what a right-click did before there was one.
+  final void Function(Offset globalPosition)? onContextMenu;
+
+  /// What the hover strip offers for this bubble. Inert without a
+  /// [MessageHoverScope] above, so passing it costs a phone nothing.
+  final MessageHoverTarget? hover;
   final void Function(String emoji)? onReactionTap;
 
   /// Long-press a reaction chip to see who is behind that emoji.
@@ -999,6 +1027,8 @@ class EphemeralMessageBubble extends StatelessWidget {
         bubble: _BubbleGestureDetector(
           onLongPress: onLongPress,
           onDoubleTap: _contentHandlesTap(message) ? null : onDoubleTap,
+          onContextMenu: onContextMenu,
+          hover: hover,
           child: bubbleArea,
         ),
         reactions: message.reactions.isNotEmpty && onReactionTap != null
@@ -1042,29 +1072,60 @@ bool _contentHandlesTap(ChatMessage message) => switch (message.type) {
   _ => true,
 };
 
-/// Long-press-for-reactions, double-tap, and right-click-mirrors-long-press
-/// on a single [child], with an explicit long-press duration. Plain
-/// [GestureDetector] has no hook for that duration, so this goes straight to
-/// the recognizers — see [_HorizontalRightDragRecognizer] in swipe_to_reply.dart
-/// for the same pattern.
+/// Long-press-for-reactions, double-tap, and right-click on a single [child],
+/// with an explicit long-press duration. Plain [GestureDetector] has no hook
+/// for that duration, so this goes straight to the recognizers — see
+/// [_HorizontalRightDragRecognizer] in swipe_to_reply.dart for the same
+/// pattern.
+///
+/// Three pointer rules, all inert on a phone:
+///
+///  * **Right-click** opens [onContextMenu] at the pointer, on mouse-DOWN, the
+///    way a Mac or Windows menu opens. It goes through
+///    [_SecondaryClickRecognizer], which claims the secondary button the
+///    moment it is pressed: a selectable text bubble has a [SelectionArea]
+///    inside it with its own right-click handling (select the word, show the
+///    text toolbar), and an eager claim is the one thing that beats a
+///    recognizer DEEPER in the tree. Without [onContextMenu] a right-click
+///    mirrors [onLongPress], as it always has.
+///  * **Long-press** does not answer a mouse on web/desktop: holding the
+///    button down there is the start of a text selection, and a menu blooming
+///    half a second into a drag-select is a menu nobody asked for.
+///  * **Double-tap** is off on physical-keyboard platforms. There a double
+///    click selects a word, and a pending double-tap recognizer also holds
+///    every single click on the bubble for the double-tap timeout.
 class _BubbleGestureDetector extends StatelessWidget {
   const _BubbleGestureDetector({
     required this.child,
     this.onLongPress,
     this.onDoubleTap,
+    this.onContextMenu,
+    this.hover,
   });
 
   final Widget child;
   final VoidCallback? onLongPress;
   final VoidCallback? onDoubleTap;
+  final void Function(Offset globalPosition)? onContextMenu;
+  final MessageHoverTarget? hover;
+
+  static final Set<PointerDeviceKind> _notMouse = {
+    for (final k in PointerDeviceKind.values)
+      if (k != PointerDeviceKind.mouse) k,
+  };
 
   @override
   Widget build(BuildContext context) {
-    return RawGestureDetector(
+    final onDoubleTap = isPhysicalKeyboardPlatform ? null : this.onDoubleTap;
+    final onContextMenu = this.onContextMenu;
+    final detector = RawGestureDetector(
       gestures: {
         LongPressGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-          () => LongPressGestureRecognizer(duration: kActionMenuLongPress),
+          () => LongPressGestureRecognizer(
+            duration: kActionMenuLongPress,
+            supportedDevices: isWebOrDesktop ? _notMouse : null,
+          ),
           (instance) => instance.onLongPress = onLongPress,
         ),
         if (onDoubleTap != null)
@@ -1073,18 +1134,78 @@ class _BubbleGestureDetector extends StatelessWidget {
             () => DoubleTapGestureRecognizer(),
             (instance) => instance.onDoubleTap = onDoubleTap,
           ),
-        TapGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-          () => TapGestureRecognizer(),
-          // Desktop/trackpad right-click opens the same action menu, anchored
-          // to the same bubble rect. No platform gate needed — touch devices
-          // never produce a secondary tap.
-          (instance) => instance.onSecondaryTap = onLongPress,
-        ),
+        if (onContextMenu != null)
+          _SecondaryClickRecognizer:
+              GestureRecognizerFactoryWithHandlers<_SecondaryClickRecognizer>(
+            () => _SecondaryClickRecognizer(),
+            (instance) => instance.onClick = onContextMenu,
+          )
+        else
+          TapGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+            () => TapGestureRecognizer(),
+            // Touch devices never produce a secondary tap, so this needs no
+            // platform gate.
+            (instance) => instance.onSecondaryTap = onLongPress,
+          ),
       },
       child: child,
     );
+    return MessageHoverRegion(target: hover, child: detector);
   }
+}
+
+/// Claims a mouse's secondary button on the way DOWN and reports where.
+///
+/// Eager on purpose. A recognizer that waits for the arena to sweep loses to
+/// any deeper one, and a [SelectionArea] inside a text bubble is deeper and
+/// wants the same button. Accepting at once also means it fires before the
+/// 100ms tap deadline, so the selection's own "right-click selects the word"
+/// never runs underneath the menu.
+class _SecondaryClickRecognizer extends OneSequenceGestureRecognizer {
+  _SecondaryClickRecognizer()
+      : super(supportedDevices: const {PointerDeviceKind.mouse});
+
+  void Function(Offset globalPosition)? onClick;
+  Offset? _down;
+
+  @override
+  bool isPointerAllowed(PointerDownEvent event) =>
+      event.buttons == kSecondaryMouseButton && super.isPointerAllowed(event);
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    _down = event.position;
+    resolve(GestureDisposition.accepted);
+  }
+
+  @override
+  void acceptGesture(int pointer) {
+    super.acceptGesture(pointer);
+    final at = _down;
+    _down = null;
+    if (at != null) onClick?.call(at);
+  }
+
+  @override
+  void rejectGesture(int pointer) {
+    super.rejectGesture(pointer);
+    _down = null;
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      stopTrackingPointer(event.pointer);
+    }
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
+
+  @override
+  String get debugDescription => 'secondary click';
 }
 
 /// The name label bracketing a run from above — rendered either at the top of
@@ -1974,6 +2095,10 @@ Widget buildMessageContent({
         theme: theme,
         message: message,
         isMine: isMine,
+        // Never a Chamber of Secrets message or a view-once one: both are
+        // things the sender chose NOT to leave lying around, and a selection
+        // is one ⌘C away from a copy. Spoilers are refused inside, per text.
+        selectable: !ephemeral && !message.viewOnce,
         quote: quote,
         decoration: deco,
         stamp: stampFor(bubbleTone),
@@ -3205,11 +3330,16 @@ class _LinkAwareBubble extends StatelessWidget {
     this.currentUserId,
     this.onMentionTap,
     this.mentionTint,
+    this.selectable = false,
   });
 
   final AppTheme theme;
   final ChatMessage message;
   final bool isMine;
+
+  /// Whether the words may be drag-selected on a pointer platform. See
+  /// [_SelectableMessageText] for what else has to hold.
+  final bool selectable;
   final String? currentUserId;
   final void Function(String userId)? onMentionTap;
 
@@ -3398,10 +3528,13 @@ class _LinkAwareBubble extends StatelessWidget {
                 ),
               if (hasText)
                 if (stamp == null)
-                  Padding(padding: textPad, child: body)
+                  Padding(
+                      padding: textPad, child: _selectableOr(context, body))
                 else
                   StampedTextBlock(
-                      stamp: stamp, padding: textPad, child: body),
+                      stamp: stamp,
+                      padding: textPad,
+                      child: _selectableOr(context, body)),
               if (hasUrls)
                 for (final url in urls.take(_maxPreviews))
                   LinkPreviewCard(
@@ -3434,6 +3567,24 @@ class _LinkAwareBubble extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// [body] made drag-selectable when this bubble and this platform allow
+  /// it, and returned untouched otherwise. Gated on
+  /// [isPhysicalKeyboardPlatform] rather than [isWebOrDesktop]: on a phone
+  /// browser a long-press must still open the message menu, and a
+  /// [SelectionArea] would take that press for itself. A spoiler anywhere in
+  /// the text refuses the whole bubble: a selection paints straight through
+  /// the veil, and copies what is under it.
+  Widget _selectableOr(BuildContext context, Widget body) {
+    if (!selectable || !isPhysicalKeyboardPlatform) return body;
+    if (message.formatting.any((f) => f.type == FormattingType.spoiler)) {
+      return body;
+    }
+    // A bubble drawn somewhere with no overlay (an offscreen capture) cannot
+    // host a selection and does not need one.
+    if (Overlay.maybeOf(context) == null) return body;
+    return _SelectableMessageText(child: body);
   }
 
   /// Show the destination, then open only on an explicit yes. Extracted so
@@ -3537,3 +3688,61 @@ class _MetaRow extends StatelessWidget {
     );
   }
 }
+
+/// Drag-to-select for one bubble's words, iMessage-for-Mac style: the
+/// selection lives inside the bubble and never runs across the transcript.
+///
+/// One [SelectionArea] per text bubble rather than one around the list, on
+/// purpose. A list-wide area would select across bubbles that the lazy list
+/// is free to unmount mid-drag, and it would also wrap every photo, poll and
+/// view-once tile in a registrar they would each have to opt out of.
+///
+/// Its toolbar is switched off (`contextMenuBuilder: null`): a right-click on
+/// the bubble opens the message menu, which the bubble's eager secondary-click
+/// recognizer claims before the area ever sees the button.
+///
+/// ⌘C is overridden to copy PLAIN text. The paragraph carries a placeholder
+/// for the timestamp's reserved space (see `stampSpacerSpan`), and a selection
+/// that reaches the end of the message would otherwise put an object
+/// replacement character on the clipboard.
+class _SelectableMessageText extends StatefulWidget {
+  const _SelectableMessageText({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SelectableMessageText> createState() => _SelectableMessageTextState();
+}
+
+class _SelectableMessageTextState extends State<_SelectableMessageText> {
+  SelectedContent? _selected;
+
+  late final Map<Type, Action<Intent>> _actions = {
+    CopySelectionTextIntent: CallbackAction<CopySelectionTextIntent>(
+      onInvoke: (_) {
+        final text = plainSelectionText(_selected?.plainText ?? '');
+        if (text.isNotEmpty) Clipboard.setData(ClipboardData(text: text));
+        return null;
+      },
+    ),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Actions(
+      actions: _actions,
+      child: SelectionArea(
+        contextMenuBuilder: null,
+        onSelectionChanged: (c) => _selected = c,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// What a message selection puts on the clipboard: the words, without the
+/// placeholder characters inline widgets leave in a paragraph's text, and
+/// without the trailing whitespace a selection to the end drags along.
+@visibleForTesting
+String plainSelectionText(String raw) =>
+    raw.replaceAll('\uFFFC', '').trimRight();

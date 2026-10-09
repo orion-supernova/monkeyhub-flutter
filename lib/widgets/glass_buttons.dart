@@ -3,11 +3,14 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../keyboard/app_shortcuts.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
+import '../theme/density.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import 'hover_hint.dart';
 import 'liquid_glass.dart';
 import 'spring_press.dart';
 
@@ -36,25 +39,40 @@ Color chromeDiscFill(AppTheme theme) => theme.isLight
 /// a card, a row — so nothing re-rasterises on every frame of the rise. On a
 /// page (the default) the blur stays, so a list scrolling under a bar button
 /// frosts through it; at rest over a plain page the two look the same.
+///
+/// On desktop and web the [semanticLabel] doubles as a [HoverHint], with
+/// [shortcut]'s keys after it. An app-tone button with no explicit [size]
+/// follows [Density]: 40pt on a phone, 32pt in the compact desktop layout,
+/// its glyph scaled with it.
 class GlassIconButton extends StatelessWidget {
   const GlassIconButton({
     super.key,
     required this.icon,
     required this.onTap,
     this.semanticLabel,
-    this.size = 40,
+    this.size,
     this.iconSize = 19,
     this.color,
     this.tone = GlassTone.app,
     this.tint,
     this.still = false,
+    this.shortcut,
   });
 
   final IconData icon;
   final VoidCallback? onTap;
   final String? semanticLabel;
-  final double size;
+
+  /// Null follows [Density] (app tone) or 40 (media tone, which floats over
+  /// photos and keeps its size everywhere).
+  final double? size;
+
+  /// The glyph as drawn on a 40pt disc; scaled with the disc when [size]
+  /// follows [Density].
   final double iconSize;
+
+  /// The keyboard shortcut that does the same thing, shown in the hover hint.
+  final ShortcutDef? shortcut;
 
   /// The glyph's colour. Defaults to the tone's ink (dimmed when disabled).
   final Color? color;
@@ -66,8 +84,20 @@ class GlassIconButton extends StatelessWidget {
   final bool still;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => HoverHint(
+        label: semanticLabel,
+        shortcut: shortcut,
+        enabled: onTap != null,
+        child: _button(context),
+      );
+
+  Widget _button(BuildContext context) {
     final enabled = onTap != null;
+    final dense = this.size == null && tone == GlassTone.app
+        ? Density.of(context)
+        : Density.regular;
+    final size = this.size ?? dense.iconButton;
+    final iconSize = dense.iconGlyph(this.iconSize);
     // Real glass on pages, as it shipped in 1.3.114 — the user preferred it
     // to the opaque disc this briefly became. Only a [still] button (on a
     // sheet or card, which slide) draws the blur-free [ChromeDisc].
@@ -246,6 +276,7 @@ class GlassBackButton extends StatelessWidget {
     this.semanticLabel,
     this.enabled = true,
     this.still = false,
+    this.shortcut,
   });
 
   final VoidCallback? onTap;
@@ -258,12 +289,19 @@ class GlassBackButton extends StatelessWidget {
   /// See [GlassIconButton.still].
   final bool still;
 
+  /// Shown in the hover hint. Defaults to Esc when the button does the
+  /// default pop, which is exactly what Esc does on any pushed route
+  /// (`EscapeToPop`); a custom [onTap] may do more than pop, so it shows
+  /// keys only when the caller says which.
+  final ShortcutDef? shortcut;
+
   @override
   Widget build(BuildContext context) => GlassIconButton(
         icon: CupertinoIcons.chevron_back,
         iconSize: 20,
         tone: tone,
         still: still,
+        shortcut: shortcut ?? (onTap == null ? AppShortcuts.back : null),
         semanticLabel: semanticLabel ??
             MaterialLocalizations.of(context).backButtonTooltip,
         onTap: enabled
@@ -285,12 +323,17 @@ class GlassCloseButton extends StatelessWidget {
     this.tone = GlassTone.app,
     this.enabled = true,
     this.still = false,
+    this.shortcut,
   });
 
   /// Defaults to popping the route.
   final VoidCallback? onTap;
   final String? semanticLabel;
   final GlassTone tone;
+
+  /// Shown in the hover hint; Esc by default when [onTap] is the default pop.
+  /// See [GlassBackButton.shortcut].
+  final ShortcutDef? shortcut;
 
   /// False draws it dimmed and inert (a save in flight, say) — a null
   /// [onTap] cannot say that, since it means "pop".
@@ -305,6 +348,7 @@ class GlassCloseButton extends StatelessWidget {
         iconSize: 17,
         tone: tone,
         still: still,
+        shortcut: shortcut ?? (onTap == null ? AppShortcuts.back : null),
         semanticLabel: semanticLabel ??
             MaterialLocalizations.of(context).closeButtonLabel,
         onTap: enabled
@@ -319,7 +363,9 @@ class GlassCloseButton extends StatelessWidget {
 ///
 /// 40pt tall by default, the height of every glass icon button, so a pill
 /// and the buttons beside it sit on one line (the editor's 44pt Send stood
-/// proud of its 38/40pt neighbours). Label 17/w600, the button scale.
+/// proud of its 38/40pt neighbours). Label 17/w600, the button scale. An
+/// app-tone pill with no explicit [height] follows [Density] the way the
+/// icon button does, so the pair stays level in the compact layout too.
 class GlassPillButton extends StatelessWidget {
   const GlassPillButton({
     super.key,
@@ -329,7 +375,7 @@ class GlassPillButton extends StatelessWidget {
     this.tint,
     this.tone = GlassTone.app,
     this.semanticLabel,
-    this.height = 40,
+    this.height,
   });
 
   final String label;
@@ -338,11 +384,18 @@ class GlassPillButton extends StatelessWidget {
   final Color? tint;
   final GlassTone tone;
   final String? semanticLabel;
-  final double height;
+
+  /// Null follows [Density] (app tone) or 40 (media tone).
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
+    final dense = this.height == null && tone == GlassTone.app
+        ? Density.of(context)
+        : Density.regular;
+    final height = this.height ?? dense.iconButton;
+    final type = dense.compact ? 15.0 : 17.0;
     final Color ink;
     if (tone == GlassTone.media) {
       ink = enabled ? MediaGlass.ink : MediaGlass.inkDisabled;
@@ -366,7 +419,7 @@ class GlassPillButton extends StatelessWidget {
         child: SizedBox(
           height: height,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22),
+            padding: EdgeInsets.symmetric(horizontal: dense.compact ? 16 : 22),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -374,7 +427,7 @@ class GlassPillButton extends StatelessWidget {
                   sentenceCaseOf(context, label),
                   style: TextStyle(
                     color: ink,
-                    fontSize: 17,
+                    fontSize: type,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.2,
                     // Explicit, not inherited: this chrome can float over a
@@ -385,7 +438,7 @@ class GlassPillButton extends StatelessWidget {
                 ),
                 if (icon != null) ...[
                   const SizedBox(width: 7),
-                  Icon(icon, size: 17, color: ink),
+                  Icon(icon, size: type, color: ink),
                 ],
               ],
             ),
@@ -495,6 +548,16 @@ class GlassButtonGroup extends StatelessWidget {
               decoration: TextDecoration.none,
             ),
           );
+    // The label carries the state too ("HD: on"), which is just what a hover
+    // should say about a glyph.
+    return HoverHint(
+      label: item.semanticLabel,
+      enabled: enabled,
+      child: _slotPress(item, glyph, lit),
+    );
+  }
+
+  Widget _slotPress(GlassGroupItem item, Widget glyph, Color lit) {
     return SpringPress(
       onTap: item.onTap,
       semanticLabel: item.semanticLabel,

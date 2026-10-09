@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/daily_game.dart';
 import '../models/puzzle.dart';
 import 'game_tile.dart';
+import 'desktop_scroll.dart';
 
 /// Today's five games on the Feed board, one row that scrolls sideways: the
 /// code puzzle first, then the four dailies.
@@ -87,21 +88,23 @@ class GamesStrip extends StatelessWidget {
               onTap: () => onOpen(game),
             ),
         ];
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          // Vertical room for the press spring and the focus ring, which
-          // paint outside a tile's bounds and a scroll view would clip.
-          padding: EdgeInsets.symmetric(horizontal: inset, vertical: 4),
-          clipBehavior: Clip.none,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < tiles.length; i++) ...[
-                if (i > 0) const SizedBox(width: gap),
-                tiles[i],
+        return HorizontalWheelScroll(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            // Vertical room for the press spring and the focus ring, which
+            // paint outside a tile's bounds and a scroll view would clip.
+            padding: EdgeInsets.symmetric(horizontal: inset, vertical: 4),
+            clipBehavior: Clip.none,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < tiles.length; i++) ...[
+                  if (i > 0) const SizedBox(width: gap),
+                  tiles[i],
+                ],
               ],
-            ],
+            ),
           ),
         );
       },

@@ -23,6 +23,7 @@ import 'user_avatar.dart';
 import 'ios_kit.dart' show SpringPress, TileTone, ToneTile, groupedFill, tileColor;
 import 'chat_list_row.dart' show monogramGradient;
 import '../l10n/text_case.dart';
+import 'desktop_scroll.dart';
 
 /// Hero tag for a moment's picture, shared by every surface that renders one.
 ///
@@ -120,39 +121,41 @@ class MomentRail extends StatelessWidget {
 
     return SizedBox(
       height: height,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        // Vertical room for FocusableTap's ring, which paints outside the
-        // child's bounds and would otherwise be clipped by this scroll view.
-        padding: EdgeInsets.symmetric(horizontal: inset, vertical: 4),
-        // A fan swings past its card's slot; it may pass the viewport's
-        // edge too, rather than being sliced off by it.
-        clipBehavior: Clip.none,
-        children: [
-          if (!hasOwn) _CaptureTile(onTap: canCapture ? onCapture : null),
-          for (var i = 0; i < groups.length; i++)
-            Padding(
-              key: ValueKey('rail_person_${groups[i].userId}'),
-              padding: EdgeInsets.only(
-                left: i == 0 && hasOwn ? 0 : _cardGap,
-                // The room this card's fan swings into, so the space to the
-                // next card reads the same as everywhere else.
-                right: _fanOverhang(
-                  (groups[i].items.length - 1).clamp(0, _deckMax),
-                  height - 8,
+      child: HorizontalWheelScroll(
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          // Vertical room for FocusableTap's ring, which paints outside the
+          // child's bounds and would otherwise be clipped by this scroll view.
+          padding: EdgeInsets.symmetric(horizontal: inset, vertical: 4),
+          // A fan swings past its card's slot; it may pass the viewport's
+          // edge too, rather than being sliced off by it.
+          clipBehavior: Clip.none,
+          children: [
+            if (!hasOwn) _CaptureTile(onTap: canCapture ? onCapture : null),
+            for (var i = 0; i < groups.length; i++)
+              Padding(
+                key: ValueKey('rail_person_${groups[i].userId}'),
+                padding: EdgeInsets.only(
+                  left: i == 0 && hasOwn ? 0 : _cardGap,
+                  // The room this card's fan swings into, so the space to the
+                  // next card reads the same as everywhere else.
+                  right: _fanOverhang(
+                    (groups[i].items.length - 1).clamp(0, _deckMax),
+                    height - 8,
+                  ),
+                ),
+                child: _MomentCard(
+                  group: groups[i],
+                  api: api,
+                  serverNow: serverNow,
+                  index: i,
+                  onTap: () => onOpen(groups[i].start),
+                  onAdd: groups[i].mine && canCapture ? onCapture : null,
                 ),
               ),
-              child: _MomentCard(
-                group: groups[i],
-                api: api,
-                serverNow: serverNow,
-                index: i,
-                onTap: () => onOpen(groups[i].start),
-                onAdd: groups[i].mine && canCapture ? onCapture : null,
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -11901,4 +11901,221 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'General';
+
+  @override
+  String get kbdGroupNavigation => 'Navegación';
+
+  @override
+  String get kbdGroupChat => 'En un chat';
+
+  @override
+  String get kbdGroupComposer => 'Escribir';
+
+  @override
+  String get kbdGroupViewer => 'Fotos y vídeos';
+
+  @override
+  String get kbdGroupCall => 'Llamadas';
+
+  @override
+  String get kbdCommandPalette => 'Buscar chats y comandos';
+
+  @override
+  String get kbdShowShortcuts => 'Atajos de teclado';
+
+  @override
+  String get kbdSearch => 'Buscar';
+
+  @override
+  String get kbdNewChat => 'Nuevo chat';
+
+  @override
+  String get kbdSettings => 'Ajustes';
+
+  @override
+  String get kbdBack => 'Volver o cerrar';
+
+  @override
+  String kbdGoTo(String section) {
+    return 'Ir a $section';
+  }
+
+  @override
+  String get kbdNextChat => 'Chat siguiente';
+
+  @override
+  String get kbdPreviousChat => 'Chat anterior';
+
+  @override
+  String get kbdNextUnread => 'Siguiente chat no leído';
+
+  @override
+  String get kbdCloseChat => 'Cerrar chat';
+
+  @override
+  String get kbdRoomInfo => 'Info del chat';
+
+  @override
+  String get kbdSearchInChat => 'Buscar en este chat';
+
+  @override
+  String get kbdJumpToLatest => 'Ir al último mensaje';
+
+  @override
+  String get kbdAttach => 'Adjuntar archivos';
+
+  @override
+  String get kbdVoiceCall => 'Llamada de voz';
+
+  @override
+  String get kbdVideoCall => 'Videollamada';
+
+  @override
+  String get kbdSend => 'Enviar';
+
+  @override
+  String get kbdNewline => 'Nueva línea';
+
+  @override
+  String get kbdEditLast => 'Editar tu último mensaje';
+
+  @override
+  String get kbdBold => 'Negrita';
+
+  @override
+  String get kbdItalic => 'Cursiva';
+
+  @override
+  String get kbdUnderline => 'Subrayado';
+
+  @override
+  String get kbdPasteMedia => 'Pegar una foto o archivo';
+
+  @override
+  String get kbdEmoji => 'Emojis y stickers';
+
+  @override
+  String get kbdViewerPrevious => 'Anterior';
+
+  @override
+  String get kbdViewerNext => 'Siguiente';
+
+  @override
+  String get kbdZoomIn => 'Ampliar';
+
+  @override
+  String get kbdZoomOut => 'Reducir';
+
+  @override
+  String get kbdZoomFit => 'Ajustar a la ventana';
+
+  @override
+  String get kbdPlayPause => 'Reproducir o pausar';
+
+  @override
+  String get kbdCopyMedia => 'Copiar';
+
+  @override
+  String get kbdSaveMedia => 'Guardar';
+
+  @override
+  String get kbdToggleMute => 'Silenciar o activar el micro';
+
+  @override
+  String get kbdToggleCamera => 'Activar o desactivar la cámara';
+
+  @override
+  String get kbdHangUp => 'Colgar';
+
+  @override
+  String get kbdPanelTitle => 'Atajos de teclado';
+
+  @override
+  String get kbdPanelSearchHint => 'Buscar atajos';
+
+  @override
+  String get kbdPanelEmpty => 'Ningún atajo coincide';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'Mantén pulsada $key en cualquier momento para ver los atajos de la pantalla en la que estás';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return 'Mostrar atajos al mantener pulsada $key';
+  }
+
+  @override
+  String get kbdPaletteHint => 'Ir a un chat o ejecutar un comando';
+
+  @override
+  String get kbdPaletteChats => 'Chats';
+
+  @override
+  String get kbdPaletteCommands => 'Comandos';
+
+  @override
+  String get kbdPaletteEmpty => 'No se encontró nada';
+
+  @override
+  String get kbdPaletteMove => 'Moverse';
+
+  @override
+  String get kbdPaletteOpen => 'Abrir';
+
+  @override
+  String get kbdPaletteClose => 'Cerrar';
+
+  @override
+  String get msgDeskReactLabel => 'Reaccionar';
+
+  @override
+  String get msgDeskMoreLabel => 'Más';
+
+  @override
+  String get msgDeskInfoLabel => 'Info';
+
+  @override
+  String get kbdSeekBackward => 'Retroceder 5 segundos';
+
+  @override
+  String get kbdSeekForward => 'Avanzar 5 segundos';
+
+  @override
+  String get kbdMuteVideo => 'Silenciar o activar el sonido del vídeo';
+
+  @override
+  String get viewerSavedToDownloads => 'Guardado en Descargas';
+
+  @override
+  String get viewerDownloaded => 'Descargado';
+
+  @override
+  String get viewerShowInFinder => 'Mostrar en Finder';
+
+  @override
+  String get viewerShowInFolder => 'Mostrar en la carpeta';
+
+  @override
+  String get viewerCopied => 'Copiado';
+
+  @override
+  String get viewerCopyFailed => 'No se pudo copiar';
+
+  @override
+  String get hoverCompactLayoutTitle => 'Diseño compacto';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'Filas más bajas y botones más pequeños, pensados para ratón y pantalla grande.';
+
+  @override
+  String get layoutPagerPrevious => 'Anterior';
+
+  @override
+  String get layoutPagerNext => 'Siguiente';
 }

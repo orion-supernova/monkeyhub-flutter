@@ -57,6 +57,7 @@ class MessageCapabilities {
     required this.canViewProfile,
     required this.canDelete,
     required this.canReport,
+    this.canViewReceipts = false,
   });
 
   final bool canReply;
@@ -104,6 +105,17 @@ class MessageCapabilities {
   final bool canDelete;
   final bool canReport;
 
+  /// The INFO row: who has this message and who has read it, the same screen
+  /// the start-edge swipe pulls in. Without a row a mouse could never reach
+  /// receipts at all, because a swipe needs a drag.
+  ///
+  /// Not derived by [messageCapabilitiesFor]: whether there is a receipts
+  /// screen to open is the call site's to say (the thread overlay has none),
+  /// so it is switched on there with [copyWith], the way TRANSLATE is
+  /// withheld. False by default, so every existing construction offers
+  /// nothing new.
+  final bool canViewReceipts;
+
   /// Affords nothing. What an unknown state gets, and the base
   /// pending-message posture before the one row it keeps is added back.
   static const none = MessageCapabilities(
@@ -138,6 +150,7 @@ class MessageCapabilities {
     bool? canViewProfile,
     bool? canDelete,
     bool? canReport,
+    bool? canViewReceipts,
   }) =>
       MessageCapabilities(
         canReply: canReply ?? this.canReply,
@@ -154,6 +167,7 @@ class MessageCapabilities {
         canViewProfile: canViewProfile ?? this.canViewProfile,
         canDelete: canDelete ?? this.canDelete,
         canReport: canReport ?? this.canReport,
+        canViewReceipts: canViewReceipts ?? this.canViewReceipts,
       );
 }
 

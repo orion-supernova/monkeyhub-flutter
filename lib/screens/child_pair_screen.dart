@@ -6,12 +6,14 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
+import '../keyboard/focusable_tap.dart' show HoverEffect;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/code_field.dart';
 import '../widgets/ios_kit.dart' show groupedRadius, quietFill;
 import '../widgets/prominent_button.dart';
+import '../widgets/spring_press.dart';
 import '../l10n/text_case.dart';
 
 /// Pulls the six digits out of whatever the scanner saw. Accepts both the
@@ -228,8 +230,13 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                         if (widget.onCancel != null) ...[
                           const SizedBox(height: 16),
                           Center(
-                            child: GestureDetector(
+                            // A text link: cursor, press and focus, but no
+                            // hover fill hugging the words.
+                            child: SpringPress(
                               onTap: widget.onCancel,
+                              scale: PressSpec.scaleSmall,
+                              haptic: false,
+                              hover: HoverEffect.none,
                               child: Text(
                                 AppLocalizations.of(context).childPairBackIos,
                                 style: theme.body.copyWith(
@@ -260,9 +267,10 @@ class _ScanButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return GestureDetector(
+    return SpringPress(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      haptic: false,
+      focusRadius: groupedRadius(theme),
       // A big tinted tile, the way the iOS camera-scan affordances look.
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 26),
@@ -328,8 +336,11 @@ class _ScannerPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        GestureDetector(
+        SpringPress(
           onTap: onCancel,
+          scale: PressSpec.scaleSmall,
+          haptic: false,
+          hover: HoverEffect.none,
           child: Text(
             sentenceCaseOf(
               context,

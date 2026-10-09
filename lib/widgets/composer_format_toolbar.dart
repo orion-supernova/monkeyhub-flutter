@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../keyboard/app_shortcuts.dart' show AppShortcuts, ShortcutDef;
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/message_formatting.dart';
 import '../theme/theme_scope.dart';
+import 'hover_hint.dart';
 import 'ios_kit.dart' show quietFill;
 import 'link_input_sheet.dart';
 import 'mention_text_controller.dart';
@@ -115,22 +118,36 @@ class _ComposerContextMenuState extends State<_ComposerContextMenu> {
       required String label,
       required bool active,
       required VoidCallback onTap,
+      // The composer's own ⌘B/⌘I/⌘U (see ComposerKeys), printed beside the
+      // name so the chip teaches the faster way.
+      ShortcutDef? shortcut,
     }) =>
-        Semantics(
+        // A glyph is all a chip shows, so a mouse gets its name on hover.
+        // FocusableTap carries the button semantics, the cursor and the
+        // hover fill; it never takes focus on click, so the selection in the
+        // field survives.
+        HoverHint(
           label: label,
-          button: true,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          shortcut: shortcut,
+          child: FocusableTap(
             onTap: onTap,
-            child: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: active ? quietFill(theme) : Colors.transparent,
-                borderRadius: BorderRadius.circular(theme.radiusSm),
+            semanticLabel: label,
+            selected: active,
+            radius: theme.radiusSm,
+            hover: HoverEffect.tint,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? quietFill(theme) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(theme.radiusSm),
+                ),
+                child: child,
               ),
-              child: child,
             ),
           ),
         );
@@ -148,6 +165,7 @@ class _ComposerContextMenuState extends State<_ComposerContextMenu> {
                     style: chipStyle(
                         const TextStyle(fontWeight: FontWeight.w800))),
                 label: l10n.formatToolbarBoldLabel,
+                shortcut: AppShortcuts.bold,
                 active: c.selectionHas(FormattingType.bold, selection),
                 onTap: () => _toggle(FormattingType.bold),
               ),
@@ -156,6 +174,7 @@ class _ComposerContextMenuState extends State<_ComposerContextMenu> {
                     style:
                         chipStyle(const TextStyle(fontStyle: FontStyle.italic))),
                 label: l10n.formatToolbarItalicLabel,
+                shortcut: AppShortcuts.italic,
                 active: c.selectionHas(FormattingType.italic, selection),
                 onTap: () => _toggle(FormattingType.italic),
               ),
@@ -173,6 +192,7 @@ class _ComposerContextMenuState extends State<_ComposerContextMenu> {
                     style: chipStyle(
                         const TextStyle(decoration: TextDecoration.underline))),
                 label: l10n.formatToolbarUnderlineLabel,
+                shortcut: AppShortcuts.underline,
                 active: c.selectionHas(FormattingType.underline, selection),
                 onTap: () => _toggle(FormattingType.underline),
               ),

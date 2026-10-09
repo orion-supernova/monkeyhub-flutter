@@ -99,6 +99,8 @@ final class DropDestination: NSObject {
       let args = call.arguments as? [String: Any] ?? [:]
       accepting = (args["accept"] as? Bool) ?? true
       result(nil)
+    case "readClipboard":
+      readClipboard(result: result)
     case "release":
       let args = call.arguments as? [String: Any] ?? [:]
       let paths = (args["paths"] as? [String]) ?? []
@@ -234,6 +236,70 @@ final class DropDestination: NSObject {
     let objects = pasteboard.readObjects(forClasses: [NSURL.self], options: options)
     guard let urls = objects as? [URL] else { return nil }
     return urls.first { !$0.isFileURL }
+  }
+
+  // ─────────────────────────────── paste ───────────────────────────────
+
+  /// What ⌘V in the composer would ATTACH, staged exactly like a drop: file
+  /// URLs copied in Finder, or else an image (a screenshot copied to the
+  /// clipboard, a picture copied out of Preview or a browser). Answers nil
+  /// when the clipboard holds plain text, so Dart runs its ordinary text paste
+  /// — text beats an image because Word and Pages put a picture of the copied
+  /// words beside the words.
+  private func readClipboard(result: @escaping FlutterResult) {
+    let pasteboard = NSPasteboard.general
+    let urls = fileURLs(from: pasteboard)
+    if !urls.isEmpty {
+      DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        guard let self else {
+          DispatchQueue.main.async { result(nil) }
+          return
+        }
+        let staged = self.stage(urls)
+        DispatchQueue.main.async { result(["files": staged]) }
+      }
+      return
+    }
+    if let text = pasteboard.string(forType: .string),
+       !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      result(nil)
+      return
+    }
+    // Read on this thread (the pasteboard is not to be touched off main);
+    // encoded and written on another.
+    let png = pasteboard.data(forType: .png)
+    let tiff = png == nil ? pasteboard.data(forType: .tiff) : nil
+    if png == nil && tiff == nil {
+      result(nil)
+      return
+    }
+    let root = stagingRoot
+    DispatchQueue.global(qos: .userInitiated).async {
+      var data = png
+      if data == nil, let tiff, let rep = NSBitmapImageRep(data: tiff) {
+        data = rep.representation(using: .png, properties: [:])
+      }
+      guard let bytes = data else {
+        DispatchQueue.main.async { result(nil) }
+        return
+      }
+      let name = "Pasted Image.png"
+      var entry: [String: Any] = ["name": name, "mime": "image/png", "size": bytes.count]
+      if bytes.count > kMaxDropMediaBytes {
+        entry["oversize"] = true
+      } else {
+        do {
+          let folder = root.appendingPathComponent(UUID().uuidString, isDirectory: true)
+          try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+          let destination = folder.appendingPathComponent(name)
+          try bytes.write(to: destination)
+          entry["path"] = destination.path
+        } catch {
+          NSLog("drop: could not stage pasted image: \(error.localizedDescription)")
+        }
+      }
+      DispatchQueue.main.async { result(["files": [entry]]) }
+    }
   }
 
   // ─────────────────────────────── staging ───────────────────────────────

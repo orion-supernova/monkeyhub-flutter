@@ -39,6 +39,7 @@ import '../companions/sebastian.dart';
 import '../data/settings_store.dart';
 import '../data/spoiler_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/app_shortcuts.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -133,6 +134,8 @@ import '../widgets/interaction_bubble.dart' show InteractionActions;
 import '../widgets/interaction_respondents_sheet.dart';
 import '../widgets/companion_install_sheet.dart';
 import '../widgets/message_action_menu.dart';
+import '../widgets/message_context_menu.dart';
+import '../widgets/message_hover_actions.dart';
 import '../widgets/room_translate_bar.dart';
 import '../widgets/report_sheet.dart';
 import '../share/share_intake.dart';
@@ -158,13 +161,14 @@ import 'fullscreen_image_viewer.dart';
 import 'media_pager_screen.dart';
 import 'profile_screen.dart';
 import 'room_info_screen.dart';
+import 'navigation/room_side_pane.dart';
 import 'voice_recorder_screen.dart';
 
 /// Back affordance shared by both room headers. In the desktop two-pane layout
 /// the room lives in the chat detail pane (never a full-screen route), so
 /// "back" clears the pane selection; on compact it pops the pushed route.
 void _roomBack(BuildContext context) {
-  if (context.isExpanded) {
+  if (context.usesSplitShell) {
     UiSelectionStore.instance.selectRoom(null);
   } else {
     Navigator.of(context).maybePop();
@@ -172,10 +176,23 @@ void _roomBack(BuildContext context) {
 }
 
 class RoomScreen extends StatefulWidget {
-  const RoomScreen({super.key, required this.roomId, required this.repo, required this.api});
+  const RoomScreen({
+    super.key,
+    required this.roomId,
+    required this.repo,
+    required this.api,
+    this.inShellPane = false,
+  });
   final String roomId;
   final ChatRepository repo;
   final ChatApi api;
+
+  /// Shown in the wide shell's detail pane rather than pushed. Back (and Esc)
+  /// then ends by closing the pane instead of popping a route, and that is
+  /// decided HERE rather than by a second PopScope in the shell: two scopes
+  /// on one route both hear every back, so one Esc used to cancel a selection
+  /// and close the chat in the same keystroke.
+  final bool inShellPane;
 
   @override
   State<RoomScreen> createState() => _RoomScreenState();
@@ -206,6 +223,14 @@ class _RoomScreenState extends State<RoomScreen>
   /// The emoji/GIF/sticker panel, which trades places with the keyboard — see
   /// [ExpressionPanelController].
   final ExpressionPanelController _expressions = ExpressionPanelController();
+
+  /// The transcript's one hover strip — see [MessageHoverController]. Made on
+  /// every platform (it is a few fields), but only handed to the bubbles on a
+  /// pointer platform, so a phone's bubbles never even get a MouseRegion.
+  final MessageHoverController _hover = MessageHoverController();
+
+  /// This room's claim on the browser's `paste` event. See [_onPastedBundle].
+  Object? _pasteToken;
   late final MentionSession _mention;
   final ScrollController _scroll = ScrollController();
   // Whether the transcript is parked away from the newest message. Kept in a
@@ -564,6 +589,13 @@ class _RoomScreenState extends State<RoomScreen>
         .enqueueRoom(widget.roomId, widget.repo.messagesFor(widget.roomId));
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
+    // The strip is measured where the bubble WAS; a scroll moves the bubble
+    // out from under it, so it goes, and the dwell brings it back once the
+    // transcript settles under the pointer.
+    _scroll.addListener(_hover.dismiss);
+    if (kIsWeb) {
+      _pasteToken = DropChannel.instance.addPasteListener(_onPastedBundle);
+    }
     _scrolledUp.addListener(_onBottomProximity);
     _jumpBack.addListener(_onJumpBackChanged);
     // Entering, leaving and every tick of the selection swap the bottom chrome
@@ -1393,14 +1425,14 @@ class _RoomScreenState extends State<RoomScreen>
     // it back out on a normal compact dismissal so a stale roomId can't
     // resurrect this (now-closed) room on some LATER, unrelated resize.
     //
-    // Guarded on `gLastWindowClass != expanded` so this does NOT fire during
+    // Guarded on `!gLastSplitShell` so this does NOT fire during
     // the resize-triggered reconciliation pop itself (app.dart's
     // `_reconcileNavigatorForExpanded`) — that pop runs after the window
     // class has already flipped to expanded, and needs this exact selection
     // to still be here for `_ChatTwoPane` to land on. Also guarded on
     // identity so this never clobbers a newer selection already in flight.
     if (UiSelectionStore.instance.roomId == widget.roomId &&
-        gLastWindowClass != WindowClass.expanded) {
+        !gLastSplitShell) {
       UiSelectionStore.instance.selectRoom(null);
     }
     // Spoilers close when you leave. Coming back to a conversation should
@@ -1443,6 +1475,10 @@ class _RoomScreenState extends State<RoomScreen>
     _arrivals.dispose();
     _departures.dispose();
     _scroll.removeListener(_onScroll);
+    _scroll.removeListener(_hover.dismiss);
+    _hover.dispose();
+    final pasteToken = _pasteToken;
+    if (pasteToken != null) DropChannel.instance.removePasteListener(pasteToken);
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
     _scrolledUp.dispose();
@@ -3783,6 +3819,121 @@ class _RoomScreenState extends State<RoomScreen>
     );
   }
 
+  // ───────────── the keyboard and the mouse: paste, ↑, shortcuts ─────────────
+
+  /// ⌘V in the composer on macOS: files or an image on the clipboard go out
+  /// through [_deliverDrop], the same intake a drag takes, so a pasted
+  /// screenshot opens the photo editor exactly as a dropped one does. False
+  /// (the clipboard holds text, or nothing to send) runs the ordinary text
+  /// paste — see [ComposerKeys].
+  Future<bool> _pasteMedia() async {
+    final bundle = await DropChannel.instance.readClipboard();
+    if (bundle == null) return false;
+    if (!mounted) {
+      DropChannel.instance.release(bundle);
+      return true;
+    }
+    await _deliverPasted(bundle);
+    return true;
+  }
+
+  /// The browser's half of [_pasteMedia]: a page only ever sees pasted files
+  /// in the `paste` event, so they arrive here instead of being asked for.
+  /// Taken only while the composer has focus, so an image pasted into some
+  /// other field on screen is not silently sent to this chat.
+  Future<void> _onPastedBundle(DropBundle bundle) async {
+    if (!mounted || !_composerFocus.hasFocus) return;
+    await _deliverPasted(bundle);
+  }
+
+  Future<void> _deliverPasted(DropBundle bundle) async {
+    try {
+      await _deliverDrop(bundle);
+    } finally {
+      DropChannel.instance.release(bundle);
+    }
+  }
+
+  /// ↑ in an empty composer: edit the newest of your messages that can still
+  /// be edited. False when there is none, which lets the key through.
+  bool _editLastOwn() {
+    if (_editing != null || _selection.active) return false;
+    final room = widget.repo.roomById(widget.roomId);
+    final me = widget.repo.userId;
+    if (room == null || me == null) return false;
+    final messages = widget.repo.messagesFor(widget.roomId);
+    for (var i = messages.length - 1; i >= 0; i--) {
+      final m = messages[i];
+      if (m.senderId != me) continue;
+      if (widget.repo.capabilitiesForMessage(m, room).canEdit) {
+        _armEdit(m);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// The room's own catalog shortcuts. Bound only for what this room can do
+  /// right now: no calls where the header has no call buttons, nothing that
+  /// needs the composer while a selection has replaced it. There is no
+  /// in-chat search in this room yet, so `searchInChat` is not bound and ⌘F
+  /// stays the app's search.
+  Map<ShortcutDef, VoidCallback> _roomShortcuts(ChatRoom room) {
+    final caps = widget.repo.capabilitiesFor(room);
+    final composing = !_selection.active;
+    final dmUser = room.isDm ? widget.repo.otherUserFor(room) : null;
+    final canCall = caps.canCall &&
+        FamilyService.maybeInstance?.canCall != false &&
+        (room.isDm ? dmUser != null : GroupCallService.maybeInstance != null);
+    void call(CallMediaKind kind) {
+      if (dmUser != null) {
+        CallButton(
+          peerUserId: dmUser.id,
+          peerName: dmUser.displayName,
+          peerAvatarStorageId: dmUser.avatarStorageId,
+          roomId: room.id,
+          variant: CallButtonVariant.liquid,
+          kind: kind,
+        ).activate(context);
+      } else {
+        GroupCallButton(roomId: room.id, kind: kind).activate(context);
+      }
+    }
+
+    return {
+      AppShortcuts.roomInfo: () => _openRoomInfo(room),
+      AppShortcuts.jumpToLatest: _onJumpToLatestTapped,
+      if (composing) AppShortcuts.attach: _onAttach,
+      if (composing)
+        AppShortcuts.emoji: () {
+          // A composition in flight owns the keyboard; the panel would take
+          // the field's focus out from under the candidate window.
+          if (_composer.value.composing.isValid) return;
+          _expressions.toggle(_composerFocus);
+        },
+      if (canCall) AppShortcuts.voiceCall: () => call(CallMediaKind.audio),
+      if (canCall) AppShortcuts.videoCall: () => call(CallMediaKind.video),
+    };
+  }
+
+  /// Opens a message's read receipts: the INFO row's answer, and the same
+  /// screen the start-edge swipe pulls in.
+  void _openReceipts(ChatMessage m) {
+    final me = widget.repo.userId ?? '';
+    Navigator.of(context).push(MessageReceiptsRoute<void>(
+      builder: (_) => MessageReceiptsScreen(
+        repo: widget.repo,
+        api: widget.api,
+        roomId: widget.roomId,
+        messageId: m.id,
+        fallbackMessage: m,
+        currentUserId: me,
+        roster: () => _members.values.toList(),
+        onOpenProfile: _openProfile,
+      ),
+    ));
+  }
+
   Future<void> _createSticker() async {
     await createPersonalSticker(context, api: widget.api);
   }
@@ -3875,13 +4026,19 @@ class _RoomScreenState extends State<RoomScreen>
   /// post into a group room, and its bubble's avatar is a tap target there too.
   /// A profile for it offers a friend request `friends.ts` refuses and a call
   /// `calls.ts` refuses — a screenful of buttons that all say no.
+  ///
+  /// In the split shell it opens in the side pane beside the chat (see
+  /// [RoomSidePane]); asking again for the same person closes it.
   void _openProfile(ChatUser u) {
     if (u.isSystem) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ProfileScreen(user: u, repo: widget.repo, api: widget.api),
-      ),
-    );
+    Widget page(BuildContext _) =>
+        ProfileScreen(user: u, repo: widget.repo, api: widget.api);
+    final pane = RoomSidePane.maybeOf(context);
+    if (pane != null) {
+      pane.open<void>(page, tag: 'profile:${u.id}');
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(builder: page));
   }
 
   /// Same uncovered gap as the photo pick, and worse: there is no editor behind
@@ -4323,7 +4480,7 @@ class _RoomScreenState extends State<RoomScreen>
     // Every photo bubble below reads this out of the tree instead of being
     // handed a callback it would have to carry through five widgets. See the
     // scope's own doc for why it is an inherited widget and not a parameter.
-    return RoomGalleryScope(
+    final screen = RoomGalleryScope(
       openGallery: _openGallery,
       videoGalleryFor: _videoGalleryFor,
       child: SpeakerScope(
@@ -4332,13 +4489,18 @@ class _RoomScreenState extends State<RoomScreen>
         // incoming bubble would just be a second accent.
         slots: room.isDm ? SpeakerSlots.none : _speakerSlots,
         child: ChatPane(
-          // Back cancels a selection before it leaves the room — the selection
-          // bar has its own CANCEL, but a system back that walked out of the chat
-          // instead of out of the mode would be the wrong kind of surprising.
+          // Back (system back, browser back, Esc) unwinds whatever mode the
+          // room is in, one per press, before it leaves the room: the
+          // expression panel, an edit, a reply, a selection. Each has its own
+          // cancel on screen, but a back that walked out of the chat instead of
+          // out of the mode would be the wrong kind of surprising, and an edit
+          // abandoned that way loses the stashed draft.
           child: PopScope(
-            // Back puts the expression panel away before anything else, the
-            // same way it would dismiss the keyboard the panel stands in for.
-            canPop: !_selection.active && !_expressions.isOpen,
+            canPop: !_selection.active &&
+                !_expressions.isOpen &&
+                _editing == null &&
+                _replyingTo == null &&
+                !widget.inShellPane,
             onPopInvokedWithResult: (didPop, _) {
               if (didPop) {
                 _composerFocus.unfocus();
@@ -4348,8 +4510,14 @@ class _RoomScreenState extends State<RoomScreen>
               }
               if (_expressions.isOpen) {
                 _expressions.hide();
-              } else {
+              } else if (_editing != null) {
+                _cancelEdit();
+              } else if (_replyingTo != null) {
+                setState(() => _replyingTo = null);
+              } else if (_selection.active) {
                 _selection.clear();
+              } else if (widget.inShellPane) {
+                UiSelectionStore.instance.selectRoom(null);
               }
             },
             // Files dragged in from Finder, a browser or any other Mac app
@@ -4399,6 +4567,15 @@ class _RoomScreenState extends State<RoomScreen>
           ),
         ),
       ),
+    );
+    // Live while this room's route is current and its pane is on stage; see
+    // [ShortcutBindings]. Newer than the shell's, so ⌘-keys a room answers win
+    // over the app-wide ones for as long as it is open.
+    return ShortcutBindings(
+      bindings: _roomShortcuts(room),
+      child: isWebOrDesktop
+          ? MessageHoverScope(controller: _hover, child: screen)
+          : screen,
     );
   }
 
@@ -4557,6 +4734,9 @@ class _RoomScreenState extends State<RoomScreen>
                   expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
+                  onEditLast: _editLastOwn,
+                  onPasteMedia:
+                      DropChannel.canReadClipboard ? _pasteMedia : null,
                 ),
                 ),
                 // The ancestor SafeArea already holds this clear of the home
@@ -4799,6 +4979,9 @@ class _RoomScreenState extends State<RoomScreen>
                   expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
+                  onEditLast: _editLastOwn,
+                  onPasteMedia:
+                      DropChannel.canReadClipboard ? _pasteMedia : null,
                   // With the panel open the composer is no longer the lowest
                   // thing on screen, so the home-indicator inset moves down to
                   // the panel rather than opening a gap between the two.
@@ -4852,17 +5035,26 @@ class _RoomScreenState extends State<RoomScreen>
   /// this screen down with it — so on those paths the future completes into a
   /// disposed state. Both pop null, so the null guard covers correctness and
   /// this one covers the `setState` inside `_travelTo`.
+  ///
+  /// In the split shell it opens in the side pane beside the chat rather than
+  /// over the whole window (see [RoomSidePane]); the jump comes back the same
+  /// way, and the info button toggles it.
   Future<void> _openRoomInfo(ChatRoom room, {bool openChangeRequests = false}) async {
-    final jump = await Navigator.of(context).push<ChatMessage>(
-      MaterialPageRoute(
-        builder: (_) => RoomInfoScreen(
+    Widget page(BuildContext _) => RoomInfoScreen(
           roomId: room.id,
           repo: widget.repo,
           api: widget.api,
           openChangeRequests: openChangeRequests,
-        ),
-      ),
-    );
+        );
+    final pane = RoomSidePane.maybeOf(context);
+    final jump = pane != null
+        // A request to review suggestions always lands; only a plain info
+        // tap toggles.
+        ? await pane.open<ChatMessage>(page,
+            tag: openChangeRequests ? null : 'info:${room.id}')
+        : await Navigator.of(context).push<ChatMessage>(
+            MaterialPageRoute(builder: page),
+          );
     // Room Info is where suggestions were answered before the strip existed,
     // and still can be — so whatever happened there, the strip re-reads.
     if (mounted) unawaited(_suggestions.refresh());
@@ -5222,40 +5414,85 @@ class _RoomScreenState extends State<RoomScreen>
                 /// tile: [anchorKey] is the tile's rect, and null falls back
                 /// to the row's own tracked one, which is what a lone bubble
                 /// wants.
+                ///
+                /// [at] is a mouse's: the compact pointer menu opens there
+                /// instead of the long-press overlay, with the same rows and
+                /// the same answers below. [reactionsOnly] is the hover
+                /// strip's react button, which wants the emoji row alone.
                 Future<void> longPressOn(
                   ChatMessage target, {
                   GlobalKey? anchorKey,
+                  Offset? at,
+                  bool reactionsOnly = false,
                 }) async {
-                  HapticFeedback.mediumImpact();
-                  FocusManager.instance.primaryFocus?.unfocus();
+                  final pointer = at != null;
+                  _hover.dismiss();
+                  if (!pointer) {
+                    HapticFeedback.mediumImpact();
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  }
                   final toast = AppToast.of(context);
                   final anchor = anchorKey ??
                       _dateTracks['m_${_rowOwner(target.id)}']?.key;
-                  if (anchor == null) return;
+                  if (anchor == null && !pointer) return;
                   final myReactions = {
                     for (final r in target.reactions)
                       if (r.userId == me) r.emoji,
                   };
-                  final result = await showMessageActionMenu(
+                  // Re-read for [target] rather than reused from the row:
+                  // an album's tiles are separate messages, and what may be
+                  // done to one of them is a function of which one.
+                  // Sebastian's availability is a fact about the DEVICE,
+                  // not about this message, so it is applied here rather
+                  // than inside `messageCapabilitiesFor` — the same shape
+                  // `ThreadOverlay` uses to withhold VIEW THREAD. Note it
+                  // withholds the row only where he cannot run AT ALL; not
+                  // being installed yet still offers it, because tapping it
+                  // is how he gets installed.
+                  //
+                  // INFO is the receipts screen the start-edge swipe opens,
+                  // on exactly the messages that swipe is enabled for, so a
+                  // mouse (which cannot swipe) reaches it too.
+                  final targetPending = target.id.startsWith('tmp_');
+                  final capabilities = widget.repo
+                      .capabilitiesForMessage(target, room)
+                      .copyWith(
+                        canTranslate:
+                            Sebastian.instance.isAvailable ? null : false,
+                        canViewReceipts: target.senderId == me &&
+                            !targetPending &&
+                            !_selection.active &&
+                            target.status == MessageStatus.sent &&
+                            target.type != MessageType.system,
+                      );
+                  final MessageActionResult? result;
+                  if (pointer) {
+                    result = await showMessageContextMenu(
+                      context: context,
+                      position: at,
+                      capabilities: capabilities,
+                      myReactions: myReactions,
+                      reactionsOnly: reactionsOnly,
+                      // Same gate the reaction chips' own toggle sits behind:
+                      // nothing to react to on a send still in flight.
+                      showReactions: !targetPending &&
+                          target.type != MessageType.system,
+                      isPinned:
+                          widget.repo.isMessagePinned(room.id, target.id),
+                      isSaved: widget.repo.isMessageSaved(room.id, target.id),
+                      isTranslated:
+                          Sebastian.instance.isShowingTranslation(target),
+                      fileName: target.type == MessageType.file
+                          ? target.fileName
+                          : null,
+                    );
+                  } else {
+                  result = await showMessageActionMenu(
                     context: context,
-                    anchorKey: anchor,
+                    anchorKey: anchor!,
                     isMine: isMine,
                     myReactions: myReactions,
-                    // Re-read for [target] rather than reused from the row:
-                    // an album's tiles are separate messages, and what may be
-                    // done to one of them is a function of which one.
-                    // Sebastian's availability is a fact about the DEVICE,
-                    // not about this message, so it is applied here rather
-                    // than inside `messageCapabilitiesFor` — the same shape
-                    // `ThreadOverlay` uses to withhold VIEW THREAD. Note it
-                    // withholds the row only where he cannot run AT ALL; not
-                    // being installed yet still offers it, because tapping it
-                    // is how he gets installed.
-                    capabilities: Sebastian.instance.isAvailable
-                        ? widget.repo.capabilitiesForMessage(target, room)
-                        : widget.repo
-                            .capabilitiesForMessage(target, room)
-                            .copyWith(canTranslate: false),
+                    capabilities: capabilities,
                     isPinned: widget.repo.isMessagePinned(room.id, target.id),
                     isSaved: widget.repo.isMessageSaved(room.id, target.id),
                     isTranslated:
@@ -5346,6 +5583,7 @@ class _RoomScreenState extends State<RoomScreen>
                       );
                     },
                   );
+                  }
                   if (!mounted || result == null) return;
                   if (result.emoji != null) {
                     await _toggleReaction(target, result.emoji!);
@@ -5459,6 +5697,9 @@ class _RoomScreenState extends State<RoomScreen>
                     case MessageAction.delete:
                       await widget.repo.deleteMessage(target.id);
                       break;
+                    case MessageAction.info:
+                      _openReceipts(target);
+                      break;
                     case MessageAction.viewProfile:
                       if (author != null) _openProfile(author);
                       break;
@@ -5483,6 +5724,23 @@ class _RoomScreenState extends State<RoomScreen>
                 }
 
                 Future<void> onLongPress() => longPressOn(m);
+
+                // The mouse's two doors into the same menu: a right-click at
+                // the pointer, and the hover strip beside the bubble. Both
+                // null on a pending send, exactly like the long-press.
+                void onContextMenu(Offset at) => longPressOn(m, at: at);
+                final hover = isWebOrDesktop && !isPending && !selecting
+                    ? MessageHoverTarget(
+                        id: m.id,
+                        isMine: isMine,
+                        onReact: m.type == MessageType.system
+                            ? null
+                            : (r) => longPressOn(m,
+                                at: r.bottomLeft, reactionsOnly: true),
+                        onReply: canReply ? () => _armReply(m) : null,
+                        onMore: (r) => longPressOn(m, at: r.bottomLeft),
+                      )
+                    : null;
 
                 // Parameterised for the reason `longPressOn` is: an album
                 // row draws several messages, and a chip on the third
@@ -5561,6 +5819,8 @@ class _RoomScreenState extends State<RoomScreen>
                         author: author,
                         onLongPress: isPending ? null : onLongPress,
                         onDoubleTap: isPending ? null : onLongPress,
+                        onContextMenu: isPending ? null : onContextMenu,
+                        hover: hover,
                         onReactionTap: onReactionTap,
                         onReactionLongPress: onReactionLongPress,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,
@@ -5611,6 +5871,8 @@ class _RoomScreenState extends State<RoomScreen>
                         author: author,
                         onLongPress: isPending ? null : onLongPress,
                         onDoubleTap: isPending ? null : onLongPress,
+                        onContextMenu: isPending ? null : onContextMenu,
+                        hover: hover,
                         onReactionTap: onReactionTap,
                         onReactionLongPress: onReactionLongPress,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,

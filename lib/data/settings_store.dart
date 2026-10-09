@@ -46,6 +46,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
   static const _kShowPresenceDots = 'mh.showPresenceDots';
+  static const _kShortcutPeek = 'mh.shortcutPeek';
+  static const _kCompactDesktop = 'mh.compactDesktop';
   static const _kMapAppId = 'mh.maps.app';
   static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
@@ -82,6 +84,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kTranslatedRoomIds = 'mh.companion.sebastian.rooms';
   static const _kMarloweBrainId = 'mh.companion.marlowe.brain';
   static const _kCompanionForceCpu = 'mh.companion.forceCpu';
+  static const _kChatListWidth = 'mh.layout.chatListWidth';
 
   /// Every key above — what [SettingsKeychain] may take from the legacy class,
   /// which the other stores share. A key added later can be left out safely:
@@ -92,7 +95,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kCaptureProtection, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel,
@@ -114,6 +117,9 @@ class SettingsStore extends ChangeNotifier {
   bool _roomMonogram = false;
   NavStyle _navStyle = NavStyle.pill;
   HomeSection _section = HomeSection.chat;
+  // Null until the user drags the split shell's divider; the shell owns the
+  // default so it can differ by window size.
+  double? _chatListWidth;
   bool _pushEnabled = true;
   // The once-a-day "you haven't played today" nudge, on by default — a daily
   // game nobody is reminded about is a daily game nobody plays. Mirrored on
@@ -140,6 +146,8 @@ class SettingsStore extends ChangeNotifier {
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
   bool _showPresenceDots = true;
+  bool _shortcutPeek = true;
+  bool _compactDesktop = true;
   String? _mapAppId;
   String? _mapAppName;
   bool _autoplayExpressions = true;
@@ -220,6 +228,27 @@ class SettingsStore extends ChangeNotifier {
   RoomLayout get roomLayout => _roomLayout;
   bool get roomMonogram => _roomMonogram;
   NavStyle get navStyle => _navStyle;
+
+  /// Width the user dragged the split shell's chat list to, or null for the
+  /// shell's own default. See `ListDetailSplit` (navigation/list_detail_split.dart).
+  double? get chatListWidth => _chatListWidth;
+
+  /// Persists a dragged chat-list width WITHOUT notifying.
+  ///
+  /// The one setter here that stays quiet, on purpose: [HomeShell] rebuilds on
+  /// every notification from this store, and the live width already lives in
+  /// the shell's own notifier, which is what the drag moved. A notify here
+  /// would rebuild the whole shell, the open room with it, to tell it a
+  /// number it is already showing. Null clears it back to the default.
+  Future<void> setChatListWidth(double? v) async {
+    if (_chatListWidth == v) return;
+    _chatListWidth = v;
+    if (v == null) {
+      await _storage.delete(key: _kChatListWidth);
+    } else {
+      await _storage.write(key: _kChatListWidth, value: v.toStringAsFixed(1));
+    }
+  }
   HomeSection get section => _section;
   bool get pushEnabled => _pushEnabled;
   bool get gameReminders => _gameReminders;
@@ -249,6 +278,15 @@ class SettingsStore extends ChangeNotifier {
   /// viewer — that is Profile visibility's "Online status", on the server.
   /// Default `true`.
   bool get showPresenceDots => _showPresenceDots;
+
+  /// Holding ⌘ (Ctrl off Apple) for a moment shows the shortcuts for the
+  /// screen on display. On by default; someone who rests a thumb on ⌘ while
+  /// reading turns it off.
+  bool get shortcutPeek => _shortcutPeek;
+
+  /// Desktop and desktop-browser density: shorter rows, smaller chrome
+  /// buttons (see `Density`). On by default there; phones ignore it.
+  bool get compactDesktop => _compactDesktop;
   /// Null means ask every time, including the first time a location is opened.
   String? get mapAppId => _mapAppId;
   String? get mapAppName => _mapAppName;
@@ -521,6 +559,7 @@ class SettingsStore extends ChangeNotifier {
     _navStyle = nav == 'radial' ? NavStyle.radial : NavStyle.pill;
     final sec = s[_kSection];
     _section = HomeSection.parse(sec);
+    _chatListWidth = double.tryParse(s[_kChatListWidth] ?? '');
     final push = s[_kPushEnabled];
     _pushEnabled = push != 'false'; // default true
     final nudge = s[_kGameReminders];
@@ -594,6 +633,8 @@ class SettingsStore extends ChangeNotifier {
     final slu = s[_kShowLinkUrls];
     _showLinkUrls = slu == 'true'; // default false
     _showPresenceDots = s[_kShowPresenceDots] != 'false'; // default true
+    _shortcutPeek = s[_kShortcutPeek] != 'false'; // default true
+    _compactDesktop = s[_kCompactDesktop] != 'false'; // default true
     _mapAppId = s[_kMapAppId];
     _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
@@ -913,6 +954,20 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = v;
     notifyListeners();
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setCompactDesktop(bool v) async {
+    if (_compactDesktop == v) return;
+    _compactDesktop = v;
+    notifyListeners();
+    await _storage.write(key: _kCompactDesktop, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setShortcutPeek(bool v) async {
+    if (_shortcutPeek == v) return;
+    _shortcutPeek = v;
+    notifyListeners();
+    await _storage.write(key: _kShortcutPeek, value: v ? 'true' : 'false');
   }
 
   Future<void> setShowPresenceDots(bool v) async {

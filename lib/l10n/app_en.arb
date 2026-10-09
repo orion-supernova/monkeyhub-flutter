@@ -12929,16 +12929,49 @@
     }
   },
   "mapAppsTitle": "Maps",
+  "@mapAppsTitle": {
+    "description": "Settings page title for choosing which maps app opens shared locations."
+  },
   "mapAppsChoose": "Open location in",
+  "@mapAppsChoose": {
+    "description": "Heading of the picker shown when tapping a shared location: which maps app to open it in."
+  },
   "mapAppsRemember": "Use as default",
+  "@mapAppsRemember": {
+    "description": "Toggle in the maps picker: remember the chosen app and skip the picker next time."
+  },
   "mapAppsAskEveryTime": "Ask every time",
+  "@mapAppsAskEveryTime": {
+    "description": "Option in the maps settings: show the picker on every shared location instead of using a default app."
+  },
   "mapAppsBrowser": "Browser",
+  "@mapAppsBrowser": {
+    "description": "Maps picker option: open the location in the web browser instead of an app."
+  },
   "mapAppsSubtitle": "Choose where shared locations open.",
+  "@mapAppsSubtitle": {
+    "description": "Subtitle under the Maps settings title."
+  },
   "mapAppsUnavailable": "Your default maps app is unavailable. Choose another.",
+  "@mapAppsUnavailable": {
+    "description": "Shown when the saved default maps app is no longer installed."
+  },
   "mapAppsNoInstalled": "No supported maps apps found. You can use your browser.",
+  "@mapAppsNoInstalled": {
+    "description": "Shown in the maps picker when no supported maps app is installed."
+  },
   "interactionAnswersSearch": "Search people or answers",
+  "@interactionAnswersSearch": {
+    "description": "Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer."
+  },
   "interactionFilterEmpty": "No answers match this filter.",
+  "@interactionFilterEmpty": {
+    "description": "Shown in a poll/RSVP answers sheet when the selected filter matches no answers."
+  },
   "interactionRetry": "Try again",
+  "@interactionRetry": {
+    "description": "Button to retry loading a poll/RSVP answers sheet after an error."
+  },
   "cameraEditorScreenCaptionHint": "Add a caption…",
   "@cameraEditorScreenCaptionHint": {
     "description": "Placeholder in the caption field under a photo in the photo composer. Each photo in a send has its own caption."
@@ -13863,5 +13896,300 @@
         "type": "String"
       }
     }
+  },
+  "kbdGroupGeneral": "General",
+  "@kbdGroupGeneral": {
+    "description": "Keyboard shortcuts list: heading for app-wide shortcuts."
+  },
+  "kbdGroupNavigation": "Navigation",
+  "@kbdGroupNavigation": {
+    "description": "Keyboard shortcuts list: heading for moving between sections and chats."
+  },
+  "kbdGroupChat": "In a chat",
+  "@kbdGroupChat": {
+    "description": "Keyboard shortcuts list: heading for shortcuts that work while a chat is open."
+  },
+  "kbdGroupComposer": "Writing",
+  "@kbdGroupComposer": {
+    "description": "Keyboard shortcuts list: heading for shortcuts in the message composer."
+  },
+  "kbdGroupViewer": "Photos and videos",
+  "@kbdGroupViewer": {
+    "description": "Keyboard shortcuts list: heading for shortcuts in the full-screen photo/video viewer."
+  },
+  "kbdGroupCall": "Calls",
+  "@kbdGroupCall": {
+    "description": "Keyboard shortcuts list: heading for shortcuts during a voice/video call."
+  },
+  "kbdCommandPalette": "Search chats and commands",
+  "@kbdCommandPalette": {
+    "description": "Shortcut label: opens the quick switcher (Cmd+K) to jump to a chat or run a command."
+  },
+  "kbdShowShortcuts": "Keyboard shortcuts",
+  "@kbdShowShortcuts": {
+    "description": "Shortcut label: opens the list of all keyboard shortcuts."
+  },
+  "kbdSearch": "Search",
+  "@kbdSearch": {
+    "description": "Shortcut label: opens app-wide search."
+  },
+  "kbdNewChat": "New chat",
+  "@kbdNewChat": {
+    "description": "Shortcut label: starts a new chat."
+  },
+  "kbdSettings": "Settings",
+  "@kbdSettings": {
+    "description": "Shortcut label: opens Settings."
+  },
+  "kbdBack": "Go back or close",
+  "@kbdBack": {
+    "description": "Shortcut label for Esc: closes the current screen, viewer, menu or chat."
+  },
+  "kbdGoTo": "Go to {section}",
+  "@kbdGoTo": {
+    "description": "Shortcut label for Cmd+1..4: switch to a main section. {section} is the section's tab name, e.g. 'Chats'.",
+    "placeholders": {
+      "section": {
+        "type": "String"
+      }
+    }
+  },
+  "kbdNextChat": "Next chat",
+  "@kbdNextChat": {
+    "description": "Shortcut label: opens the chat below the current one in the list."
+  },
+  "kbdPreviousChat": "Previous chat",
+  "@kbdPreviousChat": {
+    "description": "Shortcut label: opens the chat above the current one in the list."
+  },
+  "kbdNextUnread": "Next unread chat",
+  "@kbdNextUnread": {
+    "description": "Shortcut label: opens the next chat that has unread messages."
+  },
+  "kbdCloseChat": "Close chat",
+  "@kbdCloseChat": {
+    "description": "Shortcut label: closes the open chat."
+  },
+  "kbdRoomInfo": "Chat info",
+  "@kbdRoomInfo": {
+    "description": "Shortcut label: shows the open chat's info (members, media, settings)."
+  },
+  "kbdSearchInChat": "Search in this chat",
+  "@kbdSearchInChat": {
+    "description": "Shortcut label: search messages inside the open chat."
+  },
+  "kbdJumpToLatest": "Jump to latest message",
+  "@kbdJumpToLatest": {
+    "description": "Shortcut label: scrolls the chat to the newest message."
+  },
+  "kbdAttach": "Attach files",
+  "@kbdAttach": {
+    "description": "Shortcut label: opens the file/photo attachment picker in a chat."
+  },
+  "kbdVoiceCall": "Voice call",
+  "@kbdVoiceCall": {
+    "description": "Shortcut label: starts a voice call in the open chat."
+  },
+  "kbdVideoCall": "Video call",
+  "@kbdVideoCall": {
+    "description": "Shortcut label: starts a video call in the open chat."
+  },
+  "kbdSend": "Send",
+  "@kbdSend": {
+    "description": "Shortcut label: sends the message being written."
+  },
+  "kbdNewline": "New line",
+  "@kbdNewline": {
+    "description": "Shortcut label: inserts a line break in the message instead of sending."
+  },
+  "kbdEditLast": "Edit your last message",
+  "@kbdEditLast": {
+    "description": "Shortcut label: Up arrow in an empty composer edits the user's most recent message."
+  },
+  "kbdBold": "Bold",
+  "@kbdBold": {
+    "description": "Shortcut label: makes selected text bold."
+  },
+  "kbdItalic": "Italic",
+  "@kbdItalic": {
+    "description": "Shortcut label: makes selected text italic."
+  },
+  "kbdUnderline": "Underline",
+  "@kbdUnderline": {
+    "description": "Shortcut label: underlines selected text."
+  },
+  "kbdPasteMedia": "Paste a photo or file",
+  "@kbdPasteMedia": {
+    "description": "Shortcut label: pasting an image or file from the clipboard attaches it to the message."
+  },
+  "kbdEmoji": "Emoji and stickers",
+  "@kbdEmoji": {
+    "description": "Shortcut label: opens the emoji/GIF/sticker panel."
+  },
+  "kbdViewerPrevious": "Previous",
+  "@kbdViewerPrevious": {
+    "description": "Shortcut label in the photo viewer: show the previous photo or video."
+  },
+  "kbdViewerNext": "Next",
+  "@kbdViewerNext": {
+    "description": "Shortcut label in the photo viewer: show the next photo or video."
+  },
+  "kbdZoomIn": "Zoom in",
+  "@kbdZoomIn": {
+    "description": "Shortcut label in the photo viewer."
+  },
+  "kbdZoomOut": "Zoom out",
+  "@kbdZoomOut": {
+    "description": "Shortcut label in the photo viewer."
+  },
+  "kbdZoomFit": "Fit to window",
+  "@kbdZoomFit": {
+    "description": "Shortcut label in the photo viewer: reset zoom so the whole photo is visible."
+  },
+  "kbdPlayPause": "Play or pause",
+  "@kbdPlayPause": {
+    "description": "Shortcut label for video playback."
+  },
+  "kbdCopyMedia": "Copy",
+  "@kbdCopyMedia": {
+    "description": "Shortcut label in the photo viewer: copies the photo to the clipboard."
+  },
+  "kbdSaveMedia": "Save",
+  "@kbdSaveMedia": {
+    "description": "Shortcut label in the photo viewer: saves the photo or video to the device."
+  },
+  "kbdToggleMute": "Mute or unmute",
+  "@kbdToggleMute": {
+    "description": "Shortcut label during a call: toggles the microphone."
+  },
+  "kbdToggleCamera": "Camera on or off",
+  "@kbdToggleCamera": {
+    "description": "Shortcut label during a call: toggles the camera."
+  },
+  "kbdHangUp": "Hang up",
+  "@kbdHangUp": {
+    "description": "Shortcut label during a call: ends the call."
+  },
+  "kbdPanelTitle": "Keyboard Shortcuts",
+  "@kbdPanelTitle": {
+    "description": "Title of the searchable keyboard shortcuts panel, and of the Settings row that opens it."
+  },
+  "kbdPanelSearchHint": "Search shortcuts",
+  "@kbdPanelSearchHint": {
+    "description": "Placeholder in the search field of the keyboard shortcuts panel."
+  },
+  "kbdPanelEmpty": "No shortcuts match",
+  "@kbdPanelEmpty": {
+    "description": "Shown in the shortcuts panel when the search finds nothing."
+  },
+  "kbdPeekHint": "Hold {key} anytime to see the shortcuts for the screen you're on",
+  "@kbdPeekHint": {
+    "description": "Footer of the shortcuts panel. {key} is the modifier key glyph or name, e.g. '⌘' or 'Ctrl'.",
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "kbdPeekSetting": "Show shortcuts while holding {key}",
+  "@kbdPeekSetting": {
+    "description": "Settings toggle: holding the modifier key for a moment shows an overlay with the available shortcuts. {key} is e.g. '⌘' or 'Ctrl'.",
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "kbdPaletteHint": "Jump to a chat or run a command",
+  "@kbdPaletteHint": {
+    "description": "Placeholder in the Cmd+K quick switcher's search field."
+  },
+  "kbdPaletteChats": "Chats",
+  "@kbdPaletteChats": {
+    "description": "Section heading in the quick switcher: matching chats."
+  },
+  "kbdPaletteCommands": "Commands",
+  "@kbdPaletteCommands": {
+    "description": "Section heading in the quick switcher: matching app commands."
+  },
+  "kbdPaletteEmpty": "Nothing found",
+  "@kbdPaletteEmpty": {
+    "description": "Shown in the quick switcher when nothing matches the search."
+  },
+  "kbdPaletteMove": "Move",
+  "@kbdPaletteMove": {
+    "description": "Footer hint in the quick switcher next to the arrow-key glyphs."
+  },
+  "kbdPaletteOpen": "Open",
+  "@kbdPaletteOpen": {
+    "description": "Footer hint in the quick switcher next to the Enter glyph."
+  },
+  "kbdPaletteClose": "Close",
+  "@kbdPaletteClose": {
+    "description": "Footer hint in the quick switcher next to the Esc glyph."
+  },
+  "msgDeskReactLabel": "React",
+  "@msgDeskReactLabel": {
+    "description": "Tooltip and screen-reader label on the small reaction button that appears beside a message when the mouse hovers over it (desktop and web)."
+  },
+  "msgDeskMoreLabel": "More",
+  "@msgDeskMoreLabel": {
+    "description": "Tooltip and screen-reader label on the button beside a hovered message that opens its full action menu (desktop and web)."
+  },
+  "msgDeskInfoLabel": "Info",
+  "@msgDeskInfoLabel": {
+    "description": "Message action menu row on your own message that opens its read receipts: who has received and read it."
+  },
+  "kbdSeekBackward": "Back 5 seconds",
+  "@kbdSeekBackward": {
+    "description": "Keyboard shortcut label: in the full-screen video player, the left arrow jumps the video back five seconds."
+  },
+  "kbdSeekForward": "Forward 5 seconds",
+  "@kbdSeekForward": {
+    "description": "Keyboard shortcut label: in the full-screen video player, the right arrow jumps the video forward five seconds."
+  },
+  "kbdMuteVideo": "Mute or unmute video",
+  "@kbdMuteVideo": {
+    "description": "Keyboard shortcut label: in the full-screen video player, M turns the video's sound off or back on."
+  },
+  "viewerSavedToDownloads": "Saved to Downloads",
+  "@viewerSavedToDownloads": {
+    "description": "Toast after saving a photo or video from the full-screen viewer on a computer. Downloads is the operating system's Downloads folder."
+  },
+  "viewerDownloaded": "Downloaded",
+  "@viewerDownloaded": {
+    "description": "Toast on the web after a photo or video from the viewer was handed to the browser as a download."
+  },
+  "viewerShowInFinder": "Show in Finder",
+  "@viewerShowInFinder": {
+    "description": "Toast action on a Mac after saving a file: opens the folder it was saved to in Finder (the macOS file browser). Keep the word Finder."
+  },
+  "viewerShowInFolder": "Show in folder",
+  "@viewerShowInFolder": {
+    "description": "Toast action on Windows or Linux after saving a file: opens the folder it was saved to."
+  },
+  "viewerCopied": "Copied",
+  "@viewerCopied": {
+    "description": "Toast after copying a photo from the full-screen viewer to the clipboard."
+  },
+  "viewerCopyFailed": "Couldn’t copy that",
+  "@viewerCopyFailed": {
+    "description": "Toast when copying a photo to the clipboard failed."
+  },
+  "hoverCompactLayoutTitle": "Compact layout",
+  "@hoverCompactLayoutTitle": {
+    "description": "Settings > Appearance toggle, desktop and web only. Turns on denser rows and smaller toolbar buttons sized for a mouse."
+  },
+  "hoverCompactLayoutSubtitle": "Shorter rows and smaller buttons, sized for a mouse and a big screen.",
+  "@hoverCompactLayoutSubtitle": {
+    "description": "Subtitle under the Compact layout toggle in Settings > Appearance (desktop and web only)."
+  },
+  "layoutPagerPrevious": "Previous",
+  "@layoutPagerPrevious": {
+    "description": "Accessibility label for the left chevron that pages a full-screen preview pager (e.g. the theme gallery) back one page. Shown on desktop when a mouse hovers the pager."
+  },
+  "layoutPagerNext": "Next",
+  "@layoutPagerNext": {
+    "description": "Accessibility label for the right chevron that pages a full-screen preview pager (e.g. the theme gallery) forward one page. Shown on desktop when a mouse hovers the pager."
   }
 }

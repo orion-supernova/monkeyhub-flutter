@@ -89,6 +89,12 @@ enum MessageAction {
   save,
   unsave,
   select,
+
+  /// Opens the message's read receipts: who has it and who has read it. The
+  /// same screen the start-edge swipe pulls in, offered as a row so a mouse
+  /// (which cannot swipe) can reach it too. See
+  /// [MessageCapabilities.canViewReceipts].
+  info,
   delete,
   report,
   viewProfile,
@@ -795,7 +801,8 @@ class _AnimatedEntry extends StatelessWidget {
 /// you left is always in the pill to see and take back, and the pill never
 /// grows past six — it is sized to fit a phone's width with the `+`.
 /// Selected quick emoji keep their place; only unselected ones give theirs up.
-@visibleForTesting
+/// Shared with the pointer menu (`message_context_menu.dart`), so a long-press
+/// and a right-click offer the same six.
 List<String> quickPillEmojis(Set<String> selected) {
   final extras = [
     for (final e in selected)
@@ -1273,6 +1280,16 @@ List<MessageActionSpec> messageActionSpecs({
         action: MessageAction.select,
         icon: CupertinoIcons.checkmark_circle,
         label: l10n.messageActionMenuSelectLabel,
+        destructive: false,
+      ),
+    // After SELECT and before the destructive pair: it reads about this
+    // message and changes nothing. Only ever on your own message, so it never
+    // meets VIEW PROFILE, which is only ever on someone else's.
+    if (caps.canViewReceipts)
+      MessageActionSpec(
+        action: MessageAction.info,
+        icon: CupertinoIcons.info_circle,
+        label: l10n.msgDeskInfoLabel,
         destructive: false,
       ),
     if (caps.canViewProfile)

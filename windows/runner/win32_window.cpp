@@ -26,6 +26,10 @@ constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
   L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
 
+// Smallest client area, in logical pixels. See WM_GETMINMAXINFO below.
+constexpr int kMinClientWidth = 760;
+constexpr int kMinClientHeight = 560;
+
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;
 
@@ -197,6 +201,41 @@ Win32Window::MessageHandler(HWND hwnd,
 
       return 0;
     }
+    case WM_GETMINMAXINFO: {
+      // Floor the CLIENT area at 760x560 logical pixels, the width the side
+      // rail + split shell needs (`Breakpoints.split` in
+      // lib/theme/layout.dart is 720). Without it the window could be
+      // dragged down to phone width and the whole chrome would swap to the
+      // bottom pill mid-drag, which no desktop app does.
+      //
+      // Windows wants the minimum for the whole WINDOW in physical pixels,
+      // so the logical floor is scaled by this monitor's DPI and the
+      // non-client frame (title bar, borders) measured off the live window
+      // is added on. Skipped while minimised: an iconic window's rects are
+      // the taskbar stub's, and the frame measured off them is nonsense.
+      if (IsIconic(hwnd)) {
+        break;
+      }
+      RECT window_rect;
+      RECT client_rect;
+      if (!GetWindowRect(hwnd, &window_rect) ||
+          !GetClientRect(hwnd, &client_rect)) {
+        break;
+      }
+      const LONG frame_width = (window_rect.right - window_rect.left) -
+                               (client_rect.right - client_rect.left);
+      const LONG frame_height = (window_rect.bottom - window_rect.top) -
+                                (client_rect.bottom - client_rect.top);
+      const UINT dpi = FlutterDesktopGetDpiForMonitor(
+          MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST));
+      const double scale_factor = dpi / 96.0;
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      info->ptMinTrackSize.x = Scale(kMinClientWidth, scale_factor) + frame_width;
+      info->ptMinTrackSize.y =
+          Scale(kMinClientHeight, scale_factor) + frame_height;
+      return 0;
+    }
+
     case WM_SIZE: {
       RECT rect = GetClientArea();
       if (child_content_ != nullptr) {

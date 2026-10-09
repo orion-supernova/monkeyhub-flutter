@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart' show VideoPlayerController;
 
 import '../backend/chat_api.dart';
+import '../keyboard/app_shortcuts.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_url_cache.dart';
 import '../media/native_gallery.dart';
 import '../media/native_video_player.dart';
 import '../media/video_file_cache.dart';
+import '../platform.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/remote_image.dart';
@@ -139,6 +142,37 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
   final ValueNotifier<double?> _progress = ValueNotifier(null);
 
   bool _dismissing = false;
+
+  /// The Flutter player's controller while it is playing — only ever the
+  /// fallback path, which on a desk is the only path. Read by the keyboard,
+  /// never disposed here; [VideoPlayerSurface] owns it. A plain field, not
+  /// state: nothing on screen draws from it, and the surface reports its
+  /// going during teardown, where a setState is not allowed.
+  VideoPlayerController? _video;
+
+  static const _seekStep = Duration(seconds: 5);
+
+  void _togglePlay() {
+    final c = _video;
+    if (c == null) return;
+    c.value.isPlaying ? c.pause() : c.play();
+  }
+
+  void _seek(Duration by) {
+    final c = _video;
+    if (c == null) return;
+    final end = c.value.duration;
+    var to = c.value.position + by;
+    if (to < Duration.zero) to = Duration.zero;
+    if (end > Duration.zero && to > end) to = end;
+    c.seekTo(to);
+  }
+
+  void _toggleMute() {
+    final c = _video;
+    if (c == null) return;
+    c.setVolume(c.value.volume > 0 ? 0 : 1);
+  }
 
   /// True once the OS player is off the table and this route has to play the
   /// video itself.
@@ -322,7 +356,7 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: Colors.transparent,
       body: ValueListenableBuilder<double>(
         valueListenable: _dragDy,
@@ -366,6 +400,19 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
         ),
       ),
     );
+    if (!isWebOrDesktop) return scaffold;
+    // A desk's player keys. ← → scrub here rather than page: this viewer is
+    // one video with nothing either side of it, and every desktop player
+    // (QuickTime, a browser's) gives the arrows to time.
+    return ShortcutBindings(
+      bindings: {
+        AppShortcuts.playPause: _togglePlay,
+        AppShortcuts.seekBackward: () => _seek(-_seekStep),
+        AppShortcuts.seekForward: () => _seek(_seekStep),
+        AppShortcuts.muteVideo: _toggleMute,
+      },
+      child: scaffold,
+    );
   }
 
   /// The still while the route is arriving, the real thing once it has.
@@ -399,6 +446,7 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
             api: widget.api,
             storageId: widget.storageId,
             posterStorageId: widget.posterStorageId,
+            onController: (c) => _video = c,
           )
         : _HandoffPlate(
             api: widget.api,

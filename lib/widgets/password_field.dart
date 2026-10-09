@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import 'hover_hint.dart';
 import 'labeled_field.dart';
 
 /// A [ThemedInput] that starts obscured and carries its own show/hide toggle.
@@ -50,6 +52,11 @@ class _PasswordFieldState extends State<PasswordField> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final reveal = _obscure
+        ? l10n.countBadgeShowPasswordTooltip
+        : l10n.countBadgeHidePasswordTooltip;
+    void toggle() => setState(() => _obscure = !_obscure);
     final field = ThemedInput(
       controller: widget.controller,
       hint: widget.hint,
@@ -66,21 +73,24 @@ class _PasswordFieldState extends State<PasswordField> {
       onSubmitted: widget.onSubmitted,
       // A bare glyph that toggles, never an IconButton — the app renders no
       // ink anywhere.
-      trailing: Semantics(
-        button: true,
-        label: _obscure
-            ? AppLocalizations.of(context).countBadgeShowPasswordTooltip
-            : AppLocalizations.of(context).countBadgeHidePasswordTooltip,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => setState(() => _obscure = !_obscure),
-          child: SizedBox(
-            width: 40,
-            height: 44,
-            child: Icon(
-              _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
-              color: theme.inkMuted,
-              size: 20,
+      trailing: HoverHint(
+        label: reveal,
+        child: FocusableTap(
+          onTap: toggle,
+          semanticLabel: reveal,
+          radius: 12,
+          hover: HoverEffect.tint,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: toggle,
+            child: SizedBox(
+              width: 40,
+              height: 44,
+              child: Icon(
+                _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+                color: theme.inkMuted,
+                size: 20,
+              ),
             ),
           ),
         ),

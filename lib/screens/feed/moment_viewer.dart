@@ -9,7 +9,9 @@ import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
 import '../../backend/feed_api.dart';
+import '../../keyboard/app_shortcuts.dart';
 import '../../keyboard/focusable_tap.dart';
+import '../../keyboard/viewer_keys.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/media_aspect_cache.dart';
 import '../../models/chat_user.dart';
@@ -19,6 +21,7 @@ import '../../theme/interaction.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/app_toast.dart';
+import '../../widgets/desktop_scroll.dart';
 import '../../widgets/destructive_sheet.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/moment_reactions.dart';
@@ -43,6 +46,7 @@ import '../../widgets/reaction_picker_sheet.dart' show pickReaction;
 import '../../widgets/reaction_limit_notice.dart';
 import '../../widgets/moment_comments_sheet.dart';
 import '../../models/reaction_limits.dart';
+import '../../platform.dart';
 import '../../l10n/text_case.dart';
 import '../../widgets/liquid_glass.dart';
 
@@ -727,6 +731,12 @@ class _MomentStageState extends State<_MomentStage>
 
   // ── Why the clock might be stopped. One getter, [_paused], reads them all.
   bool _holding = false;
+
+  /// Space on a desk: the hold, for a reader whose hands are on a keyboard.
+  /// Unlike the hold the chrome stays, since nothing is being pressed on the
+  /// picture; the stopped progress bar says it is paused. Cleared by moving
+  /// to another story, which is a reader carrying on.
+  bool _keyPaused = false;
   bool _paging = false;
   bool _dragging = false;
   bool _zoomed = false;
@@ -922,7 +932,14 @@ class _MomentStageState extends State<_MomentStage>
   }
 
   void _closePanel() {
-    _commentFocus.unfocus();
+    // On a desk, focus goes back to the stage's key handler (see
+    // [ViewerKeys]) rather than up to the route, where ← → would no
+    // longer reach it.
+    _commentFocus.unfocus(
+      disposition: isWebOrDesktop
+          ? UnfocusDisposition.previouslyFocusedChild
+          : UnfocusDisposition.scope,
+    );
     final calm = MotionScope.of(context).calm;
     if (calm) {
       _panel.value = 0;
@@ -973,6 +990,7 @@ class _MomentStageState extends State<_MomentStage>
 
   bool get _paused =>
       _holding ||
+      _keyPaused ||
       _paging ||
       _dragging ||
       _zoomed ||
@@ -1004,6 +1022,7 @@ class _MomentStageState extends State<_MomentStage>
   /// A new item is on screen: reset the clock, wait for its picture, and
   /// count it as seen.
   void _arrive() {
+    _keyPaused = false;
     _clock.value = 0;
     _ready = false;
     _loadFallback?.cancel();
@@ -1135,6 +1154,12 @@ class _MomentStageState extends State<_MomentStage>
     _next();
   }
 
+  void _toggleKeyPause() {
+    if (_closing || _isVideo(_current)) return;
+    setState(() => _keyPaused = !_keyPaused);
+    _sync();
+  }
+
   void _onHold(bool down) {
     if (down == _holding) return;
     if (down) HapticFeedback.selectionClick();
@@ -1203,11 +1228,20 @@ class _MomentStageState extends State<_MomentStage>
     final bar = _kCommentBar + MediaQuery.paddingOf(context).bottom;
     final top = MediaQuery.paddingOf(context).top;
 
-    return PopScope(
+    final stage = PopScope(
       // Back (or Escape) puts the panel away first, as a swipe down would.
       canPop: !_panelUp,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _closePanel();
+        if (!didPop) {
+          _closePanel();
+        } else if (!_closing) {
+          // Popped from outside (Esc, system back) rather than by [_close]:
+          // stop the story clock all the same, or the last story can run out
+          // during the exit transition and call [_close] on whatever route is
+          // underneath.
+          _closing = true;
+          _sync();
+        }
       },
       child: Material(
       type: MaterialType.transparency,
@@ -1377,6 +1411,23 @@ class _MomentStageState extends State<_MomentStage>
           ),
         ),
       ),
+      ),
+    );
+    if (!isWebOrDesktop) return stage;
+    // A desk's keys: ← → a story back and on, Space to hold one still. Not
+    // while the reply panel is up: its field has the focus and the arrows
+    // move its caret (Space it types, and the registry already knows that).
+    // Esc stays the route's, through the `PopScope` above, which puts the
+    // panel away first.
+    return ShortcutBindings(
+      bindings: {
+        if (!_panelUp && !_isVideo(current))
+          AppShortcuts.playPause: _toggleKeyPause,
+      },
+      child: ViewerKeys(
+        onPrevious: _panelUp ? null : _previous,
+        onNext: _panelUp ? null : _next,
+        child: stage,
       ),
     );
   }
@@ -3273,31 +3324,34 @@ class _CardReactionRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            // Vertical room for FocusableTap's ring, which paints outside the
-            // child's bounds and would otherwise be clipped by this scroller.
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                for (final e in emojis)
-                  Padding(
-                    key: ValueKey(e),
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _CardReactionPill(
-                      emoji: e,
-                      count: reactions.counts[e] ?? 0,
-                      active: reactions.mine.contains(e),
-                      onTap: () => onTap(e),
-                      onLongPress: () => onLongPress(e),
+          // A desk mouse's one wheel reaches the end of the row too.
+          child: HorizontalWheelScroll(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              // Vertical room for FocusableTap's ring, which paints outside the
+              // child's bounds and would otherwise be clipped by this scroller.
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  for (final e in emojis)
+                    Padding(
+                      key: ValueKey(e),
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _CardReactionPill(
+                        emoji: e,
+                        count: reactions.counts[e] ?? 0,
+                        active: reactions.mine.contains(e),
+                        onTap: () => onTap(e),
+                        onLongPress: () => onLongPress(e),
+                      ),
                     ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _MoreReactionsPill(onTap: onMore, overPhoto: false),
                   ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _MoreReactionsPill(onTap: onMore, overPhoto: false),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

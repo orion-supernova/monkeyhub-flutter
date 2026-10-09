@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
-import '../keyboard/focusable_tap.dart' show FocusRingShape;
+import '../keyboard/focusable_tap.dart' show FocusRingShape, FocusableTap;
+import '../keyboard/viewer_keys.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
@@ -13,6 +14,7 @@ import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/chat_list_row.dart' show MonogramAvatar;
+import '../widgets/desktop_scroll.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/settings_pickers.dart';
@@ -674,6 +676,22 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
   Animation<double>? _route;
   bool _settled = false;
 
+  /// A mouse is over the pager, so the page chevrons show. A notifier rather
+  /// than state: hovering must not rebuild the preview pages.
+  final ValueNotifier<bool> _hover = ValueNotifier<bool>(false);
+
+  /// One page back or forward, for the chevrons and the arrow keys. A swipe
+  /// is a finger's way through the gallery; a mouse has had no way at all.
+  void _step(int delta) {
+    final target = (_index + delta).clamp(0, ThemeController.all.length - 1);
+    if (target == _index) return;
+    _pc.animateToPage(
+      target,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -701,6 +719,7 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
   void dispose() {
     _route?.removeStatusListener(_onRouteStatus);
     _pc.dispose();
+    _hover.dispose();
     for (final c in _scopes.values) {
       c.dispose();
     }
@@ -744,83 +763,184 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
       (false, true, _) => l10n.themePageInUse,
       (false, false, _) => l10n.themePageUse(shown.name),
     };
+    final rtl = Directionality.of(context) == TextDirection.rtl;
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          PageView.builder(
-            controller: _pc,
-            itemCount: themes.length,
-            onPageChanged: (i) {
-              setState(() => _index = i);
-              HapticFeedback.selectionClick();
-              widget.onPageSettle(i);
-            },
-            itemBuilder: (_, i) => ThemeScope(
-              controller: _scopeFor(themes[i]),
-              child: _PreviewPage(t: themes[i]),
-            ),
-          ),
-          // The chrome wears the theme being shown, so its glass, ink and
-          // APPLY are that theme's — a dark close button over Daylight would
-          // be a preview of the wrong app.
-          if (_settled)
-            ThemeScope(
-              controller: _scopeFor(shown),
-              child: Positioned.fill(
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: SafeArea(
-                        bottom: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const GlassCloseButton(),
-                              Expanded(
-                                child: Center(
-                                  child: _PagerTitle(
-                                    name: shown.name,
-                                    count: themes.length,
-                                    index: _index,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 40),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 16,
-                      child: SafeArea(
-                        top: false,
-                        child: Center(
-                          child: GlassPillButton(
-                            label: label,
-                            height: 50,
-                            icon: isActive ? CupertinoIcons.checkmark_alt : null,
-                            tint: isActive ? null : shown.accent,
-                            onTap: isActive
-                                ? () => Navigator.of(context).maybePop()
-                                : () => _apply(context, shown),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+      // ← → step through the gallery; Esc still falls through to the route.
+      body: ViewerKeys(
+        onPrevious: () => _step(-1),
+        onNext: () => _step(1),
+        child: MouseRegion(
+          onEnter: (_) => _hover.value = true,
+          onExit: (_) => _hover.value = false,
+          child: Stack(
+            children: [
+              PagerMouseDrag(
+                child: PageView.builder(
+                  controller: _pc,
+                  itemCount: themes.length,
+                  onPageChanged: (i) {
+                    setState(() => _index = i);
+                    HapticFeedback.selectionClick();
+                    widget.onPageSettle(i);
+                  },
+                  itemBuilder: (_, i) => ThemeScope(
+                    controller: _scopeFor(themes[i]),
+                    child: _PreviewPage(t: themes[i]),
+                  ),
                 ),
               ),
+              // Mouse-only page chevrons, at the reading-direction edges. Plain
+              // translucent discs rather than glass: they fade, and glass must
+              // never animate.
+              if (_settled) ...[
+                Positioned(
+                  left: 12,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _PagerChevron(
+                      hover: _hover,
+                      icon: CupertinoIcons.chevron_left,
+                      label: rtl ? l10n.layoutPagerNext : l10n.layoutPagerPrevious,
+                      enabled: rtl ? _index < themes.length - 1 : _index > 0,
+                      onTap: () => _step(rtl ? 1 : -1),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 12,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _PagerChevron(
+                      hover: _hover,
+                      icon: CupertinoIcons.chevron_right,
+                      label: rtl ? l10n.layoutPagerPrevious : l10n.layoutPagerNext,
+                      enabled: rtl ? _index > 0 : _index < themes.length - 1,
+                      onTap: () => _step(rtl ? -1 : 1),
+                    ),
+                  ),
+                ),
+              ],
+              // The chrome wears the theme being shown, so its glass, ink and
+              // APPLY are that theme's — a dark close button over Daylight would
+              // be a preview of the wrong app.
+              if (_settled)
+                ThemeScope(
+                  controller: _scopeFor(shown),
+                  child: Positioned.fill(
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: SafeArea(
+                            bottom: false,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const GlassCloseButton(),
+                                  Expanded(
+                                    child: Center(
+                                      child: _PagerTitle(
+                                        name: shown.name,
+                                        count: themes.length,
+                                        index: _index,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 40),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                          child: SafeArea(
+                            top: false,
+                            child: Center(
+                              child: GlassPillButton(
+                                label: label,
+                                height: 50,
+                                icon: isActive ? CupertinoIcons.checkmark_alt : null,
+                                tint: isActive ? null : shown.accent,
+                                onTap: isActive
+                                    ? () => Navigator.of(context).maybePop()
+                                    : () => _apply(context, shown),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A page chevron for [_ThemePreviewCarousel], shown while a mouse is over the
+/// pager ([hover]) and the page in that direction exists ([enabled]).
+///
+/// Fades on its own small layer and never rebuilds the pages behind it.
+class _PagerChevron extends StatelessWidget {
+  const _PagerChevron({
+    required this.hover,
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final ValueNotifier<bool> hover;
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: hover,
+      builder: (context, hovering, child) {
+        final show = hovering && enabled;
+        return IgnorePointer(
+          ignoring: !show,
+          child: AnimatedOpacity(
+            opacity: show ? 1 : 0,
+            duration: const Duration(milliseconds: 160),
+            child: child,
+          ),
+        );
+      },
+      child: FocusableTap(
+        onTap: onTap,
+        semanticLabel: label,
+        shape: FocusRingShape.capsule,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: Color(0x59000000),
+              shape: BoxShape.circle,
             ),
-        ],
+            child: Icon(icon, size: 20, color: Colors.white),
+          ),
+        ),
       ),
     );
   }

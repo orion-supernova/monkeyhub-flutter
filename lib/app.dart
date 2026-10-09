@@ -46,6 +46,9 @@ import 'family/family_service.dart';
 import 'companions/brain_manager.dart';
 import 'env.dart';
 import 'keyboard/desktop_tab_traversal.dart';
+import 'keyboard/escape_to_pop.dart';
+import 'theme/density.dart';
+import 'keyboard/shortcut_host.dart';
 import 'auth/recovery_gate.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'invites/deep_link_service.dart';
@@ -94,6 +97,7 @@ import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
 import 'widgets/app_toast.dart';
 import 'widgets/capture_shield.dart';
+import 'widgets/desktop_scroll.dart';
 import 'widgets/companion_download_banner.dart';
 import 'widgets/connection_banner.dart';
 import 'widgets/self_host_badge.dart';
@@ -101,6 +105,8 @@ import 'widgets/share_target_sheet.dart';
 import 'widgets/shake_to_report.dart';
 import 'widgets/ios_kit.dart' show groupedFill, groupedMetaStyle, groupedRadius;
 import 'widgets/sheet_kit.dart' show SheetActionButton;
+import 'web/web_tab_title.dart';
+import 'web/web_url_sync.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".
@@ -200,6 +206,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // user's saved theme — no Midnight flash on hot restart.
   final ThemeController _themeController = ThemeController(_initialTheme());
   final ConvexBackend _cv = ConvexBackend.instance;
+  Timer? _storagePolicy;
   late final ChatApi _api = ChatApi(_cv);
   late final FeedApi _feedApi = FeedApi(_cv);
   late final CallApi _callApi = CallApi(_cv);
@@ -510,7 +517,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       });
     // Auto-remove and the cache ceiling, once the launch has settled. Rate-
     // limited inside, so the resume hook below can call it freely.
-    Future<void>.delayed(const Duration(seconds: 20),
+    // A Timer, not a Future.delayed, so dispose can call it off.
+    _storagePolicy = Timer(const Duration(seconds: 20),
         () => StorageService.instance.enforcePolicy());
     // Web message-banner clicks open the room, same as a push tap.
     MessageAlerts.instance.setOnOpenRoom(_openRoomFromPush);
@@ -523,6 +531,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       onMoment: _openMomentFromPush,
       onGames: _openGamesFromPush,
     );
+    // Web: the address bar follows the open chat and section, Back/Forward
+    // walk them, and a reload or pasted `#/c/<id>` reopens the chat through
+    // the same door a notification tap uses. No-op off web.
+    if (kIsWeb) {
+      WebUrlSync.instance.attach(
+        navigatorKey: rootNavigatorKey,
+        repo: _repo,
+        auth: _auth,
+        signedIn: () => _auth.session != null,
+        openRoom: _openRoomFromPush,
+        savedMessagesTitle: () => _loc()?.savedMessagesTitle,
+      );
+    }
     // Inbound universal links / App Links. Reported here rather than acted on:
     // `_openInvite` decides whether the app is ready and stashes if not.
     // A revoked or unknown token means this device is no longer signed in —
@@ -780,7 +801,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     UiSelectionStore.instance.selectRoom(roomId);
     // Pop any nested route first so we always land cleanly on the shell.
     nav.popUntil((r) => r.isFirst);
-    if (gLastWindowClass == WindowClass.expanded) {
+    if (gLastSplitShell) {
       // Desktop: fill the chat detail pane instead of pushing a full screen.
       SettingsStore.instance.setSection(HomeSection.chat);
       return;
@@ -1024,6 +1045,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// [_openInvite] ignores a repeat of the same code.
   @override
   Future<bool> didPushRouteInformation(RouteInformation routeInformation) async {
+    // Web history steps (`/c/<id>`, `/feed`…) first: the invite parser would
+    // read a bare `/feed` as the code FEED. `/j/…` and real URLs fall through.
+    if (kIsWeb &&
+        WebUrlSync.instance.handleBrowserNavigation(routeInformation.uri)) {
+      return true;
+    }
     final invite = parseInviteLink(routeInformation.uri.toString());
     if (invite == null) return false;
     _openInvite(invite);
@@ -1742,6 +1769,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
   @override
   void dispose() {
+    _storagePolicy?.cancel();
     ServerDirectory.instance.unwatch();
     _stopPresenceHeartbeat();
     _resumeSyncTimer?.cancel();
@@ -1768,13 +1796,22 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             navigatorKey: rootNavigatorKey,
+            // Thin auto-hiding scrollbars on desktop; phones untouched.
+            scrollBehavior: const DesktopScrollBehavior(),
             // Root navigator only. Screen attribution turns a flat list of
             // function names into something you can reason about, and the
             // push/pop events are their own signal — a route that opens and
             // closes repeatedly is a bug shape worth seeing next to the layout
             // events it interleaves with.
-            navigatorObservers: [_diagRoutes, appRoutes],
-            title: 'MonkeyHub',
+            navigatorObservers: [
+              _diagRoutes,
+              appRoutes,
+              if (kIsWeb) WebUrlSync.instance.routes,
+            ],
+            // On web the live tab title — `(3) MonkeyHub`, a chat's name — so
+            // the `Title` widget's rewrite of document.title on every app
+            // rebuild repeats it instead of resetting it.
+            title: kIsWeb ? WebTabTitle.instance.current : 'MonkeyHub',
             // Null follows the system language, resolved against
             // supportedLocales by Flutter's default algorithm (falls back to
             // the first entry — English — when the device locale isn't
@@ -1887,163 +1924,176 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                 // `builder` so it outranks WidgetsApp's own Tab binding — which
                 // on macOS leaks the key to AppKit and types a tab character
                 // into the field focus just landed on. See the widget's doc.
-                child: DesktopTabTraversal(
-                  child: Listener(
-                    // Observe (never consume) the first pointer-down to unlock
-                    // audio + request notification permission within a user gesture.
-                    onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
-                    child: _WindowClassProvider(
-                      child: Stack(
-                        children: [
-                          // The self-host bar is the one piece of app-wide chrome
-                          // that participates in LAYOUT rather than floating over
-                          // it: everything else shifts down by its height. Three
-                          // overlay shapes were tried first and each collided with
-                          // something — the status glyphs, a route's close button,
-                          // the dynamic island. A bar collides with nothing
-                          // because it overlaps nothing.
-                          //
-                          // `removeTop` is the other half of that bargain. The bar
-                          // has already covered the status-bar inset, so leaving
-                          // `padding.top` in place below it would have every
-                          // SafeArea in the app inset a second time. The condition
-                          // is [SelfHostBar.consumesTopInset] on both sides
-                          // precisely so the two cannot disagree.
-                          // Painted over the whole app — the shell, every
-                          // pushed route, and the full-screen media viewers
-                          // that are the reason this is a ribbon and not a
-                          // bar — and painted as a FOREGROUND layer, so it
-                          // takes no height from any of them and is not
-                          // hit-testable. Taps fall straight through to
-                          // whatever is under it, which is what makes it safe
-                          // to land in the one corner a full-screen route is
-                          // likely to have put a control in.
-                          //
-                          // Inside this Stack rather than around it, so the
-                          // CaptureShield below still covers it.
-                          ServerMarkBanner(
-                            child: Column(
+                // Every keyboard shortcut is heard here, after the screen has had
+                // its chance at the key. See the widget's doc.
+                child: ShortcutHost(
+                  navigatorKey: rootNavigatorKey,
+                  repo: _repo,
+                  onOpenRoom: (id) => _openRoomFromPush(id),
+                  child: DesktopTabTraversal(
+                    // Esc goes back from any pushed route. Same placement rule as
+                    // the Tab fix: above the navigator, inside `builder`.
+                    child: EscapeToPop(
+                      navigatorKey: rootNavigatorKey,
+                      child: Listener(
+                        // Observe (never consume) the first pointer-down to unlock
+                        // audio + request notification permission within a user gesture.
+                        onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
+                        // Row and chrome-button density, read by the widget kit.
+                        child: DensityScope(child: _WindowClassProvider(
+                          child: Stack(
                             children: [
-                              // The self-host BAR used to sit here and take
-                              // its own height, which is what put every screen
-                              // in the app 26pt plus a status inset below the
-                              // top of the display. That was invisible on a
-                              // chat list and wrong on every screen whose
-                              // design is that the content is the screen — it
-                              // is what pillarboxed a screenshot in the photo
-                              // send-preview. It is a corner ribbon now, drawn
-                              // over the whole app at the bottom of this
-                              // method, taking no height from anything.
+                              // The self-host bar is the one piece of app-wide chrome
+                              // that participates in LAYOUT rather than floating over
+                              // it: everything else shifts down by its height. Three
+                              // overlay shapes were tried first and each collided with
+                              // something — the status glyphs, a route's close button,
+                              // the dynamic island. A bar collides with nothing
+                              // because it overlaps nothing.
                               //
-                              // The companion bar stays a bar: it reports a
-                              // download that runs for minutes, and chrome
-                              // that sits on top of a room header for twenty
-                              // minutes is not chrome. Its neighbours below
-                              // stay floating — a connection blip is
-                              // transient, and shoving the whole app down and
-                              // back for one would be worse than briefly
-                              // overlapping something.
-                              if (_bootstrapped && _bootError == null)
-                                const CompanionDownloadBanner(),
-                              Expanded(
-                                child: MediaQuery.removePadding(
-                                  context: context,
-                                  // The companion bar covers the status-bar
-                                  // strip itself, so leaving `padding.top` in
-                                  // place below would have every SafeArea in
-                                  // the app inset a second time. Nothing else
-                                  // covers it any more: the server mark is a
-                                  // ribbon over the top-right corner, which
-                                  // neither fills the strip nor is owed an
-                                  // inset for it.
-                                  removeTop: companionBar,
-                                  child: Stack(
-                                    children: [
-                                      ?child,
-                                      // One FLOATING top slot, stacked vertically. These used to
-                                      // be two separate Positioned(top: 0) layers that overlapped
-                                      // whenever both were showing — which would have buried the
-                                      // connection banner's retry target under the call pill.
-                                      // Both children collapse to zero height when hidden.
-                                      //
-                                      // Only the transient chrome belongs here. The companion
-                                      // download strip moved up into the Column above, because it
-                                      // is neither transient nor small enough to float over a
-                                      // header for the length of a download.
-                                      if (_bootstrapped && _bootError == null)
-                                        Positioned(
-                                          top: 0,
-                                          left: 0,
-                                          right: 0,
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              ConnectionBanner(health: _health),
-                                              // Global "Move call here" pill — shows when an
-                                              // active call exists on another of my devices.
-                                              // Tap to handoff.
-                                              ActiveCallPill(
-                                                service: _callService,
+                              // `removeTop` is the other half of that bargain. The bar
+                              // has already covered the status-bar inset, so leaving
+                              // `padding.top` in place below it would have every
+                              // SafeArea in the app inset a second time. The condition
+                              // is [SelfHostBar.consumesTopInset] on both sides
+                              // precisely so the two cannot disagree.
+                              // Painted over the whole app — the shell, every
+                              // pushed route, and the full-screen media viewers
+                              // that are the reason this is a ribbon and not a
+                              // bar — and painted as a FOREGROUND layer, so it
+                              // takes no height from any of them and is not
+                              // hit-testable. Taps fall straight through to
+                              // whatever is under it, which is what makes it safe
+                              // to land in the one corner a full-screen route is
+                              // likely to have put a control in.
+                              //
+                              // Inside this Stack rather than around it, so the
+                              // CaptureShield below still covers it.
+                              ServerMarkBanner(
+                                child: Column(
+                                children: [
+                                  // The self-host BAR used to sit here and take
+                                  // its own height, which is what put every screen
+                                  // in the app 26pt plus a status inset below the
+                                  // top of the display. That was invisible on a
+                                  // chat list and wrong on every screen whose
+                                  // design is that the content is the screen — it
+                                  // is what pillarboxed a screenshot in the photo
+                                  // send-preview. It is a corner ribbon now, drawn
+                                  // over the whole app at the bottom of this
+                                  // method, taking no height from anything.
+                                  //
+                                  // The companion bar stays a bar: it reports a
+                                  // download that runs for minutes, and chrome
+                                  // that sits on top of a room header for twenty
+                                  // minutes is not chrome. Its neighbours below
+                                  // stay floating — a connection blip is
+                                  // transient, and shoving the whole app down and
+                                  // back for one would be worse than briefly
+                                  // overlapping something.
+                                  if (_bootstrapped && _bootError == null)
+                                    const CompanionDownloadBanner(),
+                                  Expanded(
+                                    child: MediaQuery.removePadding(
+                                      context: context,
+                                      // The companion bar covers the status-bar
+                                      // strip itself, so leaving `padding.top` in
+                                      // place below would have every SafeArea in
+                                      // the app inset a second time. Nothing else
+                                      // covers it any more: the server mark is a
+                                      // ribbon over the top-right corner, which
+                                      // neither fills the strip nor is owed an
+                                      // inset for it.
+                                      removeTop: companionBar,
+                                      child: Stack(
+                                        children: [
+                                          ?child,
+                                          // One FLOATING top slot, stacked vertically. These used to
+                                          // be two separate Positioned(top: 0) layers that overlapped
+                                          // whenever both were showing — which would have buried the
+                                          // connection banner's retry target under the call pill.
+                                          // Both children collapse to zero height when hidden.
+                                          //
+                                          // Only the transient chrome belongs here. The companion
+                                          // download strip moved up into the Column above, because it
+                                          // is neither transient nor small enough to float over a
+                                          // header for the length of a download.
+                                          if (_bootstrapped && _bootError == null)
+                                            Positioned(
+                                              top: 0,
+                                              left: 0,
+                                              right: 0,
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  ConnectionBanner(health: _health),
+                                                  // Global "Move call here" pill — shows when an
+                                                  // active call exists on another of my devices.
+                                                  // Tap to handoff.
+                                                  ActiveCallPill(
+                                                    service: _callService,
+                                                  ),
+                                                  // The way back into a call whose
+                                                  // screen was put away; the pen
+                                                  // over a shared screen.
+                                                  InCallPill(
+                                                    call: _callService,
+                                                    group: _groupCallService,
+                                                    callScreenUp: _callScreenUp,
+                                                  ),
+                                                ],
                                               ),
-                                              // The way back into a call whose
-                                              // screen was put away; the pen
-                                              // over a shared screen.
-                                              InCallPill(
-                                                call: _callService,
-                                                group: _groupCallService,
-                                                callScreenUp: _callScreenUp,
-                                              ),
-                                            ],
+                                            ),
+                                          // Strokes over the app while THIS device
+                                          // shares its screen — above every route,
+                                          // inert unless the pen is armed.
+                                          ScreenShareOverlay(
+                                            call: _callService,
+                                            group: _groupCallService,
                                           ),
-                                        ),
-                                      // Strokes over the app while THIS device
-                                      // shares its screen — above every route,
-                                      // inert unless the pen is armed.
-                                      ScreenShareOverlay(
-                                        call: _callService,
-                                        group: _groupCallService,
+                                          // Pushes call screens onto the root navigator the moment
+                                          // the call service transitions to a non-idle state.
+                                          // Invisible.
+                                          _CallOverlay(
+                                            service: _callService,
+                                            api: _api,
+                                            screenUp: _callScreenUp,
+                                          ),
+                                          // Same job for group calls: pushes GroupCallScreen /
+                                          // the group invite ringer. Invisible.
+                                          _GroupCallOverlay(
+                                            service: _groupCallService,
+                                            api: _api,
+                                            screenUp: _callScreenUp,
+                                          ),
+                                          // Listens for a deliberate shake and OFFERS the report
+                                          // screen. Invisible; mounted here only so the sensor
+                                          // subscription's lifetime matches the app's. Gated on
+                                          // bootstrap so a shake during the splash cannot open a
+                                          // form over a half-built tree.
+                                          if (_bootstrapped && _bootError == null)
+                                            ShakeToReport(auth: _auth, api: _api),
+                                        ],
                                       ),
-                                      // Pushes call screens onto the root navigator the moment
-                                      // the call service transitions to a non-idle state.
-                                      // Invisible.
-                                      _CallOverlay(
-                                        service: _callService,
-                                        api: _api,
-                                        screenUp: _callScreenUp,
-                                      ),
-                                      // Same job for group calls: pushes GroupCallScreen /
-                                      // the group invite ringer. Invisible.
-                                      _GroupCallOverlay(
-                                        service: _groupCallService,
-                                        api: _api,
-                                        screenUp: _callScreenUp,
-                                      ),
-                                      // Listens for a deliberate shake and OFFERS the report
-                                      // screen. Invisible; mounted here only so the sensor
-                                      // subscription's lifetime matches the app's. Gated on
-                                      // bootstrap so a shake during the splash cannot open a
-                                      // form over a half-built tree.
-                                      if (_bootstrapped && _bootError == null)
-                                        ShakeToReport(auth: _auth, api: _api),
-                                    ],
+                                    ),
                                   ),
+                                ],
                                 ),
                               ),
+                              // Drag-and-drop chrome: the cards that trail the
+                              // pointer and the verdict chip under them. Above
+                              // every route, because a drag is not part of any of
+                              // them — it belongs to the WINDOW, and the aura it
+                              // paints is what says so. Below the capture shield,
+                              // like everything else. Inert (and free) on every
+                              // platform without a desktop drag.
+                              const DropChrome(),
+                              // Above EVERYTHING, the server mark included, so a
+                              // screen recording cannot capture any of it.
+                              const CaptureShield(),
                             ],
-                            ),
                           ),
-                          // Drag-and-drop chrome: the cards that trail the
-                          // pointer and the verdict chip under them. Above
-                          // every route, because a drag is not part of any of
-                          // them — it belongs to the WINDOW, and the aura it
-                          // paints is what says so. Below the capture shield,
-                          // like everything else. Inert (and free) on every
-                          // platform without a desktop drag.
-                          const DropChrome(),
-                          // Above EVERYTHING, the server mark included, so a
-                          // screen recording cannot capture any of it.
-                          const CaptureShield(),
-                        ],
+                        )),
                       ),
                     ),
                   ),
@@ -2173,15 +2223,20 @@ class _WindowClassProvider extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wc = Breakpoints.classOf(constraints.maxWidth);
-        // Previous class, read before we overwrite the mirror below — the
+        // Previous shell, read before we overwrite the mirror below — the
         // only signal available here for detecting a live crossing, since
         // this LayoutBuilder reruns on every resize frame, not just on a
         // class flip (unlike LayoutScope's dependents).
-        final prev = gLastWindowClass;
+        final split = Breakpoints.splitShellFor(constraints.maxWidth);
+        final prevSplit = gLastSplitShell;
         // Mirror for code with no descendant context (push/call-overlay
         // routing in this file).
         gLastWindowClass = wc;
-        if (prev != WindowClass.expanded && wc == WindowClass.expanded) {
+        gLastSplitShell = split;
+        // Keyed off the SHELL, not the class: on a desktop the split shell
+        // (with its route-free chat pane) arrives at medium already, and
+        // that is the moment a phone-style push is left stranded over it.
+        if (!prevSplit && split) {
           _reconcileNavigatorForExpanded();
         }
         return LayoutScope(

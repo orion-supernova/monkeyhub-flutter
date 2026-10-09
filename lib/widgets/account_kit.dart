@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart';
 import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
@@ -454,9 +455,14 @@ class _PressRowState extends State<PressRow>
     final theme = ThemeScope.of(context);
     final body = Padding(padding: widget.padding, child: widget.child);
     if (widget.onTap == null) return body;
-    return Semantics(
-      button: true,
-      label: widget.semanticLabel,
+    // FocusableTap gives it the hand cursor, a Tab stop with Enter, the
+    // focus ring and the square hover fill a grouped row has (the block's
+    // clip rounds the ends). It carries the button semantics too.
+    return FocusableTap(
+      onTap: widget.onTap,
+      semanticLabel: widget.semanticLabel,
+      hover: HoverEffect.tint,
+      hoverRadius: 0,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _set(true),
@@ -464,6 +470,8 @@ class _PressRowState extends State<PressRow>
         onTapCancel: () => _set(false),
         onTap: widget.onTap,
         onLongPress: widget.onLongPress,
+        // A right-click is a mouse's long-press. Touch never produces one.
+        onSecondaryTap: widget.onLongPress,
         child: AnimatedContainer(
           duration: _down ? Duration.zero : const Duration(milliseconds: 260),
           color: _down

@@ -27,6 +27,7 @@ import 'review_route.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
 import '../widgets/glass_reveal.dart' show GlassStill;
+import '../widgets/desktop_scroll.dart';
 
 /// Post-capture composer: draw on a photo, frame it, caption it, send it — or
 /// several of them at once.
@@ -2227,19 +2228,21 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
               Row(
                 children: [
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (final c in _palette)
-                            _Swatch(
-                              color: c,
-                              selected: _color == c,
-                              onTap: _saving
-                                  ? null
-                                  : () => setState(() => _color = c),
-                            ),
-                        ],
+                    child: HorizontalWheelScroll(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final c in _palette)
+                              _Swatch(
+                                color: c,
+                                selected: _color == c,
+                                onTap: _saving
+                                    ? null
+                                    : () => setState(() => _color = c),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

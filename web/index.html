@@ -33,6 +33,24 @@
   <link rel="manifest" href="manifest.json">
 
   <!--
+    Chat and section deep links (#/c/<roomId>, #/feed, #/discover, #/settings),
+    moved aside before Flutter starts. With no router, the framework would try
+    to build the hash as a named route and log "Could not navigate to initial
+    route" on every reload of a chat. lib/web/web_url_sync.dart reads the stash
+    (lib/web/web_document_web.dart) and opens the chat once signed in; anything
+    else in the hash is left exactly as it was.
+  -->
+  <script>
+    (function () {
+      var h = location.hash;
+      if (/^#\/(c\/[A-Za-z0-9_-]{1,64}|feed|discover|settings)\/?$/.test(h)) {
+        window.mhInitialRoute = h.substring(1);
+        history.replaceState(history.state, '', location.pathname + location.search);
+      }
+    })();
+  </script>
+
+  <!--
     Web Push (RFC 8030), spoken directly to the browser's own push service.
     Delivers message and call notifications to a backgrounded, frozen or closed
     tab — the only channel that reaches a tab whose WebSocket the browser has

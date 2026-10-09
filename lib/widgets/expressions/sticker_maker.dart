@@ -18,6 +18,7 @@ import '../app_toast.dart';
 import '../ios_kit.dart';
 import '../sheet_kit.dart' show sheetTitleStyle;
 import '../reaction_picker_sheet.dart';
+import '../desktop_scroll.dart';
 
 /// How a photo becomes a sticker when its subject is not lifted out.
 enum StickerShape { circle, rounded, original }
@@ -400,26 +401,28 @@ class _StickerMakerScreenState extends State<StickerMakerScreen> {
               ),
               SizedBox(
                 height: 52,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    for (final e in {..._quickEmoji, _emoji})
+                child: HorizontalWheelScroll(
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      for (final e in {..._quickEmoji, _emoji})
+                        _EmojiChoice(
+                          emoji: e,
+                          selected: e == _emoji,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _emoji = e);
+                          },
+                        ),
                       _EmojiChoice(
-                        emoji: e,
-                        selected: e == _emoji,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => _emoji = e);
-                        },
+                        emoji: null,
+                        selected: false,
+                        onTap: _pickMoreEmoji,
+                        semanticLabel: l10n.stickerMakerMoreEmoji,
                       ),
-                    _EmojiChoice(
-                      emoji: null,
-                      selected: false,
-                      onTap: _pickMoreEmoji,
-                      semanticLabel: l10n.stickerMakerMoreEmoji,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

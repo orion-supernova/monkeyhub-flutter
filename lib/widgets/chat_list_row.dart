@@ -7,6 +7,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
+import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 import 'remote_image.dart';
@@ -17,11 +18,14 @@ import 'teardown_safe.dart';
 
 /// Avatar diameter on a chat row. Telegram and Messages both sit between 52
 /// and 60; 54 keeps a two-line preview level with the avatar's own height.
+/// The phone value: the row itself reads [Density.chatRowAvatar], which is 44
+/// in the compact desktop layout.
 const double kChatRowAvatar = 54;
 
 /// Where a row's text begins, measured from the row's leading edge. The
 /// hairline between rows starts here too, so the eye reads one column of
-/// names rather than a stack of boxes.
+/// names rather than a stack of boxes. Phone value; see
+/// [Density.chatRowTextInset].
 const double kChatRowTextInset = kChatRowAvatar + 14;
 
 /// One conversation in the home list, laid out the way iOS lays out a
@@ -86,6 +90,7 @@ class _ChatListRowState extends State<ChatListRow>
         ? l10n.savedMessagesTitle
         : (widget.dmUser?.displayName ?? room.name);
     final stamp = room.lastMessageTime ?? room.createdAt;
+    final density = Density.of(context);
 
     // FocusableTap so a keyboard can reach the row (Tab, then Enter); the
     // pointer press stays the flat table-cell fill below, not a spring — a
@@ -94,6 +99,9 @@ class _ChatListRowState extends State<ChatListRow>
       onTap: widget.onTap,
       semanticLabel: title,
       radius: theme.radiusLg,
+      // The same rounded fill the press draws, at a whisper: a mouse over a
+      // conversation lights it before the click opens it.
+      hover: HoverEffect.tint,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
@@ -112,20 +120,29 @@ class _ChatListRowState extends State<ChatListRow>
             child: Stack(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: EdgeInsets.symmetric(
+                    vertical: density.chatRowPadding,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _avatar(theme),
-                      const SizedBox(width: 14),
+                      _avatar(theme, density),
+                      SizedBox(width: density.chatRowGap),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _titleLine(context, theme, title, stamp, unread),
-                            const SizedBox(height: 3),
-                            _previewLine(context, theme),
+                            _titleLine(
+                              context,
+                              theme,
+                              density,
+                              title,
+                              stamp,
+                              unread,
+                            ),
+                            SizedBox(height: density.chatRowLineGap),
+                            _previewLine(context, theme, density),
                           ],
                         ),
                       ),
@@ -134,7 +151,7 @@ class _ChatListRowState extends State<ChatListRow>
                 ),
                 if (widget.showDivider)
                   Positioned(
-                    left: kChatRowTextInset,
+                    left: density.chatRowTextInset,
                     right: 0,
                     bottom: 0,
                     child: Container(
@@ -157,16 +174,17 @@ class _ChatListRowState extends State<ChatListRow>
   Color _hairline(AppTheme theme) =>
       Color.alphaBlend(theme.ink.withValues(alpha: 0.05), theme.divider);
 
-  Widget _avatar(AppTheme theme) => ChatRoomAvatar(
+  Widget _avatar(AppTheme theme, Density density) => ChatRoomAvatar(
         room: widget.room,
         dmUser: widget.dmUser,
         api: widget.api,
-        size: kChatRowAvatar,
+        size: density.chatRowAvatar,
       );
 
   Widget _titleLine(
     BuildContext context,
     AppTheme theme,
+    Density density,
     String title,
     DateTime stamp,
     bool unread,
@@ -184,7 +202,10 @@ class _ChatListRowState extends State<ChatListRow>
               Flexible(
                 child: Text(
                   title,
-                  style: theme.bodyEmph.copyWith(color: theme.ink),
+                  style: theme.bodyEmph.copyWith(
+                    color: theme.ink,
+                    fontSize: density.chatRowTitleSize,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -212,7 +233,7 @@ class _ChatListRowState extends State<ChatListRow>
         Text(
           chatListStamp(context, stamp),
           style: theme.bodySoft.copyWith(
-            fontSize: 15,
+            fontSize: density.chatRowStampSize,
             color: unread && !room.isMuted ? theme.accent : theme.inkMuted,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
@@ -221,7 +242,7 @@ class _ChatListRowState extends State<ChatListRow>
     );
   }
 
-  Widget _previewLine(BuildContext context, AppTheme theme) {
+  Widget _previewLine(BuildContext context, AppTheme theme, Density density) {
     final room = widget.room;
     final Widget text;
     if (widget.typists.isNotEmpty) {
@@ -231,8 +252,8 @@ class _ChatListRowState extends State<ChatListRow>
       text = Text(
         subtitle.text,
         style: theme.bodySoft.copyWith(
-          fontSize: 15,
-          height: 1.3,
+          fontSize: density.chatRowPreviewSize,
+          height: density.chatRowPreviewHeight,
           color: subtitle.kind == RoomSubtitleKind.message
               ? theme.inkMuted
               : theme.inkMuted.withValues(alpha: 0.7),

@@ -124,7 +124,7 @@ void main() {
 
       expect(find.byType(GlassCloseButton), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Not now — keep my current phrase'),
+        find.bySemanticsLabel('Not now, keep my current phrase'),
         findsOneWidget,
       );
     });

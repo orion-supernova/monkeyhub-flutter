@@ -20,6 +20,7 @@ import 'search_field.dart';
 import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
 import '../l10n/text_case.dart';
+import 'desktop_scroll.dart';
 
 /// Names everybody who answered a poll, a checklist or an event, grouped by
 /// what they picked.
@@ -273,36 +274,38 @@ class _InteractionRespondentsSheetState
                 ),
                 const SizedBox(height: 8),
                 if (it.choices.length > 1)
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 5,
-                      horizontal: 3,
-                    ),
-                    child: Row(
-                      children: [
-                        FilterCapsule(
-                          label: l10n.interactionFilterAll,
-                          count: rows?.length ?? 0,
-                          showZeroCount: true,
-                          active: selected == null,
-                          onTap: () => _select(null),
-                        ),
-                        for (final choice in it.choices) ...[
-                          const SizedBox(width: 6),
+                  HorizontalWheelScroll(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 5,
+                        horizontal: 3,
+                      ),
+                      child: Row(
+                        children: [
                           FilterCapsule(
-                            label: interactionChoiceLabel(
-                              l10n,
-                              it.kind,
-                              choice,
-                            ),
-                            count: counts[choice.id] ?? 0,
+                            label: l10n.interactionFilterAll,
+                            count: rows?.length ?? 0,
                             showZeroCount: true,
-                            active: selected == choice.id,
-                            onTap: () => _select(choice.id),
+                            active: selected == null,
+                            onTap: () => _select(null),
                           ),
+                          for (final choice in it.choices) ...[
+                            const SizedBox(width: 6),
+                            FilterCapsule(
+                              label: interactionChoiceLabel(
+                                l10n,
+                                it.kind,
+                                choice,
+                              ),
+                              count: counts[choice.id] ?? 0,
+                              showZeroCount: true,
+                              active: selected == choice.id,
+                              onTap: () => _select(choice.id),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 if (_failed) ...[

@@ -114,6 +114,48 @@ class DropChannel {
         .catchError((_) => null);
   }
 
+  // ─────────────────────────────── paste ───────────────────────────────
+
+  /// Whether ⌘V can ask the system clipboard for files and images. macOS
+  /// only, like the drag itself.
+  static bool get canReadClipboard => isSupported;
+
+  /// What ⌘V would paste, if it is something to ATTACH: Finder-copied files,
+  /// or an image (a screenshot copied with ⌃⇧⌘4, a picture copied out of
+  /// Preview or a browser). Null when the clipboard holds plain text, or
+  /// nothing this app would send — the composer then runs its ordinary text
+  /// paste.
+  ///
+  /// Text wins over an image when the clipboard has both, which it often
+  /// does: Word and Pages put a picture of the copied words beside the words
+  /// themselves, and pasting a screenshot of a sentence would be absurd.
+  /// Files win over text, because Finder puts the file NAME on the clipboard
+  /// beside the file.
+  ///
+  /// The native side stages a copy exactly as it does for a drop, so the
+  /// result goes through the same intake and is released the same way.
+  Future<DropBundle?> readClipboard() async {
+    if (!isSupported) return null;
+    try {
+      final args = await _channel.invokeMethod<Map>('readClipboard');
+      if (args == null) return null;
+      final bundle = _bundleFrom(args);
+      return bundle.files.isEmpty ? null : bundle;
+    } on MissingPluginException {
+      return null;
+    } catch (e) {
+      debugPrint('drop: could not read the clipboard: $e');
+      return null;
+    }
+  }
+
+  /// A browser hands pasted files to a page only through its `paste` event;
+  /// macOS is asked directly by [readClipboard], so there is nothing to listen
+  /// to here.
+  Object addPasteListener(Future<void> Function(DropBundle bundle) onPaste) =>
+      onPaste;
+  void removePasteListener(Object token) {}
+
   Future<Object?> _onCall(MethodCall call) async {
     final h = _handlers;
     if (h == null) return null;

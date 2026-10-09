@@ -5,10 +5,12 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../keyboard/app_shortcuts.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
+import '../platform.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/media_filmstrip.dart' show MediaScrim;
 import '../widgets/media_flight.dart';
@@ -186,6 +188,9 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   /// It comes back as the photo returns to fit.
   bool _zoomed = false;
 
+  /// ⌘= ⌘− ⌘0 on a desk. See [PhotoZoomController].
+  final PhotoZoomController _zoom = PhotoZoomController();
+
   @override
   void dispose() {
     _drag.dispose();
@@ -201,7 +206,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
         ? _circleImage(diameter)
         : _rectImage(context);
 
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: Colors.transparent,
       body: ValueListenableBuilder<Offset>(
         valueListenable: _drag,
@@ -286,17 +291,34 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
           drag: _drag,
           onDismiss: () => Navigator.of(context).maybePop(),
           onZoomChanged: (z) => setState(() => _zoomed = z),
+          zoom: _zoom,
+          onBackdropClick:
+              isWebOrDesktop ? () => Navigator.of(context).maybePop() : null,
           child: _maybeHero(image),
         ),
       ),
     );
+    if (!isWebOrDesktop) return scaffold;
+    return ShortcutBindings(
+      bindings: {
+        AppShortcuts.zoomIn: _zoom.zoomIn,
+        AppShortcuts.zoomOut: _zoom.zoomOut,
+        AppShortcuts.zoomFit: _zoom.fit,
+        // The toolbar's own Save (last in it whenever it is offered), so ⌘S
+        // shares its busy guard and its toast.
+        if (widget.onSave != null)
+          AppShortcuts.saveMedia: () => _tools(context).last.onTap(),
+      },
+      child: scaffold,
+    );
   }
 
-  /// Chrome that steps aside while the photo is zoomed.
+  /// Chrome that steps aside while the photo is zoomed. Not on a desk,
+  /// where the × is how a mouse gets back out of a zoomed picture.
   Widget _zoomAside(Widget chrome) => IgnorePointer(
-        ignoring: _zoomed,
+        ignoring: _zoomed && !isWebOrDesktop,
         child: AnimatedOpacity(
-          opacity: _zoomed ? 0 : 1,
+          opacity: _zoomed && !isWebOrDesktop ? 0 : 1,
           duration: const Duration(milliseconds: 180),
           child: chrome,
         ),

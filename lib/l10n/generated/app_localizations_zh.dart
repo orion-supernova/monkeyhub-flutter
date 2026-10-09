@@ -11195,4 +11195,220 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => '通用';
+
+  @override
+  String get kbdGroupNavigation => '导航';
+
+  @override
+  String get kbdGroupChat => '聊天中';
+
+  @override
+  String get kbdGroupComposer => '输入';
+
+  @override
+  String get kbdGroupViewer => '照片和视频';
+
+  @override
+  String get kbdGroupCall => '通话';
+
+  @override
+  String get kbdCommandPalette => '搜索聊天和命令';
+
+  @override
+  String get kbdShowShortcuts => '键盘快捷键';
+
+  @override
+  String get kbdSearch => '搜索';
+
+  @override
+  String get kbdNewChat => '新聊天';
+
+  @override
+  String get kbdSettings => '设置';
+
+  @override
+  String get kbdBack => '返回或关闭';
+
+  @override
+  String kbdGoTo(String section) {
+    return '前往$section';
+  }
+
+  @override
+  String get kbdNextChat => '下一个聊天';
+
+  @override
+  String get kbdPreviousChat => '上一个聊天';
+
+  @override
+  String get kbdNextUnread => '下一个未读聊天';
+
+  @override
+  String get kbdCloseChat => '关闭聊天';
+
+  @override
+  String get kbdRoomInfo => '聊天信息';
+
+  @override
+  String get kbdSearchInChat => '在此聊天中搜索';
+
+  @override
+  String get kbdJumpToLatest => '跳转到最新消息';
+
+  @override
+  String get kbdAttach => '添加文件';
+
+  @override
+  String get kbdVoiceCall => '语音通话';
+
+  @override
+  String get kbdVideoCall => '视频通话';
+
+  @override
+  String get kbdSend => '发送';
+
+  @override
+  String get kbdNewline => '换行';
+
+  @override
+  String get kbdEditLast => '编辑你的最后一条消息';
+
+  @override
+  String get kbdBold => '粗体';
+
+  @override
+  String get kbdItalic => '斜体';
+
+  @override
+  String get kbdUnderline => '下划线';
+
+  @override
+  String get kbdPasteMedia => '粘贴照片或文件';
+
+  @override
+  String get kbdEmoji => '表情和贴纸';
+
+  @override
+  String get kbdViewerPrevious => '上一个';
+
+  @override
+  String get kbdViewerNext => '下一个';
+
+  @override
+  String get kbdZoomIn => '放大';
+
+  @override
+  String get kbdZoomOut => '缩小';
+
+  @override
+  String get kbdZoomFit => '适合窗口大小';
+
+  @override
+  String get kbdPlayPause => '播放或暂停';
+
+  @override
+  String get kbdCopyMedia => '复制';
+
+  @override
+  String get kbdSaveMedia => '保存';
+
+  @override
+  String get kbdToggleMute => '静音或取消静音';
+
+  @override
+  String get kbdToggleCamera => '开启或关闭摄像头';
+
+  @override
+  String get kbdHangUp => '挂断';
+
+  @override
+  String get kbdPanelTitle => '键盘快捷键';
+
+  @override
+  String get kbdPanelSearchHint => '搜索快捷键';
+
+  @override
+  String get kbdPanelEmpty => '没有匹配的快捷键';
+
+  @override
+  String kbdPeekHint(String key) {
+    return '随时按住 $key 即可查看当前页面的快捷键';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return '按住 $key 时显示快捷键';
+  }
+
+  @override
+  String get kbdPaletteHint => '跳转到聊天或执行命令';
+
+  @override
+  String get kbdPaletteChats => '聊天';
+
+  @override
+  String get kbdPaletteCommands => '命令';
+
+  @override
+  String get kbdPaletteEmpty => '未找到结果';
+
+  @override
+  String get kbdPaletteMove => '移动';
+
+  @override
+  String get kbdPaletteOpen => '打开';
+
+  @override
+  String get kbdPaletteClose => '关闭';
+
+  @override
+  String get msgDeskReactLabel => '回应';
+
+  @override
+  String get msgDeskMoreLabel => '更多';
+
+  @override
+  String get msgDeskInfoLabel => '信息';
+
+  @override
+  String get kbdSeekBackward => '后退 5 秒';
+
+  @override
+  String get kbdSeekForward => '前进 5 秒';
+
+  @override
+  String get kbdMuteVideo => '视频静音或取消静音';
+
+  @override
+  String get viewerSavedToDownloads => '已保存到“下载”';
+
+  @override
+  String get viewerDownloaded => '已下载';
+
+  @override
+  String get viewerShowInFinder => '在 Finder 中显示';
+
+  @override
+  String get viewerShowInFolder => '在文件夹中显示';
+
+  @override
+  String get viewerCopied => '已复制';
+
+  @override
+  String get viewerCopyFailed => '无法复制';
+
+  @override
+  String get hoverCompactLayoutTitle => '紧凑布局';
+
+  @override
+  String get hoverCompactLayoutSubtitle => '行更矮、按钮更小，适合鼠标和大屏幕。';
+
+  @override
+  String get layoutPagerPrevious => '上一页';
+
+  @override
+  String get layoutPagerNext => '下一页';
 }

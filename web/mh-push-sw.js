@@ -121,7 +121,9 @@ self.addEventListener('notificationclick', (event) => {
       ? '#moment=' + encodeURIComponent(momentId)
       : '#games'
     : roomId
-      ? '#room=' + encodeURIComponent(roomId)
+      // The app's own chat URL (lib/web/web_url_sync.dart), so a closed tab
+      // reopens ON the chat. Nothing ever read the old `#room=` spelling.
+      ? '#/c/' + encodeURIComponent(roomId)
       : '';
 
   event.waitUntil(

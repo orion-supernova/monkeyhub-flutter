@@ -9,11 +9,12 @@ import '../room_screen.dart';
 
 /// Opens a chat room, adapting to the current window class.
 ///
-/// - **Expanded (desktop):** fills the chat detail pane by selecting the room
-///   in [UiSelectionStore] (switching to the Chat section first so the pane is
+/// - **Split shell** ([LayoutX.usesSplitShell]: expanded, or medium on a
+///   desktop): fills the chat detail pane by selecting the room in
+///   [UiSelectionStore] (switching to the Chat section first so the pane is
 ///   visible). No navigation — the two-pane shell reacts to the selection.
-/// - **Compact / medium:** pushes [RoomScreen] full-screen, exactly as the app
-///   did before the desktop redesign.
+/// - **Phone shell:** pushes [RoomScreen] full-screen, exactly as the app did
+///   before the desktop redesign.
 ///
 /// This is the single decision point that lets the ~12 existing room-open call
 /// sites keep their phone behavior unchanged while gaining desktop panes.
@@ -23,7 +24,7 @@ void openRoom(
   required ChatRepository repo,
   required ChatApi api,
 }) {
-  if (context.isExpanded) {
+  if (context.usesSplitShell) {
     SettingsStore.instance.setSection(HomeSection.chat);
     UiSelectionStore.instance.selectRoom(roomId);
     return;
@@ -54,16 +55,16 @@ final GlobalKey<NavigatorState> settingsPaneNavKey =
 
 /// Opens a settings sub-screen, adapting to the current window class.
 ///
-/// - **Expanded (desktop):** pushes [builder]'s screen into the settings detail
+/// - **Split shell:** pushes [builder]'s screen into the settings detail
 ///   pane's nested navigator (resetting it to the empty base first), and
 ///   records [key] so the originating row can render as selected.
-/// - **Compact / medium:** pushes the sub-screen full-screen, as before.
+/// - **Phone shell:** pushes the sub-screen full-screen, as before.
 void openSettingsDetail(
   BuildContext context, {
   required String key,
   required WidgetBuilder builder,
 }) {
-  if (context.isExpanded) {
+  if (context.usesSplitShell) {
     final nav = settingsPaneNavKey.currentState;
     if (nav != null) {
       nav.popUntil((r) => r.isFirst);

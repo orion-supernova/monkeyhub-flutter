@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
 import 'filter_capsule.dart';
+import 'desktop_scroll.dart';
 
 /// The always-visible control for [FilterStyle.chips].
 ///
@@ -49,47 +50,49 @@ class RoomFilterBar extends StatelessWidget {
     final scaled = MediaQuery.textScalerOf(context).scale(32).clamp(32.0, 56.0);
     return SizedBox(
       height: scaled,
-      child: ListView(
-        // The row lives inside the chat list's scroll view, so scrolling far
-        // enough down unmounts it. A scroll position only survives that if it
-        // has somewhere to persist to, and one without a PageStorageKey of its
-        // own persists nowhere: scroll the row to a later facet, scroll the
-        // chats past it, come back, and the row had silently rewound to the
-        // start.
-        key: const PageStorageKey('room_filter_bar'),
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: gutter),
-        physics: const BouncingScrollPhysics(),
-        children: [
-          // 'all' is a reset, not a facet — it reads active precisely when
-          // nothing else is, so the row always has exactly one obvious
-          // way back to the unfiltered list.
-          _Chip(
-            label: l10n.roomFilterBarAllChipLabel,
-            active: filter.isEmpty,
-            onTap: filter.isEmpty
-                ? null
-                : () {
-                    HapticFeedback.lightImpact();
-                    onChanged(RoomFilter.empty);
+      child: HorizontalWheelScroll(
+        child: ListView(
+          // The row lives inside the chat list's scroll view, so scrolling far
+          // enough down unmounts it. A scroll position only survives that if it
+          // has somewhere to persist to, and one without a PageStorageKey of its
+          // own persists nowhere: scroll the row to a later facet, scroll the
+          // chats past it, come back, and the row had silently rewound to the
+          // start.
+          key: const PageStorageKey('room_filter_bar'),
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: gutter),
+          physics: const BouncingScrollPhysics(),
+          children: [
+            // 'all' is a reset, not a facet — it reads active precisely when
+            // nothing else is, so the row always has exactly one obvious
+            // way back to the unfiltered list.
+            _Chip(
+              label: l10n.roomFilterBarAllChipLabel,
+              active: filter.isEmpty,
+              onTap: filter.isEmpty
+                  ? null
+                  : () {
+                      HapticFeedback.lightImpact();
+                      onChanged(RoomFilter.empty);
+                    },
+            ),
+            for (final dimension in facetDimensionOrder) ...[
+              _Separator(color: theme.divider),
+              for (final facet in RoomFacet.values.where(
+                (f) => f.dimension == dimension,
+              ))
+                _Chip(
+                  label: facet.label(l10n),
+                  count: counts[facet],
+                  active: filter.has(facet),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    onChanged(filter.toggle(facet));
                   },
-          ),
-          for (final dimension in facetDimensionOrder) ...[
-            _Separator(color: theme.divider),
-            for (final facet in RoomFacet.values.where(
-              (f) => f.dimension == dimension,
-            ))
-              _Chip(
-                label: facet.label(l10n),
-                count: counts[facet],
-                active: filter.has(facet),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onChanged(filter.toggle(facet));
-                },
-              ),
+                ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

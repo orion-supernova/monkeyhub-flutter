@@ -8,6 +8,7 @@ import '../../models/expression_item.dart';
 import '../../theme/theme_scope.dart';
 import '../jumbo_emoji.dart';
 import 'expression_media.dart';
+import '../desktop_scroll.dart';
 
 /// The strip of matching stickers that appears above the composer when what
 /// has been typed is a single emoji — Telegram's and Signal's "sticker
@@ -93,32 +94,34 @@ class _Strip extends StatelessWidget {
           borderRadius: BorderRadius.circular(theme.radiusLg),
           border: Border.all(color: theme.divider),
         ),
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          itemCount: items.length,
-          separatorBuilder: (_, _) => const SizedBox(width: 4),
-          itemBuilder: (context, i) {
-            final item = items[i];
-            return Semantics(
-              button: true,
-              label: item.title,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  onSend(item);
-                },
-                child: StickerArt(
-                  item: item,
-                  size: 64,
-                  api: ExpressionStore.instance.api,
-                  url: _urlFor(item),
-                  play: autoplay,
+        child: HorizontalWheelScroll(
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 4),
+            itemBuilder: (context, i) {
+              final item = items[i];
+              return Semantics(
+                button: true,
+                label: item.title,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    onSend(item);
+                  },
+                  child: StickerArt(
+                    item: item,
+                    size: 64,
+                    api: ExpressionStore.instance.api,
+                    url: _urlFor(item),
+                    play: autoplay,
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

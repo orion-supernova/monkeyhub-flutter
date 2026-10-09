@@ -11738,4 +11738,221 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'Genel';
+
+  @override
+  String get kbdGroupNavigation => 'Gezinme';
+
+  @override
+  String get kbdGroupChat => 'Sohbette';
+
+  @override
+  String get kbdGroupComposer => 'Yazma';
+
+  @override
+  String get kbdGroupViewer => 'Fotoğraflar ve videolar';
+
+  @override
+  String get kbdGroupCall => 'Aramalar';
+
+  @override
+  String get kbdCommandPalette => 'Sohbet ve komut ara';
+
+  @override
+  String get kbdShowShortcuts => 'Klavye kısayolları';
+
+  @override
+  String get kbdSearch => 'Ara';
+
+  @override
+  String get kbdNewChat => 'Yeni sohbet';
+
+  @override
+  String get kbdSettings => 'Ayarlar';
+
+  @override
+  String get kbdBack => 'Geri dön veya kapat';
+
+  @override
+  String kbdGoTo(String section) {
+    return '$section bölümüne git';
+  }
+
+  @override
+  String get kbdNextChat => 'Sonraki sohbet';
+
+  @override
+  String get kbdPreviousChat => 'Önceki sohbet';
+
+  @override
+  String get kbdNextUnread => 'Sonraki okunmamış sohbet';
+
+  @override
+  String get kbdCloseChat => 'Sohbeti kapat';
+
+  @override
+  String get kbdRoomInfo => 'Sohbet bilgisi';
+
+  @override
+  String get kbdSearchInChat => 'Bu sohbette ara';
+
+  @override
+  String get kbdJumpToLatest => 'Son mesaja atla';
+
+  @override
+  String get kbdAttach => 'Dosya ekle';
+
+  @override
+  String get kbdVoiceCall => 'Sesli arama';
+
+  @override
+  String get kbdVideoCall => 'Görüntülü arama';
+
+  @override
+  String get kbdSend => 'Gönder';
+
+  @override
+  String get kbdNewline => 'Yeni satır';
+
+  @override
+  String get kbdEditLast => 'Son mesajını düzenle';
+
+  @override
+  String get kbdBold => 'Kalın';
+
+  @override
+  String get kbdItalic => 'İtalik';
+
+  @override
+  String get kbdUnderline => 'Altı çizili';
+
+  @override
+  String get kbdPasteMedia => 'Fotoğraf veya dosya yapıştır';
+
+  @override
+  String get kbdEmoji => 'Emoji ve çıkartmalar';
+
+  @override
+  String get kbdViewerPrevious => 'Önceki';
+
+  @override
+  String get kbdViewerNext => 'Sonraki';
+
+  @override
+  String get kbdZoomIn => 'Yakınlaştır';
+
+  @override
+  String get kbdZoomOut => 'Uzaklaştır';
+
+  @override
+  String get kbdZoomFit => 'Pencereye sığdır';
+
+  @override
+  String get kbdPlayPause => 'Oynat veya duraklat';
+
+  @override
+  String get kbdCopyMedia => 'Kopyala';
+
+  @override
+  String get kbdSaveMedia => 'Kaydet';
+
+  @override
+  String get kbdToggleMute => 'Mikrofonu kapat veya aç';
+
+  @override
+  String get kbdToggleCamera => 'Kamerayı aç veya kapat';
+
+  @override
+  String get kbdHangUp => 'Aramayı bitir';
+
+  @override
+  String get kbdPanelTitle => 'Klavye Kısayolları';
+
+  @override
+  String get kbdPanelSearchHint => 'Kısayollarda ara';
+
+  @override
+  String get kbdPanelEmpty => 'Eşleşen kısayol yok';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'Bulunduğun ekranın kısayollarını görmek için istediğin an $key tuşunu basılı tut';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return '$key tuşu basılı tutulunca kısayolları göster';
+  }
+
+  @override
+  String get kbdPaletteHint => 'Bir sohbete geç veya komut çalıştır';
+
+  @override
+  String get kbdPaletteChats => 'Sohbetler';
+
+  @override
+  String get kbdPaletteCommands => 'Komutlar';
+
+  @override
+  String get kbdPaletteEmpty => 'Hiçbir şey bulunamadı';
+
+  @override
+  String get kbdPaletteMove => 'Gezin';
+
+  @override
+  String get kbdPaletteOpen => 'Aç';
+
+  @override
+  String get kbdPaletteClose => 'Kapat';
+
+  @override
+  String get msgDeskReactLabel => 'Tepki ver';
+
+  @override
+  String get msgDeskMoreLabel => 'Diğer';
+
+  @override
+  String get msgDeskInfoLabel => 'Bilgi';
+
+  @override
+  String get kbdSeekBackward => '5 saniye geri';
+
+  @override
+  String get kbdSeekForward => '5 saniye ileri';
+
+  @override
+  String get kbdMuteVideo => 'Videonun sesini kapat veya aç';
+
+  @override
+  String get viewerSavedToDownloads => 'İndirilenler\'e kaydedildi';
+
+  @override
+  String get viewerDownloaded => 'İndirildi';
+
+  @override
+  String get viewerShowInFinder => 'Finder\'da göster';
+
+  @override
+  String get viewerShowInFolder => 'Klasörde göster';
+
+  @override
+  String get viewerCopied => 'Kopyalandı';
+
+  @override
+  String get viewerCopyFailed => 'Kopyalanamadı';
+
+  @override
+  String get hoverCompactLayoutTitle => 'Kompakt düzen';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'Fare ve büyük ekran için daha kısa satırlar ve daha küçük düğmeler.';
+
+  @override
+  String get layoutPagerPrevious => 'Önceki';
+
+  @override
+  String get layoutPagerNext => 'Sonraki';
 }

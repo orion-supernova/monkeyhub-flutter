@@ -19,8 +19,10 @@ import '../widgets/pending_placeholder.dart';
 import '../widgets/skeleton_rows.dart';
 import '../data/room_filter.dart';
 import '../data/settings_store.dart';
+import '../data/ui_selection_store.dart';
 import 'navigation/scroll_memory.dart';
 import '../family/family_service.dart';
+import '../keyboard/app_shortcuts.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
@@ -470,8 +472,79 @@ class _HomeScreenState extends State<HomeScreen>
     ));
   }
 
+  /// The rooms as the list last drew them: filtered, searched, in display
+  /// order. What ⌥⌘↓ and friends walk, so "next" means the row below.
+  List<ChatRoom> _shownRooms = const [];
+
+  /// ⌘F. The search lives in the pull-down panel above the list, which a
+  /// mouse has no way to pull, so the shortcut is also how a desktop opens it.
+  void _focusSearch() {
+    if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.minScrollExtent);
+    setState(() {
+      _pullPanelOpen = true;
+      _pullDropped = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocus.requestFocus();
+      _searchCtrl.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _searchCtrl.text.length,
+      );
+    });
+  }
+
+  /// Opens the chat [by] rows from the open one. Stops at the ends rather
+  /// than wrapping: landing back at the top from the bottom reads as a jump.
+  /// [unread] skips to the next chat with something unread instead, and does
+  /// wrap, since "the next one I haven't read" has no natural end.
+  void _stepChat(int by, {bool unread = false}) {
+    final rooms = _shownRooms;
+    if (rooms.isEmpty) return;
+    final at = rooms.indexWhere((r) => r.id == UiSelectionStore.instance.roomId);
+    String? target;
+    if (unread) {
+      for (var n = 1; n <= rooms.length; n++) {
+        final r = rooms[(at + n) % rooms.length];
+        if (r.hasUnread && r.id != UiSelectionStore.instance.roomId) {
+          target = r.id;
+          break;
+        }
+      }
+    } else {
+      final to = at < 0 ? (by > 0 ? 0 : rooms.length - 1) : at + by;
+      if (to >= 0 && to < rooms.length) target = rooms[to].id;
+    }
+    if (target == null) return;
+    openRoom(context, roomId: target, repo: widget.repo, api: widget.api);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Only the bindings follow the open chat: the list itself never rebuilds
+    // for a selection change it doesn't draw.
+    return ListenableBuilder(
+      listenable: UiSelectionStore.instance,
+      builder: (context, list) {
+        final open = UiSelectionStore.instance.roomId != null;
+        return ShortcutBindings(
+          bindings: {
+            AppShortcuts.search: _focusSearch,
+            AppShortcuts.newChat: _openNewChat,
+            AppShortcuts.nextChat: () => _stepChat(1),
+            AppShortcuts.previousChat: () => _stepChat(-1),
+            AppShortcuts.nextUnread: () => _stepChat(1, unread: true),
+            if (open && context.isExpanded)
+              AppShortcuts.closeChat: () => UiSelectionStore.instance.selectRoom(null),
+          },
+          child: list!,
+        );
+      },
+      child: _buildList(context),
+    );
+  }
+
+  Widget _buildList(BuildContext context) {
     final theme = ThemeScope.of(context);
     final session = widget.auth.session;
     if (session == null) return const SizedBox.shrink();
@@ -489,6 +562,7 @@ class _HomeScreenState extends State<HomeScreen>
         ? allRooms.where((r) => _matchesSearch(r, _searchQuery)).toList()
         : allRooms;
     final visibleRooms = filter.apply(matched);
+    _shownRooms = visibleRooms;
     // Projected, not the repository's raw totals: every number on a filter
     // control is what tapping it would actually show. Deliberately against
     // `allRooms`, not `matched` — the facet chips describe the chat list as a

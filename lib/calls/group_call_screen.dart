@@ -27,6 +27,7 @@ import 'group_call_service.dart';
 import 'screen_share.dart';
 import 'share_picker_sheet.dart';
 import 'widgets/call_chrome.dart';
+import '../widgets/desktop_scroll.dart';
 
 /// Full-screen UI for an active mesh group call.
 ///
@@ -1363,54 +1364,56 @@ class _ShareStage extends StatelessWidget {
           bottom: stripBottom,
           child: SizedBox(
             height: 92,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              children: [
-                _StripTile(
-                  label: l10n.groupCallScreenYouLabel,
-                  muted: service.localMuted,
-                  level: levels.levelOf(AudioLevelMonitor.me),
-                  accent: theme.accent,
-                  user: me,
-                  api: api,
-                  presenting: mine,
-                  video: service.localCamActive && localRenderer != null
-                      ? RTCVideoView(
-                          localRenderer!,
-                          mirror: true,
-                          objectFit:
-                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        )
-                      : null,
-                ),
-                for (final p in peers)
+            child: HorizontalWheelScroll(
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                children: [
                   _StripTile(
-                    label: p.name,
-                    muted: p.mediaState.audioMuted,
-                    dimmed: !p.connected || p.reconnecting,
-                    level: levels.levelOf(p.userId),
+                    label: l10n.groupCallScreenYouLabel,
+                    muted: service.localMuted,
+                    level: levels.levelOf(AudioLevelMonitor.me),
                     accent: theme.accent,
-                    user: ChatUser(
-                      id: p.userId,
-                      username: '',
-                      name: p.name,
-                      avatarStorageId: p.avatarStorageId,
-                    ),
+                    user: me,
                     api: api,
-                    presenting: identical(p, presenter),
-                    video: (!p.mediaState.videoOff &&
-                            p.remoteStream != null &&
-                            p.remoteStream!.getVideoTracks().isNotEmpty &&
-                            renderers[p.userId] != null)
+                    presenting: mine,
+                    video: service.localCamActive && localRenderer != null
                         ? RTCVideoView(
-                            renderers[p.userId]!,
-                            objectFit: RTCVideoViewObjectFit
-                                .RTCVideoViewObjectFitCover,
+                            localRenderer!,
+                            mirror: true,
+                            objectFit:
+                                RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                           )
                         : null,
                   ),
-              ],
+                  for (final p in peers)
+                    _StripTile(
+                      label: p.name,
+                      muted: p.mediaState.audioMuted,
+                      dimmed: !p.connected || p.reconnecting,
+                      level: levels.levelOf(p.userId),
+                      accent: theme.accent,
+                      user: ChatUser(
+                        id: p.userId,
+                        username: '',
+                        name: p.name,
+                        avatarStorageId: p.avatarStorageId,
+                      ),
+                      api: api,
+                      presenting: identical(p, presenter),
+                      video: (!p.mediaState.videoOff &&
+                              p.remoteStream != null &&
+                              p.remoteStream!.getVideoTracks().isNotEmpty &&
+                              renderers[p.userId] != null)
+                          ? RTCVideoView(
+                              renderers[p.userId]!,
+                              objectFit: RTCVideoViewObjectFit
+                                  .RTCVideoViewObjectFitCover,
+                            )
+                          : null,
+                    ),
+                ],
+              ),
             ),
           ),
         ),

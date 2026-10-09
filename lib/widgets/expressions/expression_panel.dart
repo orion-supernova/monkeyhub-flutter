@@ -30,6 +30,7 @@ import '../teardown_safe.dart';
 import '../ios_kit.dart';
 import '../sheet_kit.dart' show SheetCloseButton, SheetHandle;
 import '../skeleton_rows.dart' show SkeletonBox, SkeletonSweep;
+import '../desktop_scroll.dart';
 
 /// The composer's expression panel — emoji, GIFs and stickers — shown in place
 /// of the keyboard.
@@ -789,40 +790,42 @@ class _KlipyBrowserState extends State<_KlipyBrowser> {
         ),
         SizedBox(
           height: 32,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: typing
-                ? [
-                    for (final s in _suggestions)
-                      _Chip(label: s, onTap: () => _runQuery(s)),
-                  ]
-                : [
-                    _Chip(
-                      label: l10n.expressionTrending,
-                      selected: _section == _KlipySection.trending,
-                      onTap: () => _showSection(_KlipySection.trending),
-                    ),
-                    _Chip(
-                      label: l10n.expressionRecent,
-                      icon: CupertinoIcons.clock,
-                      selected: _section == _KlipySection.recent,
-                      onTap: () => _showSection(_KlipySection.recent),
-                    ),
-                    _Chip(
-                      label: l10n.expressionFavorites,
-                      icon: CupertinoIcons.star,
-                      selected: _section == _KlipySection.favorites,
-                      onTap: () => _showSection(_KlipySection.favorites),
-                    ),
-                    for (final c in _categories)
+          child: HorizontalWheelScroll(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: typing
+                  ? [
+                      for (final s in _suggestions)
+                        _Chip(label: s, onTap: () => _runQuery(s)),
+                    ]
+                  : [
                       _Chip(
-                        label: c.name,
-                        selected: _section == _KlipySection.search &&
-                            _q == c.query,
-                        onTap: () => _runQuery(c.query),
+                        label: l10n.expressionTrending,
+                        selected: _section == _KlipySection.trending,
+                        onTap: () => _showSection(_KlipySection.trending),
                       ),
-                  ],
+                      _Chip(
+                        label: l10n.expressionRecent,
+                        icon: CupertinoIcons.clock,
+                        selected: _section == _KlipySection.recent,
+                        onTap: () => _showSection(_KlipySection.recent),
+                      ),
+                      _Chip(
+                        label: l10n.expressionFavorites,
+                        icon: CupertinoIcons.star,
+                        selected: _section == _KlipySection.favorites,
+                        onTap: () => _showSection(_KlipySection.favorites),
+                      ),
+                      for (final c in _categories)
+                        _Chip(
+                          label: c.name,
+                          selected: _section == _KlipySection.search &&
+                              _q == c.query,
+                          onTap: () => _runQuery(c.query),
+                        ),
+                    ],
+            ),
           ),
         ),
         // Room between the chips and the first row of GIFs, or the two read as
@@ -1391,69 +1394,71 @@ class _StickersTabState extends State<_StickersTab> {
             if (showSearch) field,
             SizedBox(
               height: 44,
-              child: ListView(
-                controller: _strip,
-                scrollDirection: Axis.horizontal,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: _stripPadding),
-                children: [
-                  if (recents.isNotEmpty)
+              child: HorizontalWheelScroll(
+                child: ListView(
+                  controller: _strip,
+                  scrollDirection: Axis.horizontal,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: _stripPadding),
+                  children: [
+                    if (recents.isNotEmpty)
+                      _StripButton(
+                        selected: section == 'recent',
+                        label: l10n.expressionRecent,
+                        onTap: () => _select('recent'),
+                        child: Icon(CupertinoIcons.clock,
+                            size: 20, color: theme.inkMuted),
+                      ),
+                    if (favorites.isNotEmpty)
+                      _StripButton(
+                        selected: section == 'favorites',
+                        label: l10n.expressionFavorites,
+                        onTap: () => _select('favorites'),
+                        child: Icon(CupertinoIcons.star,
+                            size: 20, color: theme.inkMuted),
+                      ),
+                    // Where "My stickers" will be once there is one.
+                    if (offerCreate)
+                      _StripButton(
+                        selected: false,
+                        label: l10n.expressionCreateSticker,
+                        onTap: widget.onCreateSticker!,
+                        child: Icon(CupertinoIcons.add_circled,
+                            size: 20, color: theme.accent),
+                      ),
+                    for (final p in packs)
+                      _StripButton(
+                        selected: section == p.id,
+                        label: p.personal ? l10n.expressionMyStickers : p.title,
+                        onTap: () => _select(p.id),
+                        child: p.stickers.isEmpty
+                            ? Icon(CupertinoIcons.person_crop_circle,
+                                size: 20, color: theme.inkMuted)
+                            : StickerArt(
+                                item: p.stickers.first.toItem(),
+                                url: p.stickers.first.url,
+                                size: 28,
+                                play: false,
+                              ),
+                      ),
+                    if (klipy != null)
+                      _StripButton(
+                        selected: section == 'klipy',
+                        label: l10n.expressionSearchKlipy,
+                        onTap: () => _select('klipy'),
+                        child: Icon(CupertinoIcons.search,
+                            size: 20, color: theme.inkMuted),
+                      ),
+                    // The pack store: find, add, remove and reorder packs.
                     _StripButton(
-                      selected: section == 'recent',
-                      label: l10n.expressionRecent,
-                      onTap: () => _select('recent'),
-                      child: Icon(CupertinoIcons.clock,
+                      selected: section == '_store',
+                      label: l10n.expressionPackStore,
+                      onTap: () => _select('_store'),
+                      child: Icon(CupertinoIcons.square_grid_2x2,
                           size: 20, color: theme.inkMuted),
                     ),
-                  if (favorites.isNotEmpty)
-                    _StripButton(
-                      selected: section == 'favorites',
-                      label: l10n.expressionFavorites,
-                      onTap: () => _select('favorites'),
-                      child: Icon(CupertinoIcons.star,
-                          size: 20, color: theme.inkMuted),
-                    ),
-                  // Where "My stickers" will be once there is one.
-                  if (offerCreate)
-                    _StripButton(
-                      selected: false,
-                      label: l10n.expressionCreateSticker,
-                      onTap: widget.onCreateSticker!,
-                      child: Icon(CupertinoIcons.add_circled,
-                          size: 20, color: theme.accent),
-                    ),
-                  for (final p in packs)
-                    _StripButton(
-                      selected: section == p.id,
-                      label: p.personal ? l10n.expressionMyStickers : p.title,
-                      onTap: () => _select(p.id),
-                      child: p.stickers.isEmpty
-                          ? Icon(CupertinoIcons.person_crop_circle,
-                              size: 20, color: theme.inkMuted)
-                          : StickerArt(
-                              item: p.stickers.first.toItem(),
-                              url: p.stickers.first.url,
-                              size: 28,
-                              play: false,
-                            ),
-                    ),
-                  if (klipy != null)
-                    _StripButton(
-                      selected: section == 'klipy',
-                      label: l10n.expressionSearchKlipy,
-                      onTap: () => _select('klipy'),
-                      child: Icon(CupertinoIcons.search,
-                          size: 20, color: theme.inkMuted),
-                    ),
-                  // The pack store: find, add, remove and reorder packs.
-                  _StripButton(
-                    selected: section == '_store',
-                    label: l10n.expressionPackStore,
-                    onTap: () => _select('_store'),
-                    child: Icon(CupertinoIcons.square_grid_2x2,
-                        size: 20, color: theme.inkMuted),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             // Keyed by section, so every pack opens at its top. Unkeyed, the

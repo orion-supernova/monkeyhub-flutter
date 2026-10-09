@@ -75,7 +75,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       final nav = Navigator.of(context);
-      if (context.isExpanded) {
+      if (context.usesSplitShell) {
         // Desktop: dismiss the sheet and open the new room in the chat pane.
         SettingsStore.instance.setSection(HomeSection.chat);
         UiSelectionStore.instance.selectRoom(id);

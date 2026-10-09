@@ -12,6 +12,7 @@ import 'adaptive_sheet.dart';
 import 'filter_capsule.dart';
 import 'sheet_kit.dart';
 import 'user_avatar.dart';
+import 'desktop_scroll.dart';
 
 /// One person's reactions to one thing: who, and every emoji they left,
 /// newest first.
@@ -300,27 +301,29 @@ class _MomentReactionsSheetState extends State<_MomentReactionsSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              children: [
-                FilterCapsule(
-                  label: l10n.reactionDetailsSheetFilterAll,
-                  count: all.length,
-                  active: filter == null,
-                  onTap: () => setState(() => _filter = null),
-                ),
-                for (final e in emojis) ...[
-                  const SizedBox(width: 6),
+          HorizontalWheelScroll(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
                   FilterCapsule(
-                    label: e,
-                    count: tally[e],
-                    active: filter == e,
-                    onTap: () => setState(() => _filter = e),
+                    label: l10n.reactionDetailsSheetFilterAll,
+                    count: all.length,
+                    active: filter == null,
+                    onTap: () => setState(() => _filter = null),
                   ),
+                  for (final e in emojis) ...[
+                    const SizedBox(width: 6),
+                    FilterCapsule(
+                      label: e,
+                      count: tally[e],
+                      active: filter == e,
+                      onTap: () => setState(() => _filter = e),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           Flexible(

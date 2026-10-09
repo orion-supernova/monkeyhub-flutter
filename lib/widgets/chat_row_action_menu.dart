@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
+import '../keyboard/overlay_modal_scope.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -81,6 +82,15 @@ class ChatRowLongPress extends StatelessWidget {
             HapticFeedback.mediumImpact();
             onLongPress();
           },
+        ),
+        // Right-click opens the same menu. Without it a mouse had no way to
+        // pin, mute or archive at all: the swipes need a drag. Only the
+        // secondary callback is set, so the recognizer never competes for a
+        // primary tap, the same as the bubble's.
+        TapGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+          () => TapGestureRecognizer(),
+          (instance) => instance.onSecondaryTap = onLongPress,
         ),
       },
       child: child,
@@ -323,85 +333,91 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
     // Material(type: transparency) supplies the DefaultTextStyle that the
     // root overlay otherwise lacks — without it, every Text inside paints
     // Flutter's debug "missing ancestor" yellow underlines.
-    return Material(
-      type: MaterialType.transparency,
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, child) {
-          return Stack(
-            children: [
-              _Scrim(t: _ctrl, onTap: () => _resolve(null)),
-              _LiftedRow(
-                t: _ctrl,
-                rect: previewRect,
-                child: GestureDetector(
-                  // Opaque so a tap over the card's padding/gaps — not just
-                  // its painted content — still counts. A drag over the
-                  // transcript's own ListView still wins that gesture arena;
-                  // only a tap-without-drag reaches here.
-                  behavior: HitTestBehavior.opaque,
-                  // Same shortcut a plain tap on the row already gives — see
-                  // [showChatRowActionMenu]'s doc.
-                  onTap: () => _resolve(ChatRowAction.open),
-                  child: previewContent,
-                ),
-              ),
-              Positioned(
-                left: left,
-                top: menuTop,
-                width: cardWidth,
-                // The iOS menu unfurl: grows out of the card's corner on a
-                // spring, fading in over the first part of it.
-                child: Opacity(
-                  opacity: (_ctrl.value * 2.5).clamp(0.0, 1.0),
-                  child: Transform.scale(
-                    scale: 0.6 + 0.4 * _springOrEase(_ctrl),
-                    alignment: Alignment.topCenter,
-                    child: child,
+    // Esc closes the menu (with the same exit as a scrim tap) instead of
+    // falling through to the app-wide Esc, which would close the chat behind
+    // it. Also keeps Tab from walking under the scrim.
+    return OverlayModalScope(
+      onDismiss: () => _resolve(null),
+      child: Material(
+        type: MaterialType.transparency,
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                _Scrim(t: _ctrl, onTap: () => _resolve(null)),
+                _LiftedRow(
+                  t: _ctrl,
+                  rect: previewRect,
+                  child: GestureDetector(
+                    // Opaque so a tap over the card's padding/gaps — not just
+                    // its painted content — still counts. A drag over the
+                    // transcript's own ListView still wins that gesture arena;
+                    // only a tap-without-drag reaches here.
+                    behavior: HitTestBehavior.opaque,
+                    // Same shortcut a plain tap on the row already gives — see
+                    // [showChatRowActionMenu]'s doc.
+                    onTap: () => _resolve(ChatRowAction.open),
+                    child: previewContent,
                   ),
                 ),
-              ),
-            ],
-          );
-        },
-        // Solid, not glass: this layer scales and fades in, and a blur
-        // inside a moving layer is re-rendered on every frame of it. The
-        // raised surface reads as the iOS menu platter over the blurred
-        // scrim behind it, which is where the glass effect actually lives.
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(_menuRadius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.22),
-                blurRadius: 30,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(_menuRadius),
-            child: ColoredBox(
-              color: Color.alphaBlend(
-                ThemeScope.of(context).ink.withValues(alpha: 0.05),
-                ThemeScope.of(context).surfaceRaised,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < actions.length; i++)
-                    _ChatRowActionRow(
-                      action: actions[i],
-                      divider: i < actions.length - 1,
-                      // Picking matches the message menu: opening buzzed
-                      // medium, choosing is a light tick.
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        _resolve(actions[i]);
-                      },
+                Positioned(
+                  left: left,
+                  top: menuTop,
+                  width: cardWidth,
+                  // The iOS menu unfurl: grows out of the card's corner on a
+                  // spring, fading in over the first part of it.
+                  child: Opacity(
+                    opacity: (_ctrl.value * 2.5).clamp(0.0, 1.0),
+                    child: Transform.scale(
+                      scale: 0.6 + 0.4 * _springOrEase(_ctrl),
+                      alignment: Alignment.topCenter,
+                      child: child,
                     ),
-                ],
+                  ),
+                ),
+              ],
+            );
+          },
+          // Solid, not glass: this layer scales and fades in, and a blur
+          // inside a moving layer is re-rendered on every frame of it. The
+          // raised surface reads as the iOS menu platter over the blurred
+          // scrim behind it, which is where the glass effect actually lives.
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_menuRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 30,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(_menuRadius),
+              child: ColoredBox(
+                color: Color.alphaBlend(
+                  ThemeScope.of(context).ink.withValues(alpha: 0.05),
+                  ThemeScope.of(context).surfaceRaised,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < actions.length; i++)
+                      _ChatRowActionRow(
+                        action: actions[i],
+                        divider: i < actions.length - 1,
+                        // Picking matches the message menu: opening buzzed
+                        // medium, choosing is a light tick.
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _resolve(actions[i]);
+                        },
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

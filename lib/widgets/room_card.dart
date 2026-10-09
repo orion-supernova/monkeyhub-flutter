@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
@@ -42,13 +43,22 @@ class RoomCard extends StatelessWidget {
     // a member count and an ENTER (or "messages disappear") in the corner the
     // letter would want — there is no hole here to fill, only things to sit
     // behind. The grid tile, which has real dead space, offers it instead.
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
-        child: _body(context, theme),
+    // The margin sits outside the FocusableTap so the ring and the hover
+    // fill hug the card, not the gap under it.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: FocusableTap(
+        onTap: onTap,
+        radius: theme.radiusLg,
+        hover: HoverEffect.tint,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
+            child: _body(context, theme),
+          ),
+        ),
       ),
     );
   }

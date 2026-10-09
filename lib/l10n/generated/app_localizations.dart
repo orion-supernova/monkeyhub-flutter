@@ -18649,67 +18649,67 @@ abstract class AppLocalizations {
   /// **'{label}, {count} items'**
   String roomContentTabSemantic(String count, String label);
 
-  /// No description provided for @mapAppsTitle.
+  /// Settings page title for choosing which maps app opens shared locations.
   ///
   /// In en, this message translates to:
   /// **'Maps'**
   String get mapAppsTitle;
 
-  /// No description provided for @mapAppsChoose.
+  /// Heading of the picker shown when tapping a shared location: which maps app to open it in.
   ///
   /// In en, this message translates to:
   /// **'Open location in'**
   String get mapAppsChoose;
 
-  /// No description provided for @mapAppsRemember.
+  /// Toggle in the maps picker: remember the chosen app and skip the picker next time.
   ///
   /// In en, this message translates to:
   /// **'Use as default'**
   String get mapAppsRemember;
 
-  /// No description provided for @mapAppsAskEveryTime.
+  /// Option in the maps settings: show the picker on every shared location instead of using a default app.
   ///
   /// In en, this message translates to:
   /// **'Ask every time'**
   String get mapAppsAskEveryTime;
 
-  /// No description provided for @mapAppsBrowser.
+  /// Maps picker option: open the location in the web browser instead of an app.
   ///
   /// In en, this message translates to:
   /// **'Browser'**
   String get mapAppsBrowser;
 
-  /// No description provided for @mapAppsSubtitle.
+  /// Subtitle under the Maps settings title.
   ///
   /// In en, this message translates to:
   /// **'Choose where shared locations open.'**
   String get mapAppsSubtitle;
 
-  /// No description provided for @mapAppsUnavailable.
+  /// Shown when the saved default maps app is no longer installed.
   ///
   /// In en, this message translates to:
   /// **'Your default maps app is unavailable. Choose another.'**
   String get mapAppsUnavailable;
 
-  /// No description provided for @mapAppsNoInstalled.
+  /// Shown in the maps picker when no supported maps app is installed.
   ///
   /// In en, this message translates to:
   /// **'No supported maps apps found. You can use your browser.'**
   String get mapAppsNoInstalled;
 
-  /// No description provided for @interactionAnswersSearch.
+  /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:
   /// **'Search people or answers'**
   String get interactionAnswersSearch;
 
-  /// No description provided for @interactionFilterEmpty.
+  /// Shown in a poll/RSVP answers sheet when the selected filter matches no answers.
   ///
   /// In en, this message translates to:
   /// **'No answers match this filter.'**
   String get interactionFilterEmpty;
 
-  /// No description provided for @interactionRetry.
+  /// Button to retry loading a poll/RSVP answers sheet after an error.
   ///
   /// In en, this message translates to:
   /// **'Try again'**
@@ -19788,6 +19788,426 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{Send only the one under {size}} other{Send only the {count} under {size}}}'**
   String videoShrinkSendSmallOnly(int count, String size);
+
+  /// Keyboard shortcuts list: heading for app-wide shortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get kbdGroupGeneral;
+
+  /// Keyboard shortcuts list: heading for moving between sections and chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation'**
+  String get kbdGroupNavigation;
+
+  /// Keyboard shortcuts list: heading for shortcuts that work while a chat is open.
+  ///
+  /// In en, this message translates to:
+  /// **'In a chat'**
+  String get kbdGroupChat;
+
+  /// Keyboard shortcuts list: heading for shortcuts in the message composer.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing'**
+  String get kbdGroupComposer;
+
+  /// Keyboard shortcuts list: heading for shortcuts in the full-screen photo/video viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and videos'**
+  String get kbdGroupViewer;
+
+  /// Keyboard shortcuts list: heading for shortcuts during a voice/video call.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls'**
+  String get kbdGroupCall;
+
+  /// Shortcut label: opens the quick switcher (Cmd+K) to jump to a chat or run a command.
+  ///
+  /// In en, this message translates to:
+  /// **'Search chats and commands'**
+  String get kbdCommandPalette;
+
+  /// Shortcut label: opens the list of all keyboard shortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard shortcuts'**
+  String get kbdShowShortcuts;
+
+  /// Shortcut label: opens app-wide search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get kbdSearch;
+
+  /// Shortcut label: starts a new chat.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get kbdNewChat;
+
+  /// Shortcut label: opens Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get kbdSettings;
+
+  /// Shortcut label for Esc: closes the current screen, viewer, menu or chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back or close'**
+  String get kbdBack;
+
+  /// Shortcut label for Cmd+1..4: switch to a main section. {section} is the section's tab name, e.g. 'Chats'.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to {section}'**
+  String kbdGoTo(String section);
+
+  /// Shortcut label: opens the chat below the current one in the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Next chat'**
+  String get kbdNextChat;
+
+  /// Shortcut label: opens the chat above the current one in the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous chat'**
+  String get kbdPreviousChat;
+
+  /// Shortcut label: opens the next chat that has unread messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Next unread chat'**
+  String get kbdNextUnread;
+
+  /// Shortcut label: closes the open chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Close chat'**
+  String get kbdCloseChat;
+
+  /// Shortcut label: shows the open chat's info (members, media, settings).
+  ///
+  /// In en, this message translates to:
+  /// **'Chat info'**
+  String get kbdRoomInfo;
+
+  /// Shortcut label: search messages inside the open chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in this chat'**
+  String get kbdSearchInChat;
+
+  /// Shortcut label: scrolls the chat to the newest message.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to latest message'**
+  String get kbdJumpToLatest;
+
+  /// Shortcut label: opens the file/photo attachment picker in a chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach files'**
+  String get kbdAttach;
+
+  /// Shortcut label: starts a voice call in the open chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice call'**
+  String get kbdVoiceCall;
+
+  /// Shortcut label: starts a video call in the open chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Video call'**
+  String get kbdVideoCall;
+
+  /// Shortcut label: sends the message being written.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get kbdSend;
+
+  /// Shortcut label: inserts a line break in the message instead of sending.
+  ///
+  /// In en, this message translates to:
+  /// **'New line'**
+  String get kbdNewline;
+
+  /// Shortcut label: Up arrow in an empty composer edits the user's most recent message.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit your last message'**
+  String get kbdEditLast;
+
+  /// Shortcut label: makes selected text bold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get kbdBold;
+
+  /// Shortcut label: makes selected text italic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get kbdItalic;
+
+  /// Shortcut label: underlines selected text.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline'**
+  String get kbdUnderline;
+
+  /// Shortcut label: pasting an image or file from the clipboard attaches it to the message.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a photo or file'**
+  String get kbdPasteMedia;
+
+  /// Shortcut label: opens the emoji/GIF/sticker panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji and stickers'**
+  String get kbdEmoji;
+
+  /// Shortcut label in the photo viewer: show the previous photo or video.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get kbdViewerPrevious;
+
+  /// Shortcut label in the photo viewer: show the next photo or video.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get kbdViewerNext;
+
+  /// Shortcut label in the photo viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom in'**
+  String get kbdZoomIn;
+
+  /// Shortcut label in the photo viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom out'**
+  String get kbdZoomOut;
+
+  /// Shortcut label in the photo viewer: reset zoom so the whole photo is visible.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit to window'**
+  String get kbdZoomFit;
+
+  /// Shortcut label for video playback.
+  ///
+  /// In en, this message translates to:
+  /// **'Play or pause'**
+  String get kbdPlayPause;
+
+  /// Shortcut label in the photo viewer: copies the photo to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get kbdCopyMedia;
+
+  /// Shortcut label in the photo viewer: saves the photo or video to the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get kbdSaveMedia;
+
+  /// Shortcut label during a call: toggles the microphone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute or unmute'**
+  String get kbdToggleMute;
+
+  /// Shortcut label during a call: toggles the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera on or off'**
+  String get kbdToggleCamera;
+
+  /// Shortcut label during a call: ends the call.
+  ///
+  /// In en, this message translates to:
+  /// **'Hang up'**
+  String get kbdHangUp;
+
+  /// Title of the searchable keyboard shortcuts panel, and of the Settings row that opens it.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard Shortcuts'**
+  String get kbdPanelTitle;
+
+  /// Placeholder in the search field of the keyboard shortcuts panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Search shortcuts'**
+  String get kbdPanelSearchHint;
+
+  /// Shown in the shortcuts panel when the search finds nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No shortcuts match'**
+  String get kbdPanelEmpty;
+
+  /// Footer of the shortcuts panel. {key} is the modifier key glyph or name, e.g. '⌘' or 'Ctrl'.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold {key} anytime to see the shortcuts for the screen you\'re on'**
+  String kbdPeekHint(String key);
+
+  /// Settings toggle: holding the modifier key for a moment shows an overlay with the available shortcuts. {key} is e.g. '⌘' or 'Ctrl'.
+  ///
+  /// In en, this message translates to:
+  /// **'Show shortcuts while holding {key}'**
+  String kbdPeekSetting(String key);
+
+  /// Placeholder in the Cmd+K quick switcher's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to a chat or run a command'**
+  String get kbdPaletteHint;
+
+  /// Section heading in the quick switcher: matching chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats'**
+  String get kbdPaletteChats;
+
+  /// Section heading in the quick switcher: matching app commands.
+  ///
+  /// In en, this message translates to:
+  /// **'Commands'**
+  String get kbdPaletteCommands;
+
+  /// Shown in the quick switcher when nothing matches the search.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get kbdPaletteEmpty;
+
+  /// Footer hint in the quick switcher next to the arrow-key glyphs.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get kbdPaletteMove;
+
+  /// Footer hint in the quick switcher next to the Enter glyph.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get kbdPaletteOpen;
+
+  /// Footer hint in the quick switcher next to the Esc glyph.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get kbdPaletteClose;
+
+  /// Tooltip and screen-reader label on the small reaction button that appears beside a message when the mouse hovers over it (desktop and web).
+  ///
+  /// In en, this message translates to:
+  /// **'React'**
+  String get msgDeskReactLabel;
+
+  /// Tooltip and screen-reader label on the button beside a hovered message that opens its full action menu (desktop and web).
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get msgDeskMoreLabel;
+
+  /// Message action menu row on your own message that opens its read receipts: who has received and read it.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get msgDeskInfoLabel;
+
+  /// Keyboard shortcut label: in the full-screen video player, the left arrow jumps the video back five seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Back 5 seconds'**
+  String get kbdSeekBackward;
+
+  /// Keyboard shortcut label: in the full-screen video player, the right arrow jumps the video forward five seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward 5 seconds'**
+  String get kbdSeekForward;
+
+  /// Keyboard shortcut label: in the full-screen video player, M turns the video's sound off or back on.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute or unmute video'**
+  String get kbdMuteVideo;
+
+  /// Toast after saving a photo or video from the full-screen viewer on a computer. Downloads is the operating system's Downloads folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to Downloads'**
+  String get viewerSavedToDownloads;
+
+  /// Toast on the web after a photo or video from the viewer was handed to the browser as a download.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get viewerDownloaded;
+
+  /// Toast action on a Mac after saving a file: opens the folder it was saved to in Finder (the macOS file browser). Keep the word Finder.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in Finder'**
+  String get viewerShowInFinder;
+
+  /// Toast action on Windows or Linux after saving a file: opens the folder it was saved to.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in folder'**
+  String get viewerShowInFolder;
+
+  /// Toast after copying a photo from the full-screen viewer to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get viewerCopied;
+
+  /// Toast when copying a photo to the clipboard failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t copy that'**
+  String get viewerCopyFailed;
+
+  /// Settings > Appearance toggle, desktop and web only. Turns on denser rows and smaller toolbar buttons sized for a mouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact layout'**
+  String get hoverCompactLayoutTitle;
+
+  /// Subtitle under the Compact layout toggle in Settings > Appearance (desktop and web only).
+  ///
+  /// In en, this message translates to:
+  /// **'Shorter rows and smaller buttons, sized for a mouse and a big screen.'**
+  String get hoverCompactLayoutSubtitle;
+
+  /// Accessibility label for the left chevron that pages a full-screen preview pager (e.g. the theme gallery) back one page. Shown on desktop when a mouse hovers the pager.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get layoutPagerPrevious;
+
+  /// Accessibility label for the right chevron that pages a full-screen preview pager (e.g. the theme gallery) forward one page. Shown on desktop when a mouse hovers the pager.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get layoutPagerNext;
 }
 
 class _AppLocalizationsDelegate

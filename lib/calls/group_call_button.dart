@@ -49,6 +49,14 @@ class GroupCallButton extends StatelessWidget {
     );
   }
 
+  /// What a tap on this button does, for a caller with no button to tap: the
+  /// room's ⌥⌘A / ⌥⌘V. Inert while a call is already up, like the button.
+  void activate(BuildContext context) {
+    final busy = (GroupCallService.maybeInstance?.inCall ?? false) ||
+        (CallService.maybeInstance?.inCall ?? false);
+    if (!busy) _open(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);

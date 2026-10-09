@@ -252,7 +252,7 @@ class _JoinByInviteScreenState extends State<JoinByInviteScreen> {
   void _leaveForRoom(String roomId) {
     final nav = Navigator.of(context);
     UiSelectionStore.instance.selectRoom(roomId);
-    if (context.isExpanded) {
+    if (context.usesSplitShell) {
       SettingsStore.instance.setSection(HomeSection.chat);
       nav.pop();
       return;

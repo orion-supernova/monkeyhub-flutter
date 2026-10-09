@@ -4,6 +4,7 @@ import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
 import 'spring_press.dart';
+import 'desktop_scroll.dart';
 
 /// The rail of thumbnails that sits under a full-bleed picture.
 ///
@@ -210,57 +211,59 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
             // serving URL when it mounts, and a rail that inflated all of them
             // would spend a network round trip per photograph nobody has
             // scrolled to yet.
-            child: ListView.separated(
-              controller: _scroll,
-              scrollDirection: Axis.horizontal,
-              physics: centred
-                  ? const NeverScrollableScrollPhysics()
-                  : const BouncingScrollPhysics(),
-              padding: centred
-                  ? EdgeInsets.symmetric(
-                      horizontal: (constraints.maxWidth - contentWidth) / 2,
-                    )
-                  : const EdgeInsets.symmetric(horizontal: 14),
-              itemCount: slots,
-              // The ring around the current tile is painted past its edges,
-              // into the gap; a clipping viewport would shave it off the
-              // first and last tile.
-              clipBehavior: Clip.none,
-              separatorBuilder: (_, _) => SizedBox(width: gap),
-              itemBuilder: (context, i) {
-                if (i >= widget.count) {
-                  return SizedBox(
-                    width: tile,
-                    height: tile,
-                    child: widget.trailing,
-                  );
-                }
-                if (widget.viewer) {
-                  return _ViewerTile(
+            child: HorizontalWheelScroll(
+              child: ListView.separated(
+                controller: _scroll,
+                scrollDirection: Axis.horizontal,
+                physics: centred
+                    ? const NeverScrollableScrollPhysics()
+                    : const BouncingScrollPhysics(),
+                padding: centred
+                    ? EdgeInsets.symmetric(
+                        horizontal: (constraints.maxWidth - contentWidth) / 2,
+                      )
+                    : const EdgeInsets.symmetric(horizontal: 14),
+                itemCount: slots,
+                // The ring around the current tile is painted past its edges,
+                // into the gap; a clipping viewport would shave it off the
+                // first and last tile.
+                clipBehavior: Clip.none,
+                separatorBuilder: (_, _) => SizedBox(width: gap),
+                itemBuilder: (context, i) {
+                  if (i >= widget.count) {
+                    return SizedBox(
+                      width: tile,
+                      height: tile,
+                      child: widget.trailing,
+                    );
+                  }
+                  if (widget.viewer) {
+                    return _ViewerTile(
+                      selected: i == widget.index,
+                      semanticLabel:
+                          widget.tileSemanticLabel?.call(i + 1, widget.count),
+                      onTap: () => widget.onTap(i),
+                      child: widget.thumbnailBuilder(context, i),
+                    );
+                  }
+                  return _Tile(
                     selected: i == widget.index,
+                    accent: theme.accent,
                     semanticLabel:
                         widget.tileSemanticLabel?.call(i + 1, widget.count),
                     onTap: () => widget.onTap(i),
+                    // Only on the photo being looked at. A badge on every tile
+                    // sat exactly where a thumb lands reaching for another
+                    // photo, so switching photos kept deleting them; now a
+                    // tap on any other tile can only ever select it.
+                    onRemove: widget.onRemove == null || i != widget.index
+                        ? null
+                        : () => widget.onRemove!(i),
+                    removeSemanticLabel: widget.removeSemanticLabel,
                     child: widget.thumbnailBuilder(context, i),
                   );
-                }
-                return _Tile(
-                  selected: i == widget.index,
-                  accent: theme.accent,
-                  semanticLabel:
-                      widget.tileSemanticLabel?.call(i + 1, widget.count),
-                  onTap: () => widget.onTap(i),
-                  // Only on the photo being looked at. A badge on every tile
-                  // sat exactly where a thumb lands reaching for another
-                  // photo, so switching photos kept deleting them; now a
-                  // tap on any other tile can only ever select it.
-                  onRemove: widget.onRemove == null || i != widget.index
-                      ? null
-                      : () => widget.onRemove!(i),
-                  removeSemanticLabel: widget.removeSemanticLabel,
-                  child: widget.thumbnailBuilder(context, i),
-                );
-              },
+                },
+              ),
             ),
           );
         },
@@ -370,7 +373,12 @@ class _Tile extends StatelessWidget {
 /// the rail lives on a photograph, where an accent ring is one more colour
 /// competing with the picture's own; outside so it costs the thumbnail none of
 /// its 40 points.
-class _ViewerTile extends StatelessWidget {
+///
+/// Under a mouse a tile lifts most of the way out of its dimming and shows
+/// a pointing hand, so the rail reads as a row of things to click rather
+/// than a caption. Hover only: touch never sends it, so a phone's rail is
+/// exactly as it was.
+class _ViewerTile extends StatefulWidget {
   const _ViewerTile({
     required this.child,
     required this.selected,
@@ -386,47 +394,77 @@ class _ViewerTile extends StatelessWidget {
   static const _size = MediaFilmstrip.viewerTileSize;
 
   @override
+  State<_ViewerTile> createState() => _ViewerTileState();
+}
+
+class _ViewerTileState extends State<_ViewerTile> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      scale: PressSpec.scaleSmall,
-      focusRadius: 8,
-      haptic: false,
-      child: SizedBox(
-        width: _size,
-        height: _size,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: AnimatedOpacity(
-                  // Dimmed, not greyed: the others stay recognisable as the
-                  // photographs they are while the current one is plainly lit.
-                  opacity: selected ? 1 : 0.55,
-                  duration: const Duration(milliseconds: 150),
-                  child: SizedBox.expand(child: child),
-                ),
-              ),
-            ),
-            if (selected)
-              Positioned(
-                left: -2,
-                top: -2,
-                right: -2,
-                bottom: -2,
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFFFFFFF), width: 2),
-                    ),
+    final selected = widget.selected;
+    const size = _ViewerTile._size;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: SpringPress(
+        onTap: widget.onTap,
+        semanticLabel: widget.semanticLabel,
+        scale: PressSpec.scaleSmall,
+        focusRadius: 8,
+        haptic: false,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: AnimatedOpacity(
+                    // Dimmed, not greyed: the others stay recognisable as the
+                    // photographs they are while the current one is plainly lit.
+                    opacity: selected ? 1 : (_hover ? 0.85 : 0.55),
+                    duration: const Duration(milliseconds: 150),
+                    child: SizedBox.expand(child: widget.child),
                   ),
                 ),
               ),
-          ],
+              if (selected)
+                Positioned(
+                  left: -2,
+                  top: -2,
+                  right: -2,
+                  bottom: -2,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFFFFFF), width: 2),
+                      ),
+                    ),
+                  ),
+                ),
+              if (!selected && _hover)
+                // A hairline where the selected ring would be: "this one" under
+                // the pointer, quieter than the ring that means "this one is up".
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0x80FFFFFF),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

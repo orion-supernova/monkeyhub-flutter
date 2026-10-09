@@ -19,6 +19,7 @@ import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 import 'photo_chrome.dart';
 import 'spring_press.dart';
+import 'desktop_scroll.dart';
 
 /// Where the tray rests.
 ///
@@ -1024,35 +1025,37 @@ class _GalleryTrayState extends State<GalleryTray>
     final count = _assets.length + (limited ? 1 : 0);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: count,
-        separatorBuilder: (_, _) => const SizedBox(width: 6),
-        itemBuilder: (context, i) {
-          if (i >= _assets.length) {
-            // Limited access: the way to let more of the library in.
-            return _AddTile(
+      child: HorizontalWheelScroll(
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          itemCount: count,
+          separatorBuilder: (_, _) => const SizedBox(width: 6),
+          itemBuilder: (context, i) {
+            if (i >= _assets.length) {
+              // Limited access: the way to let more of the library in.
+              return _AddTile(
+                size: _thumb,
+                semanticLabel: l10n.galleryTrayManageButton,
+                onTap: _manageLimited,
+              );
+            }
+            if (i >= _assets.length - 10 && _hasMore) unawaited(_load());
+            final asset = _assets[i];
+            return _Thumb(
+              asset: asset,
               size: _thumb,
-              semanticLabel: l10n.galleryTrayManageButton,
-              onTap: _manageLimited,
+              radius: 12,
+              busy: _picking == asset.id,
+              order: _orderOf(asset),
+              semanticLabel: l10n.galleryTrayPhotoLabel(i + 1),
+              onTap: _selecting ? () => _toggle(asset) : () => _pick(asset),
+              onLongPress: widget.onPickMany == null
+                  ? null
+                  : () => _longPress(asset),
             );
-          }
-          if (i >= _assets.length - 10 && _hasMore) unawaited(_load());
-          final asset = _assets[i];
-          return _Thumb(
-            asset: asset,
-            size: _thumb,
-            radius: 12,
-            busy: _picking == asset.id,
-            order: _orderOf(asset),
-            semanticLabel: l10n.galleryTrayPhotoLabel(i + 1),
-            onTap: _selecting ? () => _toggle(asset) : () => _pick(asset),
-            onLongPress: widget.onPickMany == null
-                ? null
-                : () => _longPress(asset),
-          );
-        },
+          },
+        ),
       ),
     );
   }

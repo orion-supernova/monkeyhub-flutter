@@ -18,6 +18,7 @@ import 'expression_sheet.dart';
 import 'klipy_attribution.dart';
 import '../search_field.dart' show SearchField;
 import '../../l10n/text_case.dart';
+import '../desktop_scroll.dart';
 
 String _bare(String s) => s.replaceAll('️', '').trim();
 
@@ -227,34 +228,36 @@ class _StickerSearchResultsState extends State<StickerSearchResults> {
                     height: 92,
                     child: _klipyLoading && _klipy.isEmpty
                         ? const Center(child: CupertinoActivityIndicator())
-                        : ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            itemCount: _klipy.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: 6),
-                            itemBuilder: (context, i) {
-                              final m = _klipy[i];
-                              final item = m.toItem();
-                              final url = m.gridFile?.url;
-                              return _Tap(
-                                onTap: () => _send(item, query: q),
-                                onLongPress: () =>
-                                    showExpressionSheet(context, item),
-                                label: item.title,
-                                child: url == null
-                                    ? const ExpressionPlaceholder(
-                                        width: 88, height: 88)
-                                    : KlipyImage(
-                                        url: url,
-                                        width: 88,
-                                        height: 88,
-                                        fit: BoxFit.contain,
-                                        radius: 0,
-                                        play: expressionsAutoplay(context),
-                                      ),
-                              );
-                            },
+                        : HorizontalWheelScroll(
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              itemCount: _klipy.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 6),
+                              itemBuilder: (context, i) {
+                                final m = _klipy[i];
+                                final item = m.toItem();
+                                final url = m.gridFile?.url;
+                                return _Tap(
+                                  onTap: () => _send(item, query: q),
+                                  onLongPress: () =>
+                                      showExpressionSheet(context, item),
+                                  label: item.title,
+                                  child: url == null
+                                      ? const ExpressionPlaceholder(
+                                          width: 88, height: 88)
+                                      : KlipyImage(
+                                          url: url,
+                                          width: 88,
+                                          height: 88,
+                                          fit: BoxFit.contain,
+                                          radius: 0,
+                                          play: expressionsAutoplay(context),
+                                        ),
+                                );
+                              },
+                            ),
                           ),
                   ),
                 ),

@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-
+import '../keyboard/app_shortcuts.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'glass_buttons.dart';
@@ -256,6 +256,7 @@ class ViewerChromeButton extends StatelessWidget {
     this.semanticLabel,
     this.iconSize = 19,
     this.still,
+    this.tooltip,
   });
 
   final IconData icon;
@@ -264,13 +265,17 @@ class ViewerChromeButton extends StatelessWidget {
   final double iconSize;
   final bool? still;
 
+  /// A mouse's hover hint, usually from [viewerShortcutTip]. Null on a
+  /// phone, which has no hover to show it on.
+  final String? tooltip;
+
   static const double size = 40;
 
   @override
   Widget build(BuildContext context) {
     // The media glass every control over a photo wears — the camera's, the
     // composer's — blur-free, because this chrome fades.
-    return GlassIconButton(
+    final button = GlassIconButton(
       icon: icon,
       iconSize: iconSize,
       semanticLabel: semanticLabel,
@@ -279,6 +284,98 @@ class ViewerChromeButton extends StatelessWidget {
       // Never live glass in the viewer — see the × in [ViewerTopBar]. One
       // material for the whole flight, so nothing changes mid-animation.
       still: true,
+    );
+    final tip = tooltip;
+    if (tip == null) return button;
+    return _hint(tip, button);
+  }
+}
+
+/// The hover hint every viewer control wears on a desk: the action, then its
+/// keys as the platform prints them ("Save  ⌘S", "Save  Ctrl+S").
+String viewerShortcutTip(String label, ShortcutDef def) {
+  final caps = def.chords.first.caps();
+  final keys = KeyCombo.appleModifiers ? caps.join() : caps.join('+');
+  return '$label  $keys';
+}
+
+/// A tooltip that waits a beat, as a Mac's does: an instant one flashes up
+/// under every pass of the pointer across the chrome. Excluded from
+/// semantics, because the button already says what it is.
+Widget _hint(String message, Widget child) => Tooltip(
+      message: message,
+      waitDuration: const Duration(milliseconds: 600),
+      excludeFromSemantics: true,
+      child: child,
+    );
+
+/// The previous / next disc at a viewer's left or right edge, Apple Photos'
+/// way: shown while a mouse moves over the picture, gone at the end of the
+/// set, never on touch (the caller decides all three and passes [visible]).
+///
+/// The same blur-free media disc as every other viewer control. It fades with
+/// the chrome, and a fading `BackdropFilter` is the one thing the app never
+/// draws; and a disc floating over the middle of a photograph is exactly
+/// where a live blur would cost a full-height pass per frame of the fade.
+class ViewerEdgeChevron extends StatelessWidget {
+  const ViewerEdgeChevron({
+    super.key,
+    required this.start,
+    required this.visible,
+    required this.opacity,
+    required this.tooltip,
+    required this.onTap,
+    this.onHover,
+  });
+
+  /// The left edge (true) or the right one, as drawn: the caller has
+  /// already turned previous / next into sides for the reading direction.
+  final bool start;
+  final bool visible;
+
+  /// The chrome's opacity, so the discs leave with the bars and not before.
+  final double opacity;
+  final String tooltip;
+  final VoidCallback onTap;
+  final ValueChanged<bool>? onHover;
+
+  static const double size = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = visible ? opacity : 0.0;
+    return Positioned(
+      left: start ? 16 : null,
+      right: start ? null : 16,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: IgnorePointer(
+          ignoring: shown < 0.05,
+          child: AnimatedOpacity(
+            opacity: shown,
+            duration: const Duration(milliseconds: 140),
+            child: MouseRegion(
+              onEnter: onHover == null ? null : (_) => onHover!(true),
+              onExit: onHover == null ? null : (_) => onHover!(false),
+              child: _hint(
+                tooltip,
+                GlassIconButton(
+                  icon: start
+                      ? CupertinoIcons.chevron_left
+                      : CupertinoIcons.chevron_right,
+                  size: size,
+                  iconSize: 20,
+                  semanticLabel: tooltip,
+                  onTap: onTap,
+                  tone: GlassTone.media,
+                  still: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

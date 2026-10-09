@@ -18,6 +18,7 @@ import 'message_stamp.dart' show formatClockTime;
 import 'user_avatar.dart';
 import 'teardown_safe.dart';
 import '../l10n/text_case.dart';
+import 'desktop_scroll.dart';
 
 /// Long-press a reaction chip and this names the people behind it.
 ///
@@ -211,36 +212,38 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
             if (groups.length == 1)
               _SoloSummary(group: groups.single)
             else
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                // Breathing room so FocusableTap's ring, which paints outside
-                // its child's bounds, isn't clipped by the scroll view. The
-                // horizontal 8 is also what lines the first pill's edge up
-                // with the avatars below it, which carry the same inset for
-                // their press highlight.
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                child: Row(
-                  children: [
-                    // THE filter chip — the chat list's facets and these are
-                    // one control. The emoji rides as the label.
-                    FilterCapsule(
-                      key: _pillKeyFor(null),
-                      label: l10n.reactionDetailsSheetFilterAll,
-                      count: reactions.length,
-                      active: selected == null,
-                      onTap: () => _select(null),
-                    ),
-                    for (final g in groups) ...[
-                      const SizedBox(width: 6),
+              HorizontalWheelScroll(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  // Breathing room so FocusableTap's ring, which paints outside
+                  // its child's bounds, isn't clipped by the scroll view. The
+                  // horizontal 8 is also what lines the first pill's edge up
+                  // with the avatars below it, which carry the same inset for
+                  // their press highlight.
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  child: Row(
+                    children: [
+                      // THE filter chip — the chat list's facets and these are
+                      // one control. The emoji rides as the label.
                       FilterCapsule(
-                        key: _pillKeyFor(g.emoji),
-                        label: g.emoji,
-                        count: g.rows.length,
-                        active: selected == g.emoji,
-                        onTap: () => _select(g.emoji),
+                        key: _pillKeyFor(null),
+                        label: l10n.reactionDetailsSheetFilterAll,
+                        count: reactions.length,
+                        active: selected == null,
+                        onTap: () => _select(null),
                       ),
+                      for (final g in groups) ...[
+                        const SizedBox(width: 6),
+                        FilterCapsule(
+                          key: _pillKeyFor(g.emoji),
+                          label: g.emoji,
+                          count: g.rows.length,
+                          active: selected == g.emoji,
+                          onTap: () => _select(g.emoji),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             const SizedBox(height: 10),

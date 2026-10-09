@@ -2,14 +2,17 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../keyboard/app_shortcuts.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/density.dart';
 import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'hover_hint.dart';
 import 'labeled_field.dart';
 import 'ios_kit.dart';
 import 'teardown_safe.dart';
@@ -277,8 +280,10 @@ class SheetBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final density = Density.of(context);
+    final slot = sheetButtonSize(context);
     return SizedBox(
-      height: subtitle == null ? 52 : 60,
+      height: density.sheetBarHeight + (subtitle == null ? 0 : 8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Stack(
@@ -286,7 +291,7 @@ class SheetBar extends StatelessWidget {
           children: [
             if (title != null)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 54),
+                padding: EdgeInsets.symmetric(horizontal: slot + 14),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -315,9 +320,9 @@ class SheetBar extends StatelessWidget {
               ),
             Row(
               children: [
-                leading ?? const SizedBox(width: kSheetButtonSize),
+                leading ?? SizedBox(width: slot),
                 const Spacer(),
-                trailing ?? const SizedBox(width: kSheetButtonSize),
+                trailing ?? SizedBox(width: slot),
               ],
             ),
           ],
@@ -335,6 +340,11 @@ TextStyle sheetTitleStyle(AppTheme theme) =>
 /// size app-wide, matching [GlassBackButton].
 const double kSheetButtonSize = 40;
 
+/// [kSheetButtonSize] at the current [Density]: 32 in the compact desktop
+/// layout, where every chrome disc is.
+double sheetButtonSize(BuildContext context) =>
+    Density.of(context).iconButton;
+
 /// The × that dismisses a sheet: always the bar's leading slot.
 ///
 /// It IS the app's × — a [GlassCloseButton], the same chrome disc a
@@ -350,6 +360,9 @@ class SheetCloseButton extends StatelessWidget {
   Widget build(BuildContext context) => GlassCloseButton(
         still: true,
         onTap: onTap ?? () => Navigator.of(context).maybePop(),
+        // Esc dismisses a sheet only when this × would just pop it; a custom
+        // close (a discard prompt) is not what Esc does.
+        shortcut: onTap == null ? AppShortcuts.back : null,
       );
 }
 
@@ -365,19 +378,25 @@ class SheetConfirmButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final enabled = onTap != null;
-    return Semantics(
-      button: true,
+    final density = Density.of(context);
+    final name = label ?? MaterialLocalizations.of(context).okButtonLabel;
+    return HoverHint(
+      label: name,
       enabled: enabled,
-      label: label ?? MaterialLocalizations.of(context).okButtonLabel,
-      child: ChromeDisc(
-        size: kSheetButtonSize,
-        still: true,
-        tint: enabled ? theme.accent : null,
-        onTap: onTap,
-        child: Icon(
-          CupertinoIcons.checkmark_alt,
-          size: 19,
-          color: enabled ? theme.accentInk : theme.inkMuted,
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: name,
+        child: ChromeDisc(
+          size: density.iconButton,
+          still: true,
+          tint: enabled ? theme.accent : null,
+          onTap: onTap,
+          child: Icon(
+            CupertinoIcons.checkmark_alt,
+            size: density.iconGlyph(19),
+            color: enabled ? theme.accentInk : theme.inkMuted,
+          ),
         ),
       ),
     );
@@ -781,6 +800,8 @@ class _ActionSheetButtonState extends State<_ActionSheetButton>
       onTap: widget.onTap,
       autofocus: widget.autofocus,
       semanticLabel: widget.label,
+      hover: HoverEffect.tint,
+      hoverRadius: 0,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _set(true),
@@ -848,7 +869,10 @@ class SheetGroup extends StatelessWidget {
                   if (i < children.length - 1)
                     Padding(
                       padding: EdgeInsets.only(
-                        left: groupedDividerInset(children[i]),
+                        left: groupedDividerInset(
+                          children[i],
+                          Density.of(context),
+                        ),
                       ),
                       child: Container(
                         height: hairline,

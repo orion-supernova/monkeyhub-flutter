@@ -11329,4 +11329,221 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => '일반';
+
+  @override
+  String get kbdGroupNavigation => '탐색';
+
+  @override
+  String get kbdGroupChat => '채팅 중';
+
+  @override
+  String get kbdGroupComposer => '작성';
+
+  @override
+  String get kbdGroupViewer => '사진 및 동영상';
+
+  @override
+  String get kbdGroupCall => '통화';
+
+  @override
+  String get kbdCommandPalette => '채팅 및 명령 검색';
+
+  @override
+  String get kbdShowShortcuts => '키보드 단축키';
+
+  @override
+  String get kbdSearch => '검색';
+
+  @override
+  String get kbdNewChat => '새 대화';
+
+  @override
+  String get kbdSettings => '설정';
+
+  @override
+  String get kbdBack => '뒤로 가기 또는 닫기';
+
+  @override
+  String kbdGoTo(String section) {
+    return '$section 탭으로 이동';
+  }
+
+  @override
+  String get kbdNextChat => '다음 채팅';
+
+  @override
+  String get kbdPreviousChat => '이전 채팅';
+
+  @override
+  String get kbdNextUnread => '다음 읽지 않은 채팅';
+
+  @override
+  String get kbdCloseChat => '채팅 닫기';
+
+  @override
+  String get kbdRoomInfo => '채팅 정보';
+
+  @override
+  String get kbdSearchInChat => '이 채팅에서 검색';
+
+  @override
+  String get kbdJumpToLatest => '최신 메시지로 이동';
+
+  @override
+  String get kbdAttach => '파일 첨부';
+
+  @override
+  String get kbdVoiceCall => '음성 통화';
+
+  @override
+  String get kbdVideoCall => '영상 통화';
+
+  @override
+  String get kbdSend => '보내기';
+
+  @override
+  String get kbdNewline => '줄 바꿈';
+
+  @override
+  String get kbdEditLast => '마지막 메시지 수정';
+
+  @override
+  String get kbdBold => '굵게';
+
+  @override
+  String get kbdItalic => '기울임';
+
+  @override
+  String get kbdUnderline => '밑줄';
+
+  @override
+  String get kbdPasteMedia => '사진 또는 파일 붙여넣기';
+
+  @override
+  String get kbdEmoji => '이모티콘 및 스티커';
+
+  @override
+  String get kbdViewerPrevious => '이전';
+
+  @override
+  String get kbdViewerNext => '다음';
+
+  @override
+  String get kbdZoomIn => '확대';
+
+  @override
+  String get kbdZoomOut => '축소';
+
+  @override
+  String get kbdZoomFit => '윈도우에 맞추기';
+
+  @override
+  String get kbdPlayPause => '재생 또는 일시 정지';
+
+  @override
+  String get kbdCopyMedia => '복사';
+
+  @override
+  String get kbdSaveMedia => '저장';
+
+  @override
+  String get kbdToggleMute => '마이크 켜기/끄기';
+
+  @override
+  String get kbdToggleCamera => '카메라 켜기/끄기';
+
+  @override
+  String get kbdHangUp => '통화 종료';
+
+  @override
+  String get kbdPanelTitle => '키보드 단축키';
+
+  @override
+  String get kbdPanelSearchHint => '단축키 검색';
+
+  @override
+  String get kbdPanelEmpty => '일치하는 단축키 없음';
+
+  @override
+  String kbdPeekHint(String key) {
+    return '언제든지 $key 키를 길게 누르면 현재 화면의 단축키를 볼 수 있어요';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return '$key 키를 길게 누르면 단축키 표시';
+  }
+
+  @override
+  String get kbdPaletteHint => '채팅으로 이동하거나 명령 실행';
+
+  @override
+  String get kbdPaletteChats => '채팅';
+
+  @override
+  String get kbdPaletteCommands => '명령';
+
+  @override
+  String get kbdPaletteEmpty => '검색 결과 없음';
+
+  @override
+  String get kbdPaletteMove => '이동';
+
+  @override
+  String get kbdPaletteOpen => '열기';
+
+  @override
+  String get kbdPaletteClose => '닫기';
+
+  @override
+  String get msgDeskReactLabel => '반응';
+
+  @override
+  String get msgDeskMoreLabel => '더보기';
+
+  @override
+  String get msgDeskInfoLabel => '정보';
+
+  @override
+  String get kbdSeekBackward => '5초 뒤로';
+
+  @override
+  String get kbdSeekForward => '5초 앞으로';
+
+  @override
+  String get kbdMuteVideo => '동영상 음소거/해제';
+
+  @override
+  String get viewerSavedToDownloads => '다운로드 폴더에 저장됨';
+
+  @override
+  String get viewerDownloaded => '다운로드됨';
+
+  @override
+  String get viewerShowInFinder => 'Finder에서 보기';
+
+  @override
+  String get viewerShowInFolder => '폴더에서 보기';
+
+  @override
+  String get viewerCopied => '복사됨';
+
+  @override
+  String get viewerCopyFailed => '복사할 수 없어요';
+
+  @override
+  String get hoverCompactLayoutTitle => '컴팩트 레이아웃';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      '행은 더 낮게, 버튼은 더 작게. 마우스와 큰 화면에 맞췄어요.';
+
+  @override
+  String get layoutPagerPrevious => '이전';
+
+  @override
+  String get layoutPagerNext => '다음';
 }

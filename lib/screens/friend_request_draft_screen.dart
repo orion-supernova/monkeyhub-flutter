@@ -255,7 +255,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   /// Swaps this screen for [roomId] — the draft is spent once it has a room.
   void _leaveFor(String roomId) {
     final nav = Navigator.of(context);
-    if (context.isExpanded) {
+    if (context.usesSplitShell) {
       // Desktop: dismiss this full-screen draft and open the room in the
       // chat pane instead of replacing the route.
       nav.pop();

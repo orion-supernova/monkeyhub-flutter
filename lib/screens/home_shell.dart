@@ -24,9 +24,11 @@ import 'discover_screen.dart';
 import 'feed_screen.dart';
 import 'home_screen.dart' as chat;
 import 'navigation/destinations.dart';
+import 'navigation/list_detail_split.dart';
 import 'navigation/native_tab_bar.dart';
 import 'navigation/open_room.dart';
 import 'navigation/pill_bottom_nav.dart';
+import 'navigation/room_side_pane.dart';
 import 'navigation/section_switcher.dart';
 import 'navigation/tab_reselect.dart';
 import 'room_screen.dart';
@@ -161,7 +163,11 @@ class _HomeShellState extends State<HomeShell> {
     // WindowClass is published app-wide by _WindowClassProvider in app.dart
     // (above the root navigator, so pushed routes see it too). Here we just
     // pick the shell chrome.
-    return context.isExpanded ? _buildDesktop(context) : _buildCompact(context);
+    // `usesSplitShell`, not `isExpanded`: a desktop gets the rail from
+    // Breakpoints.split up, so a half-screen Mac window is still a Mac app.
+    return context.usesSplitShell
+        ? _buildDesktop(context)
+        : _buildCompact(context);
   }
 
   /// The active major section, transitioned on section/theme change. Shared by
@@ -326,8 +332,9 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-/// Desktop chat: a fixed-width master list on the left and the selected room
-/// (or an empty hint) on the right. Room selection lives in [UiSelectionStore];
+/// Desktop chat: the room list on the left (drag the divider to resize it, see
+/// [ListDetailSplit]) and the selected room (or an empty hint) on the right,
+/// with room info opening in a third pane beside it (see [RoomSidePane]). Room selection lives in [UiSelectionStore];
 /// tapping a room in the list calls `openRoom`, which sets that selection on
 /// expanded layouts. `PopScope` maps a system/browser back to "deselect room"
 /// so it doesn't fall through and leave the app.
@@ -348,49 +355,44 @@ class _ChatTwoPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final selection = UiSelectionStore.instance;
-    return AnimatedBuilder(
-      animation: selection,
-      builder: (context, _) {
-        final roomId = selection.roomId;
-        return PopScope(
-          canPop: roomId == null,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) selection.selectRoom(null);
-          },
-          child: Row(
-            children: [
-              SizedBox(
-                width: 360,
-                child: RepaintBoundary(
-                  child: chat.HomeScreen(
-                    repo: repo,
-                    api: api,
-                    auth: auth,
-                    family: family,
-                  ),
-                ),
+    return ListDetailSplit(
+      resizable: true,
+      // The list listens to the selection itself (for its highlight), so only
+      // the detail side rebuilds when a room is picked.
+      master: RepaintBoundary(
+        child: chat.HomeScreen(
+          repo: repo,
+          api: api,
+          auth: auth,
+          family: family,
+        ),
+      ),
+      detail: AnimatedBuilder(
+        animation: selection,
+        builder: (context, _) {
+          final roomId = selection.roomId;
+          // No PopScope here: back from an open chat is the room's to handle,
+          // since it has modes to unwind first. See [RoomScreen.inShellPane].
+          return RoomSidePane(
+            roomId: roomId,
+            child: RepaintBoundary(
+              child: AnimatedSwitcher(
+                duration: theme.motionMed,
+                switchInCurve: theme.motionEntrance,
+                child: roomId == null
+                    ? _EmptyRoomHint(key: const ValueKey('empty'))
+                    : RoomScreen(
+                        key: ValueKey(roomId),
+                        roomId: roomId,
+                        repo: repo,
+                        api: api,
+                        inShellPane: true,
+                      ),
               ),
-              VerticalDivider(width: 0.5, thickness: 0.5, color: theme.divider),
-              Expanded(
-                child: RepaintBoundary(
-                  child: AnimatedSwitcher(
-                    duration: theme.motionMed,
-                    switchInCurve: theme.motionEntrance,
-                    child: roomId == null
-                        ? _EmptyRoomHint(key: const ValueKey('empty'))
-                        : RoomScreen(
-                            key: ValueKey(roomId),
-                            roomId: roomId,
-                            repo: repo,
-                            api: api,
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -475,23 +477,18 @@ class _SettingsTwoPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Row(
-      children: [
-        SizedBox(
-          width: 360,
-          child: RepaintBoundary(
-            child: SettingsScreen(
-              repo: repo,
-              api: api,
-              auth: auth,
-              family: family,
-            ),
-          ),
+    // Same row as chat's, minus the drag handle: the settings list is a menu
+    // of fixed labels with nothing to gain from width.
+    return ListDetailSplit(
+      master: RepaintBoundary(
+        child: SettingsScreen(
+          repo: repo,
+          api: api,
+          auth: auth,
+          family: family,
         ),
-        VerticalDivider(width: 0.5, thickness: 0.5, color: theme.divider),
-        const Expanded(child: RepaintBoundary(child: _SettingsDetailPane())),
-      ],
+      ),
+      detail: const _SettingsDetailPane(),
     );
   }
 }

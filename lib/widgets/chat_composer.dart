@@ -12,6 +12,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'composer_format_toolbar.dart';
+import 'composer_keys.dart';
 import 'send_button.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
@@ -298,6 +299,8 @@ class ChatComposerClassic extends StatelessWidget {
     this.onFieldTap,
     this.onContentInserted,
     this.hint,
+    this.onEditLast,
+    this.onPasteMedia,
   });
 
   final TextEditingController controller;
@@ -379,6 +382,12 @@ class ChatComposerClassic extends StatelessWidget {
   /// its room's id, the thread overlay does not.
   final String? captureOpenHintRoomId;
 
+  /// ↑ in an empty field, on a physical keyboard. See [ComposerKeys].
+  final bool Function()? onEditLast;
+
+  /// ⌘V with files or an image on the clipboard. See [ComposerKeys].
+  final Future<bool> Function()? onPasteMedia;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -434,7 +443,11 @@ class ChatComposerClassic extends StatelessWidget {
               // No `onSubmitted` here: a multi-line TextField never fires it —
               // Flutter turns Enter into a newline. SubmitOnEnter intercepts
               // the key instead, and leaves Shift+Enter as the newline.
-              child: SubmitOnEnter(
+              child: ComposerKeys(
+                controller: controller,
+                onEditLast: onEditLast,
+                onPasteMedia: onPasteMedia,
+                child: SubmitOnEnter(
                 controller: controller,
                 onSubmit: onSend,
                 child: MentionKeyboardNav(
@@ -487,6 +500,7 @@ class ChatComposerClassic extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
               ),
             ),
           ),
@@ -597,6 +611,8 @@ class ChatComposerLiquid extends StatelessWidget {
     this.onFieldTap,
     this.onContentInserted,
     this.hint,
+    this.onEditLast,
+    this.onPasteMedia,
   });
 
   final TextEditingController controller;
@@ -653,6 +669,12 @@ class ChatComposerLiquid extends StatelessWidget {
   /// See [ChatComposerClassic.captureOpenHintRoomId].
   final String? captureOpenHintRoomId;
 
+  /// ↑ in an empty field, on a physical keyboard. See [ComposerKeys].
+  final bool Function()? onEditLast;
+
+  /// ⌘V with files or an image on the clipboard. See [ComposerKeys].
+  final Future<bool> Function()? onPasteMedia;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -679,6 +701,9 @@ class ChatComposerLiquid extends StatelessWidget {
               child: Center(
                 child: GlassIconButton(
                   icon: CupertinoIcons.plus,
+                  // Matched to the 40pt send button it trades places with, not
+                  // the compact desktop default.
+                  size: 40,
                   iconSize: 20,
                   onTap: onAttach,
                   semanticLabel: AppLocalizations.of(context)
@@ -695,7 +720,11 @@ class ChatComposerLiquid extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 11, 10, 11),
               // See ChatComposerClassic — multi-line fields never fire
               // onSubmitted.
-              child: SubmitOnEnter(
+              child: ComposerKeys(
+                controller: controller,
+                onEditLast: onEditLast,
+                onPasteMedia: onPasteMedia,
+                child: SubmitOnEnter(
                 controller: controller,
                 onSubmit: onSend,
                 child: MentionKeyboardNav(
@@ -740,6 +769,7 @@ class ChatComposerLiquid extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
               ),
             ),
           ),
@@ -808,6 +838,9 @@ class ChatComposerLiquid extends StatelessWidget {
                               child: Center(
                                 child: GlassIconButton(
                                   icon: CupertinoIcons.camera,
+                                  // Matched to the 40pt send button it trades
+                                  // places with, not the compact desktop default.
+                                  size: 40,
                                   iconSize: 20,
                                   onTap: onCamera,
                                   semanticLabel: AppLocalizations.of(context)

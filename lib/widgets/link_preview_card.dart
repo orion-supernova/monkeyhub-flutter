@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
@@ -180,14 +181,23 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
       ),
     );
 
+    // Keyboard reach, the hand cursor and the hover fill, hugging the card
+    // itself rather than the breathing room around it inside a bubble. The
+    // GestureDetector below still owns the pointer.
+    final focusable = FocusableTap(
+      onTap: () => widget.onTap(widget.url),
+      radius: radius.topLeft.x,
+      hover: HoverEffect.tint,
+      child: card,
+    );
     final outer = widget.insideBubble
         ? Padding(
             // Inline card under text — breathe away from the text bubble's
             // inner padding so the seam doesn't feel cramped.
             padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
-            child: card,
+            child: focusable,
           )
-        : card;
+        : focusable;
 
     return _PressScale(
       pressed: _pressed,

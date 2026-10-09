@@ -19,6 +19,9 @@ import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../platform.dart';
+import '../keyboard/app_shortcuts.dart' show KeyCombo;
+import '../widgets/shortcuts/shortcuts_panel.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../legal_links.dart';
 import '../models/chat_user.dart';
@@ -27,6 +30,7 @@ import '../push/push_manager.dart';
 import '../services/link_opener.dart';
 import '../services/mac_app_chrome.dart';
 import '../theme/app_theme.dart';
+import '../theme/density.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/layout.dart';
 import '../theme/theme_preference.dart';
@@ -182,7 +186,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   /// True when [key]'s sub-screen is the one shown in the desktop detail pane.
   bool _isOpen(String key) =>
-      context.isExpanded && UiSelectionStore.instance.settingsDetailKey == key;
+      context.usesSplitShell &&
+      UiSelectionStore.instance.settingsDetailKey == key;
 
   Future<void> _loadMe() async {
     final s = widget.auth.session;
@@ -596,6 +601,30 @@ class _SettingsScreenState extends State<SettingsScreen>
                 linkUrlsToggle(),
                 autoplayToggle(),
                 stickersToggle(),
+                // Where someone who has never pressed ⌘/ finds the shortcuts.
+                // Desktop and web only: a phone has no keyboard to ask about.
+                if (isWebOrDesktop) ...[
+                  _HubRow(
+                    icon: CupertinoIcons.keyboard,
+                    tone: TileTone.gray,
+                    title: l10n.kbdPanelTitle,
+                    onTap: () => showShortcutsPanel(
+                      context,
+                      sectionLabels: [
+                        for (final d in navDestinations(l10n)) d.label,
+                      ],
+                    ),
+                  ),
+                  _IconLed(_StoreToggle(
+                    icon: CupertinoIcons.command,
+                    tone: TileTone.gray,
+                    title: l10n.kbdPeekSetting(
+                      KeyCombo.appleModifiers ? '⌘' : 'Ctrl',
+                    ),
+                    value: () => store.shortcutPeek,
+                    onChanged: store.setShortcutPeek,
+                  )),
+                ],
               ],
             ),
 
@@ -694,6 +723,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                   selected: _isOpen('motion'),
                   onTap: () => _open('motion', (_) => const MotionScreen()),
                 ),
+                // Desktop and desktop-browser only: a phone has one density.
+                if (Density.platformOffersCompact)
+                  _IconLed(_StoreToggle(
+                    icon: CupertinoIcons.rectangle_compress_vertical,
+                    tone: TileTone.gray,
+                    title: l10n.hoverCompactLayoutTitle,
+                    subtitle: l10n.hoverCompactLayoutSubtitle,
+                    value: () => store.compactDesktop,
+                    onChanged: store.setCompactDesktop,
+                  )),
               ],
             ),
 

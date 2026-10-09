@@ -10,6 +10,7 @@ import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show groupedMetaStyle, groupedTitleStyle;
 import 'spring_press.dart';
+import 'desktop_scroll.dart';
 
 /// The pieces the first-launch picker and the theme screen are both built
 /// from, so the two can never describe the same choice two different ways.
@@ -564,24 +565,26 @@ class ThemeStrip extends StatelessWidget {
       // The preview, its caption, and room for the badge and the check to
       // overhang without being clipped by the list.
       height: previewWidth / 0.64 + 58,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(2, 8, 2, 4),
-        clipBehavior: Clip.none,
-        itemCount: themes.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, i) {
-          final t = themes[i];
-          return ThemeMiniPreview(
-            candidate: t,
-            width: previewWidth,
-            selected: t.id == selectedId,
-            onTap: () {
-              HapticFeedback.selectionClick();
-              onSelect(t);
-            },
-          );
-        },
+      child: HorizontalWheelScroll(
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(2, 8, 2, 4),
+          clipBehavior: Clip.none,
+          itemCount: themes.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 10),
+          itemBuilder: (context, i) {
+            final t = themes[i];
+            return ThemeMiniPreview(
+              candidate: t,
+              width: previewWidth,
+              selected: t.id == selectedId,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onSelect(t);
+              },
+            );
+          },
+        ),
       ),
     );
   }

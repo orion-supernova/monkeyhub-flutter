@@ -1017,6 +1017,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
         _showToast(
             AppLocalizations.of(context).threadOverlayCoordinatesCopiedToast);
         break;
+      case MessageAction.info:
+        // Never offered here: the thread has no receipts screen to open, and
+        // `canViewReceipts` is only switched on by the room.
+        break;
       case MessageAction.viewProfile:
         if (author != null && context.mounted) {
           Navigator.of(context).push(

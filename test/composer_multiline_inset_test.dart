@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/widgets/timeline_list_view.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
@@ -291,7 +292,7 @@ void main() {
     await openRoom(t, messages: 40);
     await type(t, 4);
     // Scroll away from the newest message so the pill is on screen.
-    await t.drag(find.byType(ListView), const Offset(0, 400));
+    await t.drag(find.byType(TimelineListView), const Offset(0, 400));
     await t.pump();
     await t.pump(const Duration(milliseconds: 400));
 

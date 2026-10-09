@@ -65,6 +65,19 @@ class CallButton extends StatelessWidget {
     }
   }
 
+  /// What a tap on this button does, for a caller with no button to tap: the
+  /// room's ⌥⌘A / ⌥⌘V. Busy answers with the reason, exactly as the
+  /// disabled button does.
+  void activate(BuildContext context) {
+    if (FamilyService.maybeInstance?.canCall == false) return;
+    final reason = _busyReason(context, CallService.instance);
+    if (reason != null) {
+      _showBusy(context, reason);
+    } else {
+      _start(context);
+    }
+  }
+
   String _friendlyError(BuildContext context, Object e) {
     final l10n = AppLocalizations.of(context);
     final s = e.toString();

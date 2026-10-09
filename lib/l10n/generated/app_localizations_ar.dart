@@ -11971,4 +11971,221 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'عام';
+
+  @override
+  String get kbdGroupNavigation => 'التنقل';
+
+  @override
+  String get kbdGroupChat => 'داخل الدردشة';
+
+  @override
+  String get kbdGroupComposer => 'الكتابة';
+
+  @override
+  String get kbdGroupViewer => 'الصور والفيديوهات';
+
+  @override
+  String get kbdGroupCall => 'المكالمات';
+
+  @override
+  String get kbdCommandPalette => 'البحث في الدردشات والأوامر';
+
+  @override
+  String get kbdShowShortcuts => 'اختصارات لوحة المفاتيح';
+
+  @override
+  String get kbdSearch => 'بحث';
+
+  @override
+  String get kbdNewChat => 'محادثة جديدة';
+
+  @override
+  String get kbdSettings => 'الإعدادات';
+
+  @override
+  String get kbdBack => 'رجوع أو إغلاق';
+
+  @override
+  String kbdGoTo(String section) {
+    return 'الانتقال إلى $section';
+  }
+
+  @override
+  String get kbdNextChat => 'المحادثة التالية';
+
+  @override
+  String get kbdPreviousChat => 'المحادثة السابقة';
+
+  @override
+  String get kbdNextUnread => 'المحادثة غير المقروءة التالية';
+
+  @override
+  String get kbdCloseChat => 'إغلاق المحادثة';
+
+  @override
+  String get kbdRoomInfo => 'معلومات المحادثة';
+
+  @override
+  String get kbdSearchInChat => 'البحث في هذه المحادثة';
+
+  @override
+  String get kbdJumpToLatest => 'الانتقال إلى أحدث رسالة';
+
+  @override
+  String get kbdAttach => 'إرفاق ملفات';
+
+  @override
+  String get kbdVoiceCall => 'مكالمة صوتية';
+
+  @override
+  String get kbdVideoCall => 'مكالمة فيديو';
+
+  @override
+  String get kbdSend => 'إرسال';
+
+  @override
+  String get kbdNewline => 'سطر جديد';
+
+  @override
+  String get kbdEditLast => 'تعديل رسالتك الأخيرة';
+
+  @override
+  String get kbdBold => 'عريض';
+
+  @override
+  String get kbdItalic => 'مائل';
+
+  @override
+  String get kbdUnderline => 'تسطير';
+
+  @override
+  String get kbdPasteMedia => 'لصق صورة أو ملف';
+
+  @override
+  String get kbdEmoji => 'الرموز التعبيرية والملصقات';
+
+  @override
+  String get kbdViewerPrevious => 'السابق';
+
+  @override
+  String get kbdViewerNext => 'التالي';
+
+  @override
+  String get kbdZoomIn => 'تكبير';
+
+  @override
+  String get kbdZoomOut => 'تصغير';
+
+  @override
+  String get kbdZoomFit => 'ملاءمة للنافذة';
+
+  @override
+  String get kbdPlayPause => 'تشغيل أو إيقاف مؤقت';
+
+  @override
+  String get kbdCopyMedia => 'نسخ';
+
+  @override
+  String get kbdSaveMedia => 'حفظ';
+
+  @override
+  String get kbdToggleMute => 'كتم الميكروفون أو إلغاء كتمه';
+
+  @override
+  String get kbdToggleCamera => 'تشغيل الكاميرا أو إيقافها';
+
+  @override
+  String get kbdHangUp => 'إنهاء المكالمة';
+
+  @override
+  String get kbdPanelTitle => 'اختصارات لوحة المفاتيح';
+
+  @override
+  String get kbdPanelSearchHint => 'البحث في الاختصارات';
+
+  @override
+  String get kbdPanelEmpty => 'لا توجد اختصارات مطابقة';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'اضغط مطولًا على $key في أي وقت لعرض اختصارات الشاشة الحالية';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return 'عرض الاختصارات عند الضغط مطولًا على $key';
+  }
+
+  @override
+  String get kbdPaletteHint => 'انتقل إلى دردشة أو نفّذ أمرًا';
+
+  @override
+  String get kbdPaletteChats => 'الدردشات';
+
+  @override
+  String get kbdPaletteCommands => 'الأوامر';
+
+  @override
+  String get kbdPaletteEmpty => 'لم يتم العثور على شيء';
+
+  @override
+  String get kbdPaletteMove => 'تنقّل';
+
+  @override
+  String get kbdPaletteOpen => 'فتح';
+
+  @override
+  String get kbdPaletteClose => 'إغلاق';
+
+  @override
+  String get msgDeskReactLabel => 'تفاعل';
+
+  @override
+  String get msgDeskMoreLabel => 'المزيد';
+
+  @override
+  String get msgDeskInfoLabel => 'معلومات';
+
+  @override
+  String get kbdSeekBackward => 'رجوع 5 ثوانٍ';
+
+  @override
+  String get kbdSeekForward => 'تقديم 5 ثوانٍ';
+
+  @override
+  String get kbdMuteVideo => 'كتم صوت الفيديو أو إلغاء كتمه';
+
+  @override
+  String get viewerSavedToDownloads => 'تم الحفظ في التنزيلات';
+
+  @override
+  String get viewerDownloaded => 'تم التنزيل';
+
+  @override
+  String get viewerShowInFinder => 'عرض في Finder';
+
+  @override
+  String get viewerShowInFolder => 'عرض في المجلد';
+
+  @override
+  String get viewerCopied => 'تم النسخ';
+
+  @override
+  String get viewerCopyFailed => 'تعذّر النسخ';
+
+  @override
+  String get hoverCompactLayoutTitle => 'تخطيط مضغوط';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'صفوف أقصر وأزرار أصغر، مناسبة للماوس والشاشات الكبيرة.';
+
+  @override
+  String get layoutPagerPrevious => 'السابق';
+
+  @override
+  String get layoutPagerNext => 'التالي';
 }

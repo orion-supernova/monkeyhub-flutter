@@ -1,16 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../keyboard/app_shortcuts.dart';
 import '../keyboard/focusable_tap.dart';
+import '../keyboard/viewer_keys.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
 import '../media/native_gallery.dart';
 import '../media/storage/media_ledger.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
+import '../platform.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
@@ -25,6 +31,7 @@ import '../widgets/spring_press.dart';
 import '../widgets/steady_hero.dart';
 import 'fullscreen_video_viewer.dart';
 import 'room_content_actions.dart';
+import 'viewer_disk.dart';
 import '../widgets/viewer_chrome.dart';
 
 /// What the gallery's bottom toolbar can do with the picture on screen.
@@ -51,7 +58,9 @@ class MediaPagerActions {
   /// The OS share sheet. False when nothing could be handed to it.
   final Future<bool> Function(ChatMessage m)? onShare;
 
-  /// Save to the photo library. False when it did not save.
+  /// Save to the photo library. False when it did not save. On a desk and
+  /// on the web its presence only says "this set may be saved": the pager
+  /// writes to Downloads there, see [ViewerDisk].
   final Future<bool> Function(ChatMessage m)? onSave;
 
   /// Picks chats and forwards into them, from [context] (the sheet needs one).
@@ -77,11 +86,11 @@ class MediaPagerActions {
     return MediaPagerActions(
       currentUserId: repo.userId,
       onShare: (m) => shareMessages(api: api, messages: [m]),
-      // `gal` has no web implementation — see [saveMessagesToDevice].
-      onSave: kIsWeb
-          ? null
-          : (m) async =>
-              (await saveMessagesToDevice(api: api, messages: [m])).ok > 0,
+      // The phone's save, into the photo library. On a desk and on the web
+      // the pager saves to Downloads itself instead (see [ViewerDisk]), so
+      // `gal`, which has no web implementation, is never reached there.
+      onSave: (m) async =>
+          (await saveMessagesToDevice(api: api, messages: [m])).ok > 0,
       onForward: (context, m) async {
         final targets = await showForwardTargetSheet(
           context,
@@ -307,6 +316,31 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
   /// fetching the file would open two share sheets.
   bool _busy = false;
 
+  // ── Desktop and web ──
+
+  /// A desk's gallery: chrome that stays while zoomed and leaves on its own
+  /// when the mouse is still, a click outside the picture to close, the
+  /// wheel and the edge chevrons to page, ⌘= ⌘− ⌘0 to zoom.
+  final bool _desktop = isWebOrDesktop;
+
+  /// Hands ⌘= ⌘− ⌘0 to the page on screen.
+  final PhotoZoomController _zoom = PhotoZoomController();
+
+  /// A mouse has moved over the gallery since the last touch. The chevrons
+  /// and the idle fade are a mouse's furniture; a touchscreen laptop, or a
+  /// phone's browser, never sees them.
+  bool _mouse = false;
+
+  /// The mouse has been still for [_idleAfter]: the chrome and the pointer
+  /// get out of the picture's way, as in Photos and QuickTime.
+  bool _idle = false;
+  Timer? _idleTimer;
+  static const _idleAfter = Duration(milliseconds: 2500);
+
+  /// The pointer is over a piece of chrome, which never fades out from under
+  /// a hand reaching for a button.
+  bool _overChrome = false;
+
   @override
   void initState() {
     super.initState();
@@ -316,6 +350,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
 
   @override
   void dispose() {
+    _idleTimer?.cancel();
     _pager.dispose();
     _drag.dispose();
     super.dispose();
@@ -336,6 +371,70 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
 
   Object _heroTag(ChatMessage m) =>
       widget.heroTagFor?.call(m) ?? roomMediaHeroTag(m.id);
+
+  /// An arrow key: one photograph along, animated like a swipe would be.
+  /// Ignored while zoomed, where a swipe is ignored too.
+  void _step(int by) {
+    if (_zoomed || _closing) return;
+    final to = _index + by;
+    if (to < 0 || to >= _items.length) return;
+    _pager.animateToPage(
+      to,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  /// The mouse moved: chrome and pointer back, and the idle clock restarts.
+  /// A setState only when something visible changes, not per hover event.
+  void _wake() {
+    if (!_mouse || _idle) {
+      setState(() {
+        _mouse = true;
+        _idle = false;
+      });
+    }
+    _idleTimer?.cancel();
+    _idleTimer = Timer(_idleAfter, () {
+      if (!mounted || _overChrome || _closing) return;
+      setState(() => _idle = true);
+    });
+  }
+
+  void _onHover(PointerEvent e) {
+    if (e.kind == PointerDeviceKind.mouse) _wake();
+  }
+
+  void _onPointerDown(PointerDownEvent e) {
+    if (e.kind == PointerDeviceKind.mouse) {
+      _wake();
+    } else if (_mouse) {
+      // Touch: the mouse's furniture goes until the mouse comes back.
+      _idleTimer?.cancel();
+      setState(() {
+        _mouse = false;
+        _idle = false;
+      });
+    }
+  }
+
+  void _setOverChrome(bool over) {
+    _overChrome = over;
+    if (!over && _mouse) _wake();
+  }
+
+  void _playCurrent() {
+    final m = _items[_index];
+    final id = m.mediaStorageId;
+    if (id == null || !_isMovie(m)) return;
+    FullscreenVideoViewer.open(
+      context,
+      storageId: id,
+      api: widget.api,
+      posterStorageId: m.posterStorageId,
+      gallery: _nativeGallery(),
+    );
+  }
 
   void _jumpTo(int i) {
     if (i == _index) return;
@@ -373,6 +472,66 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
           tone: ok ? ToastTone.success : ToastTone.danger,
         );
       });
+
+  /// A desk's Save: into Downloads, saying where, with the way to it.
+  Future<void> _saveToDisk(ChatMessage m) => _run(() async {
+        final l10n = AppLocalizations.of(context);
+        final toast = AppToast.of(context);
+        final saved = await ViewerDisk.save(api: widget.api, m: m);
+        if (saved == null) {
+          toast.show(l10n.photoChromeSaveFailed, tone: ToastTone.danger);
+          return;
+        }
+        final path = saved.path;
+        if (path == null) {
+          toast.show(l10n.viewerDownloaded, tone: ToastTone.success);
+          return;
+        }
+        final mac = defaultTargetPlatform == TargetPlatform.macOS;
+        toast.show(
+          l10n.viewerSavedToDownloads,
+          tone: ToastTone.success,
+          actionLabel: ViewerDisk.canReveal
+              ? (mac ? l10n.viewerShowInFinder : l10n.viewerShowInFolder)
+              : null,
+          onAction: ViewerDisk.canReveal ? () => ViewerDisk.reveal(path) : null,
+        );
+      });
+
+  Future<void> _copy(ChatMessage m) => _run(() async {
+        final l10n = AppLocalizations.of(context);
+        final toast = AppToast.of(context);
+        final ok = await ViewerDisk.copyImage(api: widget.api, m: m);
+        toast.show(
+          ok ? l10n.viewerCopied : l10n.viewerCopyFailed,
+          tone: ok ? ToastTone.success : ToastTone.danger,
+        );
+      });
+
+  /// Save is offered for this picture, wherever it would go.
+  bool _canSave(ChatMessage m) =>
+      widget.actions?.onSave != null && m.mediaStorageId != null;
+
+  bool _canCopy(ChatMessage m) =>
+      _desktop &&
+      widget.actions != null &&
+      ViewerDisk.canCopyImage &&
+      m.type == MessageType.image &&
+      m.mediaStorageId != null;
+
+  /// The keys this page answers right now: only what it can do.
+  Map<ShortcutDef, VoidCallback> _bindings(ChatMessage m) {
+    final photo = !_isMovie(m) && m.mediaStorageId != null;
+    return {
+      if (photo) AppShortcuts.zoomIn: _zoom.zoomIn,
+      if (photo) AppShortcuts.zoomOut: _zoom.zoomOut,
+      if (photo) AppShortcuts.zoomFit: _zoom.fit,
+      if (_isMovie(m) && m.mediaStorageId != null)
+        AppShortcuts.playPause: _playCurrent,
+      if (_canCopy(m)) AppShortcuts.copyMedia: () => _copy(m),
+      if (_desktop && _canSave(m)) AppShortcuts.saveMedia: () => _saveToDisk(m),
+    };
+  }
 
   Future<void> _forward(ChatMessage m) => _run(() async {
         final l10n = AppLocalizations.of(context);
@@ -449,7 +608,8 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
           semanticLabel: l10n.roomContentScreenShareAction,
           onTap: () => _share(m),
         ),
-      if (a.onSave != null && hasFile)
+      // On a desk Save sits top right with Copy, by its shortcut.
+      if (a.onSave != null && hasFile && !_desktop)
         ViewerToolbarAction(
           icon: CupertinoIcons.arrow_down_to_line,
           semanticLabel: l10n.roomContentScreenSaveAction,
@@ -483,143 +643,213 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     // A rail under a set of one is a rail with one tile on it, saying nothing.
     final strip = _items.length > 1;
     final tools = _toolbar(current);
+    // A wide desk window keeps its filmstrip: there is room for it under the
+    // picture, and it is how a mouse finds the photo three along.
+    final wide = _desktop && screen.width >= 700;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    // Left and right as the reader sees them, like the arrow keys.
+    final canBack = _index > 0;
+    final canOn = _index < _items.length - 1;
 
-    return Material(
-      type: MaterialType.transparency,
-      child: DefaultTextStyle(
-        style: theme.body.copyWith(color: Colors.white),
-        child: ValueListenableBuilder<Offset>(
-          valueListenable: _drag,
-          builder: (context, drag, pages) {
-            final t = photoDismissProgress(drag, screen);
-            // The chrome leaves twice as fast as the picture does, so it is
-            // gone before the photograph is halfway home rather than riding
-            // out over the transcript behind it.
-            final chromeOpacity = _chrome ? (1 - t * 2).clamp(0.0, 1.0) : 0.0;
+    Widget gallery = ViewerKeys(
+      onClose: _close,
+      onPrevious: () => _step(-1),
+      onNext: () => _step(1),
+      child: Material(
+        type: MaterialType.transparency,
+        child: DefaultTextStyle(
+          style: theme.body.copyWith(color: Colors.white),
+          child: ValueListenableBuilder<Offset>(
+            valueListenable: _drag,
+            builder: (context, drag, pages) {
+              final t = photoDismissProgress(drag, screen);
+              // The chrome leaves twice as fast as the picture does, so it is
+              // gone before the photograph is halfway home rather than riding
+              // out over the transcript behind it.
+              final away = (1 - t * 2).clamp(0.0, 1.0);
+              final chromeOpacity = _chrome && !_idle ? away : 0.0;
+              // The chevrons are a mouse's, and step aside while zoomed,
+              // where paging is locked for a drag inside the photograph.
+              final chevrons = _desktop && _mouse && !_zoomed && strip
+                  ? chromeOpacity
+                  : 0.0;
 
-            return Stack(
-              children: [
-                // Painted inside the route rather than left to the barrier, so
-                // it can fade to nothing as the drag commits — that is what
-                // makes the Hero return read as the picture going back where it
-                // came from rather than as a cut. Fully black at rest: at 95%
-                // the transcript bled through as a dirty grey.
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: ColoredBox(
-                      color: Colors.black.withValues(alpha: 1 - t),
+              return Stack(
+                children: [
+                  // Painted inside the route rather than left to the barrier, so
+                  // it can fade to nothing as the drag commits — that is what
+                  // makes the Hero return read as the picture going back where it
+                  // came from rather than as a cut. Fully black at rest: at 95%
+                  // the transcript bled through as a dirty grey.
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: ColoredBox(
+                        color: Colors.black.withValues(alpha: 1 - t),
+                      ),
                     ),
                   ),
-                ),
-                Positioned.fill(
-                  child: Transform.translate(
-                    offset: drag,
-                    child: Transform.scale(
-                      scale: 1 - t * kPhotoDismissShrink,
-                      child: pages,
+                  Positioned.fill(
+                    child: Transform.translate(
+                      offset: drag,
+                      child: Transform.scale(
+                        scale: 1 - t * kPhotoDismissShrink,
+                        child: pages,
+                      ),
                     ),
                   ),
-                ),
-                _FadingChrome(
-                  opacity: chromeOpacity,
-                  builder: (still) => _TopBar(
-                    message: current,
-                    position: l10n.photoChromeThumbnailSemanticLabel(
-                      _index + 1,
-                      _items.length,
-                    ),
-                    still: still,
-                    onClose: _close,
-                    onShowInChat: widget.onShowInChat == null
-                        ? null
-                        : () => widget.onShowInChat!(current),
-                  ),
-                ),
-                if (strip || tools.isNotEmpty)
                   _FadingChrome(
                     opacity: chromeOpacity,
-                    alignBottom: true,
-                    builder: (_) => _BottomChrome(
-                      items: _items,
-                      index: _index,
-                      api: widget.api,
-                      strip: strip,
-                      tools: tools,
-                      onTap: _jumpTo,
+                    onHover: _desktop ? _setOverChrome : null,
+                    builder: (still) => _TopBar(
+                      message: current,
+                      position: l10n.photoChromeThumbnailSemanticLabel(
+                        _index + 1,
+                        _items.length,
+                      ),
+                      still: still,
+                      onClose: _close,
+                      onShowInChat: widget.onShowInChat == null
+                          ? null
+                          : () => widget.onShowInChat!(current),
+                      onCopy: _canCopy(current) ? () => _copy(current) : null,
+                      onSave: _desktop && _canSave(current)
+                          ? () => _saveToDisk(current)
+                          : null,
                     ),
                   ),
-              ],
-            );
-          },
-          // Built once and passed through the builder: the pages are the
-          // expensive part and none of them depend on the drag offset.
-          child: PageView.builder(
-            controller: _pager,
-            physics: _zoomed
-                ? const NeverScrollableScrollPhysics()
-                : const PageScrollPhysics(),
-            itemCount: _items.length,
-            // Keyed by message, so a delete that slides every later page one
-            // slot left hands each its own state rather than its neighbour's.
-            findChildIndexCallback: (key) {
-              if (key is! ValueKey<String>) return null;
-              final i = _items.indexWhere((m) => m.id == key.value);
-              return i < 0 ? null : i;
-            },
-            onPageChanged: (i) {
-              setState(() {
-                _index = i;
-                // Belt and braces. A zoomed page cannot be swiped away, so this
-                // should already be false — but a stuck `true` would leave the
-                // gallery unswipeable with nothing on screen to explain why.
-                _zoomed = false;
-              });
-              widget.onPageChanged?.call(_items[i]);
-            },
-            itemBuilder: (_, i) {
-              // Every page reached by a swipe is filed under its chat, the
-              // same as a bubble would file it. See `MediaLedger`.
-              if (widget.fileAsSeen) MediaLedger.instance.noteSeen(_items[i]);
-              return HeroMode(
-                key: ValueKey<String>(_items[i].id),
-                // Neighbours stay built; only the visible one may fly. See the
-                // class comment.
-                enabled: i == _index,
-                child: _Page(
-                  message: _items[i],
-                  api: widget.api,
-                  gallery: _nativeGallery(),
-                  heroTag: _heroTag(_items[i]),
-                  // Only the page the flight actually opened on. The rest were
-                  // never a thumbnail on the route below, so there is no warm
-                  // decode of theirs to defer to, and offering one would only
-                  // pin them to a resolution they never had.
-                  sourceDecodeWidth: _items[i].id ==
-                          widget.items[widget.initialIndex
-                                  .clamp(0, widget.items.length - 1)]
-                              .id
-                      ? widget.sourceDecodeWidth
-                      : null,
-                  landed: landed,
-                  drag: _drag,
-                  chromeClearance: _chrome ? _bottomChromeHeight(context) : 0,
-                  onDismiss: _close,
-                  onToggleChrome: () => setState(() => _chrome = !_chrome),
-                  onZoomChanged: (z) {
-                    if (i == _index && z != _zoomed) {
-                      setState(() {
-                        _zoomed = z;
-                        // Like Photos: zooming in gives the picture the
-                        // whole screen. A tap brings the chrome back.
-                        if (z) _chrome = false;
-                      });
-                    }
-                  },
-                ),
+                  if (strip || tools.isNotEmpty)
+                    _FadingChrome(
+                      opacity: wide ? away : chromeOpacity,
+                      alignBottom: true,
+                      onHover: _desktop ? _setOverChrome : null,
+                      builder: (_) => _BottomChrome(
+                        items: _items,
+                        index: _index,
+                        api: widget.api,
+                        strip: strip,
+                        tools: tools,
+                        onTap: _jumpTo,
+                      ),
+                    ),
+                  if (_desktop && strip) ...[
+                    ViewerEdgeChevron(
+                      start: true,
+                      visible: chevrons > 0 && (rtl ? canOn : canBack),
+                      opacity: chevrons,
+                      tooltip: viewerShortcutTip(
+                        rtl ? l10n.kbdViewerNext : l10n.kbdViewerPrevious,
+                        rtl ? AppShortcuts.viewerNext : AppShortcuts.viewerPrevious,
+                      ),
+                      onTap: () => _step(rtl ? 1 : -1),
+                      onHover: _setOverChrome,
+                    ),
+                    ViewerEdgeChevron(
+                      start: false,
+                      visible: chevrons > 0 && (rtl ? canBack : canOn),
+                      opacity: chevrons,
+                      tooltip: viewerShortcutTip(
+                        rtl ? l10n.kbdViewerPrevious : l10n.kbdViewerNext,
+                        rtl ? AppShortcuts.viewerPrevious : AppShortcuts.viewerNext,
+                      ),
+                      onTap: () => _step(rtl ? -1 : 1),
+                      onHover: _setOverChrome,
+                    ),
+                  ],
+                ],
               );
             },
+            // Built once and passed through the builder: the pages are the
+            // expensive part and none of them depend on the drag offset.
+            child: PageView.builder(
+              controller: _pager,
+              physics: _zoomed
+                  ? const NeverScrollableScrollPhysics()
+                  : const PageScrollPhysics(),
+              itemCount: _items.length,
+              // Keyed by message, so a delete that slides every later page one
+              // slot left hands each its own state rather than its neighbour's.
+              findChildIndexCallback: (key) {
+                if (key is! ValueKey<String>) return null;
+                final i = _items.indexWhere((m) => m.id == key.value);
+                return i < 0 ? null : i;
+              },
+              onPageChanged: (i) {
+                setState(() {
+                  _index = i;
+                  // Belt and braces. A zoomed page cannot be swiped away, so this
+                  // should already be false — but a stuck `true` would leave the
+                  // gallery unswipeable with nothing on screen to explain why.
+                  _zoomed = false;
+                });
+                widget.onPageChanged?.call(_items[i]);
+              },
+              itemBuilder: (_, i) {
+                // Every page reached by a swipe is filed under its chat, the
+                // same as a bubble would file it. See `MediaLedger`.
+                if (widget.fileAsSeen) MediaLedger.instance.noteSeen(_items[i]);
+                return HeroMode(
+                  key: ValueKey<String>(_items[i].id),
+                  // Neighbours stay built; only the visible one may fly. See the
+                  // class comment.
+                  enabled: i == _index,
+                  child: _Page(
+                    message: _items[i],
+                    api: widget.api,
+                    gallery: _nativeGallery(),
+                    heroTag: _heroTag(_items[i]),
+                    // Only the page the flight actually opened on. The rest were
+                    // never a thumbnail on the route below, so there is no warm
+                    // decode of theirs to defer to, and offering one would only
+                    // pin them to a resolution they never had.
+                    sourceDecodeWidth: _items[i].id ==
+                            widget.items[widget.initialIndex
+                                    .clamp(0, widget.items.length - 1)]
+                                .id
+                        ? widget.sourceDecodeWidth
+                        : null,
+                    landed: landed,
+                    drag: _drag,
+                    chromeClearance: _chrome || wide
+                        ? _bottomChromeHeight(context)
+                        : 0,
+                    onDismiss: _close,
+                    onToggleChrome: () => setState(() => _chrome = !_chrome),
+                    // Only the page on screen takes ⌘= and friends.
+                    zoom: i == _index ? _zoom : null,
+                    onBackdropClick: _desktop ? _close : null,
+                    onWheelStep: _desktop ? _step : null,
+                    cursorHidden: _desktop && _idle,
+                    onZoomChanged: (z) {
+                      if (i == _index && z != _zoomed) {
+                        setState(() {
+                          _zoomed = z;
+                          // Like Photos: zooming in gives the picture the
+                          // whole screen. A tap brings the chrome back. Not
+                          // on a desk, where the chrome is how a mouse gets
+                          // back out, and leaves on its own when still.
+                          if (z && !_desktop) _chrome = false;
+                        });
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
           ),
         ),
+      ),
+    );
+    if (!_desktop) return gallery;
+    gallery = ShortcutBindings(bindings: _bindings(current), child: gallery);
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerHover: _onHover,
+      onPointerMove: _onHover,
+      child: MouseRegion(
+        // The pointer leaves with the chrome. Inner regions that set their
+        // own cursor (a zoomed photo's hand) are told too: theirs would win.
+        cursor: _idle ? SystemMouseCursors.none : MouseCursor.defer,
+        child: gallery,
       ),
     );
   }
@@ -639,11 +869,16 @@ class _FadingChrome extends StatefulWidget {
     required this.opacity,
     required this.builder,
     this.alignBottom = false,
+    this.onHover,
   });
 
   final double opacity;
   final Widget Function(bool still) builder;
   final bool alignBottom;
+
+  /// The mouse came onto (true) or left (false) this chrome. The gallery
+  /// keeps its chrome up while a hand is on it.
+  final ValueChanged<bool>? onHover;
 
   @override
   State<_FadingChrome> createState() => _FadingChromeState();
@@ -676,7 +911,14 @@ class _FadingChromeState extends State<_FadingChrome> {
           onEnd: () {
             if (mounted && _fading) setState(() => _fading = false);
           },
-          child: widget.builder(_fading || opacity < 1),
+          child: widget.onHover == null
+              ? widget.builder(_fading || opacity < 1)
+              : MouseRegion(
+                  opaque: false,
+                  onEnter: (_) => widget.onHover!(true),
+                  onExit: (_) => widget.onHover!(false),
+                  child: widget.builder(_fading || opacity < 1),
+                ),
         ),
       ),
     );
@@ -821,11 +1063,22 @@ class _Page extends StatelessWidget {
     required this.onZoomChanged,
     this.gallery,
     this.chromeClearance = 0,
+    this.zoom,
+    this.onBackdropClick,
+    this.onWheelStep,
+    this.cursorHidden = false,
   });
 
   final ChatMessage message;
   final ChatApi api;
   final Object heroTag;
+
+  /// Desktop and web: see the parameters of the same names on
+  /// [PhotoDismissArea].
+  final PhotoZoomController? zoom;
+  final VoidCallback? onBackdropClick;
+  final ValueChanged<int>? onWheelStep;
+  final bool cursorHidden;
 
   /// The pager's whole set, for a video page's OS player to swipe through.
   final VideoGallery? gallery;
@@ -871,6 +1124,9 @@ class _Page extends StatelessWidget {
         drag: drag,
         onDismiss: onDismiss,
         chromeClearance: chromeClearance,
+        onBackdropClick: onBackdropClick,
+        onWheelStep: onWheelStep,
+        cursorHidden: cursorHidden,
       );
     }
 
@@ -905,7 +1161,31 @@ class _Page extends StatelessWidget {
           onTap: onToggleChrome,
           onZoomChanged: onZoomChanged,
           maxScale: 4,
-          child: mediaFlight(heroTag, _shaped(image)),
+          zoom: zoom,
+          onBackdropClick: onBackdropClick,
+          onWheelStep: onWheelStep,
+          cursorHidden: cursorHidden,
+          pixelSize: () => ViewerDisk.pixelSize(message),
+          child: mediaFlight(
+            heroTag,
+            _shaped(
+              PhotoSharpOnZoom(
+                // The same file at a bigger decode, from the disk copy the
+                // screen-sized one was decoded from. Quiet: while it decodes
+                // the picture underneath simply stays.
+                sharp: (w) => RemoteImage(
+                  storageId: id,
+                  api: api,
+                  fit: BoxFit.contain,
+                  borderRadius: BorderRadius.zero,
+                  decodeWidth: w,
+                  onDark: true,
+                  quiet: true,
+                ),
+                child: image,
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -989,7 +1269,14 @@ class _VideoPage extends StatefulWidget {
     required this.drag,
     required this.onDismiss,
     this.chromeClearance = 0,
+    this.onBackdropClick,
+    this.onWheelStep,
+    this.cursorHidden = false,
   });
+
+  final VoidCallback? onBackdropClick;
+  final ValueChanged<int>? onWheelStep;
+  final bool cursorHidden;
 
   /// The bottom band the filmstrip and toolbar sit in. The duration badge
   /// stays above it: under the chrome's scrim it was a grey smudge.
@@ -1050,6 +1337,9 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
           // A tap on a video means play, not "hide the chrome". The disc below
           // is the same action with a smaller target and a focus ring on it.
           onTap: playable ? _play : null,
+          onBackdropClick: widget.onBackdropClick,
+          onWheelStep: widget.onWheelStep,
+          cursorHidden: widget.cursorHidden,
           // A poster is not a photograph to examine: zooming one would enlarge
           // a still of something the OS player is one tap away from showing
           // properly.
@@ -1188,6 +1478,8 @@ class _TopBar extends StatelessWidget {
     required this.still,
     required this.onClose,
     required this.onShowInChat,
+    this.onCopy,
+    this.onSave,
   });
 
   final ChatMessage message;
@@ -1195,6 +1487,11 @@ class _TopBar extends StatelessWidget {
   final bool still;
   final VoidCallback onClose;
   final VoidCallback? onShowInChat;
+
+  /// A desk's Copy and Save, top right beside Show in chat, where a Mac app
+  /// keeps a window's actions and where the hover hint can name their keys.
+  final VoidCallback? onCopy;
+  final VoidCallback? onSave;
 
   @override
   Widget build(BuildContext context) {
@@ -1210,10 +1507,30 @@ class _TopBar extends StatelessWidget {
       subtitleSemanticLabel:
           '${viewerWhenLabel(context, message.createdAt)}, $position',
       actions: [
+        if (onCopy != null)
+          ViewerChromeButton(
+            icon: CupertinoIcons.doc_on_doc,
+            semanticLabel: l10n.kbdCopyMedia,
+            tooltip: viewerShortcutTip(l10n.kbdCopyMedia, AppShortcuts.copyMedia),
+            onTap: onCopy,
+          ),
+        if (onSave != null)
+          ViewerChromeButton(
+            icon: CupertinoIcons.arrow_down_to_line,
+            semanticLabel: l10n.roomContentScreenSaveAction,
+            tooltip: viewerShortcutTip(
+              l10n.roomContentScreenSaveAction,
+              AppShortcuts.saveMedia,
+            ),
+            onTap: onSave,
+          ),
         if (onShowInChat != null)
           ViewerChromeButton(
             icon: CupertinoIcons.chat_bubble,
             semanticLabel: l10n.photoChromeShowInChatSemanticLabel,
+            tooltip: isWebOrDesktop
+                ? l10n.photoChromeShowInChatSemanticLabel
+                : null,
             onTap: onShowInChat,
           ),
       ],

@@ -11782,4 +11782,221 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get kbdGroupGeneral => 'सामान्य';
+
+  @override
+  String get kbdGroupNavigation => 'नेविगेशन';
+
+  @override
+  String get kbdGroupChat => 'चैट में';
+
+  @override
+  String get kbdGroupComposer => 'लिखना';
+
+  @override
+  String get kbdGroupViewer => 'फ़ोटो और वीडियो';
+
+  @override
+  String get kbdGroupCall => 'कॉल्स';
+
+  @override
+  String get kbdCommandPalette => 'चैट और कमांड खोजें';
+
+  @override
+  String get kbdShowShortcuts => 'कीबोर्ड शॉर्टकट';
+
+  @override
+  String get kbdSearch => 'खोजें';
+
+  @override
+  String get kbdNewChat => 'नई चैट';
+
+  @override
+  String get kbdSettings => 'सेटिंग्स';
+
+  @override
+  String get kbdBack => 'वापस जाएं या बंद करें';
+
+  @override
+  String kbdGoTo(String section) {
+    return '$section पर जाएं';
+  }
+
+  @override
+  String get kbdNextChat => 'अगली चैट';
+
+  @override
+  String get kbdPreviousChat => 'पिछली चैट';
+
+  @override
+  String get kbdNextUnread => 'अगली अनरीड चैट';
+
+  @override
+  String get kbdCloseChat => 'चैट बंद करें';
+
+  @override
+  String get kbdRoomInfo => 'चैट की जानकारी';
+
+  @override
+  String get kbdSearchInChat => 'इस चैट में खोजें';
+
+  @override
+  String get kbdJumpToLatest => 'सबसे नए मैसेज पर जाएं';
+
+  @override
+  String get kbdAttach => 'फ़ाइलें अटैच करें';
+
+  @override
+  String get kbdVoiceCall => 'वॉइस कॉल';
+
+  @override
+  String get kbdVideoCall => 'वीडियो कॉल';
+
+  @override
+  String get kbdSend => 'भेजें';
+
+  @override
+  String get kbdNewline => 'नई लाइन';
+
+  @override
+  String get kbdEditLast => 'अपना पिछला मैसेज एडिट करें';
+
+  @override
+  String get kbdBold => 'बोल्ड';
+
+  @override
+  String get kbdItalic => 'इटैलिक';
+
+  @override
+  String get kbdUnderline => 'अंडरलाइन';
+
+  @override
+  String get kbdPasteMedia => 'फ़ोटो या फ़ाइल पेस्ट करें';
+
+  @override
+  String get kbdEmoji => 'इमोजी और स्टिकर';
+
+  @override
+  String get kbdViewerPrevious => 'पिछला';
+
+  @override
+  String get kbdViewerNext => 'अगला';
+
+  @override
+  String get kbdZoomIn => 'ज़ूम इन';
+
+  @override
+  String get kbdZoomOut => 'ज़ूम आउट';
+
+  @override
+  String get kbdZoomFit => 'विंडो में फ़िट करें';
+
+  @override
+  String get kbdPlayPause => 'चलाएं या रोकें';
+
+  @override
+  String get kbdCopyMedia => 'कॉपी करें';
+
+  @override
+  String get kbdSaveMedia => 'सेव करें';
+
+  @override
+  String get kbdToggleMute => 'म्यूट या अनम्यूट करें';
+
+  @override
+  String get kbdToggleCamera => 'कैमरा चालू या बंद करें';
+
+  @override
+  String get kbdHangUp => 'कॉल काटें';
+
+  @override
+  String get kbdPanelTitle => 'कीबोर्ड शॉर्टकट';
+
+  @override
+  String get kbdPanelSearchHint => 'शॉर्टकट खोजें';
+
+  @override
+  String get kbdPanelEmpty => 'कोई शॉर्टकट मेल नहीं खाता';
+
+  @override
+  String kbdPeekHint(String key) {
+    return 'जिस स्क्रीन पर हैं उसके शॉर्टकट देखने के लिए कभी भी $key दबाकर रखें';
+  }
+
+  @override
+  String kbdPeekSetting(String key) {
+    return '$key दबाकर रखने पर शॉर्टकट दिखाएं';
+  }
+
+  @override
+  String get kbdPaletteHint => 'किसी चैट पर जाएं या कमांड चलाएं';
+
+  @override
+  String get kbdPaletteChats => 'चैट';
+
+  @override
+  String get kbdPaletteCommands => 'कमांड';
+
+  @override
+  String get kbdPaletteEmpty => 'कुछ नहीं मिला';
+
+  @override
+  String get kbdPaletteMove => 'नेविगेट';
+
+  @override
+  String get kbdPaletteOpen => 'खोलें';
+
+  @override
+  String get kbdPaletteClose => 'बंद करें';
+
+  @override
+  String get msgDeskReactLabel => 'रिएक्ट करें';
+
+  @override
+  String get msgDeskMoreLabel => 'अधिक';
+
+  @override
+  String get msgDeskInfoLabel => 'जानकारी';
+
+  @override
+  String get kbdSeekBackward => '5 सेकंड पीछे';
+
+  @override
+  String get kbdSeekForward => '5 सेकंड आगे';
+
+  @override
+  String get kbdMuteVideo => 'वीडियो म्यूट या अनम्यूट करें';
+
+  @override
+  String get viewerSavedToDownloads => 'डाउनलोड में सेव हो गया';
+
+  @override
+  String get viewerDownloaded => 'डाउनलोड हो गया';
+
+  @override
+  String get viewerShowInFinder => 'Finder में दिखाएं';
+
+  @override
+  String get viewerShowInFolder => 'फ़ोल्डर में दिखाएं';
+
+  @override
+  String get viewerCopied => 'कॉपी हो गया';
+
+  @override
+  String get viewerCopyFailed => 'कॉपी नहीं हो सका';
+
+  @override
+  String get hoverCompactLayoutTitle => 'कॉम्पैक्ट लेआउट';
+
+  @override
+  String get hoverCompactLayoutSubtitle =>
+      'छोटी पंक्तियां और छोटे बटन, माउस और बड़ी स्क्रीन के लिए।';
+
+  @override
+  String get layoutPagerPrevious => 'पिछला';
+
+  @override
+  String get layoutPagerNext => 'अगला';
 }

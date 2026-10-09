@@ -21,6 +21,7 @@ import '../../widgets/photo_chrome.dart' show MediaPlayDisc;
 
 import 'moment_viewer.dart';
 import '../../l10n/text_case.dart';
+import '../../widgets/desktop_scroll.dart';
 
 /// Everything you have kept, by day.
 ///
@@ -427,23 +428,25 @@ class _DateRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      // Vertical room for the focus ring, which paints outside its child's
-      // bounds and is otherwise clipped by this scroll view.
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      itemCount: dayKeys.length,
-      itemBuilder: (context, i) => Padding(
-        key: ValueKey(dayKeys[i]),
-        padding: const EdgeInsets.only(right: 8),
-        child: Center(
-          child: FilterCapsule(
-            label: _chipLabel(context, dayKeys[i]),
-            active: dayKeys[i] == selected,
-            onTap: () => onTap(dayKeys[i]),
-            // Spoken, not spelled: "2026-08-28" is read out as digits.
-            semanticLabel: archiveDayLabel(context, dayKeys[i]),
+    return HorizontalWheelScroll(
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        // Vertical room for the focus ring, which paints outside its child's
+        // bounds and is otherwise clipped by this scroll view.
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+        itemCount: dayKeys.length,
+        itemBuilder: (context, i) => Padding(
+          key: ValueKey(dayKeys[i]),
+          padding: const EdgeInsets.only(right: 8),
+          child: Center(
+            child: FilterCapsule(
+              label: _chipLabel(context, dayKeys[i]),
+              active: dayKeys[i] == selected,
+              onTap: () => onTap(dayKeys[i]),
+              // Spoken, not spelled: "2026-08-28" is read out as digits.
+              semanticLabel: archiveDayLabel(context, dayKeys[i]),
+            ),
           ),
         ),
       ),

@@ -27,6 +27,7 @@ import 'streak_card.dart';
 import 'sudoku_screen.dart';
 import 'tango_screen.dart';
 import 'zip_screen.dart';
+import '../../widgets/desktop_scroll.dart';
 
 /// The leaderboard: your streaks, who is winning today, and the all-time
 /// records.
@@ -573,24 +574,26 @@ class _CapsulesState extends State<_Capsules> {
       l10n.leaderboardOverall,
       for (final g in kLeaderboardGames) leaderboardGameName(l10n, g),
     ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
-            KeyedSubtree(
-              key: _keys[i],
-              child: FilterCapsule(
-                key: ValueKey('capsule_$i'),
-                label: sentenceCaseOf(context, labels[i]),
-                active: i == widget.selected,
-                onTap: () => widget.onSelect(i),
+    return HorizontalWheelScroll(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            for (var i = 0; i < labels.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              KeyedSubtree(
+                key: _keys[i],
+                child: FilterCapsule(
+                  key: ValueKey('capsule_$i'),
+                  label: sentenceCaseOf(context, labels[i]),
+                  active: i == widget.selected,
+                  onTap: () => widget.onSelect(i),
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

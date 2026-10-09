@@ -94,6 +94,61 @@ class DropChannel {
   /// bundle.
   void release(DropBundle bundle) {}
 
+  // ─────────────────────────────── paste ───────────────────────────────
+
+  /// False in a browser: a page may not read files off the clipboard on
+  /// demand. They arrive with the `paste` event instead, see
+  /// [addPasteListener].
+  static bool get canReadClipboard => false;
+
+  Future<DropBundle?> readClipboard() async => null;
+
+  final List<Future<void> Function(DropBundle bundle)> _pasteListeners = [];
+  bool _pasteInstalled = false;
+
+  /// Hears files pasted anywhere in the page (⌘V / Ctrl+V of a screenshot or
+  /// a copied file). The newest listener wins: the chat on screen registers
+  /// one, and a chat opened over it takes over until it closes.
+  ///
+  /// A paste with no files is left completely alone, so text paste into any
+  /// field is exactly what the browser would have done. One with files is
+  /// cancelled, because otherwise a text field would also receive the
+  /// file's name or the image's alt text.
+  Object addPasteListener(Future<void> Function(DropBundle bundle) onPaste) {
+    _pasteListeners.add(onPaste);
+    if (!_pasteInstalled) {
+      _pasteInstalled = true;
+      web.document.addEventListener('paste', _onPaste.toJS);
+    }
+    return onPaste;
+  }
+
+  void removePasteListener(Object token) {
+    _pasteListeners.remove(token);
+  }
+
+  void _onPaste(web.Event e) {
+    if (_pasteListeners.isEmpty) return;
+    final dt = (e as web.ClipboardEvent).clipboardData;
+    if (dt == null) return;
+    final handles = <_WebHandle>[];
+    final items = dt.items;
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+      if (item.kind != 'file') continue;
+      final file = item.getAsFile();
+      if (file == null) continue;
+      handles.add(_WebHandle(file: file, isDirectory: false));
+    }
+    if (handles.isEmpty) return;
+    e.preventDefault();
+    final listener = _pasteListeners.last;
+    unawaited(() async {
+      final bundle = await _readHandles(handles);
+      await listener(DropBundle(files: bundle));
+    }());
+  }
+
   // ─────────────────────────────── handlers ───────────────────────────────
 
   void _onDragEnter(web.Event e) {
@@ -202,6 +257,15 @@ class DropChannel {
     String? uri,
     Offset at,
   ) async {
+    final files = await _readHandles(handles);
+    await _handlers?.onPerform(
+      DropBundle(files: files, text: text, uri: uri),
+      at,
+    );
+  }
+
+  /// Every handle's bytes, read now — a drop's and a paste's alike.
+  Future<List<DroppedFile>> _readHandles(List<_WebHandle> handles) async {
     final files = <DroppedFile>[];
     for (final h in handles) {
       final size = h.file.size;
@@ -244,10 +308,7 @@ class DropChannel {
         bytes: bytes,
       ));
     }
-    await _handlers?.onPerform(
-      DropBundle(files: files, text: text, uri: uri),
-      at,
-    );
+    return files;
   }
 
   // ─────────────────────────────── internals ───────────────────────────────
