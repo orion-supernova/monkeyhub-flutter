@@ -42,10 +42,11 @@ class PhotoDismissArea extends StatefulWidget {
   /// timeout on a screen where nothing waits on it.
   final VoidCallback? onTap;
 
-  /// Fires when the picture crosses in or out of a zoomed state. The pager
-  /// uses it to stop the `PageView` from stealing a pan: while zoomed a
-  /// sideways drag is the reader moving around inside one photograph, not
-  /// reaching for the next.
+  /// Fires when the picture starts or stops owning the gesture: zoomed in, or
+  /// two fingers down. The pager uses it to stop the `PageView` from stealing
+  /// a pan or a pinch: while zoomed a sideways drag is the reader moving
+  /// around inside one photograph, not reaching for the next. The viewers also
+  /// hide their chrome on it, so a zoomed photo has the whole screen.
   final void Function(bool zoomed)? onZoomChanged;
 
   final double maxScale;
@@ -53,6 +54,9 @@ class PhotoDismissArea extends StatefulWidget {
   @override
   State<PhotoDismissArea> createState() => _PhotoDismissAreaState();
 }
+
+/// What the current one-finger pan is doing, decided on its first move.
+enum _Pan { undecided, dismiss, picture }
 
 class _PhotoDismissAreaState extends State<PhotoDismissArea>
     with TickerProviderStateMixin {
@@ -71,8 +75,18 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   late final AnimationController _settleCtrl;
   Animation<Offset>? _settleTween;
 
+  /// The full-screen box the [InteractiveViewer] zooms, and the picture
+  /// centred inside it. Pan limits come from the picture, not the box, so a
+  /// zoomed photo stops at its own edges instead of sliding its letterbox
+  /// into view.
+  final _contentKey = GlobalKey();
+  final _pictureKey = GlobalKey();
+
   bool _dismissing = false;
-  bool _wasZoomed = false;
+  bool _held = false;
+  bool _clamping = false;
+  int _pointers = 0;
+  _Pan _pan = _Pan.undecided;
 
   @override
   void initState() {
@@ -91,15 +105,16 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
         final t = _settleTween;
         if (t != null) widget.drag.value = t.value;
       });
-    // A pinch changes the matrix without going through `_handleDoubleTap`, so
-    // the zoom report has to come off the controller itself rather than off
-    // the gesture that happened to cause it.
-    _xform.addListener(_reportZoom);
+    // Off the controller rather than off any one gesture: a pinch, a fling's
+    // glide and a double-tap's animation all write the matrix, and all of
+    // them have to respect the picture's edges and report the zoom.
+    _xform
+      ..addListener(_clampToPicture)
+      ..addListener(_report);
   }
 
   @override
   void dispose() {
-    _xform.removeListener(_reportZoom);
     _xform.dispose();
     _zoomCtrl.dispose();
     _settleCtrl.dispose();
@@ -108,20 +123,68 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
 
   bool get _zoomed => _xform.value.getMaxScaleOnAxis() > 1.05;
 
-  void _reportZoom() {
-    final now = _zoomed;
-    if (now == _wasZoomed) return;
-    _wasZoomed = now;
+  /// Zoomed, or two fingers down on the way to being. The pager hears it as
+  /// "this page owns the gesture": locking the `PageView` only once the scale
+  /// moved let a pinch whose fingers drifted sideways turn into a page swipe.
+  void _report() {
+    final now = _zoomed || _pointers >= 2;
+    if (now == _held) return;
+    _held = now;
     widget.onZoomChanged?.call(now);
   }
 
+  void _onPointerDown(PointerDownEvent _) {
+    _pointers++;
+    _report();
+  }
+
+  void _onPointerGone(PointerEvent _) {
+    if (_pointers > 0) _pointers--;
+    _report();
+  }
+
+  /// Keeps the zoomed picture covering the screen on any axis where it is
+  /// larger than the screen, and centred on any axis where it is not.
+  void _clampToPicture() {
+    if (_clamping) return;
+    final content = _contentKey.currentContext?.findRenderObject();
+    if (content is! RenderBox || !content.hasSize) return;
+    final view = content.size;
+    var rect = Offset.zero & view;
+    final picture = _pictureKey.currentContext?.findRenderObject();
+    if (picture is RenderBox &&
+        picture.hasSize &&
+        !picture.size.isEmpty &&
+        picture.attached) {
+      rect = picture.localToGlobal(Offset.zero, ancestor: content) &
+          picture.size;
+    }
+    final m = _xform.value;
+    final s = m.getMaxScaleOnAxis();
+    final t = m.getTranslation();
+    double axis(double at, double lo, double extent, double viewExtent) {
+      final scaled = extent * s;
+      if (scaled <= viewExtent) return (viewExtent - scaled) / 2 - lo * s;
+      return at.clamp(viewExtent - (lo + extent) * s, -lo * s);
+    }
+    final x = axis(t.x, rect.left, rect.width, view.width);
+    final y = axis(t.y, rect.top, rect.height, view.height);
+    if ((x - t.x).abs() < 0.01 && (y - t.y).abs() < 0.01) return;
+    _clamping = true;
+    _xform.value = m.clone()..setTranslationRaw(x, y, t.z);
+    _clamping = false;
+  }
+
   void _handleDoubleTap(TapDownDetails d) {
+    if (widget.maxScale <= 1) return;
     Matrix4 target;
     if (_zoomed) {
       target = Matrix4.identity();
     } else {
-      // Zoom 2.5× centered on the double-tap point.
-      const scale = 2.5;
+      // Zoom 2.5× centered on the double-tap point. The detector and the
+      // viewer now share one full-screen box, so the tap's local position is
+      // the viewer's own coordinates.
+      final scale = widget.maxScale < 2.5 ? widget.maxScale : 2.5;
       final x = -d.localPosition.dx * (scale - 1);
       final y = -d.localPosition.dy * (scale - 1);
       target = Matrix4.identity()
@@ -136,17 +199,44 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
       ..forward();
   }
 
-  void _onDragStart(DragStartDetails _) => _settleCtrl.stop();
+  // The dismiss drag rides the viewer's own scale gesture rather than a
+  // vertical-drag detector around it. Two recognizers over one picture raced
+  // for every touch: a pinch whose first finger moved vertically before the
+  // second landed was taken as a dismiss, and the pinch never started.
 
-  void _onDragUpdate(DragUpdateDetails d) {
-    // While zoomed the same gesture is panning the image, so dismissal has to
-    // stay out of the way.
-    if (_zoomed || _dismissing) return;
-    widget.drag.value += Offset(0, d.delta.dy);
+  void _onInteractionStart(ScaleStartDetails d) {
+    _settleCtrl.stop();
+    _zoomCtrl.stop();
+    _pan = d.pointerCount == 1 && !_zoomed ? _Pan.undecided : _Pan.picture;
   }
 
-  void _onDragEnd(DragEndDetails d) {
+  void _onInteractionUpdate(ScaleUpdateDetails d) {
     if (_dismissing) return;
+    if (d.pointerCount > 1 || _zoomed) {
+      // A second finger turns a dismiss into a pinch; the picture goes back
+      // to where it was rather than pinching somewhere mid-air.
+      if (_pan == _Pan.dismiss) _settle();
+      _pan = _Pan.picture;
+      return;
+    }
+    final delta = d.focalPointDelta;
+    if (_pan == _Pan.undecided) {
+      if (delta == Offset.zero) return;
+      _pan = delta.dy.abs() >= delta.dx.abs() ? _Pan.dismiss : _Pan.picture;
+    }
+    if (_pan == _Pan.dismiss) widget.drag.value += Offset(0, delta.dy);
+  }
+
+  void _onInteractionEnd(ScaleEndDetails d) {
+    final pan = _pan;
+    _pan = _Pan.undecided;
+    if (_dismissing) return;
+    // A finger still down means the gesture changed shape (a second finger
+    // landed, or one of two lifted), not that the reader let go.
+    if (pan != _Pan.dismiss || d.pointerCount > 0) {
+      if (widget.drag.value != Offset.zero) _settle();
+      return;
+    }
     final dy = widget.drag.value.dy;
     final velocity = d.velocity.pixelsPerSecond.dy;
     final threshold = MediaQuery.sizeOf(context).height * _dismissFraction;
@@ -159,6 +249,10 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
       widget.onDismiss();
       return;
     }
+    _settle();
+  }
+
+  void _settle() {
     _settleTween = Tween(begin: widget.drag.value, end: Offset.zero).animate(
       CurvedAnimation(parent: _settleCtrl, curve: Curves.easeOutCubic),
     );
@@ -169,20 +263,33 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
-      onDoubleTapDown: _handleDoubleTap,
-      onDoubleTap: () {},
-      onVerticalDragStart: _onDragStart,
-      onVerticalDragUpdate: _onDragUpdate,
-      onVerticalDragEnd: _onDragEnd,
-      child: Center(
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerUp: _onPointerGone,
+      onPointerCancel: _onPointerGone,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        onDoubleTapDown: _handleDoubleTap,
+        onDoubleTap: () {},
+        // The viewer fills the whole area, not just the picture: a pinch
+        // starting on the black around a photo zooms it, and a zoomed photo
+        // spreads over the screen instead of being cut off at the box it
+        // was letterboxed into.
         child: InteractiveViewer(
           transformationController: _xform,
           minScale: 1,
           maxScale: widget.maxScale,
-          child: widget.child,
+          clipBehavior: Clip.none,
+          onInteractionStart: _onInteractionStart,
+          onInteractionUpdate: _onInteractionUpdate,
+          onInteractionEnd: _onInteractionEnd,
+          child: SizedBox.expand(
+            key: _contentKey,
+            child: Center(
+              child: KeyedSubtree(key: _pictureKey, child: widget.child),
+            ),
+          ),
         ),
       ),
     );

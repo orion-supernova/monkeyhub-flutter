@@ -182,6 +182,10 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   /// of rebuilding the whole route every frame.
   final ValueNotifier<Offset> _drag = ValueNotifier(Offset.zero);
 
+  /// While zoomed the chrome steps aside, so the photo has the whole screen.
+  /// It comes back as the photo returns to fit.
+  bool _zoomed = false;
+
   @override
   void dispose() {
     _drag.dispose();
@@ -242,13 +246,15 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Opacity(
-                  // The chrome gets out of the way as the picture leaves.
-                  opacity: (1 - t * 2).clamp(0.0, 1.0),
-                  child: ViewerTopBar(
-                    // Fading with the drag, so no blur under the × for it.
-                    still: t > 0,
-                    onClose: () => Navigator.of(context).maybePop(),
+                child: _zoomAside(
+                  Opacity(
+                    // The chrome gets out of the way as the picture leaves.
+                    opacity: (1 - t * 2).clamp(0.0, 1.0),
+                    child: ViewerTopBar(
+                      // Fading with the drag, so no blur under the × for it.
+                      still: t > 0,
+                      onClose: () => Navigator.of(context).maybePop(),
+                    ),
                   ),
                 ),
               ),
@@ -257,11 +263,13 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: IgnorePointer(
-                    ignoring: t > 0,
-                    child: Opacity(
-                      opacity: (1 - t * 2).clamp(0.0, 1.0),
-                      child: _BottomBar(actions: _tools(context)),
+                  child: _zoomAside(
+                    IgnorePointer(
+                      ignoring: t > 0,
+                      child: Opacity(
+                        opacity: (1 - t * 2).clamp(0.0, 1.0),
+                        child: _BottomBar(actions: _tools(context)),
+                      ),
                     ),
                   ),
                 ),
@@ -277,11 +285,22 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
         child: PhotoDismissArea(
           drag: _drag,
           onDismiss: () => Navigator.of(context).maybePop(),
+          onZoomChanged: (z) => setState(() => _zoomed = z),
           child: _maybeHero(image),
         ),
       ),
     );
   }
+
+  /// Chrome that steps aside while the photo is zoomed.
+  Widget _zoomAside(Widget chrome) => IgnorePointer(
+        ignoring: _zoomed,
+        child: AnimatedOpacity(
+          opacity: _zoomed ? 0 : 1,
+          duration: const Duration(milliseconds: 180),
+          child: chrome,
+        ),
+      );
 
   bool _busy = false;
 

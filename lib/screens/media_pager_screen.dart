@@ -607,7 +607,12 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                   onToggleChrome: () => setState(() => _chrome = !_chrome),
                   onZoomChanged: (z) {
                     if (i == _index && z != _zoomed) {
-                      setState(() => _zoomed = z);
+                      setState(() {
+                        _zoomed = z;
+                        // Like Photos: zooming in gives the picture the
+                        // whole screen. A tap brings the chrome back.
+                        if (z) _chrome = false;
+                      });
                     }
                   },
                 ),
