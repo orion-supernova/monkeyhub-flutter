@@ -2130,6 +2130,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       await service.initiate(
         peerUserId: m.id,
         peerName: m.displayName,
+        peerAvatarStorageId: m.avatarStorageId,
         roomId: roomId,
         kind: kind,
       );

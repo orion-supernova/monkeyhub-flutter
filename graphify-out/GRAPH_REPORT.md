@@ -1,16 +1,16 @@
 # Graph Report - monkeyhub  (2026-10-09)
 
 ## Corpus Check
-- 4773 files · ~5,414,796 words
+- 4773 files · ~5,415,026 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 80431 nodes · 99863 edges · 3761 communities (3622 shown, 139 thin omitted)
+- 80434 nodes · 99868 edges · 3747 communities (3618 shown, 129 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 1629 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d8bd2068`
+- Built from commit: `10828288`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1109,24 +1109,10 @@
 - [[_COMMUNITY_Community 3734|Community 3734]]
 - [[_COMMUNITY_Community 3735|Community 3735]]
 - [[_COMMUNITY_Community 3736|Community 3736]]
-- [[_COMMUNITY_Community 3737|Community 3737]]
-- [[_COMMUNITY_Community 3738|Community 3738]]
-- [[_COMMUNITY_Community 3739|Community 3739]]
 - [[_COMMUNITY_Community 3740|Community 3740]]
-- [[_COMMUNITY_Community 3741|Community 3741]]
-- [[_COMMUNITY_Community 3742|Community 3742]]
-- [[_COMMUNITY_Community 3743|Community 3743]]
-- [[_COMMUNITY_Community 3744|Community 3744]]
-- [[_COMMUNITY_Community 3745|Community 3745]]
-- [[_COMMUNITY_Community 3746|Community 3746]]
 - [[_COMMUNITY_Community 3747|Community 3747]]
-- [[_COMMUNITY_Community 3748|Community 3748]]
-- [[_COMMUNITY_Community 3749|Community 3749]]
 - [[_COMMUNITY_Community 3750|Community 3750]]
-- [[_COMMUNITY_Community 3751|Community 3751]]
-- [[_COMMUNITY_Community 3752|Community 3752]]
 - [[_COMMUNITY_Community 3753|Community 3753]]
-- [[_COMMUNITY_Community 3754|Community 3754]]
 - [[_COMMUNITY_Community 3755|Community 3755]]
 - [[_COMMUNITY_Community 3756|Community 3756]]
 - [[_COMMUNITY_Community 3757|Community 3757]]
@@ -1152,7 +1138,7 @@
 - `_FailingAuth` --inherits--> `AuthService`  [EXTRACTED]
   test/design_preview/firstrun_review_preview.dart → lib/auth/auth_service.dart
 - `_StubAuth` --inherits--> `AuthService`  [EXTRACTED]
-  test/social_username_screen_test.dart → lib/auth/auth_service.dart
+  test/devices_screen_test.dart → lib/auth/auth_service.dart
 - `_SolvedController` --inherits--> `GamePlayController`  [EXTRACTED]
   test/design_preview/feed_games_preview.dart → lib/games/game_play_controller.dart
 - `AES` --references--> `BlockMode`  [EXTRACTED]
@@ -1161,7 +1147,7 @@
 ## Import Cycles
 - 1-file cycle: `third_party/convex_flutter/rust/src/lib.rs -> third_party/convex_flutter/rust/src/lib.rs`
 
-## Communities (3761 total, 139 thin omitted)
+## Communities (3747 total, 129 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.00
@@ -1169,11 +1155,11 @@ Nodes (3274): app_localizations_ar.dart, app_localizations_en.dart, app_localiza
 
 ### Community 1 - "Community 1"
 Cohesion: 0.00
-Nodes (3255): app_localizations.dart, acctActionAccept, acctActionAddFriend, acctActionBlock, acctActionMessage, acctActionNotAccepting, acctActionPending, acctActionReport (+3247 more)
+Nodes (3254): acctActionAccept, acctActionAddFriend, acctActionBlock, acctActionMessage, acctActionNotAccepting, acctActionPending, acctActionReport, acctActionRequested (+3246 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.00
-Nodes (3254): acctActionAccept, acctActionAddFriend, acctActionBlock, acctActionMessage, acctActionNotAccepting, acctActionPending, acctActionReport, acctActionRequested (+3246 more)
+Nodes (3255): acctActionAccept, acctActionAddFriend, acctActionBlock, acctActionMessage, acctActionNotAccepting, acctActionPending, acctActionReport, acctActionRequested (+3247 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.00
@@ -1209,31 +1195,31 @@ Nodes (3254): acctActionAccept, acctActionAddFriend, acctActionBlock, acctAction
 
 ### Community 11 - "Community 11"
 Cohesion: 0.00
-Nodes (3255): acctActionAccept, acctActionAddFriend, acctActionBlock, acctActionMessage, acctActionNotAccepting, acctActionPending, acctActionReport, acctActionRequested (+3247 more)
+Nodes (3255): app_localizations.dart, acctActionAccept, acctActionAddFriend, acctActionBlock, acctActionMessage, acctActionNotAccepting, acctActionPending, acctActionReport (+3247 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.01
-Nodes (454): ../data/records_store.dart, ../data/room_filter.dart, RoomFacet, RoomFacetCounts, EdgeInsets, build, compact, KlipyAttribution (+446 more)
+Cohesion: 0.00
+Nodes (487): app_brand_mark.dart, ConnectionPhase, ../backend/connection_health.dart, ../backend/server_endpoint.dart, ../backend/server_probe.dart, ../backend/server_switch.dart, _Choice, ConnectionHealth? get (+479 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.01
-Nodes (315): bool get, api, cancel, connectionState, cv, ensureSavedMessagesRoom, _FakeApi, getFileUrl (+307 more)
+Nodes (347): bool get, dart:async, api, cancel, connectionState, cv, ensureSavedMessagesRoom, _FakeApi (+339 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.01
-Nodes (248): ../auth/auth_errors.dart, ../auth/auth_service.dart, ../auth/recovery_phrase.dart, ../auth/social_sign_in.dart, SocialCredential, SocialProvider, child_pair_screen.dart, ../data/username_availability_controller.dart (+240 more)
+Nodes (299): ../auth/auth_errors.dart, ../auth/auth_service.dart, ../auth/recovery_phrase.dart, ../auth/social_sign_in.dart, SocialCredential, SocialProvider, child_pair_screen.dart, ../data/username_availability_controller.dart (+291 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.10
-Nodes (19): live_location_permission.dart, authorizationTier, _channel, ensureStarted, _handlerInstalled, instance, _isMobile, LiveLocationPlatform (+11 more)
+Cohesion: 0.03
+Nodes (73): awaitPlatformStart, cancelStartWait, capture, _channel, _handlerInstalled, id, _installHandler, _iosSupported (+65 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.03
-Nodes (64): _actions, addListener, alone, api, cancel, capabilitiesFor, _ChatApi, consumeSignals (+56 more)
+Cohesion: 0.02
+Nodes (85): _api, _check, debounce, dispose, _disposed, excludeUserId, _initial, onChanged (+77 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.05
-Nodes (44): _Group, _ReactorRow, api, _avatar, _badge, _BadgedAvatar, _body, build (+36 more)
+Cohesion: 0.02
+Nodes (127): BorderRadius?, api, build, createState, GifMessageTile, _GifMessageTileState, item, kGifMessageMaxWidth (+119 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.01
@@ -1241,11 +1227,11 @@ Nodes (293): _activeDeliveredClock, _activeDeliveredState, activeLiveShareMessag
 
 ### Community 19 - "Community 19"
 Cohesion: 0.01
-Nodes (217): blocked_users_screen.dart, _categories, _openCompanions, initState, device_login_scan_screen.dart, devices_screen.dart, family_screen.dart, FamilyService? get (+209 more)
+Nodes (257): approvals_screen.dart, blocked_users_screen.dart, child_policy_screen.dart, child_setup_screen.dart, _categories, _openCompanions, initState, device_login_scan_screen.dart (+249 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.01
-Nodes (149): PodsDummy_background_downloader, PodsDummy_camera_avfoundation, PodsDummy_CryptoSwift, PodsDummy_file_selector_ios, PodsDummy_file_selector_macos, PodsDummy_flutter_callkit_incoming, PodsDummy_flutter_custom_tabs_ios, PodsDummy_flutter_native_splash (+141 more)
+Nodes (194): PodsDummy_background_downloader, PodsDummy_camera_avfoundation, PodsDummy_CryptoSwift, PodsDummy_file_selector_ios, PodsDummy_file_selector_macos, PodsDummy_flutter_callkit_incoming, PodsDummy_flutter_custom_tabs_ios, PodsDummy_flutter_native_splash (+186 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.01
@@ -1253,43 +1239,49 @@ Nodes (301): AppLifecycleListener?, ../calls/call_button.dart, ../calls/group_ca
 
 ### Community 22 - "Community 22"
 Cohesion: 0.01
-Nodes (286): acked, claimed, echoed, liveId, out, pendingId, reconcilesWith, survivingPending (+278 more)
+Nodes (264): BoxFit, CacheManager, api, _bind, blurPreview, build, _comp, createState (+256 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.12
-Nodes (33): VP8SSIMDspInit(), DummyWriter(), WebPMemoryWrite(), WebPPictureAlloc(), WebPPictureAllocARGB(), WebPPictureAllocYUVA(), WebPPictureFree(), WebPPictureInitInternal() (+25 more)
+Cohesion: 0.01
+Nodes (150): DateTime?, DateTime? initial,
+
+  
+  
+  
+  
+  int, content, createdAt, FriendRequestMessage, fromJson, id, requestId (+142 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.01
-Nodes (218): chat_list_row.dart, count_badge.dart, requestAbsenceGrace, RequestOutcome, family.dart, friend_request_message.dart, ChatUser, ../models/chat_user.dart (+210 more)
+Nodes (238): chat_repository.dart, count_badge.dart, requestAbsenceGrace, RequestOutcome, _again, _computeReviewer, didChangeAppLifecycleState, dispose (+230 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.01
-Nodes (523): adaptive_sheet.dart, approval_gate.dart, authErrorMessages, humanizeAuthError, s, ConnectionPhase, ../backend/connection_health.dart, chat_row_action_menu.dart (+515 more)
+Cohesion: 0.00
+Nodes (580): adaptive_sheet.dart, approval_gate.dart, authErrorMessages, humanizeAuthError, s, ../backend/chat_api.dart, chat_list_row.dart, chat_row_action_menu.dart (+572 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.01
-Nodes (289): app.dart, AlertSound, asset, loop, mime, auth/recovery_gate.dart, ../backend/server_directory.dart, ../backend/server_endpoint.dart (+281 more)
+Nodes (191): app.dart, AlertSound, asset, loop, mime, _checkedFor, auth/recovery_gate.dart, ensure (+183 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.01
 Nodes (210): active, _afterVideo, _ago, alignBottom, api, _appActive, _apply, _arrive (+202 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.02
-Nodes (110): class _TmpPathProvider extends, dart:io, build, locales, main, _Page, _themes, MockPlatformInterfaceMixin (+102 more)
+Cohesion: 0.01
+Nodes (158): dart:io, EditableText, package:flutter_test/flutter_test.dart, package:monkeyhub/auth/device_login_link.dart, package:monkeyhub/auth/recovery_phrase.dart, package:monkeyhub/auth/recovery_wordlist.dart, package:monkeyhub/auth/session_guard.dart, package:monkeyhub/backend/hashing.dart (+150 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.01
-Nodes (289): AspectRatio, ClipPath, _card, _location, main, _now, _api, build (+281 more)
+Nodes (291): AspectRatio, ClipPath, _api, build, _ClassicChrome, _day, _dm, _ece (+283 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.01
-Nodes (284): AlignmentGeometry, approvals_screen.dart, BubbleStyle, ../calls/call_models.dart, child_policy_screen.dart, child_setup_screen.dart, ChatStyle, ../data/settings_store.dart (+276 more)
+Cohesion: 0.02
+Nodes (88): filter_capsule.dart, interaction_bubble.dart, MessageInteraction get, api, build, _changed, changes, _choiceId (+80 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.01
-Nodes (185): CallSession? get, activeCallElsewhere, api, build, callQuality, cancel, consumeSignals, createState (+177 more)
+Nodes (322): false, kMaxCallOutage, nextRestartDelay, shouldAbandonRestart, winsGlare, CallSession? get, activeCallElsewhere, api (+314 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.01
@@ -1297,11 +1289,11 @@ Nodes (207): _, addChecklistItem, addGuardian, addReaction, advanceContactReques
 
 ### Community 33 - "Community 33"
 Cohesion: 0.01
-Nodes (181): audio_message.dart, Decoration, DoubleTapGestureRecognizer, Duration? countdown,
+Nodes (239): audio_message.dart, auto_download_gate.dart, Decoration, DoubleTapGestureRecognizer, Duration? countdown,
 
   
   
-  bool, file_message.dart, link_confirm_sheet.dart, link_preview_card.dart, linkified_text.dart (+173 more)
+  bool, file_message.dart, GlobalKey, HeroFlightShuttleBuilder? (+231 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.02
@@ -1317,7 +1309,7 @@ Nodes (182): GTMSessionFetcher, -activePersistedBackgroundSessions, -addPersiste
 
 ### Community 37 - "Community 37"
 Cohesion: 0.08
-Nodes (42): ApplyDecoderOptions(), BlendChannelNonPremult(), BlendPixelNonPremult(), BlendPixelPremult(), BlendPixelRowNonPremult(), BlendPixelRowPremult(), ChannelwiseMultiply(), CopyCanvas() (+34 more)
+Nodes (43): ApplyDecoderOptions(), BlendChannelNonPremult(), BlendPixelNonPremult(), BlendPixelPremult(), BlendPixelRowNonPremult(), BlendPixelRowPremult(), ChannelwiseMultiply(), CopyCanvas() (+35 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.01
@@ -1325,7 +1317,7 @@ Nodes (177): class CallbackSubscriberDartFnImpl extends, ExternalLibraryLoaderCo
 
 ### Community 39 - "Community 39"
 Cohesion: 0.01
-Nodes (164): anchored_scroll.dart, chat_pane.dart, companion_install_sheet.dart, ../composer/capture_machine.dart, ../composer/capture_recorder.dart, composer_reply_card.dart, ComposerCapture get, expressions/expression_sheet.dart (+156 more)
+Nodes (172): anchored_scroll.dart, chat_composer.dart, chat_pane.dart, companion_install_sheet.dart, ../composer/capture_machine.dart, ../composer/capture_recorder.dart, composer_reply_card.dart, ComposerCapture get (+164 more)
 
 ### Community 40 - "Community 40"
 Cohesion: 0.01
@@ -1336,8 +1328,8 @@ Cohesion: 0.03
 Nodes (105): assertChildMayReach(), assertChildMayUseRoom(), assertChildPolicy(), assertGuardian(), childMayReach(), childMayUseRoom(), childPolicyOf(), childrenOf() (+97 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.01
-Nodes (228): AuthService, ConnectionHealth, ServerStore, ServerSwitch, CallOptionsController, CallService, GroupCallService, ChangeNotifier (+220 more)
+Cohesion: 0.02
+Nodes (172): AuthService, ConnectionHealth, ServerStore, ServerSwitch, CallOptionsController, CallService, GroupCallService, ChangeNotifier (+164 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.01
@@ -1355,7 +1347,7 @@ Nodes (148): call_config.dart, call_recovery.dart, CallMediaKind get, _ackNative
 
 ### Community 46 - "Community 46"
 Cohesion: 0.01
-Nodes (303): dart:convert, day, durationMs, finished, fixtures, main, mistakes, payload (+295 more)
+Nodes (302): dart:convert, day, durationMs, finished, fixtures, main, mistakes, payload (+294 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.02
@@ -1367,7 +1359,7 @@ Nodes (113): byUser(), changeUsername, deleteAccount, deleteRows(), login, logou
 
 ### Community 49 - "Community 49"
 Cohesion: 0.01
-Nodes (230): BrainManager get, BrainSpec? get, _applies, CallPermissions, debugForceApplies, _device, ensure, _explainRefusal (+222 more)
+Nodes (227): _Action, BrainManager get, BrainSpec? get, Companion, companion_page.dart, companion_strip.dart, ../companions/brain_manager.dart, ../companions/brain_spec.dart (+219 more)
 
 ### Community 50 - "Community 50"
 Cohesion: 0.02
@@ -1396,11 +1388,11 @@ Nodes (102): AssetEntity, _Geometry?, package:photo_manager_image_provider/photo
 
 ### Community 56 - "Community 56"
 Cohesion: 0.05
-Nodes (131): FastLog2Slow_C(), FastSLog2Slow_C(), WebPChunk, WebPData, WebPMux, WebPMuxAnimParams, WebPMuxError, WebPMuxFrameInfo (+123 more)
+Nodes (128): CombinedShannonEntropy_AVX2(), FastLog2Slow_C(), FastSLog2Slow_C(), CombinedShannonEntropy_SSE2(), WebPChunk, WebPData, WebPMux, WebPMuxAnimParams (+120 more)
 
 ### Community 57 - "Community 57"
 Cohesion: 0.01
-Nodes (283): _Action, _Arrow, bubble_style_screen.dart, chat_style_screen.dart, companions/companion_page.dart, data_storage/data_storage_screen.dart, diagnostics_screen.dart, discover_screen.dart (+275 more)
+Nodes (284): ../backend/server_directory.dart, ../backend/server_store.dart, bubble_style_screen.dart, chat_style_screen.dart, companions/companion_page.dart, HomeSection, data_storage/data_storage_screen.dart, diagnostics_screen.dart (+276 more)
 
 ### Community 58 - "Community 58"
 Cohesion: 0.02
@@ -1408,7 +1400,8 @@ Nodes (113): FakeRtpReceiver get, FakeRtpSender get, active, addCandidate, added
 
 ### Community 59 - "Community 59"
 Cohesion: 0.01
-Nodes (187): chat_message.dart, _Cursors, DateTime?, DocumentPreviewKind get, _Entry, location_map_preview.dart, map_app_picker.dart, ../media/document_preview.dart (+179 more)
+Nodes (284): Color? ring,
+  double, _Cursors, acked, claimed, echoed, liveId, out, pendingId (+276 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.06
@@ -1416,11 +1409,11 @@ Nodes (103): pb_field_iter_t, pb_field_t, pb_byte_t, pb_extension_t, pb_field_it
 
 ### Community 61 - "Community 61"
 Cohesion: 0.05
-Nodes (113): AccumulateHCode(), AllocateAndInitRescaler(), AllocateInternalBuffers32b(), AllocateInternalBuffers8b(), AlphaApplyFilter(), ApplyInverseTransforms(), BuildPackedTable(), ClearMetadata() (+105 more)
+Nodes (102): AccumulateHCode(), AllocateAndInitRescaler(), AllocateInternalBuffers32b(), AllocateInternalBuffers8b(), AlphaApplyFilter(), ApplyInverseTransforms(), BuildPackedTable(), ClearMetadata() (+94 more)
 
 ### Community 62 - "Community 62"
-Cohesion: 0.02
-Nodes (123): _NullKeychain, before, boundary, bytes, containsKey, _decodeImages, delete, deleteAll (+115 more)
+Cohesion: 0.01
+Nodes (163): _NullKeychain, before, boundary, bytes, containsKey, _decodeImages, delete, deleteAll (+155 more)
 
 ### Community 63 - "Community 63"
 Cohesion: 0.14
@@ -1436,34 +1429,28 @@ Nodes (106): ../composer/capture_permissions.dart, TextDirection get, VerticalDr
 
 ### Community 66 - "Community 66"
 Cohesion: 0.01
-Nodes (214): ConvexBackend, Subscription, ChatApi, ChatRepository, _Api, _FakeApi, _FakeGroupApi, _FakeSub (+206 more)
+Nodes (191): ConvexBackend, Subscription, CallApi, ChatApi, _Api, _FakeApi, _FakeGroupApi, _FakeSub (+183 more)
 
 ### Community 67 - "Community 67"
 Cohesion: 0.02
 Nodes (125): CameraReviewer, FlashMode, ../media/preview_luminance.dart, allowVideo, _applyBoost, _availableCameras, batch, _boost (+117 more)
 
 ### Community 68 - "Community 68"
-Cohesion: 0.02
-Nodes (120): ChatMessage? get, ScheduledIndicator, DateTime? initial,
-
-  
-  
-  
-  
-  int, glass_pill.dart, ../models/scheduled_message.dart, required String initial,
-  bool, schedule_message_sheet.dart, schedule_time_picker.dart (+112 more)
+Cohesion: 0.04
+Nodes (49): ScheduledIndicator, required String initial,
+  bool, schedule_message_sheet.dart, active, allowEmpty, api, _BackButton, build (+41 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.06
-Nodes (32): _appendChunks, argb, bytes, decodeDrawBatch, encodeDrawBatch, flat, frames, _getPoints (+24 more)
+Cohesion: 0.05
+Nodes (50): _appendChunks, argb, bytes, decodeDrawBatch, DrawClear, DrawOp, encodeDrawBatch, flat (+42 more)
 
 ### Community 70 - "Community 70"
 Cohesion: 0.05
 Nodes (91): AllocateMemory(), CheckMode(), Copy32b(), Dither8x8(), DitherRow(), DoFilter(), DoTransform(), DoUVTransform() (+83 more)
 
 ### Community 71 - "Community 71"
-Cohesion: 0.02
-Nodes (108): dart:typed_data, dart:ui, bottomInset, boundary, byFamily, bytes, dir, dpr (+100 more)
+Cohesion: 0.03
+Nodes (59): dart:typed_data, _, BlobUrl, create, revoke, package:monkeyhub/diagnostics/problem_report.dart, package:monkeyhub/media/image_raster.dart, package:monkeyhub/media/preview_luminance.dart (+51 more)
 
 ### Community 72 - "Community 72"
 Cohesion: 0.02
@@ -1474,20 +1461,20 @@ Cohesion: 0.02
 Nodes (95): GTMSessionUploadFetcher, -activeFetcher, -attachSendProgressBlockToChunkFetcher, -beginChunkFetcheroffset, -beginChunkFetches, -beginFetchForRetry, -beginFetchWithCompletionHandler, -beginUploadRetryTimer (+87 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.06
-Nodes (93): Candidate, WebPConfigInitInternal(), WebPConfigLosslessPreset(), WebPValidateConfig(), Encode(), WebPMemoryWriterClear(), WebPMemoryWriterInit(), EncodedFrame (+85 more)
+Cohesion: 0.04
+Nodes (130): Candidate, VP8SSIMDspInit(), WebPConfigInitInternal(), WebPConfigLosslessPreset(), WebPValidateConfig(), DummyWriter(), Encode(), WebPMemoryWrite() (+122 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.01
-Nodes (268): Animation, CurvedAnimation, _SectionSwitcherState, package:flutter/animation.dart, package:flutter/physics.dart, SectionSwitcher, SingleTickerProviderStateMixin, static double get (+260 more)
+Nodes (148): static double get, accent, action, actions, active, allowsBlur, animate, _animation (+140 more)
 
 ### Community 76 - "Community 76"
 Cohesion: 0.02
 Nodes (115): TextCapitalization, TextInputType?, actionLabel, autocorrect, autofocus, build, controller, enabled (+107 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.02
-Nodes (136): _ago, build, _deniz, _ece, _essentials, _FakeHeader, _FakeHome, _FakeHomeV2 (+128 more)
+Cohesion: 0.04
+Nodes (57): call_media.dart, call_options_sheet.dart, ../call_stats_monitor.dart, api, _boundLocalScreenTick, _boundLocalTick, _boundRemoteScreenTick, _boundRemoteTick (+49 more)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.03
@@ -1498,24 +1485,24 @@ Cohesion: 0.02
 Nodes (85): _armUiTimers, _attempt, _backend, _backgroundedAt, backgroundRebuildThreshold, backoff, _backoffFor, _beginHealing (+77 more)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.04
-Nodes (58): ./android_params.dart, @JsonSerializable, ./call_event.dart, ./call_kit_params.dart, AndroidParams, android, appName, avatar (+50 more)
+Cohesion: 0.03
+Nodes (81): ./android_params.dart, @JsonSerializable, ./call_event.dart, ./call_kit_params.dart, actionColor, AndroidParams, backgroundColor, backgroundUrl (+73 more)
 
 ### Community 81 - "Community 81"
 Cohesion: 0.09
-Nodes (68): DominantCostRange, DivRound(), CostModelBuild(), BitsEntropyRefine(), ComputeHistogramCost(), DominantCostRangeInit(), FinalHuffmanCost(), GetBinIdForEntropy() (+60 more)
+Nodes (67): DominantCostRange, DivRound(), BitsEntropyRefine(), ComputeHistogramCost(), DominantCostRangeInit(), FinalHuffmanCost(), GetBinIdForEntropy(), GetCombineCostFactor() (+59 more)
 
 ### Community 82 - "Community 82"
-Cohesion: 0.02
-Nodes (132): audio_level_monitor.dart, call_media.dart, call_options_sheet.dart, ../call_stats_monitor.dart, api, _boundLocalScreenTick, _boundLocalTick, _boundRemoteScreenTick (+124 more)
+Cohesion: 0.03
+Nodes (73): audio_level_monitor.dart, accent, api, _asUser, _bind, bottomInset, _boundLocalScreenTick, _boundLocalTick (+65 more)
 
 ### Community 83 - "Community 83"
 Cohesion: 0.02
-Nodes (95): Align, Column, _Controls, _admin, anchor, api, _Backdrop, build (+87 more)
+Nodes (86): Align, CallService, Column, _Controls, _admin, anchor, api, _Backdrop (+78 more)
 
 ### Community 84 - "Community 84"
 Cohesion: 0.05
-Nodes (45): CLLocationManager, CLLocationManagerDelegate, CXProviderConfiguration, CXProviderDelegate, DocumentPreview, flutter_callkit_incoming, FlutterStreamHandler, Any (+37 more)
+Nodes (48): CLLocationManager, CLLocationManagerDelegate, CXProviderConfiguration, CXProviderDelegate, DocumentPreview, flutter_callkit_incoming, FlutterStreamHandler, Any (+40 more)
 
 ### Community 85 - "Community 85"
 Cohesion: 0.02
@@ -1526,8 +1513,8 @@ Cohesion: 0.02
 Nodes (82): brain_manager.dart, _annotationOpener, _ask, _bumpProgress, content, demoteFirst, done, enqueueRoom (+74 more)
 
 ### Community 87 - "Community 87"
-Cohesion: 0.11
-Nodes (20): AppAuth, AppAuthCore, GTMSessionFetcher, GTMSessionFetcherCore, GIDAuthentication, -encodeWithCoder, -initWithAuthState, -initWithCoder (+12 more)
+Cohesion: 0.02
+Nodes (83): AppAuth, AppAuthCore, GTMSessionFetcher, GTMSessionFetcherCore, GIDAuthentication, -encodeWithCoder, -initWithAuthState, -initWithCoder (+75 more)
 
 ### Community 88 - "Community 88"
 Cohesion: 0.02
@@ -1539,7 +1526,7 @@ Nodes (76): accent, accentInk, _accentLip, accentSoft, avatarGradient, _avatars,
 
 ### Community 90 - "Community 90"
 Cohesion: 0.02
-Nodes (126): BorderRadius?, api, build, createState, GifMessageTile, _GifMessageTileState, item, kGifMessageMaxWidth (+118 more)
+Nodes (109): FocusNode get, glass_buttons.dart, ../media/storage/auto_download.dart, route_landing.dart, AutoDownloadGate, _AutoDownloadGateState, borderRadius, build (+101 more)
 
 ### Community 91 - "Community 91"
 Cohesion: 0.07
@@ -1562,14 +1549,12 @@ Cohesion: 0.07
 Nodes (44): canRelease(), countSolutions(), findSolutions(), generate(), growRegions(), placeCrowns(), QueensPuzzle, solve() (+36 more)
 
 ### Community 96 - "Community 96"
-Cohesion: 0.03
-Nodes (68): main, package:integration_test/integration_test.dart, package:monkeyhub/companions/brain_gateway.dart, package:monkeyhub/companions/sebastian.dart, package:monkeyhub/companions/translation/language.dart, package:monkeyhub/companions/translation/language_detector.dart, package:monkeyhub/companions/translation/translation_prompt.dart, attempts (+60 more)
+Cohesion: 0.04
+Nodes (47): attempts, brainId, CaseOutcome, casual, elapsed, _emoji, entities, EvalFailure (+39 more)
 
 ### Community 97 - "Community 97"
 Cohesion: 0.02
-Nodes (105): Color? ring,
-  double, expressions/expression_media.dart, ReplyPreview, ../models/message_preview.dart, required AppTheme theme,
-  double, speaker_scope.dart, api, build (+97 more)
+Nodes (130): _Arrow, DocumentPreviewKind get, ../media/document_preview.dart, ../screens/fullscreen_image_viewer.dart, ../screens/text_file_viewer_screen.dart, teardown_safe.dart, api, build (+122 more)
 
 ### Community 98 - "Community 98"
 Cohesion: 0.03
@@ -1581,15 +1566,15 @@ Nodes (68): BuildContext, _, aroundMarker, auth, betweenRuns, Breakpoints, bubbl
 
 ### Community 100 - "Community 100"
 Cohesion: 0.08
-Nodes (61): AllocateBuffer(), CheckDecBuffer(), IsValidColorspace(), WebPAllocateDecBuffer(), WebPAvoidSlowMemory(), WebPCopyDecBuffer(), WebPCopyDecBufferPixels(), WebPFlipBuffer() (+53 more)
+Nodes (62): AllocateBuffer(), CheckDecBuffer(), IsValidColorspace(), WebPAllocateDecBuffer(), WebPAvoidSlowMemory(), WebPCopyDecBuffer(), WebPCopyDecBufferPixels(), WebPFlipBuffer() (+54 more)
 
 ### Community 101 - "Community 101"
 Cohesion: 0.03
 Nodes (72): double funnelHeight,, dust/dust_kit.dart, Float32List hx, hy,, Float32List lvl,, Float32List th, scale,, Float32List tPull,, Float32List transforms,, LayerLink (+64 more)
 
 ### Community 102 - "Community 102"
-Cohesion: 0.02
-Nodes (104): _ece, _FakeApi, friends, getProfile, incomingRequests, isChild, isSignedIn, linkedProviders (+96 more)
+Cohesion: 0.04
+Nodes (47): AnimatedContainer, _ece, _FakeApi, friends, getProfile, incomingRequests, isChild, isSignedIn (+39 more)
 
 ### Community 103 - "Community 103"
 Cohesion: 0.05
@@ -1609,8 +1594,21 @@ Nodes (71): AccountType, contactOutgoing,
   roomInviteOutgoing,, AccountType, AccountTypeWire, approvalId, avatarStorageId, callsEnabled, canCreateRooms (+63 more)
 
 ### Community 105 - "Community 105"
-Cohesion: 0.03
-Nodes (72): chat_repository.dart, _again, _computeReviewer, didChangeAppLifecycleState, dispose, _disposed, forRoom, _inFlight (+64 more)
+Cohesion: 0.04
+Nodes (53): CacheLimit, files,
+  stickers,
+
+  
+  
+  chatHistory,
+
+  
+  
+  
+  
+  companions,, never,
+  cellular,, privateChats,
+  groups,, static final DataStoragePrefs, _all, allows, cacheLimit (+45 more)
 
 ### Community 106 - "Community 106"
 Cohesion: 0.03
@@ -1629,8 +1627,8 @@ Cohesion: 0.02
 Nodes (85): abstract VoidCallback?, CameraController?, CameraController? get, CameraLensDirection, capture_permissions.dart, CaptureDevice, CaptureGrant, CapturePermissions (+77 more)
 
 ### Community 110 - "Community 110"
-Cohesion: 0.02
-Nodes (129): addListener, anchor, api, _archived, archivedRooms, _Backdrop, _bubble, _bubbleKey (+121 more)
+Cohesion: 0.01
+Nodes (152): ChatApi get, addListener, anchor, api, _archived, archivedRooms, _Backdrop, _bubble (+144 more)
 
 ### Community 111 - "Community 111"
 Cohesion: 0.03
@@ -1645,16 +1643,16 @@ Cohesion: 0.03
 Nodes (65): annotation, _annotationKey, _Annotations, _applySkinTone, _asciiFold, byEmoji, _cacheDir, candidates (+57 more)
 
 ### Community 114 - "Community 114"
-Cohesion: 0.01
-Nodes (214): AnimationController, ../../data/games_store.dart, game_board_skeleton.dart, game_info_sheet.dart, game_scaffold.dart, game_tile.dart, ../games/game_canvas.dart, ../../games/game_play_controller.dart (+206 more)
+Cohesion: 0.02
+Nodes (113): AnimationController, ../../data/games_store.dart, game_scaffold.dart, ../../games/game_play_controller.dart, ../games/game_rules.dart, _autoCross, _boot, build (+105 more)
 
 ### Community 115 - "Community 115"
-Cohesion: 0.10
-Nodes (35): Arc, AtomicBool, AtomicU64, Box, BTreeMap, ConvexClient, ConvexWebSocketState, From (+27 more)
+Cohesion: 0.23
+Nodes (7): Arc, AtomicBool, Mutex, Sender, AuthHandle, JwtClaims, SubscriptionHandle
 
 ### Community 116 - "Community 116"
 Cohesion: 0.06
-Nodes (33): AVKit, AVPlayerViewController, CGSize, CoreLocation, CryptoKit, Bool, CGFloat, Int (+25 more)
+Nodes (33): AVKit, AVPlayerViewController, CoreLocation, CryptoKit, Flutter, Bool, CGFloat, Int (+25 more)
 
 ### Community 117 - "Community 117"
 Cohesion: 0.03
@@ -1674,15 +1672,15 @@ Nodes (64): accent, accentInk, accentSoft, avatarGradient, avatarPalette, backgr
 
 ### Community 121 - "Community 121"
 Cohesion: 0.02
-Nodes (128): candidate, deviceLoginUri, fromQuery, isDeviceLoginUri, _isRequestId, parseDeviceLoginRequestId, parts, trimmed (+120 more)
+Nodes (95): hours,, number_stepper.dart, package:qr_flutter/qr_flutter.dart, RoomInviteLink?, api, build, _busy, child (+87 more)
 
 ### Community 122 - "Community 122"
 Cohesion: 0.02
-Nodes (132): _, _ask, check, endpointFor, _fallbackTimeout, fromJson, hashCode, homeserverHost (+124 more)
+Nodes (81): _, _ask, check, endpointFor, _fallbackTimeout, fromJson, hashCode, homeserverHost (+73 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.09
-Nodes (23): package:monkeyhub/share/shared_payload.dart, package:monkeyhub/widgets/share_target_sheet.dart, item, main, addListener, api, capabilitiesFor, _FakeApi (+15 more)
+Cohesion: 0.04
+Nodes (51): active, announcesRole, bundledUrl, _custom, deploymentUrl, followsDirectives, forget, hasBundled (+43 more)
 
 ### Community 124 - "Community 124"
 Cohesion: 0.08
@@ -1701,12 +1699,12 @@ Cohesion: 0.03
 Nodes (63): GTMSessionFetcherService, -abandonDispatcher, -addDecorator, -addDelayedFetcherforHost, -addRunningFetcherforHost, -authorizer, -callbackQueue, -dealloc (+55 more)
 
 ### Community 128 - "Community 128"
-Cohesion: 0.02
-Nodes (95): ../media/audio_file_cache.dart, package:qr_flutter/qr_flutter.dart, _Phase, PlayerState, api, build, _busy, child (+87 more)
+Cohesion: 0.03
+Nodes (68): ../media/audio_file_cache.dart, _Phase, PlayerState, api, AudioDisplay, audioDisplayFor, AudioMessage, _AudioMessageState (+60 more)
 
 ### Community 129 - "Community 129"
-Cohesion: 0.02
-Nodes (98): CustomPainter, _Checkerboard, _StoryProgressPainter, _CropOverlayPainter, _LiveStrokePainter, _StrokesPainter, _BasicMonogramPainter, _BioHourglassPainter (+90 more)
+Cohesion: 0.03
+Nodes (61): accent, accentInk, accentSoft, avatarGradient, background, backgroundLayer, blueInk, body (+53 more)
 
 ### Community 130 - "Community 130"
 Cohesion: 0.04
@@ -1714,7 +1712,7 @@ Nodes (60): @Deprecated, ConvexConfig get, action, authState, checkConnection, c
 
 ### Community 131 - "Community 131"
 Cohesion: 0.01
-Nodes (189): adaptive_page_body.dart, ../auth/apple_button_titles.dart, ../auth/google_web_button.dart, Curve, destinations.dart, borderRadius, _brackets, build (+181 more)
+Nodes (148): adaptive_page_body.dart, ChatMessage? get, Curve, borderRadius, _brackets, build, _calm, child (+140 more)
 
 ### Community 132 - "Community 132"
 Cohesion: 0.08
@@ -1722,11 +1720,11 @@ Nodes (70): BackwardReferencesHashChainFollowChosenPath(), AddSingleLiteral(), B
 
 ### Community 133 - "Community 133"
 Cohesion: 0.03
-Nodes (61): accent, accentInk, accentSoft, avatarGradient, background, backgroundLayer, body, bodyEmph (+53 more)
+Nodes (61): Curve get, accent, accentInk, accentSoft, avatarGradient, background, backgroundLayer, body (+53 more)
 
 ### Community 134 - "Community 134"
-Cohesion: 0.02
-Nodes (134): ExpressionPanel, ad, aspect, _autoDebounce, _backspace, _body, bottomPadding, build (+126 more)
+Cohesion: 0.04
+Nodes (49): SizedBox, actions, AvatarPop, build, busy, child, children, color (+41 more)
 
 ### Community 135 - "Community 135"
 Cohesion: 0.11
@@ -1737,20 +1735,20 @@ Cohesion: 0.03
 Nodes (60): device_identity.dart, permission_latch.dart, maybeAsk, PermissionLatch, _settled, activeRoomId, _api, _appLocale (+52 more)
 
 ### Community 137 - "Community 137"
-Cohesion: 0.11
-Nodes (52): horizontal_add_uint32x4(), IsFlat(), IsFlatSource16(), VP8IteratorRotateI4(), VP8IteratorStartI4(), AddScore(), CheckLambdaValue(), clip() (+44 more)
+Cohesion: 0.10
+Nodes (54): horizontal_add_uint32x4(), IsFlat(), IsFlatSource16(), VP8IteratorRotateI4(), VP8IteratorStartI4(), AddScore(), CheckLambdaValue(), clip() (+46 more)
 
 ### Community 138 - "Community 138"
-Cohesion: 0.09
-Nodes (45): AccumulateRGB(), AccumulateRGBA(), CheckNonOpaque(), ConvertRowsToUV(), ConvertRowToY(), GammaToLinear(), Import(), ImportYUVAFromRGBA() (+37 more)
+Cohesion: 0.05
+Nodes (55): WebPInitAlphaProcessingMIPSdspR2(), WebPInitAlphaProcessingNEON(), WebPInitAlphaProcessingSSE41(), WebPInitAlphaProcessing(), VP8EncInitAlpha(), AccumulateRGB(), AccumulateRGBA(), CheckNonOpaque() (+47 more)
 
 ### Community 139 - "Community 139"
 Cohesion: 0.03
 Nodes (61): accent, accentInk, accentSoft, avatarGradient, background, backgroundLayer, body, bodyEmph (+53 more)
 
 ### Community 140 - "Community 140"
-Cohesion: 0.02
-Nodes (77): _api, build, _ClassicChrome, _day, _dm, _ece, _group, id (+69 more)
+Cohesion: 0.08
+Nodes (24): package:monkeyhub/composer/capture_machine.dart, package:monkeyhub/composer/capture_recorder.dart, package:monkeyhub/widgets/composer_capture.dart, build, haptics, main, builders, cancel (+16 more)
 
 ### Community 141 - "Community 141"
 Cohesion: 0.11
@@ -1766,7 +1764,7 @@ Nodes (57): Color get, accent, accentInk, accentSoft, avatarGradient, background
 
 ### Community 144 - "Community 144"
 Cohesion: 0.02
-Nodes (110): create_room_sheet.dart, HomeSection, ../drop/drop_intake.dart, HomeSection get, dispose, fire, initState, instance (+102 more)
+Nodes (119): create_room_sheet.dart, ../data/room_filter.dart, RoomFacet, RoomFacetCounts, ../drop/drop_intake.dart, OverscrollIndicatorNotification, RoomFilter, allRooms (+111 more)
 
 ### Community 145 - "Community 145"
 Cohesion: 0.06
@@ -1774,7 +1772,7 @@ Nodes (39): clip_8b(), DC16_C(), DC16NoLeft_C(), DC16NoTop_C(), DC16NoTopLeft_C(
 
 ### Community 146 - "Community 146"
 Cohesion: 0.04
-Nodes (42): FBLPromise, FBLPromises, GDTCORFlatFileStorage, -batchIDsForTarget, -batchWithEventSelectorbatchExpiration, -fetchAndUpdateMetricsWithHandler, -fetchStorageMetadata, -genericRejectedPromiseErrorWithReason (+34 more)
+Nodes (33): FBLPromise, FBLPromises, FIRInstallationsSingleOperationPromiseCache, -getExistingPendingOrCreateNewPromise, -getExistingPendingPromise, -initWithNewOperationHandler, GACAppCheckToken, -initWithResponseDictrequestDateerror (+25 more)
 
 ### Community 147 - "Community 147"
 Cohesion: 0.04
@@ -1786,7 +1784,7 @@ Nodes (108): a, api, avail, b, build, bytes, c, canvas (+100 more)
 
 ### Community 149 - "Community 149"
 Cohesion: 0.04
-Nodes (56): Curve get, TextStyle get, accent, accentInk, accentSoft, avatarGradient, background, backgroundLayer (+48 more)
+Nodes (56): TextStyle get, accent, accentInk, accentSoft, avatarGradient, background, backgroundLayer, body (+48 more)
 
 ### Community 150 - "Community 150"
 Cohesion: 0.17
@@ -1794,7 +1792,7 @@ Nodes (17): Any, ArrayList, Boolean, Class, Context, File, Int, Intent (+9 more)
 
 ### Community 151 - "Community 151"
 Cohesion: 0.04
-Nodes (47): Error, fail, invalidInitializationVector, invalidParameter, Error, invalidInitializationVector, Error, invalidInitializationVector (+39 more)
+Nodes (50): Error, fail, invalidInitializationVector, invalidParameter, Error, invalidInitializationVector, Error, invalidInitializationVector (+42 more)
 
 ### Community 152 - "Community 152"
 Cohesion: 0.10
@@ -1821,25 +1819,16 @@ Cohesion: 0.04
 Nodes (53): addAll, appendLocal, apply, _arm, author, base, beginLocal, _buf (+45 more)
 
 ### Community 158 - "Community 158"
-Cohesion: 0.03
-Nodes (63): ../audio_file_cache.dart, data_prefs.dart, media_image_cache.dart, static final StorageService, byKind, byRoom, bytes, calculating (+55 more)
+Cohesion: 0.02
+Nodes (100): ../audio_file_cache.dart, data_prefs.dart, data_usage_store.dart, FileServiceResponse, gallery_autosave.dart, HttpFileService, media_image_cache.dart, media_ledger.dart (+92 more)
 
 ### Community 159 - "Community 159"
-Cohesion: 0.02
-Nodes (89): ../models/message_capabilities.dart, required MessageCapabilities capabilities,
-
-  
-  
-  bool, static const EdgeInsets, String? fileName,
-
-  
-  
-  
-  Set, translation_slab.dart, action, _ActionList, _ActionRow (+81 more)
+Cohesion: 0.01
+Nodes (295): _ActionRow, CurvedAnimation, addListener, auth, _Bits, build, child, containsKey (+287 more)
 
 ### Community 160 - "Community 160"
-Cohesion: 0.02
-Nodes (122): ../data/mention_session.dart, build, child, MentionKeyboardNav, _onKey, session, quick_actions.dart, ScrollController (+114 more)
+Cohesion: 0.03
+Nodes (78): quick_actions.dart, segmented_control.dart, 16, actionLabel, actions, actionSemanticLabel, alphaBlend, avatar (+70 more)
 
 ### Community 161 - "Community 161"
 Cohesion: 0.03
@@ -1854,12 +1843,12 @@ Cohesion: 0.08
 Nodes (36): Digest, Array, SHA2, SHA3, UInt8, Array, ArraySlice, Bool (+28 more)
 
 ### Community 164 - "Community 164"
-Cohesion: 0.07
-Nodes (48): clip_8b(), clip_max(), CollectHistogram_C(), Copy(), Copy16x8_C(), Copy4x4_C(), DC4(), DCMode() (+40 more)
+Cohesion: 0.09
+Nodes (42): clip_8b(), clip_max(), CollectHistogram_C(), Copy(), Copy16x8_C(), Copy4x4_C(), DC4(), DCMode() (+34 more)
 
 ### Community 165 - "Community 165"
-Cohesion: 0.06
-Nodes (31): Clip, attachmentActionInk, attachmentBubbleFill, AttachmentBubbleFrame, attachmentEdge, _attachmentInks, AttachmentKindLabel, attachmentMetaStyle (+23 more)
+Cohesion: 0.02
+Nodes (109): AlignmentGeometry, appleContinueTitle, kAppleContinueTitles, renderGoogleWebButton, renderGoogleWebButton, Clip, ../data/mention_session.dart, EdgeInsetsGeometry? (+101 more)
 
 ### Community 166 - "Community 166"
 Cohesion: 0.06
@@ -1874,16 +1863,16 @@ Cohesion: 0.07
 Nodes (41): AppleConfig, clientSecret(), exchangeAuthorizationCode(), postForm(), refreshTokenStillValid(), revokeRefreshToken(), verifyAppleCredentials(), action (+33 more)
 
 ### Community 169 - "Community 169"
-Cohesion: 0.06
-Nodes (57): ExportRowExpand_MIPS32(), ExportRowShrink_MIPS32(), ImportRowExpand_MIPS32(), ImportRowShrink_MIPS32(), WebPRescalerDspInitMIPS32(), ExportRowExpand_MIPSdspR2(), ExportRowShrink_MIPSdspR2(), WebPRescalerDspInitMIPSdspR2() (+49 more)
+Cohesion: 0.04
+Nodes (105): CustomPut(), CustomSetup(), CustomTeardown(), EmitAlphaRGB(), EmitAlphaRGBA4444(), EmitAlphaYUV(), EmitFancyRGB(), EmitRescaledAlphaRGB() (+97 more)
 
 ### Community 170 - "Community 170"
 Cohesion: 0.08
-Nodes (40): Add4x4_NEON(), ConvertU8ToS16_NEON(), DC16_NEON(), DC16NoLeft_NEON(), DC16NoTop_NEON(), DC16NoTopLeft_NEON(), DC16TopLeft_NEON(), DC8_NEON() (+32 more)
+Nodes (39): Add4x4_NEON(), ConvertU8ToS16_NEON(), DC16_NEON(), DC16NoLeft_NEON(), DC16NoTop_NEON(), DC16NoTopLeft_NEON(), DC16TopLeft_NEON(), DC8_NEON() (+31 more)
 
 ### Community 171 - "Community 171"
-Cohesion: 0.03
-Nodes (59): awaitPlatformStart, cancelStartWait, capture, _channel, _handlerInstalled, id, _installHandler, _iosSupported (+51 more)
+Cohesion: 0.05
+Nodes (41): Client, _applePlatform, _channel, cutout, isSupported, SubjectCutout, _supported, http.BaseRequest (+33 more)
 
 ### Community 172 - "Community 172"
 Cohesion: 0.04
@@ -1907,35 +1896,35 @@ Nodes (34): ISO10126Padding, ISO78164Padding, NoPadding, Padding, eme_pkcs1v15, 
 
 ### Community 177 - "Community 177"
 Cohesion: 0.04
-Nodes (47): armed, build, _calm, createState, debugMotes, debugTicking, dest, didUpdateWidget (+39 more)
+Nodes (49): armed, build, _calm, createState, debugMotes, debugTicking, dest, didUpdateWidget (+41 more)
 
 ### Community 178 - "Community 178"
-Cohesion: 0.02
-Nodes (105): @anonymous, @JS, _, configure, _elements, play, stop, unlock (+97 more)
+Cohesion: 0.03
+Nodes (76): _, configure, _elements, play, stop, unlock, _unlocked, WebAudio (+68 more)
 
 ### Community 179 - "Community 179"
-Cohesion: 0.10
-Nodes (24): set, AuthSession, Data, Int, KeychainAttribute, KeychainHelper, ErrorCode, failedToConvertAuthSessionToData (+16 more)
+Cohesion: 0.06
+Nodes (37): AuthSessionStore, Any, AuthSession, Data, Int, KeychainAttribute, KeychainHelper, Error (+29 more)
 
 ### Community 180 - "Community 180"
-Cohesion: 0.06
-Nodes (33): Authenticated Encryption with Associated Data (AEAD), Author, Carthage, Changelog, Cipher, Cipher mode of operation, CocoaPods, Contribution (+25 more)
+Cohesion: 0.04
+Nodes (47): AEAD, AES-CCM, AES-GCM, Authenticated Encryption with Associated Data (AEAD), Author, Basics, Calculate CRC, Calculate Digest (+39 more)
 
 ### Community 181 - "Community 181"
-Cohesion: 0.01
-Nodes (216): CacheLimit, class VideoNotePlayerController extends, hold_ring_button.dart, liquid_glass.dart, media_flight.dart, ../media/video_duration.dart, _, extract (+208 more)
+Cohesion: 0.02
+Nodes (127): class VideoNotePlayerController extends, media_flight.dart, ../media/video_duration.dart, package:video_player/video_player.dart, photo_chrome.dart, ../screens/room_items.dart, steady_hero.dart, video_length_badge.dart (+119 more)
 
 ### Community 182 - "Community 182"
 Cohesion: 0.08
 Nodes (25): GULAppDelegateInterceptorID, GULApplicationDelegate, FIRMessagingRemoteNotificationsProxy, -addDelegateObserverToUserNotificationCenter, -applicationdidFailToRegisterForRemoteNotificationsWithError, -applicationdidReceiveRemoteNotificationfetchCompletionHandler, -applicationdidRegisterForRemoteNotificationsWithDeviceToken, -canSwizzleMethods (+17 more)
 
 ### Community 183 - "Community 183"
-Cohesion: 0.01
-Nodes (232): _checkedFor, ensure, instance, RecoveryGate, reset, resetForTest, _running, auth_service.dart (+224 more)
+Cohesion: 0.02
+Nodes (126): candidate, deviceLoginUri, fromQuery, isDeviceLoginUri, _isRequestId, parseDeviceLoginRequestId, parts, trimmed (+118 more)
 
 ### Community 184 - "Community 184"
-Cohesion: 0.08
-Nodes (24): Calendar, FIRAllocatedUnfairLock, DateStandardizer, HeartbeatController, Data, Encodable, HeartbeatStorage, HeartbeatStorageProtocol (+16 more)
+Cohesion: 0.06
+Nodes (33): Calendar, FIRAllocatedUnfairLock, DateStandardizer, HeartbeatController, Data, Encodable, HeartbeatStorage, HeartbeatStorageProtocol (+25 more)
 
 ### Community 185 - "Community 185"
 Cohesion: 0.07
@@ -1950,12 +1939,12 @@ Cohesion: 0.04
 Nodes (46): NSDictionary, NSMutableDictionary, FIROptions, -analyticsOptionsDictionary, -analyticsOptionsDictionaryWithInfoDictionary, -androidClientID, -APIKey, -bundleID (+38 more)
 
 ### Community 188 - "Community 188"
-Cohesion: 0.06
-Nodes (47): CustomPut(), CustomSetup(), CustomTeardown(), EmitAlphaRGB(), EmitAlphaRGBA4444(), EmitAlphaYUV(), EmitFancyRGB(), EmitRescaledAlphaRGB() (+39 more)
+Cohesion: 0.05
+Nodes (39): Completer, ChatRoom, package:monkeyhub/backend/subscription_registry.dart, package:monkeyhub/data/room_suggestion_queue.dart, package:monkeyhub/widgets/room_suggestions_banner.dart, StateError, cancel, connectionState (+31 more)
 
 ### Community 189 - "Community 189"
 Cohesion: 0.03
-Nodes (70): json_file.dart, JsonFile get, static final DataUsageStore, static final MediaLedger, _byName, DataUsageStore, debugFile, debugReset (+62 more)
+Nodes (72): Iterable, json_file.dart, JsonFile get, static final DataUsageStore, static final MediaLedger, _byName, DataUsageStore, debugFile (+64 more)
 
 ### Community 190 - "Community 190"
 Cohesion: 0.04
@@ -1965,16 +1954,16 @@ Nodes (45): bottomRight,
   left,, a, aspect, b, centeredCrop, crop, CropHandle, fitContain (+37 more)
 
 ### Community 191 - "Community 191"
-Cohesion: 0.22
-Nodes (9): GDTCORMetricsController, -getAndResetMetrics, -initWithStorage, -load, -logEventsDroppedForReasonevents, -offerMetrics, -sharedInstance, -storagedidDropEvent (+1 more)
+Cohesion: 0.09
+Nodes (19): GDTCOREvent, -eventWithMetricsforTarget, GDTCORMetrics, -description, -hash, -initWithCollectionStartDatecollectionEndDatelogSourceMetricscurrentCacheSizemaxCacheSizebundleID, -isEqual, -isEqualToMetrics (+11 more)
 
 ### Community 192 - "Community 192"
 Cohesion: 0.04
 Nodes (45): language.dart, language_detector.dart, build, _channelAnywhere, _channelAtLineStart, _channelGlued, chunk, chunkLimitFor (+37 more)
 
 ### Community 193 - "Community 193"
-Cohesion: 0.10
-Nodes (24): AuthSessionStore, AuthSession, Data, Int, KeychainAttribute, KeychainHelper, ErrorCode, failedToConvertAuthSessionToData (+16 more)
+Cohesion: 0.07
+Nodes (37): set, Any, AuthSession, Data, Int, KeychainAttribute, KeychainHelper, Error (+29 more)
 
 ### Community 194 - "Community 194"
 Cohesion: 0.04
@@ -1982,11 +1971,11 @@ Nodes (46): ../auth/session_store.dart, _argb, avatarUrl, buildShareTargets, _ch
 
 ### Community 195 - "Community 195"
 Cohesion: 0.01
-Nodes (277): auto_download_screen.dart, CallDataSaver, listenable, build, createState, _Grid, initState, _SharePickerSheet (+269 more)
+Nodes (341): auto_download_screen.dart, BubbleStyle, CallDataSaver, ../calls/call_models.dart, build, CallOptionsSheet, service, showVideoQuality (+333 more)
 
 ### Community 196 - "Community 196"
-Cohesion: 0.08
-Nodes (27): Collection, strideCount(), Error, invalidInput, nIsTooLarge, nMustBeAPowerOf2GreaterThan1, rIsTooLarge, Scrypt (+19 more)
+Cohesion: 0.21
+Nodes (12): Scrypt, Array, Int, SecureBytes, UInt32, UInt64, UInt8, UnsafeMutablePointer (+4 more)
 
 ### Community 197 - "Community 197"
 Cohesion: 0.05
@@ -1997,8 +1986,8 @@ Cohesion: 0.10
 Nodes (38): archive_android_symbols(), convex_deploy(), convex_deploy_homeserver(), convex_push(), convex_retry_hint(), convex_run_both(), convex_run_homeserver(), deploy_site() (+30 more)
 
 ### Community 199 - "Community 199"
-Cohesion: 0.05
-Nodes (41): FIRInstallationsAPIService, FIRInstallationsIIDStore, FIRInstallationsStore, FIRInstallationsIDController, -createAndSaveFID, -createDeleteInstallationPromise, -createGetInstallationItemPromise, -createInstallationWithFIDIIDDefaultToken (+33 more)
+Cohesion: 0.07
+Nodes (30): FIRInstallationsAPIService, FIRInstallationsIIDStore, FIRInstallationsStore, FIRInstallationsIDController, -createAndSaveFID, -createDeleteInstallationPromise, -createGetInstallationItemPromise, -createInstallationWithFIDIIDDefaultToken (+22 more)
 
 ### Community 200 - "Community 200"
 Cohesion: 0.04
@@ -2021,8 +2010,8 @@ Cohesion: 0.06
 Nodes (34): Banner, package:monkeyhub/backend/server_directory.dart, package:monkeyhub/backend/server_endpoint.dart, package:monkeyhub/backend/server_store.dart, package:monkeyhub/widgets/self_host_badge.dart, package:monkeyhub/widgets/server_role_sheet.dart, homeserver, main (+26 more)
 
 ### Community 205 - "Community 205"
-Cohesion: 0.09
-Nodes (75): CrunchConfig, VP8LSubSampleSize(), EncodeAlphaInternal(), EncodeLossless(), AddSingle(), AddSingleSubGreen(), AllocateTransformBuffer(), AnalyzeEntropy() (+67 more)
+Cohesion: 0.04
+Nodes (150): CrunchConfig, VP8LSubSampleSize(), ApplyFiltersAndEncode(), CompressAlphaJob(), EncodeAlpha(), EncodeAlphaInternal(), EncodeLossless(), GetFilterMap() (+142 more)
 
 ### Community 206 - "Community 206"
 Cohesion: 0.05
@@ -2041,12 +2030,12 @@ Cohesion: 0.12
 Nodes (43): c_void, MessagePort, PlatformGeneralizedUint8ListPtr, (), frbgen_convex_flutter_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAuthHandle(), frbgen_convex_flutter_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCallbackSubscriber(), frbgen_convex_flutter_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCallbackSubscriberDartFn(), frbgen_convex_flutter_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMobileConvexClient() (+35 more)
 
 ### Community 210 - "Community 210"
-Cohesion: 0.15
-Nodes (16): ChaCha20, Error, invalidKeyOrInitializationVector, notSupported, XChaCha20, XChaCha20Worker, Array, ArraySlice (+8 more)
+Cohesion: 0.09
+Nodes (26): ChaCha20, BlockDecryptor, Error, unsupported, Error, invalidKeyOrInitializationVector, notSupported, XChaCha20 (+18 more)
 
 ### Community 211 - "Community 211"
-Cohesion: 0.03
-Nodes (73): ../backend/games_api.dart, GamesApi, cache_store.dart, DailyBoards, DailyBoards get, api, boardRetries, _boards (+65 more)
+Cohesion: 0.08
+Nodes (25): GamesApi, daily, dailyRaw, FakeGamesApi, hint, payload, reactError, reactions (+17 more)
 
 ### Community 212 - "Community 212"
 Cohesion: 0.04
@@ -2054,15 +2043,15 @@ Nodes (44): ../data/glass_config.dart, FocusRingShape get, OutlinedBorder, _app,
 
 ### Community 213 - "Community 213"
 Cohesion: 0.05
-Nodes (44): CupertinoPageRoute, acceptGesture, _accum, addAllowedPointer, _armed, _bailed, build, canTransitionFrom (+36 more)
+Nodes (42): acceptGesture, _accum, addAllowedPointer, _armed, _bailed, build, canTransitionFrom, child (+34 more)
 
 ### Community 214 - "Community 214"
-Cohesion: 0.05
-Nodes (41): _adoptSession, _adoptUsername, _afterSignOut, _api, applyAccountType, changeUsername, changeUsernameWithProvider, completeDeviceLogin (+33 more)
+Cohesion: 0.03
+Nodes (57): _adoptSession, _adoptUsername, _afterSignOut, _api, applyAccountType, changeUsername, changeUsernameWithProvider, completeDeviceLogin (+49 more)
 
 ### Community 215 - "Community 215"
 Cohesion: 0.03
-Nodes (64): adMaxWidth, _adParams, _adPlatform, adsEnabled, _animated, appKey, autocomplete, _base (+56 more)
+Nodes (59): adMaxWidth, _adParams, _adPlatform, adsEnabled, _animated, appKey, autocomplete, _base (+51 more)
 
 ### Community 216 - "Community 216"
 Cohesion: 0.05
@@ -2078,11 +2067,11 @@ Nodes (36): accountType, clearChildDevice, _clearLegacySession, clearSession, _h
 
 ### Community 219 - "Community 219"
 Cohesion: 0.04
-Nodes (52): @immutable, ServerDirective, DownloadProgress, _Resume, BrainState, RoomTranslationProgress, GlassConfig, GlassKnob (+44 more)
+Nodes (52): @immutable, ServerDirective, DownloadProgress, BrainState, RoomTranslationProgress, GlassConfig, GlassKnob, GlassPreset (+44 more)
 
 ### Community 220 - "Community 220"
-Cohesion: 0.08
-Nodes (25): CaseIterable, ElementOfResult, Heartbeat, TimePeriod, daily, HeartbeatsBundle, HeartbeatsPayloadConvertible, Error (+17 more)
+Cohesion: 0.05
+Nodes (40): CaseIterable, Codable, Array, CS, CS.BigInt, CS.BigUInt, Units, ElementOfResult (+32 more)
 
 ### Community 221 - "Community 221"
 Cohesion: 0.05
@@ -2097,8 +2086,8 @@ Cohesion: 0.05
 Nodes (38): action, authState, _authStateController, clearAuth, config, connectionState, _connectionStateController, create (+30 more)
 
 ### Community 224 - "Community 224"
-Cohesion: 0.11
-Nodes (17): EdgeInsetsGeometry?, IndexedWidgetBuilder, RenderSliverList, SliverList, _AnchoredRenderList, _AnchoredSliverList, build, controller (+9 more)
+Cohesion: 0.05
+Nodes (39): Animation, build, child, createState, _dismissFraction, _dismissing, _dismissVelocity, dispose (+31 more)
 
 ### Community 225 - "Community 225"
 Cohesion: 0.05
@@ -2113,20 +2102,20 @@ Cohesion: 0.04
 Nodes (47): drop_channel_events.dart, DropChannelHandlers, _accepting, _bundleFrom, _channel, DropChannel, _handlers, instance (+39 more)
 
 ### Community 228 - "Community 228"
-Cohesion: 0.02
-Nodes (90): brain_download.dart, brain_gateway.dart, ../brain_spec.dart, brain_store.dart, _backend, BrainGateway, demoteToCpu, ensureInitialized (+82 more)
+Cohesion: 0.05
+Nodes (37): brain_download.dart, brain_gateway.dart, absent, acknowledgeFailure, _active, _activeInstallId, BrainInstallFailure, BrainStatus (+29 more)
 
 ### Community 229 - "Community 229"
-Cohesion: 0.05
-Nodes (37): BigUInteger, RSA, ChaCha20, HMAC, perf(), XChaCha20, FoundationEssentials, String (+29 more)
+Cohesion: 0.04
+Nodes (48): AEADXChaCha20Poly1305, BigUInteger, RSA, Array, ChaCha20, HMAC, String, perf() (+40 more)
 
 ### Community 230 - "Community 230"
 Cohesion: 0.09
 Nodes (16): FlutterAppDelegate, Bool, Int, NSKeyValueObservation, NSMenu, String, Any, Bool (+8 more)
 
 ### Community 231 - "Community 231"
-Cohesion: 0.11
-Nodes (46): EmitPartitionsSize(), GeneratePartition0(), IsVP8XNeeded(), PutAlphaChunk(), PutFilterHeader(), PutPaddingByte(), PutQuant(), PutRIFFHeader() (+38 more)
+Cohesion: 0.05
+Nodes (39): ../auth/apple_button_titles.dart, ../auth/google_web_button.dart, static const Color, _AppleButton, _autoDividerLabel, available, build, busy (+31 more)
 
 ### Community 232 - "Community 232"
 Cohesion: 0.02
@@ -2139,11 +2128,11 @@ Nodes (40): required bool hideAutoUrls,
 
 ### Community 234 - "Community 234"
 Cohesion: 0.05
-Nodes (44): auto_download_gate.dart, highlight_pulse.dart, reaction_bubble.dart, anchor, _anchorFor, _anchors, api, build (+36 more)
+Nodes (39): package:monkeyhub/companions/brain_download.dart, body, _bytes, cdn, dispose, _done, download, drain (+31 more)
 
 ### Community 235 - "Community 235"
-Cohesion: 0.11
-Nodes (32): HE4_C(), DC4(), DCMode16x16(), DCMode8x8(), Disto16x16_MSA(), Disto4x4_MSA(), HD4(), HE4() (+24 more)
+Cohesion: 0.10
+Nodes (34): HE4_C(), CollectHistogram_MSA(), DC4(), DCMode16x16(), DCMode8x8(), Disto16x16_MSA(), Disto4x4_MSA(), HD4() (+26 more)
 
 ### Community 236 - "Community 236"
 Cohesion: 0.06
@@ -2154,8 +2143,8 @@ Cohesion: 0.05
 Nodes (38): 1. Install Packages, 2. Configure Project, 3. Usage, Android, Android, Call API when Accept/Decline/End/Timeout, Call from Native (iOS/Android), Calling Notification (+30 more)
 
 ### Community 238 - "Community 238"
-Cohesion: 0.02
-Nodes (104): SocialSignInCancelled, SocialSignInNoToken, ConvexError, NoServerConfiguredError, sha256Hash, MediaSupersededException, ScreenShareDeniedException, BrainDownload (+96 more)
+Cohesion: 0.04
+Nodes (51): SocialSignInCancelled, SocialSignInNoToken, ConvexError, NoServerConfiguredError, MediaSupersededException, ScreenShareDeniedException, BrainDownload, cancel (+43 more)
 
 ### Community 239 - "Community 239"
 Cohesion: 0.05
@@ -2194,12 +2183,12 @@ Cohesion: 0.10
 Nodes (32): Point, OnCreate(), Create(), Destroy(), EnableFullDpiSupportIfAvailable(), GetClientArea(), GetHandle(), GetThisFromHandle() (+24 more)
 
 ### Community 248 - "Community 248"
-Cohesion: 0.04
-Nodes (57): ReplyMarker, album, albumEligible, buildRoomItems, collapseAlbums, continuesRun, count, DateDividerItem (+49 more)
+Cohesion: 0.05
+Nodes (42): ReplyMarker, album, albumEligible, buildRoomItems, collapseAlbums, continuesRun, count, day (+34 more)
 
 ### Community 249 - "Community 249"
 Cohesion: 0.15
-Nodes (24): addPadding(), CCM, CCMModeWorker, format(), BlockModeWorker, CipherModeWorker, CounterModeWorker, FinalizingDecryptModeWorker (+16 more)
+Nodes (25): addPadding(), CCM, CCMModeWorker, format(), BlockModeWorker, CipherModeWorker, CounterModeWorker, FinalizingDecryptModeWorker (+17 more)
 
 ### Community 250 - "Community 250"
 Cohesion: 0.06
@@ -2210,8 +2199,8 @@ Cohesion: 0.09
 Nodes (16): Connection, ConnectionRequest, ConnectionService, activeCount(), CallkitConnection, find(), register(), unregister() (+8 more)
 
 ### Community 252 - "Community 252"
-Cohesion: 0.02
-Nodes (82): ContainerBoxParentData, ContainerRenderObjectMixin, package:flutter/rendering.dart, package:monkeyhub/data/spoiler_store.dart, package:monkeyhub/models/mention.dart, package:monkeyhub/models/message_formatting.dart, package:monkeyhub/screens/speaker_color_screen.dart, package:monkeyhub/services/link_preview_service.dart (+74 more)
+Cohesion: 0.01
+Nodes (135): ContainerBoxParentData, ContainerRenderObjectMixin, dart:ui, build, main, _VoiceCall, bottomInset, boundary (+127 more)
 
 ### Community 253 - "Community 253"
 Cohesion: 0.05
@@ -2255,11 +2244,11 @@ Nodes (39): authorAvatarStorageId, authorName, authorUsername, avatarStorageId, 
 
 ### Community 263 - "Community 263"
 Cohesion: 0.04
-Nodes (56): drop_classifier.dart, drop_controller.dart, _anchor, borderRadius, build, child, _coverage, _covered (+48 more)
+Nodes (55): drop_classifier.dart, drop_controller.dart, _anchor, borderRadius, build, child, _coverage, _covered (+47 more)
 
 ### Community 264 - "Community 264"
-Cohesion: 0.10
-Nodes (25): android, Bit, one, zero, UInt32, _UInt32Type, UInt8, _UInt8Type (+17 more)
+Cohesion: 0.11
+Nodes (24): android, AnyObject, CallkitEventCallback, Cryptors, UInt32, _UInt32Type, UInt8, _UInt8Type (+16 more)
 
 ### Community 265 - "Community 265"
 Cohesion: 0.06
@@ -2283,12 +2272,12 @@ Cohesion: 0.06
 Nodes (35): a, accuracyM, body, distanceFilterMeters, distanceMetersTo, duration, earthRadiusM, formatCoordinates (+27 more)
 
 ### Community 270 - "Community 270"
-Cohesion: 0.15
-Nodes (35): VariableLevelCost(), VP8BitCost(), VP8CalculateLevelCosts(), BranchCost(), CalcSkipProba(), CalcTokenProba(), Clamp(), ComputeNextQ() (+27 more)
+Cohesion: 0.03
+Nodes (138): GetResidualCost_C(), GetResidualCost_MIPS32(), SetResidualCoeffs_MIPS32(), VP8EncDspCostInitMIPS32(), GetResidualCost_MIPSdspR2(), VP8EncDspCostInitMIPSdspR2(), GetResidualCost_NEON(), SetResidualCoeffs_NEON() (+130 more)
 
 ### Community 271 - "Community 271"
-Cohesion: 0.06
-Nodes (31): active, advance, build, call, calls, clock, close, connected (+23 more)
+Cohesion: 0.04
+Nodes (47): ConnectionProbe, package:monkeyhub/backend/connection_health.dart, package:monkeyhub/widgets/connection_banner.dart, close, connectionState, _ctrl, health, isConnected (+39 more)
 
 ### Community 272 - "Community 272"
 Cohesion: 0.07
@@ -2304,8 +2293,8 @@ Cohesion: 0.08
 Nodes (17): ApplyAlphaMultiply4444_C(), ApplyAlphaMultiply_16b_C(), dither_hi(), dither_lo(), GetScale(), MakeARGB32(), Mult(), multiply() (+9 more)
 
 ### Community 275 - "Community 275"
-Cohesion: 0.06
-Nodes (34): alive, c, _cache, capacity, clear, colors, cos, _cursor (+26 more)
+Cohesion: 0.05
+Nodes (37): alive, c, _cache, capacity, clear, colors, cos, _cursor (+29 more)
 
 ### Community 276 - "Community 276"
 Cohesion: 0.06
@@ -2336,20 +2325,20 @@ Cohesion: 0.06
 Nodes (32): accept, ackNativeDismissed, activeCallForUser, callStatusInternal, cancel, consumeSignal, consumeSignals, dismissedDevicesInternal (+24 more)
 
 ### Community 283 - "Community 283"
-Cohesion: 0.08
-Nodes (24): package:monkeyhub/services/live_location_platform.dart, package:monkeyhub/services/live_location_publisher.dart, build, clear, clears, controller, currentFix, currentFixCalls (+16 more)
+Cohesion: 0.07
+Nodes (26): package:monkeyhub/services/live_location_platform.dart, package:monkeyhub/services/live_location_publisher.dart, LiveLocationPlatform, build, clear, clears, controller, currentFix (+18 more)
 
 ### Community 284 - "Community 284"
 Cohesion: 0.05
-Nodes (37): _Keychain, package:monkeyhub/data/settings_keychain.dart, package:monkeyhub/push/device_identity.dart, AccessibilityAwareStorage, containsKey, delete, deleteAll, _key (+29 more)
+Nodes (39): _, apple, appleAvailable, authorizationCode, _collectWebGoogle, _ensureGoogleInitialised, forgetProviders, forProvider (+31 more)
 
 ### Community 285 - "Community 285"
 Cohesion: 0.06
 Nodes (33): Accessing Firebase Source Snapshots, Adding a New Firebase Pod, Additional Crashlytics Notes, Background, Building with Firebase on Apple platforms, Carthage (iOS only), CocoaPods, Code Formatting (+25 more)
 
 ### Community 286 - "Community 286"
-Cohesion: 0.08
-Nodes (55): ApplyFiltersAndEncode(), CompressAlphaJob(), EncodeAlpha(), GetFilterMap(), GetNumColors(), InitFilterTrial(), VP8EncDeleteAlpha(), VP8EncFinishAlpha() (+47 more)
+Cohesion: 0.19
+Nodes (26): pthread_cond_t, pthread_mutex_t, pthread_t, THREADFN, ChangeState(), End(), Execute(), Init() (+18 more)
 
 ### Community 287 - "Community 287"
 Cohesion: 0.06
@@ -2372,40 +2361,40 @@ Cohesion: 0.06
 Nodes (33): authors, Flutter Team, dependencies, Flutter, FlutterMacOS, GoogleSignIn, GTMSessionFetcher, description (+25 more)
 
 ### Community 292 - "Community 292"
-Cohesion: 0.04
-Nodes (39): audio_session, Cocoa, connectivity_plus, CoreImage, device_info_plus, emoji_picker_flutter, file_selector_macos, Flutter (+31 more)
+Cohesion: 0.05
+Nodes (29): Cocoa, CoreImage, FlutterMacOS, Data, FlutterBinaryMessenger, SubjectCutout, RunnerTests, Bool (+21 more)
 
 ### Community 293 - "Community 293"
 Cohesion: 0.06
 Nodes (33): _absorbTokenBackspace, applyLink, buildTextSpan, _clampAndCoalesce, _clampAndCoalesceAgainst, clearFormatting, clearMentions, commit (+25 more)
 
 ### Community 294 - "Community 294"
-Cohesion: 0.05
-Nodes (37): BoxFit, ../media/storage/media_image_cache.dart, api, _bind, borderRadius, _broken, build, createState (+29 more)
+Cohesion: 0.06
+Nodes (33): package:monkeyhub/models/message_capabilities.dart, package:monkeyhub/models/room_capabilities.dart, package:monkeyhub/widgets/bulk_action_bar.dart, package:monkeyhub/widgets/glass_surface.dart, package:monkeyhub/widgets/message_action_menu.dart, package:monkeyhub/widgets/reaction_bubble.dart, caps, main (+25 more)
 
 ### Community 295 - "Community 295"
 Cohesion: 0.07
 Nodes (33): abstract class, @freezed, frb_generated.dart, FrbException, package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart, package:freezed_annotation/freezed_annotation.dart, QuerySubscriber, action (+25 more)
 
 ### Community 296 - "Community 296"
-Cohesion: 0.05
-Nodes (44): drop_cards.dart, accepted, at, _AuraPainter, build, _burst, _BurstPainter, _calm (+36 more)
+Cohesion: 0.03
+Nodes (69): drop_cards.dart, accent, assessment, build, depth, DropCard, dropCardFan, dropFanHeight (+61 more)
 
 ### Community 297 - "Community 297"
 Cohesion: 0.20
 Nodes (19): double(), extend(), Mode, combined, detached, ntz(), OCB, OCBModeWorker (+11 more)
 
 ### Community 298 - "Community 298"
-Cohesion: 0.04
-Nodes (50): CacheManager, api, _bind, blurPreview, build, _comp, createState, _ctrl (+42 more)
+Cohesion: 0.05
+Nodes (37): CustomPainter, _Checkerboard, _StoryProgressPainter, _CropOverlayPainter, _LiveStrokePainter, _StrokesPainter, _BasicMonogramPainter, _BioHourglassPainter (+29 more)
 
 ### Community 299 - "Community 299"
-Cohesion: 0.11
-Nodes (27): Average2_m128i(), Average2_SSE2(), Average2_uint32_16_SSE2(), Average2_uint32_SSE2(), Average3_SSE2(), Average4_SSE2(), ClampedAddSubtractFull_SSE2(), ClampedAddSubtractHalf_SSE2() (+19 more)
+Cohesion: 0.12
+Nodes (25): Average2_m128i(), Average2_SSE2(), Average2_uint32_16_SSE2(), Average2_uint32_SSE2(), Average3_SSE2(), Average4_SSE2(), ClampedAddSubtractFull_SSE2(), ClampedAddSubtractHalf_SSE2() (+17 more)
 
 ### Community 300 - "Community 300"
 Cohesion: 0.06
-Nodes (34): ../models/message_reaction.dart, RenderShiftedBox, alignment, animate, build, _bump, count, createRenderObject (+26 more)
+Nodes (35): accent, build, child, count, createState, didUpdateWidget, dispose, _extent (+27 more)
 
 ### Community 301 - "Community 301"
 Cohesion: 0.06
@@ -2417,11 +2406,11 @@ Nodes (32): GTMGatherInputStream, -streamWithArray, GTMMIMEDocument, -addPartWit
 
 ### Community 303 - "Community 303"
 Cohesion: 0.02
-Nodes (113): blob_url.dart, _acquire, _active, AudioFileCache, c, clear, debugDir, debugReset (+105 more)
+Nodes (117): blob_url.dart, brainFile, _brainsDir, BrainStore, bytesOnDisk, bytesUsed, clearResume, delete (+109 more)
 
 ### Community 304 - "Community 304"
-Cohesion: 0.06
-Nodes (31): CallQuality, CallQuality, CallQualitySnapshot, CallStatsMonitor, candidateType, classifyQuality, dispose, fps (+23 more)
+Cohesion: 0.05
+Nodes (40): CallQuality, CallQuality, CallQualitySnapshot, CallStatsMonitor, candidateType, classifyQuality, dispose, fps (+32 more)
 
 ### Community 305 - "Community 305"
 Cohesion: 0.06
@@ -2437,19 +2426,19 @@ Nodes (25): AdaptiveTextSelectionToolbar, EditableTextState, link_input_sheet.da
 
 ### Community 308 - "Community 308"
 Cohesion: 0.06
-Nodes (38): Cryptor, BlockEncryptor, ChaCha20, ChaChaDecryptor, ChaChaEncryptor, Error, unsupported, StreamDecryptor (+30 more)
+Nodes (40): Cryptor, BlockEncryptor, Error, unsupported, ChaCha20, ChaChaDecryptor, ChaChaEncryptor, Error (+32 more)
 
 ### Community 309 - "Community 309"
 Cohesion: 0.10
 Nodes (13): Array, A, ArraySlice, Bool, Cipher, Element, Index, Int (+5 more)
 
 ### Community 310 - "Community 310"
-Cohesion: 0.03
-Nodes (65): _cooldown, debugFeed, enabled, _firedAt, _gravity, instance, isListening, _minSpikeGap (+57 more)
+Cohesion: 0.05
+Nodes (39): _cooldown, debugFeed, enabled, _firedAt, _gravity, instance, isListening, _minSpikeGap (+31 more)
 
 ### Community 311 - "Community 311"
-Cohesion: 0.09
-Nodes (17): ActivityAware, ActivityPluginBinding, BinaryMessenger, CallkitSoundPlayerManager, FlutterCallkitIncomingPlugin, initSharedInstance(), sharePluginWithRegister(), RegisterPlugins() (+9 more)
+Cohesion: 0.10
+Nodes (15): ActivityAware, ActivityPluginBinding, BinaryMessenger, CallkitSoundPlayerManager, FlutterCallkitIncomingPlugin, initSharedInstance(), sharePluginWithRegister(), RegisterPlugins() (+7 more)
 
 ### Community 312 - "Community 312"
 Cohesion: 0.06
@@ -2480,8 +2469,8 @@ Cohesion: 0.06
 Nodes (30): API overview, Auth State Stream, Authentication, Automatic Token Refresh (Recommended), Build Issues, Clear Authentication, Connection Issues, Connection Management (+22 more)
 
 ### Community 319 - "Community 319"
-Cohesion: 0.13
-Nodes (18): Average2(), Average3(), Average4(), ClampedAddSubtractFull(), ClampedAddSubtractHalf(), Predictor10_MIPSdspR2(), Predictor11_MIPSdspR2(), Predictor12_MIPSdspR2() (+10 more)
+Cohesion: 0.15
+Nodes (16): Average2(), Average3(), Average4(), ClampedAddSubtractFull(), ClampedAddSubtractHalf(), Predictor10_MIPSdspR2(), Predictor11_MIPSdspR2(), Predictor12_MIPSdspR2() (+8 more)
 
 ### Community 320 - "Community 320"
 Cohesion: 0.08
@@ -2505,7 +2494,7 @@ Nodes (29): _apply, AudioLevelMonitor, AudioLevelSource, dispose, id, interval, 
 
 ### Community 325 - "Community 325"
 Cohesion: 0.01
-Nodes (281): action_buttons.dart, AnimationController? get, ../backend/group_call_api.dart, call_models.dart, call_screen.dart, call_service.dart, ActiveCallPill, _ActiveCallPillState (+273 more)
+Nodes (211): AnimationController? get, ../backend/convex_client.dart, ../backend/group_call_api.dart, call_models.dart, call_screen.dart, call_service.dart, ActiveCallPill, _ActiveCallPillState (+203 more)
 
 ### Community 326 - "Community 326"
 Cohesion: 0.05
@@ -2513,7 +2502,7 @@ Nodes (47): ackNativeDismissed, activeForRoom, consumeSignals, decline, dismisse
 
 ### Community 327 - "Community 327"
 Cohesion: 0.10
-Nodes (49): CostInterval, CostManager, CostModel, RightShiftRound(), VP8GetAlphaIndex(), VP8GetAlphaValue(), VP8GetARGBIndex(), VP8GetARGBValue() (+41 more)
+Nodes (50): CostInterval, CostManager, CostModel, RightShiftRound(), VP8GetAlphaIndex(), VP8GetAlphaValue(), VP8GetARGBIndex(), VP8GetARGBValue() (+42 more)
 
 ### Community 328 - "Community 328"
 Cohesion: 0.04
@@ -2523,8 +2512,8 @@ Nodes (49): code,
   zip,, daily_game.dart, DailyGame? get, DailyGame, durationMs, finishedAt, fromJson, fromPuzzle (+41 more)
 
 ### Community 329 - "Community 329"
-Cohesion: 0.11
-Nodes (23): DC4(), DCMode16(), DCMode8(), Disto16x16_MIPSdspR2(), Disto4x4_MIPSdspR2(), HD4(), HE4(), HU4() (+15 more)
+Cohesion: 0.10
+Nodes (25): CollectHistogram_MIPSdspR2(), DC4(), DCMode16(), DCMode8(), Disto16x16_MIPSdspR2(), Disto4x4_MIPSdspR2(), HD4(), HE4() (+17 more)
 
 ### Community 330 - "Community 330"
 Cohesion: 0.07
@@ -2552,7 +2541,7 @@ Nodes (37): ClampingScrollPhysics, ScrollEndNotification, ScrollMetricsNotificat
 
 ### Community 336 - "Community 336"
 Cohesion: 0.15
-Nodes (33): ApplyFilter2_NEON(), ApplyFilter2NoFlip_NEON(), ApplyFilter4_NEON(), ApplyFilter6_NEON(), DoFilter2_NEON(), DoFilter4_NEON(), DoFilter6_NEON(), FlipSign_NEON() (+25 more)
+Nodes (34): ApplyFilter2_NEON(), ApplyFilter2NoFlip_NEON(), ApplyFilter4_NEON(), ApplyFilter6_NEON(), DoFilter2_NEON(), DoFilter4_NEON(), DoFilter6_NEON(), FlipSign_NEON() (+26 more)
 
 ### Community 337 - "Community 337"
 Cohesion: 0.03
@@ -2563,8 +2552,8 @@ Cohesion: 0.07
 Nodes (29): acceptGesture, _accum, addAllowedPointer, _bailed, build, child, createState, _crossed (+21 more)
 
 ### Community 339 - "Community 339"
-Cohesion: 0.07
-Nodes (34): AEAD, AEADChaCha20Poly1305, Authenticator, Authenticator, Error, authenticateError, invalidInput, HMAC (+26 more)
+Cohesion: 0.11
+Nodes (18): AEAD, AEADChaCha20Poly1305, Authenticator, Error, authenticateError, Poly1305, Array, Authenticator (+10 more)
 
 ### Community 340 - "Community 340"
 Cohesion: 0.08
@@ -2575,8 +2564,8 @@ Cohesion: 0.05
 Nodes (38): applyCallAudioRoute, applyIosCallAudioConfig, callsSaveData, cap, configureScreenSender, configureVideoSenders, constraints, dispose (+30 more)
 
 ### Community 342 - "Community 342"
-Cohesion: 0.07
-Nodes (28): GetResidualCost_C(), GetResidualCost_MIPS32(), SetResidualCoeffs_MIPS32(), VP8EncDspCostInitMIPS32(), GetResidualCost_MIPSdspR2(), VP8EncDspCostInitMIPSdspR2(), GetResidualCost_NEON(), SetResidualCoeffs_NEON() (+20 more)
+Cohesion: 0.06
+Nodes (31): anonymous, _AttachmentSamples, _bubble, build, _choice, count, _day, main (+23 more)
 
 ### Community 343 - "Community 343"
 Cohesion: 0.09
@@ -2587,8 +2576,8 @@ Cohesion: 0.07
 Nodes (28): Android, Android: Network Security Exception, Android Permission System, Configuration, Configuration, Critical Permissions, Example Apps, Integration Checklist (+20 more)
 
 ### Community 345 - "Community 345"
-Cohesion: 0.23
-Nodes (25): addBackgroundCallback(), addCall(), getDataActiveCalls(), getDataActiveCallsForFlutter(), getLong(), getPluginCallbackHandle(), getRawHandle(), getString() (+17 more)
+Cohesion: 0.20
+Nodes (27): addBackgroundCallback(), addCall(), getDataActiveCalls(), getDataActiveCallsForFlutter(), getLong(), getPluginCallbackHandle(), getRawHandle(), getString() (+19 more)
 
 ### Community 346 - "Community 346"
 Cohesion: 0.07
@@ -2608,15 +2597,15 @@ Nodes (10): Bool, Index, Int, S, +(), OrderedSet, SequencedContents, String (+2 
 
 ### Community 350 - "Community 350"
 Cohesion: 0.12
-Nodes (27): AddSubtractComponentFull(), AddSubtractComponentHalf(), Average2(), Average3(), Average4(), ClampedAddSubtractFull(), ClampedAddSubtractHalf(), Clip255() (+19 more)
+Nodes (25): AddSubtractComponentFull(), AddSubtractComponentHalf(), Average2(), Average3(), Average4(), ClampedAddSubtractFull(), ClampedAddSubtractHalf(), Clip255() (+17 more)
 
 ### Community 351 - "Community 351"
 Cohesion: 0.06
 Nodes (32): _baseDir, CacheStore, clearFor, _debounce, discardPendingWrites, _ensureDir, instance, loadDailyBoards (+24 more)
 
 ### Community 352 - "Community 352"
-Cohesion: 0.11
-Nodes (27): CFB, CFBModeWorker, SegmentSize, cfb128, cfb8, Variant, aes128, aes192 (+19 more)
+Cohesion: 0.18
+Nodes (16): Variant, aes128, aes192, aes256, AES, AES Advanced usage, All at once, Incremental updates (+8 more)
 
 ### Community 353 - "Community 353"
 Cohesion: 0.09
@@ -2624,7 +2613,7 @@ Nodes (22): FlutterMacOS, osx, authors, Sasha Denisov, dependencies, description
 
 ### Community 354 - "Community 354"
 Cohesion: 0.01
-Nodes (196): chat_composer.dart, Color, composer_capture.dart, composer_format_toolbar.dart, ComposerCapture?, expressions/expression_bubble.dart, expressions/expression_panel.dart, GlobalKey (+188 more)
+Nodes (193): Color, composer_capture.dart, composer_format_toolbar.dart, ComposerCapture?, dart:math, haptic_ramp.dart, ../keyboard/mention_keyboard_nav.dart, ../keyboard/submit_on_enter.dart (+185 more)
 
 ### Community 355 - "Community 355"
 Cohesion: 0.08
@@ -2632,15 +2621,15 @@ Nodes (22): Disto16x16_MIPS32(), Disto4x4_MIPS32(), ITransform_MIPS32(), ITransf
 
 ### Community 356 - "Community 356"
 Cohesion: 0.08
-Nodes (25): FIRMessagingPendingTopicsList, FIRMessagingPendingTopicsListDelegate, FIRMessagingTokenManager, NSError, NSOperationQueue, FIRMessagingPubSub, -addPrefixToTopic, -archivePendingTopicsList (+17 more)
+Nodes (26): FIRMessagingPendingTopicsList, FIRMessagingPendingTopicsListDelegate, FIRMessagingPubSub, FIRMessagingTokenManager, NSError, NSOperationQueue, FIRMessagingPubSub, -addPrefixToTopic (+18 more)
 
 ### Community 357 - "Community 357"
 Cohesion: 0.19
 Nodes (25): fixed_t, fixed_y_t, SharpYuvConversionMatrix, SharpYuvOptions, SharpYuvTransferFunctionType, WEBP_INLINE, clip(), clip_8b() (+17 more)
 
 ### Community 358 - "Community 358"
-Cohesion: 0.05
-Nodes (38): GDTCCTUploadOperation, -batchByAddingMetricsEventToBatchforTarget, -cancel, -constructRequestProtoWithEvents, -constructRequestWithURLforTargetdata, -eventSelectorTargetwithConditions, -finishOperation, -genericRejectedPromiseErrorWithReason (+30 more)
+Cohesion: 0.07
+Nodes (28): GDTCCTUploadOperation, -batchByAddingMetricsEventToBatchforTarget, -cancel, -constructRequestProtoWithEvents, -constructRequestWithURLforTargetdata, -eventSelectorTargetwithConditions, -finishOperation, -genericRejectedPromiseErrorWithReason (+20 more)
 
 ### Community 359 - "Community 359"
 Cohesion: 0.07
@@ -2663,8 +2652,8 @@ Cohesion: 0.10
 Nodes (20): Sasha Denisov, FlutterMacOS, osx, authors, dependencies, description, homepage, license (+12 more)
 
 ### Community 365 - "Community 365"
-Cohesion: 0.14
-Nodes (21): CallkitEventCallback, acceptCallHandleCallback(), EventCallbackHandler, getInstance(), hasInstance(), invokeFlutterCallback(), notifyEventCallbacks(), registerEventCallback() (+13 more)
+Cohesion: 0.17
+Nodes (17): acceptCallHandleCallback(), EventCallbackHandler, getInstance(), hasInstance(), invokeFlutterCallback(), send(), sendEvent(), sendEventCustom() (+9 more)
 
 ### Community 366 - "Community 366"
 Cohesion: 0.08
@@ -2679,8 +2668,8 @@ Cohesion: 0.08
 Nodes (23): authors, Your Company, dependencies, Flutter, description, homepage, license, file (+15 more)
 
 ### Community 369 - "Community 369"
-Cohesion: 0.07
-Nodes (26): _build, _building, _emoji, emojiOverlayLanguages, EmojiSearchIndex, false, foldEmojiSearchText, _foldUnit (+18 more)
+Cohesion: 0.06
+Nodes (32): _build, _building, _emoji, emojiOverlayLanguages, EmojiSearchIndex, false, foldEmojiSearchText, _foldUnit (+24 more)
 
 ### Community 370 - "Community 370"
 Cohesion: 0.16
@@ -2726,8 +2715,8 @@ Cohesion: 0.07
 Nodes (26): API Documentation, Auth Flow, Authorization Server Requirements, Authorization Server Requirements, Authorization Server Requirements, Authorizing – iOS, Authorizing – MacOS, Authorizing – tvOS (+18 more)
 
 ### Community 380 - "Community 380"
-Cohesion: 0.09
-Nodes (23): CodingKey, Equatable, GoogleUtilities, GoogleUtilities_NSData, CodingKeys, userAgentPayloads, version, HeartbeatsPayload (+15 more)
+Cohesion: 0.04
+Nodes (45): CodingKey, Equatable, NSData, -gtm_dataByCompressingByteslengthcompressionLevelmodeerror, -gtm_dataByDeflatingByteslengthcompressionLevelerror, -gtm_dataByDeflatingByteslengtherror, -gtm_dataByDeflatingDatacompressionLevelerror, -gtm_dataByDeflatingDataerror (+37 more)
 
 ### Community 381 - "Community 381"
 Cohesion: 0.08
@@ -2738,8 +2727,8 @@ Cohesion: 0.07
 Nodes (26): RenderProxyBox, SingleChildRenderObjectWidget, build, ChatBottomChrome, ChatBottomInsetBuilder, ChatChromeHeight, child, chrome (+18 more)
 
 ### Community 383 - "Community 383"
-Cohesion: 0.01
-Nodes (145): ConnectionProbe, CachedNetworkImage, anonymous, _AttachmentSamples, _bubble, build, _choice, count (+137 more)
+Cohesion: 0.02
+Nodes (130): CachedNetworkImage, _PageState, build, createState, initState, main, _pack, _Page (+122 more)
 
 ### Community 384 - "Community 384"
 Cohesion: 0.06
@@ -2786,8 +2775,8 @@ Cohesion: 0.08
 Nodes (25): authors, Flutter Community Team, dependencies, Flutter, description, documentation_url, homepage, license (+17 more)
 
 ### Community 395 - "Community 395"
-Cohesion: 0.07
-Nodes (28): accepts, begin, countVideoTransceivers, dirty, ensureRecvVideoSlots, false, finish, hasUnassociatedVideoSender (+20 more)
+Cohesion: 0.10
+Nodes (19): accepts, begin, countVideoTransceivers, dirty, ensureRecvVideoSlots, false, finish, hasUnassociatedVideoSender (+11 more)
 
 ### Community 396 - "Community 396"
 Cohesion: 0.14
@@ -2802,8 +2791,8 @@ Cohesion: 0.06
 Nodes (36): audioMuted, callId, CallMediaKind, CallMediaKindWire, CallSession, CallStatus, camStreamId, connectedAt (+28 more)
 
 ### Community 399 - "Community 399"
-Cohesion: 0.06
-Nodes (28): package:monkeyhub/diagnostics/diag_buffer.dart, package:monkeyhub/diagnostics/diag_event.dart, package:monkeyhub/diagnostics/diag_export.dart, package:monkeyhub/screens/diagnostics/diag_collapse.dart, package:monkeyhub/screens/diagnostics/diag_filter_sheet.dart, package:monkeyhub/screens/diagnostics_screen.dart, add, buf (+20 more)
+Cohesion: 0.02
+Nodes (106): _PushedState, _api, backfillFamilyFriendships, build, context, createState, _ece, friends (+98 more)
 
 ### Community 400 - "Community 400"
 Cohesion: 0.05
@@ -2818,8 +2807,8 @@ Cohesion: 0.19
 Nodes (24): abs_mips32(), do_filter2(), do_filter4(), do_filter6(), FilterLoop24(), FilterLoop26(), hev(), HFilter16() (+16 more)
 
 ### Community 403 - "Community 403"
-Cohesion: 0.07
-Nodes (28): package:monkeyhub/theme/speaker_colors.dart, cacheDirFor, cancel, cancelled, clearTyping, connectionState, ensureSavedMessagesRoom, _FakeApi (+20 more)
+Cohesion: 0.06
+Nodes (29): package:monkeyhub/theme/speaker_colors.dart, cacheDirFor, cancel, cancelled, clearTyping, connectionState, ensureSavedMessagesRoom, _FakeApi (+21 more)
 
 ### Community 404 - "Community 404"
 Cohesion: 0.07
@@ -2866,8 +2855,8 @@ Cohesion: 0.08
 Nodes (24): Authorization Method, Authorizing, Changing your Authorization Flows, Configuration, Differences with GTMOAuth2, Error Handling, GTMAppAuth for Apple Platforms, GTMOAuth2 Compatibility (+16 more)
 
 ### Community 415 - "Community 415"
-Cohesion: 0.05
-Nodes (28): AppKit, FIRLibrary, FIROptions, NSBundle, -gid_frameworkBundle, -gid_registerFonts, GIDEMMErrorHandler, -appVerificationActionString (+20 more)
+Cohesion: 0.04
+Nodes (44): AppKit, FIRLibrary, FIROptions, FlutterSceneDelegate, GIDEMMErrorHandler, -appVerificationActionString, -appVerificationRequiredAlertWithURLcompletion, -appVerificationTextString (+36 more)
 
 ### Community 416 - "Community 416"
 Cohesion: 0.14
@@ -2878,12 +2867,12 @@ Cohesion: 0.08
 Nodes (25): LiveShareNotice, clear, expiresAt, hasOfferedAlwaysUpgrade, instance, isResumableAt, kAlwaysOfferedKey, kBodyKey (+17 more)
 
 ### Community 418 - "Community 418"
-Cohesion: 0.12
-Nodes (16): attach, broadcast, _channels, detach, dispose, DrawChannels, init, label (+8 more)
+Cohesion: 0.13
+Nodes (14): attach, broadcast, _channels, detach, dispose, DrawChannels, init, label (+6 more)
 
 ### Community 419 - "Community 419"
-Cohesion: 0.09
-Nodes (24): Intents, Any, AnyHashable, Bool, CGFloat, Data, INImage, Set (+16 more)
+Cohesion: 0.17
+Nodes (15): CGSize, Any, AnyHashable, Bool, CGFloat, Data, INImage, Set (+7 more)
 
 ### Community 420 - "Community 420"
 Cohesion: 0.08
@@ -2891,7 +2880,7 @@ Nodes (23): chat_room.dart, chat_user.dart, canCall, canDelete, canEditSettings,
 
 ### Community 421 - "Community 421"
 Cohesion: 0.08
-Nodes (27): WebPInitUpsamplersMIPSdspR2(), WebPInitYUV444ConvertersMIPSdspR2(), YuvToArgb(), YuvToBgr(), YuvToBgra(), YuvToRgb(), YuvToRgb565(), YuvToRgba() (+19 more)
+Nodes (26): WebPInitUpsamplersMIPSdspR2(), WebPInitYUV444ConvertersMIPSdspR2(), YuvToArgb(), YuvToBgr(), YuvToBgra(), YuvToRgb(), YuvToRgb565(), YuvToRgba() (+18 more)
 
 ### Community 422 - "Community 422"
 Cohesion: 0.23
@@ -2903,15 +2892,15 @@ Nodes (22): Duration get, advance, complete, _completed, dispose, duration, fail
 
 ### Community 424 - "Community 424"
 Cohesion: 0.01
-Nodes (314): AnimatedContainer, AnimatedScale, BoxDecoration, CustomPaint, DecoratedBox, main, build, main (+306 more)
+Nodes (356): AnimatedScale, BoxDecoration, CustomPaint, DecoratedBox, build, locales, main, _Page (+348 more)
 
 ### Community 425 - "Community 425"
-Cohesion: 0.12
-Nodes (16): AVFAudio, CallKit, CallkitIncomingAppDelegate, CallManager, CXStartCallAction, CXTransaction, NSObjectProtocol, Any (+8 more)
+Cohesion: 0.16
+Nodes (12): CallManager, CXStartCallAction, CXTransaction, Any, Bool, Call, CXHandle, CXProvider (+4 more)
 
 ### Community 426 - "Community 426"
-Cohesion: 0.07
-Nodes (24): GIDMDMPasscodeCache, -applicationDidEnterBackground, -dealloc, -hasKeychain, -hasLocalAuthentication, -info, -init, -obtainKeychainInfo (+16 more)
+Cohesion: 0.17
+Nodes (12): GIDMDMPasscodeCache, -applicationDidEnterBackground, -dealloc, -hasKeychain, -hasLocalAuthentication, -info, -init, -obtainKeychainInfo (+4 more)
 
 ### Community 427 - "Community 427"
 Cohesion: 0.08
@@ -2954,8 +2943,8 @@ Cohesion: 0.08
 Nodes (23): FBLPromise, -addPendingObject, -chainOnQueuechainedFulfillchainedReject, -dealloc, -defaultDispatchQueue, -description, -error, -fulfill (+15 more)
 
 ### Community 437 - "Community 437"
-Cohesion: 0.03
-Nodes (70): document_saver.dart, file_meta.dart, clientId, convexUrl, Env, _get, googleIosClientId, googleServerClientId (+62 more)
+Cohesion: 0.05
+Nodes (42): Data, Scanner, ScannerError, outOfBounds, Error, Bool, Data, Int (+34 more)
 
 ### Community 438 - "Community 438"
 Cohesion: 0.11
@@ -2970,12 +2959,12 @@ Cohesion: 0.20
 Nodes (9): AnyObject, Bool, Error, ObjCPromise, DispatchQueue, Promise, String, T (+1 more)
 
 ### Community 441 - "Community 441"
-Cohesion: 0.08
-Nodes (27): CBC, CBCModeWorker, Error, invalidInitializationVector, CBCMAC, CMAC, Error, wrongKeyLength (+19 more)
+Cohesion: 0.15
+Nodes (15): CBC, CBCModeWorker, Error, invalidInitializationVector, Array, ArraySlice, BlockModeOption, CipherModeWorker (+7 more)
 
 ### Community 442 - "Community 442"
-Cohesion: 0.09
-Nodes (26): Cipher, BlockCipher, Error, invalidKeyOrInitializationVector, AEAD, AES-CCM, AES-GCM, Basics (+18 more)
+Cohesion: 0.19
+Nodes (12): Cipher, BlockCipher, Error, invalidKeyOrInitializationVector, Rabbit, String, Array, ArraySlice (+4 more)
 
 ### Community 443 - "Community 443"
 Cohesion: 0.10
@@ -2987,15 +2976,15 @@ Nodes (15): Any, Bool, Double, FlutterBinaryMessenger, FlutterMethodCall, Flutte
 
 ### Community 445 - "Community 445"
 Cohesion: 0.03
-Nodes (70): build, main, _VoiceCall, build, locales, main, _NotesAndDrops, _photo (+62 more)
+Nodes (62): build, locales, main, _NotesAndDrops, _photo, _themes, _ViewerScene, DropZoneRegistry (+54 more)
 
 ### Community 446 - "Community 446"
 Cohesion: 0.26
 Nodes (17): CallkitIncomingBroadcastReceiver, getIntent(), getIntentAccept(), getIntentCallback(), getIntentConnected(), getIntentDecline(), getIntentEnded(), getIntentHeldByCell() (+9 more)
 
 ### Community 447 - "Community 447"
-Cohesion: 0.17
-Nodes (26): DoSegmentsJob(), VP8EncLoop(), ExportBlock(), ImportBlock(), ImportLine(), InitLeft(), InitTop(), MinSize() (+18 more)
+Cohesion: 0.06
+Nodes (33): _bareCode, base, cleaned, code, InviteLink, inviteUrl, inviteUrlForCurrentServer, _isReservedRoute (+25 more)
 
 ### Community 448 - "Community 448"
 Cohesion: 0.09
@@ -3034,16 +3023,16 @@ Cohesion: 0.14
 Nodes (13): dart:isolate, package:version/version.dart, AndroidEnvironment, buildEnvironment, clangLinkerWrapper, installNdk, _libGccWorkaround, minSdkVersion (+5 more)
 
 ### Community 457 - "Community 457"
-Cohesion: 0.11
-Nodes (18): FIRMessagingPubSub, NSDate, FIRMessagingPendingTopicsList, -addOperationForTopicwithActioncompletion, -beginUpdateForCurrentBatchTopic, -encodeWithCoder, -init, -initWithCoder (+10 more)
+Cohesion: 0.12
+Nodes (17): NSDate, FIRMessagingPendingTopicsList, -addOperationForTopicwithActioncompletion, -beginUpdateForCurrentBatchTopic, -encodeWithCoder, -init, -initWithCoder, -numberOfBatches (+9 more)
 
 ### Community 458 - "Community 458"
-Cohesion: 0.08
-Nodes (22): AnyObject, ScannerError, outOfBounds, Cipher, CipherError, decrypt, encrypt, Cryptors (+14 more)
+Cohesion: 0.24
+Nodes (7): SignatureError, sign, verify, Array, Bool, UInt8, Signature
 
 ### Community 459 - "Community 459"
-Cohesion: 0.08
-Nodes (24): AVFoundation, Call, Data, FlutterCallkitIncomingPlugin, Constants, HeartbeatLoggingTestUtils, DateFormatter, _ObjC_HeartbeatsPayload (+16 more)
+Cohesion: 0.09
+Nodes (20): AVFAudio, AVFoundation, CallKit, Call, Data, CallkitIncomingAppDelegate, FlutterCallkitIncomingPlugin, NSObjectProtocol (+12 more)
 
 ### Community 460 - "Community 460"
 Cohesion: 0.10
@@ -3090,8 +3079,8 @@ Cohesion: 0.09
 Nodes (21): 2020-06-30 -- v0.61.0, 2020-06 -- v0.60.0, 2020-07-15 -- v0.61.1, 2020-07-28 -- v0.62.0, 2020-08-25 -- v0.63.0, 2020-09-29 -- v0.64.0, 2020-10-26 -- v0.64.1, 2020-10-29 -- v0.64.2 (+13 more)
 
 ### Community 471 - "Community 471"
-Cohesion: 0.03
-Nodes (65): call_permissions.dart, _acceptGroupCall, _attachedGroupService, _callIdForUuid, _callIdFromParams, _captureNativeUuid, _captureNativeUuidFromParams, cardGone (+57 more)
+Cohesion: 0.04
+Nodes (54): call_permissions.dart, _acceptGroupCall, _attachedGroupService, _callIdForUuid, _callIdFromParams, _captureNativeUuid, _captureNativeUuidFromParams, cardGone (+46 more)
 
 ### Community 472 - "Community 472"
 Cohesion: 0.09
@@ -3102,8 +3091,8 @@ Cohesion: 0.11
 Nodes (16): Bitmap, Bundle, ByteArray, ExoPlayer, ImageView, Int, List, String (+8 more)
 
 ### Community 474 - "Community 474"
-Cohesion: 0.26
-Nodes (13): buildCounterValue(), CTR, CTRCounter, CTRModeWorker, Array, ArraySlice, BlockModeOption, CipherModeWorker (+5 more)
+Cohesion: 0.28
+Nodes (12): buildCounterValue(), CTR, CTRCounter, CTRModeWorker, Array, ArraySlice, BlockModeOption, CipherModeWorker (+4 more)
 
 ### Community 475 - "Community 475"
 Cohesion: 0.18
@@ -3114,8 +3103,8 @@ Cohesion: 0.04
 Nodes (48): archive, board, canSeeMoment(), markSeen, moment, post, react, remove (+40 more)
 
 ### Community 477 - "Community 477"
-Cohesion: 0.15
-Nodes (16): BlockMode, Error, dataPaddingRequired, invalidBlockMode, invalidInitializationVector, invalidKeyOrInitializationVector, Blowfish, Array (+8 more)
+Cohesion: 0.22
+Nodes (11): BlockMode, Blowfish, Array, ArraySlice, BlockMode, C, CipherModeWorker, Int (+3 more)
 
 ### Community 478 - "Community 478"
 Cohesion: 0.08
@@ -3170,8 +3159,8 @@ Cohesion: 0.07
 Nodes (26): _anyClass, AnyClassKeychain, delete, home, read, readElsewhere, write, delete (+18 more)
 
 ### Community 491 - "Community 491"
-Cohesion: 0.03
-Nodes (85): VP8LFastSLog2(), Average2_m256i(), CombinedShannonEntropy_AVX2(), GetSumAbsDiff32_AVX2(), PredictorSub10_AVX2(), PredictorSub11_AVX2(), PredictorSub5_AVX2(), TransformColor_AVX2() (+77 more)
+Cohesion: 0.18
+Nodes (17): VP8LFastSLog2(), CombinedShannonEntropy_C(), GetCombinedEntropyUnrefined_C(), GetEntropyUnrefined_C(), GetEntropyUnrefinedHelper(), FastLog2Slow_MIPS32(), GetCombinedEntropyUnrefined_MIPS32(), GetEntropyUnrefined_MIPS32() (+9 more)
 
 ### Community 492 - "Community 492"
 Cohesion: 0.11
@@ -3222,8 +3211,8 @@ Cohesion: 0.10
 Nodes (19): 2020-06-30 -- v0.61.0, 2020-06 -- v0.60.0, 2020-07-28 -- v0.62.0, 2020-08-25 -- v0.63.0, 2020-09-29 -- v0.64.0, 2020-12-08 -- v1.0.0, 2021-01-26 -- v1.1.0, 2021-03-02 -- v1.2.0 (+11 more)
 
 ### Community 504 - "Community 504"
-Cohesion: 0.17
-Nodes (25): AssignSegments(), clip(), DefaultMBInfo(), FastMBAnalyze(), FinalAlphaValue(), GetAlpha(), InitHistogram(), InitSegmentJob() (+17 more)
+Cohesion: 0.06
+Nodes (32): bad, badSigns, _boxOf, cells, col, cols, contains, crowns (+24 more)
 
 ### Community 505 - "Community 505"
 Cohesion: 0.08
@@ -3231,7 +3220,7 @@ Nodes (25): ExpressionKind, ExpressionSource, format, fromRefJson, height, isLot
 
 ### Community 506 - "Community 506"
 Cohesion: 0.01
-Nodes (221): camera_editor_screen.dart, camera_screen.dart, device_report.dart, diag_export.dart, ../diagnostics/diag_buffer.dart, _, buildBody, ../diagnostics/problem_report.dart (+213 more)
+Nodes (210): ScreenShareSource, build, createState, _Grid, initState, _SharePickerSheet, _SharePickerSheetState, showSharePickerSheet (+202 more)
 
 ### Community 507 - "Community 507"
 Cohesion: 0.19
@@ -3242,24 +3231,24 @@ Cohesion: 0.18
 Nodes (10): package:monkeyhub/widgets/route_landing.dart, _Probe, _ProbeState, app, build, createState, main, _Probe (+2 more)
 
 ### Community 509 - "Community 509"
-Cohesion: 0.09
-Nodes (21): NSData, -gtm_dataByCompressingByteslengthcompressionLevelmodeerror, -gtm_dataByDeflatingByteslengthcompressionLevelerror, -gtm_dataByDeflatingByteslengtherror, -gtm_dataByDeflatingDatacompressionLevelerror, -gtm_dataByDeflatingDataerror, -gtm_dataByGzippingByteslengthcompressionLevelerror, -gtm_dataByGzippingByteslengtherror (+13 more)
+Cohesion: 0.06
+Nodes (30): package:html/parser.dart, _cache, cached, _decodeBody, _decodeEntities, description, end, extract (+22 more)
 
 ### Community 510 - "Community 510"
 Cohesion: 0.07
-Nodes (23): package:monkeyhub/diagnostics/shake_detector.dart, package:monkeyhub/screens/navigation/scroll_memory.dart, package:monkeyhub/widgets/anchored_scroll.dart, package:monkeyhub/widgets/edge_bleed.dart, harness, heightOf, keys, main (+15 more)
+Nodes (30): badge, baseSize, build, _commit, createState, didUpdateWidget, _dragging, fitFloorSize (+22 more)
 
 ### Community 511 - "Community 511"
-Cohesion: 0.09
-Nodes (21): Base, BaseCollection, Collection, Comparable, BatchedCollection, BatchedCollectionIndex, BatchedCollectionType, Collection (+13 more)
+Cohesion: 0.17
+Nodes (13): Base, BaseCollection, Collection, Comparable, BatchedCollection, BatchedCollectionIndex, BatchedCollectionType, Collection (+5 more)
 
 ### Community 512 - "Community 512"
 Cohesion: 0.24
 Nodes (11): Error, invalidInitializationVector, OFB, OFBModeWorker, Array, ArraySlice, BlockModeOption, CipherModeWorker (+3 more)
 
 ### Community 513 - "Community 513"
-Cohesion: 0.20
-Nodes (17): PrintReg(), VP8HorizontalAdd8b(), VP8L32bToPlanar_SSE2(), VP8PlanarTo24b_SSE2(), VP8Transpose_2_4x4_16b(), Disto16x16_SSE41(), Disto4x4_SSE41(), DoQuantizeBlock_SSE41() (+9 more)
+Cohesion: 0.18
+Nodes (19): PrintReg(), VP8HorizontalAdd8b(), VP8L32bToPlanar_SSE2(), VP8PlanarTo24b_SSE2(), VP8Transpose_2_4x4_16b(), CollectHistogram_SSE41(), Disto16x16_SSE41(), Disto4x4_SSE41() (+11 more)
 
 ### Community 514 - "Community 514"
 Cohesion: 0.11
@@ -3270,8 +3259,8 @@ Cohesion: 0.08
 Nodes (26): _, add, apiEnd, apiError, apiStart, breadcrumb, _buf, captureLine (+18 more)
 
 ### Community 516 - "Community 516"
-Cohesion: 0.08
-Nodes (25): accent, assessment, build, depth, DropCard, dropCardFan, dropFanHeight, height (+17 more)
+Cohesion: 0.07
+Nodes (28): sha256Hash, LinkedHashMap, package:crypto/crypto.dart, static final TranslationCache, clear, count, ensureLoaded, _entries (+20 more)
 
 ### Community 517 - "Community 517"
 Cohesion: 0.08
@@ -3282,8 +3271,8 @@ Cohesion: 0.18
 Nodes (10): autonym, autonymFor, base, _byCode, code, englishName, flag, kTranslationLanguages (+2 more)
 
 ### Community 519 - "Community 519"
-Cohesion: 0.01
-Nodes (138): CallApi, SignalingSubscriber, _FakeCallApi, package:fake_async/fake_async.dart, package:flutter_callkit_incoming/entities/entities.dart, package:monkeyhub/backend/call_api.dart, package:monkeyhub/calls/call_service.dart, package:monkeyhub/calls/native_call_handler.dart (+130 more)
+Cohesion: 0.07
+Nodes (29): accent, accentSoft, build, c, createState, _depth, _DepthFieldPainter, didUpdateWidget (+21 more)
 
 ### Community 520 - "Community 520"
 Cohesion: 0.11
@@ -3310,8 +3299,8 @@ Cohesion: 0.16
 Nodes (17): A, AnyObject, B, Bool, C, Container, DispatchQueue, Error (+9 more)
 
 ### Community 526 - "Community 526"
-Cohesion: 0.02
-Nodes (96): app_brand_mark.dart, brand_icon_canvas.dart, class _RenderEqualHeightRow extends RenderBox, fit_label.dart, monkey_collection.dart, MultiChildRenderObjectWidget, ../services/launcher_icon_names.dart, appIconArt (+88 more)
+Cohesion: 0.01
+Nodes (214): action_buttons.dart, brand_icon_canvas.dart, class _RenderEqualHeightRow extends RenderBox, DismissIntent, fit_label.dart, FocusNode, FocusScopeNode, FontWeight (+206 more)
 
 ### Community 527 - "Community 527"
 Cohesion: 0.13
@@ -3330,16 +3319,16 @@ Cohesion: 0.08
 Nodes (24): accept, _active, activeIndex, _close, _closeAndNotify, controller, dismiss, _dismissedAt (+16 more)
 
 ### Community 531 - "Community 531"
-Cohesion: 0.14
-Nodes (13): Bool, Data, FlutterBinaryMessenger, FlutterMethodCall, FlutterResult, Int, QLPreviewItem, DocumentPreview (+5 more)
+Cohesion: 0.13
+Nodes (14): Bool, Data, FlutterBinaryMessenger, FlutterMethodCall, FlutterResult, Int, QLPreviewItem, DocumentPreview (+6 more)
 
 ### Community 532 - "Community 532"
 Cohesion: 0.18
 Nodes (11): Array, CS.BigInt, CS.BigUInt, Words, Indices, Bool, CS, Int (+3 more)
 
 ### Community 533 - "Community 533"
-Cohesion: 0.11
-Nodes (21): DrawClear, DrawOp, StrokeAppend, StrokeBegin, StrokeEnd, package:flutter/painting.dart, package:monkeyhub/calls/draw/draw_canvas.dart, package:monkeyhub/calls/draw/draw_model.dart (+13 more)
+Cohesion: 0.10
+Nodes (18): CBCMAC, Cipher, CipherError, decrypt, encrypt, CMAC, Error, wrongKeyLength (+10 more)
 
 ### Community 534 - "Community 534"
 Cohesion: 0.12
@@ -3362,8 +3351,8 @@ Cohesion: 0.11
 Nodes (18): TCPServer, -dealloc, -delegate, -domain, -handleNewConnectionFromAddressinputStreamoutputStream, -hasIPv4Socket, -hasIPv6Socket, -init (+10 more)
 
 ### Community 539 - "Community 539"
-Cohesion: 0.12
-Nodes (13): FileStorage, StorageError, readError, writeError, UserDefaultsStorage, Constants, StorageFactory, Data (+5 more)
+Cohesion: 0.15
+Nodes (11): FileStorage, StorageError, readError, writeError, UserDefaultsStorage, Constants, StorageFactory, Data (+3 more)
 
 ### Community 540 - "Community 540"
 Cohesion: 0.11
@@ -3374,12 +3363,12 @@ Cohesion: 0.12
 Nodes (16): 1. The teardown map, 2. Why `rooms.createdBy` gets reassigned, 3. Why reports are tombstoned, 4. Guardianship invariants, 4a. A child account always has ≥ 1 guardian, 4b. Guardians are equal, never quorum, 5. Handing a phone back, 5a. Why a child can't just sign out (+8 more)
 
 ### Community 542 - "Community 542"
-Cohesion: 0.09
-Nodes (22): aspectRatio, count, fillLastRow, fixed, fixedHeight, fixedWidth, flushPictures, height (+14 more)
+Cohesion: 0.05
+Nodes (35): aspectRatio, count, fillLastRow, fixed, fixedHeight, fixedWidth, flushPictures, height (+27 more)
 
 ### Community 543 - "Community 543"
-Cohesion: 0.13
-Nodes (16): Codable, Array, CS, CS.BigInt, CS.BigUInt, Units, Encoder, Int (+8 more)
+Cohesion: 0.07
+Nodes (27): destinations.dart, _arrival, build, child, createState, didUpdateWidget, dispose, dx (+19 more)
 
 ### Community 544 - "Community 544"
 Cohesion: 0.24
@@ -3398,8 +3387,8 @@ Cohesion: 0.33
 Nodes (6): CS.BigInt, CS.BigUInt, Bool, CS, Int, Word
 
 ### Community 548 - "Community 548"
-Cohesion: 0.13
-Nodes (13): Bool, Data, FlutterBinaryMessenger, FlutterMethodCall, FlutterResult, Int, QLPreviewItem, DocumentPreview (+5 more)
+Cohesion: 0.07
+Nodes (26): brain_store.dart, _backend, BrainGateway, demoteToCpu, ensureInitialized, generate, _init, instance (+18 more)
 
 ### Community 549 - "Community 549"
 Cohesion: 0.17
@@ -3422,16 +3411,16 @@ Cohesion: 0.25
 Nodes (8): GULKeychainStorage, NSString, GACAppCheckStorage, -getToken, -initWithTokenKeyaccessGroup, -initWithTokenKeykeychainStorageaccessGroup, -setToken, -storeToken
 
 ### Community 554 - "Community 554"
-Cohesion: 0.12
-Nodes (15): ../audio/alert_sounds.dart, bind, _enabled, _focused, instance, _lastSeen, MessageAlerts, _msgTime (+7 more)
+Cohesion: 0.03
+Nodes (53): ../audio/alert_sounds.dart, image_raster.dart, _, bytes, chosen, dropped, file, files (+45 more)
 
 ### Community 555 - "Community 555"
 Cohesion: 0.12
 Nodes (17): GTMSessionCookieStorage, -cookieAcceptPolicy, -cookieMatchingCookie, -cookies, -cookiesForURL, -deleteCookie, -getCookiesForTaskcompletionHandler, -hasCookieExpired (+9 more)
 
 ### Community 556 - "Community 556"
-Cohesion: 0.22
-Nodes (8): AppRelease, channel, fromJson, minSupported, notes, publishedAt, updateUrl, version
+Cohesion: 0.08
+Nodes (25): cache_store.dart, DailyBoards get, api, boardRetries, _boards, clear, _dayKey, _error (+17 more)
 
 ### Community 557 - "Community 557"
 Cohesion: 0.07
@@ -3459,11 +3448,11 @@ Nodes (19): corsHeaders, http, receiptCors, pair(), signUp(), enc, fromBase64Url
 
 ### Community 563 - "Community 563"
 Cohesion: 0.08
-Nodes (23): actionColor, backgroundColor, backgroundUrl, DTMFActionType, from, fromJson, incomingCallNotificationChannelName, isBot (+15 more)
+Nodes (23): ../brain_spec.dart, canRun, DeviceCapability, instance, prime, _probe, ramMb, _readRamMb (+15 more)
 
 ### Community 564 - "Community 564"
-Cohesion: 0.05
-Nodes (34): AppearanceMode, Brightness get, false, kMaxCallOutage, nextRestartDelay, shouldAbandonRestart, winsGlare, state (+26 more)
+Cohesion: 0.10
+Nodes (19): AppearanceMode, Brightness get, system,, AppearanceMode, AppThemeBrightness, brightness, darkId, fixed (+11 more)
 
 ### Community 565 - "Community 565"
 Cohesion: 0.12
@@ -3514,8 +3503,8 @@ Cohesion: 0.25
 Nodes (8): Any, CFTypeRef, Data, KeychainAttribute, KeychainHelper, KeychainWrapper, Set, String
 
 ### Community 577 - "Community 577"
-Cohesion: 0.06
-Nodes (41): ContiguousArray, DigestType, MD5, SHA1, SHA2, Variant, sha224, sha256 (+33 more)
+Cohesion: 0.09
+Nodes (26): ContiguousArray, DigestType, MD5, SHA1, bitPadding(), reversed(), rotateLeft(), rotateRight() (+18 more)
 
 ### Community 578 - "Community 578"
 Cohesion: 0.12
@@ -3610,8 +3599,8 @@ Cohesion: 0.13
 Nodes (14): OIDURLQueryComponent, -addParameters, -addParametervalue, -description, -dictionaryValue, -init, -initWithURL, -parameters (+6 more)
 
 ### Community 601 - "Community 601"
-Cohesion: 0.02
-Nodes (108): AppRelease? get, acceptsOutgoingToken, attachedToken, farewell, identityArg, instance, isSessionLoss, _lost (+100 more)
+Cohesion: 0.04
+Nodes (41): AppRelease? get, AppRelease, channel, fromJson, minSupported, notes, publishedAt, updateUrl (+33 more)
 
 ### Community 602 - "Community 602"
 Cohesion: 0.10
@@ -3626,8 +3615,8 @@ Cohesion: 0.07
 Nodes (34): AppCheckCore, AppCheckCoreProvider, convention, _GACAppCheckAPIServiceProtocol, _GACAppCheckBackoffWrapperProtocol, AppCheckCoreToken, Bool, Error (+26 more)
 
 ### Community 605 - "Community 605"
-Cohesion: 0.09
-Nodes (19): count, darkEnterLuminance, darkExitLuminance, grid, meanPreviewLuminance, stepX, stepY, total (+11 more)
+Cohesion: 0.20
+Nodes (9): count, darkEnterLuminance, darkExitLuminance, grid, meanPreviewLuminance, stepX, stepY, total (+1 more)
 
 ### Community 606 - "Community 606"
 Cohesion: 0.10
@@ -3647,7 +3636,7 @@ Nodes (5): CS.BigInt, CS.BigUInt, CS, Word, Other
 
 ### Community 610 - "Community 610"
 Cohesion: 0.02
-Nodes (126): @visibleForTesting, resetForTest, debugSetLocalStreamForTest, debugStartHeartbeat, heartbeatDelay, statsDownLine, statsUpLine, debugWasSelfEnded (+118 more)
+Nodes (97): @visibleForTesting, resetForTest, debugSetLocalStreamForTest, debugStartHeartbeat, heartbeatDelay, statsDownLine, statsUpLine, debugWasSelfEnded (+89 more)
 
 ### Community 611 - "Community 611"
 Cohesion: 0.10
@@ -3662,8 +3651,8 @@ Cohesion: 0.07
 Nodes (28): ASN1, IDENTIFIERS, BITSTRING, INTERGER, NULL, OBJECTID, OCTETSTRING, SEQUENCE (+20 more)
 
 ### Community 614 - "Community 614"
-Cohesion: 0.15
-Nodes (11): DropDestination, RegisterGeneratedPlugins(), FlutterPluginRegistry, NSWindow, Any, Bool, NSDraggingInfo, NSDragOperation (+3 more)
+Cohesion: 0.05
+Nodes (35): audio_session, connectivity_plus, device_info_plus, DropDestination, emoji_picker_flutter, file_selector_macos, flutter_gemma, RegisterGeneratedPlugins() (+27 more)
 
 ### Community 615 - "Community 615"
 Cohesion: 0.14
@@ -3726,8 +3715,8 @@ Cohesion: 0.29
 Nodes (12): DoGradientFilter_MIPSdspR2(), DoHorizontalFilter_MIPSdspR2(), DoVerticalFilter_MIPSdspR2(), GradientFilter_MIPSdspR2(), GradientPredictor_MIPSdspR2(), GradientUnfilter_MIPSdspR2(), HorizontalFilter_MIPSdspR2(), HorizontalUnfilter_MIPSdspR2() (+4 more)
 
 ### Community 632 - "Community 632"
-Cohesion: 0.12
-Nodes (16): _api, _check, debounce, dispose, _disposed, excludeUserId, _initial, onChanged (+8 more)
+Cohesion: 0.10
+Nodes (22): class _TmpPathProvider extends, package:monkeyhub/companions/brain_store.dart, package:monkeyhub/companions/device_capability.dart, package:monkeyhub/screens/companions/companion_page.dart, package:path_provider_platform_interface/path_provider_platform_interface.dart, package:plugin_platform_interface/plugin_platform_interface.dart, getApplicationDocumentsPath, getApplicationSupportPath (+14 more)
 
 ### Community 633 - "Community 633"
 Cohesion: 0.12
@@ -3742,12 +3731,12 @@ Cohesion: 0.15
 Nodes (12): GACAppCheck, -createRetrieveOrRefreshTokenPromiseForcingRefresh, -getCachedValidTokenForcingRefresh, -initWithServiceNameappCheckProviderstoragetokenRefreshersettingstokenDelegate, -initWithServiceNameresourceNameappCheckProvidersettingstokenDelegatekeychainAccessGroup, -limitedUseToken, -limitedUseTokenWithCompletion, -periodicTokenRefreshWithCompletion (+4 more)
 
 ### Community 636 - "Community 636"
-Cohesion: 0.19
-Nodes (10): BlockDecryptor, Error, unsupported, Array, ArraySlice, Bool, CipherModeWorker, Int (+2 more)
+Cohesion: 0.10
+Nodes (23): @anonymous, @JS, external String? get, _, auth, _clickWired, endpoint, _jsOnOpenRoom (+15 more)
 
 ### Community 637 - "Community 637"
-Cohesion: 0.22
-Nodes (7): R, State, UnsafeMutablePointer, os.lock, os_unfair_lock, sending, FIRAllocatedUnfairLock
+Cohesion: 0.09
+Nodes (22): ../backend/games_api.dart, _answered, api, _applyMine, _board, clear, _error, _gen (+14 more)
 
 ### Community 638 - "Community 638"
 Cohesion: 0.18
@@ -3758,12 +3747,12 @@ Cohesion: 0.15
 Nodes (12): GACAppCheck, -createRetrieveOrRefreshTokenPromiseForcingRefresh, -getCachedValidTokenForcingRefresh, -initWithServiceNameappCheckProviderstoragetokenRefreshersettingstokenDelegate, -initWithServiceNameresourceNameappCheckProvidersettingstokenDelegatekeychainAccessGroup, -limitedUseToken, -limitedUseTokenWithCompletion, -periodicTokenRefreshWithCompletion (+4 more)
 
 ### Community 640 - "Community 640"
-Cohesion: 0.18
-Nodes (19): VP8LSubPixels(), PredictorSub0_C(), PredictorSub1_C(), WEBP_INLINE, WebPPicture, PaletteSorting, CoOccurrenceBuild(), CoOccurrenceFindMax() (+11 more)
+Cohesion: 0.20
+Nodes (18): VP8LSubPixels(), PredictorSub0_C(), PredictorSub1_C(), WEBP_INLINE, WebPPicture, PaletteSorting, CoOccurrenceBuild(), CoOccurrenceFindMax() (+10 more)
 
 ### Community 641 - "Community 641"
-Cohesion: 0.19
-Nodes (18): VP8GetCostLuma16(), VP8GetCostLuma4(), VP8GetCostUV(), VP8InitResidual(), VP8RecordCoeffs(), CodeResiduals(), PutCoeffs(), RecordResiduals() (+10 more)
+Cohesion: 0.17
+Nodes (15): SHA2, Variant, sha224, sha256, sha384, sha512, Array, ArraySlice (+7 more)
 
 ### Community 642 - "Community 642"
 Cohesion: 0.15
@@ -3778,12 +3767,12 @@ Cohesion: 0.17
 Nodes (11): CARGOKIT_CONFIGURATION, CARGOKIT_DARWIN_ARCHS, CARGOKIT_DARWIN_PLATFORM_NAME, CARGOKIT_MANIFEST_DIR, CARGOKIT_OUTPUT_DIR, CARGOKIT_ROOT_PROJECT_DIR, CARGOKIT_TARGET_TEMP_DIR, CARGOKIT_TOOL_TEMP_DIR (+3 more)
 
 ### Community 645 - "Community 645"
-Cohesion: 0.14
-Nodes (14): GULAppEnvironmentUtil, -appleDevicePlatform, -applePlatform, -deploymentType, -deviceModel, -deviceSimulatorModel, -getSysctlEntry, -isAppClip (+6 more)
+Cohesion: 0.11
+Nodes (15): GULAppEnvironmentUtil, -appleDevicePlatform, -applePlatform, -deploymentType, -deviceModel, -deviceSimulatorModel, -getSysctlEntry, -isAppClip (+7 more)
 
 ### Community 646 - "Community 646"
-Cohesion: 0.12
-Nodes (17): GIDEMMErrorHandler, -appVerificationActionString, -appVerificationRequiredAlertWithURLcompletion, -appVerificationTextString, -appVerificationTitleString, -cancelString, -deviceNotCompliantAlertWithCompletion, -deviceNotCompliantString (+9 more)
+Cohesion: 0.19
+Nodes (16): Authenticator, Error, authenticateError, invalidInput, HMAC, Variant, md5, sha1 (+8 more)
 
 ### Community 647 - "Community 647"
 Cohesion: 0.36
@@ -3850,12 +3839,12 @@ Cohesion: 0.18
 Nodes (10): 1. The app, 2. iOS and macOS — universal links, 3. Android — App Links, 4. The web page, 5. The fallback scheme, Deep links, Deploying, Testing (+2 more)
 
 ### Community 663 - "Community 663"
-Cohesion: 0.07
-Nodes (28): _, canonical, fromWords, generate, join, _known, legacy, normalizeRecoveryPhrase (+20 more)
+Cohesion: 0.12
+Nodes (17): _, canonical, fromWords, generate, join, _known, legacy, normalizeRecoveryPhrase (+9 more)
 
 ### Community 664 - "Community 664"
-Cohesion: 0.15
-Nodes (12): _Grid, package:monkeyhub/widgets/drag_select.dart, build, _center, createState, _Grid, _GridState, ids (+4 more)
+Cohesion: 0.10
+Nodes (17): package:monkeyhub/companions/brain_spec.dart, package:monkeyhub/companions/translation/language.dart, package:monkeyhub/companions/translation/language_detector.dart, package:monkeyhub/companions/translation/translation_prompt.dart, support/translation_eval.dart, main, english, japanese (+9 more)
 
 ### Community 665 - "Community 665"
 Cohesion: 0.18
@@ -3866,8 +3855,8 @@ Cohesion: 0.17
 Nodes (11): 1. There are no pointer events, 2. The two platforms know different things at different times, Dragging files into MonkeyHub, Testing it, The batch budget, The shape of it, Things that fail quietly, What happens to what (+3 more)
 
 ### Community 667 - "Community 667"
-Cohesion: 0.14
-Nodes (12): SocketConnection, InputStream, Int32, Bool, DispatchQueue, Error, Stream, String (+4 more)
+Cohesion: 0.12
+Nodes (9): Average2_m256i(), GetSumAbsDiff32_AVX2(), PredictorSub10_AVX2(), PredictorSub11_AVX2(), PredictorSub5_AVX2(), TransformColor_AVX2(), __m256i, VP8LMultipliers (+1 more)
 
 ### Community 668 - "Community 668"
 Cohesion: 0.18
@@ -3882,8 +3871,8 @@ Cohesion: 0.28
 Nodes (4): Bundle, ExoPlayer, VideoPlayerActivity, PlayerView
 
 ### Community 671 - "Community 671"
-Cohesion: 0.15
-Nodes (13): Any, Error, failedToConvertAuthSessionToData, failedToConvertKeychainDataToAuthSession, failedToConvertRedirectURItoURL, failedToCreateResponseStringFromAuthSession, failedToDeletePassword, failedToDeletePasswordBecauseItemNotFound (+5 more)
+Cohesion: 0.21
+Nodes (10): Bit, one, zero, Array, HMAC, Int, UInt8, String (+2 more)
 
 ### Community 672 - "Community 672"
 Cohesion: 0.18
@@ -3922,16 +3911,16 @@ Cohesion: 0.18
 Nodes (10): FBLPromise, -attemptsdelayconditionretry, -attemptsretry, -onQueueattemptsdelayconditionretry, -onQueueattemptsretry, -onQueueretry, -retry, -retryAgain (+2 more)
 
 ### Community 681 - "Community 681"
-Cohesion: 0.15
-Nodes (13): Any, Error, failedToConvertAuthSessionToData, failedToConvertKeychainDataToAuthSession, failedToConvertRedirectURItoURL, failedToCreateResponseStringFromAuthSession, failedToDeletePassword, failedToDeletePasswordBecauseItemNotFound (+5 more)
+Cohesion: 0.18
+Nodes (13): ColorTransformDelta(), CollectColorBlueTransforms_SSE2(), CollectColorRedTransforms_SSE2(), CollectColorBlueTransforms_SSE41(), CollectColorRedTransforms_SSE41(), TransformColorBlue(), TransformColorRed(), U32ToS8() (+5 more)
 
 ### Community 682 - "Community 682"
 Cohesion: 0.18
 Nodes (11): _, auth, endpoint, p256dh, promptPermission, setOnOpenRoom, setOnOpenTarget, subscribe (+3 more)
 
 ### Community 683 - "Community 683"
-Cohesion: 0.12
-Nodes (15): GIDGoogleUser, -authState, -configuration, -didChangeState, -emmSupport, -encodeWithCoder, -grantedScopes, -hostedDomain (+7 more)
+Cohesion: 0.14
+Nodes (11): Average2_m128i(), BundleColorMap_SSE2(), GetSumAbsDiff32_SSE2(), PredictorSub10_SSE2(), PredictorSub11_SSE2(), PredictorSub5_SSE2(), TransformColor_SSE2(), VP8LBundleColorMap_C() (+3 more)
 
 ### Community 684 - "Community 684"
 Cohesion: 0.18
@@ -3946,8 +3935,8 @@ Cohesion: 0.44
 Nodes (10): DartOpaque, decode_DartFn_Inputs_bool_Output_unit_AnyhowException(), decode_DartFn_Inputs__Output_opt_String_AnyhowException(), decode_DartFn_Inputs_String_opt_String_Output_unit_AnyhowException(), decode_DartFn_Inputs_String_Output_unit_AnyhowException(), decode_DartFn_Inputs_web_socket_connection_state_Output_unit_AnyhowException(), DartFnFuture, Fn (+2 more)
 
 ### Community 687 - "Community 687"
-Cohesion: 0.06
-Nodes (28): DarwinNotification, broadcastStarted, broadcastStopped, DarwinNotificationCenter, Constants, SampleHandler, Constants, CFNotificationCenter (+20 more)
+Cohesion: 0.04
+Nodes (40): DarwinNotification, broadcastStarted, broadcastStopped, DarwinNotificationCenter, Constants, SampleHandler, Constants, SocketConnection (+32 more)
 
 ### Community 688 - "Community 688"
 Cohesion: 0.36
@@ -3962,8 +3951,8 @@ Cohesion: 0.31
 Nodes (10): Flatten(), FlattenARGB(), IsTransparentARGBArea(), MakeARGB32(), SmoothenBlock(), WebPBlendAlpha(), WebPCleanupTransparentArea(), WebPReplaceTransparentPixels() (+2 more)
 
 ### Community 691 - "Community 691"
-Cohesion: 0.17
-Nodes (11): ConvertBGRAToBGR_NEON(), ConvertBGRAToRGB_NEON(), ConvertBGRAToBGR_SSE2(), ConvertBGRAToBGR_SSE41(), ConvertBGRAToRGB_SSE41(), TransformColorInverse_SSE41(), VP8LDspInitSSE41(), VP8LConvertBGRAToBGR_C() (+3 more)
+Cohesion: 0.20
+Nodes (9): ConvertBGRAToBGR_NEON(), ConvertBGRAToRGB_NEON(), ConvertBGRAToBGR_SSE2(), ConvertBGRAToBGR_SSE41(), ConvertBGRAToRGB_SSE41(), VP8LDspInitSSE41(), VP8LConvertBGRAToBGR_C(), VP8LConvertBGRAToRGB_C() (+1 more)
 
 ### Community 692 - "Community 692"
 Cohesion: 0.18
@@ -3974,8 +3963,8 @@ Cohesion: 0.17
 Nodes (12): GIDMDMPasscodeCache, -applicationDidEnterBackground, -dealloc, -hasKeychain, -hasLocalAuthentication, -info, -init, -obtainKeychainInfo (+4 more)
 
 ### Community 694 - "Community 694"
-Cohesion: 0.36
-Nodes (5): Attribute, accessGroup, useFileBasedKeychain, KeychainAttribute, String
+Cohesion: 0.25
+Nodes (11): CFB, CFBModeWorker, SegmentSize, cfb128, cfb8, Array, ArraySlice, BlockModeOption (+3 more)
 
 ### Community 695 - "Community 695"
 Cohesion: 0.20
@@ -4026,8 +4015,8 @@ Cohesion: 0.33
 Nodes (8): __m128i, WEBP_INLINE, clip_SSE2(), s16_to_s32(), SharpYuvFilterRow16_SSE2(), SharpYuvFilterRow32_SSE2(), SharpYuvFilterRow_SSE2(), SharpYuvUpdateY_SSE2()
 
 ### Community 707 - "Community 707"
-Cohesion: 0.38
-Nodes (4): AEADXChaCha20Poly1305, Array, Bool, UInt8
+Cohesion: 0.12
+Nodes (17): GIDEMMErrorHandler, -appVerificationActionString, -appVerificationRequiredAlertWithURLcompletion, -appVerificationTextString, -appVerificationTitleString, -cancelString, -deviceNotCompliantAlertWithCompletion, -deviceNotCompliantString (+9 more)
 
 ### Community 708 - "Community 708"
 Cohesion: 0.20
@@ -4063,7 +4052,7 @@ Nodes (9): A Note on iOS Keychain Access Groups, AppKit (macOS), Getting Started
 
 ### Community 716 - "Community 716"
 Cohesion: 0.12
-Nodes (16): arbs, depth, dir, en, english, enKeys, found, i (+8 more)
+Nodes (14): VP8LEncDspInitAVX2(), VP8LEncDspInitMIPS32(), VP8LEncDspInitMIPSdspR2(), TransformColor_MSA(), VP8LEncDspInitMSA(), VP8LEncDspInitSSE2(), VP8LEncDspInit(), WEBP_TSAN_IGNORE_FUNCTION (+6 more)
 
 ### Community 717 - "Community 717"
 Cohesion: 0.20
@@ -4074,8 +4063,8 @@ Cohesion: 0.18
 Nodes (9): arrayOfBytes(), FixedWidthInteger, Array, Int, T, UInt8, Array, Int (+1 more)
 
 ### Community 719 - "Community 719"
-Cohesion: 0.18
-Nodes (11): dispatch_queue_t, NSString, GULKeychainStorage, -getObjectForKeyobjectClassaccessGroupcompletionHandler, -getObjectFromKeychainForKeyobjectClassaccessGroupcompletionHandler, -initWithService, -initWithServicecache, -keychainQueryWithKeyaccessGroup (+3 more)
+Cohesion: 0.16
+Nodes (15): DateDividerItem, IntroItem, MessageItem, RoomItem, ThreadFoldItem, UnreadDividerItem, build, ephemeral (+7 more)
 
 ### Community 720 - "Community 720"
 Cohesion: 0.20
@@ -4114,8 +4103,8 @@ Cohesion: 0.22
 Nodes (8): FIRInstallationsHTTPError, -copyWithZone, -encodeWithCoder, -errorCodeWithHTTPCode, -initWithCoder, -initWithHTTPResponsedata, -supportsSecureCoding, -userInfoWithHTTPResponsedata
 
 ### Community 729 - "Community 729"
-Cohesion: 0.36
-Nodes (6): Data, Scanner, Bool, Data, Int, UInt8
+Cohesion: 0.33
+Nodes (6): AtomicU64, ConvexClient, RwLock, decode_jwt_expiry(), MobileConvexClient, Option
 
 ### Community 730 - "Community 730"
 Cohesion: 0.20
@@ -4142,8 +4131,8 @@ Cohesion: 0.22
 Nodes (8): OIDTokenResponse, -copyWithZone, -description, -encodeWithCoder, -fieldMap, -initparameters, -initWithCoder, -supportsSecureCoding
 
 ### Community 736 - "Community 736"
-Cohesion: 0.03
-Nodes (58): data_usage_store.dart, FileServiceResponse, gallery_autosave.dart, HttpFileService, media_ledger.dart, package:flutter_cache_manager/flutter_cache_manager.dart, package:gal/gal.dart, BulkResult (+50 more)
+Cohesion: 0.09
+Nodes (21): BulkResult, deleteMessages, failed, _fallbackName, _fetchBytes, _fetchBytesRaw, files, firstError (+13 more)
 
 ### Community 737 - "Community 737"
 Cohesion: 0.22
@@ -4166,8 +4155,8 @@ Cohesion: 0.22
 Nodes (9): Any, DispatchQueue, Error, Promise, wrap(), Value, Value1, Value2 (+1 more)
 
 ### Community 742 - "Community 742"
-Cohesion: 0.42
-Nodes (4): AuthSession, GTMOAuth2Compatibility, String, URL
+Cohesion: 0.08
+Nodes (23): Constants, HeartbeatLoggingTestUtils, DateFormatter, _ObjC_HeartbeatsPayload, AuthSession, GTMOAuth2Compatibility, String, URL (+15 more)
 
 ### Community 743 - "Community 743"
 Cohesion: 0.22
@@ -4210,8 +4199,8 @@ Cohesion: 0.20
 Nodes (8): FIRHeartbeatLogger, NSString, FIRHeartbeatLogger, -currentUserAgentProvider, -heartbeatCodeForToday, -initWithAppID, -initWithAppIDuserAgentProvider, -log
 
 ### Community 754 - "Community 754"
-Cohesion: 0.20
-Nodes (9): GTMKeychainStore, GIDAuthStateMigration, -extractAuthSessionWithTokenURLcallbackPath, -init, -initWithKeychainStore, -migrateIfNeededWithTokenURLcallbackPathisFreshInstall, -passwordForService, -performDataProtectedMigrationIfNeeded (+1 more)
+Cohesion: 0.41
+Nodes (8): BTreeMap, FunctionResult, handle_direct_function_result(), parse_json_args(), HashMap, Result, String, Value
 
 ### Community 755 - "Community 755"
 Cohesion: 0.36
@@ -4275,7 +4264,7 @@ Nodes (4): copy_dir(), install_xcframework(), select_slice(), WebRTC-SDK-xcframe
 
 ### Community 770 - "Community 770"
 Cohesion: 0.22
-Nodes (7): GDTCORReachability, -currentFlags, -init, -initialize, -setCallbackFlags, -sharedInstance, _In_
+Nodes (8): SecureBytes, ExpressibleByArrayLiteral, Array, ArraySlice, Index, Int, Range, UInt8
 
 ### Community 771 - "Community 771"
 Cohesion: 0.25
@@ -4306,8 +4295,8 @@ Cohesion: 0.38
 Nodes (4): CS.BigInt, CS.BigUInt, Hashable, Hasher
 
 ### Community 778 - "Community 778"
-Cohesion: 0.22
-Nodes (8): GIDEMMSupport, -additionalTokenRefreshParametersForAuthSession, -dictionaryWithStringValuesFromDictionary, -handleTokenFetchEMMErrorcompletion, -init, -parametersWithParametersemmSupportisPasscodeInfoRequired, -updatedEMMParametersWithParameters, -updateErrorForAuthSessionoriginalErrorcompletion
+Cohesion: 0.26
+Nodes (8): Box, Send, CallbackSubscriber, CallbackSubscriberDartFn, QuerySubscriber, Sync, DartFnFuture, Fn
 
 ### Community 779 - "Community 779"
 Cohesion: 0.46
@@ -4466,16 +4455,16 @@ Cohesion: 0.33
 Nodes (5): GACAppCheckTokenResult, -initWithError, -initWithToken, -initWithTokenerror, -placeholderToken
 
 ### Community 820 - "Community 820"
-Cohesion: 0.22
-Nodes (8): GIDEMMSupport, -additionalTokenRefreshParametersForAuthSession, -dictionaryWithStringValuesFromDictionary, -handleTokenFetchEMMErrorcompletion, -init, -parametersWithParametersemmSupportisPasscodeInfoRequired, -updatedEMMParametersWithParameters, -updateErrorForAuthSessionoriginalErrorcompletion
+Cohesion: 0.20
+Nodes (11): FIRInstallationsStore, -initWithSecureStorageaccessGroup, -installationExistsForAppIDappName, -installationForAppIDappName, -removeInstallationForAppIDappName, -saveInstallation, -setInstallationExistsforItemWithIdentifier, dispatch_queue_t (+3 more)
 
 ### Community 821 - "Community 821"
 Cohesion: 0.13
 Nodes (14): package:monkeyhub/screens/navigation/section_switcher.dart, _Section, SlideTransition, build, createState, initState, main, mounts (+6 more)
 
 ### Community 822 - "Community 822"
-Cohesion: 0.50
-Nodes (3): GULNetworkInfo, -getNetworkRadioType, -getNetworkType
+Cohesion: 0.18
+Nodes (10): GDTCORFlatFileStorage, -batchIDsForTarget, -batchWithEventSelectorbatchExpiration, -fetchAndUpdateMetricsWithHandler, -fetchStorageMetadata, -genericRejectedPromiseErrorWithReason, -hasEventsForTarget, -removeAllBatchesForTargetdeleteEvents (+2 more)
 
 ### Community 823 - "Community 823"
 Cohesion: 0.33
@@ -4506,8 +4495,8 @@ Cohesion: 0.16
 Nodes (12): DartProject, HICON, CreateBadgeIcon(), MessageHandler(), UpdateTaskbarBadge(), Variant, HWND, LPARAM (+4 more)
 
 ### Community 830 - "Community 830"
-Cohesion: 0.14
-Nodes (13): dot, ext, fileExtensionOf, fileName, fileTypeBadge, formatFileSize, isPlainTextFile, kMaxFileUploadBytes (+5 more)
+Cohesion: 0.18
+Nodes (10): build, FitLabel, _fits, _longestWord, maxLines, minFontSize, style, text (+2 more)
 
 ### Community 831 - "Community 831"
 Cohesion: 0.18
@@ -4526,8 +4515,8 @@ Cohesion: 0.33
 Nodes (5): GACAppCheckTokenResult, -initWithError, -initWithToken, -initWithTokenerror, -placeholderToken
 
 ### Community 835 - "Community 835"
-Cohesion: 0.42
-Nodes (4): AuthSession, GTMOAuth2Compatibility, String, URL
+Cohesion: 0.20
+Nodes (10): ColorCodeToMultipliers(), ColorTransformDelta(), TransformColorInverse_MIPSdspR2(), TransformColorInverse_SSE2(), TransformColorInverse_SSE41(), VP8LTransformColorInverse_C(), VP8LMultipliers, VP8LMultipliers (+2 more)
 
 ### Community 836 - "Community 836"
 Cohesion: 0.33
@@ -4583,7 +4572,7 @@ Nodes (5): Web Architecture, Web Implementation Details, Web Platform Implementa
 
 ### Community 849 - "Community 849"
 Cohesion: 0.01
-Nodes (259): app_toast.dart, appleContinueTitle, kAppleContinueTitles, renderGoogleWebButton, renderGoogleWebButton, ../data/emoji_search_index.dart, ../data/emoji_set_full.dart, DismissIntent (+251 more)
+Nodes (318): app_toast.dart, ../data/emoji_search_index.dart, ../data/emoji_set_full.dart, expression_media.dart, expression_sheet.dart, ExpressionPanel, ad, aspect (+310 more)
 
 ### Community 851 - "Community 851"
 Cohesion: 0.02
@@ -4691,7 +4680,7 @@ Nodes (4): FBLPromiseErrorIsTimedOut(), FBLPromiseErrorIsValidationFailure(), NS
 
 ### Community 877 - "Community 877"
 Cohesion: 0.07
-Nodes (27): ../backend/call_api.dart, ../backend/convex_client.dart, api, _deviceId, _dispatched, _dispatchedCap, _drain, _draining (+19 more)
+Nodes (27): ../backend/call_api.dart, api, _deviceId, _dispatched, _dispatchedCap, _drain, _draining, _markDispatched (+19 more)
 
 ### Community 878 - "Community 878"
 Cohesion: 0.40
@@ -4706,8 +4695,8 @@ Cohesion: 0.40
 Nodes (4): DispatchQueue, Promise, race(), Value
 
 ### Community 881 - "Community 881"
-Cohesion: 0.33
-Nodes (4): String, Array, Cipher, UInt8
+Cohesion: 0.24
+Nodes (9): DoGreenShuffle_NEON(), SubtractGreenFromBlueAndRed_NEON(), TransformColor_NEON(), VP8LEncDspInitNEON(), uint8x16_t, uint8x8_t, VP8LMultipliers, WEBP_INLINE (+1 more)
 
 ### Community 882 - "Community 882"
 Cohesion: 0.40
@@ -4854,8 +4843,8 @@ Cohesion: 0.67
 Nodes (3): CS.BigInt, CS.BigUInt, CS
 
 ### Community 921 - "Community 921"
-Cohesion: 0.02
-Nodes (109): app_links, ArgumentError, ../auth/device_login_link.dart, dart:async, _bare, main, _rich, FormatException (+101 more)
+Cohesion: 0.04
+Nodes (50): app_links, ../auth/device_login_link.dart, invite_link.dart, DeepLinkService, dispose, _handle, handleExternal, instance (+42 more)
 
 ### Community 922 - "Community 922"
 Cohesion: 0.50
@@ -4882,8 +4871,8 @@ Cohesion: 0.50
 Nodes (3): GDTCORStorageEventSelector, -eventSelectorForTarget, -initWithTargeteventIDsmappingIDsqosTiers
 
 ### Community 928 - "Community 928"
-Cohesion: 0.47
-Nodes (3): Array, Data, String
+Cohesion: 0.22
+Nodes (9): SubtractGreenFromBlueAndRed_SSE2(), ExtraCost_SSE41(), HorizontalSum_SSE41(), SubtractGreenFromBlueAndRed_SSE41(), VP8LEncDspInitSSE41(), VP8LSubtractGreenFromBlueAndRed_C(), __m128i, WEBP_INLINE (+1 more)
 
 ### Community 929 - "Community 929"
 Cohesion: 0.50
@@ -4942,8 +4931,8 @@ Cohesion: 0.67
 Nodes (3): _, registerOffline, WebPresence
 
 ### Community 979 - "Community 979"
-Cohesion: 0.33
-Nodes (5): GACAppCheckDebugProviderAPIService, -appCheckTokenWithDebugTokenlimitedUse, -HTTPBodyWithDebugTokenlimitedUse, -initWithAPIServiceresourceName, NSString
+Cohesion: 0.36
+Nodes (6): ConvexWebSocketState, From, ClientError, WebSocketConnectionState, Error, Self
 
 ### Community 980 - "Community 980"
 Cohesion: 0.33
@@ -4954,8 +4943,8 @@ Cohesion: 0.67
 Nodes (3): _, toVersion, WebReload
 
 ### Community 996 - "Community 996"
-Cohesion: 0.20
-Nodes (10): HTTPServerRequest, -connection, -dealloc, -init, -initWithRequestconnection, -request, -response, -responseBodyStream (+2 more)
+Cohesion: 0.11
+Nodes (17): GDTCORReachability, -currentFlags, -init, -initialize, -setCallbackFlags, -sharedInstance, _In_, HTTPServerRequest (+9 more)
 
 ### Community 997 - "Community 997"
 Cohesion: 0.22
@@ -4974,12 +4963,12 @@ Cohesion: 0.83
 Nodes (3): connected(), ringback(), write()
 
 ### Community 3694 - "Community 3694"
-Cohesion: 0.17
+Cohesion: 0.15
 Nodes (12): GTMSessionFetcher, -beginFetchForRetry, -completionHandlerWithTargetdidFinishSelector, -createSessionIdentifierWithMetadata, -invokeOnCallbackQueueafterUserStoppedblock, -parentUploadFetcher, -releaseCallbacks, -retryTimer (+4 more)
 
 ### Community 3695 - "Community 3695"
-Cohesion: 0.15
-Nodes (12): GTMSessionFetcher, -beginFetchForRetry, -completionHandlerWithTargetdidFinishSelector, -createSessionIdentifierWithMetadata, -invokeOnCallbackQueueafterUserStoppedblock, -parentUploadFetcher, -releaseCallbacks, -retryTimer (+4 more)
+Cohesion: 0.31
+Nodes (6): Collection, strideCount(), Array, Int, UInt32, UInt64
 
 ### Community 3696 - "Community 3696"
 Cohesion: 0.22
@@ -4998,16 +4987,16 @@ Cohesion: 0.22
 Nodes (8): createdAt, emoji, fromJson, id, messageId, MessageReaction, toJson, userId
 
 ### Community 3703 - "Community 3703"
-Cohesion: 0.42
-Nodes (8): DoFilter(), GetILevel(), GetMBSSIM(), VP8AdjustFilterStrength(), VP8FilterStrengthFromDelta(), VP8InitFilter(), VP8StoreFilterStats(), VP8EncIterator
+Cohesion: 0.33
+Nodes (4): CS.BigInt, CS.BigUInt, CS, Strideable
 
 ### Community 3705 - "Community 3705"
 Cohesion: 0.50
 Nodes (4): HorizontalDragGestureRecognizer, _WipeRecognizer, _HorizontalDirectionalDragRecognizer, _HorizontalRightDragRecognizer
 
 ### Community 3707 - "Community 3707"
-Cohesion: 0.25
-Nodes (8): build, createState, id, initState, _LoadedMedia, _LoadedMediaState, main, mounts
+Cohesion: 0.02
+Nodes (100): ArgumentError, _bare, main, _rich, Directory, KlipyException, FormatException, HeroMode (+92 more)
 
 ### Community 3708 - "Community 3708"
 Cohesion: 0.22
@@ -5019,27 +5008,27 @@ Nodes (3): DispatchQueue, Promise, Void
 
 ### Community 3710 - "Community 3710"
 Cohesion: 0.33
-Nodes (5): FlutterSceneDelegate, NativeChrome, SceneDelegate, UIScene, UISceneSession
+Nodes (5): Error, invalidInput, nIsTooLarge, nMustBeAPowerOf2GreaterThan1, rIsTooLarge
 
 ### Community 3712 - "Community 3712"
 Cohesion: 0.60
 Nodes (4): VP8L32bToPlanar_SSE41(), VP8PlanarTo24b_SSE41(), __m128i, WEBP_INLINE
 
 ### Community 3713 - "Community 3713"
-Cohesion: 0.39
-Nodes (7): INStartAudioCallIntent, INStartVideoCallIntent, NSUserActivity, SupportedStartCallIntent, StartCallConvertible, Bool, String
+Cohesion: 0.33
+Nodes (5): main, package:integration_test/integration_test.dart, package:monkeyhub/companions/brain_gateway.dart, package:monkeyhub/companions/sebastian.dart, ../test/support/translation_eval.dart
 
 ### Community 3714 - "Community 3714"
-Cohesion: 0.25
-Nodes (6): fullEmojiSet, package:emoji_picker_flutter/emoji_picker_flutter.dart, package:monkeyhub/data/emoji_set_full.dart, all, bare, main
+Cohesion: 0.33
+Nodes (5): GACDeviceCheckAPIService, -appCheckTokenWithDeviceTokenlimitedUse, -HTTPBodyWithDeviceTokenlimitedUse, -initWithAPIServiceresourceName, NSString
 
 ### Community 3715 - "Community 3715"
-Cohesion: 0.36
-Nodes (5): Attribute, accessGroup, useFileBasedKeychain, KeychainAttribute, String
+Cohesion: 0.40
+Nodes (4): Bool, DispatchGroup, waitForPromises(), TimeInterval
 
 ### Community 3716 - "Community 3716"
-Cohesion: 0.18
-Nodes (10): enums.dart, expression_item.dart, message_formatting.dart, flat, _kPreviewChars, messagePreviewLine, raw, _rawPreview (+2 more)
+Cohesion: 0.12
+Nodes (15): chat_message.dart, enums.dart, expression_item.dart, message_formatting.dart, fromJson, message, MessageBookmark, savedAt (+7 more)
 
 ### Community 3717 - "Community 3717"
 Cohesion: 0.43
@@ -5050,28 +5039,16 @@ Cohesion: 0.20
 Nodes (10): VP8FiltersInitMIPSdspR2(), VP8FiltersInitMSA(), VP8FiltersInitNEON(), VP8FiltersInitSSE2(), VP8FiltersInit(), WEBP_DSP_INIT_FUNC, WEBP_TSAN_IGNORE_FUNCTION, WEBP_TSAN_IGNORE_FUNCTION (+2 more)
 
 ### Community 3719 - "Community 3719"
-Cohesion: 0.33
-Nodes (5): FIRAnalyticsConfiguration, -postNotificationNamevalue, -setAnalyticsCollectionEnabled, -setAnalyticsCollectionEnabledpersistSetting, -sharedInstance
+Cohesion: 0.60
+Nodes (5): MockPlatformInterfaceMixin, PathProviderPlatform, _TmpPathProvider, _TmpPathProvider, _TmpPathProvider
 
 ### Community 3720 - "Community 3720"
 Cohesion: 0.50
 Nodes (4): FIRMessagingMessageStatus, FIRMessagingMessageInfo, -init, -initWithStatus
 
-### Community 3721 - "Community 3721"
-Cohesion: 0.40
-Nodes (3): Any, String, ShareCache
-
-### Community 3723 - "Community 3723"
-Cohesion: 0.33
-Nodes (5): GACAppCheckDebugProviderAPIService, -appCheckTokenWithDebugTokenlimitedUse, -HTTPBodyWithDebugTokenlimitedUse, -initWithAPIServiceresourceName, NSString
-
 ### Community 3724 - "Community 3724"
 Cohesion: 0.33
 Nodes (5): GACDeviceCheckAPIService, -appCheckTokenWithDeviceTokenlimitedUse, -HTTPBodyWithDeviceTokenlimitedUse, -initWithAPIServiceresourceName, NSString
-
-### Community 3726 - "Community 3726"
-Cohesion: 0.50
-Nodes (4): WEBP_INLINE, GradientPredictor(), WebPEstimateBestFilter(), WEBP_FILTER_TYPE
 
 ### Community 3727 - "Community 3727"
 Cohesion: 0.40
@@ -5084,10 +5061,6 @@ Nodes (6): HTTPServer, -connectionClass, -handleNewConnectionFromAddressinputStr
 ### Community 3729 - "Community 3729"
 Cohesion: 0.40
 Nodes (5): CameraPickLibrary, CameraRecorded, CameraResult, CameraReviewed, CameraUnavailable
-
-### Community 3730 - "Community 3730"
-Cohesion: 0.50
-Nodes (3): GULNetworkInfo, -getNetworkRadioType, -getNetworkType
 
 ### Community 3731 - "Community 3731"
 Cohesion: 0.50
@@ -5102,16 +5075,16 @@ Cohesion: 0.12
 Nodes (16): BuildEnvironment, rustup.dart, AritifactType, Artifact, ArtifactProvider, artifactTypeForTarget, environment, finalFileName (+8 more)
 
 ### Community 3740 - "Community 3740"
-Cohesion: 0.02
-Nodes (91): dart:math, game_canvas.dart, game_rules.dart, GamePalette, bad, badSigns, _boxOf, cells (+83 more)
+Cohesion: 0.04
+Nodes (56): game_canvas.dart, game_rules.dart, GamePalette, TangoTrouble, autoBlocked, board, conflicts, marks (+48 more)
 
 ### Community 3747 - "Community 3747"
 Cohesion: 0.14
 Nodes (13): _didInstallRustSrcForNightly, executablePath, _getInstalledTargets, _getInstalledToolchains, installedTargets, _installedToolchains, installRustSrcForNightly, installTarget (+5 more)
 
 ### Community 3750 - "Community 3750"
-Cohesion: 0.24
-Nodes (7): CallkitNotificationManager, Any, String, UNNotification, UNNotificationPresentationOptions, UNUserNotificationCenter, Void
+Cohesion: 0.08
+Nodes (24): CallkitNotificationManager, INStartAudioCallIntent, INStartVideoCallIntent, NSUserActivity, SupportedStartCallIntent, Intents, FIRMessagingContextManagerService, -contentFromContextualMessage (+16 more)
 
 ### Community 3753 - "Community 3753"
 Cohesion: 0.67
@@ -5126,24 +5099,24 @@ Cohesion: 0.20
 Nodes (9): package:toml/toml.dart, CrateInfo, fileName, load, ManifestException, message, packageName, parseManifest (+1 more)
 
 ## Knowledge Gaps
-- **64185 isolated node(s):** `Context`, `Boolean`, `List`, `ByteArray`, `NotificationManager` (+64180 more)
+- **64188 isolated node(s):** `Context`, `Boolean`, `List`, `ByteArray`, `NotificationManager` (+64183 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **139 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **129 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Foundation` connect `Community 20` to `Community 522`, `Community 525`, `Community 539`, `Community 543`, `Community 576`, `Community 579`, `Community 580`, `Community 588`, `Community 84`, `Community 87`, `Community 604`, `Community 613`, `Community 616`, `Community 637`, `Community 3713`, `Community 3715`, `Community 3719`, `Community 3721`, `Community 657`, `Community 146`, `Community 3730`, `Community 3733`, `Community 3735`, `Community 3737`, `Community 3738`, `Community 3739`, `Community 3741`, `Community 3742`, `Community 3743`, `Community 3744`, `Community 3745`, `Community 3746`, `Community 162`, `Community 3748`, `Community 3749`, `Community 3751`, `Community 3752`, `Community 687`, `Community 176`, `Community 688`, `Community 694`, `Community 695`, `Community 184`, `Community 707`, `Community 727`, `Community 729`, `Community 220`, `Community 229`, `Community 747`, `Community 752`, `Community 753`, `Community 762`, `Community 795`, `Community 292`, `Community 804`, `Community 807`, `Community 822`, `Community 825`, `Community 826`, `Community 827`, `Community 828`, `Community 838`, `Community 839`, `Community 840`, `Community 841`, `Community 858`, `Community 358`, `Community 878`, `Community 879`, `Community 881`, `Community 882`, `Community 380`, `Community 391`, `Community 906`, `Community 907`, `Community 909`, `Community 415`, `Community 928`, `Community 419`, `Community 425`, `Community 426`, `Community 443`, `Community 459`?**
-  _High betweenness centrality (0.086) - this node is a cross-community bridge._
-- **Why does `set` connect `Community 179` to `Community 48`, `Community 193`, `Community 576`, `Community 580`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `FBLPromises` connect `Community 146` to `Community 3723`, `Community 3724`, `Community 3727`, `Community 789`, `Community 672`, `Community 677`, `Community 678`, `Community 551`, `Community 553`, `Community 440`, `Community 699`, `Community 700`, `Community 573`, `Community 575`, `Community 448`, `Community 578`, `Community 710`, `Community 199`, `Community 711`, `Community 455`, `Community 979`, `Community 475`, `Community 604`, `Community 740`, `Community 997`, `Community 358`, `Community 745`, `Community 489`, `Community 492`, `Community 3696`, `Community 635`, `Community 639`?**
+- **Why does `Foundation` connect `Community 20` to `Community 645`, `Community 391`, `Community 522`, `Community 906`, `Community 907`, `Community 525`, `Community 909`, `Community 657`, `Community 146`, `Community 539`, `Community 795`, `Community 162`, `Community 804`, `Community 3750`, `Community 807`, `Community 687`, `Community 176`, `Community 688`, `Community 437`, `Community 695`, `Community 184`, `Community 825`, `Community 826`, `Community 443`, `Community 827`, `Community 828`, `Community 191`, `Community 576`, `Community 579`, `Community 580`, `Community 838`, `Community 839`, `Community 840`, `Community 841`, `Community 459`, `Community 588`, `Community 84`, `Community 727`, `Community 87`, `Community 858`, `Community 220`, `Community 604`, `Community 613`, `Community 229`, `Community 614`, `Community 616`, `Community 742`, `Community 747`, `Community 878`, `Community 879`, `Community 752`, `Community 753`, `Community 882`, `Community 762`, `Community 380`?**
+  _High betweenness centrality (0.095) - this node is a cross-community bridge._
+- **Why does `set` connect `Community 193` to `Community 48`, `Community 576`, `Community 580`, `Community 179`?**
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Why does `FBLPromises` connect `Community 146` to `Community 3714`, `Community 3715`, `Community 3724`, `Community 3727`, `Community 789`, `Community 672`, `Community 677`, `Community 678`, `Community 551`, `Community 553`, `Community 820`, `Community 822`, `Community 440`, `Community 699`, `Community 700`, `Community 573`, `Community 191`, `Community 448`, `Community 575`, `Community 578`, `Community 710`, `Community 199`, `Community 711`, `Community 455`, `Community 475`, `Community 604`, `Community 740`, `Community 997`, `Community 745`, `Community 489`, `Community 492`, `Community 3696`, `Community 635`, `Community 639`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `Context`, `Boolean`, `List` to the rest of the system?**
-  _64206 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _64209 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.0006106870229007634 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.0006142506142506142 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.0006144393241167435 - nodes in this community are weakly interconnected._
+- **Should `Community 2` be split into smaller, more focused modules?**
+  _Cohesion score 0.0006142506142506142 - nodes in this community are weakly interconnected._

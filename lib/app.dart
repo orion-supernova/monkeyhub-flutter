@@ -2401,16 +2401,18 @@ class _CallOverlayState extends State<_CallOverlay> {
       if (widget.service.dialing != null) {
         if (_activeCallId == _dialingLatch) return;
         _activeCallId = _dialingLatch;
-        // Decode the caller's tones while the backend reserves the row, so
-        // the ringback opens on its first beat and the answer chime is
-        // instant.
-        unawaited(AlertSounds.instance
-            .prepare(const [AlertSound.ringback, AlertSound.connected]));
         WidgetsBinding.instance.addPostFrameCallback((_) {
           // Failed or hung up before the frame: nothing left to show.
           final svc = widget.service;
           if (svc.dialing == null && svc.session == null) return;
-          _pushCallScreen();
+          // Load the caller's tones once the screen is up, so the ringback
+          // opens on its first beat and the answer chime is instant. Not
+          // during the slide: the players are built on the platform thread,
+          // which is the thread that draws Flutter's frames, and the first
+          // call after a launch dropped frames at the start of the slide.
+          // The ringback waits for the callee's ringer anyway, seconds out.
+          _pushCallScreen()?.whenComplete(() => unawaited(AlertSounds.instance
+              .prepare(const [AlertSound.ringback, AlertSound.connected])));
         });
         return;
       }
@@ -2466,9 +2468,11 @@ class _CallOverlayState extends State<_CallOverlay> {
     });
   }
 
-  void _pushCallScreen() {
+  /// Pushes the 1:1 call screen; completes when its slide has settled
+  /// (null when there is no navigator to push onto).
+  Future<void>? _pushCallScreen() {
     final nav = rootNavigatorKey.currentState;
-    if (nav == null) return;
+    if (nav == null) return null;
     widget.screenUp.value = true;
     final route = MaterialPageRoute<void>(
       fullscreenDialog: true,
@@ -2476,11 +2480,13 @@ class _CallOverlayState extends State<_CallOverlay> {
       builder: (_) => CallScreen(service: widget.service, api: widget.api),
     );
     nav.push(route).whenComplete(() => widget.screenUp.value = false);
+    final settled = _settled(route);
     // A dial's native setup waits for the slide; see
     // [CallService.screenSettled].
     if (widget.service.session == null && widget.service.dialing != null) {
-      widget.service.screenSettled = _settled(route);
+      widget.service.screenSettled = settled;
     }
+    return settled;
   }
 
   /// Completes when [route] stops moving in: finished, or turned back.

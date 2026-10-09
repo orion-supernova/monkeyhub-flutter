@@ -7,6 +7,12 @@ import '../theme/theme_scope.dart';
 import 'chat_list_row.dart' show monogramGradient;
 import 'remote_image.dart';
 
+/// Diameter of the peer's avatar in the chat header. Shared because the call
+/// screen borrows that decode as its stand-in (see
+/// [UserAvatar.placeholderDecodeWidth]); a header at another size would miss
+/// the cache and slide the call screen up on a shimmer again.
+const kChatHeaderAvatarSize = 34.0;
+
 class UserAvatar extends StatelessWidget {
   const UserAvatar({
     super.key,
@@ -16,6 +22,7 @@ class UserAvatar extends StatelessWidget {
     this.ring = false,
     this.api,
     this.showStatus = true,
+    this.placeholderDecodeWidth,
   });
 
   final ChatUser user;
@@ -30,6 +37,11 @@ class UserAvatar extends StatelessWidget {
   /// When true (default) and `user.status` is non-null, paints a small dot
   /// overlay in the bottom-right corner indicating online/away/offline.
   final bool showStatus;
+
+  /// See [RemoteImage.placeholderDecodeWidth]: a smaller decode of the same
+  /// picture, already on screen elsewhere, to stand in while this size
+  /// decodes.
+  final int? placeholderDecodeWidth;
 
   String get _initials => user.displayInitial;
 
@@ -143,6 +155,7 @@ class UserAvatar extends StatelessWidget {
             width: size,
             height: size,
             borderRadius: BorderRadius.circular(size),
+            placeholderDecodeWidth: placeholderDecodeWidth,
           ),
         ),
       );

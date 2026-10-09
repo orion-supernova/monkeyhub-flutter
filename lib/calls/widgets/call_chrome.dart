@@ -1538,20 +1538,11 @@ class AudioBackdrop extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Avatar + concentric pulse rings.
-                // Springs in once when the call screen opens.
-                // Its own layer: the spring scales a cached picture of the
-                // face and rings instead of repainting the screen with it.
-                RepaintBoundary(
-                  child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.82, end: 1),
-                  duration: MediaQuery.disableAnimationsOf(context)
-                      ? Duration.zero
-                      : const Duration(milliseconds: 700),
-                  curve: Curves.elasticOut,
-                  builder: (context, s, child) =>
-                      Transform.scale(scale: s, child: child),
-                  child: PulseRings(
+                // Avatar + concentric pulse rings. No entrance of its own:
+                // the route's slide is the entrance. An elastic spring here
+                // overshot and wobbled while the whole screen was still
+                // moving, two motions fighting, and read as a stutter.
+                PulseRings(
                   accent: accent,
                   diameter: 132,
                   reach: 128,
@@ -1574,10 +1565,16 @@ class AudioBackdrop extends StatelessWidget {
                       api: api,
                       size: 132,
                       showStatus: false,
+                      // The chat header's decode of the same face, already
+                      // in memory: the screen slides up on the picture
+                      // instead of a shimmer, and the sharp 132pt decode
+                      // replaces it a frame or two later.
+                      placeholderDecodeWidth:
+                          (kChatHeaderAvatarSize *
+                                  MediaQuery.devicePixelRatioOf(context))
+                              .round(),
                     ),
                   ),
-                  ),
-                ),
                 ),
                 const SizedBox(height: 28),
                 // FaceTime's name: big, centred, the one thing on screen

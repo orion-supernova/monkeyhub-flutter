@@ -5901,6 +5901,7 @@ class _Header extends StatelessWidget {
                 CallButton(
                   peerUserId: dmUser!.id,
                   peerName: dmUser!.displayName,
+                  peerAvatarStorageId: dmUser!.avatarStorageId,
                   roomId: room.id,
                   variant: CallButtonVariant.liquid,
                   kind: CallMediaKind.video,
@@ -5909,6 +5910,7 @@ class _Header extends StatelessWidget {
                 CallButton(
                   peerUserId: dmUser!.id,
                   peerName: dmUser!.displayName,
+                  peerAvatarStorageId: dmUser!.avatarStorageId,
                   roomId: room.id,
                   variant: CallButtonVariant.liquid,
                   kind: CallMediaKind.audio,
@@ -6577,7 +6579,7 @@ class _LiquidHeader extends StatelessWidget {
 
   /// Avatar diameter inside the title capsule — large enough to be a face,
   /// and to hold a two-line name/status block level beside it.
-  static const _avatarSize = 34.0;
+  static const _avatarSize = kChatHeaderAvatarSize;
 
   /// Diameter of the round glass controls either side of the title.
   /// Every chrome button is 40pt — the back, and the width reserved for a
@@ -6675,6 +6677,7 @@ class _LiquidHeader extends StatelessWidget {
         CallButton(
           peerUserId: dmUser!.id,
           peerName: dmUser!.displayName,
+          peerAvatarStorageId: dmUser!.avatarStorageId,
           roomId: room.id,
           variant: CallButtonVariant.liquid,
           kind: CallMediaKind.video,
@@ -6683,6 +6686,7 @@ class _LiquidHeader extends StatelessWidget {
         CallButton(
           peerUserId: dmUser!.id,
           peerName: dmUser!.displayName,
+          peerAvatarStorageId: dmUser!.avatarStorageId,
           roomId: room.id,
           variant: CallButtonVariant.liquid,
           kind: CallMediaKind.audio,

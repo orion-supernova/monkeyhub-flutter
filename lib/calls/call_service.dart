@@ -608,6 +608,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     required String peerName,
     required String roomId,
     required CallMediaKind kind,
+    String? peerAvatarStorageId,
   }) async {
     final me = _userId;
     if (me == null) throw StateError('CallService not attached');
@@ -625,6 +626,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       roomId: roomId,
       peerUserId: peerUserId,
       peerName: peerName,
+      // The face the caller just tapped beside: on screen from the first
+      // frame of the slide, not swapped in after a profile round trip.
+      peerAvatarStorageId: peerAvatarStorageId,
       mediaKind: kind,
       isCaller: true,
       status: CallStatus.outgoingRinging,

@@ -34,10 +34,14 @@ class CallButton extends StatelessWidget {
     required this.roomId,
     required this.variant,
     required this.kind,
+    this.peerAvatarStorageId,
   });
 
   final String peerUserId;
   final String peerName;
+
+  /// The peer's picture, so the call screen opens on their face.
+  final String? peerAvatarStorageId;
   final String roomId;
   final CallButtonVariant variant;
   final CallMediaKind kind;
@@ -52,6 +56,7 @@ class CallButton extends StatelessWidget {
         peerName: peerName,
         roomId: roomId,
         kind: kind,
+        peerAvatarStorageId: peerAvatarStorageId,
       );
     } catch (e) {
       if (!context.mounted) return;
