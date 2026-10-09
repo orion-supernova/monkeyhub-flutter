@@ -3263,5 +3263,12 @@
   "recordsCheer": "Heja",
   "myStreaksLabel": "Mina sviter",
   "streakLongest": "Din längsta: {count, plural, =1{1 dag} other{{count} dagar}}",
-  "streaksEmpty": "Ingen har en svit här än."
+  "streaksEmpty": "Ingen har en svit här än.",
+  "videoTooLargeSnack": "Videor får max vara {size}",
+  "videoShrinkPromptTitle": "Den här videon är över {size}",
+  "videoShrinkPromptBody": "Den komprimeras för att få plats, så räkna med att den blir mycket suddigare.",
+  "videoShrinkPromptAction": "Komprimera och skicka",
+  "videoShrinkWorkingSnack": "Komprimerar video…",
+  "videoShrinkFailedSnack": "För lång för att rymmas i {size}, även komprimerad",
+  "photoHdOverCapSnack": "{count, plural, one{1 bild var över {size} och skickades i standardkvalitet} other{{count} bilder var över {size} och skickades i standardkvalitet}}"
 }

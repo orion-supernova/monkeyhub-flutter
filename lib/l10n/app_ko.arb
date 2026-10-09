@@ -3263,5 +3263,12 @@
   "recordsCheer": "응원하기",
   "myStreaksLabel": "내 연속 기록",
   "streakLongest": "최장 기록: {count, plural, other{{count}일}}",
-  "streaksEmpty": "아직 연속 기록이 있는 사람이 없어요."
+  "streaksEmpty": "아직 연속 기록이 있는 사람이 없어요.",
+  "videoTooLargeSnack": "동영상은 최대 {size}까지예요",
+  "videoShrinkPromptTitle": "이 동영상은 {size}을(를) 넘어요",
+  "videoShrinkPromptBody": "용량에 맞게 압축되니 화질이 꽤 떨어져요.",
+  "videoShrinkPromptAction": "압축해서 보내기",
+  "videoShrinkWorkingSnack": "동영상 압축 중…",
+  "videoShrinkFailedSnack": "압축해도 {size}에 들어가지 않을 만큼 길어요",
+  "photoHdOverCapSnack": "{count, plural, other{사진 {count}장이 {size}을(를) 넘어서 표준 화질로 보냈어요}}"
 }

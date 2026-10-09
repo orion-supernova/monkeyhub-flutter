@@ -120,6 +120,11 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       with: flutterViewController.engine.binaryMessenger
     )
 
+    // monkeyhub/video_shrink — re-encodes a video over the upload cap.
+    VideoShrink.register(
+      with: flutterViewController.engine.binaryMessenger
+    )
+
     // monkeyhub/drop — desktop drag-and-drop. Constructed here (it owns its
     // own channel) and reached by the four forwarding methods below.
     dropDestination = DropDestination(

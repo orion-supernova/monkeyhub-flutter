@@ -3263,5 +3263,12 @@
   "recordsCheer": "شجّع",
   "myStreaksLabel": "سلاسلي",
   "streakLongest": "أطول سلسلة لك: {count, plural, =1{يوم واحد} =2{يومان} few{{count} أيام} many{{count} يومًا} other{{count} يوم}}",
-  "streaksEmpty": "لا أحد في سلسلة هنا بعد."
+  "streaksEmpty": "لا أحد في سلسلة هنا بعد.",
+  "videoTooLargeSnack": "الحد الأقصى لحجم الفيديو هو {size}",
+  "videoShrinkPromptTitle": "هذا الفيديو يتجاوز {size}",
+  "videoShrinkPromptBody": "سيُضغط ليتّسع، فتوقّع أن تقل جودته كثيرًا.",
+  "videoShrinkPromptAction": "اضغط وأرسل",
+  "videoShrinkWorkingSnack": "جارٍ ضغط الفيديو…",
+  "videoShrinkFailedSnack": "طويل جدًا ولن يتّسع في {size} حتى بعد الضغط",
+  "photoHdOverCapSnack": "{count, plural, zero{{count} صور تجاوزت {size} فأُرسلت بجودة عادية} one{صورة واحدة تجاوزت {size} فأُرسلت بجودة عادية} two{صورتان تجاوزتا {size} فأُرسلتا بجودة عادية} few{{count} صور تجاوزت {size} فأُرسلت بجودة عادية} many{{count} صورة تجاوزت {size} فأُرسلت بجودة عادية} other{{count} صورة تجاوزت {size} فأُرسلت بجودة عادية}}"
 }

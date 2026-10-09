@@ -82,7 +82,13 @@ class GalleryTray extends StatefulWidget {
     this.selectionMax,
     this.onSettle,
     this.onSelectingChanged,
+    this.videos = false,
   });
+
+  /// Lists the library's videos instead of its photos: the camera's VIDEO
+  /// mode, where the strip offers clips the way PHOTO mode offers pictures.
+  /// Switching it reloads the strip in place.
+  final bool videos;
 
   /// Whether this platform has a library to read. iOS and Android only:
   /// `photo_manager`'s macOS build needs entitlements this app does not
@@ -227,6 +233,13 @@ class _GalleryTrayState extends State<GalleryTray>
       old.controller._state = null;
       widget.controller._state = this;
     }
+    if (old.videos != widget.videos) {
+      _clearSelection();
+      if (_access == GalleryAccess.granted ||
+          _access == GalleryAccess.limited) {
+        unawaited(_load(reset: true));
+      }
+    }
   }
 
   @override
@@ -248,8 +261,11 @@ class _GalleryTrayState extends State<GalleryTray>
   // ------------------------------------------------------------------ library
 
   static const _option = PermissionRequestOption(
+    // Both kinds, asked once: the strip lists videos in the camera's VIDEO
+    // mode, and a second prompt on the mode switch would be a question about
+    // the same library.
     androidPermission: AndroidPermission(
-      type: RequestType.image,
+      type: RequestType.common,
       mediaLocation: false,
     ),
   );
@@ -318,23 +334,29 @@ class _GalleryTrayState extends State<GalleryTray>
   Future<void> _manageLimited() async {
     HapticFeedback.selectionClick();
     try {
-      await PhotoManager.presentLimited(type: RequestType.image);
+      await PhotoManager.presentLimited(type: RequestType.common);
     } catch (_) {}
     if (mounted) await _load(reset: true);
   }
 
+  /// Bumped by every reset, so a page that was in flight for the other kind
+  /// (a mode switch mid-load) is dropped instead of landing in this one.
+  int _generation = 0;
+
   Future<void> _load({bool reset = false}) async {
     if (_loadingMore && !reset) return;
     _loadingMore = true;
+    if (reset) _generation++;
+    final generation = _generation;
     final start = reset ? 0 : _assets.length;
     try {
       final page = await PhotoManager.getAssetListRange(
         start: start,
         end: start + _page,
-        type: RequestType.image,
+        type: widget.videos ? RequestType.video : RequestType.image,
         filterOption: _filter,
       );
-      if (!mounted) return;
+      if (!mounted || generation != _generation) return;
       setState(() {
         if (reset) _assets.clear();
         _assets.addAll(page);
@@ -345,7 +367,8 @@ class _GalleryTrayState extends State<GalleryTray>
       debugPrint('[gallery_tray] load: $e');
       if (mounted) setState(() => _hasMore = false);
     } finally {
-      _loadingMore = false;
+      // A superseded load leaves the flag to the one that replaced it.
+      if (generation == _generation) _loadingMore = false;
     }
   }
 
@@ -1183,6 +1206,14 @@ class _Thumb extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(radius),
                 border: Border.all(color: MediaGlass.stroke, width: 0.6),
+              ),
+            ),
+          if (asset.type == AssetType.video)
+            Positioned(
+              left: 4,
+              bottom: 4,
+              child: MediaDurationBadge(
+                duration: Duration(seconds: asset.duration),
               ),
             ),
           if (busy)

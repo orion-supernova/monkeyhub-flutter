@@ -11839,6 +11839,42 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get streaksEmpty => 'Ainda ninguém tem uma sequência aqui.';
+
+  @override
+  String videoTooLargeSnack(String size) {
+    return 'Os vídeos têm um limite de $size';
+  }
+
+  @override
+  String videoShrinkPromptTitle(String size) {
+    return 'Este vídeo passa de $size';
+  }
+
+  @override
+  String get videoShrinkPromptBody =>
+      'Vai ser comprimido para caber, por isso conta com uma imagem bem pior.';
+
+  @override
+  String get videoShrinkPromptAction => 'Comprimir e enviar';
+
+  @override
+  String get videoShrinkWorkingSnack => 'A comprimir o vídeo…';
+
+  @override
+  String videoShrinkFailedSnack(String size) {
+    return 'Demasiado longo para caber em $size, mesmo comprimido';
+  }
+
+  @override
+  String photoHdOverCapSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fotos passavam de $size e foram em qualidade normal',
+      one: '1 foto passava de $size e foi em qualidade normal',
+    );
+    return '$_temp0';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -23662,4 +23698,40 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get streaksEmpty => 'Ninguém tem uma sequência aqui ainda.';
+
+  @override
+  String videoTooLargeSnack(String size) {
+    return 'Vídeos têm limite de $size';
+  }
+
+  @override
+  String videoShrinkPromptTitle(String size) {
+    return 'Este vídeo passa de $size';
+  }
+
+  @override
+  String get videoShrinkPromptBody =>
+      'Ele vai ser comprimido pra caber, então a qualidade vai cair bastante.';
+
+  @override
+  String get videoShrinkPromptAction => 'Comprimir e enviar';
+
+  @override
+  String get videoShrinkWorkingSnack => 'Comprimindo vídeo…';
+
+  @override
+  String videoShrinkFailedSnack(String size) {
+    return 'Longo demais pra caber em $size, mesmo comprimido';
+  }
+
+  @override
+  String photoHdOverCapSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fotos passavam de $size e foram em qualidade padrão',
+      one: '1 foto passava de $size e foi em qualidade padrão',
+    );
+    return '$_temp0';
+  }
 }

@@ -14,7 +14,6 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/preview_luminance.dart';
-import '../media/video_poster.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/gallery_tray.dart';
@@ -227,26 +226,37 @@ class CameraRecorded<T> extends CameraResult<T> {
   final CameraVideo video;
 }
 
-/// A recorded clip, on its way back to the caller.
+/// A clip, on its way back to the caller: one just recorded, or one picked
+/// from the recents strip in video mode.
 ///
-/// Carries a poster because extracting one needs the file, and the file is
-/// deleted on the way out of this screen — there is no later moment at which
-/// anybody still has a path to extract from.
+/// A file rather than bytes off web, so the caller can measure it and, when it
+/// is over the upload cap, re-encode it, which needs a path. On web there is no
+/// filesystem behind a recording, so the bytes come back instead.
 class CameraVideo {
   const CameraVideo({
-    required this.bytes,
-    required this.durationMs,
+    this.path,
+    this.bytes,
+    this.durationMs,
     this.posterBytes,
-  });
+    this.recorded = true,
+  }) : assert(path != null || bytes != null);
 
-  final Uint8List bytes;
-  final int durationMs;
+  final String? path;
+  final Uint8List? bytes;
+  final int? durationMs;
   final Uint8List? posterBytes;
+
+  /// Made by this camera, so the file is the caller's to delete once read.
+  /// False for a library pick, whose file belongs to the photo library.
+  final bool recorded;
 }
 
 /// The user asked for the photo library instead. The caller owns the picker.
+/// [videos] when it was asked for from VIDEO mode, where the library means
+/// the video picker.
 class CameraPickLibrary<T> extends CameraResult<T> {
-  const CameraPickLibrary();
+  const CameraPickLibrary({this.videos = false});
+  final bool videos;
 }
 
 /// The camera could not be started, for a reason that is not the user saying
@@ -593,6 +603,38 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     await _review(photo, () => widget.review(context, photo));
   }
 
+  /// One tap on a clip in VIDEO mode. Straight back to the caller, like a
+  /// clip just recorded: there is no video review to show it in. The file is
+  /// the library's, so the caller reads it and leaves it where it is.
+  Future<void> _pickVideoFromTray(AssetEntity asset) async {
+    if (_capturing || _recording || _inReview) return;
+    final toast = AppToast.of(context);
+    final failed = AppLocalizations.of(context).mediaPickFailedMessage;
+    File? file;
+    try {
+      // The original, not a re-render: it is what gets measured against the
+      // upload cap and, if over it, compressed.
+      file = await asset.originFile;
+    } catch (e) {
+      debugPrint('[camera] video from tray: $e');
+    }
+    if (!mounted || _inReview) return;
+    if (file == null) {
+      toast.show(failed, tone: ToastTone.danger);
+      return;
+    }
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).pop<CameraResult<T>>(
+      CameraRecorded<T>(
+        CameraVideo(
+          path: file.path,
+          durationMs: asset.duration * 1000,
+          recorded: false,
+        ),
+      ),
+    );
+  }
+
   /// "Add" at the end of a multi-selection. The photos load a few at a time —
   /// an iCloud original can take a moment, and ten full-size decodes at once
   /// is a memory spike — then go to the review together, in picked order.
@@ -785,45 +827,39 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       return;
     }
 
-    Uint8List bytes;
-    Uint8List? poster;
-    try {
-      // The poster first: it needs the file, and the file is deleted below.
-      // Best-effort, exactly as it is on the gallery path — a clip that sends
-      // without a still is fine, a clip that fails to send because its still
-      // could not be made is not.
-      // Guarded on the expression, not on the screen: `XFile.path` is a
-      // `blob:` URL on web with no filesystem behind it, and `video_thumbnail`
-      // has no web implementation to receive it either. See
-      // `video_poster_gate_test`.
-      poster = kIsWeb ? null : await VideoPoster.extract(file.path);
-      bytes = await file.readAsBytes();
-    } catch (e) {
-      debugPrint('reading recorded video: $e');
+    // Off web the file itself goes back, still on disk: the caller decides
+    // whether it fits the upload cap, and re-encoding it needs the path. The
+    // caller deletes it. On web a recording is a `blob:` URL with no
+    // filesystem behind it, so the bytes go back instead.
+    Uint8List? bytes;
+    if (kIsWeb) {
       try {
-        await File(file.path).delete();
-      } catch (_) {}
-      if (mounted) setState(() => _capturing = false);
+        bytes = await file.readAsBytes();
+      } catch (e) {
+        debugPrint('reading recorded video: $e');
+        if (mounted) setState(() => _capturing = false);
+        return;
+      }
+    }
+    if (!mounted) {
+      if (!kIsWeb) {
+        try {
+          await File(file.path).delete();
+        } catch (_) {}
+      }
       return;
     }
-    // Deleted here rather than left for the OS: this is the file that leaks on
-    // every recording if nothing removes it, and nothing downstream ever sees
-    // the path.
-    try {
-      await File(file.path).delete();
-    } catch (_) {}
-    if (!mounted) return;
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop<CameraResult<T>>(
       CameraRecorded<T>(
         CameraVideo(
+          path: kIsWeb ? null : file.path,
           bytes: bytes,
           durationMs:
               (started == null
                       ? _recordElapsed
                       : DateTime.now().difference(started))
                   .inMilliseconds,
-          posterBytes: poster,
         ),
       ),
     );
@@ -1218,16 +1254,24 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                         // Clear of the shutter row and, where there is one,
                         // the PHOTO/VIDEO switch above it.
                         anchor: safeBottom + (widget.allowVideo ? 162 : 112),
-                        onPick: _pickFromTray,
+                        videos: _mode == _CaptureMode.video,
+                        onPick: _mode == _CaptureMode.video
+                            ? _pickVideoFromTray
+                            : _pickFromTray,
                         onBrowseAll: () {
                           HapticFeedback.selectionClick();
-                          _pop(CameraPickLibrary<T>());
+                          _pop(CameraPickLibrary<T>(
+                            videos: _mode == _CaptureMode.video,
+                          ));
                         },
                         onFullChanged: _onTrayFull,
                         onSettle: _onTraySettle,
-                        onPickMany: widget.batch == null
-                            ? null
-                            : _pickManyFromTray,
+                        // One clip at a time: a batch of videos has no
+                        // review to gather them in.
+                        onPickMany:
+                            widget.batch == null || _mode == _CaptureMode.video
+                                ? null
+                                : _pickManyFromTray,
                         selectionRoom: widget.batch?.room,
                         selectionMax: widget.batch?.max,
                         onSelectingChanged: (on) =>

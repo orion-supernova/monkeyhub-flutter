@@ -11717,4 +11717,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get streaksEmpty => 'Nobody is on a streak here yet.';
+
+  @override
+  String videoTooLargeSnack(String size) {
+    return 'Videos are capped at $size';
+  }
+
+  @override
+  String videoShrinkPromptTitle(String size) {
+    return 'This video is over $size';
+  }
+
+  @override
+  String get videoShrinkPromptBody =>
+      'It\'ll be squeezed down to fit, so expect it to look a lot softer.';
+
+  @override
+  String get videoShrinkPromptAction => 'Compress and send';
+
+  @override
+  String get videoShrinkWorkingSnack => 'Compressing video…';
+
+  @override
+  String videoShrinkFailedSnack(String size) {
+    return 'Too long to fit in $size, even compressed';
+  }
+
+  @override
+  String photoHdOverCapSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count photos were over $size, so they went at standard quality',
+      one: '1 photo was over $size, so it went at standard quality',
+    );
+    return '$_temp0';
+  }
 }

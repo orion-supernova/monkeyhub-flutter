@@ -167,4 +167,8 @@ dependencies {
     val media3Version = "1.9.2"
     implementation("androidx.media3:media3-exoplayer:${media3Version}")
     implementation("androidx.media3:media3-ui:${media3Version}")
+    // Transformer re-encodes a video over the upload cap (VideoShrink.kt);
+    // effect brings Presentation, the resize it does on the way.
+    implementation("androidx.media3:media3-transformer:${media3Version}")
+    implementation("androidx.media3:media3-effect:${media3Version}")
 }

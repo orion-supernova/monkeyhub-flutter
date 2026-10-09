@@ -12,6 +12,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/editor_geometry.dart';
+import '../media/file_meta.dart' show formatFileSize, kMaxFileUploadBytes;
 import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -1145,9 +1146,11 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     // rail's order is the order they arrive in the conversation.
     final out = <EditorPhoto>[];
     var dropped = 0;
+    var downgraded = 0;
     for (final page in List.of(_draft._pages)) {
-      final image = await _exportPage(page);
+      final (image, wasDowngraded) = await _exportPage(page);
       if (!mounted) return;
+      if (wasDowngraded) downgraded++;
       if (image == null) {
         dropped++;
         continue;
@@ -1165,6 +1168,14 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       setState(() => _saving = false);
       return;
     }
+    // Per photo, so it names how many: in a set of five, only the ones that
+    // were actually over the cap lost their HD.
+    if (downgraded > 0) {
+      toast.show(l10n.photoHdOverCapSnack(
+        downgraded,
+        formatFileSize(kMaxFileUploadBytes),
+      ));
+    }
     Navigator.of(context).pop(
       EditorSend(
         photos: out,
@@ -1175,8 +1186,24 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     );
   }
 
-  /// Produces the bytes to send for [page]. Null when it cannot be decoded.
-  Future<CroppedImage?> _exportPage(_EditorPage page) async {
+  /// Produces the bytes to send for [page], and whether HD had to give way.
+  ///
+  /// HD sends the full resolution, and a large sensor's full resolution can
+  /// pass the upload cap that every other send respects. Such a photo goes at
+  /// standard quality instead, and the caller says so, rather than going up
+  /// as a file the upload budget cannot hold.
+  Future<(CroppedImage?, bool)> _exportPage(_EditorPage page) async {
+    if (!_hd) return (await _exportPageAs(page, hd: false), false);
+    final image = await _exportPageAs(page, hd: true);
+    if (image == null || image.bytes.length <= kMaxFileUploadBytes) {
+      return (image, false);
+    }
+    return (await _exportPageAs(page, hd: false), true);
+  }
+
+  /// Produces the bytes to send for [page] at [hd] or standard quality. Null
+  /// when it cannot be decoded.
+  Future<CroppedImage?> _exportPageAs(_EditorPage page, {required bool hd}) async {
     // Untouched photo: hand back the original bytes. Re-encoding would cost a
     // JPEG generation and a full-resolution rasterize to produce something
     // meant to be identical to what we were given.
@@ -1185,7 +1212,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     // lives in `prepareUneditedForSend` rather than here, so every path that
     // sends an unedited picture applies the same three lines.
     if (!page.hasEdits) {
-      final ready = await prepareUneditedForSend(page.source, hd: _hd);
+      final ready = await prepareUneditedForSend(page.source, hd: hd);
       if (ready != null) return ready;
       // Null means a header we could not read or a decode that failed. Not a
       // reason to lose the send: fall through to the full export path below,
@@ -1222,7 +1249,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       // the output bitmap size do. Capping the source decode instead would be
       // cheaper, but a tight crop out of a pre-shrunk image loses detail the
       // user explicitly framed for.
-      final scale = _hd
+      final scale = hd
           ? 1.0
           : math.min(1.0, kSendPhotoMaxEdge / math.max(outW, outH));
       final rasterW = math.max(1, (outW * scale).round());
@@ -1277,7 +1304,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
 
       return await rasterToJpegBytes(
         raster,
-        quality: _hd ? kSendPhotoHdQuality : kSendPhotoQuality,
+        quality: hd ? kSendPhotoHdQuality : kSendPhotoQuality,
       );
     } catch (e) {
       debugPrint('[camera_editor] export failed: $e');

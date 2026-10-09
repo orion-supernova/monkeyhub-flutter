@@ -45,6 +45,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../media/file_meta.dart';
 import '../media/native_gallery.dart';
 import '../media/video_poster.dart';
+import '../media/video_shrink.dart';
 import '../media/image_raster.dart';
 import '../media/photo_picking.dart';
 import '../media/view_once_fetch.dart';
@@ -69,6 +70,7 @@ import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/sheet_kit.dart' show IosSheetAction, showIosActionSheet;
 import 'message_receipts_screen.dart';
 import 'room_items.dart';
 import 'view_once_viewer.dart';
@@ -2868,18 +2870,43 @@ class _RoomScreenState extends State<RoomScreen>
           // Sent from here rather than from inside the camera for exactly the
           // reason the photograph is: the upload should start against a chat
           // that is already back on screen.
-          _sendMedia(
-            bytes: video.bytes,
-            type: MessageType.video,
-            contentType: 'video/mp4',
-            posterBytes: video.posterBytes,
-            mediaDurationMs: video.durationMs,
-          );
+          final path = video.path;
+          final bytes = video.bytes;
+          if (path != null) {
+            // Through the same size rule as a gallery pick. A clip just
+            // recorded is compressed without asking: there is nothing else
+            // its sender could choose to send instead.
+            await _sendVideoFile(
+              path,
+              durationMs: video.durationMs,
+              poster: video.posterBytes,
+              confirm: !video.recorded,
+              deleteAfter: video.recorded,
+            );
+          } else if (bytes != null) {
+            if (bytes.length > kMaxFileUploadBytes) {
+              AppToast.of(context).show(AppLocalizations.of(context)
+                  .videoTooLargeSnack(formatFileSize(kMaxFileUploadBytes)));
+              return;
+            }
+            _sendMedia(
+              bytes: bytes,
+              type: MessageType.video,
+              contentType: 'video/mp4',
+              posterBytes: video.posterBytes,
+              mediaDurationMs: video.durationMs,
+            );
+          }
 
-        case CameraPickLibrary():
+        case CameraPickLibrary(:final videos):
           // The gallery's "all photos" — the OS picker, for albums and
           // multi-select. Photos already gathered in the camera come along.
-          await _pickAndSendFromGallery(into: draft);
+          // From VIDEO mode it is the video picker instead.
+          if (videos) {
+            await _pickAndSendVideo();
+          } else {
+            await _pickAndSendFromGallery(into: draft);
+          }
 
         case CameraUnavailable():
           // The in-app camera could not start for a reason that isn't the user
@@ -3810,8 +3837,8 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// Same uncovered gap as the photo pick, and worse: there is no editor behind
   /// this one to take over the spinner, and a video's bytes are tens of
-  /// megabytes to read across the platform channel. The scrim covers the pick
-  /// and the read; the pending bubble covers the upload.
+  /// megabytes to read across the platform channel. The scrim covers the
+  /// pick; [_sendVideoFile] takes it from there.
   Future<void> _pickAndSendVideo() async {
     // Captured before the awaits, for the reason the photo pick above gives.
     final toast = AppToast.of(context);
@@ -3832,25 +3859,133 @@ class _RoomScreenState extends State<RoomScreen>
       final picked = pick.file;
       if (picked == null) return;
 
-      // Before `readAsBytes`, and only off web. `XFile.path` is a real
-      // filesystem path on mobile, which is what the extractor needs; on web it
-      // is a `blob:` URL with no filesystem behind it — the trap
-      // `UploadService` documents for `uploadXFile` — and the plugin has no web
-      // implementation to receive it anyway. Null there and on desktop, which
-      // is why the grid's play-glyph tile is a permanent state rather than a
-      // placeholder. Covered by the existing scrim: this whole method runs
-      // inside `_setMediaBusy(true)`.
-      final poster = kIsWeb ? null : await VideoPoster.extract(picked.path);
-
-      final bytes = await picked.readAsBytes();
-      _sendMedia(
-        bytes: bytes,
-        type: MessageType.video,
-        contentType: 'video/mp4',
-        posterBytes: poster,
-      );
+      // Web has no filesystem behind an `XFile`: the bytes are all there is,
+      // and nothing to re-encode them with. Everywhere else the file goes
+      // through the one video rule, path and all.
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        if (!mounted) return;
+        if (videoFateFor(bytes.length, canShrink: false) == VideoFate.refuse) {
+          toast.show(loc.videoTooLargeSnack(formatFileSize(kMaxFileUploadBytes)));
+          return;
+        }
+        _sendMedia(
+          bytes: bytes,
+          type: MessageType.video,
+          contentType: videoContentTypeFor(picked.name),
+        );
+        return;
+      }
+      _setMediaBusy(false);
+      await _sendVideoFile(picked.path);
     } finally {
       _setMediaBusy(false);
+    }
+  }
+
+  /// Every video that reaches a chat from this device's files goes through
+  /// here: a gallery pick, the camera strip's recents, a clip recorded in the
+  /// camera. One rule for all of them, per video ([videoFateFor]):
+  ///
+  ///  * at or under [kMaxFileUploadBytes], sent as it is;
+  ///  * over it, re-encoded to fit by [VideoShrink], after the sender is told
+  ///    it will look worse ([confirm] false skips the asking, for a clip the
+  ///    sender just recorded, who has nothing else to choose instead);
+  ///  * over it and too long to fit at any quality, or on a platform with no
+  ///    encoder, refused with the size named.
+  ///
+  /// Used to be three paths with three answers: the gallery sent anything,
+  /// the camera relied on 60 s at 720p staying small, and the file picker
+  /// refused. A video between 20 and 48 MB went up whole, and one past 48 MB
+  /// became a failed bubble with nothing to retry.
+  ///
+  /// The re-encode runs without the scrim: it can take a while for a long
+  /// clip, and the chat stays usable meanwhile. [deleteAfter] removes [path]
+  /// once it has been read, for files this app made itself.
+  Future<void> _sendVideoFile(
+    String path, {
+    int? durationMs,
+    Uint8List? poster,
+    bool confirm = true,
+    bool deleteAfter = false,
+  }) async {
+    final toast = AppToast.of(context);
+    final loc = AppLocalizations.of(context);
+    final cap = formatFileSize(kMaxFileUploadBytes);
+    final source = File(path);
+    String? shrunk;
+    try {
+      final int size;
+      try {
+        size = await source.length();
+      } catch (_) {
+        toast.show(loc.mediaPickFailedMessage, tone: ToastTone.danger);
+        return;
+      }
+      if (!mounted) return;
+      var sendPath = path;
+      switch (videoFateFor(size, canShrink: VideoShrink.supported)) {
+        case VideoFate.asIs:
+          break;
+        case VideoFate.refuse:
+          toast.show(loc.videoTooLargeSnack(cap));
+          return;
+        case VideoFate.shrink:
+          if (confirm) {
+            final go = await showIosActionSheet<bool>(
+              context,
+              title: loc.videoShrinkPromptTitle(cap),
+              message: loc.videoShrinkPromptBody,
+              actions: [
+                IosSheetAction(label: loc.videoShrinkPromptAction, value: true),
+              ],
+            );
+            if (go != true || !mounted) return;
+          }
+          toast.show(loc.videoShrinkWorkingSnack);
+          shrunk = await VideoShrink.shrink(path);
+          if (shrunk == null) {
+            if (mounted) {
+              toast.show(loc.videoShrinkFailedSnack(cap), tone: ToastTone.danger);
+            }
+            return;
+          }
+          sendPath = shrunk;
+      }
+      // The poster from the original: same picture, and the original is the
+      // one the extractor has already proven it can open.
+      final still = poster ?? (kIsWeb ? null : await VideoPoster.extract(path));
+      final bytes = await File(sendPath).readAsBytes();
+      final contentType = videoContentTypeFor(sendPath);
+      if (mounted) {
+        _sendMedia(
+          bytes: bytes,
+          type: MessageType.video,
+          contentType: contentType,
+          posterBytes: still,
+          mediaDurationMs: durationMs,
+        );
+      } else {
+        // Left the chat while it was compressing: the send still belongs in
+        // it, and the repository does not need this screen to make it.
+        widget.repo.sendMediaLocal(
+          roomId: widget.roomId,
+          bytes: bytes,
+          contentType: contentType,
+          type: MessageType.video,
+          posterBytes: still,
+          mediaDurationMs: durationMs,
+        );
+      }
+    } catch (e) {
+      debugPrint('[room] video send: $e');
+      if (mounted) toast.show(loc.mediaPickFailedMessage, tone: ToastTone.danger);
+    } finally {
+      for (final f in [?shrunk, if (deleteAfter) path]) {
+        try {
+          await File(f).delete();
+        } catch (_) {}
+      }
     }
   }
 

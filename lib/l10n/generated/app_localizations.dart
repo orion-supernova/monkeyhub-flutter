@@ -19740,6 +19740,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nobody is on a streak here yet.'**
   String get streaksEmpty;
+
+  /// Toast when a video is over the upload cap and this platform cannot compress it (web). {size} is the pre-formatted cap like '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos are capped at {size}'**
+  String videoTooLargeSnack(String size);
+
+  /// Title of the sheet asking to compress a picked video that is over the upload cap. {size} is the pre-formatted cap like '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is over {size}'**
+  String videoShrinkPromptTitle(String size);
+
+  /// Body of that sheet: the video will be re-encoded smaller and will look noticeably worse.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'ll be squeezed down to fit, so expect it to look a lot softer.'**
+  String get videoShrinkPromptBody;
+
+  /// The sheet's confirm button: compress the video and send it.
+  ///
+  /// In en, this message translates to:
+  /// **'Compress and send'**
+  String get videoShrinkPromptAction;
+
+  /// Toast while a video is being compressed before sending.
+  ///
+  /// In en, this message translates to:
+  /// **'Compressing video…'**
+  String get videoShrinkWorkingSnack;
+
+  /// Toast when a video cannot be compressed under the cap (too long). {size} is the pre-formatted cap like '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Too long to fit in {size}, even compressed'**
+  String videoShrinkFailedSnack(String size);
+
+  /// Toast after sending: some HD photos were over the upload cap and were sent at standard quality instead. {count} is how many, {size} the pre-formatted cap like '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 photo was over {size}, so it went at standard quality} other{{count} photos were over {size}, so they went at standard quality}}'**
+  String photoHdOverCapSnack(int count, String size);
 }
 
 class _AppLocalizationsDelegate

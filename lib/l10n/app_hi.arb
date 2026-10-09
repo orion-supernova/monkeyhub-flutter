@@ -3263,5 +3263,12 @@
   "recordsCheer": "शाबाशी दें",
   "myStreaksLabel": "मेरी स्ट्रीक",
   "streakLongest": "आपकी सबसे लंबी: {count, plural, =1{1 दिन} other{{count} दिन}}",
-  "streaksEmpty": "यहाँ अभी किसी की स्ट्रीक नहीं है।"
+  "streaksEmpty": "यहाँ अभी किसी की स्ट्रीक नहीं है।",
+  "videoTooLargeSnack": "वीडियो की साइज़ सीमा {size} है",
+  "videoShrinkPromptTitle": "यह वीडियो {size} से बड़ा है",
+  "videoShrinkPromptBody": "इसे फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।",
+  "videoShrinkPromptAction": "कंप्रेस करके भेजो",
+  "videoShrinkWorkingSnack": "वीडियो कंप्रेस हो रहा है…",
+  "videoShrinkFailedSnack": "कंप्रेस करने पर भी {size} में नहीं आएगा, बहुत लंबा है",
+  "photoHdOverCapSnack": "{count, plural, one{1 फ़ोटो {size} से बड़ी थी, इसलिए स्टैंडर्ड क्वालिटी में गई} other{{count} फ़ोटो {size} से बड़ी थीं, इसलिए स्टैंडर्ड क्वालिटी में गईं}}"
 }

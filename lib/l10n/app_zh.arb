@@ -3263,5 +3263,12 @@
   "recordsCheer": "点赞",
   "myStreaksLabel": "我的连胜",
   "streakLongest": "你的最长连胜：{count, plural, other{{count} 天}}",
-  "streaksEmpty": "这里还没有人在连胜。"
+  "streaksEmpty": "这里还没有人在连胜。",
+  "videoTooLargeSnack": "视频大小上限为 {size}",
+  "videoShrinkPromptTitle": "这个视频超过了 {size}",
+  "videoShrinkPromptBody": "会压缩到合适的大小，画质会明显变差。",
+  "videoShrinkPromptAction": "压缩并发送",
+  "videoShrinkWorkingSnack": "正在压缩视频…",
+  "videoShrinkFailedSnack": "太长了，压缩后也超过 {size}",
+  "photoHdOverCapSnack": "{count, plural, other{{count} 张照片超过 {size}，已按标准画质发送}}"
 }

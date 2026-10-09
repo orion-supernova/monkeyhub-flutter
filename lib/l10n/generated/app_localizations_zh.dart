@@ -11134,4 +11134,38 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get streaksEmpty => '这里还没有人在连胜。';
+
+  @override
+  String videoTooLargeSnack(String size) {
+    return '视频大小上限为 $size';
+  }
+
+  @override
+  String videoShrinkPromptTitle(String size) {
+    return '这个视频超过了 $size';
+  }
+
+  @override
+  String get videoShrinkPromptBody => '会压缩到合适的大小，画质会明显变差。';
+
+  @override
+  String get videoShrinkPromptAction => '压缩并发送';
+
+  @override
+  String get videoShrinkWorkingSnack => '正在压缩视频…';
+
+  @override
+  String videoShrinkFailedSnack(String size) {
+    return '太长了，压缩后也超过 $size';
+  }
+
+  @override
+  String photoHdOverCapSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 张照片超过 $size，已按标准画质发送',
+    );
+    return '$_temp0';
+  }
 }

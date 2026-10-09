@@ -1337,6 +1337,11 @@ import flutter_callkit_incoming
       SubjectCutout.register(with: cutoutRegistrar.messenger())
     }
 
+    // monkeyhub/video_shrink — re-encodes a video over the upload cap.
+    if let shrinkRegistrar = engine.registrar(forPlugin: "MonkeyHubVideoShrinkPlugin") {
+      VideoShrink.register(with: shrinkRegistrar.messenger())
+    }
+
     // monkeyhub/badge — set or clear the app icon badge count.
     // Register the channel via a plugin registrar so we get a binaryMessenger
     // without depending on the rootViewController being a FlutterViewController.

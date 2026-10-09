@@ -3263,5 +3263,12 @@
   "recordsCheer": "Aplaudir",
   "myStreaksLabel": "Mis rachas",
   "streakLongest": "Tu racha más larga: {count, plural, =1{1 día} other{{count} días}}",
-  "streaksEmpty": "Aquí nadie tiene racha todavía."
+  "streaksEmpty": "Aquí nadie tiene racha todavía.",
+  "videoTooLargeSnack": "Los vídeos tienen un límite de {size}",
+  "videoShrinkPromptTitle": "Este vídeo pasa de {size}",
+  "videoShrinkPromptBody": "Se comprimirá para que quepa, así que se verá bastante peor.",
+  "videoShrinkPromptAction": "Comprimir y enviar",
+  "videoShrinkWorkingSnack": "Comprimiendo vídeo…",
+  "videoShrinkFailedSnack": "Es demasiado largo para caber en {size}, incluso comprimido",
+  "photoHdOverCapSnack": "{count, plural, one{1 foto pasaba de {size} y se envió en calidad estándar} other{{count} fotos pasaban de {size} y se enviaron en calidad estándar}}"
 }

@@ -11897,4 +11897,44 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get streaksEmpty => 'لا أحد في سلسلة هنا بعد.';
+
+  @override
+  String videoTooLargeSnack(String size) {
+    return 'الحد الأقصى لحجم الفيديو هو $size';
+  }
+
+  @override
+  String videoShrinkPromptTitle(String size) {
+    return 'هذا الفيديو يتجاوز $size';
+  }
+
+  @override
+  String get videoShrinkPromptBody =>
+      'سيُضغط ليتّسع، فتوقّع أن تقل جودته كثيرًا.';
+
+  @override
+  String get videoShrinkPromptAction => 'اضغط وأرسل';
+
+  @override
+  String get videoShrinkWorkingSnack => 'جارٍ ضغط الفيديو…';
+
+  @override
+  String videoShrinkFailedSnack(String size) {
+    return 'طويل جدًا ولن يتّسع في $size حتى بعد الضغط';
+  }
+
+  @override
+  String photoHdOverCapSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count صورة تجاوزت $size فأُرسلت بجودة عادية',
+      many: '$count صورة تجاوزت $size فأُرسلت بجودة عادية',
+      few: '$count صور تجاوزت $size فأُرسلت بجودة عادية',
+      two: 'صورتان تجاوزتا $size فأُرسلتا بجودة عادية',
+      one: 'صورة واحدة تجاوزت $size فأُرسلت بجودة عادية',
+      zero: '$count صور تجاوزت $size فأُرسلت بجودة عادية',
+    );
+    return '$_temp0';
+  }
 }

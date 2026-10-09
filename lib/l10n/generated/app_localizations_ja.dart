@@ -11247,4 +11247,38 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get streaksEmpty => 'まだ誰も連続記録がありません。';
+
+  @override
+  String videoTooLargeSnack(String size) {
+    return '動画は$sizeまでです';
+  }
+
+  @override
+  String videoShrinkPromptTitle(String size) {
+    return 'この動画は$sizeを超えています';
+  }
+
+  @override
+  String get videoShrinkPromptBody => '収まるように圧縮するので、画質はかなり落ちます。';
+
+  @override
+  String get videoShrinkPromptAction => '圧縮して送信';
+
+  @override
+  String get videoShrinkWorkingSnack => '動画を圧縮中…';
+
+  @override
+  String videoShrinkFailedSnack(String size) {
+    return '圧縮しても$sizeに収まらない長さです';
+  }
+
+  @override
+  String photoHdOverCapSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count枚の写真が$sizeを超えたため、標準画質で送信しました',
+    );
+    return '$_temp0';
+  }
 }

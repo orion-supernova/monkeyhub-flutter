@@ -3263,5 +3263,12 @@
   "recordsCheer": "応援する",
   "myStreaksLabel": "自分の連続記録",
   "streakLongest": "最長記録: {count, plural, other{{count}日}}",
-  "streaksEmpty": "まだ誰も連続記録がありません。"
+  "streaksEmpty": "まだ誰も連続記録がありません。",
+  "videoTooLargeSnack": "動画は{size}までです",
+  "videoShrinkPromptTitle": "この動画は{size}を超えています",
+  "videoShrinkPromptBody": "収まるように圧縮するので、画質はかなり落ちます。",
+  "videoShrinkPromptAction": "圧縮して送信",
+  "videoShrinkWorkingSnack": "動画を圧縮中…",
+  "videoShrinkFailedSnack": "圧縮しても{size}に収まらない長さです",
+  "photoHdOverCapSnack": "{count, plural, other{{count}枚の写真が{size}を超えたため、標準画質で送信しました}}"
 }

@@ -3263,5 +3263,12 @@
   "recordsCheer": "Aplaudir",
   "myStreaksLabel": "As minhas sequências",
   "streakLongest": "A tua mais longa: {count, plural, =1{1 dia} other{{count} dias}}",
-  "streaksEmpty": "Ainda ninguém tem uma sequência aqui."
+  "streaksEmpty": "Ainda ninguém tem uma sequência aqui.",
+  "videoTooLargeSnack": "Os vídeos têm um limite de {size}",
+  "videoShrinkPromptTitle": "Este vídeo passa de {size}",
+  "videoShrinkPromptBody": "Vai ser comprimido para caber, por isso conta com uma imagem bem pior.",
+  "videoShrinkPromptAction": "Comprimir e enviar",
+  "videoShrinkWorkingSnack": "A comprimir o vídeo…",
+  "videoShrinkFailedSnack": "Demasiado longo para caber em {size}, mesmo comprimido",
+  "photoHdOverCapSnack": "{count, plural, one{1 foto passava de {size} e foi em qualidade normal} other{{count} fotos passavam de {size} e foram em qualidade normal}}"
 }
