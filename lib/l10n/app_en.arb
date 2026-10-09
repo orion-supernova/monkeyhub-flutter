@@ -13799,18 +13799,26 @@
       }
     }
   },
-  "videoShrinkPromptTitle": "This video is over {size}",
+  "videoShrinkPromptTitle": "{count, plural, one{This video is over {size}} other{{count} videos are over {size}}}",
   "@videoShrinkPromptTitle": {
-    "description": "Title of the sheet asking to compress a picked video that is over the upload cap. {size} is the pre-formatted cap like '20 MB'.",
+    "description": "Title of the sheet asking to compress videos that are over the upload cap. {count} is how many are over, {size} the pre-formatted cap like '20 MB'.",
     "placeholders": {
+      "count": {
+        "type": "int"
+      },
       "size": {
         "type": "String"
       }
     }
   },
-  "videoShrinkPromptBody": "It'll be squeezed down to fit, so expect it to look a lot softer.",
+  "videoShrinkPromptBody": "{count, plural, one{It'll be squeezed down to fit, so expect it to look a lot softer.} other{They'll be squeezed down to fit, so expect them to look a lot softer.}}",
   "@videoShrinkPromptBody": {
-    "description": "Body of that sheet: the video will be re-encoded smaller and will look noticeably worse."
+    "description": "Body of that sheet: the {count} videos will be re-encoded smaller and will look noticeably worse.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "videoShrinkPromptAction": "Compress and send",
   "@videoShrinkPromptAction": {
@@ -13820,10 +13828,13 @@
   "@videoShrinkWorkingSnack": {
     "description": "Toast while a video is being compressed before sending."
   },
-  "videoShrinkFailedSnack": "Too long to fit in {size}, even compressed",
+  "videoShrinkFailedSnack": "{count, plural, one{Too long to fit in {size}, even compressed} other{{count} videos are too long to fit in {size}, even compressed}}",
   "@videoShrinkFailedSnack": {
-    "description": "Toast when a video cannot be compressed under the cap (too long). {size} is the pre-formatted cap like '20 MB'.",
+    "description": "Toast when videos could not be compressed under the cap (too long). {count} is how many, {size} the cap like '20 MB'.",
     "placeholders": {
+      "count": {
+        "type": "int"
+      },
       "size": {
         "type": "String"
       }
@@ -13832,6 +13843,18 @@
   "photoHdOverCapSnack": "{count, plural, one{1 photo was over {size}, so it went at standard quality} other{{count} photos were over {size}, so they went at standard quality}}",
   "@photoHdOverCapSnack": {
     "description": "Toast after sending: some HD photos were over the upload cap and were sent at standard quality instead. {count} is how many, {size} the pre-formatted cap like '20 MB'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "videoShrinkSendSmallOnly": "{count, plural, one{Send only the one under {size}} other{Send only the {count} under {size}}}",
+  "@videoShrinkSendSmallOnly": {
+    "description": "Second action in that sheet when some videos in the batch are already under the cap: send only those ({count} of them) and skip the big ones. {size} is the cap like '20 MB'.",
     "placeholders": {
       "count": {
         "type": "int"

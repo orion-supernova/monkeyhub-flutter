@@ -24,6 +24,10 @@ struct ShareComposeView: View {
     /// does something to — a video or a plain file has nothing for it to act
     /// on, so the toggle stays hidden rather than offering a no-op.
     let hasCompressiblePhoto: Bool
+    /// Videos over the upload cap that will be compressed before they go. The
+    /// app asks before doing this; the sheet says it here, before Send, which
+    /// is the same warning at the only moment this sheet has.
+    let shrinkingVideoCount: Int
 
     @Binding var selectedChatId: String?
     @Binding var caption: String
@@ -102,6 +106,12 @@ struct ShareComposeView: View {
                 Text(previewTitle)
                     .font(.subheadline.weight(.medium))
                     .lineLimit(2)
+                if shrinkingVideoCount > 0 {
+                    Text(shrinkNote)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(3)
+                }
                 if case .failed(let message) = state {
                     // The failure sits with the content rather than in an alert:
                     // an alert would have to be dismissed before the user could
@@ -152,6 +162,15 @@ struct ShareComposeView: View {
         .buttonStyle(.plain)
         .disabled(state == .sending)
         .accessibilityLabel(active.wrappedValue ? semanticOn : semanticOff)
+    }
+
+    private var shrinkNote: String {
+        let cap = ByteCountFormatter.string(
+            fromByteCount: ShareGroup.maxUploadBytes, countStyle: .binary
+        )
+        return shrinkingVideoCount == 1
+            ? "This video is over \(cap), so it will be compressed and look softer."
+            : "\(shrinkingVideoCount) videos are over \(cap), so they will be compressed and look softer."
     }
 
     private var previewTitle: String {

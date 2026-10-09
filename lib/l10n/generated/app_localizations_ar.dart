@@ -11904,13 +11904,30 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return 'هذا الفيديو يتجاوز $size';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count فيديو يتجاوز $size',
+      many: '$count فيديو يتجاوز $size',
+      few: '$count فيديوهات تتجاوز $size',
+      two: 'فيديوهان يتجاوزان $size',
+      one: 'هذا الفيديو يتجاوز $size',
+      zero: '$count فيديوهات تتجاوز $size',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody =>
-      'سيُضغط ليتّسع، فتوقّع أن تقل جودته كثيرًا.';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ستُضغط لتتّسع، فتوقّع أن تقل جودتها كثيرًا.',
+      one: 'سيُضغط ليتّسع، فتوقّع أن تقل جودته كثيرًا.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => 'اضغط وأرسل';
@@ -11919,8 +11936,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get videoShrinkWorkingSnack => 'جارٍ ضغط الفيديو…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return 'طويل جدًا ولن يتّسع في $size حتى بعد الضغط';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count فيديو طويلة جدًا ولن تتّسع في $size حتى بعد الضغط',
+      one: 'طويل جدًا ولن يتّسع في $size حتى بعد الضغط',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11934,6 +11957,17 @@ class AppLocalizationsAr extends AppLocalizations {
       two: 'صورتان تجاوزتا $size فأُرسلتا بجودة عادية',
       one: 'صورة واحدة تجاوزت $size فأُرسلت بجودة عادية',
       zero: '$count صور تجاوزت $size فأُرسلت بجودة عادية',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'أرسل الـ $count الأصغر من $size فقط',
+      one: 'أرسل الفيديو الأصغر من $size فقط',
     );
     return '$_temp0';
   }

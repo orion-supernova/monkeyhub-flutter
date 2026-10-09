@@ -16,6 +16,11 @@ import UniformTypeIdentifiers
 /// loudly if they disagree.
 private let kMaxDropBytes: Int = 20 * 1024 * 1024
 
+/// Mirrors `kMaxMediaIntakeBytes` in lib/media/file_meta.dart: the cap for a
+/// dropped photo or video, which the app compresses down to [kMaxDropBytes]
+/// before it goes. `drop_cap_test.dart` pins this one too.
+private let kMaxDropMediaBytes: Int = 500 * 1024 * 1024
+
 /// How far the pointer has to travel before another `move` is worth sending.
 ///
 /// AppKit calls `draggingUpdated:` continuously — including while the pointer
@@ -262,7 +267,8 @@ final class DropDestination: NSObject {
 
       let size = values?.fileSize ?? 0
       entry["size"] = size
-      if size > kMaxDropBytes {
+      let media = mime.hasPrefix("image/") || mime.hasPrefix("video/")
+      if size > (media ? kMaxDropMediaBytes : kMaxDropBytes) {
         entry["oversize"] = true
         out.append(entry)
         continue

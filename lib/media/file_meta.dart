@@ -30,6 +30,26 @@ library;
 /// reason while the user is still in the file browser they chose it from.
 const int kMaxFileUploadBytes = 20 * 1024 * 1024;
 
+/// The largest photo or video the share and drop paths take in, to be
+/// compressed down to [kMaxFileUploadBytes] before it is sent.
+///
+/// A document has nothing to compress it, so it stays at the upload cap. A
+/// photo or video is re-encoded on its way out, so what it costs to take in is
+/// only disk and copy time, and that is what this bounds: past it a share
+/// would spend a minute copying a clip too long to fit 20 MB at any quality
+/// anyway. Mirrored by `ShareIntake.MAX_MEDIA_INTAKE_BYTES` (Android) and
+/// `ShareGroup.maxMediaIntakeBytes` (iOS); `share_upload_cap_test.dart` pins
+/// the three together.
+const int kMaxMediaIntakeBytes = 500 * 1024 * 1024;
+
+/// The intake cap for a file of [mimeType]: [kMaxMediaIntakeBytes] for a
+/// photo or video, which get compressed, [kMaxFileUploadBytes] for anything
+/// else, which goes as it is.
+int intakeCapFor(String mimeType) =>
+    mimeType.startsWith('image/') || mimeType.startsWith('video/')
+        ? kMaxMediaIntakeBytes
+        : kMaxFileUploadBytes;
+
 /// Extension → content type, for the formats a chat actually carries.
 ///
 /// Deliberately not exhaustive: anything absent falls to

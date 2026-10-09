@@ -130,9 +130,25 @@ void main() {
     });
 
     test('over the cap is refused with the cap as the reason', () {
-      final a = assess(file('huge.mov', size: kMaxFileUploadBytes + 1));
+      final a = assess(file('huge.mov', size: kMaxMediaIntakeBytes + 1));
       expect(a.refusal, DropRefusal.tooLarge);
-      expect(assess(file('fine.mov', size: kMaxFileUploadBytes)).accepted, isTrue);
+      expect(
+        assess(file('fine.mov', size: kMaxMediaIntakeBytes)).accepted,
+        isTrue,
+      );
+    });
+
+    test('a big video is taken in to be compressed, a big document is not', () {
+      // A photo or video is compressed to the upload cap on the way out, so
+      // its intake cap is the larger one. A document goes as it is.
+      expect(
+        assess(file('trip.mov', size: kMaxFileUploadBytes * 3)).accepted,
+        isTrue,
+      );
+      expect(
+        assess(file('scan.pdf', size: kMaxFileUploadBytes + 1)).refusal,
+        DropRefusal.tooLarge,
+      );
     });
 
     test('an empty file is refused rather than sent as a bubble of nothing', () {
@@ -237,7 +253,7 @@ void main() {
     test('mixed refusals report no sole reason', () {
       final plan = planOf([
         const DropCandidate(name: 'Exports', isDirectory: true),
-        file('huge.mov', size: kMaxFileUploadBytes + 1),
+        file('huge.mov', size: kMaxMediaIntakeBytes + 1),
       ]);
       expect(plan.soleRefusal, isNull);
     });
@@ -277,6 +293,18 @@ void main() {
       expect(plan.items.last.refusal, DropRefusal.batchFull);
     });
 
+    test('a big video spends what it will be compressed to, not its size', () {
+      // 100 MB on disk, at most the upload cap once compressed: two of them
+      // fit the batch the way two clips at the cap do.
+      final plan = planOf([
+        file('a.mov', size: kMaxFileUploadBytes * 5),
+        file('b.mov', size: kMaxFileUploadBytes * 5),
+        file('c.mov', size: kMaxFileUploadBytes * 5),
+      ]);
+      expect(plan.accepted.length, 2);
+      expect(plan.items.last.refusal, DropRefusal.batchFull);
+    });
+
     test('once the budget is gone a later small file does not sneak in', () {
       final plan = planOf([
         file('big1.mov', size: kMaxFileUploadBytes),
@@ -292,7 +320,7 @@ void main() {
       // would shrink the send for nothing.
       final plan = planOf([
         const DropCandidate(name: 'Exports', isDirectory: true),
-        file('huge.mov', size: kMaxFileUploadBytes + 1),
+        file('huge.mov', size: kMaxMediaIntakeBytes + 1),
         for (var i = 0; i < kMaxDropItems; i++) file('f$i.png', size: 1024),
       ]);
       expect(plan.accepted.length, kMaxDropItems);

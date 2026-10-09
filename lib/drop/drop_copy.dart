@@ -132,7 +132,7 @@ String? _refusalLine(AppLocalizations l10n, DropPlan plan) {
     case DropRefusal.tooLarge:
       return l10n.dropNoticeTooLarge(
         refused.length,
-        formatFileSize(kMaxFileUploadBytes),
+        formatFileSize(_tooLargeCap(refused)),
       );
     case DropRefusal.empty:
       return l10n.dropNoticeEmpty(refused.length);
@@ -164,7 +164,7 @@ String? _cautionLine(AppLocalizations l10n, DropPlan plan) {
     if (tooLarge > 0) {
       return l10n.dropNoticeTooLarge(
         tooLarge,
-        formatFileSize(kMaxFileUploadBytes),
+        formatFileSize(_tooLargeCap(refused)),
       );
     }
     if ((byKind[DropRefusal.notPermitted] ?? 0) > 0) {
@@ -182,4 +182,17 @@ String? _cautionLine(AppLocalizations l10n, DropPlan plan) {
   if (plan.downgradedCount > 0) return l10n.dropNoticeAsFile(plan.downgradedCount);
   if (plan.fragileCount > 0) return l10n.dropNoticeFragile(plan.fragileCount);
   return null;
+}
+
+/// The cap the too-large items in [refused] ran into: the upload cap when any
+/// of them is a document, which goes as it is, and the larger media cap when
+/// all of them are photos or videos, which would have been compressed.
+int _tooLargeCap(List<DropAssessment> refused) {
+  final tooLarge = [
+    for (final i in refused)
+      if (i.refusal == DropRefusal.tooLarge) i,
+  ];
+  return tooLarge.any((i) => dropIntakeCapFor(i.kind) == kMaxFileUploadBytes)
+      ? kMaxFileUploadBytes
+      : dropMediaIntakeCap;
 }

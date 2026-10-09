@@ -3265,10 +3265,11 @@
   "streakLongest": "Ta plus longue : {count, plural, =1{1 jour} other{{count} jours}}",
   "streaksEmpty": "Personne n'a encore de série ici.",
   "videoTooLargeSnack": "Les vidéos sont limitées à {size}",
-  "videoShrinkPromptTitle": "Cette vidéo dépasse {size}",
-  "videoShrinkPromptBody": "Elle sera compressée pour tenir, attends-toi à une image bien moins nette.",
+  "videoShrinkPromptTitle": "{count, plural, one{Cette vidéo dépasse {size}} other{{count} vidéos dépassent {size}}}",
+  "videoShrinkPromptBody": "{count, plural, one{Elle sera compressée pour tenir, attends-toi à une image bien moins nette.} other{Elles seront compressées pour tenir, attends-toi à une image bien moins nette.}}",
   "videoShrinkPromptAction": "Compresser et envoyer",
   "videoShrinkWorkingSnack": "Compression de la vidéo…",
-  "videoShrinkFailedSnack": "Trop longue pour tenir dans {size}, même compressée",
-  "photoHdOverCapSnack": "{count, plural, one{1 photo dépassait {size}, elle est partie en qualité standard} other{{count} photos dépassaient {size}, elles sont parties en qualité standard}}"
+  "videoShrinkFailedSnack": "{count, plural, one{Trop longue pour tenir dans {size}, même compressée} other{{count} vidéos sont trop longues pour tenir dans {size}, même compressées}}",
+  "photoHdOverCapSnack": "{count, plural, one{1 photo dépassait {size}, elle est partie en qualité standard} other{{count} photos dépassaient {size}, elles sont parties en qualité standard}}",
+  "videoShrinkSendSmallOnly": "{count, plural, one{N’envoyer que celle sous {size}} other{N’envoyer que les {count} sous {size}}}"
 }

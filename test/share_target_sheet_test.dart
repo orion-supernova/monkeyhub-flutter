@@ -195,6 +195,29 @@ void main() {
         ),
       ]),
     );
+    // A video is compressed on the way out, so the limit it ran into is the
+    // media intake cap, not the 20 MB upload cap.
+    expect(
+      find.textContaining('over the 500.0 MB limit'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a refused document names the upload cap', (tester) async {
+    final repo = _FakeRepo(rooms: [room('a', name: 'Trip planning')]);
+    await open(
+      tester,
+      repo: repo,
+      payload: const SharedPayload(items: [
+        SharedItem(path: '/tmp/1.jpg', mimeType: 'image/jpeg', size: 10),
+        SharedItem(
+          path: '',
+          mimeType: 'application/pdf',
+          size: 30000000,
+          oversize: true,
+        ),
+      ]),
+    );
     expect(
       find.textContaining('over the 20.0 MB limit'),
       findsOneWidget,

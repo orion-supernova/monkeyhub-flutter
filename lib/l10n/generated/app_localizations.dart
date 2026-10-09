@@ -19747,17 +19747,17 @@ abstract class AppLocalizations {
   /// **'Videos are capped at {size}'**
   String videoTooLargeSnack(String size);
 
-  /// Title of the sheet asking to compress a picked video that is over the upload cap. {size} is the pre-formatted cap like '20 MB'.
+  /// Title of the sheet asking to compress videos that are over the upload cap. {count} is how many are over, {size} the pre-formatted cap like '20 MB'.
   ///
   /// In en, this message translates to:
-  /// **'This video is over {size}'**
-  String videoShrinkPromptTitle(String size);
+  /// **'{count, plural, one{This video is over {size}} other{{count} videos are over {size}}}'**
+  String videoShrinkPromptTitle(int count, String size);
 
-  /// Body of that sheet: the video will be re-encoded smaller and will look noticeably worse.
+  /// Body of that sheet: the {count} videos will be re-encoded smaller and will look noticeably worse.
   ///
   /// In en, this message translates to:
-  /// **'It\'ll be squeezed down to fit, so expect it to look a lot softer.'**
-  String get videoShrinkPromptBody;
+  /// **'{count, plural, one{It\'ll be squeezed down to fit, so expect it to look a lot softer.} other{They\'ll be squeezed down to fit, so expect them to look a lot softer.}}'**
+  String videoShrinkPromptBody(int count);
 
   /// The sheet's confirm button: compress the video and send it.
   ///
@@ -19771,17 +19771,23 @@ abstract class AppLocalizations {
   /// **'Compressing video…'**
   String get videoShrinkWorkingSnack;
 
-  /// Toast when a video cannot be compressed under the cap (too long). {size} is the pre-formatted cap like '20 MB'.
+  /// Toast when videos could not be compressed under the cap (too long). {count} is how many, {size} the cap like '20 MB'.
   ///
   /// In en, this message translates to:
-  /// **'Too long to fit in {size}, even compressed'**
-  String videoShrinkFailedSnack(String size);
+  /// **'{count, plural, one{Too long to fit in {size}, even compressed} other{{count} videos are too long to fit in {size}, even compressed}}'**
+  String videoShrinkFailedSnack(int count, String size);
 
   /// Toast after sending: some HD photos were over the upload cap and were sent at standard quality instead. {count} is how many, {size} the pre-formatted cap like '20 MB'.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, one{1 photo was over {size}, so it went at standard quality} other{{count} photos were over {size}, so they went at standard quality}}'**
   String photoHdOverCapSnack(int count, String size);
+
+  /// Second action in that sheet when some videos in the batch are already under the cap: send only those ({count} of them) and skip the big ones. {size} is the cap like '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Send only the one under {size}} other{Send only the {count} under {size}}}'**
+  String videoShrinkSendSmallOnly(int count, String size);
 }
 
 class _AppLocalizationsDelegate

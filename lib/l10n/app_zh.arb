@@ -3265,10 +3265,11 @@
   "streakLongest": "你的最长连胜：{count, plural, other{{count} 天}}",
   "streaksEmpty": "这里还没有人在连胜。",
   "videoTooLargeSnack": "视频大小上限为 {size}",
-  "videoShrinkPromptTitle": "这个视频超过了 {size}",
-  "videoShrinkPromptBody": "会压缩到合适的大小，画质会明显变差。",
+  "videoShrinkPromptTitle": "{count, plural, other{{count} 个视频超过了 {size}}}",
+  "videoShrinkPromptBody": "{count, plural, other{会压缩到合适的大小，画质会明显变差。}}",
   "videoShrinkPromptAction": "压缩并发送",
   "videoShrinkWorkingSnack": "正在压缩视频…",
-  "videoShrinkFailedSnack": "太长了，压缩后也超过 {size}",
-  "photoHdOverCapSnack": "{count, plural, other{{count} 张照片超过 {size}，已按标准画质发送}}"
+  "videoShrinkFailedSnack": "{count, plural, other{{count} 个视频太长，压缩后也超过 {size}}}",
+  "photoHdOverCapSnack": "{count, plural, other{{count} 张照片超过 {size}，已按标准画质发送}}",
+  "videoShrinkSendSmallOnly": "{count, plural, other{只发送不超过 {size} 的 {count} 个}}"
 }

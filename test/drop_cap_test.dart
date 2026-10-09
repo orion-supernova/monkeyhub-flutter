@@ -49,6 +49,19 @@ void main() {
     );
   });
 
+  test('the macOS media cap equals the Dart media intake cap', () {
+    final match = RegExp(
+      r'kMaxDropMediaBytes:\s*Int\s*=\s*(\d+)\s*\*\s*1024\s*\*\s*1024',
+    ).firstMatch(swift);
+    expect(match, isNotNull, reason: 'kMaxDropMediaBytes moved or changed shape');
+    expect(
+      int.parse(match!.group(1)!) * 1024 * 1024,
+      kMaxMediaIntakeBytes,
+      reason: 'A dropped photo or video past the Swift cap is never copied; '
+          'past the Dart one it is refused. They have to be the same number.',
+    );
+  });
+
   test('the web channel reads the cap rather than repeating it', () {
     // The browser has no native half, so there is no second constant to keep
     // in step — and there must never be one.

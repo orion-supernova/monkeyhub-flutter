@@ -11254,12 +11254,24 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return 'この動画は$sizeを超えています';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count本の動画が$sizeを超えています',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody => '収まるように圧縮するので、画質はかなり落ちます。';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '収まるように圧縮するので、画質はかなり落ちます。',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => '圧縮して送信';
@@ -11268,8 +11280,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get videoShrinkWorkingSnack => '動画を圧縮中…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return '圧縮しても$sizeに収まらない長さです';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count本の動画は圧縮しても$sizeに収まらない長さです',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11278,6 +11295,16 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count枚の写真が$sizeを超えたため、標準画質で送信しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$size以下の$count本だけ送信',
     );
     return '$_temp0';
   }

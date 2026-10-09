@@ -11846,13 +11846,28 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return 'Este vídeo passa de $size';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count vídeos passam de $size',
+      one: 'Este vídeo passa de $size',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody =>
-      'Vai ser comprimido para caber, por isso conta com uma imagem bem pior.';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Vão ser comprimidos para caber, por isso conta com uma imagem bem pior.',
+      one:
+          'Vai ser comprimido para caber, por isso conta com uma imagem bem pior.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => 'Comprimir e enviar';
@@ -11861,8 +11876,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get videoShrinkWorkingSnack => 'A comprimir o vídeo…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return 'Demasiado longo para caber em $size, mesmo comprimido';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count vídeos são demasiado longos para caber em $size, mesmo comprimidos',
+      one: 'Demasiado longo para caber em $size, mesmo comprimido',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11872,6 +11894,17 @@ class AppLocalizationsPt extends AppLocalizations {
       locale: localeName,
       other: '$count fotos passavam de $size e foram em qualidade normal',
       one: '1 foto passava de $size e foi em qualidade normal',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enviar só os $count abaixo de $size',
+      one: 'Enviar só o que fica abaixo de $size',
     );
     return '$_temp0';
   }
@@ -23705,13 +23738,28 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return 'Este vídeo passa de $size';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count vídeos passam de $size',
+      one: 'Este vídeo passa de $size',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody =>
-      'Ele vai ser comprimido pra caber, então a qualidade vai cair bastante.';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Eles vão ser comprimidos pra caber, então a qualidade vai cair bastante.',
+      one:
+          'Ele vai ser comprimido pra caber, então a qualidade vai cair bastante.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => 'Comprimir e enviar';
@@ -23720,8 +23768,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get videoShrinkWorkingSnack => 'Comprimindo vídeo…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return 'Longo demais pra caber em $size, mesmo comprimido';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count vídeos são longos demais pra caber em $size, mesmo comprimidos',
+      one: 'Longo demais pra caber em $size, mesmo comprimido',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -23731,6 +23786,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       locale: localeName,
       other: '$count fotos passavam de $size e foram em qualidade padrão',
       one: '1 foto passava de $size e foi em qualidade padrão',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enviar só os $count abaixo de $size',
+      one: 'Enviar só o que fica abaixo de $size',
     );
     return '$_temp0';
   }

@@ -13,9 +13,9 @@ struct StagedItem {
     let mimeType: String
     let fileName: String
     let byteCount: Int64
-    /// True when the file is over the upload cap and was NOT copied. Reported
-    /// rather than dropped so the sheet can say why fewer things went than were
-    /// shared.
+    /// True when the file is over its intake cap (`ShareGroup.intakeCap`) and
+    /// was NOT copied. Reported rather than dropped so the sheet can say why
+    /// fewer things went than were shared.
     let oversize: Bool
     let pixelSize: CGSize?
 
@@ -33,6 +33,11 @@ struct StagedItem {
     let opaque: Bool
 
     var isImage: Bool { mimeType.hasPrefix("image/") }
+    var isVideo: Bool { mimeType.hasPrefix("video/") }
+
+    /// A video that was taken in but is over the upload cap, so it is
+    /// compressed before it goes. The sheet says so before Send.
+    var needsShrink: Bool { isVideo && !oversize && byteCount > ShareGroup.maxUploadBytes }
 
     /// Which of the app's message types this becomes.
     ///
@@ -283,10 +288,12 @@ final class Staging {
         let destination = directory.appendingPathComponent("\(index)_\(name)")
         let declared = (try? fm.attributesOfItem(atPath: source.path)[.size] as? Int64) ?? nil
 
-        // Refused before the copy, not after. The app would refuse it anyway,
-        // and an extension has a memory and time budget that a 500 MB copy does
-        // not fit inside.
-        if let declared, declared > ShareGroup.maxUploadBytes {
+        // Refused before the copy, not after. A document over the upload cap
+        // cannot be sent at all; a photo or video gets the larger intake cap,
+        // because it is compressed on the way out, but past that the copy is
+        // more than an extension's time budget and the clip could not fit
+        // anyway. A file copy streams, so memory is not what bounds it.
+        if let declared, declared > ShareGroup.intakeCap(for: mimeType(for: source)) {
             return .file(StagedItem(
                 url: destination, mimeType: mimeType(for: source), fileName: name,
                 byteCount: declared, oversize: true, pixelSize: nil, opaque: opaque

@@ -11724,13 +11724,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return 'This video is over $size';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count videos are over $size',
+      one: 'This video is over $size',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody =>
-      'It\'ll be squeezed down to fit, so expect it to look a lot softer.';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'They\'ll be squeezed down to fit, so expect them to look a lot softer.',
+      one: 'It\'ll be squeezed down to fit, so expect it to look a lot softer.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => 'Compress and send';
@@ -11739,8 +11753,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get videoShrinkWorkingSnack => 'Compressing video…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return 'Too long to fit in $size, even compressed';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count videos are too long to fit in $size, even compressed',
+      one: 'Too long to fit in $size, even compressed',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11750,6 +11770,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count photos were over $size, so they went at standard quality',
       one: '1 photo was over $size, so it went at standard quality',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Send only the $count under $size',
+      one: 'Send only the one under $size',
     );
     return '$_temp0';
   }

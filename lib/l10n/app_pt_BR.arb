@@ -3265,10 +3265,11 @@
   "streakLongest": "Sua mais longa: {count, plural, =1{1 dia} other{{count} dias}}",
   "streaksEmpty": "Ninguém tem uma sequência aqui ainda.",
   "videoTooLargeSnack": "Vídeos têm limite de {size}",
-  "videoShrinkPromptTitle": "Este vídeo passa de {size}",
-  "videoShrinkPromptBody": "Ele vai ser comprimido pra caber, então a qualidade vai cair bastante.",
+  "videoShrinkPromptTitle": "{count, plural, one{Este vídeo passa de {size}} other{{count} vídeos passam de {size}}}",
+  "videoShrinkPromptBody": "{count, plural, one{Ele vai ser comprimido pra caber, então a qualidade vai cair bastante.} other{Eles vão ser comprimidos pra caber, então a qualidade vai cair bastante.}}",
   "videoShrinkPromptAction": "Comprimir e enviar",
   "videoShrinkWorkingSnack": "Comprimindo vídeo…",
-  "videoShrinkFailedSnack": "Longo demais pra caber em {size}, mesmo comprimido",
-  "photoHdOverCapSnack": "{count, plural, one{1 foto passava de {size} e foi em qualidade padrão} other{{count} fotos passavam de {size} e foram em qualidade padrão}}"
+  "videoShrinkFailedSnack": "{count, plural, one{Longo demais pra caber em {size}, mesmo comprimido} other{{count} vídeos são longos demais pra caber em {size}, mesmo comprimidos}}",
+  "photoHdOverCapSnack": "{count, plural, one{1 foto passava de {size} e foi em qualidade padrão} other{{count} fotos passavam de {size} e foram em qualidade padrão}}",
+  "videoShrinkSendSmallOnly": "{count, plural, one{Enviar só o que fica abaixo de {size}} other{Enviar só os {count} abaixo de {size}}}"
 }

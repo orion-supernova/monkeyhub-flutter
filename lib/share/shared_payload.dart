@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../media/file_meta.dart' show kMaxFileUploadBytes;
+import '../media/file_meta.dart' show intakeCapFor;
 import '../models/enums.dart';
 
 /// One thing the OS handed us through the share sheet.
@@ -13,9 +13,10 @@ import '../models/enums.dart';
 /// path of that copy — see `ShareIntake.kt` and `ShareViewController.swift`.
 ///
 /// [oversize] items are the exception: nothing was copied, because the file is
-/// bigger than [kMaxFileUploadBytes] and copying it would be tens of megabytes
-/// of disk churn for something the composer is about to refuse anyway. Their
-/// [path] is empty.
+/// over its intake cap ([intakeCapFor]: 20 MB for a document, which goes as it
+/// is, 500 MB for a photo or video, which is compressed on the way out) and
+/// copying it would be disk churn for something that cannot be sent anyway.
+/// Their [path] is empty.
 @immutable
 class SharedItem {
   const SharedItem({

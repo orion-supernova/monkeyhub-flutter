@@ -119,6 +119,22 @@ const int kMaxDropItems = 20;
 /// moment everything else about a web drag becomes knowable.
 const int kMaxDropBatchBytes = 2 * kMaxFileUploadBytes;
 
+/// How big a dropped photo or video may be.
+///
+/// Where a drop is staged to disk (macOS) it is [kMaxMediaIntakeBytes]: a
+/// photo or video is compressed down to [kMaxFileUploadBytes] before it goes,
+/// the same as a shared one. A browser hands the file over by reading it whole
+/// into memory and has no video encoder, so there it stays at the upload cap.
+int get dropMediaIntakeCap =>
+    kIsWeb ? kMaxFileUploadBytes : kMaxMediaIntakeBytes;
+
+/// The size cap for a dropped item of [kind]: [dropMediaIntakeCap] for what
+/// gets compressed, [kMaxFileUploadBytes] for what goes as it is.
+int dropIntakeCapFor(DropKind kind) =>
+    kind == DropKind.photo || kind == DropKind.video
+        ? dropMediaIntakeCap
+        : kMaxFileUploadBytes;
+
 /// One dragged item, resolved against the tables and the policy.
 @immutable
 class DropAssessment {
@@ -346,7 +362,7 @@ DropAssessment assess(DropCandidate candidate, {DropPolicy policy = DropPolicy.p
         fragile: fragile,
       );
     }
-    if (size > kMaxFileUploadBytes) {
+    if (size > dropIntakeCapFor(kind)) {
       return DropAssessment(
         candidate: candidate,
         kind: kind,
@@ -408,7 +424,10 @@ List<DropAssessment> _applyBatchBudget(List<DropAssessment> items) {
       out.add(item);
       continue;
     }
-    final size = item.candidate.size ?? 0;
+    // What it will cost once sent, which for a big photo or video is the
+    // compressed file, never more than the upload cap.
+    final raw = item.candidate.size ?? 0;
+    final size = raw > kMaxFileUploadBytes ? kMaxFileUploadBytes : raw;
     if (!full) {
       if (count + 1 > kMaxDropItems || bytes + size > kMaxDropBatchBytes) {
         // Latched rather than re-evaluated per item: once the budget is gone,

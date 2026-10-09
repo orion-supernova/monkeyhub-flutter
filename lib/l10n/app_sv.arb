@@ -3265,10 +3265,11 @@
   "streakLongest": "Din längsta: {count, plural, =1{1 dag} other{{count} dagar}}",
   "streaksEmpty": "Ingen har en svit här än.",
   "videoTooLargeSnack": "Videor får max vara {size}",
-  "videoShrinkPromptTitle": "Den här videon är över {size}",
-  "videoShrinkPromptBody": "Den komprimeras för att få plats, så räkna med att den blir mycket suddigare.",
+  "videoShrinkPromptTitle": "{count, plural, one{Den här videon är över {size}} other{{count} videor är över {size}}}",
+  "videoShrinkPromptBody": "{count, plural, one{Den komprimeras för att få plats, så räkna med att den blir mycket suddigare.} other{De komprimeras för att få plats, så räkna med att de blir mycket suddigare.}}",
   "videoShrinkPromptAction": "Komprimera och skicka",
   "videoShrinkWorkingSnack": "Komprimerar video…",
-  "videoShrinkFailedSnack": "För lång för att rymmas i {size}, även komprimerad",
-  "photoHdOverCapSnack": "{count, plural, one{1 bild var över {size} och skickades i standardkvalitet} other{{count} bilder var över {size} och skickades i standardkvalitet}}"
+  "videoShrinkFailedSnack": "{count, plural, one{För lång för att rymmas i {size}, även komprimerad} other{{count} videor är för långa för att rymmas i {size}, även komprimerade}}",
+  "photoHdOverCapSnack": "{count, plural, one{1 bild var över {size} och skickades i standardkvalitet} other{{count} bilder var över {size} och skickades i standardkvalitet}}",
+  "videoShrinkSendSmallOnly": "{count, plural, one{Skicka bara den under {size}} other{Skicka bara de {count} under {size}}}"
 }

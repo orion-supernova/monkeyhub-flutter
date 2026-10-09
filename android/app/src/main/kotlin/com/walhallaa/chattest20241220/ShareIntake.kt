@@ -36,6 +36,17 @@ object ShareIntake {
     /// `share_upload_cap_test.dart` pins the two together.
     const val MAX_UPLOAD_BYTES = 20L * 1024 * 1024
 
+    /// Mirrors `kMaxMediaIntakeBytes` in lib/media/file_meta.dart: the cap for
+    /// a photo or video, which the app compresses down to [MAX_UPLOAD_BYTES]
+    /// on the way out. Past it the copy would cost a minute for a clip too
+    /// long to fit at any quality.
+    const val MAX_MEDIA_INTAKE_BYTES = 500L * 1024 * 1024
+
+    /// Which cap applies to [mime]. Mirrors `intakeCapFor` in Dart.
+    fun intakeCapFor(mime: String): Long =
+        if (mime.startsWith("image/") || mime.startsWith("video/")) MAX_MEDIA_INTAKE_BYTES
+        else MAX_UPLOAD_BYTES
+
     /// Set on the launch intent by [ShareTargetActivity] so MainActivity knows
     /// to drain [pending] rather than treating it as an ordinary launch.
     const val EXTRA_HAS_SHARE = "mh.share.pending"
@@ -119,6 +130,7 @@ object ShareIntake {
         val mime = resolveMime(resolver, uri)
         val name = queryName(resolver, uri)
         val declaredSize = querySize(resolver, uri)
+        val cap = intakeCapFor(mime)
 
         // Refused BEFORE the copy, which is the whole reason the size is
         // queried separately: the composer would refuse these anyway, and
@@ -126,7 +138,7 @@ object ShareIntake {
         // expensive way to learn it. Reported rather than dropped so the app
         // can say why instead of silently sending fewer things than were
         // shared.
-        if (declaredSize != null && declaredSize > MAX_UPLOAD_BYTES) {
+        if (declaredSize != null && declaredSize > cap) {
             return mapOf(
                 "path" to "",
                 "mimeType" to mime,
@@ -153,7 +165,7 @@ object ShareIntake {
                         // A provider that lied about its size (or reported
                         // none) is caught here instead. Stop at the cap rather
                         // than filling the disk, and report what we saw.
-                        if (written > MAX_UPLOAD_BYTES) {
+                        if (written > cap) {
                             output.close()
                             target.delete()
                             return mapOf(

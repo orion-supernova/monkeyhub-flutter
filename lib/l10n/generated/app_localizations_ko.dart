@@ -11275,12 +11275,24 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return '이 동영상은 $size을(를) 넘어요';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '동영상 $count개가 $size을(를) 넘어요',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody => '용량에 맞게 압축되니 화질이 꽤 떨어져요.';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '용량에 맞게 압축되니 화질이 꽤 떨어져요.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => '압축해서 보내기';
@@ -11289,8 +11301,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get videoShrinkWorkingSnack => '동영상 압축 중…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return '압축해도 $size에 들어가지 않을 만큼 길어요';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '동영상 $count개는 압축해도 $size에 들어가지 않을 만큼 길어요',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11299,6 +11316,16 @@ class AppLocalizationsKo extends AppLocalizations {
       count,
       locale: localeName,
       other: '사진 $count장이 $size을(를) 넘어서 표준 화질로 보냈어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$size 이하인 $count개만 보내기',
     );
     return '$_temp0';
   }

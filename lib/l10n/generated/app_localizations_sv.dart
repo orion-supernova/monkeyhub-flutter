@@ -11752,13 +11752,28 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return 'Den här videon är över $size';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count videor är över $size',
+      one: 'Den här videon är över $size',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody =>
-      'Den komprimeras för att få plats, så räkna med att den blir mycket suddigare.';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'De komprimeras för att få plats, så räkna med att de blir mycket suddigare.',
+      one:
+          'Den komprimeras för att få plats, så räkna med att den blir mycket suddigare.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => 'Komprimera och skicka';
@@ -11767,8 +11782,15 @@ class AppLocalizationsSv extends AppLocalizations {
   String get videoShrinkWorkingSnack => 'Komprimerar video…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return 'För lång för att rymmas i $size, även komprimerad';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count videor är för långa för att rymmas i $size, även komprimerade',
+      one: 'För lång för att rymmas i $size, även komprimerad',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11778,6 +11800,17 @@ class AppLocalizationsSv extends AppLocalizations {
       locale: localeName,
       other: '$count bilder var över $size och skickades i standardkvalitet',
       one: '1 bild var över $size och skickades i standardkvalitet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Skicka bara de $count under $size',
+      one: 'Skicka bara den under $size',
     );
     return '$_temp0';
   }

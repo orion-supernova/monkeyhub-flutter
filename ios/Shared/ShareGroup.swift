@@ -60,6 +60,20 @@ enum ShareGroup {
   /// budget copying a two-gigabyte video the composer would refuse anyway.
   static let maxUploadBytes: Int64 = 20 * 1024 * 1024
 
+  /// Mirrors `kMaxMediaIntakeBytes` (lib/media/file_meta.dart) and
+  /// `ShareIntake.MAX_MEDIA_INTAKE_BYTES` on Android: the cap for a photo or
+  /// video, which is compressed down to [maxUploadBytes] before it goes. Past
+  /// it the copy alone outlasts anyone's patience for a clip too long to fit
+  /// at any quality.
+  static let maxMediaIntakeBytes: Int64 = 500 * 1024 * 1024
+
+  /// Which cap applies to [mimeType]. Mirrors `intakeCapFor` in Dart.
+  static func intakeCap(for mimeType: String) -> Int64 {
+    mimeType.hasPrefix("image/") || mimeType.hasPrefix("video/")
+      ? maxMediaIntakeBytes
+      : maxUploadBytes
+  }
+
   /// Where the Notification Service Extension parks an arriving chat message
   /// for the app to pick up — one file per message, named by its id.
   ///

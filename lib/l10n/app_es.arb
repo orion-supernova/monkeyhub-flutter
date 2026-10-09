@@ -3265,10 +3265,11 @@
   "streakLongest": "Tu racha más larga: {count, plural, =1{1 día} other{{count} días}}",
   "streaksEmpty": "Aquí nadie tiene racha todavía.",
   "videoTooLargeSnack": "Los vídeos tienen un límite de {size}",
-  "videoShrinkPromptTitle": "Este vídeo pasa de {size}",
-  "videoShrinkPromptBody": "Se comprimirá para que quepa, así que se verá bastante peor.",
+  "videoShrinkPromptTitle": "{count, plural, one{Este vídeo pasa de {size}} other{{count} vídeos pasan de {size}}}",
+  "videoShrinkPromptBody": "{count, plural, one{Se comprimirá para que quepa, así que se verá bastante peor.} other{Se comprimirán para que quepan, así que se verán bastante peor.}}",
   "videoShrinkPromptAction": "Comprimir y enviar",
   "videoShrinkWorkingSnack": "Comprimiendo vídeo…",
-  "videoShrinkFailedSnack": "Es demasiado largo para caber en {size}, incluso comprimido",
-  "photoHdOverCapSnack": "{count, plural, one{1 foto pasaba de {size} y se envió en calidad estándar} other{{count} fotos pasaban de {size} y se enviaron en calidad estándar}}"
+  "videoShrinkFailedSnack": "{count, plural, one{Es demasiado largo para caber en {size}, incluso comprimido} other{{count} vídeos son demasiado largos para caber en {size}, incluso comprimidos}}",
+  "photoHdOverCapSnack": "{count, plural, one{1 foto pasaba de {size} y se envió en calidad estándar} other{{count} fotos pasaban de {size} y se enviaron en calidad estándar}}",
+  "videoShrinkSendSmallOnly": "{count, plural, one{Enviar solo el que no pasa de {size}} other{Enviar solo los {count} que no pasan de {size}}}"
 }

@@ -5,7 +5,8 @@ import 'package:flutter/cupertino.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../media/file_meta.dart' show formatFileSize, kMaxFileUploadBytes;
+import '../media/file_meta.dart'
+    show formatFileSize, intakeCapFor, kMaxFileUploadBytes, kMaxMediaIntakeBytes;
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -353,7 +354,15 @@ class _SharePreview extends StatelessWidget {
             Text(
               loc.shareSheetTooLargeDropped(
                 oversized.length,
-                formatFileSize(kMaxFileUploadBytes),
+                // The tighter cap when any document is among them: that is
+                // the limit the sender ran into.
+                formatFileSize(
+                  oversized.any(
+                    (i) => intakeCapFor(i.mimeType) == kMaxFileUploadBytes,
+                  )
+                      ? kMaxFileUploadBytes
+                      : kMaxMediaIntakeBytes,
+                ),
               ),
               style: groupedMetaStyle(theme).copyWith(color: theme.danger),
             ),

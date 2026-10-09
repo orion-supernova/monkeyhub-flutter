@@ -11141,12 +11141,24 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return '这个视频超过了 $size';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个视频超过了 $size',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody => '会压缩到合适的大小，画质会明显变差。';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '会压缩到合适的大小，画质会明显变差。',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => '压缩并发送';
@@ -11155,8 +11167,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get videoShrinkWorkingSnack => '正在压缩视频…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return '太长了，压缩后也超过 $size';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个视频太长，压缩后也超过 $size',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11165,6 +11182,16 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count 张照片超过 $size，已按标准画质发送',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '只发送不超过 $size 的 $count 个',
     );
     return '$_temp0';
   }

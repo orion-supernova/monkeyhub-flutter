@@ -11680,13 +11680,26 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String videoShrinkPromptTitle(String size) {
-    return 'Bu video $size sınırını aşıyor';
+  String videoShrinkPromptTitle(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count video $size sınırını aşıyor',
+      one: 'Bu video $size sınırını aşıyor',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get videoShrinkPromptBody =>
-      'Sığması için sıkıştırılacak, epey bulanık görünecek.';
+  String videoShrinkPromptBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sığmaları için sıkıştırılacaklar, epey bulanık görünecekler.',
+      one: 'Sığması için sıkıştırılacak, epey bulanık görünecek.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get videoShrinkPromptAction => 'Sıkıştır ve gönder';
@@ -11695,8 +11708,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get videoShrinkWorkingSnack => 'Video sıkıştırılıyor…';
 
   @override
-  String videoShrinkFailedSnack(String size) {
-    return 'Sıkıştırılsa bile $size içine sığmayacak kadar uzun';
+  String videoShrinkFailedSnack(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count video sıkıştırılsa bile $size içine sığmayacak kadar uzun',
+      one: 'Sıkıştırılsa bile $size içine sığmayacak kadar uzun',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -11706,6 +11725,16 @@ class AppLocalizationsTr extends AppLocalizations {
       locale: localeName,
       other:
           '$count fotoğraf $size sınırını aştığı için standart kalitede gitti',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String videoShrinkSendSmallOnly(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Yalnızca $size altındaki $count videoyu gönder',
     );
     return '$_temp0';
   }

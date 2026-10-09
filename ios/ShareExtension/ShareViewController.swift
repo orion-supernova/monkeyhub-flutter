@@ -234,7 +234,11 @@ class ShareViewController: UIViewController {
         // this is the first point its value can be trusted. Nil means "the
         // staged bytes go out unchanged" — HD is on, the item isn't a photo,
         // or it was already under the cap.
-        let compressed = model.hd ? nil : item.flatMap(PhotoSendCompression.compress)
+        //
+        // HD gives way past the upload cap, as it does in the app: a photo
+        // that big is compressed whatever the toggle says.
+        let keepOriginal = model.hd && (item?.byteCount ?? 0) <= ShareGroup.maxUploadBytes
+        let compressed = keepOriginal ? nil : item.flatMap(PhotoSendCompression.compress)
 
         func post(storageId: String?) {
             var args: [String: Any] = [
@@ -293,6 +297,35 @@ class ShareViewController: UIViewController {
 
         guard let item else {
             post(storageId: nil)
+            return
+        }
+
+        // A video over the upload cap: compressed to fit first, by the same
+        // code the app uses (`VideoShrinkCore`), then sent like any file.
+        if item.needsShrink {
+            VideoShrinkCore.shrink(input: item.url, cap: ShareGroup.maxUploadBytes) { path in
+                DispatchQueue.main.async {
+                    guard let path,
+                          let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe)
+                    else {
+                        if let path { try? FileManager.default.removeItem(atPath: path) }
+                        completion("That video is too long to send, even compressed.")
+                        return
+                    }
+                    ConvexHTTP.upload(
+                        deploymentUrl: session.deploymentUrl,
+                        sessionToken: session.sessionToken,
+                        data: data,
+                        contentType: "video/mp4"
+                    ) { result in
+                        try? FileManager.default.removeItem(atPath: path)
+                        switch result {
+                        case .success(let storageId): post(storageId: storageId)
+                        case .failure(let error): completion(Self.describe(error))
+                        }
+                    }
+                }
+            }
             return
         }
 
@@ -591,6 +624,7 @@ private struct ShareComposeHost: View {
             previewImage: model.previewImage,
             sharedText: model.sharedText,
             hasCompressiblePhoto: model.items.contains { $0.isImage && !$0.oversize },
+            shrinkingVideoCount: model.items.filter { $0.needsShrink }.count,
             selectedChatId: $model.selectedChatId,
             caption: $model.caption,
             hd: $model.hd,

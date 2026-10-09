@@ -86,3 +86,50 @@ String videoContentTypeFor(String path) {
   if (lower.endsWith('.m4v')) return 'video/x-m4v';
   return 'video/mp4';
 }
+
+/// What a batch of videos needs, by position: which go as they are, which
+/// need compressing, which cannot go at all. A negative size is a file that
+/// could not be measured, and is [unreadable].
+class VideoBatchPlan {
+  const VideoBatchPlan({
+    required this.asIs,
+    required this.shrink,
+    required this.refuse,
+    required this.unreadable,
+  });
+
+  final List<int> asIs;
+  final List<int> shrink;
+  final List<int> refuse;
+  final List<int> unreadable;
+}
+
+/// [videoFateFor] over a whole batch, so a share of five clips asks once about
+/// the two that are over the cap instead of five times about each.
+VideoBatchPlan planVideoBatch(
+  List<int> sizes, {
+  bool canShrink = true,
+  int capBytes = kMaxFileUploadBytes,
+}) {
+  final asIs = <int>[], shrink = <int>[], refuse = <int>[], unreadable = <int>[];
+  for (var i = 0; i < sizes.length; i++) {
+    if (sizes[i] < 0) {
+      unreadable.add(i);
+      continue;
+    }
+    switch (videoFateFor(sizes[i], canShrink: canShrink, capBytes: capBytes)) {
+      case VideoFate.asIs:
+        asIs.add(i);
+      case VideoFate.shrink:
+        shrink.add(i);
+      case VideoFate.refuse:
+        refuse.add(i);
+    }
+  }
+  return VideoBatchPlan(
+    asIs: asIs,
+    shrink: shrink,
+    refuse: refuse,
+    unreadable: unreadable,
+  );
+}

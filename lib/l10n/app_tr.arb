@@ -3265,10 +3265,11 @@
   "streakLongest": "En uzun serin: {count, plural, other{{count} gün}}",
   "streaksEmpty": "Burada henüz kimse seride değil.",
   "videoTooLargeSnack": "Videolar en fazla {size} olabilir",
-  "videoShrinkPromptTitle": "Bu video {size} sınırını aşıyor",
-  "videoShrinkPromptBody": "Sığması için sıkıştırılacak, epey bulanık görünecek.",
+  "videoShrinkPromptTitle": "{count, plural, one{Bu video {size} sınırını aşıyor} other{{count} video {size} sınırını aşıyor}}",
+  "videoShrinkPromptBody": "{count, plural, one{Sığması için sıkıştırılacak, epey bulanık görünecek.} other{Sığmaları için sıkıştırılacaklar, epey bulanık görünecekler.}}",
   "videoShrinkPromptAction": "Sıkıştır ve gönder",
   "videoShrinkWorkingSnack": "Video sıkıştırılıyor…",
-  "videoShrinkFailedSnack": "Sıkıştırılsa bile {size} içine sığmayacak kadar uzun",
-  "photoHdOverCapSnack": "{count, plural, other{{count} fotoğraf {size} sınırını aştığı için standart kalitede gitti}}"
+  "videoShrinkFailedSnack": "{count, plural, one{Sıkıştırılsa bile {size} içine sığmayacak kadar uzun} other{{count} video sıkıştırılsa bile {size} içine sığmayacak kadar uzun}}",
+  "photoHdOverCapSnack": "{count, plural, other{{count} fotoğraf {size} sınırını aştığı için standart kalitede gitti}}",
+  "videoShrinkSendSmallOnly": "{count, plural, other{Yalnızca {size} altındaki {count} videoyu gönder}}"
 }

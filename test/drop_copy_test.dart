@@ -113,12 +113,12 @@ void main() {
         l10n,
         plan: planOf([
           file('clip.mkv'),
-          file('huge.mov', size: kMaxFileUploadBytes + 1),
+          file('huge.mov', size: kMaxMediaIntakeBytes + 1),
         ]),
       );
       expect(
         message.detail,
-        l10n.dropNoticeTooLarge(1, formatFileSize(kMaxFileUploadBytes)),
+        l10n.dropNoticeTooLarge(1, formatFileSize(kMaxMediaIntakeBytes)),
       );
     });
 
@@ -168,9 +168,9 @@ void main() {
       expect(
         dropLandingNotice(
           l10n,
-          planOf([file('huge.mov', size: kMaxFileUploadBytes + 1)]),
+          planOf([file('huge.mov', size: kMaxMediaIntakeBytes + 1)]),
         ),
-        l10n.dropNoticeTooLarge(1, formatFileSize(kMaxFileUploadBytes)),
+        l10n.dropNoticeTooLarge(1, formatFileSize(kMaxMediaIntakeBytes)),
       );
     });
 
@@ -197,12 +197,12 @@ void main() {
     test('still ranks below a file that is simply too large', () {
       final plan = planOf([
         for (var i = 0; i < kMaxDropItems; i++) file('f$i.png'),
-        file('huge.mov', size: kMaxFileUploadBytes + 1),
+        file('huge.mov', size: kMaxMediaIntakeBytes + 1),
         file('left-out.png'),
       ]);
       expect(
         dropLandingNotice(l10n, plan),
-        l10n.dropNoticeTooLarge(1, formatFileSize(kMaxFileUploadBytes)),
+        l10n.dropNoticeTooLarge(1, formatFileSize(kMaxMediaIntakeBytes)),
       );
     });
   });
