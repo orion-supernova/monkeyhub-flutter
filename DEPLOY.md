@@ -139,12 +139,17 @@ from inside the house, so `switchServer.sh` failed with "No route to host"
 from anywhere else — which is precisely where you are standing when you need
 to move traffic off a failing box.
 
-**A deploy goes to BOTH deployments.** `./deploy.sh` pushes the VPS first and
-the home server second — standby before primary, the same order `switchServer.sh`
-writes its directive row in, so whichever way you flip later, the destination
-already has the newer code. A standby running last fortnight's functions is not
-a standby; it is an outage with a DNS record. `--no-homeserver` pushes to the
-VPS alone when the home server is down and you accept the drift.
+**A deploy goes to BOTH deployments.** The VPS is the primary: it serves the
+clients, and the home server is the warm standby that `switchServer.sh` can flip
+traffic to. (The home server was primary for a while after the 2026-08-28
+migration; it is not any more.) `./deploy.sh` pushes the VPS first and the home
+server second, primary before standby. That way a home server that can't be
+reached (Tailscale down on this Mac is the usual reason) never holds up the box
+clients actually use. A standby running last fortnight's functions is not a
+standby; it is an outage with a DNS record. So `--no-homeserver`, which pushes to
+the VPS alone, is for when the home server is unreachable and you accept the
+drift. Catch it up afterwards with `./deploy.sh --convex-only` and
+`--sync-releases`.
 
 **A restore brings back data, not functions.** That warning is about *logical*
 snapshots (`npx convex export`). After restoring one, deploy explicitly or the
@@ -386,12 +391,14 @@ upload succeeds**, so a failed build never advertises a version nobody can get.
 
 The announcement goes to **both deployments**, same as the function push. It did
 not always: `npx convex run` inherits `backend/.env.local`, which addresses the
-VPS, so for a while a release announced itself only on the standby. Since the
-2026-08-28 migration that is the box no client talks to — 1.3.89 shipped to a
-home server still answering "1.3.88 is the newest", and nothing looked wrong,
-because the deploy asked the one box that agreed with it. `--sync-releases`
-squares up rows written in that window; `--no-homeserver` deliberately
-reintroduces the split for a run when the home server is unreachable.
+VPS, so for a while a release announced itself only there. While the home server
+was primary (after the 2026-08-28 migration), that meant 1.3.89 shipped to a home
+server still answering "1.3.88 is the newest". Nothing looked wrong, because the
+deploy asked the one box that agreed with it. The VPS is primary again, but rows
+still go to both, so a flip to the standby doesn't send clients to stale
+versions. `--sync-releases` copies the VPS rows onto the home server;
+`--no-homeserver` deliberately reintroduces the split for a run when the home
+server is unreachable.
 
 | Channel | Who publishes it | How the app knows it's on that channel |
 |---|---|---|
@@ -403,7 +410,8 @@ reintroduces the split for a run when the home server is unreachable.
 | `macos-testflight` | deploy.sh, after the ASC upload | `--dart-define` — see caveat below |
 | `macos-appstore` | **manual** — an ASC upload isn't a release, same as `ios-appstore` | `--dart-define` only |
 | `macos-dmg` | **manual** (no self-hosted DMG build in deploy.sh yet) | `--dart-define` only |
-| `windows` / `linux` | **manual** (not built yet) | `--dart-define` only |
+| `windows` | deploy.sh, after the `msstore` Store submission (manual until MS_STORE_* is set up) | `--dart-define` only |
+| `linux` | deploy.sh, after the tarball lands on `/downloads/` | `--dart-define` only |
 
 The iOS build deliberately carries **no** `MH_CHANNEL` define: one binary serves
 both TestFlight and the App Store, so a stamped channel would be wrong for half
@@ -422,9 +430,10 @@ self-hosted DMG build would stamp `macos-dmg` instead.
 ### Manual commands
 
 > **Every `npx convex run` below reaches the VPS only.** It reads
-> `backend/.env.local`, and that file addresses the standby — so a row published
-> by hand lands where no client reads it, which is the exact failure
-> `--sync-releases` exists to clean up. Either follow a manual publish with
+> `backend/.env.local`, which addresses the VPS. That's the primary, so clients
+> see a row published by hand, but the home server standby keeps the old one,
+> and a later flip would serve it. That drift is exactly what `--sync-releases`
+> exists to clean up. Either follow a manual publish with
 > `./deploy.sh --sync-releases`, or run it a second time against the home
 > server:
 >

@@ -78,7 +78,8 @@ VM_USER="${VM_USER:-ubuntu}"
 VM_SSH_KEY="${VM_SSH_KEY:-$HOME/Documents/BelesMakinem/BelesAmpere.key}"
 
 # ----- the home server -----
-# The second Convex deployment, primary since the 2026-08-28 migration. Reached
+# The second Convex deployment: the warm STANDBY. The VPS is primary (it was
+# the other way round for a while after the 2026-08-28 migration). Reached
 # over Tailscale rather than the 192.168.68.107 LAN address, so a deploy works
 # from anywhere and not only from inside the house. It needs no SSH key here —
 # it goes through the agent — and no admin key on disk: the key is minted
@@ -110,16 +111,17 @@ DL_MANIFEST="$VM_DL_DIR/artifacts.json"
 SKIP_VERSION_BUMP=false
 RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 # A Convex deploy lands on BOTH deployments, not just the one serving traffic.
-# Since the 2026-08-28 migration the home server is primary and the VPS is a
-# warm standby we may switch back to, and a standby running last fortnight's
-# functions is not a standby — it is an outage with a DNS record. Set false
+# The VPS is primary and the home server is a warm standby switchServer.sh can
+# flip to, and a standby running last fortnight's functions is not a standby —
+# it is an outage with a DNS record. Set false
 # (or --no-homeserver) when the home server is unreachable and you accept the
 # drift; deploy.sh says so loudly in the summary either way.
 #
 # This governs the release ROWS too (publish_release, set_min_supported), not
 # just the function push. They were split for a while, and the split is what
-# made 1.3.89 ship to a home server still telling every client 1.3.88 was the
-# newest build — the deploy said success, because the box it wrote to agreed.
+# made 1.3.89 ship to a home server (primary back then) still telling every
+# client 1.3.88 was the newest build — the deploy said success, because the box
+# it wrote to agreed.
 RUN_HOMESERVER=true
 DEPLOY_IOS=""
 DEPLOY_MACOS=false # --macos: App Store Connect. NOT in --all yet.
@@ -448,7 +450,7 @@ convex_run_homeserver() {   # $1 = function, $2 = payload
 }
 
 # Runs one Convex function against BOTH deployments, VPS first — the same
-# standby-before-primary ordering run_convex uses, for the same reason.
+# primary-before-standby ordering run_convex uses, for the same reason.
 #
 # A half-failure is reported, not fatal: one row written is strictly better than
 # none, and the caller prints the retry for whichever half missed.
@@ -538,7 +540,8 @@ set_min_supported() {   # $1 = channel, $2 = version, or "clear"
         payload=$(jq -nc --arg channel "$channel" --arg version "$version" --arg min "$min" \
             '{channel: $channel, version: $version, minSupported: $min}')
     fi
-    # Both deployments: a gate that only exists on the standby gates nobody.
+    # Both deployments: a gate missing from the standby vanishes the moment
+    # traffic is flipped to it.
     if convex_run_both releases:publish "$payload"; then
         if [ "$min" = "clear" ]; then
             echo "  ✅ Cleared minSupported on $channel (still shipping $version)"
@@ -579,8 +582,8 @@ sync_releases() {
     fi
 
     echo "🔄 Squaring up release rows"
-    echo "   from  $vps_url  (the VPS — the box that has been receiving publishes)"
-    echo "   onto  $HOMESERVER_URL  (the home server — the box clients read)"
+    echo "   from  $vps_url  (the VPS — primary, the box clients read)"
+    echo "   onto  $HOMESERVER_URL  (the home server — the standby)"
     echo ""
 
     local failed=false changed=0 channel src dst src_ver dst_ver payload dst_cmp
@@ -1779,11 +1782,10 @@ run_convex() {
         )
     }
 
-    # Order is deliberate: the STANDBY first, the box serving traffic second.
-    # Same reasoning switchServer.sh uses when it writes the directive row to
-    # the destination before the source — whichever way you later flip, the
-    # place you are flipping to already has the newer code. Since the home
-    # server is primary today, that means the VPS goes first.
+    # Order is deliberate: the VPS (primary, serving traffic) first, the home
+    # server (standby) second. The standby is the one that is often
+    # unreachable (Tailscale down on this Mac), and `|| return 1` below means a
+    # failure there must never be what stops the primary from getting the push.
     run_with_spinner "Deploying Convex backend → VPS" convex_deploy || return 1
     if [ "$RUN_HOMESERVER" = true ]; then
         # Minted out here, in the main shell, rather than inside the spinner:
@@ -1856,8 +1858,9 @@ archive_android_symbols() {   # $1 = version
 # prod/dev pair to choose between — --prod is a Convex-cloud concept and adding
 # it would break this call, not harden it. There ARE two deployments, which is a
 # different axis entirely: convex_run_both writes the row to the VPS and the
-# home server, because the CLI's default target (backend/.env.local) is the
-# standby and announcing a release only there tells nobody.
+# home server, because the CLI's default target (backend/.env.local) is only
+# the VPS, and a release announced on the primary alone is gone the moment
+# traffic flips to the standby.
 #
 # $2 (updateUrl) and $3 (notes) are optional; omitting either leaves whatever is
 # already stored, so a hand-set store link or minSupported survives the next
@@ -1896,12 +1899,13 @@ publish_release() {   # $1 = channel, $2 = updateUrl (optional), $3 = notes (opt
         # surrounding quotes included, hence no '…' around it below.
         local quoted
         quoted=$(printf '%s' "$payload" | jq -Rr @sh)
-        # Named per box rather than "failed": a VPS-only miss is a standby that
-        # will be squared up by the next --sync-releases, while a home-server
-        # miss is the one where the build ships and nobody is told about it.
+        # Named per box rather than "failed": a home-server miss is a standby
+        # the next --sync-releases squares up, while a VPS miss is the one where
+        # the build ships and nobody is told about it.
         echo "  ⚠️  Could not announce $DISPLAY_VERSION on $channel — $CONVEX_RUN_FAILED did not take it."
         case "$CONVEX_RUN_FAILED" in
-            *"home server"*) echo "     Clients read the home server, so nobody will be prompted to update." ;;
+            *VPS*) echo "     Clients read the VPS, so nobody will be prompted to update." ;;
+            *"home server"*) echo "     Clients read the VPS, so they are told; the standby catches up with --sync-releases." ;;
         esac
         echo "     Retry with:"
         convex_retry_hint releases:publish "$quoted"
