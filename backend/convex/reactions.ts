@@ -19,8 +19,12 @@ export const addReaction = mutation({
     messageId: v.id("messages"),
     userId: v.id("users"),
     emoji: v.string(),
+    // A reaction to the whole album this message heads. See
+    // `reactions.album` in schema.ts.
+    album: v.optional(v.boolean()),
   },
-  handler: async (ctx, { messageId, userId, emoji }) => {
+  handler: async (ctx, { messageId, userId, emoji, album }) => {
+    const toAlbum = album === true;
     // Verify message exists
     const msg = await ctx.db.get(messageId);
     if (!msg) throw new Error("MESSAGE_NOT_FOUND");
@@ -35,12 +39,16 @@ export const addReaction = mutation({
     // Idempotent: one reaction per user per emoji per message. Read as the
     // viewer's whole set rather than a filtered `.first()`, because the cap
     // below needs the count anyway and the set is at most ten rows.
-    const mine = await ctx.db
-      .query("reactions")
-      .withIndex("by_message_user", (q) =>
-        q.eq("messageId", messageId).eq("userId", userId)
-      )
-      .collect();
+    // The album's reactions and the photo's are separate sets that happen to
+    // share a message: each has its own uniqueness and its own cap.
+    const mine = (
+      await ctx.db
+        .query("reactions")
+        .withIndex("by_message_user", (q) =>
+          q.eq("messageId", messageId).eq("userId", userId)
+        )
+        .collect()
+    ).filter((r) => (r.album === true) === toAlbum);
     const existing = mine.find((r) => r.emoji === emoji);
     if (existing) return existing._id;
     // Checked after the idempotency return on purpose: re-adding one you
@@ -54,6 +62,7 @@ export const addReaction = mutation({
       userId,
       emoji,
       createdAt: Date.now(),
+      ...(toAlbum ? { album: true } : {}),
     });
     // Flip the read-path flag in the SAME transaction as the row — see
     // `messages.hasReactions` in schema.ts. Only on the transition: a second
@@ -77,15 +86,19 @@ export const removeReaction = mutation({
     messageId: v.id("messages"),
     userId: v.id("users"),
     emoji: v.string(),
+    album: v.optional(v.boolean()),
   },
-  handler: async (ctx, { messageId, userId, emoji }) => {
-    const existing = await ctx.db
-      .query("reactions")
-      .withIndex("by_message_user", (q) =>
-        q.eq("messageId", messageId).eq("userId", userId)
-      )
-      .filter((q) => q.eq(q.field("emoji"), emoji))
-      .first();
+  handler: async (ctx, { messageId, userId, emoji, album }) => {
+    const toAlbum = album === true;
+    const existing = (
+      await ctx.db
+        .query("reactions")
+        .withIndex("by_message_user", (q) =>
+          q.eq("messageId", messageId).eq("userId", userId)
+        )
+        .filter((q) => q.eq(q.field("emoji"), emoji))
+        .collect()
+    ).find((r) => (r.album === true) === toAlbum);
     if (!existing) return;
     await ctx.db.delete(existing._id);
 

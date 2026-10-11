@@ -941,6 +941,14 @@ export const send = mutation({
     mediaPreviewUrl: v.optional(v.string()),
     mediaRef: v.optional(v.string()),
     stickerId: v.optional(v.id("stickers")),
+    // The album this photo or video was sent in (see `messages.albumId`).
+    albumId: v.optional(v.string()),
+    // With `replyToId` naming an album's first message: the reply is to the
+    // whole album, and its preview carries the count.
+    replyToAlbum: v.optional(v.boolean()),
+    // The sender's own count of that album, used only for an album from
+    // before `albumId` existed, which the server has no way to count.
+    replyAlbumCount: v.optional(v.number()),
   },
   handler: async (ctx, args) => await sendCore(ctx, args),
 });
@@ -966,7 +974,7 @@ export const send = mutation({
  * the insert, the `scheduler` calls and the room patch all commit in the same
  * transaction as whoever called this.
  */
-export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId }: any) {
+export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount }: any) {
   // Idempotency, checked before anything else has a chance to happen twice.
   //
   // Everything below this line has side effects that must not be repeated:
@@ -1059,6 +1067,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     mediaUrl?: string;
     stickerStorageId?: any;
     stickerFormat?: string;
+    albumCount?: number;
   } | undefined;
   let resolvedReplyToId: any | undefined;
   // Thread root, derived from the *resolved* parent. Computing it from the
@@ -1087,13 +1096,36 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
           ? "__VIEW_ONCE__"
           : maskSpoilers(parentContent, parent.formatting).slice(0, 140),
         type: parent.type ?? "text",
-        mediaStorageId: parentIsViewOnce ? undefined : parent.mediaStorageId,
+        // A video's thumbnail is its poster: the video blob itself is not a
+        // picture, and every quote of a video showed a broken image.
+        mediaStorageId: parentIsViewOnce
+          ? undefined
+          : parent.type === "video"
+            ? parent.posterStorageId
+            : parent.mediaStorageId,
         // A quoted GIF or sticker has no `mediaStorageId`, so it brings its own
         // thumbnail: KLIPY's small rendition, or the pack sticker itself.
         mediaUrl: parent.mediaPreviewUrl ?? parent.mediaUrl,
         stickerStorageId: parent.stickerStorageId,
         stickerFormat: parent.stickerFormat,
       };
+      // A reply to the whole album: counted here, once, so the tether can
+      // say "4 items" forever after, however the album later changes.
+      if (replyToAlbum === true && typeof parent.albumId === "string") {
+        const members = await ctx.db
+          .query("messages")
+          .withIndex("by_album", (q: any) => q.eq("albumId", parent.albumId))
+          .collect();
+        const count = members.filter(
+          (m: any) => m.roomId.toString() === roomId.toString()
+        ).length;
+        if (count > 1) replyToPreview.albumCount = count;
+      } else if (replyToAlbum === true && typeof replyAlbumCount === "number") {
+        // An older album, grouped on the client by timing: take its count,
+        // bounded, since it is only ever shown.
+        const count = Math.floor(replyAlbumCount);
+        if (count > 1 && count <= 50) replyToPreview.albumCount = count;
+      }
       resolvedReplyToId = replyToId;
       resolvedRootId = parent.rootId ?? parent._id;
     }
@@ -1266,6 +1298,10 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     expiresAt,
     // Stored so the retry that arrives after this one commits can find it.
     clientId,
+    // Bounded: it is a client-made key, and only ever compared.
+    ...(typeof albumId === "string" && albumId.length > 0 && albumId.length <= 64
+      ? { albumId }
+      : {}),
     ...expressionFields,
     ...viewOnceFields,
     ...locationFields,
