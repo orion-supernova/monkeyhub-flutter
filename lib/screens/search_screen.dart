@@ -191,36 +191,38 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   const SizedBox(height: 4),
                   Expanded(
-                    child: AnimatedSwitcher(
-                      duration: theme.motionMed,
-                      switchInCurve: theme.motionEntrance,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (child, anim) => FadeTransition(
-                        opacity: anim,
-                        child: SlideTransition(
-                          position:
-                              Tween(
-                                    begin: const Offset(0, 0.06),
-                                    end: Offset.zero,
-                                  )
-                                  .chain(
-                                    CurveTween(curve: theme.motionEntrance),
-                                  )
-                                  .animate(anim),
-                          child: child,
+                    child: _ResultsReveal(
+                      child: AnimatedSwitcher(
+                        duration: theme.motionMed,
+                        switchInCurve: theme.motionEntrance,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, anim) => FadeTransition(
+                          opacity: anim,
+                          child: SlideTransition(
+                            position:
+                                Tween(
+                                      begin: const Offset(0, 0.06),
+                                      end: Offset.zero,
+                                    )
+                                    .chain(
+                                      CurveTween(curve: theme.motionEntrance),
+                                    )
+                                    .animate(anim),
+                            child: child,
+                          ),
                         ),
-                      ),
-                      layoutBuilder: (currentChild, previousChildren) => Stack(
-                        alignment: Alignment.topCenter,
-                        children: [...previousChildren, ?currentChild],
-                      ),
-                      child: KeyedSubtree(
-                        key: ValueKey(widget.mode),
-                        child: _loading
-                            ? Center(
-                                child: CupertinoActivityIndicator(color: theme.inkMuted),
-                              )
-                            : (_people ? _peopleBody() : _roomsBody()),
+                        layoutBuilder: (currentChild, previousChildren) => Stack(
+                          alignment: Alignment.topCenter,
+                          children: [...previousChildren, ?currentChild],
+                        ),
+                        child: KeyedSubtree(
+                          key: ValueKey(widget.mode),
+                          child: _loading
+                              ? Center(
+                                  child: CupertinoActivityIndicator(color: theme.inkMuted),
+                                )
+                              : (_people ? _peopleBody() : _roomsBody()),
+                        ),
                       ),
                     ),
                   ),
@@ -310,6 +312,34 @@ class _SearchScreenState extends State<SearchScreen> {
           if (mounted) setState(() => _awaiting = {..._awaiting, id});
         },
       ),
+    );
+  }
+}
+
+/// Holds the results back until the bar has nearly landed, and takes them
+/// away first on the way out.
+///
+/// The route fades in as a whole, but the bar flies in from Discover's door:
+/// with the results riding the route's fade, the list was already sitting at
+/// the top of the screen while the bar was still crossing it — over the old
+/// page showing through, and under the flying bar. Late in, early out, the
+/// bar flies over an empty page at both ends of the trip.
+class _ResultsReveal extends StatelessWidget {
+  const _ResultsReveal({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final route = ModalRoute.of(context)?.animation;
+    if (route == null) return child;
+    return FadeTransition(
+      // The same interval both ways: reversing, it reaches 0 at 0.5, so the
+      // list is gone by the time the bar is halfway home.
+      opacity: route.drive(
+        CurveTween(curve: const Interval(0.5, 1, curve: Curves.easeOut)),
+      ),
+      child: child,
     );
   }
 }

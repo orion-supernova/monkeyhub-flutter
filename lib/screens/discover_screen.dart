@@ -11,6 +11,7 @@ import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/filter_capsule.dart';
@@ -717,9 +718,8 @@ Widget _jumpChip(
 /// is worth keeping: its default shuttle draws the *destination's* child at
 /// every intermediate size, so this card's own two lines of text were being
 /// asked to fit a box collapsing toward a one-line field, and overflowed on
-/// every frame of the flight. [SearchFieldHero] flies the box and the
-/// magnifier — the two things both ends actually have — and nothing that can
-/// overflow.
+/// every frame of the flight. [SearchFieldHero] morphs the box from this
+/// card's corners to the pill's, and fades the card out at its own size.
 class _DoorRow extends StatelessWidget {
   const _DoorRow({
     this.heroTag,
@@ -753,6 +753,7 @@ class _DoorRow extends StatelessWidget {
       semanticLabel: '$title. $subtitle',
       focusRadius: groupedRadius(theme),
       child: _maybeHero(
+          theme,
           // A grouped iOS row: a coloured tile, the title, one line of what
           // it finds, and the magnifier the search bar shares mid-flight.
           child: Container(
@@ -830,9 +831,13 @@ class _DoorRow extends StatelessWidget {
     );
   }
 
-  Widget _maybeHero({required Widget child}) {
+  Widget _maybeHero(AppTheme theme, {required Widget child}) {
     final tag = heroTag;
     if (tag == null) return child;
-    return SearchFieldHero(tag: tag, child: child);
+    return SearchFieldHero(
+      tag: tag,
+      radius: groupedRadius(theme),
+      child: child,
+    );
   }
 }

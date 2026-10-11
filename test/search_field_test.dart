@@ -208,12 +208,11 @@ void main() {
       );
     });
 
-    testWidgets('Cancel slides in on focus and clears, unfocuses, reports', (
+    testWidgets('Cancel slides in on focus and clears, unfocuses', (
       tester,
     ) async {
       final c = TextEditingController();
       addTearDown(c.dispose);
-      var cancelled = 0;
       String? reported;
       await tester.pumpWidget(
         host(
@@ -223,7 +222,7 @@ void main() {
                 controller: c,
                 hintText: 'Search settings',
                 onChanged: (v) => reported = v,
-                onCancel: () => cancelled++,
+                showCancel: true,
               ),
             ),
           ),
@@ -245,12 +244,48 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.text, isEmpty);
       expect(reported, isEmpty);
-      expect(cancelled, 1);
       expect(
         tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
         isFalse,
       );
       expect(cancel, findsNothing);
+    });
+
+    testWidgets('a Cancel that leaves keeps the query', (tester) async {
+      // The search screen pops in onCancel. Clearing on the way out reported
+      // an empty query, and the rooms list reloaded behind a spinner for the
+      // whole flight back to the door.
+      final c = TextEditingController();
+      addTearDown(c.dispose);
+      var cancelled = 0;
+      final reported = <String>[];
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: SafeArea(
+              child: SearchField(
+                controller: c,
+                hintText: 'Search rooms',
+                onChanged: reported.add,
+                onCancel: () => cancelled++,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), 'ada');
+      await tester.pumpAndSettle();
+      reported.clear();
+
+      await tester.tap(find.byIcon(CupertinoIcons.xmark));
+      await tester.pumpAndSettle();
+      expect(cancelled, 1);
+      expect(c.text, 'ada');
+      expect(reported, isEmpty);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+        isFalse,
+      );
     });
 
     testWidgets('inside a sheet (showCancel: false) there is no Cancel', (
@@ -303,12 +338,19 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
 
       // A hero in the air takes its child out of BOTH routes and flies a
-      // shuttle in the overlay instead. The door's own text being gone is the
-      // signal that this is a real flight and not a plain page transition.
+      // shuttle in the overlay instead: the door's text is drawn once, in the
+      // shuttle, fading — not left sitting under the incoming route too.
       expect(
         find.text(doorTitle),
-        findsNothing,
+        findsOneWidget,
         reason: 'the door is mid-air, not sitting under the incoming route',
+      );
+      expect(
+        find.byType(BackdropFilter),
+        findsNothing,
+        reason:
+            'a blur flying through a route transition smears the pages '
+            'moving under it; the shuttle is blur-free glass',
       );
 
       // Every frame of the morph, at the size where the old plain Hero blew up.
