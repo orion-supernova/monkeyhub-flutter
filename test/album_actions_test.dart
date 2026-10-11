@@ -1,6 +1,7 @@
 @TestOn('vm')
 library;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -173,5 +174,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(got?.emoji, '👍');
     expect(got?.album, isFalse);
+  });
+
+  testWidgets('a long-press or right-click on a card is that card\'s, not '
+      'the row\'s', (tester) async {
+    final album = [photo('m0'), photo('m1'), photo('m2')];
+    final hits = <String>[];
+    await tester.pumpWidget(host(MessageBubble(
+      message: album.last,
+      now: DateTime(2026, 3, 1),
+      currentUserId: 'bob',
+      api: api,
+      album: album,
+      onLongPress: () => hits.add('row'),
+      onContextMenu: (_) => hits.add('row-click'),
+      onAlbumTileLongPress: (m, _) => hits.add('card ${m.id}'),
+      onAlbumTileContextMenu: (m, _) => hits.add('card-click ${m.id}'),
+    )));
+    await tester.pump();
+    // The front card of a fresh hand is the first photo; the row is drawn as
+    // the last.
+    final front = find.byWidgetPredicate(
+        (w) => w is MosaicTile && w.message.id == 'm0');
+    await tester.longPress(front);
+    await tester.pumpAndSettle();
+    expect(hits, ['card m0']);
+
+    hits.clear();
+    final g = await tester.startGesture(tester.getCenter(front),
+        kind: PointerDeviceKind.mouse, buttons: kSecondaryMouseButton);
+    await g.up();
+    await tester.pumpAndSettle();
+    expect(hits, ['card-click m0']);
   });
 }

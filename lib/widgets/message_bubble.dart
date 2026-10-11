@@ -54,6 +54,7 @@ import 'user_avatar.dart';
 import 'message_departures.dart';
 import 'message_hover_actions.dart';
 import 'video_message.dart';
+import 'secondary_click_recognizer.dart';
 import 'video_note_message.dart';
 import 'expressions/expression_bubble.dart';
 import 'expressions/expression_sheet.dart';
@@ -99,6 +100,7 @@ class MessageBubble extends StatelessWidget {
     this.album = const [],
     this.onAlbumOpen,
     this.onAlbumTileLongPress,
+    this.onAlbumTileContextMenu,
     this.onAlbumReactionTap,
     this.onAlbumReactionLongPress,
     this.onAlbumStackReactionTap,
@@ -138,6 +140,12 @@ class MessageBubble extends StatelessWidget {
   /// The row's own [onLongPress] is about [message]; inside an album the
   /// target is whichever picture was actually pressed.
   final void Function(ChatMessage m, GlobalKey anchor)? onAlbumTileLongPress;
+
+  /// A right-click on one card of [album], with where it landed: the menu
+  /// for that card, at the pointer. The row's own [onContextMenu] is about
+  /// [message], which on an album is its last item.
+  final void Function(ChatMessage m, Offset globalPosition)?
+      onAlbumTileContextMenu;
 
   final void Function(ChatMessage m, String emoji)? onAlbumReactionTap;
   final void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress;
@@ -555,6 +563,7 @@ class MessageBubble extends StatelessWidget {
       album: album,
       onAlbumOpen: onAlbumOpen,
       onAlbumTileLongPress: onAlbumTileLongPress,
+      onAlbumTileContextMenu: onAlbumTileContextMenu,
       onAlbumReactionTap: onAlbumReactionTap,
       onAlbumReactionLongPress: onAlbumReactionLongPress,
       albumHighlightId: albumHighlightId,
@@ -1117,7 +1126,7 @@ bool _contentHandlesTap(ChatMessage message) => switch (message.type) {
 ///
 ///  * **Right-click** opens [onContextMenu] at the pointer, on mouse-DOWN, the
 ///    way a Mac or Windows menu opens. It goes through
-///    [_SecondaryClickRecognizer], which claims the secondary button the
+///    [SecondaryClickRecognizer], which claims the secondary button the
 ///    moment it is pressed: a selectable text bubble has a [SelectionArea]
 ///    inside it with its own right-click handling (select the word, show the
 ///    text toolbar), and an eager claim is the one thing that beats a
@@ -1170,9 +1179,9 @@ class _BubbleGestureDetector extends StatelessWidget {
             (instance) => instance.onDoubleTap = onDoubleTap,
           ),
         if (onContextMenu != null)
-          _SecondaryClickRecognizer:
-              GestureRecognizerFactoryWithHandlers<_SecondaryClickRecognizer>(
-            () => _SecondaryClickRecognizer(),
+          SecondaryClickRecognizer:
+              GestureRecognizerFactoryWithHandlers<SecondaryClickRecognizer>(
+            () => SecondaryClickRecognizer(),
             (instance) => instance.onClick = onContextMenu,
           )
         else
@@ -1190,58 +1199,6 @@ class _BubbleGestureDetector extends StatelessWidget {
   }
 }
 
-/// Claims a mouse's secondary button on the way DOWN and reports where.
-///
-/// Eager on purpose. A recognizer that waits for the arena to sweep loses to
-/// any deeper one, and a [SelectionArea] inside a text bubble is deeper and
-/// wants the same button. Accepting at once also means it fires before the
-/// 100ms tap deadline, so the selection's own "right-click selects the word"
-/// never runs underneath the menu.
-class _SecondaryClickRecognizer extends OneSequenceGestureRecognizer {
-  _SecondaryClickRecognizer()
-      : super(supportedDevices: const {PointerDeviceKind.mouse});
-
-  void Function(Offset globalPosition)? onClick;
-  Offset? _down;
-
-  @override
-  bool isPointerAllowed(PointerDownEvent event) =>
-      event.buttons == kSecondaryMouseButton && super.isPointerAllowed(event);
-
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    super.addAllowedPointer(event);
-    _down = event.position;
-    resolve(GestureDisposition.accepted);
-  }
-
-  @override
-  void acceptGesture(int pointer) {
-    super.acceptGesture(pointer);
-    final at = _down;
-    _down = null;
-    if (at != null) onClick?.call(at);
-  }
-
-  @override
-  void rejectGesture(int pointer) {
-    super.rejectGesture(pointer);
-    _down = null;
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (event is PointerUpEvent || event is PointerCancelEvent) {
-      stopTrackingPointer(event.pointer);
-    }
-  }
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {}
-
-  @override
-  String get debugDescription => 'secondary click';
-}
 
 /// The name label bracketing a run from above — rendered either at the top of
 /// [_BubbleLayout], for a plain first-in-run message, or, when a full quote
@@ -1623,6 +1580,7 @@ Widget buildMessageContent({
   Future<void> Function(ChatMessage m, {required int sourceDecodeWidth})?
       onAlbumOpen,
   void Function(ChatMessage m, GlobalKey anchor)? onAlbumTileLongPress,
+  void Function(ChatMessage m, Offset globalPosition)? onAlbumTileContextMenu,
   void Function(ChatMessage m, String emoji)? onAlbumReactionTap,
   void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress,
 
@@ -1726,6 +1684,7 @@ Widget buildMessageContent({
       currentUserId: currentUserId ?? '',
       onOpen: onAlbumOpen,
       onTileLongPress: onAlbumTileLongPress,
+      onTileContextMenu: onAlbumTileContextMenu,
       onReactionTap: onAlbumReactionTap,
       onReactionLongPress: onAlbumReactionLongPress,
       highlightedPhotoId: albumHighlightId,
@@ -2768,6 +2727,7 @@ class _AlbumTile extends StatefulWidget {
     required this.currentUserId,
     required this.onOpen,
     required this.onTileLongPress,
+    required this.onTileContextMenu,
     required this.onReactionTap,
     required this.onReactionLongPress,
     required this.highlightedPhotoId,
@@ -2783,6 +2743,7 @@ class _AlbumTile extends StatefulWidget {
   final Future<void> Function(ChatMessage m,
       {required int sourceDecodeWidth})? onOpen;
   final void Function(ChatMessage m, GlobalKey anchor)? onTileLongPress;
+  final void Function(ChatMessage m, Offset globalPosition)? onTileContextMenu;
   final void Function(ChatMessage m, String emoji)? onReactionTap;
   final void Function(ChatMessage m, String emoji)? onReactionLongPress;
   final String? highlightedPhotoId;
@@ -2849,6 +2810,7 @@ class _AlbumTileState extends State<_AlbumTile> {
             currentUserId: widget.currentUserId,
             onOpen: _open,
             onTileLongPress: widget.onTileLongPress,
+            onTileContextMenu: widget.onTileContextMenu,
             onReactionTap: widget.onReactionTap,
             onReactionLongPress: widget.onReactionLongPress,
             highlightedPhotoId: widget.highlightedPhotoId,
@@ -2865,6 +2827,7 @@ class _AlbumTileState extends State<_AlbumTile> {
             currentUserId: widget.currentUserId,
             onOpen: _open,
             onTileLongPress: widget.onTileLongPress,
+            onTileContextMenu: widget.onTileContextMenu,
             onReactionTap: widget.onReactionTap,
             onReactionLongPress: widget.onReactionLongPress,
             highlightedPhotoId: widget.highlightedPhotoId,

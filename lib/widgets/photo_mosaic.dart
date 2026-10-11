@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart' show Uint8List;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -7,9 +8,12 @@ import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/pending_upload.dart';
 import '../screens/fullscreen_image_viewer.dart' show thumbnailDecodeWidth;
+import '../platform.dart';
 import '../theme/app_theme.dart';
+import '../theme/interaction.dart';
 import '../theme/theme_scope.dart';
 import 'auto_download_gate.dart';
+import 'secondary_click_recognizer.dart';
 import 'highlight_pulse.dart';
 import 'media_flight.dart';
 import 'reaction_bubble.dart';
@@ -189,6 +193,7 @@ class PhotoMosaic extends StatefulWidget {
     required this.currentUserId,
     required this.onOpen,
     this.onTileLongPress,
+    this.onTileContextMenu,
     this.onReactionTap,
     this.onReactionLongPress,
     this.highlightedPhotoId,
@@ -225,6 +230,9 @@ class PhotoMosaic extends StatefulWidget {
   /// action menu anchors its lifted preview to that rect, and a mosaic has no
   /// single rect to give it.
   final void Function(ChatMessage m, GlobalKey anchor)? onTileLongPress;
+
+  /// A right-click on one photograph, with where it landed.
+  final void Function(ChatMessage m, Offset globalPosition)? onTileContextMenu;
 
   final void Function(ChatMessage m, String emoji)? onReactionTap;
   final void Function(ChatMessage m, String emoji)? onReactionLongPress;
@@ -296,6 +304,9 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
         onLongPress: widget.onTileLongPress == null
             ? null
             : () => widget.onTileLongPress!(m, _anchorFor(m.id)),
+        onContextMenu: widget.onTileContextMenu == null
+            ? null
+            : (at) => widget.onTileContextMenu!(m, at),
         onReactionTap: widget.onReactionTap == null
             ? null
             : (emoji) => widget.onReactionTap!(m, emoji),
@@ -375,6 +386,12 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
 /// join one flight is an assertion rather than a graceful degrade.
 Object mosaicHeroTag(ChatMessage m) => 'album-${m.id}';
 
+/// Every pointer but a mouse, for the card's long-press on web and desktop.
+final Set<PointerDeviceKind> _notMouse = {
+  for (final k in PointerDeviceKind.values)
+    if (k != PointerDeviceKind.mouse) k,
+};
+
 /// One photograph in the block. Public because [PhotoDeck] deals the same
 /// tiles as cards: a photograph's tap, menu, reactions and flight are the same
 /// whichever shape the album takes.
@@ -395,6 +412,7 @@ class MosaicTile extends StatelessWidget {
     required this.currentUserId,
     required this.onOpen,
     this.onLongPress,
+    this.onContextMenu,
     this.onReactionTap,
     this.onReactionLongPress,
   });
@@ -420,7 +438,16 @@ class MosaicTile extends StatelessWidget {
   /// Takes the decode width the picture is resident at — see
   /// [PhotoMosaic.onOpen].
   final void Function(int sourceDecodeWidth) onOpen;
+
+  /// The menu for this photograph. Recognized with the row's own timing
+  /// ([kActionMenuLongPress]) rather than the platform default: the row
+  /// around an album listens for a long-press too, and the slower of two
+  /// equal recognizers loses. Losing is how a long-press on a card used to
+  /// open the menu for the album's LAST item, which the row is drawn as.
   final VoidCallback? onLongPress;
+
+  /// A right-click, with where it landed; falls back to [onLongPress].
+  final void Function(Offset globalPosition)? onContextMenu;
   final void Function(String emoji)? onReactionTap;
   final void Function(String emoji)? onReactionLongPress;
 
@@ -496,12 +523,32 @@ class MosaicTile extends StatelessWidget {
     final reactions = [for (final r in message.reactions) if (!r.album) r];
     return KeyedSubtree(
       key: anchor,
-      child: GestureDetector(
-        onTap: () => onOpen(decodeWidth),
-        onLongPress: onLongPress,
-        // Right-click reaches the same menu, matching how the bubble already
-        // treats a secondary tap.
-        onSecondaryTap: onLongPress,
+      child: RawGestureDetector(
+        gestures: {
+          TapGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+            () => TapGestureRecognizer(),
+            (r) => r.onTap = () => onOpen(decodeWidth),
+          ),
+          if (onLongPress != null)
+            LongPressGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+              () => LongPressGestureRecognizer(
+                duration: kActionMenuLongPress,
+                // As on the row: holding a mouse button is a drag, not a menu.
+                supportedDevices: isWebOrDesktop ? _notMouse : null,
+              ),
+              (r) => r.onLongPress = onLongPress,
+            ),
+          // Right-click reaches the same menu, claimed on the way down so it
+          // wins over the row's own (see [SecondaryClickRecognizer]).
+          if (onContextMenu != null || onLongPress != null)
+            SecondaryClickRecognizer:
+                GestureRecognizerFactoryWithHandlers<SecondaryClickRecognizer>(
+              () => SecondaryClickRecognizer(),
+              (r) => r.onClick = onContextMenu ?? (_) => onLongPress?.call(),
+            ),
+        },
         child: Stack(
           fit: StackFit.expand,
           children: [

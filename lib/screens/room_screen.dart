@@ -6141,6 +6141,12 @@ class _RoomScreenState extends State<RoomScreen>
                           if (target.id.startsWith('tmp_')) return;
                           longPressOn(target, anchorKey: anchor);
                         },
+                        // A right-click on a card is that card's menu, at
+                        // the pointer, not the row's (the album's last item).
+                        onAlbumTileContextMenu: (target, at) {
+                          if (target.id.startsWith('tmp_')) return;
+                          longPressOn(target, at: at);
+                        },
                         onAlbumReactionTap: reactionTapOn,
                         onAlbumReactionLongPress: (target, e) =>
                             reactionLongPressOn(target, e, album: false),

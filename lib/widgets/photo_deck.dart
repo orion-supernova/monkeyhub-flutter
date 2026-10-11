@@ -77,6 +77,7 @@ class PhotoDeck extends StatefulWidget {
     required this.currentUserId,
     required this.onOpen,
     this.onTileLongPress,
+    this.onTileContextMenu,
     this.onReactionTap,
     this.onReactionLongPress,
     this.highlightedPhotoId,
@@ -94,6 +95,7 @@ class PhotoDeck extends StatefulWidget {
   final String currentUserId;
   final void Function(ChatMessage m, {required int sourceDecodeWidth}) onOpen;
   final void Function(ChatMessage m, GlobalKey anchor)? onTileLongPress;
+  final void Function(ChatMessage m, Offset globalPosition)? onTileContextMenu;
   final void Function(ChatMessage m, String emoji)? onReactionTap;
   final void Function(ChatMessage m, String emoji)? onReactionLongPress;
 
@@ -468,6 +470,9 @@ class _PhotoDeckState extends State<PhotoDeck>
               onLongPress: widget.onTileLongPress == null
                   ? null
                   : () => widget.onTileLongPress!(m, _anchorFor(m.id)),
+              onContextMenu: widget.onTileContextMenu == null
+                  ? null
+                  : (at) => widget.onTileContextMenu!(m, at),
               onReactionTap: widget.onReactionTap == null
                   ? null
                   : (emoji) => widget.onReactionTap!(m, emoji),
