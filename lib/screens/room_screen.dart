@@ -5549,12 +5549,6 @@ class _RoomScreenState extends State<RoomScreen>
     // rebuilds one `SizedBox`, instead of rebuilding every bubble in the
     // viewport the way a new `padding` on the `ListView` would.
     final insetRows = bottomChrome == null ? 0 : 1;
-    // A warm cache makes the transcript useful before the server answers, but
-    // it can be stale by hours. Keep a small cue at the newest edge so the
-    // first live batch (and any messages it brings) doesn't appear without
-    // context. The row owns its bounded offline wait, just like the empty
-    // transcript placeholder below.
-    final syncRows = messages.isNotEmpty && !serverAnswered ? 1 : 0;
     // The list's own bottom padding sits BELOW the spacer, so it reads as the
     // gap between the glass and the newest bubble — which is what it is.
     Widget insetSpacer() => ChatBottomInsetBuilder(
@@ -5658,7 +5652,6 @@ class _RoomScreenState extends State<RoomScreen>
                   padding: listPadding,
                   rowKeys: [
                     if (insetRows == 1) const ValueKey('timeline-inset'),
-                    if (syncRows == 1) const ValueKey('timeline-sync'),
                     if (typingRows == 1) const ValueKey('timeline-typing'),
                     for (final item in items)
                       ValueKey(switch (item) {
@@ -5678,19 +5671,12 @@ class _RoomScreenState extends State<RoomScreen>
                     if (insetRows == 1 && i == 0) {
                       return insetSpacer();
                     }
-                    if (syncRows == 1 && i == insetRows) {
-                      return PendingPlaceholder(
-                        pending: !serverAnswered,
-                        loading: (_) => const _TimelineSyncIndicator(),
-                        empty: (_) => const SizedBox.shrink(),
-                      );
-                    }
                     // Still the bottom of the conversation, which is where a
                     // message that hasn't been sent yet belongs.
-                    if (typingRows == 1 && i == insetRows + syncRows) {
+                    if (typingRows == 1 && i == insetRows) {
                       return typingRow();
                     }
-                    final item = items[i - typingRows - insetRows - syncRows];
+                    final item = items[i - typingRows - insetRows];
                     if (item is IntroItem) {
                       return _RoomIntro(
                         room: room,
@@ -6604,6 +6590,13 @@ class _RoomScreenState extends State<RoomScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // A warm cache makes the transcript useful before the
+                        // server answers, but it can be stale by hours, so say
+                        // a refresh is under way. Floated here with the other
+                        // pills rather than spent as a list row: a row has to
+                        // leave again, and when it did the whole transcript
+                        // dropped by its height a beat after the room opened.
+                        _TimelineSyncPill(pending: !serverAnswered),
                         // Back one hop up the reply trail. Above the jump-to-
                         // latest pill because it is the transient one: it comes
                         // and goes with the trail, while the pill below it is
@@ -6664,10 +6657,106 @@ class _RoomScreenState extends State<RoomScreen>
   }
 }
 
+/// Shows [_TimelineSyncIndicator] while a cached transcript waits on its first
+/// live batch, floated over the list so coming and going moves nothing.
+///
+/// The usual delay-then-hold pattern for loaders. [showAfter]: a wait shorter
+/// than this already reads as instant, so it gets no loader at all. [minShown]:
+/// once the pill is up it stays at least this long, because a pill that pops in
+/// and straight back out reads as a glitch, not a status. [giveUpAfter]: the
+/// same bound [PendingPlaceholder] puts on the empty transcript, so an offline
+/// room stops claiming to load.
+class _TimelineSyncPill extends StatefulWidget {
+  const _TimelineSyncPill({required this.pending});
+
+  final bool pending;
+
+  static const showAfter = Duration(milliseconds: 300);
+  static const minShown = Duration(milliseconds: 500);
+  static const giveUpAfter = Duration(seconds: 8);
+
+  @override
+  State<_TimelineSyncPill> createState() => _TimelineSyncPillState();
+}
+
+class _TimelineSyncPillState extends State<_TimelineSyncPill> {
+  Timer? _show;
+  Timer? _giveUp;
+  Timer? _hide;
+  bool _visible = false;
+  final _shownFor = Stopwatch();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pending) _startWaiting();
+  }
+
+  @override
+  void didUpdateWidget(_TimelineSyncPill old) {
+    super.didUpdateWidget(old);
+    if (widget.pending == old.pending) return;
+    if (widget.pending) {
+      _startWaiting();
+    } else {
+      _show?.cancel();
+      _giveUp?.cancel();
+      if (!_visible) return;
+      // Answered while the pill is up: let it finish its minimum stay.
+      final left = _TimelineSyncPill.minShown - _shownFor.elapsed;
+      if (left <= Duration.zero) {
+        _visible = false;
+      } else {
+        _hide = Timer(left, () {
+          if (mounted) setState(() => _visible = false);
+        });
+      }
+    }
+  }
+
+  void _startWaiting() {
+    _stopWaiting();
+    // Already up (pending again mid-hold): stay up, just rearm the give-up.
+    if (!_visible) {
+      _show = Timer(_TimelineSyncPill.showAfter, () {
+        if (!mounted) return;
+        _shownFor
+          ..reset()
+          ..start();
+        setState(() => _visible = true);
+      });
+    }
+    _giveUp = Timer(_TimelineSyncPill.giveUpAfter, () {
+      if (mounted) setState(() => _visible = false);
+    });
+  }
+
+  void _stopWaiting() {
+    _show?.cancel();
+    _giveUp?.cancel();
+    _hide?.cancel();
+    _show = null;
+    _giveUp = null;
+    _hide = null;
+  }
+
+  @override
+  void dispose() {
+    _stopWaiting();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TransientPillSlot(
+        visible: _visible,
+        child: const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: _TimelineSyncIndicator(),
+        ),
+      );
+}
+
 /// A brief cue that a cached transcript is being refreshed from the server.
-/// It sits at the newest edge of the reversed list and disappears as soon as
-/// the first live message batch arrives. [PendingPlaceholder] bounds the wait
-/// so an offline room does not keep claiming to load forever.
 class _TimelineSyncIndicator extends StatelessWidget {
   const _TimelineSyncIndicator();
 
@@ -6675,41 +6764,36 @@ class _TimelineSyncIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final label = AppLocalizations.of(context).audioMessageLoadingLabel;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 8),
-      child: Center(
-        child: Semantics(
-          liveRegion: true,
-          child: LiquidGlass(
-            shape: LiquidGlassShape.capsule,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            tinted: true,
-            shadow: false,
-            semanticLabel: label,
-            child: ExcludeSemantics(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.accent,
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    label,
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: theme.accent,
-                    ),
-                  ),
-                ],
+    return Semantics(
+      liveRegion: true,
+      child: LiquidGlass(
+        shape: LiquidGlassShape.capsule,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        tinted: true,
+        shadow: false,
+        semanticLabel: label,
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: theme.accent,
+                ),
               ),
-            ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.accent,
+                ),
+              ),
+            ],
           ),
         ),
       ),
