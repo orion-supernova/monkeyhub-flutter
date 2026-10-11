@@ -207,6 +207,12 @@ Future<MessageActionResult?> showMessageActionMenu({
   /// on the whole album, with a switch to the pressed photo alone. The
   /// result's [MessageActionResult.album] says which side was chosen.
   MessageMenuAlbum? album,
+
+  /// The tallest the lifted preview settles. A bubble taller than this
+  /// starts exactly over itself and shrinks toward its own edge as it lifts,
+  /// and the pill and list are laid out around the smaller size. Set for
+  /// photos and videos, which at full size crowd the menu off the screen.
+  double? previewMaxHeight,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -250,6 +256,9 @@ Future<MessageActionResult?> showMessageActionMenu({
       fileName: fileName,
       myReactions: myReactions,
       album: album,
+      previewScale: previewMaxHeight == null
+          ? 1
+          : math.min(1.0, previewMaxHeight / bubbleRect.height),
       backdrop: backdrop,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
@@ -279,9 +288,14 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.fileName,
     required this.myReactions,
     required this.album,
+    required this.previewScale,
     required this.backdrop,
     required this.onResolve,
   });
+
+  /// How big the preview settles, relative to the pressed bubble. See
+  /// [showMessageActionMenu]'s `previewMaxHeight`.
+  final double previewScale;
 
   final Set<String> myReactions;
 
@@ -425,7 +439,18 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
       hasFileName: !whole && widget.fileName != null,
     );
 
-    final bubble = widget.bubbleRect;
+    // The rect the preview SETTLES in, which is what the menu is laid out
+    // around: the pressed bubble scaled toward its own edge (see
+    // `previewMaxHeight`). The preview itself is still built at the pressed size
+    // and scaled, so it starts exactly over the bubble.
+    final pressed = widget.bubbleRect;
+    final k = widget.previewScale;
+    final bubble = Rect.fromLTWH(
+      widget.isMine ? pressed.right - pressed.width * k : pressed.left,
+      pressed.center.dy - pressed.height * k / 2,
+      pressed.width * k,
+      pressed.height * k,
+    );
     const gap = 8.0;
     const pillH = 50.0;
     const rowH = 48.0;
@@ -565,7 +590,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           ),
           _LiftedBubble(
             t: curved,
-            rect: bubble,
+            rect: pressed,
+            settle: k,
             dy: liftDy,
             isMine: widget.isMine,
             // A still photograph, not a live bubble. `_LiftedBubble` forces
@@ -798,9 +824,14 @@ class _LiftedBubble extends StatelessWidget {
     required this.isMine,
     required this.child,
     this.dy = 0,
+    this.settle = 1,
   });
   final Animation<double> t;
   final Rect rect;
+
+  /// The scale it settles at, before the lift's own 3% (see
+  /// `previewMaxHeight`).
+  final double settle;
   final bool isMine;
   final Widget child;
 
@@ -820,7 +851,7 @@ class _LiftedBubble extends StatelessWidget {
           builder: (_, c) {
             // Lifts toward 1.03 — the long-press "pick up", subtle enough
             // that the bubble reads as raised rather than zoomed.
-            final scale = 1 + 0.03 * t.value;
+            final scale = (1 + (settle - 1) * t.value) * (1 + 0.03 * t.value);
             return Transform.translate(
               offset: Offset(0, dy * t.value),
               child: Transform.scale(

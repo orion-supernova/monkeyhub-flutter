@@ -5686,6 +5686,14 @@ class _RoomScreenState extends State<RoomScreen>
                     fileName:
                         target.type == MessageType.file ? target.fileName : null,
                     album: albumMenu,
+                    // A photo or video, alone or a card of an album, lifts
+                    // smaller than it sits: at full size it and the menu
+                    // together outgrow the screen.
+                    previewMaxHeight: albumRow != null ||
+                            target.type == MessageType.image ||
+                            target.type == MessageType.video
+                        ? 220
+                        : null,
                     bubbleBuilder: (menuContext) {
                       // A card (or grid tile) of an album lifts as itself:
                       // the same crop, corners and play button, at the rect
