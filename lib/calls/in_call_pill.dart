@@ -44,6 +44,7 @@ class _InCallPillState extends State<InCallPill> {
   @override
   void initState() {
     super.initState();
+    _lastKey = _key();
     widget.call.addListener(_changed);
     widget.group?.addListener(_changed);
     widget.callScreenUp.addListener(_changed);
@@ -61,8 +62,39 @@ class _InCallPillState extends State<InCallPill> {
     super.dispose();
   }
 
+  /// Fingerprint of everything [build] reads. The pill sits above every
+  /// route, call screen included, and CallService notifies for every mute,
+  /// speaker, stats and ICE change of the call: hidden behind the call
+  /// screen, which is most of a call, none of those change the pill.
+  int? _lastKey;
+
+  int _key() {
+    final call = widget.call;
+    final group = widget.group;
+    final s = call.session;
+    return Object.hashAll([
+      widget.callScreenUp.value,
+      call.inCall,
+      s?.status,
+      s?.peerName,
+      s?.connectedAt,
+      s?.startedAt,
+      call.localScreenSharing,
+      call.drawArmed.value,
+      group?.inCall,
+      group?.roomName,
+      group?.joinedAt,
+      group?.localScreenSharing,
+      group?.drawArmed.value,
+    ]);
+  }
+
   void _changed() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final key = _key();
+    if (key == _lastKey) return;
+    _lastKey = key;
+    setState(() {});
   }
 
   @override

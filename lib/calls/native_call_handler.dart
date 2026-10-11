@@ -1012,7 +1012,9 @@ class NativeCallHandler {
         avatar: avatarUrl,
         handle: callerName,
         type: kind == CallMediaKind.video ? 1 : 0,
-        duration: 60000,
+        // The backend's ring window plus slack — see the same field in
+        // CallFcmService.handleInvite.
+        duration: groupCallId != null ? 65000 : 40000,
         extra: {'callId': callId, 'groupCallId': ?groupCallId},
         // Decided HERE, at ring time, because this is the last moment we get a
         // say. When the user taps Accept, the plugin's own broadcast receiver

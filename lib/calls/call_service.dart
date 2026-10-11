@@ -97,6 +97,16 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   @visibleForTesting
   Duration endNativeTimeout = const Duration(seconds: 2);
 
+  /// How often a ringing incoming session asks the backend whether the
+  /// call still rings — see [_armRingWatch].
+  @visibleForTesting
+  Duration ringWatchInterval = const Duration(seconds: 4);
+
+  /// The longest this device rings for one call, whatever it hears. The
+  /// backend gives up at 30s; this is that plus room for a slow invite.
+  @visibleForTesting
+  Duration ringCeiling = const Duration(seconds: 45);
+
   /// Base cadence of the in-call heartbeat ([_startHeartbeat]) and the
   /// random extra added to every beat. Both peers start beating the instant
   /// their PC connects — the same instant, to within a round-trip — and on
@@ -183,6 +193,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       userId: userId,
       onCall: (call) {
         _activeCallRaw = call;
+        _reconcileRinging(call);
         notifyListeners();
       },
       onError: (e) => debugPrint('CallService active-call watch error: $e'),
@@ -214,6 +225,137 @@ class CallService extends ChangeNotifier implements CallOptionsController {
 
   /// True when a call is active on another of my devices.
   bool get busyElsewhere => activeCallElsewhere != null;
+
+  // ───────── ring dismissal ─────────
+  //
+  // Call signals are per USER, not per device: the first of my devices to
+  // drain a `cancel` marks it consumed, and the row drops out of every
+  // sibling's `signalsForUser` before a slower sibling (a Mac with no push
+  // token, a Galaxy whose socket was throttled) ever reads it. On 2026-10-11
+  // that left a MacBook and a Galaxy ringing for a call the iPhone had
+  // already dismissed. The `activeCallForUser` watch is a query every device
+  // holds on its own, so a ring this device saw it show and then saw it stop
+  // showing is over, whoever consumed the signal.
+
+  /// The call the watch last showed ringing for me as the callee.
+  String? _serverRingingCallId;
+
+  void _reconcileRinging(Map<String, dynamic>? call) {
+    final id = call?['_id']?.toString();
+    final status = call?['status'] as String?;
+    final me = _userId;
+    final ringingForMe = id != null &&
+        status == 'ringing' &&
+        me != null &&
+        call?['calleeId']?.toString() == me;
+    final prev = _serverRingingCallId;
+    _serverRingingCallId = ringingForMe ? id : null;
+    if (prev == null || prev == _serverRingingCallId) return;
+    final answered = id == prev && status == 'active';
+    // Answered right here: the accept owns what happens next.
+    if (answered && call?['acceptingDeviceId'] == _deviceId) return;
+    unawaited(_dismissDeadRing(prev, answeredElsewhere: answered));
+  }
+
+  /// Stop this device ringing for [callId], which the backend no longer
+  /// rings: cancelled, missed, declined, or answered on another device.
+  Future<void> _dismissDeadRing(
+    String callId, {
+    required bool answeredElsewhere,
+  }) async {
+    // An accept already on the wire decides for itself: its `not-ringing`
+    // answer tears down, and a won accept is no ring to dismiss.
+    if (_acceptingCallId == callId) return;
+    final s = _session;
+    if (s != null && s.callId == callId) {
+      if (s.status != CallStatus.incomingRinging) return;
+      debugPrint(
+        'CallService: ring over server-side, dismissing callId=$callId '
+        'answeredElsewhere=$answeredElsewhere',
+      );
+      // Clears a native accept latched for this dead call too: no offer
+      // will ever come, and the accept watchdog would otherwise hold an
+      // empty call screen up for its full 20s.
+      await _teardown(
+        CallStatus.ended,
+        errorMessage: answeredElsewhere ? null : 'Missed call',
+      );
+      return;
+    }
+    // No session: a card the push raised on its own, or one a session
+    // outlived. Same named dismissal the no-session `taken` path uses.
+    if (_latchedAcceptCallId == callId) clearNativeAccept();
+    await NativeCallHandler.instance.endNative(callId);
+    _ackNativeDismissed(callId);
+  }
+
+  Future<void> _dropLatchedAcceptIfDead(String callId) async {
+    final me = _userId;
+    if (me == null) return;
+    String? status;
+    try {
+      status = await api
+          .getCallStatus(callId: callId, userId: me)
+          .timeout(const Duration(seconds: 3));
+    } catch (_) {
+      return; // Unknown: the accept watchdog still arbitrates.
+    }
+    if (status == 'ringing') return;
+    final s = _session;
+    if (s == null || s.callId != callId) return;
+    if (s.status != CallStatus.incomingRinging || _pc != null) return;
+    await _dismissDeadRing(callId, answeredElsewhere: status == 'active');
+  }
+
+  /// The belt to [_reconcileRinging], for an incoming session the watch
+  /// never showed ringing (it attached late, or the socket stalled): asks
+  /// the backend directly every [ringWatchInterval], and past
+  /// [ringCeiling] stops ringing whatever the answer. Nothing else bounds
+  /// a desktop ring, whose only dismissal is the realtime signal.
+  Timer? _ringWatch;
+
+  void _armRingWatch(String callId) {
+    _ringWatch?.cancel();
+    late final Timer timer;
+    timer = Timer.periodic(ringWatchInterval, (t) async {
+      bool stillMine() {
+        final s = _session;
+        return s != null &&
+            s.callId == callId &&
+            s.status == CallStatus.incomingRinging &&
+            _acceptingCallId != callId;
+      }
+
+      if (!stillMine()) {
+        // Past ringing, or a different call now: nothing left to watch.
+        // An accept in flight is the one wait worth keeping alive.
+        if (_acceptingCallId != callId) {
+          timer.cancel();
+          if (identical(_ringWatch, timer)) _ringWatch = null;
+        }
+        return;
+      }
+      if (ringWatchInterval * t.tick >= ringCeiling) {
+        debugPrint('CallService: ring ceiling reached, callId=$callId');
+        timer.cancel();
+        await _teardown(CallStatus.ended, errorMessage: 'Missed call');
+        return;
+      }
+      final me = _userId;
+      if (me == null) return;
+      String? status;
+      try {
+        status = await api
+            .getCallStatus(callId: callId, userId: me)
+            .timeout(const Duration(seconds: 3));
+      } catch (_) {
+        return; // Offline: the next tick, or the ceiling, decides.
+      }
+      if (status == 'ringing' || !stillMine()) return;
+      await _dismissDeadRing(callId, answeredElsewhere: status == 'active');
+    });
+    _ringWatch = timer;
+  }
 
   /// Stop watching and drop all cross-device state — call on logout.
   void detachWatch() {
@@ -317,6 +459,10 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   MediaStream? get localStream => _localStream;
   MediaStream? get remoteStream => _remoteStream;
 
+  /// The live peer connection, for read-only stats (the call screen's voice
+  /// level). Null between calls.
+  RTCPeerConnection? get peerConnection => _pc;
+
   /// The screen this device is sharing, while it is. One stream per call,
   /// kept across shares, so the id the peer learns from `state` stays the
   /// id its slot was negotiated with — see [GroupCallService.screenStream]
@@ -363,6 +509,41 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   /// Bumped when a minimised call wants its screen back — the in-call
   /// pill's "return". The overlay that pushes the call screen listens.
   final ValueNotifier<int> reopenTick = ValueNotifier<int>(0);
+
+  /// Whether this call's audio session is live, so a tone played into it is
+  /// heard: the caller's ringback waits on it. On an iPhone a CallKit call's
+  /// session belongs to the system until `didActivate`, and Apple's contract
+  /// is that audio starts there; a ringback started before it could play
+  /// into a session that was not yet the call's. Everywhere else the
+  /// session is live once local media is. [callAudioLiveFallback] covers an
+  /// activation event that never arrives.
+  bool get callAudioLive => _callAudioLive;
+  bool _callAudioLive = false;
+  Timer? _callAudioLiveTimer;
+
+  @visibleForTesting
+  Duration callAudioLiveFallback = const Duration(milliseconds: 1500);
+
+  /// Bumped on every native activation of the call's session, so a tone
+  /// already playing can restart in the session it now has.
+  final ValueNotifier<int> callAudioActivations = ValueNotifier<int>(0);
+
+  bool get _systemOwnsCallAudio =>
+      !kIsWeb && Platform.isIOS && !NativeCallHandler.instance.isIosSimulator;
+
+  void _markCallAudioLive() {
+    _callAudioLiveTimer?.cancel();
+    _callAudioLiveTimer = null;
+    if (_callAudioLive) return;
+    _callAudioLive = true;
+    notifyListeners();
+  }
+
+  void _resetCallAudioLive() {
+    _callAudioLiveTimer?.cancel();
+    _callAudioLiveTimer = null;
+    _callAudioLive = false;
+  }
 
   /// Whether this device is drawing over the shared screen right now — the
   /// pen on the call screen and on the in-call pill are one switch. Only
@@ -814,6 +995,11 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       // the PC is set up. This is the same flag CallKit uses when the
       // user taps Accept before the offer signal arrives.
       markAcceptedNatively(callId: s.callId);
+      // A missing offer is also what a DEAD call looks like: answering a
+      // card that should already have stopped ringing put up a silent call
+      // screen for the accept watchdog's full 20s. Ask now; a call that no
+      // longer rings goes down at once instead.
+      unawaited(_dropLatchedAcceptIfDead(s.callId));
       return;
     }
 
@@ -1072,14 +1258,14 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     }
     await ls.addTrack(track);
     _localStreamTick++;
-    var cur = _session!.copyWith(localVideoOff: false);
-    if (!cur.speakerOn) {
-      cur = cur.copyWith(speakerOn: true);
-      await applyIosCallAudioConfig(CallMediaKind.video, speakerOn: true);
-      await _applyAudioRoute(speaker: true);
-    }
-    _session = cur;
+    // Camera on moves the sound to the speaker. Flag first, route after,
+    // through the one route writer: the old order awaited the route and
+    // then wrote back a session copied from before those awaits, undoing
+    // any toggle the user made in between.
+    final toSpeaker = !_session!.speakerOn;
+    _session = _session!.copyWith(localVideoOff: false, speakerOn: true);
     notifyListeners();
+    if (toSpeaker) unawaited(_syncSpeakerRoute());
     await _sendState();
     final sender = _camSender;
     if (sender != null) {
@@ -1577,44 +1763,48 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     final s = _session;
     if (s == null) return;
     final next = !s.speakerOn;
-    // Rewrite the CATEGORY first, not just the route. `defaultToSpeaker`
-    // lives on flutter_webrtc's process-wide shared AVAudioSession config,
-    // and `setSpeakerphoneOn` only overrides the current output port without
-    // clearing that bit — so switching to the earpiece while the bit was
-    // still set held only until the next thing reconfigured the session
-    // from it, then snapped back to the loudspeaker.
-    await _applyIosAudioConfig(s.mediaKind, speakerOn: next);
-    await _applyAudioRoute(speaker: next);
+    // The button answers on the tap. It used to wait out two platform
+    // round trips (the category rewrite, then the route) before the flag
+    // moved, so the icon lagged, and a second tap inside that window read
+    // the OLD flag and asked for the same route again: two taps, one
+    // change, and a button out of step with the sound.
+    _session = s.copyWith(speakerOn: next);
+    notifyListeners();
+    await _syncSpeakerRoute();
   }
 
-  /// Sets the audio output route (loudspeaker vs earpiece) and keeps the
-  /// session's [speakerOn] flag in sync so the UI matches reality.
-  ///
-  /// Applied with the per-kind default when local media attaches (video →
-  /// loudspeaker, voice → earpiece) on BOTH platforms, then re-asserted once
-  /// the call connects — iOS only honors the route after its CallKit audio
-  /// session goes active, so the attach-time call alone doesn't stick.
-  Future<void> _applyAudioRoute({required bool speaker}) async {
-    if (_isMobile) {
-      // Web/desktop have no earpiece/loudspeaker switch — the browser/OS owns
-      // output routing — and Helper.setSpeakerphoneOn throws there. Still keep
-      // the speakerOn flag in sync below so the UI toggle stays coherent.
-      //
-      // Unconditional log (not just on failure): the plugin call can also
-      // silently no-op at the platform layer without throwing, which used to
-      // leave no trace at all that a route change was even attempted.
-      debugPrint('CallService._applyAudioRoute: setSpeakerphoneOn($speaker)');
+  /// Brings the platform route in line with [CallSession.speakerOn] — the
+  /// one writer of it once a call is up. The flag is the truth and is read
+  /// at apply time, never captured: a re-assert scheduled before a tap used
+  /// to finish after it and write its stale side back, flag and route both,
+  /// so the speaker flipped back on its own a second after the user chose.
+  /// Requests run one at a time; one arriving mid-apply is folded into a
+  /// single re-run, so a burst of taps lands as one change on the side the
+  /// user stopped on.
+  Future<void>? _speakerRouting;
+  bool _speakerRouteDirty = false;
+
+  Future<void> _syncSpeakerRoute() {
+    _speakerRouteDirty = true;
+    return _speakerRouting ??= () async {
       try {
-        await Helper.setSpeakerphoneOn(speaker);
-      } catch (e) {
-        debugPrint('setSpeakerphoneOn($speaker) failed: $e');
+        while (_speakerRouteDirty) {
+          _speakerRouteDirty = false;
+          final s = _session;
+          if (s == null || !inCall) return;
+          final want = s.speakerOn;
+          // Category and route together, never the route alone:
+          // `defaultToSpeaker` lives in WebRTC's process-wide session
+          // config, and an override without it held only until the next
+          // reconfiguration snapped back to the loudspeaker. See
+          // [applyCallAudio].
+          debugPrint('CallService: audio route speaker=$want');
+          await applyCallAudio(s.mediaKind, speakerOn: want);
+        }
+      } finally {
+        _speakerRouting = null;
       }
-    }
-    final s = _session;
-    if (s != null && s.speakerOn != speaker) {
-      _session = s.copyWith(speakerOn: speaker);
-      notifyListeners();
-    }
+    }();
   }
 
   /// CallKit activated the AVAudioSession (flutter_callkit_incoming's
@@ -1630,16 +1820,14 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   ///      silence until the track is re-primed — the mute→unmute "fix"
   ///      users discovered, done here programmatically.
   Future<void> onNativeAudioSessionActivated() async {
-    final s = _session;
-    if (s == null || !inCall) return;
-    await _applyIosAudioConfig(s.mediaKind, speakerOn: s.speakerOn);
-    await _applyAudioRoute(speaker: s.speakerOn);
+    if (_session == null || !inCall) return;
+    _markCallAudioLive();
+    callAudioActivations.value++;
+    await _syncSpeakerRoute();
     _reprimeLocalAudio();
     Future.delayed(const Duration(milliseconds: 1500), () {
-      final s2 = _session;
-      if (s2 == null || !inCall) return;
-      unawaited(_applyIosAudioConfig(s2.mediaKind, speakerOn: s2.speakerOn));
-      unawaited(_applyAudioRoute(speaker: s2.speakerOn));
+      if (_session == null || !inCall) return;
+      unawaited(_syncSpeakerRoute());
     });
   }
 
@@ -1666,8 +1854,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         final s = _session;
         if (s == null || !inCall) return;
         if (s.status != CallStatus.active) return;
-        unawaited(_applyIosAudioConfig(s.mediaKind, speakerOn: s.speakerOn));
-        unawaited(_applyAudioRoute(speaker: s.speakerOn));
+        unawaited(_syncSpeakerRoute());
       });
     }
   }
@@ -1684,13 +1871,6 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       t.enabled = !muted;
     }
   }
-
-  /// See [applyIosCallAudioConfig] — shared with the group-call mesh.
-  Future<void> _applyIosAudioConfig(
-    CallMediaKind kind, {
-    required bool speakerOn,
-  }) =>
-      applyIosCallAudioConfig(kind, speakerOn: speakerOn);
 
   // ───────── inbound signaling ─────────
 
@@ -2001,6 +2181,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       );
       notifyListeners();
       incomingTick.value = incomingTick.value + 1;
+      _armRingWatch(callId);
       // Android foreground: FCM's service only rings for background/killed,
       // so surface the native full-screen ringer from here (WhatsApp model
       // — the receiver never sees an in-app ringer). No-op on iOS (PushKit
@@ -2369,6 +2550,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         );
         notifyListeners();
         incomingTick.value = incomingTick.value + 1;
+        _armRingWatch(callId);
       }
       await _flushPendingLocalIce();
       // Race recovery: if the user tapped Accept on CallKit (or on the
@@ -2656,7 +2838,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         // Re-assert the output route now the iOS audio session is live,
         // and re-prime the mic in case its unit started before the
         // CallKit session activated (silent-capture race).
-        unawaited(_applyAudioRoute(speaker: cur.speakerOn));
+        unawaited(_syncSpeakerRoute());
         _reprimeLocalAudio();
         _scheduleAudioRouteReasserts();
         // Start (or restart, post-handoff) stats polling against this PC.
@@ -2835,7 +3017,10 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     // with the correct per-kind default (loudspeaker for video, earpiece for
     // voice) — fall back to that same default if it's somehow unset yet.
     final speakerOn = _session?.speakerOn ?? (kind == CallMediaKind.video);
-    await _applyIosAudioConfig(kind, speakerOn: speakerOn);
+    await applyCallAudio(kind, speakerOn: speakerOn);
+    // A redial or a handoff starts its own wait. An activation that already
+    // came for THIS call (CallKit can activate before media is up) stands.
+    final audioAlreadyLive = _callAudioLive;
     final tier = SettingsStore.instance.videoQualityTier;
     final epoch = ++_mediaEpoch;
     final stream = await getUserMediaFn(kind, tier: tier);
@@ -2861,8 +3046,18 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     await _tuneSenders(_pc!);
     // Default output route: loudspeaker for video, earpiece for voice — on
     // both platforms. iOS won't latch this until its audio session is active,
-    // so onConnectionState (connected) re-asserts it.
-    await _applyAudioRoute(speaker: speakerOn);
+    // so onConnectionState (connected) re-asserts it. Not awaited: the route
+    // is the call's, not this setup's, and reads the flag when it runs.
+    unawaited(_syncSpeakerRoute());
+    if (!_systemOwnsCallAudio || audioAlreadyLive) {
+      _callAudioLive = true;
+    } else {
+      _callAudioLiveTimer?.cancel();
+      _callAudioLiveTimer = Timer(callAudioLiveFallback, () {
+        _callAudioLiveTimer = null;
+        if (inCall) _markCallAudioLive();
+      });
+    }
     // Nothing else notifies between `outgoingRinging`/`connecting` being set
     // and the peer answering, so without this, listeners gating on
     // [localStream] (the call screen's local-camera preview, the caller
@@ -3035,6 +3230,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   }) async {
     _acceptWatchdog?.cancel();
     _acceptWatchdog = null;
+    _ringWatch?.cancel();
+    _ringWatch = null;
+    _resetCallAudioLive();
     _handoffWatchdog?.cancel();
     _handoffWatchdog = null;
     _restartTimer?.cancel();
@@ -3172,6 +3370,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   @override
   void dispose() {
     _acceptWatchdog?.cancel();
+    _ringWatch?.cancel();
+    _callAudioLiveTimer?.cancel();
+    callAudioActivations.dispose();
     _handoffWatchdog?.cancel();
     _disconnectTimer?.cancel();
     _restartTimer?.cancel();

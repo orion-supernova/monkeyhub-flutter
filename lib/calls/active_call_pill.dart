@@ -26,6 +26,7 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
   @override
   void initState() {
     super.initState();
+    _shown = widget.service.activeCallElsewhere;
     widget.service.addListener(_onServiceChanged);
   }
 
@@ -35,11 +36,21 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
     super.dispose();
   }
 
+  /// The [CallService.activeCallElsewhere] this last built with.
+  Map<String, dynamic>? _shown;
+
   void _onServiceChanged() {
     // CallService owns the cross-device active-call subscription now
     // (activeCallElsewhere / busyElsewhere), so any change to it — or to the
-    // local session — arrives through this listener. Just rebuild.
-    if (mounted) setState(() {});
+    // local session — arrives through this listener. It also fires for
+    // every mute, speaker, stats and ICE change of the call on THIS device,
+    // and this pill sits above every route, the call screen included: only
+    // a different call elsewhere (the row is replaced, never mutated) is a
+    // reason to rebuild.
+    if (!mounted) return;
+    final call = widget.service.activeCallElsewhere;
+    if (identical(call, _shown)) return;
+    setState(() => _shown = call);
   }
 
   Future<void> _moveHere() async {

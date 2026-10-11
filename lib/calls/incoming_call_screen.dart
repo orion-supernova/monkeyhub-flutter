@@ -85,7 +85,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         s.status == CallStatus.failed) {
       if (_popScheduled) return;
       _popScheduled = true;
-      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      dismissCallRoute(context);
       return;
     }
     if (!_movedToCall &&

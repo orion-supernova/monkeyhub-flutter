@@ -137,10 +137,14 @@ class CallFcmService : FirebaseMessagingService() {
                         "avatar" to (data["callerAvatarUrl"] ?: ""),
                         "handle" to (data["callerHandle"] ?: callerName),
                         "type" to if (isVideo) 1 else 0,
-                        // Matches the backend ring window (60s FCM ttl +
-                        // calls.ts CALL_RING_TIMEOUT) — plugin auto-times-out
-                        // and posts a missed-call notification after this.
-                        "duration" to 60000L,
+                        // The card's own end, should every dismissal miss
+                        // it: the backend's ring window plus the `taken`
+                        // grace and some slack (calls.ts rings a 1:1 call
+                        // for 30s, groupCalls.ts a group invite for 60s).
+                        // It used to be 60s for both, so a 1:1 ring whose
+                        // dismissal was lost rang twice as long as the call
+                        // existed. Mirrors NativeCallHandler.showIncoming.
+                        "duration" to if (groupCallId != null) 65000L else 40000L,
                         // Whether the plugin may run its ongoing-call foreground
                         // service once this call is answered. It types that
                         // service microphone (+camera for video), which on

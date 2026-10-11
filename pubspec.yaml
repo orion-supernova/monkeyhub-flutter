@@ -64,6 +64,9 @@ dependencies:
   photo_manager_image_provider: ^2.2.0
   record: ^6.2.1
   just_audio: ^0.10.6
+  # just_audio's own session layer, imported for the Android audio attributes
+  # the caller's in-call tones play with (lib/audio/alert_sounds.dart).
+  audio_session: ^0.2.4
   video_player: ^2.9.2
   http: ^1.2.2
   # Saves images to the system Photos/Gallery (avatar "download", and saving

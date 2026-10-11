@@ -15,6 +15,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
 import '../../models/chat_user.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/fit_label.dart';
 import '../../widgets/user_avatar.dart';
@@ -94,10 +95,14 @@ class GlassTray extends StatelessWidget {
     // video cannot afford. The same holds while the route carrying the
     // tray slides in or out: the call screen opening was one long animated
     // blur.
-    if (!blur) return _build(context, false);
+    // Always under the same _RouteSettled, so flipping [blur] (a voice call
+    // turning into a video call) keeps the tray's subtree rather than
+    // rebuilding it from scratch.
     return _RouteSettled(
-      builder: (context, settled) =>
-          _build(context, settled && ControlsFade.allowsBlur(context)),
+      builder: (context, settled) => _build(
+        context,
+        blur && settled && ControlsFade.allowsBlur(context),
+      ),
     );
   }
 
@@ -134,14 +139,19 @@ class GlassTray extends StatelessWidget {
         // iOS 26's tray: corners as round as the controls inside them
         // (concentric), so a one-row tray reads as a capsule and a two-row
         // one as a rounded slab of the same family.
+        // The BackdropFilter is always in the tree and only switched off,
+        // never swapped for a bare box: a different widget at this slot
+        // threw away and rebuilt the whole tray under it (every button, its
+        // focus node, its press spring, its label measurement) at the start
+        // AND the end of every tap-to-hide fade and every route slide, the
+        // frames that could least afford it.
         child: ClipRRect(
           borderRadius: BorderRadius.circular(38),
-          child: blur
-              ? BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: box,
-                )
-              : box,
+          child: BackdropFilter(
+            enabled: blur,
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: box,
+          ),
         ),
       ),
     );
@@ -359,6 +369,17 @@ class CallTray extends StatelessWidget {
       for (final a in actions) sentenceCaseOf(context, a.label),
       sentenceCaseOf(context, endLabel),
     ];
+    // The answer depends only on these, and the tray rebuilds on every
+    // toggle with the same labels nine times out of ten: remember the last
+    // few rather than laying out ten to seventy paragraphs per tap.
+    final key = Object.hash(
+      Object.hashAll(labels),
+      slot,
+      scaler.scale(13),
+      dir,
+    );
+    final cached = _labelSizeCache[key];
+    if (cached != null) return cached;
     bool fits(double size) {
       for (final l in labels) {
         final p = TextPainter(
@@ -381,8 +402,16 @@ class CallTray extends StatelessWidget {
     while (size > 10 && !fits(size)) {
       size -= 0.5;
     }
+    if (_labelSizeCache.length >= 16) {
+      _labelSizeCache.remove(_labelSizeCache.keys.first);
+    }
+    _labelSizeCache[key] = size;
     return size;
   }
+
+  /// [_sharedLabelSize]'s answers, oldest first. A handful covers every
+  /// tray shape a call goes through (mute/unmute, camera on/off, sharing).
+  static final Map<int, double> _labelSizeCache = {};
 
   @override
   Widget build(BuildContext context) {
@@ -504,6 +533,7 @@ class PulseRings extends StatefulWidget {
     required this.child,
     this.reach = 120,
     this.animate = true,
+    this.voiceLevel,
   });
 
   final Color accent;
@@ -511,21 +541,66 @@ class PulseRings extends StatefulWidget {
   final double reach;
   final Widget child;
 
-  /// Off under calm motion: the child stands still.
+  /// The waiting pulse: two rings drifting out for as long as this is on.
+  /// Off under calm motion, and once the call is up: the child stands still.
   final bool animate;
+
+  /// With [animate] off, the rings follow this instead (the peer's voice,
+  /// 0..1): they swell as the person talks and settle when they stop. A
+  /// silent call then draws no frames at all. The steady pulse it replaces
+  /// redrew the screen, and re-ran the tray's backdrop blur, up to 120
+  /// times a second for the whole length of every voice call, to say
+  /// nothing.
+  final ValueListenable<double>? voiceLevel;
 
   @override
   State<PulseRings> createState() => _PulseRingsState();
 }
 
 class _PulseRingsState extends State<PulseRings>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   AnimationController? _pulse;
+
+  /// The ring swell in voice mode, eased toward each new level. Idle (and
+  /// so frameless) whenever it has arrived.
+  AnimationController? _voice;
+  ValueListenable<double>? _listening;
 
   @override
   void initState() {
     super.initState();
     if (widget.animate) _start();
+    _bindVoice();
+  }
+
+  void _bindVoice() {
+    final level = widget.animate ? null : widget.voiceLevel;
+    if (identical(level, _listening)) return;
+    _listening?.removeListener(_onLevel);
+    _listening = level;
+    if (level == null) {
+      _voice?.dispose();
+      _voice = null;
+      return;
+    }
+    _voice ??= AnimationController(vsync: this, value: 0);
+    level.addListener(_onLevel);
+    _onLevel();
+  }
+
+  void _onLevel() {
+    final voice = _voice;
+    final level = _listening;
+    if (voice == null || level == null) return;
+    // Levels arrive three times a second; easing over most of that gap
+    // turns the steps into one continuous swell while someone talks.
+    final target = (level.value * 1.8).clamp(0.0, 1.0);
+    if ((target - voice.value).abs() < 0.01 && !voice.isAnimating) return;
+    voice.animateTo(
+      target,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOut,
+    );
   }
 
   void _start() {
@@ -543,10 +618,13 @@ class _PulseRingsState extends State<PulseRings>
       _pulse!.dispose();
       _pulse = null;
     }
+    _bindVoice();
   }
 
   @override
   void dispose() {
+    _listening?.removeListener(_onLevel);
+    _voice?.dispose();
     _pulse?.dispose();
     super.dispose();
   }
@@ -574,6 +652,19 @@ class _PulseRingsState extends State<PulseRings>
                 child: CustomPaint(
                   painter: _PulseRingsPainter(
                     pulse: pulse,
+                    color: widget.accent,
+                    diameter: widget.diameter,
+                    reach: widget.reach,
+                  ),
+                ),
+              ),
+            )
+          else if (_voice != null)
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _VoiceRingsPainter(
+                    swell: _voice!,
                     color: widget.accent,
                     diameter: widget.diameter,
                     reach: widget.reach,
@@ -620,6 +711,46 @@ class _PulseRingsPainter extends CustomPainter {
   @override
   bool shouldRepaint(_PulseRingsPainter old) =>
       old.pulse != pulse ||
+      old.color != color ||
+      old.diameter != diameter ||
+      old.reach != reach;
+}
+
+/// [PulseRings] in voice mode: the same two rings, held out by how loud the
+/// person is rather than drifting on a clock. Nothing is drawn at rest.
+class _VoiceRingsPainter extends CustomPainter {
+  _VoiceRingsPainter({
+    required this.swell,
+    required this.color,
+    required this.diameter,
+    required this.reach,
+  }) : super(repaint: swell);
+
+  final Animation<double> swell;
+  final Color color;
+  final double diameter;
+  final double reach;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final v = swell.value;
+    if (v <= 0.01) return;
+    final center = size.center(Offset.zero);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    // The inner ring leads, the outer one trails a little further out, so
+    // a loud word reads as one wave leaving the face.
+    for (final (out, alpha) in const [(0.30, 0.34), (0.62, 0.18)]) {
+      paint.color = color.withValues(alpha: color.a * alpha * v);
+      final radius = (diameter + v * out * reach) / 2 - 0.75;
+      canvas.drawCircle(center, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_VoiceRingsPainter old) =>
+      old.swell != swell ||
       old.color != color ||
       old.diameter != diameter ||
       old.reach != reach;
@@ -1514,10 +1645,19 @@ class AudioBackdrop extends StatelessWidget {
     this.api,
     this.peerMuted = false,
     this.bottomInset = 0,
+    this.waiting = true,
+    this.voiceLevel,
   });
   final String name;
   final Widget status;
   final bool peerMuted;
+
+  /// Calling, ringing, connecting: the rings pulse, which is what waiting
+  /// looks like. Once the call is up they follow [voiceLevel] instead.
+  final bool waiting;
+
+  /// The peer's voice, 0..1, for the rings once the call is up.
+  final ValueListenable<double>? voiceLevel;
 
   /// What the tray covers at the bottom of the screen, so the avatar and
   /// name centre in the space above it rather than under it.
@@ -1546,6 +1686,8 @@ class AudioBackdrop extends StatelessWidget {
                   accent: accent,
                   diameter: 132,
                   reach: 128,
+                  animate: waiting && !MotionScope.of(context).calm,
+                  voiceLevel: MotionScope.of(context).calm ? null : voiceLevel,
                   child: Container(
                     width: 132,
                     height: 132,

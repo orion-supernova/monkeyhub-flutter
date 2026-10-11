@@ -22,6 +22,7 @@ import 'backend/server_switch.dart';
 import 'calls/active_call_pill.dart';
 import 'calls/draw/screen_share_overlay.dart';
 import 'calls/in_call_pill.dart';
+import 'calls/call_media.dart' show logCallAudioState;
 import 'calls/call_models.dart';
 import 'calls/call_screen.dart';
 import 'calls/call_service.dart';
@@ -2328,17 +2329,30 @@ class _CallOverlayState extends State<_CallOverlay> {
   /// yet. See [_syncAnswered].
   String? _dialedCallId;
 
+  /// The last call screen [_pushCallScreen] pushed, while it is up.
+  Route<void>? _screenRoute;
+
   @override
   void initState() {
     super.initState();
     widget.service.addListener(_onChanged);
     widget.service.reopenTick.addListener(_reopen);
+    widget.service.callAudioActivations.addListener(_onCallAudioActivated);
+  }
+
+  /// The call's session was (re)activated under a ringback already playing:
+  /// start it again in the session it has now, rather than trust a player
+  /// that began in the one it replaced.
+  void _onCallAudioActivated() {
+    if (_ringingSound != AlertSound.ringback) return;
+    unawaited(AlertSounds.instance.play(AlertSound.ringback));
   }
 
   @override
   void dispose() {
     widget.service.removeListener(_onChanged);
     widget.service.reopenTick.removeListener(_reopen);
+    widget.service.callAudioActivations.removeListener(_onCallAudioActivated);
     super.dispose();
   }
 
@@ -2386,12 +2400,18 @@ class _CallOverlayState extends State<_CallOverlay> {
     // `CallService.initiate` sets `outgoingRinging` BEFORE `_attachLocalMedia`
     // reclassifies the shared AVAudioSession, so starting playback at the
     // raw status change risks racing that reclassification.
+    //
+    // And only once the call's audio session is live
+    // ([CallService.callAudioLive]): on an iPhone CallKit hands the session
+    // over at `didActivate`, and a ringback started before it is not
+    // guaranteed to be heard.
     final outgoingRinging =
         s != null &&
         s.status == CallStatus.outgoingRinging &&
         s.isCaller &&
         s.peerRinging &&
-        widget.service.localStream != null;
+        widget.service.localStream != null &&
+        widget.service.callAudioLive;
     final ringing = incomingRinging || outgoingRinging;
     if (ringing) {
       if (_ringingCallId == s.callId) return;
@@ -2401,6 +2421,7 @@ class _CallOverlayState extends State<_CallOverlay> {
       final sound = outgoingRinging ? AlertSound.ringback : AlertSound.ringtone;
       _ringingSound = sound;
       AlertSounds.instance.play(sound);
+      if (outgoingRinging) unawaited(logCallAudioState('ringback'));
       // When the tab isn't focused the in-app ringer never mounts (no frames),
       // so surface a persistent OS banner. No-op off web / when focused.
       // Incoming-call only — the caller already knows they're dialing.
@@ -2534,7 +2555,15 @@ class _CallOverlayState extends State<_CallOverlay> {
       settings: const RouteSettings(name: kProtectedRouteName),
       builder: (_) => CallScreen(service: widget.service, api: widget.api),
     );
-    nav.push(route).whenComplete(() => widget.screenUp.value = false);
+    _screenRoute = route;
+    nav.push(route).whenComplete(() {
+      // Only the screen still up lowers the flag: an ended call's screen
+      // taken out from under the next call's (see dismissCallRoute) must
+      // not raise the in-call pill over the live one.
+      if (!identical(_screenRoute, route)) return;
+      _screenRoute = null;
+      widget.screenUp.value = false;
+    });
     final settled = _settled(route);
     // A dial's native setup waits for the slide; see
     // [CallService.screenSettled].

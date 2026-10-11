@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../data/settings_store.dart';
@@ -360,6 +361,54 @@ Future<void> applyIosCallAudioConfig(
   } catch (e) {
     debugPrint('setAppleAudioConfiguration failed: $e');
   }
+}
+
+/// The call's whole audio setup, category, mode and output route, in one
+/// step. Use this, not the two helpers around it.
+///
+/// iOS goes to `AppDelegate.applyCallAudio` over the voip channel. It runs
+/// off the main thread, which on iOS is also the thread Flutter draws on, so
+/// a speaker tap or a reassert no longer drops frames on the call screen. It
+/// also skips the category rewrite when nothing changed, and its speaker
+/// override actually works; flutter_webrtc's `setSpeakerphoneOn(true)` passes
+/// a property ID where the port belongs. A build without that method falls
+/// back to the two flutter_webrtc calls. Android has only the route; web and
+/// desktop route themselves.
+Future<void> applyCallAudio(
+  CallMediaKind kind, {
+  required bool speakerOn,
+}) async {
+  if (!isMobileCallPlatform) return;
+  if (Platform.isIOS) {
+    try {
+      await _voipChannel.invokeMethod<void>('applyCallAudio', {
+        'video': kind == CallMediaKind.video,
+        'speaker': speakerOn,
+      });
+      return;
+    } on MissingPluginException {
+      // Older native build: the flutter_webrtc pair below.
+    } catch (e) {
+      debugPrint('applyCallAudio (native) failed: $e');
+      return;
+    }
+    await applyIosCallAudioConfig(kind, speakerOn: speakerOn);
+  }
+  await applyCallAudioRoute(speaker: speakerOn);
+}
+
+const _voipChannel = MethodChannel('monkeyhub/voip');
+
+/// Logs the iOS audio session as a tone about to play into it sees it:
+/// category, mode, route, volume. Diagnostics only, for the one question a
+/// silent ringback leaves (was the session the call's, and where did the
+/// sound go?). A no-op anywhere else.
+Future<void> logCallAudioState(String why) async {
+  if (kIsWeb || !Platform.isIOS) return;
+  try {
+    final state = await _voipChannel.invokeMethod<Object?>('callAudioState');
+    debugPrint('call audio [$why]: $state');
+  } catch (_) {}
 }
 
 /// Loudspeaker/earpiece toggle — mobile only (web/desktop route themselves).

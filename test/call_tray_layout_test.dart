@@ -194,4 +194,57 @@ void main() {
       expect(estimate - rendered, lessThan(28), reason: '$width/$count');
     }
   });
+
+  testWidgets('hiding and showing the glass tray keeps its controls',
+      (tester) async {
+    // The glass drops its blur while the fade runs and takes it back once
+    // it settles. Swapping the BackdropFilter for a bare box rebuilt every
+    // control from scratch at both ends of each fade; switching it off in
+    // place keeps them.
+    await tester.binding.setSurfaceSize(const Size(390, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var visible = true;
+    late StateSetter setVisible;
+    await tester.pumpWidget(
+      ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: MaterialApp(
+          home: Scaffold(
+            backgroundColor: Colors.black,
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                setVisible = setState;
+                return Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ControlsFade(
+                    visible: visible,
+                    child: CallTray(
+                      actions: _actions(5),
+                      endIcon: Icons.call_end,
+                      endLabel: 'End',
+                      endColor: Colors.red,
+                      onEnd: () {},
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    final control = find.byKey(const ValueKey('action-0'));
+    final before = tester.element(control);
+    BackdropFilter glass() => tester.widget(find.byType(BackdropFilter));
+    expect(glass().enabled, isTrue);
+    for (final next in [false, true]) {
+      setVisible(() => visible = next);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(glass().enabled, isFalse, reason: 'blur while fading');
+      expect(identical(tester.element(control), before), isTrue);
+      await tester.pumpAndSettle();
+    }
+    expect(glass().enabled, isTrue);
+    expect(identical(tester.element(control), before), isTrue);
+  });
 }

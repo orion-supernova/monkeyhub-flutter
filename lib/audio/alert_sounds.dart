@@ -1,3 +1,5 @@
+import 'package:audio_session/audio_session.dart'
+    show AndroidAudioAttributes, AndroidAudioContentType, AndroidAudioUsage;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:just_audio/just_audio.dart';
@@ -58,8 +60,32 @@ class AlertSounds {
       }();
 
   Future<bool> _ensureLoaded(AlertSound sound) => _loads[sound] ??= () async {
-        final player = _players[sound] ??= AudioPlayer();
+        final player = _players[sound] ??= sound.inCall
+            // The caller's tones sound while the call holds the audio
+            // session. Left to just_audio, every play would activate the
+            // session as MUSIC (iOS: `.playback`, configured on the spot when
+            // nothing configured it yet, over the call's `.playAndRecord`;
+            // Android: a media focus grab on the media stream). They play in
+            // the call's session instead, and on Android as call signalling:
+            // the voice-call stream, routed with the call to the earpiece or
+            // the speaker, and not muted by the ringer's silent mode.
+            // Interruptions too belong to the call, not to the player: the
+            // CallKit plugin posts its own "interruption ended" on every
+            // activation, and a real one pauses the call itself. The call
+            // state starts and stops these tones.
+            ? AudioPlayer(
+                handleAudioSessionActivation: false,
+                androidApplyAudioAttributes: false,
+                handleInterruptions: false,
+              )
+            : AudioPlayer();
         try {
+          if (sound.inCall) {
+            await player.setAndroidAudioAttributes(const AndroidAudioAttributes(
+              contentType: AndroidAudioContentType.sonification,
+              usage: AndroidAudioUsage.voiceCommunicationSignalling,
+            ));
+          }
           await player.setAsset(sound.asset);
           if (sound.loop) await player.setLoopMode(LoopMode.one);
           return true;

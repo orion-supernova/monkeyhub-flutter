@@ -9,6 +9,7 @@ import AVFoundation
 import CoreLocation
 import Intents
 import flutter_callkit_incoming
+import WebRTC
 
 @main
 // UNUserNotificationCenterDelegate is NOT listed here: FlutterAppDelegate
@@ -1288,6 +1289,32 @@ import flutter_callkit_incoming
             self.fallbackCallIdByUuid.removeAll()
           }
           result(nil)
+        case "applyCallAudio":
+          // One native pass for the call's audio category, mode and output
+          // route, off the main thread. See [applyCallAudio].
+          let args = call.arguments as? [String: Any] ?? [:]
+          guard let self = self else {
+            result(nil)
+            return
+          }
+          self.applyCallAudio(
+            video: args["video"] as? Bool ?? false,
+            speaker: args["speaker"] as? Bool ?? false
+          ) { result(nil) }
+        case "callAudioState":
+          // Diagnostics: the session as a tone about to play into it sees
+          // it. Logged by Dart at ringback start.
+          let session = AVAudioSession.sharedInstance()
+          result([
+            "category": session.category.rawValue,
+            "mode": session.mode.rawValue,
+            "options": session.categoryOptions.rawValue,
+            "outputs": session.currentRoute.outputs.map { $0.portType.rawValue },
+            "volume": session.outputVolume,
+            "otherAudio": session.isOtherAudioPlaying,
+            "silenceHint": session.secondaryAudioShouldBeSilencedHint,
+            "calls": (SwiftFlutterCallkitIncomingPlugin.sharedInstance?.activeCalls() ?? []).count,
+          ])
         case "deactivateAudioSession":
           // Belt to the vendored plugin's deactivate-on-end (PATCH 1 in
           // third_party/flutter_callkit_incoming): Dart calls this after
@@ -1666,6 +1693,74 @@ import flutter_callkit_incoming
   /// it kills the microphone for a call still in progress. A user who taps a
   /// video mid-call gets the silent-switch behaviour instead, which is a far
   /// cheaper thing to be wrong about than a one-way call.
+  /// Serial, so route changes land in the order Dart asked for them.
+  private let callAudioQueue = DispatchQueue(
+    label: "monkeyhub.call-audio",
+    qos: .userInitiated
+  )
+
+  /// The call's audio category, mode and output route, in one pass, off the
+  /// main thread.
+  ///
+  /// This replaced two flutter_webrtc calls, `setAppleAudioConfiguration` then
+  /// `setSpeakerphoneOn`, for three reasons:
+  ///   - Both ran on the main thread, which on iOS is also the thread Flutter
+  ///     draws frames on. Together they made four AVAudioSession
+  ///     reconfigurations per speaker tap, and each one can block for tens of
+  ///     milliseconds while a voice-processing unit is live. The call screen
+  ///     dropped frames on every toggle and on every reassert after connect.
+  ///   - `setSpeakerphoneOn(true)` passed `kAudioSessionProperty_OverrideAudioRoute`,
+  ///     a property ID, where an `AVAudioSession.PortOverride` belongs. The
+  ///     override failed every time, and the speaker worked only when
+  ///     `defaultToSpeaker` happened to apply.
+  ///   - Category and mode are now written only when they actually change. A
+  ///     reassert with nothing to change costs one port override, not a
+  ///     reconfiguration of a live audio unit.
+  ///
+  /// WebRTC's process-wide `RTCAudioSessionConfiguration` is updated first,
+  /// because WebRTC re-applies it whenever its audio unit initializes. If it
+  /// were left stale, the route would snap back at connect.
+  ///
+  /// `videoChat` mode force-sets `defaultToSpeaker`, so it is used only for
+  /// video on the speaker. See `applyCallAudio` in lib/calls/call_media.dart.
+  func applyCallAudio(video: Bool, speaker: Bool, completion: @escaping () -> Void) {
+    callAudioQueue.async {
+      var options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP]
+      if speaker { options.insert(.defaultToSpeaker) }
+      let mode: AVAudioSession.Mode = (video && speaker) ? .videoChat : .voiceChat
+
+      let config = RTCAudioSessionConfiguration.webRTC()
+      config.category = AVAudioSession.Category.playAndRecord.rawValue
+      config.categoryOptions = options
+      config.mode = mode.rawValue
+
+      let rtc = RTCAudioSession.sharedInstance()
+      rtc.lockForConfiguration()
+      let session = AVAudioSession.sharedInstance()
+      do {
+        // `videoChat` adds bits of its own, so compare what this call asks
+        // for (each option present, the speaker bit exactly) instead of
+        // equality, which would rewrite video-on-speaker on every reassert.
+        let current = session.categoryOptions
+        if session.category != .playAndRecord
+          || session.mode != mode
+          || !current.isSuperset(of: options)
+          || current.contains(.defaultToSpeaker) != speaker {
+          try rtc.setCategory(.playAndRecord, mode: mode, options: options)
+        }
+      } catch {
+        NSLog("[call-audio] setCategory failed: \(error)")
+      }
+      do {
+        try rtc.overrideOutputAudioPort(speaker ? .speaker : .none)
+      } catch {
+        NSLog("[call-audio] overrideOutputAudioPort failed: \(error)")
+      }
+      rtc.unlockForConfiguration()
+      DispatchQueue.main.async(execute: completion)
+    }
+  }
+
   private func prepareAudioSessionForPlayback() {
     let session = AVAudioSession.sharedInstance()
     guard session.category != .playAndRecord else { return }

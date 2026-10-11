@@ -564,7 +564,7 @@ class GroupCallService extends ChangeNotifier
 
     try {
       speakerOn = kind == CallMediaKind.video;
-      await applyIosCallAudioConfig(kind, speakerOn: speakerOn);
+      await applyCallAudio(kind, speakerOn: speakerOn);
       _videoTier = SettingsStore.instance.videoQualityTier;
       final epoch = ++_mediaEpoch;
       final stream = await getUserMediaFn(kind, tier: _videoTier);
@@ -577,7 +577,7 @@ class GroupCallService extends ChangeNotifier
         return;
       }
       _localStream = stream;
-      await applyCallAudioRoute(speaker: speakerOn);
+      unawaited(_syncAudio());
     } catch (e, st) {
       debugPrint('GroupCallService: getUserMedia failed: $e\n$st');
       await leaveCall();
@@ -1716,8 +1716,7 @@ class GroupCallService extends ChangeNotifier
     localStreamTick++;
     if (!speakerOn) {
       speakerOn = true;
-      await applyIosCallAudioConfig(CallMediaKind.video, speakerOn: true);
-      await applyCallAudioRoute(speaker: true);
+      unawaited(_syncAudio());
     }
     notifyListeners();
     await _broadcastState();
@@ -2001,24 +2000,40 @@ class GroupCallService extends ChangeNotifier
   /// no 1:1 session, which is exactly when this one applies.
   Future<void> onNativeAudioSessionActivated() async {
     if (!inCall) return;
-    await applyIosCallAudioConfig(_mediaKind, speakerOn: speakerOn);
-    await applyCallAudioRoute(speaker: speakerOn);
+    await _syncAudio();
   }
 
   Future<void> toggleSpeaker() async {
+    // The button answers on the tap; the route follows. Category and route
+    // go together (see [applyCallAudio]): `defaultToSpeaker` lives in
+    // WebRTC's process-wide session config, and the `videoChat` mode
+    // force-sets it, so the route alone snapped back to the loudspeaker.
     speakerOn = !speakerOn;
-    // Rewrite the iOS audio CATEGORY/MODE first, not just the route — mirrors
-    // the 1:1 [CallService.toggleSpeaker]. `defaultToSpeaker` lives in
-    // flutter_webrtc's process-wide RTCAudioSessionConfiguration singleton and
-    // `setSpeakerphoneOn` only overrides the current output port without
-    // clearing that bit, so a group call switched to the earpiece snapped back
-    // to the loudspeaker on the next session reconfigure. And the `videoChat`
-    // mode force-sets `defaultToSpeaker` on its own (see
-    // [applyIosCallAudioConfig]), so for a group VIDEO call this rewrite is
-    // what lets the earpiece be reached at all. No-op off iOS.
-    await applyIosCallAudioConfig(_mediaKind, speakerOn: speakerOn);
-    await applyCallAudioRoute(speaker: speakerOn);
     notifyListeners();
+    await _syncAudio();
+  }
+
+  /// Brings the platform audio in line with [speakerOn], read when it runs,
+  /// never captured. One pass at a time; requests arriving mid-pass fold
+  /// into one re-run, so a burst of taps ends on the side the user stopped
+  /// on and a reassert can never write back a side the user already left.
+  /// The 1:1 twin is `CallService._syncSpeakerRoute`.
+  Future<void>? _audioSyncing;
+  bool _audioDirty = false;
+
+  Future<void> _syncAudio() {
+    _audioDirty = true;
+    return _audioSyncing ??= () async {
+      try {
+        while (_audioDirty) {
+          _audioDirty = false;
+          if (!inCall) return;
+          await applyCallAudio(_mediaKind, speakerOn: speakerOn);
+        }
+      } finally {
+        _audioSyncing = null;
+      }
+    }();
   }
 
   Future<void> _broadcastState() async {
