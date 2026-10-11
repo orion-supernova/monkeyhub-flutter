@@ -3016,6 +3016,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get photoDeckBackToFirst => '回到第一张';
 
   @override
+  String get inlinePickerCommentHint => '添加评论或直接发送';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return '全部（$count）';
   }

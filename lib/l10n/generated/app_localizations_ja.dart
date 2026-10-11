@@ -3054,6 +3054,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get photoDeckBackToFirst => '最初に戻る';
 
   @override
+  String get inlinePickerCommentHint => 'コメントを追加、または送信';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'すべて（$count）';
   }

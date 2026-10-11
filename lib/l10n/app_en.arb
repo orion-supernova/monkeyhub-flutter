@@ -3600,6 +3600,10 @@
   "@photoDeckBackToFirst": {
     "description": "Button shown on the last photo of a swipeable photo stack; returns the stack to its first photo."
   },
+  "inlinePickerCommentHint": "Add comment or send",
+  "@inlinePickerCommentHint": {
+    "description": "Composer placeholder while photos are picked: type a comment to go with them, or just send."
+  },
   "messageMenuAlbumAll": "All {count}",
   "@messageMenuAlbumAll": {
     "description": "Long-press menu switch on a photo stack: act on the whole stack. {count} is how many photos and videos it holds.",

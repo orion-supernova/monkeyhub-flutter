@@ -3061,6 +3061,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get photoDeckBackToFirst => '처음으로';
 
   @override
+  String get inlinePickerCommentHint => '댓글을 추가하거나 보내기';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return '전체 ($count)';
   }

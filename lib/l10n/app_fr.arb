@@ -903,6 +903,7 @@
   "photoChromeThumbnailSemanticLabel": "Élément {current} sur {total}",
   "photoTrayCountLabel": "{count, plural, =1{1 photo} other{{count} photos}}",
   "photoDeckBackToFirst": "Revenir à la première",
+  "inlinePickerCommentHint": "Ajouter un commentaire ou envoyer",
   "messageMenuAlbumAll": "Tous ({count})",
   "messageMenuAlbumOne": "Celui-ci",
   "replyAlbumItems": "{count, plural, =1{1 élément} other{{count} éléments}}",

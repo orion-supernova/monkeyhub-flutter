@@ -3181,6 +3181,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get photoDeckBackToFirst => 'Tillbaka till första';
 
   @override
+  String get inlinePickerCommentHint => 'Lägg till en kommentar eller skicka';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'Alla ($count)';
   }

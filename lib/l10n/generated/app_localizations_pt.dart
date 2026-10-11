@@ -3203,6 +3203,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get photoDeckBackToFirst => 'Voltar à primeira';
 
   @override
+  String get inlinePickerCommentHint => 'Adicione um comentário ou envie';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'Todos ($count)';
   }
@@ -15352,6 +15355,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get photoDeckBackToFirst => 'Voltar para a primeira';
+
+  @override
+  String get inlinePickerCommentHint => 'Adicione um comentário ou envie';
 
   @override
   String messageMenuAlbumAll(int count) {

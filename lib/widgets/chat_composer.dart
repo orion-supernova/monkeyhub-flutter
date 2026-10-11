@@ -127,9 +127,17 @@ class _ScheduledBadge extends StatelessWidget {
 /// selection and composing-region change as well, and none of those change
 /// which button belongs in the row.
 class _ComposerEmptiness extends StatefulWidget {
-  const _ComposerEmptiness({required this.controller, required this.builder});
+  const _ComposerEmptiness({
+    required this.controller,
+    required this.builder,
+    this.hasAttachments = false,
+  });
 
   final TextEditingController controller;
+
+  /// Something is waiting to be sent besides the text (picked photos), so
+  /// the composer is not empty even with no words in it.
+  final bool hasAttachments;
   final Widget Function(BuildContext context, bool hasText) builder;
 
   @override
@@ -167,7 +175,8 @@ class _ComposerEmptinessState extends State<_ComposerEmptiness> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(context, _hasText);
+  Widget build(BuildContext context) =>
+      widget.builder(context, _hasText || widget.hasAttachments);
 }
 
 /// The smiley at the end of the text field that swaps the keyboard for the
@@ -289,6 +298,7 @@ class ChatComposerClassic extends StatelessWidget {
     this.onAttach,
     this.attachKey,
     this.attachHidden = false,
+    this.hasAttachments = false,
     this.onCamera,
     this.padding,
     this.mention,
@@ -316,6 +326,10 @@ class ChatComposerClassic extends StatelessWidget {
 
   /// Put on the attach button, so the menu it opens can grow out of it.
   final GlobalKey? attachKey;
+
+  /// Photos are picked and waiting over the field, so SEND shows (and
+  /// sends them) even with no text. See `InlinePickerController`.
+  final bool hasAttachments;
 
   /// The attachment menu is open over the button. The button shrinks away as
   /// the menu grows out of its corner and comes back as the menu folds into
@@ -520,6 +534,7 @@ class ChatComposerClassic extends StatelessWidget {
           ),
           _ComposerEmptiness(
             controller: controller,
+            hasAttachments: hasAttachments,
             builder: (context, hasText) => _TrailingSlot(
               // Nothing to offer at rest (no recorder, no camera): the slot
               // takes no room until there is something to send, so the field
@@ -615,6 +630,7 @@ class ChatComposerLiquid extends StatelessWidget {
     this.onAttach,
     this.attachKey,
     this.attachHidden = false,
+    this.hasAttachments = false,
     this.onCamera,
     this.padding,
     this.mention,
@@ -642,6 +658,10 @@ class ChatComposerLiquid extends StatelessWidget {
 
   /// Put on the attach button, so the menu it opens can grow out of it.
   final GlobalKey? attachKey;
+
+  /// Photos are picked and waiting over the field, so SEND shows (and
+  /// sends them) even with no text. See `InlinePickerController`.
+  final bool hasAttachments;
 
   /// The attachment menu is open over the button. The button shrinks away as
   /// the menu grows out of its corner and comes back as the menu folds into
@@ -803,6 +823,7 @@ class ChatComposerLiquid extends StatelessWidget {
           ),
           _ComposerEmptiness(
             controller: controller,
+            hasAttachments: hasAttachments,
             builder: (context, hasText) => _TrailingSlot(
               // Nothing to offer at rest (no recorder, no camera): the slot
               // takes no room until there is something to send, so the field

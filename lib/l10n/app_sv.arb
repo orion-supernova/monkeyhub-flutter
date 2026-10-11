@@ -903,6 +903,7 @@
   "photoChromeThumbnailSemanticLabel": "Objekt {current} av {total}",
   "photoTrayCountLabel": "{count, plural, =1{1 foto} other{{count} foton}}",
   "photoDeckBackToFirst": "Tillbaka till första",
+  "inlinePickerCommentHint": "Lägg till en kommentar eller skicka",
   "messageMenuAlbumAll": "Alla ({count})",
   "messageMenuAlbumOne": "Bara den här",
   "replyAlbumItems": "{count, plural, =1{1 objekt} other{{count} objekt}}",

@@ -48,6 +48,8 @@ import '../media/native_gallery.dart';
 import '../media/video_poster.dart';
 import '../media/video_shrink.dart';
 import '../media/image_raster.dart';
+import '../widgets/gallery_tray.dart' show GalleryTray;
+import '../widgets/inline_photo_picker.dart';
 import '../media/photo_picking.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
@@ -224,6 +226,16 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// The attachment menu is up, which hides the "+" it grew out of.
   bool _attachMenuUp = false;
+
+  /// The inline photo picker: its grid in the keyboard's place, and what has
+  /// been picked, waiting over the composer until it is sent. Phones only;
+  /// see [InlinePhotoPicker.supported].
+  late final InlinePickerController _picker = InlinePickerController()
+    ..addListener(_onPickerChanged);
+
+  void _onPickerChanged() {
+    if (mounted) setState(() {});
+  }
 
   /// Mends the composer's focus when the app comes back — see
   /// [_restoreComposerFocus].
@@ -1488,6 +1500,9 @@ class _RoomScreenState extends State<RoomScreen>
     _composer.dispose();
     _expressions.removeListener(_onExpressionsChanged);
     _expressions.dispose();
+    _picker
+      ..removeListener(_onPickerChanged)
+      ..dispose();
     _lifecycle?.dispose();
     _composerFocus.removeListener(_onComposerFocusChanged);
     _composerFocus.unfocus();
@@ -1526,6 +1541,11 @@ class _RoomScreenState extends State<RoomScreen>
 
   Future<void> _send() async {
     final text = _composer.text.trim();
+    // Picked photos send with whatever was typed, or alone.
+    if (_picker.hasPicks && _editing == null) {
+      await _sendPicks(text);
+      return;
+    }
     if (text.isEmpty) return;
     // An armed edit takes the whole send: the composer's contents are the
     // message's NEW text, not a new message.
@@ -2536,7 +2556,13 @@ class _RoomScreenState extends State<RoomScreen>
       final nav = Navigator.of(context);
       switch (choice) {
         case AttachmentMenuChoice.gallery:
-          await _pickAndSendFromGallery();
+          // On a phone, the library opens in the keyboard's place and picks
+          // wait over the composer; elsewhere, the system picker as before.
+          if (InlinePhotoPicker.supported) {
+            _openPicker();
+          } else {
+            await _pickAndSendFromGallery();
+          }
           break;
         case AttachmentMenuChoice.video:
           await _pickAndSendVideo();
@@ -3851,7 +3877,127 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   void _onComposerFocusChanged() {
-    if (_composerFocus.hasFocus) _expressions.dismiss();
+    if (_composerFocus.hasFocus) {
+      _expressions.dismiss();
+      // The keyboard is coming back to type the comment; the picks stay.
+      _picker.close();
+    }
+  }
+
+  // ─────────────────── the inline photo picker ───────────────────
+
+  void _openPicker() {
+    if (_expressions.isOpen) _expressions.hide();
+    _composerFocus.unfocus();
+    dismissSoftKeyboard();
+    _picker.open();
+  }
+
+  /// The grid, in the keyboard's place, at the height the keyboard last had
+  /// (the expression panel keeps that measurement for both).
+  Widget _pickerPanel({required double bottomPadding}) => Padding(
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        child: InlinePhotoPicker(
+          controller: _picker,
+          height: _expressions.height,
+          onFull: () => AppToast.of(context).show(
+            AppLocalizations.of(context)
+                .roomScreenMaxSelectionSnack(_picker.max),
+          ),
+        ),
+      );
+
+  /// A picked photo, into the editor and back: crop, draw, rotate. No
+  /// caption (a captioned photo stands apart from its album) and no
+  /// view-once (that is a property of a send, not of one picture in it).
+  Future<void> _editPick(PickedMedia pick) async {
+    if (pick.isVideo) return;
+    final bytes = pick.edited?.bytes ?? await GalleryTray.loadBytes(pick.asset);
+    if (bytes == null || !mounted) return;
+    final outcome = await CameraEditorScreen.open(
+      context,
+      source: bytes,
+      allowCaptions: false,
+      allowViewOnce: false,
+      maxPhotos: 1,
+      confirmLabel: AppLocalizations.of(context).cameraEditorScreenCropDoneButton,
+    );
+    if (outcome is EditorSend && outcome.photos.isNotEmpty) {
+      _picker.markEdited(pick, outcome.photos.first.image);
+    }
+  }
+
+  /// Sends the picks, in pick order, as one album, then the comment (if
+  /// any) right under it. Everything is made ready first and only then
+  /// sent, so the order on the other side is the order they were picked in
+  /// however long each took to load. A reply rides on the last item, as a
+  /// multi-photo send's does (see [_sendEdited]).
+  Future<void> _sendPicks(String comment) async {
+    final picks = _picker.take();
+    _picker.close();
+    _composer.clear();
+    final replyTarget = _replyingTo;
+    final replyAlbum = _replyAlbum;
+    if (replyTarget != null) setState(() => _replyingTo = null);
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
+    final hd = SettingsStore.instance.photoHd;
+
+    final ready = <_ReadyPick>[];
+    var dropped = 0;
+    _setMediaBusy(true);
+    try {
+      for (final pick in picks) {
+        final r = await _ReadyPick.from(pick, hd: hd);
+        if (r == null) {
+          dropped++;
+        } else {
+          ready.add(r);
+        }
+      }
+    } finally {
+      if (mounted) _setMediaBusy(false);
+    }
+    if (!mounted) return;
+
+    final albumId = ready.length > 1 ? newAlbumId() : null;
+    for (var i = 0; i < ready.length; i++) {
+      final r = ready[i];
+      final last = i == ready.length - 1;
+      final photo = r.photo;
+      if (photo != null) {
+        _sendPhoto(
+          photo,
+          viewOnce: false,
+          albumId: albumId,
+          replyTo: last ? replyTarget : null,
+          replyToAlbumCount: last ? replyAlbum : null,
+        );
+      } else {
+        _sendMedia(
+          bytes: r.videoBytes!,
+          type: MessageType.video,
+          contentType: r.contentType!,
+          posterBytes: r.poster,
+          mediaDurationMs: r.durationMs,
+          albumId: albumId,
+          replyTo: last ? replyTarget : null,
+          replyToAlbumCount: last ? replyAlbum : null,
+        );
+      }
+    }
+    if (comment.isNotEmpty) {
+      await widget.repo.sendText(
+        widget.roomId,
+        comment,
+        // With nothing sent ahead of it, the comment is the reply.
+        replyToId: ready.isEmpty ? replyTarget?.id : null,
+        replyAlbumCount: ready.isEmpty ? replyAlbum : null,
+      );
+    }
+    if (dropped > 0) {
+      toast.show(l10n.mediaPickFailedMessage, tone: ToastTone.danger);
+    }
   }
 
   // ─────────────────── GIFs and stickers ───────────────────
@@ -4609,6 +4755,7 @@ class _RoomScreenState extends State<RoomScreen>
           child: PopScope(
             canPop: !_selection.active &&
                 !_expressions.isOpen &&
+                !_picker.isOpen &&
                 _editing == null &&
                 _replyingTo == null &&
                 !widget.inShellPane,
@@ -4619,7 +4766,9 @@ class _RoomScreenState extends State<RoomScreen>
                 dismissSoftKeyboard();
                 return;
               }
-              if (_expressions.isOpen) {
+              if (_picker.isOpen) {
+                _picker.close();
+              } else if (_expressions.isOpen) {
                 _expressions.hide();
               } else if (_editing != null) {
                 _cancelEdit();
@@ -4825,6 +4974,7 @@ class _RoomScreenState extends State<RoomScreen>
                   composer: _composer,
                   onSend: _sendSuggestedSticker,
                 ),
+                PickedMediaStrip(controller: _picker, onEdit: _editPick),
                 ComposerSearchTakeover(
                   controller: _expressions,
                   child: ChatComposerClassic(
@@ -4840,11 +4990,18 @@ class _RoomScreenState extends State<RoomScreen>
                   onAttach: _onAttach,
                   attachKey: _attachKey,
                   attachHidden: _attachMenuUp,
+                  hasAttachments: _picker.hasPicks,
+                  hint: _picker.hasPicks
+                      ? AppLocalizations.of(context).inlinePickerCommentHint
+                      : null,
                   onCamera: _onCamera,
                   capture: _composerCapture,
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
-                  onExpressions: () => _expressions.toggle(_composerFocus),
+                  onExpressions: () {
+                    _picker.close();
+                    _expressions.toggle(_composerFocus);
+                  },
                   expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
@@ -4856,6 +5013,8 @@ class _RoomScreenState extends State<RoomScreen>
                 // The ancestor SafeArea already holds this clear of the home
                 // indicator.
                 if (_expressions.isOpen) _expressionPanel(bottomPadding: 0),
+                if (_picker.isOpen && !_expressions.isOpen)
+                  _pickerPanel(bottomPadding: 0),
               ],
               ),
             ),
@@ -5073,6 +5232,7 @@ class _RoomScreenState extends State<RoomScreen>
                   composer: _composer,
                   onSend: _sendSuggestedSticker,
                 ),
+                PickedMediaStrip(controller: _picker, onEdit: _editPick),
                 ComposerSearchTakeover(
                   controller: _expressions,
                   child: ChatComposerLiquid(
@@ -5088,11 +5248,18 @@ class _RoomScreenState extends State<RoomScreen>
                   onAttach: _onAttach,
                   attachKey: _attachKey,
                   attachHidden: _attachMenuUp,
+                  hasAttachments: _picker.hasPicks,
+                  hint: _picker.hasPicks
+                      ? AppLocalizations.of(context).inlinePickerCommentHint
+                      : null,
                   onCamera: _onCamera,
                   capture: _composerCapture,
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
-                  onExpressions: () => _expressions.toggle(_composerFocus),
+                  onExpressions: () {
+                    _picker.close();
+                    _expressions.toggle(_composerFocus);
+                  },
                   expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
@@ -5102,13 +5269,15 @@ class _RoomScreenState extends State<RoomScreen>
                   // With the panel open the composer is no longer the lowest
                   // thing on screen, so the home-indicator inset moves down to
                   // the panel rather than opening a gap between the two.
-                  padding: _expressions.isOpen
+                  padding: _expressions.isOpen || _picker.isOpen
                       ? const EdgeInsets.fromLTRB(16, 8, 16, 8)
                       : null,
                 ),
                 ),
                 if (_expressions.isOpen)
                   _expressionPanel(bottomPadding: bottomSafe),
+                if (_picker.isOpen && !_expressions.isOpen)
+                  _pickerPanel(bottomPadding: bottomSafe),
               ],
                 ),
                 ),
@@ -5299,6 +5468,7 @@ class _RoomScreenState extends State<RoomScreen>
           ? null
           : () {
               _expressions.hide();
+              _picker.close();
               if (!isPhysicalKeyboardPlatform) dismissSoftKeyboard();
             },
       child: messages.isEmpty
@@ -7569,4 +7739,54 @@ class _OutgoingVideo {
   final int? durationMs;
   final Uint8List? poster;
   final bool ownsFile;
+}
+
+/// A pick made ready to send: a photo prepared for upload (edited, or
+/// compressed to the send size), or a video's bytes with its poster and
+/// length. Null from [from] when it could not be read.
+class _ReadyPick {
+  _ReadyPick.photo(CroppedImage this.photo)
+      : videoBytes = null,
+        contentType = null,
+        poster = null,
+        durationMs = null;
+  _ReadyPick.video({
+    required Uint8List this.videoBytes,
+    required String this.contentType,
+    this.poster,
+    this.durationMs,
+  }) : photo = null;
+
+  final CroppedImage? photo;
+  final Uint8List? videoBytes;
+  final String? contentType;
+  final Uint8List? poster;
+  final int? durationMs;
+
+  static Future<_ReadyPick?> from(PickedMedia pick, {required bool hd}) async {
+    try {
+      if (pick.isVideo) {
+        final file = await pick.asset.originFile;
+        if (file == null) return null;
+        final bytes = await file.readAsBytes();
+        // Over the upload cap is refused, not shrunk, in this first cut.
+        if (bytes.length > kMaxFileUploadBytes) return null;
+        return _ReadyPick.video(
+          videoBytes: bytes,
+          contentType: videoContentTypeFor(file.path),
+          poster: await VideoPoster.extract(file.path),
+          durationMs: pick.asset.duration * 1000,
+        );
+      }
+      final edited = pick.edited;
+      if (edited != null) return _ReadyPick.photo(edited);
+      final bytes = await GalleryTray.loadBytes(pick.asset);
+      if (bytes == null) return null;
+      final prepared = await prepareUneditedForSend(bytes, hd: hd);
+      return prepared == null ? null : _ReadyPick.photo(prepared);
+    } catch (e) {
+      debugPrint('[inline_picker] prepare: $e');
+      return null;
+    }
+  }
 }

@@ -893,6 +893,7 @@
   "photoChromeThumbnailSemanticLabel": "{total}개 중 {current}번째",
   "photoTrayCountLabel": "{count, plural, other{사진 {count}장}}",
   "photoDeckBackToFirst": "처음으로",
+  "inlinePickerCommentHint": "댓글을 추가하거나 보내기",
   "messageMenuAlbumAll": "전체 ({count})",
   "messageMenuAlbumOne": "이것만",
   "replyAlbumItems": "{count, plural, other{{count}개}}",

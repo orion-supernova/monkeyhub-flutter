@@ -3176,6 +3176,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get photoDeckBackToFirst => 'पहली पर वापस जाएं';
 
   @override
+  String get inlinePickerCommentHint => 'टिप्पणी जोड़ें या भेजें';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'सभी ($count)';
   }

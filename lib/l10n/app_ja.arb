@@ -893,6 +893,7 @@
   "photoChromeThumbnailSemanticLabel": "{total} 件中 {current} 件目",
   "photoTrayCountLabel": "{count, plural, other{写真 {count} 枚}}",
   "photoDeckBackToFirst": "最初に戻る",
+  "inlinePickerCommentHint": "コメントを追加、または送信",
   "messageMenuAlbumAll": "すべて（{count}）",
   "messageMenuAlbumOne": "これだけ",
   "replyAlbumItems": "{count, plural, other{{count}件}}",

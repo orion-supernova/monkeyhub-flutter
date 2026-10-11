@@ -893,6 +893,7 @@
   "photoChromeThumbnailSemanticLabel": "العنصر {current} من {total}",
   "photoTrayCountLabel": "{count, plural, zero{لا صور} one{صورة واحدة} two{صورتان} few{{count} صور} many{{count} صورة} other{{count} صورة}}",
   "photoDeckBackToFirst": "العودة إلى الأولى",
+  "inlinePickerCommentHint": "أضف تعليقًا أو أرسل",
   "messageMenuAlbumAll": "الكل ({count})",
   "messageMenuAlbumOne": "هذا فقط",
   "replyAlbumItems": "{count, plural, =1{عنصر واحد} other{{count} عناصر}}",

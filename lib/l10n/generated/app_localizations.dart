@@ -5475,6 +5475,12 @@ abstract class AppLocalizations {
   /// **'Back to first'**
   String get photoDeckBackToFirst;
 
+  /// Composer placeholder while photos are picked: type a comment to go with them, or just send.
+  ///
+  /// In en, this message translates to:
+  /// **'Add comment or send'**
+  String get inlinePickerCommentHint;
+
   /// Long-press menu switch on a photo stack: act on the whole stack. {count} is how many photos and videos it holds.
   ///
   /// In en, this message translates to:

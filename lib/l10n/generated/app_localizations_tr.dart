@@ -3150,6 +3150,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get photoDeckBackToFirst => 'Başa dön';
 
   @override
+  String get inlinePickerCommentHint => 'Yorum ekle veya gönder';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'Tümü ($count)';
   }

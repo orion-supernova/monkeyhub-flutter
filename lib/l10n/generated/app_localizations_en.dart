@@ -3157,6 +3157,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoDeckBackToFirst => 'Back to first';
 
   @override
+  String get inlinePickerCommentHint => 'Add comment or send';
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'All $count';
   }
