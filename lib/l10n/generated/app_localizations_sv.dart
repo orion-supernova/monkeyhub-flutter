@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11811,10 +11812,8 @@ class AppLocalizationsSv extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'De komprimeras för att få plats, så räkna med att de blir mycket suddigare.',
-      one:
-          'Den komprimeras för att få plats, så räkna med att den blir mycket suddigare.',
+      other: 'De komprimeras för att få plats, så räkna med att de blir mycket suddigare.',
+      one: 'Den komprimeras för att få plats, så räkna med att den blir mycket suddigare.',
     );
     return '$_temp0';
   }
@@ -11986,6 +11985,24 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get kbdHangUp => 'Lägg på';
+
+  @override
+  String get kbdGroupApp => 'App';
+
+  @override
+  String get kbdCloseWindow => 'Stäng fönster';
+
+  @override
+  String get kbdMinimizeWindow => 'Minimera';
+
+  @override
+  String get kbdFullScreen => 'Helskärm';
+
+  @override
+  String get kbdHideApp => 'Göm MonkeyHub';
+
+  @override
+  String get kbdQuit => 'Avsluta MonkeyHub';
 
   @override
   String get kbdPanelTitle => 'Kortkommandon';

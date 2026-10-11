@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui' show AppExitType;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -37,6 +39,13 @@ import 'app_shortcuts.dart';
 /// [HardwareKeyboard] rather than the focus tree, so it works with nothing
 /// focused, and never consumes anything. Any other key, a click, or the app
 /// losing focus (⌘⇥ away never delivers the key-up) calls it off.
+///
+/// "Alone" is judged from the keys this host saw go down since the window
+/// last had focus, never from [HardwareKeyboard.logicalKeysPressed]. That set
+/// goes stale whenever a key-up is delivered to no window: ⌘W hides the Mac
+/// window between W's down and its up, so after the window comes back W reads
+/// as held forever, every ⌘ press looks like the start of a chord, and the
+/// peek never shows again. Nothing resyncs it short of pressing W.
 class ShortcutHost extends StatefulWidget {
   const ShortcutHost({
     super.key,
@@ -61,6 +70,9 @@ class _ShortcutHostState extends State<ShortcutHost> {
   final List<Object> _tokens = [];
   ShortcutPeek? _peek;
   late final AppLifecycleListener _lifecycle;
+
+  /// Keys down right now, as far as this window knows. See the class doc.
+  final Set<LogicalKeyboardKey> _held = {};
 
   /// Set while the palette or the panel is up, so a second ⌘K does not stack
   /// a second palette on the first.
@@ -87,11 +99,21 @@ class _ShortcutHostState extends State<ShortcutHost> {
       final s = navOrder[i];
       _tokens.add(reg.bind(sections[i], () => _goTo(s), always));
     }
+    // ⌘Q is the Mac menu's. Windows and Linux have no owner for Ctrl+Q, so
+    // it is ours there.
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.windows ||
+            defaultTargetPlatform == TargetPlatform.linux)) {
+      _tokens.add(reg.bind(AppShortcuts.quit, _quit, always));
+    }
     HardwareKeyboard.instance.addHandler(_watchHold);
     GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _lifecycle = AppLifecycleListener(
-      onInactive: _callOffPeek,
-      onHide: _callOffPeek,
+      onInactive: _loseKeys,
+      onHide: _loseKeys,
+      // Again on the way back, in case the window went before the platform
+      // reported it gone.
+      onResume: _held.clear,
     );
   }
 
@@ -140,6 +162,8 @@ class _ShortcutHostState extends State<ShortcutHost> {
 
   void _openSettings() => _goTo(HomeSection.settings);
 
+  void _quit() => ServicesBinding.instance.exitApplication(AppExitType.required);
+
   /// Back to the shell, then the section: a tab switch underneath a pushed
   /// page would change nothing anyone can see.
   void _goTo(HomeSection s) {
@@ -177,9 +201,14 @@ class _ShortcutHostState extends State<ShortcutHost> {
       : k == LogicalKeyboardKey.controlLeft || k == LogicalKeyboardKey.controlRight;
 
   bool _watchHold(KeyEvent e) {
+    if (e is KeyDownEvent) {
+      _held.add(e.logicalKey);
+    } else if (e is KeyUpEvent) {
+      _held.remove(e.logicalKey);
+    }
     if (_isPrimary(e.logicalKey)) {
       if (e is KeyDownEvent) {
-        final alone = HardwareKeyboard.instance.logicalKeysPressed.every(_isPrimary);
+        final alone = _held.every(_isPrimary);
         if (alone && _peek == null && !_presenting && SettingsStore.instance.shortcutPeek) {
           _showPeek();
         }
@@ -202,8 +231,15 @@ class _ShortcutHostState extends State<ShortcutHost> {
     final overlay = widget.navigatorKey.currentState?.overlay;
     final ctx = _navContext;
     if (overlay == null || ctx == null || !mounted) return;
-    if (!HardwareKeyboard.instance.logicalKeysPressed.any(_isPrimary)) return;
+    if (!_held.any(_isPrimary)) return;
     _peek = ShortcutPeek.show(overlay, sectionLabels: _sectionLabels(ctx));
+  }
+
+  /// The window stopped being the one keys go to. Whatever was held can be
+  /// let go somewhere this never hears about.
+  void _loseKeys() {
+    _held.clear();
+    _callOffPeek();
   }
 
   void _callOffPeek() {

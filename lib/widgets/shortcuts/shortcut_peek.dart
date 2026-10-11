@@ -117,52 +117,61 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
       // that lands while it is up belongs to whatever is under it.
       child: Material(
         type: MaterialType.transparency,
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _t,
-            builder: (_, child) => GlassReveal(
-              t: Curves.easeOutCubic.transform(_t.value),
-              from: 0.94,
-              child: child!,
-            ),
-            child: GlassSurface(
-              radius: theme.radiusXl,
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: columns * colWidth + (columns - 1) * gap,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(l10n.kbdPanelTitle, style: theme.bodyEmph),
-                        const SizedBox(width: 16),
-                        Keycaps.forDef(AppShortcuts.showShortcuts, size: KeycapSize.small),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: gap,
-                      runSpacing: 18,
-                      children: [
-                        for (final g in ShortcutGroup.values)
-                          if (groups[g] != null)
-                            SizedBox(
-                              width: colWidth,
-                              child: _Group(
-                                title: AppShortcuts.groupLabel(l10n, g),
-                                defs: groups[g]!,
-                                sectionLabels: widget.sectionLabels,
-                              ),
+        child: AnimatedBuilder(
+          animation: _t,
+          builder: (_, card) {
+            final t = Curves.easeOutCubic.transform(_t.value);
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                // A veil in the page's own colour between the card and the
+                // screen. The glass alone is too clear over a chat: bubbles
+                // and their text show through and fight the list for the eye.
+                // Washing the page toward the background keeps the frost but
+                // takes the contrast out of what it frosts, in light themes
+                // and dark alike. A plain fill, so fading it costs nothing.
+                ColoredBox(color: theme.background.withValues(alpha: 0.6 * t)),
+                Center(child: GlassReveal(t: t, from: 0.94, child: card!)),
+              ],
+            );
+          },
+          child: GlassSurface(
+            radius: theme.radiusXl,
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: columns * colWidth + (columns - 1) * gap,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(l10n.kbdPanelTitle, style: theme.bodyEmph),
+                      const SizedBox(width: 16),
+                      Keycaps.forDef(AppShortcuts.showShortcuts, size: KeycapSize.small),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: gap,
+                    runSpacing: 18,
+                    children: [
+                      for (final g in ShortcutGroup.values)
+                        if (groups[g] != null)
+                          SizedBox(
+                            width: colWidth,
+                            child: _Group(
+                              title: AppShortcuts.groupLabel(l10n, g),
+                              defs: groups[g]!,
+                              sectionLabels: widget.sectionLabels,
                             ),
-                      ],
-                    ),
-                  ],
-                ),
+                          ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

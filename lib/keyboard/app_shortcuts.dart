@@ -24,7 +24,7 @@ import '../l10n/generated/app_localizations.dart';
 /// listed here only so they can be found. They are never dispatched from here.
 
 /// The headings the lists are grouped under, in display order.
-enum ShortcutGroup { general, navigation, chat, composer, viewer, call }
+enum ShortcutGroup { general, navigation, chat, composer, viewer, call, app }
 
 /// One physical chord. [primary] is ⌘ on Apple platforms and Ctrl elsewhere,
 /// so a definition is written once and reads natively on both.
@@ -113,6 +113,7 @@ class ShortcutDef {
     this.combos, {
     this.ambient = false,
     this.nativeOnly = false,
+    this.platforms,
   });
 
   /// Stable identifier, also the suffix of the label's l10n key.
@@ -130,7 +131,15 @@ class ShortcutDef {
   /// palette still offers the action by name.
   final bool nativeOnly;
 
-  bool get offeredHere => !(nativeOnly && kIsWeb) && chords.isNotEmpty;
+  /// Only these desktop apps have it (the window chords: ⌘Q is the Mac menu's,
+  /// Alt+F4 the window manager's). Never on web, where they are the
+  /// browser's. Null means everywhere.
+  final Set<TargetPlatform>? platforms;
+
+  bool get offeredHere =>
+      !(nativeOnly && kIsWeb) &&
+      (platforms == null || (!kIsWeb && platforms!.contains(defaultTargetPlatform))) &&
+      chords.isNotEmpty;
 
   /// [combos] minus any the browser would swallow. What is matched, printed
   /// and listed, everywhere: use this rather than [combos].
@@ -400,6 +409,60 @@ abstract final class AppShortcuts {
     [KeyCombo(LogicalKeyboardKey.keyH, primary: true, shift: true)],
   );
 
+  // ── The app and its window ──
+  //
+  // Listed so the peek is the whole answer to "what can I press here", not
+  // just the part Dart handles. On a Mac every one of these is a MainMenu.xib
+  // item that AppKit runs, so they are ambient. ⌘W loses its row while a chat
+  // is open, because [closeChat] takes the chord (see [AppShortcutRegistry.available]).
+  static const closeWindow = ShortcutDef(
+    'closeWindow',
+    ShortcutGroup.app,
+    [KeyCombo(LogicalKeyboardKey.keyW, primary: true)],
+    ambient: true,
+    platforms: {TargetPlatform.macOS},
+  );
+  static const minimizeWindow = ShortcutDef(
+    'minimizeWindow',
+    ShortcutGroup.app,
+    [KeyCombo(LogicalKeyboardKey.keyM, primary: true)],
+    ambient: true,
+    platforms: {TargetPlatform.macOS},
+  );
+  static const fullScreen = ShortcutDef(
+    'fullScreen',
+    ShortcutGroup.app,
+    [KeyCombo(LogicalKeyboardKey.keyF, primary: true, control: true)],
+    ambient: true,
+    platforms: {TargetPlatform.macOS},
+  );
+  static const hideApp = ShortcutDef(
+    'hideApp',
+    ShortcutGroup.app,
+    [KeyCombo(LogicalKeyboardKey.keyH, primary: true)],
+    ambient: true,
+    platforms: {TargetPlatform.macOS},
+  );
+  // Windows and Linux close the window with the process (there is no menu-bar
+  // item to keep it alive), so Alt+F4 is the same as quitting there.
+  static const closeWindowAltF4 = ShortcutDef(
+    'closeWindowAltF4',
+    ShortcutGroup.app,
+    [KeyCombo(LogicalKeyboardKey.f4, alt: true)],
+    ambient: true,
+    platforms: {TargetPlatform.windows, TargetPlatform.linux},
+  );
+  // ⌘Q on a Mac is the menu's. Ctrl+Q has no native owner on Windows or
+  // Linux, so [ShortcutHost] binds it there; ambient all the same, so it is
+  // listed on the Mac too.
+  static const quit = ShortcutDef(
+    'quit',
+    ShortcutGroup.app,
+    [KeyCombo(LogicalKeyboardKey.keyQ, primary: true)],
+    ambient: true,
+    platforms: {TargetPlatform.macOS, TargetPlatform.windows, TargetPlatform.linux},
+  );
+
   static const List<ShortcutDef> all = [
     commandPalette,
     showShortcuts,
@@ -443,6 +506,12 @@ abstract final class AppShortcuts {
     toggleMute,
     toggleCamera,
     hangUp,
+    closeWindow,
+    closeWindowAltF4,
+    minimizeWindow,
+    fullScreen,
+    hideApp,
+    quit,
   ];
 
   static String groupLabel(AppLocalizations l10n, ShortcutGroup g) =>
@@ -453,6 +522,7 @@ abstract final class AppShortcuts {
         ShortcutGroup.composer => l10n.kbdGroupComposer,
         ShortcutGroup.viewer => l10n.kbdGroupViewer,
         ShortcutGroup.call => l10n.kbdGroupCall,
+        ShortcutGroup.app => l10n.kbdGroupApp,
       };
 
   /// [sectionLabels] names the four sections in their on-screen order, so
@@ -508,6 +578,11 @@ abstract final class AppShortcuts {
       'toggleMute' => l10n.kbdToggleMute,
       'toggleCamera' => l10n.kbdToggleCamera,
       'hangUp' => l10n.kbdHangUp,
+      'closeWindow' || 'closeWindowAltF4' => l10n.kbdCloseWindow,
+      'minimizeWindow' => l10n.kbdMinimizeWindow,
+      'fullScreen' => l10n.kbdFullScreen,
+      'hideApp' => l10n.kbdHideApp,
+      'quit' => l10n.kbdQuit,
       _ => d.id,
     };
   }
@@ -607,9 +682,11 @@ class AppShortcutRegistry extends ChangeNotifier {
   }
 
   /// Groups with at least one live binding: the ambient keys of a group are
-  /// shown only alongside them. General always counts (Esc is always there).
+  /// shown only alongside them. General always counts (Esc is always there),
+  /// and so does the app's (the window is always there).
   Set<ShortcutGroup> liveGroups() => {
         ShortcutGroup.general,
+        ShortcutGroup.app,
         for (final b in _bindings)
           if (b.isActive()) b.def.group,
       };

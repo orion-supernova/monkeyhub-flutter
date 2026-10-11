@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11499,6 +11500,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get kbdHangUp => '통화 종료';
+
+  @override
+  String get kbdGroupApp => '앱';
+
+  @override
+  String get kbdCloseWindow => '윈도우 닫기';
+
+  @override
+  String get kbdMinimizeWindow => '최소화';
+
+  @override
+  String get kbdFullScreen => '전체 화면';
+
+  @override
+  String get kbdHideApp => 'MonkeyHub 가리기';
+
+  @override
+  String get kbdQuit => 'MonkeyHub 종료';
 
   @override
   String get kbdPanelTitle => '키보드 단축키';

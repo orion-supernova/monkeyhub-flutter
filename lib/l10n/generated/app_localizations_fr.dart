@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11953,10 +11954,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'Elles seront compressées pour tenir, attends-toi à une image bien moins nette.',
-      one:
-          'Elle sera compressée pour tenir, attends-toi à une image bien moins nette.',
+      other: 'Elles seront compressées pour tenir, attends-toi à une image bien moins nette.',
+      one: 'Elle sera compressée pour tenir, attends-toi à une image bien moins nette.',
     );
     return '$_temp0';
   }
@@ -12129,6 +12128,24 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get kbdHangUp => 'Raccrocher';
+
+  @override
+  String get kbdGroupApp => 'App';
+
+  @override
+  String get kbdCloseWindow => 'Fermer la fenêtre';
+
+  @override
+  String get kbdMinimizeWindow => 'Réduire';
+
+  @override
+  String get kbdFullScreen => 'Plein écran';
+
+  @override
+  String get kbdHideApp => 'Masquer MonkeyHub';
+
+  @override
+  String get kbdQuit => 'Quitter MonkeyHub';
 
   @override
   String get kbdPanelTitle => 'Raccourcis clavier';

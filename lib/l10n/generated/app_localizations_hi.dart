@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11779,10 +11780,8 @@ class AppLocalizationsHi extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'इन्हें फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
-      one:
-          'इसे फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
+      other: 'इन्हें फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
+      one: 'इसे फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
     );
     return '$_temp0';
   }
@@ -11954,6 +11953,24 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get kbdHangUp => 'कॉल काटें';
+
+  @override
+  String get kbdGroupApp => 'ऐप';
+
+  @override
+  String get kbdCloseWindow => 'विंडो बंद करें';
+
+  @override
+  String get kbdMinimizeWindow => 'छोटा करें';
+
+  @override
+  String get kbdFullScreen => 'फ़ुल स्क्रीन';
+
+  @override
+  String get kbdHideApp => 'MonkeyHub छिपाएं';
+
+  @override
+  String get kbdQuit => 'MonkeyHub बंद करें';
 
   @override
   String get kbdPanelTitle => 'कीबोर्ड शॉर्टकट';

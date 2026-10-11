@@ -20101,6 +20101,42 @@ abstract class AppLocalizations {
   /// **'Hang up'**
   String get kbdHangUp;
 
+  /// Keyboard shortcuts list: heading for the desktop app's own window and quit shortcuts (close window, minimize, full screen, hide, quit).
+  ///
+  /// In en, this message translates to:
+  /// **'App'**
+  String get kbdGroupApp;
+
+  /// Desktop shortcut label: closes the app window (on Mac the app keeps running in the menu bar).
+  ///
+  /// In en, this message translates to:
+  /// **'Close window'**
+  String get kbdCloseWindow;
+
+  /// Mac shortcut label: minimizes the window to the Dock.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimize'**
+  String get kbdMinimizeWindow;
+
+  /// Mac shortcut label: enters or leaves full screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get kbdFullScreen;
+
+  /// Mac shortcut label: hides the app (Mac's standard Hide command). MonkeyHub is the app's name; keep it untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide MonkeyHub'**
+  String get kbdHideApp;
+
+  /// Desktop shortcut label: quits the app completely. MonkeyHub is the app's name; keep it untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit MonkeyHub'**
+  String get kbdQuit;
+
   /// Title of the searchable keyboard shortcuts panel, and of the Settings row that opens it.
   ///
   /// In en, this message translates to:

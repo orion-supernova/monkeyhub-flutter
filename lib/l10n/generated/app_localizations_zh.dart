@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11364,6 +11365,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get kbdHangUp => '挂断';
+
+  @override
+  String get kbdGroupApp => '应用';
+
+  @override
+  String get kbdCloseWindow => '关闭窗口';
+
+  @override
+  String get kbdMinimizeWindow => '最小化';
+
+  @override
+  String get kbdFullScreen => '全屏';
+
+  @override
+  String get kbdHideApp => '隐藏 MonkeyHub';
+
+  @override
+  String get kbdQuit => '退出 MonkeyHub';
 
   @override
   String get kbdPanelTitle => '键盘快捷键';

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -12073,6 +12074,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get kbdHangUp => 'Colgar';
+
+  @override
+  String get kbdGroupApp => 'App';
+
+  @override
+  String get kbdCloseWindow => 'Cerrar ventana';
+
+  @override
+  String get kbdMinimizeWindow => 'Minimizar';
+
+  @override
+  String get kbdFullScreen => 'Pantalla completa';
+
+  @override
+  String get kbdHideApp => 'Ocultar MonkeyHub';
+
+  @override
+  String get kbdQuit => 'Salir de MonkeyHub';
 
   @override
   String get kbdPanelTitle => 'Atajos de teclado';

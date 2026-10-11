@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11783,8 +11784,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'They\'ll be squeezed down to fit, so expect them to look a lot softer.',
+      other: 'They\'ll be squeezed down to fit, so expect them to look a lot softer.',
       one: 'It\'ll be squeezed down to fit, so expect it to look a lot softer.',
     );
     return '$_temp0';
@@ -11956,6 +11956,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get kbdHangUp => 'Hang up';
+
+  @override
+  String get kbdGroupApp => 'App';
+
+  @override
+  String get kbdCloseWindow => 'Close window';
+
+  @override
+  String get kbdMinimizeWindow => 'Minimize';
+
+  @override
+  String get kbdFullScreen => 'Full screen';
+
+  @override
+  String get kbdHideApp => 'Hide MonkeyHub';
+
+  @override
+  String get kbdQuit => 'Quit MonkeyHub';
 
   @override
   String get kbdPanelTitle => 'Keyboard Shortcuts';

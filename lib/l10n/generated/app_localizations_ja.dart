@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11477,6 +11478,24 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get kbdHangUp => '通話を終了';
+
+  @override
+  String get kbdGroupApp => 'アプリ';
+
+  @override
+  String get kbdCloseWindow => 'ウインドウを閉じる';
+
+  @override
+  String get kbdMinimizeWindow => 'しまう';
+
+  @override
+  String get kbdFullScreen => 'フルスクリーン';
+
+  @override
+  String get kbdHideApp => 'MonkeyHubを非表示';
+
+  @override
+  String get kbdQuit => 'MonkeyHubを終了';
 
   @override
   String get kbdPanelTitle => 'キーボードショートカット';

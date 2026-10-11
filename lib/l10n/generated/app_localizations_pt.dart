@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11905,10 +11906,8 @@ class AppLocalizationsPt extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'Vão ser comprimidos para caber, por isso conta com uma imagem bem pior.',
-      one:
-          'Vai ser comprimido para caber, por isso conta com uma imagem bem pior.',
+      other: 'Vão ser comprimidos para caber, por isso conta com uma imagem bem pior.',
+      one: 'Vai ser comprimido para caber, por isso conta com uma imagem bem pior.',
     );
     return '$_temp0';
   }
@@ -12080,6 +12079,24 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get kbdHangUp => 'Desligar';
+
+  @override
+  String get kbdGroupApp => 'App';
+
+  @override
+  String get kbdCloseWindow => 'Fechar janela';
+
+  @override
+  String get kbdMinimizeWindow => 'Minimizar';
+
+  @override
+  String get kbdFullScreen => 'Ecrã completo';
+
+  @override
+  String get kbdHideApp => 'Ocultar MonkeyHub';
+
+  @override
+  String get kbdQuit => 'Sair do MonkeyHub';
 
   @override
   String get kbdPanelTitle => 'Atalhos de teclado';
@@ -24058,10 +24075,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'Eles vão ser comprimidos pra caber, então a qualidade vai cair bastante.',
-      one:
-          'Ele vai ser comprimido pra caber, então a qualidade vai cair bastante.',
+      other: 'Eles vão ser comprimidos pra caber, então a qualidade vai cair bastante.',
+      one: 'Ele vai ser comprimido pra caber, então a qualidade vai cair bastante.',
     );
     return '$_temp0';
   }
@@ -24233,6 +24248,24 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get kbdHangUp => 'Desligar';
+
+  @override
+  String get kbdGroupApp => 'App';
+
+  @override
+  String get kbdCloseWindow => 'Fechar janela';
+
+  @override
+  String get kbdMinimizeWindow => 'Minimizar';
+
+  @override
+  String get kbdFullScreen => 'Tela cheia';
+
+  @override
+  String get kbdHideApp => 'Ocultar MonkeyHub';
+
+  @override
+  String get kbdQuit => 'Encerrar MonkeyHub';
 
   @override
   String get kbdPanelTitle => 'Atalhos de teclado';

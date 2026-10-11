@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11910,6 +11911,24 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get kbdHangUp => 'Aramayı bitir';
+
+  @override
+  String get kbdGroupApp => 'Uygulama';
+
+  @override
+  String get kbdCloseWindow => 'Pencereyi kapat';
+
+  @override
+  String get kbdMinimizeWindow => 'Simge durumuna küçült';
+
+  @override
+  String get kbdFullScreen => 'Tam ekran';
+
+  @override
+  String get kbdHideApp => 'MonkeyHub\'ı gizle';
+
+  @override
+  String get kbdQuit => 'MonkeyHub\'dan çık';
 
   @override
   String get kbdPanelTitle => 'Klavye Kısayolları';
