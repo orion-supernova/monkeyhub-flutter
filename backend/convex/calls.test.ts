@@ -600,3 +600,107 @@ describe("callee ringing report (markRinging)", () => {
     await drain(t);
   });
 });
+
+/**
+ * Signals are consumed per USER, but every callee device rings. On
+ * 2026-10-11 the iPhone drained the invite and the cancel first and a Mac
+ * and a Galaxy never saw either. While the call rings, untargeted rows to
+ * the callee stay visible to all of their devices; `accept` retires them.
+ */
+describe("ring-phase signals reach every callee device", () => {
+  async function unconsumedFor(
+    t: ReturnType<typeof convexTest>,
+    user: { token: string; userId: string },
+  ): Promise<any[]> {
+    return await t.query(api.calls.signalsForUser, {
+      sessionToken: user.token,
+      userId: user.userId as any,
+    });
+  }
+
+  async function consumeAll(
+    t: ReturnType<typeof convexTest>,
+    user: { token: string; userId: string },
+  ) {
+    const rows = await unconsumedFor(t, user);
+    await t.mutation(api.calls.consumeSignals, {
+      sessionToken: user.token,
+      signalIds: rows.map((r) => r._id),
+      userId: user.userId as any,
+    });
+  }
+
+  test("one device consuming a ringing call's rows leaves them for its siblings", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    await t.mutation(api.calls.sendSignal, {
+      sessionToken: caller.token,
+      callId,
+      fromUserId: caller.userId as any,
+      toUserId: callee.userId as any,
+      kind: "offer",
+      payload: "{}",
+    });
+    const before = (await unconsumedFor(t, callee)).map((r) => r.kind);
+    expect(before).toEqual(expect.arrayContaining(["invite", "offer"]));
+
+    await consumeAll(t, callee);
+    expect((await unconsumedFor(t, callee)).map((r) => r.kind)).toEqual(
+      before,
+    );
+    await drain(t);
+  });
+
+  test("accept retires the ring-phase rows but keeps `taken` and later traffic", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    await t.mutation(api.calls.sendSignal, {
+      sessionToken: caller.token,
+      callId,
+      fromUserId: caller.userId as any,
+      toUserId: callee.userId as any,
+      kind: "offer",
+      payload: "{}",
+    });
+    await consumeAll(t, callee);
+    await t.mutation(api.calls.accept, {
+      sessionToken: callee.token,
+      callId,
+      userId: callee.userId as any,
+      acceptingDeviceId: "phone-b",
+    });
+    vi.advanceTimersByTime(1);
+    await t.mutation(api.calls.sendSignal, {
+      sessionToken: caller.token,
+      callId,
+      fromUserId: caller.userId as any,
+      toUserId: callee.userId as any,
+      kind: "ice",
+      payload: "{}",
+    });
+    await drain(t);
+    expect(
+      (await unconsumedFor(t, callee)).map((r) => r.kind).sort(),
+    ).toEqual(["ice", "taken"]);
+
+    // A live call's rows consume normally again.
+    await consumeAll(t, callee);
+    expect(await unconsumedFor(t, callee)).toEqual([]);
+  });
+
+  test("rows to the caller consume normally while ringing", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    await t.mutation(api.calls.markRinging, {
+      sessionToken: callee.token,
+      callId,
+      userId: callee.userId as any,
+    });
+    expect((await unconsumedFor(t, caller)).map((r) => r.kind)).toEqual([
+      "ringing",
+    ]);
+    await consumeAll(t, caller);
+    expect(await unconsumedFor(t, caller)).toEqual([]);
+    await drain(t);
+  });
+});

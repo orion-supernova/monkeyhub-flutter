@@ -281,6 +281,33 @@ export const purgeCallSignalsInternal = internalMutation({
   },
 });
 
+// Marks consumed every untargeted, still-unconsumed row to the callee that
+// was written while the call rang — the rows `heldForSiblings` kept visible
+// to all of the callee's devices. Bounded by [acceptedAt]: anything newer is
+// live-call traffic the answering device may not have read yet. The `taken`
+// row `accept` itself inserted stays: siblings still need it to stop ringing.
+export const retireRingPhaseSignalsInternal = internalMutation({
+  args: {
+    callId: v.id("calls"),
+    calleeId: v.id("users"),
+    acceptedAt: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { callId, calleeId, acceptedAt }) => {
+    const rows = await ctx.db
+      .query("callSignals")
+      .withIndex("by_call", (q: any) => q.eq("callId", callId))
+      .collect();
+    for (const r of rows) {
+      if (r.consumed || r.targetDeviceId || r.kind === "taken") continue;
+      if (r.createdAt > acceptedAt) continue;
+      if (r.toUserId.toString() !== calleeId.toString()) continue;
+      await ctx.db.patch(r._id, { consumed: true });
+    }
+    return null;
+  },
+});
+
 // ────────────────────────── initiate / lifecycle ──────────────────────────
 
 export const initiate = mutation({
@@ -500,9 +527,10 @@ export const accept = mutation({
       throw new Error("ONLY_CALLEE_CAN_ACCEPT");
     }
     if (call.status !== "ringing") return "not-ringing";
+    const acceptedAt = Date.now();
     await ctx.db.patch(callId, {
       status: "active",
-      acceptedAt: Date.now(),
+      acceptedAt,
       // Recorded so sibling devices' active-call subscriptions can compare
       // against their own deviceId and render the "Move call here" pill.
       acceptingDeviceId: acceptingDeviceId ?? undefined,
@@ -522,6 +550,16 @@ export const accept = mutation({
       createdAt: Date.now(),
       consumed: false,
     });
+    // The ring-phase rows every callee device was held to (see
+    // `heldForSiblings`) have done their job; a device that comes online
+    // now must not ring an answered call off them. Deferred for the same
+    // OCC reason as `purgeCallSignals`: a `by_call` range read here would
+    // conflict with the caller's ICE inserts.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.calls.retireRingPhaseSignalsInternal,
+      { callId, calleeId: call.calleeId, acceptedAt },
+    );
     // For killed-iOS siblings (subscription not alive), fan a PushKit
     // payload with kind="taken" so CallKit can dismiss with
     // .answeredElsewhere. The accepting device is excluded.
@@ -814,6 +852,27 @@ export const signalsForUser = query({
   },
 });
 
+// Signals are consumed per USER, but a ringing call rings on every one of
+// the callee's devices, and each needs the invite, the offer and the ICE
+// that follow it. Consumed by whichever device drained first, a row vanished
+// from every slower sibling's `signalsForUser` before it was read: a Mac
+// throttled in the background rang late or never, and could not answer the
+// offer it never saw. So while the call still rings, an untargeted row to
+// the callee stays visible to all of them (each device dedupes what it has
+// dispatched), and `accept` retires the lot once one device has it — see
+// [retireRingPhaseSignalsInternal]. Terminal rows are not held: the purge
+// deletes the ring-phase rows anyway, and every device watches
+// `activeCallForUser` to stop ringing whoever consumed the `cancel`.
+async function heldForSiblings(ctx: any, sig: Doc<"callSignals">) {
+  if (sig.targetDeviceId) return false;
+  const call = await ctx.db.get(sig.callId);
+  return (
+    !!call &&
+    call.status === "ringing" &&
+    call.calleeId.toString() === sig.toUserId.toString()
+  );
+}
+
 export const consumeSignal = mutation({
   args: { signalId: v.id("callSignals"), userId: v.id("users") },
   handler: async (ctx, { signalId, userId }) => {
@@ -822,6 +881,7 @@ export const consumeSignal = mutation({
     if (sig.toUserId.toString() !== userId.toString()) {
       throw new Error("NOT_RECIPIENT");
     }
+    if (await heldForSiblings(ctx, sig)) return;
     await ctx.db.patch(signalId, { consumed: true });
   },
 });
@@ -839,6 +899,7 @@ export const consumeSignals = mutation({
       if (!sig) continue;
       if (sig.toUserId.toString() !== userId.toString()) continue;
       if (sig.consumed) continue;
+      if (await heldForSiblings(ctx, sig)) continue;
       await ctx.db.patch(signalId, { consumed: true });
     }
   },
