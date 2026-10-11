@@ -333,13 +333,20 @@ class _ResultsReveal extends StatelessWidget {
   Widget build(BuildContext context) {
     final route = ModalRoute.of(context)?.animation;
     if (route == null) return child;
+    // The same interval both ways: reversing, it reaches 0 at 0.5, so the
+    // list is gone by the time the bar is halfway home. The rise lives here
+    // rather than on the route, whose bar must hold still for its flight.
+    final reveal = route.drive(
+      CurveTween(curve: const Interval(0.5, 1, curve: Curves.easeOutCubic)),
+    );
     return FadeTransition(
-      // The same interval both ways: reversing, it reaches 0 at 0.5, so the
-      // list is gone by the time the bar is halfway home.
-      opacity: route.drive(
-        CurveTween(curve: const Interval(0.5, 1, curve: Curves.easeOut)),
+      opacity: reveal,
+      child: SlideTransition(
+        position: reveal.drive(
+          Tween(begin: const Offset(0, 0.03), end: Offset.zero),
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 }

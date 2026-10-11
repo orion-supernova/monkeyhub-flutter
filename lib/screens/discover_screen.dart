@@ -204,22 +204,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           mode: mode,
           heroTag: searchFieldHeroTagFor(mode),
         ),
-        transitionsBuilder: (_, anim, _, child) {
-          final curved = CurvedAnimation(
-            parent: anim,
-            curve: theme.motionEntrance,
-          );
-          return FadeTransition(
-            opacity: curved,
-            child: SlideTransition(
-              position: Tween(
-                begin: const Offset(0, 0.06),
-                end: Offset.zero,
-              ).animate(curved),
-              child: child,
-            ),
-          );
-        },
+        // A fade, never a slide: the bar flies to its place on this route,
+        // and a hero whose destination moves re-aims every frame, which
+        // read as a shake on landing. The results bring their own rise.
+        transitionsBuilder: (_, anim, _, child) => FadeTransition(
+          opacity: anim.drive(CurveTween(curve: theme.motionEntrance)),
+          child: child,
+        ),
       ),
     );
   }
