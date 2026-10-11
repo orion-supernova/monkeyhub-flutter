@@ -3179,6 +3179,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get inlinePickerCommentHint => 'टिप्पणी जोड़ें या भेजें';
 
   @override
+  String get attachmentMenuGalleryLabel => 'गैलरी';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return '$size से बड़ा है, इसलिए भेजने के लिए कंप्रेस होगा';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'सभी ($count)';
   }

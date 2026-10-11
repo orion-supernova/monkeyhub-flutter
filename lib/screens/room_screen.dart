@@ -2550,6 +2550,8 @@ class _RoomScreenState extends State<RoomScreen>
         anchor: anchor,
         allowMedia: family?.canSendMedia ?? true,
         allowLocation: family?.canShareLocation ?? true,
+        // The inline picker shows photos and videos together.
+        unifiedGallery: InlinePhotoPicker.supported,
       );
       if (mounted) setState(() => _attachMenuUp = false);
       if (choice == null || !mounted) return;
@@ -3941,63 +3943,137 @@ class _RoomScreenState extends State<RoomScreen>
   /// sent, so the order on the other side is the order they were picked in
   /// however long each took to load. A reply rides on the last item, as a
   /// multi-photo send's does (see [_sendEdited]).
+  ///
+  /// Videos follow the one video rule ([_sendVideoFiles]): over
+  /// [kMaxFileUploadBytes] they are compressed to fit, after one question
+  /// for the whole send that also offers to leave them out. Cancelling it
+  /// sends nothing and leaves the picks where they were. While anything is
+  /// compressing the chat stays usable (no scrim), and the send outlives
+  /// the screen: leave the room and it still lands.
   Future<void> _sendPicks(String comment) async {
-    final picks = _picker.take();
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
+    final repo = widget.repo;
+    final roomId = widget.roomId;
+    final cap = formatFileSize(kMaxFileUploadBytes);
+
+    // Asked before anything leaves the strip, from the library's records:
+    // no clip is read to find out.
+    final picks = _picker.picks;
+    final big = <PickedMedia>{};
+    for (final p in picks) {
+      if (p.isVideo && AssetSizes.overCap(await AssetSizes.of(p.asset))) {
+        big.add(p);
+      }
+    }
+    if (!mounted) return;
+    var leaveOut = const <PickedMedia>{};
+    if (big.isNotEmpty) {
+      final small = picks.length - big.length;
+      final choice = await showIosActionSheet<bool>(
+        context,
+        title: l10n.videoShrinkPromptTitle(big.length, cap),
+        message: l10n.videoShrinkPromptBody(big.length),
+        actions: [
+          IosSheetAction(label: l10n.videoShrinkPromptAction, value: true),
+          if (small > 0)
+            IosSheetAction(
+              label: l10n.videoShrinkSendSmallOnly(small, cap),
+              value: false,
+            ),
+        ],
+      );
+      if (choice == null || !mounted) return;
+      if (!choice) leaveOut = big;
+    }
+
+    final taken = [
+      for (final p in _picker.take())
+        if (!leaveOut.contains(p)) p,
+    ];
     _picker.close();
     _composer.clear();
     final replyTarget = _replyingTo;
     final replyAlbum = _replyAlbum;
     if (replyTarget != null) setState(() => _replyingTo = null);
-    final toast = AppToast.of(context);
-    final l10n = AppLocalizations.of(context);
     final hd = SettingsStore.instance.photoHd;
+    final shrinking = taken.any(big.contains);
 
     final ready = <_ReadyPick>[];
     var dropped = 0;
-    _setMediaBusy(true);
+    var tooLong = 0;
+    // A read is quick and gets the scrim; a compression can take a while and
+    // gets a note instead, with the chat still in hand.
+    if (shrinking) {
+      toast.show(l10n.videoShrinkWorkingSnack);
+    } else {
+      _setMediaBusy(true);
+    }
     try {
-      for (final pick in picks) {
+      for (final pick in taken) {
         final r = await _ReadyPick.from(pick, hd: hd);
-        if (r == null) {
-          dropped++;
-        } else {
-          ready.add(r);
+        switch (r) {
+          case _ReadyPick():
+            ready.add(r);
+          case null when pick.isVideo && big.contains(pick):
+            tooLong++;
+          case null:
+            dropped++;
         }
       }
     } finally {
-      if (mounted) _setMediaBusy(false);
+      if (mounted && !shrinking) _setMediaBusy(false);
     }
-    if (!mounted) return;
 
     final albumId = ready.length > 1 ? newAlbumId() : null;
     for (var i = 0; i < ready.length; i++) {
       final r = ready[i];
       final last = i == ready.length - 1;
+      final reply = last ? replyTarget : null;
+      final replyCount = last ? replyAlbum : null;
       final photo = r.photo;
-      if (photo != null) {
-        _sendPhoto(
-          photo,
-          viewOnce: false,
-          albumId: albumId,
-          replyTo: last ? replyTarget : null,
-          replyToAlbumCount: last ? replyAlbum : null,
-        );
+      if (mounted) {
+        if (photo != null) {
+          _sendPhoto(
+            photo,
+            viewOnce: false,
+            albumId: albumId,
+            replyTo: reply,
+            replyToAlbumCount: replyCount,
+          );
+        } else {
+          _sendMedia(
+            bytes: r.videoBytes!,
+            type: MessageType.video,
+            contentType: r.contentType!,
+            posterBytes: r.poster,
+            mediaDurationMs: r.durationMs,
+            albumId: albumId,
+            replyTo: reply,
+            replyToAlbumCount: replyCount,
+          );
+        }
       } else {
-        _sendMedia(
-          bytes: r.videoBytes!,
-          type: MessageType.video,
-          contentType: r.contentType!,
+        // Left the chat while it was compressing: the send still belongs in
+        // it, and the repository does not need this screen to make it.
+        repo.sendMediaLocal(
+          roomId: roomId,
+          bytes: photo?.bytes ?? r.videoBytes!,
+          contentType: photo?.contentType ?? r.contentType!,
+          type: photo != null ? MessageType.image : MessageType.video,
+          mediaWidth: photo?.width.toDouble(),
+          mediaHeight: photo?.height.toDouble(),
           posterBytes: r.poster,
           mediaDurationMs: r.durationMs,
           albumId: albumId,
-          replyTo: last ? replyTarget : null,
-          replyToAlbumCount: last ? replyAlbum : null,
+          replyToId: reply?.id,
+          replyAlbumCount: replyCount,
         );
       }
     }
     if (comment.isNotEmpty) {
-      await widget.repo.sendText(
-        widget.roomId,
+      await repo.sendText(
+        roomId,
         comment,
         // With nothing sent ahead of it, the comment is the reply.
         replyToId: ready.isEmpty ? replyTarget?.id : null,
@@ -4006,6 +4082,10 @@ class _RoomScreenState extends State<RoomScreen>
     }
     if (dropped > 0) {
       toast.show(l10n.mediaPickFailedMessage, tone: ToastTone.danger);
+    }
+    if (tooLong > 0) {
+      toast.show(l10n.videoShrinkFailedSnack(tooLong, cap),
+          tone: ToastTone.danger);
     }
   }
 
@@ -7760,7 +7840,9 @@ class _OutgoingVideo {
 
 /// A pick made ready to send: a photo prepared for upload (edited, or
 /// compressed to the send size), or a video's bytes with its poster and
-/// length. Null from [from] when it could not be read.
+/// length, compressed to fit first when it is over [kMaxFileUploadBytes].
+/// Null from [from] when it could not be read, or (a video) could not be
+/// made to fit.
 class _ReadyPick {
   _ReadyPick.photo(CroppedImage this.photo)
       : videoBytes = null,
@@ -7782,19 +7864,7 @@ class _ReadyPick {
 
   static Future<_ReadyPick?> from(PickedMedia pick, {required bool hd}) async {
     try {
-      if (pick.isVideo) {
-        final file = await pick.asset.originFile;
-        if (file == null) return null;
-        final bytes = await file.readAsBytes();
-        // Over the upload cap is refused, not shrunk, in this first cut.
-        if (bytes.length > kMaxFileUploadBytes) return null;
-        return _ReadyPick.video(
-          videoBytes: bytes,
-          contentType: videoContentTypeFor(file.path),
-          poster: await VideoPoster.extract(file.path),
-          durationMs: pick.asset.duration * 1000,
-        );
-      }
+      if (pick.isVideo) return await _video(pick);
       final edited = pick.edited;
       if (edited != null) return _ReadyPick.photo(edited);
       final bytes = await GalleryTray.loadBytes(pick.asset);
@@ -7804,6 +7874,41 @@ class _ReadyPick {
     } catch (e) {
       debugPrint('[inline_picker] prepare: $e');
       return null;
+    }
+  }
+
+  static Future<_ReadyPick?> _video(PickedMedia pick) async {
+    final file = await pick.asset.originFile;
+    if (file == null) return null;
+    final duration = pick.asset.duration * 1000;
+    // The poster comes from the original either way: same picture, and the
+    // file the extractor can open. Phones only, but the guard is the rule
+    // for every call (see video_poster_gate_test).
+    final poster = kIsWeb ? null : await VideoPoster.extract(file.path);
+    // Measured here as well as from the library's records: those can be
+    // missing, and this is the file that would go up.
+    if (videoFateFor(await file.length(), canShrink: VideoShrink.supported) ==
+        VideoFate.asIs) {
+      return _ReadyPick.video(
+        videoBytes: await file.readAsBytes(),
+        contentType: videoContentTypeFor(file.path),
+        poster: poster,
+        durationMs: duration,
+      );
+    }
+    final out = await VideoShrink.shrink(file.path);
+    if (out == null) return null;
+    try {
+      return _ReadyPick.video(
+        videoBytes: await File(out).readAsBytes(),
+        contentType: videoContentTypeFor(out),
+        poster: poster,
+        durationMs: duration,
+      );
+    } finally {
+      try {
+        await File(out).delete();
+      } catch (_) {}
     }
   }
 }

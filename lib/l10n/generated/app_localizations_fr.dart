@@ -3232,6 +3232,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inlinePickerCommentHint => 'Ajouter un commentaire ou envoyer';
 
   @override
+  String get attachmentMenuGalleryLabel => 'Galerie';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return 'Plus de $size : la vidéo sera compressée pour l’envoi';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'Tous ($count)';
   }

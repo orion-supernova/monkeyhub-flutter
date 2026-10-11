@@ -3160,6 +3160,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inlinePickerCommentHint => 'Add comment or send';
 
   @override
+  String get attachmentMenuGalleryLabel => 'Gallery';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return 'Over $size, so it\'ll be compressed to send';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'All $count';
   }

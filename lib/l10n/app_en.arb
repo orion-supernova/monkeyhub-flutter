@@ -3604,6 +3604,19 @@
   "@inlinePickerCommentHint": {
     "description": "Composer placeholder while photos are picked: type a comment to go with them, or just send."
   },
+  "attachmentMenuGalleryLabel": "Gallery",
+  "@attachmentMenuGalleryLabel": {
+    "description": "Label of the attachment menu row that opens the photo library (photos and videos together) on phones, where it replaces the separate Photo and Video rows."
+  },
+  "inlinePickerVideoCompressNote": "Over {size}, so it'll be compressed to send",
+  "@inlinePickerVideoCompressNote": {
+    "description": "Toast when a video over the upload cap is picked in the inline photo picker: it will be compressed to fit when sent. {size} is the cap, e.g. '20 MB'.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "messageMenuAlbumAll": "All {count}",
   "@messageMenuAlbumAll": {
     "description": "Long-press menu switch on a photo stack: act on the whole stack. {count} is how many photos and videos it holds.",

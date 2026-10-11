@@ -894,6 +894,8 @@
   "photoTrayCountLabel": "{count, plural, other{{count} 张照片}}",
   "photoDeckBackToFirst": "回到第一张",
   "inlinePickerCommentHint": "添加评论或直接发送",
+  "attachmentMenuGalleryLabel": "相册",
+  "inlinePickerVideoCompressNote": "超过 {size}，将压缩后发送",
   "messageMenuAlbumAll": "全部（{count}）",
   "messageMenuAlbumOne": "仅此一项",
   "replyAlbumItems": "{count, plural, other{{count} 项}}",

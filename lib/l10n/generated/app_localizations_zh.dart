@@ -3019,6 +3019,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get inlinePickerCommentHint => '添加评论或直接发送';
 
   @override
+  String get attachmentMenuGalleryLabel => '相册';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return '超过 $size，将压缩后发送';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return '全部（$count）';
   }

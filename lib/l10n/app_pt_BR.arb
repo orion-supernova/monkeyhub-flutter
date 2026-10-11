@@ -904,6 +904,8 @@
   "photoTrayCountLabel": "{count, plural, =1{1 foto} other{{count} fotos}}",
   "photoDeckBackToFirst": "Voltar para a primeira",
   "inlinePickerCommentHint": "Adicione um comentário ou envie",
+  "attachmentMenuGalleryLabel": "Galeria",
+  "inlinePickerVideoCompressNote": "Passa de {size}, então vai ser comprimido para enviar",
   "messageMenuAlbumAll": "Todos ({count})",
   "messageMenuAlbumOne": "Só este",
   "replyAlbumItems": "{count, plural, =1{1 item} other{{count} itens}}",

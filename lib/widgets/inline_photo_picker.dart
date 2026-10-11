@@ -12,9 +12,11 @@ import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../media/file_meta.dart' show formatFileSize, kMaxFileUploadBytes;
 import '../media/image_raster.dart' show CroppedImage;
 import '../media/photo_picking.dart' show kMaxPhotoSelection;
 import '../theme/theme_scope.dart';
+import 'app_toast.dart';
 import 'glass_buttons.dart';
 import 'photo_chrome.dart' show MediaDurationBadge;
 import 'spring_press.dart';
@@ -28,6 +30,37 @@ class PickedMedia {
   CroppedImage? edited;
 
   bool get isVideo => asset.type == AssetType.video;
+}
+
+/// What a library item weighs, from the library's own records: no download,
+/// so asking for an iCloud clip's size does not fetch the clip. Asked once
+/// per item for the app's session. Null when the library will not say.
+abstract final class AssetSizes {
+  static final Map<String, int?> _known = {};
+  static final Map<String, Future<int?>> _asking = {};
+
+  /// Already answered: the size, or null for "will not say" as well as for
+  /// "not asked yet". See [isKnown].
+  static int? known(AssetEntity asset) => _known[asset.id];
+  static bool isKnown(AssetEntity asset) => _known.containsKey(asset.id);
+
+  static Future<int?> of(AssetEntity asset) {
+    if (_known.containsKey(asset.id)) return Future.value(_known[asset.id]);
+    return _asking[asset.id] ??= () async {
+      int? bytes;
+      try {
+        final n = await asset.fileSize;
+        bytes = n > 0 ? n : null;
+      } catch (_) {}
+      _known[asset.id] = bytes;
+      _asking.remove(asset.id);
+      return bytes;
+    }();
+  }
+
+  /// A video over the upload cap: it is compressed to fit when it is sent.
+  static bool overCap(int? bytes) =>
+      bytes != null && bytes > kMaxFileUploadBytes;
 }
 
 /// The inline picker's state: whether its panel is up, and what has been
@@ -113,6 +146,13 @@ class InlinePickerController extends ChangeNotifier {
   /// Back down to the keyboard's place.
   void collapse() => _settle(_restingSize);
 
+  /// Down and away, as a drag down from rest takes it; the picks stay.
+  void dismiss() {
+    if (!_open) return;
+    if (!sheet.isAttached) return close();
+    _settle(0);
+  }
+
   void _settle(double size) {
     if (!_open || !sheet.isAttached) return;
     sheet.animateTo(
@@ -179,6 +219,9 @@ class InlinePhotoPicker extends StatefulWidget {
 }
 
 enum _Access { unknown, prompt, granted, limited, denied }
+
+/// Where a let-go drag sends the sheet.
+enum _Stop { away, rest, full }
 
 class _InlinePhotoPickerState extends State<InlinePhotoPicker>
     with WidgetsBindingObserver {
@@ -300,10 +343,27 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
   void _tap(AssetEntity asset) {
     if (widget.controller.toggle(asset)) {
       HapticFeedback.selectionClick();
+      if (asset.type == AssetType.video &&
+          widget.controller.orderOf(asset) > 0) {
+        _noteIfOverCap(asset);
+      }
     } else {
       HapticFeedback.heavyImpact();
       widget.onFull?.call();
     }
+  }
+
+  /// A video over the upload cap is still picked: it is compressed to fit
+  /// when sent, the way every other way of sending a video does it. Said
+  /// now, at the pick, rather than as a surprise at SEND.
+  Future<void> _noteIfOverCap(AssetEntity asset) async {
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
+    final bytes = await AssetSizes.of(asset);
+    if (!mounted || !AssetSizes.overCap(bytes)) return;
+    if (widget.controller.orderOf(asset) == 0) return;
+    toast.show(
+        l10n.inlinePickerVideoCompressNote(formatFileSize(kMaxFileUploadBytes)));
   }
 
   // ─────────────────────────── the sheet ───────────────────────────
@@ -327,6 +387,16 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
   void _onSheet() {
     final sheet = widget.controller.sheet;
     if (!sheet.isAttached) return;
+    // Pulled all the way down: put away, as the keyboard would be. Checked
+    // after the frame, so a sheet that only passes through 0 on its way back
+    // up stays.
+    if (sheet.size <= 0.001) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && sheet.isAttached && sheet.size <= 0.001) {
+          widget.controller.close();
+        }
+      });
+    }
     // The sheet reports a new size from inside its own rebuild when the room
     // changes height under it; the chrome hears it a frame later rather than
     // being marked dirty mid-build.
@@ -366,8 +436,7 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
   void _dragUpdate(double dy, double h) {
     final sheet = widget.controller.sheet;
     if (!sheet.isAttached) return;
-    final rest = widget.controller._restingSize;
-    sheet.jumpTo((sheet.size - dy / h).clamp(rest, 1.0));
+    sheet.jumpTo((sheet.size - dy / h).clamp(0.0, 1.0));
   }
 
   void _dragEnd(double velocity) {
@@ -376,10 +445,30 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
     final c = widget.controller;
     if (!c.sheet.isAttached) return;
     final rest = c._restingSize;
-    final t = rest >= 1 ? 0.0 : (c.sheet.size - rest) / (1 - rest);
-    final up = velocity < -300 || (velocity.abs() <= 300 && t > 0.5);
-    if (up != _dragFromFull) HapticFeedback.selectionClick();
-    up ? c.expand() : c.collapse();
+    final size = c.sheet.size;
+    // A flick goes one stop in its direction; a slow let-go goes to the
+    // nearer stop, with rest holding on to most of the way down.
+    final _Stop to;
+    if (velocity > 300) {
+      to = size > rest + 0.01 ? _Stop.rest : _Stop.away;
+    } else if (velocity < -300) {
+      to = size < rest - 0.01 ? _Stop.rest : _Stop.full;
+    } else if (size > rest) {
+      final t = rest >= 1 ? 0.0 : (size - rest) / (1 - rest);
+      to = t > 0.5 ? _Stop.full : _Stop.rest;
+    } else {
+      to = size < rest * 0.6 ? _Stop.away : _Stop.rest;
+    }
+    final from = _dragFromFull ? _Stop.full : _Stop.rest;
+    if (to != from) HapticFeedback.selectionClick();
+    switch (to) {
+      case _Stop.full:
+        c.expand();
+      case _Stop.rest:
+        c.collapse();
+      case _Stop.away:
+        c.dismiss();
+    }
   }
 
   void _tapGrabber() {
@@ -427,9 +516,12 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
             DraggableScrollableSheet(
               controller: widget.controller.sheet,
               initialChildSize: rest,
-              minChildSize: rest,
+              // Down to nothing, so a pull down from rest puts it away
+              // (see [_onSheet]); rest is a stop on the way.
+              minChildSize: 0,
               maxChildSize: 1,
               snap: true,
+              snapSizes: rest > 0 && rest < 1 ? [rest] : null,
               builder: (context, scroll) => OverflowBox(
                 alignment: Alignment.topCenter,
                 minHeight: h,
@@ -525,18 +617,30 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
         child: SizedBox(
           height: _grip,
           width: double.infinity,
-          child: Center(
-            child: Opacity(
-              opacity: 1 - t * 0.6,
-              child: Container(
-                width: 36,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted,
-                  borderRadius: BorderRadius.circular(3),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Opacity(
+                opacity: 1 - t * 0.6,
+                child: Container(
+                  width: 36,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: theme.inkMuted,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
-            ),
+              // How many of the most one send carries are picked: the cap
+              // in view before it is hit, not only in the toast after.
+              Positioned(
+                right: 14,
+                child: _PickCount(
+                  count: widget.controller.picks.length,
+                  max: widget.controller.max,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -637,6 +741,7 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
       BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final full = widget.controller.picks.length >= widget.controller.max;
     return (scroll) {
       Widget resting(Widget? child) => ListView(
             controller: scroll,
@@ -685,9 +790,13 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
                     itemCount: _assets.length,
                     itemBuilder: (_, i) {
                       final asset = _assets[i];
+                      final order = widget.controller.orderOf(asset);
                       return _Tile(
                         asset: asset,
-                        order: widget.controller.orderOf(asset),
+                        order: order,
+                        // At the cap, what is left cannot be picked: it says
+                        // so before a tap does.
+                        dimmed: order == 0 && full,
                         onTap: () => _tap(asset),
                       );
                     },
@@ -721,11 +830,19 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
 /// ring (empty, or the accent disc with the pick's number). A picked tile
 /// eases in a little, the way iMessage marks one.
 class _Tile extends StatelessWidget {
-  const _Tile({required this.asset, required this.order, required this.onTap});
+  const _Tile({
+    required this.asset,
+    required this.order,
+    required this.onTap,
+    this.dimmed = false,
+  });
 
   final AssetEntity asset;
   final int order;
   final VoidCallback onTap;
+
+  /// The picks are at the cap and this is not one of them.
+  final bool dimmed;
 
   @override
   Widget build(BuildContext context) {
@@ -734,7 +851,10 @@ class _Tile extends StatelessWidget {
       onTap: onTap,
       haptic: false,
       scale: 0.96,
-      child: Stack(
+      child: AnimatedOpacity(
+        opacity: dimmed ? 0.35 : 1,
+        duration: const Duration(milliseconds: 160),
+        child: Stack(
         fit: StackFit.expand,
         children: [
           AnimatedScale(
@@ -764,12 +884,96 @@ class _Tile extends StatelessWidget {
                 icon: CupertinoIcons.video_camera_solid,
               ),
             ),
+          if (asset.type == AssetType.video)
+            Positioned(
+              right: 6,
+              bottom: 6,
+              child: _OverCapBadge(asset: asset),
+            ),
           Positioned(
             top: 6,
             right: 6,
             child: _OrderRing(order: order),
           ),
         ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A video's size, on its tile, when it is over the upload cap: it will be
+/// compressed to fit. Nothing on a video that goes as it is.
+class _OverCapBadge extends StatefulWidget {
+  const _OverCapBadge({required this.asset});
+
+  final AssetEntity asset;
+
+  @override
+  State<_OverCapBadge> createState() => _OverCapBadgeState();
+}
+
+class _OverCapBadgeState extends State<_OverCapBadge> {
+  int? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _read();
+  }
+
+  @override
+  void didUpdateWidget(_OverCapBadge old) {
+    super.didUpdateWidget(old);
+    if (old.asset.id != widget.asset.id) {
+      _bytes = null;
+      _read();
+    }
+  }
+
+  void _read() {
+    final asset = widget.asset;
+    if (AssetSizes.isKnown(asset)) {
+      _bytes = AssetSizes.known(asset);
+      return;
+    }
+    AssetSizes.of(asset).then((bytes) {
+      if (mounted && widget.asset.id == asset.id) {
+        setState(() => _bytes = bytes);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes;
+    if (!AssetSizes.overCap(bytes)) return const SizedBox.shrink();
+    return MediaDurationBadge(text: formatFileSize(bytes!));
+  }
+}
+
+/// "3/10" beside the grabber while anything is picked.
+class _PickCount extends StatelessWidget {
+  const _PickCount({required this.count, required this.max});
+
+  final int count;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final at = count >= max;
+    return AnimatedOpacity(
+      opacity: count > 0 ? 1 : 0,
+      duration: const Duration(milliseconds: 160),
+      child: Text(
+        '$count/$max',
+        style: theme.caption.copyWith(
+          color: at ? theme.accent : theme.inkSoft,
+          fontWeight: FontWeight.w600,
+          height: 1,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
       ),
     );
   }

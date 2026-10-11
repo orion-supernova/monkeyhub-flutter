@@ -894,6 +894,8 @@
   "photoTrayCountLabel": "{count, plural, other{写真 {count} 枚}}",
   "photoDeckBackToFirst": "最初に戻る",
   "inlinePickerCommentHint": "コメントを追加、または送信",
+  "attachmentMenuGalleryLabel": "ギャラリー",
+  "inlinePickerVideoCompressNote": "{size}を超えているため、圧縮して送信されます",
   "messageMenuAlbumAll": "すべて（{count}）",
   "messageMenuAlbumOne": "これだけ",
   "replyAlbumItems": "{count, plural, other{{count}件}}",

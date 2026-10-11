@@ -63,4 +63,25 @@ void main() {
     expect(menu.left, anchor.left);
     expect(menu.bottom, anchor.bottom);
   });
+
+  testWidgets('one Gallery row where the picker shows photos and videos',
+      (tester) async {
+    final ctx = await pump(tester);
+    showAttachmentMenu(ctx, anchor: anchor, unifiedGallery: true);
+    await tester.pump();
+    await frames(tester, 800);
+    expect(find.text('Gallery'), findsOneWidget);
+    expect(find.text('Photo'), findsNothing);
+    expect(find.text('Video'), findsNothing);
+  });
+
+  testWidgets('Photo and Video stay apart by default', (tester) async {
+    final ctx = await pump(tester);
+    showAttachmentMenu(ctx, anchor: anchor);
+    await tester.pump();
+    await frames(tester, 800);
+    expect(find.text('Gallery'), findsNothing);
+    expect(find.text('Photo'), findsOneWidget);
+    expect(find.text('Video'), findsOneWidget);
+  });
 }

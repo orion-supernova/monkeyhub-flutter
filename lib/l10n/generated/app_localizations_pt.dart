@@ -3206,6 +3206,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get inlinePickerCommentHint => 'Adicione um comentário ou envie';
 
   @override
+  String get attachmentMenuGalleryLabel => 'Galeria';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return 'Tem mais de $size, por isso será comprimido para enviar';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'Todos ($count)';
   }
@@ -15358,6 +15366,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get inlinePickerCommentHint => 'Adicione um comentário ou envie';
+
+  @override
+  String get attachmentMenuGalleryLabel => 'Galeria';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return 'Passa de $size, então vai ser comprimido para enviar';
+  }
 
   @override
   String messageMenuAlbumAll(int count) {
