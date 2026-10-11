@@ -115,11 +115,8 @@ void main() {
     final l10n = AppLocalizations.of(nav.currentContext!);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text(l10n.kbdJumpToLatest), findsNothing, reason: 'too soon');
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text(l10n.kbdJumpToLatest), findsOneWidget);
+    await tester.pump();
+    expect(find.text(l10n.kbdJumpToLatest), findsOneWidget, reason: 'no wait');
 
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pumpAndSettle();
@@ -139,7 +136,7 @@ void main() {
     await tester.pump();
     final l10n = AppLocalizations.of(nav.currentContext!);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 80));
     await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
     await tester.pump(const Duration(seconds: 1));
     expect(hits, 1);

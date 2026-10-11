@@ -32,8 +32,8 @@ import 'app_shortcuts.dart';
 ///
 /// ## The peek
 ///
-/// Holding the primary modifier alone (⌘, or Ctrl off Apple) for a moment
-/// shows [ShortcutPeek]; letting go hides it. Watched through
+/// Pressing the primary modifier alone (⌘, or Ctrl off Apple) shows
+/// [ShortcutPeek] at once, no hold delay; letting go hides it. Watched through
 /// [HardwareKeyboard] rather than the focus tree, so it works with nothing
 /// focused, and never consumes anything. Any other key, a click, or the app
 /// losing focus (⌘⇥ away never delivers the key-up) calls it off.
@@ -58,10 +58,7 @@ class ShortcutHost extends StatefulWidget {
 }
 
 class _ShortcutHostState extends State<ShortcutHost> {
-  static const _holdDelay = Duration(milliseconds: 650);
-
   final List<Object> _tokens = [];
-  Timer? _hold;
   ShortcutPeek? _peek;
   late final AppLifecycleListener _lifecycle;
 
@@ -184,8 +181,7 @@ class _ShortcutHostState extends State<ShortcutHost> {
       if (e is KeyDownEvent) {
         final alone = HardwareKeyboard.instance.logicalKeysPressed.every(_isPrimary);
         if (alone && _peek == null && !_presenting && SettingsStore.instance.shortcutPeek) {
-          _hold?.cancel();
-          _hold = Timer(_holdDelay, _showPeek);
+          _showPeek();
         }
       } else if (e is KeyUpEvent) {
         _callOffPeek();
@@ -203,7 +199,6 @@ class _ShortcutHostState extends State<ShortcutHost> {
   }
 
   void _showPeek() {
-    _hold = null;
     final overlay = widget.navigatorKey.currentState?.overlay;
     final ctx = _navContext;
     if (overlay == null || ctx == null || !mounted) return;
@@ -212,8 +207,6 @@ class _ShortcutHostState extends State<ShortcutHost> {
   }
 
   void _callOffPeek() {
-    _hold?.cancel();
-    _hold = null;
     _peek?.hide();
     _peek = null;
   }
