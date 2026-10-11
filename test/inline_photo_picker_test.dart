@@ -41,6 +41,31 @@ void main() {
         ),
       );
 
+  /// A room [height] tall, the picker over it resting 300 high with a 34pt
+  /// home indicator below.
+  Widget room(InlinePickerController c, double height) => MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              height: height,
+              child: Stack(children: [
+                Positioned.fill(
+                  child: InlinePhotoPicker(
+                    controller: c,
+                    height: 300,
+                    bottomPadding: 34,
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      );
+
   group('picks', () {
     test('kept in pick order, renumbered when one is taken back', () {
       final c = InlinePickerController();
@@ -86,6 +111,99 @@ void main() {
     await tester.tap(find.byIcon(CupertinoIcons.xmark).first);
     await tester.pumpAndSettle();
     expect(c.picks.map((p) => p.asset.id), ['b']);
+  });
+
+  group('the sheet', () {
+    // A 400x800 room. Without the photo library plugin the picker shows its
+    // "access is off" note, which is enough to see the sheet move.
+    Future<InlinePickerController> open(WidgetTester tester,
+        {double roomHeight = 800}) async {
+      final c = InlinePickerController()..open();
+      addTearDown(c.dispose);
+      await tester.binding.setSurfaceSize(const Size(400, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(room(c, roomHeight));
+      await tester.pumpAndSettle();
+      return c;
+    }
+
+    double sheetTop(WidgetTester tester) =>
+        tester.getTopLeft(find.bySemanticsLabel('Recent photos')).dy;
+
+    testWidgets('rests in the keyboard\'s place', (tester) async {
+      final c = await open(tester);
+      expect(sheetTop(tester), moreOrLessEquals(800 - 300 - 34));
+      expect(c.isExpanded, isFalse);
+    });
+
+    testWidgets('pulls up to fill the room, and back down', (tester) async {
+      final c = await open(tester);
+      await tester.drag(find.bySemanticsLabel('Recent photos'),
+          const Offset(0, -500));
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isTrue);
+      expect(sheetTop(tester), moreOrLessEquals(0));
+      expect(find.text('Recents'), findsOneWidget);
+
+      await tester.tap(find.byIcon(CupertinoIcons.chevron_down));
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isFalse);
+      expect(sheetTop(tester), moreOrLessEquals(800 - 300 - 34));
+    });
+
+    testWidgets('a short drag falls back to rest', (tester) async {
+      final c = await open(tester);
+      await tester.timedDrag(find.bySemanticsLabel('Recent photos'),
+          const Offset(0, -80), const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isFalse);
+      expect(sheetTop(tester), moreOrLessEquals(800 - 300 - 34));
+    });
+
+    testWidgets('a flick up opens it, expand() and collapse() drive it',
+        (tester) async {
+      final c = await open(tester);
+      await tester.fling(find.bySemanticsLabel('Recent photos'),
+          const Offset(0, -60), 1500);
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isTrue);
+      c.collapse();
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isFalse);
+      c.expand();
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isTrue);
+    });
+
+    testWidgets('picks show in the full bar, and Add brings it down',
+        (tester) async {
+      final c = await open(tester);
+      c.toggle(asset('a'));
+      c.toggle(asset('b'));
+      c.expand();
+      await tester.pumpAndSettle();
+      expect(find.text('2 selected'), findsOneWidget);
+      await tester.tap(find.text('Add (2)'));
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isFalse);
+      expect(c.picks.length, 2);
+    });
+
+    testWidgets('stays at rest when the room changes height under it',
+        (tester) async {
+      final c = await open(tester, roomHeight: 700);
+      // Moved once, so the sheet no longer follows its initial size itself.
+      c.expand();
+      await tester.pumpAndSettle();
+      c.collapse();
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(room(c, 800));
+      await tester.pumpAndSettle();
+      expect(sheetTop(tester), moreOrLessEquals(800 - 300 - 34));
+      await tester.pumpWidget(room(c, 600));
+      await tester.pumpAndSettle();
+      expect(sheetTop(tester), moreOrLessEquals(600 - 300 - 34));
+    });
   });
 
   for (final liquid in [false, true]) {

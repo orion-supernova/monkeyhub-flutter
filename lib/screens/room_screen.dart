@@ -3893,13 +3893,22 @@ class _RoomScreenState extends State<RoomScreen>
     _picker.open();
   }
 
-  /// The grid, in the keyboard's place, at the height the keyboard last had
+  /// The keyboard's place, held for the picker while it is up: the picker
+  /// itself lies over the whole room ([_pickerSheet]) so it can be pulled up
+  /// to fill it, and rests exactly on this box. The keyboard's last height
   /// (the expression panel keeps that measurement for both).
-  Widget _pickerPanel({required double bottomPadding}) => Padding(
-        padding: EdgeInsets.only(bottom: bottomPadding),
+  Widget _pickerPanel({required double bottomPadding}) =>
+      SizedBox(height: _expressions.height + bottomPadding);
+
+  /// The picker, over the room. At rest it covers [_pickerPanel] and the
+  /// home indicator below it, which is the same in both chat styles: the
+  /// classic column's SafeArea and the liquid one's padding both keep the
+  /// panel that far off the bottom.
+  Widget _pickerSheet() => Positioned.fill(
         child: InlinePhotoPicker(
           controller: _picker,
           height: _expressions.height,
+          bottomPadding: MediaQuery.paddingOf(context).bottom,
           onFull: () => AppToast.of(context).show(
             AppLocalizations.of(context)
                 .roomScreenMaxSelectionSnack(_picker.max),
@@ -4767,7 +4776,12 @@ class _RoomScreenState extends State<RoomScreen>
                 return;
               }
               if (_picker.isOpen) {
-                _picker.close();
+                // Pulled up, back brings it down first, as a drag would.
+                if (_picker.isExpanded) {
+                  _picker.collapse();
+                } else {
+                  _picker.close();
+                }
               } else if (_expressions.isOpen) {
                 _expressions.hide();
               } else if (_editing != null) {
@@ -4815,6 +4829,9 @@ class _RoomScreenState extends State<RoomScreen>
                       _buildClassic(context, room, messages, items, me)
                     else
                       _buildLiquid(context, room, messages, items, me),
+                    // Over the header and the composer, so it can be pulled
+                    // up to fill the room.
+                    if (_picker.isOpen && !_expressions.isOpen) _pickerSheet(),
                     // Last, so it covers the header and the composer too — a
                     // scrim that dims the transcript but leaves a live attach
                     // button underneath it is an invitation to make the
