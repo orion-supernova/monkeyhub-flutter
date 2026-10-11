@@ -1095,7 +1095,14 @@ class _LimitedNote extends StatelessWidget {
 }
 
 /// The picks, waiting over the composer: large thumbnails in send order,
-/// each with a remove button. Tapping a photo opens it in the editor.
+/// each with a remove button. Tapping a photo opens it in the editor, a
+/// video in the player.
+///
+/// One open at a time. Getting there waits on the library (a full-size
+/// photo, a video's file, seconds when it lives in iCloud), and a second
+/// tap in that wait used to stack a second editor on the first. Until
+/// [onOpen] resolves the strip takes no more opens, and the tile being
+/// opened shows a spinner.
 ///
 /// A new pick lands at the end, and the strip follows it there: the newest
 /// is always the one in view, however many came before it. A removal or an
@@ -1104,11 +1111,13 @@ class PickedMediaStrip extends StatefulWidget {
   const PickedMediaStrip({
     super.key,
     required this.controller,
-    required this.onEdit,
+    required this.onOpen,
   });
 
   final InlinePickerController controller;
-  final void Function(PickedMedia m) onEdit;
+
+  /// Opens [m], resolving once whatever it opened is up (or has closed).
+  final Future<void> Function(PickedMedia m) onOpen;
 
   @override
   State<PickedMediaStrip> createState() => _PickedMediaStripState();
@@ -1119,6 +1128,19 @@ class _PickedMediaStripState extends State<PickedMediaStrip> {
 
   final ScrollController _scroll = ScrollController();
   late int _count = widget.controller.picks.length;
+
+  /// The asset being opened, while [PickedMediaStrip.onOpen] is in flight.
+  String? _opening;
+
+  Future<void> _open(PickedMedia pick) async {
+    if (_opening != null) return;
+    setState(() => _opening = pick.asset.id);
+    try {
+      await widget.onOpen(pick);
+    } finally {
+      if (mounted) setState(() => _opening = null);
+    }
+  }
 
   @override
   void initState() {
@@ -1186,7 +1208,8 @@ class _PickedMediaStripState extends State<PickedMediaStrip> {
                 itemBuilder: (_, i) => _StripTile(
                   key: ValueKey(picks[i].asset.id),
                   pick: picks[i],
-                  onTap: () => widget.onEdit(picks[i]),
+                  opening: _opening == picks[i].asset.id,
+                  onTap: () => _open(picks[i]),
                   onRemove: () {
                     HapticFeedback.selectionClick();
                     widget.controller.remove(picks[i]);
@@ -1202,11 +1225,13 @@ class _StripTile extends StatelessWidget {
   const _StripTile({
     super.key,
     required this.pick,
+    required this.opening,
     required this.onTap,
     required this.onRemove,
   });
 
   final PickedMedia pick;
+  final bool opening;
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
@@ -1235,13 +1260,31 @@ class _StripTile extends StatelessWidget {
               ),
             ),
           ),
-          if (pick.isVideo)
+          if (pick.isVideo && !opening)
             const Center(
               child: IgnorePointer(
                 child: Icon(CupertinoIcons.play_circle_fill,
                     size: 30, color: Colors.white),
               ),
             ),
+          // Faded in, so an open that is quick never flashes it.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: opening ? 1 : 0,
+                duration: const Duration(milliseconds: 180),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.black.withValues(alpha: 0.45),
+                  ),
+                  child: opening
+                      ? const CupertinoActivityIndicator(color: Colors.white)
+                      : null,
+                ),
+              ),
+            ),
+          ),
           Positioned(
             top: -6,
             right: -6,

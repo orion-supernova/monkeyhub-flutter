@@ -1,9 +1,11 @@
 @TestOn('vm')
 library;
 
+import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
@@ -102,7 +104,7 @@ void main() {
     final edited = <String>[];
     await tester.pumpWidget(host(PickedMediaStrip(
       controller: c,
-      onEdit: (p) => edited.add(p.asset.id),
+      onOpen: (p) async => edited.add(p.asset.id),
     )));
     await tester.pumpAndSettle();
     expect(find.byType(Image), findsNWidgets(2));
@@ -111,6 +113,47 @@ void main() {
     await tester.tap(find.byIcon(CupertinoIcons.xmark).first);
     await tester.pumpAndSettle();
     expect(c.picks.map((p) => p.asset.id), ['b']);
+  });
+
+  testWidgets('the strip opens one pick at a time, with a spinner',
+      (tester) async {
+    final c = InlinePickerController();
+    addTearDown(c.dispose);
+    final image = CroppedImage(
+        bytes: png, contentType: 'image/png', width: 1, height: 1);
+    for (final id in ['a', 'b']) {
+      c.toggle(asset(id));
+    }
+    for (final p in c.picks) {
+      c.markEdited(p, image);
+    }
+    final opened = <String>[];
+    final pending = Completer<void>();
+    await tester.pumpWidget(host(PickedMediaStrip(
+      controller: c,
+      onOpen: (p) {
+        opened.add(p.asset.id);
+        return pending.future;
+      },
+    )));
+    await tester.pumpAndSettle();
+    expect(find.byType(CupertinoActivityIndicator), findsNothing);
+
+    // A burst of taps while the first is still loading opens nothing more.
+    await tester.tap(find.byType(Image).first);
+    await tester.pump();
+    await tester.tap(find.byType(Image).first);
+    await tester.tap(find.byType(Image).last);
+    await tester.pump();
+    expect(opened, ['a']);
+    expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+
+    // Once it is up, the strip takes taps again.
+    pending.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(CupertinoActivityIndicator), findsNothing);
+    await tester.tap(find.byType(Image).last);
+    expect(opened, ['a', 'b']);
   });
 
   testWidgets('the strip follows a new pick to the end, not a removal',
@@ -128,7 +171,7 @@ void main() {
     for (var i = 0; i < 3; i++) {
       pick('a$i');
     }
-    await tester.pumpWidget(host(PickedMediaStrip(controller: c, onEdit: (_) {})));
+    await tester.pumpWidget(host(PickedMediaStrip(controller: c, onOpen: (_) async {})));
     await tester.pumpAndSettle();
     ScrollPosition pos() =>
         tester.state<ScrollableState>(find.byType(Scrollable)).position;

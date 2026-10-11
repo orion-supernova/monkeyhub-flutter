@@ -45,6 +45,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_meta.dart';
 import '../media/native_gallery.dart';
+import '../media/native_video_player.dart';
 import '../media/video_poster.dart';
 import '../media/video_shrink.dart';
 import '../media/image_raster.dart';
@@ -3918,11 +3919,33 @@ class _RoomScreenState extends State<RoomScreen>
         ),
       );
 
+  /// A tap on a pick in the strip: a video plays, a photo opens to edit.
+  Future<void> _openPick(PickedMedia pick) =>
+      pick.isVideo ? _playPick(pick) : _editPick(pick);
+
+  /// A picked video, in the OS player, from the same original file a send
+  /// would read ([_ReadyPick._video]). Resolves once the player is up.
+  Future<void> _playPick(PickedMedia pick) async {
+    try {
+      final file = await pick.asset.originFile;
+      if (file == null || !mounted) return;
+      final l = AppLocalizations.of(context);
+      final shown = await NativeVideoPlayer.present(
+        url: Uri.file(file.path).toString(),
+        secure: CaptureProtection.instance.active,
+        shieldTitle: l.countBadgeProtectedLabel,
+        shieldBody: l.countBadgeCaptureShieldActiveBody,
+      );
+      if (!shown) debugPrint('[inline_picker] the OS player declined a pick');
+    } catch (e) {
+      debugPrint('[inline_picker] play: $e');
+    }
+  }
+
   /// A picked photo, into the editor and back: crop, draw, rotate. No
   /// caption (a captioned photo stands apart from its album) and no
   /// view-once (that is a property of a send, not of one picture in it).
   Future<void> _editPick(PickedMedia pick) async {
-    if (pick.isVideo) return;
     final bytes = pick.edited?.bytes ?? await GalleryTray.loadBytes(pick.asset);
     if (bytes == null || !mounted) return;
     final outcome = await CameraEditorScreen.open(
@@ -5071,7 +5094,7 @@ class _RoomScreenState extends State<RoomScreen>
                   composer: _composer,
                   onSend: _sendSuggestedSticker,
                 ),
-                PickedMediaStrip(controller: _picker, onEdit: _editPick),
+                PickedMediaStrip(controller: _picker, onOpen: _openPick),
                 ComposerSearchTakeover(
                   controller: _expressions,
                   child: ChatComposerClassic(
@@ -5329,7 +5352,7 @@ class _RoomScreenState extends State<RoomScreen>
                   composer: _composer,
                   onSend: _sendSuggestedSticker,
                 ),
-                PickedMediaStrip(controller: _picker, onEdit: _editPick),
+                PickedMediaStrip(controller: _picker, onOpen: _openPick),
                 ComposerSearchTakeover(
                   controller: _expressions,
                   child: ChatComposerLiquid(
