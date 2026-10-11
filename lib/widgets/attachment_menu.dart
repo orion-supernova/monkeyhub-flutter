@@ -64,6 +64,7 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(
   Rect? anchor,
   bool allowMedia = true,
   bool allowLocation = true,
+  bool unifiedGallery = false,
 }) {
   final calm = MotionScope.of(context).calm;
   // The root navigator: [anchor] is in window coordinates, and on a desktop
@@ -75,6 +76,7 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(
     child: _AttachmentSheet(
       allowMedia: allowMedia,
       allowLocation: allowLocation,
+      unifiedGallery: unifiedGallery,
     ),
   ));
 }
@@ -283,10 +285,16 @@ class _AttachmentSheet extends StatelessWidget {
   const _AttachmentSheet({
     required this.allowMedia,
     required this.allowLocation,
+    this.unifiedGallery = false,
   });
 
   final bool allowMedia;
   final bool allowLocation;
+
+  /// One "Gallery" row for photos and videos together, where the host's
+  /// picker shows both (the inline picker, on a phone). Elsewhere the system
+  /// pickers are one kind each, so Photo and Video stay two rows.
+  final bool unifiedGallery;
 
   @override
   Widget build(BuildContext context) {
@@ -306,15 +314,18 @@ class _AttachmentSheet extends StatelessWidget {
         (
           AttachmentMenuChoice.gallery,
           CupertinoIcons.photo_fill_on_rectangle_fill,
-          l10n.attachmentMenuPhotoLabel,
+          unifiedGallery
+              ? l10n.attachmentMenuGalleryLabel
+              : l10n.attachmentMenuPhotoLabel,
           TileTone.pink,
         ),
-        (
-          AttachmentMenuChoice.video,
-          CupertinoIcons.film_fill,
-          l10n.attachmentMenuVideoLabel,
-          TileTone.purple,
-        ),
+        if (!unifiedGallery)
+          (
+            AttachmentMenuChoice.video,
+            CupertinoIcons.film_fill,
+            l10n.attachmentMenuVideoLabel,
+            TileTone.purple,
+          ),
         // Absent in a browser. `record_web` writes an opus/webm blob rather
         // than the AAC the send path and the players downstream both assume,
         // and it ignores the temp-file path the recorder screen asks

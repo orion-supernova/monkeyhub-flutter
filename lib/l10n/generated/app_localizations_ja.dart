@@ -3057,6 +3057,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get inlinePickerCommentHint => 'コメントを追加、または送信';
 
   @override
+  String get attachmentMenuGalleryLabel => 'ギャラリー';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return '$sizeを超えているため、圧縮して送信されます';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'すべて（$count）';
   }

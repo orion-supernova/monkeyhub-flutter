@@ -894,6 +894,8 @@
   "photoTrayCountLabel": "{count, plural, other{{count} fotoğraf}}",
   "photoDeckBackToFirst": "Başa dön",
   "inlinePickerCommentHint": "Yorum ekle veya gönder",
+  "attachmentMenuGalleryLabel": "Galeri",
+  "inlinePickerVideoCompressNote": "{size} üstünde, göndermek için sıkıştırılacak",
   "messageMenuAlbumAll": "Tümü ({count})",
   "messageMenuAlbumOne": "Sadece bu",
   "replyAlbumItems": "{count, plural, =1{1 öğe} other{{count} öğe}}",

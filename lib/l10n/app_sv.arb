@@ -904,6 +904,8 @@
   "photoTrayCountLabel": "{count, plural, =1{1 foto} other{{count} foton}}",
   "photoDeckBackToFirst": "Tillbaka till första",
   "inlinePickerCommentHint": "Lägg till en kommentar eller skicka",
+  "attachmentMenuGalleryLabel": "Galleri",
+  "inlinePickerVideoCompressNote": "Över {size}, så den komprimeras när den skickas",
   "messageMenuAlbumAll": "Alla ({count})",
   "messageMenuAlbumOne": "Bara den här",
   "replyAlbumItems": "{count, plural, =1{1 objekt} other{{count} objekt}}",

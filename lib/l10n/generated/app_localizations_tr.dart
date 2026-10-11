@@ -3153,6 +3153,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get inlinePickerCommentHint => 'Yorum ekle veya gönder';
 
   @override
+  String get attachmentMenuGalleryLabel => 'Galeri';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return '$size üstünde, göndermek için sıkıştırılacak';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'Tümü ($count)';
   }

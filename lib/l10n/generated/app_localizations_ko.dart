@@ -3064,6 +3064,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get inlinePickerCommentHint => '댓글을 추가하거나 보내기';
 
   @override
+  String get attachmentMenuGalleryLabel => '갤러리';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return '$size를 넘어서 압축해서 보내요';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return '전체 ($count)';
   }

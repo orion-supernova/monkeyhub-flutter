@@ -894,6 +894,8 @@
   "photoTrayCountLabel": "{count, plural, other{사진 {count}장}}",
   "photoDeckBackToFirst": "처음으로",
   "inlinePickerCommentHint": "댓글을 추가하거나 보내기",
+  "attachmentMenuGalleryLabel": "갤러리",
+  "inlinePickerVideoCompressNote": "{size}를 넘어서 압축해서 보내요",
   "messageMenuAlbumAll": "전체 ({count})",
   "messageMenuAlbumOne": "이것만",
   "replyAlbumItems": "{count, plural, other{{count}개}}",

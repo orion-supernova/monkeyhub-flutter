@@ -5481,6 +5481,18 @@ abstract class AppLocalizations {
   /// **'Add comment or send'**
   String get inlinePickerCommentHint;
 
+  /// Label of the attachment menu row that opens the photo library (photos and videos together) on phones, where it replaces the separate Photo and Video rows.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get attachmentMenuGalleryLabel;
+
+  /// Toast when a video over the upload cap is picked in the inline photo picker: it will be compressed to fit when sent. {size} is the cap, e.g. '20 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Over {size}, so it\'ll be compressed to send'**
+  String inlinePickerVideoCompressNote(String size);
+
   /// Long-press menu switch on a photo stack: act on the whole stack. {count} is how many photos and videos it holds.
   ///
   /// In en, this message translates to:

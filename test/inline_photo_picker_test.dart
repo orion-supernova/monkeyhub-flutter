@@ -151,6 +151,61 @@ void main() {
       expect(sheetTop(tester), moreOrLessEquals(800 - 300 - 34));
     });
 
+    testWidgets('dragging the content up grows it too', (tester) async {
+      final c = await open(tester);
+      await tester.dragFrom(const Offset(200, 650), const Offset(0, -500));
+      await tester.pumpAndSettle();
+      expect(c.isExpanded, isTrue);
+    });
+
+    testWidgets('a pull down from rest puts it away, picks kept',
+        (tester) async {
+      final c = await open(tester);
+      c.toggle(asset('a'));
+      await tester.drag(find.bySemanticsLabel('Recent photos'),
+          const Offset(0, 300));
+      await tester.pumpAndSettle();
+      expect(c.isOpen, isFalse);
+      expect(c.picks.length, 1);
+    });
+
+    testWidgets('a pull down on the content puts it away too',
+        (tester) async {
+      final c = await open(tester);
+      await tester.dragFrom(const Offset(200, 600), const Offset(0, 300));
+      await tester.pumpAndSettle();
+      expect(c.isOpen, isFalse);
+    });
+
+    testWidgets('a flick down from full stops at rest', (tester) async {
+      final c = await open(tester);
+      c.expand();
+      await tester.pumpAndSettle();
+      await tester.fling(find.bySemanticsLabel('Recent photos'),
+          const Offset(0, 120), 1500);
+      await tester.pumpAndSettle();
+      expect(c.isOpen, isTrue);
+      expect(c.isExpanded, isFalse);
+      expect(sheetTop(tester), moreOrLessEquals(800 - 300 - 34));
+    });
+
+    testWidgets('a nudge down springs back to rest', (tester) async {
+      final c = await open(tester);
+      await tester.timedDrag(find.bySemanticsLabel('Recent photos'),
+          const Offset(0, 60), const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(c.isOpen, isTrue);
+      expect(sheetTop(tester), moreOrLessEquals(800 - 300 - 34));
+    });
+
+    testWidgets('shows how many of the cap are picked', (tester) async {
+      final c = await open(tester);
+      c.toggle(asset('a'));
+      c.toggle(asset('b'));
+      await tester.pumpAndSettle();
+      expect(find.text('2/${c.max}'), findsOneWidget);
+    });
+
     testWidgets('a short drag falls back to rest', (tester) async {
       final c = await open(tester);
       await tester.timedDrag(find.bySemanticsLabel('Recent photos'),

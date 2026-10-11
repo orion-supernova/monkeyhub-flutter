@@ -3232,6 +3232,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get inlinePickerCommentHint => 'أضف تعليقًا أو أرسل';
 
   @override
+  String get attachmentMenuGalleryLabel => 'المعرض';
+
+  @override
+  String inlinePickerVideoCompressNote(String size) {
+    return 'أكبر من $size، لذا سيُضغط قبل الإرسال';
+  }
+
+  @override
   String messageMenuAlbumAll(int count) {
     return 'الكل ($count)';
   }

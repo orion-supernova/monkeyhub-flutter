@@ -894,6 +894,8 @@
   "photoTrayCountLabel": "{count, plural, =1{1 फ़ोटो} other{{count} फ़ोटो}}",
   "photoDeckBackToFirst": "पहली पर वापस जाएं",
   "inlinePickerCommentHint": "टिप्पणी जोड़ें या भेजें",
+  "attachmentMenuGalleryLabel": "गैलरी",
+  "inlinePickerVideoCompressNote": "{size} से बड़ा है, इसलिए भेजने के लिए कंप्रेस होगा",
   "messageMenuAlbumAll": "सभी ({count})",
   "messageMenuAlbumOne": "सिर्फ़ यह",
   "replyAlbumItems": "{count, plural, =1{1 आइटम} other{{count} आइटम}}",
