@@ -184,23 +184,8 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
 
   void _onFocus() {
     if (!mounted || _focused == _node.hasFocus) return;
-    setState(() {
-      _focused = _node.hasFocus;
-      if (_focused) _arriving = false;
-    });
+    setState(() => _focused = _node.hasFocus);
   }
-
-  /// An autofocusing field that has not had its focus yet: Cancel is already
-  /// in place for it. Shown only once focus arrived, Cancel slid in right
-  /// after the bar flew in from its door, and the bar landed and then shrank:
-  /// two motions where iOS has one. In place from the first frame, the flight
-  /// lands on the bar's final width.
-  late bool _arriving = widget.autofocus && !_isDoor;
-
-  /// Cancel's glass sits in a route that fades in and out; a blur inside a
-  /// fading layer samples an empty buffer and snaps to frost at the end.
-  @override
-  bool get unlandsOnExit => true;
 
   void _onHighlightMode(FocusHighlightMode mode) {
     final t = mode == FocusHighlightMode.traditional;
@@ -273,8 +258,7 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
         Expanded(child: flown),
         _CancelSlot(
           controller: widget.controller!,
-          focused: _focused || _arriving,
-          still: !landed,
+          focused: _focused,
           onCancel: _cancel,
         ),
       ],
@@ -419,15 +403,11 @@ class _CancelSlot extends StatelessWidget {
   const _CancelSlot({
     required this.controller,
     required this.focused,
-    required this.still,
     required this.onCancel,
   });
 
   final TextEditingController controller;
   final bool focused;
-
-  /// Blur-free while the route is moving. See [GlassCloseButton.still].
-  final bool still;
   final VoidCallback onCancel;
 
   @override
@@ -446,7 +426,6 @@ class _CancelSlot extends StatelessWidget {
                 ? Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: GlassCloseButton(
-                      still: still,
                       semanticLabel: MaterialLocalizations.of(
                         context,
                       ).cancelButtonLabel,

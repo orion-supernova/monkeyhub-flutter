@@ -363,34 +363,6 @@ void main() {
       expect(find.byType(TextField), findsOneWidget);
     });
 
-    testWidgets('Cancel is in place while the bar is still flying', (
-      tester,
-    ) async {
-      // Slid in only once focus arrived, Cancel shrank the bar right after
-      // it landed: the flight ended, then the bar moved again.
-      final c = TextEditingController();
-      addTearDown(c.dispose);
-      await tester.pumpWidget(
-        host(
-          Builder(
-            builder: (context) => door(
-              () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => bar(c, autofocus: true, heroTag: doorTag),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text(doorTitle));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 60));
-      expect(find.byIcon(CupertinoIcons.xmark), findsOneWidget);
-      await tester.pumpAndSettle();
-      expect(find.byIcon(CupertinoIcons.xmark), findsOneWidget);
-    });
-
     testWidgets('overflows going the other way either', (tester) async {
       final c = TextEditingController();
       addTearDown(c.dispose);
