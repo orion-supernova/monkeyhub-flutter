@@ -1,16 +1,21 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
+import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../media/image_raster.dart' show CroppedImage;
 import '../media/photo_picking.dart' show kMaxPhotoSelection;
 import '../theme/theme_scope.dart';
+import 'glass_buttons.dart';
 import 'photo_chrome.dart' show MediaDurationBadge;
 import 'spring_press.dart';
 
@@ -86,12 +91,60 @@ class InlinePickerController extends ChangeNotifier {
     _open = false;
     notifyListeners();
   }
+
+  // ───────────── the sheet: the keyboard's place, or the whole room ─────────────
+
+  /// Drives the panel between where the keyboard was and the whole room.
+  /// Attached while the panel is up (the [InlinePhotoPicker] owns the sheet).
+  final DraggableScrollableController sheet = DraggableScrollableController();
+
+  /// The sheet's resting size, as a fraction of the room: the keyboard's
+  /// place. Kept current by the sheet as the room's height changes.
+  double _restingSize = 0;
+
+  /// The panel has been pulled up past its resting height. The system back
+  /// brings it down before it closes it.
+  bool get isExpanded =>
+      _open && sheet.isAttached && sheet.size > _restingSize + 0.005;
+
+  /// Up to the whole room, as a drag up would take it.
+  void expand() => _settle(1);
+
+  /// Back down to the keyboard's place.
+  void collapse() => _settle(_restingSize);
+
+  void _settle(double size) {
+    if (!_open || !sheet.isAttached) return;
+    sheet.animateTo(
+      size,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    sheet.dispose();
+    super.dispose();
+  }
 }
 
 /// The photo library as a grid in the keyboard's place: tap to pick, tap
 /// again to unpick, each pick numbered in the order it will be sent. The
 /// iMessage picker. What is picked waits in the strip over the composer
 /// ([PickedMediaStrip]) until it is sent.
+///
+/// It rests in the keyboard's place and pulls up to fill the room, the way
+/// Telegram's does: drag the grabber, or drag the grid itself (the sheet
+/// grows before the grid scrolls, and a pull down from the top of the grid
+/// brings it back). Full, a bar names the picks and "Add" brings it down to
+/// the composer to send them.
+///
+/// So it lays over the room rather than sitting in the composer's column:
+/// put it in a `Positioned.fill` over the whole room, and hold its resting
+/// place in the column with a box [height] + [bottomPadding] tall. The whole
+/// sheet is one room-height layer that the drag moves; the grid is never
+/// laid out again while it does.
 ///
 /// Phones only ([supported]): the library is `photo_manager`'s, which has no
 /// desktop or web implementation; those keep the system picker.
@@ -100,11 +153,18 @@ class InlinePhotoPicker extends StatefulWidget {
     super.key,
     required this.controller,
     required this.height,
+    this.bottomPadding = 0,
     this.onFull,
   });
 
   final InlinePickerController controller;
+
+  /// The resting panel's height: the keyboard's.
   final double height;
+
+  /// What the room keeps clear below the panel at rest (the home indicator).
+  /// The sheet paints it, so the panel reads as running to the screen's edge.
+  final double bottomPadding;
 
   /// A pick refused because [InlinePickerController.max] is reached.
   final VoidCallback? onFull;
@@ -141,6 +201,7 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.controller.addListener(_onPicks);
+    widget.controller.sheet.addListener(_onSheet);
     _refresh();
   }
 
@@ -148,6 +209,8 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.controller.removeListener(_onPicks);
+    widget.controller.sheet.removeListener(_onSheet);
+    _size.dispose();
     super.dispose();
   }
 
@@ -243,78 +306,414 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
     }
   }
 
+  // ─────────────────────────── the sheet ───────────────────────────
+
+  /// The grabber's strip, the only chrome the panel has at rest.
+  static const _grip = 22.0;
+
+  /// The bar that names the picks once the sheet is full.
+  static const _bar = 52.0;
+
+  /// The sheet's size as a fraction of the room, for the chrome that follows
+  /// it (the bar, the corners, the scrim). The grid does not listen.
+  final ValueNotifier<double> _size = ValueNotifier(0);
+
+  bool _dragging = false;
+
+  /// Whether the drag in hand started from a full sheet, so letting go
+  /// clicks only when it lands somewhere else.
+  bool _dragFromFull = false;
+
+  void _onSheet() {
+    final sheet = widget.controller.sheet;
+    if (!sheet.isAttached) return;
+    // The sheet reports a new size from inside its own rebuild when the room
+    // changes height under it; the chrome hears it a frame later rather than
+    // being marked dirty mid-build.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && sheet.isAttached) _size.value = sheet.size;
+      });
+    } else {
+      _size.value = sheet.size;
+    }
+  }
+
+  /// Keeps a resting sheet resting when the room's height changes under it
+  /// (a rotation, the keyboard finishing its way down). The sheet tracks its
+  /// initial size by itself only until it has first been moved; after that a
+  /// shorter resting size would leave it standing above the composer's place.
+  void _syncRest(double rest) {
+    final c = widget.controller;
+    final old = c._restingSize;
+    if (old == rest) return;
+    c._restingSize = rest;
+    if (!c.sheet.isAttached || (c.sheet.size - old).abs() > 0.005) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _dragging || !c.sheet.isAttached) return;
+      if ((c.sheet.size - c._restingSize).abs() > 0.0005) {
+        c.sheet.jumpTo(c._restingSize);
+      }
+    });
+  }
+
+  void _dragStart() {
+    _dragging = true;
+    _dragFromFull = widget.controller.isExpanded;
+  }
+
+  void _dragUpdate(double dy, double h) {
+    final sheet = widget.controller.sheet;
+    if (!sheet.isAttached) return;
+    final rest = widget.controller._restingSize;
+    sheet.jumpTo((sheet.size - dy / h).clamp(rest, 1.0));
+  }
+
+  void _dragEnd(double velocity) {
+    if (!_dragging) return;
+    _dragging = false;
+    final c = widget.controller;
+    if (!c.sheet.isAttached) return;
+    final rest = c._restingSize;
+    final t = rest >= 1 ? 0.0 : (c.sheet.size - rest) / (1 - rest);
+    final up = velocity < -300 || (velocity.abs() <= 300 && t > 0.5);
+    if (up != _dragFromFull) HapticFeedback.selectionClick();
+    up ? c.expand() : c.collapse();
+  }
+
+  void _tapGrabber() {
+    HapticFeedback.selectionClick();
+    final c = widget.controller;
+    c.isExpanded ? c.collapse() : c.expand();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    Widget body;
-    switch (_access) {
-      case _Access.unknown:
-        body = const SizedBox.expand();
-      case _Access.prompt:
-        body = _Gate(
-          text: l10n.galleryTrayAllowPrompt,
-          button: l10n.galleryTrayAllowButton,
-          onTap: _request,
-        );
-      case _Access.denied:
-        body = _Gate(
-          text: l10n.galleryTrayDeniedPrompt,
-          button: l10n.galleryTraySettingsButton,
-          onTap: () => PhotoManager.openSetting(),
-        );
-      case _Access.granted:
-      case _Access.limited:
-        body = _assets.isEmpty && _exhausted
-            ? Center(
-                child: Text(l10n.galleryTrayEmpty, style: theme.bodySoft),
-              )
-            : NotificationListener<ScrollNotification>(
-                onNotification: (n) {
-                  if (n.metrics.extentAfter < 600) _load();
-                  return false;
+    final topSafe = MediaQuery.paddingOf(context).top;
+    final body = _body(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final h = constraints.maxHeight;
+        final rest =
+            ((widget.height + widget.bottomPadding) / h).clamp(0.0, 1.0);
+        _syncRest(rest);
+        // The grid is laid out once, at the height it has when the sheet is
+        // full, and only moves after that.
+        final header = topSafe + _grip + _bar;
+        double progress(double size) =>
+            rest >= 1 ? 0 : ((size - rest) / (1 - rest)).clamp(0.0, 1.0);
+        return Stack(
+          children: [
+            // Dims the room as the sheet comes up over it; a tap on what is
+            // still showing sends it back down.
+            Positioned.fill(
+              child: ValueListenableBuilder<double>(
+                valueListenable: _size,
+                builder: (context, size, _) {
+                  final t = progress(size);
+                  if (t <= 0) return const SizedBox.shrink();
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.controller.collapse,
+                    child: ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.4 * t),
+                    ),
+                  );
                 },
-                child: GridView.builder(
-                  padding: const EdgeInsets.only(top: 2, bottom: 24),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 2,
-                    crossAxisSpacing: 2,
-                  ),
-                  itemCount: _assets.length,
-                  itemBuilder: (_, i) {
-                    final asset = _assets[i];
-                    return _Tile(
-                      asset: asset,
-                      order: widget.controller.orderOf(asset),
-                      onTap: () => _tap(asset),
+              ),
+            ),
+            DraggableScrollableSheet(
+              controller: widget.controller.sheet,
+              initialChildSize: rest,
+              minChildSize: rest,
+              maxChildSize: 1,
+              snap: true,
+              builder: (context, scroll) => OverflowBox(
+                alignment: Alignment.topCenter,
+                minHeight: h,
+                maxHeight: h,
+                child: ValueListenableBuilder<double>(
+                  valueListenable: _size,
+                  child: body(scroll),
+                  builder: (context, size, grid) {
+                    final t = progress(size);
+                    // Square at rest, where it stands in for the keyboard,
+                    // and full, where it is the screen; a card in between.
+                    final corner = 14 *
+                        (t * 12).clamp(0.0, 1.0) *
+                        ((1 - t) * 12).clamp(0.0, 1.0);
+                    final reveal = ((t - 0.5) / 0.5).clamp(0.0, 1.0);
+                    // Its own text styles wherever it is put: no debug
+                    // underlines from a host without a Material above it.
+                    return Material(
+                      type: MaterialType.transparency,
+                      child: ClipRRect(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(corner)),
+                      child: ColoredBox(
+                        color: theme.background,
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: topSafe * t + _grip + _bar * t,
+                              height: h - header,
+                              child: grid!,
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: 0,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onVerticalDragStart: (_) => _dragStart(),
+                                onVerticalDragUpdate: (d) =>
+                                    _dragUpdate(d.delta.dy, h),
+                                onVerticalDragEnd: (d) =>
+                                    _dragEnd(d.velocity.pixelsPerSecond.dy),
+                                onVerticalDragCancel: () => _dragEnd(0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(height: topSafe * t),
+                                    _grabber(context, t),
+                                    SizedBox(
+                                      height: _bar * t,
+                                      child: Visibility(
+                                        visible: t >= 0.05,
+                                        maintainState: true,
+                                        child: Opacity(
+                                          opacity: reveal,
+                                          child: IgnorePointer(
+                                            ignoring: reveal < 0.5,
+                                            child: _headerBar(context),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     );
                   },
                 ),
-              );
-        if (_access == _Access.limited) {
-          body = Column(
-            children: [
-              _LimitedNote(
-                text: l10n.galleryTrayLimitedNote,
-                button: l10n.galleryTrayManageButton,
-                onTap: () async {
-                  try {
-                    await PhotoManager.presentLimited(type: RequestType.common);
-                  } catch (_) {}
-                  if (mounted) await _load(reset: true);
-                },
               ),
-              Expanded(child: body),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _grabber(BuildContext context, double t) {
+    final theme = ThemeScope.of(context);
+    return Semantics(
+      button: true,
+      label: AppLocalizations.of(context).galleryTrayHandleLabel,
+      onTap: _tapGrabber,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _tapGrabber,
+        child: SizedBox(
+          height: _grip,
+          width: double.infinity,
+          child: Center(
+            child: Opacity(
+              opacity: 1 - t * 0.6,
+              child: Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: theme.inkMuted,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Full: back down, what is picked, and "Add", which takes the picks down
+  /// to the composer to be commented on and sent.
+  Widget _headerBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = ThemeScope.of(context);
+    final c = widget.controller;
+    final count = c.picks.length;
+    final add = l10n.galleryTrayAddSelectedButton(count);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          GlassIconButton(
+            icon: CupertinoIcons.chevron_down,
+            semanticLabel: MaterialLocalizations.of(context).expandedIconTapHint,
+            still: true,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              c.collapse();
+            },
+          ),
+          Expanded(
+            child: Text(
+              sentenceCaseOf(
+                context,
+                count > 0
+                    ? l10n.galleryTraySelectedTitle(count)
+                    : l10n.galleryTrayRecentsTitle,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.bodyEmph.copyWith(
+                fontSize: 17,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          // Always the button's room, so the title stays centred as the
+          // button comes and goes.
+          SizedBox(
+            width: 96,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: AnimatedOpacity(
+                opacity: count > 0 ? 1 : 0,
+                duration: const Duration(milliseconds: 160),
+                child: IgnorePointer(
+                  ignoring: count == 0,
+                  child: SpringPress(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      c.collapse();
+                    },
+                    semanticLabel: add,
+                    focusShape: FocusRingShape.capsule,
+                    haptic: false,
+                    child: Container(
+                      height: 34,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: theme.accent,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        sentenceCaseOf(context, add),
+                        maxLines: 1,
+                        style: theme.bodyEmph.copyWith(
+                          color: theme.accentInk,
+                          fontSize: 15,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// What the sheet holds below its chrome: the grid on the
+  /// sheet's [scroll] (so dragging the grid moves the sheet first), or the
+  /// note that stands in for it, kept inside the resting panel's height so it
+  /// shows at rest. Always something on [scroll]: the sheet is only attached
+  /// (and only drags, from anywhere but the grabber) while it has one.
+  Widget Function(ScrollController scroll) _body(
+      BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return (scroll) {
+      Widget resting(Widget? child) => ListView(
+            controller: scroll,
+            padding: EdgeInsets.zero,
+            children: [
+              SizedBox(
+                height: math.max(0, widget.height - _grip),
+                child: child == null ? null : Center(child: child),
+              ),
             ],
           );
-        }
-    }
-    return SizedBox(
-      height: widget.height,
-      child: ColoredBox(color: theme.background, child: body),
-    );
+      switch (_access) {
+        case _Access.unknown:
+          return resting(null);
+        case _Access.prompt:
+          return resting(_Gate(
+            text: l10n.galleryTrayAllowPrompt,
+            button: l10n.galleryTrayAllowButton,
+            onTap: _request,
+          ));
+        case _Access.denied:
+          return resting(_Gate(
+            text: l10n.galleryTrayDeniedPrompt,
+            button: l10n.galleryTraySettingsButton,
+            onTap: () => PhotoManager.openSetting(),
+          ));
+        case _Access.granted:
+        case _Access.limited:
+          Widget body = _assets.isEmpty && _exhausted
+              ? resting(Text(l10n.galleryTrayEmpty, style: theme.bodySoft))
+              : NotificationListener<ScrollNotification>(
+                  onNotification: (n) {
+                    if (n.depth == 0 && n.metrics.extentAfter < 600) _load();
+                    return false;
+                  },
+                  child: GridView.builder(
+                    controller: scroll,
+                    padding: EdgeInsets.only(
+                        top: 2, bottom: 24 + widget.bottomPadding),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 2,
+                      crossAxisSpacing: 2,
+                    ),
+                    itemCount: _assets.length,
+                    itemBuilder: (_, i) {
+                      final asset = _assets[i];
+                      return _Tile(
+                        asset: asset,
+                        order: widget.controller.orderOf(asset),
+                        onTap: () => _tap(asset),
+                      );
+                    },
+                  ),
+                );
+          if (_access == _Access.limited) {
+            body = Column(
+              children: [
+                _LimitedNote(
+                  text: l10n.galleryTrayLimitedNote,
+                  button: l10n.galleryTrayManageButton,
+                  onTap: () async {
+                    try {
+                      await PhotoManager.presentLimited(
+                          type: RequestType.common);
+                    } catch (_) {}
+                    if (mounted) await _load(reset: true);
+                  },
+                ),
+                Expanded(child: body),
+              ],
+            );
+          }
+          return body;
+      }
+    };
   }
 }
 
