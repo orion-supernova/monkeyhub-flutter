@@ -216,6 +216,13 @@ class _RoomScreenState extends State<RoomScreen>
   final MentionTextController _composer = MentionTextController();
   final FocusNode _composerFocus = FocusNode();
 
+  /// On the composer's "+", so the attachment menu grows out of it. One key
+  /// for both composers: only one of them is ever built.
+  final GlobalKey _attachKey = GlobalKey(debugLabel: 'composer.attach');
+
+  /// The attachment menu is up, which hides the "+" it grew out of.
+  bool _attachMenuUp = false;
+
   /// Mends the composer's focus when the app comes back — see
   /// [_restoreComposerFocus].
   AppLifecycleListener? _lifecycle;
@@ -2451,11 +2458,20 @@ class _RoomScreenState extends State<RoomScreen>
     try {
       if (!mounted) return; // the `finally` still clears the in-flight flag
       final family = FamilyService.maybeInstance;
+      final button = _attachKey.currentContext?.findRenderObject();
+      final anchor = button is RenderBox && button.hasSize
+          ? button.localToGlobal(Offset.zero) & button.size
+          : null;
+      setState(() => _attachMenuUp = true);
+      // Resolves on the pop, as the menu starts folding back, so the "+"
+      // grows back in while the menu shrinks into it.
       final choice = await showAttachmentMenu(
         context,
+        anchor: anchor,
         allowMedia: family?.canSendMedia ?? true,
         allowLocation: family?.canShareLocation ?? true,
       );
+      if (mounted) setState(() => _attachMenuUp = false);
       if (choice == null || !mounted) return;
       final nav = Navigator.of(context);
       switch (choice) {
@@ -4726,6 +4742,8 @@ class _RoomScreenState extends State<RoomScreen>
                       : 0,
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
+                  attachKey: _attachKey,
+                  attachHidden: _attachMenuUp,
                   onCamera: _onCamera,
                   capture: _composerCapture,
                   mention: _mention,
@@ -4971,6 +4989,8 @@ class _RoomScreenState extends State<RoomScreen>
                       : 0,
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
+                  attachKey: _attachKey,
+                  attachHidden: _attachMenuUp,
                   onCamera: _onCamera,
                   capture: _composerCapture,
                   mention: _mention,

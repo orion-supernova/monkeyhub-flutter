@@ -287,6 +287,8 @@ class ChatComposerClassic extends StatelessWidget {
     this.focusNode,
     this.onChanged,
     this.onAttach,
+    this.attachKey,
+    this.attachHidden = false,
     this.onCamera,
     this.padding,
     this.mention,
@@ -311,6 +313,14 @@ class ChatComposerClassic extends StatelessWidget {
 
   /// Pass null to hide the attach button entirely.
   final VoidCallback? onAttach;
+
+  /// Put on the attach button, so the menu it opens can grow out of it.
+  final GlobalKey? attachKey;
+
+  /// The attachment menu is open over the button. The button shrinks away as
+  /// the menu grows out of its corner and comes back as the menu folds into
+  /// it, so the two read as one thing changing shape. See [AttachButtonMorph].
+  final bool attachHidden;
 
   /// Opens the camera in one tap, without going through the attachment sheet.
   ///
@@ -409,23 +419,27 @@ class ChatComposerClassic extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (onAttach != null) ...[
-            FocusableTap(
-              onTap: onAttach,
-              semanticLabel: AppLocalizations.of(context).deepOceanThemeAttachButtonLabel,
-              shape: FocusRingShape.circle,
-              child: GestureDetector(
+            AttachButtonMorph(
+              hidden: attachHidden,
+              child: FocusableTap(
+                key: attachKey,
                 onTap: onAttach,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  // The same iOS glyph the floating composer uses, on a plain
-                  // raised disc — no outline.
-                  decoration: BoxDecoration(
-                    color: theme.surfaceRaised,
-                    shape: BoxShape.circle,
+                semanticLabel: AppLocalizations.of(context).deepOceanThemeAttachButtonLabel,
+                shape: FocusRingShape.circle,
+                child: GestureDetector(
+                  onTap: onAttach,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    // The same iOS glyph the floating composer uses, on a plain
+                    // raised disc — no outline.
+                    decoration: BoxDecoration(
+                      color: theme.surfaceRaised,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(CupertinoIcons.plus, color: theme.ink, size: 20),
                   ),
-                  child: Icon(CupertinoIcons.plus, color: theme.ink, size: 20),
                 ),
               ),
             ),
@@ -599,6 +613,8 @@ class ChatComposerLiquid extends StatelessWidget {
     this.focusNode,
     this.onChanged,
     this.onAttach,
+    this.attachKey,
+    this.attachHidden = false,
     this.onCamera,
     this.padding,
     this.mention,
@@ -623,6 +639,14 @@ class ChatComposerLiquid extends StatelessWidget {
 
   /// Pass null to hide the attach button entirely.
   final VoidCallback? onAttach;
+
+  /// Put on the attach button, so the menu it opens can grow out of it.
+  final GlobalKey? attachKey;
+
+  /// The attachment menu is open over the button. The button shrinks away as
+  /// the menu grows out of its corner and comes back as the menu folds into
+  /// it, so the two read as one thing changing shape. See [AttachButtonMorph].
+  final bool attachHidden;
 
   /// Opens the camera in one tap, without going through the attachment sheet.
   ///
@@ -699,15 +723,19 @@ class ChatComposerLiquid extends StatelessWidget {
             SizedBox.square(
               dimension: 44,
               child: Center(
-                child: GlassIconButton(
-                  icon: CupertinoIcons.plus,
-                  // Matched to the 40pt send button it trades places with, not
-                  // the compact desktop default.
-                  size: 40,
-                  iconSize: 20,
-                  onTap: onAttach,
-                  semanticLabel: AppLocalizations.of(context)
-                      .deepOceanThemeAttachButtonLabel,
+                child: AttachButtonMorph(
+                  hidden: attachHidden,
+                  child: GlassIconButton(
+                    key: attachKey,
+                    icon: CupertinoIcons.plus,
+                    // Matched to the 40pt send button it trades places with,
+                    // not the compact desktop default.
+                    size: 40,
+                    iconSize: 20,
+                    onTap: onAttach,
+                    semanticLabel: AppLocalizations.of(context)
+                        .deepOceanThemeAttachButtonLabel,
+                  ),
                 ),
               ),
             ),
@@ -861,4 +889,30 @@ class ChatComposerLiquid extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The composer's "+" while the attachment menu is open: gone, because the
+/// menu IS the button for that time. The menu opens as a circle drawn exactly
+/// over it and folds back into that circle, so the hand-over is instant both
+/// ways: the button vanishes under its own shape, and is there again when
+/// the shape closes over it.
+///
+/// A zero scale rather than a fade or a swap: the liquid button is glass, and
+/// glass in an opacity layer flashes flat (see [GlassReveal]), while removing
+/// it would move the field beside it.
+class AttachButtonMorph extends StatelessWidget {
+  const AttachButtonMorph({
+    super.key,
+    required this.hidden,
+    required this.child,
+  });
+
+  final bool hidden;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Transform.scale(
+        scale: hidden ? 0 : 1,
+        child: child,
+      );
 }
