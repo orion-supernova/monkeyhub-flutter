@@ -16,6 +16,7 @@ import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'ios_kit.dart' show quietFill;
 import 'message_action_menu.dart';
+import 'segmented_control.dart';
 
 /// The mouse's message menu: a compact popover at the point that was
 /// right-clicked, the way every Mac and Windows app answers a secondary click.
@@ -51,6 +52,11 @@ Future<MessageActionResult?> showMessageContextMenu({
   /// False drops the emoji row: a message nobody can react to (a pending
   /// send, a system notice) still has rows worth offering.
   bool showReactions = true,
+
+  /// Set when the clicked bubble is one card of an album: the menu opens on
+  /// the whole album with a switch to the clicked item, exactly as the
+  /// long-press menu does. See [MessageMenuAlbum].
+  MessageMenuAlbum? album,
 }) {
   final overlay = Overlay.of(context, rootOverlay: true);
   final completer = Completer<MessageActionResult?>();
@@ -66,6 +72,7 @@ Future<MessageActionResult?> showMessageContextMenu({
       myReactions: myReactions,
       reactionsOnly: reactionsOnly,
       showReactions: showReactions,
+      album: album,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
         try {
@@ -94,6 +101,7 @@ class MessageContextMenu extends StatefulWidget {
     this.myReactions = const {},
     this.reactionsOnly = false,
     this.showReactions = true,
+    this.album,
   });
 
   /// Where the click landed, in the root overlay's (global) coordinates.
@@ -106,6 +114,9 @@ class MessageContextMenu extends StatefulWidget {
   final Set<String> myReactions;
   final bool reactionsOnly;
   final bool showReactions;
+
+  /// See [showMessageContextMenu]'s `album`.
+  final MessageMenuAlbum? album;
   final ValueChanged<MessageActionResult?> onResolve;
 
   /// The whole menu is this wide. Fixed rather than shrink-wrapped so the
@@ -116,6 +127,9 @@ class MessageContextMenu extends StatefulWidget {
   static const double rowH = 28;
   static const double emojiRowH = 36;
   static const double separatorH = 9;
+
+  /// The album switch, over everything else.
+  static const double albumH = 38;
 
   /// Inside the glass, around everything.
   static const double inset = 5;
@@ -135,6 +149,12 @@ class _MessageContextMenuState extends State<MessageContextMenu>
   int _hi = -1;
 
   final FocusNode _focus = FocusNode(debugLabel: 'MessageContextMenu');
+
+  /// The album switch's side: true acts on the whole album. Starts there
+  /// whenever there is an album to act on.
+  late bool _whole = widget.album != null;
+
+  bool get _onAlbum => _whole && widget.album != null;
 
   @override
   void initState() {
@@ -168,11 +188,12 @@ class _MessageContextMenuState extends State<MessageContextMenu>
       ? const []
       : messageActionSpecs(
           l10n: l10n,
-          capabilities: widget.capabilities,
+          capabilities:
+              _onAlbum ? widget.album!.capabilities : widget.capabilities,
           isPinned: widget.isPinned,
           isSaved: widget.isSaved,
           isTranslated: widget.isTranslated,
-          hasFileName: widget.fileName != null,
+          hasFileName: !_onAlbum && widget.fileName != null,
         );
 
   /// Where a separator goes: ahead of the first destructive row, so the red
@@ -243,7 +264,7 @@ class _MessageContextMenuState extends State<MessageContextMenu>
 
   void _choose(MessageAction a) {
     HapticFeedback.selectionClick();
-    _resolve(MessageActionResult.action(a));
+    _resolve(MessageActionResult.action(a, album: _onAlbum));
   }
 
   /// Exact by construction: every element of the menu is a fixed height
@@ -255,10 +276,13 @@ class _MessageContextMenuState extends State<MessageContextMenu>
     List<MessageActionSpec> specs,
   ) {
     var h = MessageContextMenu.inset * 2;
+    if (widget.album != null) {
+      h += MessageContextMenu.albumH + MessageContextMenu.separatorH;
+    }
     final reactions = widget.showReactions || widget.reactionsOnly;
     if (reactions) h += MessageContextMenu.emojiRowH;
     if (reactions && specs.isNotEmpty) h += MessageContextMenu.separatorH;
-    final name = widget.fileName;
+    final name = _onAlbum ? null : widget.fileName;
     if (name != null && specs.isNotEmpty) {
       final painter = TextPainter(
         text: TextSpan(text: name, style: _headerStyle(theme)),
@@ -293,7 +317,8 @@ class _MessageContextMenuState extends State<MessageContextMenu>
     final maxH = math.max(0.0, screen.height - 2 * pad);
     final h = math.min(wantedH, maxH);
     final w = widget.reactionsOnly
-        ? _EmojiRow.widthFor(7) + 2 * MessageContextMenu.inset
+        ? math.max(_EmojiRow.widthFor(7) + 2 * MessageContextMenu.inset,
+            widget.album == null ? 0.0 : 200.0)
         : MessageContextMenu.width;
 
     // Down and to the right of the pointer, as every desktop menu opens;
@@ -311,15 +336,38 @@ class _MessageContextMenuState extends State<MessageContextMenu>
     final grow = Alignment(flipX ? 1 : -1, flipY ? 1 : -1);
 
     final children = <Widget>[];
+    final album = widget.album;
+    if (album != null) {
+      children.add(SizedBox(
+        height: MessageContextMenu.albumH,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(2, 1, 2, 3),
+          child: IosSegmentedControl<bool>(
+            segments: [
+              IosSegment(value: true, label: album.allLabel),
+              IosSegment(value: false, label: album.oneLabel),
+            ],
+            value: _whole,
+            onChanged: (v) => setState(() {
+              _whole = v;
+              _hi = -1;
+            }),
+          ),
+        ),
+      ));
+      children.add(_Separator(theme: theme));
+    }
     if (widget.showReactions || widget.reactionsOnly) {
+      final whole = _onAlbum;
       children.add(_EmojiRow(
-        selected: widget.myReactions,
-        onEmoji: (e) => _resolve(MessageActionResult.emoji(e)),
-        onMore: () => _resolve(const MessageActionResult.fullPicker()),
+        selected: whole ? album!.myReactions : widget.myReactions,
+        onEmoji: (e) => _resolve(MessageActionResult.emoji(e, album: whole)),
+        onMore: () =>
+            _resolve(MessageActionResult.fullPicker(album: whole)),
       ));
       if (specs.isNotEmpty) children.add(_Separator(theme: theme));
     }
-    final name = widget.fileName;
+    final name = _onAlbum ? null : widget.fileName;
     if (name != null && specs.isNotEmpty) {
       children.add(Padding(
         padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),

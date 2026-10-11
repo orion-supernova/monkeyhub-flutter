@@ -15,6 +15,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/composer_reply_card.dart';
 import 'package:monkeyhub/widgets/message_action_menu.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
+import 'package:monkeyhub/widgets/message_context_menu.dart';
 import 'package:monkeyhub/widgets/photo_mosaic.dart' show MosaicTile;
 import 'package:monkeyhub/widgets/reaction_bubble.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -143,5 +144,34 @@ void main() {
     )));
     await tester.pump();
     expect(find.text('4 items'), findsOneWidget);
+  });
+
+  testWidgets('the right-click menu has the same switch', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    MessageActionResult? got;
+    await tester.pumpWidget(host(SizedBox.expand(
+      child: Stack(children: [
+        MessageContextMenu(
+          position: const Offset(300, 200),
+          capabilities: MessageCapabilities.none.copyWith(canReply: true),
+          album: MessageMenuAlbum(
+            allLabel: 'All 3',
+            oneLabel: 'This one',
+            capabilities: MessageCapabilities.none.copyWith(canReply: true),
+          ),
+          onResolve: (r) => got = r,
+        ),
+      ]),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('All 3'), findsOneWidget);
+    await tester.tap(find.text('This one'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('👍'));
+    await tester.pumpAndSettle();
+    expect(got?.emoji, '👍');
+    expect(got?.album, isFalse);
   });
 }
