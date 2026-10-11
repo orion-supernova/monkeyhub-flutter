@@ -18,6 +18,7 @@ import 'call_permissions.dart';
 import 'call_recovery.dart';
 import 'call_stats_monitor.dart';
 import 'draw/draw_channel.dart';
+import 'draw/draw_mirror.dart';
 import 'draw/draw_model.dart';
 import 'native_call_handler.dart';
 import 'renegotiation.dart';
@@ -509,6 +510,10 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   static const String _peerKey = 'peer';
   final DrawModel drawModel = DrawModel();
   late final DrawChannels _draw = DrawChannels(model: drawModel);
+
+  /// The drawing, shown outside the app while we share and the app is out
+  /// of sight — Android's overlay, iOS's Picture in Picture board.
+  late final DrawMirror drawMirror = DrawMirror(model: drawModel, channels: _draw);
 
   /// Bumped when a minimised call wants its screen back — the in-call
   /// pill's "return". The overlay that pushes the call screen listens.
@@ -1573,6 +1578,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   Future<void> startScreenShare({
     ScreenShareSource? source,
     ({String title, String body, String stop})? notification,
+    String drawBoardIdleText = 'Drawings appear here',
   }) async {
     final s = _session;
     final me = _userId;
@@ -1621,6 +1627,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       localScreenStreamTick++;
       _session = _session?.copyWith(localScreenSharing: true);
       notifyListeners();
+      unawaited(drawMirror.start(trackId: track.id, idleText: drawBoardIdleText));
       await _sendState();
       final sender = _screenSender;
       if (sender != null) {
@@ -1654,6 +1661,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     if (!_localScreenSharing) return;
     _localScreenSharing = false;
     ScreenShare.onPlatformStop = null;
+    unawaited(drawMirror.stop());
     drawModel.clearAll();
     drawModel.flush();
     _session = _session?.copyWith(localScreenSharing: false);
@@ -3679,6 +3687,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       ScreenShare.onPlatformStop = null;
       unawaited(ScreenShare.release());
     }
+    unawaited(drawMirror.stop());
     drawModel.clearAll();
     _resetLinkState();
     drawArmed.value = false;
@@ -3740,6 +3749,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     _disposePc();
     callQuality.dispose();
     reopenTick.dispose();
+    drawMirror.dispose();
     _draw.dispose();
     drawArmed.dispose();
     drawModel.dispose();

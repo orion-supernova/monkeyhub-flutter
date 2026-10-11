@@ -8375,6 +8375,16 @@ class AppLocalizationsSv extends AppLocalizations {
   String get screenShareStopDrawing => 'Sluta rita';
 
   @override
+  String get screenShareDrawBoardIdle => 'Teckningar visas här';
+
+  @override
+  String get screenShareOverlayHint =>
+      'Visa teckningar över andra appar medan du delar';
+
+  @override
+  String get screenShareOverlayAllow => 'Tillåt';
+
+  @override
   String get callScreenControlDraw => 'Rita';
 
   @override

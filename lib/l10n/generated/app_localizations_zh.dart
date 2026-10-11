@@ -7931,6 +7931,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get screenShareStopDrawing => '停止绘制';
 
   @override
+  String get screenShareDrawBoardIdle => '涂画会显示在这里';
+
+  @override
+  String get screenShareOverlayHint => '共享时在其他应用上方显示涂画';
+
+  @override
+  String get screenShareOverlayAllow => '允许';
+
+  @override
   String get callScreenControlDraw => '绘制';
 
   @override

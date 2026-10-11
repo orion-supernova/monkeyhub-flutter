@@ -8043,6 +8043,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get screenShareStopDrawing => '그리기 종료';
 
   @override
+  String get screenShareDrawBoardIdle => '그림이 여기에 표시돼요';
+
+  @override
+  String get screenShareOverlayHint => '공유하는 동안 다른 앱 위에도 그림 표시';
+
+  @override
+  String get screenShareOverlayAllow => '허용';
+
+  @override
   String get callScreenControlDraw => '그리기';
 
   @override

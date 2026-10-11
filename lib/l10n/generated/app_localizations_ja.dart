@@ -8024,6 +8024,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get screenShareStopDrawing => '描画を終了';
 
   @override
+  String get screenShareDrawBoardIdle => '描き込みはここに表示されます';
+
+  @override
+  String get screenShareOverlayHint => '共有中は他のアプリの上にも描き込みを表示';
+
+  @override
+  String get screenShareOverlayAllow => '許可';
+
+  @override
   String get callScreenControlDraw => '描く';
 
   @override

@@ -9635,6 +9635,18 @@
   "@screenShareStopDrawing": {
     "description": "The chip at the top of the screen while the presenter is drawing over their own shared screen; tapping it puts the pen down so the rest of the app is tappable again."
   },
+  "screenShareDrawBoardIdle": "Drawings appear here",
+  "@screenShareDrawBoardIdle": {
+    "description": "iOS only. Shown in the small Picture in Picture window that appears while the user shares their screen and has left the app, before anyone has drawn anything. Drawings by the other people in the call then appear in that window."
+  },
+  "screenShareOverlayHint": "Show drawings over other apps while you share",
+  "@screenShareOverlayHint": {
+    "description": "Android only. A one-line hint on the presenter's call screen while sharing, when the app is not yet allowed to display over other apps: without that permission, what the others draw is only visible inside this app."
+  },
+  "screenShareOverlayAllow": "Allow",
+  "@screenShareOverlayAllow": {
+    "description": "Button next to screenShareOverlayHint; opens the system setting that lets the app display over other apps."
+  },
   "callScreenControlDraw": "Draw",
   "@callScreenControlDraw": {
     "description": "Label under the 1:1 call tray's pen button, shown while a screen is shared."

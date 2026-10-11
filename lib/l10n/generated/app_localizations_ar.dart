@@ -8458,6 +8458,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get screenShareStopDrawing => 'إيقاف الرسم';
 
   @override
+  String get screenShareDrawBoardIdle => 'تظهر الرسومات هنا';
+
+  @override
+  String get screenShareOverlayHint =>
+      'اعرض الرسومات فوق التطبيقات الأخرى أثناء المشاركة';
+
+  @override
+  String get screenShareOverlayAllow => 'السماح';
+
+  @override
   String get callScreenControlDraw => 'رسم';
 
   @override

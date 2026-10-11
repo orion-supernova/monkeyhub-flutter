@@ -8432,6 +8432,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get screenShareStopDrawing => 'Dejar de dibujar';
 
   @override
+  String get screenShareDrawBoardIdle => 'Los dibujos aparecen aquí';
+
+  @override
+  String get screenShareOverlayHint =>
+      'Muestra los dibujos sobre otras apps mientras compartes';
+
+  @override
+  String get screenShareOverlayAllow => 'Permitir';
+
+  @override
   String get callScreenControlDraw => 'Dibujar';
 
   @override

@@ -8314,6 +8314,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get screenShareStopDrawing => 'Çizimi bitir';
 
   @override
+  String get screenShareDrawBoardIdle => 'Çizimler burada görünür';
+
+  @override
+  String get screenShareOverlayHint =>
+      'Paylaşırken çizimleri diğer uygulamaların üzerinde göster';
+
+  @override
+  String get screenShareOverlayAllow => 'İzin ver';
+
+  @override
   String get callScreenControlDraw => 'Çiz';
 
   @override

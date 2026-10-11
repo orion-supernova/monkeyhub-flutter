@@ -8441,6 +8441,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get screenShareStopDrawing => 'Parar de desenhar';
 
   @override
+  String get screenShareDrawBoardIdle => 'Os desenhos aparecem aqui';
+
+  @override
+  String get screenShareOverlayHint =>
+      'Mostra os desenhos sobre outras apps enquanto partilhas';
+
+  @override
+  String get screenShareOverlayAllow => 'Permitir';
+
+  @override
   String get callScreenControlDraw => 'Desenhar';
 
   @override
@@ -20616,6 +20626,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get screenShareStopDrawing => 'Parar de desenhar';
+
+  @override
+  String get screenShareDrawBoardIdle => 'Os desenhos aparecem aqui';
+
+  @override
+  String get screenShareOverlayHint =>
+      'Mostre os desenhos sobre outros apps enquanto compartilha';
+
+  @override
+  String get screenShareOverlayAllow => 'Permitir';
 
   @override
   String get callScreenControlDraw => 'Desenhar';

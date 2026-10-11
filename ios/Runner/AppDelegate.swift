@@ -1436,6 +1436,13 @@ import WebRTC
       }
     }
 
+    // monkeyhub/draw_mirror — the strokes over our shared screen, carried
+    // into a Picture in Picture board once the app leaves the screen. See
+    // DrawPip.swift.
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubDrawMirrorPlugin") {
+      DrawPip.shared.register(messenger: registrar.messenger())
+    }
+
     // monkeyhub/launcher_icon — swap the home-screen launcher icon at runtime.
     // Backs LauncherIconService in Dart. We talk to UIApplication directly
     // here because flutter_dynamic_icon_plus's Swift wrapper (SwiftTryCatch)

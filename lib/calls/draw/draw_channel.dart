@@ -32,12 +32,20 @@ class DrawChannels {
 
   Iterable<String> get peers => _channels.keys;
 
+  /// A tap on everything that arrives, as the bytes came off the wire —
+  /// `DrawMirror` passes them through to the platform while the app is out
+  /// of sight. Null the rest of the time, which costs nothing.
+  void Function(String peerId, Uint8List bytes)? onInbound;
+
   void attach(String peerId, RTCDataChannel ch) {
     _channels[peerId] = ch;
     ch.onMessage = (msg) {
       if (!msg.isBinary) return;
-      final ops = decodeDrawBatch(msg.binary);
-      if (ops.isNotEmpty) model.apply(peerId, ops);
+      final bytes = msg.binary;
+      final ops = decodeDrawBatch(bytes);
+      if (ops.isEmpty) return;
+      model.apply(peerId, ops);
+      onInbound?.call(peerId, bytes);
     };
   }
 
@@ -68,6 +76,7 @@ class DrawChannels {
       ch.onMessage = null;
     }
     _channels.clear();
-    if (identical(model.onOutbound, broadcast)) model.onOutbound = null;
+    onInbound = null;
+    if (model.onOutbound == broadcast) model.onOutbound = null;
   }
 }

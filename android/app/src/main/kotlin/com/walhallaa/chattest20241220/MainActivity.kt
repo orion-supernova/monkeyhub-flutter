@@ -119,6 +119,9 @@ class MainActivity : FlutterActivity() {
         // monkeyhub/screen_share — the mediaProjection foreground service a
         // share needs on Android 14, and its notification's STOP button.
         ScreenShareBridge.register(this, flutterEngine)
+        // monkeyhub/draw_mirror — the strokes over a shared screen, painted
+        // over other apps while ours is out of sight.
+        DrawMirrorBridge.register(this, flutterEngine)
         // monkeyhub/call_window — keep-screen-on and the proximity sensor
         // for the length of a call.
         CallWindowBridge.register(this, flutterEngine)

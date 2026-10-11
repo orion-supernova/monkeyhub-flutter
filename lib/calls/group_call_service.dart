@@ -18,6 +18,7 @@ import 'call_models.dart';
 import 'call_permissions.dart';
 import 'call_recovery.dart';
 import 'draw/draw_channel.dart';
+import 'draw/draw_mirror.dart';
 import 'draw/draw_model.dart';
 import 'native_call_handler.dart';
 import 'renegotiation.dart';
@@ -283,6 +284,10 @@ class GroupCallService extends ChangeNotifier
   /// stroke is a stroke whoever is presenting.
   final DrawModel drawModel = DrawModel();
   late final DrawChannels _draw = DrawChannels(model: drawModel);
+
+  /// The drawing, shown outside the app while we share and the app is out
+  /// of sight — Android's overlay, iOS's Picture in Picture board.
+  late final DrawMirror drawMirror = DrawMirror(model: drawModel, channels: _draw);
 
   /// Seams for tests — the platform calls behind the live controls.
   @visibleForTesting
@@ -709,6 +714,7 @@ class GroupCallService extends ChangeNotifier
       resetAndroidCallRoute();
     }
     rosterRows = const [];
+    unawaited(drawMirror.stop());
     drawModel.clearAll();
     drawArmed.value = false;
     final ss = _screenStream;
@@ -2128,6 +2134,7 @@ class GroupCallService extends ChangeNotifier
   Future<void> startScreenShare({
     ScreenShareSource? source,
     ({String title, String body, String stop})? notification,
+    String drawBoardIdleText = 'Drawings appear here',
   }) async {
     if (!inCall || localScreenSharing || presentingPeer != null) return;
     if (screenSharePending) return;
@@ -2178,6 +2185,7 @@ class GroupCallService extends ChangeNotifier
       localScreenSharing = true;
       localScreenStreamTick++;
       notifyListeners();
+      unawaited(drawMirror.start(trackId: track.id, idleText: drawBoardIdleText));
       await _broadcastState();
       for (final peer in _peers.values.toList(growable: false)) {
         final sender = peer.screenSender;
@@ -2216,6 +2224,7 @@ class GroupCallService extends ChangeNotifier
     if (!localScreenSharing) return;
     localScreenSharing = false;
     ScreenShare.onPlatformStop = null;
+    unawaited(drawMirror.stop());
     // The drawings were about this screen; they go with it, for everyone.
     drawModel.clearAll();
     drawModel.flush();
@@ -2455,6 +2464,7 @@ class GroupCallService extends ChangeNotifier
       unawaited(ScreenShare.release());
     }
     reopenTick.dispose();
+    drawMirror.dispose();
     _draw.dispose();
     drawArmed.dispose();
     drawModel.dispose();

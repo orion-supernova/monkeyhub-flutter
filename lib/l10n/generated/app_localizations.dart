@@ -14107,6 +14107,24 @@ abstract class AppLocalizations {
   /// **'Stop drawing'**
   String get screenShareStopDrawing;
 
+  /// iOS only. Shown in the small Picture in Picture window that appears while the user shares their screen and has left the app, before anyone has drawn anything. Drawings by the other people in the call then appear in that window.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawings appear here'**
+  String get screenShareDrawBoardIdle;
+
+  /// Android only. A one-line hint on the presenter's call screen while sharing, when the app is not yet allowed to display over other apps: without that permission, what the others draw is only visible inside this app.
+  ///
+  /// In en, this message translates to:
+  /// **'Show drawings over other apps while you share'**
+  String get screenShareOverlayHint;
+
+  /// Button next to screenShareOverlayHint; opens the system setting that lets the app display over other apps.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get screenShareOverlayAllow;
+
   /// Label under the 1:1 call tray's pen button, shown while a screen is shared.
   ///
   /// In en, this message translates to:

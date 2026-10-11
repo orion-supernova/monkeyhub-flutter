@@ -21,6 +21,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <!-- "Display over other apps", asked for only while a screen share is
+         running and only from the presenter's own call screen: it is what lets
+         the strokes the others draw show over the app being shared instead of
+         only inside MonkeyHub. Click-through, and attached only while a stroke
+         is on screen. See DrawOverlay.kt. Optional: without it a share works
+         exactly as before. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Lets the app open the "ignore battery optimizations" system prompt so
          OEM power managers (Xiaomi/Samsung/Oppo…) don't defer the high-priority
          FCM call wake. Requested once post-login; see AndroidCallReliability. -->

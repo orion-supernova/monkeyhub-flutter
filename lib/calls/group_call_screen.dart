@@ -24,6 +24,7 @@ import 'call_options_sheet.dart';
 import 'call_stats_monitor.dart';
 import 'draw/draw_canvas.dart';
 import 'draw/draw_model.dart';
+import 'draw/overlay_permission_hint.dart';
 import 'group_call_service.dart';
 import 'screen_share.dart';
 import 'share_picker_sheet.dart';
@@ -500,6 +501,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
           body: l10n.screenShareNotificationBody,
           stop: l10n.screenShareNotificationStop,
         ),
+        drawBoardIdleText: l10n.screenShareDrawBoardIdle,
       );
     } catch (e) {
       toast.show(l10n.screenShareFailed, tone: ToastTone.danger);
@@ -1393,6 +1395,7 @@ class _ShareStage extends StatelessWidget {
                         style: theme.body.copyWith(color: Colors.white70),
                         textAlign: TextAlign.center,
                       ),
+                      if (mine) OverlayPermissionHint(mirror: service.drawMirror),
                     ],
                   ),
                 ),

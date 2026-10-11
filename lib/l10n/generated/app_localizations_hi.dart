@@ -8360,6 +8360,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get screenShareStopDrawing => 'ड्रॉइंग बंद करें';
 
   @override
+  String get screenShareDrawBoardIdle => 'ड्रॉइंग यहाँ दिखेंगी';
+
+  @override
+  String get screenShareOverlayHint =>
+      'शेयर करते समय ड्रॉइंग दूसरे ऐप्स के ऊपर दिखाएँ';
+
+  @override
+  String get screenShareOverlayAllow => 'अनुमति दें';
+
+  @override
   String get callScreenControlDraw => 'बनाएँ';
 
   @override
