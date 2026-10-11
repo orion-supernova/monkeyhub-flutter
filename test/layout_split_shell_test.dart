@@ -10,6 +10,7 @@ import 'package:monkeyhub/screens/navigation/room_side_pane.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/account_kit.dart';
 import 'package:monkeyhub/widgets/desktop_scroll.dart';
 
 void main() {
@@ -197,6 +198,29 @@ void main() {
       expect(find.text('info'), findsNothing);
       expect(pane().isOpen, isFalse);
       expect(tester.getSize(find.byKey(chat)).width, 1400);
+    });
+
+    testWidgets('pages in the pane measure the pane, not the window',
+        (tester) async {
+      // On the window's width, readableInset padded 360px a side inside a
+      // 340px pane and room info drew nothing at all.
+      await sized(tester);
+      await tester.pumpWidget(LayoutScope(
+        windowClass: WindowClass.expanded,
+        width: 1600,
+        child: harness(),
+      ));
+      late Size size;
+      late EdgeInsets inset;
+      pane().open<void>((_) => Builder(builder: (context) {
+            size = MediaQuery.sizeOf(context);
+            inset = readableInset(context);
+            return const SizedBox.expand();
+          }));
+      await tester.pumpAndSettle();
+      expect(size, const Size(RoomSidePane.width, 800));
+      expect(inset.left, 16);
+      expect(inset.right, 16);
     });
 
     testWidgets('floats over a narrow chat instead of crushing it',

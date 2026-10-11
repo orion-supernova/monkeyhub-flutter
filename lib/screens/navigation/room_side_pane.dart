@@ -270,7 +270,10 @@ class RoomSidePaneState extends State<RoomSidePane>
                                   ),
                                 ],
                         ),
-                        child: _navigator,
+                        child: _paneSized(
+                          context,
+                          Size(RoomSidePane.width, constraints.maxHeight),
+                        ),
                       ),
                     ),
                   ),
@@ -282,6 +285,20 @@ class RoomSidePaneState extends State<RoomSidePane>
       },
     );
   }
+
+  /// The pages in here size themselves from [MediaQuery], which above the
+  /// pane describes the whole window: on a 1440px window `readableInset`
+  /// centred a 720px column by padding 360px a side, inside a 340px pane, and
+  /// room info laid out to nothing (an empty dark panel). So the pane is their
+  /// screen.
+  ///
+  /// The [LayoutScope] is deliberately NOT narrowed: it answers "is this the
+  /// split shell", and a DM opened from a member's profile in here must still
+  /// land in the chat pane rather than push inside this one.
+  Widget _paneSized(BuildContext context, Size size) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(size: size),
+        child: _navigator,
+      );
 
   /// Built once: the [LayoutBuilder] above reruns on every resize frame, and
   /// handing it the identical widget keeps the navigator out of that.
