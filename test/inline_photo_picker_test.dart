@@ -113,6 +113,43 @@ void main() {
     expect(c.picks.map((p) => p.asset.id), ['b']);
   });
 
+  testWidgets('the strip follows a new pick to the end, not a removal',
+      (tester) async {
+    final c = InlinePickerController();
+    addTearDown(c.dispose);
+    final image = CroppedImage(
+        bytes: png, contentType: 'image/png', width: 1, height: 1);
+    void pick(String id) {
+      c.toggle(asset(id));
+      c.markEdited(c.picks.last, image);
+    }
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (var i = 0; i < 3; i++) {
+      pick('a$i');
+    }
+    await tester.pumpWidget(host(PickedMediaStrip(controller: c, onEdit: (_) {})));
+    await tester.pumpAndSettle();
+    ScrollPosition pos() =>
+        tester.state<ScrollableState>(find.byType(Scrollable)).position;
+    expect(pos().pixels, 0);
+
+    // Past the width of the screen: the newest is scrolled into view.
+    for (var i = 3; i < 8; i++) {
+      pick('a$i');
+      await tester.pumpAndSettle();
+      expect(pos().pixels, pos().maxScrollExtent);
+    }
+    expect(pos().maxScrollExtent, greaterThan(0));
+
+    // Back to the start by hand; taking one back does not move it.
+    pos().jumpTo(0);
+    await tester.pump();
+    c.remove(c.picks.last);
+    await tester.pumpAndSettle();
+    expect(pos().pixels, 0);
+  });
+
   group('the sheet', () {
     // A 400x800 room. Without the photo library plugin the picker shows its
     // "access is off" note, which is enough to see the sheet move.
