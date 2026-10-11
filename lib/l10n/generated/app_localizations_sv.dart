@@ -3178,6 +3178,9 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => 'Tillbaka till första';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Kasta dessa foton';
 
   @override
@@ -9113,6 +9116,17 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF:ar och animerade klistermärken spelas upp av sig själva. Minska rörelse pausar dem.';
+
+  @override
+  String get settingsAlbumCardsLabel => 'Fotoalbum som kort';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'Flera foton i ett meddelande visas i ett rutnät.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'Flera foton i ett meddelande visas som en bunt du sveper igenom.';
 
   @override
   String get settingsStickerSuggestionsBody =>

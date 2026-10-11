@@ -447,6 +447,16 @@ class _SettingsScreenState extends State<SettingsScreen>
           value: () => store.autoplayExpressions,
           onChanged: store.setAutoplayExpressions,
         ));
+    Widget albumCardsToggle() => _IconLed(_StoreToggle(
+          icon: CupertinoIcons.rectangle_stack_fill,
+          tone: TileTone.blue,
+          title: l10n.settingsAlbumCardsLabel,
+          subtitle: store.albumCards
+              ? l10n.settingsAlbumCardsOnBody
+              : l10n.settingsAlbumCardsOffBody,
+          value: () => store.albumCards,
+          onChanged: store.setAlbumCards,
+        ));
     Widget stickersToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.smiley_fill,
           tone: TileTone.orange,
@@ -600,6 +610,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 const _IconLed(_CheckForUpdatesRow()),
                 linkUrlsToggle(),
                 autoplayToggle(),
+                albumCardsToggle(),
                 stickersToggle(),
                 // Where someone who has never pressed ⌘/ finds the shortcuts.
                 // Desktop and web only: a phone has no keyboard to ask about.

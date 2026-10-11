@@ -5469,6 +5469,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 photo} other{{count} photos}}'**
   String photoTrayCountLabel(num count);
 
+  /// Button shown on the last photo of a swipeable photo stack; returns the stack to its first photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to first'**
+  String get photoDeckBackToFirst;
+
   /// Accessibility label for the X button that leaves the multi-photo tray without sending anything.
   ///
   /// In en, this message translates to:
@@ -15228,6 +15234,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'GIFs and animated stickers play by themselves. Reduce Motion pauses them.'**
   String get settingsAutoplayExpressionsOnBody;
+
+  /// Settings toggle title: show multi-photo messages as a swipeable card stack instead of a grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo albums as cards'**
+  String get settingsAlbumCardsLabel;
+
+  /// Explanation under the album cards toggle when it is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Several photos in one message are laid out as a grid.'**
+  String get settingsAlbumCardsOffBody;
+
+  /// Explanation under the album cards toggle when it is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Several photos in one message come as a stack you swipe through.'**
+  String get settingsAlbumCardsOnBody;
 
   /// Explanation under the sticker suggestions toggle.
   ///

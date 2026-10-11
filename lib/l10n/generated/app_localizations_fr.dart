@@ -3226,6 +3226,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => 'Revenir à la première';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Abandonner ces photos';
 
   @override
@@ -9225,6 +9228,17 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'Les GIF et stickers animés se lancent tout seuls. Réduire les animations les met en pause.';
+
+  @override
+  String get settingsAlbumCardsLabel => 'Albums photo en cartes';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'Plusieurs photos dans un message s’affichent en grille.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'Plusieurs photos dans un message arrivent en pile, à faire défiler d’un geste.';
 
   @override
   String get settingsStickerSuggestionsBody =>

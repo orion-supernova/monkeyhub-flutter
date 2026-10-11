@@ -3200,6 +3200,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => 'Voltar à primeira';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Descartar estas fotos';
 
   @override
@@ -9186,6 +9189,17 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'Os GIFs e stickers animados reproduzem-se sozinhos. Reduzir movimento põe-nos em pausa.';
+
+  @override
+  String get settingsAlbumCardsLabel => 'Álbuns de fotos como cartões';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'Várias fotos numa mensagem aparecem em grelha.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'Várias fotos numa mensagem aparecem numa pilha que percorre a deslizar.';
 
   @override
   String get settingsStickerSuggestionsBody =>
@@ -15318,6 +15332,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
+  String get photoDeckBackToFirst => 'Voltar para a primeira';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Descartar estas fotos';
 
   @override
@@ -21303,6 +21320,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIFs e figurinhas animadas tocam sozinhos. Reduzir Movimento pausa tudo.';
+
+  @override
+  String get settingsAlbumCardsLabel => 'Álbuns de fotos como cartões';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'Várias fotos em uma mensagem aparecem em grade.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'Várias fotos em uma mensagem aparecem em uma pilha que você desliza para ver.';
 
   @override
   String get settingsStickerSuggestionsBody =>

@@ -3154,6 +3154,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => 'Back to first';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Discard these photos';
 
   @override
@@ -9074,6 +9077,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIFs and animated stickers play by themselves. Reduce Motion pauses them.';
+
+  @override
+  String get settingsAlbumCardsLabel => 'Photo albums as cards';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'Several photos in one message are laid out as a grid.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'Several photos in one message come as a stack you swipe through.';
 
   @override
   String get settingsStickerSuggestionsBody =>

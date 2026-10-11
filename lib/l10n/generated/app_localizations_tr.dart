@@ -3147,6 +3147,9 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => 'Başa dön';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Bu fotoğrafları bırak';
 
   @override
@@ -9044,6 +9047,17 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF’ler ve hareketli çıkartmalar kendiliğinden oynar. Hareketi Azalt onları duraklatır.';
+
+  @override
+  String get settingsAlbumCardsLabel => 'Fotoğraf albümleri kart olarak';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'Bir mesajdaki birden çok fotoğraf ızgara olarak dizilir.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'Bir mesajdaki birden çok fotoğraf, kaydırarak gezdiğin bir deste olarak gelir.';
 
   @override
   String get settingsStickerSuggestionsBody =>

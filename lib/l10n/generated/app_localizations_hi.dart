@@ -3173,6 +3173,9 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => 'पहली पर वापस जाएं';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'ये फ़ोटो छोड़ें';
 
   @override
@@ -9097,6 +9100,17 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF और एनिमेटेड स्टिकर अपने-आप चलते हैं। मोशन कम करें इन्हें रोक देता है।';
+
+  @override
+  String get settingsAlbumCardsLabel => 'फ़ोटो एल्बम कार्ड की तरह';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'एक मैसेज की कई फ़ोटो ग्रिड में दिखती हैं।';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'एक मैसेज की कई फ़ोटो एक स्टैक में आती हैं, जिसे आप स्वाइप करके देखते हैं।';
 
   @override
   String get settingsStickerSuggestionsBody =>

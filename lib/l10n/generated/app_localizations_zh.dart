@@ -3013,6 +3013,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => '回到第一张';
+
+  @override
   String get photoTrayDiscardSemanticLabel => '放弃这些照片';
 
   @override
@@ -8629,6 +8632,15 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF 和动态贴纸会自动播放。开启“减弱动态效果”时会暂停。';
+
+  @override
+  String get settingsAlbumCardsLabel => '照片相册以卡片显示';
+
+  @override
+  String get settingsAlbumCardsOffBody => '一条消息中的多张照片以网格排列。';
+
+  @override
+  String get settingsAlbumCardsOnBody => '一条消息中的多张照片以卡片叠放显示，滑动即可翻看。';
 
   @override
   String get settingsStickerSuggestionsBody => '只输入一个表情时，会在输入框上方显示匹配的贴纸。';

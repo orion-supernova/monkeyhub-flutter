@@ -41,6 +41,7 @@ import 'location_bubble.dart';
 import 'text_runs.dart';
 import 'message_stamp.dart';
 import 'photo_chrome.dart';
+import 'photo_deck.dart';
 import 'photo_mosaic.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
@@ -1676,29 +1677,31 @@ Widget buildMessageContent({
   // accent-on-accent.
   final bubbleTone = isMine ? StampTone.onAccent : StampTone.onBubble;
 
+  // Before every per-type branch. An album is only ever built from
+  // captionless, un-sealed, un-quoted photographs and videos
+  // (`albumEligible`), so none of the cases below can apply to one; the row
+  // is drawn as its LAST member, which may be either, so it cannot live inside
+  // the image case. And the album has to own the stamp, because the block's
+  // corner is a card's corner rather than this message's own tile.
+  if (album.length > 1) {
+    return _AlbumTile(
+      photos: album,
+      api: api,
+      width: imageSize,
+      radius: mediaRadius,
+      currentUserId: currentUserId ?? '',
+      onOpen: onAlbumOpen,
+      onTileLongPress: onAlbumTileLongPress,
+      onReactionTap: onAlbumReactionTap,
+      onReactionLongPress: onAlbumReactionLongPress,
+      highlightedPhotoId: albumHighlightId,
+      highlightT: albumHighlightT,
+      stamp: stampFor(StampTone.onMedia),
+    );
+  }
+
   switch (message.type) {
     case MessageType.image:
-      // Before every other photo branch. An album is only ever built from
-      // captionless, un-sealed, un-quoted photographs (`albumEligible`), so
-      // none of the cases below can apply to one — and the mosaic has to own
-      // the stamp, because the block's bottom-right corner is a tile's corner
-      // rather than this message's own tile.
-      if (album.length > 1) {
-        return _AlbumTile(
-          photos: album,
-          api: api,
-          width: imageSize,
-          radius: mediaRadius,
-          currentUserId: currentUserId ?? '',
-          onOpen: onAlbumOpen,
-          onTileLongPress: onAlbumTileLongPress,
-          onReactionTap: onAlbumReactionTap,
-          onReactionLongPress: onAlbumReactionLongPress,
-          highlightedPhotoId: albumHighlightId,
-          highlightT: albumHighlightT,
-          stamp: stampFor(StampTone.onMedia),
-        );
-      }
       final id = message.mediaStorageId;
       Widget imageTile;
       // Checked BEFORE the storage-id branch on purpose. A view-once message
@@ -2762,12 +2765,29 @@ class _AlbumTileState extends State<_AlbumTile> {
   bool _viewing = false;
 
   Future<void> _open(ChatMessage m, {required int sourceDecodeWidth}) async {
-    // The gallery scope is the same fallback a lone photo's tile takes when no
-    // caller handed it an opener.
-    final open = widget.onOpen ??
-        RoomGalleryScope.maybeOf(context)?.openGallery;
-    if (open == null) return;
-    final trip = open(m, sourceDecodeWidth: sourceDecodeWidth);
+    final Future<void> trip;
+    final videoId = m.mediaStorageId;
+    if (m.type == MessageType.video) {
+      // A video plays, exactly as a lone video bubble's tap does, flying from
+      // the card's poster. Not into the photo gallery, whose video pages are a
+      // poster to tap a second time.
+      if (videoId == null) return;
+      trip = FullscreenVideoViewer.open(
+        context,
+        storageId: videoId,
+        api: widget.api,
+        posterStorageId: m.posterStorageId,
+        heroTag: mosaicHeroTag(m),
+        gallery: RoomGalleryScope.maybeOf(context)?.videoGalleryFor?.call(m),
+      );
+    } else {
+      // The gallery scope is the same fallback a lone photo's tile takes when
+      // no caller handed it an opener.
+      final open =
+          widget.onOpen ?? RoomGalleryScope.maybeOf(context)?.openGallery;
+      if (open == null) return;
+      trip = open(m, sourceDecodeWidth: sourceDecodeWidth);
+    }
     setState(() => _viewing = true);
     try {
       await trip;
@@ -2778,21 +2798,47 @@ class _AlbumTileState extends State<_AlbumTile> {
 
   @override
   Widget build(BuildContext context) {
-    return StampedMedia(
-      tile: PhotoMosaic(
-        photos: widget.photos,
-        api: widget.api,
-        width: widget.width,
-        radius: widget.radius,
-        currentUserId: widget.currentUserId,
-        onOpen: _open,
-        onTileLongPress: widget.onTileLongPress,
-        onReactionTap: widget.onReactionTap,
-        onReactionLongPress: widget.onReactionLongPress,
-        highlightedPhotoId: widget.highlightedPhotoId,
-        highlightT: widget.highlightT,
-      ),
-      stamp: _viewing ? null : widget.stamp,
+    final stamp = _viewing ? null : widget.stamp;
+    // Cards or grid, from Settings. Listened to here rather than up the
+    // transcript: only albums change shape when it flips.
+    return ListenableBuilder(
+      listenable: SettingsStore.instance,
+      builder: (context, _) {
+        if (SettingsStore.instance.albumCards) {
+          // The count label sits over the deck, the stamp on the front card:
+          // only the deck itself goes under [StampedMedia].
+          return PhotoDeck(
+            photos: widget.photos,
+            api: widget.api,
+            width: widget.width,
+            radius: widget.radius,
+            currentUserId: widget.currentUserId,
+            onOpen: _open,
+            onTileLongPress: widget.onTileLongPress,
+            onReactionTap: widget.onReactionTap,
+            onReactionLongPress: widget.onReactionLongPress,
+            highlightedPhotoId: widget.highlightedPhotoId,
+            highlightT: widget.highlightT,
+            stamp: stamp,
+          );
+        }
+        return StampedMedia(
+          tile: PhotoMosaic(
+            photos: widget.photos,
+            api: widget.api,
+            width: widget.width,
+            radius: widget.radius,
+            currentUserId: widget.currentUserId,
+            onOpen: _open,
+            onTileLongPress: widget.onTileLongPress,
+            onReactionTap: widget.onReactionTap,
+            onReactionLongPress: widget.onReactionLongPress,
+            highlightedPhotoId: widget.highlightedPhotoId,
+            highlightT: widget.highlightT,
+          ),
+          stamp: stamp,
+        );
+      },
     );
   }
 }

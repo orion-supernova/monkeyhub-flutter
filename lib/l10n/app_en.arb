@@ -3596,6 +3596,10 @@
   "@photoTrayCountLabel": {
     "description": "Badge at the top of the multi-photo tray showing how many pictures are staged for sending. {count} is that number."
   },
+  "photoDeckBackToFirst": "Back to first",
+  "@photoDeckBackToFirst": {
+    "description": "Button shown on the last photo of a swipeable photo stack; returns the stack to its first photo."
+  },
   "photoTrayDiscardSemanticLabel": "Discard these photos",
   "@photoTrayDiscardSemanticLabel": {
     "description": "Accessibility label for the X button that leaves the multi-photo tray without sending anything."
@@ -10426,6 +10430,18 @@
   "settingsAutoplayExpressionsOnBody": "GIFs and animated stickers play by themselves. Reduce Motion pauses them.",
   "@settingsAutoplayExpressionsOnBody": {
     "description": "Explanation under the autoplay toggle when it is on."
+  },
+  "settingsAlbumCardsLabel": "Photo albums as cards",
+  "@settingsAlbumCardsLabel": {
+    "description": "Settings toggle title: show multi-photo messages as a swipeable card stack instead of a grid."
+  },
+  "settingsAlbumCardsOffBody": "Several photos in one message are laid out as a grid.",
+  "@settingsAlbumCardsOffBody": {
+    "description": "Explanation under the album cards toggle when it is off."
+  },
+  "settingsAlbumCardsOnBody": "Several photos in one message come as a stack you swipe through.",
+  "@settingsAlbumCardsOnBody": {
+    "description": "Explanation under the album cards toggle when it is on."
   },
   "settingsStickerSuggestionsBody": "Typing a single emoji shows matching stickers above the message field.",
   "@settingsStickerSuggestionsBody": {

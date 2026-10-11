@@ -254,8 +254,12 @@ const int kMaxAlbumPhotos = 10;
 /// can hit. Reactions are NOT a veto — the tile draws its own, because a
 /// picture leaving the album the moment somebody reacts to it would make the
 /// block jump under the reader's finger.
+///
+/// Videos join photographs: an album is "what I sent in one go", and a
+/// photo, a video and a photo sent together are one moment. A video's card is
+/// its poster with a play button on it (see `MosaicTile`), and a tap plays it.
 bool albumEligible(ChatMessage m) =>
-    m.type == MessageType.image &&
+    (m.type == MessageType.image || m.type == MessageType.video) &&
     m.content.isEmpty &&
     !m.viewOnce &&
     !m.isEphemeral &&

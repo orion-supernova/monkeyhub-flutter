@@ -3226,6 +3226,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => 'العودة إلى الأولى';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'تجاهل هذه الصور';
 
   @override
@@ -9250,6 +9253,17 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'تُشغَّل صور GIF والملصقات المتحركة تلقائيًا. خيار تقليل الحركة يوقفها مؤقتًا.';
+
+  @override
+  String get settingsAlbumCardsLabel => 'ألبومات الصور كبطاقات';
+
+  @override
+  String get settingsAlbumCardsOffBody =>
+      'تظهر الصور المتعددة في رسالة واحدة على شكل شبكة.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      'تظهر الصور المتعددة في رسالة واحدة كمجموعة بطاقات تتصفحها بالسحب.';
 
   @override
   String get settingsStickerSuggestionsBody =>

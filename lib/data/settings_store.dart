@@ -47,6 +47,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kShowLinkUrls = 'mh.showLinkUrls';
   static const _kShowPresenceDots = 'mh.showPresenceDots';
   static const _kShortcutPeek = 'mh.shortcutPeek';
+  static const _kAlbumCards = 'mh.albumCards';
   static const _kCompactDesktop = 'mh.compactDesktop';
   static const _kMapAppId = 'mh.maps.app';
   static const _kMapAppName = 'mh.maps.name';
@@ -95,7 +96,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kCaptureProtection, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel,
@@ -147,6 +148,7 @@ class SettingsStore extends ChangeNotifier {
   bool _showLinkUrls = false;
   bool _showPresenceDots = true;
   bool _shortcutPeek = true;
+  bool _albumCards = true;
   bool _compactDesktop = true;
   String? _mapAppId;
   String? _mapAppName;
@@ -283,6 +285,11 @@ class SettingsStore extends ChangeNotifier {
   /// screen on display. On by default; someone who rests a thumb on ⌘ while
   /// reading turns it off.
   bool get shortcutPeek => _shortcutPeek;
+
+  /// A message of several photographs is dealt as a hand of cards to swipe
+  /// through ([PhotoDeck]) rather than laid out as a grid ([PhotoMosaic]).
+  /// On by default.
+  bool get albumCards => _albumCards;
 
   /// Desktop and desktop-browser density: shorter rows, smaller chrome
   /// buttons (see `Density`). On by default there; phones ignore it.
@@ -634,6 +641,7 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = slu == 'true'; // default false
     _showPresenceDots = s[_kShowPresenceDots] != 'false'; // default true
     _shortcutPeek = s[_kShortcutPeek] != 'false'; // default true
+    _albumCards = s[_kAlbumCards] != 'false'; // default true
     _compactDesktop = s[_kCompactDesktop] != 'false'; // default true
     _mapAppId = s[_kMapAppId];
     _mapAppName = s[_kMapAppName];
@@ -968,6 +976,13 @@ class SettingsStore extends ChangeNotifier {
     _shortcutPeek = v;
     notifyListeners();
     await _storage.write(key: _kShortcutPeek, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setAlbumCards(bool v) async {
+    if (_albumCards == v) return;
+    _albumCards = v;
+    notifyListeners();
+    await _storage.write(key: _kAlbumCards, value: v ? 'true' : 'false');
   }
 
   Future<void> setShowPresenceDots(bool v) async {

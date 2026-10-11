@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../models/chat_message.dart';
+import '../models/enums.dart';
 import '../models/pending_upload.dart';
 import '../screens/fullscreen_image_viewer.dart' show thumbnailDecodeWidth;
 import '../theme/app_theme.dart';
@@ -279,7 +282,7 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
   Widget _tile(AppTheme theme, int index) {
     final m = widget.photos[index];
     final count = widget.photos.length;
-    return _MosaicTile(
+    return MosaicTile(
         anchor: _anchorFor(m.id),
         message: m,
         api: widget.api,
@@ -372,13 +375,16 @@ class _PhotoMosaicState extends State<PhotoMosaic> {
 /// join one flight is an assertion rather than a graceful degrade.
 Object mosaicHeroTag(ChatMessage m) => 'album-${m.id}';
 
-/// One photograph in the block.
+/// One photograph in the block. Public because [PhotoDeck] deals the same
+/// tiles as cards: a photograph's tap, menu, reactions and flight are the same
+/// whichever shape the album takes.
 ///
 /// Square-cropped, un-rounded (the block owns the corners) and carrying only
 /// what fits: the picture, its own reaction chips, and — while it is still on
 /// its way up — the sender's own bytes under a progress arc.
-class _MosaicTile extends StatelessWidget {
-  const _MosaicTile({
+class MosaicTile extends StatelessWidget {
+  const MosaicTile({
+    super.key,
     required this.anchor,
     required this.message,
     required this.api,
@@ -421,7 +427,10 @@ class _MosaicTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final upload = message.upload;
-    final storageId = message.mediaStorageId;
+    final video = message.type == MessageType.video;
+    // A video's card is its poster: the still the sender's device took, never
+    // the video itself, which is not a picture to decode.
+    final storageId = video ? message.posterStorageId : message.mediaStorageId;
     final decodeWidth = thumbnailDecodeWidth(context, side);
     final Widget picture;
     if (upload != null) {
@@ -429,7 +438,18 @@ class _MosaicTile extends StatelessWidget {
       // there: for a moment after the upload lands the message has both, and
       // the bytes already in memory beat fetching back a picture we have only
       // just finished sending.
-      picture = _UploadingTile(upload: upload);
+      picture = _UploadingTile(
+        upload: upload,
+        still: video ? upload.posterBytes : upload.bytes,
+        theme: theme,
+      );
+    } else if (video && storageId == null) {
+      // A video with no poster (web and desktop cannot take one): a dark
+      // card, still a hero so the player has something to fly from.
+      picture = SteadyHero(
+        tag: mosaicHeroTag(message),
+        child: ColoredBox(color: theme.surfaceSunken),
+      );
     } else if (storageId != null) {
       Widget image({required BorderRadius borderRadius}) => RemoteImage(
             storageId: storageId,
@@ -484,6 +504,9 @@ class _MosaicTile extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             picture,
+            // Not while it is still going up: the upload's arc owns the
+            // middle of the card until there is something to play.
+            if (video && upload == null) const _PlayDisc(),
             if (reactions.isNotEmpty && onReactionTap != null)
               Positioned(
                 left: 4,
@@ -540,19 +563,60 @@ class _TilePulse extends StatelessWidget {
   }
 }
 
-/// The sender's own photograph, painted from the bytes in hand while they go
-/// up, with the upload's arc over it.
-class _UploadingTile extends StatelessWidget {
-  const _UploadingTile({required this.upload});
-
-  final PendingUpload upload;
+/// The play button a video's card carries, centred on its poster: the one
+/// mark that says "this one moves" in a hand of photographs.
+class _PlayDisc extends StatelessWidget {
+  const _PlayDisc();
 
   @override
   Widget build(BuildContext context) {
+    return Center(
+      child: IgnorePointer(
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.42),
+            shape: BoxShape.circle,
+            border: Border.all(
+                color: Colors.white.withValues(alpha: 0.85), width: 1.5),
+          ),
+          // Nudged right: a play triangle's visual centre is left of its box.
+          padding: const EdgeInsets.only(left: 3),
+          child: const Icon(CupertinoIcons.play_fill,
+              size: 20, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+/// The sender's own photograph (or a video's poster), painted from the bytes
+/// in hand while they go up, with the upload's arc over it.
+class _UploadingTile extends StatelessWidget {
+  const _UploadingTile({
+    required this.upload,
+    required this.still,
+    required this.theme,
+  });
+
+  final PendingUpload upload;
+
+  /// What to show: the photo's own bytes, or a video's poster. Null for a
+  /// video that has none, which shows a dark card under the arc.
+  final Uint8List? still;
+  final AppTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = still;
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.memory(upload.bytes, fit: BoxFit.cover, gaplessPlayback: true),
+        if (bytes != null)
+          Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true)
+        else
+          ColoredBox(color: theme.surfaceSunken),
         // Dimmed until it lands, so a block of ten says at a glance which of
         // them are still on their way.
         ValueListenableBuilder<double?>(

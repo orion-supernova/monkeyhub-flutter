@@ -5,9 +5,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
+import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/enums.dart';
@@ -20,6 +22,7 @@ import 'package:monkeyhub/widgets/highlight_pulse.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/message_stamp.dart';
 import 'package:monkeyhub/widgets/room_gallery_scope.dart';
+import 'package:monkeyhub/widgets/photo_deck.dart';
 import 'package:monkeyhub/widgets/photo_mosaic.dart';
 import 'package:monkeyhub/widgets/remote_image.dart';
 import 'package:monkeyhub/widgets/steady_hero.dart';
@@ -276,9 +279,16 @@ void main() {
     });
   });
 
+  Future<void> useCards(bool cards) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    await SettingsStore.instance.setAlbumCards(cards);
+  }
+
   testWidgets('a tapped tile really flies — end to end, through the gallery', (
     tester,
   ) async {
+    await tester.runAsync(() => useCards(false));
+    addTearDown(() => tester.runAsync(() => useCards(true)));
     // The claim the rest of this file only approaches one piece at a time.
     // What made it fail was one line in the room screen handing the gallery
     // `bubbleMediaHeroTag` for every photograph, album or not: a tag no tile in
@@ -341,6 +351,50 @@ void main() {
       reason: 'a cross-fade paints the picture at the destination size from '
           'the first frame; a flight paints it in between',
     );
+  });
+
+  testWidgets('and so does the front card of a hand', (tester) async {
+    await tester.runAsync(() => useCards(true));
+    final photos = album(4);
+    late BuildContext ctx;
+    await tester.pumpWidget(host(
+      Builder(builder: (c) {
+        ctx = c;
+        return RoomGalleryScope(
+          openGallery: (m, {required sourceDecodeWidth}) =>
+              MediaPagerScreen.open(
+            ctx,
+            items: photos,
+            initialIndex: photos.indexOf(m),
+            api: api,
+            heroTagFor: mosaicHeroTag,
+            sourceDecodeWidth: sourceDecodeWidth,
+          ),
+          child: MessageBubble(
+            message: photos.last,
+            now: now,
+            currentUserId: 'bob',
+            api: api,
+            album: photos,
+          ),
+        );
+      }),
+    ));
+
+    final deck = tester.getRect(find.byType(PhotoDeck));
+    final card = PhotoDeck.cardWidth(deck.width, photos.length);
+    // The front card is flush with the trailing edge.
+    await tester.tapAt(Offset(deck.right - card / 2, deck.center.dy));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final page = tester.getSize(find.byType(MediaPagerScreen));
+    final sizes = tester
+        .widgetList<RemoteImage>(find.byType(RemoteImage))
+        .map((w) => tester.getSize(find.byWidget(w)).width)
+        .toList();
+    expect(sizes.any((w) => w > card + 1 && w < page.width - 1), isTrue,
+        reason: 'mid-flight, the picture is between the card and the page');
   });
 
   testWidgets('the stamp gets out of the way while a picture is away', (

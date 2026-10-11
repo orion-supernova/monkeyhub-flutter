@@ -3051,6 +3051,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => '最初に戻る';
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'これらの写真を破棄';
 
   @override
@@ -8726,6 +8729,15 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIFやアニメーションスタンプが自動で再生されます。「視差効果を減らす」がオンなら一時停止します。';
+
+  @override
+  String get settingsAlbumCardsLabel => '写真アルバムをカード表示';
+
+  @override
+  String get settingsAlbumCardsOffBody => '1つのメッセージの複数の写真がグリッドで表示されます。';
+
+  @override
+  String get settingsAlbumCardsOnBody => '1つのメッセージの複数の写真が、スワイプでめくれる束で表示されます。';
 
   @override
   String get settingsStickerSuggestionsBody =>

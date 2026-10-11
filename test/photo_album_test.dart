@@ -85,6 +85,29 @@ List<List<String>> drawn(List<ChatMessage> messages) => [
 
 void main() {
   group('a run becomes one album', () {
+    test('photos and videos together', () {
+      ChatMessage video(String id, {required int t}) => ChatMessage(
+            id: id,
+            roomId: 'room',
+            senderId: 'alice',
+            senderName: 'alice',
+            content: '',
+            createdAt: _epoch.add(Duration(minutes: t)),
+            type: MessageType.video,
+            mediaStorageId: 'st_$id',
+          );
+      expect(
+          drawn([
+            photo('a', t: 0),
+            video('b', t: 1),
+            photo('c', t: 2),
+            video('d', t: 3),
+          ]),
+          [
+            ['a', 'b', 'c', 'd']
+          ]);
+    });
+
     test('two photographs in a row', () {
       expect(drawn([photo('a', t: 0), photo('b', t: 1)]), [
         ['a', 'b']

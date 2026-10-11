@@ -3058,6 +3058,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get photoDeckBackToFirst => '처음으로';
+
+  @override
   String get photoTrayDiscardSemanticLabel => '이 사진들 취소';
 
   @override
@@ -8746,6 +8749,16 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF와 움직이는 스티커가 자동으로 재생돼요. 동작 줄이기를 켜면 멈춰요.';
+
+  @override
+  String get settingsAlbumCardsLabel => '사진 앨범을 카드로';
+
+  @override
+  String get settingsAlbumCardsOffBody => '한 메시지의 여러 사진이 격자로 표시됩니다.';
+
+  @override
+  String get settingsAlbumCardsOnBody =>
+      '한 메시지의 여러 사진이 스와이프해서 넘기는 카드 묶음으로 표시됩니다.';
 
   @override
   String get settingsStickerSuggestionsBody =>
