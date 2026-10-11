@@ -1096,7 +1096,11 @@ class _LimitedNote extends StatelessWidget {
 
 /// The picks, waiting over the composer: large thumbnails in send order,
 /// each with a remove button. Tapping a photo opens it in the editor.
-class PickedMediaStrip extends StatelessWidget {
+///
+/// A new pick lands at the end, and the strip follows it there: the newest
+/// is always the one in view, however many came before it. A removal or an
+/// edit leaves the strip where the person put it.
+class PickedMediaStrip extends StatefulWidget {
   const PickedMediaStrip({
     super.key,
     required this.controller,
@@ -1106,40 +1110,90 @@ class PickedMediaStrip extends StatelessWidget {
   final InlinePickerController controller;
   final void Function(PickedMedia m) onEdit;
 
+  @override
+  State<PickedMediaStrip> createState() => _PickedMediaStripState();
+}
+
+class _PickedMediaStripState extends State<PickedMediaStrip> {
   static const double _h = 112;
+
+  final ScrollController _scroll = ScrollController();
+  late int _count = widget.controller.picks.length;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onPicks);
+  }
+
+  @override
+  void didUpdateWidget(PickedMediaStrip old) {
+    super.didUpdateWidget(old);
+    if (old.controller != widget.controller) {
+      old.controller.removeListener(_onPicks);
+      widget.controller.addListener(_onPicks);
+      _count = widget.controller.picks.length;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onPicks);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onPicks() {
+    final count = widget.controller.picks.length;
+    final grew = count > _count;
+    _count = count;
+    setState(() {});
+    if (!grew) return;
+    // After the frame that lays the new tile out, when the end is where it
+    // will stay.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      final end = _scroll.position.maxScrollExtent;
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _scroll.jumpTo(end);
+      } else {
+        _scroll.animateTo(
+          end,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final picks = controller.picks;
-        return AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.bottomCenter,
-          child: picks.isEmpty
-              ? const SizedBox(width: double.infinity)
-              : SizedBox(
-                  height: _h,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
-                    itemCount: picks.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) => _StripTile(
-                      key: ValueKey(picks[i].asset.id),
-                      pick: picks[i],
-                      onTap: () => onEdit(picks[i]),
-                      onRemove: () {
-                        HapticFeedback.selectionClick();
-                        controller.remove(picks[i]);
-                      },
-                    ),
-                  ),
+    final picks = widget.controller.picks;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.bottomCenter,
+      child: picks.isEmpty
+          ? const SizedBox(width: double.infinity)
+          : SizedBox(
+              height: _h,
+              child: ListView.separated(
+                controller: _scroll,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+                itemCount: picks.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => _StripTile(
+                  key: ValueKey(picks[i].asset.id),
+                  pick: picks[i],
+                  onTap: () => widget.onEdit(picks[i]),
+                  onRemove: () {
+                    HapticFeedback.selectionClick();
+                    widget.controller.remove(picks[i]);
+                  },
                 ),
-        );
-      },
+              ),
+            ),
     );
   }
 }
