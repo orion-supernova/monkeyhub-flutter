@@ -3054,6 +3054,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get photoDeckBackToFirst => '最初に戻る';
 
   @override
+  String messageMenuAlbumAll(int count) {
+    return 'すべて（$count）';
+  }
+
+  @override
+  String get messageMenuAlbumOne => 'これだけ';
+
+  @override
+  String replyAlbumItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'これらの写真を破棄';
 
   @override

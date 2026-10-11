@@ -101,6 +101,8 @@ class MessageBubble extends StatelessWidget {
     this.onAlbumTileLongPress,
     this.onAlbumReactionTap,
     this.onAlbumReactionLongPress,
+    this.onAlbumStackReactionTap,
+    this.onAlbumStackReactionLongPress,
     this.albumHighlightId,
     this.albumHighlightT = 0,
     this.interaction,
@@ -139,6 +141,13 @@ class MessageBubble extends StatelessWidget {
 
   final void Function(ChatMessage m, String emoji)? onAlbumReactionTap;
   final void Function(ChatMessage m, String emoji)? onAlbumReactionLongPress;
+
+  /// The album's own reactions, to the whole stack rather than one card:
+  /// kept on its first message ([album].first) and drawn under the stack the
+  /// way a lone bubble's are under it.
+  final void Function(ChatMessage first, String emoji)? onAlbumStackReactionTap;
+  final void Function(ChatMessage first, String emoji)?
+      onAlbumStackReactionLongPress;
 
   /// Which photograph of [album] a jump has landed on, and how far into its
   /// pulse it is. Non-null moves the pulse OFF the block and onto that one
@@ -280,6 +289,30 @@ class MessageBubble extends StatelessWidget {
   /// Rendered above the bubble when non-null. Callers pass it only on the
   /// first row of a run, and never for the current user or in a DM.
   final String? senderName;
+
+  /// The row of reactions to a whole album, under its stack: the flagged
+  /// reactions its first message carries (see `MessageReaction.album`). Null
+  /// when there are none, or nowhere to send a tap.
+  Widget? _stackReactions(double maxWidth) {
+    final first = album.first;
+    final onTap = onAlbumStackReactionTap;
+    final stack = [for (final r in first.reactions) if (r.album) r];
+    if (stack.isEmpty || onTap == null) return null;
+    final onHold = onAlbumStackReactionLongPress;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: ReactionRow(
+        reactions: stack,
+        currentUserId: currentUserId,
+        onToggle: (e) => onTap(first, e),
+        onShowReactors: onHold == null ? null : (e) => onHold(first, e),
+        alignment: message.senderId == currentUserId
+            ? WrapAlignment.end
+            : WrapAlignment.start,
+        hanging: true,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -457,11 +490,12 @@ class MessageBubble extends StatelessWidget {
           hover: hover,
           child: bubbleArea,
         ),
-        // An album's chips are drawn on the tiles that earned them — a row
-        // under a mosaic could not say which of ten photographs it was about.
-        reactions: message.reactions.isNotEmpty &&
-                onReactionTap != null &&
-                album.length < 2
+        // An album's per-photo chips are drawn on the cards that earned them;
+        // the row under it is the album's own, the reactions to the whole
+        // stack. See [_stackReactions].
+        reactions: album.length > 1
+            ? _stackReactions(maxWidth)
+            : message.reactions.isNotEmpty && onReactionTap != null
             ? ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
                 child: ReactionRow(

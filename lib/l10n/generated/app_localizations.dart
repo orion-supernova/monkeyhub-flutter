@@ -5475,6 +5475,24 @@ abstract class AppLocalizations {
   /// **'Back to first'**
   String get photoDeckBackToFirst;
 
+  /// Long-press menu switch on a photo stack: act on the whole stack. {count} is how many photos and videos it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'All {count}'**
+  String messageMenuAlbumAll(int count);
+
+  /// Long-press menu switch on a photo stack: act only on the photo or video that was pressed.
+  ///
+  /// In en, this message translates to:
+  /// **'This one'**
+  String get messageMenuAlbumOne;
+
+  /// Label of a reply quote that points at a whole photo/video stack.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item} other{{count} items}}'**
+  String replyAlbumItems(int count);
+
   /// Accessibility label for the X button that leaves the multi-photo tray without sending anything.
   ///
   /// In en, this message translates to:

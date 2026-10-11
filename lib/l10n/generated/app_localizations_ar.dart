@@ -3229,6 +3229,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photoDeckBackToFirst => 'العودة إلى الأولى';
 
   @override
+  String messageMenuAlbumAll(int count) {
+    return 'الكل ($count)';
+  }
+
+  @override
+  String get messageMenuAlbumOne => 'هذا فقط';
+
+  @override
+  String replyAlbumItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count عناصر',
+      one: 'عنصر واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'تجاهل هذه الصور';
 
   @override

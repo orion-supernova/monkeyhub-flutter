@@ -10,6 +10,7 @@ import '../theme/theme_scope.dart';
 import 'spring_press.dart';
 import 'expressions/expression_media.dart';
 import 'remote_image.dart';
+import 'reply_indicator.dart' show albumStackThumb;
 import 'speaker_scope.dart';
 
 /// Sits above the composer when the user is replying to a message. Shows
@@ -21,9 +22,14 @@ class ComposerReplyCard extends StatefulWidget {
     required this.parent,
     required this.api,
     required this.onCancel,
+    this.albumCount,
   });
 
   final ChatMessage parent;
+
+  /// Set when the reply is to the whole album [parent] heads: its size. The
+  /// card then says "4 items" beside a stacked thumbnail.
+  final int? albumCount;
   final ChatApi api;
   final VoidCallback onCancel;
 
@@ -54,8 +60,13 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
   // alone. Shared with the pin banner and pin list via `messagePreviewLine` so
   // the three surfaces cannot drift on what a voice note or an uncaptioned
   // photo is called.
-  String _previewText() =>
-      messagePreviewLine(widget.parent, hasThumbnail: true);
+  String _previewText() {
+    final album = widget.albumCount;
+    if (album != null) {
+      return AppLocalizations.of(context).replyAlbumItems(album);
+    }
+    return messagePreviewLine(widget.parent, hasThumbnail: true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,20 +174,34 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                       child: thumb,
                     ),
                   ],
-                  if (isMedia && m.mediaStorageId != null) ...[
+                  // A video's thumbnail is its poster; the video blob is not a
+                  // picture.
+                  if (isMedia &&
+                      (m.type == MessageType.video
+                              ? m.posterStorageId
+                              : m.mediaStorageId) !=
+                          null) ...[
                     const SizedBox(width: 10),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: RemoteImage(
-                          storageId: m.mediaStorageId!,
-                          api: widget.api,
-                          width: 32,
-                          height: 32,
+                      child: () {
+                        final image = ClipRRect(
                           borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
+                          child: RemoteImage(
+                            storageId: (m.type == MessageType.video
+                                ? m.posterStorageId
+                                : m.mediaStorageId)!,
+                            api: widget.api,
+                            width: 32,
+                            height: 32,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        );
+                        return widget.albumCount == null
+                            ? image
+                            : albumStackThumb(
+                                theme: theme, size: 32, child: image);
+                      }(),
                     ),
                   ],
                   const SizedBox(width: 4),

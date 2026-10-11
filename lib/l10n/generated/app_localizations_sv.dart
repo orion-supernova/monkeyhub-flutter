@@ -3181,6 +3181,25 @@ class AppLocalizationsSv extends AppLocalizations {
   String get photoDeckBackToFirst => 'Tillbaka till första';
 
   @override
+  String messageMenuAlbumAll(int count) {
+    return 'Alla ($count)';
+  }
+
+  @override
+  String get messageMenuAlbumOne => 'Bara den här';
+
+  @override
+  String replyAlbumItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count objekt',
+      one: '1 objekt',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Kasta dessa foton';
 
   @override

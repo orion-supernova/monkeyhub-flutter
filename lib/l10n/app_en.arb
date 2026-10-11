@@ -3600,6 +3600,20 @@
   "@photoDeckBackToFirst": {
     "description": "Button shown on the last photo of a swipeable photo stack; returns the stack to its first photo."
   },
+  "messageMenuAlbumAll": "All {count}",
+  "@messageMenuAlbumAll": {
+    "description": "Long-press menu switch on a photo stack: act on the whole stack. {count} is how many photos and videos it holds.",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "messageMenuAlbumOne": "This one",
+  "@messageMenuAlbumOne": {
+    "description": "Long-press menu switch on a photo stack: act only on the photo or video that was pressed."
+  },
+  "replyAlbumItems": "{count, plural, =1{1 item} other{{count} items}}",
+  "@replyAlbumItems": {
+    "description": "Label of a reply quote that points at a whole photo/video stack.",
+    "placeholders": {"count": {"type": "int"}}
+  },
   "photoTrayDiscardSemanticLabel": "Discard these photos",
   "@photoTrayDiscardSemanticLabel": {
     "description": "Accessibility label for the X button that leaves the multi-photo tray without sending anything."

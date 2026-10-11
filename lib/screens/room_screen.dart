@@ -56,6 +56,7 @@ import '../services/live_location_platform.dart';
 import '../services/live_share_resume_store.dart';
 import '../services/location_service.dart';
 import '../models/chat_message.dart';
+import '../models/message_capabilities.dart';
 import '../models/message_formatting.dart';
 import '../models/location_share.dart';
 import '../models/chat_room.dart';
@@ -327,6 +328,20 @@ class _RoomScreenState extends State<RoomScreen>
   // The message the composer is currently replying to. Cleared on cancel or
   // after a successful send. Set by the swipe gesture or the action menu.
   ChatMessage? _replyingTo;
+
+  /// Set when [_replyingTo] is an album's first message and the reply is to
+  /// the whole album: which message that was, and how many items. Keyed to
+  /// the message rather than cleared alongside it, so every one of the many
+  /// places that clears or replaces [_replyingTo] also drops this for free.
+  String? _replyAlbumFor;
+  int _replyAlbumCount = 0;
+
+  /// The album count of the reply being written, or null for an ordinary
+  /// reply (or none). See [_replyAlbumFor].
+  int? get _replyAlbum =>
+      _replyingTo != null && _replyingTo!.id == _replyAlbumFor
+          ? _replyAlbumCount
+          : null;
 
   // ──── edit state ────
   // The viewer's own message the composer is currently rewriting — the EDIT
@@ -1522,6 +1537,7 @@ class _RoomScreenState extends State<RoomScreen>
     // is sent, so the card has nothing left to say. It stays armed only when
     // the send is refused below, since then there's still a pending reply.
     final replyTarget = _replyingTo;
+    final replyAlbum = _replyAlbum;
     // Same snapshot-then-clear for the mentions and formatting, and for the
     // same reason — the refusal path below has to be able to put them back.
     final mentions = _composer.mentions;
@@ -1545,6 +1561,7 @@ class _RoomScreenState extends State<RoomScreen>
       widget.roomId,
       text,
       replyToId: replyTarget?.id,
+      replyAlbumCount: replyAlbum,
       mentions: mentions,
       mentionsEveryone: everyone,
       formatting: formatting,
@@ -1749,9 +1766,49 @@ class _RoomScreenState extends State<RoomScreen>
   /// Toggles one of the viewer's reactions on [m], and owns the one refusal
   /// worth explaining: past [kMaxMessageReactionsPerPerson], the friendly
   /// limit alert rather than a chip that silently does nothing.
-  Future<void> _toggleReaction(ChatMessage m, String emoji) async {
-    final error =
-        await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+  /// Carries out a menu choice made with the album switch on "All": on the
+  /// whole [album], through its first message where one message has to
+  /// stand for it (a reaction, the parent of a reply).
+  Future<void> _actOnAlbum(
+      MessageActionResult result, List<ChatMessage> album) async {
+    final first = album.first;
+    final me = widget.repo.userId;
+    if (result.emoji != null) {
+      await _toggleReaction(first, result.emoji!, album: true);
+      return;
+    }
+    if (result.openFullReactionPicker) {
+      final mine = {
+        for (final r in first.reactions)
+          if (r.userId == me && r.album) r.emoji,
+      };
+      final pick = await pickReaction(context, selected: mine);
+      if (!mounted || pick == null || pick.emoji.isEmpty) return;
+      // As on one message: picking one already held means "this one".
+      if (!pick.remove && mine.contains(pick.emoji)) return;
+      await _toggleReaction(first, pick.emoji, album: true);
+      return;
+    }
+    switch (result.action) {
+      case MessageAction.reply:
+        _armReply(first, albumCount: album.length);
+      case MessageAction.forward:
+        await _forwardMessages(album);
+      case MessageAction.delete:
+        for (final m in album) {
+          await widget.repo.deleteMessage(m.id);
+        }
+      default:
+        break;
+    }
+  }
+
+  /// [album] toggles a reaction to the whole album [m] heads rather than to
+  /// that one photo. See `MessageReaction.album`.
+  Future<void> _toggleReaction(ChatMessage m, String emoji,
+      {bool album = false}) async {
+    final error = await widget.repo
+        .toggleReaction(messageId: m.id, emoji: emoji, album: album);
     if (!mounted || error != kReactionLimitError) return;
     await showReactionLimitNotice(
       context,
@@ -1759,7 +1816,9 @@ class _RoomScreenState extends State<RoomScreen>
     );
   }
 
-  void _armReply(ChatMessage m, {bool haptic = true}) {
+  void _armReply(ChatMessage m, {bool haptic = true, int? albumCount}) {
+    _replyAlbumFor = albumCount == null ? null : m.id;
+    _replyAlbumCount = albumCount ?? 0;
     // The swipe path opts out: it already fired a medium impact when the pull
     // crossed the threshold, and now that the reply arms on release the two
     // would land on the same beat and read as one muddy buzz.
@@ -3442,11 +3501,15 @@ class _RoomScreenState extends State<RoomScreen>
       unawaited(_schedulePhotos(outcome, at));
       return;
     }
+    // One id for the whole send, so the transcript stacks exactly these, in
+    // this order, however their uploads go. A lone photo needs none.
+    final albumId = outcome.photos.length > 1 ? newAlbumId() : null;
     for (final photo in outcome.photos) {
       _sendPhoto(
         photo.image,
         viewOnce: outcome.viewOnce,
         caption: photo.caption,
+        albumId: albumId,
       );
     }
     if (outcome.dropped > 0) {
@@ -3501,6 +3564,7 @@ class _RoomScreenState extends State<RoomScreen>
     CroppedImage image, {
     required bool viewOnce,
     String? caption,
+    String? albumId,
   }) {
     _sendMedia(
       bytes: image.bytes,
@@ -3509,6 +3573,7 @@ class _RoomScreenState extends State<RoomScreen>
       pixelSize: Size(image.width.toDouble(), image.height.toDouble()),
       viewOnce: viewOnce,
       caption: caption,
+      albumId: albumId,
     );
   }
 
@@ -3782,12 +3847,14 @@ class _RoomScreenState extends State<RoomScreen>
   /// one is the behaviour people complain about.
   void _sendExpression(ExpressionItem item, {String? query}) {
     final replyTarget = _replyingTo;
+    final replyAlbum = _replyAlbum;
     if (replyTarget != null) setState(() => _replyingTo = null);
     widget.repo.exitHistoryWindow(widget.roomId);
     unawaited(widget.repo.sendExpression(
       widget.roomId,
       item,
       replyToId: replyTarget?.id,
+      replyAlbumCount: replyAlbum,
     ));
     final store = ExpressionStore.instance;
     store.noteUsed(item);
@@ -4368,6 +4435,9 @@ class _RoomScreenState extends State<RoomScreen>
 
     /// What the sender wrote under a photo in the composer.
     String? caption,
+
+    /// The album this item is sent in, shared by every item of one send.
+    String? albumId,
   }) {
     // Snapshot and disarm up front — see _send. Deliberately NOT restored on
     // failure the way this used to be: the failure now arrives long after the
@@ -4376,6 +4446,7 @@ class _RoomScreenState extends State<RoomScreen>
     // anyway — the reply rides on the pending bubble, so retrying it keeps the
     // tether.
     final replyTarget = _replyingTo;
+    final replyAlbum = _replyAlbum;
     if (replyTarget != null) setState(() => _replyingTo = null);
     // Same two lines the text send does, for the same two reasons: a send while
     // reading old history has to drop the window or the sender is left looking
@@ -4394,6 +4465,8 @@ class _RoomScreenState extends State<RoomScreen>
       posterBytes: posterBytes,
       mediaDurationMs: mediaDurationMs,
       replyToId: replyTarget?.id,
+      replyAlbumCount: replyAlbum,
+      albumId: albumId,
       viewOnce: viewOnce,
       caption: caption,
     );
@@ -4709,6 +4782,7 @@ class _RoomScreenState extends State<RoomScreen>
                 else if (_replyingTo != null)
                   ComposerReplyCard(
                     parent: _replyingTo!,
+                    albumCount: _replyAlbum,
                     api: widget.api,
                     onCancel: () => setState(() => _replyingTo = null),
                   ),
@@ -4958,6 +5032,7 @@ class _RoomScreenState extends State<RoomScreen>
                 else if (_replyingTo != null)
                   ComposerReplyCard(
                     parent: _replyingTo!,
+                    albumCount: _replyAlbum,
                     api: widget.api,
                     onCancel: () => setState(() => _replyingTo = null),
                   ),
@@ -5455,9 +5530,11 @@ class _RoomScreenState extends State<RoomScreen>
                   final anchor = anchorKey ??
                       _dateTracks['m_${_rowOwner(target.id)}']?.key;
                   if (anchor == null && !pointer) return;
+                  // This photo's own reactions; an album's first message also
+                  // carries the album's, flagged, which belong to "All".
                   final myReactions = {
                     for (final r in target.reactions)
-                      if (r.userId == me) r.emoji,
+                      if (r.userId == me && !r.album) r.emoji,
                   };
                   // Re-read for [target] rather than reused from the row:
                   // an album's tiles are separate messages, and what may be
@@ -5485,6 +5562,36 @@ class _RoomScreenState extends State<RoomScreen>
                             target.status == MessageStatus.sent &&
                             target.type != MessageType.system,
                       );
+                  // An album card's menu opens on the whole album, with a
+                  // switch to the pressed photo alone. Its "All" side offers
+                  // what can be done to every item at once.
+                  final albumRow = messageItem.album.length > 1
+                      ? messageItem.album
+                      : null;
+                  MessageMenuAlbum? albumMenu;
+                  if (albumRow != null) {
+                    final first = albumRow.first;
+                    final firstCaps =
+                        widget.repo.capabilitiesForMessage(first, room);
+                    final l10n = AppLocalizations.of(context);
+                    albumMenu = MessageMenuAlbum(
+                      allLabel: l10n.messageMenuAlbumAll(albumRow.length),
+                      oneLabel: l10n.messageMenuAlbumOne,
+                      capabilities: MessageCapabilities.none.copyWith(
+                        canReply: firstCaps.canReply,
+                        canForward: albumRow.every((m) => widget.repo
+                            .capabilitiesForMessage(m, room)
+                            .canForward),
+                        canDelete: albumRow.every((m) => widget.repo
+                            .capabilitiesForMessage(m, room)
+                            .canDelete),
+                      ),
+                      myReactions: {
+                        for (final r in first.reactions)
+                          if (r.userId == me && r.album) r.emoji,
+                      },
+                    );
+                  }
                   final MessageActionResult? result;
                   if (pointer) {
                     result = await showMessageContextMenu(
@@ -5521,6 +5628,7 @@ class _RoomScreenState extends State<RoomScreen>
                     // this is where the whole thing is legible.
                     fileName:
                         target.type == MessageType.file ? target.fileName : null,
+                    album: albumMenu,
                     bubbleBuilder: (menuContext) {
                       // A card (or grid tile) of an album lifts as itself:
                       // the same crop, corners and play button, at the rect
@@ -5630,6 +5738,10 @@ class _RoomScreenState extends State<RoomScreen>
                   );
                   }
                   if (!mounted || result == null) return;
+                  if (result.album && albumRow != null) {
+                    await _actOnAlbum(result, albumRow);
+                    return;
+                  }
                   if (result.emoji != null) {
                     await _toggleReaction(target, result.emoji!);
                     return;
@@ -5797,7 +5909,7 @@ class _RoomScreenState extends State<RoomScreen>
                 void onReactionTap(String e) => reactionTapOn(m, e);
 
                 Future<void> reactionLongPressOn(
-                    ChatMessage target, String e) async {
+                    ChatMessage target, String e, {bool? album}) async {
                   HapticFeedback.mediumImpact();
                   await showReactionDetailsSheet(
                     context,
@@ -5812,6 +5924,7 @@ class _RoomScreenState extends State<RoomScreen>
                     // people who aren't friends of ours.
                     resolveUser: (id) => _members[id],
                     onOpenProfile: _openProfile,
+                    album: album,
                   );
                 }
 
@@ -5964,7 +6077,12 @@ class _RoomScreenState extends State<RoomScreen>
                           longPressOn(target, anchorKey: anchor);
                         },
                         onAlbumReactionTap: reactionTapOn,
-                        onAlbumReactionLongPress: reactionLongPressOn,
+                        onAlbumReactionLongPress: (target, e) =>
+                            reactionLongPressOn(target, e, album: false),
+                        onAlbumStackReactionTap: (first, e) =>
+                            _toggleReaction(first, e, album: true),
+                        onAlbumStackReactionLongPress: (first, e) =>
+                            reactionLongPressOn(first, e, album: true),
                         // Looked up only for the three types that can have one,
                         // so an ordinary transcript costs one enum comparison
                         // per row rather than a map probe.

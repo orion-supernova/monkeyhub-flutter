@@ -3203,6 +3203,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String get photoDeckBackToFirst => 'Voltar à primeira';
 
   @override
+  String messageMenuAlbumAll(int count) {
+    return 'Todos ($count)';
+  }
+
+  @override
+  String get messageMenuAlbumOne => 'Só este';
+
+  @override
+  String replyAlbumItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count itens',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get photoTrayDiscardSemanticLabel => 'Descartar estas fotos';
 
   @override
@@ -15333,6 +15352,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get photoDeckBackToFirst => 'Voltar para a primeira';
+
+  @override
+  String messageMenuAlbumAll(int count) {
+    return 'Todos ($count)';
+  }
+
+  @override
+  String get messageMenuAlbumOne => 'Só este';
+
+  @override
+  String replyAlbumItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count itens',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get photoTrayDiscardSemanticLabel => 'Descartar estas fotos';

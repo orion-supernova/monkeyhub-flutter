@@ -1236,6 +1236,17 @@ class ChatApi {
     String? senderName,
     String? replyToId,
 
+    /// With [replyToId] naming an album's first message: the reply is to the
+    /// whole album, and the server counts it into the preview.
+    bool replyToAlbum = false,
+
+    /// The sender's count of that album, for one from before album ids,
+    /// which the server cannot count itself.
+    int? replyAlbumCount,
+
+    /// The album this photo or video belongs to (see `ChatMessage.albumId`).
+    String? albumId,
+
     /// Burn-after-reading. The server drops [mediaWidth]/[mediaHeight] for one
     /// of these and never hands the storage id back out again.
     bool viewOnce = false,
@@ -1291,6 +1302,9 @@ class ChatApi {
       'posterStorageId': ?posterStorageId,
       'senderName': ?senderName,
       'replyToId': ?replyToId,
+      if (replyToAlbum && replyToId != null) 'replyToAlbum': true,
+      if (replyToAlbum && replyToId != null) 'replyAlbumCount': ?replyAlbumCount,
+      'albumId': ?albumId,
       if (viewOnce) 'viewOnce': true,
       // Omitted rather than sent empty, matching `viewOnce` above — the common
       // message mentions nobody and shouldn't widen the wire to say so.
@@ -1830,11 +1844,15 @@ class ChatApi {
     required String messageId,
     required String userId,
     required String emoji,
+
+    /// The reaction is to the whole album [messageId] heads.
+    bool album = false,
   }) async {
     await _cv.mutation('reactions:addReaction', {
       'messageId': messageId,
       'userId': userId,
       'emoji': emoji,
+      if (album) 'album': true,
     });
   }
 
@@ -1842,11 +1860,15 @@ class ChatApi {
     required String messageId,
     required String userId,
     required String emoji,
+
+    /// The reaction is to the whole album [messageId] heads.
+    bool album = false,
   }) async {
     await _cv.mutation('reactions:removeReaction', {
       'messageId': messageId,
       'userId': userId,
       'emoji': emoji,
+      if (album) 'album': true,
     });
   }
 

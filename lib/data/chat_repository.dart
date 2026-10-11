@@ -2963,6 +2963,10 @@ class ChatRepository extends ChangeNotifier {
     String roomId,
     String text, {
     String? replyToId,
+
+    /// Set when the reply is to the whole album [replyToId] heads: how many
+    /// items it holds. See [ReplyPreview.albumCount].
+    int? replyAlbumCount,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
     List<FormattingEntity> formatting = const [],
@@ -2972,6 +2976,7 @@ class ChatRepository extends ChangeNotifier {
       content: text,
       type: MessageType.text,
       replyToId: replyToId,
+      replyAlbumCount: replyAlbumCount,
       mentions: mentions,
       mentionsEveryone: mentionsEveryone,
       formatting: formatting,
@@ -2987,6 +2992,7 @@ class ChatRepository extends ChangeNotifier {
     String roomId,
     ExpressionItem item, {
     String? replyToId,
+    int? replyAlbumCount,
   }) {
     return _send(
       roomId: roomId,
@@ -2996,6 +3002,7 @@ class ChatRepository extends ChangeNotifier {
       mediaWidth: item.width,
       mediaHeight: item.height,
       replyToId: replyToId,
+      replyAlbumCount: replyAlbumCount,
       expression: item,
     );
   }
@@ -3576,6 +3583,7 @@ class ChatRepository extends ChangeNotifier {
     double? mediaWidth,
     double? mediaHeight,
     String? replyToId,
+    int? replyAlbumCount,
     bool viewOnce = false,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
@@ -3593,6 +3601,7 @@ class ChatRepository extends ChangeNotifier {
       mediaWidth: mediaWidth,
       mediaHeight: mediaHeight,
       replyToId: replyToId,
+      replyAlbumCount: replyAlbumCount,
       viewOnce: viewOnce,
       mentions: mentions,
       mentionsEveryone: mentionsEveryone,
@@ -3637,6 +3646,13 @@ class ChatRepository extends ChangeNotifier {
     String? mimeType,
     int? mediaDurationMs,
     String? replyToId,
+
+    /// Set for a reply to the whole album [replyToId] heads: its item count,
+    /// which the pending tether shows at once and [_postMessage] sends.
+    int? replyAlbumCount,
+
+    /// The album a photo or video is sent in. See [ChatMessage.albumId].
+    String? albumId,
     bool viewOnce = false,
     MessageStatus status = MessageStatus.pending,
     PendingUpload? upload,
@@ -3696,6 +3712,7 @@ class ChatRepository extends ChangeNotifier {
           mediaUrl: parent.mediaPreviewUrl ?? parent.mediaUrl,
           stickerStorageId: parent.stickerStorageId,
           stickerFormat: parent.stickerFormat,
+          albumCount: replyAlbumCount,
         );
         optimisticRootId = parent.threadKey;
       }
@@ -3723,6 +3740,7 @@ class ChatRepository extends ChangeNotifier {
       rootId: optimisticPreview != null ? optimisticRootId : null,
       viewOnce: viewOnce,
       upload: upload,
+      albumId: albumId,
       // Carried on the pending bubble so the sender's own mention is
       // highlighted the instant they hit send, rather than flatly for the
       // round-trip and then lighting up when the echo lands. The server may
@@ -3782,6 +3800,11 @@ class ChatRepository extends ChangeNotifier {
         // sweepers re-post through this path and neither knows posters exist.
         posterStorageId: optimistic.posterStorageId,
         replyToId: optimistic.replyToId,
+        // Read off the bubble, like everything here, so a reconnect retry
+        // still replies to the whole album and still lands in its album.
+        replyToAlbum: optimistic.replyToPreview?.albumCount != null,
+        replyAlbumCount: optimistic.replyToPreview?.albumCount,
+        albumId: optimistic.albumId,
         // Must ride along, or a view-once photo that happened to be sent while
         // the socket was frozen comes back as an ordinary, permanent one — the
         // flag dropped on the retry rather than on the send the user made.
@@ -3914,6 +3937,11 @@ class ChatRepository extends ChangeNotifier {
     Uint8List? posterBytes,
     String? caption,
     String? replyToId,
+    int? replyAlbumCount,
+
+    /// The album this photo or video is sent in, shared by every item of one
+    /// send. See [ChatMessage.albumId].
+    String? albumId,
     bool viewOnce = false,
   }) async {
     final upload = PendingUpload(
@@ -3941,6 +3969,8 @@ class ChatRepository extends ChangeNotifier {
       mediaWidth: viewOnce ? null : mediaWidth,
       mediaHeight: viewOnce ? null : mediaHeight,
       replyToId: replyToId,
+      replyAlbumCount: replyAlbumCount,
+      albumId: albumId,
       viewOnce: viewOnce,
       status: MessageStatus.uploading,
       upload: upload,
@@ -3971,6 +4001,7 @@ class ChatRepository extends ChangeNotifier {
               fileSize: fileSize,
               mimeType: fileName == null ? null : contentType,
               replyToId: replyToId,
+              albumId: albumId,
               viewOnce: viewOnce,
               status: MessageStatus.error,
             )!,
@@ -5013,6 +5044,10 @@ class ChatRepository extends ChangeNotifier {
   Future<String?> toggleReaction({
     required String messageId,
     required String emoji,
+
+    /// A reaction to the whole album [messageId] heads rather than to that
+    /// one photo: a separate set on the same message, with its own cap.
+    bool album = false,
   }) async {
     final id = _userId;
     if (id == null) return null;
@@ -5021,10 +5056,13 @@ class ChatRepository extends ChangeNotifier {
     // scan of every room: after the patch below the answer changes, and the
     // mutation has to be chosen from the state the user tapped on.
     final held = roomId == null ? null : _findMessage(roomId, messageId);
-    final mineExists =
-        held?.reactions.any((r) => r.userId == id && r.emoji == emoji) ?? false;
+    bool inSet(MessageReaction r) => r.album == album;
+    final mineExists = held?.reactions.any(
+            (r) => inSet(r) && r.userId == id && r.emoji == emoji) ??
+        false;
     if (!mineExists && held != null) {
-      final mineCount = held.reactions.where((r) => r.userId == id).length;
+      final mineCount =
+          held.reactions.where((r) => inSet(r) && r.userId == id).length;
       if (mineCount >= kMaxMessageReactionsPerPerson) return kReactionLimitError;
     }
 
@@ -5033,17 +5071,19 @@ class ChatRepository extends ChangeNotifier {
         : _patchMessageEverywhere(roomId, messageId, (m) {
             final next = [...m.reactions];
             if (mineExists) {
-              next.removeWhere((r) => r.userId == id && r.emoji == emoji);
+              next.removeWhere(
+                  (r) => inSet(r) && r.userId == id && r.emoji == emoji);
             } else {
               next.add(MessageReaction(
                 // Provisional, and replaced by the server's own row on the
                 // next fire. Prefixed like the optimistic message ids so
                 // anything keying off it can tell it apart from a real one.
-                id: 'tmp_${messageId}_${id}_$emoji',
+                id: 'tmp_${messageId}_${id}_${emoji}_${album ? 'a' : 'p'}',
                 messageId: messageId,
                 userId: id,
                 emoji: emoji,
                 createdAt: DateTime.now(),
+                album: album,
               ));
             }
             return m.copyWith(reactions: next);
@@ -5052,9 +5092,11 @@ class ChatRepository extends ChangeNotifier {
 
     try {
       if (mineExists) {
-        await api.removeReaction(messageId: messageId, userId: id, emoji: emoji);
+        await api.removeReaction(
+            messageId: messageId, userId: id, emoji: emoji, album: album);
       } else {
-        await api.addReaction(messageId: messageId, userId: id, emoji: emoji);
+        await api.addReaction(
+            messageId: messageId, userId: id, emoji: emoji, album: album);
       }
     } catch (e) {
       // Put it back rather than leaving the optimistic row to be corrected by

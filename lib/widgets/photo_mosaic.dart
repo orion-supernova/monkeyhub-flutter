@@ -491,7 +491,9 @@ class MosaicTile extends StatelessWidget {
       );
     }
 
-    final reactions = message.reactions;
+    // This photo's own reactions. Ones to the whole album ride on its first
+    // message too, flagged, and are drawn under the stack instead.
+    final reactions = [for (final r in message.reactions) if (!r.album) r];
     return KeyedSubtree(
       key: anchor,
       child: GestureDetector(

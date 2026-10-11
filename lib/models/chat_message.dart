@@ -19,6 +19,7 @@ class ReplyPreview {
     this.mediaUrl,
     this.stickerStorageId,
     this.stickerFormat,
+    this.albumCount,
   });
 
   final String senderId;
@@ -33,6 +34,10 @@ class ReplyPreview {
   /// A quoted pack sticker's art, and how to draw it.
   final String? stickerStorageId;
   final StickerFormat? stickerFormat;
+
+  /// Set when the reply is to a whole album: how many items it held. The
+  /// parent is the album's first message, and the quote draws a stack.
+  final int? albumCount;
 
   bool get isDeleted => contentPreview == '__DELETED__';
 
@@ -54,6 +59,7 @@ class ReplyPreview {
         stickerFormat: j['stickerFormat'] == null
             ? null
             : ExpressionItem.parseFormat(j['stickerFormat']),
+        albumCount: (j['albumCount'] as num?)?.toInt(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -65,6 +71,7 @@ class ReplyPreview {
         if (mediaUrl != null) 'mediaUrl': mediaUrl,
         if (stickerStorageId != null) 'stickerStorageId': stickerStorageId,
         if (stickerFormat != null) 'stickerFormat': stickerFormat!.name,
+        if (albumCount != null) 'albumCount': albumCount,
       };
 }
 
@@ -125,6 +132,7 @@ class ChatMessage {
     this.viewOnceBurnedAt,
     this.upload,
     this.clientId,
+    this.albumId,
     List<MessageMention>? mentions,
     this.mentionsEveryone = false,
     this.latitude,
@@ -233,6 +241,12 @@ class ChatMessage {
   /// known to the *receiver* of the echo before the sender's own ack comes
   /// back, which is the case where the ack is the thing that got lost.
   final String? clientId;
+
+  /// The album this photo or video was sent in: one id shared by every item
+  /// of one send. The transcript stacks an album by it exactly. Null on
+  /// anything sent alone, and on albums from before it existed, which fall
+  /// back to the timing rule in `collapseAlbums`.
+  final String? albumId;
   bool edited;
 
   /// When the author last edited this message, server-minted. Null on
@@ -496,6 +510,7 @@ class ChatMessage {
               (j['viewOnceBurnedAt'] as num).toInt())
           : null,
       clientId: j['clientId'] as String?,
+      albumId: j['albumId'] as String?,
       mentions: (j['mentions'] as List?)
               ?.map((m) =>
                   MessageMention.fromJson((m as Map).cast<String, dynamic>()))
@@ -564,6 +579,9 @@ class ChatMessage {
         'reactions': reactions.map((r) => r.toJson()).toList(),
         if (replyToId != null) 'replyToId': replyToId,
         if (replyToPreview != null) 'replyToPreview': replyToPreview!.toJson(),
+        // Round-trips through the cache, or a cold boot would unstack every
+        // album until the subscription lands.
+        if (albumId != null) 'albumId': albumId,
         // Round-trips through CacheStore — without it, cached messages lose
         // their thread membership on cold boot.
         if (rootId != null) 'rootId': rootId,
@@ -665,6 +683,9 @@ class ChatMessage {
         // in-flight send would leave a bubble that can neither paint its picture
         // nor be retried, and nothing about the call site would hint at it.
         upload: upload ?? this.upload,
+        // Carried: reactions and edits run through copyWith, and an album
+        // whose first photo lost its id on a reaction would split in two.
+        albumId: albumId,
         // Carried for the same reason: a copy that lost these would render a
         // bubble whose text says "@bob" and whose highlighting says nothing,
         // with nothing at the call site to hint at why. `copyWith` runs on the

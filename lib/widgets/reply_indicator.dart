@@ -479,6 +479,12 @@ String _previewLabel(BuildContext context, ReplyPreview preview) {
   if (preview.isViewOnce) {
     return AppLocalizations.of(context).replyIndicatorViewOnceLabel;
   }
+  // A reply to a whole album: what it points at is the stack, so it says how
+  // big the stack was, beside a thumbnail drawn as one.
+  final albumCount = preview.albumCount;
+  if (albumCount != null) {
+    return AppLocalizations.of(context).replyAlbumItems(albumCount);
+  }
   // Ahead of the passthrough too: a GIF's `content` is its alt text, and a
   // quote reading "Hello" would say the parent typed it.
   if (preview.type == MessageType.gif) return 'GIF';
@@ -556,6 +562,45 @@ Widget _smallAvatar({
   );
 }
 
+/// A reply thumbnail drawn as a stack: [child] in front of a card peeking out
+/// behind it, up and to the right, the album's own shape in miniature. Takes
+/// no more room than the thumbnail alone, so a quote of a stack lays out
+/// exactly like a quote of one photo.
+Widget albumStackThumb({
+  required AppTheme theme,
+  required double size,
+  required Widget child,
+}) {
+  final step = (size * 0.14).clamp(2.0, 5.0);
+  return SizedBox.square(
+    dimension: size,
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: step,
+          top: -step,
+          width: size - step,
+          height: size - step,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.ink.withValues(alpha: 0.28),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          width: size - step,
+          height: size - step,
+          child: FittedBox(fit: BoxFit.cover, child: child),
+        ),
+      ],
+    ),
+  );
+}
+
 Widget _mediaThumb({
   required ReplyPreview preview,
   required ChatApi api,
@@ -565,7 +610,7 @@ Widget _mediaThumb({
   final hasMedia =
       preview.mediaStorageId != null && preview.mediaStorageId!.isNotEmpty;
   if (hasMedia) {
-    return ClipRRect(
+    final image = ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: RemoteImage(
         storageId: preview.mediaStorageId!,
@@ -575,6 +620,9 @@ Widget _mediaThumb({
         borderRadius: BorderRadius.circular(4),
       ),
     );
+    return preview.albumCount == null
+        ? image
+        : albumStackThumb(theme: theme, size: size, child: image);
   }
   // A quoted GIF or sticker carries its own small picture instead.
   final thumb = expressionThumbnail(

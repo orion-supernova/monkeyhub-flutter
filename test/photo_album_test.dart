@@ -85,6 +85,35 @@ List<List<String>> drawn(List<ChatMessage> messages) => [
 
 void main() {
   group('a run becomes one album', () {
+    test('an album id groups exactly its members, gaps and all', () {
+      ChatMessage tagged(String id, {required int t, String? album}) =>
+          ChatMessage(
+            id: id,
+            roomId: 'room',
+            senderId: 'alice',
+            senderName: 'alice',
+            content: '',
+            createdAt: _epoch.add(Duration(minutes: t)),
+            type: MessageType.image,
+            mediaStorageId: 'st_$id',
+            albumId: album,
+          );
+      expect(
+          drawn([
+            tagged('a', t: 0, album: 'x'),
+            // Twenty minutes later: the timing rule alone would split here.
+            tagged('b', t: 20, album: 'x'),
+            tagged('c', t: 21, album: 'y'),
+            tagged('d', t: 22, album: 'y'),
+            tagged('e', t: 23),
+          ]),
+          [
+            ['a', 'b'],
+            ['c', 'd'],
+            ['e'],
+          ]);
+    });
+
     test('photos and videos together', () {
       ChatMessage video(String id, {required int t}) => ChatMessage(
             id: id,

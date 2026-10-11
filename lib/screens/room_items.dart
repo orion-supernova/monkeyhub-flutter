@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -243,6 +244,15 @@ bool continuesRun(
 /// goes gets three blocks rather than one wall.
 const int kMaxAlbumPhotos = 10;
 
+/// A fresh album id for one send of several photos or videos. Random enough
+/// that two senders (or two sends) never share one; it is only ever compared,
+/// and the server bounds its length.
+String newAlbumId() {
+  final r = math.Random.secure();
+  final bits = [for (var i = 0; i < 4; i++) r.nextInt(0x7fffffff)];
+  return 'alb_${bits.map((b) => b.toRadixString(36)).join()}';
+}
+
 /// Whether [m] may be drawn as a tile in an album rather than as its own
 /// bubble.
 ///
@@ -288,12 +298,18 @@ List<RoomItem> collapseAlbums(List<RoomItem> rows) {
       i++;
       continue;
     }
+    // An album with an id is exactly its own members, however long its
+    // uploads took (a slow one can open a gap the timing rule would split
+    // on) and however many it holds. Without one, the timing rule: adjacent,
+    // grouped, capped, and never swallowing a member of an album that has
+    // an id of its own.
+    final key = head.message.albumId;
     var end = i + 1;
-    while (end < rows.length && end - i < kMaxAlbumPhotos) {
+    while (end < rows.length && (key != null || end - i < kMaxAlbumPhotos)) {
       final next = rows[end];
-      if (next is! MessageItem ||
-          !next.grouped ||
-          !albumEligible(next.message)) {
+      if (next is! MessageItem || !albumEligible(next.message)) break;
+      final nextKey = next.message.albumId;
+      if (key != null ? nextKey != key : (!next.grouped || nextKey != null)) {
         break;
       }
       end++;

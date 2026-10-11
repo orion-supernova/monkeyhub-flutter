@@ -19,6 +19,7 @@ import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'glass_reveal.dart';
 import 'glass_surface.dart';
+import 'segmented_control.dart';
 import 'translation_slab.dart' show FrozenBubble;
 import 'teardown_safe.dart';
 
@@ -106,13 +107,14 @@ enum MessageAction {
 /// * `.emoji(...)` — user tapped one of the quick reactions in the pill
 /// * `.fullPicker()` — user tapped `+` and wants the full picker
 class MessageActionResult {
-  const MessageActionResult.action(MessageAction this.action)
+  const MessageActionResult.action(MessageAction this.action,
+      {this.album = false})
       : emoji = null,
         openFullReactionPicker = false;
-  const MessageActionResult.emoji(String this.emoji)
+  const MessageActionResult.emoji(String this.emoji, {this.album = false})
       : action = null,
         openFullReactionPicker = false;
-  const MessageActionResult.fullPicker()
+  const MessageActionResult.fullPicker({this.album = false})
       : action = null,
         emoji = null,
         openFullReactionPicker = true;
@@ -120,6 +122,33 @@ class MessageActionResult {
   final MessageAction? action;
   final String? emoji;
   final bool openFullReactionPicker;
+
+  /// The choice was made with the menu's album switch on "All": it applies
+  /// to the whole album, not the one photo that was pressed. Always false
+  /// without a [MessageMenuAlbum].
+  final bool album;
+}
+
+/// What the menu needs to offer the whole album as well as the pressed photo:
+/// the two-way switch at the top of the list ("All 4" / "This one"), and,
+/// for the "All" side, its own rows and its own selected reactions. The
+/// switch starts on "All".
+class MessageMenuAlbum {
+  const MessageMenuAlbum({
+    required this.allLabel,
+    required this.oneLabel,
+    required this.capabilities,
+    this.myReactions = const {},
+  });
+
+  final String allLabel;
+  final String oneLabel;
+
+  /// The rows the whole album affords.
+  final MessageCapabilities capabilities;
+
+  /// The viewer's reactions to the whole album.
+  final Set<String> myReactions;
 }
 
 const List<String> _kQuickReactions = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
@@ -166,6 +195,11 @@ Future<MessageActionResult?> showMessageActionMenu({
   /// the quick pill — and, when one is not among the quick six, drawn there
   /// anyway (WhatsApp's way), so a long-press always shows what you said.
   Set<String> myReactions = const {},
+
+  /// Set when the pressed bubble is one card of an album: the menu then opens
+  /// on the whole album, with a switch to the pressed photo alone. The
+  /// result's [MessageActionResult.album] says which side was chosen.
+  MessageMenuAlbum? album,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -208,6 +242,7 @@ Future<MessageActionResult?> showMessageActionMenu({
       isTranslated: isTranslated,
       fileName: fileName,
       myReactions: myReactions,
+      album: album,
       backdrop: backdrop,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
@@ -236,11 +271,15 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.isTranslated,
     required this.fileName,
     required this.myReactions,
+    required this.album,
     required this.backdrop,
     required this.onResolve,
   });
 
   final Set<String> myReactions;
+
+  /// See [showMessageActionMenu]'s `album`.
+  final MessageMenuAlbum? album;
 
   final Rect bubbleRect;
 
@@ -269,6 +308,10 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   bool _closing = false;
+
+  /// The album switch's side: true acts on the whole album. Starts there
+  /// whenever there is an album to act on.
+  late bool _whole = widget.album != null;
 
   @override
   void initState() {
@@ -304,14 +347,20 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
   /// width and text scale [_ActionList] will hand the real one — see
   /// [_FileNameHeader], which owns the padding both of these read.
   double _headerHeight(BuildContext context, AppTheme theme) {
-    final name = widget.fileName;
-    if (name == null) return 0;
+    // The album switch, a fixed height, over everything else.
+    final album =
+        widget.album == null ? 0.0 : _AlbumSwitch.height + 1; // + divider
+    final name = _whole ? null : widget.fileName;
+    if (name == null) return album;
     final painter = TextPainter(
       text: TextSpan(text: name, style: theme.bodyEmph),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
     )..layout(maxWidth: _ActionList.maxWidth - _FileNameHeader.padding.horizontal);
-    return painter.height + _FileNameHeader.padding.vertical + 1; // + divider
+    return album +
+        painter.height +
+        _FileNameHeader.padding.vertical +
+        1; // + divider
   }
 
   /// Lays the pill and the list out against the band between the WINDOW's top
@@ -358,13 +407,15 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     // (`_actionCount()`), whose comment warned that a missed row mispositions
     // the whole menu by 48pt near a screen edge. Now the count is
     // `specs.length` by construction and there is nothing to keep in step.
+    final album = widget.album;
+    final whole = _whole && album != null;
     final specs = messageActionSpecs(
       l10n: AppLocalizations.of(context),
-      capabilities: widget.capabilities,
+      capabilities: whole ? album.capabilities : widget.capabilities,
       isPinned: widget.isPinned,
       isSaved: widget.isSaved,
       isTranslated: widget.isTranslated,
-      hasFileName: widget.fileName != null,
+      hasFileName: !whole && widget.fileName != null,
     );
 
     final bubble = widget.bubbleRect;
@@ -534,14 +585,14 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
             child: _ReactionPill(
               isMine: widget.isMine,
-              selected: widget.myReactions,
+              selected: whole ? album.myReactions : widget.myReactions,
               onEmoji: (e) {
                 HapticFeedback.lightImpact();
-                _resolve(MessageActionResult.emoji(e));
+                _resolve(MessageActionResult.emoji(e, album: whole));
               },
               onMore: () {
                 HapticFeedback.selectionClick();
-                _resolve(const MessageActionResult.fullPicker());
+                _resolve(MessageActionResult.fullPicker(album: whole));
               },
             ),
           ),
@@ -557,7 +608,17 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             alignment: widget.isMine ? Alignment.topRight : Alignment.topLeft,
             child: _ActionList(
               specs: specs,
-              fileName: widget.fileName,
+              fileName: whole ? null : widget.fileName,
+              header: album == null
+                  ? null
+                  : _AlbumSwitch(
+                      album: album,
+                      whole: _whole,
+                      onChanged: (v) {
+                        HapticFeedback.selectionClick();
+                        setState(() => _whole = v);
+                      },
+                    ),
               // Null unless the band forced a clamp — an unconstrained list
               // shrink-wraps exactly as it always has.
               maxHeight: menuScrolls ? menuH : null,
@@ -569,7 +630,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
                 } else {
                   HapticFeedback.lightImpact();
                 }
-                _resolve(MessageActionResult.action(a));
+                _resolve(MessageActionResult.action(a, album: whole));
               },
             ),
           ),
@@ -968,13 +1029,52 @@ class _PillMoreState extends State<_PillMore>
 
 // ───────────────────────── action list ─────────────────────────
 
+/// The switch at the top of an album card's menu: the whole album, or the
+/// one photo that was pressed. A fixed [height], so the overlay can lay the
+/// menu out by arithmetic as it does every other row.
+class _AlbumSwitch extends StatelessWidget {
+  const _AlbumSwitch({
+    required this.album,
+    required this.whole,
+    required this.onChanged,
+  });
+
+  static const double height = 46;
+
+  final MessageMenuAlbum album;
+  final bool whole;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
+        child: IosSegmentedControl<bool>(
+          segments: [
+            IosSegment(value: true, label: album.allLabel),
+            IosSegment(value: false, label: album.oneLabel),
+          ],
+          value: whole,
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
 class _ActionList extends StatelessWidget {
   const _ActionList({
     required this.specs,
     required this.onAction,
     this.fileName,
+    this.header,
     this.maxHeight,
   });
+
+  /// Drawn above everything, the filename included: the album switch.
+  final Widget? header;
 
   /// Shared with `_MessageActionMenuOverlay._headerHeight`, which has to
   /// measure the header against exactly the width it will get.
@@ -1004,8 +1104,18 @@ class _ActionList extends StatelessWidget {
     // Ahead of every action: this is the thing the user long-pressed to read.
     // Seeded into `rows` first, so the between-rows divider below separates it
     // from the first action without a special case.
+    final top = header;
+    if (top != null) rows.add(top);
     final name = fileName;
-    if (name != null) rows.add(_FileNameHeader(name: name, theme: theme));
+    if (name != null) {
+      if (rows.isNotEmpty) {
+        rows.add(Container(
+          height: 1 / MediaQuery.devicePixelRatioOf(context),
+          color: theme.ink.withValues(alpha: 0.10),
+        ));
+      }
+      rows.add(_FileNameHeader(name: name, theme: theme));
+    }
 
     for (final spec in specs) {
       if (rows.isNotEmpty) {

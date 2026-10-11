@@ -46,6 +46,11 @@ Future<void> showReactionDetailsSheet(
   /// friends. Null for someone who has since left.
   required ChatUser? Function(String userId) resolveUser,
   required void Function(ChatUser user) onOpenProfile,
+
+  /// Which of the message's two reaction sets to show when it heads an
+  /// album: true the album's, false that photo's own. Null shows them all,
+  /// which is every message that is not an album's first.
+  bool? album,
 }) {
   return showAdaptiveSheet<void>(
     context,
@@ -59,6 +64,7 @@ Future<void> showReactionDetailsSheet(
       initialEmoji: initialEmoji,
       resolveUser: resolveUser,
       onOpenProfile: onOpenProfile,
+      album: album,
     ),
   );
 }
@@ -75,6 +81,7 @@ class ReactionDetailsSheet extends StatefulWidget {
     required this.initialEmoji,
     required this.resolveUser,
     required this.onOpenProfile,
+    this.album,
   });
 
   final ChatRepository repo;
@@ -86,6 +93,9 @@ class ReactionDetailsSheet extends StatefulWidget {
   final String initialEmoji;
   final ChatUser? Function(String userId) resolveUser;
   final void Function(ChatUser user) onOpenProfile;
+
+  /// See [showReactionDetailsSheet]'s `album`.
+  final bool? album;
 
   @override
   State<ReactionDetailsSheet> createState() => _ReactionDetailsSheetState();
@@ -138,9 +148,13 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
   /// a reaction that lands (or is taken back) while the sheet is open shows up.
   /// [ChatRepository] is a [ChangeNotifier] and reactions ride along with every
   /// message list query, so this costs one list scan per notification.
-  List<MessageReaction> get _reactions =>
-      widget.repo.findMessageInRoom(widget.roomId, widget.messageId)?.reactions ??
-      widget.fallback;
+  List<MessageReaction> get _reactions {
+    final all =
+        widget.repo.findMessageInRoom(widget.roomId, widget.messageId)?.reactions ??
+            widget.fallback;
+    final album = widget.album;
+    return album == null ? all : [for (final r in all) if (r.album == album) r];
+  }
 
   ChatUser _userFor(String id) =>
       widget.resolveUser(id) ??

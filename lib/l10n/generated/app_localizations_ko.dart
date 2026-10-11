@@ -3061,6 +3061,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get photoDeckBackToFirst => '처음으로';
 
   @override
+  String messageMenuAlbumAll(int count) {
+    return '전체 ($count)';
+  }
+
+  @override
+  String get messageMenuAlbumOne => '이것만';
+
+  @override
+  String replyAlbumItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get photoTrayDiscardSemanticLabel => '이 사진들 취소';
 
   @override
