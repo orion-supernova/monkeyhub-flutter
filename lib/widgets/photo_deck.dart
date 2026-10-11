@@ -146,7 +146,15 @@ class _PhotoDeckState extends State<PhotoDeck>
   /// mid-swipe. It may run past either end while a finger pulls it there
   /// (see [_overscroll]); released, it springs to a whole number in range.
   late final AnimationController _position =
-      AnimationController.unbounded(vsync: this)..addListener(_repaint);
+      AnimationController.unbounded(vsync: this)
+        ..addListener(_repaint)
+        // And on every status change. A glide that ends exactly on its card
+        // changes no value on its last frame, so without this nothing
+        // rebuilds once it stops: the deck went on thinking it was moving,
+        // and left the front card ignoring pointers, so a long-press fell
+        // through to the row (the album's LAST item) and the stamp stayed
+        // hidden.
+        ..addStatusListener((_) => _repaint());
 
   bool _dragging = false;
 
@@ -159,7 +167,9 @@ class _PhotoDeckState extends State<PhotoDeck>
   GlobalKey _anchorFor(String id) =>
       _anchors.putIfAbsent(id, () => GlobalKey(debugLabel: 'deck-$id'));
 
-  void _repaint() => setState(() {});
+  void _repaint() {
+    if (mounted) setState(() {});
+  }
 
   int get _n => widget.photos.length;
   double get _cardW => PhotoDeck.cardWidth(widget.width, _n);
@@ -181,7 +191,15 @@ class _PhotoDeckState extends State<PhotoDeck>
   /// The index of the card in front, once the hand is at rest.
   int get _front => _inRange.round();
 
-  bool get _resting => !_dragging && !_position.isAnimating;
+  /// At rest as far as anyone can see: no finger down, and the hand within
+  /// a sliver of a card of landing. NOT "the glide has finished": a
+  /// critically damped spring creeps its last fraction of a point for most of
+  /// a second, and a hand that counted that as moving ignored a long-press
+  /// made right after a swipe (it fell through to the row, the album's last
+  /// item) and kept its stamp hidden.
+  bool get _resting =>
+      !_dragging &&
+      (_position.value - _position.value.roundToDouble()).abs() < 0.02;
 
   @override
   void initState() {
@@ -272,6 +290,10 @@ class _PhotoDeckState extends State<PhotoDeck>
           _position.value,
           to,
           velocity,
+          // In cards: a thousandth of one is a fraction of a point, and the
+          // default's far tighter velocity floor kept the ticker (and every
+          // card's repaint) running long after anything visibly moved.
+          tolerance: const Tolerance(distance: 0.001, velocity: 0.01),
         ))
         .then((_) {
       if (mounted) _position.value = to;
@@ -385,7 +407,11 @@ class _PhotoDeckState extends State<PhotoDeck>
               top: 0,
               width: cardW,
               height: cardH,
-              child: _card(theme, i, _pose(i), front: resting && i == front),
+              // The card nearest the position takes touches whenever no finger
+              // is dragging, settled or not: a press while the hand is still
+              // gliding home is about that card, and leaving it inert let the
+              // press fall through to the row (the album's LAST item).
+              child: _card(theme, i, _pose(i), front: !_dragging && i == front),
             ),
           // Where in the hand you are, on the front card's corner and fixed
           // there while the cards move under it. See [_DeckPager].

@@ -207,4 +207,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(hits, ['card-click m0']);
   });
+
+  testWidgets('after a swipe, a long-press is still the front card\'s',
+      (tester) async {
+    final album = [photo('m0'), photo('m1'), photo('m2')];
+    final hits = <String>[];
+    await tester.pumpWidget(host(MessageBubble(
+      message: album.last,
+      now: DateTime(2026, 3, 1),
+      currentUserId: 'bob',
+      api: api,
+      album: album,
+      onLongPress: () => hits.add('row'),
+      onAlbumTileLongPress: (m, _) => hits.add('card ${m.id}'),
+    )));
+    await tester.pump();
+    MosaicTile? tile(String id) => tester
+        .widgetList<MosaicTile>(find.byType(MosaicTile))
+        .where((t) => t.message.id == id)
+        .firstOrNull;
+    final deck = find.ancestor(
+        of: find.byWidget(tile('m0')!), matching: find.byType(GestureDetector)).last;
+    await tester.drag(deck, const Offset(-200, 0));
+    // Right after the swipe, as a person does it: the glide has visibly
+    // landed but its spring has not formally finished.
+    await tester.pump(const Duration(milliseconds: 120));
+    // Whichever card it landed on, the press is that card's, never the row's.
+    final box = tester.getRect(deck);
+    await tester.longPressAt(box.center);
+    await tester.pumpAndSettle();
+    expect(hits, hasLength(1));
+    expect(hits.single, isNot('row'));
+    expect(hits.single, isNot('card m0'));
+  });
 }
