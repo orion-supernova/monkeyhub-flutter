@@ -36,6 +36,7 @@ import '../services/live_location_publisher.dart';
 import '../services/live_share_resume_store.dart';
 import '../services/location_service.dart';
 import 'cache_store.dart';
+import 'ordered_send_queue.dart';
 import 'pending_reconcile.dart';
 import 'room_filter.dart';
 import 'settings_store.dart';
@@ -3857,10 +3858,20 @@ class ChatRepository extends ChangeNotifier {
   /// is honestly refused.
   static const _maxRetainedUploadBytes = 48 * 1024 * 1024;
 
-  /// Uploads chained rather than raced. Bounds retained bytes, and lands
-  /// attachments in the order they were sent with one honest progress arc at a
-  /// time instead of five fighting over the same uplink.
-  Future<void> _uploadQueue = Future.value();
+  /// Attachments go up a few at a time but are POSTED one at a time, in the
+  /// order they were sent.
+  ///
+  /// They used to be fully chained, upload and post together, which kept the
+  /// order but made every photo of an album wait out the previous one's server
+  /// round trip before its own bytes started moving: ten photos were ten
+  /// back-to-back trips on a backend whose latency is the slow part. Now the
+  /// bytes overlap, and only the message that references them waits its
+  /// turn ([OrderedSendQueue]), so what the other side sees is the
+  /// preview's order however the uploads happen to finish.
+  ///
+  /// A photo whose upload fails does not hold up the ones after it; a retry
+  /// posts it whenever it lands, after them.
+  final OrderedSendQueue _attachments = OrderedSendQueue();
 
   int get _retainedUploadBytes {
     var total = 0;
@@ -4021,29 +4032,22 @@ class ChatRepository extends ChangeNotifier {
     }
   }
 
-  /// Chains [message]'s upload behind whatever is already going up.
-  ///
-  /// The `catchError` is load-bearing despite looking like belt-and-braces over a
-  /// `_runUpload` that already handles its own failures. A rejected future at the
-  /// tail of a `then` chain makes every subsequent callback skip, so one
-  /// unexpected throw — a listener raising inside `notifyListeners`, say — would
-  /// silently stop every attachment sent for the rest of the session, with nothing
-  /// anywhere to explain it. Anything arriving here is a bug rather than a send
-  /// failure, and a bug must not be able to wedge the queue.
-  Future<void> _enqueueUpload(String roomId, ChatMessage message) {
-    _uploadQueue = _uploadQueue
-        .then((_) => _runUpload(roomId, message))
-        .catchError((Object e) {
-      debugPrint('upload queue step threw (continuing): $e');
-    });
-    return _uploadQueue;
-  }
+  /// Starts [message]'s upload as soon as a slot is free, and queues its post
+  /// behind every attachment sent before it. See [OrderedSendQueue].
+  Future<void> _enqueueUpload(String roomId, ChatMessage message) =>
+      _attachments.add(
+        upload: () => _runUpload(roomId, message),
+        post: () => _runPost(roomId, message),
+      );
 
-  Future<void> _runUpload(String roomId, ChatMessage message) async {
+  /// Puts [message]'s bytes (and a video's poster) up. True when it is ready
+  /// to post; false when there is nothing to post (discarded, cancelled, or
+  /// failed, which is marked on the bubble here).
+  Future<bool> _runUpload(String roomId, ChatMessage message) async {
     final upload = message.upload;
-    if (upload == null || upload.disposed) return;
+    if (upload == null || upload.disposed) return false;
     // Discarded while it sat in the queue.
-    if (!(_pending[roomId]?.contains(message) ?? false)) return;
+    if (!(_pending[roomId]?.contains(message) ?? false)) return false;
 
     final task = UploadTask();
     upload.task = task;
@@ -4068,7 +4072,7 @@ class ChatRepository extends ChangeNotifier {
         } catch (e) {
           debugPrint('poster upload failed (sending video anyway): $e');
         }
-        if (upload.disposed) return;
+        if (upload.disposed) return false;
       }
 
       final storageId = await UploadService(api).uploadFile(
@@ -4080,20 +4084,37 @@ class ChatRepository extends ChangeNotifier {
           upload.report(sent / total);
         },
       );
-      if (upload.disposed) return;
+      if (upload.disposed) return false;
       message.mediaStorageId = storageId;
       message.status = MessageStatus.pending;
       notifyListeners();
-      await _postMessage(roomId, message);
+      return true;
     } on UploadCancelled {
       // Nothing to report: whoever cancelled it already removed the bubble.
+      return false;
     } catch (_) {
-      if (upload.disposed) return;
+      if (upload.disposed) return false;
       // Bytes and progress are kept: they are what makes retry possible.
       message.status = MessageStatus.error;
       notifyListeners();
+      return false;
     } finally {
       upload.task = null;
+    }
+  }
+
+  /// Posts an uploaded attachment, on its turn in [_attachments].
+  Future<void> _runPost(String roomId, ChatMessage message) async {
+    final upload = message.upload;
+    // Discarded while it waited for the ones before it.
+    if (upload != null && upload.disposed) return;
+    if (!(_pending[roomId]?.contains(message) ?? false)) return;
+    try {
+      await _postMessage(roomId, message);
+    } catch (_) {
+      if (upload?.disposed ?? false) return;
+      message.status = MessageStatus.error;
+      notifyListeners();
     }
   }
 
@@ -5432,3 +5453,4 @@ class _MessagePatch {
   /// between `insert` and an assignment on the way back.
   final bool removed;
 }
+
