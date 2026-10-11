@@ -1922,7 +1922,10 @@ class _FadingChrome extends StatelessWidget {
             final opacity = (1 - t * 2).clamp(0.0, 1.0);
             return IgnorePointer(
               ignoring: opacity < 0.05,
-              child: opacity >= 1 ? child : Opacity(opacity: opacity, child: child),
+              // Always wrapped (Opacity at 1 paints straight through): adding
+              // the wrapper as a dismiss drag starts and dropping it as the
+              // photo snaps back remounted the chrome, its state and all.
+              child: Opacity(opacity: opacity, child: child),
             );
           },
           child: child,

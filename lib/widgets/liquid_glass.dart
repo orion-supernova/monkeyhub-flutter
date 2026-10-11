@@ -195,8 +195,12 @@ class LiquidGlass extends StatelessWidget {
       padding: padding,
       child: size == null ? child : Center(child: child),
     );
-    final fade = GlassContentFade.of(context);
-    return fade >= 1 ? content : Opacity(opacity: fade, child: content);
+    // Always wrapped, even at 1 (where Opacity paints straight through, no
+    // layer). Adding the wrapper as a reveal starts and dropping it as it
+    // lands changes the tree's shape, which remounts everything on the glass:
+    // a menu's rows lost their state and replayed their entrance from blank,
+    // one empty frame of glass mid-open.
+    return Opacity(opacity: GlassContentFade.of(context), child: content);
   }
 
   /// Saturate first, then blur. The other order blurs the colour into its
