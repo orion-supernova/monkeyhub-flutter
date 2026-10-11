@@ -139,7 +139,14 @@ class MessageMenuAlbum {
     required this.oneLabel,
     required this.capabilities,
     this.myReactions = const {},
+    this.stackBuilder,
   });
+
+  /// The lifted preview while the switch is on "All": the whole pile rather
+  /// than the pressed card. Laid out in the pressed card's rect like the
+  /// ordinary preview, and free to spill past it (the cards peeking out at
+  /// the sides). Null keeps the card preview on both sides.
+  final WidgetBuilder? stackBuilder;
 
   final String allLabel;
   final String oneLabel;
@@ -567,12 +574,32 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             // translation streaming in underneath did, by 8.9 points. See
             // [FrozenBubble].
             child: FrozenBubble(
-              child: widget.metrics == null
-                  ? Builder(builder: widget.bubbleBuilder)
-                  : ChatMetricsScope(
-                      metrics: widget.metrics!,
-                      child: Builder(builder: widget.bubbleBuilder),
-                    ),
+              child: () {
+                // The pile on "All", the card on "This one", cross-faded as
+                // the switch flips. Photographs only, so a fade is free.
+                final stack = album?.stackBuilder;
+                final builder =
+                    whole && stack != null ? stack : widget.bubbleBuilder;
+                final preview = AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  // Unclipped: the pile's side cards sit outside the rect.
+                  layoutBuilder: (current, previous) => Stack(
+                    clipBehavior: Clip.none,
+                    fit: StackFit.expand,
+                    children: [...previous, ?current],
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey(whole && stack != null),
+                    child: Builder(builder: builder),
+                  ),
+                );
+                return widget.metrics == null
+                    ? preview
+                    : ChatMetricsScope(
+                        metrics: widget.metrics!,
+                        child: preview,
+                      );
+              }(),
             ),
           ),
         Positioned(

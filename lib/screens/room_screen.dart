@@ -100,6 +100,7 @@ import '../widgets/location_share_sheet.dart';
 import '../widgets/composer_edit_card.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/mention_picker.dart';
+import '../widgets/photo_deck.dart';
 import '../widgets/photo_mosaic.dart' show MosaicTile, mosaicHeroTag;
 import '../widgets/companion_strip.dart' show kCompanionStripHeight;
 import '../widgets/pinned_banner.dart';
@@ -5611,6 +5612,40 @@ class _RoomScreenState extends State<RoomScreen>
                         for (final r in first.reactions)
                           if (r.userId == me && r.album) r.emoji,
                       },
+                      // The whole pile, lifted, while "All" is chosen: the
+                      // album's own deck with the pressed card in front,
+                      // laid out so that card covers exactly the rect it was
+                      // pressed in and the others peek out past it. Cards
+                      // only; a grid's tile stays a tile.
+                      stackBuilder: !SettingsStore.instance.albumCards
+                          ? null
+                          : (menuContext) {
+                              final radius = BorderRadius.circular(
+                                  ThemeScope.of(menuContext).radiusLg);
+                              final inset = PhotoDeck.inset(albumRow.length);
+                              return LayoutBuilder(
+                                builder: (_, box) => Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Positioned(
+                                      left: -inset,
+                                      top: 0,
+                                      width: box.maxWidth + 2 * inset,
+                                      height: box.maxHeight,
+                                      child: PhotoDeck(
+                                        photos: albumRow,
+                                        api: widget.api,
+                                        width: box.maxWidth + 2 * inset,
+                                        radius: radius,
+                                        currentUserId: me,
+                                        highlightedPhotoId: target.id,
+                                        onOpen: (_, {required sourceDecodeWidth}) {},
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                     );
                   }
                   final MessageActionResult? result;
