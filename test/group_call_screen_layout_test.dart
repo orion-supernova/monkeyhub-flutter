@@ -219,7 +219,7 @@ void main() {
     addTearDown(() => messenger.setMockStreamHandler(events, null));
   });
 
-  testWidgets('the system bars go only once the slide has finished, as on '
+  testWidgets('the status bar stays up through the call, drawn light, as on '
       'the 1:1 screen', (tester) async {
     final hides = <int>[];
     var frame = 0;
@@ -255,12 +255,16 @@ void main() {
     for (frame = 1; frame <= 3; frame++) {
       await tester.pump(const Duration(milliseconds: 16));
     }
-    // Mid-slide: hiding the bars here relaid out every screen in the app on
-    // the frames the slide most needed.
     expect(route.animation!.isCompleted, isFalse);
     expect(hides, isEmpty);
     await _settle(tester);
-    expect(hides, isNotEmpty);
+    expect(hides, isEmpty);
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is AnnotatedRegion<SystemUiOverlayStyle> &&
+          w.value == kCallStatusBarStyle),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(svc.leaveCall);

@@ -16,7 +16,8 @@ import 'widgets/call_chrome.dart'
         RingActionButton,
         RingerLayout,
         callStatusStyle,
-        kCallAcceptGreen;
+        kCallAcceptGreen,
+        kCallStatusBarStyle;
 
 /// In-app ringer for a group-call invite. Shown by the app overlay while
 /// [GroupCallService.pendingInvite] is fresh; pops itself when the invite
@@ -126,61 +127,64 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
     // title, who started it under it, the starter's face — a phone icon
     // used to sit there, which said nothing about who was calling — and
     // the same pair of answers.
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: RingerLayout(
-        title: roomName,
-        // Who started it, and — on its own line, so a translation never
-        // breaks "3 / kişi" across the two — how many are already in.
-        subtitle: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              started,
-              style: callStatusStyle(theme),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (joined > 1)
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: kCallStatusBarStyle,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: RingerLayout(
+          title: roomName,
+          // Who started it, and — on its own line, so a translation never
+          // breaks "3 / kişi" across the two — how many are already in.
+          subtitle: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Text(
-                l10n.incomingGroupCallScreenAlreadyJoinedCount(joined),
-                style: callStatusStyle(theme).copyWith(fontSize: 15),
+                started,
+                style: callStatusStyle(theme),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
+              if (joined > 1)
+                Text(
+                  l10n.incomingGroupCallScreenAlreadyJoinedCount(joined),
+                  style: callStatusStyle(theme).copyWith(fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+            ],
+          ),
+          pulse: _pulse,
+          // Their photo when this person may see it — the storage id is null
+          // otherwise, lensed server-side — else the per-user gradient and
+          // initial.
+          avatar: UserAvatar(
+            user: ChatUser(
+              id: inv?['starterUserId']?.toString() ?? '',
+              username: '',
+              name: starter,
+              avatarStorageId: inv?['starterAvatarStorageId'] as String?,
+            ),
+            api: widget.api,
+            size: 150,
+            showStatus: false,
+          ),
+          actions: [
+            RingActionButton(
+              icon: CallGlyphs.dismiss,
+              label: l10n.incomingGroupCallScreenDismissButton,
+              background: Colors.white.withValues(alpha: 0.18),
+              enabled: !_acting,
+              onTap: _dismiss,
+            ),
+            RingActionButton(
+              icon: isVideo ? CallGlyphs.camera : CallGlyphs.voice,
+              label: l10n.incomingGroupCallScreenJoinButton,
+              background: kCallAcceptGreen,
+              enabled: !_acting,
+              onTap: _join,
+            ),
           ],
         ),
-        pulse: _pulse,
-        // Their photo when this person may see it — the storage id is null
-        // otherwise, lensed server-side — else the per-user gradient and
-        // initial.
-        avatar: UserAvatar(
-          user: ChatUser(
-            id: inv?['starterUserId']?.toString() ?? '',
-            username: '',
-            name: starter,
-            avatarStorageId: inv?['starterAvatarStorageId'] as String?,
-          ),
-          api: widget.api,
-          size: 150,
-          showStatus: false,
-        ),
-        actions: [
-          RingActionButton(
-            icon: CallGlyphs.dismiss,
-            label: l10n.incomingGroupCallScreenDismissButton,
-            background: Colors.white.withValues(alpha: 0.18),
-            enabled: !_acting,
-            onTap: _dismiss,
-          ),
-          RingActionButton(
-            icon: isVideo ? CallGlyphs.camera : CallGlyphs.voice,
-            label: l10n.incomingGroupCallScreenJoinButton,
-            background: kCallAcceptGreen,
-            enabled: !_acting,
-            onTap: _join,
-          ),
-        ],
       ),
     );
   }

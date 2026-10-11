@@ -150,7 +150,7 @@ class _CallScreenState extends State<CallScreen>
     }
   }
 
-  bool _immersive = false;
+  bool _landedOnce = false;
 
   /// The route has finished sliding in (or there is no route to slide).
   /// [RouteLanding]'s answer, never the route animation read during a
@@ -167,16 +167,15 @@ class _CallScreenState extends State<CallScreen>
   /// [ScreenShare.supported]'s answer when it came mid-slide.
   bool? _pendingShareSupported;
 
-  /// The system bars go away once the screen has finished sliding up, not
-  /// as it starts: hiding them changes the window's insets, and mid-slide
-  /// that relaid out every screen in the app (the chat underneath included)
-  /// on the frames the slide most needed. The video renderers and a late
-  /// share button wait for the same moment, see [_wantRenderers].
+  /// The video renderers and a late share button wait until the screen has
+  /// finished sliding up, see [_wantRenderers]. The status bar stays, as in
+  /// WhatsApp and Telegram: hiding it changed the window's insets, which
+  /// relaid out every screen in the app, and took the clock and signal away
+  /// for the whole call.
   @override
   void onRouteLandingChanged() {
-    if (!landed || _immersive) return;
-    _immersive = true;
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (!landed || _landedOnce) return;
+    _landedOnce = true;
     if (_renderersWanted) _ensureRenderers();
     final share = _pendingShareSupported;
     _pendingShareSupported = null;
@@ -425,9 +424,6 @@ class _CallScreenState extends State<CallScreen>
     // there.
     if (_renderersUsed && !_settingUp) _releaseRenderers();
     _levels.dispose();
-    if (_immersive) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    }
     super.dispose();
   }
 
@@ -621,9 +617,12 @@ class _CallScreenState extends State<CallScreen>
     final theme = ThemeScope.of(context);
     final s = _shown;
     if (s == null) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: SizedBox.expand(),
+      return const AnnotatedRegion<SystemUiOverlayStyle>(
+        value: kCallStatusBarStyle,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: SizedBox.expand(),
+        ),
       );
     }
     final svc = widget.service;
@@ -670,344 +669,347 @@ class _CallScreenState extends State<CallScreen>
       width: MediaQuery.sizeOf(context).width,
     );
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _toggleControls,
-          onVerticalDragEnd: _onVerticalSwipe,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Remote video / local camera preview / audio avatar. No tap
-              // handler here on purpose — a tap on this area falls through to
-              // the outer GestureDetector's show/hide toggle. Only the small
-              // PiP tile below is the swap target.
-              //
-              // Every layer is keyed. They are mostly Positioned, and an
-              // unkeyed Stack matches children by type and slot: a layer
-              // coming or going (the self-view as the peer's video lands,
-              // the scrim, the stage) handed one layer's element to
-              // another and rebuilt both subtrees from scratch, the
-              // self-view's corner and drag state with them.
-              if (stage)
-                _ShareStage(
-                  key: const ValueKey('stage'),
-                  service: svc,
-                  session: s,
-                  remoteRenderer: _remoteScreenRenderer,
-                  localRenderer: _localScreenRenderer,
-                  ink: myInk,
-                  theme: theme,
-                  // Under the name and status block at the top; the tray
-                  // is where it used to sit, and with two rows of controls
-                  // that put the caption in the middle of the picture.
-                  topInset: MediaQuery.paddingOf(context).top + 76,
-                )
-              else if (remoteVisible)
-                RTCVideoView(
-                  key: const ValueKey('feed'),
-                  _pipIsLocal ? _localRenderer : _remoteRenderer,
-                  mirror: _pipIsLocal,
-                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                )
-              else if (localFullscreen) ...[
-                RTCVideoView(
-                  key: const ValueKey('feed'),
-                  _localRenderer,
-                  mirror: true,
-                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                ),
-                // Soft darkening so the overlaid name/status/controls read
-                // over any camera image.
-                IgnorePointer(
-                  key: const ValueKey('feed-dim'),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.25),
-                    ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: kCallStatusBarStyle,
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _toggleControls,
+            onVerticalDragEnd: _onVerticalSwipe,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Remote video / local camera preview / audio avatar. No tap
+                // handler here on purpose — a tap on this area falls through to
+                // the outer GestureDetector's show/hide toggle. Only the small
+                // PiP tile below is the swap target.
+                //
+                // Every layer is keyed. They are mostly Positioned, and an
+                // unkeyed Stack matches children by type and slot: a layer
+                // coming or going (the self-view as the peer's video lands,
+                // the scrim, the stage) handed one layer's element to
+                // another and rebuilt both subtrees from scratch, the
+                // self-view's corner and drag state with them.
+                if (stage)
+                  _ShareStage(
+                    key: const ValueKey('stage'),
+                    service: svc,
+                    session: s,
+                    remoteRenderer: _remoteScreenRenderer,
+                    localRenderer: _localScreenRenderer,
+                    ink: myInk,
+                    theme: theme,
+                    // Under the name and status block at the top; the tray
+                    // is where it used to sit, and with two rows of controls
+                    // that put the caption in the middle of the picture.
+                    topInset: MediaQuery.paddingOf(context).top + 76,
+                  )
+                else if (remoteVisible)
+                  RTCVideoView(
+                    key: const ValueKey('feed'),
+                    _pipIsLocal ? _localRenderer : _remoteRenderer,
+                    mirror: _pipIsLocal,
+                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                  )
+                else if (localFullscreen) ...[
+                  RTCVideoView(
+                    key: const ValueKey('feed'),
+                    _localRenderer,
+                    mirror: true,
+                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                   ),
-                ),
-              ] else
-                AudioBackdrop(
-                  key: const ValueKey('voice'),
-                  name: s.peerName,
-                  status: _statusWidget(
-                    s,
-                    callStatusStyle(theme),
-                  ),
-                  peerMuted: s.peerState.audioMuted,
-                  theme: theme,
-                  user: _peerAsUser(s),
-                  api: widget.api,
-                  bottomInset: trayInset,
-                  waiting: s.status != CallStatus.active,
-                  voiceLevel: _levels.levelOf(_peerLevelId),
-                ),
-
-              // Top scrim so the name/status stay legible over video.
-              if (remoteVisible || localFullscreen)
-                Positioned(
-                  key: const ValueKey('scrim'),
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 200,
-                  child: IgnorePointer(
+                  // Soft darkening so the overlaid name/status/controls read
+                  // over any camera image.
+                  IgnorePointer(
+                    key: const ValueKey('feed-dim'),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.55),
-                            Colors.transparent,
-                          ],
-                        ),
+                        color: Colors.black.withValues(alpha: 0.25),
                       ),
                     ),
                   ),
-                ),
+                ] else
+                  AudioBackdrop(
+                    key: const ValueKey('voice'),
+                    name: s.peerName,
+                    status: _statusWidget(
+                      s,
+                      callStatusStyle(theme),
+                    ),
+                    peerMuted: s.peerState.audioMuted,
+                    theme: theme,
+                    user: _peerAsUser(s),
+                    api: widget.api,
+                    bottomInset: trayInset,
+                    waiting: s.status != CallStatus.active,
+                    voiceLevel: _levels.levelOf(_peerLevelId),
+                  ),
 
-              // Local PiP — only once the remote video is on screen (before
-              // that the local camera IS the fullscreen view). Tapping it
-              // swaps which feed is full-bleed vs. tiled.
-              if (stage && remoteVisible)
-                Positioned(
-                  key: const ValueKey('stage-peer'),
-                  top: MediaQuery.paddingOf(context).top + 16,
-                  right: svc.localCamActive ? 132 : 16,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                    child: Container(
-                      width: 100,
-                      height: 140,
-                      color: Colors.black,
-                      child: RTCVideoView(
-                        _remoteRenderer,
-                        objectFit:
-                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      ),
-                    ),
-                  ),
-                ),
-              if (svc.localCamActive && stage)
-                Positioned(
-                  key: const ValueKey('stage-self'),
-                  top: MediaQuery.paddingOf(context).top + 16,
-                  right: 16,
-                  child: FocusableTap(
-                    onTap: _swapPip,
-                    semanticLabel: AppLocalizations.of(
-                      context,
-                    ).callScreenSwapPreviewSemanticLabel,
-                    shape: FocusRingShape.rounded,
-                    radius: theme.radiusMd,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _swapPip,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(theme.radiusMd),
-                        child: Container(
-                          width: 100,
-                          height: 140,
-                          color: Colors.black,
-                          child: RTCVideoView(
-                            _pipIsLocal && !stage
-                                ? _remoteRenderer
-                                : _localRenderer,
-                            mirror: !_pipIsLocal || stage,
-                            objectFit: RTCVideoViewObjectFit
-                                .RTCVideoViewObjectFitCover,
+                // Top scrim so the name/status stay legible over video.
+                if (remoteVisible || localFullscreen)
+                  Positioned(
+                    key: const ValueKey('scrim'),
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 200,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.55),
+                              Colors.transparent,
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-              // Outside a shared screen the self-view floats: drag it to any
-              // corner, FaceTime-style. A tap still swaps the feeds.
-              if (svc.localCamActive && remoteVisible && !stage)
-                Positioned.fill(
-                  key: const ValueKey('self-view'),
-                  child: DraggablePip(
+                // Local PiP — only once the remote video is on screen (before
+                // that the local camera IS the fullscreen view). Tapping it
+                // swaps which feed is full-bleed vs. tiled.
+                if (stage && remoteVisible)
+                  Positioned(
+                    key: const ValueKey('stage-peer'),
                     top: MediaQuery.paddingOf(context).top + 16,
-                    bottom: trayInset + MediaQuery.paddingOf(context).bottom,
+                    right: svc.localCamActive ? 132 : 16,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(theme.radiusMd),
+                      child: Container(
+                        width: 100,
+                        height: 140,
+                        color: Colors.black,
+                        child: RTCVideoView(
+                          _remoteRenderer,
+                          objectFit:
+                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (svc.localCamActive && stage)
+                  Positioned(
+                    key: const ValueKey('stage-self'),
+                    top: MediaQuery.paddingOf(context).top + 16,
+                    right: 16,
                     child: FocusableTap(
                       onTap: _swapPip,
                       semanticLabel: AppLocalizations.of(
                         context,
                       ).callScreenSwapPreviewSemanticLabel,
                       shape: FocusRingShape.rounded,
-                      radius: 18,
+                      radius: theme.radiusMd,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: _swapPip,
-                        child: ColoredBox(
-                          color: Colors.black,
-                          child: RTCVideoView(
-                            _pipIsLocal ? _remoteRenderer : _localRenderer,
-                            mirror: !_pipIsLocal,
-                            objectFit:
-                                RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(theme.radiusMd),
+                          child: Container(
+                            width: 100,
+                            height: 140,
+                            color: Colors.black,
+                            child: RTCVideoView(
+                              _pipIsLocal && !stage
+                                  ? _remoteRenderer
+                                  : _localRenderer,
+                              mirror: !_pipIsLocal || stage,
+                              objectFit: RTCVideoViewObjectFit
+                                  .RTCVideoViewObjectFitCover,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-              // Top overlay: name + status (video only — voice calls show the
-              // name + timer centered under the avatar instead).
-              if (isVideo)
+                // Outside a shared screen the self-view floats: drag it to any
+                // corner, FaceTime-style. A tap still swaps the feeds.
+                if (svc.localCamActive && remoteVisible && !stage)
+                  Positioned.fill(
+                    key: const ValueKey('self-view'),
+                    child: DraggablePip(
+                      top: MediaQuery.paddingOf(context).top + 16,
+                      bottom: trayInset + MediaQuery.paddingOf(context).bottom,
+                      child: FocusableTap(
+                        onTap: _swapPip,
+                        semanticLabel: AppLocalizations.of(
+                          context,
+                        ).callScreenSwapPreviewSemanticLabel,
+                        shape: FocusRingShape.rounded,
+                        radius: 18,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _swapPip,
+                          child: ColoredBox(
+                            color: Colors.black,
+                            child: RTCVideoView(
+                              _pipIsLocal ? _remoteRenderer : _localRenderer,
+                              mirror: !_pipIsLocal,
+                              objectFit:
+                                  RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Top overlay: name + status (video only — voice calls show the
+                // name + timer centered under the avatar instead).
+                if (isVideo)
+                  Positioned(
+                    key: const ValueKey('title'),
+                    top: MediaQuery.paddingOf(context).top + 18,
+                    left: 24,
+                    right: 132,
+                    child: ControlsFade(
+                      visible: _controlsVisible,
+                      slide: const Offset(0, -0.3),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s.peerName,
+                            style: theme.displaySmall.copyWith(
+                              color: Colors.white,
+                              shadows: const [
+                                Shadow(blurRadius: 8, color: Colors.black54),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              _statusWidget(
+                                s,
+                                callStatusStyle(theme),
+                              ),
+                              if (s.peerState.audioMuted) ...[
+                                const SizedBox(width: 10),
+                                const Icon(
+                                  CallGlyphs.micOff,
+                                  size: 15,
+                                  color: Colors.white70,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Status chip row: device-switching renegotiation, ICE-restart
+                // recovery, or (via its own listenable, so no screen rebuild)
+                // a degraded-connection warning.
                 Positioned(
-                  key: const ValueKey('title'),
-                  top: MediaQuery.paddingOf(context).top + 18,
-                  left: 24,
-                  right: 132,
+                  key: const ValueKey('chip'),
+                  top: MediaQuery.paddingOf(context).top + 80,
+                  left: 0,
+                  right: 0,
                   child: ControlsFade(
                     visible: _controlsVisible,
-                    slide: const Offset(0, -0.3),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          s.peerName,
-                          style: theme.displaySmall.copyWith(
-                            color: Colors.white,
-                            shadows: const [
-                              Shadow(blurRadius: 8, color: Colors.black54),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            _statusWidget(
-                              s,
-                              callStatusStyle(theme),
+                    // Its own layer: the stats panel redraws on every stats
+                    // tick, and that should repaint a few numbers, not the
+                    // screen (and the glass tray) they float over.
+                    child: RepaintBoundary(
+                      child: s.status == CallStatus.switching
+                          ? OverlayChip(
+                              label: AppLocalizations.of(
+                                context,
+                              ).callScreenStatusSwitching,
+                            )
+                          : s.reconnecting
+                          ? OverlayChip(
+                              label: AppLocalizations.of(
+                                context,
+                              ).callScreenStatusReconnecting,
+                            )
+                          : AnimatedBuilder(
+                              animation: SettingsStore.instance,
+                              builder: (context, _) {
+                                final showStats =
+                                    SettingsStore.instance.showNetworkStats;
+                                return ValueListenableBuilder<CallQualitySnapshot?>(
+                                  valueListenable: widget.service.callQuality,
+                                  builder: (context, q, _) {
+                                    if (q == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    // Opted in via Settings or the in-call
+                                    // toggle: full numeric panel regardless of
+                                    // quality tier, not just when degraded.
+                                    if (showStats) {
+                                      return NetworkStatsPanel(snapshot: q);
+                                    }
+                                    if (q.quality == CallQuality.good) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return OverlayChip(
+                                      label: q.quality == CallQuality.poor
+                                          ? AppLocalizations.of(
+                                              context,
+                                            ).callScreenPoorConnectionLabel
+                                          : AppLocalizations.of(
+                                              context,
+                                            ).callScreenWeakConnectionLabel,
+                                      spinner: false,
+                                      tint: const Color(0xFFFFB74D),
+                                    );
+                                  },
+                                );
+                              },
                             ),
-                            if (s.peerState.audioMuted) ...[
-                              const SizedBox(width: 10),
-                              const Icon(
-                                CallGlyphs.micOff,
-                                size: 15,
-                                color: Colors.white70,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
                     ),
                   ),
                 ),
 
-              // Status chip row: device-switching renegotiation, ICE-restart
-              // recovery, or (via its own listenable, so no screen rebuild)
-              // a degraded-connection warning.
-              Positioned(
-                key: const ValueKey('chip'),
-                top: MediaQuery.paddingOf(context).top + 80,
-                left: 0,
-                right: 0,
-                child: ControlsFade(
-                  visible: _controlsVisible,
-                  // Its own layer: the stats panel redraws on every stats
-                  // tick, and that should repaint a few numbers, not the
-                  // screen (and the glass tray) they float over.
-                  child: RepaintBoundary(
-                    child: s.status == CallStatus.switching
-                        ? OverlayChip(
-                            label: AppLocalizations.of(
-                              context,
-                            ).callScreenStatusSwitching,
-                          )
-                        : s.reconnecting
-                        ? OverlayChip(
-                            label: AppLocalizations.of(
-                              context,
-                            ).callScreenStatusReconnecting,
-                          )
-                        : AnimatedBuilder(
-                            animation: SettingsStore.instance,
-                            builder: (context, _) {
-                              final showStats =
-                                  SettingsStore.instance.showNetworkStats;
-                              return ValueListenableBuilder<CallQualitySnapshot?>(
-                                valueListenable: widget.service.callQuality,
-                                builder: (context, q, _) {
-                                  if (q == null) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  // Opted in via Settings or the in-call
-                                  // toggle: full numeric panel regardless of
-                                  // quality tier, not just when degraded.
-                                  if (showStats) {
-                                    return NetworkStatsPanel(snapshot: q);
-                                  }
-                                  if (q.quality == CallQuality.good) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return OverlayChip(
-                                    label: q.quality == CallQuality.poor
-                                        ? AppLocalizations.of(
-                                            context,
-                                          ).callScreenPoorConnectionLabel
-                                        : AppLocalizations.of(
-                                            context,
-                                          ).callScreenWeakConnectionLabel,
-                                    spinner: false,
-                                    tint: const Color(0xFFFFB74D),
-                                  );
-                                },
-                              );
-                            },
+                // Bottom controls: the shared tray — a glass capsule of
+                // fixed-size toggles that wraps onto a second row rather than
+                // squeezing, and the end-call button standing alone beneath
+                // it as the one unmistakably "primary" action. See CallTray
+                // for the layout rules; _trayActions for the order.
+                Positioned(
+                  key: const ValueKey('tray'),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ControlsFade(
+                    visible: _controlsVisible,
+                    slide: const Offset(0, 0.3),
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        // Its own layer: a toggle's fill and press spring
+                        // run for a beat on every tap (speaker, mute), and
+                        // each of those frames should repaint the tray, not
+                        // re-record the whole screen behind it.
+                        child: RepaintBoundary(
+                          child: CallTray(
+                            actions: trayActions,
+                            glass: isVideo,
+                            endIcon: CallGlyphs.end,
+                            endLabel: l10n.callScreenControlEnd,
+                            endColor: theme.danger,
+                            onEnd: () => widget.service.endCall(),
                           ),
-                  ),
-                ),
-              ),
-
-              // Bottom controls: the shared tray — a glass capsule of
-              // fixed-size toggles that wraps onto a second row rather than
-              // squeezing, and the end-call button standing alone beneath
-              // it as the one unmistakably "primary" action. See CallTray
-              // for the layout rules; _trayActions for the order.
-              Positioned(
-                key: const ValueKey('tray'),
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: ControlsFade(
-                  visible: _controlsVisible,
-                  slide: const Offset(0, 0.3),
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      // Its own layer: a toggle's fill and press spring
-                      // run for a beat on every tap (speaker, mute), and
-                      // each of those frames should repaint the tray, not
-                      // re-record the whole screen behind it.
-                      child: RepaintBoundary(
-                        child: CallTray(
-                          actions: trayActions,
-                          glass: isVideo,
-                          endIcon: CallGlyphs.end,
-                          endLabel: l10n.callScreenControlEnd,
-                          endColor: theme.danger,
-                          onEnd: () => widget.service.endCall(),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

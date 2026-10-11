@@ -13,7 +13,8 @@ import 'widgets/call_chrome.dart'
         RingActionButton,
         RingerLayout,
         callStatusStyle,
-        kCallAcceptGreen;
+        kCallAcceptGreen,
+        kCallStatusBarStyle;
 import 'call_screen.dart';
 import 'call_service.dart';
 import '../l10n/text_case.dart';
@@ -143,70 +144,73 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     final kindLabel = isVideo
         ? l10n.typingIndicatorIncomingVideoCallLabel
         : l10n.typingIndicatorIncomingVoiceCallLabel;
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: RingerLayout(
-          // The Phone app's incoming screen: who, large, and what kind of
-          // call in a quiet line under it. The voice/video distinction
-          // stays unmissable through the glyph beside it and the accept
-          // button's own icon.
-          title: name,
-          subtitle: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isVideo ? CallGlyphs.camera : CallGlyphs.voice,
-                size: 17,
-                color: Colors.white.withValues(alpha: 0.72),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  sentenceCaseOf(context, kindLabel),
-                  style: callStatusStyle(theme),
-                  textAlign: TextAlign.center,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: kCallStatusBarStyle,
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: RingerLayout(
+            // The Phone app's incoming screen: who, large, and what kind of
+            // call in a quiet line under it. The voice/video distinction
+            // stays unmissable through the glyph beside it and the accept
+            // button's own icon.
+            title: name,
+            subtitle: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isVideo ? CallGlyphs.camera : CallGlyphs.voice,
+                  size: 17,
+                  color: Colors.white.withValues(alpha: 0.72),
                 ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    sentenceCaseOf(context, kindLabel),
+                    style: callStatusStyle(theme),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+            pulse: _pulse,
+            // Real avatar photo when known; per-user gradient + initial
+            // otherwise.
+            avatar: UserAvatar(
+              user: ChatUser(
+                id: s?.peerUserId ?? '',
+                username: '',
+                name: name,
+                avatarStorageId: s?.peerAvatarStorageId,
+              ),
+              api: widget.api,
+              size: 150,
+              showStatus: false,
+            ),
+            actions: [
+              RingActionButton(
+                icon: CallGlyphs.end,
+                background: theme.danger,
+                label: _pending == _RingAction.reject
+                    ? l10n.typingIndicatorDeclineButtonDeclining
+                    : l10n.typingIndicatorDeclineButtonLabel,
+                enabled: _pending == _RingAction.none,
+                onTap: _reject,
+              ),
+              RingActionButton(
+                // Video calls accept with the camera glyph so the user knows
+                // what they're walking into.
+                icon: isVideo ? CallGlyphs.camera : CallGlyphs.voice,
+                background: kCallAcceptGreen,
+                label: _pending == _RingAction.accept
+                    ? l10n.typingIndicatorAcceptButtonConnecting
+                    : l10n.typingIndicatorAcceptButtonLabel,
+                enabled: _pending == _RingAction.none,
+                onTap: _accept,
               ),
             ],
           ),
-          pulse: _pulse,
-          // Real avatar photo when known; per-user gradient + initial
-          // otherwise.
-          avatar: UserAvatar(
-            user: ChatUser(
-              id: s?.peerUserId ?? '',
-              username: '',
-              name: name,
-              avatarStorageId: s?.peerAvatarStorageId,
-            ),
-            api: widget.api,
-            size: 150,
-            showStatus: false,
-          ),
-          actions: [
-            RingActionButton(
-              icon: CallGlyphs.end,
-              background: theme.danger,
-              label: _pending == _RingAction.reject
-                  ? l10n.typingIndicatorDeclineButtonDeclining
-                  : l10n.typingIndicatorDeclineButtonLabel,
-              enabled: _pending == _RingAction.none,
-              onTap: _reject,
-            ),
-            RingActionButton(
-              // Video calls accept with the camera glyph so the user knows
-              // what they're walking into.
-              icon: isVideo ? CallGlyphs.camera : CallGlyphs.voice,
-              background: kCallAcceptGreen,
-              label: _pending == _RingAction.accept
-                  ? l10n.typingIndicatorAcceptButtonConnecting
-                  : l10n.typingIndicatorAcceptButtonLabel,
-              enabled: _pending == _RingAction.none,
-              onTap: _accept,
-            ),
-          ],
         ),
       ),
     );

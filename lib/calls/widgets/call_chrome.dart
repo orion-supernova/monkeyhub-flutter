@@ -34,6 +34,21 @@ import '../../widgets/spring_press.dart';
 /// ambient backdrop with its pulse rings, the ring that says who is talking
 /// and the orb that stands for a participant in a voice call.
 
+/// The status bar over every call surface. The screens are black whatever
+/// the app theme, so the clock and signal are always drawn light, the way
+/// WhatsApp and Telegram keep them visible over a call. The app-wide style
+/// (app.dart) follows the theme and would draw them dark on a light one.
+const kCallStatusBarStyle = SystemUiOverlayStyle(
+  statusBarColor: Colors.transparent,
+  systemNavigationBarColor: Colors.transparent,
+  systemStatusBarContrastEnforced: false,
+  systemNavigationBarContrastEnforced: false,
+  statusBarIconBrightness: Brightness.light,
+  systemNavigationBarIconBrightness: Brightness.light,
+  // iOS names the bar's brightness, not the glyphs'.
+  statusBarBrightness: Brightness.dark,
+);
+
 /// The call's glyphs, in one place so the 1:1 and group screens, both
 /// ringers, the pills and the banner draw the same handset and the same
 /// camera. Cupertino throughout — the call screens were the last Material

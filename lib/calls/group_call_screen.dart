@@ -151,22 +151,20 @@ class _GroupCallScreenState extends State<GroupCallScreen>
 
   // --------------------------------------------------------------- landing
 
-  bool _immersive = false;
+  bool _landedOnce = false;
 
   /// [ScreenShare.supported]'s answer when it came mid-slide.
   bool? _pendingShareSupported;
 
   /// The 1:1 screen's rule (see `CallScreen.onRouteLandingChanged`): the
-  /// system bars go, the renderers are made and a late share button lands
-  /// once the screen has finished sliding up, never during it. Hiding the
-  /// bars changes the window's insets, which relaid out every screen in the
-  /// app mid-slide, and each renderer is a texture and an event channel
-  /// registered on the platform thread, which on iOS presents the frames.
+  /// renderers are made and a late share button lands once the screen has
+  /// finished sliding up, never during it. Each renderer is a texture and an
+  /// event channel registered on the platform thread, which on iOS presents
+  /// the frames. The status bar stays up throughout.
   @override
   void onRouteLandingChanged() {
-    if (!landed || _immersive) return;
-    _immersive = true;
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (!landed || _landedOnce) return;
+    _landedOnce = true;
     if (svc.inCall) unawaited(_syncRenderers());
     final share = _pendingShareSupported;
     _pendingShareSupported = null;
@@ -447,9 +445,6 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     _localRenderer?.dispose();
     _localScreenRenderer?.srcObject = null;
     _localScreenRenderer?.dispose();
-    if (_immersive) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    }
     super.dispose();
   }
 
@@ -596,154 +591,157 @@ class _GroupCallScreenState extends State<GroupCallScreen>
         ),
     };
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: layout == _Layout.voice ? null : _toggleControls,
-          onVerticalDragEnd:
-              layout == _Layout.voice ? null : _onVerticalSwipe,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              AnimatedSwitcher(
-                duration: motion.d(const Duration(milliseconds: 280)),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                layoutBuilder: (current, previous) => Stack(
-                  fit: StackFit.expand,
-                  children: [...previous, ?current],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: kCallStatusBarStyle,
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: layout == _Layout.voice ? null : _toggleControls,
+            onVerticalDragEnd:
+                layout == _Layout.voice ? null : _onVerticalSwipe,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                AnimatedSwitcher(
+                  duration: motion.d(const Duration(milliseconds: 280)),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  layoutBuilder: (current, previous) => Stack(
+                    fit: StackFit.expand,
+                    children: [...previous, ?current],
+                  ),
+                  child: stage,
                 ),
-                child: stage,
-              ),
 
-              // Header: the room, the timer, how many are here.
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ControlsFade(
-                  visible: chromeVisible,
-                  slide: const Offset(0, -0.3),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  svc.roomName ??
-                                      (svc.hasAnyVideo
-                                          ? l10n.groupCallScreenTitleVideo
-                                          : l10n.groupCallScreenTitleVoice),
-                                  style: theme.displaySmall.copyWith(
-                                    color: Colors.white,
-                                    shadows: const [
-                                      Shadow(blurRadius: 8, color: Colors.black54),
+                // Header: the room, the timer, how many are here.
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: ControlsFade(
+                    visible: chromeVisible,
+                    slide: const Offset(0, -0.3),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    svc.roomName ??
+                                        (svc.hasAnyVideo
+                                            ? l10n.groupCallScreenTitleVideo
+                                            : l10n.groupCallScreenTitleVoice),
+                                    style: theme.displaySmall.copyWith(
+                                      color: Colors.white,
+                                      shadows: const [
+                                        Shadow(blurRadius: 8, color: Colors.black54),
+                                      ],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          svc.hasAnyVideo
+                                              ? l10n.groupCallScreenTitleVideo
+                                              : l10n.groupCallScreenTitleVoice,
+                                          style: callCaptionStyle(theme),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (svc.joinedAt != null) ...[
+                                        Text(
+                                          '  ·  ',
+                                          style: callCaptionStyle(theme)
+                                              .copyWith(color: Colors.white38),
+                                        ),
+                                        ElapsedLabel(
+                                          start: svc.joinedAt!,
+                                          style: callCaptionStyle(theme),
+                                        ),
+                                      ],
                                     ],
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        svc.hasAnyVideo
-                                            ? l10n.groupCallScreenTitleVideo
-                                            : l10n.groupCallScreenTitleVoice,
-                                        style: callCaptionStyle(theme),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (svc.joinedAt != null) ...[
-                                      Text(
-                                        '  ·  ',
-                                        style: callCaptionStyle(theme)
-                                            .copyWith(color: Colors.white38),
-                                      ),
-                                      ElapsedLabel(
-                                        start: svc.joinedAt!,
-                                        style: callCaptionStyle(theme),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Flexible, up to two fifths of the row: "3 in call · 1
-                          // ringing" in Turkish at 1.3× is wider than the
-                          // room left beside a long group name, and the chip
-                          // goes to two lines — never cut — before it
-                          // squeezes the name out of its row. Aligned right:
-                          // a short "Just you" chip otherwise floated in the
-                          // middle of its loose slot.
-                          Flexible(
-                            flex: 2,
-                            child: Align(
-                              alignment: Alignment.topRight,
-                              child: _CountChip(
-                                counts: _counts(l10n, peers.length),
-                                style: callCaptionStyle(theme).copyWith(
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
+                            const SizedBox(width: 12),
+                            // Flexible, up to two fifths of the row: "3 in call · 1
+                            // ringing" in Turkish at 1.3× is wider than the
+                            // room left beside a long group name, and the chip
+                            // goes to two lines — never cut — before it
+                            // squeezes the name out of its row. Aligned right:
+                            // a short "Just you" chip otherwise floated in the
+                            // middle of its loose slot.
+                            Flexible(
+                              flex: 2,
+                              child: Align(
+                                alignment: Alignment.topRight,
+                                child: _CountChip(
+                                  counts: _counts(l10n, peers.length),
+                                  style: callCaptionStyle(theme).copyWith(
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              if (anyReconnecting)
+                if (anyReconnecting)
+                  Positioned(
+                    top: MediaQuery.paddingOf(context).top + 76,
+                    left: 0,
+                    right: 0,
+                    child: OverlayChip(label: l10n.groupCallScreenReconnecting),
+                  ),
+
+                // The tray.
                 Positioned(
-                  top: MediaQuery.paddingOf(context).top + 76,
                   left: 0,
                   right: 0,
-                  child: OverlayChip(label: l10n.groupCallScreenReconnecting),
-                ),
-
-              // The tray.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: ControlsFade(
-                  visible: chromeVisible,
-                  slide: const Offset(0, 0.3),
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: CallTray(
-                        actions: trayActions,
-                        endIcon: CallGlyphs.end,
-                        endLabel: l10n.groupCallScreenLeaveLabel,
-                        endColor: theme.danger,
-                        onEnd: () => unawaited(svc.leaveCall()),
+                  bottom: 0,
+                  child: ControlsFade(
+                    visible: chromeVisible,
+                    slide: const Offset(0, 0.3),
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: CallTray(
+                          actions: trayActions,
+                          endIcon: CallGlyphs.end,
+                          endLabel: l10n.groupCallScreenLeaveLabel,
+                          endColor: theme.danger,
+                          onEnd: () => unawaited(svc.leaveCall()),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

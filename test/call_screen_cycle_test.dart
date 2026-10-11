@@ -200,11 +200,10 @@ void main() {
     await slide(tester);
   });
 
-  testWidgets('the system bars go only once the slide has finished',
+  testWidgets('the status bar stays up through the call, drawn light',
       (tester) async {
-    // The pushed page spends its first frame offstage, where its route
-    // animation reads as complete; the screen took that for "landed" and
-    // hid the bars (relayout of every screen) on the slide's first frame.
+    // WhatsApp and Telegram keep the clock and signal over a call. Hiding
+    // them also changed the window's insets, a relayout of every screen.
     final hides = <int>[];
     var frame = 0;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -231,7 +230,13 @@ void main() {
     expect(route.animation!.isCompleted, isFalse);
     expect(hides, isEmpty);
     await slide(tester);
-    expect(hides, isNotEmpty);
+    expect(hides, isEmpty);
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is AnnotatedRegion<SystemUiOverlayStyle> &&
+          w.value == kCallStatusBarStyle),
+      findsOneWidget,
+    );
 
     service.set(null);
     await slide(tester);
