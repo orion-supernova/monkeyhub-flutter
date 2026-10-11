@@ -3503,13 +3503,24 @@ class _RoomScreenState extends State<RoomScreen>
     }
     // One id for the whole send, so the transcript stacks exactly these, in
     // this order, however their uploads go. A lone photo needs none.
-    final albumId = outcome.photos.length > 1 ? newAlbumId() : null;
-    for (final photo in outcome.photos) {
+    final photos = outcome.photos;
+    final albumId = photos.length > 1 ? newAlbumId() : null;
+    // A reply written with several photos is the whole send's, so it rides
+    // on the LAST one: the stack is drawn as its last item, which puts the
+    // quote above the stack. It used to land on the first, which a reply
+    // keeps out of a stack, splitting the send in two.
+    final replyTarget = albumId == null ? null : _replyingTo;
+    final replyAlbum = albumId == null ? null : _replyAlbum;
+    if (replyTarget != null) setState(() => _replyingTo = null);
+    for (var i = 0; i < photos.length; i++) {
+      final last = i == photos.length - 1;
       _sendPhoto(
-        photo.image,
+        photos[i].image,
         viewOnce: outcome.viewOnce,
-        caption: photo.caption,
+        caption: photos[i].caption,
         albumId: albumId,
+        replyTo: last ? replyTarget : null,
+        replyToAlbumCount: last ? replyAlbum : null,
       );
     }
     if (outcome.dropped > 0) {
@@ -3565,6 +3576,8 @@ class _RoomScreenState extends State<RoomScreen>
     required bool viewOnce,
     String? caption,
     String? albumId,
+    ChatMessage? replyTo,
+    int? replyToAlbumCount,
   }) {
     _sendMedia(
       bytes: image.bytes,
@@ -3574,6 +3587,8 @@ class _RoomScreenState extends State<RoomScreen>
       viewOnce: viewOnce,
       caption: caption,
       albumId: albumId,
+      replyTo: replyTo,
+      replyToAlbumCount: replyToAlbumCount,
     );
   }
 
@@ -4438,6 +4453,12 @@ class _RoomScreenState extends State<RoomScreen>
 
     /// The album this item is sent in, shared by every item of one send.
     String? albumId,
+
+    /// A reply target the caller has already taken off the composer, for a
+    /// send that decides itself which of its items carries the reply. Used
+    /// instead of the composer's.
+    ChatMessage? replyTo,
+    int? replyToAlbumCount,
   }) {
     // Snapshot and disarm up front — see _send. Deliberately NOT restored on
     // failure the way this used to be: the failure now arrives long after the
@@ -4445,8 +4466,8 @@ class _RoomScreenState extends State<RoomScreen>
     // started typing something else is worse than losing it. Nothing is lost
     // anyway — the reply rides on the pending bubble, so retrying it keeps the
     // tether.
-    final replyTarget = _replyingTo;
-    final replyAlbum = _replyAlbum;
+    final replyTarget = replyTo ?? _replyingTo;
+    final replyAlbum = replyTo != null ? replyToAlbumCount : _replyAlbum;
     if (replyTarget != null) setState(() => _replyingTo = null);
     // Same two lines the text send does, for the same two reasons: a send while
     // reading old history has to drop the window or the sender is left looking
@@ -5612,6 +5633,7 @@ class _RoomScreenState extends State<RoomScreen>
                       fileName: target.type == MessageType.file
                           ? target.fileName
                           : null,
+                      album: albumMenu,
                     );
                   } else {
                   result = await showMessageActionMenu(

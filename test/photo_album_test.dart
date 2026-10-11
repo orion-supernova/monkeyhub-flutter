@@ -114,6 +114,39 @@ void main() {
           ]);
     });
 
+    test('a send with a reply stays one album, quote above it', () {
+      ChatMessage item(String id, {required int t, String? replyTo}) =>
+          ChatMessage(
+            id: id,
+            roomId: 'room',
+            senderId: 'alice',
+            senderName: 'alice',
+            content: '',
+            createdAt: _epoch.add(Duration(minutes: t)),
+            type: MessageType.image,
+            mediaStorageId: 'st_$id',
+            albumId: 'x',
+            replyToId: replyTo,
+            replyToPreview: replyTo == null
+                ? null
+                : const ReplyPreview(
+                    senderId: 'bob',
+                    senderName: 'bob',
+                    contentPreview: 'what did you eat?',
+                    type: MessageType.text,
+                  ),
+          );
+      final out = rows([
+        text('q', t: 0, sender: 'bob'),
+        item('a', t: 1),
+        item('b', t: 1),
+        item('c', t: 1, replyTo: 'q'),
+      ]);
+      final album = out.last;
+      expect([for (final p in album.album) p.id], ['a', 'b', 'c']);
+      expect(album.replyMarker, isNot(ReplyMarker.none));
+    });
+
     test('photos and videos together', () {
       ChatMessage video(String id, {required int t}) => ChatMessage(
             id: id,

@@ -273,7 +273,11 @@ bool albumEligible(ChatMessage m) =>
     m.content.isEmpty &&
     !m.viewOnce &&
     !m.isEphemeral &&
-    !m.isReply &&
+    // A reply with an album id is the album's last item carrying the reply
+    // the sender wrote with the whole send (see `_sendEdited`); its quote is
+    // drawn above the stack, since the stack is drawn as its last item. A
+    // reply without one is a photo answering something on its own.
+    (!m.isReply || m.albumId != null) &&
     m.status != MessageStatus.error;
 
 /// Collapses each run of adjacent album-eligible photo rows into one row that
@@ -328,8 +332,9 @@ List<RoomItem> collapseAlbums(List<RoomItem> rows) {
       // the emit loop writes back onto a row it has already emitted, and every
       // one of those writes has happened by the time this pass runs.
       lastInRun: run.last.lastInRun,
-      // Eligibility already refused a reply, so there is no marker to carry.
-      replyMarker: ReplyMarker.none,
+      // Only an album's last item can carry a reply (see `albumEligible`),
+      // and the row is drawn as that item, so its marker is the row's.
+      replyMarker: run.last.replyMarker,
       album: [for (final r in run) r.message],
     ));
     i = end;
