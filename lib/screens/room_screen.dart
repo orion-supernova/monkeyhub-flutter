@@ -99,7 +99,7 @@ import '../widgets/location_share_sheet.dart';
 import '../widgets/composer_edit_card.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/mention_picker.dart';
-import '../widgets/photo_mosaic.dart' show mosaicHeroTag;
+import '../widgets/photo_mosaic.dart' show MosaicTile, mosaicHeroTag;
 import '../widgets/companion_strip.dart' show kCompanionStripHeight;
 import '../widgets/pinned_banner.dart';
 import '../widgets/room_change_requests_sheet.dart';
@@ -5521,7 +5521,32 @@ class _RoomScreenState extends State<RoomScreen>
                     // this is where the whole thing is legible.
                     fileName:
                         target.type == MessageType.file ? target.fileName : null,
-                    bubbleBuilder: (_) {
+                    bubbleBuilder: (menuContext) {
+                      // A card (or grid tile) of an album lifts as itself:
+                      // the same crop, corners and play button, at the rect
+                      // it was pressed in. The lone-photo bubble it used to
+                      // lift is sized from the photograph's own ratio, and
+                      // overflowed the card-sized slot the menu gives it.
+                      if (messageItem.album.length > 1) {
+                        final theme = ThemeScope.of(menuContext);
+                        return LayoutBuilder(
+                          builder: (_, box) => ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(theme.radiusLg),
+                            child: MosaicTile(
+                              anchor: GlobalKey(),
+                              message: target,
+                              api: widget.api,
+                              theme: theme,
+                              side: box.maxWidth,
+                              radius: BorderRadius.circular(theme.radiusLg),
+                              highlightT: 0,
+                              currentUserId: me,
+                              onOpen: (_) {},
+                            ),
+                          ),
+                        );
+                      }
                       // False only on an album tile, whose lifted preview is
                       // one photograph out of several and so inherits nothing
                       // about the block's place in the run.
