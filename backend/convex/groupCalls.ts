@@ -144,6 +144,14 @@ async function dismissRingers(
     userIds = rows.map((r: any) => r.userId);
   }
   if (userIds.length === 0) return;
+  // Android first, and now; see `calls.scheduleTakenPush`.
+  await ctx.scheduler.runAfter(0, internal.voipPush.sendGroupVoipTaken, {
+    groupCallId,
+    targetUserIds: userIds,
+    excludeDeviceId: opts.excludeDeviceId ?? null,
+    reason,
+    fcmOnly: true,
+  });
   await ctx.scheduler.runAfter(
     TAKEN_PUSH_GRACE_MS,
     internal.voipPush.sendGroupVoipTaken,

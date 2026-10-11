@@ -164,6 +164,9 @@ async function takenJobs(
     const rows = await ctx.db.system.query("_scheduled_functions").collect();
     return rows
       .filter((r) => r.name.includes("sendVoipTaken"))
+      // The immediate FCM-only twin (`scheduleTakenPush`) has its own test;
+      // everything that reads this is about the graced push.
+      .filter((r) => (r.args[0] as any)?.fcmOnly !== true)
       .map((r) => ({
         ...(r.args[0] as Omit<TakenJob, "delayMs">),
         delayMs: r.scheduledTime - r._creationTime,
@@ -437,6 +440,31 @@ describe("native-card dismissal ack", () => {
     await drain(t);
   });
 
+  test("…and each one's Android leg goes at once, FCM only", async () => {
+    const t = convexTest(schema);
+    const { caller, callId } = await activeCall(t);
+    await t.mutation(api.calls.end, {
+      sessionToken: caller.token,
+      callId,
+      userId: caller.userId as any,
+    });
+    const rows = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).filter(
+        (r) => r.name.includes("sendVoipTaken"),
+      ),
+    );
+    const now = rows.filter((r) => (r.args[0] as any).fcmOnly === true);
+    const graced = rows.filter((r) => (r.args[0] as any).fcmOnly !== true);
+    expect(now.length).toBe(graced.length);
+    expect(now.length).toBeGreaterThan(0);
+    for (const r of now) {
+      expect(Math.abs(Math.round(r.scheduledTime - r._creationTime))).toBe(0);
+    }
+    const { fcmOnly, ...rest } = now[0].args[0] as any;
+    expect(rest).toEqual(graced[0].args[0]);
+    await drain(t);
+  });
+
   test("records each device once, and the push reads exactly those", async () => {
     const t = convexTest(schema);
     const { caller, callee, callId } = await activeCall(t);
@@ -598,6 +626,151 @@ describe("callee ringing report (markRinging)", () => {
     });
     expect(await ringingSignals(t, callId)).toHaveLength(0);
     await drain(t);
+  });
+});
+
+/**
+ * The ring report answers with the call's status, and that answer is what an
+ * iPhone uses to take down a card raised for a call that is already over:
+ * an invite VoIP push APNs delivered AFTER the cancel, on a phone whose app
+ * had already acked "no card" (so no `taken` push was ever coming), rang
+ * until the plugin's own 30s timeout. `probe: true` is the native ring
+ * watch's read-only re-ask.
+ */
+describe("ring report tells the phone the call's status", () => {
+  async function ringingCall(t: ReturnType<typeof convexTest>) {
+    const caller = await signUp(t, "caller");
+    const callee = await signUp(t, "callee");
+    const roomId = await makeRoom(t, caller);
+    await join(t, callee, roomId);
+    const callId = await t.mutation(api.calls.initiate, {
+      sessionToken: caller.token,
+      callerId: caller.userId as any,
+      calleeId: callee.userId as any,
+      roomId,
+      type: "audio",
+    });
+    return { caller, callee, callId };
+  }
+
+  test("markRingingInternal returns the status, and null for anyone but the callee", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    expect(
+      await t.mutation(internal.calls.markRingingInternal, {
+        callId,
+        userId: callee.userId as any,
+      }),
+    ).toBe("ringing");
+    expect(
+      await t.mutation(internal.calls.markRingingInternal, {
+        callId,
+        userId: caller.userId as any,
+      }),
+    ).toBeNull();
+    await t.mutation(api.calls.cancel, {
+      sessionToken: caller.token,
+      callId,
+      userId: caller.userId as any,
+    });
+    expect(
+      await t.mutation(internal.calls.markRingingInternal, {
+        callId,
+        userId: callee.userId as any,
+      }),
+    ).toBe("cancelled");
+    expect(
+      await t.query(internal.calls.ringStatusInternal, {
+        callId,
+        userId: callee.userId as any,
+      }),
+    ).toBe("cancelled");
+    expect(
+      await t.query(internal.calls.ringStatusInternal, {
+        callId,
+        userId: caller.userId as any,
+      }),
+    ).toBeNull();
+    await drain(t);
+  });
+
+  test("the endpoint answers {status}; a probe reads without reporting a ring", async () => {
+    vi.stubEnv("RECEIPT_SECRET", "test-secret");
+    vi.stubEnv("RECEIPT_URL", "");
+    vi.stubEnv("CONVEX_CLOUD_URL", "https://api.example.com");
+    try {
+      const t = convexTest(schema);
+      const { caller, callee, callId } = await ringingCall(t);
+      const { ringFields } = await import("./receiptToken");
+      const fields = (await ringFields(callId, callee.userId))!;
+      const post = (body: Record<string, unknown>) =>
+        t.fetch("/calls/ringing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      const ringingRows = async () =>
+        await t.run(async (ctx) =>
+          (await ctx.db.query("callSignals").collect()).filter(
+            (s) => s.callId === callId && s.kind === "ringing",
+          ),
+        );
+
+      // A probe while ringing: the status, and no ring reported.
+      const probe = await post({
+        callId,
+        userId: callee.userId,
+        sig: fields.ringSig,
+        probe: true,
+      });
+      expect(probe.status).toBe(200);
+      expect(await probe.json()).toEqual({ status: "ringing" });
+      expect(await ringingRows()).toHaveLength(0);
+
+      // The real report: rings the caller AND says the call still rings.
+      const report = await post({
+        callId,
+        userId: callee.userId,
+        sig: fields.ringSig,
+      });
+      expect(await report.json()).toEqual({ status: "ringing" });
+      expect(await ringingRows()).toHaveLength(1);
+
+      await t.mutation(api.calls.cancel, {
+        sessionToken: caller.token,
+        callId,
+        userId: caller.userId as any,
+      });
+      // The late invite's report: the phone learns the call is over.
+      const late = await post({
+        callId,
+        userId: callee.userId,
+        sig: fields.ringSig,
+      });
+      expect(await late.json()).toEqual({ status: "cancelled" });
+
+      // A forged proof still learns nothing.
+      const forged = await post({
+        callId,
+        userId: caller.userId,
+        sig: fields.ringSig,
+        probe: true,
+      });
+      expect(forged.status).toBe(403);
+
+      // A GC'd row reads as gone.
+      await t.run(async (ctx) => await ctx.db.delete(callId));
+      const gone = await post({
+        callId,
+        userId: callee.userId,
+        sig: fields.ringSig,
+        probe: true,
+      });
+      expect(await gone.json()).toEqual({ status: "gone" });
+      await drain(t);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

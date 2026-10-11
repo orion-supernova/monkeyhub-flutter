@@ -325,6 +325,8 @@ export const sendGroupVoipTaken = internalAction({
       v.literal("ended"),
       v.literal("timeout"),
     ),
+    // See `sendVoipTaken.fcmOnly`.
+    fcmOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const payload = {
@@ -346,7 +348,7 @@ export const sendGroupVoipTaken = internalAction({
         );
         const targets = selectTakenTargets(devices, {
           excludeDeviceId: args.excludeDeviceId,
-          iosVoip: true,
+          iosVoip: !args.fcmOnly,
           dismissed,
         });
         sent += targets.length;
@@ -400,6 +402,14 @@ export const sendVoipTaken = internalAction({
     // the call site). Absent means true: every other sender may be
     // clearing a card in a killed process, which only PushKit can reach.
     iosVoip: v.optional(v.boolean()),
+    // `true` sends the FCM leg alone: the immediate twin of this push that
+    // `calls.scheduleTakenPush` posts at the terminal transition itself.
+    // The grace (`TAKEN_PUSH_GRACE_MS`) exists for iOS, where a `taken` with
+    // no card to end is a phantom ring. On Android it is harmless
+    // (CallFcmService ends an id that is not showing as a no-op), and the
+    // grace only added three seconds to every killed or backgrounded ring
+    // after a cancel. The graced push still follows, as the belt.
+    fcmOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Annotated at the USE site, not just on the query.
@@ -431,7 +441,7 @@ export const sendVoipTaken = internalAction({
     );
     const targets = selectTakenTargets(devices, {
       excludeDeviceId: args.excludeDeviceId,
-      iosVoip: args.iosVoip ?? true,
+      iosVoip: args.fcmOnly ? false : (args.iosVoip ?? true),
       dismissed: new Set(dismissedIds),
     });
     if (targets.length === 0) {
@@ -796,7 +806,12 @@ async function sendFcmData(
     data: stringifyValues(payload),
     android: {
       priority: "high",
-      ttl: "60s",
+      // The same expiry as the APNs leg. This was a flat 60s, twice the
+      // ring window, so a phone back from Doze or a dead zone half a minute
+      // later could still be handed a 1:1 invite for a call that had ended,
+      // and if its `taken` had come and gone in the meantime, nothing was
+      // left to stop that ring.
+      ttl: `${voipExpirySeconds(payload)}s`,
       ...(collapseKey ? { collapse_key: collapseKey } : {}),
     },
   });

@@ -34,12 +34,20 @@ async function drain(t: ReturnType<typeof convexTest>) {
   await t.finishAllScheduledFunctions(vi.runAllTimers);
 }
 
-/** Every scheduled job whose name contains [needle], with its args and delay. */
-async function jobs(t: ReturnType<typeof convexTest>, needle: string) {
+/** Every scheduled job whose name contains [needle], with its args and delay.
+ *  The immediate FCM-only twin of each dismissal (`fcmOnly`, see
+ *  `calls.scheduleTakenPush`) is left out unless [fcmOnly] asks for it: the
+ *  rules pinned below are the graced push's. */
+async function jobs(
+  t: ReturnType<typeof convexTest>,
+  needle: string,
+  { fcmOnly = false }: { fcmOnly?: boolean } = {},
+) {
   return await t.run(async (ctx) => {
     const rows = await ctx.db.system.query("_scheduled_functions").collect();
     return rows
       .filter((r) => r.name.includes(needle))
+      .filter((r) => ((r.args[0] as any)?.fcmOnly === true) === fcmOnly)
       .map((r) => ({
         args: r.args[0] as any,
         delayMs: r.scheduledTime - r._creationTime,
@@ -331,6 +339,29 @@ describe("and never a phantom", () => {
     // Same constant as `calls.scheduleTakenPush`; `_creationTime` carries a
     // sub-millisecond fraction, so round it away.
     for (const j of taken) expect(Math.round(j.delayMs)).toBe(TAKEN_PUSH_GRACE_MS);
+  });
+
+  test("…and each one's Android leg goes at once, FCM only", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, roomId } = await roomOfThree(t);
+    const groupCallId = await startCall(t, starter, roomId);
+
+    await t.mutation(api.groupCalls.decline, {
+      sessionToken: alice.token,
+      userId: alice.userId as any,
+      groupCallId,
+      deviceId: "device-alice",
+    });
+
+    const now = await jobs(t, "sendGroupVoipTaken", { fcmOnly: true });
+    const graced = await jobs(t, "sendGroupVoipTaken");
+    expect(now.length).toBe(1);
+    expect(graced.length).toBe(1);
+    expect(Math.abs(Math.round(now[0].delayMs))).toBe(0);
+    // Same audience as the graced push it runs ahead of.
+    const { fcmOnly, ...rest } = now[0].args;
+    expect(fcmOnly).toBe(true);
+    expect(rest).toEqual(graced[0].args);
   });
 
   test("an ignored invite is dismissed once: the end marks it missed and the expiry finds nobody", async () => {

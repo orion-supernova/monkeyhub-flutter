@@ -44,6 +44,13 @@ type TakenPushArgs = {
 
 // The one way a native `taken` push gets scheduled — see TAKEN_PUSH_GRACE_MS.
 async function scheduleTakenPush(ctx: any, args: TakenPushArgs) {
+  // Android first, and now: the grace is for iOS's phantom ring, which an
+  // FCM `taken` cannot cause, and it held every killed or backgrounded
+  // Android ring three seconds past a cancel. See `sendVoipTaken.fcmOnly`.
+  await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+    ...args,
+    fcmOnly: true,
+  });
   await ctx.scheduler.runAfter(
     TAKEN_PUSH_GRACE_MS,
     internal.voipPush.sendVoipTaken,
@@ -1377,14 +1384,39 @@ export const markRinging = mutation({
 
 // The native report, from `/calls/ringing` (http.ts) once the signed ring
 // proof has checked out. The signature already names the callee.
+//
+// Answers with the call's status (null: GC'd, or not this callee's call), and
+// the endpoint hands it straight back to the phone. That answer is the
+// native-side guarantee against the ghost ring: an invite VoIP push that
+// lands AFTER the cancel (APNs held it; the app had already dismissed nothing
+// and acked, so no `taken` push is coming) raises a card for a dead call, and
+// nothing in Dart may be alive to end it. The phone posts this report the
+// moment its card is up and ends the card itself on anything but "ringing"
+// (AppDelegate.reportRinging).
 export const markRingingInternal = internalMutation({
   args: { callId: v.id("calls"), userId: v.id("users") },
-  returns: v.null(),
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, { callId, userId }) => {
     const call = await ctx.db.get(callId);
     if (!call || call.calleeId.toString() !== userId.toString()) return null;
     await markRingingImpl(ctx, call);
-    return null;
+    return call.status;
+  },
+});
+
+// The read-only twin, for the phone's native ring watch: while a card rings
+// un-answered, AppDelegate re-posts the same signed proof with `probe: true`
+// every couple of seconds and ends the card the moment the answer is not
+// "ringing". That is what takes a card down when the Dart side is not there
+// to (a process PushKit launched and Flutter never attached in) or acked a
+// dismissal it should not have. A query, so a watch costs no writes.
+export const ringStatusInternal = internalQuery({
+  args: { callId: v.id("calls"), userId: v.id("users") },
+  returns: v.union(v.null(), v.string()),
+  handler: async (ctx, { callId, userId }) => {
+    const call = await ctx.db.get(callId);
+    if (!call || call.calleeId.toString() !== userId.toString()) return null;
+    return call.status;
   },
 });
 

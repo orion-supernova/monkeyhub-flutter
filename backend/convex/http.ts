@@ -155,9 +155,12 @@ http.route({
 /**
  * A callee's phone has the ringer up — the ring proof from the VoIP push
  * (receiptToken.ts `ringFields`), posted by AppDelegate.swift's PushKit
- * handler or CallFcmService.kt once the card is on screen. Same contract as
- * `/receipts/delivered`: 204 for a good signature, 403 otherwise, and the
- * poster never retries.
+ * handler or CallFcmService.kt once the card is on screen. 403 for a bad
+ * signature; otherwise 200 with `{status}`, the call's status ("gone" once
+ * the row is GC'd, "unknown" if it could not be read), which the iPhone uses
+ * to end a card raised for a call that is already over. `probe: true` reads
+ * the status without reporting a ring (the iPhone's native ring watch).
+ * The poster never retries.
  */
 http.route({
   path: "/calls/ringing",
@@ -177,7 +180,7 @@ http.route({
     } catch {
       return deny();
     }
-    const { callId, userId, sig } = body ?? {};
+    const { callId, userId, sig, probe } = body ?? {};
     if (
       typeof callId !== "string" ||
       typeof userId !== "string" ||
@@ -186,15 +189,29 @@ http.route({
       return deny();
     }
     if (!(await verifyRing(callId, userId, sig))) return deny();
+    // The call's status rides back to the phone — see
+    // `calls.markRingingInternal`. "unknown" when we could not read it: the
+    // phone treats only a definite terminal answer as a reason to end a card.
+    let status: string = "unknown";
     try {
-      await ctx.runMutation(internal.calls.markRingingInternal, {
-        callId: callId as any,
-        userId: userId as any,
-      });
+      const read: string | null =
+        probe === true
+          ? await ctx.runQuery(internal.calls.ringStatusInternal, {
+              callId: callId as any,
+              userId: userId as any,
+            })
+          : await ctx.runMutation(internal.calls.markRingingInternal, {
+              callId: callId as any,
+              userId: userId as any,
+            });
+      status = read ?? "gone";
     } catch (e) {
       console.warn(`calls/ringing: ${(e as Error).message}`);
     }
-    return new Response(null, { status: 204, headers: receiptCors });
+    return new Response(JSON.stringify({ status }), {
+      status: 200,
+      headers: { ...receiptCors, "Content-Type": "application/json" },
+    });
   }),
 });
 
