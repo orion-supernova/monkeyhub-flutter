@@ -11,6 +11,7 @@ import '../backend/call_api.dart';
 import '../backend/convex_client.dart';
 import '../data/settings_store.dart';
 import 'call_config.dart';
+import 'camera_health.dart';
 import 'call_media.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
@@ -33,7 +34,9 @@ import 'screen_share.dart';
 /// subscription is wired by `SignalingSubscriber` which delivers signals into
 /// [handleRemoteSignal].
 class CallService extends ChangeNotifier implements CallOptionsController {
-  CallService({required this.api});
+  CallService({required this.api}) {
+    _routeSub = callAudioRouteChanges.listen(handleCallAudioRoute);
+  }
 
   static CallService? _instance;
   static CallService get instance => _instance!;
@@ -387,8 +390,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   /// session, the camera and mic, the peer connection) until then. That work
   /// runs on the platform thread, which on iOS is the thread that presents
   /// Flutter's frames, so starting it mid-slide froze the slide. The wait is
-  /// at most what is left of a 300 ms transition, and usually nothing: the
-  /// backend round trip before it is longer.
+  /// at most what is left of the route's transition (500 ms for iOS's
+  /// Cupertino route), and usually nothing: the backend round trip before
+  /// it is longer.
   Future<void>? screenSettled;
 
   /// A callee's `ringing` report that beat [initiate]'s own response here
@@ -555,8 +559,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   Future<MediaStream> Function({ScreenShareSource? source}) getDisplayMediaFn =
       ScreenShare.capture;
   @visibleForTesting
-  Future<MediaStreamTrack> Function(VideoQualityTier tier) getVideoTrackFn =
-      getCallVideoOnlyTrack;
+  late Future<MediaStreamTrack> Function(VideoQualityTier tier)
+      getVideoTrackFn =
+      (tier) => getCallVideoOnlyTrack(tier, back: _camFacingBack);
   @visibleForTesting
   Future<MediaStream> Function(String label) createLocalStreamFn =
       createLocalMediaStream;
@@ -565,6 +570,13 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       CallPermissions.ensure;
   @visibleForTesting
   Future<void> Function(RTCPeerConnection pc) preferCodecFn = preferH264Codec;
+  @visibleForTesting
+  Future<bool?> Function(
+    CallMediaKind kind, {
+    required bool speakerOn,
+    required bool headsetWins,
+    String? callId,
+  }) applyCallAudioFn = applyCallAudioResolved;
 
   MediaStreamTrack? get _camTrack {
     final v = _localStream?.getVideoTracks();
@@ -1216,73 +1228,157 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     await _sendState();
   }
 
-  /// Camera on/off — in a VIDEO call by gating the acquired track, as it
-  /// always was; in a VOICE call by acquiring the camera on demand and
-  /// negotiating a slot for it, then releasing it when it goes off. See
-  /// [GroupCallService.toggleVideo] for the full account.
+  /// Camera on/off, the same way in every call: "on" acquires the camera
+  /// and puts its track on the camera slot (negotiating the slot the first
+  /// time a voice call needs one), "off" empties the slot and releases the
+  /// camera, light and all. A video call used to gate its track with
+  /// `enabled` instead, which kept the camera running while "off" and gave
+  /// the two kinds of call two answers to "is the camera on". See
+  /// [GroupCallService.toggleVideo].
+  ///
+  /// The button answers on the tap ([cameraButtonOn] shows the wish while
+  /// it is carried out). The work runs one step at a time through
+  /// [_camSerial], so a second tap while the camera warms up changes the
+  /// wish instead of acquiring a second camera: two capturers, one of them
+  /// orphaned, was a camera that read "on" and sent nothing.
   Future<void> toggleVideo() async {
-    final ls = _localStream;
-    final s = _session;
-    if (ls == null || s == null) return;
-    if (s.mediaKind == CallMediaKind.video) {
-      final newOff = !s.localVideoOff;
-      for (final t in ls.getVideoTracks()) {
-        t.enabled = !newOff;
+    if (_localStream == null || _session == null) return;
+    _camWanted = !cameraButtonOn;
+    notifyListeners();
+    await _camSerial(_settleCamera);
+  }
+
+  /// What the camera button shows: the camera the user last asked for
+  /// while that is still being carried out, else [localCamActive].
+  bool get cameraButtonOn => _camWanted ?? localCamActive;
+
+  /// The camera the user asked for, while [_settleCamera] works on it.
+  bool? _camWanted;
+
+  /// Camera work (on, off, restart, quality swap, flip) runs one at a time,
+  /// in tap order.
+  Future<void> _camQueue = Future<void>.value();
+
+  /// The call the queue belongs to. Bumped at teardown with a fresh
+  /// queue, so a step queued for the last call never runs in the next one,
+  /// and the next call's camera never waits behind a step the last one
+  /// left hanging.
+  int _camGen = 0;
+
+  /// Runs [op] after the camera work before it. Never throws: every caller
+  /// is a tap or a timer with nobody to catch, and a failed step leaves
+  /// the camera where the truth says it is.
+  Future<void> _camSerial(Future<void> Function() op) {
+    final gen = _camGen;
+    final next = _camQueue.then((_) async {
+      if (gen != _camGen) return;
+      try {
+        await op();
+      } catch (e, st) {
+        debugPrint('CallService camera step failed: $e\n$st');
       }
-      _session = s.copyWith(localVideoOff: newOff);
-      notifyListeners();
-      await _sendState();
-      return;
-    }
-    if (s.localVideoOff) {
-      await _cameraOn(ls, s);
-    } else {
-      await _cameraOff(ls, s);
+    });
+    _camQueue = next;
+    return next;
+  }
+
+  /// A new, empty camera queue for the next call. See [_camGen].
+  void _resetCamQueue() {
+    _camGen++;
+    _camQueue = Future<void>.value();
+  }
+
+  /// Walks the camera to [_camWanted], re-reading the wish after every
+  /// step, so taps made meanwhile are honoured in order and a burst of them
+  /// costs at most one acquisition. A step that fails (no permission, no
+  /// camera) drops the wish, and the button falls back to the truth.
+  Future<void> _settleCamera() async {
+    final gen = _camGen;
+    try {
+      while (gen == _camGen) {
+        final want = _camWanted;
+        final ls = _localStream;
+        final s = _session;
+        if (want == null || ls == null || s == null) return;
+        if (want == localCamActive) return;
+        final ok = want ? await _cameraOn(ls, s) : await _cameraOff(ls, s);
+        if (!ok) return;
+      }
+    } finally {
+      // A step that outlived its call leaves the next call's wish alone.
+      if (gen == _camGen && _camWanted != null) {
+        _camWanted = null;
+        notifyListeners();
+      }
     }
   }
 
-  Future<void> _cameraOn(MediaStream ls, CallSession s) async {
-    if (!await ensurePermissionsFn(CallMediaKind.video)) return;
+  Future<bool> _cameraOn(MediaStream ls, CallSession s) async {
+    if (!await ensurePermissionsFn(CallMediaKind.video)) return false;
     final MediaStreamTrack track;
     try {
       track = await getVideoTrackFn(SettingsStore.instance.videoQualityTier);
     } catch (e) {
       debugPrint('CallService._cameraOn: $e');
-      return;
+      return false;
     }
     if (_session?.callId != s.callId || _localStream != ls) {
-      try {
-        await track.stop();
-      } catch (_) {}
-      return;
+      await discardCameraTrack(track);
+      return false;
     }
-    await ls.addTrack(track);
+    // Never two cameras in the stream: the preview and the sender would
+    // each pick one, and only one would be the live one.
+    for (final stale in ls.getVideoTracks()) {
+      await releaseCameraTrack(ls, stale);
+    }
+    try {
+      await ls.addTrack(track);
+    } catch (e) {
+      // A capturer the stream never took would run on with nobody to stop it.
+      debugPrint('CallService._cameraOn addTrack: $e');
+      await discardCameraTrack(track);
+      return false;
+    }
     _localStreamTick++;
     // Camera on moves the sound to the speaker. Flag first, route after,
     // through the one route writer: the old order awaited the route and
     // then wrote back a session copied from before those awaits, undoing
     // any toggle the user made in between.
+    // A default, not a choice: a connected headset keeps the sound, as in
+    // FaceTime. A speaker the user already chose stays chosen.
     final toSpeaker = !_session!.speakerOn;
+    if (toSpeaker) _speakerChosenFor = null;
     _session = _session!.copyWith(localVideoOff: false, speakerOn: true);
     notifyListeners();
     if (toSpeaker) unawaited(_syncSpeakerRoute());
-    await _sendState();
     final sender = _camSender;
     if (sender != null) {
+      // Not awaited: a hanging send must not hold the camera queue.
+      unawaited(_sendState());
       try {
         await sender.replaceTrack(track);
       } catch (e) {
         debugPrint('CallService._cameraOn replaceTrack: $e');
       }
     } else {
+      // The new slot's offer names our camera stream: the state that tells
+      // the peer which stream is the camera has to land before it.
+      await _sendState();
       await _activateSlots();
     }
+    return true;
   }
 
-  Future<void> _cameraOff(MediaStream ls, CallSession s) async {
+  Future<bool> _cameraOff(MediaStream ls, CallSession s) async {
+    // An off camera is not a paused one.
+    _camSuspended = false;
+    _camRestarts = 0;
     _session = s.copyWith(localVideoOff: true);
     notifyListeners();
-    await _sendState();
+    // Privacy first: the picture stops leaving the phone on the tap, not
+    // after the state signal has made the round trip through the backend
+    // (seconds on a slow link, during which the peer still saw us). The
+    // peer learns "off" right after; until then it sees a frozen frame.
     final sender = _camSender;
     if (sender != null) {
       try {
@@ -1292,15 +1388,184 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       }
     }
     for (final t in ls.getVideoTracks()) {
-      await ls.removeTrack(t);
-      try {
-        await t.stop();
-      } catch (e) {
-        debugPrint('CallService._cameraOff stop: $e');
-      }
+      await releaseCameraTrack(ls, t);
     }
     _localStreamTick++;
     notifyListeners();
+    // Never awaited inside the camera queue: a hanging send would hold
+    // every camera tap behind it.
+    unawaited(_sendState());
+    return true;
+  }
+
+  // ───────── camera health ─────────
+
+  /// Watches the frames of a camera that is on — see [CameraWatch].
+  CameraWatch? _camWatch;
+
+  /// The camera is meant to be on but is not capturing (iOS stopped it in
+  /// the background, the system took it). The peer is told the picture is
+  /// off meanwhile, so it shows our avatar, not a frozen frame; the button
+  /// keeps the user's choice, and the camera comes back on its own.
+  bool _camSuspended = false;
+  bool get cameraSuspended => _camSuspended;
+
+  /// Restarts tried for the current stall. Past [kMaxCameraRestarts] in
+  /// the foreground the camera is turned off for real, so the button tells
+  /// the truth instead of promising a picture that is not coming.
+  int _camRestarts = 0;
+
+  /// The rear camera is the one in use, so a restart or a quality switch
+  /// brings back the camera the user flipped to.
+  bool _camFacingBack = false;
+
+  @visibleForTesting
+  Duration cameraWatchInterval = const Duration(seconds: 2);
+  @visibleForTesting
+  bool cameraWatchLifecycle = true;
+  @visibleForTesting
+  CameraWatch? get debugCameraWatch => _camWatch;
+  @visibleForTesting
+  Future<bool> Function(MediaStreamTrack track) switchCameraFn =
+      Helper.switchCamera;
+
+  @override
+  void notifyListeners() {
+    _syncCameraWatch();
+    super.notifyListeners();
+  }
+
+  /// Runs the watch exactly while a live call has the camera on.
+  void _syncCameraWatch() {
+    final s = _session;
+    final watch = localCamActive &&
+        _pc != null &&
+        s != null &&
+        s.status == CallStatus.active;
+    if (watch) {
+      (_camWatch ??= CameraWatch(
+        readFrames: _readCamFrames,
+        onVerdict: _onCameraVerdict,
+        interval: cameraWatchInterval,
+        listenToLifecycle: cameraWatchLifecycle,
+      ))
+          .start();
+    } else if (_camWatch?.running ?? false) {
+      _camWatch!.stop();
+      _camSuspended = false;
+      _camRestarts = 0;
+    }
+  }
+
+  /// The camera's frames off the link, or "can't tell" while the link is
+  /// not up: an encoder starved by a network blip counts flat like a dead
+  /// camera, and the watch would restart, then kill, a working one. The
+  /// group twin skips links that are not connected the same way.
+  Future<int?> _readCamFrames() async {
+    final pc = _pc;
+    final t = _camTrack;
+    if (pc == null || t == null) return null;
+    final ice = pc.iceConnectionState;
+    if (ice != RTCIceConnectionState.RTCIceConnectionStateConnected &&
+        ice != RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+      return null;
+    }
+    return cameraFramesFrom(await pc.getStats(t));
+  }
+
+  @visibleForTesting
+  Future<int?> debugReadCamFrames() => _readCamFrames();
+
+  @visibleForTesting
+  void debugCameraVerdict(CameraHealth verdict) => _onCameraVerdict(verdict);
+
+  void _onCameraVerdict(CameraHealth verdict) {
+    if (!localCamActive) return;
+    if (verdict == CameraHealth.capturing) {
+      _camRestarts = 0;
+      if (_camSuspended) {
+        debugPrint('[CamWatch] 1:1 camera capturing again');
+        _camSuspended = false;
+        notifyListeners();
+        unawaited(_sendState());
+      }
+      return;
+    }
+    final foreground = appInForegroundFn();
+    if (!_camSuspended) {
+      debugPrint('[CamWatch] 1:1 camera stalled (foreground=$foreground)');
+      _camSuspended = true;
+      notifyListeners();
+      unawaited(_sendState());
+    }
+    if (!foreground) return;
+    if (_camRestarts >= kMaxCameraRestarts) {
+      debugPrint('[CamWatch] 1:1 camera did not come back, turning it off');
+      _camWanted = false;
+      notifyListeners();
+      unawaited(_camSerial(_settleCamera));
+      return;
+    }
+    _camRestarts++;
+    unawaited(_camSerial(() async {
+      if (!localCamActive) return;
+      debugPrint('[CamWatch] 1:1 restarting the camera ($_camRestarts)');
+      await _swapCameraTrack(SettingsStore.instance.videoQualityTier);
+    }));
+  }
+
+  /// Re-acquires the camera at [tier] and swaps it onto the camera slot in
+  /// place: `replaceTrack`, no renegotiation, the stream object kept (the
+  /// tick tells the preview to rebind). Shared by the quality switch and
+  /// the stall restart. Run through [_camSerial] only.
+  Future<bool> _swapCameraTrack(VideoQualityTier tier) async {
+    final s = _session;
+    final ls = _localStream;
+    final old = _camTrack;
+    if (s == null || ls == null || old == null) return false;
+    final MediaStreamTrack next;
+    try {
+      next = await getVideoTrackFn(tier);
+    } catch (e) {
+      debugPrint('CallService._swapCameraTrack: $e');
+      return false;
+    }
+    if (_session?.callId != s.callId ||
+        _localStream != ls ||
+        _camTrack != old ||
+        !localCamActive) {
+      await discardCameraTrack(next);
+      return false;
+    }
+    final sender = _camSender;
+    if (sender != null) {
+      try {
+        await sender.replaceTrack(next);
+      } catch (e) {
+        debugPrint('CallService._swapCameraTrack replaceTrack: $e');
+      }
+    }
+    // Add before release: the stream is never without a camera, so the
+    // preview never binds to an empty one.
+    try {
+      await ls.addTrack(next);
+    } catch (e) {
+      // Put the old camera back on the slot and stop the new capturer, or
+      // it runs on with nobody holding it.
+      debugPrint('CallService._swapCameraTrack addTrack: $e');
+      if (sender != null) {
+        try {
+          await sender.replaceTrack(old);
+        } catch (_) {}
+      }
+      await discardCameraTrack(next);
+      return false;
+    }
+    await releaseCameraTrack(ls, old);
+    _camWatch?.rebase();
+    _localStreamTick++;
+    notifyListeners();
+    return true;
   }
 
   /// Share this device's screen with the peer. One presenter at a time.
@@ -1683,80 +1948,46 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     }
   }
 
-  Future<void> switchCamera() async {
-    final ls = _localStream;
-    if (ls == null) return;
-    final tracks = ls.getVideoTracks();
-    if (tracks.isEmpty) return;
-    if (!_isMobile) return; // Helper.switchCamera is a mobile-only channel.
-    try {
-      await Helper.switchCamera(tracks.first);
-    } catch (e) {
-      debugPrint('switchCamera failed: $e');
-    }
-  }
+  /// Front/back. Serialized with the rest of the camera work, so a flip
+  /// never lands on a track a restart is replacing, and bounded: the iOS
+  /// plugin never answers a flip it has no capturer for.
+  Future<void> switchCamera() => _camSerial(() async {
+        final t = _camTrack;
+        if (t == null || !localCamActive) return;
+        if (!_isMobile) return; // Helper.switchCamera is a mobile-only channel.
+        try {
+          final front =
+              await switchCameraFn(t).timeout(const Duration(seconds: 3));
+          _camFacingBack = !front;
+        } catch (e) {
+          debugPrint('switchCamera failed: $e');
+        }
+      });
 
-  /// Guards [switchVideoQuality] against overlapping calls — two taps in
-  /// quick succession would otherwise both read the same old track before
-  /// either finished swapping it in, leaking a camera resource that no
-  /// longer corresponds to what's being sent.
-  bool _switchingVideoQuality = false;
-
-  /// Live resolution/bitrate switch — persists the choice, then (if a video
-  /// call is actually in progress) re-acquires the camera at the new tier
-  /// and swaps it onto the existing sender via `replaceTrack`. No SDP
-  /// renegotiation: the sender/transceiver stays put, only its track and
-  /// encoder params change.
+  /// Live resolution/bitrate switch: persists the choice, then, if a
+  /// camera is going out (a video call's, or one a voice call turned on),
+  /// re-acquires it at the new tier and swaps it onto the camera slot with
+  /// `replaceTrack` ([_swapCameraTrack]). No SDP renegotiation: the
+  /// transceiver stays put, only its track and encoder params change. Runs
+  /// through [_camSerial], which is also what keeps two quick switches from
+  /// both reading the same old track.
   @override
   Future<void> switchVideoQuality(VideoQualityTier tier) async {
     await SettingsStore.instance.setVideoQualityTier(tier);
-    final s = _session;
-    final pc = _pc;
-    final oldStream = _localStream;
-    if (s == null ||
-        pc == null ||
-        oldStream == null ||
-        s.mediaKind == CallMediaKind.audio ||
-        _switchingVideoQuality) {
-      return;
-    }
-    final oldVideoTracks = oldStream.getVideoTracks();
-    if (oldVideoTracks.isEmpty) return;
-    final oldTrack = oldVideoTracks.first;
-    _switchingVideoQuality = true;
-    try {
-      final newTrack = await getCallVideoOnlyTrack(tier);
-      newTrack.enabled = !s.localVideoOff;
-      // The CAMERA's sender only — a screen sender is a video sender too.
-      final senders = await pc.getSenders();
-      for (final sender in senders) {
-        if (sender.track?.id == oldTrack.id) {
-          await sender.replaceTrack(newTrack);
-        }
-      }
-      // Add the new track before removing the old one, and never let a
-      // throwing stop() skip the swap — otherwise a track that fails to
-      // stop (seen on some Android OEMs, see GroupCallService.leaveCall)
-      // would leave the stream with zero video tracks and every later
-      // switch attempt silently no-oping on the empty-tracks guard above.
-      oldStream.addTrack(newTrack);
-      oldStream.removeTrack(oldTrack);
+    if (_pc == null || !localCamActive) return;
+    await _camSerial(() async {
+      final pc = _pc;
+      if (pc == null || !localCamActive) return;
+      if (!await _swapCameraTrack(tier)) return;
       try {
-        await oldTrack.stop();
+        await configureVideoSenders(
+          pc,
+          maxBitrate: videoQualityPresets[tier]!.maxBitrate,
+        );
       } catch (e) {
-        debugPrint('switchVideoQuality: old track stop failed: $e');
+        debugPrint('switchVideoQuality($tier) failed: $e');
       }
-      await configureVideoSenders(
-        pc,
-        maxBitrate: videoQualityPresets[tier]!.maxBitrate,
-      );
-      _localStreamTick++;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('switchVideoQuality($tier) failed: $e');
-    } finally {
-      _switchingVideoQuality = false;
-    }
+    });
   }
 
   Future<void> toggleSpeaker() async {
@@ -1769,8 +2000,81 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     // the OLD flag and asked for the same route again: two taps, one
     // change, and a button out of step with the sound.
     _session = s.copyWith(speakerOn: next);
+    // An explicit choice: it beats a connected headset (see
+    // [applyCallAudioResolved]) and survives every reassert.
+    _speakerChosenFor = s.callId;
+    _routeResyncs = 0;
     notifyListeners();
     await _syncSpeakerRoute();
+  }
+
+  /// The call whose speaker side the user picked themselves, by the button
+  /// or from the system's route controls. Keyed by callId so a new call
+  /// starts from its kind's default without anyone resetting it.
+  String? _speakerChosenFor;
+  bool get _speakerUserChosen =>
+      _speakerChosenFor != null && _speakerChosenFor == _session?.callId;
+
+  /// Policy re-applies in a row that didn't bring the route to our side.
+  /// Capped, so an output that refuses the override (a car, say) can't
+  /// ping-pong with its own route-change echoes.
+  int _routeResyncs = 0;
+  StreamSubscription<CallAudioRoute>? _routeSub;
+
+  /// The native side's report of where the sound really goes (iOS route
+  /// changes: headphones in or out, AirPods, the CallKit or Control Center
+  /// speaker button). The rules are [decideCallAudioRoute]'s; this keeps
+  /// [CallSession.speakerOn], and so the speaker button, on the real side.
+  @visibleForTesting
+  void handleCallAudioRoute(CallAudioRoute route) {
+    final s = _session;
+    if (s == null || !inCall) return;
+    // Only a call whose media is up owns the route. One still ringing here
+    // (a call waiting while a group call holds the iOS session) has no
+    // audio of its own: answering the group's route changes with a resync
+    // of this call's default ping-ponged the speaker under the group.
+    if (_localStream == null &&
+        s.status != CallStatus.connecting &&
+        s.status != CallStatus.active) {
+      return;
+    }
+    // A write of ours is in flight; the route it reports back when it
+    // lands settles the flag, and this report may predate it.
+    if (_speakerRouting != null) return;
+    final d = decideCallAudioRoute(
+      speakerOn: s.speakerOn,
+      cameraOn: localCamActive,
+      route: route,
+    );
+    final adopt = d.speakerOn;
+    if (adopt == null) {
+      if (!d.resync) {
+        _routeResyncs = 0;
+        return;
+      }
+      if (++_routeResyncs > 2) return;
+    } else {
+      _routeResyncs = 0;
+      _speakerChosenFor = d.userChosen ? s.callId : null;
+      if (adopt != s.speakerOn) {
+        debugPrint('CallService: route $route -> speaker=$adopt');
+        _session = s.copyWith(speakerOn: adopt);
+        notifyListeners();
+      }
+    }
+    if (d.resync) unawaited(_syncSpeakerRoute());
+  }
+
+  /// The side the native layer actually applied, when a connected headset
+  /// beat a default speaker: the flag follows, unless the user has moved
+  /// it again since (their tap's own pass is already queued).
+  void _adoptAppliedSpeaker(String? callId, bool want, bool? applied) {
+    if (applied == null || applied == want || _speakerRouteDirty) return;
+    final cur = _session;
+    if (cur == null || cur.callId != callId || cur.speakerOn != want) return;
+    debugPrint('CallService: headset kept the sound, speaker=$applied');
+    _session = cur.copyWith(speakerOn: applied);
+    notifyListeners();
   }
 
   /// Brings the platform route in line with [CallSession.speakerOn] — the
@@ -1799,7 +2103,13 @@ class CallService extends ChangeNotifier implements CallOptionsController {
           // reconfiguration snapped back to the loudspeaker. See
           // [applyCallAudio].
           debugPrint('CallService: audio route speaker=$want');
-          await applyCallAudio(s.mediaKind, speakerOn: want);
+          final applied = await applyCallAudioFn(
+            s.mediaKind,
+            speakerOn: want,
+            headsetWins: !_speakerUserChosen,
+            callId: s.callId,
+          );
+          _adoptAppliedSpeaker(s.callId, want, applied);
         }
       } finally {
         _speakerRouting = null;
@@ -1814,7 +2124,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   ///      activation AND once more ~1200ms after answer — playAndRecord
   ///      with mode .default and no .defaultToSpeaker — clobbering any
   ///      route/category we set earlier. So re-assert ours now AND once
-  ///      again after its delayed pass.
+  ///      again after its delayed pass. (Since vendored PATCH A the plugin
+  ///      hands those passes to AppDelegate's CallAudioRouter, which writes
+  ///      OUR config synchronously; these reasserts are now cheap belts.)
   ///   2. flutter_webrtc's mic unit may have started BEFORE activation
   ///      (it has no CallKit coordination), in which case it captures
   ///      silence until the track is re-primed — the mute→unmute "fix"
@@ -1954,7 +2266,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         // (the loser cancels it server-side); the loser cancels its own
         // outgoing and rings for the winner's call instead.
         if (winsGlare(myUserId: me, peerUserId: fromUserId)) {
-          unawaited(NativeCallHandler.instance.endNativeByCallId(callId));
+          unawaited(NativeCallHandler.instance.endNative(callId));
           return;
         }
         // Bounded fire-and-forget: an unresponsive socket must not keep the
@@ -1984,7 +2296,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
             acceptingDeviceId: _deviceId,
           );
         } catch (_) {}
-        unawaited(NativeCallHandler.instance.endNativeByCallId(callId));
+        unawaited(NativeCallHandler.instance.endNative(callId));
         return;
       }
       _onRemoteInvite(
@@ -2057,7 +2369,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
             acceptingDeviceId: _deviceId,
           );
         } catch (_) {}
-        unawaited(NativeCallHandler.instance.endNativeByCallId(callId));
+        unawaited(NativeCallHandler.instance.endNative(callId));
         return;
       }
       await _onRemoteOffer(callId: callId, fromUserId: fromUserId, payload: payload);
@@ -2389,9 +2701,12 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     // Drop the PC but KEEP the session (and the local stream) — we'll
     // hydrate against the incoming offer shortly. `_disposePc` would
     // also dispose the local stream, so do a narrower teardown.
+    final dropped = _pc;
     try {
-      await _pc?.close();
+      await dropped?.close();
     } catch (_) {}
+    // Android: closed is not gone. See [releasePeerConnection].
+    if (dropped != null) releasePeerConnection(dropped);
     _pc = null;
     _remoteDescSet = false;
     _pendingRemoteIce.clear();
@@ -2746,6 +3061,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       try {
         await old.close();
       } catch (_) {}
+      releasePeerConnection(old);
     }
     _pcGeneration++;
     final gen = _pcGeneration;
@@ -3012,12 +3328,23 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   }
 
   Future<void> _attachLocalMedia(CallMediaKind kind) async {
+    // The last call's late peer connection dispose stops Android's
+    // AudioSwitch once the registry empties. Let it land now, before this
+    // call's route and mic, never in the middle of them. See
+    // [releasePeerConnection].
+    await flushPeerConnectionReleases();
     // Classify the audio session before getUserMedia starts the mic unit.
     // `_session` is already set by the caller (initiate/acceptIncoming/etc)
     // with the correct per-kind default (loudspeaker for video, earpiece for
     // voice) — fall back to that same default if it's somehow unset yet.
     final speakerOn = _session?.speakerOn ?? (kind == CallMediaKind.video);
-    await applyCallAudio(kind, speakerOn: speakerOn);
+    final applied = await applyCallAudioFn(
+      kind,
+      speakerOn: speakerOn,
+      headsetWins: !_speakerUserChosen,
+      callId: _session?.callId,
+    );
+    _adoptAppliedSpeaker(_session?.callId, speakerOn, applied);
     // A redial or a handoff starts its own wait. An activation that already
     // came for THIS call (CallKit can activate before media is up) stands.
     final audioAlreadyLive = _callAudioLive;
@@ -3033,6 +3360,16 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     }
     _localStream = stream;
     final localKinds = stream.getTracks().map((t) => t.kind).join(',');
+    final cur = _session;
+    if (kind == CallMediaKind.video &&
+        stream.getVideoTracks().isEmpty &&
+        cur != null &&
+        !cur.localVideoOff) {
+      // A video call that got no camera: say so, on the button and to the
+      // peer, rather than a camera "on" with nothing behind it.
+      debugPrint('[CamWatch] video call acquired no camera; marked off');
+      _session = cur.copyWith(localVideoOff: true);
+    }
     debugPrint(
       'CallService._attachLocalMedia: requested=${kind.wire} '
       'tier=${tier.wire} got=[$localKinds]',
@@ -3091,7 +3428,8 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         payload: jsonEncode({
           ...PeerMediaState(
             audioMuted: s.localMuted,
-            videoOff: s.localVideoOff,
+            // A suspended camera is off as far as the peer can see.
+            videoOff: s.localVideoOff || _camSuspended,
             screenSharing: _localScreenSharing,
             camStreamId: _localStream?.id,
             screenStreamId: _screenStream?.id,
@@ -3298,8 +3636,10 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     // Belt to the plugin's deactivate-on-end: a no-op natively whenever any
     // call UI (plugin or fallback provider) is still alive — repeated over
     // the next seconds, because that card list empties a beat after
-    // `endNative` returned.
-    unawaited(NativeCallHandler.instance.deactivateIosAudioSessionSettled());
+    // `endNative` returned. Named, so a pass landing after a redial applied
+    // is ignored natively.
+    unawaited(NativeCallHandler.instance
+        .deactivateIosAudioSessionSettled(callId: endedCallId));
   }
 
   Future<void> _disposePc() async {
@@ -3313,6 +3653,12 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     _heartbeatTimer = null;
     _stats?.dispose();
     _stats = null;
+    _camWatch?.stop();
+    _camSuspended = false;
+    _camRestarts = 0;
+    _camWanted = null;
+    _camFacingBack = false;
+    _resetCamQueue();
     _remoteDescSet = false;
     _pendingRemoteIce.clear();
     _iceFlushTimer?.cancel();
@@ -3348,6 +3694,16 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       } catch (e) {
         debugPrint('CallService._disposePc: close failed: $e');
       }
+      // Android only, and after the screen has gone: the dispose is what
+      // takes the phone out of call mode. See [releasePeerConnection].
+      releasePeerConnection(pc);
+    }
+    // The Android route is one process-wide state. A 1:1 torn down while a
+    // group call is live (a ring missed or declined mid-group) never owned
+    // it: resetting it would hand the group's screen back to the system and
+    // make its next re-assert a "first ask" again.
+    if (!NativeCallHandler.groupCallActiveProbe()) {
+      resetAndroidCallRoute();
     }
     if (ls != null) {
       // Per-track stop with individual guards — one throwing track (video,
@@ -3369,9 +3725,11 @@ class CallService extends ChangeNotifier implements CallOptionsController {
 
   @override
   void dispose() {
+    _routeSub?.cancel();
     _acceptWatchdog?.cancel();
     _ringWatch?.cancel();
     _callAudioLiveTimer?.cancel();
+    _camWatch?.stop();
     callAudioActivations.dispose();
     _handoffWatchdog?.cancel();
     _disconnectTimer?.cancel();

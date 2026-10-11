@@ -43,6 +43,13 @@ class AudioLevelMonitor {
   /// The connection to read our own level from, if any.
   RTCPeerConnection? Function() localPc = () => null;
 
+  /// Our mic track, so the local read is scoped to its sender (the
+  /// `media-source` rides along with its `outbound-rtp`) instead of the
+  /// whole connection's report: every transport, candidate pair and codec,
+  /// built and decoded on the platform thread three times a second for one
+  /// number. Null falls back to the full report.
+  MediaStreamTrack? Function() localTrack = () => null;
+
   final Map<String, ValueNotifier<double>> _levels = {};
   final Map<String, int> _loud = {};
   final Map<String, int> _quiet = {};
@@ -143,7 +150,7 @@ class AudioLevelMonitor {
 
   Future<double> _localLevel(RTCPeerConnection pc) async {
     try {
-      final reports = await pc.getStats();
+      final reports = await pc.getStats(localTrack());
       for (final r in reports) {
         if (r.type != 'media-source') continue;
         final kind = r.values['kind'] ?? r.values['mediaType'];

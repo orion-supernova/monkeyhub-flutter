@@ -357,9 +357,13 @@ class FakePeerConnection extends RTCPeerConnection {
       ? RTCPeerConnectionState.RTCPeerConnectionStateClosed
       : RTCPeerConnectionState.RTCPeerConnectionStateNew;
 
-  @override
-  RTCIceConnectionState? get iceConnectionState =>
+  /// What [iceConnectionState] reports. A test moves it to stand for the
+  /// link coming up or dropping.
+  RTCIceConnectionState iceState =
       RTCIceConnectionState.RTCIceConnectionStateNew;
+
+  @override
+  RTCIceConnectionState? get iceConnectionState => iceState;
 
   @override
   RTCIceGatheringState? get iceGatheringState =>

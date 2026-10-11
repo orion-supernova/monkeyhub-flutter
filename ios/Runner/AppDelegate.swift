@@ -56,6 +56,9 @@ import WebRTC
   // callId so answer/decline can be bridged to Dart and "taken" pushes can
   // dismiss the right card.
   private var fallbackCallIdByUuid: [UUID: String] = [:]
+  // The fallback cards the user answered: the call itself now, never a
+  // "ringing card" for `endRingingCards` / `hasRingingCard` to end.
+  private var fallbackAnswered: Set<UUID> = []
   // monkeyhub/presence: lets `applicationWillTerminate` get the person's
   // `away` out before the process goes. See there.
   private var presenceChannel: FlutterMethodChannel?
@@ -74,6 +77,40 @@ import WebRTC
   // at a time, so a single persisted pair suffices.
   private static let lastInviteCallIdKey = "voip.lastInvite.callId"
   private static let lastInviteUuidKey = "voip.lastInvite.uuid"
+
+  // ── Ghost-ring guards ────────────────────────────────────────────────────
+  //
+  // A cancelled call must not leave this phone ringing, in any app state, and
+  // the Dart side cannot promise that on its own: it may not be running (a
+  // process PushKit launched), and it can only ack "no card" for the moment
+  // it looked — an invite push APNs holds past the cancel then raises a card
+  // nothing is left to end (the backend skips the `taken` push for a device
+  // that acked). So native keeps three things of its own:
+  //
+  //   - `voip.deadCalls`: 1:1 callIds this device knows are over (Dart's
+  //     `callOver`, or the ring report's answer). An invite for one of them
+  //     is reported-and-ended on the spot instead of ringing. Persisted, so a
+  //     process killed in between still honours it. Pruned by age.
+  //   - `invitesInFlight`: callIds whose invite push is between arrival and
+  //     the card's report, so `cardLive` never answers "gone" in that window.
+  //   - the native ring watch (`ringWatches`): while a push-raised card rings
+  //     un-answered, re-ask the backend with the push's signed ring proof
+  //     every `ringWatchInterval` and end the card the moment the call is no
+  //     longer ringing. No Dart, no session.
+  private static let deadCallsKey = "voip.deadCalls"
+  private static let deadCallTtl: TimeInterval = 120
+  private var invitesInFlight: Set<String> = []
+  private struct RingWatch {
+    let timer: Timer
+    let startedAt: Date
+    var task: UIBackgroundTaskIdentifier
+    var probing: Bool
+  }
+  private var ringWatches: [String: RingWatch] = [:]
+  private static let ringWatchInterval: TimeInterval = 2
+  // The backend gives up at 30s; the plugin's own card timeout is 30s too.
+  private static let ringWatchCeiling: TimeInterval = 45
+  private lazy var callObserver = CXCallObserver()
 
   // ── Ordinary (alert) push ────────────────────────────────────────────────
   //
@@ -481,6 +518,12 @@ import WebRTC
     if kind == "taken" || kind == "group_taken" {
       let reason = (dict["reason"] as? String) ?? "?"
       NSLog("[voip] \(kind) push — id=\(convexCallId) reason=\(reason)")
+      if kind == "taken" {
+        // Over for this device whatever the reason; an invite APNs still
+        // holds for it must not ring after this.
+        stopRingWatch(convexCallId, why: "taken push (\(reason))")
+        markCallDead(convexCallId)
+      }
       reportCallEndedElsewhere(convexCallId: convexCallId)
       completion()
       return
@@ -503,12 +546,50 @@ import WebRTC
     // CallFcmService.kt and `derivedUuid` in native_call_handler.dart are
     // the same function, pinned against this one by
     // test/call_native_uuid_test.dart.
-    let callUuid = isGroup && !convexCallId.isEmpty
-      ? Self.derivedCallUuid(convexCallId)
-      : UUID()
     let callerName = (dict["callerName"] as? String) ?? "Incoming call"
     let callerHandle = (dict["callerHandle"] as? String) ?? callerName
     let callType = ((dict["callType"] as? String) == "video") ? 1 : 0
+
+    // An invite for a call this device already knows is over: APNs held it
+    // past the cancel, or it is a duplicate delivery of one whose card we
+    // already took down. PushKit still demands a report, but it must not
+    // ring — report and end in one turn, exactly like a `taken` with
+    // nothing to end. Without this the card rang until the plugin's own 30s
+    // timeout: the device had acked "no card" before the push landed, so
+    // the backend's `taken` push skipped it.
+    if !isGroup && !convexCallId.isEmpty && isCallDead(convexCallId) {
+      NSLog("[voip] invite push for \(convexCallId) — call already over here; report-and-end, no ring")
+      reportAndEndCall(callerName: callerName)
+      completion()
+      return
+    }
+    // A second invite push for a call this device already holds a card for
+    // (the transport retry, a duplicate delivery) never mints a new card.
+    //
+    // Answered (or this device's own outgoing card): the call is live here.
+    // Reporting it again would ring a second card over the live call, and
+    // the writes below would repoint the map, the persisted pair and the
+    // plugin's `data` at that ghost. PushKit still wants a report: the
+    // compliant report-and-end, which never rings.
+    //
+    // Still ringing: reuse that card's id, so CallKit refuses the report as
+    // a duplicate instead of raising a second card under a fresh random id
+    // that nothing would know to end. The map and the pair already name it.
+    let existingCards = convexCallId.isEmpty ? [] : trackedCards(for: convexCallId)
+    if existingCards.contains(where: { $0.accepted }) {
+      NSLog("[voip] invite push for \(convexCallId) — call already answered here; report-and-end, no ring")
+      reportAndEndCall(callerName: callerName)
+      completion()
+      return
+    }
+    let existingUuid = isGroup ? nil : existingCards.first?.uuid
+    if let existingUuid = existingUuid {
+      NSLog("[voip] invite push for \(convexCallId) — card \(existingUuid.uuidString) already up; reusing its id")
+    }
+    let callUuid = isGroup && !convexCallId.isEmpty
+      ? Self.derivedCallUuid(convexCallId)
+      : (existingUuid ?? UUID())
+    NSLog("[voip] invite push for \(convexCallId.isEmpty ? "?" : convexCallId) — ringing card \(callUuid.uuidString)")
 
     // WhatsApp-style: the receiver ALWAYS gets the native CallKit UI —
     // foreground included. (The in-app ringer screen is reserved for
@@ -524,7 +605,7 @@ import WebRTC
     // there is nothing to remember, and writing the two UserDefaults keys
     // would CLOBBER the pair a 1:1 invite left there — a group invite landing
     // between a 1:1 invite and its "taken" would cost that call its dismissal.
-    if !convexCallId.isEmpty && !isGroup {
+    if !convexCallId.isEmpty && !isGroup && existingUuid == nil {
       // Prune before insert: entries used to be removed ONLY when a "taken"
       // push consumed them, so normal answer/decline/timeout left them
       // forever — unbounded growth plus stale mappings for later lookups.
@@ -570,11 +651,19 @@ import WebRTC
     callData.supportsVideo = callType == 1
     callData.audioSessionMode = callType == 1 ? "videoChat" : "voiceChat"
 
+    // Until the card is reported, `cardLive` must not call it gone: Dart
+    // asking in this window would ack a card about to ring.
+    if !isGroup && !convexCallId.isEmpty { invitesInFlight.insert(convexCallId) }
     showIncomingWithRetry(callData, convexCallId: convexCallId) { [weak self] in
       completion()
-      // A group ring has no caller waiting on "ringing"; its push carries no
-      // proof and this is a no-op for it.
-      self?.reportRinging(dict, callUuid: callUuid)
+      // The report's completion is CallKit's queue, not necessarily main;
+      // everything the ghost-ring guards touch lives on main.
+      DispatchQueue.main.async {
+        if !isGroup && !convexCallId.isEmpty { self?.invitesInFlight.remove(convexCallId) }
+        // A group ring has no caller waiting on "ringing"; its push carries
+        // no proof and this is a no-op for it.
+        self?.reportRinging(dict, callUuid: callUuid)
+      }
     }
   }
 
@@ -590,26 +679,66 @@ import WebRTC
   /// must not say it is. Fire-and-forget under a background task, so a push
   /// that launched the process still gets the post out. The Android twin is
   /// `reportRinging` in CallFcmService.kt.
+  ///
+  /// The answer carries the call's status, and this is where a card raised
+  /// for a call that is already over comes down (an invite APNs delivered
+  /// after the cancel). A call still ringing arms the native ring watch.
   private func reportRinging(_ dict: [AnyHashable: Any], callUuid: UUID) {
-    guard
-      let raw = dict["ringUrl"] as? String,
-      let url = URL(string: raw),
-      let callId = dict["callId"] as? String,
-      let userId = dict["ringUser"] as? String,
-      let sig = dict["ringSig"] as? String,
-      let body = try? JSONSerialization.data(withJSONObject: [
-        "callId": callId,
-        "userId": userId,
-        "sig": sig,
-      ])
-    else { return }
-    let pluginCard = (SwiftFlutterCallkitIncomingPlugin.sharedInstance?.activeCalls() ?? [])
-      .contains { ($0["id"] as? String).flatMap(UUID.init(uuidString:)) == callUuid }
-    guard pluginCard || fallbackCallIdByUuid[callUuid] != nil else {
-      NSLog("[voip] no card up for \(callId) — not reporting ringing")
+    guard let proof = RingProof(dict) else { return }
+    let card = trackedCards(for: proof.callId).contains { $0.uuid == callUuid }
+    guard card || fallbackCallIdByUuid[callUuid] != nil else {
+      NSLog("[voip] no card up for \(proof.callId) — not reporting ringing")
       return
     }
-    var request = URLRequest(url: url)
+    postRingProof(proof, probe: false) { [weak self] status in
+      self?.onRingStatus(status, proof: proof)
+    }
+  }
+
+  /// The signed ring proof an invite push carries, enough to ask the backend
+  /// about this one call as its callee without a session.
+  private struct RingProof {
+    let url: URL
+    let callId: String
+    let userId: String
+    let sig: String
+
+    init?(_ dict: [AnyHashable: Any]) {
+      guard
+        let raw = dict["ringUrl"] as? String,
+        let url = URL(string: raw),
+        let callId = dict["callId"] as? String,
+        !callId.isEmpty,
+        let userId = dict["ringUser"] as? String,
+        let sig = dict["ringSig"] as? String
+      else { return nil }
+      self.url = url
+      self.callId = callId
+      self.userId = userId
+      self.sig = sig
+    }
+  }
+
+  /// POST the ring proof; `probe` reads the status without reporting a ring.
+  /// Completes on the main queue with the call's status ("ringing",
+  /// "cancelled", … "gone"), or nil when there was no usable answer (offline,
+  /// an older backend that answers 204) — which decides nothing.
+  private func postRingProof(
+    _ proof: RingProof,
+    probe: Bool,
+    completion: @escaping (String?) -> Void
+  ) {
+    var fields: [String: Any] = [
+      "callId": proof.callId,
+      "userId": proof.userId,
+      "sig": proof.sig,
+    ]
+    if probe { fields["probe"] = true }
+    guard let body = try? JSONSerialization.data(withJSONObject: fields) else {
+      completion(nil)
+      return
+    }
+    var request = URLRequest(url: proof.url)
     request.httpMethod = "POST"
     request.timeoutInterval = 8
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -619,16 +748,198 @@ import WebRTC
       UIApplication.shared.endBackgroundTask(task)
       task = .invalid
     }
-    URLSession.shared.dataTask(with: request) { _, _, error in
+    URLSession.shared.dataTask(with: request) { data, response, error in
+      var status: String?
       if let error = error {
-        NSLog("[voip] ring report not sent: \(error.localizedDescription)")
+        NSLog("[voip] ring \(probe ? "probe" : "report") not sent: \(error.localizedDescription)")
+      } else if (response as? HTTPURLResponse)?.statusCode == 200,
+                let data = data,
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        status = json["status"] as? String
       }
       DispatchQueue.main.async {
-        guard task != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(task)
-        task = .invalid
+        if task != .invalid {
+          UIApplication.shared.endBackgroundTask(task)
+          task = .invalid
+        }
+        completion(status)
       }
     }.resume()
+  }
+
+  /// Act on what the backend says about a call this phone rings for.
+  private func onRingStatus(_ status: String?, proof: RingProof) {
+    let callId = proof.callId
+    switch status {
+    case nil, "unknown":
+      // No answer is no decision; the watch (or Dart, or `taken`) decides.
+      armRingWatch(proof)
+    case "ringing":
+      armRingWatch(proof)
+    case "active":
+      // Answered — on another device, or right here (whose card is accepted
+      // and so untouched below). Either way this ring is over.
+      stopRingWatch(callId, why: "call answered")
+      let ended = endRingingCards(callId: callId, reason: 4, includeFallback: true)
+      NSLog("[voip] ring status active for \(callId) — ended \(ended) ringing card(s) as answered elsewhere")
+    default:
+      // cancelled / missed / rejected / ended / failed / gone: over for good.
+      stopRingWatch(callId, why: "call \(status ?? "?")")
+      markCallDead(callId)
+      let ended = endRingingCards(callId: callId, reason: 2, includeFallback: true)
+      NSLog("[voip] ring status \(status ?? "?") for \(callId) — ended \(ended) dead card(s)")
+    }
+  }
+
+  /// The native ring watch: re-ask every `ringWatchInterval` while this
+  /// call's card rings un-answered. Bounded by the card itself, an answer,
+  /// `ringWatchCeiling`, and the background time iOS grants.
+  private func armRingWatch(_ proof: RingProof) {
+    let callId = proof.callId
+    guard ringWatches[callId] == nil else { return }
+    var bgTask: UIBackgroundTaskIdentifier = .invalid
+    bgTask = UIApplication.shared.beginBackgroundTask(withName: "ring-watch") { [weak self] in
+      self?.stopRingWatch(callId, why: "background time expired")
+    }
+    let timer = Timer(timeInterval: Self.ringWatchInterval, repeats: true) { [weak self] _ in
+      self?.ringWatchTick(proof)
+    }
+    RunLoop.main.add(timer, forMode: .common)
+    ringWatches[callId] = RingWatch(timer: timer, startedAt: Date(), task: bgTask, probing: false)
+    NSLog("[voip] ring watch armed for \(callId)")
+  }
+
+  private func ringWatchTick(_ proof: RingProof) {
+    let callId = proof.callId
+    guard let watch = ringWatches[callId] else { return }
+    guard hasRingingCard(callId) else {
+      stopRingWatch(callId, why: "card no longer ringing")
+      return
+    }
+    if Date().timeIntervalSince(watch.startedAt) > Self.ringWatchCeiling {
+      stopRingWatch(callId, why: "ceiling reached")
+      return
+    }
+    if watch.probing { return }
+    ringWatches[callId]?.probing = true
+    postRingProof(proof, probe: true) { [weak self] status in
+      guard let self = self, self.ringWatches[callId] != nil else { return }
+      self.ringWatches[callId]?.probing = false
+      if status != "ringing" {
+        NSLog("[voip] ring watch probe for \(callId) — status \(status ?? "no answer")")
+      }
+      // Only a definite answer acts; "no answer" leaves the watch running.
+      if let status = status, status != "unknown", status != "ringing" {
+        self.onRingStatus(status, proof: proof)
+      }
+    }
+  }
+
+  private func stopRingWatch(_ callId: String, why: String) {
+    guard let watch = ringWatches.removeValue(forKey: callId) else { return }
+    watch.timer.invalidate()
+    if watch.task != .invalid { UIApplication.shared.endBackgroundTask(watch.task) }
+    NSLog("[voip] ring watch stopped for \(callId): \(why)")
+  }
+
+  // ── Cards, by the plugin's own record and their real UUIDs ──
+
+  /// Every card the plugin holds for [callId]: a push-raised incoming card
+  /// (its `extra.callId`, or the id this process minted for it), a group
+  /// card (`extra.groupCallId`), or this device's own outgoing card (the
+  /// derived id). `accepted` is answered-or-outgoing.
+  private func trackedCards(for callId: String) -> [(uuid: UUID, accepted: Bool)] {
+    guard !callId.isEmpty,
+          let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance
+    else { return [] }
+    let minted = callKitUuidByCallId[callId]
+    let derived = Self.derivedCallUuid(callId)
+    return plugin.trackedCalls().compactMap { item in
+      guard let uuid = (item["id"] as? String).flatMap(UUID.init(uuidString:)) else {
+        return nil
+      }
+      let extra = item["extra"] as? NSDictionary
+      let matches = (extra?["callId"] as? String) == callId
+        || (extra?["groupCallId"] as? String) == callId
+        || uuid == minted
+        || uuid == derived
+      guard matches else { return nil }
+      return (uuid: uuid, accepted: (item["accepted"] as? Bool) ?? false)
+    }
+  }
+
+  /// Whether CallKit has already ended [uuid]. A call the observer has not
+  /// heard of yet (it learns of a fresh report a beat late) is NOT ended.
+  private func observerSaysEnded(_ uuid: UUID) -> Bool {
+    callObserver.calls.first(where: { $0.uuid == uuid })?.hasEnded ?? false
+  }
+
+  /// Is any card for [callId] still up on this device — the only honest
+  /// basis for a dismissal ack (Dart's `cardGone`). An invite still being
+  /// reported counts as up.
+  private func cardLive(_ callId: String) -> Bool {
+    if invitesInFlight.contains(callId) { return true }
+    if trackedCards(for: callId).contains(where: { !observerSaysEnded($0.uuid) }) {
+      return true
+    }
+    return fallbackCallIdByUuid.values.contains(callId)
+  }
+
+  private func hasRingingCard(_ callId: String) -> Bool {
+    if trackedCards(for: callId).contains(where: { !$0.accepted && !observerSaysEnded($0.uuid) }) {
+      return true
+    }
+    return fallbackCallIdByUuid.contains { $0.value == callId && !fallbackAnswered.contains($0.key) }
+  }
+
+  /// End every UN-ANSWERED card for [callId] by its real UUID, reporting it
+  /// ended (`saveEndCall`: no CXEndCallAction, so no DECLINE echo for Dart
+  /// to mistake for the user). An answered or outgoing card is never
+  /// touched here; those end through the call's own teardown. Reasons are
+  /// the plugin's: 2 remote ended, 4 answered elsewhere. [includeFallback]
+  /// also ends the fallback provider's un-answered cards for the call.
+  @discardableResult
+  private func endRingingCards(callId: String, reason: Int, includeFallback: Bool) -> Int {
+    var ended = 0
+    if let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance {
+      for card in trackedCards(for: callId) where !card.accepted {
+        NSLog("[voip] ending ringing card \(card.uuid.uuidString) for \(callId) (reason \(reason))")
+        plugin.saveEndCall(card.uuid.uuidString, reason)
+        ended += 1
+      }
+    }
+    if includeFallback {
+      for (uuid, id) in fallbackCallIdByUuid where id == callId && !fallbackAnswered.contains(uuid) {
+        NSLog("[voip] ending fallback card \(uuid.uuidString) for \(callId)")
+        fallbackCallIdByUuid.removeValue(forKey: uuid)
+        foregroundReportProvider.reportCall(
+          with: uuid,
+          endedAt: Date(),
+          reason: reason == 4 ? .answeredElsewhere : .remoteEnded
+        )
+        ended += 1
+      }
+    }
+    return ended
+  }
+
+  // ── Calls this device knows are over (see `deadCallsKey`) ──
+
+  private func deadCalls() -> [String: Double] {
+    let now = Date().timeIntervalSince1970
+    let raw = UserDefaults.standard.dictionary(forKey: Self.deadCallsKey) as? [String: Double] ?? [:]
+    return raw.filter { now - $0.value < Self.deadCallTtl }
+  }
+
+  private func markCallDead(_ callId: String) {
+    guard !callId.isEmpty else { return }
+    var dead = deadCalls()
+    dead[callId] = Date().timeIntervalSince1970
+    UserDefaults.standard.set(dead, forKey: Self.deadCallsKey)
+  }
+
+  private func isCallDead(_ callId: String) -> Bool {
+    deadCalls()[callId] != nil
   }
 
   // Shows the CallKit ringer for an invite push, handling two failure modes
@@ -747,6 +1058,7 @@ import WebRTC
     // A fallback-provider card may be ringing for this call instead.
     if let entry = fallbackCallIdByUuid.first(where: { $0.value == convexCallId }) {
       fallbackCallIdByUuid.removeValue(forKey: entry.key)
+      fallbackAnswered.remove(entry.key)
       foregroundReportProvider.reportCall(
         with: entry.key,
         endedAt: Date(),
@@ -888,6 +1200,7 @@ import WebRTC
 
   func providerDidReset(_ provider: CXProvider) {
     fallbackCallIdByUuid.removeAll()
+    fallbackAnswered.removeAll()
     // A provider reset means the system tore down every call UI — without
     // telling Dart, the WebRTC session (and the microphone) lived on
     // headless. Dart answers with a full local teardown.
@@ -897,12 +1210,15 @@ import WebRTC
   func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
     if let callId = fallbackCallIdByUuid[action.callUUID] {
       NSLog("[voip] fallback card answered callId=\(callId)")
+      fallbackAnswered.insert(action.callUUID)
+      CallAudioRouter.shared.markLive()
       invokeVoipOrQueue("onFallbackAnswer", args: ["callId": callId])
     }
     action.fulfill()
   }
 
   func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
+    fallbackAnswered.remove(action.callUUID)
     if let callId = fallbackCallIdByUuid.removeValue(forKey: action.callUUID) {
       NSLog("[voip] fallback card declined/ended callId=\(callId)")
       invokeVoipOrQueue("onFallbackDecline", args: ["callId": callId])
@@ -916,6 +1232,13 @@ import WebRTC
 
   func provider(_ provider: CXProvider, perform action: CXSetHeldCallAction) {
     action.fulfill()
+  }
+
+  // The fallback ringer's answer activates the session through THIS
+  // provider, which the callkit plugin never sees. Re-apply the call's
+  // audio here so its category/route match what the plugin path gets.
+  func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+    CallAudioRouter.shared.reassert(isVideo: nil)
   }
 
   // Delivers a voip-channel call to Dart, or queues it until Dart's handler
@@ -1245,6 +1568,21 @@ import WebRTC
       }
     }
 
+    // monkeyhub/call_audio — native to Dart only: the call's REAL output
+    // route, pushed on every AVAudioSession route change while a call holds
+    // the session (headphones in/out, AirPods, the CallKit or Control Center
+    // speaker button), so the speaker button follows the sound. Installing
+    // the router here also takes over the callkit plugin's own
+    // configureAudioSession (vendored PATCH A), before any VoIP push can ring.
+    if let callAudioRegistrar = engine.registrar(forPlugin: "MonkeyHubCallAudioPlugin") {
+      CallAudioRouter.shared.install(
+        channel: FlutterMethodChannel(
+          name: "monkeyhub/call_audio",
+          binaryMessenger: callAudioRegistrar.messenger()
+        )
+      )
+    }
+
     // monkeyhub/voip — exposes the PushKit VoIP token to Dart. Dart calls
     // `getToken` after PushManager.login(userId) and uploads the result to
     // Convex's setVoipToken mutation. We also push token updates over the
@@ -1275,6 +1613,42 @@ import WebRTC
           } else {
             result([])
           }
+        case "callOver":
+          // Dart learned this 1:1 call is over (a terminal signal, the ring
+          // watch, a teardown). Remember it, so an invite push that lands
+          // later reports-and-ends instead of ringing, and end its ringing
+          // card here by the card's real UUID: the PushKit card's id is
+          // minted in this file, and Dart only ever had a guess at it.
+          // Answers how many cards it ended. Answered/outgoing cards are left
+          // to the plugin's endCall, which Dart still issues.
+          let args = call.arguments as? [String: Any] ?? [:]
+          guard let self = self,
+                let callId = args["callId"] as? String,
+                !callId.isEmpty
+          else {
+            result(0)
+            return
+          }
+          self.markCallDead(callId)
+          self.stopRingWatch(callId, why: "Dart says call over")
+          let ended = self.endRingingCards(callId: callId, reason: 2, includeFallback: true)
+          NSLog("[voip] callOver \(callId) — ended \(ended) ringing card(s)")
+          result(ended)
+        case "cardLive":
+          // The basis of Dart's dismissal ack: is any card for this call (1:1
+          // or group) still up here, by the plugin's own record and the
+          // cards' real UUIDs, an invite mid-report counting as up.
+          let args = call.arguments as? [String: Any] ?? [:]
+          guard let self = self,
+                let callId = args["callId"] as? String,
+                !callId.isEmpty
+          else {
+            result(true)
+            return
+          }
+          let live = self.cardLive(callId)
+          NSLog("[voip] cardLive \(callId) = \(live)")
+          result(live)
         case "endFallbackCalls":
           // Dart-side call teardown: dismiss any card still ringing on the
           // fallback provider (the plugin's endAllCalls can't reach it).
@@ -1287,20 +1661,20 @@ import WebRTC
               )
             }
             self.fallbackCallIdByUuid.removeAll()
+            self.fallbackAnswered.removeAll()
           }
           result(nil)
         case "applyCallAudio":
           // One native pass for the call's audio category, mode and output
-          // route, off the main thread. See [applyCallAudio].
+          // route, off the main thread. Answers the speaker side it actually
+          // applied (a connected headset can win). See [CallAudioRouter].
           let args = call.arguments as? [String: Any] ?? [:]
-          guard let self = self else {
-            result(nil)
-            return
-          }
-          self.applyCallAudio(
+          CallAudioRouter.shared.apply(
             video: args["video"] as? Bool ?? false,
-            speaker: args["speaker"] as? Bool ?? false
-          ) { result(nil) }
+            speaker: args["speaker"] as? Bool ?? false,
+            headsetWins: args["headsetWins"] as? Bool ?? false,
+            callId: args["callId"] as? String
+          ) { applied in result(applied) }
         case "callAudioState":
           // Diagnostics: the session as a tone about to play into it sees
           // it. Logged by Dart at ringback start.
@@ -1324,19 +1698,23 @@ import WebRTC
           // the activation orderings the plugin can't see (e.g. WebRTC
           // activated the raw session before any CallKit call existed, as
           // in group calls, which never raise a card at all).
-          if let self = self {
-            let pluginBusy =
-              !(SwiftFlutterCallkitIncomingPlugin.sharedInstance?.activeCalls() ?? []).isEmpty
-            if !pluginBusy && self.fallbackCallIdByUuid.isEmpty {
-              do {
-                try AVAudioSession.sharedInstance()
-                  .setActive(false, options: [.notifyOthersOnDeactivation])
-              } catch {
-                NSLog("[voip] deactivateAudioSession failed: \(error)")
-              }
-            }
+          //
+          // Also where the call gives the session back: [CallAudioRouter.release]
+          // drops the speaker override and returns the category to
+          // `.soloAmbient`, so other apps' audio resumes and this app's own
+          // media playback isn't left stuck in `.playAndRecord`. Serialized
+          // with the route writes on the router's queue.
+          guard let self = self else {
+            result(nil)
+            return
           }
-          result(nil)
+          let pluginBusy =
+            !(SwiftFlutterCallkitIncomingPlugin.sharedInstance?.activeCalls() ?? []).isEmpty
+          let args = call.arguments as? [String: Any] ?? [:]
+          CallAudioRouter.shared.release(
+            idle: !pluginBusy && self.fallbackCallIdByUuid.isEmpty,
+            callId: args["callId"] as? String
+          ) { result(nil) }
         case "getApnsEnvironment":
           // The PushKit token's environment is fixed by the embedded
           // provisioning profile's `aps-environment`, NOT by the Dart build
@@ -1692,75 +2070,9 @@ import WebRTC
   /// `.playAndRecord` for the duration of a call, and stamping `.playback` over
   /// it kills the microphone for a call still in progress. A user who taps a
   /// video mid-call gets the silent-switch behaviour instead, which is a far
-  /// cheaper thing to be wrong about than a one-way call.
-  /// Serial, so route changes land in the order Dart asked for them.
-  private let callAudioQueue = DispatchQueue(
-    label: "monkeyhub.call-audio",
-    qos: .userInitiated
-  )
-
-  /// The call's audio category, mode and output route, in one pass, off the
-  /// main thread.
-  ///
-  /// This replaced two flutter_webrtc calls, `setAppleAudioConfiguration` then
-  /// `setSpeakerphoneOn`, for three reasons:
-  ///   - Both ran on the main thread, which on iOS is also the thread Flutter
-  ///     draws frames on. Together they made four AVAudioSession
-  ///     reconfigurations per speaker tap, and each one can block for tens of
-  ///     milliseconds while a voice-processing unit is live. The call screen
-  ///     dropped frames on every toggle and on every reassert after connect.
-  ///   - `setSpeakerphoneOn(true)` passed `kAudioSessionProperty_OverrideAudioRoute`,
-  ///     a property ID, where an `AVAudioSession.PortOverride` belongs. The
-  ///     override failed every time, and the speaker worked only when
-  ///     `defaultToSpeaker` happened to apply.
-  ///   - Category and mode are now written only when they actually change. A
-  ///     reassert with nothing to change costs one port override, not a
-  ///     reconfiguration of a live audio unit.
-  ///
-  /// WebRTC's process-wide `RTCAudioSessionConfiguration` is updated first,
-  /// because WebRTC re-applies it whenever its audio unit initializes. If it
-  /// were left stale, the route would snap back at connect.
-  ///
-  /// `videoChat` mode force-sets `defaultToSpeaker`, so it is used only for
-  /// video on the speaker. See `applyCallAudio` in lib/calls/call_media.dart.
-  func applyCallAudio(video: Bool, speaker: Bool, completion: @escaping () -> Void) {
-    callAudioQueue.async {
-      var options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP]
-      if speaker { options.insert(.defaultToSpeaker) }
-      let mode: AVAudioSession.Mode = (video && speaker) ? .videoChat : .voiceChat
-
-      let config = RTCAudioSessionConfiguration.webRTC()
-      config.category = AVAudioSession.Category.playAndRecord.rawValue
-      config.categoryOptions = options
-      config.mode = mode.rawValue
-
-      let rtc = RTCAudioSession.sharedInstance()
-      rtc.lockForConfiguration()
-      let session = AVAudioSession.sharedInstance()
-      do {
-        // `videoChat` adds bits of its own, so compare what this call asks
-        // for (each option present, the speaker bit exactly) instead of
-        // equality, which would rewrite video-on-speaker on every reassert.
-        let current = session.categoryOptions
-        if session.category != .playAndRecord
-          || session.mode != mode
-          || !current.isSuperset(of: options)
-          || current.contains(.defaultToSpeaker) != speaker {
-          try rtc.setCategory(.playAndRecord, mode: mode, options: options)
-        }
-      } catch {
-        NSLog("[call-audio] setCategory failed: \(error)")
-      }
-      do {
-        try rtc.overrideOutputAudioPort(speaker ? .speaker : .none)
-      } catch {
-        NSLog("[call-audio] overrideOutputAudioPort failed: \(error)")
-      }
-      rtc.unlockForConfiguration()
-      DispatchQueue.main.async(execute: completion)
-    }
-  }
-
+  /// cheaper thing to be wrong about than a one-way call. Once a call ends,
+  /// [CallAudioRouter.release] hands the session back as `.soloAmbient`, so
+  /// this guard only ever holds DURING a call.
   private func prepareAudioSessionForPlayback() {
     let session = AVAudioSession.sharedInstance()
     guard session.category != .playAndRecord else { return }
@@ -1871,6 +2183,507 @@ import WebRTC
       )
       completionHandler(.newData)
     }
+  }
+}
+
+/// The one writer of a call's AVAudioSession: category, mode, output route,
+/// and handing the session back when the call is over.
+///
+/// Three things used to write the session during a call, and they fought:
+///   - Dart, through `applyCallAudio` (lib/calls/call_media.dart).
+///   - The callkit plugin's `configureAudioSession`, at ring, dial, answer,
+///     1.2 s after answer, and at every CallKit `didActivate`: playAndRecord
+///     with NO `defaultToSpeaker`, the per-call mode (`videoChat` for video,
+///     which force-sets `defaultToSpeaker`), and a 44.1 kHz preferred sample
+///     rate. Changing the category drops any speaker override, so each pass
+///     moved the sound (speaker to earpiece, or a video call's earpiece back
+///     to the speaker) until Dart's reassert arrived a round trip later, and
+///     the sample-rate write made WebRTC restart its audio unit.
+///   - WebRTC, which re-applies `RTCAudioSessionConfiguration.webRTC()`
+///     whenever its audio unit starts.
+///   - flutter_webrtc 1.4.1's `ensureAudioSession` (getUserMedia, addTrack,
+///     a remote audio track): when the category isn't playAndRecord yet it
+///     rewrites WebRTC's configuration WITHOUT `defaultToSpeaker`, and the
+///     audio unit then starts on it. Dart applies before getUserMedia, so
+///     the category already is playAndRecord there; and as the backstop
+///     this router listens as an `RTCAudioSessionDelegate` and re-applies
+///     ours whenever WebRTC's audio unit starts.
+/// Now the plugin calls [reassert] instead (vendored PATCH A), WebRTC's
+/// configuration is kept equal to ours, and Dart's requests land here.
+///
+/// Product rules (iMessage/FaceTime): voice on the earpiece, video on the
+/// loudspeaker, and a connected headset (AirPods, Bluetooth, wired, car)
+/// wins over the kind's default. Only an explicit tap on the speaker button
+/// overrides a headset. The real route is pushed to Dart on every route
+/// change ([routeChanged]) so the speaker button follows the sound, whoever
+/// moved it. Logs are prefixed `[call-audio]`.
+///
+/// Also owns the two screen behaviours a call needs: the idle timer is off
+/// while a call holds the session, and the proximity sensor blanks the
+/// screen only while the sound is on the earpiece (held to the ear), never
+/// on the speaker or a headset.
+///
+/// Why not WebRTC's manual-audio CallKit mode (`useManualAudio`, enabling
+/// audio only in `didActivate`): calls without a CallKit card (group calls
+/// joined in-app, the simulator, the fallback ringer's answer) would need
+/// their own enable on every path, and a missed one is a silent call. The
+/// plugin's interruption-ended post at `didActivate` plus Dart's mic
+/// re-prime already restart the unit against the activated session.
+final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
+  static let shared = CallAudioRouter()
+
+  /// Serial, so session writes land in order, off the main thread (Flutter
+  /// draws there; a live voice unit can block a write for tens of ms).
+  private let queue = DispatchQueue(label: "monkeyhub.call-audio", qos: .userInitiated)
+
+  /// Guards the desired state below. Never held across a session write, so
+  /// the main thread (CallKit callbacks) only ever waits microseconds.
+  private let lock = NSLock()
+  /// A call holds the session: Dart applied, or a CallKit ring/dial seeded it.
+  private var claimed = false
+  /// Dart applied and has not released yet.
+  private var dartClaimed = false
+  /// Dart released while a CallKit card was still up; restore when it goes.
+  private var releasePending = false
+  /// The call is really live here: Dart applied, or a card was answered or
+  /// a dial began. Only then does the screen act like a call (idle timer
+  /// off, proximity sensor): a phone that is only ringing keeps its normal
+  /// screen. Cleared by [restore].
+  private var live = false
+  private var video = false
+  private var speaker = false
+  /// Bumped by every claim: an apply, a seed, an answer or a dial. A
+  /// release or an idle hook captures it when it is ASKED, and [restore]
+  /// aborts if it moved by the time the queue runs it: a newer call's claim
+  /// landed in between, and that call's session is not this teardown's.
+  private var claimGen: UInt64 = 0
+  /// The call Dart last applied for (1:1 callId or groupCallId), nil when
+  /// Dart holds nothing or an older Dart sent no id. A release naming a
+  /// different call is a previous call's teardown belt landing on a redial.
+  private var owner: String?
+  /// When Dart last applied. Only for a release with no call id (an older
+  /// Dart): one inside [staleReleaseWindow] of an apply is taken for a
+  /// previous call's teardown belt landing on a redial.
+  private var lastApply = Date.distantPast
+  private static let staleReleaseWindow: TimeInterval = 2.5
+  /// When this router last wrote the session. A route change within
+  /// [echoWindow] of it is most likely our own write echoing back.
+  private var lastWrite = Date.distantPast
+  private static let echoWindow: TimeInterval = 0.5
+
+  /// Main-thread only.
+  private var channel: FlutterMethodChannel?
+  private var installed = false
+
+  private override init() { super.init() }
+
+  private func locked<T>(_ body: () -> T) -> T {
+    lock.lock()
+    defer { lock.unlock() }
+    return body()
+  }
+
+  /// Called once from AppDelegate at launch, before any VoIP push rings.
+  func install(channel: FlutterMethodChannel) {
+    self.channel = channel
+    guard !installed else { return }
+    installed = true
+    let center = NotificationCenter.default
+    center.addObserver(
+      forName: AVAudioSession.routeChangeNotification, object: nil, queue: nil
+    ) { [weak self] note in
+      let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt ?? 0
+      self?.routeChanged(AVAudioSession.RouteChangeReason(rawValue: raw) ?? .unknown)
+    }
+    // mediaserverd restarted: every session setting is gone.
+    center.addObserver(
+      forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: nil
+    ) { [weak self] _ in
+      self?.reassert(isVideo: nil)
+    }
+    RTCAudioSession.sharedInstance().add(self)
+    SwiftFlutterCallkitIncomingPlugin.callAudioConfigurator = { [weak self] isVideo in
+      guard let self = self else { return false }
+      self.reassert(isVideo: isVideo)
+      return true
+    }
+    SwiftFlutterCallkitIncomingPlugin.audioSessionIdleHandler = { [weak self] in
+      self?.restoreIfReleased()
+    }
+    SwiftFlutterCallkitIncomingPlugin.callAudioLive = { [weak self] in
+      self?.markLive()
+    }
+  }
+
+  /// A card was answered or a dial began (the plugin's, or the fallback
+  /// provider's answer): the call is live, and a claim of its own. The
+  /// configure that follows writes the session and turns the screen's call
+  /// behaviour on.
+  func markLive() {
+    let wasClaimed: Bool = locked {
+      self.live = true
+      self.claimGen &+= 1
+      return self.claimed
+    }
+    NSLog("[call-audio] live (claimed=\(wasClaimed))")
+    guard wasClaimed else { return }
+    queue.async {
+      self.updateScreen(inCall: true, earpiece: Self.onEarpiece(AVAudioSession.sharedInstance()))
+    }
+  }
+
+  /// Dart's request. [headsetWins] is true when [speaker] is only the call
+  /// kind's default (or the camera's): a connected headset then keeps the
+  /// sound. False for an explicit tap, which overrides even AirPods, the way
+  /// FaceTime's speaker button does. Completes on main with the speaker side
+  /// actually applied.
+  ///
+  /// [callId] is the call this is for (1:1 callId or groupCallId); a later
+  /// [release] for any other call leaves this one alone. Nil from an older
+  /// Dart.
+  func apply(
+    video: Bool,
+    speaker: Bool,
+    headsetWins: Bool,
+    callId: String?,
+    completion: @escaping (Bool) -> Void
+  ) {
+    // Claimed when ASKED, so a release asked after this (and queued before
+    // it ran) can't count as this call's.
+    locked { self.claimGen &+= 1 }
+    queue.async {
+      let session = AVAudioSession.sharedInstance()
+      let applied = speaker && !(headsetWins && Self.headsetConnected(session))
+      self.locked {
+        self.claimed = true
+        self.dartClaimed = true
+        self.live = true
+        self.releasePending = false
+        self.owner = callId
+        self.lastApply = Date()
+        self.video = video
+        self.speaker = applied
+      }
+      self.write()
+      NSLog(
+        "[call-audio] apply call=\(callId ?? "?") video=\(video) speaker=\(speaker) headsetWins=\(headsetWins) -> speaker=\(applied) route=\(Self.describe(session))"
+      )
+      DispatchQueue.main.async { completion(applied) }
+    }
+  }
+
+  /// Re-applies the call's audio at a moment something else may have reset
+  /// it: the plugin's configureAudioSession (ring, dial, answer,
+  /// didActivate), the fallback provider's didActivate, a media services
+  /// reset. With no call claimed yet, a ring or a dial seeds the kind's
+  /// default ([isVideo]); nil leaves an unclaimed session alone.
+  ///
+  /// Returns at once: WebRTC's configuration (which its audio unit reads
+  /// when it restarts) is updated here, the session write is queued.
+  func reassert(isVideo: Bool?) {
+    let state: (video: Bool, speaker: Bool)? = locked {
+      if !self.claimed {
+        guard let isVideo = isVideo else { return nil }
+        self.video = isVideo
+        // Only the outputs: reading `availableInputs` can block.
+        self.speaker = isVideo && !Self.headsetOutput(AVAudioSession.sharedInstance())
+        self.claimed = true
+        self.claimGen &+= 1
+      }
+      return (self.video, self.speaker)
+    }
+    guard let state = state else { return }
+    Self.configureWebRTC(video: state.video, speaker: state.speaker)
+    queue.async {
+      self.write()
+      NSLog(
+        "[call-audio] reassert video=\(state.video) speaker=\(state.speaker) route=\(Self.describe(AVAudioSession.sharedInstance()))"
+      )
+    }
+  }
+
+  /// Dart's teardown of [callId] (1:1 callId or groupCallId; nil from an
+  /// older Dart). [idle] means no CallKit card (plugin or fallback) is
+  /// alive, so the session can be handed back now; otherwise the plugin's
+  /// idle hook does it once the last card goes.
+  ///
+  /// Dart repeats this for seconds after a teardown (its settled belt), so
+  /// it routinely lands on the NEXT call: a release naming another call
+  /// than the one Dart last applied for is ignored, and one whose restore
+  /// finds a newer claim than when it was asked restores nothing.
+  func release(idle: Bool, callId: String?, completion: @escaping () -> Void) {
+    let askedGen = locked { claimGen }
+    let id = (callId?.isEmpty ?? true) ? nil : callId
+    queue.async {
+      let restoreNow: Bool = self.locked {
+        if let id = id {
+          if let owner = self.owner, owner != id {
+            NSLog("[call-audio] release for \(id) ignored: session is \(owner)'s")
+            return false
+          }
+        } else if Date().timeIntervalSince(self.lastApply) < Self.staleReleaseWindow {
+          return false
+        }
+        self.dartClaimed = false
+        self.owner = nil
+        if idle { return true }
+        self.releasePending = true
+        return false
+      }
+      if restoreNow { self.restore(ifGen: askedGen) }
+      DispatchQueue.main.async(execute: completion)
+    }
+  }
+
+  /// The plugin's last CallKit call went away. Restore unless a call Dart
+  /// still runs holds the session (a group call raises no card at all).
+  /// The claim is read NOW, when the card went, not when the queue gets to
+  /// it: a reassert or an apply for the next call can land in between.
+  private func restoreIfReleased() {
+    let askedGen = locked { claimGen }
+    queue.async {
+      let go = self.locked { !self.dartClaimed || self.releasePending }
+      if go { self.restore(ifGen: askedGen) }
+    }
+  }
+
+  /// On [queue]. Hands the session back: no override, inactive (other apps'
+  /// audio resumes), and the default `.soloAmbient` category, so the app's
+  /// own media playback isn't left in a call category with its quiet
+  /// earpiece-biased levels. WebRTC's configuration goes back to plain
+  /// voice-chat so the next call can't come up on a stale speaker bit.
+  ///
+  /// Only for the claim [gen] names: a newer claim (an apply, a ring or dial
+  /// seed, an answer) means the session now belongs to another call, and
+  /// deactivating it would stop that call's audio.
+  private func restore(ifGen gen: UInt64) {
+    let current: Bool = locked {
+      guard claimGen == gen else { return false }
+      claimed = false
+      dartClaimed = false
+      releasePending = false
+      live = false
+      owner = nil
+      video = false
+      speaker = false
+      return true
+    }
+    guard current else {
+      NSLog("[call-audio] restore skipped: a newer call claimed the session")
+      return
+    }
+    Self.configureWebRTC(video: false, speaker: false)
+    updateScreen(inCall: false, earpiece: false)
+    let rtc = RTCAudioSession.sharedInstance()
+    let session = AVAudioSession.sharedInstance()
+    rtc.lockForConfiguration()
+    defer { rtc.unlockForConfiguration() }
+    try? session.overrideOutputAudioPort(.none)
+    do {
+      try session.setActive(false, options: [.notifyOthersOnDeactivation])
+    } catch let error as NSError
+      where error.code == AVAudioSession.ErrorCode.isBusy.rawValue {
+      // Busy is NOT a refusal: iOS stopped the running I/O and deactivated
+      // the session anyway (which is why the claim check above matters).
+      // The session is down, so carry on to the category.
+      NSLog("[call-audio] restore: deactivated over running I/O (busy)")
+    } catch {
+      NSLog("[call-audio] restore: setActive(false) failed: \(error)")
+      return
+    }
+    // A claim that landed while this ran (the plugin's configure runs
+    // setActive(true) on the main thread, not this queue) just lost its
+    // session: give it back. Its own write is queued behind this one.
+    if locked({ claimGen != gen && claimed }) {
+      NSLog("[call-audio] restore: a call claimed the session mid-restore; reactivating")
+      do {
+        try session.setActive(true)
+      } catch {
+        NSLog("[call-audio] restore: reactivate failed: \(error)")
+      }
+      return
+    }
+    if session.category != .soloAmbient {
+      do {
+        try session.setCategory(.soloAmbient, mode: .default, options: [])
+      } catch {
+        NSLog("[call-audio] restore: setCategory failed: \(error)")
+      }
+    }
+    NSLog("[call-audio] restored")
+  }
+
+  private static func options(speaker: Bool) -> AVAudioSession.CategoryOptions {
+    var options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP]
+    if speaker { options.insert(.defaultToSpeaker) }
+    return options
+  }
+
+  /// `videoChat` force-sets `defaultToSpeaker`, so it is only for video on
+  /// the speaker; video on the earpiece or a headset is `voiceChat`.
+  private static func mode(video: Bool, speaker: Bool) -> AVAudioSession.Mode {
+    (video && speaker) ? .videoChat : .voiceChat
+  }
+
+  /// WebRTC re-applies this whenever its audio unit (re)starts; left stale,
+  /// the route would snap back at connect or after an interruption.
+  private static func configureWebRTC(video: Bool, speaker: Bool) {
+    let config = RTCAudioSessionConfiguration.webRTC()
+    config.category = AVAudioSession.Category.playAndRecord.rawValue
+    config.categoryOptions = options(speaker: speaker)
+    config.mode = mode(video: video, speaker: speaker).rawValue
+  }
+
+  /// On [queue]. Writes the LATEST desired state (so a queued write can
+  /// never put back a side the user already left): category and mode only
+  /// when they differ, the port override every time (cheap, and it is what
+  /// an outside category change drops).
+  private func write() {
+    let state: (video: Bool, speaker: Bool)? = locked {
+      self.claimed ? (self.video, self.speaker) : nil
+    }
+    guard let (video, speaker) = state else { return }
+    let options = Self.options(speaker: speaker)
+    let mode = Self.mode(video: video, speaker: speaker)
+    Self.configureWebRTC(video: video, speaker: speaker)
+
+    let rtc = RTCAudioSession.sharedInstance()
+    let session = AVAudioSession.sharedInstance()
+    rtc.lockForConfiguration()
+    do {
+      // `videoChat` adds bits of its own, so compare what this call asks
+      // for (each option present, the speaker bit exactly) instead of
+      // equality, which would rewrite video-on-speaker on every reassert.
+      let current = session.categoryOptions
+      if session.category != .playAndRecord
+        || session.mode != mode
+        || !current.isSuperset(of: options)
+        || current.contains(.defaultToSpeaker) != speaker {
+        try rtc.setCategory(.playAndRecord, mode: mode, options: options)
+      }
+    } catch {
+      NSLog("[call-audio] setCategory failed: \(error)")
+    }
+    do {
+      try rtc.overrideOutputAudioPort(speaker ? .speaker : .none)
+    } catch {
+      NSLog("[call-audio] overrideOutputAudioPort failed: \(error)")
+    }
+    rtc.unlockForConfiguration()
+    lastWrite = Date()
+    if locked({ live }) { updateScreen(inCall: true, earpiece: Self.onEarpiece(session)) }
+  }
+
+  /// Idle timer off for the call; proximity sensor on only while the sound
+  /// is on the earpiece. UIKit, so on main.
+  private func updateScreen(inCall: Bool, earpiece: Bool) {
+    DispatchQueue.main.async {
+      let app = UIApplication.shared
+      if app.isIdleTimerDisabled != inCall { app.isIdleTimerDisabled = inCall }
+      let device = UIDevice.current
+      let proximity = inCall && earpiece
+      if device.isProximityMonitoringEnabled != proximity {
+        device.isProximityMonitoringEnabled = proximity
+      }
+    }
+  }
+
+  // RTCAudioSessionDelegate. WebRTC's audio unit just started, after
+  // configuring the session from `RTCAudioSessionConfiguration.webRTC()`,
+  // which flutter_webrtc's `ensureAudioSession` may have rewritten without
+  // the speaker bit. Put ours back. Called on a WebRTC thread.
+  func audioSessionDidStartPlayOrRecord(_ session: RTCAudioSession) {
+    guard locked({ claimed }) else { return }
+    queue.async {
+      self.write()
+      NSLog("[call-audio] audio unit started -> \(Self.describe(AVAudioSession.sharedInstance()))")
+    }
+  }
+
+  /// Pushes the real route to Dart while a call holds the session. Dart
+  /// decides what it means (lib/calls/call_media.dart, `decideCallAudioRoute`).
+  /// A change by the user from outside the app (CallKit's speaker button,
+  /// Control Center) is adopted here too, so a reassert before Dart answers
+  /// can't put the old side back.
+  private func routeChanged(_ reason: AVAudioSession.RouteChangeReason) {
+    queue.async {
+      guard self.locked({ self.claimed }) else { return }
+      let session = AVAudioSession.sharedInstance()
+      var state = Self.snapshot(session)
+      let echo = Date().timeIntervalSince(self.lastWrite) < Self.echoWindow
+      let name = Self.reasonName(reason)
+      state["reason"] = name
+      state["echo"] = echo
+      if !echo && (name == "override" || name == "routeConfiguration"),
+        let actual = state["speaker"] as? Bool {
+        self.locked { self.speaker = actual }
+      }
+      if self.locked({ self.live }) {
+        self.updateScreen(inCall: true, earpiece: Self.onEarpiece(session))
+      }
+      NSLog("[call-audio] route \(name)\(echo ? " (echo)" : "") -> \(Self.describe(session))")
+      DispatchQueue.main.async {
+        self.channel?.invokeMethod("routeChanged", arguments: state)
+      }
+    }
+  }
+
+  private static let headsetPorts: Set<AVAudioSession.Port> = [
+    .headphones, .headsetMic, .bluetoothA2DP, .bluetoothHFP, .bluetoothLE,
+    .carAudio, .usbAudio,
+  ]
+
+  private static func headsetOutput(_ session: AVAudioSession) -> Bool {
+    session.currentRoute.outputs.contains { headsetPorts.contains($0.portType) }
+  }
+
+  /// A headset is connected, even while the speaker override hides it from
+  /// the outputs (its microphone still shows among the inputs).
+  static func headsetConnected(_ session: AVAudioSession) -> Bool {
+    headsetOutput(session)
+      || (session.availableInputs ?? []).contains { headsetPorts.contains($0.portType) }
+  }
+
+  private static func onEarpiece(_ session: AVAudioSession) -> Bool {
+    session.currentRoute.outputs.contains { $0.portType == .builtInReceiver }
+  }
+
+  static func snapshot(_ session: AVAudioSession) -> [String: Any] {
+    let outputs = session.currentRoute.outputs.map { $0.portType }
+    return [
+      "speaker": outputs.contains(.builtInSpeaker),
+      "headset": headsetConnected(session),
+      "output": outputName(outputs.first),
+    ]
+  }
+
+  private static func outputName(_ port: AVAudioSession.Port?) -> String {
+    guard let port = port else { return "none" }
+    switch port {
+    case .builtInReceiver: return "receiver"
+    case .builtInSpeaker: return "speaker"
+    case .bluetoothA2DP, .bluetoothHFP, .bluetoothLE: return "bluetooth"
+    case .headphones, .usbAudio: return "headphones"
+    case .carAudio: return "car"
+    case .airPlay: return "airplay"
+    default: return "other"
+    }
+  }
+
+  private static func reasonName(_ reason: AVAudioSession.RouteChangeReason) -> String {
+    switch reason {
+    case .newDeviceAvailable: return "newDevice"
+    case .oldDeviceUnavailable: return "oldDevice"
+    case .categoryChange: return "category"
+    case .override: return "override"
+    case .routeConfigurationChange: return "routeConfiguration"
+    default: return "other"
+    }
+  }
+
+  private static func describe(_ session: AVAudioSession) -> String {
+    let outs = session.currentRoute.outputs.map { $0.portType.rawValue }.joined(separator: ",")
+    return "[\(outs)] mode=\(session.mode.rawValue) opts=\(session.categoryOptions.rawValue)"
   }
 }
 

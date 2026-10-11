@@ -1,3 +1,4 @@
+import 'dart:async' show StreamController, Timer, unawaited;
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 
@@ -82,10 +83,13 @@ const Map<VideoQualityTier, VideoQualityPreset> videoQualityPresets = {
   ),
 };
 
-Map<String, dynamic> _videoConstraintsFor(VideoQualityTier tier) {
+Map<String, dynamic> _videoConstraintsFor(
+  VideoQualityTier tier, {
+  bool back = false,
+}) {
   final preset = videoQualityPresets[tier]!;
   return {
-    'facingMode': 'user',
+    'facingMode': back ? 'environment' : 'user',
     'width': {
       'min': preset.minWidth,
       'ideal': preset.idealWidth,
@@ -207,10 +211,16 @@ Future<MediaStream> getCallUserMedia(
 /// mic track the way a full [getCallUserMedia] call would. Caller is
 /// expected to `RTCRtpSender.replaceTrack` the result onto the existing
 /// video sender and stop the old track; no renegotiation needed.
-Future<MediaStreamTrack> getCallVideoOnlyTrack(VideoQualityTier tier) async {
+///
+/// [back] asks for the rear camera, so a camera the user flipped comes back
+/// facing the same way after a restart or a quality switch.
+Future<MediaStreamTrack> getCallVideoOnlyTrack(
+  VideoQualityTier tier, {
+  bool back = false,
+}) async {
   final stream = await navigator.mediaDevices.getUserMedia({
     'audio': false,
-    'video': _videoConstraintsFor(tier),
+    'video': _videoConstraintsFor(tier, back: back),
   });
   final track = stream.getVideoTracks().first;
   // Detach the track before disposing its wrapper stream — `dispose()`
@@ -219,6 +229,75 @@ Future<MediaStreamTrack> getCallVideoOnlyTrack(VideoQualityTier tier) async {
   stream.removeTrack(track);
   await stream.dispose();
   return track;
+}
+
+/// Whether flutter_webrtc's Darwin plugin (iOS and macOS share it) is the
+/// one behind the tracks.
+bool get _darwinWebrtc => !kIsWeb && (Platform.isIOS || Platform.isMacOS);
+
+/// Takes a camera [track] out of the call's [stream] and releases the
+/// camera behind it.
+///
+/// The order is the plugin's, per platform. On Darwin `trackDispose` stops
+/// a track's capture session only when it still finds the track in a local
+/// stream (FlutterWebRTCPlugin.m, `trackDispose`): a track taken out of the
+/// stream natively first was disposed with its `AVCaptureSession` still
+/// running. The camera light stayed on after "camera off", and that orphan
+/// session restarts itself whenever the app becomes active and takes the
+/// camera from the live one, which then sends nothing while the button
+/// says on. So there the track is stopped while still in the stream (the
+/// stop also removes it natively) and only the Dart list is edited.
+/// Android's `trackDispose` stops the capturer by id but leaves the native
+/// stream alone, so there the stream is edited natively, first, and a
+/// renderer bound to it never picks the dead track.
+Future<void> releaseCameraTrack(
+  MediaStream stream,
+  MediaStreamTrack track, {
+  @visibleForTesting bool? darwin,
+}) async {
+  final apple = darwin ?? _darwinWebrtc;
+  try {
+    await stream.removeTrack(track, removeFromNative: !apple);
+  } catch (e) {
+    debugPrint('releaseCameraTrack: remove failed: $e');
+  }
+  try {
+    await track.stop();
+  } catch (e) {
+    debugPrint('releaseCameraTrack: stop failed: $e');
+  }
+}
+
+/// Releases a camera track that never made it into the call's stream (the
+/// call ended while it warmed up). [getCallVideoOnlyTrack] hands it over
+/// detached from any stream, and on Darwin a detached track's stop leaves
+/// its capture session running (see [releaseCameraTrack]), so it is parked
+/// in a throwaway stream first and stopped from there.
+Future<void> discardCameraTrack(
+  MediaStreamTrack track, {
+  @visibleForTesting bool? darwin,
+  @visibleForTesting Future<MediaStream> Function(String label)? createStream,
+}) async {
+  final apple = darwin ?? _darwinWebrtc;
+  MediaStream? parked;
+  if (apple) {
+    try {
+      parked = await (createStream ?? createLocalMediaStream)('cam-discard');
+      await parked.addTrack(track);
+    } catch (e) {
+      debugPrint('discardCameraTrack: park failed: $e');
+    }
+  }
+  try {
+    await track.stop();
+  } catch (e) {
+    debugPrint('discardCameraTrack: stop failed: $e');
+  }
+  if (parked != null) {
+    try {
+      await parked.dispose();
+    } catch (_) {}
+  }
 }
 
 /// Cap the video encoder so it can't starve the link. [maxBitrate] defaults
@@ -372,13 +451,20 @@ Future<void> applyIosCallAudioConfig(
 /// also skips the category rewrite when nothing changed, and its speaker
 /// override actually works; flutter_webrtc's `setSpeakerphoneOn(true)` passes
 /// a property ID where the port belongs. A build without that method falls
-/// back to the two flutter_webrtc calls. Android has only the route; web and
-/// desktop route themselves.
+/// back to the two flutter_webrtc calls. Android has only the route (see
+/// [applyAndroidCallRoute]); web and desktop route themselves.
 Future<void> applyCallAudio(
   CallMediaKind kind, {
   required bool speakerOn,
 }) async {
   if (!isMobileCallPlatform) return;
+  if (Platform.isAndroid) {
+    await applyAndroidCallRoute(
+      speakerOn: speakerOn,
+      video: kind == CallMediaKind.video,
+    );
+    return;
+  }
   if (Platform.isIOS) {
     try {
       await _voipChannel.invokeMethod<void>('applyCallAudio', {
@@ -392,12 +478,212 @@ Future<void> applyCallAudio(
       debugPrint('applyCallAudio (native) failed: $e');
       return;
     }
+    // `defaultToSpeaker` in the config is the whole route here. Never
+    // flutter_webrtc 1.4.1's `setSpeakerphoneOn` on iOS: it passes a
+    // property ID where the port belongs, so its override always fails.
     await applyIosCallAudioConfig(kind, speakerOn: speakerOn);
+    return;
   }
   await applyCallAudioRoute(speaker: speakerOn);
 }
 
 const _voipChannel = MethodChannel('monkeyhub/voip');
+
+/// [applyCallAudio], answering the speaker side that actually took: on iOS
+/// a connected headset wins over a speaker that is only a default
+/// ([headsetWins]), and the call's flag must follow so the button shows the
+/// sound. Null where nothing native decides (Android, web, desktop, an old
+/// native build): keep the flag as asked.
+///
+/// [headsetWins] is false only for an explicit tap on the speaker button,
+/// which reaches the loudspeaker even with AirPods in, the way FaceTime's
+/// does. The kind's default (video on the speaker) and the camera coming on
+/// are defaults, and a headset beats them.
+///
+/// [callId] names the call this audio is for (the 1:1 callId or the
+/// groupCallId). iOS remembers it, so a teardown belt of an EARLIER call
+/// (see `NativeCallHandler.deactivateIosAudioSessionSettled`) landing after
+/// this apply leaves this call's session alone.
+Future<bool?> applyCallAudioResolved(
+  CallMediaKind kind, {
+  required bool speakerOn,
+  required bool headsetWins,
+  String? callId,
+}) async {
+  if (!kIsWeb && Platform.isAndroid) {
+    await applyAndroidCallRoute(
+      speakerOn: speakerOn,
+      video: kind == CallMediaKind.video,
+      headsetWins: headsetWins,
+    );
+    return null;
+  }
+  if (kIsWeb || !Platform.isIOS) {
+    await applyCallAudio(kind, speakerOn: speakerOn);
+    return null;
+  }
+  _listenForCallAudioRoutes();
+  try {
+    return await _voipChannel.invokeMethod<bool>('applyCallAudio', {
+      'video': kind == CallMediaKind.video,
+      'speaker': speakerOn,
+      'headsetWins': headsetWins,
+      'callId': ?callId,
+    });
+  } on MissingPluginException {
+    await applyCallAudio(kind, speakerOn: speakerOn);
+  } catch (e) {
+    debugPrint('applyCallAudio (native) failed: $e');
+  }
+  return null;
+}
+
+/// Why the route moved, as iOS reports it (`AVAudioSession.RouteChangeReason`).
+enum CallAudioRouteReason {
+  /// A headset, AirPods, a car connected.
+  newDevice,
+
+  /// One went away.
+  oldDevice,
+
+  /// Something rewrote the category. Ours, or another writer's.
+  category,
+
+  /// The output was overridden: the CallKit or Control Center speaker
+  /// button, or a route picked in the system menu.
+  override,
+
+  /// The route was reconfigured; with [CallAudioRoute.echo] false, by the
+  /// system on the user's behalf.
+  routeConfiguration,
+  other,
+}
+
+/// The call's real output, pushed by `CallAudioRouter` in AppDelegate.swift
+/// on every iOS route change while a call holds the audio session.
+@immutable
+class CallAudioRoute {
+  const CallAudioRoute({
+    required this.speaker,
+    required this.headset,
+    required this.output,
+    required this.reason,
+    this.echo = false,
+  });
+
+  factory CallAudioRoute.fromMap(Map<Object?, Object?> m) {
+    final reason = m['reason']?.toString();
+    return CallAudioRoute(
+      speaker: m['speaker'] == true,
+      headset: m['headset'] == true,
+      output: m['output']?.toString() ?? 'none',
+      reason: CallAudioRouteReason.values.firstWhere(
+        (r) => r.name == reason,
+        orElse: () => CallAudioRouteReason.other,
+      ),
+      echo: m['echo'] == true,
+    );
+  }
+
+  /// The loudspeaker is the output.
+  final bool speaker;
+
+  /// A headset is connected, even if the speaker override hides it.
+  final bool headset;
+
+  /// `receiver`, `speaker`, `bluetooth`, `headphones`, `car`, `airplay`,
+  /// `other` or `none` (no route: the session isn't live).
+  final String output;
+  final CallAudioRouteReason reason;
+
+  /// Within half a second of a native write of ours: most likely that write
+  /// echoing back, not a user's choice.
+  final bool echo;
+
+  @override
+  String toString() => 'CallAudioRoute(output: $output, speaker: $speaker, '
+      'headset: $headset, reason: ${reason.name}${echo ? ', echo' : ''})';
+}
+
+/// What a call does with a [CallAudioRoute]: the speaker flag to adopt
+/// (null keeps it), whether that side was the user's own choice, and
+/// whether to re-apply the call's audio.
+typedef CallAudioRouteDecision = ({
+  bool? speakerOn,
+  bool userChosen,
+  bool resync,
+});
+
+/// The route policy, shared by the 1:1 and group calls. Pure, so it is
+/// tested without a phone. The product rules (FaceTime/iMessage):
+///   - A headset connecting takes the sound, whatever the speaker said.
+///   - The last headset going away: the loudspeaker if the camera is on,
+///     the earpiece if not (unplugging in a voice call never blasts the
+///     speaker). A device dropping while the sound was already on the
+///     speaker changes nothing.
+///   - The user moving the route outside the app (the CallKit or Control
+///     Center speaker button, the system route menu) is adopted, so the
+///     in-app button shows what they picked, and later reasserts keep it.
+///   - A category rewrite that left the route off our side (another writer,
+///     a WebRTC restart) is undone by re-applying ours.
+///   - Anything else, including our own writes echoing back, changes nothing.
+/// Turning the camera OFF deliberately isn't here: it leaves the route
+/// alone, so nobody is yanked back to the earpiece mid-sentence.
+CallAudioRouteDecision decideCallAudioRoute({
+  required bool speakerOn,
+  required bool cameraOn,
+  required CallAudioRoute route,
+}) {
+  const keep = (speakerOn: null, userChosen: false, resync: false);
+  if (route.output == 'none') return keep;
+  switch (route.reason) {
+    case CallAudioRouteReason.newDevice:
+      if (!route.headset) return keep;
+      return (speakerOn: false, userChosen: false, resync: true);
+    case CallAudioRouteReason.oldDevice:
+      // Another headset still connected, or the sound was on the speaker
+      // already (a Bluetooth device dropping must not pull it off).
+      if (route.headset || speakerOn) return keep;
+      if (!cameraOn) return keep; // iOS lands on the earpiece by itself.
+      return (speakerOn: true, userChosen: false, resync: true);
+    case CallAudioRouteReason.category:
+      if (route.speaker == speakerOn) return keep;
+      return (speakerOn: null, userChosen: false, resync: true);
+    case CallAudioRouteReason.override:
+    case CallAudioRouteReason.routeConfiguration:
+      if (route.echo) {
+        if (route.speaker == speakerOn) return keep;
+        return (speakerOn: null, userChosen: false, resync: true);
+      }
+      if (route.speaker == speakerOn) return keep;
+      return (speakerOn: route.speaker, userChosen: true, resync: true);
+    case CallAudioRouteReason.other:
+      return keep;
+  }
+}
+
+final StreamController<CallAudioRoute> _callAudioRoutes =
+    StreamController<CallAudioRoute>.broadcast();
+
+/// Every route change the native side reports while a call holds the
+/// session. iOS only; silent elsewhere.
+Stream<CallAudioRoute> get callAudioRouteChanges => _callAudioRoutes.stream;
+
+bool _routeListenerInstalled = false;
+
+void _listenForCallAudioRoutes() {
+  if (_routeListenerInstalled) return;
+  _routeListenerInstalled = true;
+  const MethodChannel('monkeyhub/call_audio').setMethodCallHandler((call) async {
+    if (call.method != 'routeChanged') return null;
+    final args = call.arguments;
+    if (args is! Map) return null;
+    final route = CallAudioRoute.fromMap(args);
+    debugPrint('call audio route: $route');
+    _callAudioRoutes.add(route);
+    return null;
+  });
+}
 
 /// Logs the iOS audio session as a tone about to play into it sees it:
 /// category, mode, route, volume. Diagnostics only, for the one question a
@@ -409,6 +695,306 @@ Future<void> logCallAudioState(String why) async {
     final state = await _voipChannel.invokeMethod<Object?>('callAudioState');
     debugPrint('call audio [$why]: $state');
   } catch (_) {}
+}
+
+/// What the Android branch of [applyCallAudio] asks flutter_webrtc's
+/// AudioSwitch for. Every one of them puts a connected Bluetooth or wired
+/// headset first except [forceSpeaker], which is the loudspeaker the user
+/// chose over it.
+enum AndroidCallRoute {
+  /// `setSpeakerphoneOn(false)`: headset, else the earpiece.
+  earpiece,
+
+  /// `setSpeakerphoneOnButPreferBluetooth()`: headset, else the
+  /// loudspeaker. A video call's default.
+  speakerUnlessHeadset,
+
+  /// `setSpeakerphoneOn(true)`: the loudspeaker, headset or not.
+  forceSpeaker,
+}
+
+/// The route [applyCallAudio] wants on Android for [speakerOn], given what it
+/// asked for last in this call ([previous], null before the first ask).
+///
+/// The callers cannot say whether a `speakerOn: true` is a default or a
+/// choice: both services re-assert the route from the same flag on connect,
+/// on reconnect and on every toggle. The history can. Only a switch from the
+/// earpiece to the speaker is a person asking for the loudspeaker, so only
+/// that forces it, and a forced speaker stays forced through the re-asserts
+/// that follow. Every other `true` is the video default, which a headset
+/// beats, as it does in every other calling app; `setSpeakerphoneOn(true)`
+/// used to send a video call to the loudspeaker with earbuds in.
+///
+/// [headsetWins], when the caller knows it, settles the question instead:
+/// false is a tap on the speaker button (force it), true is a default (a
+/// headset beats it). The camera coming on in a voice call flips the flag
+/// from earpiece to speaker without being a choice, which the history
+/// alone would read as one.
+@visibleForTesting
+AndroidCallRoute androidCallRouteFor({
+  required bool speakerOn,
+  required AndroidCallRoute? previous,
+  bool? headsetWins,
+}) {
+  if (!speakerOn) return AndroidCallRoute.earpiece;
+  if (headsetWins != null) {
+    return headsetWins
+        ? AndroidCallRoute.speakerUnlessHeadset
+        : AndroidCallRoute.forceSpeaker;
+  }
+  return switch (previous) {
+    AndroidCallRoute.earpiece ||
+    AndroidCallRoute.forceSpeaker => AndroidCallRoute.forceSpeaker,
+    AndroidCallRoute.speakerUnlessHeadset ||
+    null => AndroidCallRoute.speakerUnlessHeadset,
+  };
+}
+
+AndroidCallRoute? _androidRoute;
+
+/// The Android route last asked for in the current call. Tests only.
+@visibleForTesting
+AndroidCallRoute? get debugAndroidCallRoute => _androidRoute;
+
+/// The flutter_webrtc calls [applyAndroidCallRoute] makes, swappable so the
+/// sequencing is testable without a platform channel.
+@visibleForTesting
+Future<void> Function(bool enable) androidSetSpeakerphoneOn =
+    Helper.setSpeakerphoneOn;
+@visibleForTesting
+Future<void> Function() androidSetSpeakerphoneButPreferHeadset =
+    Helper.setSpeakerphoneOnButPreferBluetooth;
+
+/// The Android half of [applyCallAudio]: the output route, and nothing else.
+///
+/// The mode (MODE_IN_COMMUNICATION) and the audio focus belong to
+/// flutter_webrtc's AudioSwitch, which takes both when the first mic or
+/// remote audio track appears and gives both back when the last peer
+/// connection is DISPOSED, never merely closed. See [releasePeerConnection],
+/// which is what makes that happen.
+///
+/// Everything here is a few-microsecond AudioSwitch call posted to the main
+/// looper; there is no session to configure as on iOS.
+///
+/// It also sets the call's screen (see [androidCallWindowFor]): kept on for
+/// the call, and handed to the proximity sensor while a voice call is at
+/// the ear.
+Future<void> applyAndroidCallRoute({
+  required bool speakerOn,
+  bool video = false,
+  bool? headsetWins,
+}) async {
+  final previous = _androidRoute;
+  final route = androidCallRouteFor(
+    speakerOn: speakerOn,
+    previous: previous,
+    headsetWins: headsetWins,
+  );
+  _androidRoute = route;
+  debugPrint(
+    '[MHCallAudio] android route ${previous?.name ?? 'none'} -> ${route.name}',
+  );
+  unawaited(_setAndroidCallWindow(androidCallWindowFor(route, video: video)));
+  try {
+    switch (route) {
+      case AndroidCallRoute.earpiece:
+        await androidSetSpeakerphoneOn(false);
+      case AndroidCallRoute.forceSpeaker:
+        await androidSetSpeakerphoneOn(true);
+      case AndroidCallRoute.speakerUnlessHeadset:
+        // First ask of the call: `setSpeakerphoneOn(true)` once, for the
+        // side effect alone. It reorders AudioSwitch's preference list to
+        // put the speaker before the earpiece, so pulling the earbuds out
+        // mid-call lands a video call on the loudspeaker rather than at the
+        // ear. Nothing is playing yet at the first ask, so the speaker it
+        // selects for that instant is never heard. A re-assert skips it: a
+        // speaker hop and back mid-call would tear the Bluetooth link down
+        // and up, a second of silence.
+        if (previous == null) await androidSetSpeakerphoneOn(true);
+        await androidSetSpeakerphoneButPreferHeadset();
+    }
+  } catch (e) {
+    debugPrint('[MHCallAudio] android route ${route.name} failed: $e');
+  }
+}
+
+/// Forget the current call's Android route, so the next call starts from
+/// its own default, and give the screen back. Called when a call (1:1 or
+/// group) is torn down.
+void resetAndroidCallRoute() {
+  final hadCall = _androidRoute != null;
+  _androidRoute = null;
+  if (hadCall) {
+    unawaited(_setAndroidCallWindow(
+      (keepScreenOn: false, proximity: false),
+    ));
+  }
+}
+
+/// What a call does to the Android screen: kept on for the whole call, and
+/// switched off by the proximity sensor only for a VOICE call routed to the
+/// earpiece, the one case where the phone is held to a face. Not for video
+/// (the person is looking at it), not on the speaker. On a headset the
+/// earpiece route is nominal, and the sensor only matters if the phone does
+/// go to the ear.
+@visibleForTesting
+({bool keepScreenOn, bool proximity}) androidCallWindowFor(
+  AndroidCallRoute route, {
+  required bool video,
+}) =>
+    (
+      keepScreenOn: true,
+      proximity: !video && route == AndroidCallRoute.earpiece,
+    );
+
+/// The last state sent to `monkeyhub/call_window`, so a re-assert that
+/// changes nothing costs no platform hop.
+({bool keepScreenOn, bool proximity})? _androidWindow;
+
+/// Sends [state] to `CallWindowBridge`, swappable for tests.
+@visibleForTesting
+Future<void> Function(({bool keepScreenOn, bool proximity}) state)
+    androidCallWindowSink = (state) {
+  _listenForCallWindowReset();
+  return _callWindowChannel.invokeMethod<void>(
+    'set',
+    {'keepScreenOn': state.keepScreenOn, 'proximity': state.proximity},
+  );
+};
+
+const _callWindowChannel = MethodChannel('monkeyhub/call_window');
+
+bool _callWindowResetListening = false;
+
+/// `CallWindowBridge`'s watchdog dropped the screen state on its own (it
+/// saw no call audio for a while: a teardown that never reached it). Forget
+/// the last state sent, or the de-dup above would swallow the next call's
+/// identical one and that call would get no keep-on and no proximity.
+void _listenForCallWindowReset() {
+  if (_callWindowResetListening) return;
+  _callWindowResetListening = true;
+  _callWindowChannel.setMethodCallHandler((call) async {
+    if (call.method == 'reset') {
+      debugPrint('[MHCallAudio] call window reset by the native watchdog');
+      _androidWindow = null;
+    }
+  });
+}
+
+Future<void> _setAndroidCallWindow(
+  ({bool keepScreenOn, bool proximity}) state,
+) async {
+  if (_androidWindow == state) return;
+  _androidWindow = state;
+  try {
+    await androidCallWindowSink(state);
+  } catch (e) {
+    // An older native build without the bridge: the screen behaves as before.
+    debugPrint('[MHCallAudio] call window not set: $e');
+  }
+}
+
+/// Whether [releasePeerConnection] disposes. Tests only.
+@visibleForTesting
+bool? debugReleasePeerConnectionsOverride;
+
+bool get _releasesPeerConnections =>
+    debugReleasePeerConnectionsOverride ??
+    (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS));
+
+/// How long [releasePeerConnection] lets the screen settle before it
+/// disposes.
+@visibleForTesting
+Duration releasePeerConnectionDelay = const Duration(milliseconds: 600);
+
+/// Dispose an already CLOSED [pc]: on Android so the phone leaves call mode,
+/// on Apple platforms so the connection is freed at all.
+///
+/// Every call path closed its peer connections and none ever disposed one.
+/// On Android the difference is the whole audio state: flutter_webrtc's
+/// AudioSwitch restores the audio mode to MODE_NORMAL, abandons the voice
+/// call audio focus and puts the speakerphone back only in
+/// `peerConnectionDispose`, and only once no peer connection is left
+/// registered (MethodCallHandlerImpl.peerConnectionDispose). A closed one
+/// stays registered. So after the first call the phone stayed in
+/// MODE_IN_COMMUNICATION with focus held until the process died: media
+/// ducked or silent, notification sounds through the call path, the next
+/// call starting from the last one's route. And each call leaked its native
+/// peer connection.
+///
+/// Fire-and-forget and deliberately late: the dispose runs on the platform
+/// thread, which Flutter now shares with Dart, so it waits out the call
+/// screen's exit instead of landing in it. A redial inside that window is
+/// safe: its own connection keeps AudioSwitch active, because the stop only
+/// happens when the registry empties.
+///
+/// iOS and macOS: flutter_webrtc's event channel kept every peer connection
+/// alive for the life of the process, close or no close. The vendored copy
+/// (third_party/flutter_webrtc, PATCH W3) lets dispose release it, and its
+/// dispose leaves the audio session alone, which on iOS is CallKit's and
+/// AppDelegate's CallAudioRouter's to manage.
+///
+/// The late dispose is tracked, not fire-and-forget: a new call that brings
+/// its mic up before it has a peer connection of its own would otherwise
+/// have the old one's dispose empty the registry under it, stopping
+/// AudioSwitch mid-call. Every media start calls
+/// [flushPeerConnectionReleases] first, so the stop always precedes the
+/// start.
+void releasePeerConnection(RTCPeerConnection pc) {
+  if (!_releasesPeerConnections) return;
+  if (_pendingReleases.containsKey(pc) || _inflightReleases.containsKey(pc)) {
+    return;
+  }
+  _pendingReleases[pc] = Timer(releasePeerConnectionDelay, () {
+    _pendingReleases.remove(pc);
+    unawaited(_disposeReleased(pc));
+  });
+}
+
+/// Peer connections [releasePeerConnection] is waiting out the screen for.
+final Map<RTCPeerConnection, Timer> _pendingReleases = {};
+
+/// Disposes that have started and not yet finished.
+final Map<RTCPeerConnection, Future<void>> _inflightReleases = {};
+
+/// Peer connections released and not yet disposed. Tests only.
+@visibleForTesting
+int get debugPendingPeerConnectionReleases =>
+    _pendingReleases.length + _inflightReleases.length;
+
+Future<void> _disposeReleased(RTCPeerConnection pc) {
+  final running = _inflightReleases[pc];
+  if (running != null) return running;
+  final f = () async {
+    try {
+      await pc.dispose().timeout(const Duration(seconds: 3));
+      debugPrint('[MHCallAudio] peer connection released');
+    } catch (e) {
+      debugPrint('[MHCallAudio] peer connection release failed: $e');
+    } finally {
+      _inflightReleases.remove(pc);
+    }
+  }();
+  _inflightReleases[pc] = f;
+  return f;
+}
+
+/// Disposes every peer connection [releasePeerConnection] still holds, now,
+/// and waits for them. Called right before a call acquires its mic, so the
+/// AudioSwitch stop the last dispose triggers lands before the new call's
+/// start instead of in the middle of the new call.
+Future<void> flushPeerConnectionReleases() async {
+  if (_pendingReleases.isEmpty && _inflightReleases.isEmpty) return;
+  final due = _pendingReleases.keys.toList();
+  for (final t in _pendingReleases.values) {
+    t.cancel();
+  }
+  _pendingReleases.clear();
+  debugPrint('[MHCallAudio] flushing ${due.length} peer connection release(s)');
+  await Future.wait([
+    for (final pc in due) _disposeReleased(pc),
+    ..._inflightReleases.values,
+  ]);
 }
 
 /// Loudspeaker/earpiece toggle — mobile only (web/desktop route themselves).

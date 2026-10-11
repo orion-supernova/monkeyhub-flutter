@@ -66,6 +66,25 @@ class NativeCallHandler {
   @visibleForTesting
   static bool? nativeCallUiOverride;
 
+  /// Forces the "the native card is iOS CallKit" decision in tests — the
+  /// side whose AppDelegate answers `callOver` / `cardLive`.
+  @visibleForTesting
+  static bool? iosNativeOverride;
+
+  /// AppDelegate's ghost-ring half of the `monkeyhub/voip` channel:
+  /// `callOver` (remember the call is over, end its ringing card by the
+  /// card's real UUID; answers how many it ended) and `cardLive` (is any card
+  /// for the call still up), and `deactivateAudioSession` (the call that
+  /// ended hands the session back). A seam so the decisions built on the
+  /// answers are testable without a platform.
+  @visibleForTesting
+  static Future<Object?> Function(String method, String callId) iosVoipFn =
+      (method, callId) =>
+          _voipChannel.invokeMethod<Object?>(method, {'callId': callId});
+
+  bool get _iosNative =>
+      _nativeCallUi && (iosNativeOverride ?? (!kIsWeb && Platform.isIOS));
+
   // ── cards this process is ending itself ──
   //
   // Keyed by the Convex id the card carries (`extra.callId` /
@@ -219,6 +238,11 @@ class NativeCallHandler {
     switch (event) {
       case CallEventActionCallAccept(:final callKitParams):
         _captureNativeUuidFromParams(callKitParams);
+        // An answered card is a fresh card, even under a native id derived
+        // from a call id (a group call) that an earlier card already had
+        // reported connected: it owes the plugin its own setCallConnected.
+        final answeredId = callKitParams.extra?['callId']?.toString();
+        if (answeredId != null) _connectedUuidByCallId.remove(answeredId);
         // Before anything that reaches for a 1:1 session: a group card has
         // none, has never had one, and every guard below would read its
         // absence as "ghost card" and dismiss the call the user just
@@ -241,7 +265,7 @@ class NativeCallHandler {
               'NativeCallHandler: stale CallKit accept '
               'callId=$acceptedCallId — clearing',
             );
-            await endNativeByCallId(acceptedCallId);
+            await endNative(acceptedCallId);
             break;
           }
         }
@@ -264,7 +288,7 @@ class NativeCallHandler {
           debugPrint('NativeCallHandler: acceptIncoming failed: $e');
           service.clearNativeAccept();
           if (acceptedCallId != null) {
-            await endNativeByCallId(acceptedCallId);
+            await endNative(acceptedCallId);
           }
         }
         break;
@@ -326,7 +350,7 @@ class NativeCallHandler {
           }
           service.clearNativeAccept();
           if (declinedCallId != null) {
-            await endNativeByCallId(declinedCallId);
+            await endNative(declinedCallId);
           } else {
             // Identity-less decline and no session to protect — nothing can
             // be running that a blanket clear would harm.
@@ -472,7 +496,10 @@ class NativeCallHandler {
   /// beyond any plausible set of concurrently-relevant calls; insertion
   /// order (LinkedHashMap) makes `keys.first` the oldest.
   void _rememberUuid(String callId, String uuid) {
-    _uuidByCallId.remove(callId);
+    final previous = _uuidByCallId.remove(callId);
+    // A new card under the same id (a group call rung again) has not been
+    // reported connected, whatever the last one was.
+    if (previous != uuid) _connectedUuidByCallId.remove(callId);
     _uuidByCallId[callId] = uuid;
     while (_uuidByCallId.length > 8) {
       _uuidByCallId.remove(_uuidByCallId.keys.first);
@@ -615,7 +642,7 @@ class NativeCallHandler {
         .where((id) => id.isNotEmpty)
         .toSet();
     for (final id in stale) {
-      await endNativeByCallId(id);
+      await endNative(id);
     }
     if (stale.isEmpty && group.isEmpty) await endAllNative();
     if (live == null) service.clearNativeAccept();
@@ -693,7 +720,7 @@ class NativeCallHandler {
     if (service.session == null && await _isCallLive(callId) == false) {
       debugPrint(
           'NativeCallHandler: fallback answer for dead call $callId — clearing');
-      await endNativeByCallId(callId);
+      await endNative(callId);
       return;
     }
     service.markAcceptedNatively(callId: callId);
@@ -702,7 +729,7 @@ class NativeCallHandler {
     } catch (e) {
       debugPrint('NativeCallHandler: fallback accept failed: $e');
       service.clearNativeAccept();
-      await endNativeByCallId(callId);
+      await endNative(callId);
     }
   }
 
@@ -725,7 +752,7 @@ class NativeCallHandler {
       } catch (_) {}
     }
     service.clearNativeAccept();
-    await endNativeByCallId(callId);
+    await endNative(callId);
   }
 
   /// Hand a native end/timeout to [CallService] only when it names the call we
@@ -998,6 +1025,8 @@ class NativeCallHandler {
     // for every invite, and this is the one place Dart is told a group card
     // exists at all. See [_rememberGroupCall].
     if (groupCallId != null) _rememberGroupCall(groupCallId);
+    // A new ring is a new card: see [markConnected].
+    _connectedUuidByCallId.remove(callId);
     if (kIsWeb || !Platform.isAndroid) return;
     try {
       final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
@@ -1035,11 +1064,34 @@ class NativeCallHandler {
     }
   }
 
-  /// Dismiss the native UI for a call we were running. Named call, named
-  /// dismissal — [endNativeByCallId] resolves a PushKit-minted id through the
-  /// plugin's own records and clears AppDelegate's fallback provider too, so
-  /// there is nothing the old blanket `endAllCalls()` reached that this misses.
-  Future<void> endNative(String callId) => endNativeByCallId(callId);
+  /// Dismiss the native UI for a 1:1 call that is OVER for this device —
+  /// ended, cancelled, declined, answered elsewhere, handed off. Named call,
+  /// named dismissal — [endNativeByCallId] resolves a PushKit-minted id
+  /// through the plugin's own records and clears AppDelegate's fallback
+  /// provider too, so there is nothing the old blanket `endAllCalls()`
+  /// reached that this misses.
+  ///
+  /// On iOS it first tells AppDelegate (`callOver`), which is the half that
+  /// cannot be done from here: the PushKit card's UUID is minted natively, so
+  /// native ends a still-ringing card by its real id, and it remembers the
+  /// call is over, so an invite push APNs delivers AFTER this (the ghost ring
+  /// of 2026-10-11: no card yet, so we acked, so no `taken` push came) is
+  /// reported-and-ended instead of ringing for 30 seconds. Never for a group
+  /// id: a group call can ring this device again under the same id.
+  Future<void> endNative(String callId) async {
+    if (_iosNative && callId.isNotEmpty) {
+      try {
+        final ended = await iosVoipFn('callOver', callId);
+        debugPrint('NativeCallHandler: callOver $callId — native ended '
+            '$ended ringing card(s)');
+      } catch (e) {
+        // An older native side, or a wedged channel: the plugin path below
+        // still runs, and the ack still waits for [cardGone].
+        debugPrint('NativeCallHandler: callOver $callId failed: $e');
+      }
+    }
+    await endNativeByCallId(callId);
+  }
 
   /// End ONLY the native card for [callId] — safe while a different call is
   /// live on this device (busy scenario: dismissing the second card must not
@@ -1052,6 +1104,7 @@ class NativeCallHandler {
   Future<void> endNativeByCallId(String callId) async {
     if (!_nativeCallUi) return;
     final known = _uuidByCallId.remove(callId);
+    _connectedUuidByCallId.remove(callId);
     // Recorded BEFORE the plugin is asked, so the echo can never outrun it.
     _markSelfEnded(callId);
     _markSelfEnded(known);
@@ -1139,6 +1192,22 @@ class NativeCallHandler {
   Future<bool> cardGone(String callId) async {
     if (!_nativeCallUi) return true;
     await Future<void>.delayed(cardGoneSettle);
+    if (_iosNative) {
+      // AppDelegate answers from the plugin's own record by the cards' real
+      // UUIDs, and counts an invite push still being reported as a card —
+      // the two things the observer-backed list below cannot see. Only an
+      // answer that is not a bool (an older native side) falls through.
+      try {
+        final live = await iosVoipFn('cardLive', callId);
+        if (live is bool) {
+          debugPrint('NativeCallHandler.cardGone($callId): native says '
+              '${live ? 'still up' : 'gone'}');
+          return !live;
+        }
+      } catch (e) {
+        debugPrint('NativeCallHandler.cardGone($callId): cardLive failed: $e');
+      }
+    }
     try {
       final active = await activeCallsFn();
       for (final c in active) {
@@ -1212,11 +1281,16 @@ class NativeCallHandler {
   /// plugin's PATCHES.md). Called after every local teardown; harmless
   /// no-op mid-call, on Android/web/desktop, and on an app whose native
   /// side predates the handler (the error is swallowed).
-  Future<void> deactivateIosAudioSession() async {
-    if (kIsWeb || !Platform.isIOS) return;
+  ///
+  /// [callId] is the call that ended (1:1 callId or groupCallId). Natively a
+  /// release naming another call than the one audio was last applied for is
+  /// ignored: this belt repeats for seconds and must not take down a redial.
+  Future<void> deactivateIosAudioSession({String? callId}) async {
+    if (!(iosNativeOverride ?? (!kIsWeb && Platform.isIOS))) return;
     if (groupCallActiveProbe()) return;
     try {
-      await _voipChannel.invokeMethod('deactivateAudioSession');
+      // An empty id is "unnamed" natively (an older caller).
+      await iosVoipFn('deactivateAudioSession', callId ?? '');
     } catch (_) {}
   }
 
@@ -1228,12 +1302,13 @@ class NativeCallHandler {
   /// and no-op'd; nothing then deactivated a session WebRTC re-activated
   /// while its audio unit wound down, and the orange dot outlived the call.
   /// Every pass is a no-op mid-call (any card alive, or a group call), so a
-  /// call that starts inside the window is untouched.
-  Future<void> deactivateIosAudioSessionSettled() async {
+  /// call that starts inside the window is untouched, and every pass names
+  /// [callId] so one that lands after a redial applied is ignored natively.
+  Future<void> deactivateIosAudioSessionSettled({String? callId}) async {
     if (kIsWeb || !Platform.isIOS) return;
     for (final gap in const [0, 500, 1000, 1500]) {
       if (gap > 0) await Future.delayed(Duration(milliseconds: gap));
-      await deactivateIosAudioSession();
+      await deactivateIosAudioSession(callId: callId);
     }
   }
 
@@ -1280,14 +1355,42 @@ class NativeCallHandler {
 
   /// Mirror the WebRTC "active" state to CallKit so the system call timer
   /// starts ticking and the audio session is correctly classified.
+  ///
+  /// Once per CARD: CallService reports every ICE "connected", reconnects
+  /// included, and the plugin used to request a fresh CXAnswerCallAction for
+  /// each (it now ignores repeats too — MONKEYHUB PATCH 8f). Keyed by the
+  /// card, not the call id: a group call rung again under the same
+  /// groupCallId is a new card, and one that never hears setCallConnected
+  /// is hung up by the plugin's 60 s timeout mid-call.
   Future<void> markConnected(String callId) async {
     if (!_nativeCallUi) return;
     final uuid = _uuidByCallId[callId];
     if (uuid == null) return;
+    if (_connectedUuidByCallId[callId] == uuid) return;
+    _connectedUuidByCallId.remove(callId);
+    _connectedUuidByCallId[callId] = uuid;
+    while (_connectedUuidByCallId.length > 8) {
+      _connectedUuidByCallId.remove(_connectedUuidByCallId.keys.first);
+    }
+    debugPrint('NativeCallHandler.markConnected $callId card $uuid');
     try {
-      await FlutterCallkitIncoming.setCallConnected(uuid);
+      await connectCallFn(uuid);
     } catch (e) {
       debugPrint('NativeCallHandler.markConnected failed: $e');
     }
   }
+
+  /// The card [markConnected] last reported for each call id. Cleared when
+  /// the card ends ([endNativeByCallId]) or a different card takes the id
+  /// ([_rememberUuid]). Insertion-ordered, capped.
+  final Map<String, String> _connectedUuidByCallId = {};
+
+  @visibleForTesting
+  static Future<void> Function(String uuid) connectCallFn =
+      (uuid) => FlutterCallkitIncoming.setCallConnected(uuid);
+
+  /// Test-only: seed the native id [markConnected] targets.
+  @visibleForTesting
+  void debugRememberUuid(String callId, String uuid) =>
+      _rememberUuid(callId, uuid);
 }

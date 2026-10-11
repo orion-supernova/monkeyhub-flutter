@@ -2,12 +2,14 @@ package com.hiennv.flutter_callkit_incoming
 
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.telecom.Connection
 import android.telecom.DisconnectCause
+import android.telecom.TelecomManager
 import android.util.Log
 import androidx.annotation.RequiresApi
 import java.util.concurrent.ConcurrentHashMap
@@ -35,12 +37,15 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @RequiresApi(Build.VERSION_CODES.M)
 class CallkitConnection(
+    private val appContext: Context,
     val callId: String,
     val bundle: Bundle,
 ) : Connection() {
 
     companion object {
         private const val TAG = "CallkitConnection"
+        private const val RESUME_POLL_GRACE_MS = 2000L
+        private const val RESUME_POLL_INTERVAL_MS = 1000L
 
         /** Bundle key — pass the full call Data bundle through Telecom extras. */
         const val EXTRA_CALL_BUNDLE = "com.hiennv.flutter_callkit_incoming.CALL_BUNDLE"
@@ -68,7 +73,12 @@ class CallkitConnection(
     init {
         connectionProperties = PROPERTY_SELF_MANAGED
         audioModeIsVoip = true
-        connectionCapabilities = CAPABILITY_MUTE or CAPABILITY_SUPPORT_HOLD
+        // CAPABILITY_HOLD ("can be held right now") and CAPABILITY_SUPPORT_HOLD
+        // ("hold feature exists") are distinct flags and Telecom requires BOTH:
+        // when the user answers another call, CallsManager only holds the active
+        // call if it has CAPABILITY_HOLD — otherwise onHold() is never invoked
+        // and the call is disconnected or left running unheld.
+        connectionCapabilities = CAPABILITY_MUTE or CAPABILITY_HOLD or CAPABILITY_SUPPORT_HOLD
         register(callId, this)
         Log.d(TAG, "Connection created id=$callId active=${activeCount()}")
     }
@@ -82,22 +92,64 @@ class CallkitConnection(
     // the OS can also trigger these — we must honor both paths.
     // -------------------------------------------------------------------------
 
+    // MonkeyHub patch (upstream #886): these used to change the Telecom state
+    // and nothing else, so an answer or a reject from a headset button, a
+    // car or a watch never reached the app. The card kept ringing after a
+    // reject, and an answer connected nobody. Each now goes through the same
+    // broadcast as the card's own buttons; the receiver drives this
+    // connection from there (a second setActive or an unregistered id is a
+    // no-op).
+
     override fun onAnswer() {
         super.onAnswer()
         Log.d(TAG, "onAnswer id=$callId")
+        if (isCallEnded(appContext, callId)) {
+            Log.i(CallkitIncomingBroadcastReceiver.RING_TAG, "Telecom answer ignored id=$callId: already ended")
+            finishWithCause(DisconnectCause.CANCELED)
+            return
+        }
         setActive()
+        Log.i(CallkitIncomingBroadcastReceiver.RING_TAG, "Telecom answer id=$callId (headset/car/watch)")
+        appContext.sendBroadcast(
+            CallkitIncomingBroadcastReceiver.getIntentAccept(appContext, bundle)
+        )
+        // Bring the app up for the call, as the card's Accept does through
+        // TransparentActivity. A ringing self-managed call is what lets a
+        // background start through; if the system still refuses, the accept
+        // above has reached the app anyway and the ongoing-call notification
+        // opens it.
+        try {
+            AppUtils.getAppIntent(appContext, CallkitConstants.ACTION_CALL_ACCEPT, bundle)
+                ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ?.let { appContext.startActivity(it) }
+        } catch (e: Exception) {
+            Log.w(TAG, "onAnswer could not open the app: ${e.message}")
+        }
     }
 
     override fun onReject() {
         super.onReject()
         Log.d(TAG, "onReject id=$callId")
         finishWithCause(DisconnectCause.REJECTED)
+        Log.i(CallkitIncomingBroadcastReceiver.RING_TAG, "Telecom reject id=$callId (headset/car/watch)")
+        appContext.sendBroadcast(
+            CallkitIncomingBroadcastReceiver.getIntentDecline(appContext, bundle)
+        )
     }
 
     override fun onDisconnect() {
         super.onDisconnect()
         Log.d(TAG, "onDisconnect id=$callId")
+        val wasRinging = state == STATE_RINGING
         finishWithCause(DisconnectCause.LOCAL)
+        Log.i(CallkitIncomingBroadcastReceiver.RING_TAG, "Telecom hang-up id=$callId ringing=$wasRinging")
+        appContext.sendBroadcast(
+            if (wasRinging) {
+                CallkitIncomingBroadcastReceiver.getIntentDecline(appContext, bundle)
+            } else {
+                CallkitIncomingBroadcastReceiver.getIntentEnded(appContext, bundle)
+            }
+        )
     }
 
     override fun onAbort() {
@@ -106,14 +158,114 @@ class CallkitConnection(
         finishWithCause(DisconnectCause.UNKNOWN)
     }
 
+    // Telecom holds this self-managed connection when another call takes over
+    // the audio (e.g. the user dials or answers a cellular call). Forward the
+    // transition to Dart so the app can pause its media — mirrors what iOS
+    // does via CXSetHeldCallAction.
+    //
+    // Telecom does NOT unhold self-managed calls when the other call ends —
+    // the self-managed contract is that the app resumes its own call. So on
+    // hold we start a watcher that polls for the managed call's presence and
+    // self-resumes once it is gone (see resumeWhenManagedCallEnds).
     override fun onHold() {
         super.onHold()
+        Log.d(TAG, "onHold id=$callId")
         setOnHold()
+        FlutterCallkitIncomingPlugin.sendEvent(
+            CallkitConstants.ACTION_CALL_TOGGLE_HOLD,
+            mapOf("id" to callId, "isOnHold" to true),
+        )
+        startResumeWatcher()
+    }
+
+    /**
+     * While a Telecom call is ringing, volume-key presses never reach
+     * AudioService — PhoneWindowManager intercepts them and calls
+     * [android.telecom.TelecomManager.silenceRinger], which lands here.
+     * Self-managed connections do their own ringing, so stop our ringtone.
+     */
+    override fun onSilence() {
+        super.onSilence()
+        Log.d(TAG, "onSilence id=$callId")
+        FlutterCallkitIncomingPlugin.getInstance()?.getCallkitSoundPlayerManager()?.stop()
     }
 
     override fun onUnhold() {
         super.onUnhold()
+        Log.d(TAG, "onUnhold id=$callId")
+        resume()
+    }
+
+    private fun resume() {
+        stopResumeWatcher()
         setActive()
+        FlutterCallkitIncomingPlugin.sendEvent(
+            CallkitConstants.ACTION_CALL_TOGGLE_HOLD,
+            mapOf("id" to callId, "isOnHold" to false),
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // Self-resume watcher
+    // -------------------------------------------------------------------------
+
+    private val watcherHandler = Handler(Looper.getMainLooper())
+    private var resumeWatcher: Runnable? = null
+
+    private fun startResumeWatcher() {
+        stopResumeWatcher()
+        val watcher = object : Runnable {
+            override fun run() {
+                if (state != STATE_HOLDING) {
+                    resumeWatcher = null
+                    return
+                }
+                if (isManagedCallActive()) {
+                    watcherHandler.postDelayed(this, RESUME_POLL_INTERVAL_MS)
+                    return
+                }
+                Log.d(TAG, "managed call gone — self-resuming id=$callId")
+                resumeWatcher = null
+                resume()
+            }
+        }
+        resumeWatcher = watcher
+        // Grace delay before the first check: at the instant Telecom holds us
+        // the native call may still be setting up, so an immediate poll could
+        // read "no managed call" and resume prematurely.
+        watcherHandler.postDelayed(watcher, RESUME_POLL_GRACE_MS)
+    }
+
+    private fun stopResumeWatcher() {
+        resumeWatcher?.let { watcherHandler.removeCallbacks(it) }
+        resumeWatcher = null
+    }
+
+    /**
+     * Is a managed (carrier/telephony) call ringing, dialing or active?
+     *
+     * Primary signal: [TelecomManager.isInManagedCall] — precise, counts only
+     * managed calls (never our own self-managed one), but needs the
+     * READ_PHONE_STATE runtime permission. Fallback when not granted: the
+     * audio mode, which telephony sets to MODE_IN_CALL (active) or
+     * MODE_RINGTONE (ringing) for the lifetime of a native call.
+     */
+    private fun isManagedCallActive(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val telecom =
+                appContext.getSystemService(Context.TELECOM_SERVICE) as? TelecomManager
+            if (telecom != null) {
+                try {
+                    return telecom.isInManagedCall
+                } catch (e: SecurityException) {
+                    Log.d(TAG, "isInManagedCall needs READ_PHONE_STATE — audio-mode fallback")
+                }
+            }
+        }
+        val audio = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            ?: return false
+        return audio.mode == AudioManager.MODE_IN_CALL ||
+            audio.mode == AudioManager.MODE_RINGTONE
     }
 
     // -------------------------------------------------------------------------
@@ -196,6 +348,7 @@ class CallkitConnection(
     }
 
     private fun finishWithCause(cause: Int) {
+        stopResumeWatcher()
         try {
             setDisconnected(DisconnectCause(cause))
         } catch (e: Exception) {

@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/route_landing.dart';
 import '../theme/motion.dart';
 import 'audio_level_monitor.dart';
 import 'call_media.dart';
@@ -46,7 +47,8 @@ class CallScreen extends StatefulWidget {
   State<CallScreen> createState() => _CallScreenState();
 }
 
-class _CallScreenState extends State<CallScreen> {
+class _CallScreenState extends State<CallScreen>
+    with RouteLanding<CallScreen> {
   final _localRenderer = CallScreen.rendererFactory();
   final _remoteRenderer = CallScreen.rendererFactory();
   final _remoteScreenRenderer = CallScreen.rendererFactory();
@@ -109,48 +111,78 @@ class _CallScreenState extends State<CallScreen> {
       final s = svc.session;
       if (pc == null || s == null) return const [];
       final audio = svc.remoteStream?.getAudioTracks() ?? const [];
+      // No track, no poll: without one the monitor falls back to the
+      // whole connection's stats, built and decoded three times a second
+      // on the platform thread (iOS draws frames on it) for one number.
+      if (audio.isEmpty) return const [];
       return [
         AudioLevelSource(
           id: _peerLevelId,
           pc: pc,
-          track: audio.isEmpty ? null : audio.first,
+          track: audio.first,
           muted: s.peerState.audioMuted,
         ),
       ];
     };
     if (_shown?.mediaKind == CallMediaKind.video ||
         _anyVideo) {
-      _ensureRenderers();
+      _wantRenderers();
     }
     widget.service.addListener(_onChanged);
     widget.service.drawArmed.addListener(_onChanged);
-    unawaited(ScreenShare.supported().then((ok) {
-      if (mounted && ok != _shareSupported) setState(() => _shareSupported = ok);
-    }));
+    // Known on the first frame wherever it can be: an answer that came a
+    // frame later grew the tray a share button mid-slide, and on a phone
+    // that sixth control wrapped it onto a second row, so the whole tray
+    // and the face above it jumped as the screen came up. Every call.
+    final share = ScreenShare.knownSupported;
+    if (share != null) {
+      _shareSupported = share;
+    } else {
+      unawaited(ScreenShare.supported().then((ok) {
+        if (!mounted) return;
+        // Still sliding: the button lands once the screen stands still.
+        if (!_settled) {
+          _pendingShareSupported = ok;
+          return;
+        }
+        if (ok != _shareSupported) setState(() => _shareSupported = ok);
+      }));
+    }
   }
 
-  Animation<double>? _routeAnimation;
   bool _immersive = false;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final a = ModalRoute.of(context)?.animation;
-    if (identical(a, _routeAnimation)) return;
-    _routeAnimation?.removeStatusListener(_onRouteStatus);
-    _routeAnimation = a?..addStatusListener(_onRouteStatus);
-    _onRouteStatus(a?.status ?? AnimationStatus.completed);
-  }
+  /// The route has finished sliding in (or there is no route to slide).
+  /// [RouteLanding]'s answer, never the route animation read during a
+  /// build: for the first frame of a push the navigator holds the page
+  /// offstage, where its animation reads as complete. Read that way (as
+  /// this screen did), "after the slide" was the slide's first frame, and
+  /// the bars went away and the renderers were made right on top of it.
+  bool get _settled => landed;
+
+  /// Video arrived, or was due, while the route was still sliding:
+  /// the renderers are made once it stands still. See [_wantRenderers].
+  bool _renderersWanted = false;
+
+  /// [ScreenShare.supported]'s answer when it came mid-slide.
+  bool? _pendingShareSupported;
 
   /// The system bars go away once the screen has finished sliding up, not
   /// as it starts: hiding them changes the window's insets, and mid-slide
   /// that relaid out every screen in the app (the chat underneath included)
-  /// on the frames the slide most needed.
-  void _onRouteStatus(AnimationStatus status) {
-    if (_immersive || status != AnimationStatus.completed) return;
+  /// on the frames the slide most needed. The video renderers and a late
+  /// share button wait for the same moment, see [_wantRenderers].
+  @override
+  void onRouteLandingChanged() {
+    if (!landed || _immersive) return;
     _immersive = true;
-    _routeAnimation?.removeStatusListener(_onRouteStatus);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (_renderersWanted) _ensureRenderers();
+    final share = _pendingShareSupported;
+    _pendingShareSupported = null;
+    if (share != null && share != _shareSupported) {
+      setState(() => _shareSupported = share);
+    }
   }
 
   /// The call on screen: the session, or before it exists the tap's dial
@@ -164,6 +196,22 @@ class _CallScreenState extends State<CallScreen> {
     return svc.hasAnyVideo ||
         svc.remoteScreenStream != null ||
         svc.localScreenSharing;
+  }
+
+  /// Video is (or is about to be) on this call: make the renderers, but
+  /// not while the screen is still sliding up. Each one is a texture and
+  /// an event channel registered on the platform thread, which on iOS is
+  /// the thread that presents Flutter's frames, and four of them in a row
+  /// at the start of a video call's slide competed with it. The wait
+  /// is at most the slide's own transition (500 ms on iOS's Cupertino
+  /// route), and the camera is not up before then anyway (a dial's media
+  /// waits for the same moment).
+  void _wantRenderers() {
+    if (_settled) {
+      _ensureRenderers();
+    } else {
+      _renderersWanted = true;
+    }
   }
 
   void _ensureRenderers() {
@@ -279,6 +327,7 @@ class _CallScreenState extends State<CallScreen> {
       svc.localStream,
       svc.localStreamTick,
       svc.localCamActive,
+      svc.cameraButtonOn,
       svc.remoteStream,
       svc.remoteStreamTick,
       svc.remoteScreenStream,
@@ -337,7 +386,7 @@ class _CallScreenState extends State<CallScreen> {
   void _onChanged() {
     if (!mounted) return;
     final s = _shown;
-    if (_anyVideo) _ensureRenderers();
+    if (_anyVideo) _wantRenderers();
     _syncStreams();
     // A swap only makes sense while both feeds are on screen. If the peer's
     // video drops or the user turns their own camera off, un-swap so no one
@@ -370,7 +419,6 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   void dispose() {
-    _routeAnimation?.removeStatusListener(_onRouteStatus);
     widget.service.removeListener(_onChanged);
     widget.service.drawArmed.removeListener(_onChanged);
     // Still initializing: _setupRenderers frees them once it finishes, see
@@ -507,10 +555,11 @@ class _CallScreenState extends State<CallScreen> {
             : l10n.callScreenControlMute,
       ),
       CallTrayAction(
-        icon: svc.localCamActive ? CallGlyphs.camera : CallGlyphs.cameraOff,
-        active: !svc.localCamActive,
+        // The wish while it is carried out, else the camera's real state.
+        icon: svc.cameraButtonOn ? CallGlyphs.camera : CallGlyphs.cameraOff,
+        active: !svc.cameraButtonOn,
         onTap: () => unawaited(widget.service.toggleVideo()),
-        label: svc.localCamActive
+        label: svc.cameraButtonOn
             ? l10n.callScreenControlCamOff
             : l10n.callScreenControlCamOn,
       ),
@@ -940,13 +989,19 @@ class _CallScreenState extends State<CallScreen> {
                     top: false,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: CallTray(
-                        actions: trayActions,
-                        glass: isVideo,
-                        endIcon: CallGlyphs.end,
-                        endLabel: l10n.callScreenControlEnd,
-                        endColor: theme.danger,
-                        onEnd: () => widget.service.endCall(),
+                      // Its own layer: a toggle's fill and press spring
+                      // run for a beat on every tap (speaker, mute), and
+                      // each of those frames should repaint the tray, not
+                      // re-record the whole screen behind it.
+                      child: RepaintBoundary(
+                        child: CallTray(
+                          actions: trayActions,
+                          glass: isVideo,
+                          endIcon: CallGlyphs.end,
+                          endLabel: l10n.callScreenControlEnd,
+                          endColor: theme.danger,
+                          onEnd: () => widget.service.endCall(),
+                        ),
                       ),
                     ),
                   ),

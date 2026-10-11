@@ -2574,19 +2574,30 @@ class _CallOverlayState extends State<_CallOverlay> {
   }
 
   /// Completes when [route] stops moving in: finished, or turned back.
+  ///
+  /// Asked after the frame, never right after the push: the navigator
+  /// holds a pushed page offstage for one frame (heroes measure it), and an
+  /// offstage route's animation reads as complete (see `RouteLanding`).
+  /// Read at the push, as it was, this completed at once, so a dial's
+  /// CallKit, audio session, camera and peer connection all started on the
+  /// slide's first frames: the very stutter the wait exists to prevent.
   static Future<void> _settled(ModalRoute<void> route) {
-    final a = route.animation;
-    if (a == null || a.status != AnimationStatus.forward) {
-      return Future.value();
-    }
     final done = Completer<void>();
-    void onStatus(AnimationStatus st) {
-      if (st == AnimationStatus.forward) return;
-      a.removeStatusListener(onStatus);
-      if (!done.isCompleted) done.complete();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final a = route.animation;
+      if (a == null || a.status != AnimationStatus.forward) {
+        done.complete();
+        return;
+      }
+      void onStatus(AnimationStatus st) {
+        if (st == AnimationStatus.forward) return;
+        a.removeStatusListener(onStatus);
+        if (!done.isCompleted) done.complete();
+      }
 
-    a.addStatusListener(onStatus);
+      a.addStatusListener(onStatus);
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
     return done.future;
   }
 

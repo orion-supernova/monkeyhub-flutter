@@ -58,7 +58,33 @@ class CallkitConnectionService : ConnectionService() {
 
         Log.d(TAG, "onCreateIncomingConnection id=$callId caller=${data.nameCaller}")
 
-        val connection = CallkitConnection(callId, callBundle).apply {
+        // MonkeyHub patch: `addNewIncomingCall` is asynchronous, and an END
+        // that lands between it and this callback finds no connection to
+        // drive (`CallkitConnection.find` is still null) and ends nothing.
+        // The connection built here afterwards then sat in RINGING for the
+        // life of the process: a ghost self-managed call that kept Telecom
+        // holding the audio mode and focus after the card, the ringtone and
+        // the call itself were all gone. The ended-call registry is what
+        // remembers that END.
+        if (isCallEnded(this, callId)) {
+            Log.i(
+                CallkitIncomingBroadcastReceiver.RING_TAG,
+                "Telecom connection refused id=$callId: already ended",
+            )
+            return failed("Call already ended")
+        }
+        // Belt: one connection per id. A second one would overwrite the
+        // first in the lookup map and leave it RINGING with no way to reach
+        // it, the same ghost as above.
+        CallkitConnection.find(callId)?.let {
+            Log.i(
+                CallkitIncomingBroadcastReceiver.RING_TAG,
+                "Telecom connection refused id=$callId: duplicate",
+            )
+            return failed("Duplicate call")
+        }
+
+        val connection = CallkitConnection(applicationContext, callId, callBundle).apply {
             if (data.nameCaller.isNotEmpty()) {
                 setCallerDisplayName(data.nameCaller, TelecomManager.PRESENTATION_ALLOWED)
             }
@@ -98,7 +124,7 @@ class CallkitConnectionService : ConnectionService() {
 
         Log.d(TAG, "onCreateOutgoingConnection id=$callId callee=${data.nameCaller}")
 
-        val connection = CallkitConnection(callId, callBundle).apply {
+        val connection = CallkitConnection(applicationContext, callId, callBundle).apply {
             if (data.nameCaller.isNotEmpty()) {
                 setCallerDisplayName(data.nameCaller, TelecomManager.PRESENTATION_ALLOWED)
             }

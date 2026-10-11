@@ -9,7 +9,6 @@ package com.hiennv.flutter_callkit_incoming
 
 import android.app.Activity
 import android.app.KeyguardManager
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -36,13 +35,14 @@ import de.hdodenhof.circleimageview.CircleImageView
 import kotlin.math.abs
 import android.view.ViewGroup.MarginLayoutParams
 import android.os.PowerManager
-import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
 
 class CallkitIncomingActivity : Activity() {
 
     companion object {
+
+        private const val TAG = "CallkitIncomingActivity"
 
         private const val ACTION_ENDED_CALL_INCOMING =
             "com.hiennv.flutter_callkit_incoming.ACTION_ENDED_CALL_INCOMING"
@@ -56,21 +56,37 @@ class CallkitIncomingActivity : Activity() {
                 `package` = context.packageName
             }
 
-        fun getIntentEnded(context: Context, isAccepted: Boolean): Intent {
+        /// MonkeyHub patch. Package-scoped, never component-scoped: the
+        /// receiver for this is registered at runtime (onCreate), and Android
+        /// delivers a broadcast to runtime receivers only when its component
+        /// is null. Upstream also set the class name to this ACTIVITY, which
+        /// made it an explicit broadcast nothing could receive, so a cancel,
+        /// a `taken` or the ring watch's end left the locked-screen card up,
+        /// Accept and all, until its timeout or the next resume.
+        ///
+        /// [id] names the call that ended, so an end for a different call
+        /// (a second ring, a stale `taken`) cannot close this card.
+        fun getIntentEnded(context: Context, isAccepted: Boolean, id: String = ""): Intent {
             val intent = Intent("${context.packageName}.${ACTION_ENDED_CALL_INCOMING}")
             intent.putExtra("ACCEPTED", isAccepted)
+            intent.putExtra(EXTRA_ENDED_ID, id)
             intent.setPackage(context.packageName)
-            intent.setClassName(
-                context.packageName,
-                "com.hiennv.flutter_callkit_incoming.CallkitIncomingActivity"
-            )
             return intent
         }
+
+        private const val EXTRA_ENDED_ID = "ENDED_ID"
     }
 
     inner class EndedCallkitIncomingBroadcastReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (!isFinishing) {
+                val endedId = intent.getStringExtra(EXTRA_ENDED_ID) ?: ""
+                val shownId = shownCallId()
+                if (endedId.isNotEmpty() && shownId.isNotEmpty() && endedId != shownId) {
+                    Log.i(CallkitIncomingBroadcastReceiver.RING_TAG, "full-screen card kept: end was for id=$endedId, showing id=$shownId")
+                    return
+                }
+                Log.i(CallkitIncomingBroadcastReceiver.RING_TAG, "full-screen card closed: id=$shownId ended broadcast")
                 val isAccepted = intent.getBooleanExtra("ACCEPTED", false)
                 if (isAccepted) {
                     finishDelayed()
@@ -82,6 +98,8 @@ class CallkitIncomingActivity : Activity() {
     }
 
     private var endedCallkitIncomingBroadcastReceiver = EndedCallkitIncomingBroadcastReceiver()
+
+    private var wakeLock: PowerManager.WakeLock? = null
 
     private lateinit var ivBackground: ImageView
     private lateinit var llBackgroundAnimation: RippleRelativeLayout
@@ -101,16 +119,6 @@ class CallkitIncomingActivity : Activity() {
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val notificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            if (!notificationManager.canUseFullScreenIntent()) {
-                startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
-                    flags = FLAG_ACTIVITY_NEW_TASK
-                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                })
-            }
-        }
         requestedOrientation = if (!Utils.isTablet(this@CallkitIncomingActivity)) {
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         } else {
@@ -133,7 +141,7 @@ class CallkitIncomingActivity : Activity() {
             registerReceiver(
                 endedCallkitIncomingBroadcastReceiver,
                 IntentFilter("${packageName}.${ACTION_ENDED_CALL_INCOMING}"),
-                Context.RECEIVER_EXPORTED,
+                Context.RECEIVER_NOT_EXPORTED,
             )
         } else {
             registerReceiver(
@@ -142,16 +150,54 @@ class CallkitIncomingActivity : Activity() {
             )
         }
         FlutterCallkitIncomingPlugin.getInstance()?.getCallkitSoundPlayerManager()?.keepRingingOnFullScreen();
+        // After the receiver is up, so an end can no longer slip between
+        // this check and it.
+        finishIfEnded()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        finishIfEnded()
+    }
+
+    /// MonkeyHub patch. The full-screen intent launches this activity a beat
+    /// after the notification is posted, and an end that lands in that beat
+    /// is broadcast before the receiver above exists: the card used to come
+    /// up for a call that was already over and sit there, Accept button and
+    /// all, until its timeout. The ended-call registry remembers what the
+    /// broadcast could not tell it.
+    private fun shownCallId(): String =
+        intent.extras?.getBundle(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
+            ?.getString(CallkitConstants.EXTRA_CALLKIT_ID, "") ?: ""
+
+    private fun finishIfEnded(): Boolean {
+        val id = shownCallId()
+        if (!isCallEnded(this, id)) return false
+        Log.i(CallkitIncomingBroadcastReceiver.RING_TAG, "full-screen card closed: id=$id already ended")
+        if (!isFinishing) finishTask()
+        return true
     }
 
     private fun wakeLockRequest(duration: Long) {
-
+        releaseWakeLock()
         val pm = applicationContext.getSystemService(POWER_SERVICE) as PowerManager
-        val wakeLock = pm.newWakeLock(
+        wakeLock = pm.newWakeLock(
             PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
             "Callkit:PowerManager"
-        )
-        wakeLock.acquire(duration)
+        ).also { it.acquire(duration) }
+    }
+
+    /**
+     * Without this the screen stays forced on for the whole ring duration even after
+     * the call has been answered or declined.
+     */
+    private fun releaseWakeLock() {
+        try {
+            wakeLock?.takeIf { it.isHeld }?.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "releaseWakeLock failed", e)
+        }
+        wakeLock = null
     }
 
     private fun transparentStatusAndNavigation() {
@@ -350,6 +396,8 @@ class CallkitIncomingActivity : Activity() {
 
     private fun onAcceptClick() {
         // Log.d("CallkitIncomingActivity", "[CALLKIT] 📱 onAcceptClick")
+        // Answering a call that is already over opens nothing.
+        if (finishIfEnded()) return
         val data = intent.extras?.getBundle(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA)
 
 
@@ -400,7 +448,13 @@ class CallkitIncomingActivity : Activity() {
     }
 
     override fun onDestroy() {
-        unregisterReceiver(endedCallkitIncomingBroadcastReceiver)
+        releaseWakeLock()
+        try {
+            unregisterReceiver(endedCallkitIncomingBroadcastReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Registration failed earlier, or onDestroy ran twice.
+            Log.w(TAG, "endedCallkitIncomingBroadcastReceiver was not registered")
+        }
         super.onDestroy()
     }
 

@@ -28,7 +28,25 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     static let ACTION_CALL_TOGGLE_AUDIO_SESSION = "com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_AUDIO_SESSION"
     
     @objc public private(set) static var sharedInstance: SwiftFlutterCallkitIncomingPlugin!
-    
+
+    // MONKEYHUB PATCH A (call audio ownership): the host app owns the call's
+    // AVAudioSession (ios/Runner/AppDelegate.swift, CallAudioRouter). When
+    // set, configureAudioSession() hands category/mode/route to this closure
+    // (argument: whether the call is video) instead of writing its generic
+    // config, which dropped the speaker override at every ring, answer and
+    // didActivate and set a 44.1 kHz rate that restarted WebRTC's audio
+    // unit. Returns false to fall back to the plugin's own config.
+    public static var callAudioConfigurator: ((Bool) -> Bool)?
+    // MONKEYHUB PATCH A: called after deactivateAudioSessionIfIdle() let the
+    // session go, so the host can restore its non-call category.
+    public static var audioSessionIdleHandler: (() -> Void)?
+    // MONKEYHUB PATCH A: called when a call really starts here (the user
+    // answered a card, or a dial began), BEFORE that path's
+    // configureAudioSession(). A ring also configures the session, but a
+    // ringing phone is not in a call: the host keeps the screen's call
+    // behaviour (idle timer off, proximity sensor) for after this.
+    public static var callAudioLive: (() -> Void)?
+
     private var streamHandlers: WeakArray<EventCallbackHandler> = WeakArray([])
     
     private var callManager: CallManager
@@ -83,6 +101,11 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     public init(messenger: FlutterBinaryMessenger) {
         callManager = CallManager()
+        super.init()
+        // MONKEYHUB PATCH 8e: see CallManager.onCallRemovedByReport.
+        callManager.onCallRemovedByReport = { [weak self] in
+            self?.deactivateAudioSessionIfIdle()
+        }
     }
     
     private func shareHandlers(with registrar: FlutterPluginRegistrar) {
@@ -182,13 +205,14 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 result(true)
                 return
             }
-            if(self.isFromPushKit){
-                self.connectedCall(self.data!)
-            }else{
-                    if let getArgs = args as? [String: Any] {
-                    self.data = Data(args: getArgs)
-                    self.connectedCall(self.data!)
-                    }
+            // MONKEYHUB PATCH 8b (wrong-UUID connect): PATCH 4's bug, for
+            // connect. The PushKit branch connected self.data — the LAST
+            // invite — whatever id Dart asked for, and the other branch
+            // clobbered self.data with a bare {id} stub. Connect the
+            // requested call; connectedCall falls back to the stored invite
+            // only when the requested id does not parse.
+            if let getArgs = args as? [String: Any] {
+                self.connectedCall(Data(args: getArgs))
             }
             result(true)
             break
@@ -289,7 +313,10 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             return
         }
         
-        self.configureAudioSession()
+        // MONKEYHUB PATCH 8c (upstream #850): no configureAudioSession() here.
+        // Activating a play-and-record session BEFORE the incoming call is
+        // reported fights CallKit's own ring; the completion below
+        // configures once the card exists, exactly like the PushKit path.
         self.sharedProvider?.reportNewIncomingCall(with: uuid, update: callUpdate) { error in
             if(error == nil) {
                 self.configureAudioSession()
@@ -422,7 +449,13 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     @objc public func connectedCall(_ data: Data) {
         // Guard against malformed UUID — see CallManager.swift:startCall for rationale.
         let uuidSourceString: String
-        if self.isFromPushKit {
+        // MONKEYHUB PATCH 8b: the requested id first, see "callConnected".
+        if UUID(uuidString: data.uuid) != nil {
+            uuidSourceString = data.uuid
+            if self.isFromPushKit, self.data?.uuid.lowercased() == data.uuid.lowercased() {
+                self.isFromPushKit = false
+            }
+        } else if self.isFromPushKit {
             guard let stored = self.data else {
                 NSLog("[CallkitIncoming] connectedCall: PushKit branch but self.data is nil — ignored")
                 return
@@ -442,6 +475,27 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     @objc public func activeCalls() -> [[String: Any]] {
         return self.callManager.activeCalls()
+    }
+
+    // MONKEYHUB PATCH 7 (ghost ring): the plugin's OWN record of the cards it
+    // holds, not filtered through CXCallObserver. `activeCalls()` reads the
+    // observer, which learns of a just-reported card a beat after
+    // reportNewIncomingCall's completion and keeps an ended one listed for a
+    // while — so it can miss a card that is ringing right now. The host app's
+    // "is this call's card still up" and "end this call's ringing card"
+    // decisions (AppDelegate: cardLive / callOver / the native ring watch)
+    // need the record that changes synchronously: entries are added in the
+    // report completion and removed in the CXEndCallAction handler,
+    // saveEndCall and providerDidReset. `accepted` covers both an answered
+    // incoming card and an outgoing one; `isOutGoing` tells them apart.
+    @objc public func trackedCalls() -> [[String: Any]] {
+        return self.callManager.calls.map { call in
+            var item: [String: Any] = call.data.toJSON()
+            item["id"] = call.uuid.uuidString
+            item["accepted"] = call.data.isAccepted || call.hasConnected || call.isOutGoing
+            item["isOutGoing"] = call.isOutGoing
+            return item
+        }
     }
     
     @objc public func endAllCalls() {
@@ -602,6 +656,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         } catch {
             NSLog("[CallkitIncoming] setActive(false) failed: \(error)")
         }
+        // MONKEYHUB PATCH A: see audioSessionIdleHandler.
+        SwiftFlutterCallkitIncomingPlugin.audioSessionIdleHandler?()
     }
 
     func sendDefaultAudioInterruptionNotificationToStartAudioResource(){
@@ -613,6 +669,20 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     }
     
     func configureAudioSession(){
+        // MONKEYHUB PATCH A (call audio ownership): the host writes category,
+        // mode and route; only the activation stays here. No preferred sample
+        // rate / IO buffer either: WebRTC sets its own, and overriding them
+        // forced an audio-unit restart mid-call.
+        if data?.configureAudioSession != false,
+           let configurator = SwiftFlutterCallkitIncomingPlugin.callAudioConfigurator,
+           configurator((data?.type ?? 0) > 0) {
+            do {
+                try AVAudioSession.sharedInstance().setActive(data?.audioSessionActive ?? true)
+            } catch {
+                NSLog("[CallkitIncoming] setActive(true) failed: \(error)")
+            }
+            return
+        }
         if data?.configureAudioSession != false {
             let session = AVAudioSession.sharedInstance()
             do{
@@ -683,6 +753,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     public func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
         let call = Call(uuid: action.callUUID, data: self.data!, isOutGoing: true)
         call.handle = action.handle.value
+        // MONKEYHUB PATCH A: see callAudioLive.
+        SwiftFlutterCallkitIncomingPlugin.callAudioLive?()
         configureAudioSession()
         call.hasStartedConnectDidChange = { [weak self] in
             self?.sharedProvider?.reportOutgoingCall(with: call.uuid, startedConnectingAt: call.connectData)
@@ -701,6 +773,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             action.fail()
             return
         }
+        // MONKEYHUB PATCH A: see callAudioLive.
+        SwiftFlutterCallkitIncomingPlugin.callAudioLive?()
         self.configureAudioSession()
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(1200)) {
             // MONKEYHUB PATCH 3 (post-teardown re-activation): a hangup
@@ -740,12 +814,29 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         guard let call = self.callManager.callWithUUID(uuid: action.callUUID) else {
-            if(self.answerCall == nil && self.outgoingCall == nil){
-                sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_TIMEOUT, self.data?.toJSON())
-            } else {
-                sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, self.data?.toJSON())
+            // MONKEYHUB PATCH 8a (end of an untracked call): this used to
+            // `action.fail()`, which leaves the call ALIVE — a card the plugin
+            // had lost its entry for kept ringing through every end request —
+            // and told Dart TIMEOUT (read as "gone") with self.data, the LAST
+            // invite, which may be a different call entirely. Fulfill, so the
+            // card goes. Tell Dart only when self.data really is this call
+            // (decline vs ended as upstream 3.1.6); an end we cannot name is
+            // not reported as some other call's.
+            let known = self.data.flatMap { d -> Data? in
+                d.uuid.lowercased() == action.callUUID.uuidString.lowercased() ? d : nil
             }
-            action.fail()
+            NSLog("[CallkitIncoming] CXEndCallAction for untracked call \(action.callUUID.uuidString) — fulfilling (identified: \(known != nil))")
+            if let known = known {
+                if (known.isAccepted || self.answerCall?.uuid == action.callUUID || self.outgoingCall?.uuid == action.callUUID) {
+                    sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, known.toJSON())
+                } else {
+                    sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_DECLINE, known.toJSON())
+                }
+            }
+            if self.outgoingCall?.uuid == action.callUUID { self.outgoingCall = nil }
+            if self.answerCall?.uuid == action.callUUID { self.answerCall = nil }
+            action.fulfill()
+            deactivateAudioSessionIfIdle()
             return
         }
         call.endCall()
@@ -824,21 +915,33 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     
     public func provider(_ provider: CXProvider, timedOutPerforming action: CXAction) {
-        guard let call = self.callManager.callWithUUID(uuid: action.uuid) else {
-            action.fail()
+        // MONKEYHUB PATCH 8d (as upstream 3.1.6): `action.uuid` is the
+        // ACTION's id, never a call's, so this never found the call; and an
+        // action that already timed out must be neither fulfilled nor failed
+        // (CXProvider.h). Resolve through CXCallAction and report this call.
+        guard let callAction = action as? CXCallAction,
+              let call = self.callManager.callWithUUID(uuid: callAction.callUUID) else {
             return
         }
-        sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_TIMEOUT, self.data?.toJSON())
+        sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_TIMEOUT, call.data.toJSON())
         if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
             appDelegate.onTimeOut(call)
         }
-        action.fulfill()
     }
     
     public func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
 
         if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
             appDelegate.didActivateAudioSession(audioSession)
+        }
+
+        // MONKEYHUB PATCH A (call audio ownership): put the host's category
+        // and route on the freshly activated session BEFORE the interruption
+        // notification below restarts WebRTC's audio unit, including on the
+        // re-activation of a connected call (after an interruption), which
+        // returns early and never reached configureAudioSession().
+        if !self.callManager.calls.isEmpty {
+            _ = SwiftFlutterCallkitIncomingPlugin.callAudioConfigurator?((self.data?.type ?? 0) > 0)
         }
 
         if(self.answerCall?.hasConnected ?? false){

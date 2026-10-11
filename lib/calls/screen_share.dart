@@ -154,6 +154,19 @@ class ScreenShare {
     return false;
   }
 
+  /// [supported]'s answer when it needs no platform round trip: every
+  /// platform but iOS, and iOS once asked. Null until then. Lets a screen
+  /// lay its controls out right on its first frame instead of growing a
+  /// share button a frame later.
+  static bool? get knownSupported {
+    if (kIsWeb) return true;
+    if (Platform.isAndroid || Platform.isMacOS || Platform.isWindows) {
+      return true;
+    }
+    if (Platform.isIOS) return _iosSupported;
+    return false;
+  }
+
   /// Desktop only: what can be shared. Empty elsewhere.
   static Future<List<ScreenShareSource>> sources() async {
     if (kIsWeb || !(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {

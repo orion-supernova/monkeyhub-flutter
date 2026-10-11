@@ -5,12 +5,14 @@ import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
 import '../data/settings_store.dart';
 import 'call_config.dart';
+import 'camera_health.dart';
 import 'call_media.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
@@ -124,7 +126,9 @@ class GroupPeer {
 /// STUN/TURN fallback as 1:1 calls. Capacity is capped server-side at 6.
 class GroupCallService extends ChangeNotifier
     implements CallOptionsController {
-  GroupCallService({required this.api});
+  GroupCallService({required this.api}) {
+    _routeSub = callAudioRouteChanges.listen(handleCallAudioRoute);
+  }
 
   static GroupCallService? _instance;
   static GroupCallService get instance => _instance!;
@@ -138,6 +142,15 @@ class GroupCallService extends ChangeNotifier
   @visibleForTesting
   Future<MediaStream> Function(CallMediaKind kind, {VideoQualityTier tier})
       getUserMediaFn = getCallUserMedia;
+
+  /// Seam for tests — same shape as `CallService.applyCallAudioFn`.
+  @visibleForTesting
+  Future<bool?> Function(
+    CallMediaKind kind, {
+    required bool speakerOn,
+    required bool headsetWins,
+    String? callId,
+  }) applyCallAudioFn = applyCallAudioResolved;
 
   /// Seam for tests — same shape as `CallService.createPcFn`.
   @visibleForTesting
@@ -276,8 +289,9 @@ class GroupCallService extends ChangeNotifier
   Future<MediaStream> Function({ScreenShareSource? source}) getDisplayMediaFn =
       ScreenShare.capture;
   @visibleForTesting
-  Future<MediaStreamTrack> Function(VideoQualityTier tier) getVideoTrackFn =
-      getCallVideoOnlyTrack;
+  late Future<MediaStreamTrack> Function(VideoQualityTier tier)
+      getVideoTrackFn =
+      (tier) => getCallVideoOnlyTrack(tier, back: _camFacingBack);
   @visibleForTesting
   Future<MediaStream> Function(String label) createLocalStreamFn =
       createLocalMediaStream;
@@ -563,8 +577,23 @@ class GroupCallService extends ChangeNotifier
     notifyListeners();
 
     try {
+      // A previous call's late peer connection dispose would stop Android's
+      // AudioSwitch under this one: let it happen now, before the route and
+      // the mic. See [releasePeerConnection].
+      await flushPeerConnectionReleases();
       speakerOn = kind == CallMediaKind.video;
-      await applyCallAudio(kind, speakerOn: speakerOn);
+      _speakerChosen = false;
+      _routeResyncs = 0;
+      final want = speakerOn;
+      _adoptAppliedSpeaker(
+        want,
+        await applyCallAudioFn(
+          kind,
+          speakerOn: want,
+          headsetWins: true,
+          callId: groupCallId,
+        ),
+      );
       _videoTier = SettingsStore.instance.videoQualityTier;
       final epoch = ++_mediaEpoch;
       final stream = await getUserMediaFn(kind, tier: _videoTier);
@@ -577,6 +606,12 @@ class GroupCallService extends ChangeNotifier
         return;
       }
       _localStream = stream;
+      if (kind == CallMediaKind.video && stream.getVideoTracks().isEmpty) {
+        // A video call that got no camera: say so rather than a camera
+        // "on" with nothing behind it.
+        debugPrint('[CamWatch] group video call acquired no camera');
+        localVideoOff = true;
+      }
       unawaited(_syncAudio());
     } catch (e, st) {
       debugPrint('GroupCallService: getUserMedia failed: $e\n$st');
@@ -662,10 +697,17 @@ class GroupCallService extends ChangeNotifier
     _heartbeat = null;
     _rosterSub?.cancel();
     _rosterSub = null;
+    _resetCamera();
     for (final peer in _peers.values) {
       _disposePeerLink(peer);
     }
     _peers.clear();
+    _releaseParkedPcs();
+    // One process-wide route: a 1:1 call that took over (answered from
+    // inside the group) owns it now.
+    if (!NativeCallHandler.dmCallActiveProbe()) {
+      resetAndroidCallRoute();
+    }
     rosterRows = const [];
     drawModel.clearAll();
     drawArmed.value = false;
@@ -707,8 +749,10 @@ class GroupCallService extends ChangeNotifier
     }
     // Belt for iOS: releases the audio session WebRTC activated once no
     // card is alive — repeated, because the card list it is gated on
-    // empties a beat after `endCall` returns.
-    unawaited(NativeCallHandler.instance.deactivateIosAudioSessionSettled());
+    // empties a beat after `endCall` returns. Named, so a pass landing after
+    // the next call applied is ignored natively.
+    unawaited(
+        NativeCallHandler.instance.deactivateIosAudioSessionSettled(callId: id));
     await notify;
   }
 
@@ -901,9 +945,12 @@ class GroupCallService extends ChangeNotifier
       final pc = await _createPeerPc(peer, gen);
       if (gen != peer.generation || _groupCallId != id) {
         await pc.close();
+        _releaseLinkPc(pc);
         return;
       }
       peer.pc = pc;
+      // This link holds the registry now: the parked ones can go.
+      _releaseParkedPcs();
       peer.negotiation.reset();
       final ls = _localStream;
       if (ls != null) {
@@ -1008,9 +1055,15 @@ class GroupCallService extends ChangeNotifier
     pc.onConnectionState = (state) {
       if (gen != peer.generation) return;
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        final fresh = !peer.connected;
         peer.connected = true;
         _notePeerRestored(peer);
         notifyListeners();
+        // A link that comes up re-asserts the route, as the 1:1 call does
+        // on connect: a rebuilt link may have followed a moment with no peer
+        // connection at all, and Android's AudioSwitch, the iOS session,
+        // or a headset that came and went can each have moved it meanwhile.
+        if (fresh) unawaited(_syncAudio());
       } else if (state ==
           RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         _schedulePeerRestart(peer, gen, immediate: true);
@@ -1575,7 +1628,8 @@ class GroupCallService extends ChangeNotifier
   Map<String, dynamic> _stateJson() => {
         ...PeerMediaState(
           audioMuted: localMuted,
-          videoOff: localVideoOff,
+          // A suspended camera is off as far as the peers can see.
+          videoOff: localVideoOff || _camSuspended,
           screenSharing: localScreenSharing,
           camStreamId: _localStream?.id,
           screenStreamId: _screenStream?.id,
@@ -1649,7 +1703,40 @@ class GroupCallService extends ChangeNotifier
     peer.remoteStream = null;
     if (pc != null) {
       unawaited(pc.close().catchError((_) {}));
+      // Android: the last disposed connection is what leaves call mode.
+      // See [releasePeerConnection].
+      _releaseLinkPc(pc);
     }
+  }
+
+  /// Closed peer connections held back from [releasePeerConnection] while
+  /// the call goes on. Android's AudioSwitch stops (call mode, focus, the
+  /// route) when the plugin's last peer connection is disposed, so the only
+  /// peer leaving, or the one link being rebuilt, would drop a phone that
+  /// is still in the call out of call mode. Released once another link
+  /// exists, or on leave.
+  final List<RTCPeerConnection> _parkedPcs = [];
+
+  @visibleForTesting
+  int get debugParkedPeerConnections => _parkedPcs.length;
+
+  void _releaseLinkPc(RTCPeerConnection pc) {
+    final othersLive = _peers.values.any((p) => p.pc != null && p.pc != pc);
+    if (inCall && !_ending && !othersLive) {
+      debugPrint('[MHCallAudio] group: parking the last peer connection');
+      _parkedPcs.add(pc);
+      return;
+    }
+    releasePeerConnection(pc);
+  }
+
+  /// Hands every parked connection to [releasePeerConnection]: a live link
+  /// now keeps the registry non-empty, or the call is over.
+  void _releaseParkedPcs() {
+    if (_parkedPcs.isEmpty) return;
+    final parked = List<RTCPeerConnection>.of(_parkedPcs);
+    _parkedPcs.clear();
+    parked.forEach(releasePeerConnection);
   }
 
   // ───────── live controls ─────────
@@ -1665,80 +1752,150 @@ class GroupCallService extends ChangeNotifier
     await _broadcastState();
   }
 
-  /// Camera on/off.
-  ///
-  /// In a video call the camera stays acquired and its track is gated, as
-  /// it always was. In a VOICE call there is no camera track at all until
-  /// the user asks for one: turning it on acquires the camera, adds the
-  /// track to the local stream and negotiates a slot for it on every link;
+  /// Camera on/off, the same way in every call. There is no camera track
+  /// until the user asks for one (a video call starts with one): turning it
+  /// on acquires the camera, adds the track to the local stream and puts it
+  /// on every link's camera slot, negotiating the slot the first time;
   /// turning it off hands the slots an empty track and releases the camera
   /// (its light goes out), and the next "on" swaps a fresh track into the
-  /// slots that already exist — no signaling. The loudspeaker comes on with
-  /// the camera: someone looking at a screen is not holding it to an ear.
+  /// slots that already exist, no signaling. A video call used to gate its
+  /// track with `enabled` instead, which kept the camera running while
+  /// "off". The loudspeaker comes on with the camera: someone looking at a
+  /// screen is not holding it to an ear.
+  ///
+  /// The button answers on the tap ([cameraButtonOn]); the work runs one
+  /// step at a time through [_camSerial], so a tap while the camera warms
+  /// up changes the wish instead of acquiring a second camera.
   Future<void> toggleVideo() async {
-    final ls = _localStream;
-    if (ls == null) return;
-    if (_mediaKind == CallMediaKind.video) {
-      localVideoOff = !localVideoOff;
-      for (final t in ls.getVideoTracks()) {
-        t.enabled = !localVideoOff;
+    if (_localStream == null) return;
+    _camWanted = !cameraButtonOn;
+    notifyListeners();
+    await _camSerial(_settleCamera);
+  }
+
+  /// What the camera button shows: the camera the user last asked for
+  /// while that is still being carried out, else [localCamActive].
+  bool get cameraButtonOn => _camWanted ?? localCamActive;
+
+  bool? _camWanted;
+  Future<void> _camQueue = Future<void>.value();
+
+  /// The call the queue belongs to. Bumped at teardown with a fresh
+  /// queue, so a step queued for the last call never runs in the next one,
+  /// and the next call's camera never waits behind a step the last one
+  /// left hanging.
+  int _camGen = 0;
+
+  /// Runs [op] after the camera work before it. Never throws: every caller
+  /// is a tap or a timer with nobody to catch, and a failed step leaves
+  /// the camera where the truth says it is.
+  Future<void> _camSerial(Future<void> Function() op) {
+    final gen = _camGen;
+    final next = _camQueue.then((_) async {
+      if (gen != _camGen) return;
+      try {
+        await op();
+      } catch (e, st) {
+        debugPrint('GroupCallService camera step failed: $e\n$st');
       }
-      notifyListeners();
-      await _broadcastState();
-      return;
-    }
-    if (localVideoOff) {
-      await _cameraOn(ls);
-    } else {
-      await _cameraOff(ls);
+    });
+    _camQueue = next;
+    return next;
+  }
+
+  /// A new, empty camera queue for the next call. See [_camGen].
+  void _resetCamQueue() {
+    _camGen++;
+    _camQueue = Future<void>.value();
+  }
+
+  /// See `CallService._settleCamera`.
+  Future<void> _settleCamera() async {
+    final gen = _camGen;
+    try {
+      while (gen == _camGen) {
+        final want = _camWanted;
+        final ls = _localStream;
+        if (want == null || ls == null || !inCall) return;
+        if (want == localCamActive) return;
+        final ok = want ? await _cameraOn(ls) : await _cameraOff(ls);
+        if (!ok) return;
+      }
+    } finally {
+      // A step that outlived its call leaves the next call's wish alone.
+      if (gen == _camGen && _camWanted != null) {
+        _camWanted = null;
+        if (!_disposed) notifyListeners();
+      }
     }
   }
 
-  Future<void> _cameraOn(MediaStream ls) async {
-    if (!await ensurePermissionsFn(CallMediaKind.video)) return;
+  Future<bool> _cameraOn(MediaStream ls) async {
+    if (!await ensurePermissionsFn(CallMediaKind.video)) return false;
     final id = _groupCallId;
     final MediaStreamTrack track;
     try {
       track = await getVideoTrackFn(_videoTier);
     } catch (e) {
       debugPrint('GroupCallService._cameraOn: $e');
-      return;
+      return false;
     }
     if (_groupCallId != id || _localStream != ls) {
       // The call ended while the camera was warming up.
-      try {
-        await track.stop();
-      } catch (_) {}
-      return;
+      await discardCameraTrack(track);
+      return false;
     }
-    await ls.addTrack(track);
+    for (final stale in ls.getVideoTracks()) {
+      await releaseCameraTrack(ls, stale);
+    }
+    try {
+      await ls.addTrack(track);
+    } catch (e) {
+      // A capturer the stream never took would run on with nobody to stop it.
+      debugPrint('GroupCallService._cameraOn addTrack: $e');
+      await discardCameraTrack(track);
+      return false;
+    }
     localVideoOff = false;
     localStreamTick++;
     if (!speakerOn) {
+      // A default, not a choice: a connected headset keeps the sound.
       speakerOn = true;
+      _speakerChosen = false;
       unawaited(_syncAudio());
     }
     notifyListeners();
-    await _broadcastState();
+    final state = _stateJson();
     for (final peer in _peers.values.toList(growable: false)) {
       final sender = peer.camSender;
       if (sender != null) {
+        // Not awaited: a hanging send must not hold the camera queue.
+        unawaited(_sendTo(peer, 'state', state));
         try {
           await sender.replaceTrack(track);
         } catch (e) {
           debugPrint('GroupCallService._cameraOn replaceTrack: $e');
         }
       } else {
+        // The new slot's offer names our camera stream: the state that
+        // tells this peer which stream is the camera lands before it.
+        await _sendTo(peer, 'state', state);
         await _activateSlots(peer);
       }
     }
+    return true;
   }
 
-  Future<void> _cameraOff(MediaStream ls) async {
+  Future<bool> _cameraOff(MediaStream ls) async {
+    // An off camera is not a paused one.
+    _camSuspended = false;
+    _camRestarts = 0;
     localVideoOff = true;
     notifyListeners();
-    await _broadcastState();
-    for (final peer in _peers.values) {
+    // Privacy first: every slot is emptied and the camera released on the
+    // tap, not after a state signal per peer has made the round trip
+    // through the backend, one after another, while they all still saw us.
+    for (final peer in _peers.values.toList(growable: false)) {
       final sender = peer.camSender;
       if (sender != null) {
         try {
@@ -1749,21 +1906,181 @@ class GroupCallService extends ChangeNotifier
       }
     }
     for (final t in ls.getVideoTracks()) {
-      await ls.removeTrack(t);
-      try {
-        await t.stop();
-      } catch (e) {
-        debugPrint('GroupCallService._cameraOff stop: $e');
-      }
+      await releaseCameraTrack(ls, t);
     }
     localStreamTick++;
     notifyListeners();
+    // Never awaited inside the camera queue.
+    unawaited(_broadcastState());
+    return true;
   }
 
-  /// Guards [switchVideoQuality] against a second tap landing while the first
-  /// is still warming the new camera — both would read the same old track and
-  /// one camera would be left running with nothing sending it.
-  bool _switchingVideoQuality = false;
+  // ───────── camera health ─────────
+  // The mesh's half of CallService's camera watch: same policy, read off
+  // whichever connected link carries the camera.
+
+  CameraWatch? _camWatch;
+  bool _camSuspended = false;
+  bool get cameraSuspended => _camSuspended;
+  int _camRestarts = 0;
+  bool _camFacingBack = false;
+
+  @visibleForTesting
+  Duration cameraWatchInterval = const Duration(seconds: 2);
+  @visibleForTesting
+  bool cameraWatchLifecycle = true;
+  @visibleForTesting
+  CameraWatch? get debugCameraWatch => _camWatch;
+  @visibleForTesting
+  bool Function() appInForegroundFn = () {
+    final st = WidgetsBinding.instance.lifecycleState;
+    return st == null || st == AppLifecycleState.resumed;
+  };
+  @visibleForTesting
+  Future<bool> Function(MediaStreamTrack track) switchCameraFn =
+      Helper.switchCamera;
+
+  @override
+  void notifyListeners() {
+    _syncCameraWatch();
+    super.notifyListeners();
+  }
+
+  void _syncCameraWatch() {
+    final watch = localCamActive && inCall && !_disposed;
+    if (watch) {
+      (_camWatch ??= CameraWatch(
+        readFrames: _readCamFrames,
+        onVerdict: _onCameraVerdict,
+        interval: cameraWatchInterval,
+        listenToLifecycle: cameraWatchLifecycle,
+      ))
+          .start();
+    } else if (_camWatch?.running ?? false) {
+      _camWatch!.stop();
+      _camSuspended = false;
+      _camRestarts = 0;
+    }
+  }
+
+  /// The camera's frames off the first connected link that sends it. No
+  /// such link (alone in the call, still connecting) is "can't tell".
+  Future<int?> _readCamFrames() async {
+    final t = _camTrack;
+    if (t == null) return null;
+    for (final peer in _peers.values.toList(growable: false)) {
+      final pc = peer.pc;
+      if (pc == null || peer.camSender?.track?.id != t.id) continue;
+      if (pc.connectionState !=
+          RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+        continue;
+      }
+      return cameraFramesFrom(await pc.getStats(t));
+    }
+    return null;
+  }
+
+  @visibleForTesting
+  void debugCameraVerdict(CameraHealth verdict) => _onCameraVerdict(verdict);
+
+  void _onCameraVerdict(CameraHealth verdict) {
+    if (!localCamActive || _disposed) return;
+    if (verdict == CameraHealth.capturing) {
+      _camRestarts = 0;
+      if (_camSuspended) {
+        debugPrint('[CamWatch] group camera capturing again');
+        _camSuspended = false;
+        notifyListeners();
+        unawaited(_broadcastState());
+      }
+      return;
+    }
+    final foreground = appInForegroundFn();
+    if (!_camSuspended) {
+      debugPrint('[CamWatch] group camera stalled (foreground=$foreground)');
+      _camSuspended = true;
+      notifyListeners();
+      unawaited(_broadcastState());
+    }
+    if (!foreground) return;
+    if (_camRestarts >= kMaxCameraRestarts) {
+      debugPrint('[CamWatch] group camera did not come back, turning it off');
+      _camWanted = false;
+      notifyListeners();
+      unawaited(_camSerial(_settleCamera));
+      return;
+    }
+    _camRestarts++;
+    unawaited(_camSerial(() async {
+      if (!localCamActive) return;
+      debugPrint('[CamWatch] group restarting the camera ($_camRestarts)');
+      await _swapCameraTrack(_videoTier);
+    }));
+  }
+
+  /// Re-acquires the camera at [tier] and swaps it onto every link's camera
+  /// slot in place. Shared by the quality switch and the stall restart. Run
+  /// through [_camSerial] only.
+  Future<bool> _swapCameraTrack(VideoQualityTier tier) async {
+    final ls = _localStream;
+    final old = _camTrack;
+    final id = _groupCallId;
+    if (id == null || ls == null || old == null) return false;
+    final MediaStreamTrack next;
+    try {
+      next = await getVideoTrackFn(tier);
+    } catch (e) {
+      debugPrint('GroupCallService._swapCameraTrack: $e');
+      return false;
+    }
+    if (_groupCallId != id ||
+        _localStream != ls ||
+        _camTrack != old ||
+        !localCamActive) {
+      await discardCameraTrack(next);
+      return false;
+    }
+    for (final peer in _peers.values.toList(growable: false)) {
+      final sender = peer.camSender;
+      if (sender == null) continue;
+      try {
+        await sender.replaceTrack(next);
+      } catch (e) {
+        debugPrint('GroupCallService._swapCameraTrack replaceTrack: $e');
+      }
+    }
+    // Add before release — see CallService._swapCameraTrack.
+    try {
+      await ls.addTrack(next);
+    } catch (e) {
+      // Old camera back on the slots, new capturer stopped: nothing left
+      // running with nobody holding it.
+      debugPrint('GroupCallService._swapCameraTrack addTrack: $e');
+      for (final peer in _peers.values.toList(growable: false)) {
+        final sender = peer.camSender;
+        if (sender == null || sender.track?.id != next.id) continue;
+        try {
+          await sender.replaceTrack(old);
+        } catch (_) {}
+      }
+      await discardCameraTrack(next);
+      return false;
+    }
+    await releaseCameraTrack(ls, old);
+    _camWatch?.rebase();
+    localStreamTick++;
+    if (!_disposed) notifyListeners();
+    return true;
+  }
+
+  void _resetCamera() {
+    _resetCamQueue();
+    _camWatch?.stop();
+    _camSuspended = false;
+    _camRestarts = 0;
+    _camWanted = null;
+    _camFacingBack = false;
+  }
 
   /// The in-call quality row, the mesh's half of [CallOptionsController].
   ///
@@ -1778,47 +2095,10 @@ class GroupCallService extends ChangeNotifier
   Future<void> switchVideoQuality(VideoQualityTier tier) async {
     await SettingsStore.instance.setVideoQualityTier(tier);
     _videoTier = tier;
-    final ls = _localStream;
-    final old = _camTrack;
-    final id = _groupCallId;
-    if (id == null || ls == null || old == null || localVideoOff ||
-        _switchingVideoQuality) {
-      return;
-    }
-    _switchingVideoQuality = true;
-    try {
-      final MediaStreamTrack next;
-      try {
-        next = await getVideoTrackFn(tier);
-      } catch (e) {
-        debugPrint('GroupCallService.switchVideoQuality: $e');
-        return;
-      }
-      if (_groupCallId != id || _localStream != ls) {
-        // The call ended while the camera was warming up.
-        try {
-          await next.stop();
-        } catch (_) {}
-        return;
-      }
-      for (final peer in _peers.values.toList(growable: false)) {
-        final sender = peer.camSender;
-        if (sender == null) continue;
-        try {
-          await sender.replaceTrack(next);
-        } catch (e) {
-          debugPrint('GroupCallService.switchVideoQuality replaceTrack: $e');
-        }
-      }
-      // Add before remove, and never let a throwing stop() skip the swap —
-      // see CallService.switchVideoQuality for the OEM that taught us.
-      await ls.addTrack(next);
-      await ls.removeTrack(old);
-      try {
-        await old.stop();
-      } catch (e) {
-        debugPrint('GroupCallService.switchVideoQuality stop: $e');
-      }
+    if (!inCall || !localCamActive) return;
+    await _camSerial(() async {
+      if (!inCall || !localCamActive) return;
+      if (!await _swapCameraTrack(tier)) return;
       final bitrate = meshVideoBitrate(
         _peers.length,
         baseline: videoQualityPresets[tier]!.maxBitrate,
@@ -1833,11 +2113,7 @@ class GroupCallService extends ChangeNotifier
           debugPrint('GroupCallService.switchVideoQuality tune: $e');
         }
       }
-      localStreamTick++;
-      notifyListeners();
-    } finally {
-      _switchingVideoQuality = false;
-    }
+    });
   }
 
   /// Share this device's screen with everyone on the call.
@@ -1974,17 +2250,18 @@ class GroupCallService extends ChangeNotifier
     if (!_disposed) notifyListeners();
   }
 
-  Future<void> switchCamera() async {
-    final ls = _localStream;
-    if (ls == null || !isMobileCallPlatform) return;
-    final tracks = ls.getVideoTracks();
-    if (tracks.isEmpty) return;
-    try {
-      await Helper.switchCamera(tracks.first);
-    } catch (e) {
-      debugPrint('switchCamera failed: $e');
-    }
-  }
+  /// Front/back — see `CallService.switchCamera`.
+  Future<void> switchCamera() => _camSerial(() async {
+        final t = _camTrack;
+        if (t == null || !localCamActive || !isMobileCallPlatform) return;
+        try {
+          final front =
+              await switchCameraFn(t).timeout(const Duration(seconds: 3));
+          _camFacingBack = !front;
+        } catch (e) {
+          debugPrint('switchCamera failed: $e');
+        }
+      });
 
   /// Re-assert this call's audio route after CallKit activated the session.
   ///
@@ -2009,8 +2286,57 @@ class GroupCallService extends ChangeNotifier
     // WebRTC's process-wide session config, and the `videoChat` mode
     // force-sets it, so the route alone snapped back to the loudspeaker.
     speakerOn = !speakerOn;
+    // An explicit choice: beats a connected headset, survives reasserts.
+    _speakerChosen = true;
+    _routeResyncs = 0;
     notifyListeners();
     await _syncAudio();
+  }
+
+  /// Whether the user picked the current speaker side themselves (the
+  /// button, or the system's route controls). Reset on every join.
+  bool _speakerChosen = false;
+
+  /// The 1:1 twin's cap: policy re-applies in a row that didn't take.
+  int _routeResyncs = 0;
+  StreamSubscription<CallAudioRoute>? _routeSub;
+
+  /// The real route, reported natively; see [decideCallAudioRoute]. The
+  /// 1:1 twin is `CallService.handleCallAudioRoute`.
+  @visibleForTesting
+  void handleCallAudioRoute(CallAudioRoute route) {
+    if (!inCall || _audioSyncing != null) return;
+    final d = decideCallAudioRoute(
+      speakerOn: speakerOn,
+      cameraOn: !localVideoOff,
+      route: route,
+    );
+    final adopt = d.speakerOn;
+    if (adopt == null) {
+      if (!d.resync) {
+        _routeResyncs = 0;
+        return;
+      }
+      if (++_routeResyncs > 2) return;
+    } else {
+      _routeResyncs = 0;
+      _speakerChosen = d.userChosen;
+      if (adopt != speakerOn) {
+        debugPrint('GroupCallService: route $route -> speaker=$adopt');
+        speakerOn = adopt;
+        notifyListeners();
+      }
+    }
+    if (d.resync) unawaited(_syncAudio());
+  }
+
+  /// A connected headset beat a default speaker natively: the flag follows,
+  /// unless the user moved it again meanwhile.
+  void _adoptAppliedSpeaker(bool want, bool? applied) {
+    if (applied == null || applied == want || _audioDirty) return;
+    if (speakerOn != want) return;
+    speakerOn = applied;
+    notifyListeners();
   }
 
   /// Brings the platform audio in line with [speakerOn], read when it runs,
@@ -2028,7 +2354,16 @@ class GroupCallService extends ChangeNotifier
         while (_audioDirty) {
           _audioDirty = false;
           if (!inCall) return;
-          await applyCallAudio(_mediaKind, speakerOn: speakerOn);
+          final want = speakerOn;
+          _adoptAppliedSpeaker(
+            want,
+            await applyCallAudioFn(
+              _mediaKind,
+              speakerOn: want,
+              headsetWins: !_speakerChosen,
+              callId: _groupCallId,
+            ),
+          );
         }
       } finally {
         _audioSyncing = null;
@@ -2083,6 +2418,8 @@ class GroupCallService extends ChangeNotifier
   @override
   void dispose() {
     _disposed = true;
+    _routeSub?.cancel();
+    _camWatch?.stop();
     _heartbeat?.cancel();
     _rosterSub?.cancel();
     _signalsSub?.cancel();
@@ -2091,6 +2428,7 @@ class GroupCallService extends ChangeNotifier
       _disposePeerLink(peer);
     }
     _peers.clear();
+    _releaseParkedPcs();
     // Unlike `leaveCall()`, this used to never touch `_localStream` — a call
     // torn down via provider/widget-tree disposal without going through
     // `leaveCall()` first left the mic (and camera) held open, the OS

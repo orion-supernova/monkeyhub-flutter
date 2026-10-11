@@ -71,6 +71,21 @@ void main() {
     m.dispose();
   });
 
+  test('the local level is read off our mic\'s sender, not the whole '
+      'connection', () async {
+    final asked = <MediaStreamTrack?>[];
+    final pc = _CountingPc(onStats: () {})..stats = [_source(0.4)];
+    pc.onStatsFor = asked.add;
+    final mic = FakeMediaStreamTrack(kind: 'audio', id: 'mic');
+    final m = AudioLevelMonitor()
+      ..localPc = (() => pc)
+      ..localTrack = (() => mic);
+    await m.pollNow();
+    expect(asked, [mic]);
+    expect(m.levelOf(AudioLevelMonitor.me).value, 0.4);
+    m.dispose();
+  });
+
   test('a peer that left goes quiet', () async {
     final pc = FakePeerConnection()..stats = [_inbound(0.6)];
     var present = true;
@@ -113,10 +128,12 @@ void main() {
 class _CountingPc extends FakePeerConnection {
   _CountingPc({required this.onStats});
   final void Function() onStats;
+  void Function(MediaStreamTrack? track)? onStatsFor;
 
   @override
   Future<List<StatsReport>> getStats([MediaStreamTrack? track]) async {
     onStats();
+    onStatsFor?.call(track);
     return stats;
   }
 }

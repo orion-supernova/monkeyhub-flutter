@@ -54,6 +54,8 @@ class CallkitNotificationManager(
         const val NOTIFICATION_CHANNEL_ID_ONGOING = "callkit_ongoing_channel_id"
         const val NOTIFICATION_CHANNEL_ID_MISSED = "callkit_missed_channel_id"
 
+        private const val ACTION_VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION"
+        private const val EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE"
     }
 
     private var dataNotificationPermission: Map<String, Any> = HashMap()
@@ -213,10 +215,6 @@ class CallkitNotificationManager(
         var smallIcon = context.applicationInfo.icon
         if (typeCall > 0) {
             smallIcon = R.drawable.ic_video
-        } else {
-            if (smallIcon >= 0) {
-                smallIcon = R.drawable.ic_accept
-            }
         }
         notificationBuilder?.setSmallIcon(smallIcon)
         val actionColor = data.getString(CallkitConstants.EXTRA_CALLKIT_ACTION_COLOR, "#4CAF50")
@@ -350,7 +348,7 @@ class CallkitNotificationManager(
                 val textAccept = data.getString(CallkitConstants.EXTRA_CALLKIT_TEXT_ACCEPT, "")
                 val acceptAction: NotificationCompat.Action = NotificationCompat.Action.Builder(
                     R.drawable.ic_accept,
-                    if (TextUtils.isEmpty(textDecline)) context.getString(R.string.text_accept) else textAccept,
+                    if (TextUtils.isEmpty(textAccept)) context.getString(R.string.text_accept) else textAccept,
                     getAcceptPendingIntent(notificationId, data)
                 ).build()
                 notificationBuilder?.addAction(acceptAction)
@@ -429,14 +427,10 @@ class CallkitNotificationManager(
         createNotificationChanel(data);
         val missedCallSound: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val typeCall = data.getInt(CallkitConstants.EXTRA_CALLKIT_TYPE, -1)
-        var smallIcon = context.applicationInfo.icon
-        if (typeCall > 0) {
-            smallIcon = R.drawable.ic_video_missed
-        } else {
-            if (smallIcon >= 0) {
-                smallIcon = R.drawable.ic_call_missed
-            }
-        }
+        // A missed call always uses a missed-call glyph; the old `smallIcon >= 0`
+        // guard was dead (resource ids are never negative) and only obscured that.
+        val smallIcon =
+            if (typeCall > 0) R.drawable.ic_video_missed else R.drawable.ic_call_missed
         notificationMissingBuilder =
             NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID_MISSED)
         notificationMissingBuilder?.setChannelId(NOTIFICATION_CHANNEL_ID_MISSED)
@@ -631,10 +625,6 @@ class CallkitNotificationManager(
         var smallIcon = context.applicationInfo.icon
         if (typeCall > 0) {
             smallIcon = R.drawable.ic_video
-        } else {
-            if (smallIcon >= 0) {
-                smallIcon = R.drawable.ic_accept
-            }
         }
         notificationOngoingBuilder?.setSmallIcon(smallIcon)
 
@@ -851,7 +841,13 @@ class CallkitNotificationManager(
 
         callkitSoundPlayerManager?.stop()
 
-        context.sendBroadcast(CallkitIncomingActivity.getIntentEnded(context, isAccepted))
+        context.sendBroadcast(
+            CallkitIncomingActivity.getIntentEnded(
+                context,
+                isAccepted,
+                data.getString(CallkitConstants.EXTRA_CALLKIT_ID, "") ?: "",
+            )
+        )
         val notificationId =
             data.getString(CallkitConstants.EXTRA_CALLKIT_ID, "callkit_incoming").hashCode()
         getNotificationManager().cancel(notificationId)
@@ -895,7 +891,11 @@ class CallkitNotificationManager(
     private fun incomingChannelEnabled(): Boolean = getNotificationManager().run {
         val channel = getNotificationChannel(NOTIFICATION_CHANNEL_ID_INCOMING)
 
-        return areNotificationsEnabled() && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && channel != null && channel.importance > NotificationManagerCompat.IMPORTANCE_NONE) || Build.VERSION.SDK_INT < Build.VERSION_CODES.O
+        return areNotificationsEnabled() &&
+            ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                channel != null &&
+                channel.importance > NotificationManagerCompat.IMPORTANCE_NONE) ||
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
     }
 
     fun createNotificationChanel(data: Bundle) {
@@ -1017,7 +1017,12 @@ class CallkitNotificationManager(
     // Start Signify modification
     inner class VolumeKeyBroadcastReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "android.media.VOLUME_CHANGED_ACTION") {
+            if (intent?.action == ACTION_VOLUME_CHANGED) {
+                val streamType =
+                    intent.getIntExtra(EXTRA_VOLUME_STREAM_TYPE, -1)
+                if (streamType != AudioManager.STREAM_RING) {
+                    return
+                }
                 if (callkitSoundPlayerManager?.isPlaying == true) {
                     callkitSoundPlayerManager.stop()
                 }
@@ -1035,7 +1040,7 @@ class CallkitNotificationManager(
             volumeKeyReceiver = VolumeKeyBroadcastReceiver()
             context.registerReceiver(
                 volumeKeyReceiver,
-                IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+                IntentFilter(ACTION_VOLUME_CHANGED)
             )
             // End Signify modification
         }

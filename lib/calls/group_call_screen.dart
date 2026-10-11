@@ -16,6 +16,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/route_landing.dart';
 import '../widgets/user_avatar.dart';
 import 'audio_level_monitor.dart';
 import 'call_media.dart';
@@ -66,7 +67,8 @@ class GroupCallScreen extends StatefulWidget {
 
 enum _Layout { voice, grid, stage }
 
-class _GroupCallScreenState extends State<GroupCallScreen> {
+class _GroupCallScreenState extends State<GroupCallScreen>
+    with RouteLanding<GroupCallScreen> {
   /// Keyed by userId for a camera, `'$userId:screen'` for a screen.
   final Map<String, RTCVideoRenderer> _renderers = {};
   final Map<String, int> _boundTicks = {};
@@ -101,30 +103,76 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     svc.addListener(_onChanged);
     svc.drawArmed.addListener(_onChanged);
     SettingsStore.instance.addListener(_onSettings);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _levels.sources = () => [
-          for (final p in svc.peers.values)
-            if (p.pc != null)
-              AudioLevelSource(
-                id: p.userId,
-                pc: p.pc!,
-                track: _firstAudio(p.remoteStream),
-                muted: p.mediaState.audioMuted || !p.connected,
-              ),
-        ];
+    _levels.sources = () sync* {
+      for (final p in svc.peers.values) {
+        final pc = p.pc;
+        // No track, no poll: without one the monitor falls back to the
+        // whole connection's stats, per peer, three times a second on the
+        // platform thread (iOS draws frames on it), for audio that has not
+        // even arrived. The 1:1 screen skips it the same way.
+        final track = _firstAudio(p.remoteStream);
+        if (pc == null || track == null) continue;
+        yield AudioLevelSource(
+          id: p.userId,
+          pc: pc,
+          track: track,
+          muted: p.mediaState.audioMuted || !p.connected,
+        );
+      }
+    };
     _levels.localPc = () {
       for (final p in svc.peers.values) {
         if (p.pc != null) return p.pc;
       }
       return null;
     };
+    // Scoped to our mic's sender, not the whole connection's report.
+    _levels.localTrack = () => _firstAudio(svc.localStream);
     _levels.start();
-    unawaited(_syncRenderers());
-    unawaited(ScreenShare.supported().then((ok) {
-      if (mounted && ok != _shareSupported) setState(() => _shareSupported = ok);
-    }));
+    // Known on the first frame wherever it can be, as on the 1:1 screen: a
+    // share button that arrived mid-slide regrew the tray under it.
+    final share = ScreenShare.knownSupported;
+    if (share != null) {
+      _shareSupported = share;
+    } else {
+      unawaited(ScreenShare.supported().then((ok) {
+        if (!mounted) return;
+        // Still sliding: the button lands once the screen stands still.
+        if (!landed) {
+          _pendingShareSupported = ok;
+          return;
+        }
+        if (ok != _shareSupported) setState(() => _shareSupported = ok);
+      }));
+    }
     unawaited(_loadMe());
     _syncStats();
+  }
+
+  // --------------------------------------------------------------- landing
+
+  bool _immersive = false;
+
+  /// [ScreenShare.supported]'s answer when it came mid-slide.
+  bool? _pendingShareSupported;
+
+  /// The 1:1 screen's rule (see `CallScreen.onRouteLandingChanged`): the
+  /// system bars go, the renderers are made and a late share button lands
+  /// once the screen has finished sliding up, never during it. Hiding the
+  /// bars changes the window's insets, which relaid out every screen in the
+  /// app mid-slide, and each renderer is a texture and an event channel
+  /// registered on the platform thread, which on iOS presents the frames.
+  @override
+  void onRouteLandingChanged() {
+    if (!landed || _immersive) return;
+    _immersive = true;
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (svc.inCall) unawaited(_syncRenderers());
+    final share = _pendingShareSupported;
+    _pendingShareSupported = null;
+    if (share != null && share != _shareSupported) {
+      setState(() => _shareSupported = share);
+    }
   }
 
   // ---------------------------------------------------------------- stats
@@ -318,6 +366,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
       svc.localMuted,
       svc.localVideoOff,
       svc.localCamActive,
+      svc.cameraButtonOn,
       svc.localScreenSharing,
       svc.localStreamTick,
       svc.localScreenStreamTick,
@@ -367,7 +416,8 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
       setState(() {});
       return;
     }
-    unawaited(_syncRenderers());
+    // Mid-slide, the landing makes them. See [onRouteLandingChanged].
+    if (landed) unawaited(_syncRenderers());
     _syncStats();
     final key = _buildKey();
     if (key == _lastBuiltKey) return;
@@ -397,7 +447,9 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     _localRenderer?.dispose();
     _localScreenRenderer?.srcObject = null;
     _localScreenRenderer?.dispose();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (_immersive) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     super.dispose();
   }
 
@@ -715,10 +767,11 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
             : l10n.groupCallScreenMuteLabel,
       ),
       CallTrayAction(
-        icon: svc.localCamActive ? CallGlyphs.camera : CallGlyphs.cameraOff,
-        active: !svc.localCamActive,
+        // The wish while it is carried out, else the camera's real state.
+        icon: svc.cameraButtonOn ? CallGlyphs.camera : CallGlyphs.cameraOff,
+        active: !svc.cameraButtonOn,
         onTap: () => unawaited(svc.toggleVideo()),
-        label: svc.localCamActive
+        label: svc.cameraButtonOn
             ? l10n.groupCallScreenCamOffLabel
             : l10n.groupCallScreenCamOnLabel,
       ),

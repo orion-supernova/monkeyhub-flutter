@@ -18,6 +18,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/fit_label.dart';
+import '../../widgets/route_landing.dart';
 import '../../widgets/user_avatar.dart';
 import '../call_stats_monitor.dart';
 import '../../widgets/spring_press.dart';
@@ -159,7 +160,8 @@ class GlassTray extends StatelessWidget {
 }
 
 /// Builds with whether the enclosing route has finished its transition,
-/// rebuilding when that changes. No route reads as settled.
+/// rebuilding when that changes. No route reads as settled from the frame
+/// after the first.
 class _RouteSettled extends StatefulWidget {
   const _RouteSettled({required this.builder});
 
@@ -169,33 +171,19 @@ class _RouteSettled extends StatefulWidget {
   State<_RouteSettled> createState() => _RouteSettledState();
 }
 
-class _RouteSettledState extends State<_RouteSettled> {
-  Animation<double>? _animation;
+/// [RouteLanding] decides it, not the route animation read in a build: the
+/// navigator holds a pushed page offstage for its first frame, and an
+/// offstage route's animation reads as complete. Read that way the glass
+/// switched its blur on for that frame and off again for the slide.
+class _RouteSettledState extends State<_RouteSettled>
+    with RouteLanding<_RouteSettled> {
+  /// Unsettled again as the route leaves: the blur is off for the exit
+  /// slide too.
+  @override
+  bool get unlandsOnExit => true;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final a = ModalRoute.of(context)?.animation;
-    if (identical(a, _animation)) return;
-    _animation?.removeStatusListener(_onStatus);
-    _animation = a?..addStatusListener(_onStatus);
-  }
-
-  void _onStatus(AnimationStatus _) {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _animation?.removeStatusListener(_onStatus);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.builder(
-        context,
-        _animation == null || _animation!.status == AnimationStatus.completed,
-      );
+  Widget build(BuildContext context) => widget.builder(context, landed);
 }
 
 /// One control in the tray, in priority order — the first ones are the

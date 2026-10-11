@@ -64,17 +64,47 @@ class CallManager: NSObject {
         self.requestCall(callTransaction, action: "holdCall")
     }
     
+    // MONKEYHUB PATCH 8e: run after a fallback end below removed an entry,
+    // so the plugin can let the audio session go (deactivateAudioSessionIfIdle).
+    var onCallRemovedByReport: (() -> Void)?
+
     func endCall(call: Call) {
         let endCallAction = CXEndCallAction(call: call.uuid)
         let callTransaction = CXTransaction()
         callTransaction.addAction(endCallAction)
-        //requestCall
-        self.requestCall(callTransaction, action: "endCall")
+        // MONKEYHUB PATCH 8e (end that silently failed): a refused end
+        // transaction used to be a print() and nothing else, so the card
+        // rang on. Fall back to the provider REPORTING the call ended, which
+        // is Apple's path for an end the other side caused and does not
+        // depend on the transaction being accepted.
+        callController.request(callTransaction) { [weak self] error in
+            guard let error = error else { return }
+            NSLog("[CallkitIncoming] endCall transaction for \(call.uuid.uuidString) failed: \(error.localizedDescription) — reporting ended instead")
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.sharedProvider?.reportCall(with: call.uuid, endedAt: nil, reason: .remoteEnded)
+                if let stale = self.callWithUUID(uuid: call.uuid) {
+                    self.removeCall(stale)
+                    self.onCallRemovedByReport?()
+                }
+            }
+        }
     }
     
     func connectedCall(call: Call) {
         let callItem = self.callWithUUID(uuid: call.uuid)
+        // MONKEYHUB PATCH 8f (connect once): the app reports "connected" on
+        // every ICE connect, reconnects included, and each one requested a
+        // fresh CXAnswerCallAction (whose handler re-emits ACCEPT to Dart).
+        // Connect once; and an already answered or outgoing call needs no
+        // answer action at all, only its connected timestamp.
+        if callItem?.hasConnected == true {
+            return
+        }
         callItem?.connectedCall(completion: nil)
+        if let item = callItem, item.data.isAccepted || item.isOutGoing {
+            return
+        }
         
         let answerAction = CXAnswerCallAction(call: call.uuid)        
         let transaction = CXTransaction(action: answerAction)

@@ -9,7 +9,10 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.hiennv.flutter_callkit_incoming.Data
 import com.hiennv.flutter_callkit_incoming.FlutterCallkitIncomingPlugin
+import com.hiennv.flutter_callkit_incoming.isCallEnded
+import com.hiennv.flutter_callkit_incoming.markCallEnded
 import io.flutter.embedding.engine.FlutterEngine
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -37,7 +40,31 @@ class CallFcmService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "CallFcmService"
+
+        /// The ring's own log, shared with the callkit plugin's receiver and
+        /// connection service: `adb logcat -s MHCallRing` is one call's whole
+        /// ring, push to dismissal.
+        private const val RING_TAG = "MHCallRing"
         private const val RECEIPT_TIMEOUT_MS = 4_000
+
+        /// A sanity bound only, never the ring window. The age is measured
+        /// against THIS phone's clock (`sentTime` is the server's), so a
+        /// tight bound silently swallowed every invite on a phone whose clock
+        /// runs fast: it just never rang. Staleness is already handled by
+        /// what does not depend on the clock: FCM drops an invite past its
+        /// TTL (`voipExpirySeconds`), and the ring watch asks the backend
+        /// within ~2s whether the call still rings and ends the card if not.
+        /// This only stops an invite that is minutes old by any clock.
+        private const val INVITE_MAX_AGE_MS = 5 * 60_000L
+
+        /// The native ring watch (see [watchRing]): how often it asks the
+        /// backend whether the call still rings, and for how long at most,
+        /// which is the card's own 40s duration plus slack.
+        private const val RING_PROBE_INTERVAL_MS = 2_000L
+        private const val RING_WATCH_MAX_MS = 45_000L
+        /// Probes the watch waits for a card that was never listed before
+        /// it gives up on it (~6s at [RING_PROBE_INTERVAL_MS]).
+        private const val RING_UNSEEN_TICKS = 3
 
         // Keeps the plugin singleton (and its notification/sound managers)
         // alive for the accept/decline broadcast receivers that follow a show.
@@ -87,12 +114,12 @@ class CallFcmService : FirebaseMessagingService() {
     private fun dispatch(message: RemoteMessage) {
         val data = message.data
         when (data["kind"]) {
-            "invite" -> handleInvite(data)
+            "invite" -> handleInvite(data, message.sentTime)
             "taken" -> handleTaken(data)
             // A group call rings exactly like a 1:1 one. The only difference
             // is which id names the card and where an accept lands, so the
             // two share every line below.
-            "group_invite" -> handleInvite(data, groupCallId = data["groupCallId"])
+            "group_invite" -> handleInvite(data, message.sentTime, groupCallId = data["groupCallId"])
             "group_taken" -> handleTaken(data, groupCallId = data["groupCallId"])
             "message", "approval", "call_invite", "group_call_invite",
             "daily_games", "friend_moment", "game_result" -> {
@@ -114,8 +141,29 @@ class CallFcmService : FirebaseMessagingService() {
     /// `GroupCallService.joinCall` instead of `CallService.acceptIncoming` —
     /// the two are not interchangeable and the plugin has no idea which is
     /// which.
-    private fun handleInvite(data: Map<String, String>, groupCallId: String? = null) {
+    private fun handleInvite(
+        data: Map<String, String>,
+        sentTime: Long,
+        groupCallId: String? = null,
+    ) {
         val callId = groupCallId ?: data["callId"] ?: return
+        val age = if (sentTime > 0) System.currentTimeMillis() - sentTime else -1L
+        Log.i(RING_TAG, "invite $callId age=${age}ms group=${groupCallId != null}")
+        // A dismissal for this call already reached this phone: FCM does not
+        // order two high-priority messages, so a cancel can land first, and
+        // it then ended nothing. Without this check the invite behind it
+        // rang its whole card duration for a call that was over, and nothing
+        // was left to stop it. The plugin's receiver checks the same registry
+        // (it also guards the in-app path); checking here as well spares a
+        // killed process the headless engine.
+        if (isCallEnded(this, uuidForCallId(callId))) {
+            Log.i(RING_TAG, "invite $callId dropped: its dismissal came first")
+            return
+        }
+        if (age > INVITE_MAX_AGE_MS) {
+            Log.i(RING_TAG, "invite $callId dropped: ${age}ms old, its ring window is over")
+            return
+        }
         // Foreground app: the Convex realtime subscription rings in-app
         // (IncomingCallScreen / IncomingGroupCallScreen) within ~150ms —
         // showing the system UI on top would double-ring. Mirrors the iOS
@@ -178,9 +226,9 @@ class CallFcmService : FirebaseMessagingService() {
                     Log.e(TAG, "callkit plugin unavailable — cannot ring $callId")
                 } else {
                     plugin.showIncomingNotification(callData)
-                    // A group ring carries no proof; reportRinging is a
-                    // no-op for it. Off the main thread: it blocks on I/O.
-                    Thread { reportRinging(data) }.start()
+                    // A group ring carries no proof; the watch is a no-op
+                    // for it. Off the main thread: it blocks on I/O.
+                    Thread { watchRing(data, callId) }.start()
                 }
             } catch (t: Throwable) {
                 Log.e(TAG, "showIncomingNotification failed for $callId", t)
@@ -193,6 +241,12 @@ class CallFcmService : FirebaseMessagingService() {
     /// `calls` row — see [uuidForCallId], which both sides compute.
     private fun handleTaken(data: Map<String, String>, groupCallId: String? = null) {
         val callId = groupCallId ?: data["callId"] ?: return
+        val uuid = uuidForCallId(callId)
+        Log.i(RING_TAG, "taken $callId reason=${data["reason"]} group=${groupCallId != null}")
+        // Remembered before anything else, on this thread, so an invite that
+        // is still behind this push (or whose broadcast is still queued) can
+        // never ring after it. See handleInvite.
+        markCallEnded(applicationContext, uuid)
         Handler(Looper.getMainLooper()).post {
             try {
                 ensureCallkitPlugin(this)
@@ -202,7 +256,7 @@ class CallFcmService : FirebaseMessagingService() {
                 // race a `taken` that lands before the invite broadcast has
                 // persisted the call — leaving a stuck ringer.
                 FlutterCallkitIncomingPlugin.getInstance()
-                    ?.endCall(Data(mapOf("id" to uuidForCallId(callId))))
+                    ?.endCall(Data(mapOf("id" to uuid)))
             } catch (t: Throwable) {
                 Log.e(TAG, "endCall failed for $callId", t)
             }
@@ -258,23 +312,149 @@ class CallFcmService : FirebaseMessagingService() {
         }
     }
 
-    /// Tells the caller's server this phone is ringing: the ring proof the
-    /// invite push carries (`ringUrl`/`ringUser`/`ringSig`, signed in
-    /// backend/convex/receiptToken.ts), posted once the card is up. The
-    /// caller's screen goes from "calling" to "ringing" and the ringback
-    /// starts. A foregrounded app never gets here: it rings from Dart, which
-    /// reports through `calls:markRinging` instead. The iOS twin is
-    /// `reportRinging` in AppDelegate.swift. Failures are swallowed: a lost
-    /// report costs the caller the ringback, never the call.
-    private fun reportRinging(data: Map<String, String>) {
+    /// Tells the caller's server this phone is ringing, then keeps asking
+    /// whether it still should be.
+    ///
+    /// The first post is the ring proof the invite push carries
+    /// (`ringUrl`/`ringUser`/`ringSig`, signed in backend/convex/
+    /// receiptToken.ts): the caller's screen goes from "calling" to
+    /// "ringing" and the ringback starts. A foregrounded app never gets
+    /// here: it rings from Dart, which reports through `calls:markRinging`.
+    ///
+    /// The answer is the call's status, and the same proof re-posted with
+    /// `probe: true` every [RING_PROBE_INTERVAL_MS] reads it again without
+    /// re-reporting. Anything but "ringing" ends the card here, natively.
+    /// That is what stops a ring nobody else will: the `taken` push waits out
+    /// the backend's grace and can be lost or held by Doze, an invite that
+    /// outran its own cancel has no dismissal left behind it, and a killed
+    /// process has no Dart to watch the call. The iOS twin is the native
+    /// ring watch in AppDelegate.swift.
+    ///
+    /// Stops as soon as the card is gone (ended, declined, answered here) or
+    /// after [RING_WATCH_MAX_MS]. "unknown", a failed post, or a backend too
+    /// old to answer (204, no body) never end anything: only a definite
+    /// answer does. Failures are swallowed; a lost report costs the caller
+    /// the ringback, never the call.
+    private fun watchRing(data: Map<String, String>, callId: String) {
         val url = data["ringUrl"] ?: return
+        val userId = data["ringUser"] ?: return
+        val sig = data["ringSig"] ?: return
+        val uuid = uuidForCallId(callId)
+        val started = System.currentTimeMillis()
+        var probe = false
+        // Whether the card has been listed yet. The INCOMING broadcast that
+        // lists it can still be queued at the first probe (a cold process,
+        // a busy main thread), so "not listed" only means "gone" once it was
+        // seen; before that it is pending for [RING_UNSEEN_TICKS] probes.
+        // The watch keeps probing meanwhile: a call that ends before the
+        // card is listed is marked ended, which drops the late INCOMING.
+        var seen = false
+        var unseenTicks = 0
+        while (true) {
+            // The first post goes out unconditionally: it is the ring report,
+            // and the INCOMING broadcast that lists the card may not have
+            // been received yet.
+            if (probe) {
+                when (cardState(uuid)) {
+                    CardState.RINGING -> seen = true
+                    CardState.ANSWERED, CardState.ENDED -> {
+                        Log.i(RING_TAG, "watch $callId: card gone, watch over")
+                        return
+                    }
+                    CardState.ABSENT -> {
+                        if (seen || ++unseenTicks > RING_UNSEEN_TICKS) {
+                            Log.i(RING_TAG, "watch $callId: card gone (seen=$seen), watch over")
+                            return
+                        }
+                        Log.i(RING_TAG, "watch $callId: card not listed yet ($unseenTicks)")
+                    }
+                }
+            }
+            if (System.currentTimeMillis() - started >= RING_WATCH_MAX_MS) {
+                Log.i(RING_TAG, "watch $callId: ring window over, watch over")
+                return
+            }
+            val status = postRingProof(url, callId, userId, sig, probe)
+            if (status != null && status != "ringing" && status != "unknown") {
+                Log.i(RING_TAG, "watch $callId: call is $status, ending the card")
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        // Re-checked on main, where the receiver runs: an
+                        // Accept that landed while the probe was in flight
+                        // is the call, not a dead ring. Marked ended only
+                        // after that check (marking first made the check
+                        // read "ended" and skip the end it was guarding),
+                        // and still before the end, so an INCOMING that is
+                        // queued behind this cannot ring it again.
+                        if (cardState(uuid) == CardState.ANSWERED) {
+                            Log.i(RING_TAG, "watch $callId: answered meanwhile, left alone")
+                        } else {
+                            markCallEnded(applicationContext, uuid)
+                            ensureCallkitPlugin(this)
+                            FlutterCallkitIncomingPlugin.getInstance()
+                                ?.endCall(Data(mapOf("id" to uuid)))
+                        }
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "watch endCall failed for $callId", t)
+                    }
+                }
+                return
+            }
+            probe = true
+            try {
+                Thread.sleep(RING_PROBE_INTERVAL_MS)
+            } catch (_: InterruptedException) {
+                return
+            }
+        }
+    }
+
+    private enum class CardState { RINGING, ANSWERED, ENDED, ABSENT }
+
+    /// Where [uuid]'s card stands, read from the ended-call registry and the
+    /// plugin's persisted list (what its receiver writes on INCOMING and
+    /// ACCEPT and clears on every end). ABSENT is "not listed": not yet, or
+    /// no longer; [watchRing] tells the two apart. Read through its own
+    /// SharedPreferences handle and parsed here: the plugin's helpers share
+    /// one global editor and are not safe off the main thread.
+    private fun cardState(uuid: String): CardState {
+        if (isCallEnded(applicationContext, uuid)) return CardState.ENDED
+        return try {
+            val json = applicationContext
+                .getSharedPreferences("flutter_callkit_incoming", Context.MODE_PRIVATE)
+                .getString("ACTIVE_CALLS", "[]") ?: "[]"
+            val calls = JSONArray(json)
+            val card = (0 until calls.length())
+                .mapNotNull { calls.optJSONObject(it) }
+                .firstOrNull { it.optString("id") == uuid }
+            when {
+                card == null -> CardState.ABSENT
+                card.optBoolean("isAccepted", false) -> CardState.ANSWERED
+                else -> CardState.RINGING
+            }
+        } catch (t: Throwable) {
+            // Unreadable: keep watching; only a definite answer ends a card.
+            CardState.RINGING
+        }
+    }
+
+    /// One post of the ring proof. Returns the call's status from the
+    /// answer's `{status}`, or null when there is none to read.
+    private fun postRingProof(
+        url: String,
+        callId: String,
+        userId: String,
+        sig: String,
+        probe: Boolean,
+    ): String? {
         val body = JSONObject()
-            .put("callId", data["callId"] ?: return)
-            .put("userId", data["ringUser"] ?: return)
-            .put("sig", data["ringSig"] ?: return)
+            .put("callId", callId)
+            .put("userId", userId)
+            .put("sig", sig)
+            .apply { if (probe) put("probe", true) }
             .toString()
             .toByteArray(Charsets.UTF_8)
-        try {
+        return try {
             val conn = URL(url).openConnection() as HttpURLConnection
             try {
                 conn.requestMethod = "POST"
@@ -284,12 +464,15 @@ class CallFcmService : FirebaseMessagingService() {
                 conn.setRequestProperty("Content-Type", "application/json")
                 conn.setFixedLengthStreamingMode(body.size)
                 conn.outputStream.use { it.write(body) }
-                conn.responseCode
+                if (conn.responseCode != 200) return null
+                val text = conn.inputStream.bufferedReader().use { it.readText() }
+                JSONObject(text).optString("status").ifEmpty { null }
             } finally {
                 conn.disconnect()
             }
         } catch (t: Throwable) {
-            Log.d(TAG, "ring report not sent: ${t.message}")
+            Log.d(TAG, "ring proof not sent: ${t.message}")
+            null
         }
     }
 

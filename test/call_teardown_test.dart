@@ -133,9 +133,14 @@ void main() {
     test('endCall releases the mic BEFORE the hanging cancel resolves',
         () async {
       final api = _FakeCallApi();
-      // The wedged socket: cancel never completes.
-      api.cancelResult = Completer<String?>().future;
-      final service = _newService(api);
+      // The wedged socket: cancel hangs until the test lets it go. The notify
+      // timeout is long so a loaded machine can't fire it inside _pump (the
+      // 20ms default flaked under parallel runs); the test proves ordering,
+      // not the timeout.
+      final cancel = Completer<String?>();
+      api.cancelResult = cancel.future;
+      final service = _newService(api)
+        ..terminalNotifyTimeout = const Duration(seconds: 30);
       final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
       service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
         return stream;
@@ -158,12 +163,13 @@ void main() {
       final ending = service.endCall().whenComplete(() => endCallDone = true);
       await _pump();
       expect(endCallDone, isFalse,
-          reason: 'notify timeout (20ms) must not have fired yet');
+          reason: 'the cancel is still hanging');
       expect(api.terminalCalls, ['cancel'],
           reason: 'the mutation was kicked off first');
       expect(stream.micReleased, isTrue,
           reason: 'mic off while the network is still wedged');
       expect(service.localStream, isNull);
+      cancel.complete('cancelled');
       await ending;
     });
 
@@ -671,8 +677,12 @@ void main() {
     test('leaveCall releases the mic BEFORE the hanging leave resolves',
         () async {
       final api = _FakeGroupApi();
-      api.leaveResult = Completer<void>().future;
-      final service = _newGroupService(api);
+      // Hangs until released; long notify timeout for the same reason as the
+      // 1:1 test above.
+      final leave = Completer<void>();
+      api.leaveResult = leave.future;
+      final service = _newGroupService(api)
+        ..leaveNotifyTimeout = const Duration(seconds: 30);
       final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
       service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
         return stream;
@@ -692,6 +702,7 @@ void main() {
       expect(stream.micReleased, isTrue);
       expect(service.inCall, isFalse);
       expect(service.localStream, isNull);
+      leave.complete();
       await leaving;
     });
 

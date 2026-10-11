@@ -219,6 +219,53 @@ void main() {
     addTearDown(() => messenger.setMockStreamHandler(events, null));
   });
 
+  testWidgets('the system bars go only once the slide has finished, as on '
+      'the 1:1 screen', (tester) async {
+    final hides = <int>[];
+    var frame = 0;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+          hides.add(frame);
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final (svc, _, _) = await _call(tester);
+    final nav = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: MaterialApp(
+        navigatorKey: nav,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const SizedBox(),
+      ),
+    ));
+    final route = MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => GroupCallScreen(service: svc),
+    );
+    nav.currentState!.push(route);
+    for (frame = 1; frame <= 3; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    // Mid-slide: hiding the bars here relaid out every screen in the app on
+    // the frames the slide most needed.
+    expect(route.animation!.isCompleted, isFalse);
+    expect(hides, isEmpty);
+    await _settle(tester);
+    expect(hides, isNotEmpty);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(svc.leaveCall);
+  });
+
   testWidgets('a voice call is faces, not empty tiles', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));

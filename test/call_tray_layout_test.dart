@@ -236,7 +236,11 @@ void main() {
     final control = find.byKey(const ValueKey('action-0'));
     final before = tester.element(control);
     BackdropFilter glass() => tester.widget(find.byType(BackdropFilter));
+    // A route's first frame never counts as settled (it may be the offstage
+    // frame of a push, see RouteLanding); the glass frosts from the next.
+    await tester.pump();
     expect(glass().enabled, isTrue);
+    expect(identical(tester.element(control), before), isTrue);
     for (final next in [false, true]) {
       setVisible(() => visible = next);
       await tester.pump(const Duration(milliseconds: 50));
