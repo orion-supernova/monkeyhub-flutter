@@ -35,6 +35,7 @@ import {
   wipeRoomCompletely,
 } from "./roomCleanup";
 import { addMembership } from "./roomAdmin";
+import { leaveMatchesInRoom } from "./matchCore";
 
 /** Pairing codes are deliberately short-lived — they're six digits read aloud. */
 const PAIRING_TTL_MS = 5 * 60 * 1000;
@@ -909,6 +910,7 @@ export const revokeApproval = mutation({
         .first();
       if (member) {
         await ctx.db.delete(member._id);
+        await leaveMatchesInRoom(ctx, targetRoomId, req.childId);
         const room = await ctx.db.get(targetRoomId);
         if (room && room.memberCount > 0) {
           await ctx.db.patch(targetRoomId, { memberCount: room.memberCount - 1 });

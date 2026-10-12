@@ -36,6 +36,8 @@ import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
 import 'expressions/expression_store.dart';
 import 'data/games_store.dart';
+import 'data/challenges_store.dart';
+import 'data/matches_store.dart';
 import 'data/records_store.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/device_report.dart';
@@ -86,6 +88,7 @@ import 'drop/drop_controller.dart';
 import 'widgets/drop/drop_chrome.dart';
 import 'platform.dart';
 import 'screens/home_shell.dart';
+import 'screens/games/match_screen.dart';
 import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/server_screen.dart';
@@ -271,6 +274,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // from a tap), stash the target room here and consume it once the app
   // finishes booting and a signed-in session exists.
   String? _pendingPushRoomId;
+
+  /// The game a push named alongside [_pendingPushRoomId] (`focus: game:<id>`),
+  /// opened over the room once the room is.
+  String? _pendingPushMatchId;
 
   /// An invite link that arrived before the app could act on it.
   ///
@@ -782,8 +789,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // [_consumePendingPushRoom] flush it once both are ready. The focus
     // request above survives that wait on its own — it is one-shot state on
     // the store, consumed by whichever RoomScreen eventually mounts.
+    // A game push ("your move", a nudge): the room, then the game over it.
+    final matchId = focus != null && focus.startsWith('game:')
+        ? focus.substring('game:'.length)
+        : null;
     if (_auth.session == null || rootNavigatorKey.currentState == null) {
       _pendingPushRoomId = roomId;
+      _pendingPushMatchId = matchId;
       return;
     }
     final nav = rootNavigatorKey.currentState!;
@@ -802,9 +814,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     UiSelectionStore.instance.selectRoom(roomId);
     // Pop any nested route first so we always land cleanly on the shell.
     nav.popUntil((r) => r.isFirst);
+    final me = _repo.userId;
+    void openGame() {
+      if (matchId == null || matchId.isEmpty || me == null) return;
+      nav.push(
+        MaterialPageRoute<void>(
+          builder: (_) => MatchScreen(matchId: matchId, userId: me),
+        ),
+      );
+    }
+
     if (gLastSplitShell) {
       // Desktop: fill the chat detail pane instead of pushing a full screen.
       SettingsStore.instance.setSection(HomeSection.chat);
+      openGame();
       return;
     }
     nav.push(
@@ -812,6 +835,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         builder: (_) => RoomScreen(roomId: roomId, repo: _repo, api: _api),
       ),
     );
+    openGame();
   }
 
   /// An invite link was tapped. Show the join screen — never join anything.
@@ -1080,7 +1104,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       if (!mounted) return;
       if (_pendingPushRoomId != pending) return;
       _pendingPushRoomId = null;
-      _openRoomFromPush(pending);
+      final match = _pendingPushMatchId;
+      _pendingPushMatchId = null;
+      _openRoomFromPush(pending, focus: match == null ? null : 'game:$match');
     });
   }
 
@@ -1592,6 +1618,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
         await _repo.attach(s.userId);
         _family.attach(s.userId);
+        // In-chat games: faces from the repository's caches, and the
+        // "your move" set for the chat list.
+        MatchesStore.instance.resolveUser = (roomId, userId) {
+          for (final u in _repo.membersFor(roomId)) {
+            if (u.id == userId) return u;
+          }
+          return _repo.userById(userId);
+        };
+        unawaited(MatchesStore.instance.attach(s.userId));
+        ChallengesStore.instance.repo = _repo;
         unawaited(FeedStore.instance.attach(_feedApi, s.userId));
         // Sticker packs, recents/favourites and the KLIPY config, ready before
         // anyone opens the composer's expression panel.
@@ -1712,6 +1748,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // Same rule for the daily games: the standings carry friends' names.
         GamesStore.instance.clear();
         RecordsStore.instance.clear();
+        // Chat games name people too.
+        MatchesStore.instance.detach();
+        ChallengesStore.instance.clear();
         // And for the share-sheet suggestions, which name people and live
         // OUTSIDE the app — in the system's shortcut store and in Siri's
         // donation history. Left behind, the next account on this handset

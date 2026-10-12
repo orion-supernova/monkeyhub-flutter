@@ -256,6 +256,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       // hold one — and a GIF means something in the exchange it answered.
       case MessageType.gif:
       case MessageType.sticker:
+      // A game is played where it was sent.
+      case MessageType.game:
+      case MessageType.challenge:
         _showInChat(m);
     }
   }

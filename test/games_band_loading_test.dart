@@ -35,7 +35,17 @@ void main() {
 
   Map<String, dynamic> payloadFor(String dayKey) => <String, dynamic>{
     'dayKey': dayKey,
-    for (final game in ['queens', 'tango', 'zip', 'sudoku'])
+    for (final game in [
+      'queens',
+      'tango',
+      'zip',
+      'sudoku',
+      'flow',
+      'futoshiki',
+      'nonogram',
+      'minesweeper',
+      'starbattle',
+    ])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
   };
 

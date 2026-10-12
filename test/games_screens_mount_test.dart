@@ -10,11 +10,10 @@ import 'package:monkeyhub/data/feed_store.dart';
 import 'package:monkeyhub/data/games_store.dart';
 import 'package:monkeyhub/data/records_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/models/daily_game.dart';
+import 'package:monkeyhub/screens/games/daily_game_screens.dart';
 import 'package:monkeyhub/screens/games/leaderboard_screen.dart';
 import 'package:monkeyhub/screens/games/queens_screen.dart';
-import 'package:monkeyhub/screens/games/sudoku_screen.dart';
-import 'package:monkeyhub/screens/games/tango_screen.dart';
-import 'package:monkeyhub/screens/games/zip_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 
@@ -23,13 +22,13 @@ import 'fakes/fake_games_api.dart';
 /// Every games screen, mounted for real underneath something already listening
 /// to [GamesStore].
 ///
-/// That last clause is the test. All five screens kick `GamesStore.load` off
+/// That last clause is the test. Every screen kicks `GamesStore.load` off
 /// from `initState`, which runs inside the build that is mounting them — and
 /// `FeedScreen` is listening from behind the route the whole time. A store that
 /// notifies synchronously there marks a mounted widget dirty mid-build and
 /// Flutter throws, which is exactly what happened on the first tap of a game
-/// tile. `games_store_notify_test.dart` pins the guard; this pins that all five
-/// screens are actually covered by it, now and after the sixth one is added.
+/// tile. `games_store_notify_test.dart` pins the guard; this pins that every
+/// screen is actually covered by it, now and after the next one is added.
 void main() {
   final fixtures =
       jsonDecode(File('test/fixtures/daily_games.json').readAsStringSync())
@@ -38,7 +37,17 @@ void main() {
 
   final payload = <String, dynamic>{
     'dayKey': day['dayKey'],
-    for (final game in ['queens', 'tango', 'zip', 'sudoku'])
+    for (final game in [
+      'queens',
+      'tango',
+      'zip',
+      'sudoku',
+      'flow',
+      'futoshiki',
+      'nonogram',
+      'minesweeper',
+      'starbattle',
+    ])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
   };
 
@@ -81,10 +90,10 @@ void main() {
       feedApi: FeedApi(ConvexBackend.instance),
       userId: 'u1',
     ),
-    'queens': const QueensScreen(userId: 'u1'),
-    'tango': const TangoScreen(userId: 'u1'),
-    'zip': const ZipScreen(userId: 'u1'),
-    'mini sudoku': const SudokuScreen(userId: 'u1'),
+    // Every daily, through the same switch the Feed and the leaderboard open
+    // them with — so a game added to the enum is mounted here without anyone
+    // remembering to add it.
+    for (final game in DailyGame.values) game.wire: dailyGameScreen(game, 'u1'),
   };
 
   for (final entry in screens.entries) {

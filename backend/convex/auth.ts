@@ -14,6 +14,7 @@ import { purgeSpeakerColorsForUser } from "./speakerColors";
 import { ensureOwner } from "./roomAdmin";
 import { purgeScheduledForUser } from "./scheduledMessages";
 import { purgeRecordsOf } from "./recordBook";
+import { leaveMatchesInRoom, purgeChallengesOfUser } from "./matchCore";
 import {
   ERR_DISPLAY_NAME_RESERVED,
   ERR_USERNAME_RESERVED,
@@ -451,6 +452,9 @@ const byUser = (userId: any) => (q: any) => q.eq("userId", userId);
 async function purgeUser(ctx: any, userId: any) {
   const user = await ctx.db.get(userId);
 
+  // "Beat my time" bodies this account sent, wherever they were sent.
+  await purgeChallengesOfUser(ctx, userId);
+
   // ── Rooms ────────────────────────────────────────────────────────────────
   const memberships = await ctx.db
     .query("roomMembers")
@@ -460,6 +464,8 @@ async function purgeUser(ctx: any, userId: any) {
   for (const membership of memberships) {
     const roomId = membership.roomId;
     await ctx.db.delete(membership._id);
+    // Before the room can be wiped below: forfeiting writes to the games.
+    await leaveMatchesInRoom(ctx, roomId, userId);
 
     const remaining = await ctx.db
       .query("roomMembers")

@@ -23,7 +23,13 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+import * as flow from "../convex/games/flow";
+import * as futoshiki from "../convex/games/futoshiki";
+import * as minesweeper from "../convex/games/minesweeper";
+import * as nonogram from "../convex/games/nonogram";
 import * as queens from "../convex/games/queens";
+import { randomFor } from "../convex/games/rng";
+import * as starbattle from "../convex/games/starbattle";
 import * as sudoku from "../convex/games/sudoku";
 import * as tango from "../convex/games/tango";
 import * as zip from "../convex/games/zip";
@@ -48,15 +54,51 @@ const out = {
     const t = tango.generate(dayKey);
     const z = zip.generateWithSolution(dayKey);
     const s = sudoku.generate(dayKey);
+    const f = flow.generate(dayKey);
+    const fu = futoshiki.generate(dayKey);
+    const no = nonogram.generate(dayKey);
+    const ms = minesweeper.generate(dayKey);
+    const sb = starbattle.generate(dayKey);
+    // The four originals first and unchanged, so adding a game is a diff of
+    // pure additions and the old games' fixtures are provably untouched.
     return {
       dayKey,
       queens: { board: q, answer: queens.solve(q) },
       tango: { board: t, answer: tango.solve(t) },
       zip: { board: z.puzzle, answer: z.solution },
       sudoku: { board: s, answer: sudoku.solve(s) },
+      flow: { board: f, answer: flow.solve(f) },
+      futoshiki: { board: fu, answer: futoshiki.solve(fu) },
+      nonogram: { board: no, answer: nonogram.solve(no) },
+      // The mine map. The board itself carries it masked; the Dart port has
+      // to unmask it to this exact list with the day key alone.
+      minesweeper: { board: ms, answer: minesweeper.solve(ms, dayKey) },
+      starbattle: { board: sb, answer: starbattle.solve(sb) },
     };
   }),
+  /**
+   * The Minesweeper mask across sixty consecutive days, for the Dart port of
+   * mulberry32, FNV-1a and the decode. Six boards are not enough: an
+   * imul emulation that overflows wrongly only on some seeds would pass them
+   * by luck. A varied map per day (about 30% ones) rather than the generated
+   * boards, so this stays cheap and every bit position is exercised.
+   */
+  minesweeperMasks: dayRun("2026-01-01", 60).map((dayKey) => {
+    const rand = randomFor(dayKey, "fixture-mask");
+    const map = Array.from({ length: minesweeper.SIZE * minesweeper.SIZE }, () =>
+      rand() < 0.3 ? 1 : 0
+    );
+    return { dayKey, map, mines: minesweeper.encodeMines(map, dayKey) };
+  }),
 };
+
+/** [count] consecutive `YYYY-MM-DD` keys from [start]. */
+function dayRun(start: string, count: number): string[] {
+  const t0 = new Date(`${start}T00:00:00Z`).getTime();
+  return Array.from({ length: count }, (_, i) =>
+    new Date(t0 + i * 86400000).toISOString().slice(0, 10)
+  );
+}
 
 for (const day of out.days) {
   for (const [game, entry] of Object.entries(day)) {
@@ -70,7 +112,17 @@ for (const day of out.days) {
         ? tango.isSolved(board, answer)
         : game === "zip"
         ? zip.isSolved(board, answer)
-        : sudoku.isSolved(board, answer);
+        : game === "sudoku"
+        ? sudoku.isSolved(board, answer)
+        : game === "flow"
+        ? flow.isSolved(board, answer)
+        : game === "futoshiki"
+        ? futoshiki.isSolved(board, answer)
+        : game === "nonogram"
+        ? nonogram.isSolved(board, answer)
+        : game === "minesweeper"
+        ? minesweeper.isSolved(board, answer, day.dayKey)
+        : starbattle.isSolved(board, answer);
     if (!ok) throw new Error(`${day.dayKey}/${game}: answer fails isSolved`);
   }
 }
@@ -78,4 +130,11 @@ for (const day of out.days) {
 const path = resolve(__dirname, "../../test/fixtures/daily_games.json");
 mkdirSync(dirname(path), { recursive: true });
 writeFileSync(path, `${JSON.stringify(out, null, 2)}\n`);
-console.log(`wrote ${path} — ${out.days.length} days x 4 games`);
+for (const m of out.minesweeperMasks) {
+  const back = minesweeper.decodeMines({ size: 9, difficulty: "medium", start: 0, mineCount: 0, mines: m.mines }, m.dayKey);
+  if (back.some((v, i) => v !== m.map[i])) throw new Error(`${m.dayKey}: mask round-trip`);
+}
+console.log(
+  `wrote ${path} — ${out.days.length} days x 9 games, ` +
+    `${out.minesweeperMasks.length} mask days`
+);

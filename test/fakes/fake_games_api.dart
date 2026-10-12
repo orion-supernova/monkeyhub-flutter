@@ -8,9 +8,25 @@ import 'package:monkeyhub/models/game_record.dart';
 /// raw one so it has something to put on disk, and a stub that only knew how to
 /// answer the decoded call would pass while the cached path went untested.
 class FakeGamesApi implements GamesApi {
-  FakeGamesApi(this.payload, {this.standingsAnswer = const GameStandings()});
+  FakeGamesApi(
+    this.payload, {
+    this.standingsAnswer = const GameStandings(),
+    this.progress = const {},
+    this.hintAnswer = const GameHint(index: -1, value: 0),
+  });
 
   final Map<String, dynamic> payload;
+
+  /// A half-finished board per game, handed back by [start] as if the player
+  /// had left it there — for renders and tests of a board mid-solve.
+  final Map<DailyGame, List<int>> progress;
+
+  /// What [hint] answers. Nothing to reveal unless a test says otherwise.
+  final GameHint hintAnswer;
+
+  /// Every board [hint] was sent, in order, so a test can check the shape a
+  /// game asks for help in.
+  final List<List<int>> hintBoards = [];
 
   /// What [standings] answers — nobody's times unless a test hands it a
   /// board (the leaderboard renders and tests do).
@@ -36,7 +52,7 @@ class FakeGamesApi implements GamesApi {
     required DailyGame game,
   }) async => GameSession(
     startedAt: DateTime.fromMillisecondsSinceEpoch(0),
-    progress: const [],
+    progress: progress[game] ?? const [],
     elapsedMs: 0,
     hintsUsed: 0,
     mistakes: 0,
@@ -60,7 +76,10 @@ class FakeGamesApi implements GamesApi {
     required DailyGame game,
     required List<int> board,
     required int seq,
-  }) async => const GameHint(index: -1, value: 0);
+  }) async {
+    hintBoards.add(List<int>.of(board));
+    return hintAnswer;
+  }
 
   /// Thrown by the next [submitFailures] calls to [submit], to stand in for a
   /// socket that is down. Each submit that throws one decrements it.
@@ -69,6 +88,9 @@ class FakeGamesApi implements GamesApi {
   /// Every elapsed time [submit] was handed, in order — a retry must resend the
   /// time the board was solved at, not a later one.
   final List<int> submitted = [];
+
+  /// The mistake tally each [submit] carried, alongside [submitted].
+  final List<int> submittedMistakes = [];
 
   @override
   Future<GameOutcome> submit({
@@ -81,6 +103,7 @@ class FakeGamesApi implements GamesApi {
     int mistakes = 0,
   }) async {
     submitted.add(elapsedMs);
+    submittedMistakes.add(mistakes);
     if (submitFailures > 0) {
       submitFailures--;
       throw Exception('MutationTimeout');

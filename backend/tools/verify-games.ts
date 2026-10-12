@@ -20,6 +20,11 @@ import * as queens from "../convex/games/queens";
 import * as tango from "../convex/games/tango";
 import * as zip from "../convex/games/zip";
 import * as sudoku from "../convex/games/sudoku";
+import * as flow from "../convex/games/flow";
+import * as futoshiki from "../convex/games/futoshiki";
+import * as nonogram from "../convex/games/nonogram";
+import * as minesweeper from "../convex/games/minesweeper";
+import * as starbattle from "../convex/games/starbattle";
 
 const days = Number(process.argv[2] ?? 400);
 
@@ -125,6 +130,107 @@ for (const dayKey of dayKeys(days)) {
     note("sudoku", `${givens} givens`);
     record("sudoku", ms, failure);
   }
+
+  // ── Flow ─────────────────────────────────────────────────────────────────
+  {
+    const t = performance.now();
+    const puzzle = flow.generate(dayKey);
+    const ms = performance.now() - t;
+    const count = flow.countSolutions(puzzle, 3);
+    const answer = flow.solve(puzzle);
+    let failure: string | undefined;
+    if (count !== 1) failure = `${dayKey}: ${count} fillings`;
+    else if (!flow.isSolved(puzzle, answer)) {
+      failure = `${dayKey}: solver filling rejected by isSolved`;
+    } else if (
+      puzzle.endpoints.length < flow.MIN_PAIRS ||
+      puzzle.endpoints.length > flow.MAX_PAIRS
+    ) {
+      failure = `${dayKey}: ${puzzle.endpoints.length} pairs`;
+    } else if (JSON.stringify(puzzle) === JSON.stringify(flow.FALLBACK)) {
+      note("flow", "FALLBACK");
+    }
+    note("flow", `${puzzle.endpoints.length} pairs`);
+    record("flow", ms, failure);
+  }
+
+  // ── Futoshiki ────────────────────────────────────────────────────────────
+  {
+    const t = performance.now();
+    const puzzle = futoshiki.generate(dayKey);
+    const ms = performance.now() - t;
+    const count = futoshiki.countSolutions(puzzle, 3);
+    const answer = futoshiki.solve(puzzle);
+    let failure: string | undefined;
+    if (count !== 1) failure = `${dayKey}: ${count} solutions`;
+    else if (!futoshiki.isSolved(puzzle, answer)) {
+      failure = `${dayKey}: solver answer rejected by isSolved`;
+    }
+    const givens = puzzle.givens.filter((g) => g !== futoshiki.EMPTY).length;
+    note("futoshiki", `${givens} givens / ${puzzle.signs.length} signs`);
+    record("futoshiki", ms, failure);
+  }
+
+  // ── Nonogram ─────────────────────────────────────────────────────────────
+  {
+    const t = performance.now();
+    const { puzzle, solution } = nonogram.generateWithSolution(dayKey);
+    const ms = performance.now() - t;
+    const answer = nonogram.solve(puzzle);
+    let failure: string | undefined;
+    // Line-solvable is the uniqueness gate: the sweep must rebuild exactly the
+    // picture the clues were cut from.
+    if (answer.some((v, i) => v !== solution[i])) {
+      failure = `${dayKey}: line solver did not rebuild the picture`;
+    } else if (!nonogram.isSolved(puzzle, answer)) {
+      failure = `${dayKey}: solver answer rejected by isSolved`;
+    }
+    const ink = answer.filter((v) => v === nonogram.FILLED).length;
+    note("nonogram", `${Math.round(ink / 10) * 10}% ink`);
+    record("nonogram", ms, failure);
+  }
+
+  // ── Minesweeper ──────────────────────────────────────────────────────────
+  {
+    const t = performance.now();
+    const { puzzle, solution } = minesweeper.generateWithSolution(dayKey);
+    const ms = performance.now() - t;
+    const decoded = minesweeper.decodeMines(puzzle, dayKey);
+    let failure: string | undefined;
+    if (decoded.some((v, i) => v !== solution[i])) {
+      failure = `${dayKey}: mask does not decode to the mine map`;
+    } else if (!minesweeper.isSolved(puzzle, decoded, dayKey)) {
+      failure = `${dayKey}: decoded map rejected by isSolved`;
+    } else if (decoded.reduce((a, b) => a + b, 0) !== minesweeper.MINE_COUNT) {
+      failure = `${dayKey}: wrong mine count`;
+    } else if (decoded[puzzle.start]) {
+      failure = `${dayKey}: the start is a mine`;
+    } else if (minesweeper.isSolved(puzzle, decoded, "1999-01-01")) {
+      // The mask must actually depend on the day.
+      failure = `${dayKey}: decoded under the wrong day key`;
+    }
+    record("minesweeper", ms, failure);
+  }
+
+  // ── Star Battle ──────────────────────────────────────────────────────────
+  {
+    const t = performance.now();
+    const puzzle = starbattle.generate(dayKey);
+    const ms = performance.now() - t;
+    const count = starbattle.countSolutions(puzzle, 3);
+    const answer = starbattle.solve(puzzle);
+    let failure: string | undefined;
+    if (count !== 1) failure = `${dayKey}: ${count} solutions`;
+    else if (!starbattle.isSolved(puzzle, answer)) {
+      failure = `${dayKey}: solver answer rejected by isSolved`;
+    } else if (new Set(puzzle.regions).size !== starbattle.SIZE) {
+      failure = `${dayKey}: ${new Set(puzzle.regions).size} regions`;
+    }
+    if (JSON.stringify(puzzle.regions) === JSON.stringify(starbattle.FALLBACK.regions)) {
+      note("starbattle", "FALLBACK");
+    }
+    record("starbattle", ms, failure);
+  }
 }
 
 // Determinism: the same day key twice must produce byte-identical boards, or
@@ -135,6 +241,11 @@ const twice = [
   ["tango", JSON.stringify(tango.generate(probe)), JSON.stringify(tango.generate(probe))],
   ["zip", JSON.stringify(zip.generate(probe)), JSON.stringify(zip.generate(probe))],
   ["sudoku", JSON.stringify(sudoku.generate(probe)), JSON.stringify(sudoku.generate(probe))],
+  ["flow", JSON.stringify(flow.generate(probe)), JSON.stringify(flow.generate(probe))],
+  ["futoshiki", JSON.stringify(futoshiki.generate(probe)), JSON.stringify(futoshiki.generate(probe))],
+  ["nonogram", JSON.stringify(nonogram.generate(probe)), JSON.stringify(nonogram.generate(probe))],
+  ["minesweeper", JSON.stringify(minesweeper.generate(probe)), JSON.stringify(minesweeper.generate(probe))],
+  ["starbattle", JSON.stringify(starbattle.generate(probe)), JSON.stringify(starbattle.generate(probe))],
 ] as const;
 for (const [game, a, b] of twice) {
   if (a !== b) record(game, 0, `${probe}: generator is not deterministic`);
@@ -151,7 +262,7 @@ for (const [game, s] of Object.entries(stats)) {
     .map(([k, n]) => `${k} ×${n}`)
     .join(", ");
   console.log(
-    `${game.padEnd(7)} p50 ${p50.toFixed(1)}ms  p99 ${p99.toFixed(1)}ms  ` +
+    `${game.padEnd(11)} p50 ${p50.toFixed(1)}ms  p99 ${p99.toFixed(1)}ms  ` +
       `max ${sorted[sorted.length - 1].toFixed(1)}ms  ` +
       `failures ${s.failures.length}`
   );

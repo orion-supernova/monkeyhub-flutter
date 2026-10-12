@@ -84,6 +84,7 @@ class _FakeApi extends Fake implements ChatApi {
     required String messageId,
     required String userId,
     required String emoji,
+    bool album = false,
   }) async {
     reactionCalls.add('add/$emoji');
     if (reactionThrows != null) throw reactionThrows!;
@@ -94,6 +95,7 @@ class _FakeApi extends Fake implements ChatApi {
     required String messageId,
     required String userId,
     required String emoji,
+    bool album = false,
   }) async {
     reactionCalls.add('remove/$emoji');
     if (reactionThrows != null) throw reactionThrows!;

@@ -294,6 +294,12 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  # Chess rules of record on the client (lib/turn_games/chess.dart): a port of
+  # chess.js, which the server runs. MIT + BSD-2-Clause, both permissive; the
+  # app is sold, so never swap in dartchess or a Stockfish binding (GPL).
+  # Pinned exactly: the fixture replay holds it to chess.js 1.4.0's answers.
+  chess: 0.8.1
+
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the
   # newer platform-interface contract; pin to the fixed line.

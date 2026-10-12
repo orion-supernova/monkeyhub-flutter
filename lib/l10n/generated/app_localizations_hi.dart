@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11790,8 +11789,10 @@ class AppLocalizationsHi extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'इन्हें फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
-      one: 'इसे फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
+      other:
+          'इन्हें फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
+      one:
+          'इसे फ़िट करने के लिए कंप्रेस किया जाएगा, तो क्वालिटी काफ़ी गिर जाएगी।',
     );
     return '$_temp0';
   }
@@ -12070,4 +12071,1097 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get layoutPagerNext => 'अगला';
+
+  @override
+  String get resultSheetMistakes => 'गलतियाँ';
+
+  @override
+  String get resultSheetHints => 'संकेत';
+
+  @override
+  String get resultSheetStreak => 'लगातार';
+
+  @override
+  String resultSheetStreakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दिन',
+      one: '1 दिन',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get resultSheetNone => 'कोई नहीं';
+
+  @override
+  String resultSheetToday(String game) {
+    return '$game · आज';
+  }
+
+  @override
+  String resultSheetYouFaster(String time) {
+    return 'आप $time तेज़ थे';
+  }
+
+  @override
+  String resultSheetTheyFaster(String name, String time) {
+    return '$name $time तेज़ थे';
+  }
+
+  @override
+  String get resultSheetSameTime => 'आपके बराबर समय';
+
+  @override
+  String get resultSheetFooter =>
+      'रैंकिंग सिर्फ़ समय से तय होती है। गलतियाँ और संकेत बस जिज्ञासा के लिए हैं।';
+
+  @override
+  String get resultSheetHintNoRecord =>
+      'संकेतों से हल किया, इसलिए यह ऑल-टाइम रिकॉर्ड नहीं बन सकता।';
+
+  @override
+  String get gameTierEasy => 'आसान';
+
+  @override
+  String get gameTierMedium => 'मध्यम';
+
+  @override
+  String get gameTierHard => 'कठिन';
+
+  @override
+  String get gameComingSoon => 'जल्द आ रहा है';
+
+  @override
+  String get gameComingSoonName => 'नई पहेली';
+
+  @override
+  String get chatGameNameTicTacToe => 'टिक-टैक-टो';
+
+  @override
+  String get chatGameNameConnectFour => 'कनेक्ट फ़ोर';
+
+  @override
+  String get chatGameNameCheckers => 'चेकर्स';
+
+  @override
+  String get chatGameNameReversi => 'रिवर्सी';
+
+  @override
+  String get chatGameNameDots => 'डॉट्स एंड बॉक्सेस';
+
+  @override
+  String get chatGameDescTicTacToe => 'लगातार तीन जीतते हैं।';
+
+  @override
+  String get chatGameDescConnectFour => 'डिस्क गिराएँ। लगातार चार जीतते हैं।';
+
+  @override
+  String get chatGameDescCheckers => 'कूदकर पकड़ें। हर मोहरा जीतें।';
+
+  @override
+  String get chatGameDescReversi =>
+      'घेरकर पलटें। सबसे ज़्यादा डिस्क जीतती हैं।';
+
+  @override
+  String get chatGameDescDots => 'रेखाएँ खींचें, डिब्बे बंद करें, फिर खेलें।';
+
+  @override
+  String get chatGameKindLive => 'लाइव गेम';
+
+  @override
+  String get chatGameKindTurns => 'बारी-बारी';
+
+  @override
+  String get chatGameStatusWaiting => 'इंतज़ार';
+
+  @override
+  String get chatGameStatusPlaying => 'चल रहा है';
+
+  @override
+  String get chatGameStatusPaused => 'रुका हुआ';
+
+  @override
+  String get chatGameStatusFinished => 'समाप्त';
+
+  @override
+  String get chatGameStatusEnded => 'खत्म';
+
+  @override
+  String get chatGameYourMove => 'आपकी बारी';
+
+  @override
+  String chatGameTurnOf(String name) {
+    return '$name की बारी';
+  }
+
+  @override
+  String chatGameWaitingFor(String name) {
+    return '$name का इंतज़ार';
+  }
+
+  @override
+  String chatGameWonBy(String name) {
+    return '$name जीते';
+  }
+
+  @override
+  String get chatGameYouWon => 'आप जीते';
+
+  @override
+  String get chatGameDraw => 'बराबरी';
+
+  @override
+  String get chatGameNobodyWon => 'सब चले गए, कोई नहीं जीता';
+
+  @override
+  String chatGameReasonTimeout(String name) {
+    return '$name का समय खत्म हुआ';
+  }
+
+  @override
+  String chatGameReasonResign(String name) {
+    return '$name ने हार मानी';
+  }
+
+  @override
+  String chatGameReasonLeft(String name) {
+    return '$name चले गए';
+  }
+
+  @override
+  String get chatGameOpenSeat => 'खाली सीट';
+
+  @override
+  String get chatGameReady => 'तैयार';
+
+  @override
+  String get chatGameNotReady => 'तैयार नहीं';
+
+  @override
+  String chatGameWatchingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count देख रहे हैं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameJoin => 'जुड़ें';
+
+  @override
+  String get chatGameWatch => 'देखें';
+
+  @override
+  String get chatGamePlay => 'खेलें';
+
+  @override
+  String get chatGameOpen => 'खोलें';
+
+  @override
+  String get chatGameRematch => 'दोबारा खेलें';
+
+  @override
+  String get chatGameNotRanked =>
+      'सिर्फ़ मज़े के लिए। चैट गेम आपकी स्ट्रीक या रिकॉर्ड में नहीं गिने जाते।';
+
+  @override
+  String get chatGameNotRankedShort => 'रैंक नहीं होता';
+
+  @override
+  String get chatGameImReady => 'मैं तैयार हूँ';
+
+  @override
+  String get chatGameUnready => 'अभी तैयार नहीं';
+
+  @override
+  String get chatGameTakeSeat => 'जुड़ने के लिए टैप करें';
+
+  @override
+  String get chatGameLeaveSeat => 'सीट छोड़ें';
+
+  @override
+  String get chatGameStartsWhenReady => 'सब तैयार होते ही शुरू';
+
+  @override
+  String chatGameNeedPlayers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count और खिलाड़ियों का इंतज़ार',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameWatchingLabel => 'देख रहे हैं';
+
+  @override
+  String get chatGameAskSwap => 'अदला-बदली माँगें';
+
+  @override
+  String chatGameSwapRequest(String name) {
+    return '$name आपकी जगह खेलना चाहते हैं';
+  }
+
+  @override
+  String get chatGameSwap => 'बदलें';
+
+  @override
+  String get chatGameDecline => 'मना करें';
+
+  @override
+  String get chatGameAccept => 'स्वीकार करें';
+
+  @override
+  String chatGameSwapAsked(String name) {
+    return '$name से पूछा';
+  }
+
+  @override
+  String get chatGameCancel => 'रद्द करें';
+
+  @override
+  String get chatGameResign => 'हार मानें';
+
+  @override
+  String get chatGameResignConfirm => 'इस गेम में हार मानें?';
+
+  @override
+  String get chatGameResignBody => 'यह आपकी हार गिनी जाएगी।';
+
+  @override
+  String get chatGameOfferDraw => 'बराबरी की पेशकश';
+
+  @override
+  String get chatGameDrawOffered => 'बराबरी की पेशकश की गई';
+
+  @override
+  String chatGameDrawOfferFrom(String name) {
+    return '$name बराबरी की पेशकश कर रहे हैं';
+  }
+
+  @override
+  String chatGamePausedTitle(String name) {
+    return '$name गेम से चले गए';
+  }
+
+  @override
+  String get chatGamePausedMany => 'खिलाड़ी गेम से चले गए';
+
+  @override
+  String get chatGamePausedBody => 'हम बोर्ड को थोड़ी देर रोके रखेंगे।';
+
+  @override
+  String get chatGamePausedYou => 'सबके लौटने पर गेम फिर शुरू होगा।';
+
+  @override
+  String get chatGameLeave => 'गेम छोड़ें';
+
+  @override
+  String get chatGameGo => 'शुरू!';
+
+  @override
+  String get chatGameNudge => 'याद दिलाएँ';
+
+  @override
+  String get chatGameNudged => 'याद दिलाया';
+
+  @override
+  String chatGameHoursLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count घंटे बाकी',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameMinutesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मिनट बाकी',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMoveFailed => 'वह चाल नहीं गई';
+
+  @override
+  String get chatGameStale => 'बोर्ड बदल गया। फिर कोशिश करें।';
+
+  @override
+  String get chatGameStartTitle => 'गेम खेलें';
+
+  @override
+  String get chatGameMenuItem => 'गेम';
+
+  @override
+  String get chatGameModeLive => 'लाइव';
+
+  @override
+  String get chatGameModeTurns => 'बारी-बारी';
+
+  @override
+  String get chatGameModeBot => 'बॉट के ख़िलाफ़';
+
+  @override
+  String get chatGameModeLiveHint =>
+      'सब एक साथ खेलते हैं। छोड़ने पर गेम रुक जाता है।';
+
+  @override
+  String get chatGameModeTurnsHint =>
+      'जब चाहें चाल चलें। आपकी बारी पर सूचना मिलेगी, और हर बारी 2 दिन तक रहती है।';
+
+  @override
+  String get chatGameModeBotHint =>
+      'सिर्फ़ आप और बॉट। चैट में कुछ पोस्ट नहीं होता।';
+
+  @override
+  String get chatGameBotEasyHint => 'गलतियाँ करता है। सीखने के लिए अच्छा।';
+
+  @override
+  String get chatGameBotMediumHint =>
+      'ईमानदारी से खेलता है और आपकी जीत रोकता है।';
+
+  @override
+  String get chatGameBotHardHint => 'कई चालें आगे सोचता है।';
+
+  @override
+  String get chatGameStart => 'शुरू करें';
+
+  @override
+  String get chatGameErrAlreadyLive =>
+      'यहाँ पहले से एक लाइव गेम है। पहले उसे पूरा करें या छोड़ें।';
+
+  @override
+  String get chatGameErrTooMany =>
+      'यहाँ पहले से 3 बारी वाले गेम चल रहे हैं। पहले एक पूरा करें।';
+
+  @override
+  String get chatGameErrGeneric => 'कुछ गलत हो गया। फिर कोशिश करें।';
+
+  @override
+  String get chatGamePlayersTwo => '2 खिलाड़ी';
+
+  @override
+  String get chatGamePlayersUpToFour => '2–4 खिलाड़ी';
+
+  @override
+  String get chatGameBotName => 'बंदर';
+
+  @override
+  String get chatGameBotBadge => 'बॉट';
+
+  @override
+  String get chatGameNewGame => 'नया गेम';
+
+  @override
+  String chatGameBannerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count गेम',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameBannerYourMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count में आपकी बारी',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameSheetTitle => 'इस चैट के गेम';
+
+  @override
+  String get chatGameGone => 'यह गेम अब उपलब्ध नहीं है।';
+
+  @override
+  String get chatGameSeatsLabel => 'खिलाड़ी';
+
+  @override
+  String get gameFlowName => 'फ़्लो';
+
+  @override
+  String get gameFutoshikiName => 'फ़ुतोशिकी';
+
+  @override
+  String get gameNonogramName => 'नोनोग्राम';
+
+  @override
+  String get gameMinesweeperName => 'माइनस्वीपर';
+
+  @override
+  String get gameStarbattleName => 'स्टार बैटल';
+
+  @override
+  String get gameFlowRule => 'एक जैसे बिंदु जोड़ें, हर खाना भरें';
+
+  @override
+  String get gameFutoshikiRule =>
+      'हर पंक्ति और स्तंभ में 1 से 5 एक बार, हर चिह्न सही';
+
+  @override
+  String get gameNonogramRule => 'हर संकेत से मेल खाने के लिए खाने भरें';
+
+  @override
+  String get gameMinesweeperRule =>
+      'हर सुरक्षित खाना खोलें, अंदाज़े की ज़रूरत नहीं';
+
+  @override
+  String get gameStarbattleRule =>
+      'हर पंक्ति, स्तंभ और रंग में दो तारे, जो कभी छूते नहीं';
+
+  @override
+  String get gameFlag => 'झंडा';
+
+  @override
+  String get gameAutoDot => 'स्वतः बिंदु';
+
+  @override
+  String get gameInfoFlowGoal =>
+      'हर जोड़ी एक जैसे बिंदुओं को एक पाइप से जोड़ें।';
+
+  @override
+  String get gameInfoFlowRule1 =>
+      'हर पाइप एक ही रंग और नंबर के 2 बिंदुओं को जोड़ता है।';
+
+  @override
+  String get gameInfoFlowRule2 =>
+      'पाइप एक-दूसरे को काट नहीं सकते, न एक खाना बाँट सकते हैं।';
+
+  @override
+  String get gameInfoFlowRule3 => 'हर खाना भरें। कोई भी खाली नहीं रह सकता।';
+
+  @override
+  String get gameInfoFlowRule4 => 'ऊपर, नीचे, बाएँ या दाएँ चलें। तिरछा नहीं।';
+
+  @override
+  String get gameInfoFlowExample =>
+      'सीधा रास्ता नहीं है? पाइप को दूसरों के चारों ओर घुमाएँ। फिर भी हर खाना भरना है।';
+
+  @override
+  String get gameInfoFlowControls =>
+      'किसी बिंदु से खींचकर उसका पाइप बनाएँ। मिटाने के लिए वापस खींचें। किसी पाइप के ऊपर से गुज़रने पर वह कट जाता है।';
+
+  @override
+  String get gameInfoFutoshikiGoal => 'ग्रिड को 1 से 5 तक के नंबरों से भरें।';
+
+  @override
+  String get gameInfoFutoshikiRule1 =>
+      'हर पंक्ति में 1, 2, 3, 4 और 5। कोई दोहराव नहीं।';
+
+  @override
+  String get gameInfoFutoshikiRule2 => 'हर स्तंभ में भी।';
+
+  @override
+  String get gameInfoFutoshikiRule3 =>
+      '2 खानों के बीच का < या > सही होना चाहिए। यह छोटे नंबर की ओर इशारा करता है।';
+
+  @override
+  String get gameInfoFutoshikiExample =>
+      'कोई चिह्न इस खाने की ओर इशारा करता है? तो यह 5 नहीं हो सकता, क्योंकि पड़ोसी बड़ा है।';
+
+  @override
+  String get gameInfoFutoshikiControls =>
+      'एक खाने पर टैप करें, फिर एक नंबर पर। मिटाने के लिए वही नंबर फिर टैप करें। नोट्स छोटे पेंसिल निशान लगाता है।';
+
+  @override
+  String get gameInfoNonogramGoal => 'छिपी तस्वीर दिखाने के लिए खाने भरें।';
+
+  @override
+  String get gameInfoNonogramRule1 =>
+      'हर पंक्ति और स्तंभ के पास के नंबर उसके भरे हुए हिस्सों की लंबाई हैं, क्रम से।';
+
+  @override
+  String get gameInfoNonogramRule2 =>
+      'दो हिस्सों के बीच कम से कम 1 खाली खाना होता है।';
+
+  @override
+  String get gameInfoNonogramRule3 => '0 का मतलब है पूरी लाइन खाली है।';
+
+  @override
+  String get gameInfoNonogramExample =>
+      '10 खानों की पंक्ति और संकेत 10? पूरी भर दें। 4 4 हो तो दोनों हिस्से बीच में एक खाली खाने के साथ आते हैं।';
+
+  @override
+  String get gameInfoNonogramControls =>
+      'एक बार टैप: भरें। दो बार: × (खाली)। फिर से: मिटाएँ। कई खाने एक साथ चिह्नित करने के लिए खींचें।';
+
+  @override
+  String get gameInfoMinesweeperGoal => 'हर वह खाना खोलें जिसमें माइन नहीं है।';
+
+  @override
+  String get gameInfoMinesweeperRule1 =>
+      'नंबर बताता है कि उस खाने को कितनी माइन छूती हैं, कोनों समेत।';
+
+  @override
+  String get gameInfoMinesweeperRule2 =>
+      'हर खाना तर्क से निकाला जा सकता है। अंदाज़ा कभी नहीं लगाना पड़ता।';
+
+  @override
+  String get gameInfoMinesweeperRule3 =>
+      'माइन पर पड़े तो आपके समय में 30 सेकंड जुड़ जाते हैं। फिर आगे खेलें।';
+
+  @override
+  String get gameInfoMinesweeperExample =>
+      'किसी 1 के पास बस एक बंद खाना है? वही माइन है। उस पर झंडा लगाएँ।';
+
+  @override
+  String get gameInfoMinesweeperControls =>
+      'खाना खोलने के लिए टैप करें। माइन चिह्नित करने के लिए देर तक दबाएँ, या झंडा चालू करें।';
+
+  @override
+  String get gameInfoStarbattleGoal =>
+      'हर पंक्ति, स्तंभ और रंग में 2 तारे रखें।';
+
+  @override
+  String get gameInfoStarbattleRule1 => 'हर पंक्ति में ठीक 2 तारे।';
+
+  @override
+  String get gameInfoStarbattleRule2 => 'हर स्तंभ में ठीक 2 तारे।';
+
+  @override
+  String get gameInfoStarbattleRule3 => 'हर रंग में ठीक 2 तारे।';
+
+  @override
+  String get gameInfoStarbattleRule4 =>
+      'तारे एक-दूसरे को छू नहीं सकते। कोने से भी नहीं।';
+
+  @override
+  String get gameInfoStarbattleExample =>
+      'यहाँ एक तारा मतलब: इसके आसपास के 8 खानों में कोई और तारा नहीं, और इसकी पंक्ति, स्तंभ और रंग में एक और ढूँढना है।';
+
+  @override
+  String get gameInfoStarbattleControls =>
+      'एक बार टैप: बिंदु (यहाँ तारा नहीं)। दो बार: तारा। फिर से: मिटाएँ।';
+
+  @override
+  String boardCellName(int row, int col) {
+    return 'पंक्ति $row, कॉलम $col';
+  }
+
+  @override
+  String get boardEmpty => 'खाली';
+
+  @override
+  String get boardBlack => 'काला';
+
+  @override
+  String get boardWhite => 'सफ़ेद';
+
+  @override
+  String get boardLegalMove => 'वैध चाल';
+
+  @override
+  String get boardMoveHere => 'यहाँ चलें';
+
+  @override
+  String boardColumnFilled(int column, int count, int total) {
+    return 'कॉलम $column, $total में से $count भरे';
+  }
+
+  @override
+  String boardSquareName(int number) {
+    return 'खाना $number';
+  }
+
+  @override
+  String get boardDarkMan => 'गहरा मोहरा';
+
+  @override
+  String get boardDarkKing => 'गहरा राजा';
+
+  @override
+  String get boardLightMan => 'हल्का मोहरा';
+
+  @override
+  String get boardLightKing => 'हल्का राजा';
+
+  @override
+  String boardBoxName(String cell) {
+    return 'डिब्बा, $cell';
+  }
+
+  @override
+  String get boardOpen => 'खुला';
+
+  @override
+  String get boardDrawn => 'खींची गई';
+
+  @override
+  String boardClaimedBy(String name) {
+    return '$name का';
+  }
+
+  @override
+  String boardHorizontalEdge(int row, int col) {
+    return 'क्षैतिज रेखा, पंक्ति $row, कॉलम $col';
+  }
+
+  @override
+  String boardVerticalEdge(int row, int col) {
+    return 'ऊर्ध्वाधर रेखा, पंक्ति $row, कॉलम $col';
+  }
+
+  @override
+  String get challengeAction => 'चुनौती दें';
+
+  @override
+  String get challengeTitle => 'मेरा समय हराओ';
+
+  @override
+  String get challengeKind => 'दैनिक चुनौती';
+
+  @override
+  String challengeYouBeat(String time) {
+    return 'आपने $time से हराया';
+  }
+
+  @override
+  String challengeStillStanding(String time) {
+    return 'अभी भी कायम, $time से';
+  }
+
+  @override
+  String get challengeTie => 'बिल्कुल बराबर';
+
+  @override
+  String get challengeClosed => 'वह बोर्ड बंद हो चुका है';
+
+  @override
+  String get challengeYourTime => 'आपका समय, जिसे हराना है';
+
+  @override
+  String get challengeSent => 'चुनौती भेजी गई';
+
+  @override
+  String challengeTarget(String name, String time) {
+    return '$name $time';
+  }
+
+  @override
+  String challengeBeatName(String name, String time) {
+    return 'आपने $name का $time हराया';
+  }
+
+  @override
+  String challengeKept(String name, String time) {
+    return '$name आगे रहे, $time से';
+  }
+
+  @override
+  String get chatGameNameLiarsDice => 'झूठे पासे';
+
+  @override
+  String get chatGameNameImposter => 'धोखेबाज़';
+
+  @override
+  String get chatGameNameRace => 'पहेली रेस';
+
+  @override
+  String get chatGameDescLiarsDice => 'छिपे पासों पर बोली लगाओ। झूठे को पकड़ो।';
+
+  @override
+  String get chatGameDescImposter => 'एक को शब्द नहीं पता। उसे ढूँढो।';
+
+  @override
+  String get chatGameDescRace => 'सबके लिए एक ही पहेली। सबसे तेज़ जीतता है।';
+
+  @override
+  String chatGamePlayersRange(int min, int max) {
+    return '$min–$max खिलाड़ी';
+  }
+
+  @override
+  String get chatGamePartySection => 'पार्टी';
+
+  @override
+  String get chatGamePartyLiveOnly =>
+      'पार्टी गेम लाइव खेले जाते हैं, सब एक साथ।';
+
+  @override
+  String get chatGameNeedsThree => '3 या ज़्यादा लोगों का ग्रुप चाहिए';
+
+  @override
+  String get chatGameVoiceOption => 'आवाज़ में संकेत';
+
+  @override
+  String get chatGameVoiceOptionHint => 'संकेत लिखने की जगह कॉल पर बोलें';
+
+  @override
+  String get chatGamePuzzleOption => 'पहेली';
+
+  @override
+  String get chatGamePuzzleRandom => 'कोई भी';
+
+  @override
+  String chatGameStartNamed(String game) {
+    return '$game शुरू करें';
+  }
+
+  @override
+  String chatGameLdRoundDice(int count, int round) {
+    return 'राउंड $round · $count पासे';
+  }
+
+  @override
+  String get chatGameLdYourDice => 'आपके पासे';
+
+  @override
+  String get chatGameLdNoBid => 'अभी कोई बोली नहीं';
+
+  @override
+  String chatGameLdBidBy(String name) {
+    return '$name की बोली';
+  }
+
+  @override
+  String get chatGameLdYourBid => 'आपकी बोली';
+
+  @override
+  String get chatGameLdBid => 'बोली लगाएँ';
+
+  @override
+  String get chatGameLdLiar => 'झूठ!';
+
+  @override
+  String get chatGameLdOnesWild => '1 जोकर हैं';
+
+  @override
+  String get chatGameLdOnesOnly => '1 पर बोली: कोई जोकर नहीं';
+
+  @override
+  String get chatGameLdHolds => 'बोली सही निकली';
+
+  @override
+  String get chatGameLdBusted => 'पकड़ा गया!';
+
+  @override
+  String chatGameLdThereWere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count थे',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameLdLosesDie(String name) {
+    return '$name एक पासा खोते हैं';
+  }
+
+  @override
+  String get chatGameLdYouLoseDie => 'आपने एक पासा खोया';
+
+  @override
+  String chatGameLdCalled(String name) {
+    return '$name ने झूठ कहा';
+  }
+
+  @override
+  String chatGameLdTimedOut(String name) {
+    return '$name का समय खत्म';
+  }
+
+  @override
+  String get chatGameLdOut => 'बाहर';
+
+  @override
+  String get chatGameLdQuantity => 'कितने';
+
+  @override
+  String get chatGameLdFace => 'कौन सा अंक';
+
+  @override
+  String get chatGameLdFewer => 'कम';
+
+  @override
+  String get chatGameLdMore => 'ज़्यादा';
+
+  @override
+  String get chatGameLdPrompt => 'बोली बढ़ाएँ या झूठ कहें';
+
+  @override
+  String get chatGameLdOpenPrompt => 'बोली शुरू करें';
+
+  @override
+  String get chatGameImpHoldToSee => 'अपना कार्ड देखने के लिए दबाकर रखें';
+
+  @override
+  String get chatGameImpYourWord => 'आपका शब्द';
+
+  @override
+  String get chatGameImpYouAre => 'आप धोखेबाज़ हैं';
+
+  @override
+  String chatGameImpCategory(String category) {
+    return 'श्रेणी: $category';
+  }
+
+  @override
+  String get chatGameImpBlendIn => 'घुल-मिल जाओ। किसी और को नहीं पता।';
+
+  @override
+  String get chatGameImpKeepSecret =>
+      'सीधे मत बताओ। ऐसे संकेत दो जो बाकी समझें।';
+
+  @override
+  String get chatGameImpGotIt => 'समझ गया';
+
+  @override
+  String chatGameImpLooked(int count, int total) {
+    return '$total में से $count ने देख लिया';
+  }
+
+  @override
+  String chatGameImpGiving(String name) {
+    return '$name संकेत दे रहे हैं';
+  }
+
+  @override
+  String get chatGameImpYourClue => 'संकेत देने की आपकी बारी';
+
+  @override
+  String get chatGameImpClueHint => 'एक से चार शब्द';
+
+  @override
+  String get chatGameImpClueField => 'आपका संकेत';
+
+  @override
+  String get chatGameImpSend => 'भेजें';
+
+  @override
+  String get chatGameImpTooManyWords => 'ज़्यादा से ज़्यादा चार शब्द';
+
+  @override
+  String get chatGameImpPassed => 'छोड़ दिया';
+
+  @override
+  String get chatGameImpSpoke => 'कॉल पर बोले';
+
+  @override
+  String get chatGameImpJoinCall => 'कॉल में जुड़ें';
+
+  @override
+  String get chatGameImpOnCall => 'आप कॉल पर हैं';
+
+  @override
+  String get chatGameImpVoiceHint => 'अपना संकेत बोलें, फिर हो गया दबाएँ।';
+
+  @override
+  String get chatGameImpDone => 'हो गया';
+
+  @override
+  String get chatGameImpVoteTitle => 'धोखेबाज़ कौन है?';
+
+  @override
+  String get chatGameImpVoteHint =>
+      'वोट देने के लिए किसी खिलाड़ी पर टैप करें। समय खत्म होने तक बदल सकते हैं।';
+
+  @override
+  String get chatGameImpSkip => 'वोट छोड़ें';
+
+  @override
+  String chatGameImpVoted(int count, int total) {
+    return '$total में से $count ने वोट दिया';
+  }
+
+  @override
+  String get chatGameImpVotedBadge => 'वोट दिया';
+
+  @override
+  String get chatGameImpYourVote => 'आपका वोट';
+
+  @override
+  String get chatGameImpGuessing => 'धोखेबाज़ अंदाज़ा लगा रहा है…';
+
+  @override
+  String get chatGameImpGuessHint => 'आप पकड़े गए। शब्द बताकर जीत छीन लो।';
+
+  @override
+  String get chatGameImpGuessField => 'शब्द है…';
+
+  @override
+  String get chatGameImpGuess => 'अंदाज़ा लगाएँ';
+
+  @override
+  String chatGameImpWas(String name) {
+    return '$name धोखेबाज़ थे';
+  }
+
+  @override
+  String get chatGameImpYouWere => 'आप धोखेबाज़ थे';
+
+  @override
+  String get chatGameImpTheWord => 'शब्द था';
+
+  @override
+  String chatGameImpTheyGuessed(String guess) {
+    return 'अंदाज़ा: “$guess”';
+  }
+
+  @override
+  String chatGameImpVotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count वोट',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameImpSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ने वोट नहीं दिया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameImpReasonEscaped =>
+      'किसी को वोट से बाहर नहीं किया गया, धोखेबाज़ बच निकला।';
+
+  @override
+  String get chatGameImpReasonWrong => 'टीम ने गलत खिलाड़ी को बाहर किया।';
+
+  @override
+  String get chatGameImpReasonGuessed =>
+      'पकड़ा गया, पर धोखेबाज़ ने शब्द बता दिया।';
+
+  @override
+  String get chatGameImpReasonCaught => 'टीम ने धोखेबाज़ को पकड़ लिया।';
+
+  @override
+  String get chatGameImpReasonImposterLeft => 'धोखेबाज़ ने गेम छोड़ दिया।';
+
+  @override
+  String get chatGameImpReasonCrewLeft => 'बाकी टीम चली गई।';
+
+  @override
+  String get chatGameImpCrewWon => 'टीम जीती';
+
+  @override
+  String get chatGameImpYourTeamWon => 'आपकी टीम जीती';
+
+  @override
+  String chatGameImpImposterWon(String name) {
+    return '$name धोखेबाज़ बनकर जीते';
+  }
+
+  @override
+  String get chatGameImpYouWonImposter => 'आप धोखेबाज़ बनकर जीते';
+
+  @override
+  String get chatGameImpCardReveal => 'सब कार्ड देख रहे हैं';
+
+  @override
+  String chatGameImpCardClues(int count, int total) {
+    return 'संकेत · $total में से $count';
+  }
+
+  @override
+  String get chatGameImpCardVote => 'वोटिंग चल रही है';
+
+  @override
+  String chatGameRaceFinishedCount(int count, int total) {
+    return '$total में से $count ने पूरा किया';
+  }
+
+  @override
+  String chatGameRaceYouPlaced(int rank) {
+    return 'आप #$rank पर रहे';
+  }
+
+  @override
+  String get chatGameRaceWaiting => 'बाकियों का इंतज़ार';
+
+  @override
+  String get chatGameRaceTimeUp => 'समय खत्म। किसी ने पूरा नहीं किया।';
+
+  @override
+  String get chatGameRaceDnf => 'पूरा नहीं किया';
+
+  @override
+  String get chatGameRaceLeft => 'चले गए';
+
+  @override
+  String get chatGameRaceResults => 'नतीजे';
+
+  @override
+  String get chatGameRaceSolved => 'हल हो गया!';
+
+  @override
+  String get chatGamePartyLeaveConfirm => 'यह गेम छोड़ें?';
+
+  @override
+  String get chatGamePartyLeaveBody => 'बाकी आपके बिना खेलते रहेंगे।';
+
+  @override
+  String get chatGameErrTooLate => 'देर हो गई, समय खत्म';
+
+  @override
+  String get chatGameErrBadClue =>
+      'यह संकेत नहीं चलेगा। एक से चार शब्द, कोई लिंक नहीं।';
+
+  @override
+  String get chatGameErrBadGuess => 'पहले अंदाज़ा लिखें';
+
+  @override
+  String get chatGameErrNotSolved => 'पहेली अभी हल नहीं हुई';
+
+  @override
+  String get chatGameNameChess => 'शतरंज';
+
+  @override
+  String get chatGameDescChess => 'राजा को शह-मात देकर जीतें।';
+
+  @override
+  String get chessPawn => 'प्यादा';
+
+  @override
+  String get chessKnight => 'घोड़ा';
+
+  @override
+  String get chessBishop => 'ऊँट';
+
+  @override
+  String get chessRook => 'हाथी';
+
+  @override
+  String get chessQueen => 'वज़ीर';
+
+  @override
+  String get chessKing => 'राजा';
+
+  @override
+  String chessPieceWhite(String piece) {
+    return '$piece, सफ़ेद';
+  }
+
+  @override
+  String chessPieceBlack(String piece) {
+    return '$piece, काला';
+  }
+
+  @override
+  String chessPromoteTo(String piece) {
+    return '$piece बनाएँ';
+  }
 }

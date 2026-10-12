@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../data/matches_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -277,9 +278,41 @@ class _ChatListRowState extends State<ChatListRow>
 
   /// Unread count, or the pin when there is nothing unread. One slot, one
   /// thing in it — the Telegram arrangement.
+  ///
+  /// A game waiting on the viewer's move rides beside it as a small controller
+  /// glyph: not a count (a turn is not a message), and not in place of the
+  /// unread badge, because both can be true and both are worth knowing.
   Widget _trailing(AppTheme theme) {
     final room = widget.room;
     final count = room.unreadCount;
+    final main = _unreadOrPin(theme, room, count);
+    // Only this slot listens: a turn changing elsewhere rebuilds one icon,
+    // not the row.
+    return ListenableBuilder(
+      listenable: MatchesStore.instance,
+      builder: (context, _) =>
+          MatchesStore.instance.myTurnRooms.contains(room.id)
+          ? _withTurn(theme, main)
+          : main,
+    );
+  }
+
+  Widget _withTurn(AppTheme theme, Widget main) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          CupertinoIcons.gamecontroller_fill,
+          size: 15,
+          color: theme.accent,
+          semanticLabel: AppLocalizations.of(context).chatGameYourMove,
+        ),
+        if (main is! SizedBox) ...[const SizedBox(width: 6), main],
+      ],
+    );
+  }
+
+  Widget _unreadOrPin(AppTheme theme, ChatRoom room, int count) {
     if (count > 0 || room.hasUnread) {
       return RoomUnreadBadge(
         count: count,

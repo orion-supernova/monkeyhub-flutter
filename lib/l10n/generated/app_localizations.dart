@@ -20322,6 +20322,1788 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next'**
   String get layoutPagerNext;
+
+  /// Row title in a leaderboard result detail sheet: wrong moves made.
+  ///
+  /// In en, this message translates to:
+  /// **'Mistakes'**
+  String get resultSheetMistakes;
+
+  /// Row title in a leaderboard result detail sheet: hints used.
+  ///
+  /// In en, this message translates to:
+  /// **'Hints'**
+  String get resultSheetHints;
+
+  /// Row title in a leaderboard result detail sheet: consecutive days solved.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get resultSheetStreak;
+
+  /// Value of the Streak row in a result detail sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String resultSheetStreakDays(int count);
+
+  /// Value for zero mistakes or zero hints in a result detail sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get resultSheetNone;
+
+  /// Subtitle of a result detail sheet: the game's name and that this is today's board.
+  ///
+  /// In en, this message translates to:
+  /// **'{game} · Today'**
+  String resultSheetToday(String game);
+
+  /// Comparison line in a friend's result sheet when the viewer solved faster. time is like 0:12.
+  ///
+  /// In en, this message translates to:
+  /// **'You were {time} faster'**
+  String resultSheetYouFaster(String time);
+
+  /// Comparison line in a friend's result sheet when the friend solved faster. time is like 0:12.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} was {time} faster'**
+  String resultSheetTheyFaster(String name, String time);
+
+  /// Comparison line in a friend's result sheet when both solved in the same time.
+  ///
+  /// In en, this message translates to:
+  /// **'Same time as you'**
+  String get resultSheetSameTime;
+
+  /// Footer under a result detail sheet: mistakes and hints are shown but only the time decides the ranking.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the time decides the ranking. Mistakes and hints are just for the curious.'**
+  String get resultSheetFooter;
+
+  /// Line on a result detail sheet when the solve used hints: hinted solves don't set all-time records.
+  ///
+  /// In en, this message translates to:
+  /// **'Solved with hints, so it can’t set an all-time record.'**
+  String get resultSheetHintNoRecord;
+
+  /// Caption over the easy group of daily puzzles in the games row.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get gameTierEasy;
+
+  /// Caption over the medium group of daily puzzles in the games row.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get gameTierMedium;
+
+  /// Caption over the hard group of daily puzzles in the games row.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get gameTierHard;
+
+  /// Status on a placeholder tile for a daily puzzle that isn't out yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get gameComingSoon;
+
+  /// Title of a placeholder tile for a daily puzzle that isn't out yet.
+  ///
+  /// In en, this message translates to:
+  /// **'New puzzle'**
+  String get gameComingSoonName;
+
+  /// Name of the tic-tac-toe chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Tic-tac-toe'**
+  String get chatGameNameTicTacToe;
+
+  /// Name of the Connect Four chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Four'**
+  String get chatGameNameConnectFour;
+
+  /// Name of the checkers (draughts) chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkers'**
+  String get chatGameNameCheckers;
+
+  /// Name of the Reversi chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Reversi'**
+  String get chatGameNameReversi;
+
+  /// Name of the Dots and Boxes chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Dots and Boxes'**
+  String get chatGameNameDots;
+
+  /// One-line rule for tic-tac-toe in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Three in a row wins.'**
+  String get chatGameDescTicTacToe;
+
+  /// One-line rule for Connect Four in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop discs. Four in a row wins.'**
+  String get chatGameDescConnectFour;
+
+  /// One-line rule for checkers in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to capture. Take every piece.'**
+  String get chatGameDescCheckers;
+
+  /// One-line rule for Reversi in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Outflank to flip. Most discs wins.'**
+  String get chatGameDescReversi;
+
+  /// One-line rule for Dots and Boxes in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw lines, close boxes, go again.'**
+  String get chatGameDescDots;
+
+  /// Label on a chat game card: everyone plays at the same time.
+  ///
+  /// In en, this message translates to:
+  /// **'Live game'**
+  String get chatGameKindLive;
+
+  /// Label on a chat game card: players move one at a time, whenever they like.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn by turn'**
+  String get chatGameKindTurns;
+
+  /// Status chip on a chat game card waiting for players.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get chatGameStatusWaiting;
+
+  /// Status chip on a chat game card being played.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing'**
+  String get chatGameStatusPlaying;
+
+  /// Status chip on a paused chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get chatGameStatusPaused;
+
+  /// Status chip on a finished chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get chatGameStatusFinished;
+
+  /// Status chip on a chat game that ended with nobody winning (everyone left).
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get chatGameStatusEnded;
+
+  /// Shown when it is the viewer's turn in a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Your move'**
+  String get chatGameYourMove;
+
+  /// Whose turn it is in a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s move'**
+  String chatGameTurnOf(String name);
+
+  /// Shown to the waiting player in a turn-by-turn game.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for {name}'**
+  String chatGameWaitingFor(String name);
+
+  /// Result line: someone won a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} won'**
+  String chatGameWonBy(String name);
+
+  /// Result line: the viewer won a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'You won'**
+  String get chatGameYouWon;
+
+  /// Result line: a chat game ended in a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw'**
+  String get chatGameDraw;
+
+  /// Result line: a chat game ended because everyone left.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone left, so nobody won'**
+  String get chatGameNobodyWon;
+
+  /// Why a chat game ended: a player ran out of time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ran out of time'**
+  String chatGameReasonTimeout(String name);
+
+  /// Why a chat game ended: a player resigned.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} resigned'**
+  String chatGameReasonResign(String name);
+
+  /// Why a chat game ended: a player left.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} left'**
+  String chatGameReasonLeft(String name);
+
+  /// An empty seat in a chat game lobby.
+  ///
+  /// In en, this message translates to:
+  /// **'Open seat'**
+  String get chatGameOpenSeat;
+
+  /// A player in the lobby is ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get chatGameReady;
+
+  /// A player in the lobby is not ready yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ready'**
+  String get chatGameNotReady;
+
+  /// How many room members are watching a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 watching} other{{count} watching}}'**
+  String chatGameWatchingCount(int count);
+
+  /// Button: take a seat in a chat game lobby.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get chatGameJoin;
+
+  /// Button: open a chat game as a spectator.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch'**
+  String get chatGameWatch;
+
+  /// Button: open a chat game to make your move.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get chatGamePlay;
+
+  /// Button: open a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get chatGameOpen;
+
+  /// Button: start the same chat game again with the same players.
+  ///
+  /// In en, this message translates to:
+  /// **'Rematch'**
+  String get chatGameRematch;
+
+  /// Gentle notice in the chat game lobby and picker: chat games are separate from the ranked daily puzzles.
+  ///
+  /// In en, this message translates to:
+  /// **'Just for fun. Chat games don’t count toward your streaks or records.'**
+  String get chatGameNotRanked;
+
+  /// Short tag on a finished chat game card.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ranked'**
+  String get chatGameNotRankedShort;
+
+  /// Lobby button: mark yourself ready to start.
+  ///
+  /// In en, this message translates to:
+  /// **'I’m ready'**
+  String get chatGameImReady;
+
+  /// Lobby button: take back being ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ready yet'**
+  String get chatGameUnready;
+
+  /// Lobby action on an empty seat: sit down to play.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to join'**
+  String get chatGameTakeSeat;
+
+  /// Lobby action: get up from your seat.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave seat'**
+  String get chatGameLeaveSeat;
+
+  /// Lobby hint: the game starts once every seated player taps ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts when everyone is ready'**
+  String get chatGameStartsWhenReady;
+
+  /// Lobby hint: how many more players are needed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Waiting for 1 more player} other{Waiting for {count} more players}}'**
+  String chatGameNeedPlayers(int count);
+
+  /// Section header in the lobby and game listing spectators.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching'**
+  String get chatGameWatchingLabel;
+
+  /// Action for a spectator: ask a seated player to swap places.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask to swap in'**
+  String get chatGameAskSwap;
+
+  /// Shown to a seated player when a spectator asks for their seat.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} wants to swap in'**
+  String chatGameSwapRequest(String name);
+
+  /// Button: accept a swap request and give up the seat.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap'**
+  String get chatGameSwap;
+
+  /// Button: decline a request or offer in a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get chatGameDecline;
+
+  /// Button: accept an offer in a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get chatGameAccept;
+
+  /// Shown to a spectator after asking for a seat.
+  ///
+  /// In en, this message translates to:
+  /// **'Asked {name}'**
+  String chatGameSwapAsked(String name);
+
+  /// Button: cancel your own pending request in a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get chatGameCancel;
+
+  /// Button: give up a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Resign'**
+  String get chatGameResign;
+
+  /// Confirmation title before resigning a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Resign this game?'**
+  String get chatGameResignConfirm;
+
+  /// Confirmation body before resigning: it counts as a loss.
+  ///
+  /// In en, this message translates to:
+  /// **'It counts as a loss for you.'**
+  String get chatGameResignBody;
+
+  /// Button: offer the opponent a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer draw'**
+  String get chatGameOfferDraw;
+
+  /// Shown after you offered a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw offered'**
+  String get chatGameDrawOffered;
+
+  /// Shown when the opponent offers a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} offers a draw'**
+  String chatGameDrawOfferFrom(String name);
+
+  /// Pause cover title when a player left a live game.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} left the game'**
+  String chatGamePausedTitle(String name);
+
+  /// Pause cover title when several players left a live game.
+  ///
+  /// In en, this message translates to:
+  /// **'Players left the game'**
+  String get chatGamePausedMany;
+
+  /// Pause cover body: the board is held for a short grace period.
+  ///
+  /// In en, this message translates to:
+  /// **'We’ll hold the board for a bit.'**
+  String get chatGamePausedBody;
+
+  /// Pause cover body for the player who left and came back while paused for others.
+  ///
+  /// In en, this message translates to:
+  /// **'The game resumes when everyone is back.'**
+  String get chatGamePausedYou;
+
+  /// Button: leave a chat game screen or game.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave game'**
+  String get chatGameLeave;
+
+  /// Countdown end word before a live game starts.
+  ///
+  /// In en, this message translates to:
+  /// **'Go!'**
+  String get chatGameGo;
+
+  /// Button: remind the other player it is their move.
+  ///
+  /// In en, this message translates to:
+  /// **'Nudge'**
+  String get chatGameNudge;
+
+  /// Shown after nudging.
+  ///
+  /// In en, this message translates to:
+  /// **'Nudged'**
+  String get chatGameNudged;
+
+  /// Time left to make a move in a turn-by-turn game.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hour left} other{{count} hours left}}'**
+  String chatGameHoursLeft(int count);
+
+  /// Time left to make a move, under an hour.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 minute left} other{{count} minutes left}}'**
+  String chatGameMinutesLeft(int count);
+
+  /// Toast when a move did not reach the server.
+  ///
+  /// In en, this message translates to:
+  /// **'That move didn’t go through'**
+  String get chatGameMoveFailed;
+
+  /// Toast when the board changed under a move.
+  ///
+  /// In en, this message translates to:
+  /// **'The board changed. Try again.'**
+  String get chatGameStale;
+
+  /// Title of the sheet for starting a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Play a game'**
+  String get chatGameStartTitle;
+
+  /// Attachment menu row that opens the chat game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Game'**
+  String get chatGameMenuItem;
+
+  /// Mode option: everyone plays together right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get chatGameModeLive;
+
+  /// Mode option: take turns whenever you like (DMs only).
+  ///
+  /// In en, this message translates to:
+  /// **'Take turns'**
+  String get chatGameModeTurns;
+
+  /// Mode option: play alone against the app's bot.
+  ///
+  /// In en, this message translates to:
+  /// **'Vs bot'**
+  String get chatGameModeBot;
+
+  /// Explanation under the Live mode option.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone plays at once. Leaving pauses the game.'**
+  String get chatGameModeLiveHint;
+
+  /// Explanation under the Take turns mode option.
+  ///
+  /// In en, this message translates to:
+  /// **'Move whenever you like. You each get a notification on your turn, and a turn lasts up to 2 days.'**
+  String get chatGameModeTurnsHint;
+
+  /// Explanation under the Vs bot option.
+  ///
+  /// In en, this message translates to:
+  /// **'Just you and the bot. Nothing is posted in the chat.'**
+  String get chatGameModeBotHint;
+
+  /// Explanation for the easy bot level.
+  ///
+  /// In en, this message translates to:
+  /// **'Makes mistakes. Good for learning.'**
+  String get chatGameBotEasyHint;
+
+  /// Explanation for the medium bot level.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays fair and blocks your wins.'**
+  String get chatGameBotMediumHint;
+
+  /// Explanation for the hard bot level.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinks several moves ahead.'**
+  String get chatGameBotHardHint;
+
+  /// Button: start the chosen chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get chatGameStart;
+
+  /// Error: a live game is already open in this chat.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s already a live game here. Finish it or leave it first.'**
+  String get chatGameErrAlreadyLive;
+
+  /// Error: the DM already has the maximum number of turn-by-turn games.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have 3 turn games going here. Finish one first.'**
+  String get chatGameErrTooMany;
+
+  /// Error: a chat game action failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again.'**
+  String get chatGameErrGeneric;
+
+  /// Player count tag in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'2 players'**
+  String get chatGamePlayersTwo;
+
+  /// Player count tag in the game picker (uses an en dash).
+  ///
+  /// In en, this message translates to:
+  /// **'2–4 players'**
+  String get chatGamePlayersUpToFour;
+
+  /// Display name of the in-app bot opponent.
+  ///
+  /// In en, this message translates to:
+  /// **'Monkey'**
+  String get chatGameBotName;
+
+  /// Small badge marking the opponent as a bot.
+  ///
+  /// In en, this message translates to:
+  /// **'Bot'**
+  String get chatGameBotBadge;
+
+  /// Button after a bot game: play again.
+  ///
+  /// In en, this message translates to:
+  /// **'New game'**
+  String get chatGameNewGame;
+
+  /// Room banner when several games are open.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 game} other{{count} games}}'**
+  String chatGameBannerCount(int count);
+
+  /// Room banner sub-line: in how many open games it is the viewer's move.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Your move in 1} other{Your move in {count}}}'**
+  String chatGameBannerYourMoves(int count);
+
+  /// Title of the sheet listing a chat's open games.
+  ///
+  /// In en, this message translates to:
+  /// **'Games in this chat'**
+  String get chatGameSheetTitle;
+
+  /// Shown when a chat game no longer exists or the viewer left the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'This game isn’t available any more.'**
+  String get chatGameGone;
+
+  /// Section header for seats in the lobby.
+  ///
+  /// In en, this message translates to:
+  /// **'Players'**
+  String get chatGameSeatsLabel;
+
+  /// Name of the Flow daily game, on its tile and as its board title. Connect pairs of same-coloured, numbered dots with pipes that fill the whole grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Flow'**
+  String get gameFlowName;
+
+  /// Name of the Futoshiki daily game (a Japanese logic puzzle: a Latin square with < and > signs between cells). Keep the proper name where the language uses it.
+  ///
+  /// In en, this message translates to:
+  /// **'Futoshiki'**
+  String get gameFutoshikiName;
+
+  /// Name of the Nonogram daily game (shade grid squares to match run-length clues; reveals a picture). Use the usual local name for the puzzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nonogram'**
+  String get gameNonogramName;
+
+  /// Name of the Minesweeper daily game. Use the classic local name of the desktop game.
+  ///
+  /// In en, this message translates to:
+  /// **'Minesweeper'**
+  String get gameMinesweeperName;
+
+  /// Name of the Star Battle daily game: place 2 stars in every row, column and colour region, never touching. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Star battle'**
+  String get gameStarbattleName;
+
+  /// Flow's rules in one line, under its title. Join each pair of matching dots; the pipes must fill every square.
+  ///
+  /// In en, this message translates to:
+  /// **'join matching dots, fill every square'**
+  String get gameFlowRule;
+
+  /// Futoshiki's rules in one line, under its title. Digits 1 to 5 once per row and column, and every < or > between two squares must hold.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to 5 once per row and column, every sign true'**
+  String get gameFutoshikiRule;
+
+  /// Nonogram's rules in one line, under its title. Shade squares so each row and column matches the numbers beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'shade squares to match every clue'**
+  String get gameNonogramRule;
+
+  /// Minesweeper's rules in one line, under its title. Open every square without a mine; the board never needs a guess.
+  ///
+  /// In en, this message translates to:
+  /// **'open every safe square, no guessing needed'**
+  String get gameMinesweeperRule;
+
+  /// Star Battle's rules in one line, under its title. Two stars in each row, column and colour region, and no two stars touching, including diagonally.
+  ///
+  /// In en, this message translates to:
+  /// **'two stars per row, column and colour, never touching'**
+  String get gameStarbattleRule;
+
+  /// Minesweeper tool button. While on, a tap puts a flag ("a mine is here") on a square instead of opening it. Short, one word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'Flag'**
+  String get gameFlag;
+
+  /// Star Battle tool toggle. While on, the board marks with a faint dot every square that can no longer hold a star. Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-dot'**
+  String get gameAutoDot;
+
+  /// Flow how-to-play sheet: the goal, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Join every pair of matching dots with a pipe.'**
+  String get gameInfoFlowGoal;
+
+  /// Flow how-to-play sheet: rule 1, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Each pipe joins 2 dots of the same colour and number.'**
+  String get gameInfoFlowRule1;
+
+  /// Flow how-to-play sheet: rule 2, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipes can\'t cross or share a square.'**
+  String get gameInfoFlowRule2;
+
+  /// Flow how-to-play sheet: rule 3, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill every square. None can be left empty.'**
+  String get gameInfoFlowRule3;
+
+  /// Flow how-to-play sheet: rule 4, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up, down, left or right. No diagonals.'**
+  String get gameInfoFlowRule4;
+
+  /// Flow how-to-play sheet: a tiny worked example under the example board.
+  ///
+  /// In en, this message translates to:
+  /// **'No straight way through? Bend the pipe around the others. Every square still has to be filled.'**
+  String get gameInfoFlowExample;
+
+  /// Flow how-to-play sheet: how to play it with taps and drags.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag from a dot to draw its pipe. Drag back to undo. Drawing across a pipe cuts it.'**
+  String get gameInfoFlowControls;
+
+  /// Futoshiki how-to-play sheet: the goal, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill the grid with the numbers 1 to 5.'**
+  String get gameInfoFutoshikiGoal;
+
+  /// Futoshiki how-to-play sheet: rule 1, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Every row has 1, 2, 3, 4 and 5. No repeats.'**
+  String get gameInfoFutoshikiRule1;
+
+  /// Futoshiki how-to-play sheet: rule 2, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Every column too.'**
+  String get gameInfoFutoshikiRule2;
+
+  /// Futoshiki how-to-play sheet: rule 3, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'A < or > between 2 squares must be true. It points at the smaller number.'**
+  String get gameInfoFutoshikiRule3;
+
+  /// Futoshiki how-to-play sheet: a tiny worked example under the example board.
+  ///
+  /// In en, this message translates to:
+  /// **'A sign points at this square? Then it can\'t be 5, because its neighbour is bigger.'**
+  String get gameInfoFutoshikiExample;
+
+  /// Futoshiki how-to-play sheet: how to play it with taps and drags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.'**
+  String get gameInfoFutoshikiControls;
+
+  /// Nonogram how-to-play sheet: the goal, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Shade squares to reveal the hidden picture.'**
+  String get gameInfoNonogramGoal;
+
+  /// Nonogram how-to-play sheet: rule 1, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'The numbers by each row and column are its shaded runs, in order.'**
+  String get gameInfoNonogramRule1;
+
+  /// Nonogram how-to-play sheet: rule 2, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs are kept apart by at least 1 empty square.'**
+  String get gameInfoNonogramRule2;
+
+  /// Nonogram how-to-play sheet: rule 3, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'0 means the whole line is empty.'**
+  String get gameInfoNonogramRule3;
+
+  /// Nonogram how-to-play sheet: a tiny worked example under the example board.
+  ///
+  /// In en, this message translates to:
+  /// **'A row of 10 with the clue 10? Shade it all. With 4 4, both runs fit, with a gap between them.'**
+  String get gameInfoNonogramExample;
+
+  /// Nonogram how-to-play sheet: how to play it with taps and drags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap once to shade, twice for × (empty), again to clear. Drag to mark several squares at once.'**
+  String get gameInfoNonogramControls;
+
+  /// Minesweeper how-to-play sheet: the goal, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Open every square that isn\'t a mine.'**
+  String get gameInfoMinesweeperGoal;
+
+  /// Minesweeper how-to-play sheet: rule 1, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'A number says how many mines touch that square, corners included.'**
+  String get gameInfoMinesweeperRule1;
+
+  /// Minesweeper how-to-play sheet: rule 2, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Every square can be worked out. You never have to guess.'**
+  String get gameInfoMinesweeperRule2;
+
+  /// Minesweeper how-to-play sheet: rule 3, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Hit a mine and 30 seconds go on your time. Then keep going.'**
+  String get gameInfoMinesweeperRule3;
+
+  /// Minesweeper how-to-play sheet: a tiny worked example under the example board.
+  ///
+  /// In en, this message translates to:
+  /// **'A 1 with only one closed square next to it? That square is the mine. Flag it.'**
+  String get gameInfoMinesweeperExample;
+
+  /// Minesweeper how-to-play sheet: how to play it with taps and drags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open a square. Long-press, or switch on Flag, to mark a mine.'**
+  String get gameInfoMinesweeperControls;
+
+  /// Starbattle how-to-play sheet: the goal, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Put 2 stars in every row, column and colour.'**
+  String get gameInfoStarbattleGoal;
+
+  /// Starbattle how-to-play sheet: rule 1, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Every row gets exactly 2 stars.'**
+  String get gameInfoStarbattleRule1;
+
+  /// Starbattle how-to-play sheet: rule 2, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Every column gets exactly 2 stars.'**
+  String get gameInfoStarbattleRule2;
+
+  /// Starbattle how-to-play sheet: rule 3, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Every colour gets exactly 2 stars.'**
+  String get gameInfoStarbattleRule3;
+
+  /// Starbattle how-to-play sheet: rule 4, one short sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Stars can\'t touch. Not even corner to corner.'**
+  String get gameInfoStarbattleRule4;
+
+  /// Starbattle how-to-play sheet: a tiny worked example under the example board.
+  ///
+  /// In en, this message translates to:
+  /// **'One star here means: no other star in the 8 squares around it, and one more to find in its row, column and colour.'**
+  String get gameInfoStarbattleExample;
+
+  /// Starbattle how-to-play sheet: how to play it with taps and drags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap once for a dot (no star here). Tap twice for a star. Tap again to clear.'**
+  String get gameInfoStarbattleControls;
+
+  /// Screen reader name of a game board cell.
+  ///
+  /// In en, this message translates to:
+  /// **'Row {row}, column {col}'**
+  String boardCellName(int row, int col);
+
+  /// Screen reader: an empty board cell.
+  ///
+  /// In en, this message translates to:
+  /// **'empty'**
+  String get boardEmpty;
+
+  /// Screen reader: a black disc.
+  ///
+  /// In en, this message translates to:
+  /// **'black'**
+  String get boardBlack;
+
+  /// Screen reader: a white disc.
+  ///
+  /// In en, this message translates to:
+  /// **'white'**
+  String get boardWhite;
+
+  /// Screen reader suffix: this cell is a legal move.
+  ///
+  /// In en, this message translates to:
+  /// **'legal move'**
+  String get boardLegalMove;
+
+  /// Screen reader suffix: a piece can move to this square.
+  ///
+  /// In en, this message translates to:
+  /// **'move here'**
+  String get boardMoveHere;
+
+  /// Screen reader name of a Connect Four column.
+  ///
+  /// In en, this message translates to:
+  /// **'Column {column}, {count} of {total} filled'**
+  String boardColumnFilled(int column, int count, int total);
+
+  /// Screen reader name of a checkers square.
+  ///
+  /// In en, this message translates to:
+  /// **'Square {number}'**
+  String boardSquareName(int number);
+
+  /// Screen reader: a dark checkers man.
+  ///
+  /// In en, this message translates to:
+  /// **'dark piece'**
+  String get boardDarkMan;
+
+  /// Screen reader: a dark checkers king.
+  ///
+  /// In en, this message translates to:
+  /// **'dark king'**
+  String get boardDarkKing;
+
+  /// Screen reader: a light checkers man.
+  ///
+  /// In en, this message translates to:
+  /// **'light piece'**
+  String get boardLightMan;
+
+  /// Screen reader: a light checkers king.
+  ///
+  /// In en, this message translates to:
+  /// **'light king'**
+  String get boardLightKing;
+
+  /// Screen reader name of a Dots and Boxes box.
+  ///
+  /// In en, this message translates to:
+  /// **'Box, {cell}'**
+  String boardBoxName(String cell);
+
+  /// Screen reader: an undrawn line or unclaimed box.
+  ///
+  /// In en, this message translates to:
+  /// **'open'**
+  String get boardOpen;
+
+  /// Screen reader: a drawn line.
+  ///
+  /// In en, this message translates to:
+  /// **'drawn'**
+  String get boardDrawn;
+
+  /// Screen reader: a box claimed by a player.
+  ///
+  /// In en, this message translates to:
+  /// **'claimed by {name}'**
+  String boardClaimedBy(String name);
+
+  /// Screen reader name of a horizontal Dots and Boxes line.
+  ///
+  /// In en, this message translates to:
+  /// **'Horizontal line, row {row}, column {col}'**
+  String boardHorizontalEdge(int row, int col);
+
+  /// Screen reader name of a vertical Dots and Boxes line.
+  ///
+  /// In en, this message translates to:
+  /// **'Vertical line, row {row}, column {col}'**
+  String boardVerticalEdge(int row, int col);
+
+  /// Result card action: send this result to a chat as a challenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge'**
+  String get challengeAction;
+
+  /// Headline on a challenge card in a chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Beat my time'**
+  String get challengeTitle;
+
+  /// Small label on a challenge card.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily challenge'**
+  String get challengeKind;
+
+  /// Challenge card: the viewer beat the time.
+  ///
+  /// In en, this message translates to:
+  /// **'You beat it by {time}'**
+  String challengeYouBeat(String time);
+
+  /// Challenge card: the viewer played but did not beat the time.
+  ///
+  /// In en, this message translates to:
+  /// **'Still standing, by {time}'**
+  String challengeStillStanding(String time);
+
+  /// Challenge card: exactly the same time.
+  ///
+  /// In en, this message translates to:
+  /// **'A dead heat'**
+  String get challengeTie;
+
+  /// Challenge card: the board was from an earlier day.
+  ///
+  /// In en, this message translates to:
+  /// **'That board has closed'**
+  String get challengeClosed;
+
+  /// Challenge card, sender's own view.
+  ///
+  /// In en, this message translates to:
+  /// **'Your time to beat'**
+  String get challengeYourTime;
+
+  /// Toast after sending a challenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge sent'**
+  String get challengeSent;
+
+  /// Chip under the game clock: the time to beat.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} {time}'**
+  String challengeTarget(String name, String time);
+
+  /// Result card line: the player beat the challenge.
+  ///
+  /// In en, this message translates to:
+  /// **'You beat {name}’s {time}'**
+  String challengeBeatName(String name, String time);
+
+  /// Result card line: the challenger keeps it.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} keeps it, by {time}'**
+  String challengeKept(String name, String time);
+
+  /// Party game name: the bluffing dice game.
+  ///
+  /// In en, this message translates to:
+  /// **'Liar’s Dice'**
+  String get chatGameNameLiarsDice;
+
+  /// Party game name: one player does not know the secret word.
+  ///
+  /// In en, this message translates to:
+  /// **'Imposter'**
+  String get chatGameNameImposter;
+
+  /// Party game name: everyone solves the same puzzle at once.
+  ///
+  /// In en, this message translates to:
+  /// **'Puzzle Race'**
+  String get chatGameNameRace;
+
+  /// One-line rules of Liar's Dice in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Bid on hidden dice. Call out the liar.'**
+  String get chatGameDescLiarsDice;
+
+  /// One-line rules of Imposter in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'One of you doesn’t know the word. Find them.'**
+  String get chatGameDescImposter;
+
+  /// One-line rules of Puzzle Race in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Same puzzle for all. Fastest solve wins.'**
+  String get chatGameDescRace;
+
+  /// Player count of a party game in the picker, e.g. 2–6 players. Keep the en dash.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}–{max} players'**
+  String chatGamePlayersRange(int min, int max);
+
+  /// Header of the party games section in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Party'**
+  String get chatGamePartySection;
+
+  /// Why party games are greyed out when Take turns or Vs bot is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Party games are played live, with everyone at once.'**
+  String get chatGamePartyLiveOnly;
+
+  /// Why Imposter is greyed out in a one-to-one chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs a group of 3 or more'**
+  String get chatGameNeedsThree;
+
+  /// Imposter option toggle: give clues by voice on a call.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice clues'**
+  String get chatGameVoiceOption;
+
+  /// Subtitle of the Imposter voice option.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk on a call instead of typing clues'**
+  String get chatGameVoiceOptionHint;
+
+  /// Puzzle Race option: which puzzle to race on.
+  ///
+  /// In en, this message translates to:
+  /// **'Puzzle'**
+  String get chatGamePuzzleOption;
+
+  /// Puzzle Race option: let the game pick the puzzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Random'**
+  String get chatGamePuzzleRandom;
+
+  /// Button that starts a party game after choosing its options.
+  ///
+  /// In en, this message translates to:
+  /// **'Start {game}'**
+  String chatGameStartNamed(String game);
+
+  /// Liar's Dice status on the chat card: the round number and dice still in play.
+  ///
+  /// In en, this message translates to:
+  /// **'Round {round} · {count} dice'**
+  String chatGameLdRoundDice(int count, int round);
+
+  /// Liar's Dice: label over the viewer's own hidden dice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your dice'**
+  String get chatGameLdYourDice;
+
+  /// Liar's Dice: no bid has been made this round.
+  ///
+  /// In en, this message translates to:
+  /// **'No bid yet'**
+  String get chatGameLdNoBid;
+
+  /// Liar's Dice: who made the standing bid.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}’s bid'**
+  String chatGameLdBidBy(String name);
+
+  /// Liar's Dice: the standing bid is the viewer's.
+  ///
+  /// In en, this message translates to:
+  /// **'Your bid'**
+  String get chatGameLdYourBid;
+
+  /// Liar's Dice: button that places the chosen bid.
+  ///
+  /// In en, this message translates to:
+  /// **'Bid'**
+  String get chatGameLdBid;
+
+  /// Liar's Dice: the big button that calls the last bidder a liar.
+  ///
+  /// In en, this message translates to:
+  /// **'Liar!'**
+  String get chatGameLdLiar;
+
+  /// Liar's Dice rule reminder: a 1 counts as any face.
+  ///
+  /// In en, this message translates to:
+  /// **'1s are wild'**
+  String get chatGameLdOnesWild;
+
+  /// Liar's Dice rule reminder when the bid is on 1s: they are not wild then.
+  ///
+  /// In en, this message translates to:
+  /// **'Bid on 1s: no wilds'**
+  String get chatGameLdOnesOnly;
+
+  /// Liar's Dice reveal: the called bid was true.
+  ///
+  /// In en, this message translates to:
+  /// **'The bid holds'**
+  String get chatGameLdHolds;
+
+  /// Liar's Dice reveal: the called bid was a bluff.
+  ///
+  /// In en, this message translates to:
+  /// **'Busted!'**
+  String get chatGameLdBusted;
+
+  /// Liar's Dice reveal: how many dice matched the bid.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{There was 1} other{There were {count}}}'**
+  String chatGameLdThereWere(int count);
+
+  /// Liar's Dice reveal: who loses a die.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} loses a die'**
+  String chatGameLdLosesDie(String name);
+
+  /// Liar's Dice reveal: the viewer loses a die.
+  ///
+  /// In en, this message translates to:
+  /// **'You lose a die'**
+  String get chatGameLdYouLoseDie;
+
+  /// Liar's Dice reveal: who called the bluff.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} called liar'**
+  String chatGameLdCalled(String name);
+
+  /// Liar's Dice: a player's turn timer ran out and the game played for them.
+  ///
+  /// In en, this message translates to:
+  /// **'Time ran out for {name}'**
+  String chatGameLdTimedOut(String name);
+
+  /// Liar's Dice: a player with no dice left.
+  ///
+  /// In en, this message translates to:
+  /// **'Out'**
+  String get chatGameLdOut;
+
+  /// Liar's Dice bid picker: label over the quantity stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'How many'**
+  String get chatGameLdQuantity;
+
+  /// Liar's Dice bid picker: label over the die face chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Which face'**
+  String get chatGameLdFace;
+
+  /// Liar's Dice bid picker: accessibility label of the minus button.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer'**
+  String get chatGameLdFewer;
+
+  /// Liar's Dice bid picker: accessibility label of the plus button.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get chatGameLdMore;
+
+  /// Liar's Dice: prompt on the viewer's turn when there is a bid.
+  ///
+  /// In en, this message translates to:
+  /// **'Raise the bid or call liar'**
+  String get chatGameLdPrompt;
+
+  /// Liar's Dice: prompt on the viewer's turn when nobody has bid yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the bidding'**
+  String get chatGameLdOpenPrompt;
+
+  /// Imposter: hint on the face-down card.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to see your card'**
+  String get chatGameImpHoldToSee;
+
+  /// Imposter: label over the secret word on a crew card.
+  ///
+  /// In en, this message translates to:
+  /// **'Your word'**
+  String get chatGameImpYourWord;
+
+  /// Imposter: what the imposter's card says.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re the imposter'**
+  String get chatGameImpYouAre;
+
+  /// Imposter: the word's category, the imposter's only hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Category: {category}'**
+  String chatGameImpCategory(String category);
+
+  /// Imposter: advice on the imposter's card.
+  ///
+  /// In en, this message translates to:
+  /// **'Blend in. Nobody else knows.'**
+  String get chatGameImpBlendIn;
+
+  /// Imposter: advice on a crew member's card.
+  ///
+  /// In en, this message translates to:
+  /// **'Don’t say it outright. Give clues the others will get.'**
+  String get chatGameImpKeepSecret;
+
+  /// Imposter: button after looking at your card.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get chatGameImpGotIt;
+
+  /// Imposter: how many players have looked at their card.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} have looked'**
+  String chatGameImpLooked(int count, int total);
+
+  /// Imposter: whose turn it is to give a clue.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is giving a clue'**
+  String chatGameImpGiving(String name);
+
+  /// Imposter: it is the viewer's turn to give a clue.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn to give a clue'**
+  String get chatGameImpYourClue;
+
+  /// Imposter: the clue length rule under the clue field.
+  ///
+  /// In en, this message translates to:
+  /// **'One to four words'**
+  String get chatGameImpClueHint;
+
+  /// Imposter: placeholder of the clue field.
+  ///
+  /// In en, this message translates to:
+  /// **'Your clue'**
+  String get chatGameImpClueField;
+
+  /// Imposter: send the typed clue.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get chatGameImpSend;
+
+  /// Imposter: the typed clue has more than four words.
+  ///
+  /// In en, this message translates to:
+  /// **'Four words at most'**
+  String get chatGameImpTooManyWords;
+
+  /// Imposter: a player ran out of time and gave no clue.
+  ///
+  /// In en, this message translates to:
+  /// **'Passed'**
+  String get chatGameImpPassed;
+
+  /// Imposter voice mode: a player has said their clue on the call.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoke on the call'**
+  String get chatGameImpSpoke;
+
+  /// Imposter voice mode: join or start the chat's group call.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the call'**
+  String get chatGameImpJoinCall;
+
+  /// Imposter voice mode: the viewer is already in the call.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re on the call'**
+  String get chatGameImpOnCall;
+
+  /// Imposter voice mode: what to do on your turn. 'Done' must match chatGameImpDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Say your clue out loud, then tap Done.'**
+  String get chatGameImpVoiceHint;
+
+  /// Imposter voice mode: button after saying your clue.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get chatGameImpDone;
+
+  /// Imposter: title of the vote.
+  ///
+  /// In en, this message translates to:
+  /// **'Who’s the imposter?'**
+  String get chatGameImpVoteTitle;
+
+  /// Imposter: how voting works.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a player to vote. You can change it until time runs out.'**
+  String get chatGameImpVoteHint;
+
+  /// Imposter: vote for nobody.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip vote'**
+  String get chatGameImpSkip;
+
+  /// Imposter: how many players have voted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} voted'**
+  String chatGameImpVoted(int count, int total);
+
+  /// Imposter: badge under a player who has voted (not for whom).
+  ///
+  /// In en, this message translates to:
+  /// **'Voted'**
+  String get chatGameImpVotedBadge;
+
+  /// Imposter: badge on the player the viewer voted for.
+  ///
+  /// In en, this message translates to:
+  /// **'Your vote'**
+  String get chatGameImpYourVote;
+
+  /// Imposter: the caught imposter is guessing the word.
+  ///
+  /// In en, this message translates to:
+  /// **'The imposter is guessing…'**
+  String get chatGameImpGuessing;
+
+  /// Imposter: shown to the caught imposter.
+  ///
+  /// In en, this message translates to:
+  /// **'You were caught. Name the word to steal the win.'**
+  String get chatGameImpGuessHint;
+
+  /// Imposter: placeholder of the guess field.
+  ///
+  /// In en, this message translates to:
+  /// **'The word is…'**
+  String get chatGameImpGuessField;
+
+  /// Imposter: send the guess.
+  ///
+  /// In en, this message translates to:
+  /// **'Guess'**
+  String get chatGameImpGuess;
+
+  /// Imposter result: who the imposter was.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} was the imposter'**
+  String chatGameImpWas(String name);
+
+  /// Imposter result: the viewer was the imposter.
+  ///
+  /// In en, this message translates to:
+  /// **'You were the imposter'**
+  String get chatGameImpYouWere;
+
+  /// Imposter result: label over the secret word.
+  ///
+  /// In en, this message translates to:
+  /// **'The word was'**
+  String get chatGameImpTheWord;
+
+  /// Imposter result: what the imposter guessed.
+  ///
+  /// In en, this message translates to:
+  /// **'Guessed “{guess}”'**
+  String chatGameImpTheyGuessed(String guess);
+
+  /// Imposter result: votes a player got.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 vote} other{{count} votes}}'**
+  String chatGameImpVotes(int count);
+
+  /// Imposter result: how many players skipped the vote.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 skipped} other{{count} skipped}}'**
+  String chatGameImpSkipped(int count);
+
+  /// Imposter result: nobody got enough votes.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody was voted out, so the imposter got away.'**
+  String get chatGameImpReasonEscaped;
+
+  /// Imposter result: a crew member was voted out.
+  ///
+  /// In en, this message translates to:
+  /// **'The crew voted out the wrong player.'**
+  String get chatGameImpReasonWrong;
+
+  /// Imposter result: caught, then guessed the word.
+  ///
+  /// In en, this message translates to:
+  /// **'Caught, but the imposter guessed the word.'**
+  String get chatGameImpReasonGuessed;
+
+  /// Imposter result: caught and did not guess the word.
+  ///
+  /// In en, this message translates to:
+  /// **'The crew caught the imposter.'**
+  String get chatGameImpReasonCaught;
+
+  /// Imposter result: the imposter left the game.
+  ///
+  /// In en, this message translates to:
+  /// **'The imposter left the game.'**
+  String get chatGameImpReasonImposterLeft;
+
+  /// Imposter result: everyone but the imposter left.
+  ///
+  /// In en, this message translates to:
+  /// **'The rest of the crew left.'**
+  String get chatGameImpReasonCrewLeft;
+
+  /// Imposter result: the crew (everyone but the imposter) won.
+  ///
+  /// In en, this message translates to:
+  /// **'The crew won'**
+  String get chatGameImpCrewWon;
+
+  /// Imposter result: the viewer was crew and the crew won.
+  ///
+  /// In en, this message translates to:
+  /// **'Your team won'**
+  String get chatGameImpYourTeamWon;
+
+  /// Imposter result: the imposter won.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} won as the imposter'**
+  String chatGameImpImposterWon(String name);
+
+  /// Imposter result: the viewer was the imposter and won.
+  ///
+  /// In en, this message translates to:
+  /// **'You won as the imposter'**
+  String get chatGameImpYouWonImposter;
+
+  /// Imposter status on the chat card: everyone is looking at their card.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking at cards'**
+  String get chatGameImpCardReveal;
+
+  /// Imposter status on the chat card: clues given so far.
+  ///
+  /// In en, this message translates to:
+  /// **'Clues · {count} of {total}'**
+  String chatGameImpCardClues(int count, int total);
+
+  /// Imposter status on the chat card: the vote is open.
+  ///
+  /// In en, this message translates to:
+  /// **'Voting'**
+  String get chatGameImpCardVote;
+
+  /// Puzzle Race: how many players have finished.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} finished'**
+  String chatGameRaceFinishedCount(int count, int total);
+
+  /// Puzzle Race: the viewer's finishing place.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished #{rank}'**
+  String chatGameRaceYouPlaced(int rank);
+
+  /// Puzzle Race: the viewer has finished and the others are still solving.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the others'**
+  String get chatGameRaceWaiting;
+
+  /// Puzzle Race result: the 10 minutes ran out and nobody finished.
+  ///
+  /// In en, this message translates to:
+  /// **'Time’s up. Nobody finished.'**
+  String get chatGameRaceTimeUp;
+
+  /// Puzzle Race results: a player who did not finish.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn’t finish'**
+  String get chatGameRaceDnf;
+
+  /// Puzzle Race results: a player who left.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get chatGameRaceLeft;
+
+  /// Puzzle Race: header over the final standings.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get chatGameRaceResults;
+
+  /// Puzzle Race: the viewer just solved the board.
+  ///
+  /// In en, this message translates to:
+  /// **'Solved!'**
+  String get chatGameRaceSolved;
+
+  /// Party games: confirm leaving a game in progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this game?'**
+  String get chatGamePartyLeaveConfirm;
+
+  /// Party games: what leaving a game in progress means.
+  ///
+  /// In en, this message translates to:
+  /// **'The others play on without you.'**
+  String get chatGamePartyLeaveBody;
+
+  /// Party games: an action arrived after the phase's timer ran out.
+  ///
+  /// In en, this message translates to:
+  /// **'Too late, time ran out'**
+  String get chatGameErrTooLate;
+
+  /// Imposter: the server refused a clue.
+  ///
+  /// In en, this message translates to:
+  /// **'That clue can’t be used. One to four words, no links.'**
+  String get chatGameErrBadClue;
+
+  /// Imposter: the guess was empty or too long.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a guess first'**
+  String get chatGameErrBadGuess;
+
+  /// Puzzle Race: the server says the board sent is not solved.
+  ///
+  /// In en, this message translates to:
+  /// **'That board isn’t solved yet'**
+  String get chatGameErrNotSolved;
+
+  /// Name of the chess chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Chess'**
+  String get chatGameNameChess;
+
+  /// One-line rule for chess in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Checkmate the king to win.'**
+  String get chatGameDescChess;
+
+  /// Chess piece name for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'pawn'**
+  String get chessPawn;
+
+  /// Chess piece name for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'knight'**
+  String get chessKnight;
+
+  /// Chess piece name for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'bishop'**
+  String get chessBishop;
+
+  /// Chess piece name for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'rook'**
+  String get chessRook;
+
+  /// Chess piece name for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'queen'**
+  String get chessQueen;
+
+  /// Chess piece name for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'king'**
+  String get chessKing;
+
+  /// Screen reader: a piece belonging to white, e.g. 'knight, white'.
+  ///
+  /// In en, this message translates to:
+  /// **'{piece}, white'**
+  String chessPieceWhite(String piece);
+
+  /// Screen reader: a piece belonging to black, e.g. 'knight, black'.
+  ///
+  /// In en, this message translates to:
+  /// **'{piece}, black'**
+  String chessPieceBlack(String piece);
+
+  /// Screen reader label on a pawn promotion choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Promote to {piece}'**
+  String chessPromoteTo(String piece);
 }
 
 class _AppLocalizationsDelegate

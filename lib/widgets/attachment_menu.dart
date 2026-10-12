@@ -38,6 +38,10 @@ class AttachmentMenuChoice {
   static const poll = AttachmentMenuChoice._('poll');
   static const checklist = AttachmentMenuChoice._('checklist');
   static const event = AttachmentMenuChoice._('event');
+
+  /// An in-chat game: live, turn by turn in a DM, or solo against the bot.
+  /// Text-shaped for the guardian policy, like the three above.
+  static const game = AttachmentMenuChoice._('game');
 }
 
 /// [allowMedia] and [allowLocation] are the guardian policy, mirrored from
@@ -383,6 +387,12 @@ class _AttachmentSheet extends StatelessWidget {
         CupertinoIcons.calendar,
         l10n.attachmentMenuEventLabel,
         TileTone.red,
+      ),
+      (
+        AttachmentMenuChoice.game,
+        CupertinoIcons.gamecontroller_fill,
+        l10n.chatGameMenuItem,
+        TileTone.indigo,
       ),
     ];
     // The glass is the reveal's (see [_AttachMenuReveal]): its corner moves.

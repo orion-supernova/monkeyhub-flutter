@@ -2154,16 +2154,41 @@ export default defineSchema({
   // `gameResults` is a scan of each friend's entire history — a year of four
   // games a day is ~1,500 rows per person, times two hundred friends, on every
   // open of a screen. Here it is one indexed read per person.
+  // "Beat my time": a daily result sent into a chat as a challenge. The card
+  // is a `messages` row of type "challenge" whose `content` is a readable
+  // line; this is its body — immutable once written, which is why the card
+  // fetches it once rather than subscribing. Copied from the sender's own
+  // finished `gameResults` row at send time, never from the client.
+  gameChallenges: defineTable({
+    messageId: v.id("messages"),
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    // Denormalized at send time, like `senderName`.
+    name: v.string(),
+    game: v.string(),
+    dayKey: v.string(),
+    durationMs: v.number(),
+    hintsUsed: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_room", ["roomId"])
+    .index("by_user", ["userId"]),
+
   gameRecords: defineTable({
     userId: v.id("users"),
     // One of the four dailies' ids (`games.GAMES`), or "code" for the symbol
     // puzzle. A string for the reason `gameResults.game` is one.
     game: v.string(),
     // Lower wins in both units: milliseconds for the timed boards, guesses
-    // for the code.
-    best: v.number(),
+    // for the code. Absent until the first CLEAN solve — one with no hint. A
+    // hinted solve still counts toward `solves` and the streak (the player
+    // did finish the board), but a time bought with revealed cells is not a
+    // record, and the board would otherwise crown it without saying so.
+    best: v.optional(v.number()),
     // The day the best was set, and when — `achievedAt` is also what a
     // reaction is FOR (see `recordReactions`), so a new best starts clean.
+    // Until there is a best, the first solve's day and moment.
     dayKey: v.string(),
     achievedAt: v.number(),
     // Every solve of this game, best or not. Surrenders do not count.
@@ -2559,4 +2584,171 @@ export default defineSchema({
   })
     .index("by_provider_subject", ["provider", "subject"])
     .index("by_user", ["userId"]),
+
+  // ── In-chat games ─────────────────────────────────────────────────────────
+  //
+  // One row per game played inside a room: tic-tac-toe in a DM, Connect Four
+  // in a group with friends watching. Nothing here touches `gameResults`,
+  // `gameRecords` or a streak — chat games are for fun and the daily boards
+  // are the ranked ones, and keeping the two in separate tables is what makes
+  // that a property of the schema rather than a promise.
+  //
+  // The chat card is a `messages` row of type "game" whose `content` is the
+  // game's name, so a transcript, a preview, a reply quote and an old client
+  // all degrade to a readable line; this row is its live body, found
+  // `by_message`. The card never changes after it is sent — every move
+  // patches THIS row, never `messages` or `roomMembers`, so a game does not
+  // refire the room's transcript or anybody's room list.
+  //
+  // The rules live in `turnGames/<game>.ts` and nowhere else on the server:
+  // `state` changes only through that module's `apply`, called by
+  // `matches.move`. See `matches.ts` for the invariants every mutation keeps.
+  //
+  // PARTY games (`partyGames/<game>.ts`: Liar's Dice, Imposter, Puzzle Race)
+  // use this same row, lobby and seats, but have secrets. For them `state` is
+  // the rules' PUBLIC view only; the full state lives in `matchHidden`, which
+  // no public query returns.
+  matches: defineTable({
+    roomId: v.id("rooms"),
+    // The card. Absent only between the insert and the patch in `create`,
+    // inside one transaction — no reader ever sees it unset.
+    messageId: v.optional(v.id("messages")),
+    // A `turnGames` or `partyGames` registry id (the two never overlap).
+    game: v.string(),
+    // "live": everyone at the board at once, paused when someone leaves.
+    // "async": a DM game played a move at a time, the other player told by a
+    // push, with a deadline on every turn.
+    mode: v.string(),
+    // "lobby" → "active" ⇄ "paused" → "finished" | "abandoned".
+    // A lobby exists only in live mode; an async game is born active.
+    status: v.string(),
+    // Seat index = position. Names are denormalized at sit-down so the card
+    // never reads `users`, whose rows the presence heartbeat patches.
+    seats: v.array(
+      v.object({
+        userId: v.id("users"),
+        name: v.string(),
+        // Lobby only: tapped "I'm ready".
+        ready: v.optional(v.boolean()),
+        // Live only: left the screen or the app. Pauses the game.
+        away: v.optional(v.boolean()),
+        // Forfeited mid-game in a game of more than two. Their turns are
+        // played for them so the others can finish; see `autoplayOut`.
+        out: v.optional(v.boolean()),
+        // Party games: this seat has nothing left to do (out of dice,
+        // finished the race). Its absence pauses and forfeits nothing.
+        done: v.optional(v.boolean()),
+      }),
+    ),
+    // The rules module's encoded position, and the number of moves applied
+    // to it. `seq` is also the idempotency fence: a move names the `seq` it
+    // was made against, and a stale one is refused rather than reapplied.
+    // Party games: the rules' `publicView` JSON, never the full state.
+    state: v.optional(v.string()),
+    seq: v.number(),
+    // Party games: the `seq` at which the current phase began. An action
+    // made against an older `seq` is stale only if it predates this (see
+    // `PartyRules.phaseKey`), so people voting at once do not trip each other.
+    phaseSeq: v.optional(v.number()),
+    // Party games: the creator's variant (`PartyOptions` as JSON), kept so a
+    // rematch plays the same one.
+    options: v.optional(v.string()),
+    // Denormalized from `state` on every write, for "your move" lookups
+    // without decoding anything.
+    turnSeat: v.optional(v.number()),
+    turnUserId: v.optional(v.id("users")),
+    // The move that produced `state`, so a board can highlight it and replay
+    // a multi-jump along its real route rather than inferring it.
+    lastMove: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    startedAt: v.optional(v.number()),
+    lastMoveAt: v.number(),
+    finishedAt: v.optional(v.number()),
+    // Live: when a pause turns into forfeits. Async: when the player to move
+    // forfeits. Every deadline is also a scheduled job fenced on `seq` or
+    // `pauseEpoch`, so this field is for display; the job is the authority.
+    deadlineAt: v.optional(v.number()),
+    // Bumped every time a live game pauses, so a grace timer from an earlier
+    // pause cannot end a later one.
+    pauseEpoch: v.optional(v.number()),
+    // Party games: when the current pause began. The game's clock is frozen
+    // there, and on resume every timer in the state moves by the time lost.
+    pausedAt: v.optional(v.number()),
+    // Async: the last time the waiting player sent a nudge.
+    nudgedAt: v.optional(v.number()),
+    // Room members watching the board right now, recounted by the liveness
+    // job from `matchPresence` and written only when it changes.
+    watching: v.optional(v.number()),
+    // Somebody asking to take a seat from its holder. One at a time.
+    seatRequest: v.optional(
+      v.object({
+        userId: v.id("users"),
+        name: v.string(),
+        seat: v.number(),
+        at: v.number(),
+      }),
+    ),
+    // A draw offered at `seq`, dead the moment another move lands.
+    drawOffer: v.optional(v.object({ seat: v.number(), seq: v.number() })),
+    // How it ended. `winner` is a seat; absent with `draw` true is a draw;
+    // both absent on an abandoned game.
+    winner: v.optional(v.number()),
+    // A TEAM win (Imposter's crew): every winning seat, with `winner` absent.
+    // Never set together with `winner`; a client that predates it reads such
+    // a game as having no single winner, which is true.
+    winners: v.optional(v.array(v.number())),
+    draw: v.optional(v.boolean()),
+    // "win" | "draw" | "resign" | "timeout" | "left" | "abandoned", or a
+    // party game's own reason ("escaped", "caught", "time", …).
+    reason: v.optional(v.string()),
+  })
+    // The room's games: "is one already live here", and the card list.
+    .index("by_room_status", ["roomId", "status"])
+    .index("by_message", ["messageId"])
+    // "Games where it is your move", for the room list's dot.
+    .index("by_turn_user_status", ["turnUserId", "status"]),
+
+  // Every move ever applied, in order. History and idempotency: a resent move
+  // carries the `clientMoveId` it was first sent with, and finding it here is
+  // how `matches.move` tells a retry from a stale tap. Nobody subscribes to
+  // this table.
+  matchMoves: defineTable({
+    matchId: v.id("matches"),
+    seq: v.number(),
+    // -1 for a party game's timer tick that acts for no seat in particular.
+    seat: v.number(),
+    // Absent only on such a tick.
+    userId: v.optional(v.id("users")),
+    move: v.string(),
+    clientMoveId: v.optional(v.string()),
+    // Played by the server for a seat that had forfeited (see `out`).
+    auto: v.optional(v.boolean()),
+    at: v.number(),
+  })
+    .index("by_match_seq", ["matchId", "seq"])
+    .index("by_match_client", ["matchId", "clientMoveId"]),
+
+  // Who has a live game's screen open, refreshed by a heartbeat. In its own
+  // table, read only by the liveness job and never by a subscribed query, so
+  // a beat every few seconds per viewer re-delivers nothing to anybody.
+  matchPresence: defineTable({
+    matchId: v.id("matches"),
+    userId: v.id("users"),
+    lastBeatAt: v.number(),
+  }).index("by_match_user", ["matchId", "userId"]),
+
+  // A party game's FULL state, secrets included (every player's dice, the
+  // Imposter's word and who the imposter is). One row per party match,
+  // written alongside every change to `matches.state`.
+  //
+  // NEVER returned by a public query, and never joined into one: a player
+  // reads only their own slice, through `matches.mySecret`, which runs it
+  // through the rules' `privateView` for the caller's seat. Kept out of the
+  // `matches` row itself so that no reader of that row, current or future,
+  // can leak it by forgetting to strip a field.
+  matchHidden: defineTable({
+    matchId: v.id("matches"),
+    state: v.string(),
+  }).index("by_match", ["matchId"]),
 });

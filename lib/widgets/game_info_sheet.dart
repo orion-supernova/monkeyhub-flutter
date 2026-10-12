@@ -1,9 +1,14 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../games/flow_board_art.dart';
+import '../games/futoshiki_board_art.dart';
 import '../games/game_canvas.dart';
 import '../games/game_rules.dart';
+import '../games/minesweeper_board_art.dart';
+import '../games/nonogram_board_art.dart';
 import '../games/queens_board_art.dart';
+import '../games/starbattle_board_art.dart';
 import '../games/sudoku_board_art.dart';
 import '../games/tango_board_art.dart';
 import '../games/zip_board_art.dart';
@@ -54,7 +59,7 @@ Future<void> showGameInfo(
     _show(context, game, entry, onPlay);
 
 /// The same sheet for the symbol-code puzzle, which shares the hub with the
-/// four timed boards but is scored by guesses rather than by the clock.
+/// timed boards but is scored by guesses rather than by the clock.
 Future<void> showCodePuzzleInfo(
   BuildContext context, {
   required GameInfoEntry entry,
@@ -497,6 +502,107 @@ class _Example extends StatelessWidget {
     ],
   );
 
+  /// Three pairs, one pipe drawn straight and one bent round the corner: the
+  /// shape of the whole game, that a pipe takes whatever route leaves room for
+  /// the others.
+  static const _flow = FlowBoard(
+    size: 4,
+    endpoints: [(0, 3), (4, 15), (5, 9)],
+  );
+  static const _flowPipes = [
+    [0, 1, 2, 3],
+    <int>[],
+    [5, 6, 7, 11, 10, 9],
+  ];
+
+  /// A few printed digits and the signs around them. The `<` beside the 5 in
+  /// the second row points at the square the example line is about.
+  static const _futoshiki = FutoshikiBoard(
+    size: 5,
+    givens: [
+      0, 0, 0, 0, 0, //
+      0, 0, 5, 0, 0, //
+      0, 0, 0, 1, 0, //
+      4, 0, 0, 0, 0, //
+      0, 0, 0, 0, 4, //
+    ],
+    signs: [
+      FutoshikiSign(a: 0, b: 5, lt: true),
+      FutoshikiSign(a: 6, b: 7, lt: true),
+      FutoshikiSign(a: 12, b: 17, lt: false),
+      FutoshikiSign(a: 18, b: 19, lt: true),
+      FutoshikiSign(a: 22, b: 23, lt: true),
+    ],
+  );
+
+  /// A small heart, with the two full rows already shaded — the "a clue as
+  /// long as the line fills it" deduction the example describes — and one
+  /// square crossed off.
+  static const _nonogram = NonogramBoard(
+    size: 5,
+    rows: [
+      [1, 1],
+      [5],
+      [5],
+      [3],
+      [1],
+    ],
+    cols: [
+      [2],
+      [4],
+      [4],
+      [4],
+      [2],
+    ],
+  );
+  static final _nonogramCells = [
+    for (var i = 0; i < 25; i++)
+      i >= 5 && i < 15
+          ? nonogramFilled
+          : i == 0
+          ? nonogramCrossed
+          : nonogramUnknown,
+  ];
+
+  /// A nearly finished field: one mine flagged, and one closed square beside
+  /// a 1 that has nowhere else for its mine to be.
+  static const _minesweeper = MinesweeperBoard(
+    size: 5,
+    start: 12,
+    mineCount: 2,
+    mines: '',
+  );
+  static final _minesweeperCells = () {
+    final mines = List<int>.filled(25, 0)
+      ..[4] = 1
+      ..[20] = 1;
+    final numbers = minesweeperNumbers(mines, 5);
+    return [
+      for (var i = 0; i < 25; i++)
+        i == 4
+            ? minesweeperHidden
+            : i == 20
+            ? minesweeperFlagged
+            : numbers[i],
+    ];
+  }();
+
+  /// One star, and the ring of squares it rules out.
+  static const _starbattle = StarBattleBoard(
+    size: 5,
+    regions: [
+      0, 0, 1, 1, 1, //
+      0, 2, 2, 1, 1, //
+      0, 2, 3, 3, 1, //
+      4, 4, 3, 3, 1, //
+      4, 4, 4, 3, 3, //
+    ],
+  );
+  static final _oneStar = [
+    for (var i = 0; i < 25; i++) i == 12 ? StarMark.star : StarMark.none,
+  ];
+  static const _starRing = {6, 7, 8, 11, 13, 16, 17, 18};
+
   @override
   Widget build(BuildContext context) {
     if (game == null) {
@@ -546,6 +652,34 @@ class _Example extends StatelessWidget {
           path: const [0, 1, 2, 3],
         ),
         DailyGame.sudoku => SudokuBoardPainter(board: _sudoku, theme: theme),
+        DailyGame.flow => FlowBoardPainter(
+          board: _flow,
+          theme: theme,
+          palette: GamePalette(theme),
+          pipes: _flowPipes,
+        ),
+        DailyGame.futoshiki => FutoshikiBoardPainter(
+          board: _futoshiki,
+          theme: theme,
+        ),
+        DailyGame.nonogram => NonogramBoardPainter(
+          board: _nonogram,
+          theme: theme,
+          cells: _nonogramCells,
+          satisfiedRows: const {1, 2},
+        ),
+        DailyGame.minesweeper => MinesweeperBoardPainter(
+          board: _minesweeper,
+          theme: theme,
+          cells: _minesweeperCells,
+        ),
+        DailyGame.starbattle => StarBattleBoardPainter(
+          board: _starbattle,
+          theme: theme,
+          palette: GamePalette(theme),
+          marks: _oneStar,
+          autoBlocked: _starRing,
+        ),
       },
       size: Size.infinite,
     );
@@ -613,6 +747,68 @@ _Copy _copyFor(AppLocalizations l10n, DailyGame? game) => switch (game) {
     ],
     example: l10n.gameInfoSudokuExample,
     controls: l10n.gameInfoSudokuControls,
+    win: l10n.gameInfoScoringTimed,
+  ),
+  DailyGame.flow => (
+    name: l10n.gameFlowName,
+    goal: l10n.gameInfoFlowGoal,
+    rules: [
+      l10n.gameInfoFlowRule1,
+      l10n.gameInfoFlowRule2,
+      l10n.gameInfoFlowRule3,
+      l10n.gameInfoFlowRule4,
+    ],
+    example: l10n.gameInfoFlowExample,
+    controls: l10n.gameInfoFlowControls,
+    win: l10n.gameInfoScoringTimed,
+  ),
+  DailyGame.futoshiki => (
+    name: l10n.gameFutoshikiName,
+    goal: l10n.gameInfoFutoshikiGoal,
+    rules: [
+      l10n.gameInfoFutoshikiRule1,
+      l10n.gameInfoFutoshikiRule2,
+      l10n.gameInfoFutoshikiRule3,
+    ],
+    example: l10n.gameInfoFutoshikiExample,
+    controls: l10n.gameInfoFutoshikiControls,
+    win: l10n.gameInfoScoringTimed,
+  ),
+  DailyGame.nonogram => (
+    name: l10n.gameNonogramName,
+    goal: l10n.gameInfoNonogramGoal,
+    rules: [
+      l10n.gameInfoNonogramRule1,
+      l10n.gameInfoNonogramRule2,
+      l10n.gameInfoNonogramRule3,
+    ],
+    example: l10n.gameInfoNonogramExample,
+    controls: l10n.gameInfoNonogramControls,
+    win: l10n.gameInfoScoringTimed,
+  ),
+  DailyGame.minesweeper => (
+    name: l10n.gameMinesweeperName,
+    goal: l10n.gameInfoMinesweeperGoal,
+    rules: [
+      l10n.gameInfoMinesweeperRule1,
+      l10n.gameInfoMinesweeperRule2,
+      l10n.gameInfoMinesweeperRule3,
+    ],
+    example: l10n.gameInfoMinesweeperExample,
+    controls: l10n.gameInfoMinesweeperControls,
+    win: l10n.gameInfoScoringTimed,
+  ),
+  DailyGame.starbattle => (
+    name: l10n.gameStarbattleName,
+    goal: l10n.gameInfoStarbattleGoal,
+    rules: [
+      l10n.gameInfoStarbattleRule1,
+      l10n.gameInfoStarbattleRule2,
+      l10n.gameInfoStarbattleRule3,
+      l10n.gameInfoStarbattleRule4,
+    ],
+    example: l10n.gameInfoStarbattleExample,
+    controls: l10n.gameInfoStarbattleControls,
     win: l10n.gameInfoScoringTimed,
   ),
   null => (

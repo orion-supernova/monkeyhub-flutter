@@ -319,6 +319,12 @@ export const sendMessagePush = internalAction({
                       ? `${
                           type === "poll" ? "📊" : type === "checklist" ? "☑️" : "📅"
                         } ${content.replace(/^\[\w+\]\s*/, "")}`.trim()
+                      : type === "game"
+                        ? // An in-chat game's card: `[game] Connect Four`.
+                          `🎮 ${content.replace(/^\[\w+\]\s*/, "")}`.trim()
+                      : type === "challenge"
+                        ? // "Beat my time": `[challenge] Beat my time: Queens 2:41`.
+                          `🏁 ${content.replace(/^\[\w+\]\s*/, "")}`.trim()
                       : type === "gif"
                         ? "GIF"
                         : type === "sticker"

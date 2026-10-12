@@ -46,6 +46,14 @@ enum MessageType {
   event,
   gif,
   sticker,
+
+  /// An in-chat game's card: `content` is the game's name, and the live body
+  /// (seats, board, result) is a `ChatMatch` from `MatchesStore`.
+  game,
+
+  /// "Beat my time": a daily result sent as a dare. `content` is a readable
+  /// line; the body is a `GameChallenge` from `ChallengesStore`.
+  challenge,
 }
 
 /// Whether this type's body is a [MessageInteraction] delivered beside the
@@ -147,6 +155,11 @@ extension MessageTypeWire on MessageType {
       // title, or the emoji a sticker stands for — see `messages:send`.
       case 'gif':
         return MessageType.gif;
+      // An old client shows the game's name as a line of text.
+      case 'game':
+        return MessageType.game;
+      case 'challenge':
+        return MessageType.challenge;
       case 'sticker':
         return MessageType.sticker;
       default:

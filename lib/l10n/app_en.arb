@@ -14274,5 +14274,1513 @@
   "layoutPagerNext": "Next",
   "@layoutPagerNext": {
     "description": "Accessibility label for the right chevron that pages a full-screen preview pager (e.g. the theme gallery) forward one page. Shown on desktop when a mouse hovers the pager."
+  },
+  "resultSheetMistakes": "Mistakes",
+  "@resultSheetMistakes": {
+    "description": "Row title in a leaderboard result detail sheet: wrong moves made."
+  },
+  "resultSheetHints": "Hints",
+  "@resultSheetHints": {
+    "description": "Row title in a leaderboard result detail sheet: hints used."
+  },
+  "resultSheetStreak": "Streak",
+  "@resultSheetStreak": {
+    "description": "Row title in a leaderboard result detail sheet: consecutive days solved."
+  },
+  "resultSheetStreakDays": "{count, plural, =1{1 day} other{{count} days}}",
+  "@resultSheetStreakDays": {
+    "description": "Value of the Streak row in a result detail sheet.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resultSheetNone": "None",
+  "@resultSheetNone": {
+    "description": "Value for zero mistakes or zero hints in a result detail sheet."
+  },
+  "resultSheetToday": "{game} · Today",
+  "@resultSheetToday": {
+    "description": "Subtitle of a result detail sheet: the game's name and that this is today's board.",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "resultSheetYouFaster": "You were {time} faster",
+  "@resultSheetYouFaster": {
+    "description": "Comparison line in a friend's result sheet when the viewer solved faster. time is like 0:12.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "resultSheetTheyFaster": "{name} was {time} faster",
+  "@resultSheetTheyFaster": {
+    "description": "Comparison line in a friend's result sheet when the friend solved faster. time is like 0:12.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "resultSheetSameTime": "Same time as you",
+  "@resultSheetSameTime": {
+    "description": "Comparison line in a friend's result sheet when both solved in the same time."
+  },
+  "resultSheetFooter": "Only the time decides the ranking. Mistakes and hints are just for the curious.",
+  "@resultSheetFooter": {
+    "description": "Footer under a result detail sheet: mistakes and hints are shown but only the time decides the ranking."
+  },
+  "resultSheetHintNoRecord": "Solved with hints, so it can’t set an all-time record.",
+  "@resultSheetHintNoRecord": {
+    "description": "Line on a result detail sheet when the solve used hints: hinted solves don't set all-time records."
+  },
+  "gameTierEasy": "Easy",
+  "@gameTierEasy": {
+    "description": "Caption over the easy group of daily puzzles in the games row."
+  },
+  "gameTierMedium": "Medium",
+  "@gameTierMedium": {
+    "description": "Caption over the medium group of daily puzzles in the games row."
+  },
+  "gameTierHard": "Hard",
+  "@gameTierHard": {
+    "description": "Caption over the hard group of daily puzzles in the games row."
+  },
+  "gameComingSoon": "Coming soon",
+  "@gameComingSoon": {
+    "description": "Status on a placeholder tile for a daily puzzle that isn't out yet."
+  },
+  "gameComingSoonName": "New puzzle",
+  "@gameComingSoonName": {
+    "description": "Title of a placeholder tile for a daily puzzle that isn't out yet."
+  },
+  "chatGameNameTicTacToe": "Tic-tac-toe",
+  "@chatGameNameTicTacToe": {
+    "description": "Name of the tic-tac-toe chat game."
+  },
+  "chatGameNameConnectFour": "Connect Four",
+  "@chatGameNameConnectFour": {
+    "description": "Name of the Connect Four chat game."
+  },
+  "chatGameNameCheckers": "Checkers",
+  "@chatGameNameCheckers": {
+    "description": "Name of the checkers (draughts) chat game."
+  },
+  "chatGameNameReversi": "Reversi",
+  "@chatGameNameReversi": {
+    "description": "Name of the Reversi chat game."
+  },
+  "chatGameNameDots": "Dots and Boxes",
+  "@chatGameNameDots": {
+    "description": "Name of the Dots and Boxes chat game."
+  },
+  "chatGameDescTicTacToe": "Three in a row wins.",
+  "@chatGameDescTicTacToe": {
+    "description": "One-line rule for tic-tac-toe in the game picker."
+  },
+  "chatGameDescConnectFour": "Drop discs. Four in a row wins.",
+  "@chatGameDescConnectFour": {
+    "description": "One-line rule for Connect Four in the game picker."
+  },
+  "chatGameDescCheckers": "Jump to capture. Take every piece.",
+  "@chatGameDescCheckers": {
+    "description": "One-line rule for checkers in the game picker."
+  },
+  "chatGameDescReversi": "Outflank to flip. Most discs wins.",
+  "@chatGameDescReversi": {
+    "description": "One-line rule for Reversi in the game picker."
+  },
+  "chatGameDescDots": "Draw lines, close boxes, go again.",
+  "@chatGameDescDots": {
+    "description": "One-line rule for Dots and Boxes in the game picker."
+  },
+  "chatGameKindLive": "Live game",
+  "@chatGameKindLive": {
+    "description": "Label on a chat game card: everyone plays at the same time."
+  },
+  "chatGameKindTurns": "Turn by turn",
+  "@chatGameKindTurns": {
+    "description": "Label on a chat game card: players move one at a time, whenever they like."
+  },
+  "chatGameStatusWaiting": "Waiting",
+  "@chatGameStatusWaiting": {
+    "description": "Status chip on a chat game card waiting for players."
+  },
+  "chatGameStatusPlaying": "Playing",
+  "@chatGameStatusPlaying": {
+    "description": "Status chip on a chat game card being played."
+  },
+  "chatGameStatusPaused": "Paused",
+  "@chatGameStatusPaused": {
+    "description": "Status chip on a paused chat game."
+  },
+  "chatGameStatusFinished": "Finished",
+  "@chatGameStatusFinished": {
+    "description": "Status chip on a finished chat game."
+  },
+  "chatGameStatusEnded": "Ended",
+  "@chatGameStatusEnded": {
+    "description": "Status chip on a chat game that ended with nobody winning (everyone left)."
+  },
+  "chatGameYourMove": "Your move",
+  "@chatGameYourMove": {
+    "description": "Shown when it is the viewer's turn in a chat game."
+  },
+  "chatGameTurnOf": "{name}'s move",
+  "@chatGameTurnOf": {
+    "description": "Whose turn it is in a chat game.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameWaitingFor": "Waiting for {name}",
+  "@chatGameWaitingFor": {
+    "description": "Shown to the waiting player in a turn-by-turn game.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameWonBy": "{name} won",
+  "@chatGameWonBy": {
+    "description": "Result line: someone won a chat game.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameYouWon": "You won",
+  "@chatGameYouWon": {
+    "description": "Result line: the viewer won a chat game."
+  },
+  "chatGameDraw": "Draw",
+  "@chatGameDraw": {
+    "description": "Result line: a chat game ended in a draw."
+  },
+  "chatGameNobodyWon": "Everyone left, so nobody won",
+  "@chatGameNobodyWon": {
+    "description": "Result line: a chat game ended because everyone left."
+  },
+  "chatGameReasonTimeout": "{name} ran out of time",
+  "@chatGameReasonTimeout": {
+    "description": "Why a chat game ended: a player ran out of time.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameReasonResign": "{name} resigned",
+  "@chatGameReasonResign": {
+    "description": "Why a chat game ended: a player resigned.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameReasonLeft": "{name} left",
+  "@chatGameReasonLeft": {
+    "description": "Why a chat game ended: a player left.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameOpenSeat": "Open seat",
+  "@chatGameOpenSeat": {
+    "description": "An empty seat in a chat game lobby."
+  },
+  "chatGameReady": "Ready",
+  "@chatGameReady": {
+    "description": "A player in the lobby is ready."
+  },
+  "chatGameNotReady": "Not ready",
+  "@chatGameNotReady": {
+    "description": "A player in the lobby is not ready yet."
+  },
+  "chatGameWatchingCount": "{count, plural, =1{1 watching} other{{count} watching}}",
+  "@chatGameWatchingCount": {
+    "description": "How many room members are watching a chat game.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameJoin": "Join",
+  "@chatGameJoin": {
+    "description": "Button: take a seat in a chat game lobby."
+  },
+  "chatGameWatch": "Watch",
+  "@chatGameWatch": {
+    "description": "Button: open a chat game as a spectator."
+  },
+  "chatGamePlay": "Play",
+  "@chatGamePlay": {
+    "description": "Button: open a chat game to make your move."
+  },
+  "chatGameOpen": "Open",
+  "@chatGameOpen": {
+    "description": "Button: open a chat game."
+  },
+  "chatGameRematch": "Rematch",
+  "@chatGameRematch": {
+    "description": "Button: start the same chat game again with the same players."
+  },
+  "chatGameNotRanked": "Just for fun. Chat games don’t count toward your streaks or records.",
+  "@chatGameNotRanked": {
+    "description": "Gentle notice in the chat game lobby and picker: chat games are separate from the ranked daily puzzles."
+  },
+  "chatGameNotRankedShort": "Not ranked",
+  "@chatGameNotRankedShort": {
+    "description": "Short tag on a finished chat game card."
+  },
+  "chatGameImReady": "I’m ready",
+  "@chatGameImReady": {
+    "description": "Lobby button: mark yourself ready to start."
+  },
+  "chatGameUnready": "Not ready yet",
+  "@chatGameUnready": {
+    "description": "Lobby button: take back being ready."
+  },
+  "chatGameTakeSeat": "Tap to join",
+  "@chatGameTakeSeat": {
+    "description": "Lobby action on an empty seat: sit down to play."
+  },
+  "chatGameLeaveSeat": "Leave seat",
+  "@chatGameLeaveSeat": {
+    "description": "Lobby action: get up from your seat."
+  },
+  "chatGameStartsWhenReady": "Starts when everyone is ready",
+  "@chatGameStartsWhenReady": {
+    "description": "Lobby hint: the game starts once every seated player taps ready."
+  },
+  "chatGameNeedPlayers": "{count, plural, =1{Waiting for 1 more player} other{Waiting for {count} more players}}",
+  "@chatGameNeedPlayers": {
+    "description": "Lobby hint: how many more players are needed.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameWatchingLabel": "Watching",
+  "@chatGameWatchingLabel": {
+    "description": "Section header in the lobby and game listing spectators."
+  },
+  "chatGameAskSwap": "Ask to swap in",
+  "@chatGameAskSwap": {
+    "description": "Action for a spectator: ask a seated player to swap places."
+  },
+  "chatGameSwapRequest": "{name} wants to swap in",
+  "@chatGameSwapRequest": {
+    "description": "Shown to a seated player when a spectator asks for their seat.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameSwap": "Swap",
+  "@chatGameSwap": {
+    "description": "Button: accept a swap request and give up the seat."
+  },
+  "chatGameDecline": "Decline",
+  "@chatGameDecline": {
+    "description": "Button: decline a request or offer in a chat game."
+  },
+  "chatGameAccept": "Accept",
+  "@chatGameAccept": {
+    "description": "Button: accept an offer in a chat game."
+  },
+  "chatGameSwapAsked": "Asked {name}",
+  "@chatGameSwapAsked": {
+    "description": "Shown to a spectator after asking for a seat.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameCancel": "Cancel",
+  "@chatGameCancel": {
+    "description": "Button: cancel your own pending request in a chat game."
+  },
+  "chatGameResign": "Resign",
+  "@chatGameResign": {
+    "description": "Button: give up a chat game."
+  },
+  "chatGameResignConfirm": "Resign this game?",
+  "@chatGameResignConfirm": {
+    "description": "Confirmation title before resigning a chat game."
+  },
+  "chatGameResignBody": "It counts as a loss for you.",
+  "@chatGameResignBody": {
+    "description": "Confirmation body before resigning: it counts as a loss."
+  },
+  "chatGameOfferDraw": "Offer draw",
+  "@chatGameOfferDraw": {
+    "description": "Button: offer the opponent a draw."
+  },
+  "chatGameDrawOffered": "Draw offered",
+  "@chatGameDrawOffered": {
+    "description": "Shown after you offered a draw."
+  },
+  "chatGameDrawOfferFrom": "{name} offers a draw",
+  "@chatGameDrawOfferFrom": {
+    "description": "Shown when the opponent offers a draw.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGamePausedTitle": "{name} left the game",
+  "@chatGamePausedTitle": {
+    "description": "Pause cover title when a player left a live game.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGamePausedMany": "Players left the game",
+  "@chatGamePausedMany": {
+    "description": "Pause cover title when several players left a live game."
+  },
+  "chatGamePausedBody": "We’ll hold the board for a bit.",
+  "@chatGamePausedBody": {
+    "description": "Pause cover body: the board is held for a short grace period."
+  },
+  "chatGamePausedYou": "The game resumes when everyone is back.",
+  "@chatGamePausedYou": {
+    "description": "Pause cover body for the player who left and came back while paused for others."
+  },
+  "chatGameLeave": "Leave game",
+  "@chatGameLeave": {
+    "description": "Button: leave a chat game screen or game."
+  },
+  "chatGameGo": "Go!",
+  "@chatGameGo": {
+    "description": "Countdown end word before a live game starts."
+  },
+  "chatGameNudge": "Nudge",
+  "@chatGameNudge": {
+    "description": "Button: remind the other player it is their move."
+  },
+  "chatGameNudged": "Nudged",
+  "@chatGameNudged": {
+    "description": "Shown after nudging."
+  },
+  "chatGameHoursLeft": "{count, plural, =1{1 hour left} other{{count} hours left}}",
+  "@chatGameHoursLeft": {
+    "description": "Time left to make a move in a turn-by-turn game.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameMinutesLeft": "{count, plural, =1{1 minute left} other{{count} minutes left}}",
+  "@chatGameMinutesLeft": {
+    "description": "Time left to make a move, under an hour.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameMoveFailed": "That move didn’t go through",
+  "@chatGameMoveFailed": {
+    "description": "Toast when a move did not reach the server."
+  },
+  "chatGameStale": "The board changed. Try again.",
+  "@chatGameStale": {
+    "description": "Toast when the board changed under a move."
+  },
+  "chatGameStartTitle": "Play a game",
+  "@chatGameStartTitle": {
+    "description": "Title of the sheet for starting a chat game."
+  },
+  "chatGameMenuItem": "Game",
+  "@chatGameMenuItem": {
+    "description": "Attachment menu row that opens the chat game picker."
+  },
+  "chatGameModeLive": "Live",
+  "@chatGameModeLive": {
+    "description": "Mode option: everyone plays together right now."
+  },
+  "chatGameModeTurns": "Take turns",
+  "@chatGameModeTurns": {
+    "description": "Mode option: take turns whenever you like (DMs only)."
+  },
+  "chatGameModeBot": "Vs bot",
+  "@chatGameModeBot": {
+    "description": "Mode option: play alone against the app's bot."
+  },
+  "chatGameModeLiveHint": "Everyone plays at once. Leaving pauses the game.",
+  "@chatGameModeLiveHint": {
+    "description": "Explanation under the Live mode option."
+  },
+  "chatGameModeTurnsHint": "Move whenever you like. You each get a notification on your turn, and a turn lasts up to 2 days.",
+  "@chatGameModeTurnsHint": {
+    "description": "Explanation under the Take turns mode option."
+  },
+  "chatGameModeBotHint": "Just you and the bot. Nothing is posted in the chat.",
+  "@chatGameModeBotHint": {
+    "description": "Explanation under the Vs bot option."
+  },
+  "chatGameBotEasyHint": "Makes mistakes. Good for learning.",
+  "@chatGameBotEasyHint": {
+    "description": "Explanation for the easy bot level."
+  },
+  "chatGameBotMediumHint": "Plays fair and blocks your wins.",
+  "@chatGameBotMediumHint": {
+    "description": "Explanation for the medium bot level."
+  },
+  "chatGameBotHardHint": "Thinks several moves ahead.",
+  "@chatGameBotHardHint": {
+    "description": "Explanation for the hard bot level."
+  },
+  "chatGameStart": "Start",
+  "@chatGameStart": {
+    "description": "Button: start the chosen chat game."
+  },
+  "chatGameErrAlreadyLive": "There’s already a live game here. Finish it or leave it first.",
+  "@chatGameErrAlreadyLive": {
+    "description": "Error: a live game is already open in this chat."
+  },
+  "chatGameErrTooMany": "You already have 3 turn games going here. Finish one first.",
+  "@chatGameErrTooMany": {
+    "description": "Error: the DM already has the maximum number of turn-by-turn games."
+  },
+  "chatGameErrGeneric": "Something went wrong. Try again.",
+  "@chatGameErrGeneric": {
+    "description": "Error: a chat game action failed."
+  },
+  "chatGamePlayersTwo": "2 players",
+  "@chatGamePlayersTwo": {
+    "description": "Player count tag in the game picker."
+  },
+  "chatGamePlayersUpToFour": "2–4 players",
+  "@chatGamePlayersUpToFour": {
+    "description": "Player count tag in the game picker (uses an en dash)."
+  },
+  "chatGameBotName": "Monkey",
+  "@chatGameBotName": {
+    "description": "Display name of the in-app bot opponent."
+  },
+  "chatGameBotBadge": "Bot",
+  "@chatGameBotBadge": {
+    "description": "Small badge marking the opponent as a bot."
+  },
+  "chatGameNewGame": "New game",
+  "@chatGameNewGame": {
+    "description": "Button after a bot game: play again."
+  },
+  "chatGameBannerCount": "{count, plural, =1{1 game} other{{count} games}}",
+  "@chatGameBannerCount": {
+    "description": "Room banner when several games are open.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameBannerYourMoves": "{count, plural, =1{Your move in 1} other{Your move in {count}}}",
+  "@chatGameBannerYourMoves": {
+    "description": "Room banner sub-line: in how many open games it is the viewer's move.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameSheetTitle": "Games in this chat",
+  "@chatGameSheetTitle": {
+    "description": "Title of the sheet listing a chat's open games."
+  },
+  "chatGameGone": "This game isn’t available any more.",
+  "@chatGameGone": {
+    "description": "Shown when a chat game no longer exists or the viewer left the chat."
+  },
+  "chatGameSeatsLabel": "Players",
+  "@chatGameSeatsLabel": {
+    "description": "Section header for seats in the lobby."
+  },
+  "gameFlowName": "Flow",
+  "@gameFlowName": {
+    "description": "Name of the Flow daily game, on its tile and as its board title. Connect pairs of same-coloured, numbered dots with pipes that fill the whole grid."
+  },
+  "gameFutoshikiName": "Futoshiki",
+  "@gameFutoshikiName": {
+    "description": "Name of the Futoshiki daily game (a Japanese logic puzzle: a Latin square with < and > signs between cells). Keep the proper name where the language uses it."
+  },
+  "gameNonogramName": "Nonogram",
+  "@gameNonogramName": {
+    "description": "Name of the Nonogram daily game (shade grid squares to match run-length clues; reveals a picture). Use the usual local name for the puzzle."
+  },
+  "gameMinesweeperName": "Minesweeper",
+  "@gameMinesweeperName": {
+    "description": "Name of the Minesweeper daily game. Use the classic local name of the desktop game."
+  },
+  "gameStarbattleName": "Star battle",
+  "@gameStarbattleName": {
+    "description": "Name of the Star Battle daily game: place 2 stars in every row, column and colour region, never touching. Sentence case."
+  },
+  "gameFlowRule": "join matching dots, fill every square",
+  "@gameFlowRule": {
+    "description": "Flow's rules in one line, under its title. Join each pair of matching dots; the pipes must fill every square."
+  },
+  "gameFutoshikiRule": "1 to 5 once per row and column, every sign true",
+  "@gameFutoshikiRule": {
+    "description": "Futoshiki's rules in one line, under its title. Digits 1 to 5 once per row and column, and every < or > between two squares must hold."
+  },
+  "gameNonogramRule": "shade squares to match every clue",
+  "@gameNonogramRule": {
+    "description": "Nonogram's rules in one line, under its title. Shade squares so each row and column matches the numbers beside it."
+  },
+  "gameMinesweeperRule": "open every safe square, no guessing needed",
+  "@gameMinesweeperRule": {
+    "description": "Minesweeper's rules in one line, under its title. Open every square without a mine; the board never needs a guess."
+  },
+  "gameStarbattleRule": "two stars per row, column and colour, never touching",
+  "@gameStarbattleRule": {
+    "description": "Star Battle's rules in one line, under its title. Two stars in each row, column and colour region, and no two stars touching, including diagonally."
+  },
+  "gameFlag": "Flag",
+  "@gameFlag": {
+    "description": "Minesweeper tool button. While on, a tap puts a flag (\"a mine is here\") on a square instead of opening it. Short, one word if possible."
+  },
+  "gameAutoDot": "Auto-dot",
+  "@gameAutoDot": {
+    "description": "Star Battle tool toggle. While on, the board marks with a faint dot every square that can no longer hold a star. Short."
+  },
+  "gameInfoFlowGoal": "Join every pair of matching dots with a pipe.",
+  "@gameInfoFlowGoal": {
+    "description": "Flow how-to-play sheet: the goal, one short sentence."
+  },
+  "gameInfoFlowRule1": "Each pipe joins 2 dots of the same colour and number.",
+  "@gameInfoFlowRule1": {
+    "description": "Flow how-to-play sheet: rule 1, one short sentence."
+  },
+  "gameInfoFlowRule2": "Pipes can't cross or share a square.",
+  "@gameInfoFlowRule2": {
+    "description": "Flow how-to-play sheet: rule 2, one short sentence."
+  },
+  "gameInfoFlowRule3": "Fill every square. None can be left empty.",
+  "@gameInfoFlowRule3": {
+    "description": "Flow how-to-play sheet: rule 3, one short sentence."
+  },
+  "gameInfoFlowRule4": "Move up, down, left or right. No diagonals.",
+  "@gameInfoFlowRule4": {
+    "description": "Flow how-to-play sheet: rule 4, one short sentence."
+  },
+  "gameInfoFlowExample": "No straight way through? Bend the pipe around the others. Every square still has to be filled.",
+  "@gameInfoFlowExample": {
+    "description": "Flow how-to-play sheet: a tiny worked example under the example board."
+  },
+  "gameInfoFlowControls": "Drag from a dot to draw its pipe. Drag back to undo. Drawing across a pipe cuts it.",
+  "@gameInfoFlowControls": {
+    "description": "Flow how-to-play sheet: how to play it with taps and drags."
+  },
+  "gameInfoFutoshikiGoal": "Fill the grid with the numbers 1 to 5.",
+  "@gameInfoFutoshikiGoal": {
+    "description": "Futoshiki how-to-play sheet: the goal, one short sentence."
+  },
+  "gameInfoFutoshikiRule1": "Every row has 1, 2, 3, 4 and 5. No repeats.",
+  "@gameInfoFutoshikiRule1": {
+    "description": "Futoshiki how-to-play sheet: rule 1, one short sentence."
+  },
+  "gameInfoFutoshikiRule2": "Every column too.",
+  "@gameInfoFutoshikiRule2": {
+    "description": "Futoshiki how-to-play sheet: rule 2, one short sentence."
+  },
+  "gameInfoFutoshikiRule3": "A < or > between 2 squares must be true. It points at the smaller number.",
+  "@gameInfoFutoshikiRule3": {
+    "description": "Futoshiki how-to-play sheet: rule 3, one short sentence."
+  },
+  "gameInfoFutoshikiExample": "A sign points at this square? Then it can't be 5, because its neighbour is bigger.",
+  "@gameInfoFutoshikiExample": {
+    "description": "Futoshiki how-to-play sheet: a tiny worked example under the example board."
+  },
+  "gameInfoFutoshikiControls": "Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.",
+  "@gameInfoFutoshikiControls": {
+    "description": "Futoshiki how-to-play sheet: how to play it with taps and drags."
+  },
+  "gameInfoNonogramGoal": "Shade squares to reveal the hidden picture.",
+  "@gameInfoNonogramGoal": {
+    "description": "Nonogram how-to-play sheet: the goal, one short sentence."
+  },
+  "gameInfoNonogramRule1": "The numbers by each row and column are its shaded runs, in order.",
+  "@gameInfoNonogramRule1": {
+    "description": "Nonogram how-to-play sheet: rule 1, one short sentence."
+  },
+  "gameInfoNonogramRule2": "Runs are kept apart by at least 1 empty square.",
+  "@gameInfoNonogramRule2": {
+    "description": "Nonogram how-to-play sheet: rule 2, one short sentence."
+  },
+  "gameInfoNonogramRule3": "0 means the whole line is empty.",
+  "@gameInfoNonogramRule3": {
+    "description": "Nonogram how-to-play sheet: rule 3, one short sentence."
+  },
+  "gameInfoNonogramExample": "A row of 10 with the clue 10? Shade it all. With 4 4, both runs fit, with a gap between them.",
+  "@gameInfoNonogramExample": {
+    "description": "Nonogram how-to-play sheet: a tiny worked example under the example board."
+  },
+  "gameInfoNonogramControls": "Tap once to shade, twice for × (empty), again to clear. Drag to mark several squares at once.",
+  "@gameInfoNonogramControls": {
+    "description": "Nonogram how-to-play sheet: how to play it with taps and drags."
+  },
+  "gameInfoMinesweeperGoal": "Open every square that isn't a mine.",
+  "@gameInfoMinesweeperGoal": {
+    "description": "Minesweeper how-to-play sheet: the goal, one short sentence."
+  },
+  "gameInfoMinesweeperRule1": "A number says how many mines touch that square, corners included.",
+  "@gameInfoMinesweeperRule1": {
+    "description": "Minesweeper how-to-play sheet: rule 1, one short sentence."
+  },
+  "gameInfoMinesweeperRule2": "Every square can be worked out. You never have to guess.",
+  "@gameInfoMinesweeperRule2": {
+    "description": "Minesweeper how-to-play sheet: rule 2, one short sentence."
+  },
+  "gameInfoMinesweeperRule3": "Hit a mine and 30 seconds go on your time. Then keep going.",
+  "@gameInfoMinesweeperRule3": {
+    "description": "Minesweeper how-to-play sheet: rule 3, one short sentence."
+  },
+  "gameInfoMinesweeperExample": "A 1 with only one closed square next to it? That square is the mine. Flag it.",
+  "@gameInfoMinesweeperExample": {
+    "description": "Minesweeper how-to-play sheet: a tiny worked example under the example board."
+  },
+  "gameInfoMinesweeperControls": "Tap to open a square. Long-press, or switch on Flag, to mark a mine.",
+  "@gameInfoMinesweeperControls": {
+    "description": "Minesweeper how-to-play sheet: how to play it with taps and drags."
+  },
+  "gameInfoStarbattleGoal": "Put 2 stars in every row, column and colour.",
+  "@gameInfoStarbattleGoal": {
+    "description": "Starbattle how-to-play sheet: the goal, one short sentence."
+  },
+  "gameInfoStarbattleRule1": "Every row gets exactly 2 stars.",
+  "@gameInfoStarbattleRule1": {
+    "description": "Starbattle how-to-play sheet: rule 1, one short sentence."
+  },
+  "gameInfoStarbattleRule2": "Every column gets exactly 2 stars.",
+  "@gameInfoStarbattleRule2": {
+    "description": "Starbattle how-to-play sheet: rule 2, one short sentence."
+  },
+  "gameInfoStarbattleRule3": "Every colour gets exactly 2 stars.",
+  "@gameInfoStarbattleRule3": {
+    "description": "Starbattle how-to-play sheet: rule 3, one short sentence."
+  },
+  "gameInfoStarbattleRule4": "Stars can't touch. Not even corner to corner.",
+  "@gameInfoStarbattleRule4": {
+    "description": "Starbattle how-to-play sheet: rule 4, one short sentence."
+  },
+  "gameInfoStarbattleExample": "One star here means: no other star in the 8 squares around it, and one more to find in its row, column and colour.",
+  "@gameInfoStarbattleExample": {
+    "description": "Starbattle how-to-play sheet: a tiny worked example under the example board."
+  },
+  "gameInfoStarbattleControls": "Tap once for a dot (no star here). Tap twice for a star. Tap again to clear.",
+  "@gameInfoStarbattleControls": {
+    "description": "Starbattle how-to-play sheet: how to play it with taps and drags."
+  },
+  "boardCellName": "Row {row}, column {col}",
+  "@boardCellName": {
+    "description": "Screen reader name of a game board cell.",
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "col": {
+        "type": "int"
+      }
+    }
+  },
+  "boardEmpty": "empty",
+  "@boardEmpty": {
+    "description": "Screen reader: an empty board cell."
+  },
+  "boardBlack": "black",
+  "@boardBlack": {
+    "description": "Screen reader: a black disc."
+  },
+  "boardWhite": "white",
+  "@boardWhite": {
+    "description": "Screen reader: a white disc."
+  },
+  "boardLegalMove": "legal move",
+  "@boardLegalMove": {
+    "description": "Screen reader suffix: this cell is a legal move."
+  },
+  "boardMoveHere": "move here",
+  "@boardMoveHere": {
+    "description": "Screen reader suffix: a piece can move to this square."
+  },
+  "boardColumnFilled": "Column {column}, {count} of {total} filled",
+  "@boardColumnFilled": {
+    "description": "Screen reader name of a Connect Four column.",
+    "placeholders": {
+      "column": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "boardSquareName": "Square {number}",
+  "@boardSquareName": {
+    "description": "Screen reader name of a checkers square.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "boardDarkMan": "dark piece",
+  "@boardDarkMan": {
+    "description": "Screen reader: a dark checkers man."
+  },
+  "boardDarkKing": "dark king",
+  "@boardDarkKing": {
+    "description": "Screen reader: a dark checkers king."
+  },
+  "boardLightMan": "light piece",
+  "@boardLightMan": {
+    "description": "Screen reader: a light checkers man."
+  },
+  "boardLightKing": "light king",
+  "@boardLightKing": {
+    "description": "Screen reader: a light checkers king."
+  },
+  "boardBoxName": "Box, {cell}",
+  "@boardBoxName": {
+    "description": "Screen reader name of a Dots and Boxes box.",
+    "placeholders": {
+      "cell": {
+        "type": "String"
+      }
+    }
+  },
+  "boardOpen": "open",
+  "@boardOpen": {
+    "description": "Screen reader: an undrawn line or unclaimed box."
+  },
+  "boardDrawn": "drawn",
+  "@boardDrawn": {
+    "description": "Screen reader: a drawn line."
+  },
+  "boardClaimedBy": "claimed by {name}",
+  "@boardClaimedBy": {
+    "description": "Screen reader: a box claimed by a player.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "boardHorizontalEdge": "Horizontal line, row {row}, column {col}",
+  "@boardHorizontalEdge": {
+    "description": "Screen reader name of a horizontal Dots and Boxes line.",
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "col": {
+        "type": "int"
+      }
+    }
+  },
+  "boardVerticalEdge": "Vertical line, row {row}, column {col}",
+  "@boardVerticalEdge": {
+    "description": "Screen reader name of a vertical Dots and Boxes line.",
+    "placeholders": {
+      "row": {
+        "type": "int"
+      },
+      "col": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeAction": "Challenge",
+  "@challengeAction": {
+    "description": "Result card action: send this result to a chat as a challenge."
+  },
+  "challengeTitle": "Beat my time",
+  "@challengeTitle": {
+    "description": "Headline on a challenge card in a chat."
+  },
+  "challengeKind": "Daily challenge",
+  "@challengeKind": {
+    "description": "Small label on a challenge card."
+  },
+  "challengeYouBeat": "You beat it by {time}",
+  "@challengeYouBeat": {
+    "description": "Challenge card: the viewer beat the time.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeStillStanding": "Still standing, by {time}",
+  "@challengeStillStanding": {
+    "description": "Challenge card: the viewer played but did not beat the time.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeTie": "A dead heat",
+  "@challengeTie": {
+    "description": "Challenge card: exactly the same time."
+  },
+  "challengeClosed": "That board has closed",
+  "@challengeClosed": {
+    "description": "Challenge card: the board was from an earlier day."
+  },
+  "challengeYourTime": "Your time to beat",
+  "@challengeYourTime": {
+    "description": "Challenge card, sender's own view."
+  },
+  "challengeSent": "Challenge sent",
+  "@challengeSent": {
+    "description": "Toast after sending a challenge."
+  },
+  "challengeTarget": "{name} {time}",
+  "@challengeTarget": {
+    "description": "Chip under the game clock: the time to beat.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeBeatName": "You beat {name}’s {time}",
+  "@challengeBeatName": {
+    "description": "Result card line: the player beat the challenge.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeKept": "{name} keeps it, by {time}",
+  "@challengeKept": {
+    "description": "Result card line: the challenger keeps it.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameNameLiarsDice": "Liar’s Dice",
+  "@chatGameNameLiarsDice": {
+    "description": "Party game name: the bluffing dice game."
+  },
+  "chatGameNameImposter": "Imposter",
+  "@chatGameNameImposter": {
+    "description": "Party game name: one player does not know the secret word."
+  },
+  "chatGameNameRace": "Puzzle Race",
+  "@chatGameNameRace": {
+    "description": "Party game name: everyone solves the same puzzle at once."
+  },
+  "chatGameDescLiarsDice": "Bid on hidden dice. Call out the liar.",
+  "@chatGameDescLiarsDice": {
+    "description": "One-line rules of Liar's Dice in the game picker."
+  },
+  "chatGameDescImposter": "One of you doesn’t know the word. Find them.",
+  "@chatGameDescImposter": {
+    "description": "One-line rules of Imposter in the game picker."
+  },
+  "chatGameDescRace": "Same puzzle for all. Fastest solve wins.",
+  "@chatGameDescRace": {
+    "description": "One-line rules of Puzzle Race in the game picker."
+  },
+  "chatGamePlayersRange": "{min}–{max} players",
+  "@chatGamePlayersRange": {
+    "description": "Player count of a party game in the picker, e.g. 2–6 players. Keep the en dash.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGamePartySection": "Party",
+  "@chatGamePartySection": {
+    "description": "Header of the party games section in the game picker."
+  },
+  "chatGamePartyLiveOnly": "Party games are played live, with everyone at once.",
+  "@chatGamePartyLiveOnly": {
+    "description": "Why party games are greyed out when Take turns or Vs bot is selected."
+  },
+  "chatGameNeedsThree": "Needs a group of 3 or more",
+  "@chatGameNeedsThree": {
+    "description": "Why Imposter is greyed out in a one-to-one chat."
+  },
+  "chatGameVoiceOption": "Voice clues",
+  "@chatGameVoiceOption": {
+    "description": "Imposter option toggle: give clues by voice on a call."
+  },
+  "chatGameVoiceOptionHint": "Talk on a call instead of typing clues",
+  "@chatGameVoiceOptionHint": {
+    "description": "Subtitle of the Imposter voice option."
+  },
+  "chatGamePuzzleOption": "Puzzle",
+  "@chatGamePuzzleOption": {
+    "description": "Puzzle Race option: which puzzle to race on."
+  },
+  "chatGamePuzzleRandom": "Random",
+  "@chatGamePuzzleRandom": {
+    "description": "Puzzle Race option: let the game pick the puzzle."
+  },
+  "chatGameStartNamed": "Start {game}",
+  "@chatGameStartNamed": {
+    "description": "Button that starts a party game after choosing its options.",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLdRoundDice": "Round {round} · {count} dice",
+  "@chatGameLdRoundDice": {
+    "description": "Liar's Dice status on the chat card: the round number and dice still in play.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "round": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameLdYourDice": "Your dice",
+  "@chatGameLdYourDice": {
+    "description": "Liar's Dice: label over the viewer's own hidden dice."
+  },
+  "chatGameLdNoBid": "No bid yet",
+  "@chatGameLdNoBid": {
+    "description": "Liar's Dice: no bid has been made this round."
+  },
+  "chatGameLdBidBy": "{name}’s bid",
+  "@chatGameLdBidBy": {
+    "description": "Liar's Dice: who made the standing bid.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLdYourBid": "Your bid",
+  "@chatGameLdYourBid": {
+    "description": "Liar's Dice: the standing bid is the viewer's."
+  },
+  "chatGameLdBid": "Bid",
+  "@chatGameLdBid": {
+    "description": "Liar's Dice: button that places the chosen bid."
+  },
+  "chatGameLdLiar": "Liar!",
+  "@chatGameLdLiar": {
+    "description": "Liar's Dice: the big button that calls the last bidder a liar."
+  },
+  "chatGameLdOnesWild": "1s are wild",
+  "@chatGameLdOnesWild": {
+    "description": "Liar's Dice rule reminder: a 1 counts as any face."
+  },
+  "chatGameLdOnesOnly": "Bid on 1s: no wilds",
+  "@chatGameLdOnesOnly": {
+    "description": "Liar's Dice rule reminder when the bid is on 1s: they are not wild then."
+  },
+  "chatGameLdHolds": "The bid holds",
+  "@chatGameLdHolds": {
+    "description": "Liar's Dice reveal: the called bid was true."
+  },
+  "chatGameLdBusted": "Busted!",
+  "@chatGameLdBusted": {
+    "description": "Liar's Dice reveal: the called bid was a bluff."
+  },
+  "chatGameLdThereWere": "{count, plural, =1{There was 1} other{There were {count}}}",
+  "@chatGameLdThereWere": {
+    "description": "Liar's Dice reveal: how many dice matched the bid.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameLdLosesDie": "{name} loses a die",
+  "@chatGameLdLosesDie": {
+    "description": "Liar's Dice reveal: who loses a die.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLdYouLoseDie": "You lose a die",
+  "@chatGameLdYouLoseDie": {
+    "description": "Liar's Dice reveal: the viewer loses a die."
+  },
+  "chatGameLdCalled": "{name} called liar",
+  "@chatGameLdCalled": {
+    "description": "Liar's Dice reveal: who called the bluff.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLdTimedOut": "Time ran out for {name}",
+  "@chatGameLdTimedOut": {
+    "description": "Liar's Dice: a player's turn timer ran out and the game played for them.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLdOut": "Out",
+  "@chatGameLdOut": {
+    "description": "Liar's Dice: a player with no dice left."
+  },
+  "chatGameLdQuantity": "How many",
+  "@chatGameLdQuantity": {
+    "description": "Liar's Dice bid picker: label over the quantity stepper."
+  },
+  "chatGameLdFace": "Which face",
+  "@chatGameLdFace": {
+    "description": "Liar's Dice bid picker: label over the die face chips."
+  },
+  "chatGameLdFewer": "Fewer",
+  "@chatGameLdFewer": {
+    "description": "Liar's Dice bid picker: accessibility label of the minus button."
+  },
+  "chatGameLdMore": "More",
+  "@chatGameLdMore": {
+    "description": "Liar's Dice bid picker: accessibility label of the plus button."
+  },
+  "chatGameLdPrompt": "Raise the bid or call liar",
+  "@chatGameLdPrompt": {
+    "description": "Liar's Dice: prompt on the viewer's turn when there is a bid."
+  },
+  "chatGameLdOpenPrompt": "Open the bidding",
+  "@chatGameLdOpenPrompt": {
+    "description": "Liar's Dice: prompt on the viewer's turn when nobody has bid yet."
+  },
+  "chatGameImpHoldToSee": "Hold to see your card",
+  "@chatGameImpHoldToSee": {
+    "description": "Imposter: hint on the face-down card."
+  },
+  "chatGameImpYourWord": "Your word",
+  "@chatGameImpYourWord": {
+    "description": "Imposter: label over the secret word on a crew card."
+  },
+  "chatGameImpYouAre": "You’re the imposter",
+  "@chatGameImpYouAre": {
+    "description": "Imposter: what the imposter's card says."
+  },
+  "chatGameImpCategory": "Category: {category}",
+  "@chatGameImpCategory": {
+    "description": "Imposter: the word's category, the imposter's only hint.",
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameImpBlendIn": "Blend in. Nobody else knows.",
+  "@chatGameImpBlendIn": {
+    "description": "Imposter: advice on the imposter's card."
+  },
+  "chatGameImpKeepSecret": "Don’t say it outright. Give clues the others will get.",
+  "@chatGameImpKeepSecret": {
+    "description": "Imposter: advice on a crew member's card."
+  },
+  "chatGameImpGotIt": "Got it",
+  "@chatGameImpGotIt": {
+    "description": "Imposter: button after looking at your card."
+  },
+  "chatGameImpLooked": "{count} of {total} have looked",
+  "@chatGameImpLooked": {
+    "description": "Imposter: how many players have looked at their card.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameImpGiving": "{name} is giving a clue",
+  "@chatGameImpGiving": {
+    "description": "Imposter: whose turn it is to give a clue.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameImpYourClue": "Your turn to give a clue",
+  "@chatGameImpYourClue": {
+    "description": "Imposter: it is the viewer's turn to give a clue."
+  },
+  "chatGameImpClueHint": "One to four words",
+  "@chatGameImpClueHint": {
+    "description": "Imposter: the clue length rule under the clue field."
+  },
+  "chatGameImpClueField": "Your clue",
+  "@chatGameImpClueField": {
+    "description": "Imposter: placeholder of the clue field."
+  },
+  "chatGameImpSend": "Send",
+  "@chatGameImpSend": {
+    "description": "Imposter: send the typed clue."
+  },
+  "chatGameImpTooManyWords": "Four words at most",
+  "@chatGameImpTooManyWords": {
+    "description": "Imposter: the typed clue has more than four words."
+  },
+  "chatGameImpPassed": "Passed",
+  "@chatGameImpPassed": {
+    "description": "Imposter: a player ran out of time and gave no clue."
+  },
+  "chatGameImpSpoke": "Spoke on the call",
+  "@chatGameImpSpoke": {
+    "description": "Imposter voice mode: a player has said their clue on the call."
+  },
+  "chatGameImpJoinCall": "Join the call",
+  "@chatGameImpJoinCall": {
+    "description": "Imposter voice mode: join or start the chat's group call."
+  },
+  "chatGameImpOnCall": "You’re on the call",
+  "@chatGameImpOnCall": {
+    "description": "Imposter voice mode: the viewer is already in the call."
+  },
+  "chatGameImpVoiceHint": "Say your clue out loud, then tap Done.",
+  "@chatGameImpVoiceHint": {
+    "description": "Imposter voice mode: what to do on your turn. 'Done' must match chatGameImpDone."
+  },
+  "chatGameImpDone": "Done",
+  "@chatGameImpDone": {
+    "description": "Imposter voice mode: button after saying your clue."
+  },
+  "chatGameImpVoteTitle": "Who’s the imposter?",
+  "@chatGameImpVoteTitle": {
+    "description": "Imposter: title of the vote."
+  },
+  "chatGameImpVoteHint": "Tap a player to vote. You can change it until time runs out.",
+  "@chatGameImpVoteHint": {
+    "description": "Imposter: how voting works."
+  },
+  "chatGameImpSkip": "Skip vote",
+  "@chatGameImpSkip": {
+    "description": "Imposter: vote for nobody."
+  },
+  "chatGameImpVoted": "{count} of {total} voted",
+  "@chatGameImpVoted": {
+    "description": "Imposter: how many players have voted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameImpVotedBadge": "Voted",
+  "@chatGameImpVotedBadge": {
+    "description": "Imposter: badge under a player who has voted (not for whom)."
+  },
+  "chatGameImpYourVote": "Your vote",
+  "@chatGameImpYourVote": {
+    "description": "Imposter: badge on the player the viewer voted for."
+  },
+  "chatGameImpGuessing": "The imposter is guessing…",
+  "@chatGameImpGuessing": {
+    "description": "Imposter: the caught imposter is guessing the word."
+  },
+  "chatGameImpGuessHint": "You were caught. Name the word to steal the win.",
+  "@chatGameImpGuessHint": {
+    "description": "Imposter: shown to the caught imposter."
+  },
+  "chatGameImpGuessField": "The word is…",
+  "@chatGameImpGuessField": {
+    "description": "Imposter: placeholder of the guess field."
+  },
+  "chatGameImpGuess": "Guess",
+  "@chatGameImpGuess": {
+    "description": "Imposter: send the guess."
+  },
+  "chatGameImpWas": "{name} was the imposter",
+  "@chatGameImpWas": {
+    "description": "Imposter result: who the imposter was.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameImpYouWere": "You were the imposter",
+  "@chatGameImpYouWere": {
+    "description": "Imposter result: the viewer was the imposter."
+  },
+  "chatGameImpTheWord": "The word was",
+  "@chatGameImpTheWord": {
+    "description": "Imposter result: label over the secret word."
+  },
+  "chatGameImpTheyGuessed": "Guessed “{guess}”",
+  "@chatGameImpTheyGuessed": {
+    "description": "Imposter result: what the imposter guessed.",
+    "placeholders": {
+      "guess": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameImpVotes": "{count, plural, =1{1 vote} other{{count} votes}}",
+  "@chatGameImpVotes": {
+    "description": "Imposter result: votes a player got.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameImpSkipped": "{count, plural, =1{1 skipped} other{{count} skipped}}",
+  "@chatGameImpSkipped": {
+    "description": "Imposter result: how many players skipped the vote.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameImpReasonEscaped": "Nobody was voted out, so the imposter got away.",
+  "@chatGameImpReasonEscaped": {
+    "description": "Imposter result: nobody got enough votes."
+  },
+  "chatGameImpReasonWrong": "The crew voted out the wrong player.",
+  "@chatGameImpReasonWrong": {
+    "description": "Imposter result: a crew member was voted out."
+  },
+  "chatGameImpReasonGuessed": "Caught, but the imposter guessed the word.",
+  "@chatGameImpReasonGuessed": {
+    "description": "Imposter result: caught, then guessed the word."
+  },
+  "chatGameImpReasonCaught": "The crew caught the imposter.",
+  "@chatGameImpReasonCaught": {
+    "description": "Imposter result: caught and did not guess the word."
+  },
+  "chatGameImpReasonImposterLeft": "The imposter left the game.",
+  "@chatGameImpReasonImposterLeft": {
+    "description": "Imposter result: the imposter left the game."
+  },
+  "chatGameImpReasonCrewLeft": "The rest of the crew left.",
+  "@chatGameImpReasonCrewLeft": {
+    "description": "Imposter result: everyone but the imposter left."
+  },
+  "chatGameImpCrewWon": "The crew won",
+  "@chatGameImpCrewWon": {
+    "description": "Imposter result: the crew (everyone but the imposter) won."
+  },
+  "chatGameImpYourTeamWon": "Your team won",
+  "@chatGameImpYourTeamWon": {
+    "description": "Imposter result: the viewer was crew and the crew won."
+  },
+  "chatGameImpImposterWon": "{name} won as the imposter",
+  "@chatGameImpImposterWon": {
+    "description": "Imposter result: the imposter won.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameImpYouWonImposter": "You won as the imposter",
+  "@chatGameImpYouWonImposter": {
+    "description": "Imposter result: the viewer was the imposter and won."
+  },
+  "chatGameImpCardReveal": "Looking at cards",
+  "@chatGameImpCardReveal": {
+    "description": "Imposter status on the chat card: everyone is looking at their card."
+  },
+  "chatGameImpCardClues": "Clues · {count} of {total}",
+  "@chatGameImpCardClues": {
+    "description": "Imposter status on the chat card: clues given so far.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameImpCardVote": "Voting",
+  "@chatGameImpCardVote": {
+    "description": "Imposter status on the chat card: the vote is open."
+  },
+  "chatGameRaceFinishedCount": "{count} of {total} finished",
+  "@chatGameRaceFinishedCount": {
+    "description": "Puzzle Race: how many players have finished.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameRaceYouPlaced": "You finished #{rank}",
+  "@chatGameRaceYouPlaced": {
+    "description": "Puzzle Race: the viewer's finishing place.",
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameRaceWaiting": "Waiting for the others",
+  "@chatGameRaceWaiting": {
+    "description": "Puzzle Race: the viewer has finished and the others are still solving."
+  },
+  "chatGameRaceTimeUp": "Time’s up. Nobody finished.",
+  "@chatGameRaceTimeUp": {
+    "description": "Puzzle Race result: the 10 minutes ran out and nobody finished."
+  },
+  "chatGameRaceDnf": "Didn’t finish",
+  "@chatGameRaceDnf": {
+    "description": "Puzzle Race results: a player who did not finish."
+  },
+  "chatGameRaceLeft": "Left",
+  "@chatGameRaceLeft": {
+    "description": "Puzzle Race results: a player who left."
+  },
+  "chatGameRaceResults": "Results",
+  "@chatGameRaceResults": {
+    "description": "Puzzle Race: header over the final standings."
+  },
+  "chatGameRaceSolved": "Solved!",
+  "@chatGameRaceSolved": {
+    "description": "Puzzle Race: the viewer just solved the board."
+  },
+  "chatGamePartyLeaveConfirm": "Leave this game?",
+  "@chatGamePartyLeaveConfirm": {
+    "description": "Party games: confirm leaving a game in progress."
+  },
+  "chatGamePartyLeaveBody": "The others play on without you.",
+  "@chatGamePartyLeaveBody": {
+    "description": "Party games: what leaving a game in progress means."
+  },
+  "chatGameErrTooLate": "Too late, time ran out",
+  "@chatGameErrTooLate": {
+    "description": "Party games: an action arrived after the phase's timer ran out."
+  },
+  "chatGameErrBadClue": "That clue can’t be used. One to four words, no links.",
+  "@chatGameErrBadClue": {
+    "description": "Imposter: the server refused a clue."
+  },
+  "chatGameErrBadGuess": "Type a guess first",
+  "@chatGameErrBadGuess": {
+    "description": "Imposter: the guess was empty or too long."
+  },
+  "chatGameErrNotSolved": "That board isn’t solved yet",
+  "@chatGameErrNotSolved": {
+    "description": "Puzzle Race: the server says the board sent is not solved."
+  },
+  "chatGameNameChess": "Chess",
+  "@chatGameNameChess": {
+    "description": "Name of the chess chat game."
+  },
+  "chatGameDescChess": "Checkmate the king to win.",
+  "@chatGameDescChess": {
+    "description": "One-line rule for chess in the game picker."
+  },
+  "chessPawn": "pawn",
+  "@chessPawn": {
+    "description": "Chess piece name for screen readers."
+  },
+  "chessKnight": "knight",
+  "@chessKnight": {
+    "description": "Chess piece name for screen readers."
+  },
+  "chessBishop": "bishop",
+  "@chessBishop": {
+    "description": "Chess piece name for screen readers."
+  },
+  "chessRook": "rook",
+  "@chessRook": {
+    "description": "Chess piece name for screen readers."
+  },
+  "chessQueen": "queen",
+  "@chessQueen": {
+    "description": "Chess piece name for screen readers."
+  },
+  "chessKing": "king",
+  "@chessKing": {
+    "description": "Chess piece name for screen readers."
+  },
+  "chessPieceWhite": "{piece}, white",
+  "@chessPieceWhite": {
+    "description": "Screen reader: a piece belonging to white, e.g. 'knight, white'.",
+    "placeholders": {
+      "piece": {
+        "type": "String"
+      }
+    }
+  },
+  "chessPieceBlack": "{piece}, black",
+  "@chessPieceBlack": {
+    "description": "Screen reader: a piece belonging to black, e.g. 'knight, black'.",
+    "placeholders": {
+      "piece": {
+        "type": "String"
+      }
+    }
+  },
+  "chessPromoteTo": "Promote to {piece}",
+  "@chessPromoteTo": {
+    "description": "Screen reader label on a pawn promotion choice.",
+    "placeholders": {
+      "piece": {
+        "type": "String"
+      }
+    }
   }
 }

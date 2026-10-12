@@ -131,7 +131,10 @@ export const board = query({
         .query("gameRecords")
         .withIndex("by_user_game", (q: any) => q.eq("userId", p.id))
         .collect();
-      for (const r of records) byGame.get(r.game)?.push({ r, p });
+      // A record holder with no clean solve yet has nothing to rank.
+      for (const r of records) {
+        if (r.best !== undefined) byGame.get(r.game)?.push({ r, p });
+      }
     }
 
     const games: Record<string, any[]> = {};
@@ -141,7 +144,7 @@ export const board = query({
       // first; then id, so a tie holds its order instead of shuffling between
       // opens.
       rows.sort((a, b) => {
-        if (a.r.best !== b.r.best) return a.r.best - b.r.best;
+        if (a.r.best !== b.r.best) return a.r.best! - b.r.best!;
         if (a.r.achievedAt !== b.r.achievedAt) {
           return a.r.achievedAt - b.r.achievedAt;
         }
@@ -290,21 +293,37 @@ export const backfill = internalMutation({
 
     for (const user of page.page) {
       totalUsers++;
-      type Tally = { best: number; dayKey: string; achievedAt: number; solves: number };
+      type Tally = { best?: number; dayKey: string; achievedAt: number; solves: number };
       const tally = new Map<string, Tally>();
       // Every day each game was solved on, for the streaks below.
       const days = new Map<string, string[]>();
-      const note = (game: string, score: number, dayKey: string, at: number) => {
+      const note = (
+        game: string,
+        score: number,
+        dayKey: string,
+        at: number,
+        clean: boolean,
+      ) => {
         days.set(game, [...(days.get(game) ?? []), dayKey]);
         const t = tally.get(game);
         if (!t) {
-          tally.set(game, { best: score, dayKey, achievedAt: at, solves: 1 });
+          tally.set(game, {
+            ...(clean ? { best: score } : {}),
+            dayKey,
+            achievedAt: at,
+            solves: 1,
+          });
           return;
         }
         t.solves++;
-        // Same rule as `noteSolve`: strictly better replaces; a tie keeps the
-        // earlier.
-        if (score < t.best || (score === t.best && at < t.achievedAt)) {
+        // Same rule as `noteSolve`: a hinted solve never sets the best;
+        // strictly better replaces; a tie keeps the earlier.
+        if (!clean) return;
+        if (
+          t.best === undefined ||
+          score < t.best ||
+          (score === t.best && at < t.achievedAt)
+        ) {
           t.best = score;
           t.dayKey = dayKey;
           t.achievedAt = at;
@@ -316,7 +335,13 @@ export const backfill = internalMutation({
         .withIndex("by_user_day_game", (q: any) => q.eq("userId", user._id))
         .collect()) {
         if (!row.solved || row.durationMs === undefined) continue;
-        note(row.game, row.durationMs, row.dayKey, row.finishedAt ?? row.startedAt);
+        note(
+          row.game,
+          row.durationMs,
+          row.dayKey,
+          row.finishedAt ?? row.startedAt,
+          (row.hintsUsed ?? 0) === 0,
+        );
       }
       for (const row of await ctx.db
         .query("puzzleResults")
@@ -328,6 +353,7 @@ export const backfill = internalMutation({
           row.guesses.length,
           row.dayKey,
           row.finishedAt ?? row.updatedAt,
+          true,
         );
       }
 

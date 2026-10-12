@@ -36,6 +36,8 @@ import 'link_preview_card.dart';
 import 'jumbo_emoji.dart';
 import 'linkified_text.dart';
 import 'media_flight.dart';
+import 'challenge_bubble.dart';
+import 'game_bubble.dart';
 import 'interaction_bubble.dart';
 import 'location_bubble.dart';
 import 'text_runs.dart';
@@ -1421,6 +1423,10 @@ bool messageStampsInline(ChatMessage message,
       // against. Either way the answer here is the same — inline, no external
       // row.
       return true;
+    // A game card has a footer row with the stamp at its end, like a poll's.
+    case MessageType.game:
+    case MessageType.challenge:
+      return true;
     case MessageType.text:
     case MessageType.url:
       // A jumbo emoji has no bubble to tuck a stamp into and nothing opaque to
@@ -2073,6 +2079,29 @@ Widget buildMessageContent({
         stamp: stampFor(StampTone.onBubble),
         actions: interactionActions,
         currentUserId: currentUserId,
+      );
+    case MessageType.game:
+      // Bubble-less like the poll card above: the card paints its own ground,
+      // and its body (seats, board, result) comes from `MatchesStore` rather
+      // than the message row. See [GameBubble].
+      return GameBubble(
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        width: imageSize,
+        radius: mediaRadius,
+        currentUserId: currentUserId ?? '',
+        stamp: stampFor(StampTone.onBubble),
+      );
+    case MessageType.challenge:
+      return ChallengeBubble(
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        width: imageSize,
+        radius: mediaRadius,
+        currentUserId: currentUserId ?? '',
+        stamp: stampFor(StampTone.onBubble),
       );
     case MessageType.url:
     case MessageType.text:

@@ -14,6 +14,7 @@
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { purgeScheduledForRoom } from "./scheduledMessages";
 import { purgeSpeakerColorsForRoom } from "./speakerColors";
+import { purgeChallengesForRoom, purgeMatchesForRoom } from "./matchCore";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -89,6 +90,9 @@ async function wipeRoomContents(ctx: any, roomId: any) {
   // than to the room, so missing them would leave live rows pointing at a
   // roomId nothing resolves.
   await purgeSpeakerColorsForRoom(ctx, roomId);
+  // In-chat games, their move history and their heartbeats.
+  await purgeMatchesForRoom(ctx, roomId);
+  await purgeChallengesForRoom(ctx, roomId);
   // Typing indicators
   const typing = await ctx.db
     .query("typingIndicators")

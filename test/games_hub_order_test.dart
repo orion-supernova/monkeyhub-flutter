@@ -22,7 +22,7 @@ import 'fakes/fake_games_api.dart';
 
 /// Which game the Feed's games row puts first, and where the shelf lives.
 ///
-/// The code puzzle leads the four boards, and that is not a cosmetic
+/// The code puzzle leads the timed boards, and that is not a cosmetic
 /// preference: the daily nudge names the code, so the tile somebody lands on
 /// after tapping that notification has to be the one under their thumb rather
 /// than the one they have to scan past.
@@ -42,7 +42,17 @@ void main() {
 
   final payload = <String, dynamic>{
     'dayKey': day['dayKey'],
-    for (final game in ['queens', 'tango', 'zip', 'sudoku'])
+    for (final game in [
+      'queens',
+      'tango',
+      'zip',
+      'sudoku',
+      'flow',
+      'futoshiki',
+      'nonogram',
+      'minesweeper',
+      'starbattle',
+    ])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
   };
 
@@ -89,10 +99,13 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CodePuzzleTile), findsOneWidget);
-    expect(find.byType(GameTile), findsNWidgets(4));
+    expect(find.byType(GameTile), findsNWidgets(DailyGame.values.length));
+    // Every tier has a game now, Star Battle holding Hard, so no tile is a
+    // placeholder.
+    expect(find.byType(ComingSoonTile), findsNothing);
 
     final code = tester.getTopLeft(find.byType(CodePuzzleTile));
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < DailyGame.values.length; i++) {
       final board = tester.getTopLeft(find.byType(GameTile).at(i));
       // One row: a second row is what pushed the rest of the Feed down.
       expect((board.dy - code.dy).abs(), lessThan(1), reason: 'tile $i');
@@ -111,7 +124,8 @@ void main() {
     expect(third.left, lessThan(358));
     expect(third.right, greaterThan(358));
 
-    final last = find.byKey(ValueKey('strip_${DailyGame.sudoku.wire}'));
+    // The hard group closes the row, so Star Battle is the last tile.
+    final last = find.byKey(ValueKey('strip_${DailyGame.starbattle.wire}'));
     final before = tester.getTopLeft(last).dx;
     await tester.drag(find.byType(CodePuzzleTile), const Offset(-400, 0));
     // Fixed pumps: the boards are still loading, and their skeleton shimmers

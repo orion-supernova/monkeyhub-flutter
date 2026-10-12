@@ -1,0 +1,508 @@
+import { convexTest } from "convex-test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { api } from "./_generated/api";
+import schema from "./schema";
+import {
+  ASYNC_EXPIRE_MS,
+  LIVE_GRACE_MS,
+  MAX_ASYNC_PER_DM,
+  NUDGE_EVERY_MS,
+} from "./matches";
+import { matchLine, MATCH_COPY_TABLE } from "./matchCopy";
+
+/**
+ * In-chat games: the promises `matches.ts` makes in its header, each pinned.
+ *
+ *   1. The rules module is the only way a board changes; an illegal, early,
+ *      stale or out-of-turn move is refused and changes nothing.
+ *   2. A resent move is answered as the success it was, never applied twice.
+ *   3. One live game per room; at most three async games per DM; async only
+ *      in a DM.
+ *   4. Only members play, watch, or ask for a seat.
+ *   5. Leaving the board pauses a live game; the grace period ends it for
+ *      whoever stayed away. An async turn left unanswered times out.
+ *   6. Leaving the room, or deleting the card, takes the games with it.
+ *   7. None of it ever writes a daily game's tables.
+ */
+
+type Who = { token: string; userId: any };
+const DEVICE = "device-a";
+
+async function signUp(t: ReturnType<typeof convexTest>, username: string) {
+  return (await t.mutation(api.auth.signup, {
+    username,
+    name: username,
+    passwordHash: `hash-${username}`,
+    recoveryKeyHash: `recovery-${username}`,
+    deviceId: DEVICE,
+  })) as Who;
+}
+
+async function dm(t: ReturnType<typeof convexTest>, a: Who, b: Who) {
+  await t.mutation(api.friends.sendRequest, {
+    ...as(a),
+    friendUsername: (await t.run((ctx) => ctx.db.get(b.userId)) as any).username,
+  });
+  await t.mutation(api.friends.acceptRequest, {
+    ...as(b),
+    requesterId: a.userId,
+  });
+  return await t.mutation(api.rooms.getOrCreateDM, {
+    sessionToken: a.token,
+    userId: a.userId,
+    friendId: b.userId,
+  });
+}
+
+async function group(t: ReturnType<typeof convexTest>, owner: Who, ...others: Who[]) {
+  const roomId = await t.mutation(api.rooms.create, {
+    sessionToken: owner.token,
+    userId: owner.userId,
+    name: "games night",
+    isPrivate: false,
+  });
+  for (const o of others) {
+    await t.mutation(api.rooms.join, {
+      sessionToken: o.token,
+      userId: o.userId,
+      roomId,
+    });
+  }
+  return roomId;
+}
+
+function as(who: Who) {
+  return { sessionToken: who.token, userId: who.userId };
+}
+
+async function create(
+  t: ReturnType<typeof convexTest>,
+  who: Who,
+  roomId: any,
+  game: string,
+  mode: "live" | "async",
+  clientId?: string,
+) {
+  return (await t.mutation(api.matches.create, {
+    ...as(who),
+    roomId,
+    game,
+    mode,
+    clientId,
+  })) as { matchId: any; messageId: any };
+}
+
+async function read(t: ReturnType<typeof convexTest>, who: Who, matchId: any) {
+  return (await t.query(api.matches.get, {
+    sessionToken: who.token,
+    matchId,
+    viewerUserId: who.userId,
+  })) as any;
+}
+
+async function play(
+  t: ReturnType<typeof convexTest>,
+  who: Who,
+  matchId: any,
+  move: string,
+  clientMoveId?: string,
+) {
+  const m = await read(t, who, matchId);
+  return await t.mutation(api.matches.move, {
+    ...as(who),
+    matchId,
+    expectedSeq: m.seq,
+    move,
+    clientMoveId,
+  });
+}
+
+/**
+ * Moves the clock [ms] forward the way a real one passes: in 10 s steps, each
+ * with a heartbeat from everyone in [beaters] still at the board (the game
+ * screen beats every 10 s), letting every job that came due run.
+ */
+async function advance(
+  t: ReturnType<typeof convexTest>,
+  ms: number,
+  matchId: any,
+  beaters: Who[] = [],
+) {
+  for (let done = 0; done < ms; done += 10_000) {
+    vi.advanceTimersByTime(Math.min(10_000, ms - done));
+    await t.finishInProgressScheduledFunctions();
+    for (const who of beaters) {
+      await t.mutation(api.matches.beat, { ...as(who), matchId });
+    }
+  }
+}
+
+/** A live tic-tac-toe in a fresh group, both players seated and ready. */
+async function liveGame(t: ReturnType<typeof convexTest>) {
+  const a = await signUp(t, "ada");
+  const b = await signUp(t, "bob");
+  const c = await signUp(t, "cem");
+  const roomId = await group(t, a, b, c);
+  const { matchId } = await create(t, a, roomId, "tictactoe", "live");
+  await t.mutation(api.matches.join, { ...as(b), matchId });
+  await t.mutation(api.matches.setReady, { ...as(a), matchId, ready: true });
+  await t.mutation(api.matches.setReady, { ...as(b), matchId, ready: true });
+  return { a, b, c, roomId, matchId };
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("a live game", () => {
+  test("fills, starts when everyone is ready, and is won by the rules", async () => {
+    const t = convexTest(schema);
+    const { a, b, matchId } = await liveGame(t);
+    const started = await read(t, a, matchId);
+    expect(started.status).toBe("active");
+    expect(started.seats.map((s: any) => s.name)).toEqual(["ada", "bob"]);
+    expect(started.turnSeat).toBe(0);
+
+    // X takes the top row.
+    for (const [who, cell] of [
+      [a, "0"],
+      [b, "3"],
+      [a, "1"],
+      [b, "4"],
+      [a, "2"],
+    ] as const) {
+      await play(t, who, matchId, cell);
+    }
+    const done = await read(t, b, matchId);
+    expect(done.status).toBe("finished");
+    expect(done.winner).toBe(0);
+    expect(done.reason).toBe("win");
+    expect(done.turnSeat).toBeUndefined();
+    await expect(play(t, b, matchId, "5")).rejects.toThrow("NOT_ACTIVE");
+  });
+
+  test("refuses an illegal, out-of-turn or stale move, changing nothing", async () => {
+    const t = convexTest(schema);
+    const { a, b, matchId } = await liveGame(t);
+    await expect(play(t, b, matchId, "0")).rejects.toThrow("NOT_YOUR_TURN");
+    await expect(play(t, a, matchId, "9")).rejects.toThrow("ILLEGAL");
+    await play(t, a, matchId, "4");
+    await expect(play(t, b, matchId, "4")).rejects.toThrow("ILLEGAL");
+    await expect(
+      t.mutation(api.matches.move, {
+        ...as(b),
+        matchId,
+        expectedSeq: 0,
+        move: "0",
+      }),
+    ).rejects.toThrow("STALE");
+    const m = await read(t, a, matchId);
+    expect(m.seq).toBe(1);
+    expect(m.state).toBe("....X..../1");
+  });
+
+  test("a resent move is a success, not a second move", async () => {
+    const t = convexTest(schema);
+    const { a, matchId } = await liveGame(t);
+    await t.mutation(api.matches.move, {
+      ...as(a),
+      matchId,
+      expectedSeq: 0,
+      move: "4",
+      clientMoveId: "m1",
+    });
+    const again = await t.mutation(api.matches.move, {
+      ...as(a),
+      matchId,
+      expectedSeq: 0,
+      move: "4",
+      clientMoveId: "m1",
+    });
+    expect(again).toEqual({ seq: 1, replay: true });
+    expect((await read(t, a, matchId)).seq).toBe(1);
+  });
+
+  test("one live game per room, and a resent create is not a second one", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await group(t, a, b);
+    const first = await create(t, a, roomId, "connectfour", "live", "c1");
+    const resent = await create(t, a, roomId, "connectfour", "live", "c1");
+    expect(resent.matchId).toEqual(first.matchId);
+    await expect(create(t, b, roomId, "tictactoe", "live")).rejects.toThrow(
+      "ALREADY_LIVE",
+    );
+  });
+
+  test("leaving the board pauses it; coming back resumes it", async () => {
+    const t = convexTest(schema);
+    const { a, b, matchId } = await liveGame(t);
+    await t.mutation(api.matches.away, { ...as(b), matchId });
+    const paused = await read(t, a, matchId);
+    expect(paused.status).toBe("paused");
+    expect(paused.seats[1].away).toBe(true);
+    await expect(play(t, a, matchId, "4")).rejects.toThrow("PAUSED");
+
+    await t.mutation(api.matches.beat, { ...as(b), matchId });
+    const back = await read(t, a, matchId);
+    expect(back.status).toBe("active");
+    expect(back.seats[1].away).toBeUndefined();
+  });
+
+  test("whoever is still gone when the grace runs out forfeits", async () => {
+    const t = convexTest(schema);
+    const { a, b, matchId } = await liveGame(t);
+    await t.mutation(api.matches.away, { ...as(b), matchId });
+    await advance(t, LIVE_GRACE_MS + 1000, matchId, [a]);
+    const done = await read(t, a, matchId);
+    expect(done.status).toBe("finished");
+    expect(done.winner).toBe(0);
+    expect(done.reason).toBe("left");
+  });
+
+  test("a pause that ended does not let its old timer end a new one", async () => {
+    const t = convexTest(schema);
+    const { a, b, matchId } = await liveGame(t);
+    await t.mutation(api.matches.away, { ...as(b), matchId });
+    await t.mutation(api.matches.beat, { ...as(b), matchId });
+    await advance(t, LIVE_GRACE_MS - 30_000, matchId, [a, b]);
+    await t.mutation(api.matches.away, { ...as(b), matchId });
+    // The FIRST pause's timer comes due inside this window, and must do
+    // nothing: this pause is only 40 s old.
+    await advance(t, 40_000, matchId, [a]);
+    expect((await read(t, a, matchId)).status).toBe("paused");
+  });
+
+  test("a spectator asks, the holder agrees, and they swap mid-game", async () => {
+    const t = convexTest(schema);
+    const { a, b, c, matchId } = await liveGame(t);
+    await play(t, a, matchId, "4");
+    await t.mutation(api.matches.requestSeat, { ...as(c), matchId, seat: 1 });
+    await expect(
+      t.mutation(api.matches.answerSeatRequest, { ...as(a), matchId, accept: true }),
+    ).rejects.toThrow("NOT_YOURS");
+    await t.mutation(api.matches.answerSeatRequest, {
+      ...as(b),
+      matchId,
+      accept: true,
+    });
+    const m = await read(t, a, matchId);
+    expect(m.seats[1].name).toBe("cem");
+    expect(m.seatRequest).toBeUndefined();
+    // The position carries on, with cem to move.
+    await expect(play(t, b, matchId, "0")).rejects.toThrow("NOT_SEATED");
+    await play(t, c, matchId, "0");
+    expect((await read(t, a, matchId)).seq).toBe(2);
+  });
+
+  test("the last one out of a lobby closes it", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await group(t, a, b);
+    const { matchId } = await create(t, a, roomId, "dots", "live");
+    await t.mutation(api.matches.join, { ...as(b), matchId });
+    await t.mutation(api.matches.leave, { ...as(a), matchId });
+    expect((await read(t, b, matchId)).status).toBe("lobby");
+    await t.mutation(api.matches.leave, { ...as(b), matchId });
+    expect((await read(t, b, matchId)).status).toBe("abandoned");
+    // And the room is free for another.
+    await create(t, b, roomId, "tictactoe", "live");
+  });
+});
+
+describe("an async DM game", () => {
+  test("starts at once, tells the other player, and times out unanswered", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await create(t, a, roomId, "connectfour", "async");
+    const m = await read(t, b, matchId);
+    expect(m.status).toBe("active");
+    expect(m.seats.map((s: any) => s.name)).toEqual(["ada", "bob"]);
+    await play(t, a, matchId, "3");
+    expect((await read(t, b, matchId)).turnSeat).toBe(1);
+
+    vi.advanceTimersByTime(ASYNC_EXPIRE_MS + 1000);
+    await t.finishInProgressScheduledFunctions();
+    const done = await read(t, a, matchId);
+    expect(done.status).toBe("finished");
+    expect(done.winner).toBe(0);
+    expect(done.reason).toBe("timeout");
+  });
+
+  test("a move answered in time keeps the old deadline from firing", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await create(t, a, roomId, "tictactoe", "async");
+    vi.advanceTimersByTime(ASYNC_EXPIRE_MS - 60_000);
+    await play(t, a, matchId, "4");
+    vi.advanceTimersByTime(120_000);
+    await t.finishInProgressScheduledFunctions();
+    expect((await read(t, a, matchId)).status).toBe("active");
+  });
+
+  test("is DM-only, and capped at three at once", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const g = await group(t, a, b);
+    await expect(create(t, a, g, "tictactoe", "async")).rejects.toThrow(
+      "ASYNC_DM_ONLY",
+    );
+    const roomId = await dm(t, a, b);
+    for (let i = 0; i < MAX_ASYNC_PER_DM; i++) {
+      await create(t, i % 2 ? a : b, roomId, "tictactoe", "async");
+    }
+    await expect(create(t, a, roomId, "reversi", "async")).rejects.toThrow(
+      "TOO_MANY_GAMES",
+    );
+    // A live one alongside is still fine.
+    await create(t, a, roomId, "reversi", "live");
+  });
+
+  test("a nudge waits its turn", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await create(t, a, roomId, "tictactoe", "async");
+    await play(t, a, matchId, "4");
+    await expect(
+      t.mutation(api.matches.nudge, { ...as(a), matchId }),
+    ).rejects.toThrow("TOO_SOON");
+    await expect(
+      t.mutation(api.matches.nudge, { ...as(b), matchId }),
+    ).rejects.toThrow("YOUR_MOVE");
+    vi.advanceTimersByTime(NUDGE_EVERY_MS + 1000);
+    await t.mutation(api.matches.nudge, { ...as(a), matchId });
+    await expect(
+      t.mutation(api.matches.nudge, { ...as(a), matchId }),
+    ).rejects.toThrow("TOO_SOON");
+  });
+
+  test("a draw offered and accepted ends it level", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await create(t, a, roomId, "checkers", "async");
+    await t.mutation(api.matches.offerDraw, { ...as(a), matchId });
+    await t.mutation(api.matches.answerDraw, { ...as(b), matchId, accept: true });
+    const m = await read(t, a, matchId);
+    expect(m.status).toBe("finished");
+    expect(m.draw).toBe(true);
+  });
+
+  test("a rematch swaps who goes first", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await create(t, a, roomId, "tictactoe", "async");
+    await t.mutation(api.matches.resign, { ...as(b), matchId });
+    const again = (await t.mutation(api.matches.rematch, {
+      ...as(b),
+      matchId,
+    })) as any;
+    const m = await read(t, a, again.matchId);
+    expect(m.seats.map((s: any) => s.name)).toEqual(["bob", "ada"]);
+  });
+});
+
+describe("the room around it", () => {
+  test("outsiders cannot read, move or ask for a seat", async () => {
+    const t = convexTest(schema);
+    const { matchId } = await liveGame(t);
+    const z = await signUp(t, "zed");
+    expect(await read(t, z, matchId)).toBeNull();
+    await expect(play(t, z, matchId, "0")).rejects.toThrow();
+    await expect(
+      t.mutation(api.matches.requestSeat, { ...as(z), matchId, seat: 0 }),
+    ).rejects.toThrow();
+  });
+
+  test("leaving the room forfeits your seat", async () => {
+    const t = convexTest(schema);
+    const { a, b, roomId, matchId } = await liveGame(t);
+    await t.mutation(api.rooms.leave, { ...as(b), roomId });
+    const m = await read(t, a, matchId);
+    expect(m.status).toBe("finished");
+    expect(m.winner).toBe(0);
+    expect(m.reason).toBe("left");
+  });
+
+  test("deleting the card takes the game and its history", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId, messageId } = await create(t, a, roomId, "tictactoe", "async");
+    await play(t, a, matchId, "4");
+    await t.mutation(api.messages.deleteMessage, { ...as(a), messageId });
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(matchId)).toBeNull();
+      expect(await ctx.db.query("matchMoves").collect()).toHaveLength(0);
+    });
+  });
+
+  test("never writes a daily game's tables", async () => {
+    const t = convexTest(schema);
+    const { a, b, matchId } = await liveGame(t);
+    for (const [who, cell] of [
+      [a, "0"],
+      [b, "3"],
+      [a, "1"],
+      [b, "4"],
+      [a, "2"],
+    ] as const) {
+      await play(t, who, matchId, cell);
+    }
+    await t.run(async (ctx) => {
+      expect(await ctx.db.query("gameResults").collect()).toHaveLength(0);
+      expect(await ctx.db.query("gameRecords").collect()).toHaveLength(0);
+    });
+  });
+
+  test("the card shows in the room's list, for members only", async () => {
+    const t = convexTest(schema);
+    const { a, roomId, matchId } = await liveGame(t);
+    const rows = (await t.query(api.matches.listForRoom, {
+      sessionToken: a.token,
+      roomId,
+      viewerUserId: a.userId,
+    })) as any[];
+    expect(rows.map((r) => r.id)).toEqual([matchId]);
+    const z = await signUp(t, "zed");
+    expect(
+      await t.query(api.matches.listForRoom, {
+        sessionToken: z.token,
+        roomId,
+        viewerUserId: z.userId,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("push copy", () => {
+  test("every locale has every line, with no em dash", () => {
+    const keys = Object.keys(MATCH_COPY_TABLE.en);
+    for (const [locale, copy] of Object.entries(MATCH_COPY_TABLE)) {
+      expect(Object.keys(copy).sort(), locale).toEqual([...keys].sort());
+      expect(Object.keys(copy.names).sort(), locale).toEqual(
+        Object.keys(MATCH_COPY_TABLE.en.names).sort(),
+      );
+      expect(JSON.stringify(copy), locale).not.toContain("—");
+    }
+    expect(matchLine("tr-TR", "yourMove", "connectfour", "Ada")).toBe(
+      "Ada hamlesini yaptı. Dörtlü oyununda sıra sende.",
+    );
+  });
+});

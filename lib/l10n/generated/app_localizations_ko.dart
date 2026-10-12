@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11616,4 +11615,1067 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get layoutPagerNext => '다음';
+
+  @override
+  String get resultSheetMistakes => '실수';
+
+  @override
+  String get resultSheetHints => '힌트';
+
+  @override
+  String get resultSheetStreak => '연속 기록';
+
+  @override
+  String resultSheetStreakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count일',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get resultSheetNone => '없음';
+
+  @override
+  String resultSheetToday(String game) {
+    return '$game · 오늘';
+  }
+
+  @override
+  String resultSheetYouFaster(String time) {
+    return '내가 $time 더 빨랐어요';
+  }
+
+  @override
+  String resultSheetTheyFaster(String name, String time) {
+    return '$name님이 $time 더 빨랐어요';
+  }
+
+  @override
+  String get resultSheetSameTime => '나와 같은 시간';
+
+  @override
+  String get resultSheetFooter => '순위는 시간으로만 정해져요. 실수와 힌트는 참고용이에요.';
+
+  @override
+  String get resultSheetHintNoRecord => '힌트를 써서 풀었기 때문에 역대 기록이 될 수 없어요.';
+
+  @override
+  String get gameTierEasy => '쉬움';
+
+  @override
+  String get gameTierMedium => '보통';
+
+  @override
+  String get gameTierHard => '어려움';
+
+  @override
+  String get gameComingSoon => '곧 출시';
+
+  @override
+  String get gameComingSoonName => '새 퍼즐';
+
+  @override
+  String get chatGameNameTicTacToe => '틱택토';
+
+  @override
+  String get chatGameNameConnectFour => '사목';
+
+  @override
+  String get chatGameNameCheckers => '체커';
+
+  @override
+  String get chatGameNameReversi => '리버시';
+
+  @override
+  String get chatGameNameDots => '점과 상자';
+
+  @override
+  String get chatGameDescTicTacToe => '세 개를 나란히 놓으면 승리.';
+
+  @override
+  String get chatGameDescConnectFour => '디스크를 떨어뜨려 네 개를 이으면 승리.';
+
+  @override
+  String get chatGameDescCheckers => '뛰어넘어 잡으세요. 모두 잡으면 승리.';
+
+  @override
+  String get chatGameDescReversi => '사이에 끼워 뒤집으세요. 많은 쪽이 승리.';
+
+  @override
+  String get chatGameDescDots => '선을 긋고 상자를 닫으면 한 번 더.';
+
+  @override
+  String get chatGameKindLive => '실시간 게임';
+
+  @override
+  String get chatGameKindTurns => '턴제';
+
+  @override
+  String get chatGameStatusWaiting => '대기 중';
+
+  @override
+  String get chatGameStatusPlaying => '진행 중';
+
+  @override
+  String get chatGameStatusPaused => '일시정지';
+
+  @override
+  String get chatGameStatusFinished => '종료';
+
+  @override
+  String get chatGameStatusEnded => '끝남';
+
+  @override
+  String get chatGameYourMove => '내 차례';
+
+  @override
+  String chatGameTurnOf(String name) {
+    return '$name님 차례';
+  }
+
+  @override
+  String chatGameWaitingFor(String name) {
+    return '$name님을 기다리는 중';
+  }
+
+  @override
+  String chatGameWonBy(String name) {
+    return '$name님 승리';
+  }
+
+  @override
+  String get chatGameYouWon => '내가 이겼어요';
+
+  @override
+  String get chatGameDraw => '무승부';
+
+  @override
+  String get chatGameNobodyWon => '모두 나가서 승자가 없어요';
+
+  @override
+  String chatGameReasonTimeout(String name) {
+    return '$name님 시간 초과';
+  }
+
+  @override
+  String chatGameReasonResign(String name) {
+    return '$name님 기권';
+  }
+
+  @override
+  String chatGameReasonLeft(String name) {
+    return '$name님이 나갔어요';
+  }
+
+  @override
+  String get chatGameOpenSeat => '빈자리';
+
+  @override
+  String get chatGameReady => '준비 완료';
+
+  @override
+  String get chatGameNotReady => '준비 안 됨';
+
+  @override
+  String chatGameWatchingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명 관전 중',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameJoin => '참가';
+
+  @override
+  String get chatGameWatch => '관전';
+
+  @override
+  String get chatGamePlay => '하기';
+
+  @override
+  String get chatGameOpen => '열기';
+
+  @override
+  String get chatGameRematch => '재대결';
+
+  @override
+  String get chatGameNotRanked =>
+      '재미로만 하는 게임이에요. 채팅 게임은 연속 기록이나 최고 기록에 반영되지 않아요.';
+
+  @override
+  String get chatGameNotRankedShort => '순위 미반영';
+
+  @override
+  String get chatGameImReady => '준비됐어요';
+
+  @override
+  String get chatGameUnready => '아직 준비 안 됐어요';
+
+  @override
+  String get chatGameTakeSeat => '눌러서 참가';
+
+  @override
+  String get chatGameLeaveSeat => '자리 비우기';
+
+  @override
+  String get chatGameStartsWhenReady => '모두 준비되면 시작해요';
+
+  @override
+  String chatGameNeedPlayers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명 더 기다리는 중',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameWatchingLabel => '관전 중';
+
+  @override
+  String get chatGameAskSwap => '교대 요청';
+
+  @override
+  String chatGameSwapRequest(String name) {
+    return '$name님이 교대를 원해요';
+  }
+
+  @override
+  String get chatGameSwap => '교대하기';
+
+  @override
+  String get chatGameDecline => '거절';
+
+  @override
+  String get chatGameAccept => '수락';
+
+  @override
+  String chatGameSwapAsked(String name) {
+    return '$name님에게 요청했어요';
+  }
+
+  @override
+  String get chatGameCancel => '취소';
+
+  @override
+  String get chatGameResign => '기권';
+
+  @override
+  String get chatGameResignConfirm => '이 게임을 기권할까요?';
+
+  @override
+  String get chatGameResignBody => '내 패배로 기록돼요.';
+
+  @override
+  String get chatGameOfferDraw => '무승부 제안';
+
+  @override
+  String get chatGameDrawOffered => '무승부를 제안했어요';
+
+  @override
+  String chatGameDrawOfferFrom(String name) {
+    return '$name님이 무승부를 제안했어요';
+  }
+
+  @override
+  String chatGamePausedTitle(String name) {
+    return '$name님이 게임을 나갔어요';
+  }
+
+  @override
+  String get chatGamePausedMany => '플레이어가 나갔어요';
+
+  @override
+  String get chatGamePausedBody => '잠시 판을 그대로 둘게요.';
+
+  @override
+  String get chatGamePausedYou => '모두 돌아오면 다시 시작해요.';
+
+  @override
+  String get chatGameLeave => '게임 나가기';
+
+  @override
+  String get chatGameGo => '시작!';
+
+  @override
+  String get chatGameNudge => '재촉하기';
+
+  @override
+  String get chatGameNudged => '재촉했어요';
+
+  @override
+  String chatGameHoursLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count시간 남음',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameMinutesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count분 남음',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMoveFailed => '그 수가 전송되지 않았어요';
+
+  @override
+  String get chatGameStale => '판이 바뀌었어요. 다시 시도하세요.';
+
+  @override
+  String get chatGameStartTitle => '게임하기';
+
+  @override
+  String get chatGameMenuItem => '게임';
+
+  @override
+  String get chatGameModeLive => '실시간';
+
+  @override
+  String get chatGameModeTurns => '번갈아';
+
+  @override
+  String get chatGameModeBot => '봇과 대결';
+
+  @override
+  String get chatGameModeLiveHint => '모두 동시에 해요. 나가면 일시정지돼요.';
+
+  @override
+  String get chatGameModeTurnsHint => '원할 때 두세요. 내 차례에 알림이 오고, 한 차례는 최대 2일이에요.';
+
+  @override
+  String get chatGameModeBotHint => '나와 봇만 해요. 채팅에 아무것도 올라가지 않아요.';
+
+  @override
+  String get chatGameBotEasyHint => '실수를 해요. 연습용으로 좋아요.';
+
+  @override
+  String get chatGameBotMediumHint => '정석대로 두고 승리를 막아요.';
+
+  @override
+  String get chatGameBotHardHint => '몇 수 앞을 내다봐요.';
+
+  @override
+  String get chatGameStart => '시작';
+
+  @override
+  String get chatGameErrAlreadyLive => '이미 진행 중인 실시간 게임이 있어요. 먼저 끝내거나 나가세요.';
+
+  @override
+  String get chatGameErrTooMany => '이미 턴제 게임이 3개 진행 중이에요. 먼저 하나를 끝내세요.';
+
+  @override
+  String get chatGameErrGeneric => '문제가 생겼어요. 다시 시도하세요.';
+
+  @override
+  String get chatGamePlayersTwo => '2명';
+
+  @override
+  String get chatGamePlayersUpToFour => '2–4명';
+
+  @override
+  String get chatGameBotName => '몽키';
+
+  @override
+  String get chatGameBotBadge => '봇';
+
+  @override
+  String get chatGameNewGame => '새 게임';
+
+  @override
+  String chatGameBannerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '게임 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameBannerYourMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개에서 내 차례',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameSheetTitle => '이 채팅의 게임';
+
+  @override
+  String get chatGameGone => '이 게임은 더 이상 볼 수 없어요.';
+
+  @override
+  String get chatGameSeatsLabel => '플레이어';
+
+  @override
+  String get gameFlowName => '플로우';
+
+  @override
+  String get gameFutoshikiName => '후토시키';
+
+  @override
+  String get gameNonogramName => '노노그램';
+
+  @override
+  String get gameMinesweeperName => '지뢰 찾기';
+
+  @override
+  String get gameStarbattleName => '스타 배틀';
+
+  @override
+  String get gameFlowRule => '같은 점끼리 잇고, 모든 칸을 채워';
+
+  @override
+  String get gameFutoshikiRule => '행·열마다 1~5를 한 번씩, 부등호는 모두 맞게';
+
+  @override
+  String get gameNonogramRule => '모든 숫자 힌트에 맞게 칸을 칠해';
+
+  @override
+  String get gameMinesweeperRule => '안전한 칸을 모두 열어, 찍을 필요 없음';
+
+  @override
+  String get gameStarbattleRule => '행·열·색마다 별 두 개, 서로 붙으면 안 됨';
+
+  @override
+  String get gameFlag => '깃발';
+
+  @override
+  String get gameAutoDot => '자동 점 표시';
+
+  @override
+  String get gameInfoFlowGoal => '같은 점 두 개를 파이프로 이어 줘.';
+
+  @override
+  String get gameInfoFlowRule1 => '파이프는 같은 색, 같은 숫자의 점 2개를 이어.';
+
+  @override
+  String get gameInfoFlowRule2 => '파이프끼리 교차하거나 칸을 같이 쓰면 안 돼.';
+
+  @override
+  String get gameInfoFlowRule3 => '모든 칸을 채워. 빈칸이 있으면 안 돼.';
+
+  @override
+  String get gameInfoFlowRule4 => '위, 아래, 왼쪽, 오른쪽으로만. 대각선은 안 돼.';
+
+  @override
+  String get gameInfoFlowExample =>
+      '똑바로 못 가? 다른 파이프를 돌아가게 구부려. 그래도 모든 칸은 채워야 해.';
+
+  @override
+  String get gameInfoFlowControls =>
+      '점에서 끌어서 파이프를 그려. 뒤로 끌면 취소돼. 다른 파이프 위로 지나가면 그 파이프는 잘려.';
+
+  @override
+  String get gameInfoFutoshikiGoal => '칸을 1부터 5까지 숫자로 채워.';
+
+  @override
+  String get gameInfoFutoshikiRule1 => '가로줄마다 1, 2, 3, 4, 5. 겹치면 안 돼.';
+
+  @override
+  String get gameInfoFutoshikiRule2 => '세로줄도 마찬가지.';
+
+  @override
+  String get gameInfoFutoshikiRule3 =>
+      '두 칸 사이의 < 나 > 는 꼭 맞아야 해. 뾰족한 쪽이 작은 숫자야.';
+
+  @override
+  String get gameInfoFutoshikiExample =>
+      '부등호가 이 칸을 가리켜? 그럼 5는 안 돼. 옆 칸이 더 크니까.';
+
+  @override
+  String get gameInfoFutoshikiControls =>
+      '칸을 누르고 숫자를 눌러. 다시 누르면 지워져. 메모는 작은 연필 표시를 넣어.';
+
+  @override
+  String get gameInfoNonogramGoal => '칸을 칠해서 숨은 그림을 찾아.';
+
+  @override
+  String get gameInfoNonogramRule1 => '줄 옆의 숫자는 칠한 칸이 이어지는 길이야. 순서대로.';
+
+  @override
+  String get gameInfoNonogramRule2 => '이어진 칸 사이에는 빈칸이 최소 1개 있어.';
+
+  @override
+  String get gameInfoNonogramRule3 => '0은 그 줄이 전부 빈칸이라는 뜻이야.';
+
+  @override
+  String get gameInfoNonogramExample =>
+      '10칸짜리 줄에 힌트가 10? 전부 칠해. 4 4면 사이에 빈칸 하나 두고 둘 다 들어가.';
+
+  @override
+  String get gameInfoNonogramControls =>
+      '한 번 누르면 칠하기, 두 번은 ×(빈칸), 한 번 더 누르면 지워져. 끌면 여러 칸을 한 번에 표시해.';
+
+  @override
+  String get gameInfoMinesweeperGoal => '지뢰가 없는 칸을 모두 열어.';
+
+  @override
+  String get gameInfoMinesweeperRule1 => '숫자는 그 칸에 닿아 있는 지뢰 수야. 대각선도 포함.';
+
+  @override
+  String get gameInfoMinesweeperRule2 => '모든 칸은 추리로 알 수 있어. 찍을 필요가 전혀 없어.';
+
+  @override
+  String get gameInfoMinesweeperRule3 => '지뢰를 밟으면 기록에 30초가 더해져. 그리고 계속해.';
+
+  @override
+  String get gameInfoMinesweeperExample =>
+      '1 옆에 닫힌 칸이 하나뿐이야? 그 칸이 지뢰야. 깃발을 꽂아.';
+
+  @override
+  String get gameInfoMinesweeperControls =>
+      '눌러서 칸을 열어. 지뢰 표시는 길게 누르거나 깃발을 켜고 눌러.';
+
+  @override
+  String get gameInfoStarbattleGoal => '행, 열, 색마다 별을 2개씩 놓아.';
+
+  @override
+  String get gameInfoStarbattleRule1 => '가로줄마다 별은 딱 2개.';
+
+  @override
+  String get gameInfoStarbattleRule2 => '세로줄마다 별은 딱 2개.';
+
+  @override
+  String get gameInfoStarbattleRule3 => '색마다 별은 딱 2개.';
+
+  @override
+  String get gameInfoStarbattleRule4 => '별끼리 닿으면 안 돼. 대각선도 안 돼.';
+
+  @override
+  String get gameInfoStarbattleExample =>
+      '여기 별이 하나 있으면, 주변 8칸엔 다른 별이 없어. 같은 행, 열, 색에서 하나 더 찾으면 돼.';
+
+  @override
+  String get gameInfoStarbattleControls =>
+      '한 번 누르면 점(여기엔 별 없음). 두 번 누르면 별. 한 번 더 누르면 지워져.';
+
+  @override
+  String boardCellName(int row, int col) {
+    return '$row행 $col열';
+  }
+
+  @override
+  String get boardEmpty => '비어 있음';
+
+  @override
+  String get boardBlack => '흑';
+
+  @override
+  String get boardWhite => '백';
+
+  @override
+  String get boardLegalMove => '둘 수 있음';
+
+  @override
+  String get boardMoveHere => '여기로 이동';
+
+  @override
+  String boardColumnFilled(int column, int count, int total) {
+    return '$column열, $total칸 중 $count칸 참';
+  }
+
+  @override
+  String boardSquareName(int number) {
+    return '$number번 칸';
+  }
+
+  @override
+  String get boardDarkMan => '흑 말';
+
+  @override
+  String get boardDarkKing => '흑 킹';
+
+  @override
+  String get boardLightMan => '백 말';
+
+  @override
+  String get boardLightKing => '백 킹';
+
+  @override
+  String boardBoxName(String cell) {
+    return '상자, $cell';
+  }
+
+  @override
+  String get boardOpen => '비어 있음';
+
+  @override
+  String get boardDrawn => '그어짐';
+
+  @override
+  String boardClaimedBy(String name) {
+    return '$name님 차지';
+  }
+
+  @override
+  String boardHorizontalEdge(int row, int col) {
+    return '가로선, $row행 $col열';
+  }
+
+  @override
+  String boardVerticalEdge(int row, int col) {
+    return '세로선, $row행 $col열';
+  }
+
+  @override
+  String get challengeAction => '도전장';
+
+  @override
+  String get challengeTitle => '내 기록을 깨봐';
+
+  @override
+  String get challengeKind => '데일리 도전';
+
+  @override
+  String challengeYouBeat(String time) {
+    return '$time 차이로 이겼어요';
+  }
+
+  @override
+  String challengeStillStanding(String time) {
+    return '아직 안 깨졌어요 ($time 차이)';
+  }
+
+  @override
+  String get challengeTie => '완전 동점';
+
+  @override
+  String get challengeClosed => '이 판은 마감됐어요';
+
+  @override
+  String get challengeYourTime => '깨야 할 내 기록';
+
+  @override
+  String get challengeSent => '도전장을 보냈어요';
+
+  @override
+  String challengeTarget(String name, String time) {
+    return '$name $time';
+  }
+
+  @override
+  String challengeBeatName(String name, String time) {
+    return '$name님의 $time 기록을 깼어요';
+  }
+
+  @override
+  String challengeKept(String name, String time) {
+    return '$name님 기록 유지 ($time 차이)';
+  }
+
+  @override
+  String get chatGameNameLiarsDice => '라이어 다이스';
+
+  @override
+  String get chatGameNameImposter => '임포스터';
+
+  @override
+  String get chatGameNameRace => '퍼즐 레이스';
+
+  @override
+  String get chatGameDescLiarsDice => '숨겨진 주사위에 베팅하고 거짓말을 잡아내세요.';
+
+  @override
+  String get chatGameDescImposter => '한 명만 단어를 몰라요. 찾아내세요.';
+
+  @override
+  String get chatGameDescRace => '모두 같은 퍼즐. 가장 빨리 푼 사람이 승리.';
+
+  @override
+  String chatGamePlayersRange(int min, int max) {
+    return '$min~$max명';
+  }
+
+  @override
+  String get chatGamePartySection => '파티';
+
+  @override
+  String get chatGamePartyLiveOnly => '파티 게임은 라이브로 모두 함께 플레이해요.';
+
+  @override
+  String get chatGameNeedsThree => '3명 이상 그룹이 필요해요';
+
+  @override
+  String get chatGameVoiceOption => '음성 힌트';
+
+  @override
+  String get chatGameVoiceOptionHint => '힌트를 입력하는 대신 통화로 말해요';
+
+  @override
+  String get chatGamePuzzleOption => '퍼즐';
+
+  @override
+  String get chatGamePuzzleRandom => '무작위';
+
+  @override
+  String chatGameStartNamed(String game) {
+    return '$game 시작';
+  }
+
+  @override
+  String chatGameLdRoundDice(int count, int round) {
+    return '$round라운드 · 주사위 $count개';
+  }
+
+  @override
+  String get chatGameLdYourDice => '내 주사위';
+
+  @override
+  String get chatGameLdNoBid => '아직 베팅 없음';
+
+  @override
+  String chatGameLdBidBy(String name) {
+    return '$name의 베팅';
+  }
+
+  @override
+  String get chatGameLdYourBid => '내 베팅';
+
+  @override
+  String get chatGameLdBid => '베팅';
+
+  @override
+  String get chatGameLdLiar => '거짓말!';
+
+  @override
+  String get chatGameLdOnesWild => '1은 와일드';
+
+  @override
+  String get chatGameLdOnesOnly => '1에 베팅하면 와일드 없음';
+
+  @override
+  String get chatGameLdHolds => '베팅 성공';
+
+  @override
+  String get chatGameLdBusted => '들켰다!';
+
+  @override
+  String chatGameLdThereWere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '실제로 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameLdLosesDie(String name) {
+    return '$name 님이 주사위 1개를 잃어요';
+  }
+
+  @override
+  String get chatGameLdYouLoseDie => '주사위 1개를 잃었어요';
+
+  @override
+  String chatGameLdCalled(String name) {
+    return '$name 님이 거짓말을 외쳤어요';
+  }
+
+  @override
+  String chatGameLdTimedOut(String name) {
+    return '$name 님 시간 초과';
+  }
+
+  @override
+  String get chatGameLdOut => '탈락';
+
+  @override
+  String get chatGameLdQuantity => '개수';
+
+  @override
+  String get chatGameLdFace => '어떤 눈';
+
+  @override
+  String get chatGameLdFewer => '줄이기';
+
+  @override
+  String get chatGameLdMore => '늘리기';
+
+  @override
+  String get chatGameLdPrompt => '베팅을 올리거나 거짓말을 외치세요';
+
+  @override
+  String get chatGameLdOpenPrompt => '첫 베팅을 하세요';
+
+  @override
+  String get chatGameImpHoldToSee => '길게 눌러 카드 보기';
+
+  @override
+  String get chatGameImpYourWord => '내 단어';
+
+  @override
+  String get chatGameImpYouAre => '당신이 임포스터예요';
+
+  @override
+  String chatGameImpCategory(String category) {
+    return '카테고리: $category';
+  }
+
+  @override
+  String get chatGameImpBlendIn => '자연스럽게 섞이세요. 아무도 몰라요.';
+
+  @override
+  String get chatGameImpKeepSecret => '직접 말하지 말고 다른 사람이 알아챌 힌트를 주세요.';
+
+  @override
+  String get chatGameImpGotIt => '확인했어요';
+
+  @override
+  String chatGameImpLooked(int count, int total) {
+    return '$total명 중 $count명 확인';
+  }
+
+  @override
+  String chatGameImpGiving(String name) {
+    return '$name 님이 힌트를 주는 중';
+  }
+
+  @override
+  String get chatGameImpYourClue => '내가 힌트를 줄 차례';
+
+  @override
+  String get chatGameImpClueHint => '한 단어에서 네 단어까지';
+
+  @override
+  String get chatGameImpClueField => '내 힌트';
+
+  @override
+  String get chatGameImpSend => '보내기';
+
+  @override
+  String get chatGameImpTooManyWords => '최대 네 단어';
+
+  @override
+  String get chatGameImpPassed => '패스';
+
+  @override
+  String get chatGameImpSpoke => '통화로 말했어요';
+
+  @override
+  String get chatGameImpJoinCall => '통화 참여';
+
+  @override
+  String get chatGameImpOnCall => '통화 중이에요';
+
+  @override
+  String get chatGameImpVoiceHint => '힌트를 말한 뒤 완료를 누르세요.';
+
+  @override
+  String get chatGameImpDone => '완료';
+
+  @override
+  String get chatGameImpVoteTitle => '임포스터는 누구일까요?';
+
+  @override
+  String get chatGameImpVoteHint => '플레이어를 눌러 투표하세요. 시간이 끝날 때까지 바꿀 수 있어요.';
+
+  @override
+  String get chatGameImpSkip => '투표 건너뛰기';
+
+  @override
+  String chatGameImpVoted(int count, int total) {
+    return '$total명 중 $count명 투표';
+  }
+
+  @override
+  String get chatGameImpVotedBadge => '투표함';
+
+  @override
+  String get chatGameImpYourVote => '내 투표';
+
+  @override
+  String get chatGameImpGuessing => '임포스터가 추측하는 중…';
+
+  @override
+  String get chatGameImpGuessHint => '들켰어요. 단어를 맞히면 역전승이에요.';
+
+  @override
+  String get chatGameImpGuessField => '단어는…';
+
+  @override
+  String get chatGameImpGuess => '추측';
+
+  @override
+  String chatGameImpWas(String name) {
+    return '임포스터는 $name 님이었어요';
+  }
+
+  @override
+  String get chatGameImpYouWere => '당신이 임포스터였어요';
+
+  @override
+  String get chatGameImpTheWord => '단어는';
+
+  @override
+  String chatGameImpTheyGuessed(String guess) {
+    return '추측: “$guess”';
+  }
+
+  @override
+  String chatGameImpVotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count표',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameImpSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명 기권',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameImpReasonEscaped => '아무도 지목되지 않아 임포스터가 빠져나갔어요.';
+
+  @override
+  String get chatGameImpReasonWrong => '팀이 엉뚱한 사람을 지목했어요.';
+
+  @override
+  String get chatGameImpReasonGuessed => '들켰지만 임포스터가 단어를 맞혔어요.';
+
+  @override
+  String get chatGameImpReasonCaught => '팀이 임포스터를 잡았어요.';
+
+  @override
+  String get chatGameImpReasonImposterLeft => '임포스터가 게임을 나갔어요.';
+
+  @override
+  String get chatGameImpReasonCrewLeft => '나머지 팀원이 나갔어요.';
+
+  @override
+  String get chatGameImpCrewWon => '팀이 이겼어요';
+
+  @override
+  String get chatGameImpYourTeamWon => '우리 팀이 이겼어요';
+
+  @override
+  String chatGameImpImposterWon(String name) {
+    return '임포스터 $name 님의 승리';
+  }
+
+  @override
+  String get chatGameImpYouWonImposter => '임포스터로 이겼어요';
+
+  @override
+  String get chatGameImpCardReveal => '카드 확인 중';
+
+  @override
+  String chatGameImpCardClues(int count, int total) {
+    return '힌트 · $count/$total';
+  }
+
+  @override
+  String get chatGameImpCardVote => '투표 중';
+
+  @override
+  String chatGameRaceFinishedCount(int count, int total) {
+    return '$total명 중 $count명 완료';
+  }
+
+  @override
+  String chatGameRaceYouPlaced(int rank) {
+    return '$rank위로 완주';
+  }
+
+  @override
+  String get chatGameRaceWaiting => '다른 사람을 기다리는 중';
+
+  @override
+  String get chatGameRaceTimeUp => '시간 종료. 아무도 못 풀었어요.';
+
+  @override
+  String get chatGameRaceDnf => '미완주';
+
+  @override
+  String get chatGameRaceLeft => '나감';
+
+  @override
+  String get chatGameRaceResults => '결과';
+
+  @override
+  String get chatGameRaceSolved => '완성!';
+
+  @override
+  String get chatGamePartyLeaveConfirm => '이 게임에서 나갈까요?';
+
+  @override
+  String get chatGamePartyLeaveBody => '다른 사람들은 계속 플레이해요.';
+
+  @override
+  String get chatGameErrTooLate => '늦었어요. 시간이 끝났어요';
+
+  @override
+  String get chatGameErrBadClue => '이 힌트는 쓸 수 없어요. 한~네 단어, 링크 금지.';
+
+  @override
+  String get chatGameErrBadGuess => '먼저 추측을 입력하세요';
+
+  @override
+  String get chatGameErrNotSolved => '아직 다 풀리지 않았어요';
+
+  @override
+  String get chatGameNameChess => '체스';
+
+  @override
+  String get chatGameDescChess => '킹을 체크메이트하면 승리.';
+
+  @override
+  String get chessPawn => '폰';
+
+  @override
+  String get chessKnight => '나이트';
+
+  @override
+  String get chessBishop => '비숍';
+
+  @override
+  String get chessRook => '룩';
+
+  @override
+  String get chessQueen => '퀸';
+
+  @override
+  String get chessKing => '킹';
+
+  @override
+  String chessPieceWhite(String piece) {
+    return '$piece, 백';
+  }
+
+  @override
+  String chessPieceBlack(String piece) {
+    return '$piece, 흑';
+  }
+
+  @override
+  String chessPromoteTo(String piece) {
+    return '$piece(으)로 승진';
+  }
 }

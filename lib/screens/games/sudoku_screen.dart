@@ -7,10 +7,10 @@ import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
 import '../../games/sudoku_board_art.dart';
-import '../../widgets/ios_kit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../theme/theme_scope.dart';
+import 'game_keypad.dart';
 import 'game_scaffold.dart';
 
 /// MINI SUDOKU — the digits 1 to 6, once in every row, column and 2×3 box.
@@ -144,13 +144,23 @@ class _SudokuScreenState extends State<SudokuScreen>
     _pop.forward(from: 0);
     HapticFeedback.selectionClick();
 
-    if (sudokuConflicts(board, _cells).contains(index) && _counted.add(index)) {
+    if (sudokuConflicts(board, _withGivens(board)).contains(index) &&
+        _counted.add(index)) {
       _play.noteMistake();
       HapticFeedback.heavyImpact();
       return;
     }
     _maybeFinish();
   }
+
+  /// The grid as the rules see it: the player's digits with the printed ones
+  /// folded in. The conflict check has to see the printed digits too — a 4
+  /// typed into a row that already prints a 4 is exactly the mistake a player
+  /// most needs flagged, and checking the player's cells alone never saw it.
+  List<int> _withGivens(SudokuBoard board) => [
+    for (var i = 0; i < _cells.length; i++)
+      board.givens[i] != sudokuEmpty ? board.givens[i] : _cells[i],
+  ];
 
   void _undoLast() {
     if (_undo.isEmpty || _play.finished) return;
@@ -241,7 +251,7 @@ class _SudokuScreenState extends State<SudokuScreen>
             notes: _play.paused ? const {} : _notes,
             conflicts: _play.paused
                 ? const {}
-                : sudokuConflicts(board, _cells),
+                : sudokuConflicts(board, _withGivens(board)),
             selected: _play.paused ? null : _selected,
             popCell: _popCell,
             pop: _pop.value,
@@ -275,11 +285,12 @@ class _SudokuScreenState extends State<SudokuScreen>
       ],
       footer: board.isEmpty
           ? null
-          : _Keypad(
+          : GameKeypad(
               size: board.size,
               remaining: _remaining,
               enabled: _playable && _selected != null,
               onEnter: _enter,
+              keyPrefix: 'sudoku',
             ),
       onShare: _play.finished
           ? () => copyGameResult(
@@ -292,117 +303,6 @@ class _SudokuScreenState extends State<SudokuScreen>
       onTellFriends: _play.finished
           ? () => tellFriendsAboutGame(context, controller: _play)
           : null,
-    );
-  }
-}
-
-/// One to six, and an eraser.
-///
-/// A digit whose six copies are all placed dims out. It stays tappable — the
-/// player may well need to take one back — but a keypad that shows at a glance
-/// which digits are spent removes the most tedious part of scanning a grid.
-class _Keypad extends StatelessWidget {
-  const _Keypad({
-    required this.size,
-    required this.remaining,
-    required this.enabled,
-    required this.onEnter,
-  });
-
-  final int size;
-  final Map<int, int> remaining;
-  final bool enabled;
-  final void Function(int value) onEnter;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-
-    return Row(
-      children: [
-        for (var v = 1; v <= size; v++)
-          Expanded(
-            child: Padding(
-              key: ValueKey('sudoku_key_$v'),
-              padding: const EdgeInsets.only(right: 6),
-              child: _Key(
-                enabled: enabled,
-                spent: (remaining[v] ?? 0) <= 0,
-                semanticLabel: '$v',
-                onTap: () => onEnter(v),
-                child: Text(
-                  '$v',
-                  style: theme.body.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: theme.ink,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        SizedBox(
-          width: 52,
-          child: _Key(
-            enabled: enabled,
-            spent: false,
-            semanticLabel: l10n.gameErase,
-            onTap: () => onEnter(sudokuEmpty),
-            child: Icon(
-              CupertinoIcons.delete_left,
-              size: 20,
-              color: theme.ink,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Key extends StatelessWidget {
-  const _Key({
-    required this.enabled,
-    required this.spent,
-    required this.semanticLabel,
-    required this.onTap,
-    required this.child,
-  });
-
-  final bool enabled;
-  final bool spent;
-  final String semanticLabel;
-  final VoidCallback onTap;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // The iOS number-pad key: a filled, borderless tile that dips on a spring
-    // under the thumb.
-    return Opacity(
-      opacity: !enabled
-          ? 0.35
-          : spent
-          ? 0.45
-          : 1,
-      child: SpringPress(
-        onTap: enabled ? onTap : null,
-        semanticLabel: semanticLabel,
-        scale: 0.9,
-        haptic: false,
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            color: theme.ink.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          alignment: Alignment.center,
-          child: child,
-        ),
-      ),
     );
   }
 }

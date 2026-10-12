@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -12191,4 +12190,1120 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get layoutPagerNext => 'Siguiente';
+
+  @override
+  String get resultSheetMistakes => 'Errores';
+
+  @override
+  String get resultSheetHints => 'Pistas';
+
+  @override
+  String get resultSheetStreak => 'Racha';
+
+  @override
+  String resultSheetStreakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count días',
+      one: '1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get resultSheetNone => 'Ninguno';
+
+  @override
+  String resultSheetToday(String game) {
+    return '$game · Hoy';
+  }
+
+  @override
+  String resultSheetYouFaster(String time) {
+    return 'Fuiste $time más rápido';
+  }
+
+  @override
+  String resultSheetTheyFaster(String name, String time) {
+    return '$name fue $time más rápido';
+  }
+
+  @override
+  String get resultSheetSameTime => 'El mismo tiempo que tú';
+
+  @override
+  String get resultSheetFooter =>
+      'Solo el tiempo decide la clasificación. Los errores y las pistas son solo por curiosidad.';
+
+  @override
+  String get resultSheetHintNoRecord =>
+      'Resuelto con pistas, así que no puede ser un récord histórico.';
+
+  @override
+  String get gameTierEasy => 'Fácil';
+
+  @override
+  String get gameTierMedium => 'Media';
+
+  @override
+  String get gameTierHard => 'Difícil';
+
+  @override
+  String get gameComingSoon => 'Próximamente';
+
+  @override
+  String get gameComingSoonName => 'Nuevo puzle';
+
+  @override
+  String get chatGameNameTicTacToe => 'Tres en raya';
+
+  @override
+  String get chatGameNameConnectFour => 'Conecta 4';
+
+  @override
+  String get chatGameNameCheckers => 'Damas';
+
+  @override
+  String get chatGameNameReversi => 'Reversi';
+
+  @override
+  String get chatGameNameDots => 'Puntos y cajas';
+
+  @override
+  String get chatGameDescTicTacToe => 'Gana quien haga tres en raya.';
+
+  @override
+  String get chatGameDescConnectFour => 'Suelta fichas. Cuatro en línea gana.';
+
+  @override
+  String get chatGameDescCheckers => 'Salta para capturar. Cómelas todas.';
+
+  @override
+  String get chatGameDescReversi =>
+      'Encierra para voltear. Gana quien tenga más.';
+
+  @override
+  String get chatGameDescDots => 'Traza líneas, cierra cajas y repite.';
+
+  @override
+  String get chatGameKindLive => 'Partida en vivo';
+
+  @override
+  String get chatGameKindTurns => 'Por turnos';
+
+  @override
+  String get chatGameStatusWaiting => 'Esperando';
+
+  @override
+  String get chatGameStatusPlaying => 'En juego';
+
+  @override
+  String get chatGameStatusPaused => 'En pausa';
+
+  @override
+  String get chatGameStatusFinished => 'Terminada';
+
+  @override
+  String get chatGameStatusEnded => 'Finalizada';
+
+  @override
+  String get chatGameYourMove => 'Te toca';
+
+  @override
+  String chatGameTurnOf(String name) {
+    return 'Le toca a $name';
+  }
+
+  @override
+  String chatGameWaitingFor(String name) {
+    return 'Esperando a $name';
+  }
+
+  @override
+  String chatGameWonBy(String name) {
+    return 'Ganó $name';
+  }
+
+  @override
+  String get chatGameYouWon => 'Ganaste';
+
+  @override
+  String get chatGameDraw => 'Empate';
+
+  @override
+  String get chatGameNobodyWon => 'Todos se fueron, nadie ganó';
+
+  @override
+  String chatGameReasonTimeout(String name) {
+    return 'A $name se le acabó el tiempo';
+  }
+
+  @override
+  String chatGameReasonResign(String name) {
+    return '$name se rindió';
+  }
+
+  @override
+  String chatGameReasonLeft(String name) {
+    return '$name se fue';
+  }
+
+  @override
+  String get chatGameOpenSeat => 'Plaza libre';
+
+  @override
+  String get chatGameReady => 'Listo';
+
+  @override
+  String get chatGameNotReady => 'No listo';
+
+  @override
+  String chatGameWatchingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mirando',
+      one: '1 mirando',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameJoin => 'Unirse';
+
+  @override
+  String get chatGameWatch => 'Mirar';
+
+  @override
+  String get chatGamePlay => 'Jugar';
+
+  @override
+  String get chatGameOpen => 'Abrir';
+
+  @override
+  String get chatGameRematch => 'Revancha';
+
+  @override
+  String get chatGameNotRanked =>
+      'Solo por diversión. Los juegos del chat no cuentan para tus rachas ni récords.';
+
+  @override
+  String get chatGameNotRankedShort => 'Sin clasificación';
+
+  @override
+  String get chatGameImReady => 'Estoy listo';
+
+  @override
+  String get chatGameUnready => 'Aún no estoy listo';
+
+  @override
+  String get chatGameTakeSeat => 'Toca para unirte';
+
+  @override
+  String get chatGameLeaveSeat => 'Dejar el sitio';
+
+  @override
+  String get chatGameStartsWhenReady => 'Empieza cuando todos estén listos';
+
+  @override
+  String chatGameNeedPlayers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltan $count jugadores',
+      one: 'Falta 1 jugador',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameWatchingLabel => 'Mirando';
+
+  @override
+  String get chatGameAskSwap => 'Pedir el cambio';
+
+  @override
+  String chatGameSwapRequest(String name) {
+    return '$name quiere entrar por ti';
+  }
+
+  @override
+  String get chatGameSwap => 'Cambiar';
+
+  @override
+  String get chatGameDecline => 'Rechazar';
+
+  @override
+  String get chatGameAccept => 'Aceptar';
+
+  @override
+  String chatGameSwapAsked(String name) {
+    return 'Se lo pediste a $name';
+  }
+
+  @override
+  String get chatGameCancel => 'Cancelar';
+
+  @override
+  String get chatGameResign => 'Rendirse';
+
+  @override
+  String get chatGameResignConfirm => '¿Rendirte en esta partida?';
+
+  @override
+  String get chatGameResignBody => 'Contará como derrota.';
+
+  @override
+  String get chatGameOfferDraw => 'Ofrecer tablas';
+
+  @override
+  String get chatGameDrawOffered => 'Tablas ofrecidas';
+
+  @override
+  String chatGameDrawOfferFrom(String name) {
+    return '$name ofrece tablas';
+  }
+
+  @override
+  String chatGamePausedTitle(String name) {
+    return '$name salió de la partida';
+  }
+
+  @override
+  String get chatGamePausedMany => 'Algunos jugadores se fueron';
+
+  @override
+  String get chatGamePausedBody => 'Guardamos el tablero un rato.';
+
+  @override
+  String get chatGamePausedYou => 'La partida sigue cuando todos vuelvan.';
+
+  @override
+  String get chatGameLeave => 'Salir de la partida';
+
+  @override
+  String get chatGameGo => '¡Ya!';
+
+  @override
+  String get chatGameNudge => 'Avisar';
+
+  @override
+  String get chatGameNudged => 'Avisado';
+
+  @override
+  String chatGameHoursLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Quedan $count horas',
+      one: 'Queda 1 hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameMinutesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Quedan $count minutos',
+      one: 'Queda 1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMoveFailed => 'Esa jugada no se envió';
+
+  @override
+  String get chatGameStale => 'El tablero cambió. Inténtalo de nuevo.';
+
+  @override
+  String get chatGameStartTitle => 'Jugar una partida';
+
+  @override
+  String get chatGameMenuItem => 'Juego';
+
+  @override
+  String get chatGameModeLive => 'En vivo';
+
+  @override
+  String get chatGameModeTurns => 'Por turnos';
+
+  @override
+  String get chatGameModeBot => 'Contra el bot';
+
+  @override
+  String get chatGameModeLiveHint =>
+      'Todos juegan a la vez. Salir pausa la partida.';
+
+  @override
+  String get chatGameModeTurnsHint =>
+      'Juega cuando quieras. Te avisamos en tu turno, y cada turno dura hasta 2 días.';
+
+  @override
+  String get chatGameModeBotHint =>
+      'Solo tú y el bot. No se publica nada en el chat.';
+
+  @override
+  String get chatGameBotEasyHint => 'Comete errores. Ideal para aprender.';
+
+  @override
+  String get chatGameBotMediumHint =>
+      'Juega limpio y bloquea tus jugadas ganadoras.';
+
+  @override
+  String get chatGameBotHardHint => 'Piensa varias jugadas por delante.';
+
+  @override
+  String get chatGameStart => 'Empezar';
+
+  @override
+  String get chatGameErrAlreadyLive =>
+      'Ya hay una partida en vivo aquí. Termínala o sal primero.';
+
+  @override
+  String get chatGameErrTooMany =>
+      'Ya tienes 3 partidas por turnos aquí. Termina una primero.';
+
+  @override
+  String get chatGameErrGeneric => 'Algo salió mal. Inténtalo de nuevo.';
+
+  @override
+  String get chatGamePlayersTwo => '2 jugadores';
+
+  @override
+  String get chatGamePlayersUpToFour => '2–4 jugadores';
+
+  @override
+  String get chatGameBotName => 'Mono';
+
+  @override
+  String get chatGameBotBadge => 'Bot';
+
+  @override
+  String get chatGameNewGame => 'Nueva partida';
+
+  @override
+  String chatGameBannerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count partidas',
+      one: '1 partida',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameBannerYourMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Te toca en $count',
+      one: 'Te toca en 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameSheetTitle => 'Partidas en este chat';
+
+  @override
+  String get chatGameGone => 'Esta partida ya no está disponible.';
+
+  @override
+  String get chatGameSeatsLabel => 'Jugadores';
+
+  @override
+  String get gameFlowName => 'Flujo';
+
+  @override
+  String get gameFutoshikiName => 'Futoshiki';
+
+  @override
+  String get gameNonogramName => 'Nonograma';
+
+  @override
+  String get gameMinesweeperName => 'Buscaminas';
+
+  @override
+  String get gameStarbattleName => 'Batalla de estrellas';
+
+  @override
+  String get gameFlowRule => 'une los puntos iguales y llena cada casilla';
+
+  @override
+  String get gameFutoshikiRule =>
+      'del 1 al 5 una vez por fila y columna, con cada signo cierto';
+
+  @override
+  String get gameNonogramRule => 'rellena casillas para cumplir cada pista';
+
+  @override
+  String get gameMinesweeperRule => 'abre cada casilla segura, sin adivinar';
+
+  @override
+  String get gameStarbattleRule =>
+      'dos estrellas por fila, columna y color, sin tocarse';
+
+  @override
+  String get gameFlag => 'Bandera';
+
+  @override
+  String get gameAutoDot => 'Puntos automáticos';
+
+  @override
+  String get gameInfoFlowGoal =>
+      'Une cada par de puntos iguales con una tubería.';
+
+  @override
+  String get gameInfoFlowRule1 =>
+      'Cada tubería une 2 puntos del mismo color y número.';
+
+  @override
+  String get gameInfoFlowRule2 =>
+      'Las tuberías no se cruzan ni comparten casilla.';
+
+  @override
+  String get gameInfoFlowRule3 =>
+      'Llena cada casilla. Ninguna puede quedar vacía.';
+
+  @override
+  String get gameInfoFlowRule4 =>
+      'Muévete arriba, abajo, izquierda o derecha. Nada de diagonales.';
+
+  @override
+  String get gameInfoFlowExample =>
+      '¿No hay camino recto? Rodea las otras tuberías. Igual hay que llenar todas las casillas.';
+
+  @override
+  String get gameInfoFlowControls =>
+      'Arrastra desde un punto para dibujar su tubería. Vuelve atrás para deshacer. Pasar por encima de otra la corta.';
+
+  @override
+  String get gameInfoFutoshikiGoal =>
+      'Llena la cuadrícula con los números del 1 al 5.';
+
+  @override
+  String get gameInfoFutoshikiRule1 =>
+      'Cada fila tiene 1, 2, 3, 4 y 5. Sin repetir.';
+
+  @override
+  String get gameInfoFutoshikiRule2 => 'Cada columna también.';
+
+  @override
+  String get gameInfoFutoshikiRule3 =>
+      'Un < o > entre 2 casillas tiene que cumplirse. Apunta al número menor.';
+
+  @override
+  String get gameInfoFutoshikiExample =>
+      '¿Un signo apunta a esta casilla? Entonces no puede ser 5, porque su vecina es mayor.';
+
+  @override
+  String get gameInfoFutoshikiControls =>
+      'Toca una casilla y luego un número. Tócalo otra vez para borrar. Notas pone marcas pequeñas a lápiz.';
+
+  @override
+  String get gameInfoNonogramGoal =>
+      'Rellena casillas para descubrir el dibujo oculto.';
+
+  @override
+  String get gameInfoNonogramRule1 =>
+      'Los números de cada fila y columna son sus tramos rellenos, en orden.';
+
+  @override
+  String get gameInfoNonogramRule2 =>
+      'Entre un tramo y otro hay al menos 1 casilla vacía.';
+
+  @override
+  String get gameInfoNonogramRule3 =>
+      '0 significa que toda la línea está vacía.';
+
+  @override
+  String get gameInfoNonogramExample =>
+      '¿Una fila de 10 con la pista 10? Rellénala entera. Con 4 4 caben los dos tramos, con un hueco en medio.';
+
+  @override
+  String get gameInfoNonogramControls =>
+      'Toca una vez: rellenar. Dos veces: × (vacía). Otra vez: borrar. Arrastra para marcar varias casillas.';
+
+  @override
+  String get gameInfoMinesweeperGoal =>
+      'Abre todas las casillas que no tienen mina.';
+
+  @override
+  String get gameInfoMinesweeperRule1 =>
+      'Un número dice cuántas minas tocan esa casilla, esquinas incluidas.';
+
+  @override
+  String get gameInfoMinesweeperRule2 =>
+      'Cada casilla se puede deducir. Nunca hace falta adivinar.';
+
+  @override
+  String get gameInfoMinesweeperRule3 =>
+      'Si pisas una mina, se suman 30 segundos a tu tiempo. Luego sigue.';
+
+  @override
+  String get gameInfoMinesweeperExample =>
+      '¿Un 1 con una sola casilla cerrada al lado? Esa casilla es la mina. Márcala.';
+
+  @override
+  String get gameInfoMinesweeperControls =>
+      'Toca para abrir una casilla. Mantén pulsado, o activa Bandera, para marcar una mina.';
+
+  @override
+  String get gameInfoStarbattleGoal =>
+      'Pon 2 estrellas en cada fila, columna y color.';
+
+  @override
+  String get gameInfoStarbattleRule1 =>
+      'Cada fila tiene exactamente 2 estrellas.';
+
+  @override
+  String get gameInfoStarbattleRule2 =>
+      'Cada columna tiene exactamente 2 estrellas.';
+
+  @override
+  String get gameInfoStarbattleRule3 =>
+      'Cada color tiene exactamente 2 estrellas.';
+
+  @override
+  String get gameInfoStarbattleRule4 =>
+      'Las estrellas no se tocan. Ni siquiera por la esquina.';
+
+  @override
+  String get gameInfoStarbattleExample =>
+      'Una estrella aquí significa: ninguna otra en las 8 casillas de alrededor, y falta una más en su fila, columna y color.';
+
+  @override
+  String get gameInfoStarbattleControls =>
+      'Toca una vez: punto (aquí no hay estrella). Dos veces: estrella. Otra vez: borrar.';
+
+  @override
+  String boardCellName(int row, int col) {
+    return 'Fila $row, columna $col';
+  }
+
+  @override
+  String get boardEmpty => 'vacía';
+
+  @override
+  String get boardBlack => 'negra';
+
+  @override
+  String get boardWhite => 'blanca';
+
+  @override
+  String get boardLegalMove => 'jugada válida';
+
+  @override
+  String get boardMoveHere => 'mover aquí';
+
+  @override
+  String boardColumnFilled(int column, int count, int total) {
+    return 'Columna $column, $count de $total ocupadas';
+  }
+
+  @override
+  String boardSquareName(int number) {
+    return 'Casilla $number';
+  }
+
+  @override
+  String get boardDarkMan => 'ficha oscura';
+
+  @override
+  String get boardDarkKing => 'dama oscura';
+
+  @override
+  String get boardLightMan => 'ficha clara';
+
+  @override
+  String get boardLightKing => 'dama clara';
+
+  @override
+  String boardBoxName(String cell) {
+    return 'Caja, $cell';
+  }
+
+  @override
+  String get boardOpen => 'libre';
+
+  @override
+  String get boardDrawn => 'trazada';
+
+  @override
+  String boardClaimedBy(String name) {
+    return 'de $name';
+  }
+
+  @override
+  String boardHorizontalEdge(int row, int col) {
+    return 'Línea horizontal, fila $row, columna $col';
+  }
+
+  @override
+  String boardVerticalEdge(int row, int col) {
+    return 'Línea vertical, fila $row, columna $col';
+  }
+
+  @override
+  String get challengeAction => 'Retar';
+
+  @override
+  String get challengeTitle => 'Supera mi tiempo';
+
+  @override
+  String get challengeKind => 'Reto diario';
+
+  @override
+  String challengeYouBeat(String time) {
+    return 'Lo superaste por $time';
+  }
+
+  @override
+  String challengeStillStanding(String time) {
+    return 'Sigue en pie, por $time';
+  }
+
+  @override
+  String get challengeTie => 'Empate exacto';
+
+  @override
+  String get challengeClosed => 'Ese tablero ya cerró';
+
+  @override
+  String get challengeYourTime => 'Tu tiempo a batir';
+
+  @override
+  String get challengeSent => 'Reto enviado';
+
+  @override
+  String challengeTarget(String name, String time) {
+    return '$name $time';
+  }
+
+  @override
+  String challengeBeatName(String name, String time) {
+    return 'Superaste el $time de $name';
+  }
+
+  @override
+  String challengeKept(String name, String time) {
+    return '$name lo mantiene, por $time';
+  }
+
+  @override
+  String get chatGameNameLiarsDice => 'Dados mentirosos';
+
+  @override
+  String get chatGameNameImposter => 'Impostor';
+
+  @override
+  String get chatGameNameRace => 'Carrera de puzles';
+
+  @override
+  String get chatGameDescLiarsDice =>
+      'Apuesta sobre dados ocultos. Descubre al mentiroso.';
+
+  @override
+  String get chatGameDescImposter => 'Alguien no sabe la palabra. Encuéntralo.';
+
+  @override
+  String get chatGameDescRace =>
+      'El mismo puzle para todos. Gana el más rápido.';
+
+  @override
+  String chatGamePlayersRange(int min, int max) {
+    return '$min–$max jugadores';
+  }
+
+  @override
+  String get chatGamePartySection => 'Fiesta';
+
+  @override
+  String get chatGamePartyLiveOnly =>
+      'Los juegos de fiesta se juegan en directo, todos a la vez.';
+
+  @override
+  String get chatGameNeedsThree => 'Necesita un grupo de 3 o más';
+
+  @override
+  String get chatGameVoiceOption => 'Pistas por voz';
+
+  @override
+  String get chatGameVoiceOptionHint =>
+      'Habla en una llamada en vez de escribir las pistas';
+
+  @override
+  String get chatGamePuzzleOption => 'Puzle';
+
+  @override
+  String get chatGamePuzzleRandom => 'Al azar';
+
+  @override
+  String chatGameStartNamed(String game) {
+    return 'Empezar $game';
+  }
+
+  @override
+  String chatGameLdRoundDice(int count, int round) {
+    return 'Ronda $round · $count dados';
+  }
+
+  @override
+  String get chatGameLdYourDice => 'Tus dados';
+
+  @override
+  String get chatGameLdNoBid => 'Aún no hay apuesta';
+
+  @override
+  String chatGameLdBidBy(String name) {
+    return 'Apuesta de $name';
+  }
+
+  @override
+  String get chatGameLdYourBid => 'Tu apuesta';
+
+  @override
+  String get chatGameLdBid => 'Apostar';
+
+  @override
+  String get chatGameLdLiar => '¡Mentiroso!';
+
+  @override
+  String get chatGameLdOnesWild => 'Los 1 son comodines';
+
+  @override
+  String get chatGameLdOnesOnly => 'Apuesta a 1: sin comodines';
+
+  @override
+  String get chatGameLdHolds => 'La apuesta se cumple';
+
+  @override
+  String get chatGameLdBusted => '¡Pillado!';
+
+  @override
+  String chatGameLdThereWere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Había $count',
+      one: 'Había 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameLdLosesDie(String name) {
+    return '$name pierde un dado';
+  }
+
+  @override
+  String get chatGameLdYouLoseDie => 'Pierdes un dado';
+
+  @override
+  String chatGameLdCalled(String name) {
+    return '$name dijo mentiroso';
+  }
+
+  @override
+  String chatGameLdTimedOut(String name) {
+    return 'Se le acabó el tiempo a $name';
+  }
+
+  @override
+  String get chatGameLdOut => 'Fuera';
+
+  @override
+  String get chatGameLdQuantity => 'Cuántos';
+
+  @override
+  String get chatGameLdFace => 'Qué cara';
+
+  @override
+  String get chatGameLdFewer => 'Menos';
+
+  @override
+  String get chatGameLdMore => 'Más';
+
+  @override
+  String get chatGameLdPrompt => 'Sube la apuesta o di mentiroso';
+
+  @override
+  String get chatGameLdOpenPrompt => 'Abre la apuesta';
+
+  @override
+  String get chatGameImpHoldToSee => 'Mantén pulsado para ver tu carta';
+
+  @override
+  String get chatGameImpYourWord => 'Tu palabra';
+
+  @override
+  String get chatGameImpYouAre => 'Eres el impostor';
+
+  @override
+  String chatGameImpCategory(String category) {
+    return 'Categoría: $category';
+  }
+
+  @override
+  String get chatGameImpBlendIn => 'Disimula. Nadie más lo sabe.';
+
+  @override
+  String get chatGameImpKeepSecret =>
+      'No la digas. Da pistas que los demás entiendan.';
+
+  @override
+  String get chatGameImpGotIt => 'Entendido';
+
+  @override
+  String chatGameImpLooked(int count, int total) {
+    return '$count de $total ya miraron';
+  }
+
+  @override
+  String chatGameImpGiving(String name) {
+    return '$name está dando su pista';
+  }
+
+  @override
+  String get chatGameImpYourClue => 'Te toca dar una pista';
+
+  @override
+  String get chatGameImpClueHint => 'De una a cuatro palabras';
+
+  @override
+  String get chatGameImpClueField => 'Tu pista';
+
+  @override
+  String get chatGameImpSend => 'Enviar';
+
+  @override
+  String get chatGameImpTooManyWords => 'Cuatro palabras como máximo';
+
+  @override
+  String get chatGameImpPassed => 'Pasó';
+
+  @override
+  String get chatGameImpSpoke => 'Lo dijo en la llamada';
+
+  @override
+  String get chatGameImpJoinCall => 'Unirse a la llamada';
+
+  @override
+  String get chatGameImpOnCall => 'Estás en la llamada';
+
+  @override
+  String get chatGameImpVoiceHint => 'Di tu pista en voz alta y toca Listo.';
+
+  @override
+  String get chatGameImpDone => 'Listo';
+
+  @override
+  String get chatGameImpVoteTitle => '¿Quién es el impostor?';
+
+  @override
+  String get chatGameImpVoteHint =>
+      'Toca a un jugador para votar. Puedes cambiarlo hasta que acabe el tiempo.';
+
+  @override
+  String get chatGameImpSkip => 'No votar';
+
+  @override
+  String chatGameImpVoted(int count, int total) {
+    return 'Han votado $count de $total';
+  }
+
+  @override
+  String get chatGameImpVotedBadge => 'Votó';
+
+  @override
+  String get chatGameImpYourVote => 'Tu voto';
+
+  @override
+  String get chatGameImpGuessing => 'El impostor está adivinando…';
+
+  @override
+  String get chatGameImpGuessHint =>
+      'Te pillaron. Adivina la palabra para robar la victoria.';
+
+  @override
+  String get chatGameImpGuessField => 'La palabra es…';
+
+  @override
+  String get chatGameImpGuess => 'Adivinar';
+
+  @override
+  String chatGameImpWas(String name) {
+    return '$name era el impostor';
+  }
+
+  @override
+  String get chatGameImpYouWere => 'Eras el impostor';
+
+  @override
+  String get chatGameImpTheWord => 'La palabra era';
+
+  @override
+  String chatGameImpTheyGuessed(String guess) {
+    return 'Dijo «$guess»';
+  }
+
+  @override
+  String chatGameImpVotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count votos',
+      one: '1 voto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameImpSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count no votaron',
+      one: '1 no votó',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameImpReasonEscaped =>
+      'Nadie fue expulsado y el impostor escapó.';
+
+  @override
+  String get chatGameImpReasonWrong =>
+      'El equipo expulsó a la persona equivocada.';
+
+  @override
+  String get chatGameImpReasonGuessed =>
+      'Lo pillaron, pero el impostor adivinó la palabra.';
+
+  @override
+  String get chatGameImpReasonCaught => 'El equipo atrapó al impostor.';
+
+  @override
+  String get chatGameImpReasonImposterLeft =>
+      'El impostor salió de la partida.';
+
+  @override
+  String get chatGameImpReasonCrewLeft => 'El resto del equipo se fue.';
+
+  @override
+  String get chatGameImpCrewWon => 'Ganó el equipo';
+
+  @override
+  String get chatGameImpYourTeamWon => 'Ganó tu equipo';
+
+  @override
+  String chatGameImpImposterWon(String name) {
+    return '$name ganó como impostor';
+  }
+
+  @override
+  String get chatGameImpYouWonImposter => 'Ganaste como impostor';
+
+  @override
+  String get chatGameImpCardReveal => 'Mirando las cartas';
+
+  @override
+  String chatGameImpCardClues(int count, int total) {
+    return 'Pistas · $count de $total';
+  }
+
+  @override
+  String get chatGameImpCardVote => 'Votando';
+
+  @override
+  String chatGameRaceFinishedCount(int count, int total) {
+    return '$count de $total terminaron';
+  }
+
+  @override
+  String chatGameRaceYouPlaced(int rank) {
+    return 'Terminaste en el puesto $rank';
+  }
+
+  @override
+  String get chatGameRaceWaiting => 'Esperando a los demás';
+
+  @override
+  String get chatGameRaceTimeUp => 'Se acabó el tiempo. Nadie terminó.';
+
+  @override
+  String get chatGameRaceDnf => 'No terminó';
+
+  @override
+  String get chatGameRaceLeft => 'Se fue';
+
+  @override
+  String get chatGameRaceResults => 'Resultados';
+
+  @override
+  String get chatGameRaceSolved => '¡Resuelto!';
+
+  @override
+  String get chatGamePartyLeaveConfirm => '¿Salir de la partida?';
+
+  @override
+  String get chatGamePartyLeaveBody => 'Los demás siguen jugando sin ti.';
+
+  @override
+  String get chatGameErrTooLate => 'Demasiado tarde, se acabó el tiempo';
+
+  @override
+  String get chatGameErrBadClue =>
+      'Esa pista no vale. De una a cuatro palabras, sin enlaces.';
+
+  @override
+  String get chatGameErrBadGuess => 'Escribe una respuesta primero';
+
+  @override
+  String get chatGameErrNotSolved => 'El tablero aún no está resuelto';
+
+  @override
+  String get chatGameNameChess => 'Ajedrez';
+
+  @override
+  String get chatGameDescChess => 'Gana con jaque mate al rey.';
+
+  @override
+  String get chessPawn => 'peón';
+
+  @override
+  String get chessKnight => 'caballo';
+
+  @override
+  String get chessBishop => 'alfil';
+
+  @override
+  String get chessRook => 'torre';
+
+  @override
+  String get chessQueen => 'dama';
+
+  @override
+  String get chessKing => 'rey';
+
+  @override
+  String chessPieceWhite(String piece) {
+    return '$piece, blancas';
+  }
+
+  @override
+  String chessPieceBlack(String piece) {
+    return '$piece, negras';
+  }
+
+  @override
+  String chessPromoteTo(String piece) {
+    return 'Coronar como $piece';
+  }
 }

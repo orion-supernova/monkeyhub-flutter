@@ -25,6 +25,10 @@ export async function reactionsOn(ctx: any, recordId: Id<"gameRecords">) {
  * Counts one solve of [game] by [userId], scored [score] (lower is better), and
  * makes it the record if it is one.
  *
+ * A solve that used a hint ([clean] false) counts — `solves` and the streak
+ * move — but never sets or beats `best`: the record is the fastest board the
+ * player solved on their own.
+ *
  * Called from inside the mutation that finished the board, so the record and
  * the result can never disagree. [achievedAt] is that mutation's own
  * `finishedAt`, which is what [backfill] reads back for the same result — the
@@ -40,9 +44,11 @@ export async function noteSolve(
     score: number;
     dayKey: string;
     achievedAt: number;
+    clean?: boolean;
   },
 ): Promise<void> {
   const { userId, game, score, dayKey, achievedAt } = args;
+  const clean = args.clean ?? true;
   const row: Doc<"gameRecords"> | null = await ctx.db
     .query("gameRecords")
     .withIndex("by_user_game", (q: any) =>
@@ -53,7 +59,7 @@ export async function noteSolve(
     await ctx.db.insert("gameRecords", {
       userId,
       game,
-      best: score,
+      ...(clean ? { best: score } : {}),
       dayKey,
       achievedAt,
       solves: 1,
@@ -63,7 +69,7 @@ export async function noteSolve(
     });
     return;
   }
-  const beaten = score < row.best;
+  const beaten = clean && (row.best === undefined || score < row.best);
   await ctx.db.patch(row._id, {
     solves: row.solves + 1,
     ...(beaten ? { best: score, dayKey, achievedAt } : {}),

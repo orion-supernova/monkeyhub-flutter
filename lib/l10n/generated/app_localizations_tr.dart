@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -12028,4 +12027,1100 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get layoutPagerNext => 'Sonraki';
+
+  @override
+  String get resultSheetMistakes => 'Hatalar';
+
+  @override
+  String get resultSheetHints => 'İpuçları';
+
+  @override
+  String get resultSheetStreak => 'Seri';
+
+  @override
+  String resultSheetStreakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gün',
+      one: '1 gün',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get resultSheetNone => 'Yok';
+
+  @override
+  String resultSheetToday(String game) {
+    return '$game · Bugün';
+  }
+
+  @override
+  String resultSheetYouFaster(String time) {
+    return 'Sen $time daha hızlıydın';
+  }
+
+  @override
+  String resultSheetTheyFaster(String name, String time) {
+    return '$name $time daha hızlıydı';
+  }
+
+  @override
+  String get resultSheetSameTime => 'Seninle aynı süre';
+
+  @override
+  String get resultSheetFooter =>
+      'Sıralamayı yalnızca süre belirler. Hatalar ve ipuçları sadece merak edenler için.';
+
+  @override
+  String get resultSheetHintNoRecord =>
+      'İpucuyla çözüldü, bu yüzden tüm zamanların rekoru olamaz.';
+
+  @override
+  String get gameTierEasy => 'Kolay';
+
+  @override
+  String get gameTierMedium => 'Orta';
+
+  @override
+  String get gameTierHard => 'Zor';
+
+  @override
+  String get gameComingSoon => 'Yakında';
+
+  @override
+  String get gameComingSoonName => 'Yeni bulmaca';
+
+  @override
+  String get chatGameNameTicTacToe => 'XOX';
+
+  @override
+  String get chatGameNameConnectFour => 'Dörtlü';
+
+  @override
+  String get chatGameNameCheckers => 'Dama';
+
+  @override
+  String get chatGameNameReversi => 'Reversi';
+
+  @override
+  String get chatGameNameDots => 'Kutu Kapmaca';
+
+  @override
+  String get chatGameDescTicTacToe => 'Üçünü yan yana dizen kazanır.';
+
+  @override
+  String get chatGameDescConnectFour => 'Pul bırak, dördünü dizen kazanır.';
+
+  @override
+  String get chatGameDescCheckers => 'Atlayarak taş al. Hepsini topla.';
+
+  @override
+  String get chatGameDescReversi =>
+      'Sıkıştır ve çevir. En çok taşı olan kazanır.';
+
+  @override
+  String get chatGameDescDots => 'Çizgi çek, kutuyu kapat, tekrar oyna.';
+
+  @override
+  String get chatGameKindLive => 'Canlı oyun';
+
+  @override
+  String get chatGameKindTurns => 'Sırayla';
+
+  @override
+  String get chatGameStatusWaiting => 'Bekleniyor';
+
+  @override
+  String get chatGameStatusPlaying => 'Oynanıyor';
+
+  @override
+  String get chatGameStatusPaused => 'Duraklatıldı';
+
+  @override
+  String get chatGameStatusFinished => 'Bitti';
+
+  @override
+  String get chatGameStatusEnded => 'Sona erdi';
+
+  @override
+  String get chatGameYourMove => 'Sıra sende';
+
+  @override
+  String chatGameTurnOf(String name) {
+    return 'Sıra $name adlı kişide';
+  }
+
+  @override
+  String chatGameWaitingFor(String name) {
+    return '$name bekleniyor';
+  }
+
+  @override
+  String chatGameWonBy(String name) {
+    return '$name kazandı';
+  }
+
+  @override
+  String get chatGameYouWon => 'Kazandın';
+
+  @override
+  String get chatGameDraw => 'Berabere';
+
+  @override
+  String get chatGameNobodyWon => 'Herkes ayrıldı, kazanan yok';
+
+  @override
+  String chatGameReasonTimeout(String name) {
+    return '$name süresini doldurdu';
+  }
+
+  @override
+  String chatGameReasonResign(String name) {
+    return '$name pes etti';
+  }
+
+  @override
+  String chatGameReasonLeft(String name) {
+    return '$name ayrıldı';
+  }
+
+  @override
+  String get chatGameOpenSeat => 'Boş koltuk';
+
+  @override
+  String get chatGameReady => 'Hazır';
+
+  @override
+  String get chatGameNotReady => 'Hazır değil';
+
+  @override
+  String chatGameWatchingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count izliyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameJoin => 'Katıl';
+
+  @override
+  String get chatGameWatch => 'İzle';
+
+  @override
+  String get chatGamePlay => 'Oyna';
+
+  @override
+  String get chatGameOpen => 'Aç';
+
+  @override
+  String get chatGameRematch => 'Rövanş';
+
+  @override
+  String get chatGameNotRanked =>
+      'Sadece eğlence için. Sohbet oyunları serilerine ve rekorlarına sayılmaz.';
+
+  @override
+  String get chatGameNotRankedShort => 'Sıralamaya girmez';
+
+  @override
+  String get chatGameImReady => 'Hazırım';
+
+  @override
+  String get chatGameUnready => 'Henüz hazır değilim';
+
+  @override
+  String get chatGameTakeSeat => 'Katılmak için dokun';
+
+  @override
+  String get chatGameLeaveSeat => 'Koltuktan kalk';
+
+  @override
+  String get chatGameStartsWhenReady => 'Herkes hazır olunca başlar';
+
+  @override
+  String chatGameNeedPlayers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oyuncu daha bekleniyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameWatchingLabel => 'İzleyenler';
+
+  @override
+  String get chatGameAskSwap => 'Yer değiştirmeyi iste';
+
+  @override
+  String chatGameSwapRequest(String name) {
+    return '$name yerine geçmek istiyor';
+  }
+
+  @override
+  String get chatGameSwap => 'Değiştir';
+
+  @override
+  String get chatGameDecline => 'Reddet';
+
+  @override
+  String get chatGameAccept => 'Kabul et';
+
+  @override
+  String chatGameSwapAsked(String name) {
+    return '$name adlı kişiye soruldu';
+  }
+
+  @override
+  String get chatGameCancel => 'Vazgeç';
+
+  @override
+  String get chatGameResign => 'Pes et';
+
+  @override
+  String get chatGameResignConfirm => 'Bu oyundan pes mi ediyorsun?';
+
+  @override
+  String get chatGameResignBody => 'Bu senin için yenilgi sayılır.';
+
+  @override
+  String get chatGameOfferDraw => 'Beraberlik teklif et';
+
+  @override
+  String get chatGameDrawOffered => 'Beraberlik teklif edildi';
+
+  @override
+  String chatGameDrawOfferFrom(String name) {
+    return '$name beraberlik teklif ediyor';
+  }
+
+  @override
+  String chatGamePausedTitle(String name) {
+    return '$name oyundan ayrıldı';
+  }
+
+  @override
+  String get chatGamePausedMany => 'Oyuncular oyundan ayrıldı';
+
+  @override
+  String get chatGamePausedBody => 'Tahtayı bir süre bekletiyoruz.';
+
+  @override
+  String get chatGamePausedYou => 'Herkes dönünce oyun devam eder.';
+
+  @override
+  String get chatGameLeave => 'Oyundan ayrıl';
+
+  @override
+  String get chatGameGo => 'Başla!';
+
+  @override
+  String get chatGameNudge => 'Dürt';
+
+  @override
+  String get chatGameNudged => 'Dürtüldü';
+
+  @override
+  String chatGameHoursLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count saat kaldı',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameMinutesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dakika kaldı',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMoveFailed => 'Bu hamle gönderilemedi';
+
+  @override
+  String get chatGameStale => 'Tahta değişti. Tekrar dene.';
+
+  @override
+  String get chatGameStartTitle => 'Oyun oyna';
+
+  @override
+  String get chatGameMenuItem => 'Oyun';
+
+  @override
+  String get chatGameModeLive => 'Canlı';
+
+  @override
+  String get chatGameModeTurns => 'Sırayla';
+
+  @override
+  String get chatGameModeBot => 'Bota karşı';
+
+  @override
+  String get chatGameModeLiveHint =>
+      'Herkes aynı anda oynar. Ayrılmak oyunu duraklatır.';
+
+  @override
+  String get chatGameModeTurnsHint =>
+      'İstediğin zaman hamle yap. Sıran gelince bildirim alırsın, her sıra en fazla 2 gün sürer.';
+
+  @override
+  String get chatGameModeBotHint =>
+      'Sadece sen ve bot. Sohbete bir şey gönderilmez.';
+
+  @override
+  String get chatGameBotEasyHint => 'Hata yapar. Öğrenmek için ideal.';
+
+  @override
+  String get chatGameBotMediumHint => 'Adil oynar, kazanmanı engeller.';
+
+  @override
+  String get chatGameBotHardHint => 'Birkaç hamle ilerisini düşünür.';
+
+  @override
+  String get chatGameStart => 'Başlat';
+
+  @override
+  String get chatGameErrAlreadyLive =>
+      'Burada zaten canlı bir oyun var. Önce onu bitir ya da ondan ayrıl.';
+
+  @override
+  String get chatGameErrTooMany =>
+      'Burada zaten 3 sıralı oyunun var. Önce birini bitir.';
+
+  @override
+  String get chatGameErrGeneric => 'Bir şeyler ters gitti. Tekrar dene.';
+
+  @override
+  String get chatGamePlayersTwo => '2 oyuncu';
+
+  @override
+  String get chatGamePlayersUpToFour => '2–4 oyuncu';
+
+  @override
+  String get chatGameBotName => 'Maymun';
+
+  @override
+  String get chatGameBotBadge => 'Bot';
+
+  @override
+  String get chatGameNewGame => 'Yeni oyun';
+
+  @override
+  String chatGameBannerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oyun',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameBannerYourMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oyunda sıra sende',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameSheetTitle => 'Bu sohbetteki oyunlar';
+
+  @override
+  String get chatGameGone => 'Bu oyun artık mevcut değil.';
+
+  @override
+  String get chatGameSeatsLabel => 'Oyuncular';
+
+  @override
+  String get gameFlowName => 'Akış';
+
+  @override
+  String get gameFutoshikiName => 'Futoshiki';
+
+  @override
+  String get gameNonogramName => 'Nonogram';
+
+  @override
+  String get gameMinesweeperName => 'Mayın tarlası';
+
+  @override
+  String get gameStarbattleName => 'Yıldız savaşı';
+
+  @override
+  String get gameFlowRule => 'aynı noktaları birleştir, her kareyi doldur';
+
+  @override
+  String get gameFutoshikiRule =>
+      'her satır ve sütunda 1\'den 5\'e birer kez, her işaret doğru';
+
+  @override
+  String get gameNonogramRule => 'her ipucuna uyacak şekilde kareleri boya';
+
+  @override
+  String get gameMinesweeperRule => 'güvenli her kareyi aç, tahmin gerekmez';
+
+  @override
+  String get gameStarbattleRule =>
+      'her satır, sütun ve renkte iki yıldız, asla bitişik değil';
+
+  @override
+  String get gameFlag => 'Bayrak';
+
+  @override
+  String get gameAutoDot => 'Otomatik nokta';
+
+  @override
+  String get gameInfoFlowGoal =>
+      'Aynı renkteki her nokta çiftini bir boruyla birleştir.';
+
+  @override
+  String get gameInfoFlowRule1 =>
+      'Her boru aynı renk ve numaradaki 2 noktayı birleştirir.';
+
+  @override
+  String get gameInfoFlowRule2 => 'Borular kesişemez, aynı kareyi paylaşamaz.';
+
+  @override
+  String get gameInfoFlowRule3 => 'Her kareyi doldur. Hiçbiri boş kalamaz.';
+
+  @override
+  String get gameInfoFlowRule4 =>
+      'Yukarı, aşağı, sola ya da sağa git. Çapraz yok.';
+
+  @override
+  String get gameInfoFlowExample =>
+      'Düz bir yol yok mu? Boruyu diğerlerinin etrafından dolaştır. Yine de her kare dolmalı.';
+
+  @override
+  String get gameInfoFlowControls =>
+      'Borusunu çizmek için bir noktadan sürükle. Geri almak için geri sürükle. Bir borunun üstünden geçmek onu keser.';
+
+  @override
+  String get gameInfoFutoshikiGoal =>
+      'Tabloyu 1\'den 5\'e kadar sayılarla doldur.';
+
+  @override
+  String get gameInfoFutoshikiRule1 =>
+      'Her satırda 1, 2, 3, 4 ve 5 olur. Tekrar yok.';
+
+  @override
+  String get gameInfoFutoshikiRule2 => 'Her sütunda da.';
+
+  @override
+  String get gameInfoFutoshikiRule3 =>
+      'İki kare arasındaki < ya da > doğru olmalı. Küçük sayıyı gösterir.';
+
+  @override
+  String get gameInfoFutoshikiExample =>
+      'Bir işaret bu kareyi mi gösteriyor? O zaman 5 olamaz, çünkü komşusu daha büyük.';
+
+  @override
+  String get gameInfoFutoshikiControls =>
+      'Bir kareye, sonra bir sayıya dokun. Silmek için aynı sayıya tekrar dokun. Notlar küçük işaretler ekler.';
+
+  @override
+  String get gameInfoNonogramGoal =>
+      'Gizli resmi ortaya çıkarmak için kareleri boya.';
+
+  @override
+  String get gameInfoNonogramRule1 =>
+      'Her satır ve sütunun yanındaki sayılar, sırasıyla boyalı dizilerin uzunluğudur.';
+
+  @override
+  String get gameInfoNonogramRule2 => 'Diziler arasında en az 1 boş kare olur.';
+
+  @override
+  String get gameInfoNonogramRule3 =>
+      '0, satırın tamamen boş olduğu anlamına gelir.';
+
+  @override
+  String get gameInfoNonogramExample =>
+      '10 karelik bir satırda ipucu 10 mu? Hepsini boya. 4 4 ise iki dizi de sığar, aralarında bir boşlukla.';
+
+  @override
+  String get gameInfoNonogramControls =>
+      'Bir kez dokun: boya. İki kez: × (boş). Bir daha: temizle. Birden çok kareyi işaretlemek için sürükle.';
+
+  @override
+  String get gameInfoMinesweeperGoal => 'Mayın olmayan her kareyi aç.';
+
+  @override
+  String get gameInfoMinesweeperRule1 =>
+      'Bir sayı, o kareye kaç mayının değdiğini söyler. Köşeler dahil.';
+
+  @override
+  String get gameInfoMinesweeperRule2 =>
+      'Her kare mantıkla bulunabilir. Asla tahmin etmen gerekmez.';
+
+  @override
+  String get gameInfoMinesweeperRule3 =>
+      'Mayına basarsan süreye 30 saniye eklenir. Sonra devam et.';
+
+  @override
+  String get gameInfoMinesweeperExample =>
+      'Yanında tek bir kapalı kare olan bir 1 mi? O kare mayındır. Bayrakla.';
+
+  @override
+  String get gameInfoMinesweeperControls =>
+      'Bir kareyi açmak için dokun. Mayın işaretlemek için basılı tut ya da Bayrak\'ı aç.';
+
+  @override
+  String get gameInfoStarbattleGoal =>
+      'Her satıra, sütuna ve renge 2 yıldız koy.';
+
+  @override
+  String get gameInfoStarbattleRule1 => 'Her satırda tam 2 yıldız olur.';
+
+  @override
+  String get gameInfoStarbattleRule2 => 'Her sütunda tam 2 yıldız olur.';
+
+  @override
+  String get gameInfoStarbattleRule3 => 'Her renkte tam 2 yıldız olur.';
+
+  @override
+  String get gameInfoStarbattleRule4 =>
+      'Yıldızlar birbirine değemez. Köşeden bile.';
+
+  @override
+  String get gameInfoStarbattleExample =>
+      'Buradaki bir yıldız şu demek: etrafındaki 8 karede başka yıldız yok, satırında, sütununda ve renginde bulunacak bir tane daha var.';
+
+  @override
+  String get gameInfoStarbattleControls =>
+      'Bir kez dokun: nokta (burada yıldız yok). İki kez: yıldız. Bir daha: temizle.';
+
+  @override
+  String boardCellName(int row, int col) {
+    return 'Satır $row, sütun $col';
+  }
+
+  @override
+  String get boardEmpty => 'boş';
+
+  @override
+  String get boardBlack => 'siyah';
+
+  @override
+  String get boardWhite => 'beyaz';
+
+  @override
+  String get boardLegalMove => 'geçerli hamle';
+
+  @override
+  String get boardMoveHere => 'buraya oyna';
+
+  @override
+  String boardColumnFilled(int column, int count, int total) {
+    return 'Sütun $column, $total yerden $count dolu';
+  }
+
+  @override
+  String boardSquareName(int number) {
+    return 'Kare $number';
+  }
+
+  @override
+  String get boardDarkMan => 'koyu taş';
+
+  @override
+  String get boardDarkKing => 'koyu dama';
+
+  @override
+  String get boardLightMan => 'açık taş';
+
+  @override
+  String get boardLightKing => 'açık dama';
+
+  @override
+  String boardBoxName(String cell) {
+    return 'Kutu, $cell';
+  }
+
+  @override
+  String get boardOpen => 'açık';
+
+  @override
+  String get boardDrawn => 'çizildi';
+
+  @override
+  String boardClaimedBy(String name) {
+    return '$name aldı';
+  }
+
+  @override
+  String boardHorizontalEdge(int row, int col) {
+    return 'Yatay çizgi, satır $row, sütun $col';
+  }
+
+  @override
+  String boardVerticalEdge(int row, int col) {
+    return 'Dikey çizgi, satır $row, sütun $col';
+  }
+
+  @override
+  String get challengeAction => 'Meydan oku';
+
+  @override
+  String get challengeTitle => 'Süremi geç';
+
+  @override
+  String get challengeKind => 'Günlük meydan okuma';
+
+  @override
+  String challengeYouBeat(String time) {
+    return '$time farkla geçtin';
+  }
+
+  @override
+  String challengeStillStanding(String time) {
+    return '$time farkla hâlâ ayakta';
+  }
+
+  @override
+  String get challengeTie => 'Tam berabere';
+
+  @override
+  String get challengeClosed => 'O tahta kapandı';
+
+  @override
+  String get challengeYourTime => 'Geçilmesi gereken süren';
+
+  @override
+  String get challengeSent => 'Meydan okuma gönderildi';
+
+  @override
+  String challengeTarget(String name, String time) {
+    return '$name $time';
+  }
+
+  @override
+  String challengeBeatName(String name, String time) {
+    return '$name adlı kişinin $time süresini geçtin';
+  }
+
+  @override
+  String challengeKept(String name, String time) {
+    return '$name $time farkla korudu';
+  }
+
+  @override
+  String get chatGameNameLiarsDice => 'Yalancı Zar';
+
+  @override
+  String get chatGameNameImposter => 'Sahtekâr';
+
+  @override
+  String get chatGameNameRace => 'Bulmaca Yarışı';
+
+  @override
+  String get chatGameDescLiarsDice =>
+      'Gizli zarlara teklif ver. Yalancıyı yakala.';
+
+  @override
+  String get chatGameDescImposter => 'Biriniz kelimeyi bilmiyor. Onu bulun.';
+
+  @override
+  String get chatGameDescRace =>
+      'Herkese aynı bulmaca. En hızlı çözen kazanır.';
+
+  @override
+  String chatGamePlayersRange(int min, int max) {
+    return '$min–$max oyuncu';
+  }
+
+  @override
+  String get chatGamePartySection => 'Parti';
+
+  @override
+  String get chatGamePartyLiveOnly =>
+      'Parti oyunları canlı, herkesle aynı anda oynanır.';
+
+  @override
+  String get chatGameNeedsThree => 'En az 3 kişilik grup gerekir';
+
+  @override
+  String get chatGameVoiceOption => 'Sesli ipuçları';
+
+  @override
+  String get chatGameVoiceOptionHint =>
+      'İpuçlarını yazmak yerine aramada söyleyin';
+
+  @override
+  String get chatGamePuzzleOption => 'Bulmaca';
+
+  @override
+  String get chatGamePuzzleRandom => 'Rastgele';
+
+  @override
+  String chatGameStartNamed(String game) {
+    return '$game başlat';
+  }
+
+  @override
+  String chatGameLdRoundDice(int count, int round) {
+    return '$round. tur · $count zar';
+  }
+
+  @override
+  String get chatGameLdYourDice => 'Zarların';
+
+  @override
+  String get chatGameLdNoBid => 'Henüz teklif yok';
+
+  @override
+  String chatGameLdBidBy(String name) {
+    return 'Teklif: $name';
+  }
+
+  @override
+  String get chatGameLdYourBid => 'Senin teklifin';
+
+  @override
+  String get chatGameLdBid => 'Teklif ver';
+
+  @override
+  String get chatGameLdLiar => 'Yalancı!';
+
+  @override
+  String get chatGameLdOnesWild => '1’ler jokerdir';
+
+  @override
+  String get chatGameLdOnesOnly => '1 teklifinde joker yok';
+
+  @override
+  String get chatGameLdHolds => 'Teklif tuttu';
+
+  @override
+  String get chatGameLdBusted => 'Yakalandı!';
+
+  @override
+  String chatGameLdThereWere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tane vardı',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameLdLosesDie(String name) {
+    return '$name bir zar kaybeder';
+  }
+
+  @override
+  String get chatGameLdYouLoseDie => 'Bir zar kaybettin';
+
+  @override
+  String chatGameLdCalled(String name) {
+    return '$name yalancı dedi';
+  }
+
+  @override
+  String chatGameLdTimedOut(String name) {
+    return '$name için süre doldu';
+  }
+
+  @override
+  String get chatGameLdOut => 'Elendi';
+
+  @override
+  String get chatGameLdQuantity => 'Kaç tane';
+
+  @override
+  String get chatGameLdFace => 'Hangi sayı';
+
+  @override
+  String get chatGameLdFewer => 'Azalt';
+
+  @override
+  String get chatGameLdMore => 'Artır';
+
+  @override
+  String get chatGameLdPrompt => 'Teklifi yükselt ya da yalancı de';
+
+  @override
+  String get chatGameLdOpenPrompt => 'İlk teklifi ver';
+
+  @override
+  String get chatGameImpHoldToSee => 'Kartını görmek için basılı tut';
+
+  @override
+  String get chatGameImpYourWord => 'Kelimen';
+
+  @override
+  String get chatGameImpYouAre => 'Sahtekâr sensin';
+
+  @override
+  String chatGameImpCategory(String category) {
+    return 'Kategori: $category';
+  }
+
+  @override
+  String get chatGameImpBlendIn => 'Aralarına karış. Kimse bilmiyor.';
+
+  @override
+  String get chatGameImpKeepSecret =>
+      'Doğrudan söyleme. Diğerlerinin anlayacağı ipuçları ver.';
+
+  @override
+  String get chatGameImpGotIt => 'Anladım';
+
+  @override
+  String chatGameImpLooked(int count, int total) {
+    return '$total kişiden $count kişi baktı';
+  }
+
+  @override
+  String chatGameImpGiving(String name) {
+    return '$name ipucu veriyor';
+  }
+
+  @override
+  String get chatGameImpYourClue => 'İpucu sırası sende';
+
+  @override
+  String get chatGameImpClueHint => 'Bir ile dört kelime';
+
+  @override
+  String get chatGameImpClueField => 'İpucun';
+
+  @override
+  String get chatGameImpSend => 'Gönder';
+
+  @override
+  String get chatGameImpTooManyWords => 'En fazla dört kelime';
+
+  @override
+  String get chatGameImpPassed => 'Pas geçti';
+
+  @override
+  String get chatGameImpSpoke => 'Aramada söyledi';
+
+  @override
+  String get chatGameImpJoinCall => 'Aramaya katıl';
+
+  @override
+  String get chatGameImpOnCall => 'Aramadasın';
+
+  @override
+  String get chatGameImpVoiceHint =>
+      'İpucunu sesli söyle, sonra Bitti’ye dokun.';
+
+  @override
+  String get chatGameImpDone => 'Bitti';
+
+  @override
+  String get chatGameImpVoteTitle => 'Sahtekâr kim?';
+
+  @override
+  String get chatGameImpVoteHint =>
+      'Oy vermek için bir oyuncuya dokun. Süre bitene kadar değiştirebilirsin.';
+
+  @override
+  String get chatGameImpSkip => 'Oy verme';
+
+  @override
+  String chatGameImpVoted(int count, int total) {
+    return '$total kişiden $count kişi oy verdi';
+  }
+
+  @override
+  String get chatGameImpVotedBadge => 'Oy verdi';
+
+  @override
+  String get chatGameImpYourVote => 'Oyun';
+
+  @override
+  String get chatGameImpGuessing => 'Sahtekâr tahmin ediyor…';
+
+  @override
+  String get chatGameImpGuessHint => 'Yakalandın. Kazanmak için kelimeyi bil.';
+
+  @override
+  String get chatGameImpGuessField => 'Kelime…';
+
+  @override
+  String get chatGameImpGuess => 'Tahmin et';
+
+  @override
+  String chatGameImpWas(String name) {
+    return 'Sahtekâr $name idi';
+  }
+
+  @override
+  String get chatGameImpYouWere => 'Sahtekâr sendin';
+
+  @override
+  String get chatGameImpTheWord => 'Kelime şuydu';
+
+  @override
+  String chatGameImpTheyGuessed(String guess) {
+    return 'Tahmin: “$guess”';
+  }
+
+  @override
+  String chatGameImpVotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oy',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameImpSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi oy vermedi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameImpReasonEscaped => 'Kimse elenmedi, sahtekâr kaçtı.';
+
+  @override
+  String get chatGameImpReasonWrong => 'Ekip yanlış kişiyi eledi.';
+
+  @override
+  String get chatGameImpReasonGuessed =>
+      'Yakalandı ama sahtekâr kelimeyi bildi.';
+
+  @override
+  String get chatGameImpReasonCaught => 'Ekip sahtekârı yakaladı.';
+
+  @override
+  String get chatGameImpReasonImposterLeft => 'Sahtekâr oyundan ayrıldı.';
+
+  @override
+  String get chatGameImpReasonCrewLeft => 'Ekibin geri kalanı ayrıldı.';
+
+  @override
+  String get chatGameImpCrewWon => 'Ekip kazandı';
+
+  @override
+  String get chatGameImpYourTeamWon => 'Takımın kazandı';
+
+  @override
+  String chatGameImpImposterWon(String name) {
+    return '$name sahtekâr olarak kazandı';
+  }
+
+  @override
+  String get chatGameImpYouWonImposter => 'Sahtekâr olarak kazandın';
+
+  @override
+  String get chatGameImpCardReveal => 'Kartlara bakılıyor';
+
+  @override
+  String chatGameImpCardClues(int count, int total) {
+    return 'İpuçları · $count/$total';
+  }
+
+  @override
+  String get chatGameImpCardVote => 'Oylama';
+
+  @override
+  String chatGameRaceFinishedCount(int count, int total) {
+    return '$total kişiden $count kişi bitirdi';
+  }
+
+  @override
+  String chatGameRaceYouPlaced(int rank) {
+    return '$rank. oldun';
+  }
+
+  @override
+  String get chatGameRaceWaiting => 'Diğerleri bekleniyor';
+
+  @override
+  String get chatGameRaceTimeUp => 'Süre doldu. Kimse bitiremedi.';
+
+  @override
+  String get chatGameRaceDnf => 'Bitiremedi';
+
+  @override
+  String get chatGameRaceLeft => 'Ayrıldı';
+
+  @override
+  String get chatGameRaceResults => 'Sonuçlar';
+
+  @override
+  String get chatGameRaceSolved => 'Çözdün!';
+
+  @override
+  String get chatGamePartyLeaveConfirm => 'Oyundan ayrılınsın mı?';
+
+  @override
+  String get chatGamePartyLeaveBody => 'Diğerleri sensiz devam eder.';
+
+  @override
+  String get chatGameErrTooLate => 'Geç kaldın, süre doldu';
+
+  @override
+  String get chatGameErrBadClue =>
+      'Bu ipucu kullanılamaz. Bir ile dört kelime, bağlantı yok.';
+
+  @override
+  String get chatGameErrBadGuess => 'Önce bir tahmin yaz';
+
+  @override
+  String get chatGameErrNotSolved => 'Bulmaca henüz çözülmedi';
+
+  @override
+  String get chatGameNameChess => 'Satranç';
+
+  @override
+  String get chatGameDescChess => 'Şah mat eden kazanır.';
+
+  @override
+  String get chessPawn => 'piyon';
+
+  @override
+  String get chessKnight => 'at';
+
+  @override
+  String get chessBishop => 'fil';
+
+  @override
+  String get chessRook => 'kale';
+
+  @override
+  String get chessQueen => 'vezir';
+
+  @override
+  String get chessKing => 'şah';
+
+  @override
+  String chessPieceWhite(String piece) {
+    return '$piece, beyaz';
+  }
+
+  @override
+  String chessPieceBlack(String piece) {
+    return '$piece, siyah';
+  }
+
+  @override
+  String chessPromoteTo(String piece) {
+    return '$piece olarak terfi et';
+  }
 }

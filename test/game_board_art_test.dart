@@ -5,8 +5,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/games/flow_board_art.dart';
+import 'package:monkeyhub/games/futoshiki_board_art.dart';
 import 'package:monkeyhub/games/game_canvas.dart';
+import 'package:monkeyhub/games/minesweeper_board_art.dart';
+import 'package:monkeyhub/games/nonogram_board_art.dart';
 import 'package:monkeyhub/games/queens_board_art.dart';
+import 'package:monkeyhub/games/starbattle_board_art.dart';
 import 'package:monkeyhub/games/sudoku_board_art.dart';
 import 'package:monkeyhub/games/tango_board_art.dart';
 import 'package:monkeyhub/games/zip_board_art.dart';
@@ -44,10 +49,7 @@ void main() {
 
   final boards = DailyBoards.fromJson({
     'dayKey': day['dayKey'],
-    'queens': boardOf('queens'),
-    'tango': boardOf('tango'),
-    'zip': boardOf('zip'),
-    'sudoku': boardOf('sudoku'),
+    for (final game in DailyGame.values) game.wire: boardOf(game.wire),
   });
 
   final theme = BasicTheme.midnight();
@@ -74,6 +76,21 @@ void main() {
           i,
         );
       }
+    });
+
+    test('a clue gutter moves the cells, and the hit-test with them', () {
+      // Nonogram's grid sits below and right of its clues. The painter and
+      // the gesture surface both derive the cells from the same lead, so a
+      // tap on a drawn square must land on that square.
+      final grid = GameGrid(side: 400, n: 10, lead: 100);
+      expect(grid.cell, 30);
+      expect(grid.origin(0), const Offset(100, 100));
+      for (var i = 0; i < 100; i++) {
+        expect(grid.hit(grid.center(i)), i);
+      }
+      // The gutter itself is not a cell.
+      expect(grid.hit(const Offset(50, 150)), isNull);
+      expect(grid.hit(const Offset(150, 50)), isNull);
     });
 
     test('a point outside the board maps to nothing', () {
@@ -144,6 +161,79 @@ void main() {
           ),
           side,
         );
+        paint(
+          FlowBoardPainter(
+            board: boards.flow,
+            theme: theme,
+            palette: palette,
+            pipes: [
+              for (final (a, _) in boards.flow.endpoints) [a],
+              [0, 1, 2],
+            ],
+            active: 0,
+            win: 0.5,
+          ),
+          side,
+        );
+        paint(
+          FutoshikiBoardPainter(
+            board: boards.futoshiki,
+            theme: theme,
+            cells: List<int>.generate(25, (i) => (i % 5) + 1),
+            notes: const {0: {1, 2, 3, 4, 5}},
+            trouble: const FutoshikiTrouble(cells: {0, 1}, signs: {0}),
+            selected: 6,
+            popCell: 6,
+            pop: 0.5,
+            win: 0.5,
+          ),
+          side,
+        );
+        paint(
+          NonogramBoardPainter(
+            board: boards.nonogram,
+            theme: theme,
+            cells: List<int>.generate(100, (i) => i % 3 - 1),
+            trouble: const NonogramTrouble(rows: {0}, cols: {9}),
+            satisfiedRows: const {1},
+            satisfiedCols: const {2},
+            focus: 55,
+            popCell: 55,
+            pop: 0.5,
+            win: 0.5,
+          ),
+          side,
+        );
+        paint(
+          MinesweeperBoardPainter(
+            board: boards.minesweeper,
+            theme: theme,
+            cells: List<int>.generate(81, (i) => i % 12 - 1),
+            mines: List<int>.generate(81, (i) => i % 7 == 0 ? 1 : 0),
+            showMines: true,
+            popCell: 4,
+            pop: 0.5,
+            win: 0.5,
+          ),
+          side,
+        );
+        paint(
+          StarBattleBoardPainter(
+            board: boards.starbattle,
+            theme: theme,
+            palette: palette,
+            marks: List<StarMark>.generate(
+              100,
+              (i) => StarMark.values[i % 3],
+            ),
+            conflicts: const {2, 5},
+            autoBlocked: const {0, 3},
+            popCell: 2,
+            pop: 0.5,
+            win: 0.5,
+          ),
+          side,
+        );
       });
     }
 
@@ -159,6 +249,27 @@ void main() {
       paint(TangoBoardPainter(board: TangoBoard.empty, theme: theme), 120);
       paint(ZipBoardPainter(board: ZipBoard.empty, theme: theme), 120);
       paint(SudokuBoardPainter(board: SudokuBoard.empty, theme: theme), 120);
+      paint(
+        FlowBoardPainter(board: FlowBoard.empty, theme: theme, palette: palette),
+        120,
+      );
+      paint(
+        FutoshikiBoardPainter(board: FutoshikiBoard.empty, theme: theme),
+        120,
+      );
+      paint(NonogramBoardPainter(board: NonogramBoard.empty, theme: theme), 120);
+      paint(
+        MinesweeperBoardPainter(board: MinesweeperBoard.empty, theme: theme),
+        120,
+      );
+      paint(
+        StarBattleBoardPainter(
+          board: StarBattleBoard.empty,
+          theme: theme,
+          palette: palette,
+        ),
+        120,
+      );
     });
 
     test('a board with no player state at all — the hub tiles', () {
@@ -173,6 +284,24 @@ void main() {
       paint(TangoBoardPainter(board: boards.tango, theme: theme), 72);
       paint(ZipBoardPainter(board: boards.zip, theme: theme), 72);
       paint(SudokuBoardPainter(board: boards.sudoku, theme: theme), 72);
+      paint(
+        FlowBoardPainter(board: boards.flow, theme: theme, palette: palette),
+        72,
+      );
+      paint(FutoshikiBoardPainter(board: boards.futoshiki, theme: theme), 72);
+      paint(NonogramBoardPainter(board: boards.nonogram, theme: theme), 72);
+      paint(
+        MinesweeperBoardPainter(board: boards.minesweeper, theme: theme),
+        72,
+      );
+      paint(
+        StarBattleBoardPainter(
+          board: boards.starbattle,
+          theme: theme,
+          palette: palette,
+        ),
+        72,
+      );
     });
   });
 
@@ -310,7 +439,7 @@ void main() {
       expect(find.text('#2'), findsOneWidget);
     });
 
-    testWidgets('the Feed band shows all four and reports which was tapped', (
+    testWidgets('the Feed band shows every game and reports which was tapped', (
       tester,
     ) async {
       DailyGame? opened;
@@ -330,7 +459,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      for (final name in ['Queens', 'Tango', 'Zip', 'Mini sudoku']) {
+      for (final name in [
+        'Queens',
+        'Tango',
+        'Zip',
+        'Mini sudoku',
+        'Flow',
+        'Futoshiki',
+        'Nonogram',
+        'Minesweeper',
+        'Star battle',
+      ]) {
         expect(find.text(name), findsOneWidget, reason: name);
       }
       // The row scrolls sideways; Zip starts past the edge of a phone.
@@ -339,6 +478,13 @@ void main() {
       await tester.tap(find.text('Zip'));
       await tester.pump();
       expect(opened, DailyGame.zip);
+
+      // And the last one, at the far end of the hard group.
+      await tester.ensureVisible(find.text('Star battle'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Star battle'));
+      await tester.pump();
+      expect(opened, DailyGame.starbattle);
     });
   });
 }

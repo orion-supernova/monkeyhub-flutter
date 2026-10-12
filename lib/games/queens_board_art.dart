@@ -56,11 +56,7 @@ class QueensBoardPainter extends CustomPainter {
 
     // Regions first, as flat fills. Borders come after every fill so a region's
     // outline is never half-covered by the neighbour painted next.
-    final fill = Paint()..style = PaintingStyle.fill;
-    for (var i = 0; i < n * n; i++) {
-      fill.color = palette.region(board.regions[i]);
-      canvas.drawRect(grid.rect(i).deflate(0.2), fill);
-    }
+    paintRegionFills(canvas, grid, board.regions, palette);
 
     if (win > 0) {
       // A diagonal sweep, so the win reads as travelling across the board
@@ -78,37 +74,9 @@ class QueensBoardPainter extends CustomPainter {
       }
     }
 
-    // Cell separators inside a region, then the region outlines on top. Drawn
-    // as edges between cells rather than a box per cell, because a box per cell
-    // doubles every internal line and makes a region look gridded rather than
-    // whole.
-    final hair = Paint()
-      ..color = theme.ink.withValues(alpha: 0.13)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    final edge = Paint()
-      ..color = theme.ink.withValues(alpha: 0.62)
-      ..strokeWidth = math.max(1.6, cell * 0.055)
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    for (var i = 0; i < n * n; i++) {
-      final r = grid.rect(i);
-      final col = i % n;
-      final row = i ~/ n;
-      if (col < n - 1) {
-        final same = board.regions[i] == board.regions[i + 1];
-        canvas.drawLine(r.topRight, r.bottomRight, same ? hair : edge);
-      }
-      if (row < n - 1) {
-        final same = board.regions[i] == board.regions[i + n];
-        canvas.drawLine(r.bottomLeft, r.bottomRight, same ? hair : edge);
-      }
-    }
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, cell * n, cell * n).deflate(edge.strokeWidth / 2),
-      edge,
-    );
+    // Cell separators inside a region, then the region outlines on top.
+    // Shared with Star Battle, which draws its regions exactly this way.
+    paintRegionBorders(canvas, grid, board.regions, theme);
 
     if (marks.isEmpty) return;
 

@@ -18,6 +18,7 @@ class PodiumEntry {
     required this.metric,
     required this.semantics,
     this.streak = 0,
+    this.onTap,
   });
 
   final String userId;
@@ -33,6 +34,9 @@ class PodiumEntry {
   /// The metric read aloud, after the place and the name.
   final String semantics;
   final int streak;
+
+  /// The same as tapping the row would be: the whole result.
+  final VoidCallback? onTap;
 }
 
 /// The top three, drawn as a podium: first in the middle and raised, second
@@ -106,8 +110,9 @@ class _Slot extends StatelessWidget {
               ))
         .copyWith(color: entry.isViewer ? theme.accent : null);
 
-    return Semantics(
+    final slot = Semantics(
       container: true,
+      button: entry.onTap != null,
       label: [
         '$place. $label',
         entry.semantics,
@@ -164,6 +169,14 @@ class _Slot extends StatelessWidget {
           ],
         ),
       ),
+    );
+    final onTap = entry.onTap;
+    if (onTap == null) return slot;
+    return SpringPress(
+      onTap: onTap,
+      scale: PressSpec.scaleSmall,
+      focusRadius: theme.radiusMd,
+      child: slot,
     );
   }
 }

@@ -7,8 +7,8 @@ import '../data/feed_store.dart';
 import '../data/games_store.dart';
 import '../models/daily_game.dart';
 
-/// The clock, the server round trips and the lifecycle rules that all four
-/// daily games share.
+/// The clock, the server round trips and the lifecycle rules that every daily
+/// game shares.
 ///
 /// Pulled out because every board needs the identical dance — claim a start
 /// time, restore whatever was left half-finished, run a stopwatch that stops
@@ -202,12 +202,28 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// Puts [penalty] on the clock, as if the player had spent it.
+  ///
+  /// Minesweeper's price for walking onto a mine. Ending the game there would
+  /// make one slip worth more than ten minutes of clean deduction, and on a
+  /// no-guess board a mine is always a misread number rather than bad luck, so
+  /// it costs time instead and the board carries on. Added to the banked time
+  /// rather than faked into a moving clock, so the stopwatch jumps by exactly
+  /// the penalty the player can see they were charged. The server lets a
+  /// reported time run past the real one by this much per counted mistake, and
+  /// no further (see `MINE_PENALTY_MS` in backend/convex/games.ts).
+  void addPenalty(Duration penalty) {
+    if (_finished) return;
+    _accumulated += penalty;
+    notifyListeners();
+  }
+
   /// Reveals one correct cell. Returns null when there is nothing left to
   /// reveal, or when the call failed — [errorCode] carries why.
   ///
-  /// [board] must be in the shape this game submits: a column per row for
-  /// Queens, a value per cell for Tango and Sudoku. Zip has no hint at all —
-  /// see [GamesApi.hint].
+  /// [board] must be in the shape [GamesApi.hint] documents for this game:
+  /// mostly the submission's own shape, a working grid for Nonogram and
+  /// Minesweeper, and the pipes end to end for Flow. Zip has no hint at all.
   Future<GameHint?> hint(List<int> board) async {
     if (_busy || _finished) return null;
     // A hint is a move like any other — asking for one before touching the

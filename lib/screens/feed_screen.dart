@@ -39,10 +39,7 @@ import 'feed/point_composer.dart';
 import 'feed/points_explainer.dart';
 import 'feed/puzzle_screen.dart';
 import 'games/leaderboard_screen.dart';
-import 'games/queens_screen.dart';
-import 'games/sudoku_screen.dart';
-import 'games/tango_screen.dart';
-import 'games/zip_screen.dart';
+import 'games/daily_game_screens.dart';
 import 'navigation/destinations.dart';
 import 'navigation/tab_reselect.dart';
 
@@ -365,12 +362,7 @@ class _FeedScreenState extends State<FeedScreen>
     if (userId == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => switch (game) {
-          DailyGame.queens => QueensScreen(userId: userId),
-          DailyGame.tango => TangoScreen(userId: userId),
-          DailyGame.zip => ZipScreen(userId: userId),
-          DailyGame.sudoku => SudokuScreen(userId: userId),
-        },
+        builder: (_) => dailyGameScreen(game, userId),
       ),
     );
   }

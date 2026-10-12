@@ -2,7 +2,12 @@ import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
+import * as flow from "./games/flow";
+import * as futoshiki from "./games/futoshiki";
+import * as minesweeper from "./games/minesweeper";
+import * as nonogram from "./games/nonogram";
 import * as queens from "./games/queens";
+import * as starbattle from "./games/starbattle";
 import * as sudoku from "./games/sudoku";
 import * as tango from "./games/tango";
 import * as zip from "./games/zip";
@@ -10,28 +15,30 @@ import { liveStreak, noteSolve } from "./recordBook";
 import { lensFor } from "./visibility";
 
 /**
- * THE DAILY GAMES — Queens, Tango, Zip and Mini Sudoku.
+ * THE DAILY GAMES — Queens, Tango, Zip, Mini Sudoku, Flow, Futoshiki,
+ * Nonogram, Minesweeper and Star Battle.
  *
- * Four fresh boards every day, the same four boards for everyone, ranked by how
+ * Nine fresh boards every day, the same nine boards for everyone, ranked by how
  * fast you finished them. They sit alongside the symbol-code puzzle in
  * `puzzle.ts`, which keeps its own table and its own guesses-based ranking.
  *
- * ## Why these four, and not Crossclimb or Pinpoint
+ * ## Why these nine, and not Crossclimb or Pinpoint
  *
  * Because they contain no words. This app ships in twelve languages, and
  * `puzzle.ts` already spells out what that costs a word game: a curated answer
  * list per locale, friends on different app languages solving *different*
  * boards, and a shared scoreboard that therefore compares nothing. A crown, a
- * sun, a line and the digits 1-6 are the same in every language, so every
- * friend in the world plays the identical board and the standings mean
- * something. That constraint picked the shortlist; it was not a shortcut.
+ * sun, a line, a pipe, a star, a flag and the digits are the same in every
+ * language, so every friend in the world plays the identical board and the
+ * standings mean something. That constraint picked the shortlist; it was not a
+ * shortcut.
  *
  * ## Where the boards live
  *
  * Nowhere. Each is a pure function of the day key (`games/*.ts`), so there is
  * no table to seed, no cron to run before midnight in the earliest timezone,
- * and no race between the day's first two players. Adding a fifth game is a new
- * file and one line of `GAMES` — no migration over live rows.
+ * and no race between the day's first two players. Adding a game is a new file,
+ * one line of `GAMES` and one line of `GENERATE` — no migration over live rows.
  *
  * ## Query budget
  *
@@ -42,83 +49,206 @@ import { lensFor } from "./visibility";
  * app-wide and has turned down new ones for far more than this.
  */
 
-/** The games that exist. Mirrored by `DailyGame` in lib/models/daily_game.dart. */
-export const GAMES = ["queens", "tango", "zip", "sudoku"] as const;
+/**
+ * The games that exist. Mirrored by `DailyGame` in lib/models/daily_game.dart,
+ * in this order — append only, because the client's enum (and the hub's tile
+ * order within a tier) follows it.
+ */
+export const GAMES = [
+  "queens",
+  "tango",
+  "zip",
+  "sudoku",
+  "flow",
+  "futoshiki",
+  "nonogram",
+  "minesweeper",
+  "starbattle",
+] as const;
 export type GameId = (typeof GAMES)[number];
 
 function isGameId(value: string): value is GameId {
   return (GAMES as readonly string[]).includes(value);
 }
 
-/** Every board for one day, in the shape the client renders from. */
-type DailyBoards = {
-  dayKey: string;
-  queens: queens.QueensPuzzle;
-  tango: tango.TangoPuzzle;
-  zip: zip.ZipPuzzle;
-  sudoku: sudoku.SudokuPuzzle;
-};
+/**
+ * Seconds added to a Minesweeper clock per mine stepped on, in milliseconds.
+ *
+ * A mine is a MISTAKE, not a loss: in a daily that ranks friends by time, ending
+ * the board on one slip would make the standings a list of who never slipped,
+ * and the generator promises no guessing is ever needed — so a hit is carelessness,
+ * which a clock penalty prices fairly. The client adds it to its own stopwatch
+ * the moment a mine opens; `submit` widens its clamp by the same amount (see
+ * there). Mirrored as `kMinePenalty` on the client.
+ */
+export const MINE_PENALTY_MS = 30_000;
 
 /**
- * Generated boards, remembered per day key.
+ * Largest grid each game's `progress` / `board` / `solution` can be: one entry
+ * per cell of its board. Read off each engine's own SIZE rather than written as
+ * numbers here, so a generator that grows its board does not quietly start
+ * failing every autosave with BAD_PROGRESS. Queens submits a column per row (8),
+ * but its autosave is a mark per cell (64), so the cap is the cell count for
+ * every game.
+ */
+const MAX_CELLS: Record<GameId, number> = {
+  queens: queens.SIZE * queens.SIZE,
+  tango: tango.SIZE * tango.SIZE,
+  zip: zip.SIZE * zip.SIZE,
+  sudoku: sudoku.SIZE * sudoku.SIZE,
+  flow: flow.SIZE * flow.SIZE,
+  futoshiki: futoshiki.SIZE * futoshiki.SIZE,
+  nonogram: nonogram.SIZE * nonogram.SIZE,
+  minesweeper: minesweeper.SIZE * minesweeper.SIZE,
+  starbattle: starbattle.SIZE * starbattle.SIZE,
+};
+
+/** Each game's generator. The single place a new game's board is wired in. */
+const GENERATE = {
+  queens: queens.generate,
+  tango: tango.generate,
+  zip: zip.generate,
+  sudoku: sudoku.generate,
+  flow: flow.generate,
+  futoshiki: futoshiki.generate,
+  nonogram: nonogram.generate,
+  minesweeper: minesweeper.generate,
+  starbattle: starbattle.generate,
+} satisfies Record<GameId, (dayKey: string) => unknown>;
+
+type BoardOf<G extends GameId> = ReturnType<(typeof GENERATE)[G]>;
+
+/** Every board for one day, in the shape the client renders from. */
+type DailyBoards = { dayKey: string } & { [G in GameId]: BoardOf<G> };
+
+/**
+ * Generated boards, remembered per day key and per game.
  *
- * Generation is a search — Queens repairs its board until the solver proves one
- * answer, and that runs tens of milliseconds on an unlucky seed. It is also a
- * pure function of the day key, so the result can be cached without any way for
- * it to go stale, and every player after the first on a given Convex instance
- * gets it for free.
+ * Generation is a search — Queens and Star Battle repair their boards until the
+ * solver proves one answer, and that runs tens of milliseconds on an unlucky
+ * seed. It is also a pure function of the day key, so the result can be cached
+ * without any way for it to go stale, and every player after the first on a
+ * given Convex instance gets it for free.
+ *
+ * Per game, and filled lazily: `hint`, `submit` and `reveal` need one board,
+ * and on a cold instance a Futoshiki submit should not pay for nine searches it
+ * will never look at. `daily` still asks for all nine.
  *
  * Bounded, and cleared rather than evicted one by one: the working set is
  * "today, and yesterday for anyone west of the dateline", so anything beyond a
  * handful of keys is a sign of clock skew, not of a cache that needs an LRU.
  */
-const boardCache = new Map<string, DailyBoards>();
+const boardCache = new Map<string, Partial<Record<GameId, unknown>>>();
+
+function boardOf<G extends GameId>(dayKey: string, game: G): BoardOf<G> {
+  let day = boardCache.get(dayKey);
+  if (!day) {
+    if (boardCache.size >= 8) boardCache.clear();
+    day = {};
+    boardCache.set(dayKey, day);
+  }
+  const hit = day[game];
+  if (hit !== undefined) return hit as BoardOf<G>;
+  const built = GENERATE[game](dayKey) as BoardOf<G>;
+  day[game] = built;
+  return built;
+}
 
 function boardsFor(dayKey: string): DailyBoards {
-  const hit = boardCache.get(dayKey);
-  if (hit) return hit;
-  const built: DailyBoards = {
-    dayKey,
-    queens: queens.generate(dayKey),
-    tango: tango.generate(dayKey),
-    zip: zip.generate(dayKey),
-    sudoku: sudoku.generate(dayKey),
-  };
-  if (boardCache.size >= 8) boardCache.clear();
-  boardCache.set(dayKey, built);
-  return built;
+  const out: Record<string, unknown> = { dayKey };
+  for (const id of GAMES) out[id] = boardOf(dayKey, id);
+  return out as DailyBoards;
 }
 
 /** Whether [solution] finishes [game]'s board for [dayKey]. */
 function isSolved(dayKey: string, game: GameId, solution: number[]): boolean {
-  const boards = boardsFor(dayKey);
   switch (game) {
     case "queens":
-      return queens.isSolved(boards.queens, solution);
+      return queens.isSolved(boardOf(dayKey, game), solution);
     case "tango":
-      return tango.isSolved(boards.tango, solution);
+      return tango.isSolved(boardOf(dayKey, game), solution);
     case "zip":
-      return zip.isSolved(boards.zip, solution);
+      return zip.isSolved(boardOf(dayKey, game), solution);
     case "sudoku":
-      return sudoku.isSolved(boards.sudoku, solution);
+      return sudoku.isSolved(boardOf(dayKey, game), solution);
+    case "flow":
+      return flow.isSolved(boardOf(dayKey, game), solution);
+    case "futoshiki":
+      return futoshiki.isSolved(boardOf(dayKey, game), solution);
+    case "nonogram":
+      return nonogram.isSolved(boardOf(dayKey, game), solution);
+    case "minesweeper":
+      // The mine set ships masked by a keystream of the day, so its checker
+      // needs the day to unmask it.
+      return minesweeper.isSolved(boardOf(dayKey, game), solution, dayKey);
+    case "starbattle":
+      return starbattle.isSolved(boardOf(dayKey, game), solution);
   }
 }
 
 /** [game]'s answer for [dayKey], for a player who has given up. */
 function answerOf(dayKey: string, game: GameId): number[] | null {
-  const boards = boardsFor(dayKey);
   switch (game) {
     case "queens":
-      return queens.solve(boards.queens);
+      return queens.solve(boardOf(dayKey, game));
     case "tango":
-      return tango.solve(boards.tango);
+      return tango.solve(boardOf(dayKey, game));
     case "zip":
       // Zip validates a route rather than comparing one, so it has no single
       // stored answer — the route it was drawn from is a legal one, which is
       // all a surrender needs to be shown.
       return zip.generateWithSolution(dayKey).solution;
     case "sudoku":
-      return sudoku.solve(boards.sudoku);
+      return sudoku.solve(boardOf(dayKey, game));
+    case "flow":
+      // Each colour's pipe from its first dot to its second, concatenated —
+      // the submission shape, which the client splits back on the dots.
+      return flow.solve(boardOf(dayKey, game));
+    case "futoshiki":
+      return futoshiki.solve(boardOf(dayKey, game));
+    case "nonogram":
+      return nonogram.solve(boardOf(dayKey, game));
+    case "minesweeper":
+      // The 0/1 mine map. The client could decode it itself, but a surrender
+      // answered from the server is one code path for all nine.
+      return minesweeper.solve(boardOf(dayKey, game), dayKey);
+    case "starbattle":
+      return starbattle.solve(boardOf(dayKey, game));
+  }
+}
+
+/** What `hint` hands back. `cells` only for Flow, whose unit of help is a pipe. */
+type HintReply = { index: number; value: number; cells?: number[] };
+
+/**
+ * The hint the five newer engines give for [board], at rotation slot [turn].
+ *
+ * Each of them knows its own game's idea of "help" better than a generic
+ * cell-diff does — Flow hands over a whole pipe, Minesweeper only a cell the
+ * player could PROVE from what they see (never a guess), Star Battle and
+ * Futoshiki clear a wrong mark before filling a blank — so the decision is
+ * theirs. Null means nothing to reveal. Undefined means "not one of these":
+ * the older games keep the generic diff below.
+ */
+function engineHint(
+  dayKey: string,
+  game: GameId,
+  board: number[],
+  turn: number
+): HintReply | null | undefined {
+  switch (game) {
+    case "flow":
+      return flow.hint(boardOf(dayKey, game), board, turn);
+    case "futoshiki":
+      return futoshiki.hint(boardOf(dayKey, game), board, turn);
+    case "nonogram":
+      return nonogram.hint(boardOf(dayKey, game), board, turn);
+    case "minesweeper":
+      return minesweeper.hint(boardOf(dayKey, game), board, turn, dayKey);
+    case "starbattle":
+      return starbattle.hint(boardOf(dayKey, game), board, turn);
+    default:
+      return undefined;
   }
 }
 
@@ -158,7 +288,7 @@ async function recordsOf(ctx: any, userId: any): Promise<any[]> {
 }
 
 /**
- * Today's four boards.
+ * Today's nine boards.
  *
  * Takes no `userId` and reads no table on purpose: with no database read there
  * is nothing to invalidate it, so even though Convex will happily keep it live
@@ -176,6 +306,11 @@ export const daily = query({
       tango: boards.tango,
       zip: boards.zip,
       sudoku: boards.sudoku,
+      flow: boards.flow,
+      futoshiki: boards.futoshiki,
+      nonogram: boards.nonogram,
+      minesweeper: boards.minesweeper,
+      starbattle: boards.starbattle,
     };
   },
 });
@@ -401,7 +536,7 @@ export const saveProgress = mutation({
     { userId, dayKey, game, progress, elapsedMs, mistakes }
   ) => {
     if (!isGameId(game)) throw new Error("UNKNOWN_GAME");
-    if (progress.length > 64) throw new Error("BAD_PROGRESS");
+    if (progress.length > MAX_CELLS[game]) throw new Error("BAD_PROGRESS");
     const row = await ctx.db
       .query("gameResults")
       .withIndex("by_user_day_game", (q: any) =>
@@ -440,6 +575,14 @@ export const saveProgress = mutation({
  * Which cell is chosen rotates with the number of hints already taken, so a
  * second hint is a different square rather than the same one again.
  *
+ * **The five newer games answer from their own engines** (see [engineHint]):
+ * Flow returns a whole pipe in `cells` (`index` and `value` are its colour),
+ * Minesweeper a cell the player can prove from what is revealed (`value` 0 to
+ * open it, 1 to flag it; Minesweeper takes `progress`, -1 hidden, 0..8
+ * revealed, 9 flagged, not a submission), Nonogram a cell's 0/1, Star Battle a
+ * wrong star to clear (0) or a missing one (1), Futoshiki a digit. The reply is
+ * `{ index, value }` plus `cells` only when the engine gave one.
+ *
  * **Zip has no hint, on purpose.** Its board accepts any route that covers
  * every cell in order, so there is no single next-correct-move to point at —
  * only "the route I generated", and steering a player onto that would mean
@@ -458,7 +601,7 @@ export const hint = mutation({
   handler: async (ctx, { userId, dayKey, game, board, seq }) => {
     if (!isGameId(game)) throw new Error("UNKNOWN_GAME");
     if (game === "zip") throw new Error("NO_HINT");
-    if (board.length > 64) throw new Error("BAD_PROGRESS");
+    if (board.length > MAX_CELLS[game]) throw new Error("BAD_PROGRESS");
 
     const row = await ctx.db
       .query("gameResults")
@@ -468,6 +611,32 @@ export const hint = mutation({
       .first();
     if (!row) throw new Error("NOT_STARTED");
     if (row.finishedAt !== undefined) throw new Error("ALREADY_FINISHED");
+
+    // A replay: this hint was already counted, and the native client is
+    // resending a call the player saw time out. It keeps every sent mutation
+    // in flight across a reconnect, so without this a hint asked for in a dead
+    // tunnel was charged once per resend. Answered from the same rotation slot
+    // it would have had, and charged nothing.
+    const replay = seq !== undefined && row.hintsUsed > seq;
+
+    const turn = replay ? seq! : row.hintsUsed;
+    const fromEngine = engineHint(dayKey, game, board, turn);
+    if (fromEngine !== undefined) {
+      // Nothing left to reveal (or, for Minesweeper, nothing provable): not
+      // charged, exactly as a full grid is below.
+      if (fromEngine === null) return { index: -1, value: 0 };
+      if (!replay) {
+        await ctx.db.patch(row._id, { hintsUsed: row.hintsUsed + 1 });
+      }
+      // Built field by field: `cells` is left off rather than sent as
+      // undefined, so the older games' reply shape is unchanged.
+      const reply: HintReply = {
+        index: fromEngine.index,
+        value: fromEngine.value,
+      };
+      if (fromEngine.cells) reply.cells = fromEngine.cells;
+      return reply;
+    }
 
     const answer = answerOf(dayKey, game);
     if (!answer) throw new Error("NO_HINT");
@@ -480,13 +649,8 @@ export const hint = mutation({
     }
     if (wrong.length === 0) return { index: -1, value: 0 };
 
-    // A replay: this hint was already counted, and the native client is
-    // resending a call the player saw time out. It keeps every sent mutation
-    // in flight across a reconnect, so without this a hint asked for in a dead
-    // tunnel was charged once per resend. Answered from the same rotation slot
-    // it would have had, and charged nothing.
-    if (seq !== undefined && row.hintsUsed > seq) {
-      const pick = wrong[seq % wrong.length];
+    if (replay) {
+      const pick = wrong[seq! % wrong.length];
       return { index: pick, value: answer[pick] };
     }
 
@@ -528,7 +692,7 @@ export const submit = mutation({
     { userId, dayKey, game, solution, elapsedMs, hintsUsed, mistakes }
   ) => {
     if (!isGameId(game)) throw new Error("UNKNOWN_GAME");
-    if (solution.length > 64) throw new Error("BAD_SOLUTION");
+    if (solution.length > MAX_CELLS[game]) throw new Error("BAD_SOLUTION");
 
     const row = await ctx.db
       .query("gameResults")
@@ -546,15 +710,30 @@ export const submit = mutation({
     if (!isSolved(dayKey, game, solution)) throw new Error("NOT_SOLVED");
 
     const now = Date.now();
+    // Minesweeper's clock carries [MINE_PENALTY_MS] per mine stepped on, added
+    // on the device the moment it happens, so an honest time there CAN exceed
+    // the wall-clock window — three slips in the first minute is a 2:30 board
+    // played in 1:00. Without this allowance the clamp would quietly refund
+    // the penalty to exactly the players fast enough to hit it. The allowance
+    // is the reported mistakes times the penalty and nothing more, so it only
+    // ever lets a time be SLOWER than the window, never faster.
+    const penaltyMs =
+      game === "minesweeper"
+        ? MINE_PENALTY_MS * Math.max(0, Math.round(mistakes) || 0)
+        : 0;
     const durationMs = Math.max(
       0,
-      Math.min(Math.round(elapsedMs), now - row.startedAt)
+      Math.min(Math.round(elapsedMs), now - row.startedAt + penaltyMs)
     );
+    const hints = Math.max(row.hintsUsed, Math.round(hintsUsed) || 0);
     await ctx.db.patch(row._id, {
       solved: true,
       finishedAt: now,
       durationMs,
-      hintsUsed: Math.max(0, Math.round(hintsUsed)),
+      // The server's own count, from `hint`, is the floor: the client's
+      // number can add to it (a hint it counted that the server missed is
+      // impossible, but harmless) and never take one away.
+      hintsUsed: hints,
       mistakes: Math.max(0, Math.round(mistakes)),
       // The finished grid replaces the autosave, so reopening a board you
       // already solved shows the solved board rather than the state you were in
@@ -570,6 +749,7 @@ export const submit = mutation({
       score: durationMs,
       dayKey,
       achievedAt: now,
+      clean: hints === 0,
     });
     return { solved: true, durationMs, replay: false };
   },

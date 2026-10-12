@@ -35,7 +35,17 @@ void main() {
       // every assertion below vacuously pass.
       expect(days.length, greaterThanOrEqualTo(4));
       for (final day in days) {
-        for (final game in ['queens', 'tango', 'zip', 'sudoku']) {
+        for (final game in [
+          'queens',
+          'tango',
+          'zip',
+          'sudoku',
+          'flow',
+          'futoshiki',
+          'nonogram',
+          'minesweeper',
+          'starbattle',
+        ]) {
           expect(day[game], isNotNull, reason: '${day['dayKey']}/$game');
         }
       }
@@ -170,6 +180,311 @@ void main() {
           isFalse,
         );
       }
+    });
+  });
+
+  group('the new five agree with the server engines', () {
+    test('flow accepts the server pipes and nothing one step short', () {
+      for (final day in days) {
+        final entry = day['flow'] as Map<String, dynamic>;
+        final board = FlowBoard.fromJson(
+          (entry['board'] as Map).cast<String, dynamic>(),
+        );
+        final answer = ints(entry['answer']);
+        final pipes = flowPipesOf(board, answer);
+
+        expect(pipes, hasLength(board.endpoints.length));
+        expect(
+          flowSolved(board, pipes),
+          isTrue,
+          reason: '${day['dayKey']}: server pipes rejected by the mirror',
+        );
+        expect(flowSolution(board, pipes), answer);
+
+        // A pipe drawn from its other dot is the same pipe: the player drags
+        // from whichever end is nearer, and the submission is turned round.
+        final flipped = [
+          for (var k = 0; k < pipes.length; k++)
+            k == 0 ? pipes[k].reversed.toList() : pipes[k],
+        ];
+        expect(flowSolution(board, flipped), answer);
+
+        // Every pipe cut one square short leaves the board unsolved.
+        for (var k = 0; k < pipes.length; k++) {
+          final short = [
+            for (var j = 0; j < pipes.length; j++)
+              j == k ? pipes[j].sublist(0, pipes[j].length - 1) : pipes[j],
+          ];
+          expect(flowSolved(board, short), isFalse, reason: 'pipe $k');
+        }
+      }
+    });
+
+    test('futoshiki accepts the server answer and rejects a changed digit', () {
+      for (final day in days) {
+        final entry = day['futoshiki'] as Map<String, dynamic>;
+        final board = FutoshikiBoard.fromJson(
+          (entry['board'] as Map).cast<String, dynamic>(),
+        );
+        final answer = ints(entry['answer']);
+
+        expect(
+          futoshikiSolved(board, answer),
+          isTrue,
+          reason: '${day['dayKey']}: server answer rejected by the mirror',
+        );
+        expect(futoshikiTrouble(board, answer).isEmpty, isTrue);
+        for (var i = 0; i < answer.length; i++) {
+          final wrong = List<int>.of(answer);
+          wrong[i] = answer[i] % board.size + 1;
+          expect(futoshikiSolved(board, wrong), isFalse);
+          // A changed digit always repeats one in its row, so the board can
+          // say where.
+          expect(futoshikiTrouble(board, wrong).cells, contains(i));
+        }
+      }
+    });
+
+    test('nonogram accepts the server picture and rejects a flipped square', () {
+      for (final day in days) {
+        final entry = day['nonogram'] as Map<String, dynamic>;
+        final board = NonogramBoard.fromJson(
+          (entry['board'] as Map).cast<String, dynamic>(),
+        );
+        final answer = ints(entry['answer']);
+        final cells = [
+          for (final v in answer) v == 1 ? nonogramFilled : nonogramCrossed,
+        ];
+
+        expect(
+          nonogramSolved(board, cells),
+          isTrue,
+          reason: '${day['dayKey']}: server picture rejected by the mirror',
+        );
+        expect(nonogramSolution(cells), answer);
+        expect(nonogramTrouble(board, cells).isEmpty, isTrue);
+        // Crossed and untouched blanks mean the same thing to a clue.
+        final bare = [
+          for (final v in answer) v == 1 ? nonogramFilled : nonogramUnknown,
+        ];
+        expect(nonogramSolved(board, bare), isTrue);
+        // An empty grid contradicts nothing yet.
+        expect(
+          nonogramTrouble(
+            board,
+            List<int>.filled(answer.length, nonogramUnknown),
+          ).isEmpty,
+          isTrue,
+        );
+
+        for (var i = 0; i < cells.length; i++) {
+          final flipped = List<int>.of(cells);
+          flipped[i] = cells[i] == nonogramFilled
+              ? nonogramCrossed
+              : nonogramFilled;
+          expect(nonogramSolved(board, flipped), isFalse);
+          // A fully decided line that no longer reads back its clue has no
+          // arrangement left, so the mistake is visible on its row.
+          expect(
+            nonogramTrouble(board, flipped).rows,
+            contains(i ~/ board.size),
+          );
+        }
+      }
+    });
+
+    test('minesweeper decodes the same mines the server placed', () {
+      for (final day in days) {
+        final dayKey = day['dayKey'] as String;
+        final entry = day['minesweeper'] as Map<String, dynamic>;
+        final board = MinesweeperBoard.fromJson(
+          (entry['board'] as Map).cast<String, dynamic>(),
+        );
+        final answer = ints(entry['answer']);
+        final mines = minesweeperMines(board, dayKey);
+
+        expect(mines, answer, reason: '$dayKey: Dart decode drifted from TS');
+        expect(mines.fold(0, (a, b) => a + b), board.mineCount);
+        // The opening square is a promised 0 with no mine around it.
+        final numbers = minesweeperNumbers(mines, board.size);
+        expect(mines[board.start], 0);
+        expect(numbers[board.start], 0);
+        // A wrong day key decodes to a different layout: the mask is real.
+        expect(minesweeperMines(board, '1999-01-01'), isNot(answer));
+      }
+    });
+
+    test('the mask decodes like TypeScript on sixty day keys', () {
+      // The mask is mulberry32 over FNV-1a, ported with 32-bit wrapping, and
+      // a port like that goes wrong on a handful of seeds rather than all of
+      // them — so many keys, not one.
+      final masks =
+          (fixtures['minesweeperMasks'] as List).cast<Map<String, dynamic>>();
+      expect(masks.length, greaterThanOrEqualTo(60));
+      for (final m in masks) {
+        final board = MinesweeperBoard(
+          size: 9,
+          start: 0,
+          mineCount: 0,
+          mines: m['mines'] as String,
+        );
+        expect(
+          minesweeperMines(board, m['dayKey'] as String),
+          ints(m['map']),
+          reason: '${m['dayKey']}',
+        );
+      }
+    });
+
+    test('a cleared field is every safe square open', () {
+      final day = days.first;
+      final board = MinesweeperBoard.fromJson(
+        ((day['minesweeper'] as Map)['board'] as Map).cast<String, dynamic>(),
+      );
+      final mines = minesweeperMines(board, day['dayKey'] as String);
+      final numbers = minesweeperNumbers(mines, board.size);
+      final cells = List<int>.filled(mines.length, minesweeperHidden);
+      for (final i in minesweeperFlood(
+        cells,
+        mines,
+        numbers,
+        board.size,
+        board.start,
+      )) {
+        cells[i] = numbers[i];
+      }
+      // The opening opens more than itself: it is a 0.
+      expect(cells.where((v) => v >= 0).length, greaterThan(1));
+      expect(minesweeperCleared(cells, mines), isFalse);
+      for (var i = 0; i < cells.length; i++) {
+        if (mines[i] == 0) cells[i] = numbers[i];
+      }
+      expect(minesweeperCleared(cells, mines), isTrue);
+    });
+
+    test('star battle accepts the server answer and nothing beside it', () {
+      for (final day in days) {
+        final entry = day['starbattle'] as Map<String, dynamic>;
+        final board = StarBattleBoard.fromJson(
+          (entry['board'] as Map).cast<String, dynamic>(),
+        );
+        final answer = ints(entry['answer']);
+        final marks = [
+          for (final v in answer) v == 1 ? StarMark.star : StarMark.none,
+        ];
+
+        expect(
+          starBattleSolved(board, marks),
+          isTrue,
+          reason: '${day['dayKey']}: server answer rejected by the mirror',
+        );
+        expect(starBattleConflicts(board, marks), isEmpty);
+        expect(starBattleSolution(marks), answer);
+
+        // Slide each star one square sideways: the board has one answer, so
+        // every such board is wrong.
+        for (var i = 0; i < answer.length; i++) {
+          if (answer[i] != 1) continue;
+          final to = i % board.size == 0 ? i + 1 : i - 1;
+          if (answer[to] == 1) continue;
+          final moved = List<StarMark>.of(marks)
+            ..[i] = StarMark.none
+            ..[to] = StarMark.star;
+          expect(starBattleSolved(board, moved), isFalse);
+        }
+      }
+    });
+  });
+
+  group('nonogram lines', () {
+    const u = nonogramUnknown;
+    const f = nonogramFilled;
+    const x = nonogramCrossed;
+
+    test('an undecided line fits any clue that is short enough', () {
+      expect(nonogramLineFits(const [3, 1], const [u, u, u, u, u]), isTrue);
+      expect(nonogramLineFits(const [3, 2], const [u, u, u, u, u]), isFalse);
+    });
+
+    test('a cross inside the only place a run fits breaks the line', () {
+      expect(nonogramLineFits(const [4], const [u, u, x, u, u]), isFalse);
+      expect(nonogramLineFits(const [2], const [u, u, x, u, u]), isTrue);
+    });
+
+    test('shading more than the clue allows breaks the line', () {
+      expect(nonogramLineFits(const [1, 1], const [f, f, u, u, u]), isFalse);
+      expect(nonogramLineFits(const [2], const [f, u, u, f, u]), isFalse);
+      expect(nonogramLineFits(const [1, 1], const [f, u, u, f, u]), isTrue);
+    });
+
+    test('an empty clue allows no shading at all', () {
+      expect(nonogramLineFits(const [], const [u, x, u]), isTrue);
+      expect(nonogramLineFits(const [], const [u, f, u]), isFalse);
+    });
+
+    test('runs read back in order, an empty line as no runs', () {
+      expect(nonogramRuns(const [f, f, x, f, u, f, f, f]), [2, 1, 3]);
+      expect(nonogramRuns(const [x, u, x]), isEmpty);
+    });
+  });
+
+  group('star battle', () {
+    final board = StarBattleBoard(
+      size: 4,
+      regions: [for (var i = 0; i < 16; i++) i ~/ 4],
+    );
+
+    List<StarMark> marksOf(List<int> cells) => [
+      for (var i = 0; i < 16; i++)
+        cells.contains(i) ? StarMark.star : StarMark.none,
+    ];
+
+    test('stars touching at a corner clash', () {
+      expect(starBattleConflicts(board, marksOf([0, 5])), {0, 5});
+    });
+
+    test('a third star in a row clashes with the other two', () {
+      final wide = StarBattleBoard(
+        size: 6,
+        regions: [for (var i = 0; i < 36; i++) i % 6],
+      );
+      final marks = [
+        for (var i = 0; i < 36; i++)
+          i == 0 || i == 2 || i == 4 ? StarMark.star : StarMark.none,
+      ];
+      expect(starBattleConflicts(wide, marks), {0, 2, 4});
+    });
+
+    test('two stars apart in a row are fine, and dot out the rest of it', () {
+      expect(starBattleConflicts(board, marksOf([0, 2])), isEmpty);
+      final blocked = starBattleBlocked(board, marksOf([0, 2]));
+      expect(blocked, containsAll([1, 3, 4, 5, 6, 7]));
+      expect(blocked, isNot(contains(8)));
+    });
+  });
+
+  group('flow', () {
+    const board = FlowBoard(size: 3, endpoints: [(0, 2), (3, 8)]);
+
+    test('a pipe through another colour\'s dot is not a pipe', () {
+      expect(flowPipeComplete(board, 0, const [0, 3, 4, 1, 2]), isFalse);
+      expect(flowPipeComplete(board, 0, const [0, 1, 2]), isTrue);
+    });
+
+    test('a full legal filling is solved, in either direction', () {
+      final pipes = [
+        const [2, 1, 0],
+        const [3, 6, 7, 4, 5, 8],
+      ];
+      expect(flowSolution(board, pipes), [0, 1, 2, 3, 6, 7, 4, 5, 8]);
+    });
+
+    test('a filling that leaves a square empty is not', () {
+      final pipes = [
+        const [0, 1, 2],
+        const [3, 4, 5, 8],
+      ];
+      expect(flowSolved(board, pipes), isFalse);
     });
   });
 
@@ -343,14 +658,41 @@ void main() {
         'tango': (day['tango'] as Map)['board'],
         'zip': (day['zip'] as Map)['board'],
         'sudoku': (day['sudoku'] as Map)['board'],
+        'flow': (day['flow'] as Map)['board'],
+        'futoshiki': (day['futoshiki'] as Map)['board'],
+        'nonogram': (day['nonogram'] as Map)['board'],
+        'minesweeper': (day['minesweeper'] as Map)['board'],
+        'starbattle': (day['starbattle'] as Map)['board'],
       });
       expect(boards.ready, isTrue);
+      expect(boards.flow.size, 7);
+      expect(boards.flow.endpoints.length, greaterThanOrEqualTo(6));
+      expect(boards.futoshiki.givens, hasLength(25));
+      expect(boards.nonogram.rows, hasLength(10));
+      expect(boards.nonogram.cols, hasLength(10));
+      expect(boards.minesweeper.mines, hasLength(22));
+      expect(boards.starbattle.regions, hasLength(100));
+      for (final game in DailyGame.values) {
+        expect(boards.sizeOf(game), greaterThan(0), reason: game.wire);
+      }
       expect(boards.queens.size, 8);
       expect(boards.queens.regions, hasLength(64));
       expect(boards.tango.size, 6);
       expect(boards.tango.signs, isNotEmpty);
       expect(boards.zip.checkpoints, hasLength(8));
       expect(boards.sudoku.givens, hasLength(36));
+    });
+
+    test('a payload from before the new five is not ready', () {
+      // A board cached on disk by an older build has only the first four;
+      // reading it as ready would draw five empty tiles that look playable.
+      final day = days.first;
+      final old = DailyBoards.fromJson({
+        'dayKey': day['dayKey'],
+        for (final g in ['queens', 'tango', 'zip', 'sudoku'])
+          g: (day[g] as Map)['board'],
+      });
+      expect(old.ready, isFalse);
     });
 
     test('a missing payload decodes to a board that is not ready', () {

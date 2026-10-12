@@ -38,12 +38,13 @@ void main() {
     );
     final out = overallStandings(s, const PuzzleState(), 'me');
     // Everyone solved 2, everyone won 1: rank sums decide.
-    // a: q1 + t2 + z(2+1=3) + code(0+1=1) + sudoku(0+1=1) = 8
-    // b: q2 + t(2+1=3) + z1 + 1 + 1 = 8
-    // c: q(2+1=3) + t1 + z2 + 1 + 1 = 8 → name order.
+    // a: q1 + t2 + z(2+1=3), plus 1 for each game nobody played = 6 + rest
+    // b: q2 + t(2+1=3) + z1 + rest
+    // c: q(2+1=3) + t1 + z2 + rest → equal, so name order.
+    final rest = kLeaderboardGames.length - 3;
     expect(out.map((r) => r.userId), ['a', 'b', 'c']);
     expect(out.every((r) => r.solved == 2 && r.wins == 1), isTrue);
-    expect(out.first.rankSum, 8);
+    expect(out.first.rankSum, 6 + rest);
   });
 
   test('wins break a tie on solved before the rank sum does', () {
@@ -71,8 +72,12 @@ void main() {
     expect(out, hasLength(1));
     expect(out.single.solved, 0);
     expect(out.single.wins, 0);
-    expect(out.single.rankSum, 1 + 1 + 1 + 1 + 1);
-    expect(out.single.solvedByGame, [false, false, false, false, false]);
+    // First (and last) on zip, one place behind nobody everywhere else.
+    expect(out.single.rankSum, kLeaderboardGames.length);
+    expect(
+      out.single.solvedByGame,
+      List<bool>.filled(kLeaderboardGames.length, false),
+    );
   });
 
   test('a code-only player counts, dot 1 is the code', () {
@@ -84,7 +89,10 @@ void main() {
     expect(out.single.userId, 'k');
     expect(out.single.solved, 1);
     expect(out.single.wins, 1);
-    expect(out.single.solvedByGame, [true, false, false, false, false]);
+    expect(out.single.solvedByGame, [
+      true,
+      ...List<bool>.filled(kLeaderboardGames.length - 1, false),
+    ]);
   });
 
   test('a viewer with no rows is absent; with rows, flagged and nameless', () {

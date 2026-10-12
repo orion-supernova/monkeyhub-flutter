@@ -6,14 +6,19 @@ import 'puzzle.dart';
 /// also sends its palette, which wins when the two ever disagree.
 const List<String> kRecordReactions = ['🔥', '👏', '🤯', '🐐', '😮', '😂'];
 
-/// A game a record can be held in: the code puzzle, then the four dailies —
-/// the order the hub's tiles are in.
+/// A game a record can be held in: the code puzzle, then the timed dailies in
+/// [DailyGame] order.
 enum RecordGame {
   code,
   queens,
   tango,
   zip,
-  sudoku;
+  sudoku,
+  flow,
+  futoshiki,
+  nonogram,
+  minesweeper,
+  starbattle;
 
   /// The id the backend keys records by.
   String get wire => name;
@@ -25,6 +30,11 @@ enum RecordGame {
         RecordGame.tango => DailyGame.tango,
         RecordGame.zip => DailyGame.zip,
         RecordGame.sudoku => DailyGame.sudoku,
+        RecordGame.flow => DailyGame.flow,
+        RecordGame.futoshiki => DailyGame.futoshiki,
+        RecordGame.nonogram => DailyGame.nonogram,
+        RecordGame.minesweeper => DailyGame.minesweeper,
+        RecordGame.starbattle => DailyGame.starbattle,
       };
 
   static RecordGame of(DailyGame game) => switch (game) {
@@ -32,6 +42,11 @@ enum RecordGame {
         DailyGame.tango => RecordGame.tango,
         DailyGame.zip => RecordGame.zip,
         DailyGame.sudoku => RecordGame.sudoku,
+        DailyGame.flow => RecordGame.flow,
+        DailyGame.futoshiki => RecordGame.futoshiki,
+        DailyGame.nonogram => RecordGame.nonogram,
+        DailyGame.minesweeper => RecordGame.minesweeper,
+        DailyGame.starbattle => RecordGame.starbattle,
       };
 
   static RecordGame? parse(String? s) {

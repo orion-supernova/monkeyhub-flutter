@@ -18,6 +18,13 @@ import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
 import '../calls/call_button.dart';
+import '../chat_games/active_games_banner.dart';
+import '../chat_games/bot_match_screen.dart';
+import '../chat_games/game_start_sheet.dart';
+import '../data/matches_store.dart';
+import '../turn_games/bot.dart' show BotLevel;
+import '../backend/matches_api.dart';
+import 'games/match_screen.dart';
 import '../calls/call_models.dart';
 import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
@@ -331,6 +338,11 @@ class _RoomScreenState extends State<RoomScreen>
   // second one's result overwrote the first's.
   bool _attachInFlight = false;
 
+  /// Whether this room has a game open, so the floating header can reserve
+  /// the games banner's height. Flipped only on a change, from [_onGames].
+  bool _gamesOpen = false;
+  bool _watchingGames = false;
+
   // Drives [BusyScrim]. Set only for the phases where the app is working and
   // there is nothing on screen to say so: the picker's own re-encode of the
   // chosen asset, which happens after its sheet has dismissed, and the read of
@@ -481,6 +493,14 @@ class _RoomScreenState extends State<RoomScreen>
   @override
   void initState() {
     super.initState();
+    // The room's games: the cards' bodies and the banner. Held for exactly
+    // as long as this screen is, like the room's other secondary queries.
+    final me = widget.repo.userId;
+    if (me != null) {
+      _watchingGames = true;
+      MatchesStore.instance.watchRoom(me, widget.roomId);
+      MatchesStore.instance.addListener(_onGames);
+    }
     // A camera button is about to be on screen, and `availableCameras()` is a
     // platform round-trip whose answer cannot change while the app runs. Asking
     // now takes it off the critical path of the tap that follows; it neither
@@ -1534,6 +1554,10 @@ class _RoomScreenState extends State<RoomScreen>
     widget.repo.removeListener(_onRepoChange);
     SettingsStore.instance.removeListener(_onSettings);
     widget.repo.closeRoom(this);
+    if (_watchingGames) {
+      MatchesStore.instance.removeListener(_onGames);
+      MatchesStore.instance.unwatchRoom(widget.roomId);
+    }
     if (_pushedCaptureScope) {
       CaptureProtection.instance.popScope();
     }
@@ -2607,9 +2631,76 @@ class _RoomScreenState extends State<RoomScreen>
         case AttachmentMenuChoice.event:
           await _composeInteraction(MessageType.event);
           break;
+        case AttachmentMenuChoice.game:
+          await _startGame();
+          break;
       }
     } finally {
       _attachInFlight = false;
+    }
+  }
+
+  // ─────────────────────────────── games ───────────────────────────────
+
+  void _onGames() {
+    if (!mounted) return;
+    final open = MatchesStore.instance.openIn(widget.roomId).isNotEmpty;
+    if (open != _gamesOpen) setState(() => _gamesOpen = open);
+  }
+
+  /// "Play a game": picks how and what, then starts it — on the server for a
+  /// game with people in it, on the phone for one against the bot.
+  Future<void> _startGame() async {
+    final me = widget.repo.userId;
+    final room = _room;
+    if (me == null || room == null) return;
+    final draft = await showGameStartSheet(
+      context,
+      isDm: room.isDm && !room.isSavedMessages,
+      soloOnly: room.isSavedMessages,
+      voiceAvailable: GroupCallService.maybeInstance != null,
+    );
+    if (draft == null || !mounted) return;
+    final nav = Navigator.of(context);
+    if (draft.mode == ChatGameMode.bot) {
+      await nav.push(
+        MaterialPageRoute<void>(
+          builder: (_) => BotMatchScreen(
+            game: draft.game,
+            level: draft.level ?? BotLevel.medium,
+          ),
+        ),
+      );
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    widget.repo.exitHistoryWindow(widget.roomId);
+    try {
+      final created = await MatchesStore.instance.api.create(
+        userId: me,
+        roomId: widget.roomId,
+        game: draft.game,
+        mode: draft.matchMode,
+        clientId: 'mg_${DateTime.now().microsecondsSinceEpoch}',
+        options: draft.options,
+      );
+      if (!mounted) return;
+      // Straight to the table: a live lobby to fill, or an async board where
+      // the creator moves first.
+      await nav.push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              MatchScreen(matchId: created.matchId, userId: me),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      toast.show(switch (matchErrorCode(e)) {
+        'ALREADY_LIVE' => l10n.chatGameErrAlreadyLive,
+        'TOO_MANY_GAMES' => l10n.chatGameErrTooMany,
+        _ => l10n.chatGameErrGeneric,
+      });
     }
   }
 
@@ -4990,6 +5081,8 @@ class _RoomScreenState extends State<RoomScreen>
               roomId: room.id,
               userId: me,
             ),
+          // The room's open games. Zero height when there are none.
+          ActiveGamesBanner(roomId: room.id, userId: me),
           // Admins only, and zero height with nothing waiting. Above the pins:
           // a pin is part of the conversation, this is a job for the reader.
           RoomSuggestionsBanner(
@@ -5167,6 +5260,7 @@ class _RoomScreenState extends State<RoomScreen>
         Sebastian.instance.isReady;
     final suggestions = _suggestions.pending;
     final topChromeH = 60.0 +
+        (_gamesOpen ? kGamesBannerHeight : 0.0) +
         (suggestions.isEmpty ? 0.0 : kSuggestionsBannerHeight) +
         (pins.isEmpty ? 0.0 : kPinnedBannerHeight) +
         (translating ? kCompanionStripHeight : 0.0);
@@ -5263,6 +5357,8 @@ class _RoomScreenState extends State<RoomScreen>
                         roomId: room.id,
                         userId: me,
                       ),
+                    // Reserved in `topChromeH` above, when a game is open.
+                    ActiveGamesBanner(roomId: room.id, userId: me),
                     // Reserved in `topChromeH` above, like the pinned strip.
                     RoomSuggestionsBanner(
                       pending: suggestions,

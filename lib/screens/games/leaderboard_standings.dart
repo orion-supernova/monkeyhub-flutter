@@ -1,10 +1,11 @@
+import '../../games/game_names.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../models/puzzle.dart';
 
-/// The five games of a day, in the order every shelf draws them: the code
-/// first (the game the app had first, and the one the daily nudge names),
-/// then the four timed boards. The solved-dots on a leaderboard row follow
+/// Every game of a day, in the order every shelf draws them: the code first
+/// (the game the app had first, and the one the daily nudge names), then the
+/// timed boards in [DailyGame] order. The solved-dots on a leaderboard row follow
 /// this order, so dot 1 is always the code.
 ///
 /// Null is the code — the same convention `showCodePuzzleInfo` uses for "the
@@ -15,10 +16,7 @@ const List<DailyGame?> kLeaderboardGames = [null, ...DailyGame.values];
 String leaderboardGameName(AppLocalizations l10n, DailyGame? game) =>
     switch (game) {
       null => l10n.gameCodeName,
-      DailyGame.queens => l10n.gameQueensName,
-      DailyGame.tango => l10n.gameTangoName,
-      DailyGame.zip => l10n.gameZipName,
-      DailyGame.sudoku => l10n.gameSudokuName,
+      final DailyGame daily => dailyGameName(l10n, daily),
     };
 
 /// One player's line on the overall ("Today") leaderboard.
@@ -40,14 +38,14 @@ class LeaderRow {
   final String name;
   final bool isViewer;
 
-  /// Games solved today, 0–5. The score.
+  /// Games solved today, out of [kLeaderboardGames]. The score.
   final int solved;
 
   /// Games where this player is first on the board AND solved it — a
   /// gave-up row at the top of an otherwise empty board is not a win.
   final int wins;
 
-  /// The sum of their 1-based ranks across all five games; a game they have
+  /// The sum of their 1-based ranks across every game; a game they have
   /// no row on counts as one place behind its last row. Lowest is best.
   final int rankSum;
 
@@ -55,7 +53,7 @@ class LeaderRow {
   final List<bool> solvedByGame;
 }
 
-/// Today's overall standings across the five games, best first, from data
+/// Today's overall standings across every game, best first, from data
 /// the leaderboard already holds — no new query, no subscription.
 ///
 /// A point per puzzle solved. Ties go to whoever won more boards, then to the

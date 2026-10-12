@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/models/expression_item.dart';
+import 'package:monkeyhub/models/message_formatting.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/data/cache_store.dart';
@@ -65,16 +67,19 @@ class _FakeApi extends Fake implements ChatApi {
     String? posterStorageId,
     String? senderName,
     String? replyToId,
+    bool replyToAlbum = false,
+    int? replyAlbumCount,
+    String? albumId,
     bool viewOnce = false,
     String? clientId,
     List<String> mentionedUserIds = const [],
     bool mentionsEveryone = false,
-    dynamic formatting,
     double? latitude,
     double? longitude,
     double? locationAccuracyM,
     int? liveDurationMs,
-    dynamic expression,
+    List<FormattingEntity> formatting = const [],
+    ExpressionItem? expression,
   }) async {
     if (offline) throw TimeoutException('MutationTimeout');
     delivered.add(clientId);

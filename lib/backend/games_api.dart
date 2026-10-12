@@ -108,9 +108,14 @@ class GamesApi {
 
   /// Reveals one correct cell of [board] and counts it against the player.
   ///
-  /// [board] is in the same shape [submit] takes, which differs by game: a
-  /// column per row for Queens — so [GameHint.index] is a ROW there — and a
-  /// value per cell for Tango and Sudoku.
+  /// [board] is in the same shape [submit] takes for most games: a column per
+  /// row for Queens — so [GameHint.index] is a ROW there — and a value per
+  /// cell for Tango, Sudoku, Futoshiki and Star Battle. Three send their
+  /// working state instead, because that is what the hint reasons from:
+  /// Nonogram its fill/cross/unknown grid, Minesweeper its open/flag/hidden
+  /// grid (the hint is the next square that can be PROVED from it), and Flow
+  /// its pipes laid end to end, which comes back as a whole pipe in
+  /// [GameHint.cells].
   ///
   /// Throws `NO_HINT` for Zip, which has no single next-correct move to point
   /// at: any route covering every cell in order wins, so the only thing the
@@ -140,6 +145,9 @@ class GamesApi {
     return GameHint(
       index: (j['index'] as num?)?.toInt() ?? -1,
       value: (j['value'] as num?)?.toInt() ?? 0,
+      cells: [
+        for (final c in (j['cells'] as List?) ?? const []) (c as num).toInt(),
+      ],
     );
   }
 
@@ -290,13 +298,24 @@ class GameSession {
 
 /// One revealed cell.
 class GameHint {
-  const GameHint({required this.index, required this.value});
+  const GameHint({
+    required this.index,
+    required this.value,
+    this.cells = const [],
+  });
 
-  /// Cell to fill — or, in Queens, the ROW whose crown belongs at [value].
-  /// `-1` when there was nothing left to reveal.
+  /// Cell to fill — or, in Queens, the ROW whose crown belongs at [value], and
+  /// in Flow the COLOUR whose pipe is [cells]. `-1` when there was nothing left
+  /// to reveal.
   final int index;
 
   final int value;
+
+  /// A whole stretch of the answer at once, dot to dot. Only Flow sends one:
+  /// its natural unit of help is a pipe, since "this square is red" still
+  /// leaves the player to find the route through it. Empty for every other
+  /// game.
+  final List<int> cells;
 
   bool get isEmpty => index < 0;
 }

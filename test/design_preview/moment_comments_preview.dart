@@ -84,8 +84,8 @@ void main() {
   setUpAll(loadPreviewFonts);
   for (final id in ['basic', 'basic_daylight']) {
     testWidgets('moment comments preview: $id', (tester) async {
-      MomentCommentsSheet.debugComments = _fixture;
-      addTearDown(() => MomentCommentsSheet.debugComments = null);
+      MomentConversation.debugComments = _fixture;
+      addTearDown(() => MomentConversation.debugComments = null);
       await snap(
         tester,
         previewApp(
@@ -93,7 +93,7 @@ void main() {
           Builder(
             builder: (context) => Align(
               alignment: Alignment.bottomCenter,
-              child: MomentCommentsSheet(
+              child: MomentConversation(
                 moment: _moment,
                 api: ChatApi(ConvexBackend.instance),
                 feedApi: FeedApi(ConvexBackend.instance),

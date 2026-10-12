@@ -13,6 +13,7 @@ import {
 } from "./childGuard";
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
+import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
 import { lensFor } from "./visibility";
 import { appendReceiptLog, receiptTimeFor } from "./receiptLog";
 
@@ -361,7 +362,16 @@ export async function expressionFieldsFor(
  * the pre-existing `!== "text"` put it — extending a text-shaped exemption is
  * not the place to quietly change an unrelated type's posture.
  */
-const TEXT_SHAPED_TYPES = new Set(["text", "poll", "checklist", "event"]);
+// "game" is an in-chat game's card (`matches.ts`): a name and a live body,
+// no blob, so it is as harmless to a child account as a poll.
+const TEXT_SHAPED_TYPES = new Set([
+  "text",
+  "poll",
+  "checklist",
+  "event",
+  "game",
+  "challenge",
+]);
 
 export function permissionsFor(
   type: string,
@@ -594,7 +604,13 @@ export function roomPreviewFor(msg: {
   // somebody typing the same words, and prefixed with a WORD rather than an
   // emoji because this string is also read by `notifications` (which adds its
   // own glyph) and by screen readers.
-  if (type === "poll" || type === "checklist" || type === "event") {
+  if (
+    type === "poll" ||
+    type === "checklist" ||
+    type === "event" ||
+    type === "game" ||
+    type === "challenge"
+  ) {
     const prompt = (msg.content ?? "").slice(0, 100);
     return prompt.length > 0 ? `[${type}] ${prompt}` : `[${type}]`;
   }
@@ -1724,6 +1740,9 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
   // nothing renders and nothing can reach. Unconditional, like the line above
   // it — only three message types find anything.
   await purgeInteraction(ctx, messageId);
+  // An in-chat game's card: the game goes with it.
+  await purgeMatchForMessage(ctx, messageId);
+  await purgeChallengeForMessage(ctx, messageId);
 
   // Mark every child reply's denormalized preview as deleted so their inline
   // tether keeps rendering ("message removed") instead of pointing at a

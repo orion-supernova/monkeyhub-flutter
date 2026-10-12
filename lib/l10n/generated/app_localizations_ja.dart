@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11593,4 +11592,1060 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get layoutPagerNext => '次へ';
+
+  @override
+  String get resultSheetMistakes => 'ミス';
+
+  @override
+  String get resultSheetHints => 'ヒント';
+
+  @override
+  String get resultSheetStreak => '連続記録';
+
+  @override
+  String resultSheetStreakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count日',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get resultSheetNone => 'なし';
+
+  @override
+  String resultSheetToday(String game) {
+    return '$game · 今日';
+  }
+
+  @override
+  String resultSheetYouFaster(String time) {
+    return 'あなたの方が$time速かった';
+  }
+
+  @override
+  String resultSheetTheyFaster(String name, String time) {
+    return '$nameさんの方が$time速かった';
+  }
+
+  @override
+  String get resultSheetSameTime => 'あなたと同じタイム';
+
+  @override
+  String get resultSheetFooter => '順位を決めるのはタイムだけ。ミスとヒントは参考までに。';
+
+  @override
+  String get resultSheetHintNoRecord => 'ヒントを使ったので、歴代記録にはなりません。';
+
+  @override
+  String get gameTierEasy => 'かんたん';
+
+  @override
+  String get gameTierMedium => 'ふつう';
+
+  @override
+  String get gameTierHard => 'むずかしい';
+
+  @override
+  String get gameComingSoon => '近日公開';
+
+  @override
+  String get gameComingSoonName => '新パズル';
+
+  @override
+  String get chatGameNameTicTacToe => 'まるばつ';
+
+  @override
+  String get chatGameNameConnectFour => '四目並べ';
+
+  @override
+  String get chatGameNameCheckers => 'チェッカー';
+
+  @override
+  String get chatGameNameReversi => 'リバーシ';
+
+  @override
+  String get chatGameNameDots => 'ドット・アンド・ボックス';
+
+  @override
+  String get chatGameDescTicTacToe => '3つ並べたら勝ち。';
+
+  @override
+  String get chatGameDescConnectFour => 'コインを落として4つ並べたら勝ち。';
+
+  @override
+  String get chatGameDescCheckers => '飛び越えて取る。全部取れば勝ち。';
+
+  @override
+  String get chatGameDescReversi => '挟んでひっくり返す。多い方が勝ち。';
+
+  @override
+  String get chatGameDescDots => '線を引いて箱を閉じたらもう一手。';
+
+  @override
+  String get chatGameKindLive => 'ライブ対戦';
+
+  @override
+  String get chatGameKindTurns => 'ターン制';
+
+  @override
+  String get chatGameStatusWaiting => '待機中';
+
+  @override
+  String get chatGameStatusPlaying => '対戦中';
+
+  @override
+  String get chatGameStatusPaused => '一時停止';
+
+  @override
+  String get chatGameStatusFinished => '終了';
+
+  @override
+  String get chatGameStatusEnded => '終了';
+
+  @override
+  String get chatGameYourMove => 'あなたの番';
+
+  @override
+  String chatGameTurnOf(String name) {
+    return '$nameさんの番';
+  }
+
+  @override
+  String chatGameWaitingFor(String name) {
+    return '$nameさんを待っています';
+  }
+
+  @override
+  String chatGameWonBy(String name) {
+    return '$nameさんの勝ち';
+  }
+
+  @override
+  String get chatGameYouWon => 'あなたの勝ち';
+
+  @override
+  String get chatGameDraw => '引き分け';
+
+  @override
+  String get chatGameNobodyWon => '全員が抜けたので勝者なし';
+
+  @override
+  String chatGameReasonTimeout(String name) {
+    return '$nameさんの時間切れ';
+  }
+
+  @override
+  String chatGameReasonResign(String name) {
+    return '$nameさんが投了';
+  }
+
+  @override
+  String chatGameReasonLeft(String name) {
+    return '$nameさんが退出';
+  }
+
+  @override
+  String get chatGameOpenSeat => '空席';
+
+  @override
+  String get chatGameReady => '準備OK';
+
+  @override
+  String get chatGameNotReady => '準備中';
+
+  @override
+  String chatGameWatchingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人が観戦中',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameJoin => '参加';
+
+  @override
+  String get chatGameWatch => '観戦';
+
+  @override
+  String get chatGamePlay => 'プレイ';
+
+  @override
+  String get chatGameOpen => '開く';
+
+  @override
+  String get chatGameRematch => '再戦';
+
+  @override
+  String get chatGameNotRanked => 'お楽しみ用です。チャットのゲームは連続記録や歴代記録に含まれません。';
+
+  @override
+  String get chatGameNotRankedShort => 'ランキング対象外';
+
+  @override
+  String get chatGameImReady => '準備OK';
+
+  @override
+  String get chatGameUnready => 'まだ準備中';
+
+  @override
+  String get chatGameTakeSeat => 'タップして参加';
+
+  @override
+  String get chatGameLeaveSeat => '席を立つ';
+
+  @override
+  String get chatGameStartsWhenReady => '全員の準備ができたら開始';
+
+  @override
+  String chatGameNeedPlayers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'あと$count人を待っています',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameWatchingLabel => '観戦中';
+
+  @override
+  String get chatGameAskSwap => '交代をお願いする';
+
+  @override
+  String chatGameSwapRequest(String name) {
+    return '$nameさんが交代したがっています';
+  }
+
+  @override
+  String get chatGameSwap => '交代する';
+
+  @override
+  String get chatGameDecline => '断る';
+
+  @override
+  String get chatGameAccept => '受ける';
+
+  @override
+  String chatGameSwapAsked(String name) {
+    return '$nameさんに依頼しました';
+  }
+
+  @override
+  String get chatGameCancel => '取り消す';
+
+  @override
+  String get chatGameResign => '投了';
+
+  @override
+  String get chatGameResignConfirm => 'この対局を投了しますか？';
+
+  @override
+  String get chatGameResignBody => 'あなたの負けになります。';
+
+  @override
+  String get chatGameOfferDraw => '引き分けを提案';
+
+  @override
+  String get chatGameDrawOffered => '引き分けを提案しました';
+
+  @override
+  String chatGameDrawOfferFrom(String name) {
+    return '$nameさんが引き分けを提案しています';
+  }
+
+  @override
+  String chatGamePausedTitle(String name) {
+    return '$nameさんが抜けました';
+  }
+
+  @override
+  String get chatGamePausedMany => 'プレイヤーが抜けました';
+
+  @override
+  String get chatGamePausedBody => 'しばらく盤面をそのままにします。';
+
+  @override
+  String get chatGamePausedYou => '全員が戻ると再開します。';
+
+  @override
+  String get chatGameLeave => '退出する';
+
+  @override
+  String get chatGameGo => 'スタート！';
+
+  @override
+  String get chatGameNudge => '催促する';
+
+  @override
+  String get chatGameNudged => '催促しました';
+
+  @override
+  String chatGameHoursLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '残り$count時間',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameMinutesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '残り$count分',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMoveFailed => 'その手は送信されませんでした';
+
+  @override
+  String get chatGameStale => '盤面が変わりました。もう一度どうぞ。';
+
+  @override
+  String get chatGameStartTitle => 'ゲームで遊ぶ';
+
+  @override
+  String get chatGameMenuItem => 'ゲーム';
+
+  @override
+  String get chatGameModeLive => 'ライブ';
+
+  @override
+  String get chatGameModeTurns => '交互に';
+
+  @override
+  String get chatGameModeBot => 'ボットと対戦';
+
+  @override
+  String get chatGameModeLiveHint => '全員で同時にプレイ。抜けると一時停止します。';
+
+  @override
+  String get chatGameModeTurnsHint => '好きなときに指せます。自分の番で通知が届き、1手の持ち時間は最長2日です。';
+
+  @override
+  String get chatGameModeBotHint => 'あなたとボットだけ。チャットには何も投稿されません。';
+
+  @override
+  String get chatGameBotEasyHint => 'ミスをします。練習向き。';
+
+  @override
+  String get chatGameBotMediumHint => 'まっとうに指し、勝ち筋をふさぎます。';
+
+  @override
+  String get chatGameBotHardHint => '数手先まで読みます。';
+
+  @override
+  String get chatGameStart => '開始';
+
+  @override
+  String get chatGameErrAlreadyLive => 'ここではすでにライブ対戦中です。先に終えるか抜けてください。';
+
+  @override
+  String get chatGameErrTooMany => 'ここではすでにターン制の対局が3つ進行中です。先に1つ終えてください。';
+
+  @override
+  String get chatGameErrGeneric => '問題が発生しました。もう一度お試しください。';
+
+  @override
+  String get chatGamePlayersTwo => '2人';
+
+  @override
+  String get chatGamePlayersUpToFour => '2–4人';
+
+  @override
+  String get chatGameBotName => 'モンキー';
+
+  @override
+  String get chatGameBotBadge => 'ボット';
+
+  @override
+  String get chatGameNewGame => 'もう一局';
+
+  @override
+  String chatGameBannerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の対局',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameBannerYourMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件があなたの番',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameSheetTitle => 'このチャットの対局';
+
+  @override
+  String get chatGameGone => 'この対局はもう利用できません。';
+
+  @override
+  String get chatGameSeatsLabel => 'プレイヤー';
+
+  @override
+  String get gameFlowName => 'フロー';
+
+  @override
+  String get gameFutoshikiName => '不等式';
+
+  @override
+  String get gameNonogramName => 'ノノグラム';
+
+  @override
+  String get gameMinesweeperName => 'マインスイーパー';
+
+  @override
+  String get gameStarbattleName => 'スターバトル';
+
+  @override
+  String get gameFlowRule => '同じ点をつなぎ、すべてのマスをうめる';
+
+  @override
+  String get gameFutoshikiRule => '各行・各列に1〜5を1回ずつ、記号はすべて正しく';
+
+  @override
+  String get gameNonogramRule => 'すべてのヒントに合うようにマスをぬる';
+
+  @override
+  String get gameMinesweeperRule => '安全なマスをすべて開ける、運まかせは不要';
+
+  @override
+  String get gameStarbattleRule => '各行・各列・各色に星2つ、隣接は不可';
+
+  @override
+  String get gameFlag => '旗';
+
+  @override
+  String get gameAutoDot => '自動ドット';
+
+  @override
+  String get gameInfoFlowGoal => '同じ点のペアを、すべてパイプでつなごう。';
+
+  @override
+  String get gameInfoFlowRule1 => 'パイプは同じ色・同じ数字の2つの点をつなぐ。';
+
+  @override
+  String get gameInfoFlowRule2 => 'パイプは交差しないし、同じマスも通らない。';
+
+  @override
+  String get gameInfoFlowRule3 => 'すべてのマスをうめる。空きマスはダメ。';
+
+  @override
+  String get gameInfoFlowRule4 => '上下左右に進む。ななめはダメ。';
+
+  @override
+  String get gameInfoFlowExample => 'まっすぐ行けない？ 他のパイプをよけて曲げよう。それでも全部のマスをうめること。';
+
+  @override
+  String get gameInfoFlowControls =>
+      '点からなぞってパイプを引く。戻ると取り消し。他のパイプの上を通ると、そのパイプは切れる。';
+
+  @override
+  String get gameInfoFutoshikiGoal => 'マスを1〜5の数字でうめよう。';
+
+  @override
+  String get gameInfoFutoshikiRule1 => 'どの横の列にも1・2・3・4・5。同じ数字はダメ。';
+
+  @override
+  String get gameInfoFutoshikiRule2 => '縦の列も同じ。';
+
+  @override
+  String get gameInfoFutoshikiRule3 => '2マスの間の < や > は必ず正しい。とがった方が小さい数字。';
+
+  @override
+  String get gameInfoFutoshikiExample => '記号がこのマスを指している？ なら5ではない。となりの方が大きいから。';
+
+  @override
+  String get gameInfoFutoshikiControls =>
+      'マスをタップして、数字をタップ。もう一度押すと消えます。メモで小さな数字を書けます。';
+
+  @override
+  String get gameInfoNonogramGoal => 'マスをぬって、かくれた絵を出そう。';
+
+  @override
+  String get gameInfoNonogramRule1 => '行と列の横の数字は、ぬったマスが続く長さ。順番どおり。';
+
+  @override
+  String get gameInfoNonogramRule2 => '続きと続きの間は、少なくとも1マスあける。';
+
+  @override
+  String get gameInfoNonogramRule3 => '0は、その列が全部空きという意味。';
+
+  @override
+  String get gameInfoNonogramExample =>
+      '10マスの列でヒントが10？ 全部ぬる。4 4なら、間を1マスあけて2つ入る。';
+
+  @override
+  String get gameInfoNonogramControls =>
+      '1回タップでぬる、2回で ×（空き）、もう1回で消す。なぞると何マスもまとめて塗れる。';
+
+  @override
+  String get gameInfoMinesweeperGoal => '地雷のないマスをすべて開けよう。';
+
+  @override
+  String get gameInfoMinesweeperRule1 => '数字は、そのマスにふれている地雷の数。ななめも入る。';
+
+  @override
+  String get gameInfoMinesweeperRule2 => 'どのマスも推理で分かる。運まかせは一度もいらない。';
+
+  @override
+  String get gameInfoMinesweeperRule3 => '地雷をふむとタイムに30秒プラス。そのまま続けよう。';
+
+  @override
+  String get gameInfoMinesweeperExample => '1のとなりに閉じたマスが1つだけ？ そこが地雷。旗を立てよう。';
+
+  @override
+  String get gameInfoMinesweeperControls => 'タップでマスを開ける。地雷の印は長押しか、旗をオンにしてタップ。';
+
+  @override
+  String get gameInfoStarbattleGoal => '各行・各列・各色に星を2つずつ置こう。';
+
+  @override
+  String get gameInfoStarbattleRule1 => 'どの横の列にも星はちょうど2つ。';
+
+  @override
+  String get gameInfoStarbattleRule2 => 'どの縦の列にも星はちょうど2つ。';
+
+  @override
+  String get gameInfoStarbattleRule3 => 'どの色にも星はちょうど2つ。';
+
+  @override
+  String get gameInfoStarbattleRule4 => '星どうしはとなり合わない。ななめもダメ。';
+
+  @override
+  String get gameInfoStarbattleExample =>
+      'ここに星が1つあるなら、まわりの8マスに他の星はない。同じ行・列・色にもう1つ探そう。';
+
+  @override
+  String get gameInfoStarbattleControls => '1回タップで点（ここに星はない）。2回で星。もう1回で消す。';
+
+  @override
+  String boardCellName(int row, int col) {
+    return '$row行目、$col列目';
+  }
+
+  @override
+  String get boardEmpty => '空き';
+
+  @override
+  String get boardBlack => '黒';
+
+  @override
+  String get boardWhite => '白';
+
+  @override
+  String get boardLegalMove => '打てます';
+
+  @override
+  String get boardMoveHere => 'ここへ動かす';
+
+  @override
+  String boardColumnFilled(int column, int count, int total) {
+    return '$column列目、$totalマス中$countマス';
+  }
+
+  @override
+  String boardSquareName(int number) {
+    return '$number番のマス';
+  }
+
+  @override
+  String get boardDarkMan => '黒の駒';
+
+  @override
+  String get boardDarkKing => '黒のキング';
+
+  @override
+  String get boardLightMan => '白の駒';
+
+  @override
+  String get boardLightKing => '白のキング';
+
+  @override
+  String boardBoxName(String cell) {
+    return '箱、$cell';
+  }
+
+  @override
+  String get boardOpen => '空き';
+
+  @override
+  String get boardDrawn => '引かれた';
+
+  @override
+  String boardClaimedBy(String name) {
+    return '$nameさんの箱';
+  }
+
+  @override
+  String boardHorizontalEdge(int row, int col) {
+    return '横線、$row行目、$col列目';
+  }
+
+  @override
+  String boardVerticalEdge(int row, int col) {
+    return '縦線、$row行目、$col列目';
+  }
+
+  @override
+  String get challengeAction => '挑戦状';
+
+  @override
+  String get challengeTitle => '私のタイムを超えて';
+
+  @override
+  String get challengeKind => 'デイリー挑戦';
+
+  @override
+  String challengeYouBeat(String time) {
+    return '$time差で勝ちました';
+  }
+
+  @override
+  String challengeStillStanding(String time) {
+    return 'まだ破られていません（$time差）';
+  }
+
+  @override
+  String get challengeTie => 'まったく同じタイム';
+
+  @override
+  String get challengeClosed => 'この盤面は終了しました';
+
+  @override
+  String get challengeYourTime => 'あなたのタイム';
+
+  @override
+  String get challengeSent => '挑戦状を送りました';
+
+  @override
+  String challengeTarget(String name, String time) {
+    return '$name $time';
+  }
+
+  @override
+  String challengeBeatName(String name, String time) {
+    return '$nameさんの$timeを超えました';
+  }
+
+  @override
+  String challengeKept(String name, String time) {
+    return '$nameさんの勝ち（$time差）';
+  }
+
+  @override
+  String get chatGameNameLiarsDice => 'ブラフダイス';
+
+  @override
+  String get chatGameNameImposter => 'インポスター';
+
+  @override
+  String get chatGameNameRace => 'パズルレース';
+
+  @override
+  String get chatGameDescLiarsDice => '見えないサイコロで宣言し、嘘を見抜こう。';
+
+  @override
+  String get chatGameDescImposter => '1人だけお題を知らない。見つけ出そう。';
+
+  @override
+  String get chatGameDescRace => '全員同じパズル。最速で解いた人の勝ち。';
+
+  @override
+  String chatGamePlayersRange(int min, int max) {
+    return '$min〜$max人';
+  }
+
+  @override
+  String get chatGamePartySection => 'パーティー';
+
+  @override
+  String get chatGamePartyLiveOnly => 'パーティーゲームはライブで全員同時に遊びます。';
+
+  @override
+  String get chatGameNeedsThree => '3人以上のグループが必要';
+
+  @override
+  String get chatGameVoiceOption => '声でヒント';
+
+  @override
+  String get chatGameVoiceOptionHint => 'ヒントを入力する代わりに通話で話す';
+
+  @override
+  String get chatGamePuzzleOption => 'パズル';
+
+  @override
+  String get chatGamePuzzleRandom => 'ランダム';
+
+  @override
+  String chatGameStartNamed(String game) {
+    return '$gameを始める';
+  }
+
+  @override
+  String chatGameLdRoundDice(int count, int round) {
+    return '第$roundラウンド・$count個';
+  }
+
+  @override
+  String get chatGameLdYourDice => 'あなたのサイコロ';
+
+  @override
+  String get chatGameLdNoBid => 'まだ宣言なし';
+
+  @override
+  String chatGameLdBidBy(String name) {
+    return '$nameの宣言';
+  }
+
+  @override
+  String get chatGameLdYourBid => 'あなたの宣言';
+
+  @override
+  String get chatGameLdBid => '宣言';
+
+  @override
+  String get chatGameLdLiar => 'ダウト！';
+
+  @override
+  String get chatGameLdOnesWild => '1は何にでもなる';
+
+  @override
+  String get chatGameLdOnesOnly => '1の宣言は1だけ数える';
+
+  @override
+  String get chatGameLdHolds => '宣言は本当だった';
+
+  @override
+  String get chatGameLdBusted => 'バレた！';
+
+  @override
+  String chatGameLdThereWere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '実際は$count個',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameLdLosesDie(String name) {
+    return '$nameがサイコロを1個失う';
+  }
+
+  @override
+  String get chatGameLdYouLoseDie => 'サイコロを1個失った';
+
+  @override
+  String chatGameLdCalled(String name) {
+    return '$nameがダウト';
+  }
+
+  @override
+  String chatGameLdTimedOut(String name) {
+    return '$nameの時間切れ';
+  }
+
+  @override
+  String get chatGameLdOut => '脱落';
+
+  @override
+  String get chatGameLdQuantity => '個数';
+
+  @override
+  String get chatGameLdFace => 'どの目';
+
+  @override
+  String get chatGameLdFewer => '減らす';
+
+  @override
+  String get chatGameLdMore => '増やす';
+
+  @override
+  String get chatGameLdPrompt => '宣言を上げるか、ダウト';
+
+  @override
+  String get chatGameLdOpenPrompt => '最初の宣言をしよう';
+
+  @override
+  String get chatGameImpHoldToSee => '長押しでカードを見る';
+
+  @override
+  String get chatGameImpYourWord => 'あなたのお題';
+
+  @override
+  String get chatGameImpYouAre => 'あなたがインポスター';
+
+  @override
+  String chatGameImpCategory(String category) {
+    return 'カテゴリー：$category';
+  }
+
+  @override
+  String get chatGameImpBlendIn => 'なりすまそう。他の誰も知らない。';
+
+  @override
+  String get chatGameImpKeepSecret => 'そのまま言わず、仲間に伝わるヒントを。';
+
+  @override
+  String get chatGameImpGotIt => 'OK';
+
+  @override
+  String chatGameImpLooked(int count, int total) {
+    return '$total人中$count人が確認済み';
+  }
+
+  @override
+  String chatGameImpGiving(String name) {
+    return '$nameがヒント中';
+  }
+
+  @override
+  String get chatGameImpYourClue => 'あなたがヒントを出す番';
+
+  @override
+  String get chatGameImpClueHint => '1〜4語で';
+
+  @override
+  String get chatGameImpClueField => 'あなたのヒント';
+
+  @override
+  String get chatGameImpSend => '送信';
+
+  @override
+  String get chatGameImpTooManyWords => '4語まで';
+
+  @override
+  String get chatGameImpPassed => 'パス';
+
+  @override
+  String get chatGameImpSpoke => '通話で発言';
+
+  @override
+  String get chatGameImpJoinCall => '通話に参加';
+
+  @override
+  String get chatGameImpOnCall => '通話中';
+
+  @override
+  String get chatGameImpVoiceHint => 'ヒントを声に出してから「完了」をタップ。';
+
+  @override
+  String get chatGameImpDone => '完了';
+
+  @override
+  String get chatGameImpVoteTitle => 'インポスターは誰？';
+
+  @override
+  String get chatGameImpVoteHint => 'タップして投票。時間内なら変更できます。';
+
+  @override
+  String get chatGameImpSkip => '投票しない';
+
+  @override
+  String chatGameImpVoted(int count, int total) {
+    return '$total人中$count人が投票';
+  }
+
+  @override
+  String get chatGameImpVotedBadge => '投票済み';
+
+  @override
+  String get chatGameImpYourVote => 'あなたの票';
+
+  @override
+  String get chatGameImpGuessing => 'インポスターが推理中…';
+
+  @override
+  String get chatGameImpGuessHint => 'バレた！お題を当てれば逆転勝利。';
+
+  @override
+  String get chatGameImpGuessField => 'お題は…';
+
+  @override
+  String get chatGameImpGuess => '回答';
+
+  @override
+  String chatGameImpWas(String name) {
+    return 'インポスターは$name';
+  }
+
+  @override
+  String get chatGameImpYouWere => 'あなたがインポスターだった';
+
+  @override
+  String get chatGameImpTheWord => 'お題は';
+
+  @override
+  String chatGameImpTheyGuessed(String guess) {
+    return '回答：「$guess」';
+  }
+
+  @override
+  String chatGameImpVotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count票',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameImpSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '棄権 $count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameImpReasonEscaped => '誰も追放されず、インポスターは逃げ切った。';
+
+  @override
+  String get chatGameImpReasonWrong => '仲間は間違った人を追放した。';
+
+  @override
+  String get chatGameImpReasonGuessed => '見破られたが、インポスターがお題を当てた。';
+
+  @override
+  String get chatGameImpReasonCaught => '仲間がインポスターを見破った。';
+
+  @override
+  String get chatGameImpReasonImposterLeft => 'インポスターが退出した。';
+
+  @override
+  String get chatGameImpReasonCrewLeft => '他の仲間が退出した。';
+
+  @override
+  String get chatGameImpCrewWon => '仲間チームの勝ち';
+
+  @override
+  String get chatGameImpYourTeamWon => 'あなたのチームの勝ち';
+
+  @override
+  String chatGameImpImposterWon(String name) {
+    return 'インポスターの$nameの勝ち';
+  }
+
+  @override
+  String get chatGameImpYouWonImposter => 'インポスターとして勝利';
+
+  @override
+  String get chatGameImpCardReveal => 'カード確認中';
+
+  @override
+  String chatGameImpCardClues(int count, int total) {
+    return 'ヒント・$count/$total';
+  }
+
+  @override
+  String get chatGameImpCardVote => '投票中';
+
+  @override
+  String chatGameRaceFinishedCount(int count, int total) {
+    return '$total人中$count人が完了';
+  }
+
+  @override
+  String chatGameRaceYouPlaced(int rank) {
+    return '$rank位でゴール';
+  }
+
+  @override
+  String get chatGameRaceWaiting => '他の人を待っています';
+
+  @override
+  String get chatGameRaceTimeUp => '時間切れ。誰も解けなかった。';
+
+  @override
+  String get chatGameRaceDnf => '未完了';
+
+  @override
+  String get chatGameRaceLeft => '退出';
+
+  @override
+  String get chatGameRaceResults => '結果';
+
+  @override
+  String get chatGameRaceSolved => 'クリア！';
+
+  @override
+  String get chatGamePartyLeaveConfirm => 'このゲームを抜けますか？';
+
+  @override
+  String get chatGamePartyLeaveBody => '他の人はそのまま続けます。';
+
+  @override
+  String get chatGameErrTooLate => '時間切れでした';
+
+  @override
+  String get chatGameErrBadClue => 'このヒントは使えません。1〜4語で、リンクは不可。';
+
+  @override
+  String get chatGameErrBadGuess => '先に答えを入力して';
+
+  @override
+  String get chatGameErrNotSolved => 'まだ解けていません';
+
+  @override
+  String get chatGameNameChess => 'チェス';
+
+  @override
+  String get chatGameDescChess => 'キングをチェックメイトすれば勝ち。';
+
+  @override
+  String get chessPawn => 'ポーン';
+
+  @override
+  String get chessKnight => 'ナイト';
+
+  @override
+  String get chessBishop => 'ビショップ';
+
+  @override
+  String get chessRook => 'ルーク';
+
+  @override
+  String get chessQueen => 'クイーン';
+
+  @override
+  String get chessKing => 'キング';
+
+  @override
+  String chessPieceWhite(String piece) {
+    return '$piece（白）';
+  }
+
+  @override
+  String chessPieceBlack(String piece) {
+    return '$piece（黒）';
+  }
+
+  @override
+  String chessPromoteTo(String piece) {
+    return '$pieceに昇格';
+  }
 }

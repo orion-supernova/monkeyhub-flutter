@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/games_store.dart';
+import '../games/game_names.dart';
 import '../data/records_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -35,10 +36,7 @@ import '../l10n/text_case.dart';
 /// A game's name as its tile spells it.
 String recordGameName(AppLocalizations l10n, RecordGame game) => switch (game) {
       RecordGame.code => l10n.gameCodeName,
-      RecordGame.queens => l10n.gameQueensName,
-      RecordGame.tango => l10n.gameTangoName,
-      RecordGame.zip => l10n.gameZipName,
-      RecordGame.sudoku => l10n.gameSudokuName,
+      _ => dailyGameName(l10n, game.daily!),
     };
 
 /// The small "ALL-TIME ›" beside a TODAY standings header.

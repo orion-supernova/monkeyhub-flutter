@@ -109,6 +109,44 @@ describe("a record", () => {
     expect(better.solves).toBe(4);
   });
 
+  test("a hinted solve counts, but never sets or beats the best", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "me");
+    const friend = await signUp(t, "friend");
+    await befriend(t, me, friend, "friend");
+    const hinted = async (score: number, at: number, dayKey: string) =>
+      t.run(async (ctx: any) => {
+        await noteSolve(ctx, {
+          userId: me.userId,
+          game: "queens",
+          score,
+          dayKey,
+          achievedAt: at,
+          clean: false,
+        });
+      });
+
+    // A first solve with a hint: counted, streaked, but nothing to rank.
+    await hinted(30_000, 1, "2026-09-05");
+    const first: any = await recordOf(t, me.userId, "queens");
+    expect(first.best).toBeUndefined();
+    expect(first.solves).toBe(1);
+    expect(first.streak).toBe(1);
+    expect((await board(t, friend)).games.queens).toEqual([]);
+
+    // The first clean solve sets it, slower or not.
+    await solve(t, me.userId, "queens", 90_000, 2);
+    expect((await recordOf(t, me.userId, "queens")).best).toBe(90_000);
+
+    // And a faster hinted one leaves it alone.
+    await hinted(10_000, 3, "2026-09-07");
+    const after: any = await recordOf(t, me.userId, "queens");
+    expect(after.best).toBe(90_000);
+    expect(after.achievedAt).toBe(2);
+    expect(after.solves).toBe(3);
+    expect((await board(t, friend)).games.queens).toHaveLength(1);
+  });
+
   test("the code puzzle records a solve by its guess count", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "me");

@@ -55,8 +55,8 @@ import { liveSessionDeviceIds } from "./sessionCore";
  *
  * A reminder to play, delivered to somebody who already played, is the single
  * fastest way to teach a user to swipe this app's notifications away unread.
- * `claimNudges` checks the day's five results — the code puzzle and the four
- * boards — and a finished set is silently skipped.
+ * `claimNudges` checks the day's results — the code puzzle and every board in
+ * `GAMES` — and a finished set is silently skipped.
  *
  * ## It does not say the same thing every day
  *
@@ -71,7 +71,7 @@ import { liveSessionDeviceIds } from "./sessionCore";
  *
  * The lines never name a game. The backend knows perfectly well which board was
  * left half-played, and saying so would turn a nudge into a status report — and
- * would multiply the table below by four game names in twelve languages for a
+ * would multiply the table below by nine game names in twelve languages for a
  * detail nobody wants at lunchtime.
  *
  * ## Once per person per day, provably
@@ -228,7 +228,7 @@ export function fallbackOffsetMinutes(): number {
  *
  * The lines are also DELIBERATELY GENERIC. None of them names Queens or Tango
  * or the code, even though the backend knows exactly which board was left open:
- * naming one turns a nudge into a report, and it multiplies this table by four
+ * naming one turns a nudge into a report, and it multiplies this table by nine
  * game names in twelve languages for a detail nobody needs at lunchtime.
  * "you left one half finished" is the whole idea, and it is true in every
  * language without a glossary.

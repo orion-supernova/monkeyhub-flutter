@@ -1,8 +1,14 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../games/flow_board_art.dart';
+import '../games/futoshiki_board_art.dart';
 import '../games/game_canvas.dart';
+import '../games/game_names.dart';
+import '../games/minesweeper_board_art.dart';
+import '../games/nonogram_board_art.dart';
 import '../games/queens_board_art.dart';
+import '../games/starbattle_board_art.dart';
 import '../games/sudoku_board_art.dart';
 import '../games/tango_board_art.dart';
 import '../games/zip_board_art.dart';
@@ -68,12 +74,7 @@ class GameTile extends StatelessWidget {
     );
   }
 
-  String _name(AppLocalizations l10n) => switch (game) {
-    DailyGame.queens => l10n.gameQueensName,
-    DailyGame.tango => l10n.gameTangoName,
-    DailyGame.zip => l10n.gameZipName,
-    DailyGame.sudoku => l10n.gameSudokuName,
-  };
+  String _name(AppLocalizations l10n) => dailyGameName(l10n, game);
 
   Widget _preview(AppTheme theme) {
     final painter = switch (game) {
@@ -88,13 +89,30 @@ class GameTile extends StatelessWidget {
         board: boards.sudoku,
         theme: theme,
       ),
+      DailyGame.flow => FlowBoardPainter(
+        board: boards.flow,
+        theme: theme,
+        palette: GamePalette(theme),
+      ),
+      DailyGame.futoshiki => FutoshikiBoardPainter(
+        board: boards.futoshiki,
+        theme: theme,
+      ),
+      DailyGame.nonogram => NonogramBoardPainter(
+        board: boards.nonogram,
+        theme: theme,
+      ),
+      DailyGame.minesweeper => MinesweeperBoardPainter(
+        board: boards.minesweeper,
+        theme: theme,
+      ),
+      DailyGame.starbattle => StarBattleBoardPainter(
+        board: boards.starbattle,
+        theme: theme,
+        palette: GamePalette(theme),
+      ),
     };
-    final size = switch (game) {
-      DailyGame.queens => boards.queens.size,
-      DailyGame.tango => boards.tango.size,
-      DailyGame.zip => boards.zip.size,
-      DailyGame.sudoku => boards.sudoku.size,
-    };
+    final size = boards.sizeOf(game);
     if (size == 0) return GameBoardSkeleton(radius: theme.radiusMd);
     return CustomPaint(painter: painter, size: Size.infinite);
   }
@@ -102,7 +120,7 @@ class GameTile extends StatelessWidget {
 
 /// The symbol-code puzzle's tile.
 ///
-/// Kept on the same shelf as the four new dailies even though it is a different
+/// Kept on the same shelf as the timed dailies even though it is a different
 /// shape of game — six guesses rather than a stopwatch, and its own table
 /// behind it. Splitting the two apart would mean a player has to remember there
 /// are games in two places, which is how one of them stops being played.
@@ -171,25 +189,62 @@ class CodePuzzleTile extends StatelessWidget {
   }
 }
 
+/// A place held for a daily that is not out yet, in a group that would
+/// otherwise be empty.
+///
+/// Quiet on purpose: a grey outline of a board with no shimmer (a placeholder
+/// that animates forever is a ticker nobody asked for), the name and the chip
+/// muted, and no tap — there is nothing behind it to open yet.
+class ComingSoonTile extends StatelessWidget {
+  const ComingSoonTile({super.key, required this.width});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Opacity(
+      opacity: 0.6,
+      child: _TileShell(
+        width: width,
+        semanticLabel:
+            '${l10n.gameComingSoonName}, ${l10n.gameComingSoon}',
+        preview: ColoredBox(color: theme.ink.withValues(alpha: 0.05)),
+        title: l10n.gameComingSoonName,
+        muted: true,
+        status: StatusChip(
+          label: sentenceCaseOf(context, l10n.gameComingSoon),
+          tone: theme.inkMuted,
+        ),
+      ),
+    );
+  }
+}
+
 /// The card every tile is drawn in — square preview, name, status.
 class _TileShell extends StatelessWidget {
   const _TileShell({
     required this.width,
-    required this.onTap,
-    required this.onInfo,
+    this.onTap,
+    this.onInfo,
     required this.semanticLabel,
     required this.preview,
     required this.title,
     required this.status,
+    this.muted = false,
   });
 
   final double width;
-  final VoidCallback onTap;
+
+  /// Null for a tile with nothing behind it ([ComingSoonTile]).
+  final VoidCallback? onTap;
 
   /// Opens the how-to-play sheet. A separate target inside the tile's own tap
   /// region — children are hit-tested before their parents, so the ⓘ takes the
-  /// tap and everywhere else still opens the board.
-  final VoidCallback onInfo;
+  /// tap and everywhere else still opens the board. Null hides the ⓘ.
+  final VoidCallback? onInfo;
+  final bool muted;
   final String semanticLabel;
   final Widget preview;
   final String title;
@@ -202,68 +257,77 @@ class _TileShell extends StatelessWidget {
     // day's real board inset with its own rounded corners, the name and a
     // status capsule under it. The ⓘ sits on the title line, inside the
     // card, instead of hanging off its corner.
-    return SizedBox(
-      width: width,
-      child: SpringPress(
-        onTap: onTap,
-        semanticLabel: semanticLabel,
-        scale: 0.95,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 6, 12),
-          decoration: BoxDecoration(
-            color: groupedFill(theme),
-            borderRadius: BorderRadius.circular(groupedRadius(theme) + 2),
+    final card = Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 6, 12),
+      decoration: BoxDecoration(
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme) + 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                groupedRadius(theme) - 6,
+              ),
+              child: AspectRatio(aspectRatio: 1, child: preview),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 10),
+          Row(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    groupedRadius(theme) - 6,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  // Shrinks to fit rather than truncating a game's name.
+                  child: FitLabel(
+                    sentenceCaseOf(context, title),
+                    style: theme.bodyEmph.copyWith(
+                      fontSize: 17,
+                      color: muted ? theme.inkMuted : theme.ink,
+                    ),
+                    maxLines: 1,
+                    minFontSize: 13,
+                    textAlign: TextAlign.start,
                   ),
-                  child: AspectRatio(aspectRatio: 1, child: preview),
                 ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      // Shrinks to fit rather than truncating a game's name.
-                      child: FitLabel(
-                        sentenceCaseOf(context, title),
-                        style: theme.bodyEmph.copyWith(
-                          fontSize: 17,
-                          color: theme.ink,
-                        ),
-                        maxLines: 1,
-                        minFontSize: 13,
-                        textAlign: TextAlign.start,
-                      ),
-                    ),
-                  ),
-                  GameInfoButton(onTap: onInfo, size: 30, tapSize: 36),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 4, top: 2),
-                child: status,
-              ),
+              if (onInfo != null)
+                GameInfoButton(onTap: onInfo!, size: 30, tapSize: 36)
+              else
+                // The ⓘ's footprint, so a placeholder's name sits on the
+                // same line height as its neighbours'.
+                const SizedBox(width: 6, height: 36),
             ],
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 2),
+            child: status,
+          ),
+        ],
       ),
+    );
+    final tap = onTap;
+    return SizedBox(
+      width: width,
+      child: tap == null
+          ? Semantics(label: semanticLabel, child: ExcludeSemantics(child: card))
+          : SpringPress(
+              onTap: tap,
+              semanticLabel: semanticLabel,
+              scale: 0.95,
+              child: card,
+            ),
     );
   }
 }
 
 /// The code puzzle's thumbnail: a small guess grid — four columns, six rows,
 /// the first two filled with symbols — the same board language the puzzle
-/// screen draws, so the tile is a picture of the game beside four real boards
+/// screen draws, so the tile is a picture of the game beside the real boards
 /// rather than a near-empty card with a few loose glyphs on it.
 ///
 /// Decorative only: the symbols are in index order and the cells carry no

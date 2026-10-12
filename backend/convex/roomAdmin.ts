@@ -38,6 +38,7 @@ import { seenVisibilityOf } from "./visibility";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForMember } from "./speakerColors";
 import { deleteStored } from "./files";
+import { leaveMatchesInRoom } from "./matchCore";
 
 export const ROLE_OWNER = "owner";
 export const ROLE_ADMIN = "admin";
@@ -221,6 +222,9 @@ export async function removeMembership(
   if (!member) return "absent";
 
   await ctx.db.delete(member._id);
+
+  // Their open games here: a lobby seat vacated, a seat in play forfeited.
+  await leaveMatchesInRoom(ctx, roomId, userId);
 
   const bookmarks = await ctx.db
     .query("messageBookmarks")

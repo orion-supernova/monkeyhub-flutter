@@ -48,11 +48,21 @@ void main() {
     'reactedComment': ['{emoji}'],
   };
 
-  /// The five tags `feed.ts` accepts and the four games `games.ts` serves.
+  /// The five tags `feed.ts` accepts and the nine games `games.ts` serves.
   /// Mirrored here rather than imported because that is the whole point: these
   /// are two files in two languages that have to agree.
   const tagIds = ['fate', 'jinx', 'luck', 'calledIt', 'npc'];
-  const gameIds = ['queens', 'tango', 'zip', 'sudoku'];
+  const gameIds = [
+    'queens',
+    'tango',
+    'zip',
+    'sudoku',
+    'flow',
+    'futoshiki',
+    'nonogram',
+    'minesweeper',
+    'starbattle',
+  ];
 
   late String source;
   setUpAll(() {
@@ -153,7 +163,7 @@ void main() {
     });
   });
 
-  test('every row names all five tags and all four games', () {
+  test('every row names all five tags and all nine games', () {
     rows().forEach((locale, row) {
       for (final id in [...tagIds, ...gameIds]) {
         final value = field(row, id);

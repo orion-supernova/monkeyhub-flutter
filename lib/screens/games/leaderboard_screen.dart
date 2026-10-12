@@ -21,12 +21,10 @@ import '../../widgets/skeleton_rows.dart';
 import '../../widgets/score_row.dart';
 import '../feed/puzzle_screen.dart';
 import 'leader_podium.dart';
+import 'daily_game_screens.dart';
 import 'leaderboard_standings.dart';
-import 'queens_screen.dart';
+import 'result_sheet.dart';
 import 'streak_card.dart';
-import 'sudoku_screen.dart';
-import 'tango_screen.dart';
-import 'zip_screen.dart';
 import '../../widgets/desktop_scroll.dart';
 
 /// The leaderboard: your streaks, who is winning today, and the all-time
@@ -36,7 +34,7 @@ import '../../widgets/desktop_scroll.dart';
 ///
 ///  * **Streaks** — yours, one column per game ([StreakCard]). The personal
 ///    reason to come back tomorrow.
-///  * **The board** — "Today" (the overall standings across all five games,
+///  * **The board** — "Today" (the overall standings across every game,
 ///    computed on the device by [overallStandings] from boards this page
 ///    already loads) or one game's own. The top three stand on a
 ///    [LeaderPodium]; everyone after is a one-line [PersonRow] with their
@@ -104,14 +102,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     RecordsStore.instance.load(widget.userId, force: true);
   }
 
-  /// Opens one of the five; null is the code.
+  /// Opens one of the games; null is the code.
   void _openGame(DailyGame? game) {
     _open(switch (game) {
       null => PuzzleScreen(feedApi: widget.feedApi, userId: widget.userId),
-      DailyGame.queens => QueensScreen(userId: widget.userId),
-      DailyGame.tango => TangoScreen(userId: widget.userId),
-      DailyGame.zip => ZipScreen(userId: widget.userId),
-      DailyGame.sudoku => SudokuScreen(userId: widget.userId),
+      final DailyGame daily => dailyGameScreen(daily, widget.userId),
     });
   }
 
@@ -226,8 +221,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     setState(() => _tab = i);
   }
 
-  /// [userId]'s flame on "Today": their longest live run across the five
-  /// games. Which game it is on is the streaks card's question; here it only
+  /// [userId]'s flame on "Today": their longest live run across every
+  /// game. Which game it is on is the streaks card's question; here it only
   /// says "this person keeps coming back".
   int _overallStreak(String userId) {
     final standings = GamesStore.instance.standings;
@@ -350,6 +345,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             text: rows[i].solved
                 ? formatGameTime(rows[i].durationMs)
                 : sentenceCaseOf(context, l10n.gameStatusGaveUp),
+            result: rows[i],
           ),
       ];
     }
@@ -378,6 +374,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required bool solved,
     required DailyGame? game,
     required String text,
+    GameResult? result,
   }) {
     final isViewer = userId == widget.userId;
     return _Entry(
@@ -389,6 +386,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       semantics: text,
       podiumMetric: ScoreText(text, muted: !solved, large: true),
       trailing: ScoreText(text, muted: !solved),
+      onTap: result == null
+          ? null
+          : () => showResultSheet(
+              context,
+              row: result,
+              viewerId: widget.userId,
+            ),
     );
   }
 
@@ -436,6 +440,7 @@ class _Entry {
     required this.semantics,
     required this.podiumMetric,
     required this.trailing,
+    this.onTap,
   });
 
   final String userId;
@@ -448,6 +453,10 @@ class _Entry {
   final String semantics;
   final Widget podiumMetric;
   final Widget trailing;
+
+  /// Opens the whole result (see [showResultSheet]). Null on the boards that
+  /// have nothing behind the row: "Today" and the code puzzle.
+  final VoidCallback? onTap;
 }
 
 /// A board: the top three on a [LeaderPodium], everyone else as rows under
@@ -503,6 +512,7 @@ class _Board extends StatelessWidget {
                   metric: e.podiumMetric,
                   semantics: e.semantics,
                   streak: e.streak,
+                  onTap: e.onTap,
                 ),
             ],
           ),
@@ -533,10 +543,11 @@ class _Board extends StatelessWidget {
         streak: entry.streak,
         semantics: entry.semantics,
         trailing: entry.trailing,
+        onTap: entry.onTap,
       );
 }
 
-/// "Today" then the five games, one horizontally scrolling row of
+/// "Today" then every game, one horizontally scrolling row of
 /// [FilterCapsule]s, inset to the title's 20pt edge.
 class _Capsules extends StatefulWidget {
   const _Capsules({required this.selected, required this.onSelect});

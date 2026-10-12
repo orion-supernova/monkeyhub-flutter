@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../data/challenges_store.dart';
 import '../../data/feed_store.dart';
 import '../../data/games_store.dart';
 import '../../games/game_play_controller.dart';
@@ -12,6 +13,8 @@ import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/game_result_actions.dart';
 import '../../widgets/app_toast.dart';
+import '../../widgets/forward_target_sheet.dart';
+import '../../widgets/game_tile.dart' show StatusChip;
 import '../../widgets/game_celebration.dart';
 import '../../widgets/game_layout_shell.dart';
 import '../../widgets/game_records.dart';
@@ -19,6 +22,7 @@ import '../../widgets/ios_kit.dart';
 import '../../widgets/score_row.dart';
 import '../../widgets/sheet_kit.dart';
 import '../../l10n/text_case.dart';
+import 'result_sheet.dart';
 
 /// The chrome every daily game wears: the back arrow, the running clock, the
 /// pause cover, the tool row, the result card and today's times.
@@ -79,6 +83,10 @@ class _GameScaffoldState extends State<GameScaffold> {
   @override
   void dispose() {
     _touch.dispose();
+    // A challenge is for one sitting at the board it named.
+    if (ChallengesStore.instance.target?.game == widget.controller.game) {
+      ChallengesStore.instance.target = null;
+    }
     super.dispose();
   }
 
@@ -98,8 +106,21 @@ class _GameScaffoldState extends State<GameScaffold> {
       :onTellFriends,
     ) = widget;
 
+    final target = challengeTargetFor(controller);
     final header = <Widget>[
       _TopBar(controller: controller),
+      if (target != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Center(
+            child: _TargetChip(
+              target: target,
+              elapsedMs: controller.finished
+                  ? controller.durationMs ?? controller.elapsed.inMilliseconds
+                  : controller.elapsed.inMilliseconds,
+            ),
+          ),
+        ),
       const SizedBox(height: 10),
       Text(
         sentenceCaseOf(context, title),
@@ -388,6 +409,65 @@ class _PauseCover extends StatelessWidget {
 }
 
 /// Shown once the player can no longer act on today's board.
+/// The challenge a board is being played against, when it is this board and
+/// today's.
+ChallengeTarget? challengeTargetFor(GamePlayController controller) {
+  final t = ChallengesStore.instance.target;
+  if (t == null || t.game != controller.game) return null;
+  if (t.dayKey != FeedStore.instance.dayKey) return null;
+  return t;
+}
+
+/// "Selin 2:41" under the clock, until the clock passes it — then "+0:07",
+/// quietly. Passing it is not a failure worth red, just a fact; the one
+/// light tap as it happens is the only fuss.
+class _TargetChip extends StatefulWidget {
+  const _TargetChip({required this.target, required this.elapsedMs});
+
+  final ChallengeTarget target;
+  final int elapsedMs;
+
+  @override
+  State<_TargetChip> createState() => _TargetChipState();
+}
+
+class _TargetChipState extends State<_TargetChip> {
+  @override
+  void didUpdateWidget(_TargetChip old) {
+    super.didUpdateWidget(old);
+    final t = widget.target.durationMs;
+    if (old.elapsedMs <= t && widget.elapsedMs > t) {
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final over = widget.elapsedMs - widget.target.durationMs;
+    return AnimatedSwitcher(
+      duration: MotionScope.of(context).d(theme.motionFast),
+      child: over > 0
+          ? StatusChip(
+              key: const ValueKey('over'),
+              label: '+${formatGameTime(over)}',
+              tone: theme.inkMuted,
+              icon: CupertinoIcons.flag,
+            )
+          : StatusChip(
+              key: const ValueKey('target'),
+              label: l10n.challengeTarget(
+                widget.target.name,
+                formatGameTime(widget.target.durationMs),
+              ),
+              tone: theme.accent,
+              icon: CupertinoIcons.flag_fill,
+            ),
+    );
+  }
+}
+
 class _ResultCard extends StatelessWidget {
   const _ResultCard({
     required this.controller,
@@ -400,6 +480,48 @@ class _ResultCard extends StatelessWidget {
   final String viewerId;
   final VoidCallback? onShare;
   final VoidCallback? onTellFriends;
+
+  /// "You beat Selin's 2:41" or "Selin keeps it, by 0:08", and whether it
+  /// was a win — when this board was played against a challenge.
+  (String, bool)? _challengeLine(BuildContext context) {
+    final t = challengeTargetFor(controller);
+    final mine = controller.durationMs;
+    if (t == null || !controller.solved || mine == null) return null;
+    final l10n = AppLocalizations.of(context);
+    if (mine < t.durationMs) {
+      return (l10n.challengeBeatName(t.name, formatGameTime(t.durationMs)), true);
+    }
+    return (l10n.challengeKept(t.name, formatGameTime(mine - t.durationMs)), false);
+  }
+
+  /// Sends this result to chats the player picks, as a "Beat my time" card.
+  Future<void> _challenge(BuildContext context) async {
+    final repo = ChallengesStore.instance.repo;
+    if (repo == null) return;
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    final sent = sentenceCaseOf(context, l10n.challengeSent);
+    final failed = sentenceCaseOf(context, l10n.chatGameErrGeneric);
+    final rooms = await showForwardTargetSheet(
+      context,
+      repo: repo,
+      messageCount: 1,
+      excludeRoomId: '',
+    );
+    if (rooms == null || rooms.isEmpty) return;
+    try {
+      await ChallengesStore.instance.send(
+        userId: viewerId,
+        roomIds: [for (final r in rooms) r.id],
+        game: controller.game,
+        dayKey: FeedStore.instance.dayKey,
+      );
+      HapticFeedback.lightImpact();
+      toast.success(sent);
+    } catch (_) {
+      toast.error(failed);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -482,10 +604,27 @@ class _ResultCard extends StatelessWidget {
               style: groupedMetaStyle(theme),
             ),
           ],
+          if (_challengeLine(context) case final line?) ...[
+            const SizedBox(height: 6),
+            Text(
+              sentenceCaseOf(context, line.$1),
+              textAlign: TextAlign.center,
+              style: theme.bodySoft.copyWith(
+                color: line.$2 ? theme.success : theme.inkMuted,
+                fontWeight: line.$2 ? FontWeight.w600 : null,
+              ),
+            ),
+          ],
           if (onShare != null || onTellFriends != null) ...[
             const SizedBox(height: 18),
             GameResultActions(
               actions: [
+                if (solved && ChallengesStore.instance.repo != null)
+                  GameResultAction(
+                    icon: CupertinoIcons.paperplane,
+                    label: sentenceCaseOf(context, l10n.challengeAction),
+                    onTap: () => _challenge(context),
+                  ),
                 if (onShare != null)
                   GameResultAction(
                     icon: CupertinoIcons.doc_on_doc,
@@ -574,6 +713,7 @@ class GameStandingsList extends StatelessWidget {
           ? GamesStore.instance.standings.streakOf(row.userId, game)
           : 0,
       semantics: score,
+      onTap: () => showResultSheet(context, row: row, viewerId: viewerId),
       // Advisory, never ranked on: a hint was used.
       extra: row.hintsUsed > 0
           ? Icon(CupertinoIcons.lightbulb, size: 15, color: theme.inkMuted)

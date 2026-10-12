@@ -97,7 +97,7 @@ export type SocialCopy = {
   reactedComment: string;
   /** The five point tags, as the composer spells them. */
   tags: Record<string, string>;
-  /** The four daily games, as their tiles spell them. */
+  /** The nine daily games, as their tiles spell them. */
   games: Record<string, string>;
 };
 
@@ -125,6 +125,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "tango",
       zip: "zip",
       sudoku: "mini sudoku",
+      flow: "flow",
+      futoshiki: "futoshiki",
+      nonogram: "nonogram",
+      minesweeper: "minesweeper",
+      starbattle: "star battle",
     },
   },
   tr: {
@@ -150,6 +155,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "tango",
       zip: "zip",
       sudoku: "mini sudoku",
+      flow: "akış",
+      futoshiki: "futoshiki",
+      nonogram: "nonogram",
+      minesweeper: "mayın tarlası",
+      starbattle: "yıldız savaşı",
     },
   },
   es: {
@@ -175,6 +185,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "tango",
       zip: "zip",
       sudoku: "mini sudoku",
+      flow: "flujo",
+      futoshiki: "futoshiki",
+      nonogram: "nonograma",
+      minesweeper: "buscaminas",
+      starbattle: "batalla de estrellas",
     },
   },
   fr: {
@@ -200,6 +215,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "tango",
       zip: "zip",
       sudoku: "mini sudoku",
+      flow: "flux",
+      futoshiki: "futoshiki",
+      nonogram: "nonogramme",
+      minesweeper: "démineur",
+      starbattle: "bataille d’étoiles",
     },
   },
   pt: {
@@ -225,6 +245,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "tango",
       zip: "zip",
       sudoku: "mini sudoku",
+      flow: "fluxo",
+      futoshiki: "futoshiki",
+      nonogram: "nonograma",
+      minesweeper: "caça-minas",
+      starbattle: "batalha de estrelas",
     },
   },
   "pt-br": {
@@ -250,6 +275,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "tango",
       zip: "zip",
       sudoku: "mini sudoku",
+      flow: "fluxo",
+      futoshiki: "futoshiki",
+      nonogram: "nonograma",
+      minesweeper: "campo minado",
+      starbattle: "batalha de estrelas",
     },
   },
   sv: {
@@ -275,6 +305,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "tango",
       zip: "zip",
       sudoku: "minisudoku",
+      flow: "flöde",
+      futoshiki: "futoshiki",
+      nonogram: "nonogram",
+      minesweeper: "minröjning",
+      starbattle: "stjärnstrid",
     },
   },
   ar: {
@@ -300,6 +335,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "تانغو",
       zip: "زِب",
       sudoku: "سودوكو مصغّر",
+      flow: "تدفّق",
+      futoshiki: "فوتوشيكي",
+      nonogram: "نونوغرام",
+      minesweeper: "كاسحة الألغام",
+      starbattle: "معركة النجوم",
     },
   },
   hi: {
@@ -325,6 +365,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "टैंगो",
       zip: "ज़िप",
       sudoku: "मिनी सुडोकु",
+      flow: "फ़्लो",
+      futoshiki: "फ़ुतोशिकी",
+      nonogram: "नोनोग्राम",
+      minesweeper: "माइनस्वीपर",
+      starbattle: "स्टार बैटल",
     },
   },
   ja: {
@@ -350,6 +395,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "タンゴ",
       zip: "ジップ",
       sudoku: "ミニ数独",
+      flow: "フロー",
+      futoshiki: "不等式",
+      nonogram: "ノノグラム",
+      minesweeper: "マインスイーパー",
+      starbattle: "スターバトル",
     },
   },
   ko: {
@@ -375,6 +425,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "탱고",
       zip: "집",
       sudoku: "미니 스도쿠",
+      flow: "플로우",
+      futoshiki: "후토시키",
+      nonogram: "노노그램",
+      minesweeper: "지뢰 찾기",
+      starbattle: "스타 배틀",
     },
   },
   zh: {
@@ -400,6 +455,11 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       tango: "探戈",
       zip: "连线",
       sudoku: "迷你数独",
+      flow: "管道",
+      futoshiki: "不等号",
+      nonogram: "数织",
+      minesweeper: "扫雷",
+      starbattle: "星战",
     },
   },
 };
@@ -1124,9 +1184,9 @@ export const sendGameResultPush = internalAction({
                 : {}),
             },
             badge: 0,
-            // Per player per day, not per game. Somebody who finishes all four
+            // Per player per day, not per game. Somebody who finishes all nine
             // and shares each one is one row that keeps updating to their most
-            // recent result — four rows from one person in one afternoon is
+            // recent result — nine rows from one person in one afternoon is
             // the behaviour this feature would be turned off over.
             collapseId: `game_result:${plan.playerId}:${plan.dayKey}`,
           },

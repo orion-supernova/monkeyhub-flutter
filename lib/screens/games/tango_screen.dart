@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +20,9 @@ import 'game_scaffold.dart';
 /// A tap cycles a square through empty → sun → moon. Printed squares do not
 /// move; they are drawn on a raised surface rather than a sunken one so that is
 /// visible before anyone taps one and finds out.
+///
+/// Because a moon is reached *through* a sun, the square being cycled is not
+/// judged until the player has moved on from it — see [_pending].
 class TangoScreen extends StatefulWidget {
   const TangoScreen({super.key, required this.userId});
 
@@ -53,6 +58,19 @@ class _TangoScreenState extends State<TangoScreen>
   /// mistake on every rebuild it survives, and the result card ends up
   /// reporting forty mistakes for one bad guess.
   final Set<int> _counted = {};
+
+  /// The square the player is still cycling, if any.
+  ///
+  /// Two taps put a moon down, and the first of them always passes through a
+  /// sun. Judging that sun would count a mistake against a player who was on
+  /// their way to the right answer, and flash the row red under their finger
+  /// while they did it. So the square is only judged once they have settled
+  /// on it: when they tap a different square, or after [_settleAfter] with no
+  /// further tap on this one. Until then it is drawn, but not checked.
+  int? _pending;
+  Timer? _settle;
+
+  static const _settleAfter = Duration(milliseconds: 900);
 
   @override
   void initState() {
@@ -96,9 +114,15 @@ class _TangoScreenState extends State<TangoScreen>
 
   @override
   void dispose() {
+    _settle?.cancel();
+    // A square left mid-cycle on the way out was the player's last word on
+    // it. Judged now, before the checkpoint carries the tally to the server,
+    // and after the listener is gone so the tally cannot rebuild a screen
+    // that is being torn down.
+    _play.removeListener(_onPlay);
+    _judge(_pending, rebuild: false);
     _play
       ..checkpoint(_cells)
-      ..removeListener(_onPlay)
       ..dispose();
     GamesStore.instance.removeListener(_onPlay);
     _pop.dispose();
@@ -119,27 +143,61 @@ class _TangoScreenState extends State<TangoScreen>
       tangoSun => tangoMoon,
       _ => tangoEmpty,
     };
+    // Moving to another square settles the one before it.
+    if (_pending != index) _judge(_pending);
     setState(() {
       _undo.add((index, before));
       _cells[index] = next;
       _popCell = index;
       _counted.remove(index);
+      _pending = next == tangoEmpty ? null : index;
     });
     _pop.forward(from: 0);
     HapticFeedback.selectionClick();
+    _settle?.cancel();
+    if (_pending != null) _settle = Timer(_settleAfter, () => _judge(index));
+    _maybeFinish();
+  }
 
+  /// Settles [index]: if the square it holds breaks a rule, that is one
+  /// mistake, counted once, and the board now shows it.
+  void _judge(int? index, {bool rebuild = true}) {
+    if (index == null || index != _pending) return;
+    _settle?.cancel();
+    _settle = null;
+    _pending = null;
+    if (_play.finished) return;
+    final board = GamesStore.instance.boards.tango;
     if (tangoTrouble(board, _cells).cells.contains(index) &&
         _counted.add(index)) {
       _play.noteMistake();
       HapticFeedback.heavyImpact();
-      return;
     }
-    _maybeFinish();
+    if (rebuild && mounted) setState(() {});
+  }
+
+  /// Drops the pending square without judging it — undo, a hint or a
+  /// surrender took it out of the player's hands.
+  void _forgetPending() {
+    _settle?.cancel();
+    _settle = null;
+    _pending = null;
+  }
+
+  /// What the board shows as contradicted: everything except a square the
+  /// player is still cycling, which is drawn as if it were empty for the
+  /// purposes of the check.
+  TangoTrouble _visibleTrouble(TangoBoard board) {
+    final pending = _pending;
+    if (pending == null) return tangoTrouble(board, _cells);
+    final settled = List<int>.of(_cells)..[pending] = tangoEmpty;
+    return tangoTrouble(board, settled);
   }
 
   void _undoLast() {
     if (_undo.isEmpty || _play.finished) return;
     final (index, value) = _undo.removeLast();
+    _forgetPending();
     setState(() {
       _cells[index] = value;
       _popCell = null;
@@ -149,8 +207,10 @@ class _TangoScreenState extends State<TangoScreen>
   }
 
   Future<void> _hint() async {
+    _judge(_pending);
     final hint = await _play.hint(_cells);
     if (hint == null || !mounted) return;
+    _forgetPending();
     setState(() {
       _cells[hint.index] = hint.value;
       _popCell = hint.index;
@@ -164,6 +224,7 @@ class _TangoScreenState extends State<TangoScreen>
     if (!await confirmGiveUp(context)) return;
     final answer = await _play.reveal();
     if (answer == null || !mounted) return;
+    _forgetPending();
     setState(() => _cells = answer);
   }
 
@@ -203,7 +264,7 @@ class _TangoScreenState extends State<TangoScreen>
             cells: _play.paused ? const [] : _cells,
             trouble: _play.paused
                 ? const TangoTrouble(cells: <int>{}, signs: <int>{})
-                : tangoTrouble(board, _cells),
+                : _visibleTrouble(board),
             popCell: _popCell,
             pop: _pop.value,
             win: _winSweep.value,

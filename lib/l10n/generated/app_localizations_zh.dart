@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -11480,4 +11479,1058 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get layoutPagerNext => '下一页';
+
+  @override
+  String get resultSheetMistakes => '失误';
+
+  @override
+  String get resultSheetHints => '提示';
+
+  @override
+  String get resultSheetStreak => '连胜';
+
+  @override
+  String resultSheetStreakDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get resultSheetNone => '无';
+
+  @override
+  String resultSheetToday(String game) {
+    return '$game · 今天';
+  }
+
+  @override
+  String resultSheetYouFaster(String time) {
+    return '你快了 $time';
+  }
+
+  @override
+  String resultSheetTheyFaster(String name, String time) {
+    return '$name 快了 $time';
+  }
+
+  @override
+  String get resultSheetSameTime => '和你用时相同';
+
+  @override
+  String get resultSheetFooter => '排名只看用时。失误和提示仅供参考。';
+
+  @override
+  String get resultSheetHintNoRecord => '使用了提示，因此不能成为历史纪录。';
+
+  @override
+  String get gameTierEasy => '简单';
+
+  @override
+  String get gameTierMedium => '中等';
+
+  @override
+  String get gameTierHard => '困难';
+
+  @override
+  String get gameComingSoon => '即将推出';
+
+  @override
+  String get gameComingSoonName => '新谜题';
+
+  @override
+  String get chatGameNameTicTacToe => '井字棋';
+
+  @override
+  String get chatGameNameConnectFour => '四子棋';
+
+  @override
+  String get chatGameNameCheckers => '跳棋';
+
+  @override
+  String get chatGameNameReversi => '黑白棋';
+
+  @override
+  String get chatGameNameDots => '点格棋';
+
+  @override
+  String get chatGameDescTicTacToe => '三子连线获胜。';
+
+  @override
+  String get chatGameDescConnectFour => '投下棋子，四子连线获胜。';
+
+  @override
+  String get chatGameDescCheckers => '跳吃对方，吃光获胜。';
+
+  @override
+  String get chatGameDescReversi => '夹住翻转，多者获胜。';
+
+  @override
+  String get chatGameDescDots => '连线围格，再走一步。';
+
+  @override
+  String get chatGameKindLive => '实时对局';
+
+  @override
+  String get chatGameKindTurns => '轮流对局';
+
+  @override
+  String get chatGameStatusWaiting => '等待中';
+
+  @override
+  String get chatGameStatusPlaying => '进行中';
+
+  @override
+  String get chatGameStatusPaused => '已暂停';
+
+  @override
+  String get chatGameStatusFinished => '已结束';
+
+  @override
+  String get chatGameStatusEnded => '已终止';
+
+  @override
+  String get chatGameYourMove => '轮到你';
+
+  @override
+  String chatGameTurnOf(String name) {
+    return '轮到 $name';
+  }
+
+  @override
+  String chatGameWaitingFor(String name) {
+    return '等待 $name';
+  }
+
+  @override
+  String chatGameWonBy(String name) {
+    return '$name 获胜';
+  }
+
+  @override
+  String get chatGameYouWon => '你赢了';
+
+  @override
+  String get chatGameDraw => '平局';
+
+  @override
+  String get chatGameNobodyWon => '所有人都离开了，无人获胜';
+
+  @override
+  String chatGameReasonTimeout(String name) {
+    return '$name 超时';
+  }
+
+  @override
+  String chatGameReasonResign(String name) {
+    return '$name 认输';
+  }
+
+  @override
+  String chatGameReasonLeft(String name) {
+    return '$name 离开了';
+  }
+
+  @override
+  String get chatGameOpenSeat => '空位';
+
+  @override
+  String get chatGameReady => '已准备';
+
+  @override
+  String get chatGameNotReady => '未准备';
+
+  @override
+  String chatGameWatchingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人观战',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameJoin => '加入';
+
+  @override
+  String get chatGameWatch => '观战';
+
+  @override
+  String get chatGamePlay => '去下棋';
+
+  @override
+  String get chatGameOpen => '打开';
+
+  @override
+  String get chatGameRematch => '再来一局';
+
+  @override
+  String get chatGameNotRanked => '仅供娱乐。聊天游戏不计入连胜或纪录。';
+
+  @override
+  String get chatGameNotRankedShort => '不计排名';
+
+  @override
+  String get chatGameImReady => '我准备好了';
+
+  @override
+  String get chatGameUnready => '还没准备好';
+
+  @override
+  String get chatGameTakeSeat => '点击加入';
+
+  @override
+  String get chatGameLeaveSeat => '离开座位';
+
+  @override
+  String get chatGameStartsWhenReady => '所有人准备好后开始';
+
+  @override
+  String chatGameNeedPlayers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '还需 $count 名玩家',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameWatchingLabel => '观战';
+
+  @override
+  String get chatGameAskSwap => '请求换人';
+
+  @override
+  String chatGameSwapRequest(String name) {
+    return '$name 想换你上场';
+  }
+
+  @override
+  String get chatGameSwap => '换人';
+
+  @override
+  String get chatGameDecline => '拒绝';
+
+  @override
+  String get chatGameAccept => '接受';
+
+  @override
+  String chatGameSwapAsked(String name) {
+    return '已询问 $name';
+  }
+
+  @override
+  String get chatGameCancel => '取消';
+
+  @override
+  String get chatGameResign => '认输';
+
+  @override
+  String get chatGameResignConfirm => '认输这局吗？';
+
+  @override
+  String get chatGameResignBody => '这会算你输。';
+
+  @override
+  String get chatGameOfferDraw => '提议和棋';
+
+  @override
+  String get chatGameDrawOffered => '已提议和棋';
+
+  @override
+  String chatGameDrawOfferFrom(String name) {
+    return '$name 提议和棋';
+  }
+
+  @override
+  String chatGamePausedTitle(String name) {
+    return '$name 离开了游戏';
+  }
+
+  @override
+  String get chatGamePausedMany => '有玩家离开了';
+
+  @override
+  String get chatGamePausedBody => '棋盘会保留一会儿。';
+
+  @override
+  String get chatGamePausedYou => '所有人回来后继续。';
+
+  @override
+  String get chatGameLeave => '退出游戏';
+
+  @override
+  String get chatGameGo => '开始！';
+
+  @override
+  String get chatGameNudge => '提醒';
+
+  @override
+  String get chatGameNudged => '已提醒';
+
+  @override
+  String chatGameHoursLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '剩余 $count 小时',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameMinutesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '剩余 $count 分钟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMoveFailed => '这一步没有发出';
+
+  @override
+  String get chatGameStale => '棋盘已变化，请重试。';
+
+  @override
+  String get chatGameStartTitle => '玩个游戏';
+
+  @override
+  String get chatGameMenuItem => '游戏';
+
+  @override
+  String get chatGameModeLive => '实时';
+
+  @override
+  String get chatGameModeTurns => '轮流';
+
+  @override
+  String get chatGameModeBot => '对战机器人';
+
+  @override
+  String get chatGameModeLiveHint => '所有人同时对局，离开会暂停游戏。';
+
+  @override
+  String get chatGameModeTurnsHint => '随时落子。轮到你时会收到通知，每回合最长 2 天。';
+
+  @override
+  String get chatGameModeBotHint => '只有你和机器人，不会在聊天中发布任何内容。';
+
+  @override
+  String get chatGameBotEasyHint => '会犯错，适合练习。';
+
+  @override
+  String get chatGameBotMediumHint => '正常发挥，会堵住你的胜着。';
+
+  @override
+  String get chatGameBotHardHint => '会提前算好几步。';
+
+  @override
+  String get chatGameStart => '开始';
+
+  @override
+  String get chatGameErrAlreadyLive => '这里已有一局实时对局，请先结束或退出。';
+
+  @override
+  String get chatGameErrTooMany => '这里已有 3 局轮流对局，请先完成一局。';
+
+  @override
+  String get chatGameErrGeneric => '出了点问题，请重试。';
+
+  @override
+  String get chatGamePlayersTwo => '2 人';
+
+  @override
+  String get chatGamePlayersUpToFour => '2–4 人';
+
+  @override
+  String get chatGameBotName => '小猴';
+
+  @override
+  String get chatGameBotBadge => '机器人';
+
+  @override
+  String get chatGameNewGame => '新游戏';
+
+  @override
+  String chatGameBannerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 局游戏',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameBannerYourMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 局轮到你',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameSheetTitle => '此聊天中的游戏';
+
+  @override
+  String get chatGameGone => '此对局已不可用。';
+
+  @override
+  String get chatGameSeatsLabel => '玩家';
+
+  @override
+  String get gameFlowName => '管道';
+
+  @override
+  String get gameFutoshikiName => '不等号';
+
+  @override
+  String get gameNonogramName => '数织';
+
+  @override
+  String get gameMinesweeperName => '扫雷';
+
+  @override
+  String get gameStarbattleName => '星战';
+
+  @override
+  String get gameFlowRule => '连接相同的点，填满每一格';
+
+  @override
+  String get gameFutoshikiRule => '每行每列 1 到 5 各一次，符号全部成立';
+
+  @override
+  String get gameNonogramRule => '涂黑格子，让每条提示都对上';
+
+  @override
+  String get gameMinesweeperRule => '打开所有安全格子，无需猜测';
+
+  @override
+  String get gameStarbattleRule => '每行、每列、每色各两颗星，且不相邻';
+
+  @override
+  String get gameFlag => '插旗';
+
+  @override
+  String get gameAutoDot => '自动打点';
+
+  @override
+  String get gameInfoFlowGoal => '用管道把每一对相同的点连起来。';
+
+  @override
+  String get gameInfoFlowRule1 => '每条管道连接颜色和数字都相同的 2 个点。';
+
+  @override
+  String get gameInfoFlowRule2 => '管道不能交叉，也不能共用一个格子。';
+
+  @override
+  String get gameInfoFlowRule3 => '填满每一格，不能留空。';
+
+  @override
+  String get gameInfoFlowRule4 => '只能上、下、左、右走。不能斜着走。';
+
+  @override
+  String get gameInfoFlowExample => '走不了直线？就绕开其他管道。但每一格还是要填满。';
+
+  @override
+  String get gameInfoFlowControls => '从一个点开始拖动来画管道。往回拖就能撤销。画过别的管道会把它截断。';
+
+  @override
+  String get gameInfoFutoshikiGoal => '用 1 到 5 的数字填满格子。';
+
+  @override
+  String get gameInfoFutoshikiRule1 => '每一行都有 1、2、3、4、5，不能重复。';
+
+  @override
+  String get gameInfoFutoshikiRule2 => '每一列也一样。';
+
+  @override
+  String get gameInfoFutoshikiRule3 => '两格之间的 < 或 > 必须成立。尖头指向较小的数。';
+
+  @override
+  String get gameInfoFutoshikiExample => '有符号指向这一格？那它不可能是 5，因为旁边那格更大。';
+
+  @override
+  String get gameInfoFutoshikiControls => '先点格子，再点数字。再点一次就清除。笔记可以写小标记。';
+
+  @override
+  String get gameInfoNonogramGoal => '涂黑格子，让隐藏的图案显现出来。';
+
+  @override
+  String get gameInfoNonogramRule1 => '每行每列旁的数字是涂黑格子连续段的长度，按顺序排列。';
+
+  @override
+  String get gameInfoNonogramRule2 => '连续段之间至少隔 1 个空格。';
+
+  @override
+  String get gameInfoNonogramRule3 => '0 表示整行都是空的。';
+
+  @override
+  String get gameInfoNonogramExample =>
+      '10 格的一行提示是 10？全部涂黑。如果是 4 4，两段都放得下，中间隔一格。';
+
+  @override
+  String get gameInfoNonogramControls =>
+      '点 1 下涂黑，点 2 下是 ×（空），再点一下清除。拖动可以一次标记多格。';
+
+  @override
+  String get gameInfoMinesweeperGoal => '打开所有没有地雷的格子。';
+
+  @override
+  String get gameInfoMinesweeperRule1 => '数字表示这一格周围有几颗地雷，斜角也算。';
+
+  @override
+  String get gameInfoMinesweeperRule2 => '每一格都能推理出来，从来不需要猜。';
+
+  @override
+  String get gameInfoMinesweeperRule3 => '踩到地雷会给你的用时加 30 秒，然后继续玩。';
+
+  @override
+  String get gameInfoMinesweeperExample => '一个 1 旁边只有一个没打开的格子？那就是地雷，插上旗。';
+
+  @override
+  String get gameInfoMinesweeperControls => '点一下打开格子。长按，或打开插旗，来标记地雷。';
+
+  @override
+  String get gameInfoStarbattleGoal => '在每行、每列、每种颜色里各放 2 颗星。';
+
+  @override
+  String get gameInfoStarbattleRule1 => '每一行正好 2 颗星。';
+
+  @override
+  String get gameInfoStarbattleRule2 => '每一列正好 2 颗星。';
+
+  @override
+  String get gameInfoStarbattleRule3 => '每种颜色正好 2 颗星。';
+
+  @override
+  String get gameInfoStarbattleRule4 => '星星不能挨着。斜着也不行。';
+
+  @override
+  String get gameInfoStarbattleExample =>
+      '这里有一颗星，意味着它周围 8 格里没有别的星，而它所在的行、列和颜色里还差一颗。';
+
+  @override
+  String get gameInfoStarbattleControls => '点 1 下是点（这里没有星）。点 2 下是星。再点一下清除。';
+
+  @override
+  String boardCellName(int row, int col) {
+    return '第 $row 行，第 $col 列';
+  }
+
+  @override
+  String get boardEmpty => '空';
+
+  @override
+  String get boardBlack => '黑';
+
+  @override
+  String get boardWhite => '白';
+
+  @override
+  String get boardLegalMove => '可落子';
+
+  @override
+  String get boardMoveHere => '移到这里';
+
+  @override
+  String boardColumnFilled(int column, int count, int total) {
+    return '第 $column 列，已填 $count/$total';
+  }
+
+  @override
+  String boardSquareName(int number) {
+    return '第 $number 格';
+  }
+
+  @override
+  String get boardDarkMan => '深色棋子';
+
+  @override
+  String get boardDarkKing => '深色王棋';
+
+  @override
+  String get boardLightMan => '浅色棋子';
+
+  @override
+  String get boardLightKing => '浅色王棋';
+
+  @override
+  String boardBoxName(String cell) {
+    return '格子，$cell';
+  }
+
+  @override
+  String get boardOpen => '未占';
+
+  @override
+  String get boardDrawn => '已画';
+
+  @override
+  String boardClaimedBy(String name) {
+    return '归 $name';
+  }
+
+  @override
+  String boardHorizontalEdge(int row, int col) {
+    return '横线，第 $row 行，第 $col 列';
+  }
+
+  @override
+  String boardVerticalEdge(int row, int col) {
+    return '竖线，第 $row 行，第 $col 列';
+  }
+
+  @override
+  String get challengeAction => '发起挑战';
+
+  @override
+  String get challengeTitle => '来破我的纪录';
+
+  @override
+  String get challengeKind => '每日挑战';
+
+  @override
+  String challengeYouBeat(String time) {
+    return '你快了 $time';
+  }
+
+  @override
+  String challengeStillStanding(String time) {
+    return '纪录保持，差 $time';
+  }
+
+  @override
+  String get challengeTie => '完全打平';
+
+  @override
+  String get challengeClosed => '该棋盘已关闭';
+
+  @override
+  String get challengeYourTime => '你的纪录';
+
+  @override
+  String get challengeSent => '挑战已发送';
+
+  @override
+  String challengeTarget(String name, String time) {
+    return '$name $time';
+  }
+
+  @override
+  String challengeBeatName(String name, String time) {
+    return '你打破了 $name 的 $time';
+  }
+
+  @override
+  String challengeKept(String name, String time) {
+    return '$name 守住了，差 $time';
+  }
+
+  @override
+  String get chatGameNameLiarsDice => '吹牛骰';
+
+  @override
+  String get chatGameNameImposter => '谁是卧底';
+
+  @override
+  String get chatGameNameRace => '解谜竞速';
+
+  @override
+  String get chatGameDescLiarsDice => '对暗骰叫点，揭穿吹牛的人。';
+
+  @override
+  String get chatGameDescImposter => '有一个人不知道词语，把他找出来。';
+
+  @override
+  String get chatGameDescRace => '同一道谜题，最快解开的人获胜。';
+
+  @override
+  String chatGamePlayersRange(int min, int max) {
+    return '$min–$max 人';
+  }
+
+  @override
+  String get chatGamePartySection => '派对';
+
+  @override
+  String get chatGamePartyLiveOnly => '派对游戏为实时进行，所有人同时参与。';
+
+  @override
+  String get chatGameNeedsThree => '需要 3 人及以上的群组';
+
+  @override
+  String get chatGameVoiceOption => '语音提示';
+
+  @override
+  String get chatGameVoiceOptionHint => '在通话中说出提示，而不是打字';
+
+  @override
+  String get chatGamePuzzleOption => '谜题';
+
+  @override
+  String get chatGamePuzzleRandom => '随机';
+
+  @override
+  String chatGameStartNamed(String game) {
+    return '开始$game';
+  }
+
+  @override
+  String chatGameLdRoundDice(int count, int round) {
+    return '第 $round 轮 · $count 颗骰子';
+  }
+
+  @override
+  String get chatGameLdYourDice => '你的骰子';
+
+  @override
+  String get chatGameLdNoBid => '还没有人叫点';
+
+  @override
+  String chatGameLdBidBy(String name) {
+    return '$name 的叫点';
+  }
+
+  @override
+  String get chatGameLdYourBid => '你的叫点';
+
+  @override
+  String get chatGameLdBid => '叫点';
+
+  @override
+  String get chatGameLdLiar => '开！';
+
+  @override
+  String get chatGameLdOnesWild => '1 点可当任意点';
+
+  @override
+  String get chatGameLdOnesOnly => '叫 1 点时 1 不再万能';
+
+  @override
+  String get chatGameLdHolds => '叫点成立';
+
+  @override
+  String get chatGameLdBusted => '被拆穿！';
+
+  @override
+  String chatGameLdThereWere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '实际有 $count 个',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameLdLosesDie(String name) {
+    return '$name 失去一颗骰子';
+  }
+
+  @override
+  String get chatGameLdYouLoseDie => '你失去一颗骰子';
+
+  @override
+  String chatGameLdCalled(String name) {
+    return '$name 开了';
+  }
+
+  @override
+  String chatGameLdTimedOut(String name) {
+    return '$name 超时了';
+  }
+
+  @override
+  String get chatGameLdOut => '出局';
+
+  @override
+  String get chatGameLdQuantity => '数量';
+
+  @override
+  String get chatGameLdFace => '哪个点数';
+
+  @override
+  String get chatGameLdFewer => '减少';
+
+  @override
+  String get chatGameLdMore => '增加';
+
+  @override
+  String get chatGameLdPrompt => '加注或者开';
+
+  @override
+  String get chatGameLdOpenPrompt => '开始叫点';
+
+  @override
+  String get chatGameImpHoldToSee => '长按查看你的卡片';
+
+  @override
+  String get chatGameImpYourWord => '你的词语';
+
+  @override
+  String get chatGameImpYouAre => '你是卧底';
+
+  @override
+  String chatGameImpCategory(String category) {
+    return '类别：$category';
+  }
+
+  @override
+  String get chatGameImpBlendIn => '混进去，没人知道。';
+
+  @override
+  String get chatGameImpKeepSecret => '别直接说出来，给出队友能懂的提示。';
+
+  @override
+  String get chatGameImpGotIt => '知道了';
+
+  @override
+  String chatGameImpLooked(int count, int total) {
+    return '$total 人中已有 $count 人查看';
+  }
+
+  @override
+  String chatGameImpGiving(String name) {
+    return '$name 正在给提示';
+  }
+
+  @override
+  String get chatGameImpYourClue => '轮到你给提示了';
+
+  @override
+  String get chatGameImpClueHint => '一到四个词';
+
+  @override
+  String get chatGameImpClueField => '你的提示';
+
+  @override
+  String get chatGameImpSend => '发送';
+
+  @override
+  String get chatGameImpTooManyWords => '最多四个词';
+
+  @override
+  String get chatGameImpPassed => '跳过了';
+
+  @override
+  String get chatGameImpSpoke => '已在通话中发言';
+
+  @override
+  String get chatGameImpJoinCall => '加入通话';
+
+  @override
+  String get chatGameImpOnCall => '你已在通话中';
+
+  @override
+  String get chatGameImpVoiceHint => '大声说出提示，然后点按“完成”。';
+
+  @override
+  String get chatGameImpDone => '完成';
+
+  @override
+  String get chatGameImpVoteTitle => '谁是卧底？';
+
+  @override
+  String get chatGameImpVoteHint => '点按玩家投票，时间结束前可以更改。';
+
+  @override
+  String get chatGameImpSkip => '弃权';
+
+  @override
+  String chatGameImpVoted(int count, int total) {
+    return '$total 人中 $count 人已投票';
+  }
+
+  @override
+  String get chatGameImpVotedBadge => '已投票';
+
+  @override
+  String get chatGameImpYourVote => '你的票';
+
+  @override
+  String get chatGameImpGuessing => '卧底正在猜词…';
+
+  @override
+  String get chatGameImpGuessHint => '你被抓到了。猜中词语就能反败为胜。';
+
+  @override
+  String get chatGameImpGuessField => '词语是……';
+
+  @override
+  String get chatGameImpGuess => '猜';
+
+  @override
+  String chatGameImpWas(String name) {
+    return '$name 是卧底';
+  }
+
+  @override
+  String get chatGameImpYouWere => '你是卧底';
+
+  @override
+  String get chatGameImpTheWord => '词语是';
+
+  @override
+  String chatGameImpTheyGuessed(String guess) {
+    return '猜的是“$guess”';
+  }
+
+  @override
+  String chatGameImpVotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 票',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chatGameImpSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人弃权',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameImpReasonEscaped => '没有人被投出，卧底逃脱了。';
+
+  @override
+  String get chatGameImpReasonWrong => '大家投错了人。';
+
+  @override
+  String get chatGameImpReasonGuessed => '卧底被抓，但猜中了词语。';
+
+  @override
+  String get chatGameImpReasonCaught => '大家抓到了卧底。';
+
+  @override
+  String get chatGameImpReasonImposterLeft => '卧底离开了游戏。';
+
+  @override
+  String get chatGameImpReasonCrewLeft => '其他人都离开了。';
+
+  @override
+  String get chatGameImpCrewWon => '平民获胜';
+
+  @override
+  String get chatGameImpYourTeamWon => '你的队伍获胜';
+
+  @override
+  String chatGameImpImposterWon(String name) {
+    return '卧底 $name 获胜';
+  }
+
+  @override
+  String get chatGameImpYouWonImposter => '你作为卧底获胜';
+
+  @override
+  String get chatGameImpCardReveal => '正在查看卡片';
+
+  @override
+  String chatGameImpCardClues(int count, int total) {
+    return '提示 · $count/$total';
+  }
+
+  @override
+  String get chatGameImpCardVote => '投票中';
+
+  @override
+  String chatGameRaceFinishedCount(int count, int total) {
+    return '$total 人中 $count 人完成';
+  }
+
+  @override
+  String chatGameRaceYouPlaced(int rank) {
+    return '你获得第 $rank 名';
+  }
+
+  @override
+  String get chatGameRaceWaiting => '等待其他人';
+
+  @override
+  String get chatGameRaceTimeUp => '时间到，没有人完成。';
+
+  @override
+  String get chatGameRaceDnf => '未完成';
+
+  @override
+  String get chatGameRaceLeft => '已离开';
+
+  @override
+  String get chatGameRaceResults => '结果';
+
+  @override
+  String get chatGameRaceSolved => '解开了！';
+
+  @override
+  String get chatGamePartyLeaveConfirm => '要退出这局游戏吗？';
+
+  @override
+  String get chatGamePartyLeaveBody => '其他人会继续游戏。';
+
+  @override
+  String get chatGameErrTooLate => '太晚了，时间已到';
+
+  @override
+  String get chatGameErrBadClue => '这个提示不能用。一到四个词，不能有链接。';
+
+  @override
+  String get chatGameErrBadGuess => '请先输入答案';
+
+  @override
+  String get chatGameErrNotSolved => '还没有解开';
+
+  @override
+  String get chatGameNameChess => '国际象棋';
+
+  @override
+  String get chatGameDescChess => '将死对方的王即获胜。';
+
+  @override
+  String get chessPawn => '兵';
+
+  @override
+  String get chessKnight => '马';
+
+  @override
+  String get chessBishop => '象';
+
+  @override
+  String get chessRook => '车';
+
+  @override
+  String get chessQueen => '后';
+
+  @override
+  String get chessKing => '王';
+
+  @override
+  String chessPieceWhite(String piece) {
+    return '$piece（白方）';
+  }
+
+  @override
+  String chessPieceBlack(String piece) {
+    return '$piece（黑方）';
+  }
+
+  @override
+  String chessPromoteTo(String piece) {
+    return '升变为$piece';
+  }
 }

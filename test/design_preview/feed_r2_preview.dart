@@ -358,7 +358,17 @@ void main() {
   final day = (fixtures['days'] as List).first as Map<String, dynamic>;
   final payload = <String, dynamic>{
     'dayKey': day['dayKey'],
-    for (final game in ['queens', 'tango', 'zip', 'sudoku'])
+    for (final game in [
+      'queens',
+      'tango',
+      'zip',
+      'sudoku',
+      'flow',
+      'futoshiki',
+      'nonogram',
+      'minesweeper',
+      'starbattle',
+    ])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
   };
 

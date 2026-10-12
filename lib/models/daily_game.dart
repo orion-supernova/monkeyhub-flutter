@@ -1,16 +1,17 @@
 /// The daily games' client-side models.
 ///
-/// Four boards a day — Queens, Tango, Zip and Mini Sudoku — generated on the
-/// server from the day key alone, so everyone in every locale plays the
-/// identical board and the standings compare something real.
+/// Nine boards a day — Queens, Tango, Zip, Mini Sudoku, Flow, Futoshiki,
+/// Nonogram, Minesweeper and Star Battle — generated on the server from the day
+/// key alone, so everyone in every locale plays the identical board and the
+/// standings compare something real.
 ///
-/// **Why these four.** They contain no words. `backend/convex/games.ts` and
+/// **Why these nine.** They contain no words. `backend/convex/games.ts` and
 /// `models/puzzle.dart` both spell out the argument at length: this app ships
 /// in twelve languages, and LinkedIn's word games (Crossclimb, Pinpoint) would
 /// need a curated answer list per locale, which puts friends on different app
 /// languages in front of different puzzles and quietly makes the shared
-/// scoreboard meaningless. A crown, a sun, a line and the digits 1-6 read the
-/// same everywhere.
+/// scoreboard meaningless. A crown, a sun, a line, a coloured pipe, a star and
+/// the digits 1-6 read the same everywhere.
 ///
 /// Nothing here holds a solution. The server validates a finished board and the
 /// client only ever mirrors the *rules* (see `lib/games/game_rules.dart`), so
@@ -22,7 +23,12 @@ enum DailyGame {
   queens,
   tango,
   zip,
-  sudoku;
+  sudoku,
+  flow,
+  futoshiki,
+  nonogram,
+  minesweeper,
+  starbattle;
 
   String get wire => name;
 
@@ -169,6 +175,225 @@ class SudokuBoard {
 /// Sudoku's blank. Mirrors `EMPTY` in backend/convex/games/sudoku.ts.
 const int sudokuEmpty = 0;
 
+/// FLOW — join each pair of same-coloured dots with a pipe, so the pipes never
+/// cross and every square ends up in one.
+class FlowBoard {
+  const FlowBoard({required this.size, required this.endpoints});
+
+  final int size;
+
+  /// Both dots of each colour, as row-major cell indices. Colour k is entry k,
+  /// and its pipe runs from `.$1` to `.$2` in a submission.
+  final List<(int, int)> endpoints;
+
+  static const empty = FlowBoard(size: 0, endpoints: []);
+
+  bool get isEmpty => size == 0;
+
+  /// The colour whose dot sits on [cell], or -1.
+  int dotAt(int cell) {
+    for (var k = 0; k < endpoints.length; k++) {
+      if (endpoints[k].$1 == cell || endpoints[k].$2 == cell) return k;
+    }
+    return -1;
+  }
+
+  static FlowBoard fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    return FlowBoard(
+      size: (j['size'] as num?)?.toInt() ?? 0,
+      endpoints: [
+        for (final pair in (j['endpoints'] as List?) ?? const [])
+          if (pair is List && pair.length == 2)
+            ((pair[0] as num).toInt(), (pair[1] as num).toInt()),
+      ],
+    );
+  }
+}
+
+/// One `<` or `>` printed between two orthogonally adjacent Futoshiki cells.
+class FutoshikiSign {
+  const FutoshikiSign({required this.a, required this.b, required this.lt});
+
+  /// Cell index, row-major. Always the smaller of the pair.
+  final int a;
+
+  /// The cell to the right of, or below, [a].
+  final int b;
+
+  /// True when value(a) < value(b); false when value(a) > value(b).
+  final bool lt;
+
+  /// Whether the pair sits side by side rather than one above the other.
+  bool get horizontal => b == a + 1;
+
+  static FutoshikiSign fromJson(Map<String, dynamic> j) => FutoshikiSign(
+    a: (j['a'] as num?)?.toInt() ?? 0,
+    b: (j['b'] as num?)?.toInt() ?? 0,
+    lt: j['lt'] == true,
+  );
+}
+
+/// FUTOSHIKI — 1 to 5 once in every row and column, with every `<` and `>`
+/// between neighbours holding.
+class FutoshikiBoard {
+  const FutoshikiBoard({
+    required this.size,
+    required this.givens,
+    required this.signs,
+  });
+
+  final int size;
+
+  /// [futoshikiEmpty] or `1..size` per cell, row-major.
+  final List<int> givens;
+
+  final List<FutoshikiSign> signs;
+
+  static const empty = FutoshikiBoard(size: 0, givens: [], signs: []);
+
+  bool get isEmpty => size == 0;
+
+  static FutoshikiBoard fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    return FutoshikiBoard(
+      size: (j['size'] as num?)?.toInt() ?? 0,
+      givens: _ints(j['givens']),
+      signs: [
+        for (final s in (j['signs'] as List?) ?? const [])
+          FutoshikiSign.fromJson((s as Map).cast<String, dynamic>()),
+      ],
+    );
+  }
+}
+
+/// Futoshiki's blank. Mirrors `EMPTY` in backend/convex/games/futoshiki.ts.
+const int futoshikiEmpty = 0;
+
+/// NONOGRAM — shade the squares so every row and column reads back the run
+/// lengths printed beside it.
+class NonogramBoard {
+  const NonogramBoard({
+    required this.size,
+    required this.rows,
+    required this.cols,
+  });
+
+  final int size;
+
+  /// Run lengths per row, top to bottom, each read left to right. An empty
+  /// row is `[]`, which the board prints as a single `0`.
+  final List<List<int>> rows;
+
+  /// Run lengths per column, left to right, each read top to bottom.
+  final List<List<int>> cols;
+
+  static const empty = NonogramBoard(size: 0, rows: [], cols: []);
+
+  bool get isEmpty => size == 0;
+
+  static NonogramBoard fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    List<List<int>> lines(dynamic raw) => [
+      for (final line in (raw as List?) ?? const []) _ints(line),
+    ];
+    return NonogramBoard(
+      size: (j['size'] as num?)?.toInt() ?? 0,
+      rows: lines(j['rows']),
+      cols: lines(j['cols']),
+    );
+  }
+}
+
+/// Nonogram cell states, as the board holds them and as `progress` saves
+/// them. Mirrors `FILLED`/`EMPTY`/`UNKNOWN` in nonogram.ts: a crossed square
+/// is the player's "definitely empty", which is what EMPTY means there.
+const int nonogramFilled = 1;
+const int nonogramCrossed = 0;
+const int nonogramUnknown = -1;
+
+/// MINESWEEPER — clear every square that is not a mine. The no-guess edition:
+/// the whole field follows by logic from the opening the board hands you.
+class MinesweeperBoard {
+  const MinesweeperBoard({
+    required this.size,
+    required this.start,
+    required this.mineCount,
+    required this.mines,
+  });
+
+  final int size;
+
+  /// The square that opens the board: a guaranteed 0, revealed for the player
+  /// before their first touch.
+  final int start;
+
+  final int mineCount;
+
+  /// The mine layout, masked with the day's keystream. See
+  /// `minesweeperMines` in lib/games/game_rules.dart for how it is read.
+  final String mines;
+
+  static const empty = MinesweeperBoard(
+    size: 0,
+    start: 0,
+    mineCount: 0,
+    mines: '',
+  );
+
+  bool get isEmpty => size == 0;
+
+  static MinesweeperBoard fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    return MinesweeperBoard(
+      size: (j['size'] as num?)?.toInt() ?? 0,
+      start: (j['start'] as num?)?.toInt() ?? 0,
+      mineCount: (j['mineCount'] as num?)?.toInt() ?? 0,
+      mines: j['mines']?.toString() ?? '',
+    );
+  }
+}
+
+/// Minesweeper cell states, as the board holds them and as `progress` saves
+/// them. 0..8 is a revealed number. Mirrors `HIDDEN`/`FLAGGED` in
+/// minesweeper.ts; [minesweeperStruck] is the client's own — a mine the player
+/// walked onto, shown and carried on past — which the server's hint reads as
+/// "not revealed", exactly what it is.
+const int minesweeperHidden = -1;
+const int minesweeperFlagged = 9;
+const int minesweeperStruck = 10;
+
+/// What one mine costs on the clock. Mirrors `MINE_PENALTY_MS` in
+/// backend/convex/games.ts, which lets a reported time run past the real one
+/// by exactly this much per mine.
+const Duration kMinePenalty = Duration(seconds: 30);
+
+/// STAR BATTLE — two stars in every row, every column and every colour region,
+/// and no two stars touching, not even at a corner.
+class StarBattleBoard {
+  const StarBattleBoard({required this.size, required this.regions});
+
+  final int size;
+
+  /// Region index per cell, row-major. Values are `0..size-1`.
+  final List<int> regions;
+
+  /// Stars per row, column and region. Mirrors `STARS` in starbattle.ts.
+  static const stars = 2;
+
+  static const empty = StarBattleBoard(size: 0, regions: []);
+
+  bool get isEmpty => size == 0;
+
+  static StarBattleBoard fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    return StarBattleBoard(
+      size: (j['size'] as num?)?.toInt() ?? 0,
+      regions: _ints(j['regions']),
+    );
+  }
+}
+
 /// Every board for one day.
 class DailyBoards {
   const DailyBoards({
@@ -177,6 +402,11 @@ class DailyBoards {
     this.tango = TangoBoard.empty,
     this.zip = ZipBoard.empty,
     this.sudoku = SudokuBoard.empty,
+    this.flow = FlowBoard.empty,
+    this.futoshiki = FutoshikiBoard.empty,
+    this.nonogram = NonogramBoard.empty,
+    this.minesweeper = MinesweeperBoard.empty,
+    this.starbattle = StarBattleBoard.empty,
   });
 
   final String dayKey;
@@ -184,12 +414,42 @@ class DailyBoards {
   final TangoBoard tango;
   final ZipBoard zip;
   final SudokuBoard sudoku;
+  final FlowBoard flow;
+  final FutoshikiBoard futoshiki;
+  final NonogramBoard nonogram;
+  final MinesweeperBoard minesweeper;
+  final StarBattleBoard starbattle;
 
   /// Whether every board arrived. The hub waits on this rather than on a
   /// separate loading flag, so a partial payload cannot render as a set of
   /// empty grids that look playable.
+  ///
+  /// All nine, including the five that joined later: a payload cached on disk
+  /// by a build from before them reads as not ready, which is what makes the
+  /// store fetch a fresh one instead of rendering five empty tiles.
   bool get ready =>
-      !queens.isEmpty && !tango.isEmpty && !zip.isEmpty && !sudoku.isEmpty;
+      !queens.isEmpty &&
+      !tango.isEmpty &&
+      !zip.isEmpty &&
+      !sudoku.isEmpty &&
+      !flow.isEmpty &&
+      !futoshiki.isEmpty &&
+      !nonogram.isEmpty &&
+      !minesweeper.isEmpty &&
+      !starbattle.isEmpty;
+
+  /// Cells per side of [game]'s board, 0 before it has arrived.
+  int sizeOf(DailyGame game) => switch (game) {
+    DailyGame.queens => queens.size,
+    DailyGame.tango => tango.size,
+    DailyGame.zip => zip.size,
+    DailyGame.sudoku => sudoku.size,
+    DailyGame.flow => flow.size,
+    DailyGame.futoshiki => futoshiki.size,
+    DailyGame.nonogram => nonogram.size,
+    DailyGame.minesweeper => minesweeper.size,
+    DailyGame.starbattle => starbattle.size,
+  };
 
   static DailyBoards fromJson(dynamic raw) {
     if (raw is! Map) return const DailyBoards();
@@ -200,6 +460,19 @@ class DailyBoards {
       tango: TangoBoard.fromJson((j['tango'] as Map?)?.cast<String, dynamic>()),
       zip: ZipBoard.fromJson((j['zip'] as Map?)?.cast<String, dynamic>()),
       sudoku: SudokuBoard.fromJson((j['sudoku'] as Map?)?.cast<String, dynamic>()),
+      flow: FlowBoard.fromJson((j['flow'] as Map?)?.cast<String, dynamic>()),
+      futoshiki: FutoshikiBoard.fromJson(
+        (j['futoshiki'] as Map?)?.cast<String, dynamic>(),
+      ),
+      nonogram: NonogramBoard.fromJson(
+        (j['nonogram'] as Map?)?.cast<String, dynamic>(),
+      ),
+      minesweeper: MinesweeperBoard.fromJson(
+        (j['minesweeper'] as Map?)?.cast<String, dynamic>(),
+      ),
+      starbattle: StarBattleBoard.fromJson(
+        (j['starbattle'] as Map?)?.cast<String, dynamic>(),
+      ),
     );
   }
 }
@@ -423,7 +696,7 @@ class GameStandings {
   }
 }
 
-/// The code puzzle's id where the server lists it beside the four dailies.
+/// The code puzzle's id where the server lists it beside the timed dailies.
 const _kCodeGame = 'code';
 
 /// The viewer's run of consecutive days on one game.

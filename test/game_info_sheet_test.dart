@@ -29,9 +29,28 @@ void main() {
 
   final boards = DailyBoards.fromJson({
     'dayKey': day['dayKey'],
-    for (final game in ['queens', 'tango', 'zip', 'sudoku'])
+    for (final game in [
+      'queens',
+      'tango',
+      'zip',
+      'sudoku',
+      'flow',
+      'futoshiki',
+      'nonogram',
+      'minesweeper',
+      'starbattle',
+    ])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
   });
+
+  /// Zip's ⓘ on the Feed band, found through its own tile rather than by
+  /// position: the band is grouped by tier, so where Zip sits in the row is
+  /// not where it sits in [DailyGame], and a new game in the easy group would
+  /// silently shift every index after it.
+  final zipInfo = find.descendant(
+    of: find.byKey(const ValueKey('strip_zip')),
+    matching: find.byType(GameInfoButton),
+  );
 
   // ThemeScope wraps the MaterialApp rather than sitting inside `home`,
   // matching `app.dart`. A sheet is built by the Navigator's overlay, so a
@@ -74,6 +93,47 @@ void main() {
     // The whole point of the separate target: the board must not have opened
     // behind the sheet.
     expect(opened, 0);
+  });
+
+  testWidgets('every new board explains itself, rules and example', (
+    tester,
+  ) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final copy = {
+      DailyGame.flow: (l10n.gameInfoFlowGoal, l10n.gameInfoFlowRule4),
+      DailyGame.futoshiki: (
+        l10n.gameInfoFutoshikiGoal,
+        l10n.gameInfoFutoshikiRule3,
+      ),
+      DailyGame.nonogram: (
+        l10n.gameInfoNonogramGoal,
+        l10n.gameInfoNonogramRule3,
+      ),
+      DailyGame.minesweeper: (
+        l10n.gameInfoMinesweeperGoal,
+        l10n.gameInfoMinesweeperRule3,
+      ),
+      DailyGame.starbattle: (
+        l10n.gameInfoStarbattleGoal,
+        l10n.gameInfoStarbattleRule4,
+      ),
+    };
+    for (final MapEntry(key: game, value: (goal, lastRule)) in copy.entries) {
+      await tester.pumpWidget(
+        host(
+          GameTile(game: game, boards: boards, width: 170, onTap: () {}),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(GameInfoButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text(goal), findsOneWidget, reason: game.wire);
+      expect(find.text(lastRule), findsOneWidget, reason: game.wire);
+      expect(find.textContaining(l10n.gameInfoScoringTimed), findsOneWidget);
+      expect(tester.takeException(), isNull, reason: game.wire);
+      await tester.pumpWidget(const SizedBox());
+    }
   });
 
   testWidgets('the tile itself still opens the game', (tester) async {
@@ -121,14 +181,11 @@ void main() {
       findsNWidgets(DailyGame.values.length + 1),
     );
 
-    // Zip's, so the sheet's contents prove it opened the right game's. +1:
-    // the code puzzle's own tile is first in the strip.
-    // The row scrolls sideways; Zip's tile starts past the edge.
-    await tester.ensureVisible(
-      find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
-    );
+    // Zip's, so the sheet's contents prove it opened the right game's.
+    // The row scrolls sideways; Zip's tile may start past the edge.
+    await tester.ensureVisible(zipInfo);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(GameInfoButton).at(DailyGame.zip.index + 1));
+    await tester.tap(zipInfo);
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
@@ -186,14 +243,10 @@ void main() {
 
     // Inside Zip's button box but clear of the disc, which hugs the box's
     // trailing edge — over the card's own tap region, which would otherwise
-    // win this one and open the board. +1: the code puzzle's tile is first.
-    await tester.ensureVisible(
-      find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
-    );
+    // win this one and open the board.
+    await tester.ensureVisible(zipInfo);
     await tester.pumpAndSettle();
-    final box = tester.getRect(
-      find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
-    );
+    final box = tester.getRect(zipInfo);
     await tester.tapAt(Offset(box.left + 3, box.center.dy));
     await tester.pumpAndSettle();
 
@@ -272,8 +325,9 @@ void main() {
     final board = tester.getRect(
       find.descendant(of: strip, matching: find.byType(AspectRatio)),
     );
-    // +1: the code puzzle's own tile is first in the strip.
-    final glyph = tester.getRect(disc.at(DailyGame.zip.index + 1));
+    final glyph = tester.getRect(
+      find.descendant(of: zipInfo, matching: disc),
+    );
 
     // Wholly inside the tile…
     expect(glyph.left, greaterThanOrEqualTo(tile.left));
@@ -303,7 +357,7 @@ void main() {
     await tester.tap(find.byType(GameInfoButton));
     await tester.pumpAndSettle();
 
-    // It shares the hub with four timed boards but is ranked by guesses, and
+    // It shares the hub with the timed boards but is ranked by guesses, and
     // saying so is the reason the scoring line is per-game rather than shared.
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.textContaining(l10n.gameInfoScoringGuesses), findsOneWidget);
