@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'count_bump.dart';
 import 'odometer_number.dart';
 import 'ios_kit.dart' show groupedMetaStyle, quietFill;
 
@@ -60,7 +61,10 @@ class CountBadge extends StatelessWidget {
   final int max;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      CountBump(count: count, child: _badge(context));
+
+  Widget _badge(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
     final digits = count > max ? '$max+' : '$count';
@@ -184,7 +188,10 @@ class RoomUnreadBadge extends StatelessWidget {
   final bool quiet;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      CountBump(count: count, child: _badge(context));
+
+  Widget _badge(BuildContext context) {
     if (count <= 0 && !unread) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
     final tint = quiet ? theme.inkMuted : theme.accent;

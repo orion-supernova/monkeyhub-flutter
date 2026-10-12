@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
+import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/keyboard/app_shortcuts.dart';
 import 'package:monkeyhub/keyboard/escape_to_pop.dart';
 import 'package:monkeyhub/keyboard/shortcut_host.dart';
@@ -124,6 +126,33 @@ void main() {
     expect(find.text(l10n.kbdJumpToLatest), findsNothing);
   }, variant: mac);
 
+  testWidgets("the peek's Don't show again turns it off for good", (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final nav = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(app(
+      nav,
+      const Focus(autofocus: true, child: SizedBox.expand()),
+    ));
+    await tester.pump();
+    final l10n = AppLocalizations.of(nav.currentContext!);
+    expect(SettingsStore.instance.shortcutPeek, isTrue);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+    // The click on the pill must not call the peek off before it lands.
+    await tester.tap(find.text(l10n.kbdPeekDontShowAgain));
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+    expect(SettingsStore.instance.shortcutPeek, isFalse);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pump();
+    expect(find.text(l10n.kbdPeekDontShowAgain), findsNothing);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.runAsync(() => SettingsStore.instance.setShortcutPeek(true));
+  }, variant: mac);
+
   testWidgets('a chord pressed during the hold calls the peek off', (tester) async {
     final nav = GlobalKey<NavigatorState>();
     var hits = 0;
@@ -182,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
   }, variant: mac);
 
-  testWidgets('the peek lists the window keys, and ⌘W gives way to a chat', (tester) async {
+  testWidgets('the peek lists the window keys, and ⌘W stays with the window in a chat', (tester) async {
     final nav = GlobalKey<NavigatorState>();
     await tester.pumpWidget(app(
       nav,
@@ -215,11 +244,13 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
+    // ⌘W stays the window's with a chat open: closeChat is not a Mac shortcut.
     await peek(() {
-      expect(find.text(l10n.kbdCloseChat), findsOneWidget);
-      expect(find.text(l10n.kbdCloseWindow), findsNothing);
+      expect(find.text(l10n.kbdCloseChat), findsNothing);
+      expect(find.text(l10n.kbdCloseWindow), findsOneWidget);
       expect(find.text(l10n.kbdQuit), findsOneWidget);
     });
+    expect(AppShortcuts.closeChat.offeredHere, isFalse);
   }, variant: mac);
 
   testWidgets('Windows and Linux: Ctrl+Q is bound, Alt+F4 is listed', (tester) async {

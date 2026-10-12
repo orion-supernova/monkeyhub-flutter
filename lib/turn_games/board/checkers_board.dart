@@ -309,7 +309,8 @@ class _CheckersBoardState extends BoardViewState<CheckersBoardView> {
     final canMove = _legal.isNotEmpty;
     final mustCapture = canMove && _legal.first.isCapture;
     List<int>? lastPath;
-    if (!p.thumbnail && p.lastMove != null) {
+    // Thumbnails too: a move bubble's board is about the move it shows.
+    if (p.lastMove != null) {
       try {
         lastPath = checkersRules.decodeMove(p.lastMove!).squares;
       } on FormatException {

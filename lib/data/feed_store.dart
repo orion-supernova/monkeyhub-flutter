@@ -254,6 +254,29 @@ class FeedStore extends ChangeNotifier {
   /// change that dispose the screen.
   bool get introPlayed => _introPlayedForDay == _dayKey;
 
+  /// Whether the app opened straight onto the board, decided once per process
+  /// by the shell's first mount ([noteShellLaunch]). Opening the app is not
+  /// the board arriving: the launch screen already did the arriving, and a
+  /// board sliding in under it read as the app loading twice. So that first
+  /// showing appears in place, and the stagger is kept for coming back to the
+  /// tab. Cleared once taken; never reset on sign-out.
+  bool? _launchOnBoard;
+
+  /// Called by the shell when it first mounts, with the section it opens on.
+  /// Only the first call of the process counts.
+  void noteShellLaunch(bool onBoard) => _launchOnBoard ??= onBoard;
+
+  /// Whether this mount of the board is the app opening onto it. Answers
+  /// true at most once.
+  bool takeLaunchEntrance() {
+    if (_launchOnBoard != true) {
+      _launchOnBoard = false;
+      return false;
+    }
+    _launchOnBoard = false;
+    return true;
+  }
+
   /// Called by the board once its intro animation has been started. Idempotent.
   void markIntroPlayed() {
     if (introPlayed) return;

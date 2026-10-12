@@ -149,6 +149,15 @@ class _ConnectFourBoardState extends BoardViewState<ConnectFourBoardView> {
     if (col != null) _emit(col);
   }
 
+  /// The top disc of [col], the one the last move dropped; null if empty.
+  static int? _topOf(ConnectFourState s, int? col) {
+    if (col == null || col < 0 || col >= _cols) return null;
+    for (var r = 0; r < _rows; r++) {
+      if (s.cells[r * _cols + col] != 0) return r * _cols + col;
+    }
+    return null;
+  }
+
   void _emit(int col) {
     if (!_legal(col)) return;
     widget.props.onMove!(connectFourRules.encodeMove(col));
@@ -173,6 +182,7 @@ class _ConnectFourBoardState extends BoardViewState<ConnectFourBoardView> {
       hoverSeat: p.mySeat ?? s.toMove,
       highContrast: p.highContrast,
       clock: clock,
+      marked: p.thumbnail ? _topOf(s, int.tryParse(p.lastMove ?? '')) : null,
     );
     return boardSurface(
       props: p,
@@ -256,6 +266,7 @@ class ConnectFourPainter extends CustomPainter {
     this.hover,
     this.hoverSeat = 0,
     this.highContrast = false,
+    this.marked,
   }) : super(repaint: clock.animation);
 
   final List<int> cells;
@@ -268,6 +279,10 @@ class ConnectFourPainter extends CustomPainter {
   final int? hover;
   final int hoverSeat;
   final bool highContrast;
+
+  /// The last move's disc, ringed on top of the slab (thumbnails, which do
+  /// not play the drop).
+  final int? marked;
 
   /// The slab's colour: a deep, theme-lit azure, the toy's blue. Neither
   /// seat is azure in this game (coral and amber), so the slab never reads
@@ -354,6 +369,15 @@ class ConnectFourPainter extends CustomPainter {
       }
     }
 
+    final m = marked;
+    if (m != null && (win == null || fade <= 0) && cells[m] != 0) {
+      final ring = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1.5, g.cell * 0.07)
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.92);
+      canvas.drawCircle(g.hole(m ~/ _cols, m % _cols), g.discRadius * 1.04, ring);
+    }
+
     // The disc in hand, over the lane.
     if (h != null && lane) {
       _disc(canvas, g, g.hover(h), hoverSeat, 1, disc, rim);
@@ -407,6 +431,7 @@ class ConnectFourPainter extends CustomPainter {
       old.hover != hover ||
       old.hoverSeat != hoverSeat ||
       old.highContrast != highContrast ||
+      old.marked != marked ||
       old.clock.animation != clock.animation ||
       old.clock.totalMs != clock.totalMs;
 }

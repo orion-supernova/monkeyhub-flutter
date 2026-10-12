@@ -38,6 +38,7 @@ import 'linkified_text.dart';
 import 'media_flight.dart';
 import 'challenge_bubble.dart';
 import 'game_bubble.dart';
+import 'game_move_bubble.dart';
 import 'interaction_bubble.dart';
 import 'location_bubble.dart';
 import 'text_runs.dart';
@@ -1425,6 +1426,7 @@ bool messageStampsInline(ChatMessage message,
       return true;
     // A game card has a footer row with the stamp at its end, like a poll's.
     case MessageType.game:
+    case MessageType.gameMove:
     case MessageType.challenge:
       return true;
     case MessageType.text:
@@ -2085,6 +2087,18 @@ Widget buildMessageContent({
       // and its body (seats, board, result) comes from `MatchesStore` rather
       // than the message row. See [GameBubble].
       return GameBubble(
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        width: imageSize,
+        radius: mediaRadius,
+        currentUserId: currentUserId ?? '',
+        stamp: stampFor(StampTone.onBubble),
+      );
+    case MessageType.gameMove:
+      // One move of a turn by turn game: the board it made, drawn from the
+      // row itself. See [GameMoveBubble].
+      return GameMoveBubble(
         theme: theme,
         message: message,
         isMine: isMine,

@@ -5884,15 +5884,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gameInfoOpen => 'كيف تلعب';
 
   @override
-  String get gameInfoLabel => 'كيف تلعب';
-
-  @override
-  String get gameInfoRulesLabel => 'القواعد';
-
-  @override
-  String get gameInfoControlsLabel => 'ماذا تلمس';
-
-  @override
   String get gameInfoScoringTimed => 'الأسرع يفوز. تتوقف الساعة عندما تخرج.';
 
   @override
@@ -5900,84 +5891,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => 'الجميع يحصل على اللغز نفسه اليوم.';
-
-  @override
-  String get gameInfoQueensGoal => 'ضع 8 تيجان على اللوحة.';
-
-  @override
-  String get gameInfoQueensRule1 => 'كل صف فيه تاج واحد بالضبط.';
-
-  @override
-  String get gameInfoQueensRule2 => 'كل عمود فيه تاج واحد بالضبط.';
-
-  @override
-  String get gameInfoQueensRule3 => 'كل لون فيه تاج واحد بالضبط.';
-
-  @override
-  String get gameInfoQueensControls =>
-      'المس مرة: × (لا تاج هنا). مرتين: تاج. مرة أخرى: امسح.';
-
-  @override
-  String get gameInfoTangoGoal => 'املأ كل مربع بشمس أو قمر.';
-
-  @override
-  String get gameInfoTangoRule1 => 'كل صف فيه 3 شموس و3 أقمار.';
-
-  @override
-  String get gameInfoTangoRule2 => 'كل عمود فيه 3 شموس و3 أقمار.';
-
-  @override
-  String get gameInfoTangoRule3 => 'لا 3 متشابهة متتالية أبدًا. 2 لا بأس.';
-
-  @override
-  String get gameInfoTangoControls =>
-      'المس مرة: شمس. مرتين: قمر. مرة أخرى: امسح. المربعات المملوءة من البداية لا تتغير.';
-
-  @override
-  String get gameInfoZipGoal => 'ارسم خطًا واحدًا يمر بكل المربعات.';
-
-  @override
-  String get gameInfoZipRule1 => 'ابدأ من 1.';
-
-  @override
-  String get gameInfoZipRule2 => 'مرّ على الأرقام بالترتيب: 1، 2، 3…';
-
-  @override
-  String get gameInfoZipRule3 => 'املأ كل المربعات. كل مربع مرة واحدة فقط.';
-
-  @override
-  String get gameInfoZipControls => 'اسحب إصبعك لترسم. اسحب للخلف لتتراجع.';
-
-  @override
-  String get gameInfoSudokuGoal => 'املأ الشبكة بالأرقام من 1 إلى 6.';
-
-  @override
-  String get gameInfoSudokuRule1 => 'كل صف فيه 1، 2، 3، 4، 5 و6. بلا تكرار.';
-
-  @override
-  String get gameInfoSudokuRule2 => 'وكل عمود كذلك.';
-
-  @override
-  String get gameInfoSudokuRule3 => 'وكل صندوق كذلك. الصندوق صفّان في 3 أعمدة.';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'المس مربعًا ثم رقمًا. المس الرقم مرة أخرى للمسح. الملاحظات تضيف علامات صغيرة.';
-
-  @override
-  String get gameInfoCodeGoal => 'خمّن الشيفرة السرية من 4 رموز.';
-
-  @override
-  String get gameInfoCodeRule1 => 'الشيفرة فيها 4 رموز مختلفة. بلا تكرار.';
-
-  @override
-  String get gameInfoCodeRule2 => 'لديك 6 تخمينات.';
-
-  @override
-  String get gameInfoCodeRule3 => 'أخضر: رمز صحيح في مكان صحيح.';
-
-  @override
-  String get gameInfoCodeControls => 'المس 4 رموز، ثم المس تخمين.';
 
   @override
   String get savedMessagesTitle => 'الرسائل المحفوظة';
@@ -10938,55 +10851,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomContentMonthLast => 'الشهر الماضي';
 
   @override
-  String get gameInfoGoalLabel => 'الهدف';
-
-  @override
-  String get gameInfoExampleLabel => 'مثال';
-
-  @override
-  String get gameInfoWinLabel => 'كيف تفوز';
-
-  @override
-  String get gameInfoQueensRule4 => 'التيجان لا تتلامس. ولا حتى من الزوايا.';
-
-  @override
-  String get gameInfoQueensExample =>
-      'تاج هنا يعني: لا تاج آخر في صفه أو عموده أو لونه، ولا في الـ 8 مربعات حوله.';
-
-  @override
-  String get gameInfoTangoRule4 =>
-      '= تعني أن المربعين متشابهان. × تعني أنهما مختلفان.';
-
-  @override
-  String get gameInfoTangoExample =>
-      'شمس، شمس، فارغ؟ المربع الفارغ يجب أن يكون قمرًا.';
-
-  @override
-  String get gameInfoZipRule4 =>
-      'تحرّك لأعلى أو لأسفل أو يمينًا أو يسارًا. لا خطوط مائلة.';
-
-  @override
-  String get gameInfoZipRule5 => 'انتهِ عند آخر رقم.';
-
-  @override
-  String get gameInfoZipExample =>
-      'ذاهب من 1 إلى 2؟ خذ الطريق الطويل إن لزم. لا يجوز ترك أي مربع فارغًا.';
-
-  @override
-  String get gameInfoSudokuExample =>
-      'صف فيه 1، 2، 4، 5 و6؟ المربع الفارغ هو 3.';
-
-  @override
-  String get gameInfoCodeRule4 => 'أصفر: رمز صحيح في مكان خطأ.';
-
-  @override
-  String get gameInfoCodeRule5 => 'رمادي: هذا الرمز ليس في الشيفرة.';
-
-  @override
-  String get gameInfoCodeExample =>
-      'أخضر، أصفر، رمادي، رمادي تعني: 1 رمز في مكانه الصحيح، و1 مكانه في موضع آخر، و2 ليسا في الشيفرة.';
-
-  @override
   String get leaderboardOverall => 'اليوم';
 
   @override
@@ -12598,24 +12462,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatGameModeLive => 'مباشر';
 
   @override
-  String get chatGameModeTurns => 'بالتناوب';
-
-  @override
-  String get chatGameModeBot => 'ضد الروبوت';
-
-  @override
-  String get chatGameModeLiveHint =>
-      'يلعب الجميع معًا. المغادرة توقف اللعبة مؤقتًا.';
-
-  @override
-  String get chatGameModeTurnsHint =>
-      'العب متى شئت. يصلك إشعار في دورك، ويستمر الدور حتى يومين.';
-
-  @override
-  String get chatGameModeBotHint =>
-      'أنت والروبوت فقط. لا يُنشر شيء في الدردشة.';
-
-  @override
   String get chatGameBotEasyHint => 'يرتكب أخطاء. مناسب للتعلّم.';
 
   @override
@@ -12720,119 +12566,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gameAutoDot => 'نقاط تلقائية';
-
-  @override
-  String get gameInfoFlowGoal => 'صِل كل نقطتين متطابقتين بأنبوب.';
-
-  @override
-  String get gameInfoFlowRule1 => 'كل أنبوب يصل نقطتين بنفس اللون والرقم.';
-
-  @override
-  String get gameInfoFlowRule2 => 'الأنابيب لا تتقاطع ولا تتشارك مربعًا.';
-
-  @override
-  String get gameInfoFlowRule3 => 'املأ كل مربع. لا يبقى أي مربع فارغًا.';
-
-  @override
-  String get gameInfoFlowRule4 =>
-      'تحرّك لأعلى أو لأسفل أو يمينًا أو يسارًا. لا خطوط مائلة.';
-
-  @override
-  String get gameInfoFlowExample =>
-      'لا يوجد طريق مستقيم؟ لُفّ الأنبوب حول الأنابيب الأخرى. ومع ذلك يجب ملء كل مربع.';
-
-  @override
-  String get gameInfoFlowControls =>
-      'اسحب من نقطة لترسم أنبوبها. اسحب للخلف لتتراجع. الرسم فوق أنبوب يقطعه.';
-
-  @override
-  String get gameInfoFutoshikiGoal => 'املأ الشبكة بالأرقام من 1 إلى 5.';
-
-  @override
-  String get gameInfoFutoshikiRule1 => 'كل صف فيه 1 و2 و3 و4 و5. بلا تكرار.';
-
-  @override
-  String get gameInfoFutoshikiRule2 => 'وكل عمود كذلك.';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      'علامة < أو > بين مربعين يجب أن تكون صحيحة. وتشير إلى الرقم الأصغر.';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      'هل تشير علامة إلى هذا المربع؟ إذن لا يمكن أن يكون 5، لأن جاره أكبر.';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'المس مربعًا ثم رقمًا. المس الرقم مرة أخرى للمسح. الملاحظات تضيف علامات صغيرة.';
-
-  @override
-  String get gameInfoNonogramGoal => 'ظلّل المربعات لتكشف الصورة المخفية.';
-
-  @override
-  String get gameInfoNonogramRule1 =>
-      'الأرقام بجانب كل صف وعمود هي أطوال المربعات المظلّلة المتتالية، بالترتيب.';
-
-  @override
-  String get gameInfoNonogramRule2 =>
-      'تفصل بين كل مجموعتين مربع فارغ واحد على الأقل.';
-
-  @override
-  String get gameInfoNonogramRule3 => 'الرقم 0 يعني أن الخط كله فارغ.';
-
-  @override
-  String get gameInfoNonogramExample =>
-      'صف من 10 مربعات ورقمه 10؟ ظلّله كله. ومع 4 4 تتسع المجموعتان مع فراغ بينهما.';
-
-  @override
-  String get gameInfoNonogramControls =>
-      'المس مرة: ظلّل. مرتين: × (فارغ). مرة أخرى: امسح. اسحب لتعلّم عدة مربعات معًا.';
-
-  @override
-  String get gameInfoMinesweeperGoal => 'افتح كل مربع ليس فيه لغم.';
-
-  @override
-  String get gameInfoMinesweeperRule1 =>
-      'الرقم يخبرك بعدد الألغام الملامسة لهذا المربع، بما فيها الزوايا.';
-
-  @override
-  String get gameInfoMinesweeperRule2 =>
-      'كل مربع يمكن استنتاجه. لن تحتاج إلى التخمين أبدًا.';
-
-  @override
-  String get gameInfoMinesweeperRule3 =>
-      'إذا أصبت لغمًا تُضاف 30 ثانية إلى وقتك. ثم تابع.';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      'رقم 1 بجانبه مربع مغلق واحد فقط؟ ذلك المربع هو اللغم. ضع عليه علَمًا.';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      'المس لتفتح مربعًا. اضغط مطوّلًا، أو فعّل العلَم، لتعلّم لغمًا.';
-
-  @override
-  String get gameInfoStarbattleGoal => 'ضع نجمتين في كل صف وعمود ولون.';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'كل صف فيه نجمتان بالضبط.';
-
-  @override
-  String get gameInfoStarbattleRule2 => 'كل عمود فيه نجمتان بالضبط.';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'كل لون فيه نجمتان بالضبط.';
-
-  @override
-  String get gameInfoStarbattleRule4 => 'النجوم لا تتلامس. ولا حتى من الزوايا.';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'نجمة هنا تعني: لا نجمة أخرى في المربعات الثمانية حولها، وبقيت نجمة واحدة لتجدها في صفها وعمودها ولونها.';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      'المس مرة: نقطة (لا نجمة هنا). مرتين: نجمة. مرة أخرى: امسح.';
 
   @override
   String boardCellName(int row, int col) {
@@ -12970,16 +12703,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max لاعبين';
   }
-
-  @override
-  String get chatGamePartySection => 'ألعاب جماعية';
-
-  @override
-  String get chatGamePartyLiveOnly =>
-      'الألعاب الجماعية تُلعب مباشرةً مع الجميع معًا.';
-
-  @override
-  String get chatGameNeedsThree => 'تحتاج مجموعة من 3 أو أكثر';
 
   @override
   String get chatGameVoiceOption => 'تلميحات صوتية';
@@ -13363,4 +13086,424 @@ class AppLocalizationsAr extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return 'رقِّ إلى $piece';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => 'لا تُظهرها مرة أخرى';
+
+  @override
+  String get kbdPeekTurnedOff =>
+      'تم، لن تظهر مرة أخرى. يمكنك إعادة تفعيلها من الإعدادات.';
+
+  @override
+  String get chatGameBadgeTurns => 'بالتناوب';
+
+  @override
+  String get chatGameSectionBoards => 'ألعاب الطاولة';
+
+  @override
+  String get chatGameSectionParty => 'ألعاب جماعية';
+
+  @override
+  String get chatGameBoardsHintDm =>
+      'العبا مباشرة الآن، أو بالتناوب متى ما سنح لكما الوقت.';
+
+  @override
+  String get chatGameBoardsHintGroup => 'مباشرة هنا. خذ مقعدك أو شاهد فقط.';
+
+  @override
+  String get chatGamePartyHint =>
+      'الجميع يلعبون في الوقت نفسه، فاجمعوا الأصدقاء أولًا.';
+
+  @override
+  String get chatGameLiveTitle => 'العب مباشرة';
+
+  @override
+  String get chatGameLiveNow => 'الجميع يلعبون في الوقت نفسه، الآن.';
+
+  @override
+  String get chatGameLivePause =>
+      'إذا خرج أحدهم يتوقف اللعب. أمامه دقيقتان للعودة وإلا يخسر.';
+
+  @override
+  String get chatGameTurnsTitle => 'العب بالتناوب';
+
+  @override
+  String get chatGameTurnsAnytime =>
+      'العب حركتك متى شئت. كل حركة تظهر في الدردشة.';
+
+  @override
+  String get chatGameTurnsClock =>
+      'يومان لكل حركة. نذكّره، ويمكنك تذكيره أيضًا.';
+
+  @override
+  String get chatGameHowWillYouPlay => 'كيف تريد أن تلعب؟';
+
+  @override
+  String get botHubTitle => 'العب ضد البوت';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'أنت و$bot فقط. لا شيء يُنشر ولا أحد يشاهد.';
+  }
+
+  @override
+  String get botHubLevelTitle => 'أي مستوى؟';
+
+  @override
+  String get botHubPickGame => 'اختر لعبة';
+
+  @override
+  String get botHubCaption => 'تدريب';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count لعبة',
+      many: '$count لعبة',
+      few: '$count ألعاب',
+      two: 'لعبتان',
+      one: 'لعبة واحدة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'أنت لعبت';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name لعب';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return 'الحركة $count';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return 'العمود $count';
+  }
+
+  @override
+  String get chatGameMvEarlier => 'حركة سابقة';
+
+  @override
+  String get chatGameMvSend => 'أرسل الحركة';
+
+  @override
+  String get chatGameMvUndo => 'تراجع';
+
+  @override
+  String get chatGameMvStagedHint => 'لم تُرسل بعد. غيّر رأيك أو اضغط إرسال.';
+
+  @override
+  String get chatGameMvSentToast => 'أُرسلت حركتك. الدور الآن على الطرف الآخر.';
+
+  @override
+  String get chatGameMvYourTurnSub => 'العب حركتك ثم أرسلها. خذ وقتك.';
+
+  @override
+  String get chatGameMvWaitingSub => 'سننبهك عندما يأتي دورك.';
+
+  @override
+  String get chatGameMvNudgeLater => 'يمكنك تذكيره بعد 12 ساعة بلا رد';
+
+  @override
+  String get chatGameMvForfeitNote => 'إذا انتهى الوقت، يخسر صاحب الدور';
+
+  @override
+  String get chatGameMvAgain => 'ما زال دورك. العب مرة أخرى!';
+
+  @override
+  String get chatGameMvSending => 'جارٍ الإرسال…';
+
+  @override
+  String get howToNext => 'التالي';
+
+  @override
+  String get howToWatchAgain => 'شاهد مجددًا';
+
+  @override
+  String get howToGotIt => 'فهمت';
+
+  @override
+  String get howToProTip => 'نصيحة';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'الخطوة $step من $total';
+  }
+
+  @override
+  String get howToQueens1 => 'تاج واحد في كل صف وكل عمود وكل لون.';
+
+  @override
+  String get howToQueens2 => 'التيجان لا تتلامس، ولا حتى بشكل مائل.';
+
+  @override
+  String get howToQueens3 => 'اضغط مرة لـ ×، ومرتين لتاج، ومرة ثالثة للمسح.';
+
+  @override
+  String get howToQueens4 =>
+      'ضع تاجًا، ثم ضع × على كل مربع صار ممنوعًا. ستنحل اللوحة بسرعة.';
+
+  @override
+  String get howToTango1 => 'ضغطة للشمس وضغطتان للقمر. املأ كل المربعات.';
+
+  @override
+  String get howToTango2 => 'كل صف وكل عمود نصفه شموس ونصفه أقمار.';
+
+  @override
+  String get howToTango3 => 'ممنوع 3 متشابهة متتالية. اثنان لا بأس.';
+
+  @override
+  String get howToTango4 => '= يعني أنهما متشابهان، و× يعني أنهما مختلفان.';
+
+  @override
+  String get howToZip1 => 'ابدأ من 1 واسحب على الأرقام بالترتيب.';
+
+  @override
+  String get howToZip2 => 'مرّ على كل المربعات وانتهِ عند آخر رقم.';
+
+  @override
+  String get howToZip3 => 'أخطأت الطريق؟ اسحب للخلف وتتراجع.';
+
+  @override
+  String get howToSudoku1 => 'كل صف وعمود ومربع فيه من 1 إلى 6. بدون تكرار.';
+
+  @override
+  String get howToSudoku2 => 'اضغط على مربع، ثم على رقم.';
+
+  @override
+  String get howToSudoku3 => 'رقم مكرر في نفس الخط؟ يتحول للأحمر.';
+
+  @override
+  String get howToSudoku4 =>
+      'ابحث عن الخطوط التي ينقصها رقم واحد. نقاط مجانية.';
+
+  @override
+  String get howToFlow1 => 'اسحب من نقطة إلى توأمها لتمد الأنبوب.';
+
+  @override
+  String get howToFlow2 =>
+      'الأنابيب لا تتقاطع، ولازم تمتلئ كل المربعات. خذ الطريق الأطول.';
+
+  @override
+  String get howToFutoshiki1 => 'كل رقم يظهر مرة واحدة فقط في كل صف وعمود.';
+
+  @override
+  String get howToFutoshiki2 =>
+      'الطرف المدبب من الإشارة يشير إلى الرقم الأصغر.';
+
+  @override
+  String get howToFutoshiki3 => 'إذا خالفت إشارة تتحول للأحمر.';
+
+  @override
+  String get howToNonogram1 =>
+      'الأرقام تقول لك كم مربعًا متتاليًا تلوّن. 5 يعني 5 متتالية.';
+
+  @override
+  String get howToNonogram2 =>
+      '1 1 يعني مربعين منفصلين، بينهما فراغ واحد على الأقل.';
+
+  @override
+  String get howToNonogram3 =>
+      'اضغط للتلوين، ومرة ثانية لـ ×، ومرة ثالثة للمسح. اسحب لتعمل الكثير دفعة واحدة.';
+
+  @override
+  String get howToNonogram4 => 'طابق كل الأدلة وستظهر الصورة المخفية.';
+
+  @override
+  String get howToMines1 => 'اضغط على مربع لفتحه. المناطق الفارغة تنفتح وحدها.';
+
+  @override
+  String get howToMines2 => 'الرقم يخبرك كم لغمًا يلمسه، والزوايا محسوبة.';
+
+  @override
+  String get howToMines3 => 'متأكد أنه لغم؟ اضغط مطولًا لتضع علمًا.';
+
+  @override
+  String get howToMines4 =>
+      'إذا دست على لغم تُضاف 30 ثانية عقوبة. لكنك لن تحتاج للتخمين أبدًا.';
+
+  @override
+  String get howToStars1 => 'نجمتان في كل صف وكل عمود وكل لون.';
+
+  @override
+  String get howToStars2 => 'النجوم لا تتلامس، ولا حتى بشكل مائل.';
+
+  @override
+  String get howToStars3 =>
+      'ضع نقطة حول كل نجمة. عندما يكتمل الصف بنجمتين، الباقي فارغ.';
+
+  @override
+  String get howToCode1 => 'هناك شيفرة سرية من 4 رموز مختلفة. فكّها.';
+
+  @override
+  String get howToCode2 => 'الأخضر: الرمز صحيح ومكانه صحيح.';
+
+  @override
+  String get howToCode3 =>
+      'الأصفر: موجود في الشيفرة لكن في مكان آخر. الرمادي: غير موجود إطلاقًا.';
+
+  @override
+  String get howToCode4 => 'لديك 6 محاولات. كلما احتجت أقل، كان أفضل.';
+
+  @override
+  String get howToTtt1 =>
+      'تناوبوا على وضع علاماتكم. من يصفّ 3 على خط واحد يفوز.';
+
+  @override
+  String get howToTtt2 => 'عند خصمك 2 على خط واحد؟ اسبقه إلى المربع الثالث.';
+
+  @override
+  String get howToC41 =>
+      'اضغط على عمود لتُسقط قرصًا. سيسقط إلى أدنى خانة فارغة.';
+
+  @override
+  String get howToC42 =>
+      'صفّ 4 على خط واحد لتفوز: أفقيًا أو عموديًا أو قطريًا.';
+
+  @override
+  String get howToCheckers1 =>
+      'تتحرك القطع مربعًا واحدًا قطريًا للأمام. اضغط على القطعة، ثم على مكانها الجديد.';
+
+  @override
+  String get howToCheckers2 =>
+      'اقفز فوق قطعة الخصم لتأخذها. إن استطعت القفز فهو إجباري. القطعة التي عليها القفز تظهر حولها حلقة.';
+
+  @override
+  String get howToCheckers3 =>
+      'هبطت في مكان تستطيع منه القفز مجددًا؟ تابع. نقلة واحدة قد تأخذ عدة قطع.';
+
+  @override
+  String get howToCheckers4 =>
+      'إذا وصلت قطعتك إلى الطرف الآخر تصبح ملكًا. والملوك يتحركون للخلف أيضًا.';
+
+  @override
+  String get howToCheckersWin => 'تفوز إذا أخذت كل قطع خصمك أو تركته بلا نقلة.';
+
+  @override
+  String get howToReversi1 =>
+      'ضع قرصك بحيث تُحاصَر أقراص خصمك في خط بين قرصين لك.';
+
+  @override
+  String get howToReversi2 =>
+      'كل قرص محاصر ينقلب إلى لونك، وفي كل الاتجاهات دفعة واحدة.';
+
+  @override
+  String get howToReversi3 =>
+      'لا توجد نقلة متاحة؟ يُتخطّى دورك. وعندما لا يستطيع أحد اللعب، يفوز صاحب أكثر الأقراص.';
+
+  @override
+  String get howToDots1 => 'تناوبوا على رسم خط بين نقطتين.';
+
+  @override
+  String get howToDots2 => 'أغلق مربعًا ويصبح لك. وتلعب مرة أخرى!';
+
+  @override
+  String get howToDots3 =>
+      'انتبه للضلع الثالث في أي مربع. رسمه يعني أنك تهديه للاعب التالي.';
+
+  @override
+  String get howToDotsWin => 'عند رسم آخر خط، يفوز صاحب أكثر المربعات.';
+
+  @override
+  String get howToChess1 =>
+      'اضغط على قطعة لترى أين يمكنها الذهاب، ثم اضغط على مربع.';
+
+  @override
+  String get howToChess2 => 'تحرك إلى مربع قطعة الخصم لتأخذها.';
+
+  @override
+  String get howToChess3 =>
+      'أوصل جنديًا إلى الصف الأخير ليصبح وزيرًا، أو أي قطعة تختارها.';
+
+  @override
+  String get howToChess4 =>
+      'الكش يعني أن الملك مهدَّد ويجب أن تنقذه. لا مخرج؟ كش مات وانتهت اللعبة.';
+
+  @override
+  String get howToLiars1 => 'يرمي الجميع 5 نرود سرًّا. ولا ترى إلا نردك.';
+
+  @override
+  String get howToLiars2 =>
+      'في دورك، زايِد على عدد وجهٍ معيّن على الطاولة كلها، بحساب نرود الجميع. مثلًا «أربعة 3».';
+
+  @override
+  String get howToLiars3 =>
+      'الـ1 جوكر: يُحسب كأي وجه. إلا إذا كانت المزايدة على الـ1 نفسه.';
+
+  @override
+  String get howToLiars4 =>
+      'على اللاعب التالي أن يرفع: عددًا أكبر، أو العدد نفسه لوجه أعلى…';
+
+  @override
+  String get howToLiars5 => '…أو يقول: كذّاب! يكشف الجميع نرودهم ويبدأ العدّ.';
+
+  @override
+  String get howToLiars6 =>
+      'المزايدة صحيحة؟ من قال «كذّاب» يخسر نردًا. المزايدة مبالغ فيها؟ صاحبها يخسر نردًا.';
+
+  @override
+  String get howToLiars7 => 'إذا نفدت نرودك تخرج. آخر من يبقى معه نرد يفوز.';
+
+  @override
+  String get howToLiarsClock =>
+      '45 ثانية لكل دور. إذا انتهى الوقت تلعب اللعبة عنك.';
+
+  @override
+  String get howToImposter1 =>
+      'الجميع يحصلون على الكلمة السرية نفسها، ما عدا المحتال: يعرف الفئة فقط.';
+
+  @override
+  String get howToImposter2 =>
+      'تناوبوا على إعطاء تلميح قصير. أثبت أنك تعرف الكلمة دون أن تكشفها.';
+
+  @override
+  String get howToImposterVoice =>
+      'في الوضع الصوتي: قل تلميحك بصوت عالٍ في المكالمة، ثم اضغط تم.';
+
+  @override
+  String get howToImposter3 => 'بعدها يصوّت الجميع على من يظنونه المحتال.';
+
+  @override
+  String get howToImposter4 =>
+      'انكشف؟ للمحتال فرصة أخيرة: إن خمّن الكلمة يخطف الفوز. صوّتوا على الشخص الخطأ أو تعادلت الأصوات؟ يفوز المحتال.';
+
+  @override
+  String get howToRace1 => 'يحصل الجميع على اللغز الجديد نفسه في اللحظة نفسها.';
+
+  @override
+  String get howToRace2 => 'حلّه على هاتفك. شريطك يُري الجميع كم اقتربت.';
+
+  @override
+  String get howToRace3 => 'أول من ينهي يفوز. أمامك 10 دقائق.';
+
+  @override
+  String get howToLive1 =>
+      'الجميع يلعبون في الوقت نفسه. عندما يضغط الجميع على أنا جاهز، تبدأ اللعبة.';
+
+  @override
+  String get howToLive2 =>
+      'خرج أحدهم من اللعبة؟ تتوقف للجميع. أمامه دقيقتان للعودة، وإلا يخسر بالانسحاب.';
+
+  @override
+  String get howToLive3 =>
+      'يمكن لبقية المحادثة المشاهدة. يمكنهم طلب مقعد، ويمكن للاعب أن يتنازل عن مقعده.';
+
+  @override
+  String get howToTurns1 =>
+      'قم بحركتك، ثم اضغط أرسل الحركة. ستظهر في المحادثة كرسالة.';
+
+  @override
+  String get howToTurns2 =>
+      'لكل حركة يومان. نذكّره بعد 20 ساعة، وبعد 12 ساعة من الصمت يمكنك تذكيره بنفسك.';
+
+  @override
+  String get howToTurns3 =>
+      'لا حركة خلال يومين؟ تُحسب خسارة. حتى 3 ألعاب في الوقت نفسه لكل محادثة.';
 }

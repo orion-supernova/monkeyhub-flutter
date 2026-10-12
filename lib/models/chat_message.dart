@@ -1,5 +1,6 @@
 import 'enums.dart';
 import 'expression_item.dart';
+import 'game_move.dart';
 import 'location_share.dart';
 import 'message_formatting.dart';
 import 'message_reaction.dart';
@@ -149,6 +150,7 @@ class ChatMessage {
     this.stickerId,
     this.stickerStorageId,
     this.stickerFormat,
+    this.gameMove,
   })  : reactions = reactions ?? [],
         formatting = formatting ?? const [],
         mentions = mentions ?? const [];
@@ -414,6 +416,9 @@ class ChatMessage {
   final String? stickerStorageId;
   final StickerFormat? stickerFormat;
 
+  /// A `gameMove` row's move and the board it made. Null on every other type.
+  final GameMoveSnapshot? gameMove;
+
   /// The GIF or sticker this message carries, or null for any other message.
   ///
   /// Gated on the type as well as the fields, the same way [locationShare] is.
@@ -535,6 +540,7 @@ class ChatMessage {
       stickerFormat: j['stickerFormat'] == null
           ? null
           : ExpressionItem.parseFormat(j['stickerFormat']),
+      gameMove: GameMoveSnapshot.tryParse(j['gameMove']),
     );
   }
 
@@ -624,6 +630,8 @@ class ChatMessage {
         if (stickerId != null) 'stickerId': stickerId,
         if (stickerStorageId != null) 'stickerStorageId': stickerStorageId,
         if (stickerFormat != null) 'stickerFormat': stickerFormat!.name,
+        // The move bubble IS this, like the GIF fields above.
+        if (gameMove != null) 'gameMove': gameMove!.toJson(),
       };
 
   ChatMessage copyWith({
@@ -716,5 +724,7 @@ class ChatMessage {
         stickerId: stickerId,
         stickerStorageId: stickerStorageId,
         stickerFormat: stickerFormat,
+        // Carried, or a reaction on a move would blank its board.
+        gameMove: gameMove,
       );
 }

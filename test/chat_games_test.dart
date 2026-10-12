@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/widgets/sheet_kit.dart' show SheetBackCloseButton;
 import 'package:monkeyhub/backend/matches_api.dart';
 import 'package:monkeyhub/chat_games/game_start_sheet.dart';
 import 'package:monkeyhub/chat_games/match_copy.dart';
@@ -18,7 +19,10 @@ import 'package:monkeyhub/party_games/party_views.dart';
 import 'package:monkeyhub/screens/games/match_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/models/game_move.dart';
+import 'package:monkeyhub/turn_games/board/turn_board.dart';
 import 'package:monkeyhub/widgets/game_bubble.dart';
+import 'package:monkeyhub/widgets/game_move_bubble.dart';
 
 import 'fakes/fake_matches_api.dart';
 
@@ -204,6 +208,40 @@ void main() {
     });
   });
 
+  group('a turn by turn move', () {
+    test('is staged on the board, never sent until Send', () async {
+      final c = MatchController(matchId: 'm1', userId: 'me');
+      await c.start();
+      api.push(game(mode: MatchMode.async));
+      c.stage('4');
+      expect(c.stagedMove, '4');
+      expect(c.match!.state, '....X..../1');
+      // Staged is not your move any more: the board is locked until Undo.
+      expect(c.match!.isTurnOf('me'), isFalse);
+      expect(api.calls.where((x) => x.startsWith('move')), isEmpty);
+      c.unstage();
+      expect(c.stagedMove, isNull);
+      expect(c.match!.state, '........./0');
+      c.stage('0');
+      expect(await c.sendStaged(), isTrue);
+      expect(api.calls.where((x) => x.startsWith('move')), ['move:0']);
+      expect(c.stagedMove, isNull);
+      c.dispose();
+    });
+
+    test('a refused send reports it and leaves nothing staged', () async {
+      final c = MatchController(matchId: 'm1', userId: 'me');
+      await c.start();
+      api.push(game(mode: MatchMode.async));
+      c.stage('4');
+      api.failNextMove = 'STALE';
+      expect(await c.sendStaged(), isFalse);
+      expect(c.lastRejection, MoveRejection.stale);
+      expect(c.stagedMove, isNull);
+      c.dispose();
+    });
+  });
+
   group('presence', () {
     test('a live game beats while open and says away on the way out', () async {
       final c = MatchController(matchId: 'm1', userId: 'me');
@@ -300,7 +338,97 @@ void main() {
     });
   });
 
+  group('the move bubble', () {
+    Widget bubble({required String viewer, required bool mine}) => Builder(
+      builder: (context) => GameMoveBubble(
+        theme: ThemeScope.of(context),
+        message: ChatMessage(
+          id: 'mv1',
+          roomId: 'r1',
+          senderId: 'me',
+          senderName: 'Ada',
+          content: 'Tic-tac-toe · move 1',
+          type: MessageType.gameMove,
+          createdAt: DateTime(2026, 10, 13),
+          gameMove: const GameMoveSnapshot(
+            matchId: 'm1',
+            game: 'tictactoe',
+            seq: 1,
+            seat: 0,
+            move: '4',
+            state: '....X..../1',
+          ),
+        ),
+        isMine: mine,
+        width: 300,
+        radius: BorderRadius.circular(18),
+        currentUserId: viewer,
+      ),
+    );
+
+    testWidgets('the newest move asks its answerer to play', (tester) async {
+      MatchesStore.instance.note(game(
+        mode: MatchMode.async,
+        state: '....X..../1',
+        seq: 1,
+        turnSeat: 1,
+      ));
+      await tester.pumpWidget(host(bubble(viewer: 'bob', mine: false)));
+      expect(find.text('Ada played'), findsOneWidget);
+      expect(find.textContaining('Move 1'), findsOneWidget);
+      expect(find.text('Play'), findsOneWidget);
+    });
+
+    testWidgets('its sender waits, and an older move says so', (tester) async {
+      MatchesStore.instance.note(game(
+        mode: MatchMode.async,
+        state: '....X..../1',
+        seq: 1,
+        turnSeat: 1,
+      ));
+      await tester.pumpWidget(host(bubble(viewer: 'me', mine: true)));
+      expect(find.text('You played'), findsOneWidget);
+      expect(find.text('Waiting for Bob'), findsOneWidget);
+      MatchesStore.instance.note(game(
+        mode: MatchMode.async,
+        state: 'O...X..../0',
+        seq: 2,
+        turnSeat: 0,
+      ));
+      await tester.pump();
+      expect(find.text('Earlier move'), findsOneWidget);
+    });
+  });
+
   group('the screen', () {
+    testWidgets('a turn by turn move waits for Send', (tester) async {
+      // The VIEW, not `setSurfaceSize`: that grows the render surface but
+      // leaves the 800x600 view hit testing uses, so a tap below 600 misses.
+      tester.view
+        ..physicalSize = const Size(420, 1600)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(host(const MatchScreen(matchId: 'm1', userId: 'me')));
+      await tester.pump();
+      api.push(game(mode: MatchMode.async));
+      await tester.pump();
+      expect(find.text('Make your move, then send it. No rush.'), findsOneWidget);
+      tester.widget<TurnBoard>(find.byType(TurnBoard)).onMove!('4');
+      // Frame by frame: the panel grows into its staged face (AnimatedSize),
+      // and one long pump is a single frame that leaves it clipped short.
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(find.text('Send move'), findsOneWidget);
+      expect(api.calls.where((x) => x.startsWith('move')), isEmpty);
+      await tester.tap(find.text('Send move'));
+      await tester.pump();
+      expect(api.calls.where((x) => x.startsWith('move')), ['move:4']);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+
     testWidgets('the lobby readies a seated player', (tester) async {
       await tester.pumpWidget(host(const MatchScreen(matchId: 'm1', userId: 'me')));
       await tester.pump();
@@ -714,25 +842,81 @@ void main() {
   });
 
   group('the start sheet', () {
-    testWidgets('party games are live only, and say so', (tester) async {
-      await tester.binding.setSurfaceSize(const Size(420, 1600));
+    Future<void> settle(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+
+    testWidgets('a DM lists only what two people can play', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(host(const StartGameSheet(isDm: true)));
-      await tester.pump();
-      expect(find.text('Party'), findsOneWidget);
-      expect(find.text('Party games are played live, with everyone at once.'), findsOneWidget);
-      await tester.tap(find.text('Live'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Party games are played live, with everyone at once.'), findsNothing);
-      expect(find.text('2–6 players'), findsOneWidget);
-      // A party game with options opens them in place; Start carries them.
-      await tester.ensureVisible(find.byKey(const ValueKey('party_race')));
-      await tester.tap(find.byKey(const ValueKey('party_race')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.byKey(const ValueKey('party_start')), findsOneWidget);
+      await settle(tester);
+      expect(find.byKey(const ValueKey('game_imposter')), findsNothing);
+      expect(find.byKey(const ValueKey('game_liarsdice')), findsOneWidget);
+      expect(find.byKey(const ValueKey('game_race')), findsOneWidget);
+      expect(find.byKey(const ValueKey('game_chess')), findsOneWidget);
+      // Board games carry both badges here; party games only Live.
+      expect(find.text('Turns'), findsNWidgets(kChatGames.length));
+      expect(find.text('Vs bot'), findsNothing);
+    });
+
+    testWidgets('a group lists Imposter, and nothing takes turns',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(host(const StartGameSheet(isDm: false)));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('game_imposter')), findsOneWidget);
+      expect(find.text('Turns'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('game_tictactoe')));
+      await settle(tester);
+      // One way to play: explained, not offered as a choice.
+      expect(find.byKey(const ValueKey('mode_live')), findsOneWidget);
+      expect(find.byKey(const ValueKey('mode_turns')), findsNothing);
+      expect(find.text('How do you want to play?'), findsNothing);
+    });
+
+    testWidgets('a DM board game defaults to taking turns, and can go live',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      ChatGameDraft? draft;
+      await tester.pumpWidget(host(Builder(
+        builder: (context) => TextButton(
+          onPressed: () async =>
+              draft = await showGameStartSheet(context, isDm: true),
+          child: const Text('open'),
+        ),
+      )));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('game_connectfour')));
+      await tester.pumpAndSettle();
+      expect(find.text('How do you want to play?'), findsOneWidget);
+      expect(find.byKey(const ValueKey('mode_turns')), findsOneWidget);
+      expect(find.byKey(const ValueKey('mode_live')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('mode_live')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('game_start')));
+      await tester.pumpAndSettle();
+      expect(draft?.game, 'connectfour');
+      expect(draft?.matchMode, MatchMode.live);
+    });
+
+    testWidgets('back returns from a game page to the shelf',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(host(const StartGameSheet(isDm: false)));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('game_race')));
+      await settle(tester);
       expect(find.text('Start Puzzle Race'), findsOneWidget);
+      await tester.tap(find.byType(SheetBackCloseButton));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('game_race')), findsOneWidget);
+      expect(find.text('Start Puzzle Race'), findsNothing);
     });
   });
 }

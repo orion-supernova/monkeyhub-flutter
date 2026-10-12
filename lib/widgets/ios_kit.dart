@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart'
     show CupertinoIcons, CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
@@ -202,7 +203,12 @@ class _IosPageState extends State<IosPage> {
                     slivers: [
                       if (widget.onRefresh != null)
                         CupertinoSliverRefreshControl(
-                          onRefresh: widget.onRefresh,
+                          // Fires the moment the pull arms, while the finger
+                          // is still down: UIRefreshControl's click there.
+                          onRefresh: () {
+                            HapticFeedback.mediumImpact();
+                            return widget.onRefresh!();
+                          },
                         ),
                       header,
                       ...body,
@@ -527,7 +533,13 @@ class GroupedRow extends StatefulWidget {
         tone: tone,
         subtitle: subtitle,
         chevron: false,
-        onTap: () => onChanged(!value),
+        // The switch's own tap clicks on iOS; a tap on the row around it has
+        // to click the same, or the bigger target feels dead. (A handler that
+        // also clicks is collapsed into this one; see AppBinding.)
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onChanged(!value);
+        },
         trailing: RowSwitch(value: value, onChanged: onChanged),
       );
 
@@ -548,7 +560,12 @@ class GroupedRow extends StatefulWidget {
         icon: icon,
         tone: tone,
         chevron: false,
-        onTap: onTap,
+        // A detent as the check moves, the picker-wheel tick. Re-tapping the
+        // row that is already chosen changes nothing, so it stays silent.
+        onTap: () {
+          if (!selected) HapticFeedback.selectionClick();
+          onTap();
+        },
         trailing: _Check(selected: selected),
       );
 

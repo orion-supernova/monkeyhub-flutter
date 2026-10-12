@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../backend/feed_api.dart';
+import '../chat_games/bot_hub_screen.dart';
 import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
 import '../data/games_store.dart';
@@ -85,6 +86,10 @@ class _FeedScreenState extends State<FeedScreen>
   // every tab switch, and the framework's own PageStorage restore is what
   // produced the settle-bounce on return. See [ScrollMemory].
   final _scroll = ScrollMemory.controller();
+
+  /// The first mount since launch shows the board in place: no stagger, no
+  /// masthead intro. See [FeedStore.takeLaunchEntrance].
+  final bool _launchShow = FeedStore.instance.takeLaunchEntrance();
 
   @override
   HomeSection get reselectSection => HomeSection.feed;
@@ -357,6 +362,12 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  void _openBots() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const BotHubScreen()),
+    );
+  }
+
   void _openGame(DailyGame game) {
     final userId = widget.repo.userId;
     if (userId == null) return;
@@ -484,7 +495,11 @@ class _FeedScreenState extends State<FeedScreen>
     final sections = <({String id, Widget child})>[
       (
         id: 'masthead',
-        child: _Masthead(edition: store.edition, dayKey: store.dayKey),
+        child: _Masthead(
+          edition: store.edition,
+          dayKey: store.dayKey,
+          settled: _launchShow,
+        ),
       ),
       // A board that never loaded is NOT a quiet day, and every section below
       // says "quiet day" when handed an empty list. Without this the two are
@@ -562,6 +577,7 @@ class _FeedScreenState extends State<FeedScreen>
                 g: ?store.gameRank(g, widget.repo.userId ?? ''),
             },
             puzzleRank: store.puzzleRank(widget.repo.userId ?? ''),
+            onOpenBots: _openBots,
           ),
         ),
       ),
@@ -635,6 +651,7 @@ class _FeedScreenState extends State<FeedScreen>
               padding: const EdgeInsets.symmetric(horizontal: _kGutter),
               child: section,
             );
+      if (_launchShow) return KeyedSubtree(key: ValueKey(id), child: child);
       return TweenAnimationBuilder<double>(
         // Stable section id, never the index. The board's sections will start
         // appearing and disappearing conditionally in later phases, and an
@@ -751,10 +768,14 @@ class _FeedScreenState extends State<FeedScreen>
 /// disposes the whole screen — a local flag would replay the intro every time
 /// the user came back to the tab.
 class _Masthead extends StatefulWidget {
-  const _Masthead({required this.edition, required this.dayKey});
+  const _Masthead({required this.edition, required this.dayKey, this.settled = false});
 
   final int edition;
   final String dayKey;
+
+  /// Start in place, with the day's intro counted as played: the app's own
+  /// launch already was the arrival.
+  final bool settled;
 
   @override
   State<_Masthead> createState() => _MastheadState();
@@ -773,7 +794,8 @@ class _MastheadState extends State<_Masthead>
     final motion = MotionScope.of(context);
     _settle.duration = motion.d(theme.motionSlow);
 
-    if (FeedStore.instance.introPlayed) {
+    if (FeedStore.instance.introPlayed || widget.settled) {
+      FeedStore.instance.markIntroPlayed();
       _settle.value = 1;
     } else {
       FeedStore.instance.markIntroPlayed();

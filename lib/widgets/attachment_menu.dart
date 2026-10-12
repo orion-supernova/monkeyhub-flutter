@@ -68,6 +68,7 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(
   Rect? anchor,
   bool allowMedia = true,
   bool allowLocation = true,
+  bool allowGames = true,
   bool unifiedGallery = false,
 }) {
   final calm = MotionScope.of(context).calm;
@@ -80,6 +81,7 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(
     child: _AttachmentSheet(
       allowMedia: allowMedia,
       allowLocation: allowLocation,
+      allowGames: allowGames,
       unifiedGallery: unifiedGallery,
     ),
   ));
@@ -289,11 +291,15 @@ class _AttachmentSheet extends StatelessWidget {
   const _AttachmentSheet({
     required this.allowMedia,
     required this.allowLocation,
+    this.allowGames = true,
     this.unifiedGallery = false,
   });
 
   final bool allowMedia;
   final bool allowLocation;
+
+  /// Off in Saved Messages, where there is nobody to play.
+  final bool allowGames;
 
   /// One "Gallery" row for photos and videos together, where the host's
   /// picker shows both (the inline picker, on a phone). Elsewhere the system
@@ -388,12 +394,13 @@ class _AttachmentSheet extends StatelessWidget {
         l10n.attachmentMenuEventLabel,
         TileTone.red,
       ),
-      (
-        AttachmentMenuChoice.game,
-        CupertinoIcons.gamecontroller_fill,
-        l10n.chatGameMenuItem,
-        TileTone.indigo,
-      ),
+      if (allowGames)
+        (
+          AttachmentMenuChoice.game,
+          CupertinoIcons.gamecontroller_fill,
+          l10n.chatGameMenuItem,
+          TileTone.indigo,
+        ),
     ];
     // The glass is the reveal's (see [_AttachMenuReveal]): its corner moves.
     return SingleChildScrollView(

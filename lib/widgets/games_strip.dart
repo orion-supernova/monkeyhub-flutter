@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../models/chat_match.dart' show kChatGames;
 import '../models/daily_game.dart';
 import '../models/game_catalog.dart';
 import '../models/puzzle.dart';
@@ -42,7 +43,11 @@ class GamesStrip extends StatelessWidget {
     this.ranks = const {},
     this.puzzleRank,
     this.inset = 0,
+    this.onOpenBots,
   });
+
+  /// Opens the play-the-bot page. Null leaves its tile off the row.
+  final VoidCallback? onOpenBots;
 
   /// The page's side margin, laid INSIDE the scroll view: the row runs to
   /// the screen's edges and tiles scroll off them, while at rest the first
@@ -76,7 +81,8 @@ class GamesStrip extends StatelessWidget {
     final tiers = {tierOf(null), for (final g in DailyGame.values) tierOf(g)};
     final count = DailyGame.values.length +
         1 +
-        GameTier.values.where((t) => !tiers.contains(t)).length;
+        GameTier.values.where((t) => !tiers.contains(t)).length +
+        (onOpenBots == null ? 0 : 1);
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return LayoutBuilder(
@@ -165,6 +171,29 @@ class GamesStrip extends StatelessWidget {
                             tile,
                           ],
                         ],
+                      ),
+                    ],
+                  ),
+                ],
+                // The bot is practice, not a daily: its own caption after
+                // Hard, so it never reads as a fourth difficulty.
+                if (onOpenBots case final open?) ...[
+                  const SizedBox(width: groupGap),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 6),
+                        child: Text(
+                          sentenceCaseOf(context, l10n.botHubCaption),
+                          style: caption,
+                        ),
+                      ),
+                      BotHubTile(
+                        key: const ValueKey('strip_bots'),
+                        width: width,
+                        games: kChatGames,
+                        onTap: open,
                       ),
                     ],
                   ),

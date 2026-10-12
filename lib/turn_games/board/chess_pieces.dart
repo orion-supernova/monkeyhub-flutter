@@ -219,8 +219,9 @@ final List<ChessPieceArt?> chessPieceArt = [
 class ChessPieceStyle {
   ChessPieceStyle({required bool darkTheme})
     : _rims = [
-        const Color(0xFF232326),
-        darkTheme ? const Color(0xFFB9B9C1) : const Color(0xFFD9D9DE),
+        const Color(0xFF1E1E22),
+        // Light, but not white: a rim, never an outline drawing.
+        darkTheme ? const Color(0xFFC9CCD4) : const Color(0xFFE2E4E9),
       ];
 
   static final _fills = [
@@ -228,9 +229,11 @@ class ChessPieceStyle {
       Color(0xFFFFFFFF),
       Color(0xFFE9E9E6),
     ]),
+    // Solid and dark enough to read as a filled piece on either square of
+    // `chessSquareColors`, with only a sheen at the crown.
     ui.Gradient.linear(const Offset(0, 0.12), const Offset(0, 0.9), const [
-      Color(0xFF48484E),
-      Color(0xFF17171A),
+      Color(0xFF3C3C43),
+      Color(0xFF101013),
     ]),
   ];
 
@@ -264,9 +267,11 @@ class ChessPieceStyle {
       // dark fill and the piece reads as hollow.
       ..strokeWidth = side == 0 ? rimWidth : rimWidth * 0.84;
     canvas.drawPath(art.silhouette, rim);
+    // Black's detail lines stay faint: drawn as bright as its rim they
+    // turned the piece into a line drawing on a dark board.
     rim
       ..strokeWidth = rimWidth * 0.62
-      ..color = _rims[side].withValues(alpha: 0.85);
+      ..color = _rims[side].withValues(alpha: side == 0 ? 0.85 : 0.42);
     canvas.drawPath(art.detail, rim);
     if (fade) canvas.restore();
   }

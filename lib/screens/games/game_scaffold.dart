@@ -6,6 +6,8 @@ import '../../data/challenges_store.dart';
 import '../../data/feed_store.dart';
 import '../../data/games_store.dart';
 import '../../games/game_play_controller.dart';
+import '../../games/how_to/daily_guides.dart';
+import '../../games/how_to/how_to_play.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../models/game_record.dart';
@@ -81,6 +83,34 @@ class _GameScaffoldState extends State<GameScaffold> {
   final _touch = _BoardTouch();
 
   @override
+  void initState() {
+    super.initState();
+    // The first time anyone opens this game, the guide comes up by itself,
+    // before the first touch has started the clock.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.controller.finished) return;
+      showHowToPlayOnce(
+        context,
+        dailyGuide(AppLocalizations.of(context), widget.controller.game),
+      );
+    });
+  }
+
+  /// The "?" in the top bar. A running clock is paused while it is open (the
+  /// pause cover hides the board too), and picks up again after.
+  Future<void> _openGuide() async {
+    final controller = widget.controller;
+    final hold =
+        controller.started && !controller.finished && !controller.paused;
+    if (hold) controller.pause();
+    await showHowToPlay(
+      context,
+      dailyGuide(AppLocalizations.of(context), controller.game),
+    );
+    if (hold && mounted && controller.paused) controller.resume();
+  }
+
+  @override
   void dispose() {
     _touch.dispose();
     // A challenge is for one sitting at the board it named.
@@ -108,7 +138,7 @@ class _GameScaffoldState extends State<GameScaffold> {
 
     final target = challengeTargetFor(controller);
     final header = <Widget>[
-      _TopBar(controller: controller),
+      _TopBar(controller: controller, onHelp: _openGuide),
       if (target != null)
         Padding(
           padding: const EdgeInsets.only(top: 6),
@@ -277,9 +307,10 @@ class _BoardTouch {
 
 /// Back arrow, running clock, pause.
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.controller});
+  const _TopBar({required this.controller, required this.onHelp});
 
   final GamePlayController controller;
+  final VoidCallback onHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +367,9 @@ class _TopBar extends StatelessWidget {
                 child: const GlassBackButton(),
               ),
               const Spacer(),
-              if (!controller.finished)
+              HowToPlayButton(onTap: onHelp),
+              if (!controller.finished) ...[
+                const SizedBox(width: 8),
                 GlassIconButton(
                   icon: controller.paused
                       ? CupertinoIcons.play_fill
@@ -349,6 +382,7 @@ class _TopBar extends StatelessWidget {
                       ? controller.resume
                       : controller.pause,
                 ),
+              ],
             ],
           ),
         ],

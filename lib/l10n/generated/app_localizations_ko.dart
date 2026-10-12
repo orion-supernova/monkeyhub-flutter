@@ -5597,15 +5597,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameInfoOpen => '게임 방법';
 
   @override
-  String get gameInfoLabel => '게임 방법';
-
-  @override
-  String get gameInfoRulesLabel => '규칙';
-
-  @override
-  String get gameInfoControlsLabel => '누르는 법';
-
-  @override
   String get gameInfoScoringTimed => '가장 빨리 끝내면 이겨. 나가면 시계가 멈춰.';
 
   @override
@@ -5613,84 +5604,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => '오늘은 모두 같은 퍼즐을 풀어.';
-
-  @override
-  String get gameInfoQueensGoal => '판에 왕관 8개를 놓아.';
-
-  @override
-  String get gameInfoQueensRule1 => '가로줄마다 왕관은 딱 1개.';
-
-  @override
-  String get gameInfoQueensRule2 => '세로줄마다 왕관은 딱 1개.';
-
-  @override
-  String get gameInfoQueensRule3 => '색깔마다 왕관은 딱 1개.';
-
-  @override
-  String get gameInfoQueensControls =>
-      '한 번 누르면 ×(여기엔 왕관 없음). 두 번 누르면 왕관. 한 번 더 누르면 지워져.';
-
-  @override
-  String get gameInfoTangoGoal => '모든 칸을 해나 달로 채워.';
-
-  @override
-  String get gameInfoTangoRule1 => '가로줄마다 해 3개, 달 3개.';
-
-  @override
-  String get gameInfoTangoRule2 => '세로줄마다 해 3개, 달 3개.';
-
-  @override
-  String get gameInfoTangoRule3 => '같은 게 3개 연속이면 안 돼. 2개는 괜찮아.';
-
-  @override
-  String get gameInfoTangoControls =>
-      '한 번 누르면 해, 두 번이면 달, 한 번 더 누르면 지워져. 처음부터 채워진 칸은 못 바꿔.';
-
-  @override
-  String get gameInfoZipGoal => '모든 칸을 지나는 선 하나를 그려.';
-
-  @override
-  String get gameInfoZipRule1 => '1에서 시작해.';
-
-  @override
-  String get gameInfoZipRule2 => '숫자를 순서대로 지나가: 1, 2, 3…';
-
-  @override
-  String get gameInfoZipRule3 => '모든 칸을 채워. 한 칸은 한 번만.';
-
-  @override
-  String get gameInfoZipControls => '손가락으로 끌어서 그려. 되돌리려면 뒤로 끌어.';
-
-  @override
-  String get gameInfoSudokuGoal => '칸을 1부터 6까지 숫자로 채워.';
-
-  @override
-  String get gameInfoSudokuRule1 => '가로줄마다 1, 2, 3, 4, 5, 6. 겹치면 안 돼.';
-
-  @override
-  String get gameInfoSudokuRule2 => '세로줄도 똑같아.';
-
-  @override
-  String get gameInfoSudokuRule3 => '박스도 똑같아. 박스는 2줄 × 3칸이야.';
-
-  @override
-  String get gameInfoSudokuControls =>
-      '칸을 누르고 숫자를 눌러. 다시 누르면 지워져. 메모는 작은 연필 표시를 넣어.';
-
-  @override
-  String get gameInfoCodeGoal => '기호 4개로 된 비밀 코드를 맞혀.';
-
-  @override
-  String get gameInfoCodeRule1 => '코드는 서로 다른 기호 4개야. 겹치는 건 없어.';
-
-  @override
-  String get gameInfoCodeRule2 => '기회는 6번이야.';
-
-  @override
-  String get gameInfoCodeRule3 => '초록: 기호도 맞고 자리도 맞아.';
-
-  @override
-  String get gameInfoCodeControls => '기호 4개를 누르고 추측을 눌러.';
 
   @override
   String get savedMessagesTitle => '저장한 메시지';
@@ -10364,50 +10277,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomContentMonthLast => '지난달';
 
   @override
-  String get gameInfoGoalLabel => '목표';
-
-  @override
-  String get gameInfoExampleLabel => '예시';
-
-  @override
-  String get gameInfoWinLabel => '이기는 법';
-
-  @override
-  String get gameInfoQueensRule4 => '왕관끼리 닿으면 안 돼. 대각선도 안 돼.';
-
-  @override
-  String get gameInfoQueensExample =>
-      '여기에 왕관을 놓으면, 같은 가로줄·세로줄·색깔과 주변 8칸에는 다른 왕관을 못 놓아.';
-
-  @override
-  String get gameInfoTangoRule4 => '= 는 두 칸이 같다는 뜻. × 는 다르다는 뜻.';
-
-  @override
-  String get gameInfoTangoExample => '해, 해, 빈칸? 빈칸은 무조건 달이야.';
-
-  @override
-  String get gameInfoZipRule4 => '위, 아래, 왼쪽, 오른쪽으로만. 대각선은 안 돼.';
-
-  @override
-  String get gameInfoZipRule5 => '마지막 숫자에서 끝내.';
-
-  @override
-  String get gameInfoZipExample => '1에서 2로 가? 필요하면 돌아가. 빈칸이 남으면 안 돼.';
-
-  @override
-  String get gameInfoSudokuExample => '가로줄에 1, 2, 4, 5, 6이 있어? 빈칸은 3이야.';
-
-  @override
-  String get gameInfoCodeRule4 => '노랑: 기호는 맞는데 자리가 틀렸어.';
-
-  @override
-  String get gameInfoCodeRule5 => '회색: 그 기호는 코드에 없어.';
-
-  @override
-  String get gameInfoCodeExample =>
-      '초록, 노랑, 회색, 회색이면: 1개는 자리까지 맞고, 1개는 다른 자리에 있고, 2개는 코드에 없어.';
-
-  @override
   String get leaderboardOverall => '오늘';
 
   @override
@@ -11946,21 +11815,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatGameModeLive => '실시간';
 
   @override
-  String get chatGameModeTurns => '번갈아';
-
-  @override
-  String get chatGameModeBot => '봇과 대결';
-
-  @override
-  String get chatGameModeLiveHint => '모두 동시에 해요. 나가면 일시정지돼요.';
-
-  @override
-  String get chatGameModeTurnsHint => '원할 때 두세요. 내 차례에 알림이 오고, 한 차례는 최대 2일이에요.';
-
-  @override
-  String get chatGameModeBotHint => '나와 봇만 해요. 채팅에 아무것도 올라가지 않아요.';
-
-  @override
   String get chatGameBotEasyHint => '실수를 해요. 연습용으로 좋아요.';
 
   @override
@@ -12060,113 +11914,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gameAutoDot => '자동 점 표시';
-
-  @override
-  String get gameInfoFlowGoal => '같은 점 두 개를 파이프로 이어 줘.';
-
-  @override
-  String get gameInfoFlowRule1 => '파이프는 같은 색, 같은 숫자의 점 2개를 이어.';
-
-  @override
-  String get gameInfoFlowRule2 => '파이프끼리 교차하거나 칸을 같이 쓰면 안 돼.';
-
-  @override
-  String get gameInfoFlowRule3 => '모든 칸을 채워. 빈칸이 있으면 안 돼.';
-
-  @override
-  String get gameInfoFlowRule4 => '위, 아래, 왼쪽, 오른쪽으로만. 대각선은 안 돼.';
-
-  @override
-  String get gameInfoFlowExample =>
-      '똑바로 못 가? 다른 파이프를 돌아가게 구부려. 그래도 모든 칸은 채워야 해.';
-
-  @override
-  String get gameInfoFlowControls =>
-      '점에서 끌어서 파이프를 그려. 뒤로 끌면 취소돼. 다른 파이프 위로 지나가면 그 파이프는 잘려.';
-
-  @override
-  String get gameInfoFutoshikiGoal => '칸을 1부터 5까지 숫자로 채워.';
-
-  @override
-  String get gameInfoFutoshikiRule1 => '가로줄마다 1, 2, 3, 4, 5. 겹치면 안 돼.';
-
-  @override
-  String get gameInfoFutoshikiRule2 => '세로줄도 마찬가지.';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      '두 칸 사이의 < 나 > 는 꼭 맞아야 해. 뾰족한 쪽이 작은 숫자야.';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      '부등호가 이 칸을 가리켜? 그럼 5는 안 돼. 옆 칸이 더 크니까.';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      '칸을 누르고 숫자를 눌러. 다시 누르면 지워져. 메모는 작은 연필 표시를 넣어.';
-
-  @override
-  String get gameInfoNonogramGoal => '칸을 칠해서 숨은 그림을 찾아.';
-
-  @override
-  String get gameInfoNonogramRule1 => '줄 옆의 숫자는 칠한 칸이 이어지는 길이야. 순서대로.';
-
-  @override
-  String get gameInfoNonogramRule2 => '이어진 칸 사이에는 빈칸이 최소 1개 있어.';
-
-  @override
-  String get gameInfoNonogramRule3 => '0은 그 줄이 전부 빈칸이라는 뜻이야.';
-
-  @override
-  String get gameInfoNonogramExample =>
-      '10칸짜리 줄에 힌트가 10? 전부 칠해. 4 4면 사이에 빈칸 하나 두고 둘 다 들어가.';
-
-  @override
-  String get gameInfoNonogramControls =>
-      '한 번 누르면 칠하기, 두 번은 ×(빈칸), 한 번 더 누르면 지워져. 끌면 여러 칸을 한 번에 표시해.';
-
-  @override
-  String get gameInfoMinesweeperGoal => '지뢰가 없는 칸을 모두 열어.';
-
-  @override
-  String get gameInfoMinesweeperRule1 => '숫자는 그 칸에 닿아 있는 지뢰 수야. 대각선도 포함.';
-
-  @override
-  String get gameInfoMinesweeperRule2 => '모든 칸은 추리로 알 수 있어. 찍을 필요가 전혀 없어.';
-
-  @override
-  String get gameInfoMinesweeperRule3 => '지뢰를 밟으면 기록에 30초가 더해져. 그리고 계속해.';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      '1 옆에 닫힌 칸이 하나뿐이야? 그 칸이 지뢰야. 깃발을 꽂아.';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      '눌러서 칸을 열어. 지뢰 표시는 길게 누르거나 깃발을 켜고 눌러.';
-
-  @override
-  String get gameInfoStarbattleGoal => '행, 열, 색마다 별을 2개씩 놓아.';
-
-  @override
-  String get gameInfoStarbattleRule1 => '가로줄마다 별은 딱 2개.';
-
-  @override
-  String get gameInfoStarbattleRule2 => '세로줄마다 별은 딱 2개.';
-
-  @override
-  String get gameInfoStarbattleRule3 => '색마다 별은 딱 2개.';
-
-  @override
-  String get gameInfoStarbattleRule4 => '별끼리 닿으면 안 돼. 대각선도 안 돼.';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      '여기 별이 하나 있으면, 주변 8칸엔 다른 별이 없어. 같은 행, 열, 색에서 하나 더 찾으면 돼.';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      '한 번 누르면 점(여기엔 별 없음). 두 번 누르면 별. 한 번 더 누르면 지워져.';
 
   @override
   String boardCellName(int row, int col) {
@@ -12304,15 +12051,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min~$max명';
   }
-
-  @override
-  String get chatGamePartySection => '파티';
-
-  @override
-  String get chatGamePartyLiveOnly => '파티 게임은 라이브로 모두 함께 플레이해요.';
-
-  @override
-  String get chatGameNeedsThree => '3명 이상 그룹이 필요해요';
 
   @override
   String get chatGameVoiceOption => '음성 힌트';
@@ -12678,4 +12416,379 @@ class AppLocalizationsKo extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return '$piece(으)로 승진';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => '다시 보지 않기';
+
+  @override
+  String get kbdPeekTurnedOff => '알겠어요, 이제 안 뜰 거예요. 설정에서 다시 켤 수 있어요.';
+
+  @override
+  String get chatGameBadgeTurns => '번갈아';
+
+  @override
+  String get chatGameSectionBoards => '보드게임';
+
+  @override
+  String get chatGameSectionParty => '파티 게임';
+
+  @override
+  String get chatGameBoardsHintDm => '지금 바로 실시간으로 하거나, 시간 날 때 번갈아 해요.';
+
+  @override
+  String get chatGameBoardsHintGroup => '여기서 바로 실시간으로. 참여하거나 구경만 해도 돼요.';
+
+  @override
+  String get chatGamePartyHint => '다 같이 동시에 하니까 먼저 멤버부터 모아요.';
+
+  @override
+  String get chatGameLiveTitle => '실시간으로 하기';
+
+  @override
+  String get chatGameLiveNow => '모두 동시에, 지금 바로 해요.';
+
+  @override
+  String get chatGameLivePause => '누가 나가면 일시정지돼요. 2분 안에 안 돌아오면 패배예요.';
+
+  @override
+  String get chatGameTurnsTitle => '번갈아 하기';
+
+  @override
+  String get chatGameTurnsAnytime => '아무 때나 두면 돼요. 둔 수는 채팅에 올라가요.';
+
+  @override
+  String get chatGameTurnsClock => '한 수에 2일. 저희가 알려주고, 재촉할 수도 있어요.';
+
+  @override
+  String get chatGameHowWillYouPlay => '어떻게 할래요?';
+
+  @override
+  String get botHubTitle => '봇이랑 하기';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return '나랑 $bot만. 아무것도 안 올라가고 아무도 안 봐요.';
+  }
+
+  @override
+  String get botHubLevelTitle => '난이도는?';
+
+  @override
+  String get botHubPickGame => '게임 고르기';
+
+  @override
+  String get botHubCaption => '연습';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '게임 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => '내가 둔 수';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name님이 둔 수';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return '$count수째';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return '$count열';
+  }
+
+  @override
+  String get chatGameMvEarlier => '이전 수';
+
+  @override
+  String get chatGameMvSend => '수 보내기';
+
+  @override
+  String get chatGameMvUndo => '되돌리기';
+
+  @override
+  String get chatGameMvStagedHint => '아직 안 보냈어요. 바꾸거나 보내기를 누르세요.';
+
+  @override
+  String get chatGameMvSentToast => '보냈어요. 이제 상대 차례예요.';
+
+  @override
+  String get chatGameMvYourTurnSub => '수를 두고 보내면 돼요. 천천히 하세요.';
+
+  @override
+  String get chatGameMvWaitingSub => '차례가 되면 알려드릴게요.';
+
+  @override
+  String get chatGameMvNudgeLater => '12시간 동안 답이 없으면 재촉할 수 있어요';
+
+  @override
+  String get chatGameMvForfeitNote => '시간이 다 되면 차례인 사람이 져요';
+
+  @override
+  String get chatGameMvAgain => '아직 내 차례예요. 한 번 더!';
+
+  @override
+  String get chatGameMvSending => '보내는 중…';
+
+  @override
+  String get howToNext => '다음';
+
+  @override
+  String get howToWatchAgain => '다시 보기';
+
+  @override
+  String get howToGotIt => '알겠어요';
+
+  @override
+  String get howToProTip => '꿀팁';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return '$total단계 중 $step단계';
+  }
+
+  @override
+  String get howToQueens1 => '행, 열, 색깔마다 왕관 딱 하나씩.';
+
+  @override
+  String get howToQueens2 => '왕관끼리는 붙으면 안 돼요. 대각선도 안 돼요.';
+
+  @override
+  String get howToQueens3 => '한 번 탭하면 ×, 두 번은 왕관, 한 번 더 하면 지워져요.';
+
+  @override
+  String get howToQueens4 => '왕관을 놓고, 못 놓게 된 칸엔 전부 ×를 쳐요. 금방 풀려요.';
+
+  @override
+  String get howToTango1 => '한 번 탭하면 해, 두 번이면 달. 모든 칸을 채워요.';
+
+  @override
+  String get howToTango2 => '행과 열마다 해 반, 달 반.';
+
+  @override
+  String get howToTango3 => '같은 게 3개 연달아 오면 안 돼요. 2개는 괜찮아요.';
+
+  @override
+  String get howToTango4 => '=는 같은 것, ×는 반대인 것.';
+
+  @override
+  String get howToZip1 => '1에서 시작해서 숫자 순서대로 쭉 그어요.';
+
+  @override
+  String get howToZip2 => '모든 칸을 지나서 마지막 숫자에서 끝내요.';
+
+  @override
+  String get howToZip3 => '길을 잘못 들었나요? 뒤로 그으면 취소돼요.';
+
+  @override
+  String get howToSudoku1 => '행, 열, 박스마다 1부터 6까지. 겹치면 안 돼요.';
+
+  @override
+  String get howToSudoku2 => '칸을 탭하고 숫자를 탭해요.';
+
+  @override
+  String get howToSudoku3 => '한 줄에 같은 숫자가 두 번? 빨갛게 변해요.';
+
+  @override
+  String get howToSudoku4 => '숫자 하나만 빈 줄을 찾아봐요. 거저먹기예요.';
+
+  @override
+  String get howToFlow1 => '점에서 같은 색 점까지 그어서 파이프를 이어요.';
+
+  @override
+  String get howToFlow2 => '파이프는 교차할 수 없고 모든 칸을 채워야 해요. 돌아가요.';
+
+  @override
+  String get howToFutoshiki1 => '행과 열마다 숫자는 딱 한 번씩.';
+
+  @override
+  String get howToFutoshiki2 => '부등호의 뾰족한 쪽이 작은 숫자예요.';
+
+  @override
+  String get howToFutoshiki3 => '부등호를 어기면 빨갛게 변해요.';
+
+  @override
+  String get howToNonogram1 => '숫자는 이어서 칠할 칸 수예요. 5면 5칸 연속.';
+
+  @override
+  String get howToNonogram2 => '1 1은 떨어진 두 칸, 사이에 최소 한 칸은 비워요.';
+
+  @override
+  String get howToNonogram3 => '탭하면 칠하기, 또 탭하면 ×, 한 번 더 하면 지우기. 드래그하면 한꺼번에 돼요.';
+
+  @override
+  String get howToNonogram4 => '단서를 다 맞추면 숨은 그림이 짠 하고 나와요.';
+
+  @override
+  String get howToMines1 => '칸을 탭해서 열어요. 빈 곳은 알아서 열려요.';
+
+  @override
+  String get howToMines2 => '숫자는 주변에 닿은 지뢰 수예요. 대각선도 세요.';
+
+  @override
+  String get howToMines3 => '지뢰가 확실해요? 길게 눌러서 깃발을 꽂아요.';
+
+  @override
+  String get howToMines4 => '지뢰를 밟으면 30초 페널티. 그래도 찍을 필요는 전혀 없어요.';
+
+  @override
+  String get howToStars1 => '행, 열, 색깔마다 별 두 개씩.';
+
+  @override
+  String get howToStars2 => '별끼리는 붙으면 안 돼요. 대각선도 안 돼요.';
+
+  @override
+  String get howToStars3 => '별 주변 칸엔 점을 찍어요. 한 줄에 별 2개가 차면 나머지는 전부 빈칸.';
+
+  @override
+  String get howToCode1 => '서로 다른 기호 4개로 된 비밀 코드가 있어요. 풀어 봐요.';
+
+  @override
+  String get howToCode2 => '초록: 기호도 자리도 정답.';
+
+  @override
+  String get howToCode3 => '노랑: 코드에 있지만 자리가 틀렸어요. 회색: 아예 없어요.';
+
+  @override
+  String get howToCode4 => '기회는 6번. 적게 쓸수록 좋아요.';
+
+  @override
+  String get howToTtt1 => '번갈아 가며 표시를 놓아요. 3개를 한 줄로 만들면 승리.';
+
+  @override
+  String get howToTtt2 => '상대가 2개를 줄 세웠어요? 세 번째 칸을 먼저 막아요.';
+
+  @override
+  String get howToC41 => '열을 탭해서 디스크를 떨어뜨려요. 가장 아래 빈칸까지 떨어져요.';
+
+  @override
+  String get howToC42 => '4개를 한 줄로 만들면 승리. 가로, 세로, 대각선 다 돼요.';
+
+  @override
+  String get howToCheckers1 => '말은 대각선 앞으로 한 칸 움직여요. 말을 탭하고 갈 곳을 탭해요.';
+
+  @override
+  String get howToCheckers2 =>
+      '상대 말을 뛰어넘으면 잡을 수 있어요. 잡을 수 있으면 꼭 잡아야 해요. 잡아야 하는 말엔 링이 생겨요.';
+
+  @override
+  String get howToCheckers3 => '착지한 곳에서 또 뛸 수 있어요? 계속 가요. 한 수에 여러 개 잡을 수 있어요.';
+
+  @override
+  String get howToCheckers4 => '끝까지 가면 킹이 돼요. 킹은 뒤로도 갈 수 있어요.';
+
+  @override
+  String get howToCheckersWin => '상대 말을 다 잡거나 움직일 수 없게 만들면 승리.';
+
+  @override
+  String get howToReversi1 => '상대 돌이 내 돌 두 개 사이에 끼도록 놓아요.';
+
+  @override
+  String get howToReversi2 => '끼인 돌은 전부 내 색으로 뒤집혀요. 모든 방향에서 한 번에.';
+
+  @override
+  String get howToReversi3 => '둘 곳이 없나요? 차례가 넘어가요. 아무도 못 두면 돌이 더 많은 쪽이 이겨요.';
+
+  @override
+  String get howToDots1 => '번갈아 가며 점 두 개 사이에 선을 그어요.';
+
+  @override
+  String get howToDots2 => '상자를 닫으면 내 거예요. 그리고 한 번 더!';
+
+  @override
+  String get howToDots3 => '상자의 세 번째 변은 조심해요. 다음 사람한테 넘겨주는 거예요.';
+
+  @override
+  String get howToDotsWin => '마지막 선이 그어졌을 때 상자가 제일 많은 사람이 승리.';
+
+  @override
+  String get howToChess1 => '말을 탭하면 갈 수 있는 곳이 보여요. 그다음 칸을 탭해요.';
+
+  @override
+  String get howToChess2 => '상대 말이 있는 칸으로 가면 잡아요.';
+
+  @override
+  String get howToChess3 => '폰이 끝 줄에 닿으면 퀸이 돼요. 원하는 다른 말로 바꿔도 돼요.';
+
+  @override
+  String get howToChess4 => '체크는 킹이 공격받는 거예요. 꼭 피해야 해요. 피할 데가 없으면 체크메이트, 게임 끝.';
+
+  @override
+  String get howToLiars1 => '모두 몰래 주사위 5개를 굴려요. 내 것만 보여요.';
+
+  @override
+  String get howToLiars2 =>
+      '내 차례엔 테이블 전체에 어떤 눈이 몇 개 있는지 걸어요. 모두의 주사위를 다 세요. 예를 들면 “3이 4개”.';
+
+  @override
+  String get howToLiars3 => '1은 와일드예요. 어떤 눈으로든 세요. 단, 1에 건 거라면 예외.';
+
+  @override
+  String get howToLiars4 => '다음 사람은 더 높게 걸어야 해요. 개수를 늘리거나, 같은 개수로 더 높은 눈을…';
+
+  @override
+  String get howToLiars5 => '…아니면 “거짓말!”을 외쳐요. 다 같이 주사위를 공개하고 세요.';
+
+  @override
+  String get howToLiars6 => '건 게 맞았다면 외친 사람이 주사위 하나를 잃어요. 너무 높았다면 건 사람이 잃어요.';
+
+  @override
+  String get howToLiars7 => '주사위가 다 떨어지면 탈락. 마지막까지 주사위가 남은 사람이 승리.';
+
+  @override
+  String get howToLiarsClock => '한 턴에 45초. 시간이 다 되면 게임이 대신 해요.';
+
+  @override
+  String get howToImposter1 => '모두 같은 비밀 단어를 받아요. 임포스터만 빼고요. 임포스터는 카테고리만 알아요.';
+
+  @override
+  String get howToImposter2 => '돌아가며 짧은 힌트를 하나씩 줘요. 단어를 아는 티는 내되, 들키게 하진 마요.';
+
+  @override
+  String get howToImposterVoice => '음성 모드에선 통화로 힌트를 말하고 완료를 탭해요.';
+
+  @override
+  String get howToImposter3 => '그다음 모두 임포스터라고 생각하는 사람에게 투표해요.';
+
+  @override
+  String get howToImposter4 =>
+      '잡혔나요? 임포스터에겐 마지막 기회가 있어요. 단어를 맞히면 승리를 뺏어가요. 엉뚱한 사람을 뽑거나 동점이면? 임포스터 승리.';
+
+  @override
+  String get howToRace1 => '모두 같은 새 퍼즐을 동시에 받아요.';
+
+  @override
+  String get howToRace2 => '각자 폰에서 풀어요. 내 막대가 얼마나 가까워졌는지 모두에게 보여줘요.';
+
+  @override
+  String get howToRace3 => '먼저 끝내는 사람이 승리. 10분 안에요.';
+
+  @override
+  String get howToLive1 => '모두 동시에 플레이해요. 다 같이 준비됐어요를 누르면 시작.';
+
+  @override
+  String get howToLive2 => '누가 게임에서 나갔나요? 모두에게 일시정지돼요. 2분 안에 안 돌아오면 기권패.';
+
+  @override
+  String get howToLive3 => '채팅의 다른 사람들은 구경할 수 있어요. 자리를 요청하면 플레이어가 넘겨줄 수도 있어요.';
+
+  @override
+  String get howToTurns1 => '수를 두고 수 보내기를 탭해요. 채팅에 메시지로 올라가요.';
+
+  @override
+  String get howToTurns2 =>
+      '한 수에 2일. 20시간 지나면 저희가 알려주고, 12시간 조용하면 직접 재촉할 수도 있어요.';
+
+  @override
+  String get howToTurns3 => '2일 안에 안 두면 패배예요. 채팅 하나에 동시에 3판까지.';
 }

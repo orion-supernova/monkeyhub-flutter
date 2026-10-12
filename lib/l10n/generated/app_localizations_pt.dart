@@ -5862,15 +5862,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get gameInfoOpen => 'Como se joga';
 
   @override
-  String get gameInfoLabel => 'Como se joga';
-
-  @override
-  String get gameInfoRulesLabel => 'As regras';
-
-  @override
-  String get gameInfoControlsLabel => 'O que tocar';
-
-  @override
   String get gameInfoScoringTimed =>
       'Ganha quem acaba mais depressa. O relógio para quando sais.';
 
@@ -5880,91 +5871,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => 'Hoje, todos têm o mesmo puzzle.';
-
-  @override
-  String get gameInfoQueensGoal => 'Põe 8 coroas no tabuleiro.';
-
-  @override
-  String get gameInfoQueensRule1 => 'Cada linha tem exatamente 1 coroa.';
-
-  @override
-  String get gameInfoQueensRule2 => 'Cada coluna tem exatamente 1 coroa.';
-
-  @override
-  String get gameInfoQueensRule3 => 'Cada cor tem exatamente 1 coroa.';
-
-  @override
-  String get gameInfoQueensControls =>
-      'Toca uma vez: × (aqui não há coroa). Duas vezes: coroa. Outra vez: apagar.';
-
-  @override
-  String get gameInfoTangoGoal => 'Preenche cada casa com um sol ou uma lua.';
-
-  @override
-  String get gameInfoTangoRule1 => 'Cada linha tem 3 sóis e 3 luas.';
-
-  @override
-  String get gameInfoTangoRule2 => 'Cada coluna tem 3 sóis e 3 luas.';
-
-  @override
-  String get gameInfoTangoRule3 => 'Nunca 3 iguais seguidos. 2 pode ser.';
-
-  @override
-  String get gameInfoTangoControls =>
-      'Toca uma vez: sol. Duas vezes: lua. Outra vez: apagar. As casas que já vêm preenchidas não mudam.';
-
-  @override
-  String get gameInfoZipGoal =>
-      'Desenha uma só linha que passe por todas as casas.';
-
-  @override
-  String get gameInfoZipRule1 => 'Começa no 1.';
-
-  @override
-  String get gameInfoZipRule2 => 'Passa pelos números por ordem: 1, 2, 3…';
-
-  @override
-  String get gameInfoZipRule3 =>
-      'Preenche todas as casas. Cada uma só uma vez.';
-
-  @override
-  String get gameInfoZipControls =>
-      'Arrasta o dedo para desenhar. Volta para trás para desfazer.';
-
-  @override
-  String get gameInfoSudokuGoal => 'Preenche a grelha com os números de 1 a 6.';
-
-  @override
-  String get gameInfoSudokuRule1 =>
-      'Cada linha tem 1, 2, 3, 4, 5 e 6. Sem repetir.';
-
-  @override
-  String get gameInfoSudokuRule2 => 'Cada coluna também.';
-
-  @override
-  String get gameInfoSudokuRule3 =>
-      'Cada caixa também. Uma caixa tem 2 linhas por 3 colunas.';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'Toca numa casa e depois num número. Toca outra vez para apagar. Notas põe pequenas marcas a lápis.';
-
-  @override
-  String get gameInfoCodeGoal => 'Adivinha o código secreto de 4 símbolos.';
-
-  @override
-  String get gameInfoCodeRule1 =>
-      'O código usa 4 símbolos diferentes. Sem repetir.';
-
-  @override
-  String get gameInfoCodeRule2 => 'Tens 6 tentativas.';
-
-  @override
-  String get gameInfoCodeRule3 => 'Verde: símbolo certo, sítio certo.';
-
-  @override
-  String get gameInfoCodeControls =>
-      'Toca em 4 símbolos e depois em Adivinhar.';
 
   @override
   String get savedMessagesTitle => 'Mensagens guardadas';
@@ -10888,55 +10794,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomContentMonthLast => 'Mês passado';
 
   @override
-  String get gameInfoGoalLabel => 'Objetivo';
-
-  @override
-  String get gameInfoExampleLabel => 'Exemplo';
-
-  @override
-  String get gameInfoWinLabel => 'Como se ganha';
-
-  @override
-  String get gameInfoQueensRule4 => 'As coroas não se tocam. Nem pelo canto.';
-
-  @override
-  String get gameInfoQueensExample =>
-      'Uma coroa aqui quer dizer: nenhuma outra na mesma linha, coluna ou cor, nem nas 8 casas à volta.';
-
-  @override
-  String get gameInfoTangoRule4 =>
-      '= quer dizer que as 2 casas são iguais. × que são diferentes.';
-
-  @override
-  String get gameInfoTangoExample =>
-      'Sol, sol, vazia? A casa vazia tem de ser lua.';
-
-  @override
-  String get gameInfoZipRule4 =>
-      'Anda para cima, baixo, esquerda ou direita. Nada de diagonais.';
-
-  @override
-  String get gameInfoZipRule5 => 'Acaba no último número.';
-
-  @override
-  String get gameInfoZipExample =>
-      'Vais do 1 para o 2? Se for preciso, dá a volta. Nenhuma casa pode ficar vazia.';
-
-  @override
-  String get gameInfoSudokuExample =>
-      'Uma linha já tem 1, 2, 4, 5 e 6? A casa vazia é o 3.';
-
-  @override
-  String get gameInfoCodeRule4 => 'Amarelo: símbolo certo, sítio errado.';
-
-  @override
-  String get gameInfoCodeRule5 => 'Cinzento: esse símbolo não está no código.';
-
-  @override
-  String get gameInfoCodeExample =>
-      'Verde, amarelo, cinzento, cinzento quer dizer: 1 símbolo está no sítio certo, 1 vai noutro sítio e 2 não estão no código.';
-
-  @override
   String get leaderboardOverall => 'Hoje';
 
   @override
@@ -12537,23 +12394,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chatGameModeLive => 'Ao vivo';
 
   @override
-  String get chatGameModeTurns => 'Por turnos';
-
-  @override
-  String get chatGameModeBot => 'Contra o bot';
-
-  @override
-  String get chatGameModeLiveHint =>
-      'Todos jogam ao mesmo tempo. Sair põe o jogo em pausa.';
-
-  @override
-  String get chatGameModeTurnsHint =>
-      'Joga quando quiseres. Recebes uma notificação na tua vez, e cada vez dura até 2 dias.';
-
-  @override
-  String get chatGameModeBotHint => 'Só tu e o bot. Nada é publicado no chat.';
-
-  @override
   String get chatGameBotEasyHint => 'Comete erros. Bom para aprender.';
 
   @override
@@ -12660,128 +12500,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get gameAutoDot => 'Pontos automáticos';
-
-  @override
-  String get gameInfoFlowGoal => 'Liga cada par de pontos iguais com um tubo.';
-
-  @override
-  String get gameInfoFlowRule1 =>
-      'Cada tubo liga 2 pontos da mesma cor e do mesmo número.';
-
-  @override
-  String get gameInfoFlowRule2 => 'Os tubos não se cruzam nem partilham casas.';
-
-  @override
-  String get gameInfoFlowRule3 =>
-      'Preenche todas as casas. Nenhuma pode ficar vazia.';
-
-  @override
-  String get gameInfoFlowRule4 =>
-      'Anda para cima, baixo, esquerda ou direita. Nada de diagonais.';
-
-  @override
-  String get gameInfoFlowExample =>
-      'Não dá para ir a direito? Contorna os outros tubos. Todas as casas têm na mesma de ficar preenchidas.';
-
-  @override
-  String get gameInfoFlowControls =>
-      'Arrasta a partir de um ponto para desenhar o tubo. Volta para trás para desfazer. Passar por cima de um tubo corta-o.';
-
-  @override
-  String get gameInfoFutoshikiGoal =>
-      'Preenche a grelha com os números de 1 a 5.';
-
-  @override
-  String get gameInfoFutoshikiRule1 =>
-      'Cada linha tem 1, 2, 3, 4 e 5. Sem repetições.';
-
-  @override
-  String get gameInfoFutoshikiRule2 => 'Cada coluna também.';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      'Um < ou > entre 2 casas tem de ser verdade. Aponta para o número mais pequeno.';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      'Um sinal aponta para esta casa? Então não pode ser 5, porque a vizinha é maior.';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'Toca numa casa e depois num número. Toca outra vez para apagar. Notas põe pequenas marcas a lápis.';
-
-  @override
-  String get gameInfoNonogramGoal =>
-      'Pinta casas para revelar o desenho escondido.';
-
-  @override
-  String get gameInfoNonogramRule1 =>
-      'Os números de cada linha e coluna são os blocos pintados, por ordem.';
-
-  @override
-  String get gameInfoNonogramRule2 =>
-      'Entre dois blocos há pelo menos 1 casa vazia.';
-
-  @override
-  String get gameInfoNonogramRule3 =>
-      '0 quer dizer que a linha inteira está vazia.';
-
-  @override
-  String get gameInfoNonogramExample =>
-      'Uma linha de 10 com a pista 10? Pinta tudo. Com 4 4, os dois blocos cabem, com um espaço no meio.';
-
-  @override
-  String get gameInfoNonogramControls =>
-      'Toca uma vez: pintar. Duas vezes: × (vazia). Outra vez: apagar. Arrasta para marcar várias casas.';
-
-  @override
-  String get gameInfoMinesweeperGoal => 'Abre todas as casas que não têm mina.';
-
-  @override
-  String get gameInfoMinesweeperRule1 =>
-      'Um número diz quantas minas tocam essa casa, incluindo os cantos.';
-
-  @override
-  String get gameInfoMinesweeperRule2 =>
-      'Todas as casas podem ser deduzidas. Nunca precisas de adivinhar.';
-
-  @override
-  String get gameInfoMinesweeperRule3 =>
-      'Se pisares uma mina, somam-se 30 segundos ao teu tempo. Depois continua.';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      'Um 1 com uma só casa fechada ao lado? Essa casa é a mina. Põe uma bandeira.';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      'Toca para abrir uma casa. Mantém premido, ou ativa Bandeira, para marcar uma mina.';
-
-  @override
-  String get gameInfoStarbattleGoal =>
-      'Põe 2 estrelas em cada linha, coluna e cor.';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'Cada linha tem exatamente 2 estrelas.';
-
-  @override
-  String get gameInfoStarbattleRule2 =>
-      'Cada coluna tem exatamente 2 estrelas.';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'Cada cor tem exatamente 2 estrelas.';
-
-  @override
-  String get gameInfoStarbattleRule4 =>
-      'As estrelas não se tocam. Nem pelo canto.';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'Uma estrela aqui quer dizer: nenhuma outra nas 8 casas à volta, e falta mais uma na sua linha, coluna e cor.';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      'Toca uma vez: ponto (aqui não há estrela). Duas vezes: estrela. Outra vez: apagar.';
 
   @override
   String boardCellName(int row, int col) {
@@ -12922,16 +12640,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min a $max jogadores';
   }
-
-  @override
-  String get chatGamePartySection => 'Festa';
-
-  @override
-  String get chatGamePartyLiveOnly =>
-      'Os jogos de festa são ao vivo, com todos ao mesmo tempo.';
-
-  @override
-  String get chatGameNeedsThree => 'Precisa de um grupo de 3 ou mais';
 
   @override
   String get chatGameVoiceOption => 'Pistas por voz';
@@ -13308,6 +13016,450 @@ class AppLocalizationsPt extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return 'Promover a $piece';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => 'Não voltar a mostrar';
+
+  @override
+  String get kbdPeekTurnedOff =>
+      'Feito, já não vai aparecer. Podes voltar a ativar nas Definições.';
+
+  @override
+  String get chatGameBadgeTurns => 'Por turnos';
+
+  @override
+  String get chatGameSectionBoards => 'Jogos de tabuleiro';
+
+  @override
+  String get chatGameSectionParty => 'Jogos de grupo';
+
+  @override
+  String get chatGameBoardsHintDm =>
+      'Joguem ao vivo agora ou por turnos quando tiverem um bocadinho.';
+
+  @override
+  String get chatGameBoardsHintGroup =>
+      'Ao vivo, aqui mesmo. Entra no jogo ou fica só a ver.';
+
+  @override
+  String get chatGamePartyHint =>
+      'Joga toda a gente ao mesmo tempo, por isso junta a malta primeiro.';
+
+  @override
+  String get chatGameLiveTitle => 'Jogar ao vivo';
+
+  @override
+  String get chatGameLiveNow => 'Joga toda a gente ao mesmo tempo, agora.';
+
+  @override
+  String get chatGameLivePause =>
+      'Alguém sai? O jogo fica em pausa. Tem 2 minutos para voltar, senão perde.';
+
+  @override
+  String get chatGameTurnsTitle => 'Jogar por turnos';
+
+  @override
+  String get chatGameTurnsAnytime =>
+      'Joga quando quiseres. Cada jogada aparece na conversa.';
+
+  @override
+  String get chatGameTurnsClock =>
+      '2 dias por jogada. Mandamos um lembrete e tu também podes lembrar.';
+
+  @override
+  String get chatGameHowWillYouPlay => 'Como queres jogar?';
+
+  @override
+  String get botHubTitle => 'Jogar contra o bot';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'Só tu e o $bot. Nada é publicado e ninguém está a ver.';
+  }
+
+  @override
+  String get botHubLevelTitle => 'Que dificuldade?';
+
+  @override
+  String get botHubPickGame => 'Escolhe um jogo';
+
+  @override
+  String get botHubCaption => 'Treino';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jogos',
+      one: '1 jogo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'Jogaste';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name jogou';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return 'Jogada $count';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return 'Coluna $count';
+  }
+
+  @override
+  String get chatGameMvEarlier => 'Jogada anterior';
+
+  @override
+  String get chatGameMvSend => 'Enviar jogada';
+
+  @override
+  String get chatGameMvUndo => 'Anular';
+
+  @override
+  String get chatGameMvStagedHint =>
+      'Ainda não foi enviada. Muda de ideias ou carrega em Enviar.';
+
+  @override
+  String get chatGameMvSentToast =>
+      'Jogada enviada. Agora é a vez do outro lado.';
+
+  @override
+  String get chatGameMvYourTurnSub =>
+      'Faz a tua jogada e depois envia. Sem pressas.';
+
+  @override
+  String get chatGameMvWaitingSub => 'Avisamos-te quando for a tua vez.';
+
+  @override
+  String get chatGameMvNudgeLater =>
+      'Podes lembrar depois de 12 horas sem resposta';
+
+  @override
+  String get chatGameMvForfeitNote =>
+      'Se o tempo acabar, perde quem estiver na vez';
+
+  @override
+  String get chatGameMvAgain => 'Ainda é a tua vez. Joga outra vez!';
+
+  @override
+  String get chatGameMvSending => 'A enviar…';
+
+  @override
+  String get howToNext => 'Seguinte';
+
+  @override
+  String get howToWatchAgain => 'Ver outra vez';
+
+  @override
+  String get howToGotIt => 'Percebi';
+
+  @override
+  String get howToProTip => 'Dica';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'Passo $step de $total';
+  }
+
+  @override
+  String get howToQueens1 => 'Uma coroa em cada linha, cada coluna e cada cor.';
+
+  @override
+  String get howToQueens2 => 'As coroas não se podem tocar. Nem na diagonal.';
+
+  @override
+  String get howToQueens3 =>
+      'Toca uma vez para ×, duas para coroa, mais uma para apagar.';
+
+  @override
+  String get howToQueens4 =>
+      'Põe uma coroa e marca com × tudo o que ela bloqueia. Resolve-se num instante.';
+
+  @override
+  String get howToTango1 =>
+      'Um toque é sol, dois é lua. Preenche todas as casas.';
+
+  @override
+  String get howToTango2 => 'Cada linha e coluna é metade sóis, metade luas.';
+
+  @override
+  String get howToTango3 => 'Nunca 3 iguais seguidos. 2 pode ser.';
+
+  @override
+  String get howToTango4 => '= quer dizer iguais. × quer dizer opostos.';
+
+  @override
+  String get howToZip1 => 'Começa no 1 e arrasta pelos números por ordem.';
+
+  @override
+  String get howToZip2 => 'Passa por todas as casas e acaba no último número.';
+
+  @override
+  String get howToZip3 => 'Enganaste-te? É só arrastar para trás.';
+
+  @override
+  String get howToSudoku1 =>
+      'Cada linha, coluna e bloco leva do 1 ao 6. Sem repetir.';
+
+  @override
+  String get howToSudoku2 => 'Toca numa casa e depois num número.';
+
+  @override
+  String get howToSudoku3 => 'Número repetido na mesma linha? Fica a vermelho.';
+
+  @override
+  String get howToSudoku4 =>
+      'Procura linhas a que só falta um número. É de borla.';
+
+  @override
+  String get howToFlow1 =>
+      'Arrasta de um ponto até ao seu par para fazer o tubo.';
+
+  @override
+  String get howToFlow2 =>
+      'Os tubos não se cruzam e todas as casas têm de ficar cheias. Dá a volta.';
+
+  @override
+  String get howToFutoshiki1 =>
+      'Cada linha e coluna leva cada número uma só vez.';
+
+  @override
+  String get howToFutoshiki2 =>
+      'A ponta do sinal aponta para o número mais pequeno.';
+
+  @override
+  String get howToFutoshiki3 => 'Se falhares um sinal, fica a vermelho.';
+
+  @override
+  String get howToNonogram1 =>
+      'Os números dizem quantas casas seguidas pintar. 5 são 5 seguidas.';
+
+  @override
+  String get howToNonogram2 =>
+      '1 1 são duas casas separadas, com pelo menos um espaço entre elas.';
+
+  @override
+  String get howToNonogram3 =>
+      'Toca para pintar, outra vez para ×, outra vez para apagar. Arrasta para fazer várias de uma vez.';
+
+  @override
+  String get howToNonogram4 =>
+      'Acerta em todas as pistas e o desenho escondido aparece.';
+
+  @override
+  String get howToMines1 =>
+      'Toca numa casa para a abrir. As zonas vazias abrem-se sozinhas.';
+
+  @override
+  String get howToMines2 =>
+      'O número diz quantas minas lhe tocam, cantos incluídos.';
+
+  @override
+  String get howToMines3 =>
+      'Tens a certeza que é mina? Mantém premido para pôr uma bandeira.';
+
+  @override
+  String get howToMines4 =>
+      'Se pisares uma mina, levas 30 segundos de castigo. Mas nunca precisas de adivinhar.';
+
+  @override
+  String get howToStars1 =>
+      'Duas estrelas em cada linha, cada coluna e cada cor.';
+
+  @override
+  String get howToStars2 => 'As estrelas não se podem tocar. Nem na diagonal.';
+
+  @override
+  String get howToStars3 =>
+      'Marca com um ponto as casas à volta de cada estrela. Quando a linha tem as 2, o resto fica de fora.';
+
+  @override
+  String get howToCode1 =>
+      'Há um código secreto de 4 símbolos diferentes. Descobre-o.';
+
+  @override
+  String get howToCode2 => 'Verde: símbolo certo, sítio certo.';
+
+  @override
+  String get howToCode3 =>
+      'Amarelo: está no código, mas noutro sítio. Cinzento: não está lá.';
+
+  @override
+  String get howToCode4 => 'Tens 6 tentativas. Quanto menos usares, melhor.';
+
+  @override
+  String get howToTtt1 =>
+      'À vez, cada um põe a sua marca. Fazes 3 em linha e ganhas.';
+
+  @override
+  String get howToTtt2 =>
+      'O outro já tem 2 em linha? Fica tu com a terceira casa primeiro.';
+
+  @override
+  String get howToC41 =>
+      'Toca numa coluna para largar a peça. Cai até ao espaço livre mais em baixo.';
+
+  @override
+  String get howToC42 =>
+      'Faz 4 em linha para ganhar: na horizontal, na vertical ou na diagonal.';
+
+  @override
+  String get howToCheckers1 =>
+      'As peças andam uma casa na diagonal para a frente. Toca na peça e depois no destino.';
+
+  @override
+  String get howToCheckers2 =>
+      'Salta por cima de uma peça rival para a capturar. Se podes saltar, és obrigado. A peça que tem de saltar fica com um anel.';
+
+  @override
+  String get howToCheckers3 =>
+      'Caíste onde podes voltar a saltar? Continua. Uma jogada pode levar várias.';
+
+  @override
+  String get howToCheckers4 =>
+      'Chegaste ao outro lado? A tua peça passa a dama. As damas também andam para trás.';
+
+  @override
+  String get howToCheckersWin =>
+      'Ganha quem captura todas as peças ou deixa o outro sem jogadas.';
+
+  @override
+  String get howToReversi1 =>
+      'Põe uma peça de forma a que uma fila das dele fique presa entre duas tuas.';
+
+  @override
+  String get howToReversi2 =>
+      'Todas as peças presas passam para a tua cor, em todas as direções ao mesmo tempo.';
+
+  @override
+  String get howToReversi3 =>
+      'Não tens jogada? A tua vez é saltada. Quando ninguém consegue jogar, ganha quem tem mais peças.';
+
+  @override
+  String get howToDots1 => 'À vez, cada um traça uma linha entre dois pontos.';
+
+  @override
+  String get howToDots2 => 'Fechaste uma caixa? É tua. E voltas a jogar!';
+
+  @override
+  String get howToDots3 =>
+      'Cuidado com o terceiro lado de uma caixa. Estás a oferecê-la ao próximo.';
+
+  @override
+  String get howToDotsWin =>
+      'Quando se traça a última linha, ganha quem tem mais caixas.';
+
+  @override
+  String get howToChess1 =>
+      'Toca numa peça para veres para onde pode ir e depois toca numa casa.';
+
+  @override
+  String get howToChess2 =>
+      'Vai para a casa de uma peça rival para a capturar.';
+
+  @override
+  String get howToChess3 =>
+      'Leva um peão até à última fila e ele passa a dama, ou ao que escolheres.';
+
+  @override
+  String get howToChess4 =>
+      'Xeque é o rei estar a ser atacado e tens de o safar. Sem saída? Xeque-mate, acabou.';
+
+  @override
+  String get howToLiars1 =>
+      'Toda a gente lança 5 dados às escondidas. Só vês os teus.';
+
+  @override
+  String get howToLiars2 =>
+      'Na tua vez, aposta quantos dados de uma face há na mesa toda, contando os de toda a gente. Tipo «quatro três».';
+
+  @override
+  String get howToLiars3 =>
+      'O 1 é joker: conta como qualquer face. Exceto se a aposta for em 1.';
+
+  @override
+  String get howToLiars4 =>
+      'O próximo tem de subir: mais dados, ou a mesma quantidade de uma face mais alta…';
+
+  @override
+  String get howToLiars5 =>
+      '…ou gritar «mentiroso!». Toda a gente mostra os dados e conta-se.';
+
+  @override
+  String get howToLiars6 =>
+      'A aposta era verdadeira? Quem gritou perde um dado. Exagerou? Perde quem apostou.';
+
+  @override
+  String get howToLiars7 =>
+      'Ficaste sem dados? Estás fora. Ganha o último que ainda tiver dados.';
+
+  @override
+  String get howToLiarsClock =>
+      '45 segundos por vez. Se o tempo acabar, o jogo joga por ti.';
+
+  @override
+  String get howToImposter1 =>
+      'Toda a gente recebe a mesma palavra secreta. Exceto o impostor, que só vê a categoria.';
+
+  @override
+  String get howToImposter2 =>
+      'À vez, cada um dá uma pista curta. Mostra que sabes a palavra sem a entregar.';
+
+  @override
+  String get howToImposterVoice =>
+      'No modo de voz: diz a tua pista em voz alta na chamada e toca em Concluído.';
+
+  @override
+  String get howToImposter3 =>
+      'Depois, toda a gente vota em quem acha que é o impostor.';
+
+  @override
+  String get howToImposter4 =>
+      'Apanhado? O impostor tem uma última hipótese: se acertar na palavra, rouba a vitória. Votaram na pessoa errada ou houve empate? Ganha o impostor.';
+
+  @override
+  String get howToRace1 =>
+      'Toda a gente recebe o mesmo puzzle novinho ao mesmo tempo.';
+
+  @override
+  String get howToRace2 =>
+      'Resolve no teu telemóvel. A tua barra mostra a toda a gente quanto falta.';
+
+  @override
+  String get howToRace3 => 'Quem acabar primeiro ganha. Tens 10 minutos.';
+
+  @override
+  String get howToLive1 =>
+      'Toda a gente joga ao mesmo tempo. Quando todos tocam em Estou pronto, começa.';
+
+  @override
+  String get howToLive2 =>
+      'Alguém saiu do jogo? Fica em pausa para todos. Tem 2 minutos para voltar, senão perde.';
+
+  @override
+  String get howToLive3 =>
+      'O resto do chat pode ver. Podem pedir um lugar, e um jogador pode passar-lhes o seu.';
+
+  @override
+  String get howToTurns1 =>
+      'Faz a tua jogada e toca em Enviar jogada. Chega ao chat como mensagem.';
+
+  @override
+  String get howToTurns2 =>
+      'Cada jogada tem 2 dias. Lembramos ao fim de 20 horas e, depois de 12 horas de silêncio, podes ser tu a lembrar.';
+
+  @override
+  String get howToTurns3 =>
+      'Dois dias sem jogar? É derrota. Até 3 jogos ao mesmo tempo por chat.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -19167,15 +19319,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get gameInfoOpen => 'Como jogar';
 
   @override
-  String get gameInfoLabel => 'Como jogar';
-
-  @override
-  String get gameInfoRulesLabel => 'As regras';
-
-  @override
-  String get gameInfoControlsLabel => 'O que tocar';
-
-  @override
   String get gameInfoScoringTimed =>
       'Ganha quem terminar mais rápido. O relógio para quando você sai.';
 
@@ -19186,91 +19329,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get gameInfoSameForEveryone =>
       'Hoje todo mundo recebe o mesmo desafio.';
-
-  @override
-  String get gameInfoQueensGoal => 'Coloque 8 coroas no tabuleiro.';
-
-  @override
-  String get gameInfoQueensRule1 => 'Cada linha tem exatamente 1 coroa.';
-
-  @override
-  String get gameInfoQueensRule2 => 'Cada coluna tem exatamente 1 coroa.';
-
-  @override
-  String get gameInfoQueensRule3 => 'Cada cor tem exatamente 1 coroa.';
-
-  @override
-  String get gameInfoQueensControls =>
-      'Toque uma vez: × (sem coroa aqui). Duas vezes: coroa. De novo: apagar.';
-
-  @override
-  String get gameInfoTangoGoal => 'Preencha cada casa com um sol ou uma lua.';
-
-  @override
-  String get gameInfoTangoRule1 => 'Cada linha tem 3 sóis e 3 luas.';
-
-  @override
-  String get gameInfoTangoRule2 => 'Cada coluna tem 3 sóis e 3 luas.';
-
-  @override
-  String get gameInfoTangoRule3 => 'Nunca 3 iguais em sequência. 2 pode.';
-
-  @override
-  String get gameInfoTangoControls =>
-      'Toque uma vez: sol. Duas vezes: lua. De novo: apagar. As casas que já vêm preenchidas não mudam.';
-
-  @override
-  String get gameInfoZipGoal =>
-      'Desenhe uma única linha que passe por todas as casas.';
-
-  @override
-  String get gameInfoZipRule1 => 'Comece no 1.';
-
-  @override
-  String get gameInfoZipRule2 => 'Passe pelos números em ordem: 1, 2, 3…';
-
-  @override
-  String get gameInfoZipRule3 =>
-      'Preencha todas as casas. Cada uma só uma vez.';
-
-  @override
-  String get gameInfoZipControls =>
-      'Arraste o dedo para desenhar. Volte para desfazer.';
-
-  @override
-  String get gameInfoSudokuGoal => 'Preencha a grade com os números de 1 a 6.';
-
-  @override
-  String get gameInfoSudokuRule1 =>
-      'Cada linha tem 1, 2, 3, 4, 5 e 6. Sem repetir.';
-
-  @override
-  String get gameInfoSudokuRule2 => 'Cada coluna também.';
-
-  @override
-  String get gameInfoSudokuRule3 =>
-      'Cada bloco também. Um bloco tem 2 linhas por 3 colunas.';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'Toque numa casa e depois num número. Toque de novo para apagar. Anotações coloca marquinhas a lápis.';
-
-  @override
-  String get gameInfoCodeGoal => 'Adivinhe o código secreto de 4 símbolos.';
-
-  @override
-  String get gameInfoCodeRule1 =>
-      'O código usa 4 símbolos diferentes. Sem repetir.';
-
-  @override
-  String get gameInfoCodeRule2 => 'Você tem 6 palpites.';
-
-  @override
-  String get gameInfoCodeRule3 => 'Verde: símbolo certo, lugar certo.';
-
-  @override
-  String get gameInfoCodeControls =>
-      'Toque em 4 símbolos e depois em Adivinhar.';
 
   @override
   String get savedMessagesTitle => 'Mensagens salvas';
@@ -24183,56 +24241,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get roomContentMonthLast => 'Mês passado';
 
   @override
-  String get gameInfoGoalLabel => 'Objetivo';
-
-  @override
-  String get gameInfoExampleLabel => 'Exemplo';
-
-  @override
-  String get gameInfoWinLabel => 'Como ganhar';
-
-  @override
-  String get gameInfoQueensRule4 =>
-      'As coroas não podem se encostar. Nem pela quina.';
-
-  @override
-  String get gameInfoQueensExample =>
-      'Uma coroa aqui quer dizer: nenhuma outra na mesma linha, coluna ou cor, nem nas 8 casas em volta.';
-
-  @override
-  String get gameInfoTangoRule4 =>
-      '= quer dizer que as 2 casas são iguais. × que são diferentes.';
-
-  @override
-  String get gameInfoTangoExample =>
-      'Sol, sol, vazia? A casa vazia tem que ser lua.';
-
-  @override
-  String get gameInfoZipRule4 =>
-      'Ande para cima, baixo, esquerda ou direita. Sem diagonal.';
-
-  @override
-  String get gameInfoZipRule5 => 'Termine no último número.';
-
-  @override
-  String get gameInfoZipExample =>
-      'Indo do 1 para o 2? Se precisar, dê a volta. Nenhuma casa pode ficar vazia.';
-
-  @override
-  String get gameInfoSudokuExample =>
-      'Uma linha já tem 1, 2, 4, 5 e 6? A casa vazia é o 3.';
-
-  @override
-  String get gameInfoCodeRule4 => 'Amarelo: símbolo certo, lugar errado.';
-
-  @override
-  String get gameInfoCodeRule5 => 'Cinza: esse símbolo não está no código.';
-
-  @override
-  String get gameInfoCodeExample =>
-      'Verde, amarelo, cinza, cinza quer dizer: 1 símbolo está no lugar certo, 1 vai em outro lugar e 2 não estão no código.';
-
-  @override
   String get leaderboardOverall => 'Hoje';
 
   @override
@@ -25828,22 +25836,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get chatGameModeLive => 'Ao vivo';
 
   @override
-  String get chatGameModeTurns => 'Revezar';
-
-  @override
-  String get chatGameModeBot => 'Contra o bot';
-
-  @override
-  String get chatGameModeLiveHint => 'Todos jogam juntos. Sair pausa o jogo.';
-
-  @override
-  String get chatGameModeTurnsHint =>
-      'Jogue quando quiser. Você recebe um aviso na sua vez, e cada vez dura até 2 dias.';
-
-  @override
-  String get chatGameModeBotHint => 'Só você e o bot. Nada é postado no chat.';
-
-  @override
   String get chatGameBotEasyHint => 'Comete erros. Bom para aprender.';
 
   @override
@@ -25950,128 +25942,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get gameAutoDot => 'Pontos automáticos';
-
-  @override
-  String get gameInfoFlowGoal => 'Ligue cada par de pontos iguais com um cano.';
-
-  @override
-  String get gameInfoFlowRule1 =>
-      'Cada cano liga 2 pontos da mesma cor e do mesmo número.';
-
-  @override
-  String get gameInfoFlowRule2 => 'Os canos não se cruzam nem dividem casa.';
-
-  @override
-  String get gameInfoFlowRule3 =>
-      'Preencha todas as casas. Nenhuma pode ficar vazia.';
-
-  @override
-  String get gameInfoFlowRule4 =>
-      'Ande para cima, baixo, esquerda ou direita. Sem diagonal.';
-
-  @override
-  String get gameInfoFlowExample =>
-      'Não dá para ir reto? Contorne os outros canos. Todas as casas ainda precisam ser preenchidas.';
-
-  @override
-  String get gameInfoFlowControls =>
-      'Arraste a partir de um ponto para desenhar o cano. Volte para desfazer. Passar por cima de um cano corta ele.';
-
-  @override
-  String get gameInfoFutoshikiGoal =>
-      'Preencha a grade com os números de 1 a 5.';
-
-  @override
-  String get gameInfoFutoshikiRule1 =>
-      'Cada linha tem 1, 2, 3, 4 e 5. Sem repetir.';
-
-  @override
-  String get gameInfoFutoshikiRule2 => 'Cada coluna também.';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      'Um < ou > entre 2 casas tem que valer. Ele aponta para o número menor.';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      'Um sinal aponta para esta casa? Então ela não pode ser 5, porque a vizinha é maior.';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'Toque numa casa e depois num número. Toque de novo para apagar. Anotações coloca marquinhas a lápis.';
-
-  @override
-  String get gameInfoNonogramGoal =>
-      'Pinte casas para revelar o desenho escondido.';
-
-  @override
-  String get gameInfoNonogramRule1 =>
-      'Os números de cada linha e coluna são os trechos pintados, em ordem.';
-
-  @override
-  String get gameInfoNonogramRule2 =>
-      'Entre um trecho e outro há pelo menos 1 casa vazia.';
-
-  @override
-  String get gameInfoNonogramRule3 =>
-      '0 quer dizer que a linha inteira está vazia.';
-
-  @override
-  String get gameInfoNonogramExample =>
-      'Uma linha de 10 com a pista 10? Pinte tudo. Com 4 4, os dois trechos cabem, com um espaço no meio.';
-
-  @override
-  String get gameInfoNonogramControls =>
-      'Toque uma vez: pintar. Duas vezes: × (vazia). De novo: apagar. Arraste para marcar várias casas.';
-
-  @override
-  String get gameInfoMinesweeperGoal => 'Abra todas as casas que não têm mina.';
-
-  @override
-  String get gameInfoMinesweeperRule1 =>
-      'Um número diz quantas minas encostam naquela casa, contando as quinas.';
-
-  @override
-  String get gameInfoMinesweeperRule2 =>
-      'Toda casa pode ser deduzida. Você nunca precisa chutar.';
-
-  @override
-  String get gameInfoMinesweeperRule3 =>
-      'Pisou numa mina? Seu tempo ganha 30 segundos. Depois é só continuar.';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      'Um 1 com uma única casa fechada do lado? Essa casa é a mina. Marque com bandeira.';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      'Toque para abrir uma casa. Segure, ou ligue Bandeira, para marcar uma mina.';
-
-  @override
-  String get gameInfoStarbattleGoal =>
-      'Coloque 2 estrelas em cada linha, coluna e cor.';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'Cada linha tem exatamente 2 estrelas.';
-
-  @override
-  String get gameInfoStarbattleRule2 =>
-      'Cada coluna tem exatamente 2 estrelas.';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'Cada cor tem exatamente 2 estrelas.';
-
-  @override
-  String get gameInfoStarbattleRule4 =>
-      'As estrelas não podem se encostar. Nem pela quina.';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'Uma estrela aqui quer dizer: nenhuma outra nas 8 casas em volta, e falta mais uma na linha, na coluna e na cor dela.';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      'Toque uma vez: ponto (sem estrela aqui). Duas vezes: estrela. De novo: apagar.';
 
   @override
   String boardCellName(int row, int col) {
@@ -26212,16 +26082,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String chatGamePlayersRange(int min, int max) {
     return '$min a $max jogadores';
   }
-
-  @override
-  String get chatGamePartySection => 'Festa';
-
-  @override
-  String get chatGamePartyLiveOnly =>
-      'Jogos de festa são ao vivo, com todos ao mesmo tempo.';
-
-  @override
-  String get chatGameNeedsThree => 'Precisa de um grupo de 3 ou mais';
 
   @override
   String get chatGameVoiceOption => 'Dicas por voz';
@@ -26598,4 +26458,449 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String chessPromoteTo(String piece) {
     return 'Promover a $piece';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => 'Não mostrar mais';
+
+  @override
+  String get kbdPeekTurnedOff =>
+      'Beleza, não vai aparecer mais. Dá pra ligar de novo nos Ajustes.';
+
+  @override
+  String get chatGameBadgeTurns => 'Por turnos';
+
+  @override
+  String get chatGameSectionBoards => 'Jogos de tabuleiro';
+
+  @override
+  String get chatGameSectionParty => 'Jogos de galera';
+
+  @override
+  String get chatGameBoardsHintDm =>
+      'Joguem ao vivo agora ou por turnos quando tiverem um tempinho.';
+
+  @override
+  String get chatGameBoardsHintGroup =>
+      'Ao vivo, aqui mesmo. Pega um lugar ou só assiste.';
+
+  @override
+  String get chatGamePartyHint =>
+      'Todo mundo joga junto, então chama a galera antes.';
+
+  @override
+  String get chatGameLiveTitle => 'Jogar ao vivo';
+
+  @override
+  String get chatGameLiveNow => 'Todo mundo joga ao mesmo tempo, agora.';
+
+  @override
+  String get chatGameLivePause =>
+      'Alguém saiu? O jogo pausa. São 2 minutos pra voltar, senão perde.';
+
+  @override
+  String get chatGameTurnsTitle => 'Jogar por turnos';
+
+  @override
+  String get chatGameTurnsAnytime =>
+      'Jogue quando quiser. Cada jogada cai no chat.';
+
+  @override
+  String get chatGameTurnsClock =>
+      '2 dias por jogada. A gente lembra a pessoa e você pode cutucar.';
+
+  @override
+  String get chatGameHowWillYouPlay => 'Como você quer jogar?';
+
+  @override
+  String get botHubTitle => 'Jogar contra o bot';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'Só você e o $bot. Nada é postado, ninguém tá vendo.';
+  }
+
+  @override
+  String get botHubLevelTitle => 'Qual a dificuldade?';
+
+  @override
+  String get botHubPickGame => 'Escolha um jogo';
+
+  @override
+  String get botHubCaption => 'Treino';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jogos',
+      one: '1 jogo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'Você jogou';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name jogou';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return 'Jogada $count';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return 'Coluna $count';
+  }
+
+  @override
+  String get chatGameMvEarlier => 'Jogada anterior';
+
+  @override
+  String get chatGameMvSend => 'Enviar jogada';
+
+  @override
+  String get chatGameMvUndo => 'Desfazer';
+
+  @override
+  String get chatGameMvStagedHint =>
+      'Ainda não foi. Muda de ideia ou toca em Enviar.';
+
+  @override
+  String get chatGameMvSentToast =>
+      'Jogada enviada. Agora é a vez do outro lado.';
+
+  @override
+  String get chatGameMvYourTurnSub => 'Faz sua jogada e manda. Sem pressa.';
+
+  @override
+  String get chatGameMvWaitingSub => 'A gente te avisa quando for sua vez.';
+
+  @override
+  String get chatGameMvNudgeLater =>
+      'Dá pra cutucar depois de 12 horas sem resposta';
+
+  @override
+  String get chatGameMvForfeitNote => 'Se o tempo acabar, quem tá na vez perde';
+
+  @override
+  String get chatGameMvAgain => 'Ainda é sua vez. Joga de novo!';
+
+  @override
+  String get chatGameMvSending => 'Enviando…';
+
+  @override
+  String get howToNext => 'Próximo';
+
+  @override
+  String get howToWatchAgain => 'Ver de novo';
+
+  @override
+  String get howToGotIt => 'Entendi';
+
+  @override
+  String get howToProTip => 'Dica';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'Passo $step de $total';
+  }
+
+  @override
+  String get howToQueens1 => 'Uma coroa em cada linha, cada coluna e cada cor.';
+
+  @override
+  String get howToQueens2 =>
+      'As coroas não podem se encostar. Nem na diagonal.';
+
+  @override
+  String get howToQueens3 =>
+      'Toque uma vez pra ×, duas pra coroa, mais uma pra apagar.';
+
+  @override
+  String get howToQueens4 =>
+      'Coloque uma coroa e marque × em tudo que ela bloqueia. O tabuleiro abre rapidinho.';
+
+  @override
+  String get howToTango1 =>
+      'Um toque é sol, dois é lua. Preencha todas as casas.';
+
+  @override
+  String get howToTango2 => 'Cada linha e coluna tem metade sóis, metade luas.';
+
+  @override
+  String get howToTango3 => 'Nunca 3 iguais seguidos. 2 pode.';
+
+  @override
+  String get howToTango4 => '= quer dizer iguais. × quer dizer opostos.';
+
+  @override
+  String get howToZip1 =>
+      'Comece no 1 e arraste passando pelos números em ordem.';
+
+  @override
+  String get howToZip2 =>
+      'Passe por todas as casas e termine no último número.';
+
+  @override
+  String get howToZip3 => 'Errou o caminho? É só arrastar de volta.';
+
+  @override
+  String get howToSudoku1 =>
+      'Cada linha, coluna e bloco tem de 1 a 6. Sem repetir.';
+
+  @override
+  String get howToSudoku2 => 'Toque numa casa e depois num número.';
+
+  @override
+  String get howToSudoku3 => 'Número repetido na mesma linha? Fica vermelho.';
+
+  @override
+  String get howToSudoku4 =>
+      'Procure linhas em que só falta um número. É ponto de graça.';
+
+  @override
+  String get howToFlow1 =>
+      'Arraste de um ponto até o par dele pra fazer o cano.';
+
+  @override
+  String get howToFlow2 =>
+      'Os canos não se cruzam e todas as casas precisam ser preenchidas. Dê a volta.';
+
+  @override
+  String get howToFutoshiki1 =>
+      'Cada linha e coluna tem cada número uma vez só.';
+
+  @override
+  String get howToFutoshiki2 => 'A ponta do sinal aponta pro número menor.';
+
+  @override
+  String get howToFutoshiki3 => 'Desrespeitou um sinal? Ele fica vermelho.';
+
+  @override
+  String get howToNonogram1 =>
+      'Os números dizem quantas casas seguidas pintar. 5 são 5 seguidas.';
+
+  @override
+  String get howToNonogram2 =>
+      '1 1 são duas casas separadas, com pelo menos um espaço entre elas.';
+
+  @override
+  String get howToNonogram3 =>
+      'Toque pra pintar, de novo pra ×, de novo pra apagar. Arraste pra fazer várias de uma vez.';
+
+  @override
+  String get howToNonogram4 =>
+      'Acerte todas as dicas e o desenho escondido aparece.';
+
+  @override
+  String get howToMines1 =>
+      'Toque numa casa pra abrir. As áreas vazias abrem sozinhas.';
+
+  @override
+  String get howToMines2 =>
+      'O número diz quantas minas encostam nele, cantos também.';
+
+  @override
+  String get howToMines3 =>
+      'Certeza que é mina? Segure pra colocar uma bandeira.';
+
+  @override
+  String get howToMines4 =>
+      'Pisou numa mina, levou 30 segundos de castigo. Mas você nunca precisa chutar.';
+
+  @override
+  String get howToStars1 =>
+      'Duas estrelas em cada linha, cada coluna e cada cor.';
+
+  @override
+  String get howToStars2 =>
+      'As estrelas não podem se encostar. Nem na diagonal.';
+
+  @override
+  String get howToStars3 =>
+      'Marque um ponto em volta de cada estrela. Quando a linha tem as 2, o resto tá fora.';
+
+  @override
+  String get howToCode1 =>
+      'Tem um código secreto de 4 símbolos diferentes. Descubra qual é.';
+
+  @override
+  String get howToCode2 => 'Verde: símbolo certo, lugar certo.';
+
+  @override
+  String get howToCode3 =>
+      'Amarelo: tá no código, mas em outro lugar. Cinza: não tá no código.';
+
+  @override
+  String get howToCode4 => 'Você tem 6 chances. Quanto menos usar, melhor.';
+
+  @override
+  String get howToTtt1 =>
+      'Cada um na sua vez coloca a marca. Fez 3 em linha, ganhou.';
+
+  @override
+  String get howToTtt2 =>
+      'O outro já tem 2 em linha? Pega a terceira casa antes dele.';
+
+  @override
+  String get howToC41 =>
+      'Toque numa coluna pra soltar a ficha. Ela cai até o espaço livre mais baixo.';
+
+  @override
+  String get howToC42 =>
+      'Faça 4 em linha pra ganhar: na horizontal, na vertical ou na diagonal.';
+
+  @override
+  String get howToCheckers1 =>
+      'As peças andam uma casa na diagonal pra frente. Toque na peça e depois no destino.';
+
+  @override
+  String get howToCheckers2 =>
+      'Pule por cima de uma peça rival pra capturar. Se dá pra pular, é obrigatório. A peça que precisa pular ganha um anel.';
+
+  @override
+  String get howToCheckers3 =>
+      'Caiu num lugar onde dá pra pular de novo? Continue. Uma jogada pode levar várias.';
+
+  @override
+  String get howToCheckers4 =>
+      'Chegou do outro lado? Sua peça vira dama. Damas andam pra trás também.';
+
+  @override
+  String get howToCheckersWin =>
+      'Ganha quem captura todas as peças ou deixa o outro sem jogada.';
+
+  @override
+  String get howToReversi1 =>
+      'Coloque uma peça de um jeito que uma fila das dele fique presa entre duas suas.';
+
+  @override
+  String get howToReversi2 =>
+      'Toda peça presa vira pra sua cor, em todas as direções de uma vez.';
+
+  @override
+  String get howToReversi3 =>
+      'Sem jogada? Sua vez é pulada. Quando ninguém mais consegue jogar, ganha quem tem mais peças.';
+
+  @override
+  String get howToDots1 =>
+      'Cada um na sua vez traça uma linha entre dois pontos.';
+
+  @override
+  String get howToDots2 => 'Fechou uma caixa, ela é sua. E você joga de novo!';
+
+  @override
+  String get howToDots3 =>
+      'Cuidado com o terceiro lado de uma caixa. Isso entrega ela de bandeja pro próximo.';
+
+  @override
+  String get howToDotsWin =>
+      'Quando a última linha é traçada, ganha quem tem mais caixas.';
+
+  @override
+  String get howToChess1 =>
+      'Toque numa peça pra ver pra onde ela pode ir, depois toque numa casa.';
+
+  @override
+  String get howToChess2 => 'Vá pra casa de uma peça rival pra capturar.';
+
+  @override
+  String get howToChess3 =>
+      'Leve um peão até a última fileira e ele vira rainha, ou o que você escolher.';
+
+  @override
+  String get howToChess4 =>
+      'Xeque é quando o rei está sob ataque e você precisa salvá-lo. Sem saída? Xeque-mate, fim de jogo.';
+
+  @override
+  String get howToLiars1 =>
+      'Todo mundo joga 5 dados escondido. Você só vê os seus.';
+
+  @override
+  String get howToLiars2 =>
+      'Na sua vez, aposte quantos dados de uma face tem na mesa inteira, contando os de todo mundo. Tipo “quatro três”.';
+
+  @override
+  String get howToLiars3 =>
+      'O 1 é coringa: conta como qualquer face. A não ser que a aposta seja no 1.';
+
+  @override
+  String get howToLiars4 =>
+      'O próximo tem que subir: mais dados, ou a mesma quantidade de uma face maior…';
+
+  @override
+  String get howToLiars5 =>
+      '…ou gritar “mentiroso!”. Todo mundo mostra os dados e conta.';
+
+  @override
+  String get howToLiars6 =>
+      'A aposta era verdade? Quem gritou perde um dado. Exagerou? Quem apostou perde.';
+
+  @override
+  String get howToLiars7 =>
+      'Acabaram seus dados, você tá fora. O último com dados ganha.';
+
+  @override
+  String get howToLiarsClock =>
+      '45 segundos por vez. Se o tempo acabar, o jogo joga por você.';
+
+  @override
+  String get howToImposter1 =>
+      'Todo mundo recebe a mesma palavra secreta. Menos o impostor, que só vê a categoria.';
+
+  @override
+  String get howToImposter2 =>
+      'Cada um dá uma dica curta na sua vez. Mostre que sabe a palavra sem entregar.';
+
+  @override
+  String get howToImposterVoice =>
+      'No modo voz: fale sua dica em voz alta na chamada e toque em Pronto.';
+
+  @override
+  String get howToImposter3 =>
+      'Depois, todo mundo vota em quem acha que é o impostor.';
+
+  @override
+  String get howToImposter4 =>
+      'Pegaram o impostor? Ele tem uma última chance: se acertar a palavra, rouba a vitória. Votaram na pessoa errada ou empatou? O impostor ganha.';
+
+  @override
+  String get howToRace1 =>
+      'Todo mundo recebe o mesmo quebra-cabeça novinho na mesma hora.';
+
+  @override
+  String get howToRace2 =>
+      'Resolva no seu celular. Sua barra mostra pra todo mundo o quanto falta.';
+
+  @override
+  String get howToRace3 => 'Quem terminar primeiro ganha. Você tem 10 minutos.';
+
+  @override
+  String get howToLive1 =>
+      'Todo mundo joga ao mesmo tempo. Quando todos tocam em Estou pronto, começa.';
+
+  @override
+  String get howToLive2 =>
+      'Alguém saiu do jogo? Pausa pra todo mundo. A pessoa tem 2 minutos pra voltar, senão perde.';
+
+  @override
+  String get howToLive3 =>
+      'O resto do chat pode assistir. Eles podem pedir um lugar, e um jogador pode passar o dele.';
+
+  @override
+  String get howToTurns1 =>
+      'Faça sua jogada e toque em Enviar jogada. Ela chega no chat como mensagem.';
+
+  @override
+  String get howToTurns2 =>
+      'Cada jogada tem 2 dias. A gente lembra depois de 20 horas, e depois de 12 horas de silêncio você mesmo pode cutucar.';
+
+  @override
+  String get howToTurns3 =>
+      'Ficou 2 dias sem jogar? É derrota. Até 3 partidas ao mesmo tempo por chat.';
 }

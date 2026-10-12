@@ -51,6 +51,11 @@ enum MessageType {
   /// (seats, board, result) is a `ChatMatch` from `MatchesStore`.
   game,
 
+  /// One move of a turn by turn (async) game: a snapshot of the board right
+  /// after it, carried on the row as `ChatMessage.gameMove`. A client too old
+  /// to know it shows `content` ("Chess · move 12") as text.
+  gameMove,
+
   /// "Beat my time": a daily result sent as a dare. `content` is a readable
   /// line; the body is a `GameChallenge` from `ChallengesStore`.
   challenge,
@@ -158,6 +163,8 @@ extension MessageTypeWire on MessageType {
       // An old client shows the game's name as a line of text.
       case 'game':
         return MessageType.game;
+      case 'gameMove':
+        return MessageType.gameMove;
       case 'challenge':
         return MessageType.challenge;
       case 'sticker':

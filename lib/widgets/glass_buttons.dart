@@ -8,10 +8,12 @@ import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
 import '../theme/density.dart';
+import '../theme/layout.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'hover_hint.dart';
 import 'liquid_glass.dart';
+import 'route_depth.dart';
 import 'spring_press.dart';
 
 /// The fill of the app's chrome disc — every 40pt icon button on the app's
@@ -268,6 +270,15 @@ class ChromeDisc extends StatelessWidget {
 
 /// The back control every pushed page wears: a chrome disc with a chevron,
 /// iOS 26's toolbar treatment.
+///
+/// On the desktop split shell it turns into the × whenever leaving the page
+/// closes something rather than going back to an earlier page: a chat in the
+/// right pane, a settings page, room info beside a chat, a full-window page
+/// over the shell. There, the list the user came from is still on screen
+/// beside it, and a chevron pointing at it is a phone's idea. A page pushed
+/// deeper (settings, then a page inside it) keeps its chevron, because there
+/// "back" is what happens. Decided by [closes], or by [RouteDepthObserver]
+/// when that is null.
 class GlassBackButton extends StatelessWidget {
   const GlassBackButton({
     super.key,
@@ -277,7 +288,22 @@ class GlassBackButton extends StatelessWidget {
     this.enabled = true,
     this.still = false,
     this.shortcut,
+    this.closes,
   });
+
+  /// Draw the × instead of the chevron. Null decides by itself: the × on the
+  /// split shell for a page pushed straight over its navigator's base, and
+  /// only when [onTap] is the default pop (a custom [onTap] may step back
+  /// through the page's own states, so its caller says).
+  final bool? closes;
+
+  /// Whether a back button here leaves the page by closing it. See
+  /// [GlassBackButton]; shared so a page drawing its own back control can ask
+  /// the same question.
+  static bool closesHere(BuildContext context) {
+    if (!context.usesSplitShell) return false;
+    return RouteDepthObserver.of(ModalRoute.of(context)) == 1;
+  }
 
   final VoidCallback? onTap;
   final GlassTone tone;
@@ -296,18 +322,22 @@ class GlassBackButton extends StatelessWidget {
   final ShortcutDef? shortcut;
 
   @override
-  Widget build(BuildContext context) => GlassIconButton(
-        icon: CupertinoIcons.chevron_back,
-        iconSize: 20,
-        tone: tone,
-        still: still,
-        shortcut: shortcut ?? (onTap == null ? AppShortcuts.back : null),
-        semanticLabel: semanticLabel ??
-            MaterialLocalizations.of(context).backButtonTooltip,
-        onTap: enabled
-            ? onTap ?? () => Navigator.of(context).maybePop()
-            : null,
-      );
+  Widget build(BuildContext context) {
+    final asClose = closes ?? (onTap == null && closesHere(context));
+    final labels = MaterialLocalizations.of(context);
+    return GlassIconButton(
+      icon: asClose ? CupertinoIcons.xmark : CupertinoIcons.chevron_back,
+      iconSize: asClose ? 17 : 20,
+      tone: tone,
+      still: still,
+      shortcut: shortcut ?? (onTap == null ? AppShortcuts.back : null),
+      semanticLabel: semanticLabel ??
+          (asClose ? labels.closeButtonLabel : labels.backButtonTooltip),
+      onTap: enabled
+          ? onTap ?? () => Navigator.of(context).maybePop()
+          : null,
+    );
+  }
 }
 
 /// THE × of the app: a chrome disc with a 17pt glyph, 40pt.

@@ -5786,15 +5786,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameInfoOpen => 'How to play';
 
   @override
-  String get gameInfoLabel => 'How to play';
-
-  @override
-  String get gameInfoRulesLabel => 'The rules';
-
-  @override
-  String get gameInfoControlsLabel => 'What to tap';
-
-  @override
   String get gameInfoScoringTimed =>
       'Finish fastest to win. The clock stops when you leave.';
 
@@ -5804,88 +5795,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => 'Everyone gets the same puzzle today.';
-
-  @override
-  String get gameInfoQueensGoal => 'Put 8 crowns on the board.';
-
-  @override
-  String get gameInfoQueensRule1 => 'Every row gets exactly 1 crown.';
-
-  @override
-  String get gameInfoQueensRule2 => 'Every column gets exactly 1 crown.';
-
-  @override
-  String get gameInfoQueensRule3 => 'Every colour gets exactly 1 crown.';
-
-  @override
-  String get gameInfoQueensControls =>
-      'Tap once for × (no crown here). Tap twice for a crown. Tap again to clear.';
-
-  @override
-  String get gameInfoTangoGoal => 'Fill every square with a sun or a moon.';
-
-  @override
-  String get gameInfoTangoRule1 => 'Every row has 3 suns and 3 moons.';
-
-  @override
-  String get gameInfoTangoRule2 => 'Every column has 3 suns and 3 moons.';
-
-  @override
-  String get gameInfoTangoRule3 => 'Never 3 of the same in a line. 2 is fine.';
-
-  @override
-  String get gameInfoTangoControls =>
-      'Tap once for a sun, twice for a moon, again to clear. Squares that start filled can\'t change.';
-
-  @override
-  String get gameInfoZipGoal => 'Draw one line through every square.';
-
-  @override
-  String get gameInfoZipRule1 => 'Start on 1.';
-
-  @override
-  String get gameInfoZipRule2 => 'Visit the numbers in order: 1, 2, 3…';
-
-  @override
-  String get gameInfoZipRule3 => 'Fill every square. Use each square once.';
-
-  @override
-  String get gameInfoZipControls =>
-      'Drag your finger to draw. Drag back to undo.';
-
-  @override
-  String get gameInfoSudokuGoal => 'Fill the grid with the numbers 1 to 6.';
-
-  @override
-  String get gameInfoSudokuRule1 =>
-      'Every row has 1, 2, 3, 4, 5 and 6. No repeats.';
-
-  @override
-  String get gameInfoSudokuRule2 => 'Every column too.';
-
-  @override
-  String get gameInfoSudokuRule3 =>
-      'Every box too. A box is 2 rows by 3 columns.';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.';
-
-  @override
-  String get gameInfoCodeGoal => 'Guess the secret code of 4 symbols.';
-
-  @override
-  String get gameInfoCodeRule1 =>
-      'The code uses 4 different symbols. No repeats.';
-
-  @override
-  String get gameInfoCodeRule2 => 'You get 6 guesses.';
-
-  @override
-  String get gameInfoCodeRule3 => 'Green: right symbol, right spot.';
-
-  @override
-  String get gameInfoCodeControls => 'Tap 4 symbols, then tap Guess.';
 
   @override
   String get savedMessagesTitle => 'Saved Messages';
@@ -10777,55 +10686,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomContentMonthLast => 'Last month';
 
   @override
-  String get gameInfoGoalLabel => 'Goal';
-
-  @override
-  String get gameInfoExampleLabel => 'Example';
-
-  @override
-  String get gameInfoWinLabel => 'How you win';
-
-  @override
-  String get gameInfoQueensRule4 =>
-      'Crowns can\'t touch. Not even corner to corner.';
-
-  @override
-  String get gameInfoQueensExample =>
-      'One crown here means: no other crown in its row, its column, its colour, or the 8 squares around it.';
-
-  @override
-  String get gameInfoTangoRule4 =>
-      '= means the 2 squares match. × means they\'re different.';
-
-  @override
-  String get gameInfoTangoExample =>
-      'Sun, sun, empty? The empty square must be a moon.';
-
-  @override
-  String get gameInfoZipRule4 => 'Move up, down, left or right. No diagonals.';
-
-  @override
-  String get gameInfoZipRule5 => 'Finish on the last number.';
-
-  @override
-  String get gameInfoZipExample =>
-      'Going from 1 to 2? Take the long way if you must. No square can be left empty.';
-
-  @override
-  String get gameInfoSudokuExample =>
-      'A row already has 1, 2, 4, 5 and 6? The empty square is 3.';
-
-  @override
-  String get gameInfoCodeRule4 => 'Yellow: right symbol, wrong spot.';
-
-  @override
-  String get gameInfoCodeRule5 => 'Grey: that symbol isn\'t in the code.';
-
-  @override
-  String get gameInfoCodeExample =>
-      'Green, yellow, grey, grey means: 1 symbol is in the right spot, 1 belongs somewhere else, 2 aren\'t in the code.';
-
-  @override
   String get leaderboardOverall => 'Today';
 
   @override
@@ -12411,24 +12271,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatGameModeLive => 'Live';
 
   @override
-  String get chatGameModeTurns => 'Take turns';
-
-  @override
-  String get chatGameModeBot => 'Vs bot';
-
-  @override
-  String get chatGameModeLiveHint =>
-      'Everyone plays at once. Leaving pauses the game.';
-
-  @override
-  String get chatGameModeTurnsHint =>
-      'Move whenever you like. You each get a notification on your turn, and a turn lasts up to 2 days.';
-
-  @override
-  String get chatGameModeBotHint =>
-      'Just you and the bot. Nothing is posted in the chat.';
-
-  @override
   String get chatGameBotEasyHint => 'Makes mistakes. Good for learning.';
 
   @override
@@ -12535,124 +12377,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameAutoDot => 'Auto-dot';
-
-  @override
-  String get gameInfoFlowGoal =>
-      'Join every pair of matching dots with a pipe.';
-
-  @override
-  String get gameInfoFlowRule1 =>
-      'Each pipe joins 2 dots of the same colour and number.';
-
-  @override
-  String get gameInfoFlowRule2 => 'Pipes can\'t cross or share a square.';
-
-  @override
-  String get gameInfoFlowRule3 => 'Fill every square. None can be left empty.';
-
-  @override
-  String get gameInfoFlowRule4 => 'Move up, down, left or right. No diagonals.';
-
-  @override
-  String get gameInfoFlowExample =>
-      'No straight way through? Bend the pipe around the others. Every square still has to be filled.';
-
-  @override
-  String get gameInfoFlowControls =>
-      'Drag from a dot to draw its pipe. Drag back to undo. Drawing across a pipe cuts it.';
-
-  @override
-  String get gameInfoFutoshikiGoal => 'Fill the grid with the numbers 1 to 5.';
-
-  @override
-  String get gameInfoFutoshikiRule1 =>
-      'Every row has 1, 2, 3, 4 and 5. No repeats.';
-
-  @override
-  String get gameInfoFutoshikiRule2 => 'Every column too.';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      'A < or > between 2 squares must be true. It points at the smaller number.';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      'A sign points at this square? Then it can\'t be 5, because its neighbour is bigger.';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.';
-
-  @override
-  String get gameInfoNonogramGoal =>
-      'Shade squares to reveal the hidden picture.';
-
-  @override
-  String get gameInfoNonogramRule1 =>
-      'The numbers by each row and column are its shaded runs, in order.';
-
-  @override
-  String get gameInfoNonogramRule2 =>
-      'Runs are kept apart by at least 1 empty square.';
-
-  @override
-  String get gameInfoNonogramRule3 => '0 means the whole line is empty.';
-
-  @override
-  String get gameInfoNonogramExample =>
-      'A row of 10 with the clue 10? Shade it all. With 4 4, both runs fit, with a gap between them.';
-
-  @override
-  String get gameInfoNonogramControls =>
-      'Tap once to shade, twice for × (empty), again to clear. Drag to mark several squares at once.';
-
-  @override
-  String get gameInfoMinesweeperGoal => 'Open every square that isn\'t a mine.';
-
-  @override
-  String get gameInfoMinesweeperRule1 =>
-      'A number says how many mines touch that square, corners included.';
-
-  @override
-  String get gameInfoMinesweeperRule2 =>
-      'Every square can be worked out. You never have to guess.';
-
-  @override
-  String get gameInfoMinesweeperRule3 =>
-      'Hit a mine and 30 seconds go on your time. Then keep going.';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      'A 1 with only one closed square next to it? That square is the mine. Flag it.';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      'Tap to open a square. Long-press, or switch on Flag, to mark a mine.';
-
-  @override
-  String get gameInfoStarbattleGoal =>
-      'Put 2 stars in every row, column and colour.';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'Every row gets exactly 2 stars.';
-
-  @override
-  String get gameInfoStarbattleRule2 => 'Every column gets exactly 2 stars.';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'Every colour gets exactly 2 stars.';
-
-  @override
-  String get gameInfoStarbattleRule4 =>
-      'Stars can\'t touch. Not even corner to corner.';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'One star here means: no other star in the 8 squares around it, and one more to find in its row, column and colour.';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      'Tap once for a dot (no star here). Tap twice for a star. Tap again to clear.';
 
   @override
   String boardCellName(int row, int col) {
@@ -12791,16 +12515,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max players';
   }
-
-  @override
-  String get chatGamePartySection => 'Party';
-
-  @override
-  String get chatGamePartyLiveOnly =>
-      'Party games are played live, with everyone at once.';
-
-  @override
-  String get chatGameNeedsThree => 'Needs a group of 3 or more';
 
   @override
   String get chatGameVoiceOption => 'Voice clues';
@@ -13176,4 +12890,442 @@ class AppLocalizationsEn extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return 'Promote to $piece';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => 'Don\'t show again';
+
+  @override
+  String get kbdPeekTurnedOff =>
+      'Got it, no more pop-ups. You can turn it back on in Settings.';
+
+  @override
+  String get chatGameBadgeTurns => 'Turns';
+
+  @override
+  String get chatGameSectionBoards => 'Board games';
+
+  @override
+  String get chatGameSectionParty => 'Party games';
+
+  @override
+  String get chatGameBoardsHintDm =>
+      'Play live right now, or take turns whenever you’re free.';
+
+  @override
+  String get chatGameBoardsHintGroup =>
+      'Played live, right here. Grab a seat or just watch.';
+
+  @override
+  String get chatGamePartyHint =>
+      'Everyone plays at once, so round up the crew first.';
+
+  @override
+  String get chatGameLiveTitle => 'Play live';
+
+  @override
+  String get chatGameLiveNow => 'Everyone plays at the same time, right now.';
+
+  @override
+  String get chatGameLivePause =>
+      'Someone leaves? It pauses. 2 minutes to get back, or they forfeit.';
+
+  @override
+  String get chatGameTurnsTitle => 'Take turns';
+
+  @override
+  String get chatGameTurnsAnytime =>
+      'Move whenever you want. Each move drops into the chat.';
+
+  @override
+  String get chatGameTurnsClock =>
+      '2 days per move. We remind them, and you can nudge.';
+
+  @override
+  String get chatGameHowWillYouPlay => 'How do you want to play?';
+
+  @override
+  String get botHubTitle => 'Play the bot';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'Just you and $bot. Nothing gets posted, nobody’s watching.';
+  }
+
+  @override
+  String get botHubLevelTitle => 'How tough?';
+
+  @override
+  String get botHubPickGame => 'Pick a game';
+
+  @override
+  String get botHubCaption => 'Practice';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count games',
+      one: '1 game',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'You played';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name played';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return 'Move $count';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return 'Column $count';
+  }
+
+  @override
+  String get chatGameMvEarlier => 'Earlier move';
+
+  @override
+  String get chatGameMvSend => 'Send move';
+
+  @override
+  String get chatGameMvUndo => 'Undo';
+
+  @override
+  String get chatGameMvStagedHint =>
+      'Not sent yet. Change your mind or hit Send.';
+
+  @override
+  String get chatGameMvSentToast => 'Move sent. Their turn now.';
+
+  @override
+  String get chatGameMvYourTurnSub => 'Make your move, then send it. No rush.';
+
+  @override
+  String get chatGameMvWaitingSub => 'We\'ll ping you when it\'s your turn.';
+
+  @override
+  String get chatGameMvNudgeLater => 'You can nudge after 12 quiet hours';
+
+  @override
+  String get chatGameMvForfeitNote =>
+      'If the clock runs out, that player loses';
+
+  @override
+  String get chatGameMvAgain => 'Still your turn. Go again!';
+
+  @override
+  String get chatGameMvSending => 'Sending…';
+
+  @override
+  String get howToNext => 'Next';
+
+  @override
+  String get howToWatchAgain => 'Watch again';
+
+  @override
+  String get howToGotIt => 'Got it';
+
+  @override
+  String get howToProTip => 'Pro tip';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'Step $step of $total';
+  }
+
+  @override
+  String get howToQueens1 =>
+      'One crown in every row, every column and every colour.';
+
+  @override
+  String get howToQueens2 => 'Crowns can\'t touch. Not even corner to corner.';
+
+  @override
+  String get howToQueens3 =>
+      'Tap once for an ×, twice for a crown, once more to clear.';
+
+  @override
+  String get howToQueens4 =>
+      'Drop a crown, then × every square it rules out. The board cracks open fast.';
+
+  @override
+  String get howToTango1 =>
+      'Tap once for a sun, twice for a moon. Fill every square.';
+
+  @override
+  String get howToTango2 => 'Every row and column is half suns, half moons.';
+
+  @override
+  String get howToTango3 => 'Never 3 of the same in a row. 2 is fine.';
+
+  @override
+  String get howToTango4 => '= means the two match. × means they\'re opposite.';
+
+  @override
+  String get howToZip1 => 'Start on 1 and drag through the numbers in order.';
+
+  @override
+  String get howToZip2 => 'Cover every square and finish on the last number.';
+
+  @override
+  String get howToZip3 => 'Wrong turn? Just drag back to undo.';
+
+  @override
+  String get howToSudoku1 =>
+      'Every row, column and box gets 1 to 6. No repeats.';
+
+  @override
+  String get howToSudoku2 => 'Tap a square, then tap a number.';
+
+  @override
+  String get howToSudoku3 => 'Same number twice in a line? It turns red.';
+
+  @override
+  String get howToSudoku4 =>
+      'Hunt for lines missing just one number. Free points.';
+
+  @override
+  String get howToFlow1 => 'Drag from a dot to its twin to lay a pipe.';
+
+  @override
+  String get howToFlow2 =>
+      'Pipes can\'t cross, and every square has to be filled. Take the long way.';
+
+  @override
+  String get howToFutoshiki1 =>
+      'Every row and column gets each number exactly once.';
+
+  @override
+  String get howToFutoshiki2 =>
+      'The pointy end of the sign points at the smaller number.';
+
+  @override
+  String get howToFutoshiki3 => 'Break a sign and it lights up red.';
+
+  @override
+  String get howToNonogram1 =>
+      'The numbers say how many squares in a row to shade. 5 means 5 in a row.';
+
+  @override
+  String get howToNonogram2 =>
+      '1 1 means two separate squares, with at least one gap between them.';
+
+  @override
+  String get howToNonogram3 =>
+      'Tap to shade, again for ×, again to clear. Drag to do loads at once.';
+
+  @override
+  String get howToNonogram4 =>
+      'Nail every clue and the hidden picture pops out.';
+
+  @override
+  String get howToMines1 =>
+      'Tap a square to open it. Empty areas open up on their own.';
+
+  @override
+  String get howToMines2 =>
+      'A number tells you how many mines touch it, corners too.';
+
+  @override
+  String get howToMines3 => 'Sure it\'s a mine? Long-press to flag it.';
+
+  @override
+  String get howToMines4 =>
+      'Hit a mine and you eat a 30 second penalty. But you never actually have to guess.';
+
+  @override
+  String get howToStars1 =>
+      'Two stars in every row, every column and every colour.';
+
+  @override
+  String get howToStars2 => 'Stars can\'t touch. Not even corner to corner.';
+
+  @override
+  String get howToStars3 =>
+      'Dot out the squares around each star. Once a row has its 2, the rest is out.';
+
+  @override
+  String get howToCode1 =>
+      'There\'s a secret code of 4 different symbols. Crack it.';
+
+  @override
+  String get howToCode2 => 'Green means right symbol, right spot.';
+
+  @override
+  String get howToCode3 =>
+      'Yellow means it\'s in the code, just somewhere else. Grey means it\'s not in there at all.';
+
+  @override
+  String get howToCode4 => 'You get 6 guesses. The fewer you need, the better.';
+
+  @override
+  String get howToTtt1 =>
+      'Take turns placing your mark. Get 3 in a row to win.';
+
+  @override
+  String get howToTtt2 =>
+      'They\'ve got 2 in a line? Grab the third square before they do.';
+
+  @override
+  String get howToC41 =>
+      'Tap a column to drop a disc. It falls to the lowest free spot.';
+
+  @override
+  String get howToC42 =>
+      'Line up 4 in a row to win: across, up and down, or diagonal.';
+
+  @override
+  String get howToCheckers1 =>
+      'Pieces move one square diagonally forward. Tap a piece, then where it goes.';
+
+  @override
+  String get howToCheckers2 =>
+      'Jump over a rival piece to take it. If you can jump, you have to. The piece that must jump gets a ring.';
+
+  @override
+  String get howToCheckers3 =>
+      'Land somewhere you can jump again? Keep going. One move can take a bunch.';
+
+  @override
+  String get howToCheckers4 =>
+      'Reach the far side and your piece is crowned king. Kings can move backwards too.';
+
+  @override
+  String get howToCheckersWin =>
+      'Take all their pieces, or leave them with no move, to win.';
+
+  @override
+  String get howToReversi1 =>
+      'Place a disc so a line of their discs ends up trapped between two of yours.';
+
+  @override
+  String get howToReversi2 =>
+      'Every trapped disc flips to your colour, in every direction at once.';
+
+  @override
+  String get howToReversi3 =>
+      'No move to make? Your turn gets skipped. When nobody can move, most discs wins.';
+
+  @override
+  String get howToDots1 => 'Take turns drawing a line between two dots.';
+
+  @override
+  String get howToDots2 => 'Close a box and it\'s yours. And you go again!';
+
+  @override
+  String get howToDots3 =>
+      'Careful with a box\'s third side. That hands it to the next player.';
+
+  @override
+  String get howToDotsWin => 'Most boxes when the last line is drawn wins.';
+
+  @override
+  String get howToChess1 =>
+      'Tap a piece to see where it can go, then tap a square.';
+
+  @override
+  String get howToChess2 => 'Move onto a rival piece to take it.';
+
+  @override
+  String get howToChess3 =>
+      'Get a pawn to the last row and it becomes a queen, or whatever you pick.';
+
+  @override
+  String get howToChess4 =>
+      'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over.';
+
+  @override
+  String get howToLiars1 =>
+      'Everyone rolls 5 dice in secret. You only see your own.';
+
+  @override
+  String get howToLiars2 =>
+      'On your turn, bid how many of one face are on the whole table, counting everyone\'s dice. Like “four 3s”.';
+
+  @override
+  String get howToLiars3 =>
+      '1s are wild: they count as any face. Unless the bid is on 1s.';
+
+  @override
+  String get howToLiars4 =>
+      'The next player has to go higher: more dice, or the same number of a higher face…';
+
+  @override
+  String get howToLiars5 =>
+      '…or call liar! Everyone shows their dice, and you count.';
+
+  @override
+  String get howToLiars6 =>
+      'Bid was true? The caller loses a die. Bid was too high? The bidder loses one.';
+
+  @override
+  String get howToLiars7 =>
+      'No dice left and you\'re out. Last one holding dice wins.';
+
+  @override
+  String get howToLiarsClock =>
+      '45 seconds a turn. Run out and the game plays for you.';
+
+  @override
+  String get howToImposter1 =>
+      'Everyone gets the same secret word. Except the imposter, who only gets the category.';
+
+  @override
+  String get howToImposter2 =>
+      'Take turns giving one short clue. Show you know the word without giving it away.';
+
+  @override
+  String get howToImposterVoice =>
+      'Voice mode: say your clue out loud on the call, then tap Done.';
+
+  @override
+  String get howToImposter3 =>
+      'Then everyone votes for who they think the imposter is.';
+
+  @override
+  String get howToImposter4 =>
+      'Caught? The imposter gets one last shot: guess the word to steal the win. Vote out the wrong person, or tie? Imposter wins.';
+
+  @override
+  String get howToRace1 =>
+      'Everyone gets the same brand-new puzzle at the same moment.';
+
+  @override
+  String get howToRace2 =>
+      'Solve it on your own phone. Your bar shows everyone how close you are.';
+
+  @override
+  String get howToRace3 => 'First to finish wins. You\'ve got 10 minutes.';
+
+  @override
+  String get howToLive1 =>
+      'Everyone plays at the same time. Once everyone taps I\'m ready, you\'re on.';
+
+  @override
+  String get howToLive2 =>
+      'Someone leaves the game? It pauses for everyone. They\'ve got 2 minutes to come back, or they forfeit.';
+
+  @override
+  String get howToLive3 =>
+      'Others in the chat can watch. They can ask for a seat, and a player can hand theirs over.';
+
+  @override
+  String get howToTurns1 =>
+      'Make your move, then tap Send move. It drops into the chat as a message.';
+
+  @override
+  String get howToTurns2 =>
+      'Each move gets 2 days. We remind them after 20 hours, and after 12 quiet hours you can nudge them yourself.';
+
+  @override
+  String get howToTurns3 =>
+      'No move in 2 days? That\'s a loss. Up to 3 games at once per chat.';
 }

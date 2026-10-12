@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../data/settings_store.dart';
 import '../../keyboard/app_shortcuts.dart';
+import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/theme_scope.dart';
+import '../app_toast.dart';
 import '../glass_reveal.dart';
 import '../glass_surface.dart';
+import '../spring_press.dart';
 import 'keycaps.dart';
 
 /// The card that appears while ⌘ (Ctrl off Apple) is held: every shortcut the
@@ -21,27 +25,40 @@ import 'keycaps.dart';
 /// long as a key is held, and nothing it lists can change in that time
 /// without the key being let go first.
 class ShortcutPeek {
-  ShortcutPeek._(this._entry, this._key);
+  ShortcutPeek._(this._entry, this._key, this._actionKey);
 
   final OverlayEntry _entry;
   final GlobalKey<_PeekCardState> _key;
+  final GlobalKey _actionKey;
 
   static ShortcutPeek show(OverlayState overlay, {required List<String> sectionLabels}) {
     final key = GlobalKey<_PeekCardState>();
+    final actionKey = GlobalKey();
     late final ShortcutPeek peek;
     final entry = OverlayEntry(
       builder: (_) => _PeekCard(
         key: key,
+        actionKey: actionKey,
         sectionLabels: sectionLabels,
         onGone: () => peek._remove(),
+        onDismissForGood: () => peek.hide(),
       ),
     );
-    peek = ShortcutPeek._(entry, key);
+    peek = ShortcutPeek._(entry, key, actionKey);
     overlay.insert(entry);
     return peek;
   }
 
   bool _removed = false;
+
+  /// Whether [global] lands on the peek's one control, "Don't show again".
+  /// The host calls the peek off on any click; that one click it must let
+  /// through, or the button would vanish under the pointer pressing it.
+  bool hitsAction(Offset global) {
+    final box = _actionKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return false;
+    return (box.localToGlobal(Offset.zero) & box.size).contains(global);
+  }
 
   /// Animates out, then removes itself.
   void hide() {
@@ -61,10 +78,18 @@ class ShortcutPeek {
 }
 
 class _PeekCard extends StatefulWidget {
-  const _PeekCard({super.key, required this.sectionLabels, required this.onGone});
+  const _PeekCard({
+    super.key,
+    required this.actionKey,
+    required this.sectionLabels,
+    required this.onGone,
+    required this.onDismissForGood,
+  });
 
+  final GlobalKey actionKey;
   final List<String> sectionLabels;
   final VoidCallback onGone;
+  final VoidCallback onDismissForGood;
 
   @override
   State<_PeekCard> createState() => _PeekCardState();
@@ -92,6 +117,14 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
     });
   }
 
+  void _dontShowAgain() {
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    SettingsStore.instance.setShortcutPeek(false);
+    widget.onDismissForGood();
+    toast.show(l10n.kbdPeekTurnedOff, duration: const Duration(seconds: 4));
+  }
+
   @override
   void dispose() {
     _t.dispose();
@@ -112,10 +145,10 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
     const colWidth = 272.0;
     const gap = 28.0;
 
-    return IgnorePointer(
-      // Purely informational and gone the moment the key is let go; a click
-      // that lands while it is up belongs to whatever is under it.
-      child: Material(
+    // Purely informational and gone the moment the key is let go; a click
+    // that lands while it is up belongs to whatever is under it. Everything
+    // but the "Don't show again" pill ignores the pointer for that reason.
+    return Material(
         type: MaterialType.transparency,
         child: AnimatedBuilder(
           animation: _t,
@@ -130,8 +163,24 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
                 // Washing the page toward the background keeps the frost but
                 // takes the contrast out of what it frosts, in light themes
                 // and dark alike. A plain fill, so fading it costs nothing.
-                ColoredBox(color: theme.background.withValues(alpha: 0.6 * t)),
-                Center(child: GlassReveal(t: t, from: 0.94, child: card!)),
+                IgnorePointer(
+                  child: ColoredBox(color: theme.background.withValues(alpha: 0.6 * t)),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IgnorePointer(child: GlassReveal(t: t, from: 0.94, child: card!)),
+                      const SizedBox(height: 12),
+                      // Trails the card in by a beat, so it reads as an
+                      // aside to the list rather than part of it.
+                      Opacity(
+                        opacity: Curves.easeOut.transform(((t - 0.4) / 0.6).clamp(0.0, 1.0)),
+                        child: _DontShowAgain(key: widget.actionKey, onTap: _dontShowAgain),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             );
           },
@@ -174,6 +223,37 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
                 ],
               ),
             ),
+          ),
+        ),
+    );
+  }
+}
+
+/// The peek's one control: a small glass capsule under the card. It only
+/// exists while ⌘ is held, so a click on it is a deliberate one.
+class _DontShowAgain extends StatelessWidget {
+  const _DontShowAgain({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return SpringPress(
+      onTap: onTap,
+      haptic: false,
+      hover: HoverEffect.glow,
+      focusShape: FocusRingShape.capsule,
+      semanticLabel: l10n.kbdPeekDontShowAgain,
+      child: GlassSurface(
+        radius: 999,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        child: Text(
+          l10n.kbdPeekDontShowAgain,
+          style: theme.caption.copyWith(
+            color: theme.inkMuted,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

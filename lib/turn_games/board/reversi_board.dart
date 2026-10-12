@@ -144,7 +144,8 @@ class _ReversiBoardState extends BoardViewState<ReversiBoardView> {
         hintSeat: s.toMove,
         placed: _placed,
         flips: _flips,
-        last: p.thumbnail ? null : _lastCell(),
+        // Thumbnails too: a move bubble's board is about the move it shows.
+        last: _lastCell(),
         press: _press,
         clock: clock,
       ),
@@ -314,8 +315,19 @@ class ReversiPainter extends CustomPainter {
 
     final mark = last;
     if (mark != null && cells[mark] != 0) {
+      final at = _center(mark, cell);
+      // A ring round the placed disc, which carries at thumbnail size where
+      // the old centre dot alone was a speck; the dot stays at full size.
       canvas.drawCircle(
-        _center(mark, cell),
+        at,
+        art.radius * 1.12,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.5, cell * 0.06)
+          ..color = theme.accent,
+      );
+      canvas.drawCircle(
+        at,
         math.max(1.8, art.radius * 0.16),
         Paint()..color = theme.danger,
       );

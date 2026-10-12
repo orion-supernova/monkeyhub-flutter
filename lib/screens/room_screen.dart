@@ -19,10 +19,8 @@ import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
 import '../calls/call_button.dart';
 import '../chat_games/active_games_banner.dart';
-import '../chat_games/bot_match_screen.dart';
 import '../chat_games/game_start_sheet.dart';
 import '../data/matches_store.dart';
-import '../turn_games/bot.dart' show BotLevel;
 import '../backend/matches_api.dart';
 import 'games/match_screen.dart';
 import '../calls/call_models.dart';
@@ -2575,6 +2573,8 @@ class _RoomScreenState extends State<RoomScreen>
         anchor: anchor,
         allowMedia: family?.canSendMedia ?? true,
         allowLocation: family?.canShareLocation ?? true,
+        // Saved Messages has nobody to play with.
+        allowGames: !(_room?.isSavedMessages ?? false),
         // The inline picker shows photos and videos together.
         unifiedGallery: InlinePhotoPicker.supported,
       );
@@ -2648,31 +2648,19 @@ class _RoomScreenState extends State<RoomScreen>
     if (open != _gamesOpen) setState(() => _gamesOpen = open);
   }
 
-  /// "Play a game": picks how and what, then starts it — on the server for a
-  /// game with people in it, on the phone for one against the bot.
+  /// "Play a game": picks what and how, then starts it on the server. Bots
+  /// are not a chat thing; they live on the Feed's games row.
   Future<void> _startGame() async {
     final me = widget.repo.userId;
     final room = _room;
-    if (me == null || room == null) return;
+    if (me == null || room == null || room.isSavedMessages) return;
     final draft = await showGameStartSheet(
       context,
-      isDm: room.isDm && !room.isSavedMessages,
-      soloOnly: room.isSavedMessages,
+      isDm: room.isDm,
       voiceAvailable: GroupCallService.maybeInstance != null,
     );
     if (draft == null || !mounted) return;
     final nav = Navigator.of(context);
-    if (draft.mode == ChatGameMode.bot) {
-      await nav.push(
-        MaterialPageRoute<void>(
-          builder: (_) => BotMatchScreen(
-            game: draft.game,
-            level: draft.level ?? BotLevel.medium,
-          ),
-        ),
-      );
-      return;
-    }
     final l10n = AppLocalizations.of(context);
     final toast = AppToast.of(context);
     widget.repo.exitHistoryWindow(widget.roomId);
@@ -7047,7 +7035,10 @@ class _Header extends StatelessWidget {
             children: [
               // THE back control — the same 40pt chevron the liquid header
               // wears, so the two chat styles can't drift apart.
-              GlassBackButton(onTap: () => _roomBack(context)),
+              GlassBackButton(
+                closes: context.usesSplitShell,
+                onTap: () => _roomBack(context),
+              ),
               const SizedBox(width: 10),
               if (room.isSavedMessages)
                 Container(
@@ -7932,7 +7923,10 @@ class _LiquidHeader extends StatelessWidget {
         children: [
           // The iOS 26 toolbar back — THE shared one, 40pt, a chevron in the
           // label colour (the accent arrow was Material's).
-          GlassBackButton(onTap: () => _roomBack(context)),
+          GlassBackButton(
+                closes: context.usesSplitShell,
+                onTap: () => _roomBack(context),
+              ),
           const SizedBox(width: 12),
           Expanded(
             // LiquidGlass shrink-wraps its content, so the capsule is as wide

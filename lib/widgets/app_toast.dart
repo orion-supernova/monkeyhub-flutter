@@ -548,7 +548,11 @@ class _Pill extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Icon(spec.glyph, size: 15, color: Colors.white),
+                child: _GlyphPop(
+                  calm: spec.calm,
+                  twist: spec.tone == ToastTone.success,
+                  child: Icon(spec.glyph, size: 15, color: Colors.white),
+                ),
               ),
               const SizedBox(width: 10),
               Flexible(
@@ -651,5 +655,65 @@ class _Drop extends Curve {
     const s = 1.1;
     final u = t - 1;
     return u * u * ((s + 1) * u + s) + 1;
+  }
+}
+
+/// The toast's glyph landing a beat after the pill: it springs up from nothing
+/// inside its disc as the pill settles, and a success check twists into place
+/// as it does — the "done" stamp, rather than an icon that was simply there.
+///
+/// Runs once per toast and is then idle; calm motion shows it still.
+class _GlyphPop extends StatefulWidget {
+  const _GlyphPop({
+    required this.calm,
+    required this.twist,
+    required this.child,
+  });
+
+  final bool calm;
+  final bool twist;
+  final Widget child;
+
+  @override
+  State<_GlyphPop> createState() => _GlyphPopState();
+}
+
+class _GlyphPopState extends State<_GlyphPop>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 640),
+    value: widget.calm ? 1 : 0,
+  );
+
+  /// Held back until the pill is most of the way down, so the two motions
+  /// read as one after the other rather than as one blur.
+  static const _wait = Interval(0.18, 1, curve: Curves.elasticOut);
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.calm) _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (context, child) {
+        final v = _wait.transform(_c.value);
+        return Transform.rotate(
+          angle: widget.twist ? (1 - v) * -0.6 : 0,
+          child: Transform.scale(scale: v, child: child),
+        );
+      },
+    );
   }
 }

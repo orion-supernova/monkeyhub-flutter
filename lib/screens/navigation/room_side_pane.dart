@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/ui_selection_store.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/route_depth.dart';
 
 /// The split shell's third pane: room info (or a member's profile) beside the
 /// open chat, instead of a full-screen push over the rail and the chat list.
@@ -304,6 +305,9 @@ class RoomSidePaneState extends State<RoomSidePane>
   /// handing it the identical widget keeps the navigator out of that.
   late final Widget _navigator = Navigator(
     key: _nav,
+    // Room info and the rest open over the empty base, so their back is a ×
+    // on the split shell. See [GlassBackButton].
+    observers: [RouteDepthObserver()],
     onGenerateInitialRoutes: (navigator, initialRoute) => [
       PageRouteBuilder<void>(
         pageBuilder: (_, _, _) => PopScope(

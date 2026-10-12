@@ -214,6 +214,48 @@ async function pushAbout(
   });
 }
 
+/**
+ * Posts one move of an async game into the chat, as its sender: a `gameMove`
+ * row carrying the position after the move, so the bubble draws without
+ * reading the game. Turn by turn means a conversation, and a move nobody can
+ * see in the transcript reads as a move that was never sent.
+ *
+ * [seq] is the game's seq right after this move and [state] the position it
+ * made. Not `after.state`: `autoplayOut` may have played forced passes on top,
+ * and those are not this player's move.
+ *
+ * Quiet: the push is [pushAbout]'s "your move", which collapses per game. A
+ * message push as well would put two banners on the other phone per move.
+ * A send refused by the room's guard (a block since the game began, a child's
+ * policy) only loses the bubble: the move has already been played, and the
+ * card at the top of the game still shows it.
+ */
+async function postMoveBubble(
+  ctx: any,
+  match: any,
+  seat: number,
+  userId: any,
+  move: string,
+  seq: number,
+  state: string,
+) {
+  const title = GAME_TITLES[match.game] ?? match.game;
+  try {
+    return await sendCore(ctx, {
+      roomId: match.roomId,
+      userId,
+      content: `${title} · move ${seq}`,
+      type: "gameMove",
+      senderName: match.seats[seat]?.name || undefined,
+      gameMove: { matchId: match._id, game: match.game, seq, seat, move, state },
+      quiet: true,
+    });
+  } catch {
+    // See the doc: the move stands without its bubble.
+    return null;
+  }
+}
+
 /** What every reader gets: the row minus nothing secret (there is nothing). */
 function view(match: any) {
   return {
@@ -675,7 +717,7 @@ export const move = mutation({
       throw new Error("ILLEGAL");
     }
 
-    await ctx.db.insert("matchMoves", {
+    const moveRow = await ctx.db.insert("matchMoves", {
       matchId,
       seq: match.seq,
       seat,
@@ -688,6 +730,12 @@ export const move = mutation({
       lastMove: move,
     });
     after = await autoplayOut(ctx, after);
+    if (after.mode === "async") {
+      const bubble = await postMoveBubble(
+        ctx, after, seat, userId, move, match.seq + 1, rules.encode(next),
+      );
+      if (bubble) await ctx.db.patch(moveRow, { messageId: bubble });
+    }
 
     if (after.status === "finished") {
       await announceEnd(ctx, after, userId);

@@ -1927,16 +1927,14 @@ publish_release() {   # $1 = channel, $2 = updateUrl (optional), $3 = notes (opt
 # Presentation per platform. The manifest carries facts (version, file, size,
 # date); this carries how they are shown. New platform = one line here.
 #
-# No android-apk row any more: Android ships through Play, and the page carries
-# a fixed migration card for it instead of a download button.
+# linux has its own fixed card (with the AUR line) and android-apk is retired,
+# so render_downloads() never asks about either.
 platform_meta() {   # $1 = platform key → sets PM_ICON / PM_NAME / PM_KIND / PM_BTN
     case "$1" in
-        macos-dmg)   PM_ICON="🖥️"; PM_NAME="macOS";   PM_KIND="DMG"
+        macos-dmg)   PM_ICON="💻"; PM_NAME="Mac (direct download)"; PM_KIND="DMG"
                      PM_BTN="Download the DMG" ;;
-        windows)     PM_ICON="🪟"; PM_NAME="Windows"; PM_KIND="Installer"
+        windows)     PM_ICON="🪟"; PM_NAME="Windows (direct download)"; PM_KIND="Installer"
                      PM_BTN="Download for Windows" ;;
-        linux)       PM_ICON="🐧"; PM_NAME="Linux";   PM_KIND="x86_64 tarball"
-                     PM_BTN="Download for Linux" ;;
         *)           PM_ICON="📦"; PM_NAME="$1";      PM_KIND="File"
                      PM_BTN="Download" ;;
     esac
@@ -1962,14 +1960,17 @@ vm_ensure_dirs() { vm_ssh "mkdir -p $VM_SITE_DIR $VM_DL_DIR $VM_WEB_DIR"; }
 # that comment is cut on the way out.
 strip_doc() { awk '/<!-- MH:DOC/ {d=1} d { if (/-->/) d=0; next } {print}'; }
 
-# Expand the template's repeat block once per manifest entry. With no entries
-# the MH:EMPTY block stands in, so the page is never a bare heading.
+# Fill the template from the manifest: the Linux card's tokens (or drop its
+# MH:LINUX-DL blocks when nothing has shipped), then the MH:CARD block once per
+# remaining entry (or not at all). Every other card is fixed in the template.
 render_downloads() {   # $1 = manifest file, $2 = output html
     local manifest="$1" out="$2"
     local tpl="hosting/downloads.template.html"
-    local cards="" key card ver file size updated meta tmp_cards
+    local cards="" key card ver file size updated meta tmp_cards page
+    local lx_file lx_ver lx_meta
 
     for key in $(jq -r 'keys[]' "$manifest"); do
+        case "$key" in linux|android-apk) continue ;; esac
         file=$(jq -r --arg k "$key" '.[$k].file // ""' "$manifest")
         [ -n "$file" ] || continue
         ver=$(jq -r --arg k "$key" '.[$k].version // "?"' "$manifest")
@@ -1981,6 +1982,7 @@ render_downloads() {   # $1 = manifest file, $2 = output html
         card=$(awk '/<!-- MH:CARD -->/{f=1;next} /<!-- MH:\/CARD -->/{f=0} f' "$tpl")
         # Parameter expansion, not sed: filenames and labels never have to be
         # escaped for a regex they were never meant to be part of.
+        card=${card//__PLAT_KEY__/$key}
         card=${card//__PLAT_ICON__/$PM_ICON}
         card=${card//__PLAT_NAME__/$PM_NAME}
         card=${card//__PLAT_VERSION__/$ver}
@@ -1991,21 +1993,42 @@ render_downloads() {   # $1 = manifest file, $2 = output html
     done
 
     tmp_cards=$(mktemp)
-    if [ -n "$cards" ]; then
-        printf '%s' "$cards" > "$tmp_cards"
-    else
-        awk '/<!-- MH:EMPTY -->/{f=1;next} /<!-- MH:\/EMPTY -->/{f=0} f' "$tpl" > "$tmp_cards"
-    fi
+    printf '%s' "$cards" > "$tmp_cards"
 
-    # Drop everything from MH:CARD to MH:/EMPTY and put the rendered cards there.
-    awk -v cardfile="$tmp_cards" '
+    # Swap the MH:CARD block for the rendered cards (possibly none).
+    page=$(awk -v cardfile="$tmp_cards" '
         /<!-- MH:CARD -->/     { skip=1
                                  while ((getline line < cardfile) > 0) print line
                                  close(cardfile); next }
-        /<!-- MH:\/EMPTY -->/  { skip=0; next }
+        /<!-- MH:\/CARD -->/   { skip=0; next }
         !skip                  { print }
-    ' "$tpl" | sed -e "s/__UPDATED_AT__/$STAMP_DATE/g" | strip_doc > "$out"
+    ' "$tpl")
     rm -f "$tmp_cards"
+
+    lx_file=$(jq -r '.linux.file // ""' "$manifest")
+    if [ -n "$lx_file" ]; then
+        lx_ver=$(jq -r '.linux.version // "?"' "$manifest")
+        lx_meta="tar.gz · $(jq -r '.linux.size // "?"' "$manifest") · updated $(jq -r '.linux.updatedAt // "?"' "$manifest")"
+        page=$(printf '%s\n' "$page" | grep -v 'MH:/\{0,1\}LINUX-DL')
+        page=${page//__LINUX_HREF__/$lx_file}
+        page=${page//__LINUX_VERSION__/$lx_ver}
+        page=${page//__LINUX_META__/$lx_meta}
+    else
+        page=$(printf '%s\n' "$page" | awk '/<!-- MH:LINUX-DL -->/{d=1;next} /<!-- MH:\/LINUX-DL -->/{d=0;next} !d')
+    fi
+
+    # The yay line only once the AUR package really exists. Asked at stamp
+    # time; no answer (offline, timeout, bad JSON) counts as "not there".
+    local aur_count
+    aur_count=$(curl -fsS --max-time 8 'https://aur.archlinux.org/rpc/v5/info?arg[]=monkeyhub-bin' 2>/dev/null \
+        | jq -r '.resultcount // 0' 2>/dev/null)
+    if [ "${aur_count:-0}" -gt 0 ] 2>/dev/null; then
+        page=$(printf '%s\n' "$page" | awk '/<!-- MH:NOAUR -->/{d=1;next} /<!-- MH:\/NOAUR -->/{d=0;next} !d' | grep -v 'MH:/\{0,1\}AUR -->')
+    else
+        page=$(printf '%s\n' "$page" | awk '/<!-- MH:AUR -->/{d=1;next} /<!-- MH:\/AUR -->/{d=0;next} !d' | grep -v 'MH:/\{0,1\}NOAUR -->')
+    fi
+
+    printf '%s\n' "$page" | sed -e "s/__UPDATED_AT__/$STAMP_DATE/g" | strip_doc > "$out"
 }
 
 # Stage and push both pages. Seconds, no build — which is why every VM-touching

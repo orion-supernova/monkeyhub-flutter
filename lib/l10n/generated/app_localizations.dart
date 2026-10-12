@@ -9869,24 +9869,6 @@ abstract class AppLocalizations {
   /// **'How to play'**
   String get gameInfoOpen;
 
-  /// All-caps eyebrow above the game's name at the top of the how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'How to play'**
-  String get gameInfoLabel;
-
-  /// All-caps header above the bulleted rules in the how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'The rules'**
-  String get gameInfoRulesLabel;
-
-  /// All-caps header above the line explaining what to tap or drag, in the how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'What to tap'**
-  String get gameInfoControlsLabel;
-
   /// Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard.
   ///
   /// In en, this message translates to:
@@ -9904,156 +9886,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Everyone gets the same puzzle today.'**
   String get gameInfoSameForEveryone;
-
-  /// One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Put 8 crowns on the board.'**
-  String get gameInfoQueensGoal;
-
-  /// First rule bullet in the Queens how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Every row gets exactly 1 crown.'**
-  String get gameInfoQueensRule1;
-
-  /// Second rule bullet in the Queens how-to-play sheet. The board is divided into coloured regions and each holds exactly one crown.
-  ///
-  /// In en, this message translates to:
-  /// **'Every column gets exactly 1 crown.'**
-  String get gameInfoQueensRule2;
-
-  /// Third rule bullet in the Queens how-to-play sheet. Crowns may not be adjacent horizontally, vertically or diagonally.
-  ///
-  /// In en, this message translates to:
-  /// **'Every colour gets exactly 1 crown.'**
-  String get gameInfoQueensRule3;
-
-  /// Explains the Queens board's controls: a tap cycles a square through empty, the player's own cross, and a crown.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap once for × (no crown here). Tap twice for a crown. Tap again to clear.'**
-  String get gameInfoQueensControls;
-
-  /// One-sentence description of what the player is trying to do in Tango, at the top of its how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Fill every square with a sun or a moon.'**
-  String get gameInfoTangoGoal;
-
-  /// First rule bullet in the Tango how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Every row has 3 suns and 3 moons.'**
-  String get gameInfoTangoRule1;
-
-  /// Second rule bullet in the Tango how-to-play sheet. No run of three identical symbols horizontally or vertically.
-  ///
-  /// In en, this message translates to:
-  /// **'Every column has 3 suns and 3 moons.'**
-  String get gameInfoTangoRule2;
-
-  /// Third rule bullet in the Tango how-to-play sheet. Explains the two operators printed on the edges between adjacent squares. Keep the '=' and '×' symbols as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Never 3 of the same in a line. 2 is fine.'**
-  String get gameInfoTangoRule3;
-
-  /// Explains the Tango board's controls. 'printed squares' are the ones the puzzle starts with, which cannot be changed.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap once for a sun, twice for a moon, again to clear. Squares that start filled can\'t change.'**
-  String get gameInfoTangoControls;
-
-  /// One-sentence description of what the player is trying to do in Zip, at the top of its how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Draw one line through every square.'**
-  String get gameInfoZipGoal;
-
-  /// First rule bullet in the Zip how-to-play sheet. The board has numbered dots and the line must begin at 1 and end at the highest one.
-  ///
-  /// In en, this message translates to:
-  /// **'Start on 1.'**
-  String get gameInfoZipRule1;
-
-  /// Second rule bullet in the Zip how-to-play sheet. The numbered dots must be visited in ascending order.
-  ///
-  /// In en, this message translates to:
-  /// **'Visit the numbers in order: 1, 2, 3…'**
-  String get gameInfoZipRule2;
-
-  /// Third rule bullet in the Zip how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Fill every square. Use each square once.'**
-  String get gameInfoZipRule3;
-
-  /// Explains the Zip board's controls. The line is drawn with a drag and retracts when the finger moves back along it.
-  ///
-  /// In en, this message translates to:
-  /// **'Drag your finger to draw. Drag back to undo.'**
-  String get gameInfoZipControls;
-
-  /// One-sentence description of what the player is trying to do in Mini Sudoku, at the top of its how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Fill the grid with the numbers 1 to 6.'**
-  String get gameInfoSudokuGoal;
-
-  /// First rule bullet in the Mini Sudoku how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Every row has 1, 2, 3, 4, 5 and 6. No repeats.'**
-  String get gameInfoSudokuRule1;
-
-  /// Second rule bullet in the Mini Sudoku how-to-play sheet. Reads as a continuation of the row rule immediately above it.
-  ///
-  /// In en, this message translates to:
-  /// **'Every column too.'**
-  String get gameInfoSudokuRule2;
-
-  /// Third rule bullet in the Mini Sudoku how-to-play sheet. The 6x6 grid is divided into boxes two rows tall and three columns wide.
-  ///
-  /// In en, this message translates to:
-  /// **'Every box too. A box is 2 rows by 3 columns.'**
-  String get gameInfoSudokuRule3;
-
-  /// Explains the Mini Sudoku board's controls, including the notes toggle that switches the keypad to writing small pencil marks.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.'**
-  String get gameInfoSudokuControls;
-
-  /// One-sentence description of what the player is trying to do in the symbol-code puzzle, at the top of its how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Guess the secret code of 4 symbols.'**
-  String get gameInfoCodeGoal;
-
-  /// First rule bullet in the symbol-code puzzle's how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'The code uses 4 different symbols. No repeats.'**
-  String get gameInfoCodeRule1;
-
-  /// Second rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a correctly-placed symbol is shown in.
-  ///
-  /// In en, this message translates to:
-  /// **'You get 6 guesses.'**
-  String get gameInfoCodeRule2;
-
-  /// Third rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a misplaced symbol is shown in.
-  ///
-  /// In en, this message translates to:
-  /// **'Green: right symbol, right spot.'**
-  String get gameInfoCodeRule3;
-
-  /// Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap 4 symbols, then tap Guess.'**
-  String get gameInfoCodeControls;
 
   /// Room-list display name for the self-chat room every account has (name starting with 'dm:self:'), shown in place of a friend's display name in RoomCard/RoomGridTile.
   ///
@@ -18223,90 +18055,6 @@ abstract class AppLocalizations {
   /// **'Last month'**
   String get roomContentMonthLast;
 
-  /// Screen-reader label for the one-line goal under the example board on a game's how-to-play sheet. Not drawn.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal'**
-  String get gameInfoGoalLabel;
-
-  /// Label on the worked-example card of a game's how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Example'**
-  String get gameInfoExampleLabel;
-
-  /// Heading of the scoring lines at the foot of a game's how-to-play sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'How you win'**
-  String get gameInfoWinLabel;
-
-  /// Queens rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Crowns can\'t touch. Not even corner to corner.'**
-  String get gameInfoQueensRule4;
-
-  /// Queens worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'One crown here means: no other crown in its row, its column, its colour, or the 8 squares around it.'**
-  String get gameInfoQueensExample;
-
-  /// Tango rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'= means the 2 squares match. × means they\'re different.'**
-  String get gameInfoTangoRule4;
-
-  /// Tango worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Sun, sun, empty? The empty square must be a moon.'**
-  String get gameInfoTangoExample;
-
-  /// Zip rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Move up, down, left or right. No diagonals.'**
-  String get gameInfoZipRule4;
-
-  /// Zip rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Finish on the last number.'**
-  String get gameInfoZipRule5;
-
-  /// Zip worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Going from 1 to 2? Take the long way if you must. No square can be left empty.'**
-  String get gameInfoZipExample;
-
-  /// Mini sudoku worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'A row already has 1, 2, 4, 5 and 6? The empty square is 3.'**
-  String get gameInfoSudokuExample;
-
-  /// The code rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Yellow: right symbol, wrong spot.'**
-  String get gameInfoCodeRule4;
-
-  /// The code rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Grey: that symbol isn\'t in the code.'**
-  String get gameInfoCodeRule5;
-
-  /// The code worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are.
-  ///
-  /// In en, this message translates to:
-  /// **'Green, yellow, grey, grey means: 1 symbol is in the right spot, 1 belongs somewhere else, 2 aren\'t in the code.'**
-  String get gameInfoCodeExample;
-
   /// Leaderboard filter capsule: the overall standings across all of today's games.
   ///
   /// In en, this message translates to:
@@ -20857,36 +20605,6 @@ abstract class AppLocalizations {
   /// **'Live'**
   String get chatGameModeLive;
 
-  /// Mode option: take turns whenever you like (DMs only).
-  ///
-  /// In en, this message translates to:
-  /// **'Take turns'**
-  String get chatGameModeTurns;
-
-  /// Mode option: play alone against the app's bot.
-  ///
-  /// In en, this message translates to:
-  /// **'Vs bot'**
-  String get chatGameModeBot;
-
-  /// Explanation under the Live mode option.
-  ///
-  /// In en, this message translates to:
-  /// **'Everyone plays at once. Leaving pauses the game.'**
-  String get chatGameModeLiveHint;
-
-  /// Explanation under the Take turns mode option.
-  ///
-  /// In en, this message translates to:
-  /// **'Move whenever you like. You each get a notification on your turn, and a turn lasts up to 2 days.'**
-  String get chatGameModeTurnsHint;
-
-  /// Explanation under the Vs bot option.
-  ///
-  /// In en, this message translates to:
-  /// **'Just you and the bot. Nothing is posted in the chat.'**
-  String get chatGameModeBotHint;
-
   /// Explanation for the easy bot level.
   ///
   /// In en, this message translates to:
@@ -21060,198 +20778,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto-dot'**
   String get gameAutoDot;
-
-  /// Flow how-to-play sheet: the goal, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Join every pair of matching dots with a pipe.'**
-  String get gameInfoFlowGoal;
-
-  /// Flow how-to-play sheet: rule 1, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Each pipe joins 2 dots of the same colour and number.'**
-  String get gameInfoFlowRule1;
-
-  /// Flow how-to-play sheet: rule 2, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Pipes can\'t cross or share a square.'**
-  String get gameInfoFlowRule2;
-
-  /// Flow how-to-play sheet: rule 3, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Fill every square. None can be left empty.'**
-  String get gameInfoFlowRule3;
-
-  /// Flow how-to-play sheet: rule 4, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Move up, down, left or right. No diagonals.'**
-  String get gameInfoFlowRule4;
-
-  /// Flow how-to-play sheet: a tiny worked example under the example board.
-  ///
-  /// In en, this message translates to:
-  /// **'No straight way through? Bend the pipe around the others. Every square still has to be filled.'**
-  String get gameInfoFlowExample;
-
-  /// Flow how-to-play sheet: how to play it with taps and drags.
-  ///
-  /// In en, this message translates to:
-  /// **'Drag from a dot to draw its pipe. Drag back to undo. Drawing across a pipe cuts it.'**
-  String get gameInfoFlowControls;
-
-  /// Futoshiki how-to-play sheet: the goal, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Fill the grid with the numbers 1 to 5.'**
-  String get gameInfoFutoshikiGoal;
-
-  /// Futoshiki how-to-play sheet: rule 1, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Every row has 1, 2, 3, 4 and 5. No repeats.'**
-  String get gameInfoFutoshikiRule1;
-
-  /// Futoshiki how-to-play sheet: rule 2, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Every column too.'**
-  String get gameInfoFutoshikiRule2;
-
-  /// Futoshiki how-to-play sheet: rule 3, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'A < or > between 2 squares must be true. It points at the smaller number.'**
-  String get gameInfoFutoshikiRule3;
-
-  /// Futoshiki how-to-play sheet: a tiny worked example under the example board.
-  ///
-  /// In en, this message translates to:
-  /// **'A sign points at this square? Then it can\'t be 5, because its neighbour is bigger.'**
-  String get gameInfoFutoshikiExample;
-
-  /// Futoshiki how-to-play sheet: how to play it with taps and drags.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.'**
-  String get gameInfoFutoshikiControls;
-
-  /// Nonogram how-to-play sheet: the goal, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Shade squares to reveal the hidden picture.'**
-  String get gameInfoNonogramGoal;
-
-  /// Nonogram how-to-play sheet: rule 1, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'The numbers by each row and column are its shaded runs, in order.'**
-  String get gameInfoNonogramRule1;
-
-  /// Nonogram how-to-play sheet: rule 2, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Runs are kept apart by at least 1 empty square.'**
-  String get gameInfoNonogramRule2;
-
-  /// Nonogram how-to-play sheet: rule 3, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'0 means the whole line is empty.'**
-  String get gameInfoNonogramRule3;
-
-  /// Nonogram how-to-play sheet: a tiny worked example under the example board.
-  ///
-  /// In en, this message translates to:
-  /// **'A row of 10 with the clue 10? Shade it all. With 4 4, both runs fit, with a gap between them.'**
-  String get gameInfoNonogramExample;
-
-  /// Nonogram how-to-play sheet: how to play it with taps and drags.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap once to shade, twice for × (empty), again to clear. Drag to mark several squares at once.'**
-  String get gameInfoNonogramControls;
-
-  /// Minesweeper how-to-play sheet: the goal, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Open every square that isn\'t a mine.'**
-  String get gameInfoMinesweeperGoal;
-
-  /// Minesweeper how-to-play sheet: rule 1, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'A number says how many mines touch that square, corners included.'**
-  String get gameInfoMinesweeperRule1;
-
-  /// Minesweeper how-to-play sheet: rule 2, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Every square can be worked out. You never have to guess.'**
-  String get gameInfoMinesweeperRule2;
-
-  /// Minesweeper how-to-play sheet: rule 3, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Hit a mine and 30 seconds go on your time. Then keep going.'**
-  String get gameInfoMinesweeperRule3;
-
-  /// Minesweeper how-to-play sheet: a tiny worked example under the example board.
-  ///
-  /// In en, this message translates to:
-  /// **'A 1 with only one closed square next to it? That square is the mine. Flag it.'**
-  String get gameInfoMinesweeperExample;
-
-  /// Minesweeper how-to-play sheet: how to play it with taps and drags.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap to open a square. Long-press, or switch on Flag, to mark a mine.'**
-  String get gameInfoMinesweeperControls;
-
-  /// Starbattle how-to-play sheet: the goal, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Put 2 stars in every row, column and colour.'**
-  String get gameInfoStarbattleGoal;
-
-  /// Starbattle how-to-play sheet: rule 1, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Every row gets exactly 2 stars.'**
-  String get gameInfoStarbattleRule1;
-
-  /// Starbattle how-to-play sheet: rule 2, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Every column gets exactly 2 stars.'**
-  String get gameInfoStarbattleRule2;
-
-  /// Starbattle how-to-play sheet: rule 3, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Every colour gets exactly 2 stars.'**
-  String get gameInfoStarbattleRule3;
-
-  /// Starbattle how-to-play sheet: rule 4, one short sentence.
-  ///
-  /// In en, this message translates to:
-  /// **'Stars can\'t touch. Not even corner to corner.'**
-  String get gameInfoStarbattleRule4;
-
-  /// Starbattle how-to-play sheet: a tiny worked example under the example board.
-  ///
-  /// In en, this message translates to:
-  /// **'One star here means: no other star in the 8 squares around it, and one more to find in its row, column and colour.'**
-  String get gameInfoStarbattleExample;
-
-  /// Starbattle how-to-play sheet: how to play it with taps and drags.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap once for a dot (no star here). Tap twice for a star. Tap again to clear.'**
-  String get gameInfoStarbattleControls;
 
   /// Screen reader name of a game board cell.
   ///
@@ -21474,24 +21000,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{min}–{max} players'**
   String chatGamePlayersRange(int min, int max);
-
-  /// Header of the party games section in the game picker.
-  ///
-  /// In en, this message translates to:
-  /// **'Party'**
-  String get chatGamePartySection;
-
-  /// Why party games are greyed out when Take turns or Vs bot is selected.
-  ///
-  /// In en, this message translates to:
-  /// **'Party games are played live, with everyone at once.'**
-  String get chatGamePartyLiveOnly;
-
-  /// Why Imposter is greyed out in a one-to-one chat.
-  ///
-  /// In en, this message translates to:
-  /// **'Needs a group of 3 or more'**
-  String get chatGameNeedsThree;
 
   /// Imposter option toggle: give clues by voice on a call.
   ///
@@ -22104,6 +21612,714 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Promote to {piece}'**
   String chessPromoteTo(String piece);
+
+  /// Small button under the keyboard-shortcuts card that appears while ⌘/Ctrl is held. Turns the card off for good.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t show again'**
+  String get kbdPeekDontShowAgain;
+
+  /// Toast after the user taps 'Don't show again' on the shortcuts card. Tells them where to bring it back.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it, no more pop-ups. You can turn it back on in Settings.'**
+  String get kbdPeekTurnedOff;
+
+  /// Short badge on a chat game tile: this game can be played turn by turn (async). Keep very short.
+  ///
+  /// In en, this message translates to:
+  /// **'Turns'**
+  String get chatGameBadgeTurns;
+
+  /// Start-game sheet section header: the two-player board games (tic-tac-toe, chess...).
+  ///
+  /// In en, this message translates to:
+  /// **'Board games'**
+  String get chatGameSectionBoards;
+
+  /// Start-game sheet section header: party games for a group (Liar's Dice, Imposter, Puzzle Race).
+  ///
+  /// In en, this message translates to:
+  /// **'Party games'**
+  String get chatGameSectionParty;
+
+  /// Under the board games header in a DM: they can be played live or turn by turn.
+  ///
+  /// In en, this message translates to:
+  /// **'Play live right now, or take turns whenever you’re free.'**
+  String get chatGameBoardsHintDm;
+
+  /// Under the board games header in a group chat: they are played live, others can watch.
+  ///
+  /// In en, this message translates to:
+  /// **'Played live, right here. Grab a seat or just watch.'**
+  String get chatGameBoardsHintGroup;
+
+  /// Under the party games header: everyone plays at the same time.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone plays at once, so round up the crew first.'**
+  String get chatGamePartyHint;
+
+  /// Mode choice card title in the start-game sheet: play the game live, now.
+  ///
+  /// In en, this message translates to:
+  /// **'Play live'**
+  String get chatGameLiveTitle;
+
+  /// Live mode card, first line: everyone is playing at the same moment.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone plays at the same time, right now.'**
+  String get chatGameLiveNow;
+
+  /// Live mode card, second line: leaving pauses the game; 2 minutes to come back or that player forfeits.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone leaves? It pauses. 2 minutes to get back, or they forfeit.'**
+  String get chatGameLivePause;
+
+  /// Mode choice card title in the start-game sheet: play turn by turn, asynchronously.
+  ///
+  /// In en, this message translates to:
+  /// **'Take turns'**
+  String get chatGameTurnsTitle;
+
+  /// Turn-by-turn mode card, first line: move whenever; each move is posted in the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Move whenever you want. Each move drops into the chat.'**
+  String get chatGameTurnsAnytime;
+
+  /// Turn-by-turn mode card, second line: 2 days per move, reminders and nudges.
+  ///
+  /// In en, this message translates to:
+  /// **'2 days per move. We remind them, and you can nudge.'**
+  String get chatGameTurnsClock;
+
+  /// Header above the live / take turns choice for one game in a DM.
+  ///
+  /// In en, this message translates to:
+  /// **'How do you want to play?'**
+  String get chatGameHowWillYouPlay;
+
+  /// Title of the screen (and Feed tile) where you play board games against the app's bot.
+  ///
+  /// In en, this message translates to:
+  /// **'Play the bot'**
+  String get botHubTitle;
+
+  /// Under the bot screen title. {bot} is the bot's name (Monkey).
+  ///
+  /// In en, this message translates to:
+  /// **'Just you and {bot}. Nothing gets posted, nobody’s watching.'**
+  String botHubSubtitle(String bot);
+
+  /// Header above the bot difficulty picker (easy / medium / hard).
+  ///
+  /// In en, this message translates to:
+  /// **'How tough?'**
+  String get botHubLevelTitle;
+
+  /// Header above the grid of games on the bot screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a game'**
+  String get botHubPickGame;
+
+  /// Small caption over the bot tile in the Feed's games row, next to Easy / Medium / Hard.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice'**
+  String get botHubCaption;
+
+  /// Status chip on the bot tile: how many games you can play against the bot.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 game} other{{count} games}}'**
+  String botHubGameCount(int count);
+
+  /// Turn-by-turn move bubble header when the viewer made the move.
+  ///
+  /// In en, this message translates to:
+  /// **'You played'**
+  String get chatGameMvYouPlayed;
+
+  /// Turn-by-turn move bubble header when the other player made the move.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} played'**
+  String chatGameMvTheyPlayed(String name);
+
+  /// Move number on a turn-by-turn move bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {count}'**
+  String chatGameMvNumber(int count);
+
+  /// Connect Four move description: which column the disc went into.
+  ///
+  /// In en, this message translates to:
+  /// **'Column {count}'**
+  String chatGameMvColumn(int count);
+
+  /// Footer of a move bubble that is no longer the latest move of its game.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier move'**
+  String get chatGameMvEarlier;
+
+  /// Button that commits a staged move in a turn-by-turn game and posts it to the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Send move'**
+  String get chatGameMvSend;
+
+  /// Takes back a staged, unsent move in a turn-by-turn game.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get chatGameMvUndo;
+
+  /// Shown above Send move while a move is staged but not sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent yet. Change your mind or hit Send.'**
+  String get chatGameMvStagedHint;
+
+  /// Toast after a turn-by-turn move is sent and the game closes back to the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Move sent. Their turn now.'**
+  String get chatGameMvSentToast;
+
+  /// Turn-by-turn game status card, viewer's turn: how to play the turn.
+  ///
+  /// In en, this message translates to:
+  /// **'Make your move, then send it. No rush.'**
+  String get chatGameMvYourTurnSub;
+
+  /// Turn-by-turn game status card while waiting for the other player.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll ping you when it\'s your turn.'**
+  String get chatGameMvWaitingSub;
+
+  /// Turn-by-turn game: why the Nudge button is not there yet.
+  ///
+  /// In en, this message translates to:
+  /// **'You can nudge after 12 quiet hours'**
+  String get chatGameMvNudgeLater;
+
+  /// Turn-by-turn game status card: what happens when the move clock runs out.
+  ///
+  /// In en, this message translates to:
+  /// **'If the clock runs out, that player loses'**
+  String get chatGameMvForfeitNote;
+
+  /// Turn-by-turn game: the move just sent earned another turn (e.g. a closed box in Dots).
+  ///
+  /// In en, this message translates to:
+  /// **'Still your turn. Go again!'**
+  String get chatGameMvAgain;
+
+  /// Send move button while the move is on its way.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get chatGameMvSending;
+
+  /// How-to-play sheet: pill that goes to the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get howToNext;
+
+  /// How-to-play sheet: pill on the last step that replays the guide from the start.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch again'**
+  String get howToWatchAgain;
+
+  /// How-to-play sheet: main button when the guide was opened from inside a game. Closes it.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get howToGotIt;
+
+  /// How-to-play sheet: small chip above a step that is a strategy tip, not a rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Pro tip'**
+  String get howToProTip;
+
+  /// Screen reader label for one page of the how-to-play guide.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of {total}'**
+  String howToStepSemantic(int step, int total);
+
+  /// Queens guide, step: the core rule.
+  ///
+  /// In en, this message translates to:
+  /// **'One crown in every row, every column and every colour.'**
+  String get howToQueens1;
+
+  /// Queens guide, step: crowns may not touch, including diagonally.
+  ///
+  /// In en, this message translates to:
+  /// **'Crowns can\'t touch. Not even corner to corner.'**
+  String get howToQueens2;
+
+  /// Queens guide, step: the tap cycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap once for an ×, twice for a crown, once more to clear.'**
+  String get howToQueens3;
+
+  /// Queens guide, strategy tip.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop a crown, then × every square it rules out. The board cracks open fast.'**
+  String get howToQueens4;
+
+  /// Tango guide, step: how to fill.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap once for a sun, twice for a moon. Fill every square.'**
+  String get howToTango1;
+
+  /// Tango guide, step: balance rule.
+  ///
+  /// In en, this message translates to:
+  /// **'Every row and column is half suns, half moons.'**
+  String get howToTango2;
+
+  /// Tango guide, step: no three in a row.
+  ///
+  /// In en, this message translates to:
+  /// **'Never 3 of the same in a row. 2 is fine.'**
+  String get howToTango3;
+
+  /// Tango guide, step: = and × signs between squares.
+  ///
+  /// In en, this message translates to:
+  /// **'= means the two match. × means they\'re opposite.'**
+  String get howToTango4;
+
+  /// Zip guide, step: start and order.
+  ///
+  /// In en, this message translates to:
+  /// **'Start on 1 and drag through the numbers in order.'**
+  String get howToZip1;
+
+  /// Zip guide, step: fill every square, finish on the last number.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover every square and finish on the last number.'**
+  String get howToZip2;
+
+  /// Zip guide, tip: undo by dragging back.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong turn? Just drag back to undo.'**
+  String get howToZip3;
+
+  /// Mini Sudoku guide, step: the rule (numbers 1 to 6).
+  ///
+  /// In en, this message translates to:
+  /// **'Every row, column and box gets 1 to 6. No repeats.'**
+  String get howToSudoku1;
+
+  /// Mini Sudoku guide, step: controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a square, then tap a number.'**
+  String get howToSudoku2;
+
+  /// Mini Sudoku guide, step: a repeated number turns red.
+  ///
+  /// In en, this message translates to:
+  /// **'Same number twice in a line? It turns red.'**
+  String get howToSudoku3;
+
+  /// Mini Sudoku guide, tip.
+  ///
+  /// In en, this message translates to:
+  /// **'Hunt for lines missing just one number. Free points.'**
+  String get howToSudoku4;
+
+  /// Flow guide, step: connect matching dots.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag from a dot to its twin to lay a pipe.'**
+  String get howToFlow1;
+
+  /// Flow guide, step: no crossing, fill everything.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipes can\'t cross, and every square has to be filled. Take the long way.'**
+  String get howToFlow2;
+
+  /// Futoshiki guide, step: each number once per row and column.
+  ///
+  /// In en, this message translates to:
+  /// **'Every row and column gets each number exactly once.'**
+  String get howToFutoshiki1;
+
+  /// Futoshiki guide, step: the < > sign points at the smaller number.
+  ///
+  /// In en, this message translates to:
+  /// **'The pointy end of the sign points at the smaller number.'**
+  String get howToFutoshiki2;
+
+  /// Futoshiki guide, step: a broken sign turns red.
+  ///
+  /// In en, this message translates to:
+  /// **'Break a sign and it lights up red.'**
+  String get howToFutoshiki3;
+
+  /// Nonogram guide, step: what the clue numbers mean.
+  ///
+  /// In en, this message translates to:
+  /// **'The numbers say how many squares in a row to shade. 5 means 5 in a row.'**
+  String get howToNonogram1;
+
+  /// Nonogram guide, step: several numbers need gaps between runs.
+  ///
+  /// In en, this message translates to:
+  /// **'1 1 means two separate squares, with at least one gap between them.'**
+  String get howToNonogram2;
+
+  /// Nonogram guide, step: controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to shade, again for ×, again to clear. Drag to do loads at once.'**
+  String get howToNonogram3;
+
+  /// Nonogram guide, step: the reveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Nail every clue and the hidden picture pops out.'**
+  String get howToNonogram4;
+
+  /// Minesweeper guide, step: opening squares.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a square to open it. Empty areas open up on their own.'**
+  String get howToMines1;
+
+  /// Minesweeper guide, step: what numbers mean.
+  ///
+  /// In en, this message translates to:
+  /// **'A number tells you how many mines touch it, corners too.'**
+  String get howToMines2;
+
+  /// Minesweeper guide, step: flagging.
+  ///
+  /// In en, this message translates to:
+  /// **'Sure it\'s a mine? Long-press to flag it.'**
+  String get howToMines3;
+
+  /// Minesweeper guide, step: penalty for hitting a mine, and no guessing needed.
+  ///
+  /// In en, this message translates to:
+  /// **'Hit a mine and you eat a 30 second penalty. But you never actually have to guess.'**
+  String get howToMines4;
+
+  /// Star Battle guide, step: two stars per row/column/colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Two stars in every row, every column and every colour.'**
+  String get howToStars1;
+
+  /// Star Battle guide, step: stars may not touch.
+  ///
+  /// In en, this message translates to:
+  /// **'Stars can\'t touch. Not even corner to corner.'**
+  String get howToStars2;
+
+  /// Star Battle guide, strategy tip.
+  ///
+  /// In en, this message translates to:
+  /// **'Dot out the squares around each star. Once a row has its 2, the rest is out.'**
+  String get howToStars3;
+
+  /// Code puzzle guide, step: the goal.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s a secret code of 4 different symbols. Crack it.'**
+  String get howToCode1;
+
+  /// Code puzzle guide, step: green feedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Green means right symbol, right spot.'**
+  String get howToCode2;
+
+  /// Code puzzle guide, step: yellow and grey feedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow means it\'s in the code, just somewhere else. Grey means it\'s not in there at all.'**
+  String get howToCode3;
+
+  /// Code puzzle guide, step: number of guesses.
+  ///
+  /// In en, this message translates to:
+  /// **'You get 6 guesses. The fewer you need, the better.'**
+  String get howToCode4;
+
+  /// Tic-tac-toe guide step.
+  ///
+  /// In en, this message translates to:
+  /// **'Take turns placing your mark. Get 3 in a row to win.'**
+  String get howToTtt1;
+
+  /// Tic-tac-toe guide tip: block the opponent.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'ve got 2 in a line? Grab the third square before they do.'**
+  String get howToTtt2;
+
+  /// Connect Four guide step: dropping discs.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a column to drop a disc. It falls to the lowest free spot.'**
+  String get howToC41;
+
+  /// Connect Four guide step: winning.
+  ///
+  /// In en, this message translates to:
+  /// **'Line up 4 in a row to win: across, up and down, or diagonal.'**
+  String get howToC42;
+
+  /// Checkers guide step: moving.
+  ///
+  /// In en, this message translates to:
+  /// **'Pieces move one square diagonally forward. Tap a piece, then where it goes.'**
+  String get howToCheckers1;
+
+  /// Checkers guide step: captures are forced.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump over a rival piece to take it. If you can jump, you have to. The piece that must jump gets a ring.'**
+  String get howToCheckers2;
+
+  /// Checkers guide step: multi-jumps.
+  ///
+  /// In en, this message translates to:
+  /// **'Land somewhere you can jump again? Keep going. One move can take a bunch.'**
+  String get howToCheckers3;
+
+  /// Checkers guide step: kings.
+  ///
+  /// In en, this message translates to:
+  /// **'Reach the far side and your piece is crowned king. Kings can move backwards too.'**
+  String get howToCheckers4;
+
+  /// Checkers guide footnote: how you win.
+  ///
+  /// In en, this message translates to:
+  /// **'Take all their pieces, or leave them with no move, to win.'**
+  String get howToCheckersWin;
+
+  /// Reversi guide step: trapping.
+  ///
+  /// In en, this message translates to:
+  /// **'Place a disc so a line of their discs ends up trapped between two of yours.'**
+  String get howToReversi1;
+
+  /// Reversi guide step: flipping.
+  ///
+  /// In en, this message translates to:
+  /// **'Every trapped disc flips to your colour, in every direction at once.'**
+  String get howToReversi2;
+
+  /// Reversi guide step: passing and winning.
+  ///
+  /// In en, this message translates to:
+  /// **'No move to make? Your turn gets skipped. When nobody can move, most discs wins.'**
+  String get howToReversi3;
+
+  /// Dots and Boxes guide step: drawing lines.
+  ///
+  /// In en, this message translates to:
+  /// **'Take turns drawing a line between two dots.'**
+  String get howToDots1;
+
+  /// Dots and Boxes guide step: closing a box gives another turn.
+  ///
+  /// In en, this message translates to:
+  /// **'Close a box and it\'s yours. And you go again!'**
+  String get howToDots2;
+
+  /// Dots and Boxes guide tip.
+  ///
+  /// In en, this message translates to:
+  /// **'Careful with a box\'s third side. That hands it to the next player.'**
+  String get howToDots3;
+
+  /// Dots and Boxes guide footnote.
+  ///
+  /// In en, this message translates to:
+  /// **'Most boxes when the last line is drawn wins.'**
+  String get howToDotsWin;
+
+  /// Chess guide step: how to move in the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a piece to see where it can go, then tap a square.'**
+  String get howToChess1;
+
+  /// Chess guide step: capturing.
+  ///
+  /// In en, this message translates to:
+  /// **'Move onto a rival piece to take it.'**
+  String get howToChess2;
+
+  /// Chess guide step: promotion.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a pawn to the last row and it becomes a queen, or whatever you pick.'**
+  String get howToChess3;
+
+  /// Chess guide step: check and checkmate.
+  ///
+  /// In en, this message translates to:
+  /// **'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over.'**
+  String get howToChess4;
+
+  /// Liar's Dice guide step: secret dice.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone rolls 5 dice in secret. You only see your own.'**
+  String get howToLiars1;
+
+  /// Liar's Dice guide step: what a bid is.
+  ///
+  /// In en, this message translates to:
+  /// **'On your turn, bid how many of one face are on the whole table, counting everyone\'s dice. Like “four 3s”.'**
+  String get howToLiars2;
+
+  /// Liar's Dice guide step: 1s are wild.
+  ///
+  /// In en, this message translates to:
+  /// **'1s are wild: they count as any face. Unless the bid is on 1s.'**
+  String get howToLiars3;
+
+  /// Liar's Dice guide step: raising (sentence continues in next step).
+  ///
+  /// In en, this message translates to:
+  /// **'The next player has to go higher: more dice, or the same number of a higher face…'**
+  String get howToLiars4;
+
+  /// Liar's Dice guide step: calling liar (continues previous step).
+  ///
+  /// In en, this message translates to:
+  /// **'…or call liar! Everyone shows their dice, and you count.'**
+  String get howToLiars5;
+
+  /// Liar's Dice guide step: who loses a die.
+  ///
+  /// In en, this message translates to:
+  /// **'Bid was true? The caller loses a die. Bid was too high? The bidder loses one.'**
+  String get howToLiars6;
+
+  /// Liar's Dice guide step: elimination and winning.
+  ///
+  /// In en, this message translates to:
+  /// **'No dice left and you\'re out. Last one holding dice wins.'**
+  String get howToLiars7;
+
+  /// Liar's Dice guide footnote: turn timer.
+  ///
+  /// In en, this message translates to:
+  /// **'45 seconds a turn. Run out and the game plays for you.'**
+  String get howToLiarsClock;
+
+  /// Imposter guide step: the secret word.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone gets the same secret word. Except the imposter, who only gets the category.'**
+  String get howToImposter1;
+
+  /// Imposter guide step: clues.
+  ///
+  /// In en, this message translates to:
+  /// **'Take turns giving one short clue. Show you know the word without giving it away.'**
+  String get howToImposter2;
+
+  /// Imposter guide step, voice mode only.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice mode: say your clue out loud on the call, then tap Done.'**
+  String get howToImposterVoice;
+
+  /// Imposter guide step: voting.
+  ///
+  /// In en, this message translates to:
+  /// **'Then everyone votes for who they think the imposter is.'**
+  String get howToImposter3;
+
+  /// Imposter guide step: last guess and who wins.
+  ///
+  /// In en, this message translates to:
+  /// **'Caught? The imposter gets one last shot: guess the word to steal the win. Vote out the wrong person, or tie? Imposter wins.'**
+  String get howToImposter4;
+
+  /// Puzzle Race guide step.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone gets the same brand-new puzzle at the same moment.'**
+  String get howToRace1;
+
+  /// Puzzle Race guide step.
+  ///
+  /// In en, this message translates to:
+  /// **'Solve it on your own phone. Your bar shows everyone how close you are.'**
+  String get howToRace2;
+
+  /// Puzzle Race guide step.
+  ///
+  /// In en, this message translates to:
+  /// **'First to finish wins. You\'ve got 10 minutes.'**
+  String get howToRace3;
+
+  /// Play mode page, Live: starting.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone plays at the same time. Once everyone taps I\'m ready, you\'re on.'**
+  String get howToLive1;
+
+  /// Play mode page, Live: pausing when someone leaves.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone leaves the game? It pauses for everyone. They\'ve got 2 minutes to come back, or they forfeit.'**
+  String get howToLive2;
+
+  /// Play mode page, Live in a group: watching and seat swap.
+  ///
+  /// In en, this message translates to:
+  /// **'Others in the chat can watch. They can ask for a seat, and a player can hand theirs over.'**
+  String get howToLive3;
+
+  /// Play mode page, Turns: send move.
+  ///
+  /// In en, this message translates to:
+  /// **'Make your move, then tap Send move. It drops into the chat as a message.'**
+  String get howToTurns1;
+
+  /// Play mode page, Turns: time, reminder, nudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Each move gets 2 days. We remind them after 20 hours, and after 12 quiet hours you can nudge them yourself.'**
+  String get howToTurns2;
+
+  /// Play mode page, Turns: timeout and limit.
+  ///
+  /// In en, this message translates to:
+  /// **'No move in 2 days? That\'s a loss. Up to 3 games at once per chat.'**
+  String get howToTurns3;
 }
 
 class _AppLocalizationsDelegate

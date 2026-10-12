@@ -253,7 +253,7 @@ void main() {
         'party_start_sheet_$id.png',
         size: const Size(393, 1600),
         act: () async {
-          await tester.tap(find.byKey(const ValueKey('party_race')));
+          await tester.tap(find.byKey(const ValueKey('game_race')));
           for (var i = 0; i < 30; i++) {
             await tester.pump(const Duration(milliseconds: 16));
           }

@@ -109,6 +109,9 @@ class _TicTacToeBoardState extends BoardViewState<TicTacToeBoardView> {
       press: _press,
       pressSeat: p.mySeat ?? s.toMove,
       clock: clock,
+      // A thumbnail has no mark drawing on to say which was last: a move
+      // bubble's board marks it instead.
+      marked: p.thumbnail ? int.tryParse(p.lastMove ?? '') : null,
     );
     final canMove = p.canMoveFor(s.toMove);
     return boardSurface(
@@ -160,6 +163,7 @@ class TicTacToePainter extends CustomPainter {
     this.winLine,
     this.press,
     this.pressSeat = 0,
+    this.marked,
   }) : super(repaint: clock.animation);
 
   final List<int> cells;
@@ -171,10 +175,25 @@ class TicTacToePainter extends CustomPainter {
   final int? press;
   final int pressSeat;
 
+  /// The last move's cell, washed in its mark's colour.
+  final int? marked;
+
   @override
   void paint(Canvas canvas, Size size) {
     final side = math.min(size.width, size.height);
     final cell = side / 3;
+
+    final m = marked;
+    if (m != null && m >= 0 && m < 9 && cells[m] != 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH((m % 3) * cell, (m ~/ 3) * cell, cell, cell)
+              .deflate(cell * 0.08),
+          Radius.circular(cell * 0.18),
+        ),
+        Paint()..color = seats.wash(cells[m] - 1),
+      );
+    }
 
     // The grid: four interior lines, no frame. A frame turns the board into a
     // box on the card; four lines alone are the game everyone draws on paper.
@@ -278,6 +297,7 @@ class TicTacToePainter extends CustomPainter {
       old.winLine != winLine ||
       old.press != press ||
       old.pressSeat != pressSeat ||
+      old.marked != marked ||
       old.clock.animation != clock.animation ||
       old.clock.totalMs != clock.totalMs;
 }

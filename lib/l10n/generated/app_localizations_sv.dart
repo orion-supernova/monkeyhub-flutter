@@ -5823,15 +5823,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameInfoOpen => 'Så spelar du';
 
   @override
-  String get gameInfoLabel => 'Så spelar du';
-
-  @override
-  String get gameInfoRulesLabel => 'Reglerna';
-
-  @override
-  String get gameInfoControlsLabel => 'Vad du trycker på';
-
-  @override
   String get gameInfoScoringTimed =>
       'Snabbast vinner. Klockan stannar när du lämnar.';
 
@@ -5841,88 +5832,6 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => 'Alla får samma pussel i dag.';
-
-  @override
-  String get gameInfoQueensGoal => 'Placera 8 kronor på brädet.';
-
-  @override
-  String get gameInfoQueensRule1 => 'Varje rad får exakt 1 krona.';
-
-  @override
-  String get gameInfoQueensRule2 => 'Varje kolumn får exakt 1 krona.';
-
-  @override
-  String get gameInfoQueensRule3 => 'Varje färg får exakt 1 krona.';
-
-  @override
-  String get gameInfoQueensControls =>
-      'Tryck en gång: × (ingen krona här). Två gånger: krona. Igen: rensa.';
-
-  @override
-  String get gameInfoTangoGoal => 'Fyll varje ruta med en sol eller en måne.';
-
-  @override
-  String get gameInfoTangoRule1 => 'Varje rad har 3 solar och 3 månar.';
-
-  @override
-  String get gameInfoTangoRule2 => 'Varje kolumn har 3 solar och 3 månar.';
-
-  @override
-  String get gameInfoTangoRule3 => 'Aldrig 3 likadana i rad. 2 går bra.';
-
-  @override
-  String get gameInfoTangoControls =>
-      'Tryck en gång: sol. Två gånger: måne. Igen: rensa. Rutor som är ifyllda från början går inte att ändra.';
-
-  @override
-  String get gameInfoZipGoal => 'Dra ett enda streck genom alla rutor.';
-
-  @override
-  String get gameInfoZipRule1 => 'Börja på 1.';
-
-  @override
-  String get gameInfoZipRule2 => 'Besök talen i ordning: 1, 2, 3…';
-
-  @override
-  String get gameInfoZipRule3 => 'Fyll alla rutor. Varje ruta bara en gång.';
-
-  @override
-  String get gameInfoZipControls =>
-      'Dra med fingret för att rita. Dra tillbaka för att ångra.';
-
-  @override
-  String get gameInfoSudokuGoal => 'Fyll rutnätet med talen 1 till 6.';
-
-  @override
-  String get gameInfoSudokuRule1 =>
-      'Varje rad har 1, 2, 3, 4, 5 och 6. Inga dubbletter.';
-
-  @override
-  String get gameInfoSudokuRule2 => 'Varje kolumn också.';
-
-  @override
-  String get gameInfoSudokuRule3 =>
-      'Varje box också. En box är 2 rader gånger 3 kolumner.';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'Tryck på en ruta, sedan på en siffra. Tryck igen för att sudda. Anteckningar ger små blyertsmärken.';
-
-  @override
-  String get gameInfoCodeGoal => 'Gissa den hemliga koden med 4 symboler.';
-
-  @override
-  String get gameInfoCodeRule1 =>
-      'Koden har 4 olika symboler. Inga dubbletter.';
-
-  @override
-  String get gameInfoCodeRule2 => 'Du får 6 gissningar.';
-
-  @override
-  String get gameInfoCodeRule3 => 'Grön: rätt symbol, rätt plats.';
-
-  @override
-  String get gameInfoCodeControls => 'Tryck på 4 symboler och sedan på Gissa.';
 
   @override
   String get savedMessagesTitle => 'Sparade meddelanden';
@@ -10800,56 +10709,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomContentMonthLast => 'Förra månaden';
 
   @override
-  String get gameInfoGoalLabel => 'Mål';
-
-  @override
-  String get gameInfoExampleLabel => 'Exempel';
-
-  @override
-  String get gameInfoWinLabel => 'Så vinner du';
-
-  @override
-  String get gameInfoQueensRule4 =>
-      'Kronor får inte nudda varandra. Inte ens hörn mot hörn.';
-
-  @override
-  String get gameInfoQueensExample =>
-      'En krona här betyder: ingen annan krona i samma rad, kolumn eller färg, eller i de 8 rutorna runt den.';
-
-  @override
-  String get gameInfoTangoRule4 =>
-      '= betyder att de 2 rutorna är lika. × att de är olika.';
-
-  @override
-  String get gameInfoTangoExample =>
-      'Sol, sol, tom? Den tomma rutan måste vara en måne.';
-
-  @override
-  String get gameInfoZipRule4 =>
-      'Gå upp, ner, vänster eller höger. Inga diagonaler.';
-
-  @override
-  String get gameInfoZipRule5 => 'Sluta på det sista talet.';
-
-  @override
-  String get gameInfoZipExample =>
-      'Ska du från 1 till 2? Ta en omväg om du måste. Ingen ruta får bli tom.';
-
-  @override
-  String get gameInfoSudokuExample =>
-      'Har en rad redan 1, 2, 4, 5 och 6? Den tomma rutan är 3.';
-
-  @override
-  String get gameInfoCodeRule4 => 'Gul: rätt symbol, fel plats.';
-
-  @override
-  String get gameInfoCodeRule5 => 'Grå: den symbolen finns inte i koden.';
-
-  @override
-  String get gameInfoCodeExample =>
-      'Grön, gul, grå, grå betyder: 1 symbol står rätt, 1 hör hemma någon annanstans, 2 finns inte i koden.';
-
-  @override
   String get leaderboardOverall => 'I dag';
 
   @override
@@ -12441,24 +12300,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get chatGameModeLive => 'Live';
 
   @override
-  String get chatGameModeTurns => 'Turas om';
-
-  @override
-  String get chatGameModeBot => 'Mot boten';
-
-  @override
-  String get chatGameModeLiveHint =>
-      'Alla spelar samtidigt. Den som går pausar spelet.';
-
-  @override
-  String get chatGameModeTurnsHint =>
-      'Spela när du vill. Du får en notis när det är din tur, och en tur varar upp till 2 dagar.';
-
-  @override
-  String get chatGameModeBotHint =>
-      'Bara du och boten. Inget skickas i chatten.';
-
-  @override
   String get chatGameBotEasyHint => 'Gör misstag. Bra för att lära sig.';
 
   @override
@@ -12566,126 +12407,6 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get gameAutoDot => 'Autoprick';
-
-  @override
-  String get gameInfoFlowGoal =>
-      'Koppla ihop varje par av lika prickar med ett rör.';
-
-  @override
-  String get gameInfoFlowRule1 =>
-      'Varje rör kopplar ihop 2 prickar med samma färg och siffra.';
-
-  @override
-  String get gameInfoFlowRule2 =>
-      'Rör får inte korsa varandra eller dela ruta.';
-
-  @override
-  String get gameInfoFlowRule3 => 'Fyll varje ruta. Ingen får bli tom.';
-
-  @override
-  String get gameInfoFlowRule4 =>
-      'Gå upp, ner, vänster eller höger. Inga diagonaler.';
-
-  @override
-  String get gameInfoFlowExample =>
-      'Ingen rak väg? Böj röret runt de andra. Varje ruta måste ändå fyllas.';
-
-  @override
-  String get gameInfoFlowControls =>
-      'Dra från en prick för att rita dess rör. Dra tillbaka för att ångra. Att rita över ett rör klipper av det.';
-
-  @override
-  String get gameInfoFutoshikiGoal => 'Fyll rutnätet med siffrorna 1 till 5.';
-
-  @override
-  String get gameInfoFutoshikiRule1 =>
-      'Varje rad har 1, 2, 3, 4 och 5. Inga upprepningar.';
-
-  @override
-  String get gameInfoFutoshikiRule2 => 'Varje kolumn också.';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      'Ett < eller > mellan 2 rutor måste stämma. Det pekar mot den mindre siffran.';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      'Pekar ett tecken mot den här rutan? Då kan den inte vara 5, för grannen är större.';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'Tryck på en ruta, sedan på en siffra. Tryck igen för att sudda. Anteckningar ger små blyertsmärken.';
-
-  @override
-  String get gameInfoNonogramGoal =>
-      'Fyll i rutor för att få fram den dolda bilden.';
-
-  @override
-  String get gameInfoNonogramRule1 =>
-      'Siffrorna vid varje rad och kolumn är dess ifyllda block, i ordning.';
-
-  @override
-  String get gameInfoNonogramRule2 =>
-      'Mellan två block finns minst 1 tom ruta.';
-
-  @override
-  String get gameInfoNonogramRule3 => '0 betyder att hela raden är tom.';
-
-  @override
-  String get gameInfoNonogramExample =>
-      'En rad på 10 med ledtråden 10? Fyll hela. Med 4 4 får båda blocken plats, med ett mellanrum.';
-
-  @override
-  String get gameInfoNonogramControls =>
-      'Tryck en gång: fyll. Två gånger: × (tom). Igen: rensa. Dra för att markera flera rutor.';
-
-  @override
-  String get gameInfoMinesweeperGoal => 'Öppna varje ruta som inte är en mina.';
-
-  @override
-  String get gameInfoMinesweeperRule1 =>
-      'En siffra visar hur många minor som rör rutan, hörn inräknade.';
-
-  @override
-  String get gameInfoMinesweeperRule2 =>
-      'Varje ruta går att lista ut. Du behöver aldrig gissa.';
-
-  @override
-  String get gameInfoMinesweeperRule3 =>
-      'Går du på en mina läggs 30 sekunder på din tid. Fortsätt sedan.';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      'En 1:a med bara en stängd ruta bredvid? Den rutan är minan. Flagga den.';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      'Tryck för att öppna en ruta. Håll inne, eller slå på Flagga, för att markera en mina.';
-
-  @override
-  String get gameInfoStarbattleGoal =>
-      'Placera 2 stjärnor i varje rad, kolumn och färg.';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'Varje rad får exakt 2 stjärnor.';
-
-  @override
-  String get gameInfoStarbattleRule2 => 'Varje kolumn får exakt 2 stjärnor.';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'Varje färg får exakt 2 stjärnor.';
-
-  @override
-  String get gameInfoStarbattleRule4 =>
-      'Stjärnor får inte nudda varandra. Inte ens hörn mot hörn.';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'En stjärna här betyder: ingen annan stjärna i de 8 rutorna runt den, och en till att hitta i dess rad, kolumn och färg.';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      'Tryck en gång: prick (ingen stjärna här). Två gånger: stjärna. Igen: rensa.';
 
   @override
   String boardCellName(int row, int col) {
@@ -12824,16 +12545,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max spelare';
   }
-
-  @override
-  String get chatGamePartySection => 'Sällskap';
-
-  @override
-  String get chatGamePartyLiveOnly =>
-      'Sällskapsspel spelas live, alla samtidigt.';
-
-  @override
-  String get chatGameNeedsThree => 'Kräver en grupp på 3 eller fler';
 
   @override
   String get chatGameVoiceOption => 'Ledtrådar med rösten';
@@ -13210,4 +12921,447 @@ class AppLocalizationsSv extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return 'Byt till $piece';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => 'Visa inte igen';
+
+  @override
+  String get kbdPeekTurnedOff =>
+      'Okej, den dyker inte upp mer. Du kan slå på den igen i Inställningar.';
+
+  @override
+  String get chatGameBadgeTurns => 'Turas om';
+
+  @override
+  String get chatGameSectionBoards => 'Brädspel';
+
+  @override
+  String get chatGameSectionParty => 'Sällskapsspel';
+
+  @override
+  String get chatGameBoardsHintDm =>
+      'Kör live nu, eller turas om när ni har en stund över.';
+
+  @override
+  String get chatGameBoardsHintGroup =>
+      'Live, här i gruppen. Hoppa in eller bara kolla på.';
+
+  @override
+  String get chatGamePartyHint =>
+      'Alla spelar samtidigt, så samla gänget först.';
+
+  @override
+  String get chatGameLiveTitle => 'Spela live';
+
+  @override
+  String get chatGameLiveNow => 'Alla spelar samtidigt, just nu.';
+
+  @override
+  String get chatGameLivePause =>
+      'Drar någon? Då pausas det. 2 minuter att komma tillbaka, annars förlorar hen.';
+
+  @override
+  String get chatGameTurnsTitle => 'Turas om';
+
+  @override
+  String get chatGameTurnsAnytime =>
+      'Gör ditt drag när du vill. Varje drag hamnar i chatten.';
+
+  @override
+  String get chatGameTurnsClock =>
+      '2 dagar per drag. Vi skickar en påminnelse, och du kan påminna själv.';
+
+  @override
+  String get chatGameHowWillYouPlay => 'Hur vill du spela?';
+
+  @override
+  String get botHubTitle => 'Spela mot boten';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'Bara du och $bot. Inget postas, ingen tittar.';
+  }
+
+  @override
+  String get botHubLevelTitle => 'Hur svårt?';
+
+  @override
+  String get botHubPickGame => 'Välj ett spel';
+
+  @override
+  String get botHubCaption => 'Träning';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spel',
+      one: '1 spel',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'Du spelade';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name spelade';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return 'Drag $count';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return 'Kolumn $count';
+  }
+
+  @override
+  String get chatGameMvEarlier => 'Tidigare drag';
+
+  @override
+  String get chatGameMvSend => 'Skicka draget';
+
+  @override
+  String get chatGameMvUndo => 'Ångra';
+
+  @override
+  String get chatGameMvStagedHint =>
+      'Inte skickat än. Ändra dig eller tryck Skicka.';
+
+  @override
+  String get chatGameMvSentToast => 'Draget skickat. Nu är det deras tur.';
+
+  @override
+  String get chatGameMvYourTurnSub =>
+      'Gör ditt drag och skicka det. Ingen brådska.';
+
+  @override
+  String get chatGameMvWaitingSub => 'Vi säger till när det är din tur.';
+
+  @override
+  String get chatGameMvNudgeLater => 'Du kan påminna efter 12 tysta timmar';
+
+  @override
+  String get chatGameMvForfeitNote =>
+      'Tar tiden slut förlorar den som har turen';
+
+  @override
+  String get chatGameMvAgain => 'Fortfarande din tur. Kör igen!';
+
+  @override
+  String get chatGameMvSending => 'Skickar…';
+
+  @override
+  String get howToNext => 'Nästa';
+
+  @override
+  String get howToWatchAgain => 'Visa igen';
+
+  @override
+  String get howToGotIt => 'Fattar';
+
+  @override
+  String get howToProTip => 'Proffstips';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'Steg $step av $total';
+  }
+
+  @override
+  String get howToQueens1 =>
+      'En krona i varje rad, varje kolumn och varje färg.';
+
+  @override
+  String get howToQueens2 => 'Kronor får inte nudda varandra. Inte ens snett.';
+
+  @override
+  String get howToQueens3 =>
+      'Tryck en gång för ×, två för krona, en gång till för att rensa.';
+
+  @override
+  String get howToQueens4 =>
+      'Sätt ut en krona och kryssa alla rutor den stänger. Då lossnar det snabbt.';
+
+  @override
+  String get howToTango1 =>
+      'Ett tryck blir sol, två blir måne. Fyll alla rutor.';
+
+  @override
+  String get howToTango2 =>
+      'Varje rad och kolumn är hälften solar, hälften månar.';
+
+  @override
+  String get howToTango3 => 'Aldrig 3 likadana i rad. 2 går bra.';
+
+  @override
+  String get howToTango4 => '= betyder samma. × betyder olika.';
+
+  @override
+  String get howToZip1 => 'Börja på 1 och dra genom siffrorna i ordning.';
+
+  @override
+  String get howToZip2 => 'Gå igenom varje ruta och sluta på sista siffran.';
+
+  @override
+  String get howToZip3 => 'Svängt fel? Dra tillbaka så ångras det.';
+
+  @override
+  String get howToSudoku1 =>
+      'Varje rad, kolumn och låda har 1 till 6. Inga dubbletter.';
+
+  @override
+  String get howToSudoku2 => 'Tryck på en ruta, sen på en siffra.';
+
+  @override
+  String get howToSudoku3 =>
+      'Samma siffra två gånger i en rad? Den lyser rött.';
+
+  @override
+  String get howToSudoku4 =>
+      'Leta efter rader där bara en siffra fattas. Gratispoäng.';
+
+  @override
+  String get howToFlow1 =>
+      'Dra från en prick till dess tvilling för att lägga ett rör.';
+
+  @override
+  String get howToFlow2 =>
+      'Rör får inte korsas och alla rutor måste fyllas. Ta omvägen.';
+
+  @override
+  String get howToFutoshiki1 =>
+      'Varje rad och kolumn har varje siffra exakt en gång.';
+
+  @override
+  String get howToFutoshiki2 => 'Tecknets spets pekar på den mindre siffran.';
+
+  @override
+  String get howToFutoshiki3 => 'Bryter du mot ett tecken lyser det rött.';
+
+  @override
+  String get howToNonogram1 =>
+      'Siffrorna säger hur många rutor i rad du ska fylla. 5 betyder 5 i rad.';
+
+  @override
+  String get howToNonogram2 =>
+      '1 1 betyder två lösa rutor, med minst ett mellanrum.';
+
+  @override
+  String get howToNonogram3 =>
+      'Tryck för att fylla, igen för ×, igen för att rensa. Dra för att göra många på en gång.';
+
+  @override
+  String get howToNonogram4 =>
+      'Få alla ledtrådar rätt så dyker den dolda bilden upp.';
+
+  @override
+  String get howToMines1 =>
+      'Tryck på en ruta för att öppna den. Tomma ytor öppnar sig själva.';
+
+  @override
+  String get howToMines2 =>
+      'En siffra säger hur många minor som nuddar den, hörnen också.';
+
+  @override
+  String get howToMines3 =>
+      'Säker på att det är en mina? Håll inne för att flagga.';
+
+  @override
+  String get howToMines4 =>
+      'Går du på en mina kostar det 30 sekunder. Men du behöver aldrig gissa.';
+
+  @override
+  String get howToStars1 =>
+      'Två stjärnor i varje rad, varje kolumn och varje färg.';
+
+  @override
+  String get howToStars2 => 'Stjärnor får inte nudda varandra. Inte ens snett.';
+
+  @override
+  String get howToStars3 =>
+      'Pricka rutorna runt varje stjärna. När en rad har sina 2 är resten tomt.';
+
+  @override
+  String get howToCode1 =>
+      'Det finns en hemlig kod med 4 olika symboler. Knäck den.';
+
+  @override
+  String get howToCode2 => 'Grön: rätt symbol, rätt plats.';
+
+  @override
+  String get howToCode3 =>
+      'Gul: finns i koden, fast på en annan plats. Grå: finns inte alls.';
+
+  @override
+  String get howToCode4 =>
+      'Du har 6 gissningar. Ju färre du behöver, desto bättre.';
+
+  @override
+  String get howToTtt1 =>
+      'Turas om att sätta ut ditt tecken. Få 3 i rad så vinner du.';
+
+  @override
+  String get howToTtt2 =>
+      'Har de 2 i rad? Ta den tredje rutan innan de gör det.';
+
+  @override
+  String get howToC41 =>
+      'Tryck på en kolumn för att släppa en bricka. Den faller till lägsta lediga plats.';
+
+  @override
+  String get howToC42 =>
+      'Få 4 i rad för att vinna: vågrätt, lodrätt eller diagonalt.';
+
+  @override
+  String get howToCheckers1 =>
+      'Brickorna går ett steg snett framåt. Tryck på en bricka och sen dit den ska.';
+
+  @override
+  String get howToCheckers2 =>
+      'Hoppa över en motståndarbricka för att ta den. Kan du hoppa måste du. Brickan som måste hoppa får en ring runt sig.';
+
+  @override
+  String get howToCheckers3 =>
+      'Landar du där du kan hoppa igen? Fortsätt. Ett drag kan ta flera.';
+
+  @override
+  String get howToCheckers4 =>
+      'Nå andra sidan så blir brickan en dam. Damer kan gå bakåt också.';
+
+  @override
+  String get howToCheckersWin =>
+      'Ta alla deras brickor, eller lämna dem utan drag, så vinner du.';
+
+  @override
+  String get howToReversi1 =>
+      'Lägg en bricka så att en rad av deras hamnar instängd mellan två av dina.';
+
+  @override
+  String get howToReversi2 =>
+      'Alla instängda brickor vänds till din färg, åt alla håll på en gång.';
+
+  @override
+  String get howToReversi3 =>
+      'Inget drag att göra? Då hoppas din tur över. När ingen kan dra vinner den med flest brickor.';
+
+  @override
+  String get howToDots1 => 'Turas om att dra ett streck mellan två prickar.';
+
+  @override
+  String get howToDots2 => 'Stäng en ruta så är den din. Och du kör igen!';
+
+  @override
+  String get howToDots3 =>
+      'Akta dig för en rutas tredje sida. Då ger du bort den till nästa spelare.';
+
+  @override
+  String get howToDotsWin => 'Flest rutor när sista strecket är draget vinner.';
+
+  @override
+  String get howToChess1 =>
+      'Tryck på en pjäs så ser du vart den kan gå, tryck sen på en ruta.';
+
+  @override
+  String get howToChess2 =>
+      'Gå till en ruta med en motståndarpjäs för att ta den.';
+
+  @override
+  String get howToChess3 =>
+      'Ta en bonde till sista raden så blir den en dam, eller vad du väljer.';
+
+  @override
+  String get howToChess4 =>
+      'Schack betyder att kungen är hotad och du måste rädda den. Ingen väg ut? Schackmatt, slut.';
+
+  @override
+  String get howToLiars1 =>
+      'Alla slår 5 tärningar i hemlighet. Du ser bara dina egna.';
+
+  @override
+  String get howToLiars2 =>
+      'På din tur bjuder du på hur många av en sida som finns på hela bordet, allas tärningar räknas. Typ ”fyra treor”.';
+
+  @override
+  String get howToLiars3 =>
+      'Ettor är jokrar och räknas som vilken sida som helst. Utom när budet gäller ettor.';
+
+  @override
+  String get howToLiars4 =>
+      'Nästa spelare måste bjuda högre: fler tärningar, eller lika många av en högre sida…';
+
+  @override
+  String get howToLiars5 =>
+      '…eller ropa ”Lögn!”. Alla visar sina tärningar och ni räknar.';
+
+  @override
+  String get howToLiars6 =>
+      'Stämde budet? Då förlorar den som ropade en tärning. Var budet för högt? Då förlorar den som bjöd.';
+
+  @override
+  String get howToLiars7 =>
+      'Slut på tärningar så åker du ut. Den sista med tärningar kvar vinner.';
+
+  @override
+  String get howToLiarsClock =>
+      '45 sekunder per tur. Tar tiden slut spelar spelet åt dig.';
+
+  @override
+  String get howToImposter1 =>
+      'Alla får samma hemliga ord. Utom bedragaren, som bara får kategorin.';
+
+  @override
+  String get howToImposter2 =>
+      'Turas om att ge en kort ledtråd. Visa att du kan ordet utan att avslöja det.';
+
+  @override
+  String get howToImposterVoice =>
+      'Röstläge: säg din ledtråd högt i samtalet och tryck sen på Klar.';
+
+  @override
+  String get howToImposter3 => 'Sen röstar alla på den de tror är bedragaren.';
+
+  @override
+  String get howToImposter4 =>
+      'Avslöjad? Bedragaren får en sista chans: gissa ordet och sno vinsten. Röstar ni ut fel person eller blir det lika? Bedragaren vinner.';
+
+  @override
+  String get howToRace1 =>
+      'Alla får samma helt nya pussel i exakt samma stund.';
+
+  @override
+  String get howToRace2 =>
+      'Lös det i din egen mobil. Din stapel visar alla hur nära du är.';
+
+  @override
+  String get howToRace3 => 'Den som blir klar först vinner. Du har 10 minuter.';
+
+  @override
+  String get howToLive1 =>
+      'Alla spelar samtidigt. När alla har tryckt på Jag är redo kör ni.';
+
+  @override
+  String get howToLive2 =>
+      'Lämnar någon spelet? Då pausas det för alla. De har 2 minuter på sig att komma tillbaka, annars förlorar de.';
+
+  @override
+  String get howToLive3 =>
+      'Andra i chatten kan titta på. De kan be om en plats, och en spelare kan lämna över sin.';
+
+  @override
+  String get howToTurns1 =>
+      'Gör ditt drag och tryck på Skicka draget. Det dyker upp i chatten som ett meddelande.';
+
+  @override
+  String get howToTurns2 =>
+      'Varje drag har 2 dagar. Vi påminner efter 20 timmar, och efter 12 tysta timmar kan du påminna själv.';
+
+  @override
+  String get howToTurns3 =>
+      'Inget drag på 2 dagar? Då förlorar du. Upp till 3 spel samtidigt per chatt.';
 }

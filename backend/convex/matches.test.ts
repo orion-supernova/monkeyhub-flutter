@@ -401,6 +401,71 @@ describe("an async DM game", () => {
     expect(m.draw).toBe(true);
   });
 
+  test("every move posts one bubble with the position it made, live games none", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await create(t, a, roomId, "tictactoe", "async");
+    await play(t, a, matchId, "4", "mv-1");
+    // A resend is the success it was: still one bubble.
+    await t.mutation(api.matches.move, {
+      ...as(a),
+      matchId,
+      expectedSeq: 0,
+      move: "4",
+      clientMoveId: "mv-1",
+    });
+    await play(t, b, matchId, "0");
+    const moves = await t.run(async (ctx) =>
+      (await ctx.db.query("messages").collect()).filter(
+        (m: any) => m.type === "gameMove",
+      ),
+    );
+    expect(moves.map((m: any) => m.userId)).toEqual([a.userId, b.userId]);
+    expect(moves[0].gameMove).toMatchObject({
+      matchId,
+      game: "tictactoe",
+      seq: 1,
+      seat: 0,
+      move: "4",
+    });
+    expect(moves[1]!.gameMove!.seq).toBe(2);
+    expect(moves[1]!.gameMove!.state).toBe((await read(t, a, matchId)).state);
+    expect(moves[1]!.content).toBe("Tic-tac-toe · move 2");
+    const room = (await t.run((ctx) => ctx.db.get(roomId))) as any;
+    expect(room.lastMessage).toBe("[game] Tic-tac-toe · move 2");
+
+    // A live game's board is open on every screen: no bubbles there.
+    const t2 = convexTest(schema);
+    const g = await liveGame(t2);
+    await play(t2, g.a, g.matchId, "4");
+    const liveMoves = await t2.run(async (ctx) =>
+      (await ctx.db.query("messages").collect()).filter(
+        (m: any) => m.type === "gameMove",
+      ),
+    );
+    expect(liveMoves).toHaveLength(0);
+  });
+
+  test("a move's bubble sends no push of its own, only the your-move one", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await create(t, a, roomId, "tictactoe", "async");
+    const before = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).length,
+    );
+    await play(t, a, matchId, "4");
+    const jobs = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).slice(before),
+    );
+    const names = jobs.map((j: any) => j.name);
+    expect(names.filter((n: string) => n.includes("sendMessagePush"))).toHaveLength(0);
+    expect(names.filter((n: string) => n.includes("sendMatchPush"))).toHaveLength(1);
+  });
+
   test("a rematch swaps who goes first", async () => {
     const t = convexTest(schema);
     const a = await signUp(t, "ada");
@@ -446,10 +511,21 @@ describe("the room around it", () => {
     const roomId = await dm(t, a, b);
     const { matchId, messageId } = await create(t, a, roomId, "tictactoe", "async");
     await play(t, a, matchId, "4");
+    await play(t, b, matchId, "0");
+    await t.mutation(api.messages.send, {
+      ...as(b),
+      roomId,
+      content: "good game so far",
+    });
     await t.mutation(api.messages.deleteMessage, { ...as(a), messageId });
     await t.run(async (ctx) => {
       expect(await ctx.db.get(matchId)).toBeNull();
       expect(await ctx.db.query("matchMoves").collect()).toHaveLength(0);
+      // Both players' move bubbles go with the card; the chat stays.
+      const left = await ctx.db.query("messages").collect();
+      expect(left.map((m: any) => m.type)).toEqual(["text"]);
+      const room = (await ctx.db.get(roomId)) as any;
+      expect(room.lastMessage).toBe("good game so far");
     });
   });
 

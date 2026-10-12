@@ -408,13 +408,29 @@ async function eraseMatch(ctx: any, matchId: any) {
   await ctx.db.delete(matchId);
 }
 
-/** The game behind a card that is being deleted. */
-export async function purgeMatchForMessage(ctx: any, messageId: any) {
+/**
+ * The game behind a card that is being deleted. Returns its move bubbles'
+ * message ids, for the caller (`messages.ts`, which owns message teardown)
+ * to remove: a move left behind would open a game that no longer exists.
+ */
+export async function purgeMatchForMessage(
+  ctx: any,
+  messageId: any,
+): Promise<any[]> {
   const match = await ctx.db
     .query("matches")
     .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
     .first();
-  if (match) await eraseMatch(ctx, match._id);
+  if (!match) return [];
+  const bubbles: any[] = [];
+  for (const m of await ctx.db
+    .query("matchMoves")
+    .withIndex("by_match_seq", (q: any) => q.eq("matchId", match._id))
+    .collect()) {
+    if (m.messageId) bubbles.push(m.messageId);
+  }
+  await eraseMatch(ctx, match._id);
+  return bubbles;
 }
 
 /** Every game a room ever held, when the room itself is going. */

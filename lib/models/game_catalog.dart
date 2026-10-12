@@ -14,9 +14,12 @@ enum GameTier { easy, medium, hard }
 GameTier tierOf(DailyGame? game) => switch (game) {
   null => GameTier.easy,
   DailyGame.zip => GameTier.easy,
-  DailyGame.sudoku => GameTier.easy,
-  DailyGame.tango => GameTier.easy,
   DailyGame.flow => GameTier.easy,
+  // Tango and Mini Sudoku read as easy on paper (two symbols, six digits),
+  // but both are minimised boards that need real deduction, and players
+  // reaching for "easy" expected a warm-up, not a sit-down.
+  DailyGame.tango => GameTier.medium,
+  DailyGame.sudoku => GameTier.medium,
   DailyGame.queens => GameTier.medium,
   DailyGame.futoshiki => GameTier.medium,
   DailyGame.nonogram => GameTier.medium,

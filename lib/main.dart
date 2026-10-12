@@ -20,6 +20,7 @@ import 'media/video_duration.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
+import 'services/app_binding.dart';
 import 'screens/navigation/native_tab_bar.dart' show NativeChrome;
 
 /// Root navigator key — exposed so non-widget code (push handlers, native
@@ -27,7 +28,8 @@ import 'screens/navigation/native_tab_bar.dart' show NativeChrome;
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Flutter's binding plus trackpad haptics on macOS; see AppBinding.
+  AppBinding.ensureInitialized();
 
   // First real statement, on purpose: this replaces the global `debugPrint`,
   // and anything printed before it would be missed. It also installs the

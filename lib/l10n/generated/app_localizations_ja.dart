@@ -5582,15 +5582,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameInfoOpen => '遊び方';
 
   @override
-  String get gameInfoLabel => '遊び方';
-
-  @override
-  String get gameInfoRulesLabel => 'ルール';
-
-  @override
-  String get gameInfoControlsLabel => 'タップのしかた';
-
-  @override
   String get gameInfoScoringTimed => 'いちばん早く解いた人の勝ち。画面を離れると時計は止まります。';
 
   @override
@@ -5598,83 +5589,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => '今日はみんな同じパズルです。';
-
-  @override
-  String get gameInfoQueensGoal => '盤に王冠を8つ置こう。';
-
-  @override
-  String get gameInfoQueensRule1 => 'どの横の列にも王冠は1つだけ。';
-
-  @override
-  String get gameInfoQueensRule2 => 'どの縦の列にも王冠は1つだけ。';
-
-  @override
-  String get gameInfoQueensRule3 => 'どの色にも王冠は1つだけ。';
-
-  @override
-  String get gameInfoQueensControls => '1回タップで×（ここには置かない）。2回で王冠。もう1回で消す。';
-
-  @override
-  String get gameInfoTangoGoal => '全部のマスに太陽か月を入れよう。';
-
-  @override
-  String get gameInfoTangoRule1 => 'どの横の列も太陽3つと月3つ。';
-
-  @override
-  String get gameInfoTangoRule2 => 'どの縦の列も太陽3つと月3つ。';
-
-  @override
-  String get gameInfoTangoRule3 => '同じものを3つ続けて並べない。2つならOK。';
-
-  @override
-  String get gameInfoTangoControls =>
-      '1回タップで太陽、2回で月、もう1回で消す。最初から入っているマスは変えられません。';
-
-  @override
-  String get gameInfoZipGoal => '全部のマスを通る1本の線を引こう。';
-
-  @override
-  String get gameInfoZipRule1 => '1からスタート。';
-
-  @override
-  String get gameInfoZipRule2 => '数字を順番に通る：1、2、3…';
-
-  @override
-  String get gameInfoZipRule3 => '全部のマスを通る。同じマスは1回だけ。';
-
-  @override
-  String get gameInfoZipControls => '指でなぞって線を引く。戻ると消えます。';
-
-  @override
-  String get gameInfoSudokuGoal => 'マスを1〜6の数字でうめよう。';
-
-  @override
-  String get gameInfoSudokuRule1 => 'どの横の列にも1・2・3・4・5・6。同じ数字はダメ。';
-
-  @override
-  String get gameInfoSudokuRule2 => '縦の列も同じ。';
-
-  @override
-  String get gameInfoSudokuRule3 => 'ブロックも同じ。ブロックは2行×3列。';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'マスをタップして、数字をタップ。もう一度押すと消えます。メモで小さな数字を書けます。';
-
-  @override
-  String get gameInfoCodeGoal => '4つの記号のひみつのコードを当てよう。';
-
-  @override
-  String get gameInfoCodeRule1 => 'コードは4つともちがう記号。同じ記号はなし。';
-
-  @override
-  String get gameInfoCodeRule2 => 'チャンスは6回。';
-
-  @override
-  String get gameInfoCodeRule3 => '緑：記号も場所も正解。';
-
-  @override
-  String get gameInfoCodeControls => '記号を4つタップして、「予想する」をタップ。';
 
   @override
   String get savedMessagesTitle => '保存済みメッセージ';
@@ -10341,49 +10255,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomContentMonthLast => '先月';
 
   @override
-  String get gameInfoGoalLabel => '目標';
-
-  @override
-  String get gameInfoExampleLabel => '例';
-
-  @override
-  String get gameInfoWinLabel => '勝ち方';
-
-  @override
-  String get gameInfoQueensRule4 => '王冠どうしはくっつけない。ななめもダメ。';
-
-  @override
-  String get gameInfoQueensExample =>
-      'ここに王冠を置くと、同じ横の列・縦の列・色と、まわりの8マスには、もう置けません。';
-
-  @override
-  String get gameInfoTangoRule4 => '= は2マスが同じ。× は2マスがちがう。';
-
-  @override
-  String get gameInfoTangoExample => '太陽、太陽、空き？ 空きマスは月に決まり。';
-
-  @override
-  String get gameInfoZipRule4 => '上・下・左・右に進む。ななめはダメ。';
-
-  @override
-  String get gameInfoZipRule5 => '最後の数字でゴール。';
-
-  @override
-  String get gameInfoZipExample => '1から2へ行く？ 必要なら遠回りしよう。空きマスを残してはダメ。';
-
-  @override
-  String get gameInfoSudokuExample => '横の列に1・2・4・5・6がある？ 空きマスは3。';
-
-  @override
-  String get gameInfoCodeRule4 => '黄色：記号は正解、場所がちがう。';
-
-  @override
-  String get gameInfoCodeRule5 => 'グレー：その記号はコードにない。';
-
-  @override
-  String get gameInfoCodeExample => '緑・黄・グレー・グレーなら：1つは場所も正解、1つは別の場所、2つはコードにない。';
-
-  @override
   String get leaderboardOverall => '今日';
 
   @override
@@ -11922,21 +11793,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatGameModeLive => 'ライブ';
 
   @override
-  String get chatGameModeTurns => '交互に';
-
-  @override
-  String get chatGameModeBot => 'ボットと対戦';
-
-  @override
-  String get chatGameModeLiveHint => '全員で同時にプレイ。抜けると一時停止します。';
-
-  @override
-  String get chatGameModeTurnsHint => '好きなときに指せます。自分の番で通知が届き、1手の持ち時間は最長2日です。';
-
-  @override
-  String get chatGameModeBotHint => 'あなたとボットだけ。チャットには何も投稿されません。';
-
-  @override
   String get chatGameBotEasyHint => 'ミスをします。練習向き。';
 
   @override
@@ -12036,107 +11892,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get gameAutoDot => '自動ドット';
-
-  @override
-  String get gameInfoFlowGoal => '同じ点のペアを、すべてパイプでつなごう。';
-
-  @override
-  String get gameInfoFlowRule1 => 'パイプは同じ色・同じ数字の2つの点をつなぐ。';
-
-  @override
-  String get gameInfoFlowRule2 => 'パイプは交差しないし、同じマスも通らない。';
-
-  @override
-  String get gameInfoFlowRule3 => 'すべてのマスをうめる。空きマスはダメ。';
-
-  @override
-  String get gameInfoFlowRule4 => '上下左右に進む。ななめはダメ。';
-
-  @override
-  String get gameInfoFlowExample => 'まっすぐ行けない？ 他のパイプをよけて曲げよう。それでも全部のマスをうめること。';
-
-  @override
-  String get gameInfoFlowControls =>
-      '点からなぞってパイプを引く。戻ると取り消し。他のパイプの上を通ると、そのパイプは切れる。';
-
-  @override
-  String get gameInfoFutoshikiGoal => 'マスを1〜5の数字でうめよう。';
-
-  @override
-  String get gameInfoFutoshikiRule1 => 'どの横の列にも1・2・3・4・5。同じ数字はダメ。';
-
-  @override
-  String get gameInfoFutoshikiRule2 => '縦の列も同じ。';
-
-  @override
-  String get gameInfoFutoshikiRule3 => '2マスの間の < や > は必ず正しい。とがった方が小さい数字。';
-
-  @override
-  String get gameInfoFutoshikiExample => '記号がこのマスを指している？ なら5ではない。となりの方が大きいから。';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'マスをタップして、数字をタップ。もう一度押すと消えます。メモで小さな数字を書けます。';
-
-  @override
-  String get gameInfoNonogramGoal => 'マスをぬって、かくれた絵を出そう。';
-
-  @override
-  String get gameInfoNonogramRule1 => '行と列の横の数字は、ぬったマスが続く長さ。順番どおり。';
-
-  @override
-  String get gameInfoNonogramRule2 => '続きと続きの間は、少なくとも1マスあける。';
-
-  @override
-  String get gameInfoNonogramRule3 => '0は、その列が全部空きという意味。';
-
-  @override
-  String get gameInfoNonogramExample =>
-      '10マスの列でヒントが10？ 全部ぬる。4 4なら、間を1マスあけて2つ入る。';
-
-  @override
-  String get gameInfoNonogramControls =>
-      '1回タップでぬる、2回で ×（空き）、もう1回で消す。なぞると何マスもまとめて塗れる。';
-
-  @override
-  String get gameInfoMinesweeperGoal => '地雷のないマスをすべて開けよう。';
-
-  @override
-  String get gameInfoMinesweeperRule1 => '数字は、そのマスにふれている地雷の数。ななめも入る。';
-
-  @override
-  String get gameInfoMinesweeperRule2 => 'どのマスも推理で分かる。運まかせは一度もいらない。';
-
-  @override
-  String get gameInfoMinesweeperRule3 => '地雷をふむとタイムに30秒プラス。そのまま続けよう。';
-
-  @override
-  String get gameInfoMinesweeperExample => '1のとなりに閉じたマスが1つだけ？ そこが地雷。旗を立てよう。';
-
-  @override
-  String get gameInfoMinesweeperControls => 'タップでマスを開ける。地雷の印は長押しか、旗をオンにしてタップ。';
-
-  @override
-  String get gameInfoStarbattleGoal => '各行・各列・各色に星を2つずつ置こう。';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'どの横の列にも星はちょうど2つ。';
-
-  @override
-  String get gameInfoStarbattleRule2 => 'どの縦の列にも星はちょうど2つ。';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'どの色にも星はちょうど2つ。';
-
-  @override
-  String get gameInfoStarbattleRule4 => '星どうしはとなり合わない。ななめもダメ。';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'ここに星が1つあるなら、まわりの8マスに他の星はない。同じ行・列・色にもう1つ探そう。';
-
-  @override
-  String get gameInfoStarbattleControls => '1回タップで点（ここに星はない）。2回で星。もう1回で消す。';
 
   @override
   String boardCellName(int row, int col) {
@@ -12274,15 +12029,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min〜$max人';
   }
-
-  @override
-  String get chatGamePartySection => 'パーティー';
-
-  @override
-  String get chatGamePartyLiveOnly => 'パーティーゲームはライブで全員同時に遊びます。';
-
-  @override
-  String get chatGameNeedsThree => '3人以上のグループが必要';
 
   @override
   String get chatGameVoiceOption => '声でヒント';
@@ -12648,4 +12394,379 @@ class AppLocalizationsJa extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return '$pieceに昇格';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => '今後は表示しない';
+
+  @override
+  String get kbdPeekTurnedOff => '了解、もう表示しません。設定からいつでも戻せます。';
+
+  @override
+  String get chatGameBadgeTurns => '交互';
+
+  @override
+  String get chatGameSectionBoards => 'ボードゲーム';
+
+  @override
+  String get chatGameSectionParty => 'パーティーゲーム';
+
+  @override
+  String get chatGameBoardsHintDm => '今すぐライブで遊ぶか、ひまな時に交互に。';
+
+  @override
+  String get chatGameBoardsHintGroup => 'ここでライブ対戦。参加しても、観戦だけでもOK。';
+
+  @override
+  String get chatGamePartyHint => '全員同時に遊ぶから、まずはメンバーを集めよう。';
+
+  @override
+  String get chatGameLiveTitle => 'ライブで遊ぶ';
+
+  @override
+  String get chatGameLiveNow => 'みんな同時に、今すぐ遊ぶ。';
+
+  @override
+  String get chatGameLivePause => '誰かが抜けたら一時停止。2分以内に戻らないと負けになるよ。';
+
+  @override
+  String get chatGameTurnsTitle => '交互に遊ぶ';
+
+  @override
+  String get chatGameTurnsAnytime => '好きな時に一手。指した手はチャットに届くよ。';
+
+  @override
+  String get chatGameTurnsClock => '1手につき2日。リマインドするし、催促もできるよ。';
+
+  @override
+  String get chatGameHowWillYouPlay => 'どうやって遊ぶ?';
+
+  @override
+  String get botHubTitle => 'ボットと対戦';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'あなたと$botだけ。投稿されないし、誰も見てないよ。';
+  }
+
+  @override
+  String get botHubLevelTitle => '強さは?';
+
+  @override
+  String get botHubPickGame => 'ゲームを選ぼう';
+
+  @override
+  String get botHubCaption => '練習';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count種類',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'あなたの一手';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$nameの一手';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return '$count手目';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return '$count列目';
+  }
+
+  @override
+  String get chatGameMvEarlier => '前の一手';
+
+  @override
+  String get chatGameMvSend => 'この手で送る';
+
+  @override
+  String get chatGameMvUndo => '取り消す';
+
+  @override
+  String get chatGameMvStagedHint => 'まだ送ってないよ。やり直すか、送信してね。';
+
+  @override
+  String get chatGameMvSentToast => '送ったよ。次は相手の番。';
+
+  @override
+  String get chatGameMvYourTurnSub => '手を決めたら送ってね。急がなくて大丈夫。';
+
+  @override
+  String get chatGameMvWaitingSub => 'あなたの番になったら知らせるね。';
+
+  @override
+  String get chatGameMvNudgeLater => '12時間動きがなければ催促できるよ';
+
+  @override
+  String get chatGameMvForfeitNote => '時間切れになると、手番の人の負け';
+
+  @override
+  String get chatGameMvAgain => 'まだあなたの番。もう一手！';
+
+  @override
+  String get chatGameMvSending => '送信中…';
+
+  @override
+  String get howToNext => '次へ';
+
+  @override
+  String get howToWatchAgain => 'もう一度見る';
+
+  @override
+  String get howToGotIt => 'わかった';
+
+  @override
+  String get howToProTip => 'コツ';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'ステップ $step/$total';
+  }
+
+  @override
+  String get howToQueens1 => 'どの行・列・色にも王冠をひとつずつ。';
+
+  @override
+  String get howToQueens2 => '王冠どうしはくっつけちゃダメ。ななめもダメ。';
+
+  @override
+  String get howToQueens3 => '1回タップで×、2回で王冠、もう1回で消える。';
+
+  @override
+  String get howToQueens4 => '王冠を置いたら、置けなくなったマスに×をつけよう。一気に解けていくよ。';
+
+  @override
+  String get howToTango1 => '1回タップで太陽、2回で月。全部のマスを埋めよう。';
+
+  @override
+  String get howToTango2 => 'どの行も列も、太陽と月が半分ずつ。';
+
+  @override
+  String get howToTango3 => '同じものが3つ並ぶのはダメ。2つならOK。';
+
+  @override
+  String get howToTango4 => '=は同じもの、×は反対のもの。';
+
+  @override
+  String get howToZip1 => '1からスタートして、数字の順番になぞっていこう。';
+
+  @override
+  String get howToZip2 => '全部のマスを通って、最後の数字でゴール。';
+
+  @override
+  String get howToZip3 => '道をまちがえた？なぞって戻ればやり直せる。';
+
+  @override
+  String get howToSudoku1 => 'どの行・列・ブロックにも1〜6がひとつずつ。かぶりはなし。';
+
+  @override
+  String get howToSudoku2 => 'マスをタップして、数字をタップ。';
+
+  @override
+  String get howToSudoku3 => '同じ数字がかぶると赤くなるよ。';
+
+  @override
+  String get howToSudoku4 => 'あと1つだけ空いてる列を探そう。すぐ埋まるよ。';
+
+  @override
+  String get howToFlow1 => '点から同じ色の点までなぞって、パイプをつなごう。';
+
+  @override
+  String get howToFlow2 => 'パイプは交差できないし、全部のマスを埋めないとダメ。遠回りしよう。';
+
+  @override
+  String get howToFutoshiki1 => 'どの行も列も、それぞれの数字はひとつだけ。';
+
+  @override
+  String get howToFutoshiki2 => '記号のとがった方が小さい数字。';
+
+  @override
+  String get howToFutoshiki3 => '記号に合わないと赤くなるよ。';
+
+  @override
+  String get howToNonogram1 => '数字は、続けて塗るマスの数。5なら5マス続けて。';
+
+  @override
+  String get howToNonogram2 => '1 1は、間に1マス以上あけた2つのマス。';
+
+  @override
+  String get howToNonogram3 => 'タップで塗る、もう1回で×、もう1回で消す。なぞればまとめて塗れる。';
+
+  @override
+  String get howToNonogram4 => 'ヒントを全部合わせると、かくれた絵が出てくる。';
+
+  @override
+  String get howToMines1 => 'マスをタップして開けよう。何もないところは自動で開くよ。';
+
+  @override
+  String get howToMines2 => '数字は、まわりにある地雷の数。ななめも数えるよ。';
+
+  @override
+  String get howToMines3 => '地雷だと思ったら長押しで旗を立てよう。';
+
+  @override
+  String get howToMines4 => '地雷をふむと30秒のペナルティ。でも当てずっぽうは一度もいらないよ。';
+
+  @override
+  String get howToStars1 => 'どの行・列・色にも星を2つずつ。';
+
+  @override
+  String get howToStars2 => '星どうしはくっつけちゃダメ。ななめもダメ。';
+
+  @override
+  String get howToStars3 => '星のまわりに点を打とう。行に星が2つそろったら、残りは全部空き。';
+
+  @override
+  String get howToCode1 => '4つのちがう記号でできた暗号を当てよう。';
+
+  @override
+  String get howToCode2 => '緑：記号も場所も正解。';
+
+  @override
+  String get howToCode3 => '黄：記号はあるけど場所がちがう。グレー：その記号は入ってない。';
+
+  @override
+  String get howToCode4 => 'チャンスは6回。少ない回数で当てるほどいいよ。';
+
+  @override
+  String get howToTtt1 => '交互に自分のマークを置こう。3つ並べたら勝ち。';
+
+  @override
+  String get howToTtt2 => '相手が2つ並べてたら？3つ目のマスを先に取っちゃおう。';
+
+  @override
+  String get howToC41 => '列をタップしてコマを落とそう。いちばん下の空きまで落ちるよ。';
+
+  @override
+  String get howToC42 => '4つ並べたら勝ち。横、縦、ななめどれでもOK。';
+
+  @override
+  String get howToCheckers1 => 'コマはななめ前に1マス進むよ。コマをタップして、行き先をタップ。';
+
+  @override
+  String get howToCheckers2 =>
+      '相手のコマを飛び越えたら取れる。飛べるときは必ず飛ぶルール。飛ばなきゃいけないコマには輪っかが出るよ。';
+
+  @override
+  String get howToCheckers3 => '着地したところからまた飛べる？そのまま続けよう。1手で何個も取れるよ。';
+
+  @override
+  String get howToCheckers4 => '反対側まで行ったらキングに昇格。キングは後ろにも進めるよ。';
+
+  @override
+  String get howToCheckersWin => '相手のコマを全部取るか、動けなくしたら勝ち。';
+
+  @override
+  String get howToReversi1 => '相手の石を自分の石2つではさむように置こう。';
+
+  @override
+  String get howToReversi2 => 'はさんだ石は全部自分の色にひっくり返る。全方向いっぺんに。';
+
+  @override
+  String get howToReversi3 => '置ける場所がない？そのターンはパス。誰も置けなくなったら、石が多いほうの勝ち。';
+
+  @override
+  String get howToDots1 => '交互に、点と点のあいだに線を1本引こう。';
+
+  @override
+  String get howToDots2 => '箱を閉じたら自分のもの。しかもまた自分の番！';
+
+  @override
+  String get howToDots3 => '箱の3本目の線には気をつけて。次の人にプレゼントすることになるよ。';
+
+  @override
+  String get howToDotsWin => '最後の線が引かれたとき、箱がいちばん多い人の勝ち。';
+
+  @override
+  String get howToChess1 => 'コマをタップすると動ける場所が出るよ。そこをタップ。';
+
+  @override
+  String get howToChess2 => '相手のコマがいるマスに動けば取れるよ。';
+
+  @override
+  String get howToChess3 => 'ポーンを最後の段まで進めたらクイーンに。好きなコマも選べるよ。';
+
+  @override
+  String get howToChess4 => 'チェックはキングが狙われてる状態。必ず逃げよう。逃げ場がなければチェックメイトで終わり。';
+
+  @override
+  String get howToLiars1 => 'みんなこっそりサイコロを5個振る。見えるのは自分のだけ。';
+
+  @override
+  String get howToLiars2 =>
+      '自分の番では、テーブル全体に同じ目がいくつあるか宣言する。全員のサイコロを数えるよ。たとえば「3が4つ」。';
+
+  @override
+  String get howToLiars3 => '1はワイルド。どの目としても数えられる。ただし1の宣言のときは別。';
+
+  @override
+  String get howToLiars4 => '次の人は宣言を上げる。個数を増やすか、同じ個数でもっと大きい目にするか…';
+
+  @override
+  String get howToLiars5 => '…または「ダウト！」。全員サイコロを見せて数えるよ。';
+
+  @override
+  String get howToLiars6 => '宣言が合ってたら、ダウトした人がサイコロを1個失う。多すぎたら、宣言した人が失う。';
+
+  @override
+  String get howToLiars7 => 'サイコロがなくなったら脱落。最後までサイコロが残った人の勝ち。';
+
+  @override
+  String get howToLiarsClock => '1ターン45秒。時間切れになるとゲームが代わりに動くよ。';
+
+  @override
+  String get howToImposter1 => 'みんなに同じ秘密のお題が配られる。インポスターだけはカテゴリーしか知らない。';
+
+  @override
+  String get howToImposter2 => '順番に短いヒントを1つ。お題を知ってるとアピールしつつ、バラさないように。';
+
+  @override
+  String get howToImposterVoice => 'ボイスモードでは、通話でヒントを声に出して言ってから完了をタップ。';
+
+  @override
+  String get howToImposter3 => 'そのあと全員で、インポスターだと思う人に投票。';
+
+  @override
+  String get howToImposter4 =>
+      'バレた？インポスターには最後のチャンス。お題を当てたら逆転勝ち。違う人を選んだり同票なら、インポスターの勝ち。';
+
+  @override
+  String get howToRace1 => '全員に、同じ新しいパズルが同時に配られる。';
+
+  @override
+  String get howToRace2 => '自分のスマホで解こう。バーで、どこまで進んだかみんなに見える。';
+
+  @override
+  String get howToRace3 => '最初に解き終わった人の勝ち。制限時間は10分。';
+
+  @override
+  String get howToLive1 => '全員いっしょにプレイ。みんなが準備OKをタップしたらスタート。';
+
+  @override
+  String get howToLive2 => '誰かが抜けたら？全員一時停止。2分以内に戻らないと、その人の負け。';
+
+  @override
+  String get howToLive3 => 'チャットのほかの人は観戦できる。席をリクエストして、プレイヤーが譲ることもできるよ。';
+
+  @override
+  String get howToTurns1 => '手を指したら「この手で送る」をタップ。チャットにメッセージとして届くよ。';
+
+  @override
+  String get howToTurns2 =>
+      '1手につき2日。20時間たったらこっちからお知らせして、12時間音沙汰がなければ自分で催促もできる。';
+
+  @override
+  String get howToTurns3 => '2日以内に指さないと負け。1つのチャットで同時に3ゲームまで。';
 }

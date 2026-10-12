@@ -79,6 +79,37 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       }
     }
 
+    // monkeyhub/haptics — Flutter's HapticFeedback, played on the Force Touch
+    // trackpad. Dart never calls this by name: AppBinding (lib/services/
+    // app_binding.dart) reroutes `HapticFeedback.vibrate` here, so every
+    // existing call site works unchanged. The argument is Flutter's own
+    // `HapticFeedbackType.*` string (nil for plain `vibrate()`). AppKit only
+    // has three patterns, so the iOS weights fold onto them: a selection
+    // click is a detent (`alignment`), medium and heavy impacts step a level
+    // (`levelChange`), and anything else is `generic`. Nothing plays unless a
+    // finger is on the trackpad, which is the right outcome for a mouse.
+    let hapticsChannel = FlutterMethodChannel(
+      name: "monkeyhub/haptics",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    hapticsChannel.setMethodCallHandler { call, result in
+      guard call.method == "perform" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let pattern: NSHapticFeedbackManager.FeedbackPattern
+      switch call.arguments as? String {
+      case "HapticFeedbackType.selectionClick":
+        pattern = .alignment
+      case "HapticFeedbackType.mediumImpact", "HapticFeedbackType.heavyImpact":
+        pattern = .levelChange
+      default:
+        pattern = .generic
+      }
+      NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .now)
+      result(nil)
+    }
+
     // monkeyhub/badge — the unread/request count, pushed in from
     // `BadgeManager` (lib/push/badge_manager.dart) on every change. Mirrors the
     // iOS app-icon badge (see ios/Runner/AppDelegate.swift).

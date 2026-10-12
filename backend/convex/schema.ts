@@ -972,6 +972,21 @@ export default defineSchema({
     // "lottie" or "image". Pack stickers can be either; KLIPY is always image.
     stickerFormat: v.optional(v.string()),
 
+    // A `gameMove` row: one move of an async (turn by turn) chat game,
+    // written by `matches:move`. The position AFTER the move rides along, so
+    // the bubble draws its board from the row alone, with no per-bubble
+    // subscription to the game. `seq` is the game's seq after the move.
+    gameMove: v.optional(
+      v.object({
+        matchId: v.id("matches"),
+        game: v.string(),
+        seq: v.number(),
+        seat: v.number(),
+        move: v.string(),
+        state: v.string(),
+      })
+    ),
+
     senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
     // Reply support. `replyToId` points at the parent message; `replyToPreview`
@@ -2724,6 +2739,10 @@ export default defineSchema({
     clientMoveId: v.optional(v.string()),
     // Played by the server for a seat that had forfeited (see `out`).
     auto: v.optional(v.boolean()),
+    // An async move's chat bubble (`messages.gameMove`), so deleting the
+    // game's card can take its moves out of the transcript too, without an
+    // index on the (large) messages table.
+    messageId: v.optional(v.id("messages")),
     at: v.number(),
   })
     .index("by_match_seq", ["matchId", "seq"])

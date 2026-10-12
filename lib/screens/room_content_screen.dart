@@ -258,6 +258,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       case MessageType.sticker:
       // A game is played where it was sent.
       case MessageType.game:
+      case MessageType.gameMove:
       case MessageType.challenge:
         _showInChat(m);
     }
@@ -636,7 +637,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
                     // included) — the still disc read as a different, whiter
                     // button on the same screen pair.
                     GlassBackButton(
-                      semanticLabel: l10n.roomContentScreenBackTooltip,
+                      semanticLabel: GlassBackButton.closesHere(context)
+                          ? null
+                          : l10n.roomContentScreenBackTooltip,
+                      closes: GlassBackButton.closesHere(context),
                       onTap: () => Navigator.of(context).pop(),
                     ),
                   const Spacer(),

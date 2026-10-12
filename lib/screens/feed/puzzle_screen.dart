@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../games/how_to/daily_guides.dart';
+import '../../games/how_to/how_to_play.dart';
 import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -101,6 +103,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     // them come with the games' standings, a one-shot read.
     GamesStore.instance.addListener(_onChange);
     GamesStore.instance.load(widget.userId);
+    // First time here: the guide comes up by itself. No clock to hold.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || (FeedStore.instance.puzzle.mine?.done ?? false)) return;
+      showHowToPlayOnce(context, dailyGuide(AppLocalizations.of(context), null));
+    });
   }
 
   @override
@@ -269,8 +276,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     final done = attempt?.done ?? false;
 
     final header = <Widget>[
-      if (Navigator.of(context).canPop())
-        const Align(alignment: Alignment.centerLeft, child: GlassBackButton()),
+      Row(
+        children: [
+          if (Navigator.of(context).canPop()) const GlassBackButton(),
+          const Spacer(),
+          HowToPlayButton(
+            onTap: () => showHowToPlay(context, dailyGuide(l10n, null)),
+          ),
+        ],
+      ),
       const SizedBox(height: 14),
       Text(
         sentenceCaseOf(context, l10n.gameCodeName),

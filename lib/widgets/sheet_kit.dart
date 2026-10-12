@@ -98,6 +98,7 @@ class SheetFrame extends StatelessWidget {
     this.scrollsUnderInset = false,
     this.help,
     this.helpLabel,
+    this.closeIsBack,
   }) : assert(
           (confirm == null || trash == null) &&
               (help == null || (confirm == null && trash == null)),
@@ -124,6 +125,12 @@ class SheetFrame extends StatelessWidget {
 
   /// What the × does. Defaults to popping the sheet.
   final VoidCallback? onClose;
+
+  /// For a sheet with pages of its own: non-null draws the leading button as
+  /// a [SheetBackCloseButton], whose × turns into a ‹ (true) on an inner page
+  /// and back again, and the title crossfades as it changes. [onClose] then
+  /// does both jobs.
+  final bool? closeIsBack;
 
   /// The trailing ✓, when the sheet commits something.
   final SheetConfirm? confirm;
@@ -185,7 +192,14 @@ class SheetFrame extends StatelessWidget {
                 SheetBar(
                   title: title,
                   subtitle: subtitle,
-                  leading: close ? SheetCloseButton(onTap: onClose) : null,
+                  leading: !close
+                      ? null
+                      : closeIsBack != null
+                      ? SheetBackCloseButton(
+                          back: closeIsBack!,
+                          onTap: onClose,
+                        )
+                      : SheetCloseButton(onTap: onClose),
                   trailing: confirm != null
                       ? SheetConfirmButton(
                           onTap: confirm!.onTap,
@@ -295,12 +309,19 @@ class SheetBar extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      title!,
-                      style: sheetTitleStyle(theme),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    // A sheet whose title changes (one with pages) crossfades
+                    // it; every other sheet's title never does, so this
+                    // costs them nothing.
+                    AnimatedSwitcher(
+                      duration: MotionScope.of(context).d(theme.motionFast),
+                      child: Text(
+                        title!,
+                        key: ValueKey(title),
+                        style: sheetTitleStyle(theme),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
@@ -364,6 +385,63 @@ class SheetCloseButton extends StatelessWidget {
         // close (a discard prompt) is not what Esc does.
         shortcut: onTap == null ? AppShortcuts.back : null,
       );
+}
+
+/// A sheet's leading button for a sheet with pages: × on the first page,
+/// ‹ on any page under it, the glyph turning and swapping in place rather
+/// than a second button appearing beside the first.
+class SheetBackCloseButton extends StatelessWidget {
+  const SheetBackCloseButton({super.key, required this.back, this.onTap});
+
+  final bool back;
+
+  /// Defaults to popping the sheet (which a sheet on an inner page should
+  /// intercept with a `PopScope`).
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final density = Density.of(context);
+    final motion = MotionScope.of(context);
+    final m = MaterialLocalizations.of(context);
+    final label = back ? m.backButtonTooltip : m.closeButtonLabel;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    return HoverHint(
+      label: label,
+      child: Semantics(
+        button: true,
+        label: label,
+        child: ChromeDisc(
+          size: density.iconButton,
+          still: true,
+          onTap: onTap ?? () => Navigator.of(context).maybePop(),
+          child: AnimatedSwitcher(
+            duration: motion.d(theme.motionMed),
+            switchInCurve: Curves.easeOutBack,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, anim) => RotationTransition(
+              turns: Tween(begin: back ? -0.25 : 0.25, end: 0.0).animate(anim),
+              child: ScaleTransition(
+                scale: anim,
+                child: FadeTransition(opacity: anim, child: child),
+              ),
+            ),
+            child: Icon(
+              back
+                  ? (rtl
+                        ? CupertinoIcons.chevron_right
+                        : CupertinoIcons.chevron_left)
+                  : CupertinoIcons.xmark,
+              key: ValueKey(back),
+              size: density.iconGlyph(back ? 19 : 17),
+              color: theme.ink,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The accent ✓ that commits a sheet — iOS 26's tinted confirm circle. It

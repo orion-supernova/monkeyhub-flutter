@@ -193,11 +193,15 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                             ),
                           ),
                           // A pushed page (a plain MaterialPageRoute), so a
-                          // back chevron, not an × — leaving still discards
-                          // the take.
+                          // back chevron, not an × (the × on the desktop
+                          // split shell, like every page there): leaving
+                          // still discards the take.
                           Align(
                             alignment: Alignment.centerLeft,
-                            child: GlassBackButton(onTap: _discardAndExit),
+                            child: GlassBackButton(
+                              closes: GlassBackButton.closesHere(context),
+                              onTap: _discardAndExit,
+                            ),
                           ),
                         ],
                       ),

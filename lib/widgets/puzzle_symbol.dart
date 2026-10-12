@@ -53,6 +53,24 @@ class PuzzleSymbol extends StatelessWidget {
         .toColor();
   }
 
+  /// Paints symbol [index] centred on [center], [size] across, straight onto a
+  /// canvas: for painters that draw the code grid themselves (the how-to-play
+  /// demo).
+  static void paintSymbol(
+    Canvas canvas,
+    Offset center,
+    double size,
+    int index,
+    Color accent,
+  ) {
+    final i = index % kPuzzleSymbolCount;
+    canvas.save();
+    canvas.translate(center.dx - size / 2, center.dy - size / 2);
+    _SymbolPainter(index: i, color: colorFor(accent, i), muted: false)
+        .paint(canvas, Size.square(size));
+    canvas.restore();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(

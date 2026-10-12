@@ -5771,15 +5771,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gameInfoOpen => 'Nasıl oynanır';
 
   @override
-  String get gameInfoLabel => 'Nasıl oynanır';
-
-  @override
-  String get gameInfoRulesLabel => 'Kurallar';
-
-  @override
-  String get gameInfoControlsLabel => 'Nereye dokunacaksın';
-
-  @override
   String get gameInfoScoringTimed =>
       'En hızlı bitiren kazanır. Çıkınca saat durur.';
 
@@ -5789,88 +5780,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => 'Bugün herkese aynı bulmaca çıkar.';
-
-  @override
-  String get gameInfoQueensGoal => 'Tahtaya 8 taç koy.';
-
-  @override
-  String get gameInfoQueensRule1 => 'Her satırda tam 1 taç olur.';
-
-  @override
-  String get gameInfoQueensRule2 => 'Her sütunda tam 1 taç olur.';
-
-  @override
-  String get gameInfoQueensRule3 => 'Her renkte tam 1 taç olur.';
-
-  @override
-  String get gameInfoQueensControls =>
-      'Bir kez dokun: × (burada taç yok). İki kez dokun: taç. Bir daha dokun: temizle.';
-
-  @override
-  String get gameInfoTangoGoal => 'Her kareye bir güneş ya da bir ay koy.';
-
-  @override
-  String get gameInfoTangoRule1 => 'Her satırda 3 güneş ve 3 ay olur.';
-
-  @override
-  String get gameInfoTangoRule2 => 'Her sütunda 3 güneş ve 3 ay olur.';
-
-  @override
-  String get gameInfoTangoRule3 => 'Yan yana 3 aynısı olamaz. 2 olur.';
-
-  @override
-  String get gameInfoTangoControls =>
-      'Bir kez dokun: güneş. İki kez: ay. Bir daha: temizle. Baştan dolu kareler değişmez.';
-
-  @override
-  String get gameInfoZipGoal => 'Bütün karelerden geçen tek bir çizgi çiz.';
-
-  @override
-  String get gameInfoZipRule1 => '1\'den başla.';
-
-  @override
-  String get gameInfoZipRule2 => 'Sayılardan sırayla geç: 1, 2, 3…';
-
-  @override
-  String get gameInfoZipRule3 => 'Her kareyi doldur. Her kareden bir kez geç.';
-
-  @override
-  String get gameInfoZipControls =>
-      'Çizmek için parmağını sürükle. Geri almak için geri sürükle.';
-
-  @override
-  String get gameInfoSudokuGoal =>
-      'Tabloyu 1\'den 6\'ya kadar sayılarla doldur.';
-
-  @override
-  String get gameInfoSudokuRule1 =>
-      'Her satırda 1, 2, 3, 4, 5 ve 6 olur. Tekrar yok.';
-
-  @override
-  String get gameInfoSudokuRule2 => 'Her sütunda da.';
-
-  @override
-  String get gameInfoSudokuRule3 =>
-      'Her kutuda da. Bir kutu 2 satır, 3 sütundur.';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'Bir kareye, sonra bir sayıya dokun. Silmek için aynı sayıya tekrar dokun. Notlar küçük işaretler ekler.';
-
-  @override
-  String get gameInfoCodeGoal => '4 sembollük gizli şifreyi bul.';
-
-  @override
-  String get gameInfoCodeRule1 => 'Şifrede 4 farklı sembol var. Tekrar yok.';
-
-  @override
-  String get gameInfoCodeRule2 => '6 tahmin hakkın var.';
-
-  @override
-  String get gameInfoCodeRule3 => 'Yeşil: doğru sembol, doğru yer.';
-
-  @override
-  String get gameInfoCodeControls => '4 sembole dokun, sonra Tahmin\'e dokun.';
 
   @override
   String get savedMessagesTitle => 'Kaydedilmiş Mesajlar';
@@ -10738,54 +10647,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomContentMonthLast => 'Geçen ay';
 
   @override
-  String get gameInfoGoalLabel => 'Hedef';
-
-  @override
-  String get gameInfoExampleLabel => 'Örnek';
-
-  @override
-  String get gameInfoWinLabel => 'Nasıl kazanırsın';
-
-  @override
-  String get gameInfoQueensRule4 => 'Taçlar birbirine değemez. Köşeden bile.';
-
-  @override
-  String get gameInfoQueensExample =>
-      'Buraya bir taç koyarsan: aynı satırda, aynı sütunda, aynı renkte ve çevresindeki 8 karede başka taç olamaz.';
-
-  @override
-  String get gameInfoTangoRule4 => '= iki kare aynı demek. × farklı demek.';
-
-  @override
-  String get gameInfoTangoExample =>
-      'Güneş, güneş, boş mu? Boş kare ay olmalı.';
-
-  @override
-  String get gameInfoZipRule4 =>
-      'Yukarı, aşağı, sola ya da sağa git. Çapraz yok.';
-
-  @override
-  String get gameInfoZipRule5 => 'Son sayıda bitir.';
-
-  @override
-  String get gameInfoZipExample =>
-      '1\'den 2\'ye mi gidiyorsun? Gerekirse uzun yoldan git. Hiçbir kare boş kalamaz.';
-
-  @override
-  String get gameInfoSudokuExample =>
-      'Bir satırda 1, 2, 4, 5 ve 6 var mı? Boş kare 3\'tür.';
-
-  @override
-  String get gameInfoCodeRule4 => 'Sarı: doğru sembol, yanlış yer.';
-
-  @override
-  String get gameInfoCodeRule5 => 'Gri: bu sembol şifrede yok.';
-
-  @override
-  String get gameInfoCodeExample =>
-      'Yeşil, sarı, gri, gri şu demek: 1 sembol doğru yerde, 1 sembol başka yerde olmalı, 2 sembol şifrede yok.';
-
-  @override
   String get leaderboardOverall => 'Bugün';
 
   @override
@@ -12362,24 +12223,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatGameModeLive => 'Canlı';
 
   @override
-  String get chatGameModeTurns => 'Sırayla';
-
-  @override
-  String get chatGameModeBot => 'Bota karşı';
-
-  @override
-  String get chatGameModeLiveHint =>
-      'Herkes aynı anda oynar. Ayrılmak oyunu duraklatır.';
-
-  @override
-  String get chatGameModeTurnsHint =>
-      'İstediğin zaman hamle yap. Sıran gelince bildirim alırsın, her sıra en fazla 2 gün sürer.';
-
-  @override
-  String get chatGameModeBotHint =>
-      'Sadece sen ve bot. Sohbete bir şey gönderilmez.';
-
-  @override
   String get chatGameBotEasyHint => 'Hata yapar. Öğrenmek için ideal.';
 
   @override
@@ -12483,126 +12326,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get gameAutoDot => 'Otomatik nokta';
-
-  @override
-  String get gameInfoFlowGoal =>
-      'Aynı renkteki her nokta çiftini bir boruyla birleştir.';
-
-  @override
-  String get gameInfoFlowRule1 =>
-      'Her boru aynı renk ve numaradaki 2 noktayı birleştirir.';
-
-  @override
-  String get gameInfoFlowRule2 => 'Borular kesişemez, aynı kareyi paylaşamaz.';
-
-  @override
-  String get gameInfoFlowRule3 => 'Her kareyi doldur. Hiçbiri boş kalamaz.';
-
-  @override
-  String get gameInfoFlowRule4 =>
-      'Yukarı, aşağı, sola ya da sağa git. Çapraz yok.';
-
-  @override
-  String get gameInfoFlowExample =>
-      'Düz bir yol yok mu? Boruyu diğerlerinin etrafından dolaştır. Yine de her kare dolmalı.';
-
-  @override
-  String get gameInfoFlowControls =>
-      'Borusunu çizmek için bir noktadan sürükle. Geri almak için geri sürükle. Bir borunun üstünden geçmek onu keser.';
-
-  @override
-  String get gameInfoFutoshikiGoal =>
-      'Tabloyu 1\'den 5\'e kadar sayılarla doldur.';
-
-  @override
-  String get gameInfoFutoshikiRule1 =>
-      'Her satırda 1, 2, 3, 4 ve 5 olur. Tekrar yok.';
-
-  @override
-  String get gameInfoFutoshikiRule2 => 'Her sütunda da.';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      'İki kare arasındaki < ya da > doğru olmalı. Küçük sayıyı gösterir.';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      'Bir işaret bu kareyi mi gösteriyor? O zaman 5 olamaz, çünkü komşusu daha büyük.';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'Bir kareye, sonra bir sayıya dokun. Silmek için aynı sayıya tekrar dokun. Notlar küçük işaretler ekler.';
-
-  @override
-  String get gameInfoNonogramGoal =>
-      'Gizli resmi ortaya çıkarmak için kareleri boya.';
-
-  @override
-  String get gameInfoNonogramRule1 =>
-      'Her satır ve sütunun yanındaki sayılar, sırasıyla boyalı dizilerin uzunluğudur.';
-
-  @override
-  String get gameInfoNonogramRule2 => 'Diziler arasında en az 1 boş kare olur.';
-
-  @override
-  String get gameInfoNonogramRule3 =>
-      '0, satırın tamamen boş olduğu anlamına gelir.';
-
-  @override
-  String get gameInfoNonogramExample =>
-      '10 karelik bir satırda ipucu 10 mu? Hepsini boya. 4 4 ise iki dizi de sığar, aralarında bir boşlukla.';
-
-  @override
-  String get gameInfoNonogramControls =>
-      'Bir kez dokun: boya. İki kez: × (boş). Bir daha: temizle. Birden çok kareyi işaretlemek için sürükle.';
-
-  @override
-  String get gameInfoMinesweeperGoal => 'Mayın olmayan her kareyi aç.';
-
-  @override
-  String get gameInfoMinesweeperRule1 =>
-      'Bir sayı, o kareye kaç mayının değdiğini söyler. Köşeler dahil.';
-
-  @override
-  String get gameInfoMinesweeperRule2 =>
-      'Her kare mantıkla bulunabilir. Asla tahmin etmen gerekmez.';
-
-  @override
-  String get gameInfoMinesweeperRule3 =>
-      'Mayına basarsan süreye 30 saniye eklenir. Sonra devam et.';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      'Yanında tek bir kapalı kare olan bir 1 mi? O kare mayındır. Bayrakla.';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      'Bir kareyi açmak için dokun. Mayın işaretlemek için basılı tut ya da Bayrak\'ı aç.';
-
-  @override
-  String get gameInfoStarbattleGoal =>
-      'Her satıra, sütuna ve renge 2 yıldız koy.';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'Her satırda tam 2 yıldız olur.';
-
-  @override
-  String get gameInfoStarbattleRule2 => 'Her sütunda tam 2 yıldız olur.';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'Her renkte tam 2 yıldız olur.';
-
-  @override
-  String get gameInfoStarbattleRule4 =>
-      'Yıldızlar birbirine değemez. Köşeden bile.';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'Buradaki bir yıldız şu demek: etrafındaki 8 karede başka yıldız yok, satırında, sütununda ve renginde bulunacak bir tane daha var.';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      'Bir kez dokun: nokta (burada yıldız yok). İki kez: yıldız. Bir daha: temizle.';
 
   @override
   String boardCellName(int row, int col) {
@@ -12742,16 +12465,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max oyuncu';
   }
-
-  @override
-  String get chatGamePartySection => 'Parti';
-
-  @override
-  String get chatGamePartyLiveOnly =>
-      'Parti oyunları canlı, herkesle aynı anda oynanır.';
-
-  @override
-  String get chatGameNeedsThree => 'En az 3 kişilik grup gerekir';
 
   @override
   String get chatGameVoiceOption => 'Sesli ipuçları';
@@ -13123,4 +12836,438 @@ class AppLocalizationsTr extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return '$piece olarak terfi et';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => 'Bir daha gösterme';
+
+  @override
+  String get kbdPeekTurnedOff =>
+      'Tamamdır, artık çıkmayacak. İstersen Ayarlar\'dan geri açabilirsin.';
+
+  @override
+  String get chatGameBadgeTurns => 'Sırayla';
+
+  @override
+  String get chatGameSectionBoards => 'Masa oyunları';
+
+  @override
+  String get chatGameSectionParty => 'Parti oyunları';
+
+  @override
+  String get chatGameBoardsHintDm =>
+      'İster şimdi canlı oynayın, ister boş buldukça sırayla.';
+
+  @override
+  String get chatGameBoardsHintGroup =>
+      'Burada canlı oynanır. Yerini kap ya da izle.';
+
+  @override
+  String get chatGamePartyHint =>
+      'Herkes aynı anda oynuyor, önce ekibi toplayın.';
+
+  @override
+  String get chatGameLiveTitle => 'Canlı oyna';
+
+  @override
+  String get chatGameLiveNow => 'Herkes aynı anda, hemen şimdi oynar.';
+
+  @override
+  String get chatGameLivePause =>
+      'Biri çıkarsa oyun durur. 2 dakikada dönmezse hükmen kaybeder.';
+
+  @override
+  String get chatGameTurnsTitle => 'Sırayla oyna';
+
+  @override
+  String get chatGameTurnsAnytime =>
+      'Ne zaman istersen hamleni yap. Her hamle sohbete düşer.';
+
+  @override
+  String get chatGameTurnsClock =>
+      'Her hamle için 2 gün var. Biz hatırlatırız, sen de dürtebilirsin.';
+
+  @override
+  String get chatGameHowWillYouPlay => 'Nasıl oynamak istersin?';
+
+  @override
+  String get botHubTitle => 'Bota karşı oyna';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'Sadece sen ve $bot. Sohbete bir şey düşmez, kimse izlemiyor.';
+  }
+
+  @override
+  String get botHubLevelTitle => 'Ne kadar zor olsun?';
+
+  @override
+  String get botHubPickGame => 'Bir oyun seç';
+
+  @override
+  String get botHubCaption => 'Antrenman';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count oyun',
+      one: '1 oyun',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'Sen oynadın';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name oynadı';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return '$count. hamle';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return '$count. sütun';
+  }
+
+  @override
+  String get chatGameMvEarlier => 'Önceki hamle';
+
+  @override
+  String get chatGameMvSend => 'Hamleyi gönder';
+
+  @override
+  String get chatGameMvUndo => 'Geri al';
+
+  @override
+  String get chatGameMvStagedHint =>
+      'Henüz gitmedi. Fikrini değiştir ya da Gönder\'e bas.';
+
+  @override
+  String get chatGameMvSentToast => 'Hamlen gitti. Sıra onda.';
+
+  @override
+  String get chatGameMvYourTurnSub => 'Hamleni yap, sonra gönder. Acele yok.';
+
+  @override
+  String get chatGameMvWaitingSub => 'Sıra sana gelince haber veririz.';
+
+  @override
+  String get chatGameMvNudgeLater => '12 saat ses çıkmazsa dürtebilirsin';
+
+  @override
+  String get chatGameMvForfeitNote => 'Süre biterse sırası olan kaybeder';
+
+  @override
+  String get chatGameMvAgain => 'Sıra hâlâ sende. Devam!';
+
+  @override
+  String get chatGameMvSending => 'Gönderiliyor…';
+
+  @override
+  String get howToNext => 'İleri';
+
+  @override
+  String get howToWatchAgain => 'Tekrar izle';
+
+  @override
+  String get howToGotIt => 'Tamamdır';
+
+  @override
+  String get howToProTip => 'Taktik';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'Adım $step/$total';
+  }
+
+  @override
+  String get howToQueens1 => 'Her satıra, her sütuna ve her renge bir taç.';
+
+  @override
+  String get howToQueens2 => 'Taçlar birbirine değemez. Çaprazdan bile.';
+
+  @override
+  String get howToQueens3 =>
+      'Bir kere dokun ×, iki kere taç, bir daha dokunursan silinir.';
+
+  @override
+  String get howToQueens4 =>
+      'Tacı koy, sonra artık taç gelemeyecek her kareye × at. Tahta bir anda açılır.';
+
+  @override
+  String get howToTango1 =>
+      'Bir kere dokun güneş, iki kere ay. Bütün kareleri doldur.';
+
+  @override
+  String get howToTango2 => 'Her satır ve sütunun yarısı güneş, yarısı ay.';
+
+  @override
+  String get howToTango3 => 'Aynı şeyden 3 tane yan yana gelemez. 2 tamam.';
+
+  @override
+  String get howToTango4 => '= varsa ikisi aynı, × varsa ikisi farklı.';
+
+  @override
+  String get howToZip1 => '1\'den başla, sayıların üstünden sırayla geç.';
+
+  @override
+  String get howToZip2 => 'Bütün karelerden geç, son sayıda bitir.';
+
+  @override
+  String get howToZip3 => 'Yanlış mı döndün? Geri sürükle, silinsin.';
+
+  @override
+  String get howToSudoku1 =>
+      'Her satır, sütun ve kutuda 1\'den 6\'ya kadar her sayı bir kere. Tekrar yok.';
+
+  @override
+  String get howToSudoku2 => 'Kareye dokun, sonra sayıya dokun.';
+
+  @override
+  String get howToSudoku3 => 'Aynı sayı iki kere mi geldi? Kırmızı yanar.';
+
+  @override
+  String get howToSudoku4 =>
+      'Tek sayısı eksik olan satırları kolla. Bedava puan.';
+
+  @override
+  String get howToFlow1 => 'Bir noktadan eşine sürükle, boruyu çek.';
+
+  @override
+  String get howToFlow2 =>
+      'Borular kesişemez, her kare de dolmalı. Gerekirse dolaş.';
+
+  @override
+  String get howToFutoshiki1 => 'Her satır ve sütunda her sayı tam bir kere.';
+
+  @override
+  String get howToFutoshiki2 => 'İşaretin sivri ucu küçük sayıyı gösterir.';
+
+  @override
+  String get howToFutoshiki3 => 'İşareti bozarsan kırmızı yanar.';
+
+  @override
+  String get howToNonogram1 =>
+      'Sayılar, o satırda yan yana kaç kare boyayacağını söyler. 5 demek yan yana 5 kare.';
+
+  @override
+  String get howToNonogram2 =>
+      '1 1 demek iki ayrı kare, arada en az bir boşluk.';
+
+  @override
+  String get howToNonogram3 =>
+      'Dokun boyansın, bir daha × olsun, bir daha silinsin. Sürükle, bir sürü kareyi tek seferde hallet.';
+
+  @override
+  String get howToNonogram4 =>
+      'Bütün ipuçlarını tuttur, gizli resim ortaya çıksın.';
+
+  @override
+  String get howToMines1 =>
+      'Açmak için kareye dokun. Boş yerler kendiliğinden açılır.';
+
+  @override
+  String get howToMines2 =>
+      'Sayı, o kareye değen mayın sayısı. Çaprazlar da dahil.';
+
+  @override
+  String get howToMines3 =>
+      'Mayın olduğundan emin misin? Basılı tut, bayrağı dik.';
+
+  @override
+  String get howToMines4 =>
+      'Mayına basarsan 30 saniye ceza yersin. Ama hiçbir zaman tahmin etmen gerekmez.';
+
+  @override
+  String get howToStars1 => 'Her satıra, her sütuna ve her renge 2 yıldız.';
+
+  @override
+  String get howToStars2 => 'Yıldızlar birbirine değemez. Çaprazdan bile.';
+
+  @override
+  String get howToStars3 =>
+      'Her yıldızın etrafını noktayla kapat. Bir satır 2 yıldızını bulduysa gerisi boş.';
+
+  @override
+  String get howToCode1 =>
+      '4 farklı sembolden oluşan gizli bir şifre var. Çöz bakalım.';
+
+  @override
+  String get howToCode2 => 'Yeşil: sembol de doğru, yeri de.';
+
+  @override
+  String get howToCode3 =>
+      'Sarı: şifrede var ama yeri başka. Gri: şifrede hiç yok.';
+
+  @override
+  String get howToCode4 =>
+      '6 hakkın var. Ne kadar az denemede bulursan o kadar iyi.';
+
+  @override
+  String get howToTtt1 =>
+      'Sırayla işaretini koy. 3\'ünü yan yana dizen kazanır.';
+
+  @override
+  String get howToTtt2 =>
+      'Rakip 2 tane dizdi mi? Üçüncü kareyi ondan önce kap.';
+
+  @override
+  String get howToC41 =>
+      'Bir sütuna dokun, pulu bırak. Pul en alttaki boş yere düşer.';
+
+  @override
+  String get howToC42 =>
+      '4\'ünü yan yana dizen kazanır: yatay, dikey ya da çapraz.';
+
+  @override
+  String get howToCheckers1 =>
+      'Taşlar çapraz bir kare ileri gider. Önce taşa, sonra gideceği kareye dokun.';
+
+  @override
+  String get howToCheckers2 =>
+      'Rakip taşın üstünden atla, onu al. Alabiliyorsan almak zorundasın. Almak zorunda olan taşın etrafında halka yanar.';
+
+  @override
+  String get howToCheckers3 =>
+      'İndiğin yerden bir daha atlayabiliyor musun? Devam et. Tek hamlede birkaç taş alabilirsin.';
+
+  @override
+  String get howToCheckers4 =>
+      'Karşı tarafa ulaşan taş dama olur. Damalar geri de gidebilir.';
+
+  @override
+  String get howToCheckersWin =>
+      'Rakibin tüm taşlarını al ya da hamlesiz bırak, kazan.';
+
+  @override
+  String get howToReversi1 =>
+      'Pulunu öyle bir yere koy ki rakibin pulları iki pulunun arasında sıkışsın.';
+
+  @override
+  String get howToReversi2 =>
+      'Sıkışan her pul senin rengine döner. Hem de her yönde aynı anda.';
+
+  @override
+  String get howToReversi3 =>
+      'Oynayacak hamlen yok mu? Sıran atlanır. Kimse oynayamayınca en çok pulu olan kazanır.';
+
+  @override
+  String get howToDots1 => 'Sırayla iki nokta arasına çizgi çekin.';
+
+  @override
+  String get howToDots2 => 'Kutuyu kapatan alır. Üstüne bir daha oynar!';
+
+  @override
+  String get howToDots3 =>
+      'Bir kutunun üçüncü kenarına dikkat. Onu çizersen kutuyu sıradakine hediye edersin.';
+
+  @override
+  String get howToDotsWin =>
+      'Son çizgi çekildiğinde en çok kutusu olan kazanır.';
+
+  @override
+  String get howToChess1 =>
+      'Taşa dokun, nereye gidebildiğini gör. Sonra bir kareye dokun.';
+
+  @override
+  String get howToChess2 => 'Rakip taşın üstüne git, onu al.';
+
+  @override
+  String get howToChess3 =>
+      'Piyonu son sıraya getir, vezir olsun. Ya da ne seçersen o.';
+
+  @override
+  String get howToChess4 =>
+      'Şah çekildiyse şahın saldırı altında demek, hemen kurtar. Kaçacak yer yoksa şah mat, oyun biter.';
+
+  @override
+  String get howToLiars1 =>
+      'Herkes gizlice 5 zar atar. Sen sadece kendi zarlarını görürsün.';
+
+  @override
+  String get howToLiars2 =>
+      'Sıran gelince teklif ver: masadaki bütün zarlarda bir sayıdan kaç tane var? Herkesin zarı sayılır. Mesela “dört tane 3”.';
+
+  @override
+  String get howToLiars3 =>
+      '1\'ler joker: her sayı yerine geçer. Tabii teklif 1\'ler üzerine değilse.';
+
+  @override
+  String get howToLiars4 =>
+      'Sıradaki oyuncu teklifi yükseltmek zorunda: ya daha çok zar ya da aynı sayıda daha büyük bir sayı…';
+
+  @override
+  String get howToLiars5 =>
+      '…ya da “Yalancı!” der. Herkes zarlarını açar, birlikte sayılır.';
+
+  @override
+  String get howToLiars6 =>
+      'Teklif tuttu mu? “Yalancı” diyen bir zar kaybeder. Teklif fazla mıydı? Teklifi veren kaybeder.';
+
+  @override
+  String get howToLiars7 =>
+      'Zarın bittiyse oyundan çıkarsın. Elinde zar kalan son kişi kazanır.';
+
+  @override
+  String get howToLiarsClock =>
+      'Her sıra 45 saniye. Süren biterse oyun senin yerine oynar.';
+
+  @override
+  String get howToImposter1 =>
+      'Herkese aynı gizli kelime gelir. Sahtekâr hariç: ona sadece kategori gelir.';
+
+  @override
+  String get howToImposter2 =>
+      'Sırayla kısa bir ipucu verin. Kelimeyi bildiğini göster ama ele verme.';
+
+  @override
+  String get howToImposterVoice =>
+      'Sesli modda ipucunu aramada yüksek sesle söyle, sonra Bitti\'ye dokun.';
+
+  @override
+  String get howToImposter3 => 'Sonra herkes sahtekâr sandığı kişiye oy verir.';
+
+  @override
+  String get howToImposter4 =>
+      'Yakalandı mı? Sahtekârın son bir şansı var: kelimeyi bilirse galibiyeti kapar. Yanlış kişiyi seçtiniz ya da berabere mi? Sahtekâr kazanır.';
+
+  @override
+  String get howToRace1 => 'Herkese aynı anda aynı yepyeni bulmaca gelir.';
+
+  @override
+  String get howToRace2 =>
+      'Kendi telefonunda çöz. İlerleme çubuğun, ne kadar yaklaştığını herkese gösterir.';
+
+  @override
+  String get howToRace3 => 'İlk bitiren kazanır. 10 dakikan var.';
+
+  @override
+  String get howToLive1 =>
+      'Herkes aynı anda oynar. Herkes Hazırım\'a dokununca oyun başlar.';
+
+  @override
+  String get howToLive2 =>
+      'Biri oyundan mı çıktı? Oyun herkes için durur. Geri dönmek için 2 dakikası var, yoksa hükmen kaybeder.';
+
+  @override
+  String get howToLive3 =>
+      'Sohbetteki diğerleri izleyebilir. Yer isteyebilirler, oyunculardan biri de yerini devredebilir.';
+
+  @override
+  String get howToTurns1 =>
+      'Hamleni yap, sonra Hamleyi gönder\'e dokun. Sohbete mesaj olarak düşer.';
+
+  @override
+  String get howToTurns2 =>
+      'Her hamle için 2 gün var. 20 saat sonra biz hatırlatırız, 12 saat ses çıkmazsa sen de dürtebilirsin.';
+
+  @override
+  String get howToTurns3 =>
+      '2 gün içinde hamle yapmazsan yenilmiş sayılırsın. Bir sohbette aynı anda en fazla 3 oyun.';
 }

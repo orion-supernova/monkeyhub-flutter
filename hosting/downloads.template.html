@@ -8,34 +8,31 @@
      hosting/public/downloads/index.html. Don't edit the copy in public/, it is
      regenerated on every platform deploy.
 
-     THIS PAGE HAS TWO JOBS.
+     One card per platform, all fixed in this file because almost everything
+     is store-delivered: iPhone/iPad and Mac through TestFlight (invite only
+     until the App Store listings go public), Android through Google Play
+     (closed testing), Windows through the Microsoft Store, the web app at
+     /web/. The script picks the visitor's platform and floats its card to the
+     front; the rest stay in a fixed order underneath.
 
-     1. It is where the already-installed Android APKs are sent. Those builds
-        were stamped MH_CHANNEL=android-apk, and that define beats installerStore
-        forever (lib/update/release_channel.dart), so they ask the backend about
-        the android-apk channel for as long as they stay installed. deploy.sh
-        republishes that row on every Play release with updateUrl pointing here,
-        so the UPDATE button in the app lands on this page. It has to explain
-        the ONE thing that is not obvious: Play cannot install over a sideloaded
-        APK, because Play App Signing re-signs the bundle with Google's key and
-        Android refuses a signature change. Uninstall first. If you ever move
-        this page, fix that row's updateUrl too or those users go nowhere.
+     Two parts are filled from artifacts.json, which lives on the VM and is the
+     source of truth for what we self-host (deploy.sh merges only the key for
+     the platform it just built, so releasing one can never wipe another):
 
-     2. It is the download page for platforms we self-host. Android is no longer
-        one of them — the manifest-driven grid below is now for a future macOS
-        DMG or Windows build. That machinery is deliberately left intact.
-
-     One card per entry in artifacts.json, which lives on the VM and is the
-     source of truth for what has actually shipped. deploy.sh merges only the
-     key for the platform it just built, so releasing one can never wipe
-     another's row. The block between MH:CARD markers is repeated once per
-     entry; the MH:EMPTY block replaces it when nothing has shipped yet — which
-     is the normal state now that Android has left the manifest, so the fixed
-     cards below carry the page on their own.
-
-     Card tokens: __PLAT_ICON__ __PLAT_NAME__ __PLAT_VERSION__ __PLAT_META__
-                  __PLAT_HREF__ __PLAT_BTN__
+     - The Linux card. Tokens __LINUX_HREF__ __LINUX_VERSION__ __LINUX_META__.
+       Without a `linux` entry the MH:LINUX-DL block is dropped. The MH:AUR
+       block (yay line) is kept only when the AUR RPC says `monkeyhub-bin`
+       exists at stamp time; otherwise MH:NOAUR stands in. Fail closed.
+     - The MH:CARD block, repeated once per OTHER entry (a future macOS DMG or
+       self-hosted Windows build). `linux` has its own card and `android-apk`
+       is retired, so both are skipped. Nothing left = the block disappears.
+       Card tokens: __PLAT_KEY__ __PLAT_ICON__ __PLAT_NAME__ __PLAT_VERSION__
+                    __PLAT_META__ __PLAT_HREF__ __PLAT_BTN__
      Page tokens: __UPDATED_AT__
+
+     The retired Android APK still ships an UPDATE button that lands here (its
+     android-apk release row points at this page). It gets no card of its own:
+     the Android card's Play route is the way forward for those people too.
 
      Download links point at the VERSIONED filename on purpose: Cloudflare
      overrides the origin's no-cache on binaries with a 4 h browser TTL, so a
@@ -46,7 +43,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Get MonkeyHub</title>
-<meta name="description" content="Get MonkeyHub on Android through Google Play, on iPhone through TestFlight, or right in your browser.">
+<meta name="description" content="Get MonkeyHub on iPhone, iPad, Mac, Android, Windows, Linux, or right in your browser.">
+<meta name="color-scheme" content="dark light">
 <link rel="canonical" href="https://monkeyhub.walhallaa.com/downloads/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐵</text></svg>">
 <!-- MH:DOC — self-hosted fonts, same as the landing page; the rationale lives
@@ -81,38 +79,66 @@
     font-weight: 600; font-style: normal; font-display: swap;
   }
   :root {
-    --jungle: #0d1410;
-    --jungle-2: #131c16;
+    --bg: #0d1410;
+    --card: #131c16;
+    --card-2: rgba(19,28,22,.6);
     --banana: #ffc53d;
     --banana-deep: #e8a20c;
+    --accent: #ffc53d;          /* banana as TEXT; darkened in light mode */
     --leaf: #2e4d38;
     --ink: #f2efe6;
     --ink-dim: #9aa694;
+    --line: rgba(242,239,230,.08);
+    --line-2: rgba(242,239,230,.16);
+    --chip: rgba(46,77,56,.35);
+    --glow-a: rgba(46,77,56,.55);
+    --glow-b: rgba(232,162,12,.12);
+    --grain: .05;
+    --shadow: 0 18px 40px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f1e4;
+      --card: #fffbf2;
+      --card-2: rgba(255,251,242,.85);
+      --accent: #9a6200;
+      --leaf: #b9d3b0;
+      --ink: #1b2219;
+      --ink-dim: #5f6b5a;
+      --line: rgba(27,34,25,.09);
+      --line-2: rgba(27,34,25,.16);
+      --chip: rgba(46,77,56,.08);
+      --glow-a: rgba(120,170,120,.35);
+      --glow-b: rgba(232,162,12,.18);
+      --grain: .03;
+      --shadow: 0 16px 34px rgba(60,50,20,.12);
+    }
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     font-family: "Atkinson Hyperlegible", sans-serif;
     background:
-      radial-gradient(1100px 700px at 85% -10%, rgba(46,77,56,.55), transparent 60%),
-      radial-gradient(900px 600px at -10% 110%, rgba(232,162,12,.12), transparent 55%),
-      var(--jungle);
+      radial-gradient(1100px 700px at 85% -10%, var(--glow-a), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, var(--glow-b), transparent 55%),
+      var(--bg);
     background-attachment: fixed;
     color: var(--ink);
     min-height: 100%;
-    padding: 40px 24px 24px;
+    padding: 40px 16px 24px;
     overflow-x: hidden;
   }
-  /* grain so the dark doesn't band */
+  /* grain so the gradients don't band */
   body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .05;
+    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: var(--grain);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  main { max-width: 760px; margin: 0 auto; }
+  main { max-width: 820px; margin: 0 auto; }
 
   header { text-align: center; }
   .mark {
     font-size: 64px; line-height: 1; display: inline-block; text-decoration: none;
-    filter: drop-shadow(0 12px 28px rgba(0,0,0,.5));
+    filter: drop-shadow(0 12px 28px rgba(0,0,0,.4));
     animation: drop .7s cubic-bezier(.2,1.4,.4,1) both;
   }
   h1 {
@@ -120,90 +146,135 @@
     font-size: clamp(2rem, 7vw, 2.6rem); letter-spacing: .5px;
     margin-top: 12px; animation: rise .55s .12s ease-out both;
   }
-  h1 .hub { color: var(--banana); }
+  h1 .hub { color: var(--accent); }
   .tag { color: var(--ink-dim); margin-top: 6px; animation: rise .55s .2s ease-out both; }
+  .tag b { color: var(--ink); }
 
   .grid {
-    margin-top: 36px; display: grid; gap: 14px;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    animation: rise .55s .3s ease-out both;
+    margin-top: 32px; display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   }
   .card {
+    position: relative;
     display: flex; flex-direction: column;
-    padding: 24px 22px 22px;
-    background: linear-gradient(180deg, var(--jungle-2), rgba(19,28,22,.6));
-    border: 1px solid rgba(242,239,230,.08);
+    padding: 22px 20px 20px;
+    background: linear-gradient(180deg, var(--card), var(--card-2));
+    border: 1px solid var(--line);
     border-radius: 22px;
+    animation: rise .5s ease-out both;
+    animation-delay: calc(.26s + var(--i, 0) * .05s);
   }
-  .card .ico { font-size: 30px; line-height: 1; }
+  /* The visitor's own platform: spans the row, wears a banana ring. */
+  .card.you {
+    grid-column: 1 / -1;
+    border-color: rgba(255,197,61,.55);
+    box-shadow: var(--shadow), 0 0 0 4px rgba(255,197,61,.10);
+    animation-delay: .22s;
+  }
+  .you-badge {
+    display: none;
+    position: absolute; top: 16px; right: 16px;
+    font-family: "Fredoka", sans-serif; font-weight: 600; font-size: .78rem;
+    letter-spacing: .3px; color: #201500;
+    background: linear-gradient(180deg, var(--banana), var(--banana-deep));
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .card.you .you-badge { display: inline-block; }
+  .head { display: flex; align-items: center; gap: 12px; }
+  .ico {
+    width: 44px; height: 44px; flex: none;
+    display: grid; place-items: center; font-size: 24px; line-height: 1;
+    background: var(--chip); border: 1px solid var(--line); border-radius: 14px;
+  }
   .card h2 {
-    font-family: "Fredoka", sans-serif; font-weight: 500; font-size: 1.25rem;
-    margin-top: 10px;
+    font-family: "Fredoka", sans-serif; font-weight: 500; font-size: 1.22rem;
+    line-height: 1.2;
   }
+  .sub { color: var(--ink-dim); font-size: .86rem; margin-top: 2px; }
   .ver {
     display: inline-flex; gap: 8px; align-items: baseline; align-self: flex-start;
-    margin-top: 10px;
+    margin-top: 14px;
     font-family: "Fredoka", sans-serif; font-weight: 500;
-    background: rgba(255,197,61,.1); color: var(--banana);
-    border: 1px solid rgba(255,197,61,.25);
-    padding: 4px 14px; border-radius: 999px; font-size: .9rem;
+    background: rgba(255,197,61,.1); color: var(--accent);
+    border: 1px solid rgba(255,197,61,.28);
+    padding: 3px 12px; border-radius: 999px; font-size: .84rem;
   }
-  .soon {
-    background: rgba(46,77,56,.35); color: var(--ink-dim);
-    border-color: rgba(242,239,230,.12);
-  }
+  .soon { background: var(--chip); color: var(--ink-dim); border-color: var(--line-2); }
+  .note { margin-top: 12px; color: var(--ink-dim); font-size: .92rem; line-height: 1.55; }
+  .note b { color: var(--ink); }
+  .spacer { flex: 1; min-height: 4px; }
+
   .btn {
-    display: block; margin-top: 18px;
-    font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-top: 16px;
+    font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.05rem;
     color: #201500; text-decoration: none; text-align: center;
     background: linear-gradient(180deg, var(--banana), var(--banana-deep));
-    padding: 14px 20px; border-radius: 16px;
-    box-shadow: 0 10px 24px rgba(232,162,12,.28), inset 0 1px 0 rgba(255,255,255,.35);
+    padding: 13px 18px; border-radius: 16px; border: 0; cursor: pointer;
+    box-shadow: 0 10px 24px rgba(232,162,12,.26), inset 0 1px 0 rgba(255,255,255,.35);
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   }
-  .btn:hover { transform: translateY(-2px); box-shadow: 0 16px 32px rgba(232,162,12,.36), inset 0 1px 0 rgba(255,255,255,.35); }
-  .btn:active { transform: translateY(0); }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 16px 32px rgba(232,162,12,.34), inset 0 1px 0 rgba(255,255,255,.35); }
+  .btn:active { transform: translateY(0) scale(.98); }
+  .btn + .btn { margin-top: 10px; }
   .btn-ghost {
-    color: var(--ink); background: rgba(46,77,56,.35);
-    border: 1px solid rgba(242,239,230,.16); box-shadow: none;
+    color: var(--ink); background: var(--chip);
+    border: 1px solid var(--line-2); box-shadow: none;
   }
-  .btn-ghost:hover { transform: translateY(-2px); border-color: rgba(255,197,61,.5); box-shadow: none; }
-  .meta { margin-top: 10px; color: var(--ink-dim); font-size: .88rem; text-align: center; }
-  .note { margin-top: 12px; color: var(--ink-dim); font-size: .9rem; line-height: 1.55; }
-  .note b { color: var(--ink); }
-  .spacer { flex: 1; }
+  .btn-ghost:hover { border-color: rgba(255,197,61,.55); box-shadow: none; }
+  .btn:focus-visible, .copy:focus-visible { outline: 3px solid rgba(255,197,61,.6); outline-offset: 2px; }
+
+  /* Store badges, drawn in CSS: one shape for every store so the row reads
+     as a set. Small label on top, store name underneath. */
+  .store {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 16px; padding: 10px 18px; min-height: 56px;
+    background: #000; color: #fff; text-decoration: none;
+    border: 1px solid rgba(255,255,255,.22); border-radius: 12px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .store:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0,0,0,.35); }
+  .store:active { transform: translateY(0) scale(.98); }
+  .store small { display: block; font-size: .72rem; opacity: .85; letter-spacing: .2px; }
+  .store strong { display: block; font-family: "Segoe UI", "Atkinson Hyperlegible", sans-serif; font-weight: 600; font-size: 1.2rem; line-height: 1.15; }
+  .ms { width: 26px; height: 26px; flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .ms i { display: block; }
+  .ms i:nth-child(1) { background: #f25022; } .ms i:nth-child(2) { background: #7fba00; }
+  .ms i:nth-child(3) { background: #00a4ef; } .ms i:nth-child(4) { background: #ffb900; }
+
+  .cmd {
+    display: flex; align-items: center; gap: 8px; margin-top: 12px;
+    background: var(--chip); border: 1px solid var(--line-2);
+    border-radius: 12px; padding: 6px 6px 6px 14px;
+  }
+  .cmd code {
+    flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92rem;
+  }
+  .cmd code::before { content: "$ "; color: var(--ink-dim); }
+  .copy {
+    flex: none; font: 600 .82rem "Fredoka", sans-serif; cursor: pointer;
+    color: var(--ink); background: transparent; border: 1px solid var(--line-2);
+    border-radius: 9px; padding: 6px 10px; min-width: 64px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .copy:hover { border-color: rgba(255,197,61,.55); }
+  .copy.done { background: var(--banana); color: #201500; border-color: transparent; }
+
+  .meta { margin-top: 10px; color: var(--ink-dim); font-size: .84rem; text-align: center; }
 
   .hint {
-    margin-top: 26px; color: var(--ink-dim); font-size: .92rem; line-height: 1.6;
-    background: rgba(46,77,56,.18); border-left: 3px solid var(--leaf);
+    margin-top: 24px; color: var(--ink-dim); font-size: .92rem; line-height: 1.6;
+    background: var(--chip); border-left: 3px solid var(--leaf);
     padding: 14px 16px; border-radius: 0 12px 12px 0;
-    animation: rise .55s .4s ease-out both;
+    animation: rise .55s .6s ease-out both;
   }
   .hint b { color: var(--ink); }
-
-  /* The migration notice. Louder than .hint because most of this page's
-     traffic is now the UPDATE button inside an already-installed APK, and
-     "uninstall first" is the one step that isn't guessable. */
-  .moved {
-    margin-top: 28px; line-height: 1.6;
-    background: rgba(255,197,61,.07); border: 1px solid rgba(255,197,61,.28);
-    padding: 18px 20px; border-radius: 16px;
-    animation: rise .55s .26s ease-out both;
-  }
-  .moved h2 {
-    font-family: "Fredoka", sans-serif; font-weight: 500; font-size: 1.1rem;
-    color: var(--banana);
-  }
-  .moved p { color: var(--ink-dim); font-size: .95rem; margin-top: 8px; }
-  .moved b { color: var(--ink); }
-  .moved ol { margin: 12px 0 0 20px; color: var(--ink-dim); font-size: .95rem; }
-  .moved li { margin-top: 6px; }
-  .moved li b { color: var(--ink); }
   footer {
-    margin-top: 34px; text-align: center; color: var(--ink-dim); font-size: .85rem;
-    line-height: 1.7; animation: rise .55s .5s ease-out both;
+    margin-top: 32px; text-align: center; color: var(--ink-dim); font-size: .85rem;
+    line-height: 1.7; animation: rise .55s .65s ease-out both;
   }
-  footer a { color: var(--banana); text-decoration: none; }
+  footer a { color: var(--accent); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
 
   @keyframes drop { from { transform: translateY(-40px) scale(.8); opacity: 0; } }
@@ -216,92 +287,134 @@
   <header>
     <a class="mark" href="/" aria-label="MonkeyHub home">🐵</a>
     <h1>Get Monkey<span class="hub">Hub</span></h1>
-    <p class="tag">Pick your platform.</p>
+    <p class="tag" id="tag">One account, every device. Pick yours.</p>
   </header>
 
-  <!-- First, not buried: the app's own UPDATE button sends people here, and
-       every one of them is running the APK this explains how to leave. -->
-  <section class="moved">
-    <h2>Already have the Android APK?</h2>
-    <p>MonkeyHub now ships through Google Play, and that copy <b>can't update
-    itself</b> — Play signs the app with its own key, so Android won't install
-    the new version over the old one.</p>
-    <ol>
-      <li><b>Uninstall</b> the MonkeyHub you have now.</li>
-      <li><b>Install it again from Google Play</b> using the card below.</li>
-    </ol>
-    <p>Your chats, rooms and friends are on the server, so nothing is lost —
-    you'll just sign in again. If this phone is set up as a child's device,
-    ask whoever paired it to pair it once more afterwards.</p>
-  </section>
+  <div class="grid" id="grid">
 
-  <div class="grid">
+    <div class="card" data-plat="ios" style="--i:0">
+      <span class="you-badge">Your device</span>
+      <div class="head">
+        <span class="ico" aria-hidden="true">📱</span>
+        <div><h2>iPhone &amp; iPad</h2><p class="sub">iOS and iPadOS</p></div>
+      </div>
+      <span class="ver soon">TestFlight · invite only</span>
+      <p class="note">We're in beta on Apple's TestFlight. Ask for an invite,
+      grab the free <b>TestFlight</b> app, and updates arrive on their own from
+      then on.</p>
+      <div class="spacer"></div>
+      <!-- mailto, not a form: static HTML on Caddy with no backend, and the
+           ask retires the day the App Store listing goes public. -->
+      <a class="btn" href="mailto:info@walhallaa.com?subject=MonkeyHub%20TestFlight%20invite%20(iPhone%2FiPad)&amp;body=Hi%2C%20I%27d%20like%20to%20try%20MonkeyHub%20on%20iPhone%2FiPad.%0A%0AMy%20Apple%20ID%20email%3A%20%0A">Request an invite</a>
+      <a class="btn btn-ghost" href="https://apps.apple.com/app/testflight/id899247664">Get TestFlight</a>
+    </div>
+
+    <div class="card" data-plat="macos" style="--i:1">
+      <span class="you-badge">Your device</span>
+      <div class="head">
+        <span class="ico" aria-hidden="true">💻</span>
+        <div><h2>Mac</h2><p class="sub">The Mac App Store build</p></div>
+      </div>
+      <span class="ver soon">TestFlight · invite only</span>
+      <p class="note">The real Mac app, signed and sandboxed by Apple, delivered
+      through <b>TestFlight for Mac</b>. Same invite as iPhone, so one request
+      covers both.</p>
+      <div class="spacer"></div>
+      <a class="btn" href="mailto:info@walhallaa.com?subject=MonkeyHub%20TestFlight%20invite%20(Mac)&amp;body=Hi%2C%20I%27d%20like%20to%20try%20MonkeyHub%20on%20my%20Mac.%0A%0AMy%20Apple%20ID%20email%3A%20%0A">Request an invite</a>
+      <a class="btn btn-ghost" href="https://apps.apple.com/app/testflight/id899247664">Get TestFlight</a>
+    </div>
+
+    <div class="card" data-plat="android" style="--i:2">
+      <span class="you-badge">Your device</span>
+      <div class="head">
+        <span class="ico" aria-hidden="true">🤖</span>
+        <div><h2>Android</h2><p class="sub">Phones and tablets</p></div>
+      </div>
+      <span class="ver soon">Google Play · invite only</span>
+      <p class="note">MonkeyHub is on Google Play in closed testing. Tell us the
+      Google account on your phone, we add you, and Play keeps it updated.</p>
+      <div class="spacer"></div>
+      <a class="btn" href="mailto:info@walhallaa.com?subject=MonkeyHub%20closed%20testing%20invite&amp;body=Hi%2C%20I%27d%20like%20to%20join%20the%20MonkeyHub%20closed%20test%20on%20Google%20Play.%0A%0AMy%20Google%20account%20email%3A%20%0A%0A%28Google%20Play%20needs%20the%20address%20signed%20in%20on%20the%20phone%2C%20which%20may%20not%20be%20this%20one.%29%0A">Request an invite</a>
+      <!-- Play's own opt-in page for the internal testing track. One fixed URL
+           for everyone; it only works once the account is on the tester list. -->
+      <a class="btn btn-ghost" href="https://play.google.com/apps/internaltest/4701743447366821561">Already invited? Opt in on Play</a>
+    </div>
+
+    <div class="card" data-plat="windows" style="--i:3">
+      <span class="you-badge">Your device</span>
+      <div class="head">
+        <span class="ico" aria-hidden="true">🪟</span>
+        <div><h2>Windows</h2><p class="sub">Windows 10 and 11</p></div>
+      </div>
+      <span class="ver">Microsoft Store</span>
+      <p class="note">Install from the Microsoft Store and Windows keeps it up
+      to date for you. No installer to hunt down.</p>
+      <div class="spacer"></div>
+      <a class="store" href="https://apps.microsoft.com/detail/9PLTX7L6B52S" aria-label="Get it from Microsoft">
+        <span class="ms" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span><small>Get it from</small><strong>Microsoft</strong></span>
+      </a>
+    </div>
+
+    <div class="card" data-plat="linux" style="--i:4">
+      <span class="you-badge">Your device</span>
+      <div class="head">
+        <span class="ico" aria-hidden="true">🐧</span>
+        <div><h2>Linux</h2><p class="sub">x86_64</p></div>
+      </div>
+<!-- MH:LINUX-DL -->
+      <span class="ver">v__LINUX_VERSION__</span>
+<!-- MH:/LINUX-DL -->
+<!-- MH:AUR -->
+      <p class="note">On Arch and friends, install from the <b>AUR</b> and your
+      package manager handles updates. Everywhere else, take the tarball.</p>
+      <div class="cmd">
+        <code id="aur">yay -S monkeyhub-bin</code>
+        <button class="copy" type="button" data-copy="aur">Copy</button>
+      </div>
+<!-- MH:/AUR -->
+<!-- MH:NOAUR -->
+      <p class="note">Unpack the tarball anywhere and run <b>monkeyhub</b>.
+      It works on most x86_64 distros from the last few years.</p>
+<!-- MH:/NOAUR -->
+      <div class="spacer"></div>
+<!-- MH:LINUX-DL -->
+      <a class="btn btn-ghost" href="__LINUX_HREF__" download>Download the tarball</a>
+      <p class="meta">__LINUX_META__</p>
+<!-- MH:/LINUX-DL -->
+    </div>
+
+    <div class="card" data-plat="web" style="--i:5">
+      <span class="you-badge">Your device</span>
+      <div class="head">
+        <span class="ico" aria-hidden="true">🌐</span>
+        <div><h2>Any browser</h2><p class="sub">Chrome, Safari, Firefox, Edge</p></div>
+      </div>
+      <span class="ver">no install</span>
+      <p class="note">The same MonkeyHub, right in a tab. Always the newest
+      build. For calls that ring while it's closed, the app wins.</p>
+      <div class="spacer"></div>
+      <a class="btn" href="/web/">Open the web app</a>
+    </div>
+
 <!-- MH:CARD -->
-    <div class="card">
-      <span class="ico" aria-hidden="true">__PLAT_ICON__</span>
-      <h2>__PLAT_NAME__</h2>
+    <div class="card" data-plat="__PLAT_KEY__">
+      <span class="you-badge">Your device</span>
+      <div class="head">
+        <span class="ico" aria-hidden="true">__PLAT_ICON__</span>
+        <div><h2>__PLAT_NAME__</h2></div>
+      </div>
       <span class="ver">v__PLAT_VERSION__</span>
       <div class="spacer"></div>
       <a class="btn" href="__PLAT_HREF__" download>__PLAT_BTN__</a>
       <p class="meta">__PLAT_META__</p>
     </div>
 <!-- MH:/CARD -->
-<!-- MH:EMPTY -->
-    <div class="card">
-      <span class="ico" aria-hidden="true">🖥️</span>
-      <h2>Desktop</h2>
-      <span class="ver soon">coming soon</span>
-      <p class="note">macOS, Windows and Linux builds land here when they ship.
-      Until then the web app runs the same MonkeyHub in any browser.</p>
-    </div>
-<!-- MH:/EMPTY -->
-
-    <!-- Store-delivered and browser platforms: always shown, never in the
-         manifest, because nothing is hosted here for them. Android sits here
-         now too — it left the manifest when the APK was retired. -->
-    <div class="card">
-      <span class="ico" aria-hidden="true">🤖</span>
-      <h2>Android</h2>
-      <span class="ver soon">Google Play · invite only</span>
-      <div class="spacer"></div>
-      <p class="note">MonkeyHub is on Google Play, in closed testing while we
-      work towards a public listing. Testers are added by hand, so ask and
-      we'll set you up.</p>
-      <!-- mailto, not a form: this page is static HTML on Caddy with no
-           backend, and the ask is temporary — it retires the day the Play
-           listing goes public. A composer also hands us a real reply-to. -->
-      <a class="btn" href="mailto:info@walhallaa.com?subject=MonkeyHub%20closed%20testing%20invite&amp;body=Hi%2C%20I%27d%20like%20to%20join%20the%20MonkeyHub%20closed%20test%20on%20Google%20Play.%0A%0AMy%20Google%20account%20email%3A%20%0A%0A%28Google%20Play%20needs%20the%20address%20signed%20in%20on%20the%20phone%2C%20which%20may%20not%20be%20this%20one.%29%0A">Request an invite</a>
-      <!-- Play's own opt-in page for the internal testing track (Play
-           Console → Testing → Internal testing → "How testers join your
-           test"). One fixed URL for everyone — it just checks the signed-in
-           Google account against the tester list we add by hand above, so
-           this only works after the mailto request lands someone on it. -->
-      <a class="btn btn-ghost" href="https://play.google.com/apps/internaltest/4701743447366821561">Already invited? Opt in on Play</a>
-      <p class="meta">Tell us the Google account you use on your phone</p>
-    </div>
-
-    <div class="card">
-      <span class="ico" aria-hidden="true">🍎</span>
-      <h2>iPhone &amp; iPad</h2>
-      <span class="ver soon">App Store / TestFlight</span>
-      <div class="spacer"></div>
-      <p class="note">MonkeyHub ships to iOS through Apple, not from here. Ask
-      for a TestFlight invite and it arrives as a normal app update from then on.</p>
-    </div>
-
-    <div class="card">
-      <span class="ico" aria-hidden="true">🌐</span>
-      <h2>Any browser</h2>
-      <span class="ver">no install</span>
-      <div class="spacer"></div>
-      <a class="btn btn-ghost" href="/web/">Open the web app</a>
-      <p class="meta">Always the newest build</p>
-    </div>
   </div>
 
-  <p class="hint"><b>Once you're on Play,</b> updates arrive on their own like
-  any other app — no download page, no reinstalling. This page is only here for
-  the move across, and for the desktop builds still to come.</p>
+  <p class="hint"><b>Sign in once, everywhere.</b> Your chats, rooms and
+  friends live on the server, so every device picks up right where the last
+  one left off.</p>
 
   <footer>
     <!-- Same store-required set as the landing page; see its footer comment. -->
@@ -312,5 +425,44 @@
     updated __UPDATED_AT__ · <a href="/">monkeyhub.walhallaa.com</a>
   </footer>
 </main>
+<script>
+(function () {
+  // Which card is "yours". iPadOS reports a desktop Mac, so a Mac with touch
+  // is an iPad. ChromeOS runs Play apps, so it gets the Android card.
+  var ua = navigator.userAgent || "";
+  var p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+  var touchMac = /mac/i.test(p) && navigator.maxTouchPoints > 1;
+  var k = /android|cros/i.test(ua) ? "android"
+        : (/iphone|ipad|ipod/i.test(ua) || touchMac) ? "ios"
+        : /mac/i.test(p) ? "macos"
+        : /win/i.test(p) ? "windows"
+        : /linux|x11/i.test(p + ua) ? "linux"
+        : null;
+  var names = { ios: "iPhone or iPad", android: "Android", macos: "a Mac", windows: "Windows", linux: "Linux" };
+  var grid = document.getElementById("grid");
+  var card = k && grid.querySelector('.card[data-plat="' + k + '"]');
+  if (card) {
+    card.classList.add("you");
+    grid.insertBefore(card, grid.firstChild);
+    document.getElementById("tag").innerHTML = "Looks like you're on <b>" + names[k] + "</b>. Everything else is below.";
+  }
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = document.getElementById(b.getAttribute("data-copy")).textContent;
+      var done = function () {
+        b.textContent = "Copied"; b.classList.add("done");
+        setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      } else {
+        var r = document.createRange(); r.selectNodeContents(document.getElementById(b.getAttribute("data-copy")));
+        var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+        try { document.execCommand("copy"); done(); } catch (e) {}
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>

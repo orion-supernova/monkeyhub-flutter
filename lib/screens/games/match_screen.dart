@@ -4,9 +4,14 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../chat_games/play_style.dart';
+import '../../games/how_to/chat_guides.dart';
+import '../../games/how_to/how_to_play.dart';
 import '../../backend/matches_api.dart';
 import '../../chat_games/match_copy.dart';
 import '../../chat_games/match_face.dart';
+import '../../chat_games/move_notation.dart';
+import '../../chat_games/turn_panel.dart';
 import '../../data/matches_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
@@ -15,12 +20,12 @@ import '../../party_games/party_table.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../turn_games/board/turn_board.dart';
+import '../../turn_games/registry.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/game_board_skeleton.dart';
 import '../../widgets/game_layout_shell.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/sheet_kit.dart';
-import 'game_scaffold.dart' show GameTool;
 
 /// Opens one in-chat game: its lobby, its board, or how it ended.
 Future<void> openMatchScreen(
@@ -87,6 +92,38 @@ class _MatchScreenState extends State<MatchScreen> {
 
   bool _busy = false;
 
+  /// The staged move is on its way, and then landed: the Send button's two
+  /// last faces before the screen closes back to the chat.
+  bool _sendingMove = false;
+  bool _moveSent = false;
+
+  /// Whether this screen has already offered the first-play guide.
+  bool _introTried = false;
+
+  HowToPlayGuide _guideFor(ChatMatch m) => chatGuide(
+    AppLocalizations.of(context),
+    m.game,
+    modes: [m.mode == MatchMode.async ? PlayStyle.turns : PlayStyle.live],
+    group: m.watching > 0 || m.seats.length > 2,
+    voice: m.options.voice,
+  );
+
+  void _openGuide() {
+    final m = _c.match;
+    if (m == null) return;
+    showHowToPlay(context, _guideFor(m));
+  }
+
+  /// The first time someone sits down at a game they have never played here,
+  /// the guide comes up by itself. Watchers are left alone.
+  void _maybeIntro(ChatMatch m) {
+    if (_introTried || !m.isSeated(widget.userId) || !m.status.isOpen) return;
+    _introTried = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showHowToPlayOnce(context, _guideFor(m));
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -109,6 +146,7 @@ class _MatchScreenState extends State<MatchScreen> {
     if (!mounted) return;
     final m = _c.serverMatch;
     if (m != null) {
+      _maybeIntro(m);
       if (_lastStatus == MatchStatus.lobby && m.status == MatchStatus.active) {
         _startCountdown();
       }
@@ -284,6 +322,7 @@ class _MatchScreenState extends State<MatchScreen> {
       _TopBar(
         match: m,
         viewerId: me,
+        onHelp: m == null ? null : _openGuide,
         party: m?.party ?? false,
         onResign: m != null && m.isSeated(me) && m.status.isOpen &&
                 m.status != MatchStatus.lobby
@@ -417,10 +456,13 @@ class _MatchScreenState extends State<MatchScreen> {
           ? () => _askForSeat(m, seat)
           : null,
     );
-    final waiting = m.mode == MatchMode.async &&
+    // Turn by turn, seated: a move is staged on the board, then sent, and
+    // the panel under the board says where things stand.
+    final turns = m.mode == MatchMode.async &&
         m.status == MatchStatus.active &&
-        mySeat >= 0 &&
-        !m.isTurnOf(me);
+        mySeat >= 0;
+    final staged = _c.stagedMove;
+    final waiting = turns && staged == null && !m.isTurnOf(me);
     final now = DateTime.now();
     final canNudge = waiting &&
         m.lastMoveAt != null &&
@@ -456,7 +498,7 @@ class _MatchScreenState extends State<MatchScreen> {
                 state: state,
                 mySeat: mySeat >= 0 ? mySeat : null,
                 enabled: m.isTurnOf(me) && !_c.sending && _countdown == null,
-                onMove: _c.play,
+                onMove: turns ? _stage : _c.play,
                 lastMove: m.lastMove,
                 seatLabels: [
                   for (final s in m.seats)
@@ -484,7 +526,30 @@ class _MatchScreenState extends State<MatchScreen> {
       ),
       const SizedBox(height: 10),
       if (bottom >= 0) plate(bottom),
-      if (timeLeft != null) ...[
+      if (turns) ...[
+        const SizedBox(height: 14),
+        TurnPanel(
+          match: m,
+          viewerId: me,
+          staged: staged != null,
+          notation: staged == null ? null : moveNotation(l10n, m.game, staged),
+          timeLeft: timeLeft,
+          canNudge: canNudge,
+          sending: _sendingMove,
+          sent: _moveSent,
+          onUndo: () {
+            HapticFeedback.selectionClick();
+            _c.unstage();
+          },
+          onSend: _sendStaged,
+          onNudge: _busy
+              ? null
+              : () {
+                  HapticFeedback.selectionClick();
+                  _act(() => _api.nudge(me, m.id));
+                },
+        ),
+      ] else if (timeLeft != null) ...[
         const SizedBox(height: 8),
         Text(
           sentenceCaseOf(context, timeLeft),
@@ -492,20 +557,56 @@ class _MatchScreenState extends State<MatchScreen> {
           style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
         ),
       ],
-      if (canNudge) ...[
-        const SizedBox(height: 12),
-        GameTool(
-          icon: CupertinoIcons.bell,
-          label: l10n.chatGameNudge,
-          onTap: _busy
-              ? null
-              : () {
-                  HapticFeedback.selectionClick();
-                  _act(() => _api.nudge(me, m.id));
-                },
-        ),
-      ],
     ];
+  }
+
+  /// A turn by turn move, put on the board but not sent.
+  void _stage(String move) {
+    HapticFeedback.selectionClick();
+    _c.stage(move);
+  }
+
+  /// Sends the staged move, which posts it into the chat as a bubble. Then,
+  /// unless the move earned another turn or ended the game, back to the
+  /// chat: the move is a message now, and the chat is where the answer will
+  /// arrive.
+  Future<void> _sendStaged() async {
+    final m = _c.match;
+    final state = m?.state;
+    if (m == null || state == null || _sendingMove || _moveSent) return;
+    final game = turnGameFor(m.game);
+    final mySeat = m.seatOf(widget.userId);
+    final again = game != null &&
+        game.outcomeEncoded(state) == null &&
+        game.toMoveEncoded(state) == mySeat;
+    final over = game != null && game.outcomeEncoded(state) != null;
+    HapticFeedback.mediumImpact();
+    setState(() => _sendingMove = true);
+    final ok = await _c.sendStaged();
+    if (!mounted) return;
+    if (!ok) {
+      setState(() => _sendingMove = false);
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    if (again || over) {
+      setState(() => _sendingMove = false);
+      if (again) {
+        HapticFeedback.lightImpact();
+        toast.show(sentenceCaseOf(context, l10n.chatGameMvAgain));
+      }
+      return;
+    }
+    setState(() => _moveSent = true);
+    HapticFeedback.lightImpact();
+    final calm = MotionScope.of(context).calm;
+    final sentLine = sentenceCaseOf(context, l10n.chatGameMvSentToast);
+    // A beat on the tick, so the send reads as done before the screen goes.
+    await Future<void>.delayed(Duration(milliseconds: calm ? 0 : 420));
+    if (!mounted) return;
+    Navigator.of(context).maybePop();
+    toast.show(sentLine);
   }
 
   /// A party game's table, under the same pause cover and 3-2-1 a turn
@@ -645,10 +746,14 @@ class _TopBar extends StatelessWidget {
     this.party = false,
     this.onResign,
     this.onOfferDraw,
+    this.onHelp,
   });
 
   final ChatMatch? match;
   final String viewerId;
+
+  /// Opens the game's how-to-play guide.
+  final VoidCallback? onHelp;
 
   /// A party game: the menu says "Leave game", not "Resign".
   final bool party;
@@ -706,6 +811,8 @@ class _TopBar extends StatelessWidget {
             children: [
               const GlassBackButton(),
               const Spacer(),
+              if (onHelp != null) HowToPlayButton(onTap: onHelp!),
+              if (onHelp != null && hasMenu) const SizedBox(width: 8),
               if (hasMenu)
                 GlassIconButton(
                   icon: CupertinoIcons.ellipsis,

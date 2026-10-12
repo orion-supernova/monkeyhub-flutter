@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../games/how_to/chat_guides.dart';
+import '../games/how_to/how_to_play.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../screens/games/game_scaffold.dart' show GameTool;
@@ -17,6 +19,7 @@ import '../widgets/game_layout_shell.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/typing_indicator.dart';
 import 'match_copy.dart';
+import 'monkey_avatar.dart';
 
 /// A game against the app's own bot, entirely on the phone.
 ///
@@ -58,6 +61,15 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
   void initState() {
     super.initState();
     _maybeBot();
+    // First game of this kind ever: the guide, before the first move.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        showHowToPlayOnce(
+          context,
+          chatGuide(AppLocalizations.of(context), widget.game),
+        );
+      }
+    });
   }
 
   @override
@@ -173,7 +185,18 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
     final header = <Widget>[
       SizedBox(
         height: 44,
-        child: Row(children: const [GlassBackButton(), Spacer()]),
+        child: Row(
+          children: [
+            const GlassBackButton(),
+            const Spacer(),
+            HowToPlayButton(
+              onTap: () => showHowToPlay(
+                context,
+                chatGuide(l10n, widget.game),
+              ),
+            ),
+          ],
+        ),
       ),
       const SizedBox(height: 10),
       Text(
@@ -291,7 +314,7 @@ class _BotPlate extends StatelessWidget {
       child: Row(
         children: [
           if (badge != null)
-            theme.brandMark(size: 32)
+            const MonkeyAvatar(size: 32)
           else
             Container(
               width: 32,

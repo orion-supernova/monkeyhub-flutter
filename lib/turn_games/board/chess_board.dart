@@ -317,7 +317,8 @@ class _ChessBoardState extends BoardViewState<ChessBoardView> {
     final canMove = _legal.isNotEmpty;
     final targets = _targets;
     (int, int)? last;
-    if (!p.thumbnail && p.lastMove != null) {
+    // Thumbnails too: a move bubble's board is about the move it shows.
+    if (p.lastMove != null) {
       try {
         final m = chessRules.decodeMove(p.lastMove!);
         last = (chessMoveFrom(m), chessMoveTo(m));
@@ -538,6 +539,16 @@ class _PromotionTilePainter extends CustomPainter {
       old.type != type || old.side != side || old.theme != theme || old.first != first;
 }
 
+/// The board's two tones, light then dark: mid slate rather than the page's
+/// greys, so a black piece is a solid shape on either square and a white
+/// one never melts into the light ones. The dark squares carry a little of
+/// the theme's accent, so the board still belongs to its theme.
+(Color, Color) chessSquareColors(AppTheme theme, bool dark) {
+  final light = dark ? const Color(0xFFA9B1BE) : const Color(0xFFEEF1F5);
+  final deep = dark ? const Color(0xFF5D6676) : const Color(0xFFA3AEBF);
+  return (light, Color.alphaBlend(theme.accent.withValues(alpha: 0.16), deep));
+}
+
 /// Per-size art: the dark squares as one path, and the coordinate labels.
 class _ChessArt {
   _ChessArt(this.side) {
@@ -625,20 +636,13 @@ class ChessPainter extends CustomPainter {
 
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(rect, Radius.circular(g.side * 0.03)));
-    // The checkers neutrals: the card's raised surface, and that surface
-    // with ink worked in, so the board belongs to whichever theme it is on.
-    canvas.drawRect(
-      rect,
-      Paint()..color = Color.alphaBlend(ink.withValues(alpha: dark ? 0.05 : 0.03), theme.surfaceRaised),
-    );
-    canvas.drawPath(
-      art.darkSquares,
-      Paint()..color = Color.alphaBlend(ink.withValues(alpha: dark ? 0.15 : 0.13), theme.surfaceRaised),
-    );
+    final (lightSquare, darkSquare) = chessSquareColors(theme, dark);
+    canvas.drawRect(rect, Paint()..color = lightSquare);
+    canvas.drawPath(art.darkSquares, Paint()..color = darkSquare);
 
     final l = last;
     if (l != null) {
-      final tint = Paint()..color = theme.accent.withValues(alpha: dark ? 0.24 : 0.20);
+      final tint = Paint()..color = theme.accent.withValues(alpha: 0.42);
       canvas.drawRect(g.square(l.$1), tint);
       canvas.drawRect(g.square(l.$2), tint);
     }
@@ -742,17 +746,20 @@ class ChessPainter extends CustomPainter {
   /// the left edge (upper left), whichever way round the board is.
   void _coordinates(Canvas canvas, ChessGeometry g, _ChessArt art) {
     final cell = g.cell;
-    final color = theme.inkMuted;
-    final base = theme.caption;
+    final (light, deep) = chessSquareColors(theme, dark);
+    // Each label in the other square's colour, the way a printed board
+    // does it. Squares alternate the same way whichever side is down.
+    Color on(int r, int c) => (r + c).isOdd ? light : deep;
+    final base = theme.caption.copyWith(fontWeight: FontWeight.w700);
     final pad = cell * 0.06;
     for (var c = 0; c < 8; c++) {
       final file = flipped ? 7 - c : c;
-      final t = art.label(String.fromCharCode(0x61 + file), color, base);
+      final t = art.label(String.fromCharCode(0x61 + file), on(7, c), base);
       t.paint(canvas, Offset((c + 1) * cell - pad - t.width, 8 * cell - pad - t.height));
     }
     for (var r = 0; r < 8; r++) {
       final rank = flipped ? r + 1 : 8 - r;
-      art.label('$rank', color, base).paint(canvas, Offset(pad, r * cell + pad));
+      art.label('$rank', on(r, 0), base).paint(canvas, Offset(pad, r * cell + pad));
     }
   }
 

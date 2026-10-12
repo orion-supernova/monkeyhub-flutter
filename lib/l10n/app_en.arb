@@ -6565,18 +6565,6 @@
   "@gameInfoOpen": {
     "description": "Screen-reader label and tooltip for the small question-mark button on a game tile, which opens the sheet explaining that game."
   },
-  "gameInfoLabel": "How to play",
-  "@gameInfoLabel": {
-    "description": "All-caps eyebrow above the game's name at the top of the how-to-play sheet."
-  },
-  "gameInfoRulesLabel": "The rules",
-  "@gameInfoRulesLabel": {
-    "description": "All-caps header above the bulleted rules in the how-to-play sheet."
-  },
-  "gameInfoControlsLabel": "What to tap",
-  "@gameInfoControlsLabel": {
-    "description": "All-caps header above the line explaining what to tap or drag, in the how-to-play sheet."
-  },
   "gameInfoScoringTimed": "Finish fastest to win. The clock stops when you leave.",
   "@gameInfoScoringTimed": {
     "description": "Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard."
@@ -6588,106 +6576,6 @@
   "gameInfoSameForEveryone": "Everyone gets the same puzzle today.",
   "@gameInfoSameForEveryone": {
     "description": "Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful."
-  },
-  "gameInfoQueensGoal": "Put 8 crowns on the board.",
-  "@gameInfoQueensGoal": {
-    "description": "One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet."
-  },
-  "gameInfoQueensRule1": "Every row gets exactly 1 crown.",
-  "@gameInfoQueensRule1": {
-    "description": "First rule bullet in the Queens how-to-play sheet."
-  },
-  "gameInfoQueensRule2": "Every column gets exactly 1 crown.",
-  "@gameInfoQueensRule2": {
-    "description": "Second rule bullet in the Queens how-to-play sheet. The board is divided into coloured regions and each holds exactly one crown."
-  },
-  "gameInfoQueensRule3": "Every colour gets exactly 1 crown.",
-  "@gameInfoQueensRule3": {
-    "description": "Third rule bullet in the Queens how-to-play sheet. Crowns may not be adjacent horizontally, vertically or diagonally."
-  },
-  "gameInfoQueensControls": "Tap once for × (no crown here). Tap twice for a crown. Tap again to clear.",
-  "@gameInfoQueensControls": {
-    "description": "Explains the Queens board's controls: a tap cycles a square through empty, the player's own cross, and a crown."
-  },
-  "gameInfoTangoGoal": "Fill every square with a sun or a moon.",
-  "@gameInfoTangoGoal": {
-    "description": "One-sentence description of what the player is trying to do in Tango, at the top of its how-to-play sheet."
-  },
-  "gameInfoTangoRule1": "Every row has 3 suns and 3 moons.",
-  "@gameInfoTangoRule1": {
-    "description": "First rule bullet in the Tango how-to-play sheet."
-  },
-  "gameInfoTangoRule2": "Every column has 3 suns and 3 moons.",
-  "@gameInfoTangoRule2": {
-    "description": "Second rule bullet in the Tango how-to-play sheet. No run of three identical symbols horizontally or vertically."
-  },
-  "gameInfoTangoRule3": "Never 3 of the same in a line. 2 is fine.",
-  "@gameInfoTangoRule3": {
-    "description": "Third rule bullet in the Tango how-to-play sheet. Explains the two operators printed on the edges between adjacent squares. Keep the '=' and '×' symbols as they are."
-  },
-  "gameInfoTangoControls": "Tap once for a sun, twice for a moon, again to clear. Squares that start filled can't change.",
-  "@gameInfoTangoControls": {
-    "description": "Explains the Tango board's controls. 'printed squares' are the ones the puzzle starts with, which cannot be changed."
-  },
-  "gameInfoZipGoal": "Draw one line through every square.",
-  "@gameInfoZipGoal": {
-    "description": "One-sentence description of what the player is trying to do in Zip, at the top of its how-to-play sheet."
-  },
-  "gameInfoZipRule1": "Start on 1.",
-  "@gameInfoZipRule1": {
-    "description": "First rule bullet in the Zip how-to-play sheet. The board has numbered dots and the line must begin at 1 and end at the highest one."
-  },
-  "gameInfoZipRule2": "Visit the numbers in order: 1, 2, 3…",
-  "@gameInfoZipRule2": {
-    "description": "Second rule bullet in the Zip how-to-play sheet. The numbered dots must be visited in ascending order."
-  },
-  "gameInfoZipRule3": "Fill every square. Use each square once.",
-  "@gameInfoZipRule3": {
-    "description": "Third rule bullet in the Zip how-to-play sheet."
-  },
-  "gameInfoZipControls": "Drag your finger to draw. Drag back to undo.",
-  "@gameInfoZipControls": {
-    "description": "Explains the Zip board's controls. The line is drawn with a drag and retracts when the finger moves back along it."
-  },
-  "gameInfoSudokuGoal": "Fill the grid with the numbers 1 to 6.",
-  "@gameInfoSudokuGoal": {
-    "description": "One-sentence description of what the player is trying to do in Mini Sudoku, at the top of its how-to-play sheet."
-  },
-  "gameInfoSudokuRule1": "Every row has 1, 2, 3, 4, 5 and 6. No repeats.",
-  "@gameInfoSudokuRule1": {
-    "description": "First rule bullet in the Mini Sudoku how-to-play sheet."
-  },
-  "gameInfoSudokuRule2": "Every column too.",
-  "@gameInfoSudokuRule2": {
-    "description": "Second rule bullet in the Mini Sudoku how-to-play sheet. Reads as a continuation of the row rule immediately above it."
-  },
-  "gameInfoSudokuRule3": "Every box too. A box is 2 rows by 3 columns.",
-  "@gameInfoSudokuRule3": {
-    "description": "Third rule bullet in the Mini Sudoku how-to-play sheet. The 6x6 grid is divided into boxes two rows tall and three columns wide."
-  },
-  "gameInfoSudokuControls": "Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.",
-  "@gameInfoSudokuControls": {
-    "description": "Explains the Mini Sudoku board's controls, including the notes toggle that switches the keypad to writing small pencil marks."
-  },
-  "gameInfoCodeGoal": "Guess the secret code of 4 symbols.",
-  "@gameInfoCodeGoal": {
-    "description": "One-sentence description of what the player is trying to do in the symbol-code puzzle, at the top of its how-to-play sheet."
-  },
-  "gameInfoCodeRule1": "The code uses 4 different symbols. No repeats.",
-  "@gameInfoCodeRule1": {
-    "description": "First rule bullet in the symbol-code puzzle's how-to-play sheet."
-  },
-  "gameInfoCodeRule2": "You get 6 guesses.",
-  "@gameInfoCodeRule2": {
-    "description": "Second rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a correctly-placed symbol is shown in."
-  },
-  "gameInfoCodeRule3": "Green: right symbol, right spot.",
-  "@gameInfoCodeRule3": {
-    "description": "Third rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a misplaced symbol is shown in."
-  },
-  "gameInfoCodeControls": "Tap 4 symbols, then tap Guess.",
-  "@gameInfoCodeControls": {
-    "description": "Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback."
   },
   "savedMessagesTitle": "Saved Messages",
   "@savedMessagesTitle": {
@@ -12578,62 +12466,6 @@
   "@roomContentMonthLast": {
     "description": "Room media grid month section header for the previous month."
   },
-  "gameInfoGoalLabel": "Goal",
-  "@gameInfoGoalLabel": {
-    "description": "Screen-reader label for the one-line goal under the example board on a game's how-to-play sheet. Not drawn."
-  },
-  "gameInfoExampleLabel": "Example",
-  "@gameInfoExampleLabel": {
-    "description": "Label on the worked-example card of a game's how-to-play sheet."
-  },
-  "gameInfoWinLabel": "How you win",
-  "@gameInfoWinLabel": {
-    "description": "Heading of the scoring lines at the foot of a game's how-to-play sheet."
-  },
-  "gameInfoQueensRule4": "Crowns can't touch. Not even corner to corner.",
-  "@gameInfoQueensRule4": {
-    "description": "Queens rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoQueensExample": "One crown here means: no other crown in its row, its column, its colour, or the 8 squares around it.",
-  "@gameInfoQueensExample": {
-    "description": "Queens worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoTangoRule4": "= means the 2 squares match. × means they're different.",
-  "@gameInfoTangoRule4": {
-    "description": "Tango rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoTangoExample": "Sun, sun, empty? The empty square must be a moon.",
-  "@gameInfoTangoExample": {
-    "description": "Tango worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoZipRule4": "Move up, down, left or right. No diagonals.",
-  "@gameInfoZipRule4": {
-    "description": "Zip rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoZipRule5": "Finish on the last number.",
-  "@gameInfoZipRule5": {
-    "description": "Zip rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoZipExample": "Going from 1 to 2? Take the long way if you must. No square can be left empty.",
-  "@gameInfoZipExample": {
-    "description": "Zip worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoSudokuExample": "A row already has 1, 2, 4, 5 and 6? The empty square is 3.",
-  "@gameInfoSudokuExample": {
-    "description": "Mini sudoku worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoCodeRule4": "Yellow: right symbol, wrong spot.",
-  "@gameInfoCodeRule4": {
-    "description": "The code rule 4. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoCodeRule5": "Grey: that symbol isn't in the code.",
-  "@gameInfoCodeRule5": {
-    "description": "The code rule 5. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
-  "gameInfoCodeExample": "Green, yellow, grey, grey means: 1 symbol is in the right spot, 1 belongs somewhere else, 2 aren't in the code.",
-  "@gameInfoCodeExample": {
-    "description": "The code worked example. Write for a 10-year-old. Short words. Keep the digits. One idea per line. Don't merge lines. Keep the glyphs ✕ = × as they are."
-  },
   "leaderboardOverall": "Today",
   "@leaderboardOverall": {
     "description": "Leaderboard filter capsule: the overall standings across all of today's games."
@@ -14724,26 +14556,6 @@
   "@chatGameModeLive": {
     "description": "Mode option: everyone plays together right now."
   },
-  "chatGameModeTurns": "Take turns",
-  "@chatGameModeTurns": {
-    "description": "Mode option: take turns whenever you like (DMs only)."
-  },
-  "chatGameModeBot": "Vs bot",
-  "@chatGameModeBot": {
-    "description": "Mode option: play alone against the app's bot."
-  },
-  "chatGameModeLiveHint": "Everyone plays at once. Leaving pauses the game.",
-  "@chatGameModeLiveHint": {
-    "description": "Explanation under the Live mode option."
-  },
-  "chatGameModeTurnsHint": "Move whenever you like. You each get a notification on your turn, and a turn lasts up to 2 days.",
-  "@chatGameModeTurnsHint": {
-    "description": "Explanation under the Take turns mode option."
-  },
-  "chatGameModeBotHint": "Just you and the bot. Nothing is posted in the chat.",
-  "@chatGameModeBotHint": {
-    "description": "Explanation under the Vs bot option."
-  },
   "chatGameBotEasyHint": "Makes mistakes. Good for learning.",
   "@chatGameBotEasyHint": {
     "description": "Explanation for the easy bot level."
@@ -14869,134 +14681,6 @@
   "gameAutoDot": "Auto-dot",
   "@gameAutoDot": {
     "description": "Star Battle tool toggle. While on, the board marks with a faint dot every square that can no longer hold a star. Short."
-  },
-  "gameInfoFlowGoal": "Join every pair of matching dots with a pipe.",
-  "@gameInfoFlowGoal": {
-    "description": "Flow how-to-play sheet: the goal, one short sentence."
-  },
-  "gameInfoFlowRule1": "Each pipe joins 2 dots of the same colour and number.",
-  "@gameInfoFlowRule1": {
-    "description": "Flow how-to-play sheet: rule 1, one short sentence."
-  },
-  "gameInfoFlowRule2": "Pipes can't cross or share a square.",
-  "@gameInfoFlowRule2": {
-    "description": "Flow how-to-play sheet: rule 2, one short sentence."
-  },
-  "gameInfoFlowRule3": "Fill every square. None can be left empty.",
-  "@gameInfoFlowRule3": {
-    "description": "Flow how-to-play sheet: rule 3, one short sentence."
-  },
-  "gameInfoFlowRule4": "Move up, down, left or right. No diagonals.",
-  "@gameInfoFlowRule4": {
-    "description": "Flow how-to-play sheet: rule 4, one short sentence."
-  },
-  "gameInfoFlowExample": "No straight way through? Bend the pipe around the others. Every square still has to be filled.",
-  "@gameInfoFlowExample": {
-    "description": "Flow how-to-play sheet: a tiny worked example under the example board."
-  },
-  "gameInfoFlowControls": "Drag from a dot to draw its pipe. Drag back to undo. Drawing across a pipe cuts it.",
-  "@gameInfoFlowControls": {
-    "description": "Flow how-to-play sheet: how to play it with taps and drags."
-  },
-  "gameInfoFutoshikiGoal": "Fill the grid with the numbers 1 to 5.",
-  "@gameInfoFutoshikiGoal": {
-    "description": "Futoshiki how-to-play sheet: the goal, one short sentence."
-  },
-  "gameInfoFutoshikiRule1": "Every row has 1, 2, 3, 4 and 5. No repeats.",
-  "@gameInfoFutoshikiRule1": {
-    "description": "Futoshiki how-to-play sheet: rule 1, one short sentence."
-  },
-  "gameInfoFutoshikiRule2": "Every column too.",
-  "@gameInfoFutoshikiRule2": {
-    "description": "Futoshiki how-to-play sheet: rule 2, one short sentence."
-  },
-  "gameInfoFutoshikiRule3": "A < or > between 2 squares must be true. It points at the smaller number.",
-  "@gameInfoFutoshikiRule3": {
-    "description": "Futoshiki how-to-play sheet: rule 3, one short sentence."
-  },
-  "gameInfoFutoshikiExample": "A sign points at this square? Then it can't be 5, because its neighbour is bigger.",
-  "@gameInfoFutoshikiExample": {
-    "description": "Futoshiki how-to-play sheet: a tiny worked example under the example board."
-  },
-  "gameInfoFutoshikiControls": "Tap a square, then a number. Tap the number again to erase. Notes adds small pencil marks.",
-  "@gameInfoFutoshikiControls": {
-    "description": "Futoshiki how-to-play sheet: how to play it with taps and drags."
-  },
-  "gameInfoNonogramGoal": "Shade squares to reveal the hidden picture.",
-  "@gameInfoNonogramGoal": {
-    "description": "Nonogram how-to-play sheet: the goal, one short sentence."
-  },
-  "gameInfoNonogramRule1": "The numbers by each row and column are its shaded runs, in order.",
-  "@gameInfoNonogramRule1": {
-    "description": "Nonogram how-to-play sheet: rule 1, one short sentence."
-  },
-  "gameInfoNonogramRule2": "Runs are kept apart by at least 1 empty square.",
-  "@gameInfoNonogramRule2": {
-    "description": "Nonogram how-to-play sheet: rule 2, one short sentence."
-  },
-  "gameInfoNonogramRule3": "0 means the whole line is empty.",
-  "@gameInfoNonogramRule3": {
-    "description": "Nonogram how-to-play sheet: rule 3, one short sentence."
-  },
-  "gameInfoNonogramExample": "A row of 10 with the clue 10? Shade it all. With 4 4, both runs fit, with a gap between them.",
-  "@gameInfoNonogramExample": {
-    "description": "Nonogram how-to-play sheet: a tiny worked example under the example board."
-  },
-  "gameInfoNonogramControls": "Tap once to shade, twice for × (empty), again to clear. Drag to mark several squares at once.",
-  "@gameInfoNonogramControls": {
-    "description": "Nonogram how-to-play sheet: how to play it with taps and drags."
-  },
-  "gameInfoMinesweeperGoal": "Open every square that isn't a mine.",
-  "@gameInfoMinesweeperGoal": {
-    "description": "Minesweeper how-to-play sheet: the goal, one short sentence."
-  },
-  "gameInfoMinesweeperRule1": "A number says how many mines touch that square, corners included.",
-  "@gameInfoMinesweeperRule1": {
-    "description": "Minesweeper how-to-play sheet: rule 1, one short sentence."
-  },
-  "gameInfoMinesweeperRule2": "Every square can be worked out. You never have to guess.",
-  "@gameInfoMinesweeperRule2": {
-    "description": "Minesweeper how-to-play sheet: rule 2, one short sentence."
-  },
-  "gameInfoMinesweeperRule3": "Hit a mine and 30 seconds go on your time. Then keep going.",
-  "@gameInfoMinesweeperRule3": {
-    "description": "Minesweeper how-to-play sheet: rule 3, one short sentence."
-  },
-  "gameInfoMinesweeperExample": "A 1 with only one closed square next to it? That square is the mine. Flag it.",
-  "@gameInfoMinesweeperExample": {
-    "description": "Minesweeper how-to-play sheet: a tiny worked example under the example board."
-  },
-  "gameInfoMinesweeperControls": "Tap to open a square. Long-press, or switch on Flag, to mark a mine.",
-  "@gameInfoMinesweeperControls": {
-    "description": "Minesweeper how-to-play sheet: how to play it with taps and drags."
-  },
-  "gameInfoStarbattleGoal": "Put 2 stars in every row, column and colour.",
-  "@gameInfoStarbattleGoal": {
-    "description": "Starbattle how-to-play sheet: the goal, one short sentence."
-  },
-  "gameInfoStarbattleRule1": "Every row gets exactly 2 stars.",
-  "@gameInfoStarbattleRule1": {
-    "description": "Starbattle how-to-play sheet: rule 1, one short sentence."
-  },
-  "gameInfoStarbattleRule2": "Every column gets exactly 2 stars.",
-  "@gameInfoStarbattleRule2": {
-    "description": "Starbattle how-to-play sheet: rule 2, one short sentence."
-  },
-  "gameInfoStarbattleRule3": "Every colour gets exactly 2 stars.",
-  "@gameInfoStarbattleRule3": {
-    "description": "Starbattle how-to-play sheet: rule 3, one short sentence."
-  },
-  "gameInfoStarbattleRule4": "Stars can't touch. Not even corner to corner.",
-  "@gameInfoStarbattleRule4": {
-    "description": "Starbattle how-to-play sheet: rule 4, one short sentence."
-  },
-  "gameInfoStarbattleExample": "One star here means: no other star in the 8 squares around it, and one more to find in its row, column and colour.",
-  "@gameInfoStarbattleExample": {
-    "description": "Starbattle how-to-play sheet: a tiny worked example under the example board."
-  },
-  "gameInfoStarbattleControls": "Tap once for a dot (no star here). Tap twice for a star. Tap again to clear.",
-  "@gameInfoStarbattleControls": {
-    "description": "Starbattle how-to-play sheet: how to play it with taps and drags."
   },
   "boardCellName": "Row {row}, column {col}",
   "@boardCellName": {
@@ -15237,18 +14921,6 @@
         "type": "int"
       }
     }
-  },
-  "chatGamePartySection": "Party",
-  "@chatGamePartySection": {
-    "description": "Header of the party games section in the game picker."
-  },
-  "chatGamePartyLiveOnly": "Party games are played live, with everyone at once.",
-  "@chatGamePartyLiveOnly": {
-    "description": "Why party games are greyed out when Take turns or Vs bot is selected."
-  },
-  "chatGameNeedsThree": "Needs a group of 3 or more",
-  "@chatGameNeedsThree": {
-    "description": "Why Imposter is greyed out in a one-to-one chat."
   },
   "chatGameVoiceOption": "Voice clues",
   "@chatGameVoiceOption": {
@@ -15782,5 +15454,510 @@
         "type": "String"
       }
     }
+  },
+  "kbdPeekDontShowAgain": "Don't show again",
+  "@kbdPeekDontShowAgain": {
+    "description": "Small button under the keyboard-shortcuts card that appears while ⌘/Ctrl is held. Turns the card off for good."
+  },
+  "kbdPeekTurnedOff": "Got it, no more pop-ups. You can turn it back on in Settings.",
+  "@kbdPeekTurnedOff": {
+    "description": "Toast after the user taps 'Don't show again' on the shortcuts card. Tells them where to bring it back."
+  },
+  "chatGameBadgeTurns": "Turns",
+  "@chatGameBadgeTurns": {
+    "description": "Short badge on a chat game tile: this game can be played turn by turn (async). Keep very short."
+  },
+  "chatGameSectionBoards": "Board games",
+  "@chatGameSectionBoards": {
+    "description": "Start-game sheet section header: the two-player board games (tic-tac-toe, chess...)."
+  },
+  "chatGameSectionParty": "Party games",
+  "@chatGameSectionParty": {
+    "description": "Start-game sheet section header: party games for a group (Liar's Dice, Imposter, Puzzle Race)."
+  },
+  "chatGameBoardsHintDm": "Play live right now, or take turns whenever you’re free.",
+  "@chatGameBoardsHintDm": {
+    "description": "Under the board games header in a DM: they can be played live or turn by turn."
+  },
+  "chatGameBoardsHintGroup": "Played live, right here. Grab a seat or just watch.",
+  "@chatGameBoardsHintGroup": {
+    "description": "Under the board games header in a group chat: they are played live, others can watch."
+  },
+  "chatGamePartyHint": "Everyone plays at once, so round up the crew first.",
+  "@chatGamePartyHint": {
+    "description": "Under the party games header: everyone plays at the same time."
+  },
+  "chatGameLiveTitle": "Play live",
+  "@chatGameLiveTitle": {
+    "description": "Mode choice card title in the start-game sheet: play the game live, now."
+  },
+  "chatGameLiveNow": "Everyone plays at the same time, right now.",
+  "@chatGameLiveNow": {
+    "description": "Live mode card, first line: everyone is playing at the same moment."
+  },
+  "chatGameLivePause": "Someone leaves? It pauses. 2 minutes to get back, or they forfeit.",
+  "@chatGameLivePause": {
+    "description": "Live mode card, second line: leaving pauses the game; 2 minutes to come back or that player forfeits."
+  },
+  "chatGameTurnsTitle": "Take turns",
+  "@chatGameTurnsTitle": {
+    "description": "Mode choice card title in the start-game sheet: play turn by turn, asynchronously."
+  },
+  "chatGameTurnsAnytime": "Move whenever you want. Each move drops into the chat.",
+  "@chatGameTurnsAnytime": {
+    "description": "Turn-by-turn mode card, first line: move whenever; each move is posted in the chat."
+  },
+  "chatGameTurnsClock": "2 days per move. We remind them, and you can nudge.",
+  "@chatGameTurnsClock": {
+    "description": "Turn-by-turn mode card, second line: 2 days per move, reminders and nudges."
+  },
+  "chatGameHowWillYouPlay": "How do you want to play?",
+  "@chatGameHowWillYouPlay": {
+    "description": "Header above the live / take turns choice for one game in a DM."
+  },
+  "botHubTitle": "Play the bot",
+  "@botHubTitle": {
+    "description": "Title of the screen (and Feed tile) where you play board games against the app's bot."
+  },
+  "botHubSubtitle": "Just you and {bot}. Nothing gets posted, nobody’s watching.",
+  "@botHubSubtitle": {
+    "description": "Under the bot screen title. {bot} is the bot's name (Monkey).",
+    "placeholders": {
+      "bot": {
+        "type": "String"
+      }
+    }
+  },
+  "botHubLevelTitle": "How tough?",
+  "@botHubLevelTitle": {
+    "description": "Header above the bot difficulty picker (easy / medium / hard)."
+  },
+  "botHubPickGame": "Pick a game",
+  "@botHubPickGame": {
+    "description": "Header above the grid of games on the bot screen."
+  },
+  "botHubCaption": "Practice",
+  "@botHubCaption": {
+    "description": "Small caption over the bot tile in the Feed's games row, next to Easy / Medium / Hard."
+  },
+  "botHubGameCount": "{count, plural, =1{1 game} other{{count} games}}",
+  "@botHubGameCount": {
+    "description": "Status chip on the bot tile: how many games you can play against the bot.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameMvYouPlayed": "You played",
+  "@chatGameMvYouPlayed": {
+    "description": "Turn-by-turn move bubble header when the viewer made the move."
+  },
+  "chatGameMvTheyPlayed": "{name} played",
+  "@chatGameMvTheyPlayed": {
+    "description": "Turn-by-turn move bubble header when the other player made the move.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameMvNumber": "Move {count}",
+  "@chatGameMvNumber": {
+    "description": "Move number on a turn-by-turn move bubble.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameMvColumn": "Column {count}",
+  "@chatGameMvColumn": {
+    "description": "Connect Four move description: which column the disc went into.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameMvEarlier": "Earlier move",
+  "@chatGameMvEarlier": {
+    "description": "Footer of a move bubble that is no longer the latest move of its game."
+  },
+  "chatGameMvSend": "Send move",
+  "@chatGameMvSend": {
+    "description": "Button that commits a staged move in a turn-by-turn game and posts it to the chat."
+  },
+  "chatGameMvUndo": "Undo",
+  "@chatGameMvUndo": {
+    "description": "Takes back a staged, unsent move in a turn-by-turn game."
+  },
+  "chatGameMvStagedHint": "Not sent yet. Change your mind or hit Send.",
+  "@chatGameMvStagedHint": {
+    "description": "Shown above Send move while a move is staged but not sent."
+  },
+  "chatGameMvSentToast": "Move sent. Their turn now.",
+  "@chatGameMvSentToast": {
+    "description": "Toast after a turn-by-turn move is sent and the game closes back to the chat."
+  },
+  "chatGameMvYourTurnSub": "Make your move, then send it. No rush.",
+  "@chatGameMvYourTurnSub": {
+    "description": "Turn-by-turn game status card, viewer's turn: how to play the turn."
+  },
+  "chatGameMvWaitingSub": "We'll ping you when it's your turn.",
+  "@chatGameMvWaitingSub": {
+    "description": "Turn-by-turn game status card while waiting for the other player."
+  },
+  "chatGameMvNudgeLater": "You can nudge after 12 quiet hours",
+  "@chatGameMvNudgeLater": {
+    "description": "Turn-by-turn game: why the Nudge button is not there yet."
+  },
+  "chatGameMvForfeitNote": "If the clock runs out, that player loses",
+  "@chatGameMvForfeitNote": {
+    "description": "Turn-by-turn game status card: what happens when the move clock runs out."
+  },
+  "chatGameMvAgain": "Still your turn. Go again!",
+  "@chatGameMvAgain": {
+    "description": "Turn-by-turn game: the move just sent earned another turn (e.g. a closed box in Dots)."
+  },
+  "chatGameMvSending": "Sending…",
+  "@chatGameMvSending": {
+    "description": "Send move button while the move is on its way."
+  },
+  "howToNext": "Next",
+  "@howToNext": {
+    "description": "How-to-play sheet: pill that goes to the next step."
+  },
+  "howToWatchAgain": "Watch again",
+  "@howToWatchAgain": {
+    "description": "How-to-play sheet: pill on the last step that replays the guide from the start."
+  },
+  "howToGotIt": "Got it",
+  "@howToGotIt": {
+    "description": "How-to-play sheet: main button when the guide was opened from inside a game. Closes it."
+  },
+  "howToProTip": "Pro tip",
+  "@howToProTip": {
+    "description": "How-to-play sheet: small chip above a step that is a strategy tip, not a rule."
+  },
+  "howToStepSemantic": "Step {step} of {total}",
+  "@howToStepSemantic": {
+    "description": "Screen reader label for one page of the how-to-play guide.",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "howToQueens1": "One crown in every row, every column and every colour.",
+  "@howToQueens1": {
+    "description": "Queens guide, step: the core rule."
+  },
+  "howToQueens2": "Crowns can't touch. Not even corner to corner.",
+  "@howToQueens2": {
+    "description": "Queens guide, step: crowns may not touch, including diagonally."
+  },
+  "howToQueens3": "Tap once for an ×, twice for a crown, once more to clear.",
+  "@howToQueens3": {
+    "description": "Queens guide, step: the tap cycle."
+  },
+  "howToQueens4": "Drop a crown, then × every square it rules out. The board cracks open fast.",
+  "@howToQueens4": {
+    "description": "Queens guide, strategy tip."
+  },
+  "howToTango1": "Tap once for a sun, twice for a moon. Fill every square.",
+  "@howToTango1": {
+    "description": "Tango guide, step: how to fill."
+  },
+  "howToTango2": "Every row and column is half suns, half moons.",
+  "@howToTango2": {
+    "description": "Tango guide, step: balance rule."
+  },
+  "howToTango3": "Never 3 of the same in a row. 2 is fine.",
+  "@howToTango3": {
+    "description": "Tango guide, step: no three in a row."
+  },
+  "howToTango4": "= means the two match. × means they're opposite.",
+  "@howToTango4": {
+    "description": "Tango guide, step: = and × signs between squares."
+  },
+  "howToZip1": "Start on 1 and drag through the numbers in order.",
+  "@howToZip1": {
+    "description": "Zip guide, step: start and order."
+  },
+  "howToZip2": "Cover every square and finish on the last number.",
+  "@howToZip2": {
+    "description": "Zip guide, step: fill every square, finish on the last number."
+  },
+  "howToZip3": "Wrong turn? Just drag back to undo.",
+  "@howToZip3": {
+    "description": "Zip guide, tip: undo by dragging back."
+  },
+  "howToSudoku1": "Every row, column and box gets 1 to 6. No repeats.",
+  "@howToSudoku1": {
+    "description": "Mini Sudoku guide, step: the rule (numbers 1 to 6)."
+  },
+  "howToSudoku2": "Tap a square, then tap a number.",
+  "@howToSudoku2": {
+    "description": "Mini Sudoku guide, step: controls."
+  },
+  "howToSudoku3": "Same number twice in a line? It turns red.",
+  "@howToSudoku3": {
+    "description": "Mini Sudoku guide, step: a repeated number turns red."
+  },
+  "howToSudoku4": "Hunt for lines missing just one number. Free points.",
+  "@howToSudoku4": {
+    "description": "Mini Sudoku guide, tip."
+  },
+  "howToFlow1": "Drag from a dot to its twin to lay a pipe.",
+  "@howToFlow1": {
+    "description": "Flow guide, step: connect matching dots."
+  },
+  "howToFlow2": "Pipes can't cross, and every square has to be filled. Take the long way.",
+  "@howToFlow2": {
+    "description": "Flow guide, step: no crossing, fill everything."
+  },
+  "howToFutoshiki1": "Every row and column gets each number exactly once.",
+  "@howToFutoshiki1": {
+    "description": "Futoshiki guide, step: each number once per row and column."
+  },
+  "howToFutoshiki2": "The pointy end of the sign points at the smaller number.",
+  "@howToFutoshiki2": {
+    "description": "Futoshiki guide, step: the < > sign points at the smaller number."
+  },
+  "howToFutoshiki3": "Break a sign and it lights up red.",
+  "@howToFutoshiki3": {
+    "description": "Futoshiki guide, step: a broken sign turns red."
+  },
+  "howToNonogram1": "The numbers say how many squares in a row to shade. 5 means 5 in a row.",
+  "@howToNonogram1": {
+    "description": "Nonogram guide, step: what the clue numbers mean."
+  },
+  "howToNonogram2": "1 1 means two separate squares, with at least one gap between them.",
+  "@howToNonogram2": {
+    "description": "Nonogram guide, step: several numbers need gaps between runs."
+  },
+  "howToNonogram3": "Tap to shade, again for ×, again to clear. Drag to do loads at once.",
+  "@howToNonogram3": {
+    "description": "Nonogram guide, step: controls."
+  },
+  "howToNonogram4": "Nail every clue and the hidden picture pops out.",
+  "@howToNonogram4": {
+    "description": "Nonogram guide, step: the reveal."
+  },
+  "howToMines1": "Tap a square to open it. Empty areas open up on their own.",
+  "@howToMines1": {
+    "description": "Minesweeper guide, step: opening squares."
+  },
+  "howToMines2": "A number tells you how many mines touch it, corners too.",
+  "@howToMines2": {
+    "description": "Minesweeper guide, step: what numbers mean."
+  },
+  "howToMines3": "Sure it's a mine? Long-press to flag it.",
+  "@howToMines3": {
+    "description": "Minesweeper guide, step: flagging."
+  },
+  "howToMines4": "Hit a mine and you eat a 30 second penalty. But you never actually have to guess.",
+  "@howToMines4": {
+    "description": "Minesweeper guide, step: penalty for hitting a mine, and no guessing needed."
+  },
+  "howToStars1": "Two stars in every row, every column and every colour.",
+  "@howToStars1": {
+    "description": "Star Battle guide, step: two stars per row/column/colour."
+  },
+  "howToStars2": "Stars can't touch. Not even corner to corner.",
+  "@howToStars2": {
+    "description": "Star Battle guide, step: stars may not touch."
+  },
+  "howToStars3": "Dot out the squares around each star. Once a row has its 2, the rest is out.",
+  "@howToStars3": {
+    "description": "Star Battle guide, strategy tip."
+  },
+  "howToCode1": "There's a secret code of 4 different symbols. Crack it.",
+  "@howToCode1": {
+    "description": "Code puzzle guide, step: the goal."
+  },
+  "howToCode2": "Green means right symbol, right spot.",
+  "@howToCode2": {
+    "description": "Code puzzle guide, step: green feedback."
+  },
+  "howToCode3": "Yellow means it's in the code, just somewhere else. Grey means it's not in there at all.",
+  "@howToCode3": {
+    "description": "Code puzzle guide, step: yellow and grey feedback."
+  },
+  "howToCode4": "You get 6 guesses. The fewer you need, the better.",
+  "@howToCode4": {
+    "description": "Code puzzle guide, step: number of guesses."
+  },
+  "howToTtt1": "Take turns placing your mark. Get 3 in a row to win.",
+  "@howToTtt1": {
+    "description": "Tic-tac-toe guide step."
+  },
+  "howToTtt2": "They've got 2 in a line? Grab the third square before they do.",
+  "@howToTtt2": {
+    "description": "Tic-tac-toe guide tip: block the opponent."
+  },
+  "howToC41": "Tap a column to drop a disc. It falls to the lowest free spot.",
+  "@howToC41": {
+    "description": "Connect Four guide step: dropping discs."
+  },
+  "howToC42": "Line up 4 in a row to win: across, up and down, or diagonal.",
+  "@howToC42": {
+    "description": "Connect Four guide step: winning."
+  },
+  "howToCheckers1": "Pieces move one square diagonally forward. Tap a piece, then where it goes.",
+  "@howToCheckers1": {
+    "description": "Checkers guide step: moving."
+  },
+  "howToCheckers2": "Jump over a rival piece to take it. If you can jump, you have to. The piece that must jump gets a ring.",
+  "@howToCheckers2": {
+    "description": "Checkers guide step: captures are forced."
+  },
+  "howToCheckers3": "Land somewhere you can jump again? Keep going. One move can take a bunch.",
+  "@howToCheckers3": {
+    "description": "Checkers guide step: multi-jumps."
+  },
+  "howToCheckers4": "Reach the far side and your piece is crowned king. Kings can move backwards too.",
+  "@howToCheckers4": {
+    "description": "Checkers guide step: kings."
+  },
+  "howToCheckersWin": "Take all their pieces, or leave them with no move, to win.",
+  "@howToCheckersWin": {
+    "description": "Checkers guide footnote: how you win."
+  },
+  "howToReversi1": "Place a disc so a line of their discs ends up trapped between two of yours.",
+  "@howToReversi1": {
+    "description": "Reversi guide step: trapping."
+  },
+  "howToReversi2": "Every trapped disc flips to your colour, in every direction at once.",
+  "@howToReversi2": {
+    "description": "Reversi guide step: flipping."
+  },
+  "howToReversi3": "No move to make? Your turn gets skipped. When nobody can move, most discs wins.",
+  "@howToReversi3": {
+    "description": "Reversi guide step: passing and winning."
+  },
+  "howToDots1": "Take turns drawing a line between two dots.",
+  "@howToDots1": {
+    "description": "Dots and Boxes guide step: drawing lines."
+  },
+  "howToDots2": "Close a box and it's yours. And you go again!",
+  "@howToDots2": {
+    "description": "Dots and Boxes guide step: closing a box gives another turn."
+  },
+  "howToDots3": "Careful with a box's third side. That hands it to the next player.",
+  "@howToDots3": {
+    "description": "Dots and Boxes guide tip."
+  },
+  "howToDotsWin": "Most boxes when the last line is drawn wins.",
+  "@howToDotsWin": {
+    "description": "Dots and Boxes guide footnote."
+  },
+  "howToChess1": "Tap a piece to see where it can go, then tap a square.",
+  "@howToChess1": {
+    "description": "Chess guide step: how to move in the app."
+  },
+  "howToChess2": "Move onto a rival piece to take it.",
+  "@howToChess2": {
+    "description": "Chess guide step: capturing."
+  },
+  "howToChess3": "Get a pawn to the last row and it becomes a queen, or whatever you pick.",
+  "@howToChess3": {
+    "description": "Chess guide step: promotion."
+  },
+  "howToChess4": "Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over.",
+  "@howToChess4": {
+    "description": "Chess guide step: check and checkmate."
+  },
+  "howToLiars1": "Everyone rolls 5 dice in secret. You only see your own.",
+  "@howToLiars1": {
+    "description": "Liar's Dice guide step: secret dice."
+  },
+  "howToLiars2": "On your turn, bid how many of one face are on the whole table, counting everyone's dice. Like “four 3s”.",
+  "@howToLiars2": {
+    "description": "Liar's Dice guide step: what a bid is."
+  },
+  "howToLiars3": "1s are wild: they count as any face. Unless the bid is on 1s.",
+  "@howToLiars3": {
+    "description": "Liar's Dice guide step: 1s are wild."
+  },
+  "howToLiars4": "The next player has to go higher: more dice, or the same number of a higher face…",
+  "@howToLiars4": {
+    "description": "Liar's Dice guide step: raising (sentence continues in next step)."
+  },
+  "howToLiars5": "…or call liar! Everyone shows their dice, and you count.",
+  "@howToLiars5": {
+    "description": "Liar's Dice guide step: calling liar (continues previous step)."
+  },
+  "howToLiars6": "Bid was true? The caller loses a die. Bid was too high? The bidder loses one.",
+  "@howToLiars6": {
+    "description": "Liar's Dice guide step: who loses a die."
+  },
+  "howToLiars7": "No dice left and you're out. Last one holding dice wins.",
+  "@howToLiars7": {
+    "description": "Liar's Dice guide step: elimination and winning."
+  },
+  "howToLiarsClock": "45 seconds a turn. Run out and the game plays for you.",
+  "@howToLiarsClock": {
+    "description": "Liar's Dice guide footnote: turn timer."
+  },
+  "howToImposter1": "Everyone gets the same secret word. Except the imposter, who only gets the category.",
+  "@howToImposter1": {
+    "description": "Imposter guide step: the secret word."
+  },
+  "howToImposter2": "Take turns giving one short clue. Show you know the word without giving it away.",
+  "@howToImposter2": {
+    "description": "Imposter guide step: clues."
+  },
+  "howToImposterVoice": "Voice mode: say your clue out loud on the call, then tap Done.",
+  "@howToImposterVoice": {
+    "description": "Imposter guide step, voice mode only."
+  },
+  "howToImposter3": "Then everyone votes for who they think the imposter is.",
+  "@howToImposter3": {
+    "description": "Imposter guide step: voting."
+  },
+  "howToImposter4": "Caught? The imposter gets one last shot: guess the word to steal the win. Vote out the wrong person, or tie? Imposter wins.",
+  "@howToImposter4": {
+    "description": "Imposter guide step: last guess and who wins."
+  },
+  "howToRace1": "Everyone gets the same brand-new puzzle at the same moment.",
+  "@howToRace1": {
+    "description": "Puzzle Race guide step."
+  },
+  "howToRace2": "Solve it on your own phone. Your bar shows everyone how close you are.",
+  "@howToRace2": {
+    "description": "Puzzle Race guide step."
+  },
+  "howToRace3": "First to finish wins. You've got 10 minutes.",
+  "@howToRace3": {
+    "description": "Puzzle Race guide step."
+  },
+  "howToLive1": "Everyone plays at the same time. Once everyone taps I'm ready, you're on.",
+  "@howToLive1": {
+    "description": "Play mode page, Live: starting."
+  },
+  "howToLive2": "Someone leaves the game? It pauses for everyone. They've got 2 minutes to come back, or they forfeit.",
+  "@howToLive2": {
+    "description": "Play mode page, Live: pausing when someone leaves."
+  },
+  "howToLive3": "Others in the chat can watch. They can ask for a seat, and a player can hand theirs over.",
+  "@howToLive3": {
+    "description": "Play mode page, Live in a group: watching and seat swap."
+  },
+  "howToTurns1": "Make your move, then tap Send move. It drops into the chat as a message.",
+  "@howToTurns1": {
+    "description": "Play mode page, Turns: send move."
+  },
+  "howToTurns2": "Each move gets 2 days. We remind them after 20 hours, and after 12 quiet hours you can nudge them yourself.",
+  "@howToTurns2": {
+    "description": "Play mode page, Turns: time, reminder, nudge."
+  },
+  "howToTurns3": "No move in 2 days? That's a loss. Up to 3 games at once per chat.",
+  "@howToTurns3": {
+    "description": "Play mode page, Turns: timeout and limit."
   }
 }

@@ -5512,15 +5512,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameInfoOpen => '玩法说明';
 
   @override
-  String get gameInfoLabel => '玩法说明';
-
-  @override
-  String get gameInfoRulesLabel => '规则';
-
-  @override
-  String get gameInfoControlsLabel => '怎么点';
-
-  @override
   String get gameInfoScoringTimed => '最快完成的人赢。离开时计时会暂停。';
 
   @override
@@ -5528,81 +5519,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => '今天每个人的题目都一样。';
-
-  @override
-  String get gameInfoQueensGoal => '在棋盘上放 8 顶王冠。';
-
-  @override
-  String get gameInfoQueensRule1 => '每一行正好 1 顶王冠。';
-
-  @override
-  String get gameInfoQueensRule2 => '每一列正好 1 顶王冠。';
-
-  @override
-  String get gameInfoQueensRule3 => '每种颜色正好 1 顶王冠。';
-
-  @override
-  String get gameInfoQueensControls => '点 1 下是 ×（这里没有王冠）。点 2 下是王冠。再点一下清除。';
-
-  @override
-  String get gameInfoTangoGoal => '每一格填上太阳或月亮。';
-
-  @override
-  String get gameInfoTangoRule1 => '每一行有 3 个太阳和 3 个月亮。';
-
-  @override
-  String get gameInfoTangoRule2 => '每一列有 3 个太阳和 3 个月亮。';
-
-  @override
-  String get gameInfoTangoRule3 => '同样的不能连着 3 个。2 个可以。';
-
-  @override
-  String get gameInfoTangoControls => '点 1 下是太阳，点 2 下是月亮，再点一下清除。一开始就有的格子不能改。';
-
-  @override
-  String get gameInfoZipGoal => '画一条线，经过每一格。';
-
-  @override
-  String get gameInfoZipRule1 => '从 1 开始。';
-
-  @override
-  String get gameInfoZipRule2 => '按顺序经过数字：1、2、3……';
-
-  @override
-  String get gameInfoZipRule3 => '填满每一格。每格只走一次。';
-
-  @override
-  String get gameInfoZipControls => '用手指拖动来画线。往回拖就能撤销。';
-
-  @override
-  String get gameInfoSudokuGoal => '用 1 到 6 填满格子。';
-
-  @override
-  String get gameInfoSudokuRule1 => '每一行都有 1、2、3、4、5、6。不能重复。';
-
-  @override
-  String get gameInfoSudokuRule2 => '每一列也一样。';
-
-  @override
-  String get gameInfoSudokuRule3 => '每个宫也一样。一个宫是 2 行 3 列。';
-
-  @override
-  String get gameInfoSudokuControls => '先点格子，再点数字。再点一次就清除。笔记可以写小标记。';
-
-  @override
-  String get gameInfoCodeGoal => '猜出由 4 个符号组成的密码。';
-
-  @override
-  String get gameInfoCodeRule1 => '密码由 4 个不同的符号组成。不会重复。';
-
-  @override
-  String get gameInfoCodeRule2 => '你有 6 次机会。';
-
-  @override
-  String get gameInfoCodeRule3 => '绿色：符号对，位置也对。';
-
-  @override
-  String get gameInfoCodeControls => '点 4 个符号，然后点“猜”。';
 
   @override
   String get savedMessagesTitle => '保存的消息';
@@ -10238,49 +10154,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomContentMonthLast => '上个月';
 
   @override
-  String get gameInfoGoalLabel => '目标';
-
-  @override
-  String get gameInfoExampleLabel => '例子';
-
-  @override
-  String get gameInfoWinLabel => '怎么赢';
-
-  @override
-  String get gameInfoQueensRule4 => '王冠不能挨着。斜着也不行。';
-
-  @override
-  String get gameInfoQueensExample =>
-      '这里放一顶王冠，就表示：同一行、同一列、同一颜色，以及周围 8 格，都不能再放王冠。';
-
-  @override
-  String get gameInfoTangoRule4 => '= 表示 2 格相同。× 表示不同。';
-
-  @override
-  String get gameInfoTangoExample => '太阳、太阳、空格？那个空格一定是月亮。';
-
-  @override
-  String get gameInfoZipRule4 => '只能上、下、左、右走。不能斜着走。';
-
-  @override
-  String get gameInfoZipRule5 => '在最后一个数字结束。';
-
-  @override
-  String get gameInfoZipExample => '从 1 走到 2？需要的话就绕远路。不能留下空格。';
-
-  @override
-  String get gameInfoSudokuExample => '一行里已经有 1、2、4、5、6？空格就是 3。';
-
-  @override
-  String get gameInfoCodeRule4 => '黄色：符号对，位置不对。';
-
-  @override
-  String get gameInfoCodeRule5 => '灰色：密码里没有这个符号。';
-
-  @override
-  String get gameInfoCodeExample => '绿、黄、灰、灰的意思是：1 个符号位置对，1 个应该在别处，2 个不在密码里。';
-
-  @override
   String get leaderboardOverall => '今天';
 
   @override
@@ -11548,7 +11421,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatGameNameConnectFour => '四子棋';
 
   @override
-  String get chatGameNameCheckers => '跳棋';
+  String get chatGameNameCheckers => '西洋跳棋';
 
   @override
   String get chatGameNameReversi => '黑白棋';
@@ -11809,21 +11682,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatGameModeLive => '实时';
 
   @override
-  String get chatGameModeTurns => '轮流';
-
-  @override
-  String get chatGameModeBot => '对战机器人';
-
-  @override
-  String get chatGameModeLiveHint => '所有人同时对局，离开会暂停游戏。';
-
-  @override
-  String get chatGameModeTurnsHint => '随时落子。轮到你时会收到通知，每回合最长 2 天。';
-
-  @override
-  String get chatGameModeBotHint => '只有你和机器人，不会在聊天中发布任何内容。';
-
-  @override
   String get chatGameBotEasyHint => '会犯错，适合练习。';
 
   @override
@@ -11923,105 +11781,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gameAutoDot => '自动打点';
-
-  @override
-  String get gameInfoFlowGoal => '用管道把每一对相同的点连起来。';
-
-  @override
-  String get gameInfoFlowRule1 => '每条管道连接颜色和数字都相同的 2 个点。';
-
-  @override
-  String get gameInfoFlowRule2 => '管道不能交叉，也不能共用一个格子。';
-
-  @override
-  String get gameInfoFlowRule3 => '填满每一格，不能留空。';
-
-  @override
-  String get gameInfoFlowRule4 => '只能上、下、左、右走。不能斜着走。';
-
-  @override
-  String get gameInfoFlowExample => '走不了直线？就绕开其他管道。但每一格还是要填满。';
-
-  @override
-  String get gameInfoFlowControls => '从一个点开始拖动来画管道。往回拖就能撤销。画过别的管道会把它截断。';
-
-  @override
-  String get gameInfoFutoshikiGoal => '用 1 到 5 的数字填满格子。';
-
-  @override
-  String get gameInfoFutoshikiRule1 => '每一行都有 1、2、3、4、5，不能重复。';
-
-  @override
-  String get gameInfoFutoshikiRule2 => '每一列也一样。';
-
-  @override
-  String get gameInfoFutoshikiRule3 => '两格之间的 < 或 > 必须成立。尖头指向较小的数。';
-
-  @override
-  String get gameInfoFutoshikiExample => '有符号指向这一格？那它不可能是 5，因为旁边那格更大。';
-
-  @override
-  String get gameInfoFutoshikiControls => '先点格子，再点数字。再点一次就清除。笔记可以写小标记。';
-
-  @override
-  String get gameInfoNonogramGoal => '涂黑格子，让隐藏的图案显现出来。';
-
-  @override
-  String get gameInfoNonogramRule1 => '每行每列旁的数字是涂黑格子连续段的长度，按顺序排列。';
-
-  @override
-  String get gameInfoNonogramRule2 => '连续段之间至少隔 1 个空格。';
-
-  @override
-  String get gameInfoNonogramRule3 => '0 表示整行都是空的。';
-
-  @override
-  String get gameInfoNonogramExample =>
-      '10 格的一行提示是 10？全部涂黑。如果是 4 4，两段都放得下，中间隔一格。';
-
-  @override
-  String get gameInfoNonogramControls =>
-      '点 1 下涂黑，点 2 下是 ×（空），再点一下清除。拖动可以一次标记多格。';
-
-  @override
-  String get gameInfoMinesweeperGoal => '打开所有没有地雷的格子。';
-
-  @override
-  String get gameInfoMinesweeperRule1 => '数字表示这一格周围有几颗地雷，斜角也算。';
-
-  @override
-  String get gameInfoMinesweeperRule2 => '每一格都能推理出来，从来不需要猜。';
-
-  @override
-  String get gameInfoMinesweeperRule3 => '踩到地雷会给你的用时加 30 秒，然后继续玩。';
-
-  @override
-  String get gameInfoMinesweeperExample => '一个 1 旁边只有一个没打开的格子？那就是地雷，插上旗。';
-
-  @override
-  String get gameInfoMinesweeperControls => '点一下打开格子。长按，或打开插旗，来标记地雷。';
-
-  @override
-  String get gameInfoStarbattleGoal => '在每行、每列、每种颜色里各放 2 颗星。';
-
-  @override
-  String get gameInfoStarbattleRule1 => '每一行正好 2 颗星。';
-
-  @override
-  String get gameInfoStarbattleRule2 => '每一列正好 2 颗星。';
-
-  @override
-  String get gameInfoStarbattleRule3 => '每种颜色正好 2 颗星。';
-
-  @override
-  String get gameInfoStarbattleRule4 => '星星不能挨着。斜着也不行。';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      '这里有一颗星，意味着它周围 8 格里没有别的星，而它所在的行、列和颜色里还差一颗。';
-
-  @override
-  String get gameInfoStarbattleControls => '点 1 下是点（这里没有星）。点 2 下是星。再点一下清除。';
 
   @override
   String boardCellName(int row, int col) {
@@ -12159,15 +11918,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max 人';
   }
-
-  @override
-  String get chatGamePartySection => '派对';
-
-  @override
-  String get chatGamePartyLiveOnly => '派对游戏为实时进行，所有人同时参与。';
-
-  @override
-  String get chatGameNeedsThree => '需要 3 人及以上的群组';
 
   @override
   String get chatGameVoiceOption => '语音提示';
@@ -12533,4 +12283,375 @@ class AppLocalizationsZh extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return '升变为$piece';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => '不再显示';
+
+  @override
+  String get kbdPeekTurnedOff => '好的，不会再弹出了。可以随时在设置里重新打开。';
+
+  @override
+  String get chatGameBadgeTurns => '轮流';
+
+  @override
+  String get chatGameSectionBoards => '棋盘游戏';
+
+  @override
+  String get chatGameSectionParty => '派对游戏';
+
+  @override
+  String get chatGameBoardsHintDm => '现在就实时玩，或者有空时轮流下。';
+
+  @override
+  String get chatGameBoardsHintGroup => '就在这儿实时玩。上桌或者围观都行。';
+
+  @override
+  String get chatGamePartyHint => '大家同时玩，先把人叫齐吧。';
+
+  @override
+  String get chatGameLiveTitle => '实时玩';
+
+  @override
+  String get chatGameLiveNow => '大家同一时间，现在就玩。';
+
+  @override
+  String get chatGameLivePause => '有人离开会暂停。2 分钟内不回来就算输。';
+
+  @override
+  String get chatGameTurnsTitle => '轮流玩';
+
+  @override
+  String get chatGameTurnsAnytime => '想什么时候走都行，每一步都会发到聊天里。';
+
+  @override
+  String get chatGameTurnsClock => '每步 2 天。我们会提醒对方，你也能催一下。';
+
+  @override
+  String get chatGameHowWillYouPlay => '想怎么玩？';
+
+  @override
+  String get botHubTitle => '和机器人玩';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return '只有你和$bot。不会发到聊天里，也没人看。';
+  }
+
+  @override
+  String get botHubLevelTitle => '要多难？';
+
+  @override
+  String get botHubPickGame => '选个游戏';
+
+  @override
+  String get botHubCaption => '练习';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 款游戏',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => '你走了一步';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name走了一步';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return '第 $count 步';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return '第 $count 列';
+  }
+
+  @override
+  String get chatGameMvEarlier => '之前的一步';
+
+  @override
+  String get chatGameMvSend => '发送这步';
+
+  @override
+  String get chatGameMvUndo => '撤销';
+
+  @override
+  String get chatGameMvStagedHint => '还没发出去。想改就改，或者点发送。';
+
+  @override
+  String get chatGameMvSentToast => '已发送，轮到对方了。';
+
+  @override
+  String get chatGameMvYourTurnSub => '走好这步再发送，不着急。';
+
+  @override
+  String get chatGameMvWaitingSub => '轮到你时会通知你。';
+
+  @override
+  String get chatGameMvNudgeLater => '对方 12 小时没动静时可以催一下';
+
+  @override
+  String get chatGameMvForfeitNote => '时间用完，轮到的人就输了';
+
+  @override
+  String get chatGameMvAgain => '还是你的回合，再走一步！';
+
+  @override
+  String get chatGameMvSending => '发送中…';
+
+  @override
+  String get howToNext => '下一步';
+
+  @override
+  String get howToWatchAgain => '再看一遍';
+
+  @override
+  String get howToGotIt => '懂了';
+
+  @override
+  String get howToProTip => '小技巧';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return '第 $step 步，共 $total 步';
+  }
+
+  @override
+  String get howToQueens1 => '每行、每列、每种颜色，各放一顶王冠。';
+
+  @override
+  String get howToQueens2 => '王冠不能挨着，斜着挨也不行。';
+
+  @override
+  String get howToQueens3 => '点一下打 ×，点两下放王冠，再点一下清掉。';
+
+  @override
+  String get howToQueens4 => '放好一顶王冠，就把它挡住的格子都打上 ×，很快就理清了。';
+
+  @override
+  String get howToTango1 => '点一下是太阳，点两下是月亮。把格子全填满。';
+
+  @override
+  String get howToTango2 => '每行每列都是一半太阳、一半月亮。';
+
+  @override
+  String get howToTango3 => '同样的不能连着 3 个，2 个没问题。';
+
+  @override
+  String get howToTango4 => '= 表示两个一样，× 表示两个相反。';
+
+  @override
+  String get howToZip1 => '从 1 出发，按顺序划过每个数字。';
+
+  @override
+  String get howToZip2 => '走遍所有格子，在最后一个数字收尾。';
+
+  @override
+  String get howToZip3 => '走错了？往回划就撤销了。';
+
+  @override
+  String get howToSudoku1 => '每行、每列、每个宫都是 1 到 6，不能重复。';
+
+  @override
+  String get howToSudoku2 => '先点格子，再点数字。';
+
+  @override
+  String get howToSudoku3 => '同一行出现重复数字？会变红。';
+
+  @override
+  String get howToSudoku4 => '找只差一个数字的行，白送的。';
+
+  @override
+  String get howToFlow1 => '从一个点划到同色的另一个点，连成管道。';
+
+  @override
+  String get howToFlow2 => '管道不能交叉，每个格子都要填满。绕远一点也没关系。';
+
+  @override
+  String get howToFutoshiki1 => '每行每列，每个数字只出现一次。';
+
+  @override
+  String get howToFutoshiki2 => '符号尖的那头指向小的数字。';
+
+  @override
+  String get howToFutoshiki3 => '不符合符号就会变红。';
+
+  @override
+  String get howToNonogram1 => '数字表示连续涂几格。5 就是连着涂 5 格。';
+
+  @override
+  String get howToNonogram2 => '1 1 是两个分开的格子，中间至少空一格。';
+
+  @override
+  String get howToNonogram3 => '点一下涂色，再点打 ×，再点清除。拖动可以一次涂一大片。';
+
+  @override
+  String get howToNonogram4 => '所有提示都对上，隐藏的图案就出来了。';
+
+  @override
+  String get howToMines1 => '点格子打开它。空白区域会自己展开。';
+
+  @override
+  String get howToMines2 => '数字表示周围有几颗雷，斜角也算。';
+
+  @override
+  String get howToMines3 => '确定是雷？长按插旗。';
+
+  @override
+  String get howToMines4 => '踩到雷罚 30 秒。不过你从来都不用靠猜。';
+
+  @override
+  String get howToStars1 => '每行、每列、每种颜色，各放 2 颗星。';
+
+  @override
+  String get howToStars2 => '星星不能挨着，斜着挨也不行。';
+
+  @override
+  String get howToStars3 => '在每颗星周围点上圆点。一行凑齐 2 颗星，其余格子就都空了。';
+
+  @override
+  String get howToCode1 => '有一串由 4 个不同符号组成的密码，破解它。';
+
+  @override
+  String get howToCode2 => '绿色：符号对，位置也对。';
+
+  @override
+  String get howToCode3 => '黄色：密码里有，但位置不对。灰色：密码里根本没有。';
+
+  @override
+  String get howToCode4 => '你有 6 次机会，用得越少越厉害。';
+
+  @override
+  String get howToTtt1 => '轮流放下你的标记，先连成 3 个的赢。';
+
+  @override
+  String get howToTtt2 => '对方已经连了 2 个？抢先占住第三格。';
+
+  @override
+  String get howToC41 => '点一列放下棋子，它会落到最底下的空位。';
+
+  @override
+  String get howToC42 => '连成 4 个就赢：横、竖、斜都算。';
+
+  @override
+  String get howToCheckers1 => '棋子斜着向前走一格。先点棋子，再点要去的格子。';
+
+  @override
+  String get howToCheckers2 => '跳过对方的棋子就能吃掉它。能跳就必须跳，必须跳的棋子会出现一个圈。';
+
+  @override
+  String get howToCheckers3 => '落下后还能接着跳？继续跳，一步就能吃好几个。';
+
+  @override
+  String get howToCheckers4 => '走到对面底线就升为王，王还能往后走。';
+
+  @override
+  String get howToCheckersWin => '吃光对方的棋子，或让对方无路可走，就赢了。';
+
+  @override
+  String get howToReversi1 => '落子时，把对方的一排棋子夹在你的两颗棋子之间。';
+
+  @override
+  String get howToReversi2 => '被夹住的棋子全部翻成你的颜色，所有方向一起翻。';
+
+  @override
+  String get howToReversi3 => '没地方下？这回合跳过。双方都下不了时，棋子多的赢。';
+
+  @override
+  String get howToDots1 => '轮流在两个点之间画一条线。';
+
+  @override
+  String get howToDots2 => '封住一个格子就归你，而且你还能再画一条！';
+
+  @override
+  String get howToDots3 => '小心别画格子的第三条边，那等于把格子送给下一个人。';
+
+  @override
+  String get howToDotsWin => '最后一条线画完时，格子最多的人赢。';
+
+  @override
+  String get howToChess1 => '点一个棋子，看它能走到哪，再点目标格。';
+
+  @override
+  String get howToChess2 => '走到对方棋子的格子上就能吃掉它。';
+
+  @override
+  String get howToChess3 => '把兵走到最后一行，它就能变成后，或者你选的其他棋子。';
+
+  @override
+  String get howToChess4 => '将军就是王被攻击了，必须马上解围。无路可逃？将死，游戏结束。';
+
+  @override
+  String get howToLiars1 => '每人偷偷摇 5 颗骰子，你只能看到自己的。';
+
+  @override
+  String get howToLiars2 => '轮到你时，叫全桌某个点数一共有几个，所有人的骰子都算。比如“4个3”。';
+
+  @override
+  String get howToLiars3 => '1 点是万能的，可以当任何点数。除非叫的就是 1。';
+
+  @override
+  String get howToLiars4 => '下一个人必须往上加：要么个数更多，要么同样个数但点数更大…';
+
+  @override
+  String get howToLiars5 => '…或者直接“开！”。所有人亮出骰子一起数。';
+
+  @override
+  String get howToLiars6 => '叫的数是真的？开的人丢一颗骰子。叫多了？叫的人丢一颗。';
+
+  @override
+  String get howToLiars7 => '骰子没了就出局，最后还有骰子的人赢。';
+
+  @override
+  String get howToLiarsClock => '每回合 45 秒，超时系统会替你出手。';
+
+  @override
+  String get howToImposter1 => '大家拿到同一个秘密词，只有卧底拿到的是类别。';
+
+  @override
+  String get howToImposter2 => '轮流给一个简短提示，证明你知道这个词，但别说漏嘴。';
+
+  @override
+  String get howToImposterVoice => '语音模式：在通话里把提示说出来，然后点完成。';
+
+  @override
+  String get howToImposter3 => '然后大家投票，选出你觉得是卧底的人。';
+
+  @override
+  String get howToImposter4 => '抓到了？卧底还有最后一次机会：猜中词就反杀。投错人或者平票？卧底赢。';
+
+  @override
+  String get howToRace1 => '所有人同时拿到同一道全新的谜题。';
+
+  @override
+  String get howToRace2 => '在自己的手机上解，你的进度条会让大家看到你有多接近。';
+
+  @override
+  String get howToRace3 => '先完成的人赢，限时 10 分钟。';
+
+  @override
+  String get howToLive1 => '大家同时开玩。所有人都点了“我准备好了”就开始。';
+
+  @override
+  String get howToLive2 => '有人离开了游戏？所有人一起暂停。2 分钟内不回来就算认输。';
+
+  @override
+  String get howToLive3 => '群里其他人可以观战，也可以申请上场，玩家可以把座位让出来。';
+
+  @override
+  String get howToTurns1 => '走完一步后点“发送这步”，它会作为一条消息发到聊天里。';
+
+  @override
+  String get howToTurns2 => '每步有 2 天时间。20 小时后我们会提醒对方，安静 12 小时后你也可以亲自提醒。';
+
+  @override
+  String get howToTurns3 => '2 天没走就算输。每个聊天最多同时进行 3 局。';
 }

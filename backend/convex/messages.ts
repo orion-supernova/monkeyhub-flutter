@@ -370,6 +370,7 @@ const TEXT_SHAPED_TYPES = new Set([
   "checklist",
   "event",
   "game",
+  "gameMove",
   "challenge",
 ]);
 
@@ -617,6 +618,12 @@ export function roomPreviewFor(msg: {
   // A GIF says what it is, not its title — "[GIF] Hello" would read as though
   // the sender had typed "Hello". A sticker's `content` is the emoji it stands
   // for, which is exactly what a room card should show beside the word.
+  // A game move reads as the game on the chat list ("[game] Chess · move
+  // 12"), so a game's card and its moves share one glyph there.
+  if (type === "gameMove") {
+    const line = (msg.content ?? "").slice(0, 100);
+    return line.length > 0 ? `[game] ${line}` : "[game]";
+  }
   if (type === "gif") return "[GIF]";
   if (type === "sticker") {
     // Only an emoji rides along. A pack sticker's `content` is the emoji it
@@ -990,7 +997,7 @@ export const send = mutation({
  * the insert, the `scheduler` calls and the room patch all commit in the same
  * transaction as whoever called this.
  */
-export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount }: any) {
+export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount, gameMove, quiet }: any) {
   // Idempotency, checked before anything else has a chance to happen twice.
   //
   // Everything below this line has side effects that must not be repeated:
@@ -1327,6 +1334,9 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       : {}),
     ...(resolvedMentions ? { mentions: resolvedMentions } : {}),
     ...(everyone ? { mentionsEveryone: true } : {}),
+    // Server-made only: `matches:move` is the one caller, and `send` never
+    // passes it through. See the schema field.
+    ...(msgType === "gameMove" && gameMove ? { gameMove } : {}),
   });
 
   // Schedule server-side deletion for self-destructing messages
@@ -1411,7 +1421,10 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     lastMessageTime: sentAt,
   });
 
-  // Fire push notifications in background (non-blocking)
+  // Fire push notifications in background (non-blocking). [quiet] is for a
+  // caller that sends its own, better worded push: a game move's "your move"
+  // banner collapses per game, where a message push would stack one per move.
+  if (quiet === true) return messageId;
   await ctx.scheduler.runAfter(0, internal.notifications.sendMessagePush, {
     roomId,
     messageId,
@@ -1740,8 +1753,12 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
   // nothing renders and nothing can reach. Unconditional, like the line above
   // it — only three message types find anything.
   await purgeInteraction(ctx, messageId);
-  // An in-chat game's card: the game goes with it.
-  await purgeMatchForMessage(ctx, messageId);
+  // An in-chat game's card: the game goes with it, and so do its move
+  // bubbles. One level deep: a move bubble has no game of its own.
+  for (const moveId of await purgeMatchForMessage(ctx, messageId)) {
+    const move = await ctx.db.get(moveId);
+    if (move) await removeMessageAndFanout(ctx, move, moveId);
+  }
   await purgeChallengeForMessage(ctx, messageId);
 
   // Mark every child reply's denormalized preview as deleted so their inline
@@ -1783,6 +1800,10 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
       lastMessageTime: newest ? newest.createdAt : undefined,
     });
   }
+
+  // A game move was posted quietly (`sendCore`'s `quiet`): no push of its
+  // own to take back, and a long game would schedule one job per move.
+  if (msg.type === "gameMove") return;
 
   // Ask devices that already showed this message to take it back down. See
   // notifications.revokeMessagePushes for what that can and cannot reach.

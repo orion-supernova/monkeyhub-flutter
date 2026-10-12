@@ -66,9 +66,19 @@ void main() {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      // Calm motion: the guide's demos loop forever otherwise, and
+      // pumpAndSettle would never settle. The moving path has its own test.
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations: true),
+        child: child!,
+      ),
       home: Scaffold(body: Center(child: child)),
     ),
   );
+
+  /// The guide is up. Every daily guide has more than one step, so it always
+  /// shows the "Next" pill.
+  final sheetOpen = find.text('Next');
 
   testWidgets('the hub tile opens the sheet, and not the game', (tester) async {
     var opened = 0;
@@ -87,38 +97,28 @@ void main() {
     await tester.tap(find.byType(GameInfoButton));
     await tester.pumpAndSettle();
 
-    expect(find.text('The rules'), findsOneWidget);
+    expect(sheetOpen, findsOneWidget);
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.gameInfoQueensRule1), findsOneWidget);
+    expect(find.text(l10n.howToQueens1), findsOneWidget);
     // The whole point of the separate target: the board must not have opened
     // behind the sheet.
     expect(opened, 0);
   });
 
-  testWidgets('every new board explains itself, rules and example', (
-    tester,
-  ) async {
+  testWidgets('every board explains itself, step by step', (tester) async {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     final copy = {
-      DailyGame.flow: (l10n.gameInfoFlowGoal, l10n.gameInfoFlowRule4),
-      DailyGame.futoshiki: (
-        l10n.gameInfoFutoshikiGoal,
-        l10n.gameInfoFutoshikiRule3,
-      ),
-      DailyGame.nonogram: (
-        l10n.gameInfoNonogramGoal,
-        l10n.gameInfoNonogramRule3,
-      ),
-      DailyGame.minesweeper: (
-        l10n.gameInfoMinesweeperGoal,
-        l10n.gameInfoMinesweeperRule3,
-      ),
-      DailyGame.starbattle: (
-        l10n.gameInfoStarbattleGoal,
-        l10n.gameInfoStarbattleRule4,
-      ),
+      DailyGame.queens: (l10n.howToQueens1, l10n.howToQueens2),
+      DailyGame.tango: (l10n.howToTango1, l10n.howToTango2),
+      DailyGame.zip: (l10n.howToZip1, l10n.howToZip2),
+      DailyGame.sudoku: (l10n.howToSudoku1, l10n.howToSudoku2),
+      DailyGame.flow: (l10n.howToFlow1, l10n.howToFlow2),
+      DailyGame.futoshiki: (l10n.howToFutoshiki1, l10n.howToFutoshiki2),
+      DailyGame.nonogram: (l10n.howToNonogram1, l10n.howToNonogram2),
+      DailyGame.minesweeper: (l10n.howToMines1, l10n.howToMines2),
+      DailyGame.starbattle: (l10n.howToStars1, l10n.howToStars2),
     };
-    for (final MapEntry(key: game, value: (goal, lastRule)) in copy.entries) {
+    for (final MapEntry(key: game, value: (first, second)) in copy.entries) {
       await tester.pumpWidget(
         host(
           GameTile(game: game, boards: boards, width: 170, onTap: () {}),
@@ -128,9 +128,12 @@ void main() {
       await tester.tap(find.byType(GameInfoButton));
       await tester.pumpAndSettle();
 
-      expect(find.text(goal), findsOneWidget, reason: game.wire);
-      expect(find.text(lastRule), findsOneWidget, reason: game.wire);
+      expect(find.text(first), findsOneWidget, reason: game.wire);
       expect(find.textContaining(l10n.gameInfoScoringTimed), findsOneWidget);
+      // Next pages on to the second step.
+      await tester.tap(sheetOpen);
+      await tester.pumpAndSettle();
+      expect(find.text(second), findsOneWidget, reason: game.wire);
       expect(tester.takeException(), isNull, reason: game.wire);
       await tester.pumpWidget(const SizedBox());
     }
@@ -155,7 +158,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(opened, 1);
-    expect(find.text('The rules'), findsNothing);
+    expect(sheetOpen, findsNothing);
   });
 
   testWidgets('the Feed band carries one too', (tester) async {
@@ -189,7 +192,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.gameInfoZipRule1), findsOneWidget);
+    expect(find.text(l10n.howToZip1), findsOneWidget);
     expect(opened, 0);
   });
 
@@ -219,7 +222,7 @@ void main() {
     await tester.tapAt(Offset(box.left + 3, box.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('The rules'), findsOneWidget);
+    expect(sheetOpen, findsOneWidget);
     expect(opened, 0);
   });
 
@@ -251,7 +254,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.gameInfoZipRule1), findsOneWidget);
+    expect(find.text(l10n.howToZip1), findsOneWidget);
     expect(opened, 0);
   });
 
@@ -372,7 +375,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(GameInfoButton));
     await tester.pumpAndSettle();
-    expect(find.text('The rules'), findsOneWidget);
+    expect(sheetOpen, findsOneWidget);
   }
 
   testWidgets('PLAY closes the sheet and opens the game', (tester) async {
@@ -390,7 +393,7 @@ void main() {
     await tester.tap(find.text('Play'));
     await tester.pumpAndSettle();
 
-    expect(find.text('The rules'), findsNothing);
+    expect(sheetOpen, findsNothing);
     expect(opened, 1);
   });
 
@@ -409,7 +412,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Close'));
     await tester.pumpAndSettle();
 
-    expect(find.text('The rules'), findsNothing);
+    expect(sheetOpen, findsNothing);
     expect(opened, 0);
   });
 
@@ -436,7 +439,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('The rules'), findsNothing);
+    expect(sheetOpen, findsNothing);
     expect(opened, 0);
   });
 
@@ -458,10 +461,10 @@ void main() {
       ),
     );
 
-    await tester.fling(find.text('The rules'), const Offset(0, 600), 1500);
+    await tester.fling(find.text('Next'), const Offset(0, 600), 1500);
     await tester.pumpAndSettle();
 
-    expect(find.text('The rules'), findsNothing);
+    expect(sheetOpen, findsNothing);
     // iOS, whose default physics are the ones most eager to take a drag.
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 

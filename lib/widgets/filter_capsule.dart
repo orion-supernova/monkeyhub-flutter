@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'odometer_number.dart';
+import 'spring_press.dart';
 
 /// THE filter chip: a soft neutral capsule at rest, solid accent when on —
 /// the Apple Music filter treatment. The chat list's facet row and the
@@ -57,77 +60,87 @@ class FilterCapsule extends StatelessWidget {
     final empty = n == 0;
     final showCount = n != null && (n > 0 || showZeroCount);
     return FocusableTap(
-      onTap: onTap,
+      onTap: onTap == null ? null : _tap,
       semanticLabel: semanticLabel ?? label,
       selected: active,
       shape: FocusRingShape.capsule,
       radius: 999,
       inset: 2,
-      child: GestureDetector(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        behavior: HitTestBehavior.opaque,
-        child: Opacity(
-          opacity: faded && !active ? 0.5 : 1,
-          child: AnimatedContainer(
-            duration: motion.d(theme.motionFast),
-            curve: Curves.easeOutCubic,
-            constraints: const BoxConstraints(minHeight: 34),
-            padding: EdgeInsets.fromLTRB(leading == null ? 14 : 11, 0, 14, 0),
-            decoration: BoxDecoration(
-              color: active
-                  ? (activeColor ?? theme.accent)
-                  : theme.ink.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            // Hugs its label (a Container `alignment` would stretch the
-            // capsule across a Wrap); centred in whatever height it is given.
-            child: Center(
-              widthFactor: 1,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (leading != null) ...[
-                    leading!,
-                    const SizedBox(width: 6),
-                  ],
-                  AnimatedDefaultTextStyle(
-                    duration: motion.d(theme.motionFast),
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 15,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                      letterSpacing: -0.2,
-                      color: active
-                          ? onFill
-                          // A filter matching nothing is dimmed rather than
-                          // hidden — a row that reshuffled itself every time a
-                          // count hit zero would be impossible to aim at.
-                          : (empty ? theme.inkMuted : theme.inkSoft),
-                    ),
-                    child: Text(label),
-                  ),
-                  if (showCount) ...[
-                    const SizedBox(width: 5),
-                    Text(
-                      '$n',
-                      // The body face, not the caption slot (tracked mono on
-                      // a character theme).
+      // The chip dips on the press like every other control, and turning a
+      // filter on or off clicks: it reshapes the list under the finger.
+      child: SpringPress.passive(
+        child: GestureDetector(
+          onTap: onTap == null ? null : _tap,
+          onLongPress: onLongPress,
+          behavior: HitTestBehavior.opaque,
+          child: Opacity(
+            opacity: faded && !active ? 0.5 : 1,
+            child: AnimatedContainer(
+              duration: motion.d(theme.motionFast),
+              curve: Curves.easeOutCubic,
+              constraints: const BoxConstraints(minHeight: 34),
+              padding: EdgeInsets.fromLTRB(leading == null ? 14 : 11, 0, 14, 0),
+              decoration: BoxDecoration(
+                color: active
+                    ? (activeColor ?? theme.accent)
+                    : theme.ink.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              // Hugs its label (a Container `alignment` would stretch the
+              // capsule across a Wrap); centred in whatever height it is given.
+              child: Center(
+                widthFactor: 1,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (leading != null) ...[
+                      leading!,
+                      const SizedBox(width: 6),
+                    ],
+                    AnimatedDefaultTextStyle(
+                      duration: motion.d(theme.motionFast),
                       style: theme.bodySoft.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                        fontSize: 15,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                        letterSpacing: -0.2,
                         color: active
-                            ? onFill.withValues(alpha: 0.75)
-                            : theme.inkMuted,
+                            ? onFill
+                            // A filter matching nothing is dimmed rather than
+                            // hidden — a row that reshuffled itself every time a
+                            // count hit zero would be impossible to aim at.
+                            : (empty ? theme.inkMuted : theme.inkSoft),
                       ),
+                      child: Text(label),
                     ),
+                    if (showCount) ...[
+                      const SizedBox(width: 5),
+                      // Rolls as the count moves under a live list.
+                      OdometerNumber(
+                        value: n,
+                        // The body face, not the caption slot (tracked mono on
+                        // a character theme).
+                        style: theme.bodySoft.copyWith(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          color: active
+                              ? onFill.withValues(alpha: 0.75)
+                              : theme.inkMuted,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _tap() {
+    HapticFeedback.selectionClick();
+    onTap?.call();
   }
 }

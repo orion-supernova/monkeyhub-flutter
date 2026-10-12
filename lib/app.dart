@@ -111,6 +111,7 @@ import 'widgets/ios_kit.dart' show groupedFill, groupedMetaStyle, groupedRadius;
 import 'widgets/sheet_kit.dart' show SheetActionButton;
 import 'web/web_tab_title.dart';
 import 'web/web_url_sync.dart';
+import 'widgets/route_depth.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".
@@ -259,6 +260,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// the AnimatedBuilder rebuilds — a fresh observer each build would detach
   /// and reattach on every theme change and lose the route stack.
   final DiagRouteTracker _diagRoutes = DiagRouteTracker();
+  final RouteDepthObserver _routeDepth = RouteDepthObserver();
 
   bool _bootstrapped = false;
   Object? _bootError;
@@ -1846,6 +1848,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             navigatorObservers: [
               _diagRoutes,
               appRoutes,
+              _routeDepth,
               if (kIsWeb) WebUrlSync.instance.routes,
             ],
             // On web the live tab title — `(3) MonkeyHub`, a chat's name — so

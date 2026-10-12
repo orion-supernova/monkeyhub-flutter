@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../chat_games/game_art_state.dart';
+import '../chat_games/monkey_avatar.dart';
 import '../games/flow_board_art.dart';
 import '../games/futoshiki_board_art.dart';
 import '../games/game_canvas.dart';
@@ -17,6 +19,7 @@ import '../models/daily_game.dart';
 import '../models/puzzle.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../turn_games/board/turn_board.dart';
 import 'game_board_skeleton.dart';
 import 'game_info_sheet.dart';
 import 'ios_kit.dart';
@@ -218,6 +221,103 @@ class ComingSoonTile extends StatelessWidget {
           tone: theme.inkMuted,
         ),
       ),
+    );
+  }
+}
+
+/// The way in to playing the bot, at the end of the games row: four of the
+/// board games drawn small around the monkey, the place's name, and how many
+/// games are behind it.
+class BotHubTile extends StatelessWidget {
+  const BotHubTile({
+    super.key,
+    required this.width,
+    required this.games,
+    required this.onTap,
+  });
+
+  final double width;
+
+  /// The games the bot plays, the first four of which make the picture.
+  final List<String> games;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final title = l10n.botHubTitle;
+    final count = l10n.botHubGameCount(games.length);
+    return _TileShell(
+      width: width,
+      onTap: onTap,
+      semanticLabel: '$title, $count',
+      preview: _BotMosaic(games: games.take(4).toList()),
+      title: title,
+      status: StatusChip(
+        label: count,
+        tone: theme.accent,
+        icon: CupertinoIcons.gamecontroller_fill,
+      ),
+    );
+  }
+}
+
+class _BotMosaic extends StatelessWidget {
+  const _BotMosaic({required this.games});
+
+  final List<String> games;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return LayoutBuilder(
+      builder: (context, c) {
+        final gap = (c.maxWidth * 0.04).clamp(3.0, 6.0);
+        final cell = (c.maxWidth - gap) / 2;
+        final disc = c.maxWidth * 0.42;
+        Widget board(String g) {
+          final state = chatGameArtState(g);
+          return SizedBox(
+            width: cell,
+            height: cell,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: state == null
+                  ? ColoredBox(color: theme.ink.withValues(alpha: 0.05))
+                  : TurnBoard(gameId: g, state: state, thumbnail: true),
+            ),
+          );
+        }
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [for (final g in games) board(g)],
+            ),
+            Container(
+              width: disc,
+              height: disc,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: groupedFill(theme),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: MonkeyAvatar(size: disc - 6),
+            ),
+          ],
+        );
+      },
     );
   }
 }

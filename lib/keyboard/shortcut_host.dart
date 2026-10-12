@@ -224,7 +224,10 @@ class _ShortcutHostState extends State<ShortcutHost> {
   }
 
   void _onPointer(PointerEvent e) {
-    if (e is PointerDownEvent) _callOffPeek();
+    // Except on the peek's own "Don't show again", which needs the click.
+    if (e is PointerDownEvent && !(_peek?.hitsAction(e.position) ?? false)) {
+      _callOffPeek();
+    }
   }
 
   void _showPeek() {

@@ -108,6 +108,9 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
     case MessageType.game:
       // The game's name, which is what the card's `content` holds.
       return m.content.isEmpty ? 'game' : m.content;
+    case MessageType.gameMove:
+      // "Chess · move 12".
+      return m.content.isEmpty ? 'game' : m.content;
     case MessageType.challenge:
       // "Beat my time: Queens 2:41".
       return m.content.isEmpty ? 'challenge' : m.content;

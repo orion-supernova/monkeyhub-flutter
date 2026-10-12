@@ -5806,15 +5806,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameInfoOpen => 'कैसे खेलें';
 
   @override
-  String get gameInfoLabel => 'कैसे खेलें';
-
-  @override
-  String get gameInfoRulesLabel => 'नियम';
-
-  @override
-  String get gameInfoControlsLabel => 'क्या टैप करें';
-
-  @override
   String get gameInfoScoringTimed =>
       'सबसे तेज़ खत्म करने वाला जीतता है। बाहर जाने पर घड़ी रुक जाती है।';
 
@@ -5824,90 +5815,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get gameInfoSameForEveryone => 'आज सबको एक ही पहेली मिलती है।';
-
-  @override
-  String get gameInfoQueensGoal => 'बोर्ड पर 8 ताज रखें।';
-
-  @override
-  String get gameInfoQueensRule1 => 'हर पंक्ति में ठीक 1 ताज।';
-
-  @override
-  String get gameInfoQueensRule2 => 'हर स्तंभ में ठीक 1 ताज।';
-
-  @override
-  String get gameInfoQueensRule3 => 'हर रंग में ठीक 1 ताज।';
-
-  @override
-  String get gameInfoQueensControls =>
-      'एक बार टैप: × (यहाँ ताज नहीं)। दो बार: ताज। फिर से: मिटाएँ।';
-
-  @override
-  String get gameInfoTangoGoal => 'हर खाने में सूरज या चाँद भरें।';
-
-  @override
-  String get gameInfoTangoRule1 => 'हर पंक्ति में 3 सूरज और 3 चाँद।';
-
-  @override
-  String get gameInfoTangoRule2 => 'हर स्तंभ में 3 सूरज और 3 चाँद।';
-
-  @override
-  String get gameInfoTangoRule3 =>
-      'एक लाइन में लगातार 3 एक जैसे कभी नहीं। 2 चलेंगे।';
-
-  @override
-  String get gameInfoTangoControls =>
-      'एक बार टैप: सूरज। दो बार: चाँद। फिर से: मिटाएँ। पहले से भरे खाने नहीं बदलते।';
-
-  @override
-  String get gameInfoZipGoal => 'एक ही लाइन बनाएँ जो हर खाने से गुज़रे।';
-
-  @override
-  String get gameInfoZipRule1 => '1 से शुरू करें।';
-
-  @override
-  String get gameInfoZipRule2 => 'नंबरों पर क्रम से जाएँ: 1, 2, 3…';
-
-  @override
-  String get gameInfoZipRule3 => 'हर खाना भरें। हर खाना सिर्फ़ एक बार।';
-
-  @override
-  String get gameInfoZipControls =>
-      'बनाने के लिए उंगली खींचें। मिटाने के लिए वापस खींचें।';
-
-  @override
-  String get gameInfoSudokuGoal => 'ग्रिड को 1 से 6 तक के नंबरों से भरें।';
-
-  @override
-  String get gameInfoSudokuRule1 =>
-      'हर पंक्ति में 1, 2, 3, 4, 5 और 6। कोई दोहराव नहीं।';
-
-  @override
-  String get gameInfoSudokuRule2 => 'हर स्तंभ में भी।';
-
-  @override
-  String get gameInfoSudokuRule3 =>
-      'हर बॉक्स में भी। एक बॉक्स 2 पंक्ति और 3 स्तंभ का होता है।';
-
-  @override
-  String get gameInfoSudokuControls =>
-      'एक खाने पर टैप करें, फिर एक नंबर पर। मिटाने के लिए वही नंबर फिर टैप करें। नोट्स छोटे पेंसिल निशान लगाता है।';
-
-  @override
-  String get gameInfoCodeGoal => '4 चिह्नों वाला गुप्त कोड पहचानें।';
-
-  @override
-  String get gameInfoCodeRule1 =>
-      'कोड में 4 अलग-अलग चिह्न हैं। कोई दोहराव नहीं।';
-
-  @override
-  String get gameInfoCodeRule2 => 'आपको 6 अनुमान मिलते हैं।';
-
-  @override
-  String get gameInfoCodeRule3 => 'हरा: सही चिह्न, सही जगह।';
-
-  @override
-  String get gameInfoCodeControls =>
-      '4 चिह्नों पर टैप करें, फिर अनुमान पर टैप करें।';
 
   @override
   String get savedMessagesTitle => 'सेव किए गए मैसेज';
@@ -10775,55 +10682,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomContentMonthLast => 'पिछले महीने';
 
   @override
-  String get gameInfoGoalLabel => 'लक्ष्य';
-
-  @override
-  String get gameInfoExampleLabel => 'उदाहरण';
-
-  @override
-  String get gameInfoWinLabel => 'कैसे जीतें';
-
-  @override
-  String get gameInfoQueensRule4 =>
-      'ताज एक-दूसरे को छू नहीं सकते। कोने से भी नहीं।';
-
-  @override
-  String get gameInfoQueensExample =>
-      'यहाँ एक ताज का मतलब: उसकी पंक्ति, स्तंभ, रंग और आसपास के 8 खानों में कोई और ताज नहीं।';
-
-  @override
-  String get gameInfoTangoRule4 =>
-      '= का मतलब दोनों खाने एक जैसे। × का मतलब अलग-अलग।';
-
-  @override
-  String get gameInfoTangoExample =>
-      'सूरज, सूरज, खाली? खाली खाना चाँद ही होगा।';
-
-  @override
-  String get gameInfoZipRule4 => 'ऊपर, नीचे, बाएँ या दाएँ चलें। तिरछा नहीं।';
-
-  @override
-  String get gameInfoZipRule5 => 'आखिरी नंबर पर खत्म करें।';
-
-  @override
-  String get gameInfoZipExample =>
-      '1 से 2 जा रहे हैं? ज़रूरत हो तो लंबा रास्ता लें। कोई खाना खाली नहीं रह सकता।';
-
-  @override
-  String get gameInfoSudokuExample =>
-      'किसी पंक्ति में 1, 2, 4, 5 और 6 हैं? खाली खाना 3 है।';
-
-  @override
-  String get gameInfoCodeRule4 => 'पीला: सही चिह्न, गलत जगह।';
-
-  @override
-  String get gameInfoCodeRule5 => 'स्लेटी: यह चिह्न कोड में नहीं है।';
-
-  @override
-  String get gameInfoCodeExample =>
-      'हरा, पीला, स्लेटी, स्लेटी का मतलब: 1 चिह्न सही जगह पर है, 1 कहीं और जाएगा, 2 कोड में नहीं हैं।';
-
-  @override
   String get leaderboardOverall => 'आज';
 
   @override
@@ -12406,24 +12264,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatGameModeLive => 'लाइव';
 
   @override
-  String get chatGameModeTurns => 'बारी-बारी';
-
-  @override
-  String get chatGameModeBot => 'बॉट के ख़िलाफ़';
-
-  @override
-  String get chatGameModeLiveHint =>
-      'सब एक साथ खेलते हैं। छोड़ने पर गेम रुक जाता है।';
-
-  @override
-  String get chatGameModeTurnsHint =>
-      'जब चाहें चाल चलें। आपकी बारी पर सूचना मिलेगी, और हर बारी 2 दिन तक रहती है।';
-
-  @override
-  String get chatGameModeBotHint =>
-      'सिर्फ़ आप और बॉट। चैट में कुछ पोस्ट नहीं होता।';
-
-  @override
   String get chatGameBotEasyHint => 'गलतियाँ करता है। सीखने के लिए अच्छा।';
 
   @override
@@ -12529,124 +12369,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get gameAutoDot => 'स्वतः बिंदु';
-
-  @override
-  String get gameInfoFlowGoal =>
-      'हर जोड़ी एक जैसे बिंदुओं को एक पाइप से जोड़ें।';
-
-  @override
-  String get gameInfoFlowRule1 =>
-      'हर पाइप एक ही रंग और नंबर के 2 बिंदुओं को जोड़ता है।';
-
-  @override
-  String get gameInfoFlowRule2 =>
-      'पाइप एक-दूसरे को काट नहीं सकते, न एक खाना बाँट सकते हैं।';
-
-  @override
-  String get gameInfoFlowRule3 => 'हर खाना भरें। कोई भी खाली नहीं रह सकता।';
-
-  @override
-  String get gameInfoFlowRule4 => 'ऊपर, नीचे, बाएँ या दाएँ चलें। तिरछा नहीं।';
-
-  @override
-  String get gameInfoFlowExample =>
-      'सीधा रास्ता नहीं है? पाइप को दूसरों के चारों ओर घुमाएँ। फिर भी हर खाना भरना है।';
-
-  @override
-  String get gameInfoFlowControls =>
-      'किसी बिंदु से खींचकर उसका पाइप बनाएँ। मिटाने के लिए वापस खींचें। किसी पाइप के ऊपर से गुज़रने पर वह कट जाता है।';
-
-  @override
-  String get gameInfoFutoshikiGoal => 'ग्रिड को 1 से 5 तक के नंबरों से भरें।';
-
-  @override
-  String get gameInfoFutoshikiRule1 =>
-      'हर पंक्ति में 1, 2, 3, 4 और 5। कोई दोहराव नहीं।';
-
-  @override
-  String get gameInfoFutoshikiRule2 => 'हर स्तंभ में भी।';
-
-  @override
-  String get gameInfoFutoshikiRule3 =>
-      '2 खानों के बीच का < या > सही होना चाहिए। यह छोटे नंबर की ओर इशारा करता है।';
-
-  @override
-  String get gameInfoFutoshikiExample =>
-      'कोई चिह्न इस खाने की ओर इशारा करता है? तो यह 5 नहीं हो सकता, क्योंकि पड़ोसी बड़ा है।';
-
-  @override
-  String get gameInfoFutoshikiControls =>
-      'एक खाने पर टैप करें, फिर एक नंबर पर। मिटाने के लिए वही नंबर फिर टैप करें। नोट्स छोटे पेंसिल निशान लगाता है।';
-
-  @override
-  String get gameInfoNonogramGoal => 'छिपी तस्वीर दिखाने के लिए खाने भरें।';
-
-  @override
-  String get gameInfoNonogramRule1 =>
-      'हर पंक्ति और स्तंभ के पास के नंबर उसके भरे हुए हिस्सों की लंबाई हैं, क्रम से।';
-
-  @override
-  String get gameInfoNonogramRule2 =>
-      'दो हिस्सों के बीच कम से कम 1 खाली खाना होता है।';
-
-  @override
-  String get gameInfoNonogramRule3 => '0 का मतलब है पूरी लाइन खाली है।';
-
-  @override
-  String get gameInfoNonogramExample =>
-      '10 खानों की पंक्ति और संकेत 10? पूरी भर दें। 4 4 हो तो दोनों हिस्से बीच में एक खाली खाने के साथ आते हैं।';
-
-  @override
-  String get gameInfoNonogramControls =>
-      'एक बार टैप: भरें। दो बार: × (खाली)। फिर से: मिटाएँ। कई खाने एक साथ चिह्नित करने के लिए खींचें।';
-
-  @override
-  String get gameInfoMinesweeperGoal => 'हर वह खाना खोलें जिसमें माइन नहीं है।';
-
-  @override
-  String get gameInfoMinesweeperRule1 =>
-      'नंबर बताता है कि उस खाने को कितनी माइन छूती हैं, कोनों समेत।';
-
-  @override
-  String get gameInfoMinesweeperRule2 =>
-      'हर खाना तर्क से निकाला जा सकता है। अंदाज़ा कभी नहीं लगाना पड़ता।';
-
-  @override
-  String get gameInfoMinesweeperRule3 =>
-      'माइन पर पड़े तो आपके समय में 30 सेकंड जुड़ जाते हैं। फिर आगे खेलें।';
-
-  @override
-  String get gameInfoMinesweeperExample =>
-      'किसी 1 के पास बस एक बंद खाना है? वही माइन है। उस पर झंडा लगाएँ।';
-
-  @override
-  String get gameInfoMinesweeperControls =>
-      'खाना खोलने के लिए टैप करें। माइन चिह्नित करने के लिए देर तक दबाएँ, या झंडा चालू करें।';
-
-  @override
-  String get gameInfoStarbattleGoal =>
-      'हर पंक्ति, स्तंभ और रंग में 2 तारे रखें।';
-
-  @override
-  String get gameInfoStarbattleRule1 => 'हर पंक्ति में ठीक 2 तारे।';
-
-  @override
-  String get gameInfoStarbattleRule2 => 'हर स्तंभ में ठीक 2 तारे।';
-
-  @override
-  String get gameInfoStarbattleRule3 => 'हर रंग में ठीक 2 तारे।';
-
-  @override
-  String get gameInfoStarbattleRule4 =>
-      'तारे एक-दूसरे को छू नहीं सकते। कोने से भी नहीं।';
-
-  @override
-  String get gameInfoStarbattleExample =>
-      'यहाँ एक तारा मतलब: इसके आसपास के 8 खानों में कोई और तारा नहीं, और इसकी पंक्ति, स्तंभ और रंग में एक और ढूँढना है।';
-
-  @override
-  String get gameInfoStarbattleControls =>
-      'एक बार टैप: बिंदु (यहाँ तारा नहीं)। दो बार: तारा। फिर से: मिटाएँ।';
 
   @override
   String boardCellName(int row, int col) {
@@ -12784,16 +12506,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max खिलाड़ी';
   }
-
-  @override
-  String get chatGamePartySection => 'पार्टी';
-
-  @override
-  String get chatGamePartyLiveOnly =>
-      'पार्टी गेम लाइव खेले जाते हैं, सब एक साथ।';
-
-  @override
-  String get chatGameNeedsThree => '3 या ज़्यादा लोगों का ग्रुप चाहिए';
 
   @override
   String get chatGameVoiceOption => 'आवाज़ में संकेत';
@@ -13164,4 +12876,437 @@ class AppLocalizationsHi extends AppLocalizations {
   String chessPromoteTo(String piece) {
     return '$piece बनाएँ';
   }
+
+  @override
+  String get kbdPeekDontShowAgain => 'फिर से मत दिखाना';
+
+  @override
+  String get kbdPeekTurnedOff =>
+      'ठीक है, अब ये नहीं दिखेगा। चाहो तो सेटिंग्स से वापस चालू कर सकते हो।';
+
+  @override
+  String get chatGameBadgeTurns => 'बारी-बारी';
+
+  @override
+  String get chatGameSectionBoards => 'बोर्ड गेम्स';
+
+  @override
+  String get chatGameSectionParty => 'पार्टी गेम्स';
+
+  @override
+  String get chatGameBoardsHintDm =>
+      'अभी लाइव खेलो, या जब फ़्री हो तब बारी-बारी।';
+
+  @override
+  String get chatGameBoardsHintGroup => 'लाइव, यहीं पर। सीट पकड़ो या बस देखो।';
+
+  @override
+  String get chatGamePartyHint =>
+      'सब एक साथ खेलते हैं, तो पहले गैंग इकट्ठा कर लो।';
+
+  @override
+  String get chatGameLiveTitle => 'लाइव खेलो';
+
+  @override
+  String get chatGameLiveNow => 'सब एक ही टाइम पर, अभी खेलते हैं।';
+
+  @override
+  String get chatGameLivePause =>
+      'कोई निकल गया? गेम रुक जाएगा। 2 मिनट में वापस नहीं आया तो हार जाएगा।';
+
+  @override
+  String get chatGameTurnsTitle => 'बारी-बारी खेलो';
+
+  @override
+  String get chatGameTurnsAnytime =>
+      'जब मन करे चाल चलो। हर चाल चैट में आ जाती है।';
+
+  @override
+  String get chatGameTurnsClock =>
+      'हर चाल के लिए 2 दिन। हम याद दिलाएँगे, और तुम भी याद दिला सकते हो।';
+
+  @override
+  String get chatGameHowWillYouPlay => 'कैसे खेलना है?';
+
+  @override
+  String get botHubTitle => 'बॉट से खेलो';
+
+  @override
+  String botHubSubtitle(String bot) {
+    return 'बस तुम और $bot। कुछ पोस्ट नहीं होगा, कोई नहीं देख रहा।';
+  }
+
+  @override
+  String get botHubLevelTitle => 'कितना मुश्किल?';
+
+  @override
+  String get botHubPickGame => 'गेम चुनो';
+
+  @override
+  String get botHubCaption => 'प्रैक्टिस';
+
+  @override
+  String botHubGameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count गेम्स',
+      one: '1 गेम',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameMvYouPlayed => 'तुमने चाल चली';
+
+  @override
+  String chatGameMvTheyPlayed(String name) {
+    return '$name ने चाल चली';
+  }
+
+  @override
+  String chatGameMvNumber(int count) {
+    return 'चाल $count';
+  }
+
+  @override
+  String chatGameMvColumn(int count) {
+    return 'कॉलम $count';
+  }
+
+  @override
+  String get chatGameMvEarlier => 'पिछली चाल';
+
+  @override
+  String get chatGameMvSend => 'चाल भेजो';
+
+  @override
+  String get chatGameMvUndo => 'वापस लो';
+
+  @override
+  String get chatGameMvStagedHint =>
+      'अभी भेजी नहीं गई। चाहो तो बदल लो, या भेजो दबाओ।';
+
+  @override
+  String get chatGameMvSentToast => 'चाल चली गई। अब उनकी बारी।';
+
+  @override
+  String get chatGameMvYourTurnSub =>
+      'अपनी चाल चलो, फिर भेज दो। कोई जल्दी नहीं।';
+
+  @override
+  String get chatGameMvWaitingSub => 'तुम्हारी बारी आने पर हम बता देंगे।';
+
+  @override
+  String get chatGameMvNudgeLater => '12 घंटे तक जवाब न आए तो याद दिला सकते हो';
+
+  @override
+  String get chatGameMvForfeitNote =>
+      'समय खत्म हुआ तो जिसकी बारी है, वो हार जाएगा';
+
+  @override
+  String get chatGameMvAgain => 'अभी भी तुम्हारी बारी है। फिर से चलो!';
+
+  @override
+  String get chatGameMvSending => 'भेज रहे हैं…';
+
+  @override
+  String get howToNext => 'आगे';
+
+  @override
+  String get howToWatchAgain => 'फिर से देखो';
+
+  @override
+  String get howToGotIt => 'ठीक है';
+
+  @override
+  String get howToProTip => 'टिप';
+
+  @override
+  String howToStepSemantic(int step, int total) {
+    return 'स्टेप $step/$total';
+  }
+
+  @override
+  String get howToQueens1 => 'हर रो, हर कॉलम और हर रंग में एक ताज।';
+
+  @override
+  String get howToQueens2 => 'ताज एक-दूसरे को छू नहीं सकते। तिरछे भी नहीं।';
+
+  @override
+  String get howToQueens3 =>
+      'एक बार टैप करो तो ×, दो बार तो ताज, एक बार और तो साफ़।';
+
+  @override
+  String get howToQueens4 =>
+      'ताज रखो, फिर जिन खानों में अब ताज नहीं आ सकता उन पर × लगा दो। बोर्ड फटाफट खुलेगा।';
+
+  @override
+  String get howToTango1 => 'एक टैप में सूरज, दो में चाँद। सारे खाने भर दो।';
+
+  @override
+  String get howToTango2 => 'हर रो और कॉलम में आधे सूरज, आधे चाँद।';
+
+  @override
+  String get howToTango3 => 'एक जैसे 3 लगातार नहीं। 2 चलेंगे।';
+
+  @override
+  String get howToTango4 => '= मतलब दोनों एक जैसे, × मतलब उल्टे।';
+
+  @override
+  String get howToZip1 => '1 से शुरू करो और नंबरों पर क्रम से उंगली फेरो।';
+
+  @override
+  String get howToZip2 => 'हर खाने से गुज़रो और आख़िरी नंबर पर खत्म करो।';
+
+  @override
+  String get howToZip3 => 'गलत मुड़ गए? बस पीछे खींचो, अनडू हो जाएगा।';
+
+  @override
+  String get howToSudoku1 =>
+      'हर रो, कॉलम और बॉक्स में 1 से 6 तक। कोई रिपीट नहीं।';
+
+  @override
+  String get howToSudoku2 => 'खाने पर टैप करो, फिर नंबर पर।';
+
+  @override
+  String get howToSudoku3 => 'एक लाइन में वही नंबर दो बार? लाल हो जाएगा।';
+
+  @override
+  String get howToSudoku4 =>
+      'वो लाइन ढूँढो जिसमें बस एक नंबर बाकी है। मुफ़्त का पॉइंट।';
+
+  @override
+  String get howToFlow1 => 'एक डॉट से उसके जोड़ीदार तक खींचकर पाइप बनाओ।';
+
+  @override
+  String get howToFlow2 =>
+      'पाइप एक-दूसरे को काट नहीं सकते और हर खाना भरना है। घुमाकर ले जाओ।';
+
+  @override
+  String get howToFutoshiki1 => 'हर रो और कॉलम में हर नंबर बस एक बार।';
+
+  @override
+  String get howToFutoshiki2 => 'निशान की नोक छोटे नंबर की तरफ़ होती है।';
+
+  @override
+  String get howToFutoshiki3 => 'निशान टूटा तो लाल हो जाएगा।';
+
+  @override
+  String get howToNonogram1 =>
+      'नंबर बताते हैं कि लगातार कितने खाने रंगने हैं। 5 मतलब लगातार 5।';
+
+  @override
+  String get howToNonogram2 =>
+      '1 1 मतलब दो अलग खाने, बीच में कम से कम एक खाली।';
+
+  @override
+  String get howToNonogram3 =>
+      'टैप करो तो रंग, फिर से तो ×, एक बार और तो साफ़। खींचकर एक साथ कई कर लो।';
+
+  @override
+  String get howToNonogram4 =>
+      'सारे क्लू सही करो और छुपी तस्वीर सामने आ जाएगी।';
+
+  @override
+  String get howToMines1 =>
+      'खाना खोलने के लिए टैप करो। खाली हिस्से अपने आप खुल जाते हैं।';
+
+  @override
+  String get howToMines2 =>
+      'नंबर बताता है कि कितनी माइन उसे छू रही हैं, कोने वाली भी।';
+
+  @override
+  String get howToMines3 => 'पक्का माइन है? दबाकर रखो और झंडा लगा दो।';
+
+  @override
+  String get howToMines4 =>
+      'माइन पर पैर पड़ा तो 30 सेकंड की पेनल्टी। पर अंदाज़ा लगाने की ज़रूरत कभी नहीं पड़ती।';
+
+  @override
+  String get howToStars1 => 'हर रो, हर कॉलम और हर रंग में 2 स्टार।';
+
+  @override
+  String get howToStars2 => 'स्टार एक-दूसरे को छू नहीं सकते। तिरछे भी नहीं।';
+
+  @override
+  String get howToStars3 =>
+      'हर स्टार के आसपास डॉट लगाओ। रो में 2 स्टार हो गए तो बाकी सब खाली।';
+
+  @override
+  String get howToCode1 => '4 अलग-अलग सिंबल का एक सीक्रेट कोड है। उसे तोड़ो।';
+
+  @override
+  String get howToCode2 => 'हरा: सही सिंबल, सही जगह।';
+
+  @override
+  String get howToCode3 =>
+      'पीला: कोड में है, पर कहीं और। ग्रे: कोड में है ही नहीं।';
+
+  @override
+  String get howToCode4 => '6 मौके मिलते हैं। जितने कम में करो, उतना बढ़िया।';
+
+  @override
+  String get howToTtt1 =>
+      'बारी-बारी अपना निशान लगाओ। 3 एक लाइन में लगाओ और जीत जाओ।';
+
+  @override
+  String get howToTtt2 =>
+      'सामने वाले के 2 एक लाइन में हैं? तीसरा खाना पहले तुम ले लो।';
+
+  @override
+  String get howToC41 =>
+      'किसी कॉलम पर टैप करो और डिस्क गिराओ। वो सबसे नीचे वाली खाली जगह पर गिरेगी।';
+
+  @override
+  String get howToC42 => '4 एक लाइन में लगाओ और जीतो: आड़ी, खड़ी या तिरछी।';
+
+  @override
+  String get howToCheckers1 =>
+      'गोटियाँ एक खाना तिरछा आगे चलती हैं। गोटी पर टैप करो, फिर जहाँ ले जाना है।';
+
+  @override
+  String get howToCheckers2 =>
+      'विरोधी की गोटी के ऊपर से कूदो और उसे ले लो। कूद सकते हो तो कूदना ही पड़ेगा। जिस गोटी को कूदना है उस पर घेरा दिखेगा।';
+
+  @override
+  String get howToCheckers3 =>
+      'उतरकर फिर से कूद सकते हो? कूदते रहो। एक ही चाल में कई गोटियाँ ले सकते हो।';
+
+  @override
+  String get howToCheckers4 =>
+      'दूसरी तरफ़ पहुँचते ही गोटी राजा बन जाती है। राजा पीछे भी चल सकता है।';
+
+  @override
+  String get howToCheckersWin =>
+      'सारी गोटियाँ ले लो या सामने वाले की कोई चाल न बचे, तो तुम जीते।';
+
+  @override
+  String get howToReversi1 =>
+      'डिस्क ऐसे रखो कि सामने वाले की डिस्क तुम्हारी दो डिस्क के बीच फँस जाएँ।';
+
+  @override
+  String get howToReversi2 =>
+      'फँसी हुई हर डिस्क तुम्हारे रंग की हो जाती है, हर दिशा में एक साथ।';
+
+  @override
+  String get howToReversi3 =>
+      'कोई चाल नहीं बची? तुम्हारी बारी छूट जाएगी। जब कोई नहीं चल पाए, सबसे ज़्यादा डिस्क वाला जीतता है।';
+
+  @override
+  String get howToDots1 => 'बारी-बारी दो डॉट के बीच एक लाइन खींचो।';
+
+  @override
+  String get howToDots2 =>
+      'डिब्बा बंद किया तो वो तुम्हारा। और फिर से तुम्हारी बारी!';
+
+  @override
+  String get howToDots3 =>
+      'डिब्बे की तीसरी लाइन से बचो। वो अगले खिलाड़ी को डिब्बा तोहफ़े में दे देती है।';
+
+  @override
+  String get howToDotsWin =>
+      'आख़िरी लाइन खिंचने पर जिसके सबसे ज़्यादा डिब्बे, वो जीता।';
+
+  @override
+  String get howToChess1 =>
+      'मोहरे पर टैप करो, देखो वो कहाँ जा सकता है, फिर किसी खाने पर टैप करो।';
+
+  @override
+  String get howToChess2 => 'विरोधी के मोहरे वाले खाने पर जाओ और उसे मार लो।';
+
+  @override
+  String get howToChess3 =>
+      'प्यादे को आख़िरी लाइन तक ले जाओ, वो वज़ीर बन जाएगा, या जो तुम चुनो।';
+
+  @override
+  String get howToChess4 =>
+      'शह का मतलब राजा पर हमला है, उसे बचाना ही पड़ेगा। बचने का रास्ता नहीं? शह-मात, खेल ख़त्म।';
+
+  @override
+  String get howToLiars1 =>
+      'सब छुपकर 5 पासे फेंकते हैं। तुम्हें सिर्फ़ अपने दिखते हैं।';
+
+  @override
+  String get howToLiars2 =>
+      'अपनी बारी पर बोली लगाओ कि पूरी टेबल पर किसी एक नंबर के कितने पासे हैं। सबके पासे गिने जाते हैं। जैसे “चार 3”।';
+
+  @override
+  String get howToLiars3 =>
+      '1 जोकर है: वो किसी भी नंबर की तरह गिना जाता है। बस तब नहीं जब बोली 1 पर ही हो।';
+
+  @override
+  String get howToLiars4 =>
+      'अगले खिलाड़ी को बोली बढ़ानी होगी: ज़्यादा पासे, या उतने ही पर बड़ा नंबर…';
+
+  @override
+  String get howToLiars5 =>
+      '…या बोलो “झूठ!”। सब अपने पासे दिखाते हैं और गिनती होती है।';
+
+  @override
+  String get howToLiars6 =>
+      'बोली सही निकली? “झूठ” बोलने वाला एक पासा खोता है। बोली ज़्यादा थी? बोली लगाने वाला खोता है।';
+
+  @override
+  String get howToLiars7 =>
+      'पासे ख़त्म, तुम बाहर। जिसके पास आख़िर तक पासे बचें, वो जीतता है।';
+
+  @override
+  String get howToLiarsClock =>
+      'हर बारी 45 सेकंड की। टाइम ख़त्म तो गेम तुम्हारी तरफ़ से चल देगा।';
+
+  @override
+  String get howToImposter1 =>
+      'सबको एक ही सीक्रेट शब्द मिलता है। सिवाय धोखेबाज़ के, उसे सिर्फ़ कैटेगरी मिलती है।';
+
+  @override
+  String get howToImposter2 =>
+      'बारी-बारी एक छोटा सा हिंट दो। दिखाओ कि तुम्हें शब्द पता है, पर बताओ मत।';
+
+  @override
+  String get howToImposterVoice =>
+      'वॉइस मोड में: अपना हिंट कॉल पर बोलकर बताओ, फिर हो गया पर टैप करो।';
+
+  @override
+  String get howToImposter3 =>
+      'फिर सब वोट करते हैं कि उनके हिसाब से धोखेबाज़ कौन है।';
+
+  @override
+  String get howToImposter4 =>
+      'पकड़ा गया? धोखेबाज़ के पास एक आख़िरी मौका है: शब्द सही बताया तो जीत उसकी। ग़लत इंसान चुना या टाई हुआ? धोखेबाज़ जीता।';
+
+  @override
+  String get howToRace1 => 'सबको एक ही बिल्कुल नई पहेली एक साथ मिलती है।';
+
+  @override
+  String get howToRace2 =>
+      'अपने फ़ोन पर हल करो। तुम्हारी बार सबको दिखाती है कि तुम कितने क़रीब हो।';
+
+  @override
+  String get howToRace3 =>
+      'जो पहले ख़त्म करे, वो जीते। तुम्हारे पास 10 मिनट हैं।';
+
+  @override
+  String get howToLive1 =>
+      'सब एक साथ खेलते हैं। सबने मैं तैयार हूँ पर टैप किया, और खेल शुरू।';
+
+  @override
+  String get howToLive2 =>
+      'कोई गेम से निकल गया? गेम सबके लिए रुक जाता है। उसके पास वापस आने के लिए 2 मिनट हैं, वरना वो हार जाएगा।';
+
+  @override
+  String get howToLive3 =>
+      'चैट के बाकी लोग देख सकते हैं। वो सीट माँग सकते हैं, और कोई खिलाड़ी अपनी सीट दे सकता है।';
+
+  @override
+  String get howToTurns1 =>
+      'अपनी चाल चलो, फिर चाल भेजो पर टैप करो। वो चैट में मैसेज बनकर पहुँच जाएगी।';
+
+  @override
+  String get howToTurns2 =>
+      'हर चाल के लिए 2 दिन हैं। 20 घंटे बाद हम याद दिलाते हैं, और 12 घंटे की चुप्पी के बाद तुम ख़ुद भी याद दिला सकते हो।';
+
+  @override
+  String get howToTurns3 =>
+      '2 दिन में चाल नहीं चली? वो हार मानी जाएगी। एक चैट में एक साथ 3 गेम तक।';
 }

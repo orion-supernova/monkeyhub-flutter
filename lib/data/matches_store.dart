@@ -45,6 +45,16 @@ class MatchesStore extends ChangeNotifier {
 
   ChatMatch? forMessage(String messageId) => _byMessage[messageId];
 
+  /// The game [matchId] names, if this store has heard of it. A linear scan
+  /// of a map that holds a few dozen games at most; a move bubble asks once
+  /// per build, and a second index would be one more thing to keep in step.
+  ChatMatch? forMatch(String matchId) {
+    for (final m in _byMessage.values) {
+      if (m.id == matchId) return m;
+    }
+    return null;
+  }
+
   /// The room's games still being played or waiting to be, newest first.
   List<ChatMatch> openIn(String roomId) {
     final out = [
@@ -285,6 +295,10 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
   MoveRejection? _lastRejection;
   int _rejections = 0;
 
+  /// A turn by turn move made on the board but not sent yet: drawn, never
+  /// posted, until [sendStaged]. Live games never stage.
+  ({String move, int seq, String state})? _staged;
+
   ({String action, int expectedSeq})? _pendingAction;
   PartySecret? _secret;
   void Function()? _secretSub;
@@ -302,6 +316,14 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
   ChatMatch? get match {
     final m = _match;
     final p = _pending;
+    final st = _staged;
+    if (m != null && p == null && st != null && m.seq == st.seq) {
+      return m.withOptimistic(
+        state: st.state,
+        seq: st.seq + 1,
+        lastMove: st.move,
+      );
+    }
     if (m == null || p == null || m.seq != p.expectedSeq) return m;
     return m.withOptimistic(
       state: p.state,
@@ -311,6 +333,52 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   bool get sending => _pending != null || _pendingAction != null;
+
+  /// The staged move's token, while one waits for Send.
+  String? get stagedMove {
+    final st = _staged;
+    final m = _match;
+    return st != null && m != null && m.seq == st.seq ? st.move : null;
+  }
+
+  /// Puts [move] on the board without sending it: turn by turn games only,
+  /// where a move is a message and deserves a second look. Ignored unless it
+  /// is the viewer's turn and the rules take it.
+  void stage(String move) {
+    final m = _match;
+    if (m == null || _pending != null || !m.isTurnOf(userId)) return;
+    final game = turnGameFor(m.game);
+    final state = m.state;
+    if (game == null || state == null) return;
+    try {
+      _staged = (move: move, seq: m.seq, state: game.applyEncoded(state, move));
+    } catch (_) {
+      _reject(MoveRejection.illegal);
+      return;
+    }
+    notifyListeners();
+  }
+
+  /// Takes the staged move back.
+  void unstage() {
+    if (_staged == null) return;
+    _staged = null;
+    notifyListeners();
+  }
+
+  /// Sends the staged move. True once the server has it; false when it was
+  /// refused (and [lastRejection] says why) or there was nothing to send.
+  Future<bool> sendStaged() async {
+    final st = _staged;
+    final m = _match;
+    if (st == null || m == null || m.seq != st.seq) {
+      _staged = null;
+      notifyListeners();
+      return false;
+    }
+    _staged = null;
+    return play(st.move);
+  }
 
   /// The party action in flight, until the server's row moves past the seq it
   /// was sent against.
@@ -390,18 +458,19 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Plays [move]. Ignored unless it is the viewer's turn and nothing else
   /// is in flight.
-  Future<void> play(String move) async {
+  /// True once the server has the move.
+  Future<bool> play(String move) async {
     final m = _match;
-    if (m == null || _pending != null || !m.isTurnOf(userId)) return;
+    if (m == null || _pending != null || !m.isTurnOf(userId)) return false;
     final game = turnGameFor(m.game);
     final state = m.state;
-    if (game == null || state == null) return;
+    if (game == null || state == null) return false;
     final String next;
     try {
       next = game.applyEncoded(state, move);
     } catch (_) {
       _reject(MoveRejection.illegal);
-      return;
+      return false;
     }
     final clientMoveId =
         'mv_${DateTime.now().microsecondsSinceEpoch}_${m.seq}';
@@ -423,19 +492,20 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
         );
         // The subscription's echo clears [_pending]; until it lands the
         // optimistic board stays, which is the board the server now has.
-        return;
+        return true;
       } catch (e) {
         final code = matchErrorCode(e);
         if (code == 'UNKNOWN' && attempt < 2) {
           await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
-          if (_disposed) return;
+          if (_disposed) return false;
           continue;
         }
         _pending = null;
         _reject(MoveRejection.fromCode(code));
-        return;
+        return false;
       }
     }
+    return false;
   }
 
   /// Folds a delivered row into the clock offset: only a row that CHANGED

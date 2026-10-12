@@ -33,6 +33,7 @@ import 'navigation/section_switcher.dart';
 import 'navigation/tab_reselect.dart';
 import 'room_screen.dart';
 import 'settings_screen.dart';
+import '../widgets/route_depth.dart';
 
 /// Hosts the active major section (Chat / Discover / Feed / Settings) and
 /// switches via the [RadialFloatingMenu] (or a conventional bottom-pill nav,
@@ -59,6 +60,9 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    FeedStore.instance.noteShellLaunch(
+      SettingsStore.instance.section == HomeSection.feed,
+    );
     SettingsStore.instance.addListener(_onSettings);
     // Without this the approvals badge would only update when something else
     // happened to rebuild the shell.
@@ -451,6 +455,7 @@ class _SectionPane extends StatelessWidget {
   Widget build(BuildContext context) {
     return Navigator(
       key: ValueKey('section_pane_$sectionKey'),
+      observers: [RouteDepthObserver()],
       onGenerateInitialRoutes: (navigator, initialRoute) => [
         MaterialPageRoute(builder: (_) => child),
       ],
@@ -501,6 +506,7 @@ class _SettingsDetailPane extends StatefulWidget {
 
 class _SettingsDetailPaneState extends State<_SettingsDetailPane> {
   late final _SettingsPaneObserver _observer = _SettingsPaneObserver();
+  final _depth = RouteDepthObserver();
 
   @override
   void initState() {
@@ -516,7 +522,7 @@ class _SettingsDetailPaneState extends State<_SettingsDetailPane> {
   Widget build(BuildContext context) {
     return Navigator(
       key: settingsPaneNavKey,
-      observers: [_observer],
+      observers: [_observer, _depth],
       onGenerateInitialRoutes: (navigator, initialRoute) => [
         MaterialPageRoute(builder: (_) => const _SettingsEmptyHint()),
       ],

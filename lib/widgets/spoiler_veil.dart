@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter/widgets.dart';
 
 import '../data/spoiler_store.dart';
@@ -249,6 +250,8 @@ class _SpoilerVeilState extends State<SpoilerVeil>
 
   void _revealWhole({Offset? origin}) {
     if (_reveal.value > 0 || _reveal.isAnimating) return;
+    // A soft tick as the dust blows off, the Telegram reveal.
+    HapticFeedback.lightImpact();
     _healTimer?.cancel();
     _model.beginReveal(origin ?? _model.bounds.center);
     _ensureTicker();

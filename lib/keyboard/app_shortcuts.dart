@@ -241,11 +241,14 @@ abstract final class AppShortcuts {
     ShortcutGroup.navigation,
     [KeyCombo(LogicalKeyboardKey.arrowDown, primary: true, alt: true, shift: true)],
   );
+  // Windows and Linux only. On a Mac ⌘W belongs to the window (the menu's
+  // Close), chat open or not: a chord that closes the window everywhere else
+  // in macOS must not quietly mean something smaller here. Esc closes the chat.
   static const closeChat = ShortcutDef(
     'closeChat',
     ShortcutGroup.navigation,
     [KeyCombo(LogicalKeyboardKey.keyW, primary: true)],
-    nativeOnly: true,
+    platforms: {TargetPlatform.windows, TargetPlatform.linux},
   );
 
   // ── In a chat ──
@@ -413,8 +416,8 @@ abstract final class AppShortcuts {
   //
   // Listed so the peek is the whole answer to "what can I press here", not
   // just the part Dart handles. On a Mac every one of these is a MainMenu.xib
-  // item that AppKit runs, so they are ambient. ⌘W loses its row while a chat
-  // is open, because [closeChat] takes the chord (see [AppShortcutRegistry.available]).
+  // item that AppKit runs, so they are ambient. ⌘W always closes the window:
+  // [closeChat] is not offered on the Mac, so nothing in Dart takes the chord.
   static const closeWindow = ShortcutDef(
     'closeWindow',
     ShortcutGroup.app,
