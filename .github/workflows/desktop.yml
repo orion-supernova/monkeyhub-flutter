@@ -74,7 +74,9 @@ jobs:
         run: |
           $cfg = Get-Content .dart_tool/package_config.json | ConvertFrom-Json
           $pkg = $cfg.packages | Where-Object name -eq 'flutter_webrtc'
-          $tp = Join-Path ([System.Uri]::new($pkg.rootUri).LocalPath) 'third_party'
+          # A vendored (path) package has a rootUri relative to .dart_tool/.
+          $root = if ($pkg.rootUri -match '^file:') { [System.Uri]::new($pkg.rootUri).LocalPath } else { [System.IO.Path]::GetFullPath((Join-Path '.dart_tool' $pkg.rootUri)) }
+          $tp = Join-Path $root 'third_party'
           $m = Select-String -Path (Join-Path $tp 'CMakeLists.txt') -Pattern 'https://\S+/libwebrtc\.zip'
           if ($m -and -not (Test-Path (Join-Path $tp 'libwebrtc'))) {
             $zip = Join-Path $tp 'downloads/libwebrtc.zip'
