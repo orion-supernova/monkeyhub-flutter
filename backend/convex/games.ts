@@ -10,6 +10,7 @@ import * as queens from "./games/queens";
 import * as starbattle from "./games/starbattle";
 import * as sudoku from "./games/sudoku";
 import * as tango from "./games/tango";
+import * as hints from "./games/hints";
 import * as zip from "./games/zip";
 import { liveStreak, noteSolve } from "./recordBook";
 import { lensFor } from "./visibility";
@@ -217,38 +218,49 @@ function answerOf(dayKey: string, game: GameId): number[] | null {
   }
 }
 
-/** What `hint` hands back. `cells` only for Flow, whose unit of help is a pipe. */
-type HintReply = { index: number; value: number; cells?: number[] };
-
 /**
- * The hint the five newer engines give for [board], at rotation slot [turn].
+ * What `hint` hands back.
  *
- * Each of them knows its own game's idea of "help" better than a generic
- * cell-diff does — Flow hands over a whole pipe, Minesweeper only a cell the
- * player could PROVE from what they see (never a guess), Star Battle and
- * Futoshiki clear a wrong mark before filling a blank — so the decision is
- * theirs. Null means nothing to reveal. Undefined means "not one of these":
- * the older games keep the generic diff below.
+ * `index` and `value` keep their original meaning for clients from before
+ * explained hints (a ROW and its column for Queens, a colour for Flow, a
+ * square and its answer otherwise). Everything after them is the explained
+ * hint, see `games/hints.ts`; `cells` only for Flow.
  */
-function engineHint(
-  dayKey: string,
-  game: GameId,
-  board: number[],
-  turn: number
-): HintReply | null | undefined {
+type HintReply = {
+  index: number;
+  value: number;
+  cells?: number[];
+  kind?: hints.HintKind;
+  cell?: number;
+  answer?: number;
+  reason?: string;
+  area?: number[];
+  cause?: number[];
+  digit?: number;
+  more?: number;
+};
+
+/** [game]'s explained hint for [board], or null when nothing is left. */
+function explainHint(dayKey: string, game: GameId, board: number[]): hints.Explained | null {
   switch (game) {
+    case "queens":
+      return hints.queensHint(boardOf(dayKey, game), board);
+    case "tango":
+      return hints.tangoHint(boardOf(dayKey, game), board);
+    case "sudoku":
+      return hints.sudokuHint(boardOf(dayKey, game), board);
     case "flow":
-      return flow.hint(boardOf(dayKey, game), board, turn);
+      return hints.flowHint(boardOf(dayKey, game), board);
     case "futoshiki":
-      return futoshiki.hint(boardOf(dayKey, game), board, turn);
+      return hints.futoshikiHint(boardOf(dayKey, game), board);
     case "nonogram":
-      return nonogram.hint(boardOf(dayKey, game), board, turn);
+      return hints.nonogramHint(boardOf(dayKey, game), board);
     case "minesweeper":
-      return minesweeper.hint(boardOf(dayKey, game), board, turn, dayKey);
+      return hints.minesweeperHint(boardOf(dayKey, game), board, dayKey);
     case "starbattle":
-      return starbattle.hint(boardOf(dayKey, game), board, turn);
-    default:
-      return undefined;
+      return hints.starbattleHint(boardOf(dayKey, game), board);
+    case "zip":
+      return null;
   }
 }
 
@@ -558,30 +570,28 @@ export const saveProgress = mutation({
 });
 
 /**
- * Reveals one correct cell, and counts it.
+ * One explained hint, and counts it.
  *
  * Takes the player's current board because the server does not track it move by
  * move — `saveProgress` runs when they leave the screen, not per tap — so the
  * grid in the argument is the only current picture of what they have filled in.
- * Nothing is trusted from it beyond "which squares still need help": the cell
- * handed back is read off the generator's own solution.
+ * Nothing is trusted from it beyond "what is on the board": the answer and the
+ * rules come from the generator.
  *
- * `board` is in the same shape `submit` takes, which differs by game: a column
- * per row for Queens (so `index` is a ROW and `value` its column), and a value
- * per cell for Tango and Sudoku. Anything the player has not decided yet is
- * whatever that game's blank is, which simply reads as a disagreement with the
- * answer and therefore as a candidate.
+ * The hint itself is decided in `games/hints.ts`, the same three tiers for every
+ * game: a square the player got wrong first, then the next square one rule
+ * forces (with that rule as a reason code and the squares it looks at), then
+ * one square from the tightest line or region. One square per hint, and the
+ * same board always gets the same hint, so a resent call is answered the same.
  *
- * Which cell is chosen rotates with the number of hints already taken, so a
- * second hint is a different square rather than the same one again.
+ * `board` per game: the player's marks per square for Queens (0, 1 cross,
+ * 2 crown; older clients send a column per row) and Star Battle (1 star, 2 dot),
+ * a value per square for Tango, Sudoku and Futoshiki (printed squares may be
+ * blank), Nonogram's -1/0/1 working grid, Minesweeper's progress (-1 hidden,
+ * 0..8 open, 9 flagged) and Flow's pipes laid end to end.
  *
- * **The five newer games answer from their own engines** (see [engineHint]):
- * Flow returns a whole pipe in `cells` (`index` and `value` are its colour),
- * Minesweeper a cell the player can prove from what is revealed (`value` 0 to
- * open it, 1 to flag it; Minesweeper takes `progress`, -1 hidden, 0..8
- * revealed, 9 flagged, not a submission), Nonogram a cell's 0/1, Star Battle a
- * wrong star to clear (0) or a missing one (1), Futoshiki a digit. The reply is
- * `{ index, value }` plus `cells` only when the engine gave one.
+ * The reply keeps `index`/`value` exactly as older clients read them (see
+ * [HintReply]) and adds the explained fields beside them.
  *
  * **Zip has no hint, on purpose.** Its board accepts any route that covers
  * every cell in order, so there is no single next-correct-move to point at —
@@ -615,48 +625,32 @@ export const hint = mutation({
     // A replay: this hint was already counted, and the native client is
     // resending a call the player saw time out. It keeps every sent mutation
     // in flight across a reconnect, so without this a hint asked for in a dead
-    // tunnel was charged once per resend. Answered from the same rotation slot
-    // it would have had, and charged nothing.
+    // tunnel was charged once per resend. The hint is a pure function of the
+    // board, so it is the same answer, charged nothing.
     const replay = seq !== undefined && row.hintsUsed > seq;
 
-    const turn = replay ? seq! : row.hintsUsed;
-    const fromEngine = engineHint(dayKey, game, board, turn);
-    if (fromEngine !== undefined) {
-      // Nothing left to reveal (or, for Minesweeper, nothing provable): not
-      // charged, exactly as a full grid is below.
-      if (fromEngine === null) return { index: -1, value: 0 };
-      if (!replay) {
-        await ctx.db.patch(row._id, { hintsUsed: row.hintsUsed + 1 });
-      }
-      // Built field by field: `cells` is left off rather than sent as
-      // undefined, so the older games' reply shape is unchanged.
-      const reply: HintReply = {
-        index: fromEngine.index,
-        value: fromEngine.value,
-      };
-      if (fromEngine.cells) reply.cells = fromEngine.cells;
-      return reply;
+    const found = explainHint(dayKey, game, board);
+    // Nothing left to say (a finished board, or for Minesweeper nothing
+    // provable): not charged.
+    if (!found) return { index: -1, value: 0 };
+    if (!replay) {
+      await ctx.db.patch(row._id, { hintsUsed: row.hintsUsed + 1 });
     }
-
-    const answer = answerOf(dayKey, game);
-    if (!answer) throw new Error("NO_HINT");
-
-    // Where the player's grid disagrees with the answer, including everything
-    // they have not filled in yet.
-    const wrong: number[] = [];
-    for (let i = 0; i < answer.length; i++) {
-      if (board[i] !== answer[i]) wrong.push(i);
-    }
-    if (wrong.length === 0) return { index: -1, value: 0 };
-
-    if (replay) {
-      const pick = wrong[seq! % wrong.length];
-      return { index: pick, value: answer[pick] };
-    }
-
-    const pick = wrong[row.hintsUsed % wrong.length];
-    await ctx.db.patch(row._id, { hintsUsed: row.hintsUsed + 1 });
-    return { index: pick, value: answer[pick] };
+    const reply: HintReply = {
+      index: found.legacy.index,
+      value: found.legacy.value,
+      kind: found.kind,
+      cell: found.cell,
+      answer: found.value,
+      reason: found.reason,
+      area: found.area,
+      cause: found.cause,
+    };
+    // Optional fields left off rather than sent as undefined.
+    if (found.cells) reply.cells = found.cells;
+    if (found.digit !== undefined) reply.digit = found.digit;
+    if (found.more !== undefined) reply.more = found.more;
+    return reply;
   },
 });
 

@@ -5594,6 +5594,131 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameErrorNoHint => '이건 힌트가 없어';
 
   @override
+  String get gameHintWrong => '이건 틀려서 지웠어요.';
+
+  @override
+  String get gameHintWrongMore => '고칠 게 더 있어요. 준비되면 다시 물어봐요.';
+
+  @override
+  String get gameHintWrongLast => '나머지는 다 맞게 놓았어요.';
+
+  @override
+  String get gameHintReveal => '아직 규칙 하나로 정해지는 칸이 없어서 하나 알려 줄게요.';
+
+  @override
+  String get gameHintQueensRegion => '이 색깔에 왕관을 놓을 자리가 하나만 남았어요.';
+
+  @override
+  String get gameHintQueensRow => '이 행에 왕관을 놓을 자리가 하나만 남았어요.';
+
+  @override
+  String get gameHintQueensCol => '이 열에 왕관을 놓을 자리가 하나만 남았어요.';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      '이 색깔은 이 행에만 들어갈 수 있어서 행의 나머지 칸엔 왕관이 올 수 없어요.';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      '이 색깔은 이 열에만 들어갈 수 있어서 열의 나머지 칸엔 왕관이 올 수 없어요.';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      '이 행은 한 색깔에만 자리가 있어서 그 색깔의 나머지 칸엔 왕관이 올 수 없어요.';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      '이 열은 한 색깔에만 자리가 있어서 그 색깔의 나머지 칸엔 왕관이 올 수 없어요.';
+
+  @override
+  String get gameHintStarsRegion => '이 색깔엔 아직 필요한 별만큼만 자리가 남았어요.';
+
+  @override
+  String get gameHintStarsRow => '이 행엔 아직 필요한 별만큼만 자리가 남았어요.';
+
+  @override
+  String get gameHintStarsCol => '이 열엔 아직 필요한 별만큼만 자리가 남았어요.';
+
+  @override
+  String get gameHintTangoEqual => '= 표시는 두 칸이 같다는 뜻이에요.';
+
+  @override
+  String get gameHintTangoCross => '× 표시는 두 칸이 반대라는 뜻이에요.';
+
+  @override
+  String get gameHintTangoPair => '나란히 있는 두 칸이 이미 같아서 다음 칸은 반대여야 해요.';
+
+  @override
+  String get gameHintTangoSandwich => '양옆 칸이 같아서 가운데는 반대여야 해요.';
+
+  @override
+  String get gameHintTangoRowSuns => '이 행엔 이미 해가 세 개 있어요.';
+
+  @override
+  String get gameHintTangoRowMoons => '이 행엔 이미 달이 세 개 있어요.';
+
+  @override
+  String get gameHintTangoColSuns => '이 열엔 이미 해가 세 개 있어요.';
+
+  @override
+  String get gameHintTangoColMoons => '이 열엔 이미 달이 세 개 있어요.';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return '이 박스에서 $digit 자리는 여기뿐이에요.';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return '이 행에서 $digit 자리는 여기뿐이에요.';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return '이 열에서 $digit 자리는 여기뿐이에요.';
+  }
+
+  @override
+  String get gameHintLatinOnly => '여기엔 숫자 하나만 들어가요. 나머지는 이미 같은 행, 열, 박스에 있어요.';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      '여기엔 숫자 하나만 들어가요. 나머지는 이미 같은 행이나 열에 있어요.';
+
+  @override
+  String get gameHintLatinOnlySigns => '행, 열, 부등호를 다 따지면 여기엔 숫자 하나만 들어가요.';
+
+  @override
+  String get gameHintNonogramRowFill => '이 행의 단서를 어떻게 넣어도 이 칸은 칠해져요.';
+
+  @override
+  String get gameHintNonogramRowCross => '이 행의 단서를 어떻게 넣어도 이 칸까진 안 닿아요.';
+
+  @override
+  String get gameHintNonogramColFill => '이 열의 단서를 어떻게 넣어도 이 칸은 칠해져요.';
+
+  @override
+  String get gameHintNonogramColCross => '이 열의 단서를 어떻게 넣어도 이 칸까진 안 닿아요.';
+
+  @override
+  String get gameHintMinesStart => '여기서 시작해요. 이 칸은 항상 안전해요.';
+
+  @override
+  String get gameHintMinesSafe => '이 숫자의 지뢰엔 이미 깃발이 다 꽂혀서 주변 나머지 칸은 안전해요.';
+
+  @override
+  String get gameHintMinesFlag => '이 숫자 주변의 숨은 칸은 전부 지뢰여야 해요.';
+
+  @override
+  String get gameHintMinesProofSafe => '이 칸 주변 숫자들을 보면 여기가 안전하다는 걸 알 수 있어요.';
+
+  @override
+  String get gameHintMinesProofMine => '이 칸 주변 숫자들을 보면 여기가 지뢰라는 걸 알 수 있어요.';
+
+  @override
+  String get gameHintFlowPipe => '점에서 점까지 파이프 하나를 통째로 보여 줄게요.';
+
+  @override
   String get gameErrorGeneric => '게임에 연결하지 못했어. 다시 시도해';
 
   @override

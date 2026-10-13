@@ -5804,6 +5804,149 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameErrorNoHint => 'इसके लिए कोई संकेत नहीं';
 
   @override
+  String get gameHintWrong => 'यह गलत था, इसलिए हटा दिया गया।';
+
+  @override
+  String get gameHintWrongMore =>
+      'अभी और भी ठीक करना है। तैयार हो तो फिर से पूछो।';
+
+  @override
+  String get gameHintWrongLast => 'बाकी जो कुछ तुमने रखा है, सब सही है।';
+
+  @override
+  String get gameHintReveal =>
+      'अभी कोई एक नियम किसी खाने को तय नहीं करता, तो लो, एक ये रहा।';
+
+  @override
+  String get gameHintQueensRegion => 'इस रंग में ताज के लिए बस एक जगह बची है।';
+
+  @override
+  String get gameHintQueensRow => 'इस रो में ताज के लिए बस एक जगह बची है।';
+
+  @override
+  String get gameHintQueensCol => 'इस कॉलम में ताज के लिए बस एक जगह बची है।';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      'यह रंग सिर्फ़ इसी रो में आ सकता है, इसलिए रो के बाकी खानों में ताज नहीं आ सकता।';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      'यह रंग सिर्फ़ इसी कॉलम में आ सकता है, इसलिए कॉलम के बाकी खानों में ताज नहीं आ सकता।';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'इस रो में सिर्फ़ एक ही रंग में जगह है, इसलिए उस रंग के बाकी खानों में ताज नहीं आ सकता।';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'इस कॉलम में सिर्फ़ एक ही रंग में जगह है, इसलिए उस रंग के बाकी खानों में ताज नहीं आ सकता।';
+
+  @override
+  String get gameHintStarsRegion =>
+      'इस रंग में बस उतनी ही जगह बची है जितने स्टार इसे अभी चाहिए।';
+
+  @override
+  String get gameHintStarsRow =>
+      'इस रो में बस उतनी ही जगह बची है जितने स्टार इसे अभी चाहिए।';
+
+  @override
+  String get gameHintStarsCol =>
+      'इस कॉलम में बस उतनी ही जगह बची है जितने स्टार इसे अभी चाहिए।';
+
+  @override
+  String get gameHintTangoEqual => '= निशान का मतलब है दोनों खाने एक जैसे हैं।';
+
+  @override
+  String get gameHintTangoCross => '× निशान का मतलब है दोनों खाने उल्टे हैं।';
+
+  @override
+  String get gameHintTangoPair =>
+      'साथ-साथ के दो खाने पहले से एक जैसे हैं, इसलिए अगला उल्टा होना चाहिए।';
+
+  @override
+  String get gameHintTangoSandwich =>
+      'दोनों तरफ़ के खाने एक जैसे हैं, इसलिए बीच वाला उल्टा होना चाहिए।';
+
+  @override
+  String get gameHintTangoRowSuns => 'इस रो में तीनों सूरज पहले से हैं।';
+
+  @override
+  String get gameHintTangoRowMoons => 'इस रो में तीनों चाँद पहले से हैं।';
+
+  @override
+  String get gameHintTangoColSuns => 'इस कॉलम में तीनों सूरज पहले से हैं।';
+
+  @override
+  String get gameHintTangoColMoons => 'इस कॉलम में तीनों चाँद पहले से हैं।';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'इस बॉक्स में $digit के लिए बस यही जगह है।';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'इस रो में $digit के लिए बस यही जगह है।';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'इस कॉलम में $digit के लिए बस यही जगह है।';
+  }
+
+  @override
+  String get gameHintLatinOnly =>
+      'यहाँ बस एक ही नंबर आ सकता है। बाकी पहले से इसकी रो, कॉलम या बॉक्स में हैं।';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      'यहाँ बस एक ही नंबर आ सकता है। बाकी पहले से इसकी रो या कॉलम में हैं।';
+
+  @override
+  String get gameHintLatinOnlySigns =>
+      'रो, कॉलम और निशान गिनने के बाद यहाँ बस एक ही नंबर आ सकता है।';
+
+  @override
+  String get gameHintNonogramRowFill =>
+      'इस रो का क्लू कैसे भी बैठे, यह खाना भरता ही है।';
+
+  @override
+  String get gameHintNonogramRowCross =>
+      'इस रो का क्लू किसी भी तरह बैठे, इस खाने तक नहीं पहुँचता।';
+
+  @override
+  String get gameHintNonogramColFill =>
+      'इस कॉलम का क्लू कैसे भी बैठे, यह खाना भरता ही है।';
+
+  @override
+  String get gameHintNonogramColCross =>
+      'इस कॉलम का क्लू किसी भी तरह बैठे, इस खाने तक नहीं पहुँचता।';
+
+  @override
+  String get gameHintMinesStart =>
+      'यहाँ से शुरू करो। यह खाना हमेशा सुरक्षित है।';
+
+  @override
+  String get gameHintMinesSafe =>
+      'इस नंबर की सारी माइन पर पहले से झंडा लगा है, इसलिए इसके आसपास बाकी खाने सुरक्षित हैं।';
+
+  @override
+  String get gameHintMinesFlag =>
+      'इस नंबर के आसपास का हर छुपा खाना माइन होना चाहिए।';
+
+  @override
+  String get gameHintMinesProofSafe =>
+      'इस खाने के आसपास के नंबर साबित करते हैं कि यह सुरक्षित है।';
+
+  @override
+  String get gameHintMinesProofMine =>
+      'इस खाने के आसपास के नंबर साबित करते हैं कि यह माइन है।';
+
+  @override
+  String get gameHintFlowPipe => 'यह रहा एक पूरा पाइप, डॉट से डॉट तक।';
+
+  @override
   String get gameErrorGeneric => 'खेलों तक नहीं पहुँच सके, फिर कोशिश करें';
 
   @override

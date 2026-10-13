@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/feed_store.dart';
+import '../../backend/games_api.dart';
 import '../../data/games_store.dart';
 import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
+import '../../games/hint_spotlight.dart';
 import '../../games/minesweeper_board_art.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
@@ -68,6 +70,10 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
   List<int> _mines = const [];
   List<int> _numbers = const [];
   int? _popCell;
+
+  /// The hint on show, until the player's next move or a tap on its banner.
+  BoardHint? _spot;
+  int _hintSerial = 0;
 
   /// Whether a tap plants a flag instead of opening a square.
   bool _flagging = false;
@@ -164,6 +170,7 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
 
   void _tap(int index) {
     if (!_playable) return;
+    _dropHint();
     if (_flagging) {
       _toggleFlag(index);
       return;
@@ -182,8 +189,14 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
     _open([index]);
   }
 
+  /// Any move on the board puts the hint away.
+  void _dropHint() {
+    if (_spot != null) setState(() => _spot = null);
+  }
+
   void _longPress(int index) {
     if (!_playable) return;
+    _dropHint();
     _toggleFlag(index);
   }
 
@@ -262,19 +275,35 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
     ];
     final hint = await _play.hint(board);
     if (hint == null || !mounted) return;
-    if (hint.value == 1) {
+    final cell = hint.cell ?? hint.index;
+    if (cell < 0 || cell >= _cells.length) return;
+    final spot = BoardHint.of(hint, serial: ++_hintSerial, target: {cell});
+    if (hint.kind == GameHintKind.wrong) {
+      // A flag on a safe square comes off, and stays closed: the player
+      // opens it, now knowing it is safe.
       setState(() {
-        _cells[hint.index] = minesweeperFlagged;
-        _popCell = hint.index;
+        _cells[cell] = minesweeperHidden;
+        _popCell = cell;
+        _spot = spot;
       });
       _pop.forward(from: 0);
       return;
     }
-    if (_cells[hint.index] == minesweeperFlagged) {
-      // A wrong flag, which the hint is pointing at precisely so it comes off.
-      _cells[hint.index] = minesweeperHidden;
+    if ((hint.answer ?? hint.value) == 1) {
+      setState(() {
+        _cells[cell] = minesweeperFlagged;
+        _popCell = cell;
+        _spot = spot;
+      });
+      _pop.forward(from: 0);
+      return;
     }
-    _open([hint.index]);
+    if (_cells[cell] == minesweeperFlagged) {
+      // An older server pointing at a wrong flag so it comes off.
+      _cells[cell] = minesweeperHidden;
+    }
+    setState(() => _spot = spot);
+    _open([cell]);
   }
 
   Future<void> _giveUp() async {
@@ -284,6 +313,7 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
     setState(() {
       if (answer.length == _mines.length) _mines = answer;
       _showMines = true;
+      _spot = null;
     });
   }
 
@@ -319,29 +349,37 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
       viewerId: widget.userId,
       title: l10n.gameMinesweeperName,
       rule: l10n.gameMinesweeperRule,
+      hintBanner: HintBanner(
+        hint: paused ? null : _spot,
+        onDismiss: () => setState(() => _spot = null),
+      ),
       board: Stack(
         fit: StackFit.expand,
         children: [
-          AnimatedBuilder(
-            animation: Listenable.merge([_pop, _winSweep]),
-            builder: (context, _) => GameBoardSurface(
-              n: board.size,
-              onTapCell: _tap,
-              onLongPressCell: _longPress,
-              painter: MinesweeperBoardPainter(
-                board: board,
-                theme: theme,
-                cells: paused
-                    ? List<int>.filled(
-                        board.size * board.size,
-                        minesweeperHidden,
-                      )
-                    : _cells,
-                mines: _mines,
-                showMines: _showMines && !paused,
-                popCell: _popCell,
-                pop: _pop.value,
-                win: _winSweep.value,
+          HintSpotlight(
+            hint: paused || _play.finished ? null : _spot,
+            n: board.size,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_pop, _winSweep]),
+              builder: (context, _) => GameBoardSurface(
+                n: board.size,
+                onTapCell: _tap,
+                onLongPressCell: _longPress,
+                painter: MinesweeperBoardPainter(
+                  board: board,
+                  theme: theme,
+                  cells: paused
+                      ? List<int>.filled(
+                          board.size * board.size,
+                          minesweeperHidden,
+                        )
+                      : _cells,
+                  mines: _mines,
+                  showMines: _showMines && !paused,
+                  popCell: _popCell,
+                  pop: _pop.value,
+                  win: _winSweep.value,
+                ),
               ),
             ),
           ),

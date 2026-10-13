@@ -5882,6 +5882,146 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gameErrorNoHint => 'لا يوجد تلميح لهذه';
 
   @override
+  String get gameHintWrong => 'هذه كانت خاطئة، لذا مُسحت.';
+
+  @override
+  String get gameHintWrongMore =>
+      'ما زال هناك ما تصلحه. اطلب مرة أخرى عندما تكون جاهزًا.';
+
+  @override
+  String get gameHintWrongLast => 'كل ما وضعته غير ذلك صحيح.';
+
+  @override
+  String get gameHintReveal =>
+      'لا توجد بعد قاعدة واحدة تحسم أي مربع، لذا إليك واحدًا.';
+
+  @override
+  String get gameHintQueensRegion => 'بقي مكان واحد فقط لتاج في هذا اللون.';
+
+  @override
+  String get gameHintQueensRow => 'بقي مكان واحد فقط لتاج في هذا الصف.';
+
+  @override
+  String get gameHintQueensCol => 'بقي مكان واحد فقط لتاج في هذا العمود.';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      'هذا اللون لا يتسع إلا في هذا الصف، لذا لا يمكن وضع تاج في باقي الصف.';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      'هذا اللون لا يتسع إلا في هذا العمود، لذا لا يمكن وضع تاج في باقي العمود.';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'هذا الصف ليس فيه مكان إلا في لون واحد، لذا لا يمكن وضع تاج في باقي ذلك اللون.';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'هذا العمود ليس فيه مكان إلا في لون واحد، لذا لا يمكن وضع تاج في باقي ذلك اللون.';
+
+  @override
+  String get gameHintStarsRegion =>
+      'لم يبقَ في هذا اللون مكان إلا للنجوم التي ما زال يحتاجها.';
+
+  @override
+  String get gameHintStarsRow =>
+      'لم يبقَ في هذا الصف مكان إلا للنجوم التي ما زال يحتاجها.';
+
+  @override
+  String get gameHintStarsCol =>
+      'لم يبقَ في هذا العمود مكان إلا للنجوم التي ما زال يحتاجها.';
+
+  @override
+  String get gameHintTangoEqual => 'إشارة = تعني أن المربعين متشابهان.';
+
+  @override
+  String get gameHintTangoCross => 'إشارة × تعني أن المربعين مختلفان.';
+
+  @override
+  String get gameHintTangoPair =>
+      'مربعان متجاوران متشابهان بالفعل، لذا يجب أن يكون التالي عكسهما.';
+
+  @override
+  String get gameHintTangoSandwich =>
+      'المربعان على الجانبين متشابهان، لذا يجب أن يكون الأوسط عكسهما.';
+
+  @override
+  String get gameHintTangoRowSuns => 'هذا الصف فيه شموسه الثلاث بالفعل.';
+
+  @override
+  String get gameHintTangoRowMoons => 'هذا الصف فيه أقماره الثلاثة بالفعل.';
+
+  @override
+  String get gameHintTangoColSuns => 'هذا العمود فيه شموسه الثلاث بالفعل.';
+
+  @override
+  String get gameHintTangoColMoons => 'هذا العمود فيه أقماره الثلاثة بالفعل.';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'هذا هو المكان الوحيد للرقم $digit في هذا المربع الكبير.';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'هذا هو المكان الوحيد للرقم $digit في هذا الصف.';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'هذا هو المكان الوحيد للرقم $digit في هذا العمود.';
+  }
+
+  @override
+  String get gameHintLatinOnly =>
+      'رقم واحد فقط يناسب هنا. الباقي موجود بالفعل في صفه أو عموده أو مربعه الكبير.';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      'رقم واحد فقط يناسب هنا. الباقي موجود بالفعل في صفه أو عموده.';
+
+  @override
+  String get gameHintLatinOnlySigns =>
+      'رقم واحد فقط يناسب هنا بعد حساب صفه وعموده والإشارات.';
+
+  @override
+  String get gameHintNonogramRowFill =>
+      'أيًّا كانت طريقة وضع دليل هذا الصف، فهو يغطي هذا المربع.';
+
+  @override
+  String get gameHintNonogramRowCross =>
+      'لا توجد طريقة لوضع دليل هذا الصف تصل إلى هذا المربع.';
+
+  @override
+  String get gameHintNonogramColFill =>
+      'أيًّا كانت طريقة وضع دليل هذا العمود، فهو يغطي هذا المربع.';
+
+  @override
+  String get gameHintNonogramColCross =>
+      'لا توجد طريقة لوضع دليل هذا العمود تصل إلى هذا المربع.';
+
+  @override
+  String get gameHintMinesStart => 'ابدأ من هنا. هذا المربع آمن دائمًا.';
+
+  @override
+  String get gameHintMinesSafe =>
+      'كل ألغام هذا الرقم عليها علم بالفعل، لذا باقي المربعات حوله آمنة.';
+
+  @override
+  String get gameHintMinesFlag =>
+      'هذا الرقم يحتاج أن يكون كل مربع مخفي حوله لغمًا.';
+
+  @override
+  String get gameHintMinesProofSafe => 'الأرقام حول هذا المربع تثبت أنه آمن.';
+
+  @override
+  String get gameHintMinesProofMine => 'الأرقام حول هذا المربع تثبت أنه لغم.';
+
+  @override
+  String get gameHintFlowPipe => 'إليك أنبوبًا كاملًا، من نقطة إلى نقطة.';
+
+  @override
   String get gameErrorGeneric => 'تعذّر الوصول إلى الألعاب. حاول مجددًا';
 
   @override

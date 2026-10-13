@@ -4,10 +4,12 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../backend/games_api.dart';
 import '../../data/games_store.dart';
 import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
+import '../../games/hint_spotlight.dart';
 import '../../games/nonogram_board_art.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
@@ -62,6 +64,10 @@ class _NonogramScreenState extends State<NonogramScreen>
   final List<List<(int, int)>> _undo = [];
 
   int? _popCell;
+
+  /// The hint on show, until the player's next move or a tap on its banner.
+  BoardHint? _spot;
+  int _hintSerial = 0;
   int? _focus;
 
   /// The squares the player has just changed and not yet moved on from.
@@ -185,6 +191,7 @@ class _NonogramScreenState extends State<NonogramScreen>
       _popCell = index;
       _focus = index;
       _pending.add(index);
+      _spot = null;
     });
     _pop.forward(from: 0);
   }
@@ -263,6 +270,7 @@ class _NonogramScreenState extends State<NonogramScreen>
         _cells[index] = before;
       }
       _popCell = null;
+      _spot = null;
     });
     HapticFeedback.selectionClick();
   }
@@ -272,11 +280,21 @@ class _NonogramScreenState extends State<NonogramScreen>
     final hint = await _play.hint(_cells);
     if (hint == null || !mounted) return;
     _forgetPending();
+    final cell = hint.cell ?? hint.index;
+    if (cell < 0 || cell >= _cells.length) return;
     setState(() {
-      _cells[hint.index] = hint.value == 1 ? nonogramFilled : nonogramCrossed;
-      _popCell = hint.index;
-      _focus = hint.index;
+      _focus = cell;
       _undo.clear();
+      if (hint.kind == GameHintKind.wrong) {
+        // Back to undecided; the ring and the banner say why.
+        _cells[cell] = nonogramUnknown;
+        _popCell = null;
+      } else {
+        final value = hint.answer ?? hint.value;
+        _cells[cell] = value == 1 ? nonogramFilled : nonogramCrossed;
+        _popCell = cell;
+      }
+      _spot = BoardHint.of(hint, serial: ++_hintSerial, target: {cell});
     });
     _pop.forward(from: 0);
     _maybeFinish();
@@ -292,6 +310,7 @@ class _NonogramScreenState extends State<NonogramScreen>
         for (final v in answer) v == 1 ? nonogramFilled : nonogramUnknown,
       ];
       _focus = null;
+      _spot = null;
     });
   }
 
@@ -332,31 +351,40 @@ class _NonogramScreenState extends State<NonogramScreen>
       viewerId: widget.userId,
       title: l10n.gameNonogramName,
       rule: l10n.gameNonogramRule,
-      board: AnimatedBuilder(
-        animation: Listenable.merge([_pop, _winSweep]),
-        builder: (context, _) => GameBoardSurface(
-          n: board.size,
-          leadFraction: lead,
-          onTapCell: _tap,
-          onDragStart: _dragStart,
-          onDragTo: _dragTo,
-          onDragEnd: _dragEnd,
-          // A stroke that starts on the grid is the grid's, or the page wins
-          // every downward run before it has shaded a square.
-          claimsDrag: _play.ready && !_play.finished && !paused,
-          painter: NonogramBoardPainter(
-            board: board,
-            theme: theme,
-            cells: paused ? const [] : _cells,
-            trouble: paused
-                ? const NonogramTrouble(rows: {}, cols: {})
-                : nonogramTrouble(board, settled),
-            satisfiedRows: done.rows,
-            satisfiedCols: done.cols,
-            focus: paused ? null : _focus,
-            popCell: _popCell,
-            pop: _pop.value,
-            win: _winSweep.value,
+      hintBanner: HintBanner(
+        hint: _play.paused ? null : _spot,
+        onDismiss: () => setState(() => _spot = null),
+      ),
+      board: HintSpotlight(
+        hint: _play.paused || _play.finished ? null : _spot,
+        n: board.size,
+        leadFraction: lead,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_pop, _winSweep]),
+          builder: (context, _) => GameBoardSurface(
+            n: board.size,
+            leadFraction: lead,
+            onTapCell: _tap,
+            onDragStart: _dragStart,
+            onDragTo: _dragTo,
+            onDragEnd: _dragEnd,
+            // A stroke that starts on the grid is the grid's, or the page wins
+            // every downward run before it has shaded a square.
+            claimsDrag: _play.ready && !_play.finished && !paused,
+            painter: NonogramBoardPainter(
+              board: board,
+              theme: theme,
+              cells: paused ? const [] : _cells,
+              trouble: paused
+                  ? const NonogramTrouble(rows: {}, cols: {})
+                  : nonogramTrouble(board, settled),
+              satisfiedRows: done.rows,
+              satisfiedCols: done.cols,
+              focus: paused ? null : _focus,
+              popCell: _popCell,
+              pop: _pop.value,
+              win: _winSweep.value,
+            ),
           ),
         ),
       ),

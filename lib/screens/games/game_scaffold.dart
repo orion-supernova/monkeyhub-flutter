@@ -45,6 +45,7 @@ class GameScaffold extends StatefulWidget {
     this.footer,
     this.onShare,
     this.onTellFriends,
+    this.hintBanner,
   });
 
   final GamePlayController controller;
@@ -75,6 +76,10 @@ class GameScaffold extends StatefulWidget {
   /// the server allows it once.
   final VoidCallback? onTellFriends;
 
+  /// The current hint's one-line reason, under the board — a `HintBanner`.
+  /// It opens and closes itself, so it is always passed, hint or not.
+  final Widget? hintBanner;
+
   @override
   State<GameScaffold> createState() => _GameScaffoldState();
 }
@@ -94,6 +99,15 @@ class _GameScaffoldState extends State<GameScaffold> {
         dailyGuide(AppLocalizations.of(context), widget.controller.game),
       );
     });
+  }
+
+  /// Something pushed over the game (the call screen, a sheet, a dialog) takes
+  /// the board out of reach, so the clock holds for as long as it is there.
+  /// [ModalRoute.isCurrentOf] makes this run again each time that flips.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.setCovered(!(ModalRoute.isCurrentOf(context) ?? true));
   }
 
   /// The "?" in the top bar. A running clock is paused while it is open (the
@@ -134,6 +148,7 @@ class _GameScaffoldState extends State<GameScaffold> {
       :viewerId,
       :onShare,
       :onTellFriends,
+      :hintBanner,
     ) = widget;
 
     final target = challengeTargetFor(controller);
@@ -226,6 +241,7 @@ class _GameScaffoldState extends State<GameScaffold> {
           _ => l10n.gameErrorGeneric,
         }),
       ],
+      if (hintBanner != null && !controller.finished) hintBanner,
       const SizedBox(height: 16),
       // One row of equal tool buttons, the iOS bottom-toolbar shape; a board
       // with more tools than fit wraps onto a second row of the same width.

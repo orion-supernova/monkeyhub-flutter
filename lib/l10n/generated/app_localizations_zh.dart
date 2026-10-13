@@ -5509,6 +5509,126 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameErrorNoHint => '这局没有提示';
 
   @override
+  String get gameHintWrong => '这一步错了，已经清掉了。';
+
+  @override
+  String get gameHintWrongMore => '还有要改的地方。准备好了再来问。';
+
+  @override
+  String get gameHintWrongLast => '你放的其他都对。';
+
+  @override
+  String get gameHintReveal => '暂时没有哪条规则能单独确定一个格子，所以直接给你一个。';
+
+  @override
+  String get gameHintQueensRegion => '这个颜色里只剩一个位置能放王冠。';
+
+  @override
+  String get gameHintQueensRow => '这一行里只剩一个位置能放王冠。';
+
+  @override
+  String get gameHintQueensCol => '这一列里只剩一个位置能放王冠。';
+
+  @override
+  String get gameHintQueensRegionInRow => '这个颜色只能落在这一行，所以这一行的其他格子不能放王冠。';
+
+  @override
+  String get gameHintQueensRegionInCol => '这个颜色只能落在这一列，所以这一列的其他格子不能放王冠。';
+
+  @override
+  String get gameHintQueensRowInRegion => '这一行只在一种颜色里有空位，所以那个颜色的其他格子不能放王冠。';
+
+  @override
+  String get gameHintQueensColInRegion => '这一列只在一种颜色里有空位，所以那个颜色的其他格子不能放王冠。';
+
+  @override
+  String get gameHintStarsRegion => '这个颜色剩下的空位刚好够放还缺的星星。';
+
+  @override
+  String get gameHintStarsRow => '这一行剩下的空位刚好够放还缺的星星。';
+
+  @override
+  String get gameHintStarsCol => '这一列剩下的空位刚好够放还缺的星星。';
+
+  @override
+  String get gameHintTangoEqual => '= 号表示两个格子一样。';
+
+  @override
+  String get gameHintTangoCross => '× 号表示两个格子相反。';
+
+  @override
+  String get gameHintTangoPair => '相邻的两个已经一样了，所以下一个得是另一种。';
+
+  @override
+  String get gameHintTangoSandwich => '两边的格子一样，所以中间得是另一种。';
+
+  @override
+  String get gameHintTangoRowSuns => '这一行已经有三个太阳了。';
+
+  @override
+  String get gameHintTangoRowMoons => '这一行已经有三个月亮了。';
+
+  @override
+  String get gameHintTangoColSuns => '这一列已经有三个太阳了。';
+
+  @override
+  String get gameHintTangoColMoons => '这一列已经有三个月亮了。';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return '这个宫里，$digit 只能放在这里。';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return '这一行里，$digit 只能放在这里。';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return '这一列里，$digit 只能放在这里。';
+  }
+
+  @override
+  String get gameHintLatinOnly => '这里只能填一个数字。其他数字已经在它所在的行、列或宫里了。';
+
+  @override
+  String get gameHintLatinOnlyLines => '这里只能填一个数字。其他数字已经在它所在的行或列里了。';
+
+  @override
+  String get gameHintLatinOnlySigns => '算上它所在的行、列和符号，这里只能填一个数字。';
+
+  @override
+  String get gameHintNonogramRowFill => '这一行的数字不管怎么摆，都会盖住这个格子。';
+
+  @override
+  String get gameHintNonogramRowCross => '这一行的数字不管怎么摆，都碰不到这个格子。';
+
+  @override
+  String get gameHintNonogramColFill => '这一列的数字不管怎么摆，都会盖住这个格子。';
+
+  @override
+  String get gameHintNonogramColCross => '这一列的数字不管怎么摆，都碰不到这个格子。';
+
+  @override
+  String get gameHintMinesStart => '从这里开始。这个格子一定安全。';
+
+  @override
+  String get gameHintMinesSafe => '这个数字周围的雷都已经插旗了，所以周围其他格子都安全。';
+
+  @override
+  String get gameHintMinesFlag => '这个数字要求周围每个没翻开的格子都是雷。';
+
+  @override
+  String get gameHintMinesProofSafe => '这个格子周围的数字证明它是安全的。';
+
+  @override
+  String get gameHintMinesProofMine => '这个格子周围的数字证明它是雷。';
+
+  @override
+  String get gameHintFlowPipe => '这是一整条管道，从一个点连到另一个点。';
+
+  @override
   String get gameErrorGeneric => '无法连接游戏，请重试';
 
   @override

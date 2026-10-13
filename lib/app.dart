@@ -31,6 +31,7 @@ import 'calls/group_call_service.dart';
 import 'calls/incoming_call_screen.dart';
 import 'calls/incoming_group_call_screen.dart';
 import 'calls/native_call_handler.dart';
+import 'calls/phone_call_activity.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
@@ -1540,6 +1541,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       NativeCallHandler.groupCallActiveProbe = () => _groupCallService.inCall;
       // And the mirror, for the group path's mic belt (same shared module).
       NativeCallHandler.dmCallActiveProbe = () => _callService.inCall;
+      // A call of ours stops a daily game's clock, as any phone call does.
+      PhoneCallActivity.instance.attachAppCalls(
+        [_callService, _groupCallService],
+        () => _callService.inCall || _groupCallService.inCall,
+      );
       await _signaling.start(s.userId, deviceId: deviceId);
       _callStackAttached = true;
       // Fire-and-forget: reconciling stale native cards must never be

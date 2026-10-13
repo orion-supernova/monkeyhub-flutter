@@ -5579,6 +5579,128 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameErrorNoHint => 'これにはヒントがありません';
 
   @override
+  String get gameHintWrong => 'ここはまちがいだったので消したよ。';
+
+  @override
+  String get gameHintWrongMore => 'まだ直すところがあるよ。準備ができたらまた聞いてね。';
+
+  @override
+  String get gameHintWrongLast => 'ほかに置いたものは全部合ってるよ。';
+
+  @override
+  String get gameHintReveal => 'まだルールだけで決まるマスがないから、ひとつ教えるね。';
+
+  @override
+  String get gameHintQueensRegion => 'この色で王冠を置ける場所は、あと1か所だけ。';
+
+  @override
+  String get gameHintQueensRow => 'この行で王冠を置ける場所は、あと1か所だけ。';
+
+  @override
+  String get gameHintQueensCol => 'この列で王冠を置ける場所は、あと1か所だけ。';
+
+  @override
+  String get gameHintQueensRegionInRow => 'この色はこの行にしか入らないから、行のほかのマスには王冠を置けないよ。';
+
+  @override
+  String get gameHintQueensRegionInCol => 'この色はこの列にしか入らないから、列のほかのマスには王冠を置けないよ。';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'この行はひとつの色にしか空きがないから、その色のほかのマスには王冠を置けないよ。';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'この列はひとつの色にしか空きがないから、その色のほかのマスには王冠を置けないよ。';
+
+  @override
+  String get gameHintStarsRegion => 'この色には、まだ必要な星の分しか空きがないよ。';
+
+  @override
+  String get gameHintStarsRow => 'この行には、まだ必要な星の分しか空きがないよ。';
+
+  @override
+  String get gameHintStarsCol => 'この列には、まだ必要な星の分しか空きがないよ。';
+
+  @override
+  String get gameHintTangoEqual => '=の記号は、2つのマスが同じという意味。';
+
+  @override
+  String get gameHintTangoCross => '×の記号は、2つのマスが反対という意味。';
+
+  @override
+  String get gameHintTangoPair => 'となり合う2つがもう同じだから、次はもう一方になるよ。';
+
+  @override
+  String get gameHintTangoSandwich => '両どなりのマスが同じだから、真ん中はもう一方になるよ。';
+
+  @override
+  String get gameHintTangoRowSuns => 'この行にはもう太陽が3つあるよ。';
+
+  @override
+  String get gameHintTangoRowMoons => 'この行にはもう月が3つあるよ。';
+
+  @override
+  String get gameHintTangoColSuns => 'この列にはもう太陽が3つあるよ。';
+
+  @override
+  String get gameHintTangoColMoons => 'この列にはもう月が3つあるよ。';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'このブロックで$digitを置けるのはここだけ。';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'この行で$digitを置けるのはここだけ。';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'この列で$digitを置けるのはここだけ。';
+  }
+
+  @override
+  String get gameHintLatinOnly => 'ここに入る数字はひとつだけ。ほかは同じ行・列・ブロックにもうあるよ。';
+
+  @override
+  String get gameHintLatinOnlyLines => 'ここに入る数字はひとつだけ。ほかは同じ行か列にもうあるよ。';
+
+  @override
+  String get gameHintLatinOnlySigns => '行と列と記号を合わせて考えると、ここに入る数字はひとつだけ。';
+
+  @override
+  String get gameHintNonogramRowFill => 'この行の数字をどう当てはめても、このマスはぬられるよ。';
+
+  @override
+  String get gameHintNonogramRowCross => 'この行の数字をどう当てはめても、このマスには届かないよ。';
+
+  @override
+  String get gameHintNonogramColFill => 'この列の数字をどう当てはめても、このマスはぬられるよ。';
+
+  @override
+  String get gameHintNonogramColCross => 'この列の数字をどう当てはめても、このマスには届かないよ。';
+
+  @override
+  String get gameHintMinesStart => 'ここから始めよう。このマスはいつも安全だよ。';
+
+  @override
+  String get gameHintMinesSafe => 'この数字の地雷にはもう全部旗が立ってるから、まわりの残りのマスは安全だよ。';
+
+  @override
+  String get gameHintMinesFlag => 'この数字だと、まわりの隠れたマスは全部地雷になるよ。';
+
+  @override
+  String get gameHintMinesProofSafe => 'このマスのまわりの数字から、ここは安全だとわかるよ。';
+
+  @override
+  String get gameHintMinesProofMine => 'このマスのまわりの数字から、ここは地雷だとわかるよ。';
+
+  @override
+  String get gameHintFlowPipe => '点から点まで、パイプを1本まるごと見せるね。';
+
+  @override
   String get gameErrorGeneric => 'ゲームに接続できませんでした。もう一度お試しください';
 
   @override

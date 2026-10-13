@@ -5886,6 +5886,156 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gameErrorNoHint => 'Pas d\'indice pour celui-ci';
 
   @override
+  String get gameHintWrong =>
+      'Celle-ci était fausse, alors elle a été effacée.';
+
+  @override
+  String get gameHintWrongMore =>
+      'Il reste d’autres erreurs. Redemande quand tu es prêt.';
+
+  @override
+  String get gameHintWrongLast =>
+      'Tout le reste de ce que tu as placé est juste.';
+
+  @override
+  String get gameHintReveal =>
+      'Aucune règle ne fixe encore une case à elle seule, alors en voici une.';
+
+  @override
+  String get gameHintQueensRegion =>
+      'Il ne reste qu’une place pour une couronne dans cette couleur.';
+
+  @override
+  String get gameHintQueensRow =>
+      'Il ne reste qu’une place pour une couronne dans cette ligne.';
+
+  @override
+  String get gameHintQueensCol =>
+      'Il ne reste qu’une place pour une couronne dans cette colonne.';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      'Cette couleur ne tient que dans cette ligne, donc le reste de la ligne ne peut pas avoir de couronne.';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      'Cette couleur ne tient que dans cette colonne, donc le reste de la colonne ne peut pas avoir de couronne.';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'Cette ligne n’a de place que dans une couleur, donc le reste de cette couleur ne peut pas avoir de couronne.';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'Cette colonne n’a de place que dans une couleur, donc le reste de cette couleur ne peut pas avoir de couronne.';
+
+  @override
+  String get gameHintStarsRegion =>
+      'Cette couleur n’a plus de place que pour les étoiles qui lui manquent.';
+
+  @override
+  String get gameHintStarsRow =>
+      'Cette ligne n’a plus de place que pour les étoiles qui lui manquent.';
+
+  @override
+  String get gameHintStarsCol =>
+      'Cette colonne n’a plus de place que pour les étoiles qui lui manquent.';
+
+  @override
+  String get gameHintTangoEqual =>
+      'Un signe = veut dire que les deux cases sont pareilles.';
+
+  @override
+  String get gameHintTangoCross =>
+      'Un signe × veut dire que les deux cases sont l’inverse l’une de l’autre.';
+
+  @override
+  String get gameHintTangoPair =>
+      'Deux cases côte à côte sont déjà pareilles, donc la suivante doit être l’autre.';
+
+  @override
+  String get gameHintTangoSandwich =>
+      'Les cases de chaque côté sont pareilles, donc celle du milieu doit être l’autre.';
+
+  @override
+  String get gameHintTangoRowSuns => 'Cette ligne a déjà ses trois soleils.';
+
+  @override
+  String get gameHintTangoRowMoons => 'Cette ligne a déjà ses trois lunes.';
+
+  @override
+  String get gameHintTangoColSuns => 'Cette colonne a déjà ses trois soleils.';
+
+  @override
+  String get gameHintTangoColMoons => 'Cette colonne a déjà ses trois lunes.';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'C’est la seule place pour un $digit dans ce bloc.';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'C’est la seule place pour un $digit dans cette ligne.';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'C’est la seule place pour un $digit dans cette colonne.';
+  }
+
+  @override
+  String get gameHintLatinOnly =>
+      'Un seul chiffre va ici. Les autres sont déjà dans sa ligne, sa colonne ou son bloc.';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      'Un seul chiffre va ici. Les autres sont déjà dans sa ligne ou sa colonne.';
+
+  @override
+  String get gameHintLatinOnlySigns =>
+      'Un seul chiffre va ici, une fois sa ligne, sa colonne et les signes pris en compte.';
+
+  @override
+  String get gameHintNonogramRowFill =>
+      'Peu importe comment l’indice de cette ligne se place, il couvre cette case.';
+
+  @override
+  String get gameHintNonogramRowCross =>
+      'Aucune façon de placer l’indice de cette ligne n’atteint cette case.';
+
+  @override
+  String get gameHintNonogramColFill =>
+      'Peu importe comment l’indice de cette colonne se place, il couvre cette case.';
+
+  @override
+  String get gameHintNonogramColCross =>
+      'Aucune façon de placer l’indice de cette colonne n’atteint cette case.';
+
+  @override
+  String get gameHintMinesStart =>
+      'Commence ici. Cette case est toujours sûre.';
+
+  @override
+  String get gameHintMinesSafe =>
+      'Ce nombre a déjà toutes ses mines sous drapeau, donc les autres cases autour sont sûres.';
+
+  @override
+  String get gameHintMinesFlag =>
+      'Ce nombre exige que chaque case cachée autour de lui soit une mine.';
+
+  @override
+  String get gameHintMinesProofSafe =>
+      'Les nombres autour de cette case prouvent qu’elle est sûre.';
+
+  @override
+  String get gameHintMinesProofMine =>
+      'Les nombres autour de cette case prouvent que c’est une mine.';
+
+  @override
+  String get gameHintFlowPipe => 'Voici un tuyau entier, d’un point à l’autre.';
+
+  @override
   String get gameErrorGeneric => 'Impossible de joindre les jeux. Réessaie';
 
   @override

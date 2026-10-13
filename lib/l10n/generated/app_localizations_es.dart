@@ -5850,6 +5850,155 @@ class AppLocalizationsEs extends AppLocalizations {
   String get gameErrorNoHint => 'Esta no tiene pistas';
 
   @override
+  String get gameHintWrong => 'Esta estaba mal, así que se ha borrado.';
+
+  @override
+  String get gameHintWrongMore =>
+      'Hay más cosas que arreglar. Vuelve a pedir cuando quieras.';
+
+  @override
+  String get gameHintWrongLast => 'Todo lo demás que has puesto está bien.';
+
+  @override
+  String get gameHintReveal =>
+      'Ninguna regla decide una casilla por sí sola todavía, así que aquí tienes una.';
+
+  @override
+  String get gameHintQueensRegion =>
+      'Solo queda un sitio para una corona en este color.';
+
+  @override
+  String get gameHintQueensRow =>
+      'Solo queda un sitio para una corona en esta fila.';
+
+  @override
+  String get gameHintQueensCol =>
+      'Solo queda un sitio para una corona en esta columna.';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      'Este color solo cabe en esta fila, así que el resto de la fila no puede tener corona.';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      'Este color solo cabe en esta columna, así que el resto de la columna no puede tener corona.';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'Esta fila solo tiene sitio en un color, así que el resto de ese color no puede tener corona.';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'Esta columna solo tiene sitio en un color, así que el resto de ese color no puede tener corona.';
+
+  @override
+  String get gameHintStarsRegion =>
+      'A este color solo le queda sitio para las estrellas que aún necesita.';
+
+  @override
+  String get gameHintStarsRow =>
+      'A esta fila solo le queda sitio para las estrellas que aún necesita.';
+
+  @override
+  String get gameHintStarsCol =>
+      'A esta columna solo le queda sitio para las estrellas que aún necesita.';
+
+  @override
+  String get gameHintTangoEqual =>
+      'Un signo = significa que las dos casillas son iguales.';
+
+  @override
+  String get gameHintTangoCross =>
+      'Un signo × significa que las dos casillas son opuestas.';
+
+  @override
+  String get gameHintTangoPair =>
+      'Hay dos iguales seguidas, así que la siguiente tiene que ser la otra.';
+
+  @override
+  String get gameHintTangoSandwich =>
+      'Las casillas de los lados son iguales, así que la del medio tiene que ser la otra.';
+
+  @override
+  String get gameHintTangoRowSuns => 'Esta fila ya tiene sus tres soles.';
+
+  @override
+  String get gameHintTangoRowMoons => 'Esta fila ya tiene sus tres lunas.';
+
+  @override
+  String get gameHintTangoColSuns => 'Esta columna ya tiene sus tres soles.';
+
+  @override
+  String get gameHintTangoColMoons => 'Esta columna ya tiene sus tres lunas.';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'Este es el único sitio para un $digit en esta caja.';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'Este es el único sitio para un $digit en esta fila.';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'Este es el único sitio para un $digit en esta columna.';
+  }
+
+  @override
+  String get gameHintLatinOnly =>
+      'Aquí solo cabe un número. Los demás ya están en su fila, columna o caja.';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      'Aquí solo cabe un número. Los demás ya están en su fila o columna.';
+
+  @override
+  String get gameHintLatinOnlySigns =>
+      'Aquí solo cabe un número si cuentas su fila, su columna y los signos.';
+
+  @override
+  String get gameHintNonogramRowFill =>
+      'Encaje como encaje la pista de esta fila, cubre esta casilla.';
+
+  @override
+  String get gameHintNonogramRowCross =>
+      'Ninguna forma de encajar la pista de esta fila llega a esta casilla.';
+
+  @override
+  String get gameHintNonogramColFill =>
+      'Encaje como encaje la pista de esta columna, cubre esta casilla.';
+
+  @override
+  String get gameHintNonogramColCross =>
+      'Ninguna forma de encajar la pista de esta columna llega a esta casilla.';
+
+  @override
+  String get gameHintMinesStart =>
+      'Empieza aquí. Esta casilla siempre es segura.';
+
+  @override
+  String get gameHintMinesSafe =>
+      'Este número ya tiene todas sus minas con bandera, así que las demás casillas a su alrededor son seguras.';
+
+  @override
+  String get gameHintMinesFlag =>
+      'Este número necesita que todas las casillas ocultas a su alrededor sean minas.';
+
+  @override
+  String get gameHintMinesProofSafe =>
+      'Los números alrededor de esta casilla demuestran que es segura.';
+
+  @override
+  String get gameHintMinesProofMine =>
+      'Los números alrededor de esta casilla demuestran que es una mina.';
+
+  @override
+  String get gameHintFlowPipe =>
+      'Aquí tienes una tubería entera, de punto a punto.';
+
+  @override
   String get gameErrorGeneric =>
       'No se pudo conectar con los juegos. Inténtalo de nuevo';
 

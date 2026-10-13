@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../backend/games_api.dart';
+import '../calls/phone_call_activity.dart';
 import '../data/feed_store.dart';
 import '../data/games_store.dart';
 import '../models/daily_game.dart';
@@ -19,16 +21,54 @@ import '../models/daily_game.dart';
 ///
 /// ## Why the stopwatch is here rather than on the server
 ///
-/// The clock stops when the player backgrounds the app or pauses, and starts
-/// again when they come back. A purely server-measured duration would time the
-/// interruption instead of the solve — answer the door on Queens and you are
-/// last on the board for the day. The server still clamps whatever is reported
-/// to the window since `start`, so a time can never be *longer* than the player
-/// has genuinely had the puzzle in front of them; below that ceiling this is a
-/// private app between friends whose points board is already, openly,
-/// self-reported.
+/// The clock stops whenever the board is not actually in front of the player
+/// (see "When the clock stops" below), and starts again when they come back.
+/// A purely server-measured duration would time the interruption instead of
+/// the solve — answer the door on Queens and you are last on the board for the
+/// day. The server still clamps whatever is reported to the window since
+/// `start`, so a time can never be *longer* than the player has genuinely had
+/// the puzzle in front of them; below that ceiling this is a private app
+/// between friends whose points board is already, openly, self-reported. Which
+/// is also why a pause needs nothing from the server: it can only ever make
+/// the reported time shorter than the wall clock, and the ceiling never cared
+/// how much shorter.
+///
+/// ## When the clock stops
+///
+/// Three things take the board away from the player, and none of them is the
+/// player choosing to pause:
+///
+///   - **The app leaves the foreground.** `hidden` and `paused` put the pause
+///     card up at once. `inactive` — notification centre pulled down, Control
+///     Centre, a Face ID or permission sheet — stops the clock at once too,
+///     but only puts the card up if it lasts [coverAfter]: a glance at a
+///     notification should not cost a tap to get back in, while a long one
+///     must not leave a readable board behind a stopped clock.
+///   - **Something is on top of the game.** Another route pushed over it (the
+///     call screen, the give-up sheet, a standings card): same rule as
+///     `inactive`, reported by the scaffold through [setCovered].
+///   - **A call starts.** Any call, ringing or answered — the OS's or ours,
+///     via [PhoneCallActivity]. This is the one the lifecycle never sees: a
+///     call answered from iOS's compact banner, or ours answered and then
+///     minimised, leaves the app `resumed` throughout, and the clock used to
+///     time the whole conversation. The card goes up on the edge into the
+///     call, not for its whole length — a player who taps back in while still
+///     talking is playing, and is timed.
 class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
-  GamePlayController({required this.game, required this.userId});
+  GamePlayController({
+    required this.game,
+    required this.userId,
+    ValueListenable<bool>? calls,
+    @visibleForTesting DateTime Function()? now,
+  }) : _calls = calls ?? PhoneCallActivity.instance,
+       _now = now ?? DateTime.now;
+
+  /// The wall clock, swappable so a test can move time without waiting.
+  final DateTime Function() _now;
+
+  /// How long a soft interruption (an `inactive` app, a route on top) may
+  /// last before the pause card goes up over the board.
+  static const coverAfter = Duration(seconds: 2);
 
   final DailyGame game;
   final String userId;
@@ -40,6 +80,18 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   Duration _accumulated = Duration.zero;
   DateTime? _since;
   Timer? _tick;
+
+  final ValueListenable<bool> _calls;
+  bool _onCall = false;
+
+  /// The app is `resumed`. Anything else holds the clock.
+  bool _foreground = true;
+
+  /// Another route is on top of the game's own.
+  bool _covered = false;
+
+  /// Puts the pause card up once a soft interruption has lasted [coverAfter].
+  Timer? _coverTimer;
 
   bool _ready = false;
   bool _started = false;
@@ -125,11 +177,11 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   bool get shared => _shared;
 
   /// The stopwatch. Ticks only once [startClock] has run, and then only while
-  /// the board is open, in the foreground and unpaused.
+  /// the board is open, on top, in the foreground and unpaused.
   Duration get elapsed {
     final since = _since;
     if (since == null) return _accumulated;
-    return _accumulated + DateTime.now().difference(since);
+    return _accumulated + _now().difference(since);
   }
 
   /// Claims a start time and restores any half-finished board.
@@ -139,6 +191,13 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   /// backing out and coming straight back in.
   Future<void> begin() async {
     WidgetsBinding.instance.addObserver(this);
+    final state = WidgetsBinding.instance.lifecycleState;
+    _foreground = state == null || state == AppLifecycleState.resumed;
+    if (_calls == PhoneCallActivity.instance) {
+      PhoneCallActivity.instance.ensureListening();
+    }
+    _onCall = _calls.value;
+    _calls.addListener(_onCallsChanged);
     try {
       final session = await _api.start(
         userId: userId,
@@ -431,19 +490,83 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // The clock follows the app, not the screen. A player who takes a call
-    // mid-Queens should come back to the time they left, and a stopwatch that
-    // kept running in the background would be timing the call.
-    if (state == AppLifecycleState.resumed) {
-      if (!_paused && !_finished) _resume();
-    } else {
-      _hold();
+    // The clock follows the app, not just the screen: a stopwatch that kept
+    // running in the background would be timing whatever took the player away.
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _foreground = true;
+        _interruptionEnded();
+      case AppLifecycleState.inactive:
+        _foreground = false;
+        _interrupted(coverNow: false);
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _foreground = false;
+        _interrupted(coverNow: true);
     }
+  }
+
+  /// Whether another route sits on top of the game's. Reported by the
+  /// scaffold whenever its route stops or starts being the current one.
+  ///
+  /// Never notifies synchronously — the scaffold calls it from
+  /// `didChangeDependencies`, mid-build.
+  void setCovered(bool covered) {
+    if (covered == _covered) return;
+    _covered = covered;
+    if (covered) {
+      _interrupted(coverNow: false);
+    } else {
+      _interruptionEnded();
+    }
+  }
+
+  void _onCallsChanged() {
+    final now = _calls.value;
+    final rising = now && !_onCall;
+    _onCall = now;
+    if (!rising) return;
+    // Out of whatever notified us, which may be mid-build.
+    scheduleMicrotask(() {
+      if (_disposed || !_started || _finished || _finishing) return;
+      pause();
+    });
+  }
+
+  /// The board just went out of the player's reach. The clock stops now; the
+  /// card goes up now too for a hard interruption, or after [coverAfter] for
+  /// a soft one that is still going.
+  void _interrupted({required bool coverNow}) {
+    _hold();
+    if (!_started || _finished || _finishing || _paused) return;
+    if (coverNow) {
+      _coverTimer?.cancel();
+      _coverTimer = null;
+      pause();
+      return;
+    }
+    _coverTimer ??= Timer(coverAfter, () {
+      _coverTimer = null;
+      if (_disposed || _foreground && !_covered) return;
+      pause();
+    });
+  }
+
+  /// One interruption is over. The clock carries on by itself only if nothing
+  /// else is still in the way and the card never went up; once it has, the
+  /// player taps back in.
+  void _interruptionEnded() {
+    if (!_foreground || _covered) return;
+    _coverTimer?.cancel();
+    _coverTimer = null;
+    if (!_paused && !_finished) _resume();
   }
 
   void _resume() {
     if (_since != null || _finished || _finishing || !_started) return;
-    _since = DateTime.now();
+    if (!_foreground || _covered) return;
+    _since = _now();
     _tick ??= Timer.periodic(const Duration(seconds: 1), (_) {
       notifyListeners();
     });
@@ -451,7 +574,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _hold() {
     final since = _since;
-    if (since != null) _accumulated += DateTime.now().difference(since);
+    if (since != null) _accumulated += _now().difference(since);
     _since = null;
     _tick?.cancel();
     _tick = null;
@@ -524,6 +647,8 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
     _disposed = true;
     retryNow();
     WidgetsBinding.instance.removeObserver(this);
+    _calls.removeListener(_onCallsChanged);
+    _coverTimer?.cancel();
     _hold();
     super.dispose();
   }

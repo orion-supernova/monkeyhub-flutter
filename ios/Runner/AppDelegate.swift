@@ -112,6 +112,11 @@ import WebRTC
   private static let ringWatchCeiling: TimeInterval = 45
   private lazy var callObserver = CXCallObserver()
 
+  // monkeyhub/phone_call — whether any call is up on the phone (see
+  // PhoneCallActivity below). Retained for the process: the observer only
+  // calls back while something holds it.
+  private let phoneCallActivity = PhoneCallActivity()
+
   // ── Ordinary (alert) push ────────────────────────────────────────────────
   //
   // A DIFFERENT token from `cachedVoipToken`, on a different APNs topic: this
@@ -1372,6 +1377,17 @@ import WebRTC
   // Called from didFinishLaunchingWithOptions right after
   // GeneratedPluginRegistrant (which registers the third-party plugins).
   private func registerAppChannels(on engine: FlutterEngine) {
+    // monkeyhub/phone_call — any call ringing or live on this phone, ours or
+    // the carrier's. A daily game's clock stops on it.
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubPhoneCallPlugin") {
+      phoneCallActivity.attach(
+        FlutterMethodChannel(
+          name: "monkeyhub/phone_call",
+          binaryMessenger: registrar.messenger()
+        )
+      )
+    }
+
     // monkeyhub/capture — screen-capture/mirroring observation.
     if let captureRegistrar = engine.registrar(forPlugin: "MonkeyHubCapturePlugin") {
       // Method channel: returns current isCaptured state on demand.
@@ -3612,5 +3628,46 @@ enum MediaGalleryImageLoader {
     } else {
       URLSession.shared.dataTask(with: url) { data, _, _ in finish(data) }.resume()
     }
+  }
+}
+
+/// Tells Dart whether any call is up on this phone: ringing, connected or on
+/// hold, from the carrier, another VoIP app, or our own CallKit cards.
+///
+/// The only way to see a call answered from the compact incoming-call banner:
+/// the app never resigns active for it, so Flutter's lifecycle stays `resumed`
+/// through the whole conversation. Dart asks `active` once and then hears
+/// `changed(Bool)` on every edge. A separate observer from AppDelegate's own,
+/// which answers ring-watch questions and must not grow a delegate.
+final class PhoneCallActivity: NSObject, CXCallObserverDelegate {
+  private let observer = CXCallObserver()
+  private var channel: FlutterMethodChannel?
+  private var last: Bool?
+
+  private var active: Bool {
+    observer.calls.contains { !$0.hasEnded }
+  }
+
+  func attach(_ channel: FlutterMethodChannel) {
+    self.channel = channel
+    // nil: delegate callbacks on the main queue, where the channel lives.
+    observer.setDelegate(self, queue: nil)
+    channel.setMethodCallHandler { [weak self] call, result in
+      switch call.method {
+      case "active":
+        let now = self?.active ?? false
+        self?.last = now
+        result(now)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
+    let now = active
+    if now == last { return }
+    last = now
+    channel?.invokeMethod("changed", arguments: now)
   }
 }

@@ -152,7 +152,8 @@ describe("hints for a new game", () => {
       expect(h.index).toBeGreaterThanOrEqual(0);
       if (game === "minesweeper") {
         // Nothing revealed yet: the only provable move is the promised start.
-        expect(h).toEqual({ index: minesweeper.generate(DAY).start, value: 0 });
+        const start = minesweeper.generate(DAY).start;
+        expect(h).toMatchObject({ index: start, value: 0, kind: "step", cell: start });
       } else if (game === "flow") {
         // A colour, and that colour's whole pipe dot to dot.
         const ends = flow.generate(DAY).endpoints[h.index];
@@ -162,6 +163,11 @@ describe("hints for a new game", () => {
       } else {
         expect(h.value).toBe(ANSWERS[game][h.index]);
         expect(h.cells).toBeUndefined();
+        // The explained half: a forced step (or, on Star Battle's hard empty
+        // board, a labelled reveal), with the squares it is about.
+        expect(["step", "reveal"]).toContain(h.kind);
+        expect(typeof h.reason).toBe("string");
+        expect(h.area).toContain(h.cell);
       }
       expect(await hintsUsed(t, base)).toBe(1);
     });
@@ -175,9 +181,11 @@ describe("hints for a new game", () => {
     const again: any = await t.mutation(api.games.hint, { ...base, board, seq: 0 });
     expect(again).toEqual(first);
     expect(await hintsUsed(t, base)).toBe(1);
-    // The next real hint rotates to a different cell.
-    const next: any = await t.mutation(api.games.hint, { ...base, board, seq: 1 });
-    expect(next.index).not.toBe(first.index);
+    // A new hint on the board the first one changed is the next step.
+    const after = [...board];
+    after[first.cell] = first.answer;
+    const next: any = await t.mutation(api.games.hint, { ...base, board: after, seq: 1 });
+    expect(next.cell).not.toBe(first.cell);
     expect(await hintsUsed(t, base)).toBe(2);
   });
 

@@ -142,12 +142,21 @@ class GamesApi {
       'seq': seq,
     });
     final j = (res as Map).cast<String, dynamic>();
+    List<int> ints(Object? v) => [
+      for (final c in (v as List?) ?? const []) (c as num).toInt(),
+    ];
     return GameHint(
       index: (j['index'] as num?)?.toInt() ?? -1,
       value: (j['value'] as num?)?.toInt() ?? 0,
-      cells: [
-        for (final c in (j['cells'] as List?) ?? const []) (c as num).toInt(),
-      ],
+      cells: ints(j['cells']),
+      kind: GameHintKind.parse(j['kind'] as String?),
+      cell: (j['cell'] as num?)?.toInt(),
+      answer: (j['answer'] as num?)?.toInt(),
+      reason: j['reason'] as String?,
+      area: ints(j['area']),
+      cause: ints(j['cause']),
+      digit: (j['digit'] as num?)?.toInt(),
+      more: (j['more'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -297,11 +306,39 @@ class GameSession {
 }
 
 /// One revealed cell.
+/// Which of the three things a hint can be. See `backend/convex/games/hints.ts`.
+enum GameHintKind {
+  /// A square the player got wrong. The board clears it.
+  wrong,
+
+  /// The next square one rule forces, with that rule as [GameHint.reason].
+  step,
+
+  /// Nothing one rule settles: one square, labelled as a gift.
+  reveal;
+
+  /// Null for a server from before explained hints.
+  static GameHintKind? parse(String? s) {
+    for (final k in values) {
+      if (k.name == s) return k;
+    }
+    return null;
+  }
+}
+
 class GameHint {
   const GameHint({
     required this.index,
     required this.value,
     this.cells = const [],
+    this.kind,
+    this.cell,
+    this.answer,
+    this.reason,
+    this.area = const [],
+    this.cause = const [],
+    this.digit,
+    this.more = 0,
   });
 
   /// Cell to fill — or, in Queens, the ROW whose crown belongs at [value], and
@@ -316,6 +353,33 @@ class GameHint {
   /// leaves the player to find the route through it. Empty for every other
   /// game.
   final List<int> cells;
+
+  /// The explained hint. Null from a server that predates it, in which case
+  /// only [index], [value] and [cells] are set and mean what they always did.
+  final GameHintKind? kind;
+
+  /// The square the hint is about, row-major (Queens included — unlike
+  /// [index], which is a row there).
+  final int? cell;
+
+  /// What belongs in [cell], in the game's own values. A Queens or Star
+  /// Battle `0` with [cells] is a step that crosses those squares out.
+  final int? answer;
+
+  /// The rule, as a code, e.g. `queens.region` or `latin.box`.
+  final String? reason;
+
+  /// The squares the rule looks at, lit while everything else dims.
+  final List<int> area;
+
+  /// Squares already on the board that do the forcing.
+  final List<int> cause;
+
+  /// The digit a Sudoku or Futoshiki reason names.
+  final int? digit;
+
+  /// For [GameHintKind.wrong]: how many other wrong squares remain.
+  final int more;
 
   bool get isEmpty => index < 0;
 }

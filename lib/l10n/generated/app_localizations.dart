@@ -9863,6 +9863,234 @@ abstract class AppLocalizations {
   /// **'No hint for this one'**
   String get gameErrorNoHint;
 
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Shown when the hint found a wrong mark and cleared it.
+  ///
+  /// In en, this message translates to:
+  /// **'This one was wrong, so it\'s cleared.'**
+  String get gameHintWrong;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Second line after a cleared mistake when the board has more mistakes left.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s more to fix. Ask again when you\'re ready.'**
+  String get gameHintWrongMore;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Second line after a cleared mistake when it was the only one.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything else you\'ve placed is right.'**
+  String get gameHintWrongLast;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Fallback: no single deduction settles a square, so the hint just reveals one.
+  ///
+  /// In en, this message translates to:
+  /// **'No single rule settles a square yet, so here\'s one.'**
+  String get gameHintReveal;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: this colour region has only one square left that can hold a crown.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one spot left for a crown in this colour.'**
+  String get gameHintQueensRegion;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: this row has only one square left that can hold a crown.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one spot left for a crown in this row.'**
+  String get gameHintQueensRow;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: this column has only one square left that can hold a crown.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one spot left for a crown in this column.'**
+  String get gameHintQueensCol;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a colour region lies entirely in one row, so the other squares in that row are crossed out.
+  ///
+  /// In en, this message translates to:
+  /// **'This colour only fits in this row, so the rest of the row can\'t have a crown.'**
+  String get gameHintQueensRegionInRow;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a colour region lies entirely in one column, so the other squares in that column are crossed out.
+  ///
+  /// In en, this message translates to:
+  /// **'This colour only fits in this column, so the rest of the column can\'t have a crown.'**
+  String get gameHintQueensRegionInCol;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a row's free squares are all in one colour region, so the region's other squares are crossed out.
+  ///
+  /// In en, this message translates to:
+  /// **'This row only has room in one colour, so the rest of that colour can\'t have a crown.'**
+  String get gameHintQueensRowInRegion;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a column's free squares are all in one colour region, so the region's other squares are crossed out.
+  ///
+  /// In en, this message translates to:
+  /// **'This column only has room in one colour, so the rest of that colour can\'t have a crown.'**
+  String get gameHintQueensColInRegion;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Star Battle: the colour region's free squares exactly match the stars it still needs.
+  ///
+  /// In en, this message translates to:
+  /// **'This colour only has room left for the stars it still needs.'**
+  String get gameHintStarsRegion;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Star Battle: the row's free squares exactly match the stars it still needs.
+  ///
+  /// In en, this message translates to:
+  /// **'This row only has room left for the stars it still needs.'**
+  String get gameHintStarsRow;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Star Battle: the column's free squares exactly match the stars it still needs.
+  ///
+  /// In en, this message translates to:
+  /// **'This column only has room left for the stars it still needs.'**
+  String get gameHintStarsCol;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: an = sign between two squares means they hold the same symbol (sun or moon). Keep the = glyph.
+  ///
+  /// In en, this message translates to:
+  /// **'An = sign means both squares match.'**
+  String get gameHintTangoEqual;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: a × sign between two squares means they hold opposite symbols. Keep the × glyph.
+  ///
+  /// In en, this message translates to:
+  /// **'An × sign means the two squares are opposites.'**
+  String get gameHintTangoCross;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: two identical symbols side by side, so the next one must be the other symbol (no three in a row).
+  ///
+  /// In en, this message translates to:
+  /// **'Two side by side already match, so the next one has to be the other.'**
+  String get gameHintTangoPair;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the squares on both sides match, so the one between must be the other symbol.
+  ///
+  /// In en, this message translates to:
+  /// **'The squares either side match, so the middle has to be the other.'**
+  String get gameHintTangoSandwich;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the row already has its three suns, so the rest are moons.
+  ///
+  /// In en, this message translates to:
+  /// **'This row already has its three suns.'**
+  String get gameHintTangoRowSuns;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the row already has its three moons, so the rest are suns.
+  ///
+  /// In en, this message translates to:
+  /// **'This row already has its three moons.'**
+  String get gameHintTangoRowMoons;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the column already has its three suns, so the rest are moons.
+  ///
+  /// In en, this message translates to:
+  /// **'This column already has its three suns.'**
+  String get gameHintTangoColSuns;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the column already has its three moons, so the rest are suns.
+  ///
+  /// In en, this message translates to:
+  /// **'This column already has its three moons.'**
+  String get gameHintTangoColMoons;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku 6x6: the only square in this box where {digit} can go.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the only spot for a {digit} in this box.'**
+  String gameHintLatinBox(int digit);
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku or Futoshiki: the only square in this row where {digit} can go.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the only spot for a {digit} in this row.'**
+  String gameHintLatinRow(int digit);
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku or Futoshiki: the only square in this column where {digit} can go.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the only spot for a {digit} in this column.'**
+  String gameHintLatinCol(int digit);
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku: only one number fits this square; every other one is already in its row, column or box.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one number fits here. The rest are already in its row, column or box.'**
+  String get gameHintLatinOnly;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Futoshiki: only one number fits this square; every other one is already in its row or column.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one number fits here. The rest are already in its row or column.'**
+  String get gameHintLatinOnlyLines;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Futoshiki: only one number fits once the row, column and the < > signs are taken into account.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one number fits here once its row, column and signs are counted.'**
+  String get gameHintLatinOnlySigns;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: every way the row's number clue can be placed covers this square, so it is shaded.
+  ///
+  /// In en, this message translates to:
+  /// **'However this row\'s clue fits, it covers this square.'**
+  String get gameHintNonogramRowFill;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: no placement of the row's number clue reaches this square, so it is crossed out.
+  ///
+  /// In en, this message translates to:
+  /// **'No way of fitting this row\'s clue reaches this square.'**
+  String get gameHintNonogramRowCross;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: every way the column's number clue can be placed covers this square, so it is shaded.
+  ///
+  /// In en, this message translates to:
+  /// **'However this column\'s clue fits, it covers this square.'**
+  String get gameHintNonogramColFill;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: no placement of the column's number clue reaches this square, so it is crossed out.
+  ///
+  /// In en, this message translates to:
+  /// **'No way of fitting this column\'s clue reaches this square.'**
+  String get gameHintNonogramColCross;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: the first move; this square is guaranteed safe.
+  ///
+  /// In en, this message translates to:
+  /// **'Start here. This square is always safe.'**
+  String get gameHintMinesStart;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: this number's mines are all flagged, so its other neighbours are safe.
+  ///
+  /// In en, this message translates to:
+  /// **'This number already has all its mines flagged, so the rest around it are safe.'**
+  String get gameHintMinesSafe;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: this number needs every hidden neighbour to be a mine.
+  ///
+  /// In en, this message translates to:
+  /// **'This number needs every hidden square around it to be a mine.'**
+  String get gameHintMinesFlag;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: the surrounding numbers together prove this square is safe.
+  ///
+  /// In en, this message translates to:
+  /// **'The numbers around this square prove it\'s safe.'**
+  String get gameHintMinesProofSafe;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: the surrounding numbers together prove this square is a mine.
+  ///
+  /// In en, this message translates to:
+  /// **'The numbers around this square prove it\'s a mine.'**
+  String get gameHintMinesProofMine;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Flow: the hint draws one complete pipe between its two dots.
+  ///
+  /// In en, this message translates to:
+  /// **'Here\'s one whole pipe, dot to dot.'**
+  String get gameHintFlowPipe;
+
   /// Generic error when a daily-game action fails for an unrecognised reason.
   ///
   /// In en, this message translates to:

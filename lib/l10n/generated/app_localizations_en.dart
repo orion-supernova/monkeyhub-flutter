@@ -5784,6 +5784,152 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameErrorNoHint => 'No hint for this one';
 
   @override
+  String get gameHintWrong => 'This one was wrong, so it\'s cleared.';
+
+  @override
+  String get gameHintWrongMore =>
+      'There\'s more to fix. Ask again when you\'re ready.';
+
+  @override
+  String get gameHintWrongLast => 'Everything else you\'ve placed is right.';
+
+  @override
+  String get gameHintReveal =>
+      'No single rule settles a square yet, so here\'s one.';
+
+  @override
+  String get gameHintQueensRegion =>
+      'Only one spot left for a crown in this colour.';
+
+  @override
+  String get gameHintQueensRow => 'Only one spot left for a crown in this row.';
+
+  @override
+  String get gameHintQueensCol =>
+      'Only one spot left for a crown in this column.';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      'This colour only fits in this row, so the rest of the row can\'t have a crown.';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      'This colour only fits in this column, so the rest of the column can\'t have a crown.';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'This row only has room in one colour, so the rest of that colour can\'t have a crown.';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'This column only has room in one colour, so the rest of that colour can\'t have a crown.';
+
+  @override
+  String get gameHintStarsRegion =>
+      'This colour only has room left for the stars it still needs.';
+
+  @override
+  String get gameHintStarsRow =>
+      'This row only has room left for the stars it still needs.';
+
+  @override
+  String get gameHintStarsCol =>
+      'This column only has room left for the stars it still needs.';
+
+  @override
+  String get gameHintTangoEqual => 'An = sign means both squares match.';
+
+  @override
+  String get gameHintTangoCross =>
+      'An × sign means the two squares are opposites.';
+
+  @override
+  String get gameHintTangoPair =>
+      'Two side by side already match, so the next one has to be the other.';
+
+  @override
+  String get gameHintTangoSandwich =>
+      'The squares either side match, so the middle has to be the other.';
+
+  @override
+  String get gameHintTangoRowSuns => 'This row already has its three suns.';
+
+  @override
+  String get gameHintTangoRowMoons => 'This row already has its three moons.';
+
+  @override
+  String get gameHintTangoColSuns => 'This column already has its three suns.';
+
+  @override
+  String get gameHintTangoColMoons =>
+      'This column already has its three moons.';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'This is the only spot for a $digit in this box.';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'This is the only spot for a $digit in this row.';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'This is the only spot for a $digit in this column.';
+  }
+
+  @override
+  String get gameHintLatinOnly =>
+      'Only one number fits here. The rest are already in its row, column or box.';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      'Only one number fits here. The rest are already in its row or column.';
+
+  @override
+  String get gameHintLatinOnlySigns =>
+      'Only one number fits here once its row, column and signs are counted.';
+
+  @override
+  String get gameHintNonogramRowFill =>
+      'However this row\'s clue fits, it covers this square.';
+
+  @override
+  String get gameHintNonogramRowCross =>
+      'No way of fitting this row\'s clue reaches this square.';
+
+  @override
+  String get gameHintNonogramColFill =>
+      'However this column\'s clue fits, it covers this square.';
+
+  @override
+  String get gameHintNonogramColCross =>
+      'No way of fitting this column\'s clue reaches this square.';
+
+  @override
+  String get gameHintMinesStart => 'Start here. This square is always safe.';
+
+  @override
+  String get gameHintMinesSafe =>
+      'This number already has all its mines flagged, so the rest around it are safe.';
+
+  @override
+  String get gameHintMinesFlag =>
+      'This number needs every hidden square around it to be a mine.';
+
+  @override
+  String get gameHintMinesProofSafe =>
+      'The numbers around this square prove it\'s safe.';
+
+  @override
+  String get gameHintMinesProofMine =>
+      'The numbers around this square prove it\'s a mine.';
+
+  @override
+  String get gameHintFlowPipe => 'Here\'s one whole pipe, dot to dot.';
+
+  @override
   String get gameErrorGeneric => 'Couldn\'t reach the games. Try again';
 
   @override

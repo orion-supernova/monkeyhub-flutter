@@ -7,6 +7,7 @@ import '../../games/flow_board_art.dart';
 import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
+import '../../games/hint_spotlight.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../theme/theme_scope.dart';
@@ -64,6 +65,10 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
 
   /// One entry per stroke: the whole board before it.
   final List<List<List<int>>> _undo = [];
+
+  /// The hint on show, until the player's next move or a tap on its banner.
+  BoardHint? _spot;
+  int _hintSerial = 0;
 
   FlowBoard get _board => GamesStore.instance.boards.flow;
 
@@ -176,6 +181,7 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
   ];
 
   void _dragStart() {
+    if (_spot != null) setState(() => _spot = null);
     _active = null;
     _before = null;
     _refused = false;
@@ -292,13 +298,17 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
     setState(() {
       _undo.add(_copy(_pipes));
       _pipes[k] = [];
+      _spot = null;
     });
     HapticFeedback.selectionClick();
   }
 
   void _undoLast() {
     if (_undo.isEmpty || _play.finished) return;
-    setState(() => _pipes = _undo.removeLast());
+    setState(() {
+      _pipes = _undo.removeLast();
+      _spot = null;
+    });
     HapticFeedback.selectionClick();
   }
 
@@ -307,6 +317,7 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
     setState(() {
       _undo.add(_copy(_pipes));
       _pipes = [for (final _ in _board.endpoints) <int>[]];
+      _spot = null;
     });
     HapticFeedback.mediumImpact();
   }
@@ -334,6 +345,13 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
         if (cut >= 0) _pipes[j] = _pipes[j].sublist(0, cut);
       }
       _pipes[k] = List<int>.of(hint.cells);
+      // The pipe itself is lit; no square in it needs a ring.
+      _spot = BoardHint(
+        hint: hint,
+        serial: ++_hintSerial,
+        target: const {},
+        area: hint.cells.toSet(),
+      );
     });
     HapticFeedback.mediumImpact();
     _maybeFinish();
@@ -343,7 +361,10 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
     if (!await confirmGiveUp(context)) return;
     final answer = await _play.reveal();
     if (answer == null || !mounted) return;
-    setState(() => _pipes = flowPipesOf(_board, answer));
+    setState(() {
+      _pipes = flowPipesOf(_board, answer);
+      _spot = null;
+    });
   }
 
   Future<void> _maybeFinish() async {
@@ -366,24 +387,32 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
       viewerId: widget.userId,
       title: l10n.gameFlowName,
       rule: l10n.gameFlowRule,
-      board: AnimatedBuilder(
-        animation: _winSweep,
-        builder: (context, _) => GameBoardSurface(
-          n: board.size,
-          onDragStart: _dragStart,
-          onDragTo: _dragTo,
-          onDragEnd: _dragEnd,
-          claimsDrag: _play.ready && !_play.finished && !_play.paused,
-          onTapCell: _tap,
-          painter: FlowBoardPainter(
-            board: board,
-            theme: theme,
-            palette: GamePalette(theme),
-            // A fresh outer list per build: the pipes are edited in place, and
-            // the painter decides whether to repaint by identity.
-            pipes: _play.paused ? const [] : [..._pipes],
-            active: _active,
-            win: _winSweep.value,
+      hintBanner: HintBanner(
+        hint: _play.paused ? null : _spot,
+        onDismiss: () => setState(() => _spot = null),
+      ),
+      board: HintSpotlight(
+        hint: _play.paused || _play.finished ? null : _spot,
+        n: board.size,
+        child: AnimatedBuilder(
+          animation: _winSweep,
+          builder: (context, _) => GameBoardSurface(
+            n: board.size,
+            onDragStart: _dragStart,
+            onDragTo: _dragTo,
+            onDragEnd: _dragEnd,
+            claimsDrag: _play.ready && !_play.finished && !_play.paused,
+            onTapCell: _tap,
+            painter: FlowBoardPainter(
+              board: board,
+              theme: theme,
+              palette: GamePalette(theme),
+              // A fresh outer list per build: the pipes are edited in place, and
+              // the painter decides whether to repaint by identity.
+              pipes: _play.paused ? const [] : [..._pipes],
+              active: _active,
+              win: _winSweep.value,
+            ),
           ),
         ),
       ),

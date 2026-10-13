@@ -4,10 +4,12 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../backend/games_api.dart';
 import '../../data/games_store.dart';
 import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
+import '../../games/hint_spotlight.dart';
 import '../../games/tango_board_art.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
@@ -51,6 +53,10 @@ class _TangoScreenState extends State<TangoScreen>
   List<int> _cells = const [];
   final List<(int, int)> _undo = [];
   int? _popCell;
+
+  /// The hint on show, until the player's next move or a tap on its banner.
+  BoardHint? _spot;
+  int _hintSerial = 0;
 
   /// Whether a contradiction has already been counted against this square.
   ///
@@ -151,6 +157,7 @@ class _TangoScreenState extends State<TangoScreen>
       _popCell = index;
       _counted.remove(index);
       _pending = next == tangoEmpty ? null : index;
+      _spot = null;
     });
     _pop.forward(from: 0);
     HapticFeedback.selectionClick();
@@ -202,6 +209,7 @@ class _TangoScreenState extends State<TangoScreen>
       _cells[index] = value;
       _popCell = null;
       _counted.remove(index);
+      _spot = null;
     });
     HapticFeedback.selectionClick();
   }
@@ -211,10 +219,19 @@ class _TangoScreenState extends State<TangoScreen>
     final hint = await _play.hint(_cells);
     if (hint == null || !mounted) return;
     _forgetPending();
+    final cell = hint.cell ?? hint.index;
+    if (cell < 0 || cell >= _cells.length) return;
     setState(() {
-      _cells[hint.index] = hint.value;
-      _popCell = hint.index;
-      _counted.remove(hint.index);
+      _counted.remove(cell);
+      if (hint.kind == GameHintKind.wrong) {
+        // The square goes back to blank; the ring and the banner say why.
+        _cells[cell] = tangoEmpty;
+        _popCell = null;
+      } else {
+        _cells[cell] = hint.answer ?? hint.value;
+        _popCell = cell;
+      }
+      _spot = BoardHint.of(hint, serial: ++_hintSerial, target: {cell});
     });
     _pop.forward(from: 0);
     _maybeFinish();
@@ -225,7 +242,10 @@ class _TangoScreenState extends State<TangoScreen>
     final answer = await _play.reveal();
     if (answer == null || !mounted) return;
     _forgetPending();
-    setState(() => _cells = answer);
+    setState(() {
+      _cells = answer;
+      _spot = null;
+    });
   }
 
   Future<void> _maybeFinish() async {
@@ -253,21 +273,29 @@ class _TangoScreenState extends State<TangoScreen>
       viewerId: widget.userId,
       title: l10n.gameTangoName,
       rule: l10n.gameTangoRule,
-      board: AnimatedBuilder(
-        animation: Listenable.merge([_pop, _winSweep]),
-        builder: (context, _) => GameBoardSurface(
-          onTapCell: _tap,
-          n: board.size,
-          painter: TangoBoardPainter(
-            board: board,
-            theme: theme,
-            cells: _play.paused ? const [] : _cells,
-            trouble: _play.paused
-                ? const TangoTrouble(cells: <int>{}, signs: <int>{})
-                : _visibleTrouble(board),
-            popCell: _popCell,
-            pop: _pop.value,
-            win: _winSweep.value,
+      hintBanner: HintBanner(
+        hint: _play.paused ? null : _spot,
+        onDismiss: () => setState(() => _spot = null),
+      ),
+      board: HintSpotlight(
+        hint: _play.paused || _play.finished ? null : _spot,
+        n: board.size,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_pop, _winSweep]),
+          builder: (context, _) => GameBoardSurface(
+            onTapCell: _tap,
+            n: board.size,
+            painter: TangoBoardPainter(
+              board: board,
+              theme: theme,
+              cells: _play.paused ? const [] : _cells,
+              trouble: _play.paused
+                  ? const TangoTrouble(cells: <int>{}, signs: <int>{})
+                  : _visibleTrouble(board),
+              popCell: _popCell,
+              pop: _pop.value,
+              win: _winSweep.value,
+            ),
           ),
         ),
       ),

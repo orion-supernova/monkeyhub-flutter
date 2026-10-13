@@ -5769,6 +5769,150 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gameErrorNoHint => 'Bunda ipucu yok';
 
   @override
+  String get gameHintWrong => 'Bu yanlıştı, o yüzden silindi.';
+
+  @override
+  String get gameHintWrongMore =>
+      'Düzeltilecek başka şeyler de var. Hazır olunca yine sor.';
+
+  @override
+  String get gameHintWrongLast => 'Yerleştirdiğin diğer her şey doğru.';
+
+  @override
+  String get gameHintReveal =>
+      'Henüz hiçbir kural tek başına bir kareyi kesinleştirmiyor, o yüzden işte bir tane.';
+
+  @override
+  String get gameHintQueensRegion => 'Bu renkte taç için tek bir yer kaldı.';
+
+  @override
+  String get gameHintQueensRow => 'Bu satırda taç için tek bir yer kaldı.';
+
+  @override
+  String get gameHintQueensCol => 'Bu sütunda taç için tek bir yer kaldı.';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      'Bu renk sadece bu satıra sığıyor, yani satırın geri kalanına taç gelemez.';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      'Bu renk sadece bu sütuna sığıyor, yani sütunun geri kalanına taç gelemez.';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'Bu satırda sadece tek bir renkte yer var, yani o rengin geri kalanına taç gelemez.';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'Bu sütunda sadece tek bir renkte yer var, yani o rengin geri kalanına taç gelemez.';
+
+  @override
+  String get gameHintStarsRegion =>
+      'Bu renkte sadece hâlâ gereken yıldızlar kadar yer kaldı.';
+
+  @override
+  String get gameHintStarsRow =>
+      'Bu satırda sadece hâlâ gereken yıldızlar kadar yer kaldı.';
+
+  @override
+  String get gameHintStarsCol =>
+      'Bu sütunda sadece hâlâ gereken yıldızlar kadar yer kaldı.';
+
+  @override
+  String get gameHintTangoEqual =>
+      '= işareti iki karenin aynı olduğunu gösterir.';
+
+  @override
+  String get gameHintTangoCross =>
+      '× işareti iki karenin birbirinin tersi olduğunu gösterir.';
+
+  @override
+  String get gameHintTangoPair =>
+      'Yan yana iki kare zaten aynı, o yüzden sıradaki diğeri olmalı.';
+
+  @override
+  String get gameHintTangoSandwich =>
+      'İki yandaki kareler aynı, o yüzden ortadaki diğeri olmalı.';
+
+  @override
+  String get gameHintTangoRowSuns => 'Bu satırda zaten üç güneş var.';
+
+  @override
+  String get gameHintTangoRowMoons => 'Bu satırda zaten üç ay var.';
+
+  @override
+  String get gameHintTangoColSuns => 'Bu sütunda zaten üç güneş var.';
+
+  @override
+  String get gameHintTangoColMoons => 'Bu sütunda zaten üç ay var.';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'Bu kutuda $digit için tek yer burası.';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'Bu satırda $digit için tek yer burası.';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'Bu sütunda $digit için tek yer burası.';
+  }
+
+  @override
+  String get gameHintLatinOnly =>
+      'Buraya tek bir sayı uyuyor. Diğerleri zaten satırında, sütununda ya da kutusunda var.';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      'Buraya tek bir sayı uyuyor. Diğerleri zaten satırında ya da sütununda var.';
+
+  @override
+  String get gameHintLatinOnlySigns =>
+      'Satırı, sütunu ve işaretleri hesaba katınca buraya tek bir sayı uyuyor.';
+
+  @override
+  String get gameHintNonogramRowFill =>
+      'Bu satırın ipucu nasıl yerleşirse yerleşsin, bu kareyi kaplıyor.';
+
+  @override
+  String get gameHintNonogramRowCross =>
+      'Bu satırın ipucu hiçbir şekilde bu kareye ulaşmıyor.';
+
+  @override
+  String get gameHintNonogramColFill =>
+      'Bu sütunun ipucu nasıl yerleşirse yerleşsin, bu kareyi kaplıyor.';
+
+  @override
+  String get gameHintNonogramColCross =>
+      'Bu sütunun ipucu hiçbir şekilde bu kareye ulaşmıyor.';
+
+  @override
+  String get gameHintMinesStart => 'Buradan başla. Bu kare her zaman güvenli.';
+
+  @override
+  String get gameHintMinesSafe =>
+      'Bu sayının bütün mayınları zaten bayraklı, yani etrafındaki diğer kareler güvenli.';
+
+  @override
+  String get gameHintMinesFlag =>
+      'Bu sayı, etrafındaki her gizli karenin mayın olmasını gerektiriyor.';
+
+  @override
+  String get gameHintMinesProofSafe =>
+      'Bu karenin etrafındaki sayılar güvenli olduğunu kanıtlıyor.';
+
+  @override
+  String get gameHintMinesProofMine =>
+      'Bu karenin etrafındaki sayılar mayın olduğunu kanıtlıyor.';
+
+  @override
+  String get gameHintFlowPipe => 'İşte noktadan noktaya bütün bir boru.';
+
+  @override
   String get gameErrorGeneric => 'Oyunlara ulaşılamadı. Tekrar dene';
 
   @override

@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../backend/games_api.dart';
 import '../../data/games_store.dart';
 import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
+import '../../games/hint_spotlight.dart';
 import '../../games/queens_board_art.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
@@ -48,6 +50,10 @@ class _QueensScreenState extends State<QueensScreen>
   List<QueensMark> _marks = const [];
   final List<(int, QueensMark)> _undo = [];
   int? _popCell;
+
+  /// The hint on show, until the player's next move or a tap on its banner.
+  BoardHint? _spot;
+  int _hintSerial = 0;
 
   /// Whether the board crosses out the squares a placed crown rules out.
   ///
@@ -131,6 +137,7 @@ class _QueensScreenState extends State<QueensScreen>
       _undo.add((index, before));
       _marks[index] = next;
       _popCell = index;
+      _spot = null;
     });
     _pop.forward(from: 0);
     HapticFeedback.selectionClick();
@@ -154,26 +161,55 @@ class _QueensScreenState extends State<QueensScreen>
     setState(() {
       _marks[index] = mark;
       _popCell = null;
+      _spot = null;
     });
     HapticFeedback.selectionClick();
   }
 
   Future<void> _hint() async {
     final board = GamesStore.instance.boards.queens;
-    // Queens' hint speaks in rows: the answer is a column per row, so the reply
-    // is "row N's crown belongs in column M". -1 marks a row the player has not
-    // settled on one crown for.
-    final current = queensSolution(board, _marks) ??
-        List<int>.filled(board.size, -1);
-    final hint = await _play.hint(current);
+    final n = board.size;
+    // Every mark, crosses included: a cross over the square a crown belongs
+    // in is exactly the mistake a stuck player cannot see, and the hint has
+    // to be able to point at it.
+    final hint = await _play.hint([for (final m in _marks) m.index]);
     if (hint == null || !mounted) return;
+    final total = n * n;
     setState(() {
-      for (var c = 0; c < board.size; c++) {
-        final cell = hint.index * board.size + c;
-        _marks[cell] = c == hint.value ? QueensMark.crown : QueensMark.blocked;
-      }
-      _popCell = hint.index * board.size + hint.value;
       _undo.clear();
+      final cell = hint.cell;
+      if (hint.kind == null || cell == null || cell < 0 || cell >= total) {
+        // A server from before explained hints: row [index]'s crown is at
+        // column [value].
+        final at = hint.index * n + hint.value;
+        if (at < 0 || at >= total) return;
+        _marks[at] = QueensMark.crown;
+        _popCell = at;
+        _spot = BoardHint(hint: hint, serial: ++_hintSerial, target: {at});
+        return;
+      }
+      if (hint.kind == GameHintKind.wrong) {
+        _marks[cell] = QueensMark.none;
+        _popCell = null;
+        _spot = BoardHint.of(hint, serial: ++_hintSerial);
+        return;
+      }
+      if (hint.answer == 0 && hint.cells.isNotEmpty) {
+        // A step that rules squares out: cross every one of them.
+        final crossed = {
+          for (final c in hint.cells)
+            if (c >= 0 && c < total) c,
+        };
+        for (final c in crossed) {
+          if (_marks[c] == QueensMark.none) _marks[c] = QueensMark.blocked;
+        }
+        _popCell = null;
+        _spot = BoardHint.of(hint, serial: ++_hintSerial, target: crossed);
+        return;
+      }
+      _marks[cell] = QueensMark.crown;
+      _popCell = cell;
+      _spot = BoardHint.of(hint, serial: ++_hintSerial);
     });
     _pop.forward(from: 0);
     _maybeFinish();
@@ -185,6 +221,7 @@ class _QueensScreenState extends State<QueensScreen>
     if (answer == null || !mounted) return;
     final board = GamesStore.instance.boards.queens;
     setState(() {
+      _spot = null;
       _marks = List<QueensMark>.filled(board.size * board.size, QueensMark.none);
       for (var row = 0; row < answer.length; row++) {
         _marks[row * board.size + answer[row]] = QueensMark.crown;
@@ -220,23 +257,31 @@ class _QueensScreenState extends State<QueensScreen>
       viewerId: widget.userId,
       title: l10n.gameQueensName,
       rule: l10n.gameQueensRule,
-      board: AnimatedBuilder(
-        animation: Listenable.merge([_pop, _winSweep]),
-        builder: (context, _) => GameBoardSurface(
-          onTapCell: _tap,
-          n: board.size,
-          painter: QueensBoardPainter(
-            board: board,
-            theme: theme,
-            palette: GamePalette(theme),
-            marks: _play.paused ? const [] : _marks,
-            conflicts: conflicts,
-            autoBlocked: _autoCross && !_play.paused
-                ? queensBlocked(board, _marks)
-                : const {},
-            popCell: _popCell,
-            pop: _pop.value,
-            win: _winSweep.value,
+      hintBanner: HintBanner(
+        hint: _play.paused ? null : _spot,
+        onDismiss: () => setState(() => _spot = null),
+      ),
+      board: HintSpotlight(
+        hint: _play.paused || _play.finished ? null : _spot,
+        n: board.size,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_pop, _winSweep]),
+          builder: (context, _) => GameBoardSurface(
+            onTapCell: _tap,
+            n: board.size,
+            painter: QueensBoardPainter(
+              board: board,
+              theme: theme,
+              palette: GamePalette(theme),
+              marks: _play.paused ? const [] : _marks,
+              conflicts: conflicts,
+              autoBlocked: _autoCross && !_play.paused
+                  ? queensBlocked(board, _marks)
+                  : const {},
+              popCell: _popCell,
+              pop: _pop.value,
+              win: _winSweep.value,
+            ),
           ),
         ),
       ),

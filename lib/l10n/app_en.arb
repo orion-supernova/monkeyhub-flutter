@@ -6561,6 +6561,173 @@
   "@gameErrorNoHint": {
     "description": "Error shown when a hint is asked for on a board that has none. Zip is the case: any line covering every square in order wins, so there is no single next-correct move to point at."
   },
+  "gameHintWrong": "This one was wrong, so it's cleared.",
+  "@gameHintWrong": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Shown when the hint found a wrong mark and cleared it."
+  },
+  "gameHintWrongMore": "There's more to fix. Ask again when you're ready.",
+  "@gameHintWrongMore": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Second line after a cleared mistake when the board has more mistakes left."
+  },
+  "gameHintWrongLast": "Everything else you've placed is right.",
+  "@gameHintWrongLast": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Second line after a cleared mistake when it was the only one."
+  },
+  "gameHintReveal": "No single rule settles a square yet, so here's one.",
+  "@gameHintReveal": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Fallback: no single deduction settles a square, so the hint just reveals one."
+  },
+  "gameHintQueensRegion": "Only one spot left for a crown in this colour.",
+  "@gameHintQueensRegion": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: this colour region has only one square left that can hold a crown."
+  },
+  "gameHintQueensRow": "Only one spot left for a crown in this row.",
+  "@gameHintQueensRow": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: this row has only one square left that can hold a crown."
+  },
+  "gameHintQueensCol": "Only one spot left for a crown in this column.",
+  "@gameHintQueensCol": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: this column has only one square left that can hold a crown."
+  },
+  "gameHintQueensRegionInRow": "This colour only fits in this row, so the rest of the row can't have a crown.",
+  "@gameHintQueensRegionInRow": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a colour region lies entirely in one row, so the other squares in that row are crossed out."
+  },
+  "gameHintQueensRegionInCol": "This colour only fits in this column, so the rest of the column can't have a crown.",
+  "@gameHintQueensRegionInCol": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a colour region lies entirely in one column, so the other squares in that column are crossed out."
+  },
+  "gameHintQueensRowInRegion": "This row only has room in one colour, so the rest of that colour can't have a crown.",
+  "@gameHintQueensRowInRegion": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a row's free squares are all in one colour region, so the region's other squares are crossed out."
+  },
+  "gameHintQueensColInRegion": "This column only has room in one colour, so the rest of that colour can't have a crown.",
+  "@gameHintQueensColInRegion": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Queens: a column's free squares are all in one colour region, so the region's other squares are crossed out."
+  },
+  "gameHintStarsRegion": "This colour only has room left for the stars it still needs.",
+  "@gameHintStarsRegion": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Star Battle: the colour region's free squares exactly match the stars it still needs."
+  },
+  "gameHintStarsRow": "This row only has room left for the stars it still needs.",
+  "@gameHintStarsRow": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Star Battle: the row's free squares exactly match the stars it still needs."
+  },
+  "gameHintStarsCol": "This column only has room left for the stars it still needs.",
+  "@gameHintStarsCol": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Star Battle: the column's free squares exactly match the stars it still needs."
+  },
+  "gameHintTangoEqual": "An = sign means both squares match.",
+  "@gameHintTangoEqual": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: an = sign between two squares means they hold the same symbol (sun or moon). Keep the = glyph."
+  },
+  "gameHintTangoCross": "An × sign means the two squares are opposites.",
+  "@gameHintTangoCross": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: a × sign between two squares means they hold opposite symbols. Keep the × glyph."
+  },
+  "gameHintTangoPair": "Two side by side already match, so the next one has to be the other.",
+  "@gameHintTangoPair": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: two identical symbols side by side, so the next one must be the other symbol (no three in a row)."
+  },
+  "gameHintTangoSandwich": "The squares either side match, so the middle has to be the other.",
+  "@gameHintTangoSandwich": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the squares on both sides match, so the one between must be the other symbol."
+  },
+  "gameHintTangoRowSuns": "This row already has its three suns.",
+  "@gameHintTangoRowSuns": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the row already has its three suns, so the rest are moons."
+  },
+  "gameHintTangoRowMoons": "This row already has its three moons.",
+  "@gameHintTangoRowMoons": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the row already has its three moons, so the rest are suns."
+  },
+  "gameHintTangoColSuns": "This column already has its three suns.",
+  "@gameHintTangoColSuns": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the column already has its three suns, so the rest are moons."
+  },
+  "gameHintTangoColMoons": "This column already has its three moons.",
+  "@gameHintTangoColMoons": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Tango: the column already has its three moons, so the rest are suns."
+  },
+  "gameHintLatinBox": "This is the only spot for a {digit} in this box.",
+  "@gameHintLatinBox": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku 6x6: the only square in this box where {digit} can go.",
+    "placeholders": {
+      "digit": {
+        "type": "int"
+      }
+    }
+  },
+  "gameHintLatinRow": "This is the only spot for a {digit} in this row.",
+  "@gameHintLatinRow": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku or Futoshiki: the only square in this row where {digit} can go.",
+    "placeholders": {
+      "digit": {
+        "type": "int"
+      }
+    }
+  },
+  "gameHintLatinCol": "This is the only spot for a {digit} in this column.",
+  "@gameHintLatinCol": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku or Futoshiki: the only square in this column where {digit} can go.",
+    "placeholders": {
+      "digit": {
+        "type": "int"
+      }
+    }
+  },
+  "gameHintLatinOnly": "Only one number fits here. The rest are already in its row, column or box.",
+  "@gameHintLatinOnly": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Sudoku: only one number fits this square; every other one is already in its row, column or box."
+  },
+  "gameHintLatinOnlyLines": "Only one number fits here. The rest are already in its row or column.",
+  "@gameHintLatinOnlyLines": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Futoshiki: only one number fits this square; every other one is already in its row or column."
+  },
+  "gameHintLatinOnlySigns": "Only one number fits here once its row, column and signs are counted.",
+  "@gameHintLatinOnlySigns": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Futoshiki: only one number fits once the row, column and the < > signs are taken into account."
+  },
+  "gameHintNonogramRowFill": "However this row's clue fits, it covers this square.",
+  "@gameHintNonogramRowFill": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: every way the row's number clue can be placed covers this square, so it is shaded."
+  },
+  "gameHintNonogramRowCross": "No way of fitting this row's clue reaches this square.",
+  "@gameHintNonogramRowCross": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: no placement of the row's number clue reaches this square, so it is crossed out."
+  },
+  "gameHintNonogramColFill": "However this column's clue fits, it covers this square.",
+  "@gameHintNonogramColFill": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: every way the column's number clue can be placed covers this square, so it is shaded."
+  },
+  "gameHintNonogramColCross": "No way of fitting this column's clue reaches this square.",
+  "@gameHintNonogramColCross": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Nonogram: no placement of the column's number clue reaches this square, so it is crossed out."
+  },
+  "gameHintMinesStart": "Start here. This square is always safe.",
+  "@gameHintMinesStart": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: the first move; this square is guaranteed safe."
+  },
+  "gameHintMinesSafe": "This number already has all its mines flagged, so the rest around it are safe.",
+  "@gameHintMinesSafe": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: this number's mines are all flagged, so its other neighbours are safe."
+  },
+  "gameHintMinesFlag": "This number needs every hidden square around it to be a mine.",
+  "@gameHintMinesFlag": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: this number needs every hidden neighbour to be a mine."
+  },
+  "gameHintMinesProofSafe": "The numbers around this square prove it's safe.",
+  "@gameHintMinesProofSafe": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: the surrounding numbers together prove this square is safe."
+  },
+  "gameHintMinesProofMine": "The numbers around this square prove it's a mine.",
+  "@gameHintMinesProofMine": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Minesweeper: the surrounding numbers together prove this square is a mine."
+  },
+  "gameHintFlowPipe": "Here's one whole pipe, dot to dot.",
+  "@gameHintFlowPipe": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Flow: the hint draws one complete pipe between its two dots."
+  },
   "gameErrorGeneric": "Couldn't reach the games. Try again",
   "@gameErrorGeneric": {
     "description": "Generic error when a daily-game action fails for an unrecognised reason."

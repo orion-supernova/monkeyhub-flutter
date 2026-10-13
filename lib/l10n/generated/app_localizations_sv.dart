@@ -5821,6 +5821,155 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameErrorNoHint => 'Ingen ledtråd för den här';
 
   @override
+  String get gameHintWrong => 'Den här var fel, så den är borttagen.';
+
+  @override
+  String get gameHintWrongMore =>
+      'Det finns mer att rätta. Fråga igen när du är redo.';
+
+  @override
+  String get gameHintWrongLast => 'Allt annat du har lagt ut stämmer.';
+
+  @override
+  String get gameHintReveal =>
+      'Ingen enskild regel avgör någon ruta än, så här får du en.';
+
+  @override
+  String get gameHintQueensRegion =>
+      'Bara en plats kvar för en krona i den här färgen.';
+
+  @override
+  String get gameHintQueensRow =>
+      'Bara en plats kvar för en krona i den här raden.';
+
+  @override
+  String get gameHintQueensCol =>
+      'Bara en plats kvar för en krona i den här kolumnen.';
+
+  @override
+  String get gameHintQueensRegionInRow =>
+      'Den här färgen får bara plats i den här raden, så resten av raden kan inte ha någon krona.';
+
+  @override
+  String get gameHintQueensRegionInCol =>
+      'Den här färgen får bara plats i den här kolumnen, så resten av kolumnen kan inte ha någon krona.';
+
+  @override
+  String get gameHintQueensRowInRegion =>
+      'Den här raden har bara plats i en färg, så resten av den färgen kan inte ha någon krona.';
+
+  @override
+  String get gameHintQueensColInRegion =>
+      'Den här kolumnen har bara plats i en färg, så resten av den färgen kan inte ha någon krona.';
+
+  @override
+  String get gameHintStarsRegion =>
+      'Den här färgen har bara plats kvar för stjärnorna den fortfarande behöver.';
+
+  @override
+  String get gameHintStarsRow =>
+      'Den här raden har bara plats kvar för stjärnorna den fortfarande behöver.';
+
+  @override
+  String get gameHintStarsCol =>
+      'Den här kolumnen har bara plats kvar för stjärnorna den fortfarande behöver.';
+
+  @override
+  String get gameHintTangoEqual =>
+      'Ett =-tecken betyder att båda rutorna är lika.';
+
+  @override
+  String get gameHintTangoCross =>
+      'Ett ×-tecken betyder att de två rutorna är motsatser.';
+
+  @override
+  String get gameHintTangoPair =>
+      'Två bredvid varandra är redan lika, så nästa måste bli den andra.';
+
+  @override
+  String get gameHintTangoSandwich =>
+      'Rutorna på båda sidor är lika, så den i mitten måste bli den andra.';
+
+  @override
+  String get gameHintTangoRowSuns => 'Den här raden har redan sina tre solar.';
+
+  @override
+  String get gameHintTangoRowMoons => 'Den här raden har redan sina tre månar.';
+
+  @override
+  String get gameHintTangoColSuns =>
+      'Den här kolumnen har redan sina tre solar.';
+
+  @override
+  String get gameHintTangoColMoons =>
+      'Den här kolumnen har redan sina tre månar.';
+
+  @override
+  String gameHintLatinBox(int digit) {
+    return 'Det här är enda platsen för siffran $digit i den här lådan.';
+  }
+
+  @override
+  String gameHintLatinRow(int digit) {
+    return 'Det här är enda platsen för siffran $digit i den här raden.';
+  }
+
+  @override
+  String gameHintLatinCol(int digit) {
+    return 'Det här är enda platsen för siffran $digit i den här kolumnen.';
+  }
+
+  @override
+  String get gameHintLatinOnly =>
+      'Bara en siffra passar här. Resten finns redan i dess rad, kolumn eller låda.';
+
+  @override
+  String get gameHintLatinOnlyLines =>
+      'Bara en siffra passar här. Resten finns redan i dess rad eller kolumn.';
+
+  @override
+  String get gameHintLatinOnlySigns =>
+      'Bara en siffra passar här när raden, kolumnen och tecknen räknas in.';
+
+  @override
+  String get gameHintNonogramRowFill =>
+      'Hur radens ledtråd än läggs täcker den den här rutan.';
+
+  @override
+  String get gameHintNonogramRowCross =>
+      'Inget sätt att lägga radens ledtråd når den här rutan.';
+
+  @override
+  String get gameHintNonogramColFill =>
+      'Hur kolumnens ledtråd än läggs täcker den den här rutan.';
+
+  @override
+  String get gameHintNonogramColCross =>
+      'Inget sätt att lägga kolumnens ledtråd når den här rutan.';
+
+  @override
+  String get gameHintMinesStart => 'Börja här. Den här rutan är alltid säker.';
+
+  @override
+  String get gameHintMinesSafe =>
+      'Den här siffran har redan alla sina minor flaggade, så resten runt den är säkra.';
+
+  @override
+  String get gameHintMinesFlag =>
+      'Den här siffran kräver att varje dold ruta runt den är en mina.';
+
+  @override
+  String get gameHintMinesProofSafe =>
+      'Siffrorna runt den här rutan bevisar att den är säker.';
+
+  @override
+  String get gameHintMinesProofMine =>
+      'Siffrorna runt den här rutan bevisar att den är en mina.';
+
+  @override
+  String get gameHintFlowPipe => 'Här är ett helt rör, prick till prick.';
+
+  @override
   String get gameErrorGeneric => 'Kunde inte nå spelen. Försök igen';
 
   @override

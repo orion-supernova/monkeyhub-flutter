@@ -2,11 +2,13 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../backend/games_api.dart';
 import '../../data/games_store.dart';
 import '../../games/futoshiki_board_art.dart';
 import '../../games/game_canvas.dart';
 import '../../games/game_play_controller.dart';
 import '../../games/game_rules.dart';
+import '../../games/hint_spotlight.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../theme/theme_scope.dart';
@@ -52,6 +54,10 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
   final Set<int> _counted = {};
   int? _selected;
   int? _popCell;
+
+  /// The hint on show, until the player's next move or a tap on its banner.
+  BoardHint? _spot;
+  int _hintSerial = 0;
 
   /// Whether the keypad writes pencil marks instead of answers.
   bool _noting = false;
@@ -113,7 +119,12 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
 
   void _select(int index) {
     if (!_playable) return;
-    setState(() => _selected = index);
+    setState(() {
+      _selected = index;
+      // Selecting the hinted square is looking at it; anywhere else is a
+      // move on, and the hint has done its job.
+      if (!(_spot?.target.contains(index) ?? true)) _spot = null;
+    });
     HapticFeedback.selectionClick();
   }
 
@@ -142,6 +153,7 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
       }
       _popCell = index;
       _counted.remove(index);
+      _spot = null;
     });
     _pop.forward(from: 0);
     HapticFeedback.selectionClick();
@@ -168,6 +180,7 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
       _selected = index;
       _popCell = null;
       _counted.remove(index);
+      _spot = null;
     });
     HapticFeedback.selectionClick();
   }
@@ -175,12 +188,21 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
   Future<void> _hint() async {
     final hint = await _play.hint(_cells);
     if (hint == null || !mounted) return;
+    final cell = hint.cell ?? hint.index;
+    if (cell < 0 || cell >= _cells.length) return;
     setState(() {
-      _cells[hint.index] = hint.value;
-      _notes.remove(hint.index);
-      _selected = hint.index;
-      _popCell = hint.index;
-      _counted.remove(hint.index);
+      _notes.remove(cell);
+      _selected = cell;
+      _counted.remove(cell);
+      if (hint.kind == GameHintKind.wrong) {
+        // The digit comes out; the ring and the banner say why.
+        _cells[cell] = futoshikiEmpty;
+        _popCell = null;
+      } else {
+        _cells[cell] = hint.answer ?? hint.value;
+        _popCell = cell;
+      }
+      _spot = BoardHint.of(hint, serial: ++_hintSerial, target: {cell});
     });
     _pop.forward(from: 0);
     _maybeFinish();
@@ -194,6 +216,7 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
       _cells = answer;
       _notes.clear();
       _selected = null;
+      _spot = null;
     });
   }
 
@@ -244,23 +267,31 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
       viewerId: widget.userId,
       title: l10n.gameFutoshikiName,
       rule: l10n.gameFutoshikiRule,
-      board: AnimatedBuilder(
-        animation: Listenable.merge([_pop, _winSweep]),
-        builder: (context, _) => GameBoardSurface(
-          onTapCell: _select,
-          n: board.size,
-          painter: FutoshikiBoardPainter(
-            board: board,
-            theme: theme,
-            cells: _play.paused ? const [] : _cells,
-            notes: _play.paused ? const {} : _notes,
-            trouble: _play.paused
-                ? const FutoshikiTrouble(cells: <int>{}, signs: <int>{})
-                : futoshikiTrouble(board, _full),
-            selected: _play.paused ? null : _selected,
-            popCell: _popCell,
-            pop: _pop.value,
-            win: _winSweep.value,
+      hintBanner: HintBanner(
+        hint: _play.paused ? null : _spot,
+        onDismiss: () => setState(() => _spot = null),
+      ),
+      board: HintSpotlight(
+        hint: _play.paused || _play.finished ? null : _spot,
+        n: board.size,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_pop, _winSweep]),
+          builder: (context, _) => GameBoardSurface(
+            onTapCell: _select,
+            n: board.size,
+            painter: FutoshikiBoardPainter(
+              board: board,
+              theme: theme,
+              cells: _play.paused ? const [] : _cells,
+              notes: _play.paused ? const {} : _notes,
+              trouble: _play.paused
+                  ? const FutoshikiTrouble(cells: <int>{}, signs: <int>{})
+                  : futoshikiTrouble(board, _full),
+              selected: _play.paused ? null : _selected,
+              popCell: _popCell,
+              pop: _pop.value,
+              win: _winSweep.value,
+            ),
           ),
         ),
       ),

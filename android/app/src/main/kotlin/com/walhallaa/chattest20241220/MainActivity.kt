@@ -125,6 +125,9 @@ class MainActivity : FlutterActivity() {
         // monkeyhub/call_window — keep-screen-on and the proximity sensor
         // for the length of a call.
         CallWindowBridge.register(this, flutterEngine)
+        // monkeyhub/phone_call — any call ringing or live on the phone; a
+        // daily game's clock stops on it.
+        PhoneCallBridge.register(this, flutterEngine)
         MapsBridge.register(this, flutterEngine)
         VideoShrink.register(this, flutterEngine)
 
