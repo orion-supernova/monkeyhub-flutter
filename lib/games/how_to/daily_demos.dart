@@ -941,26 +941,26 @@ const _heart = [
   0, 0, 1, 0, 0, //
 ];
 
-DemoBoard _nonoBoard(DemoFrame f) =>
-    DemoBoard(f, n: 5, fraction: 0.9, lead: nonogramLeadFraction(_nonogram));
+DemoBoard _nonoBoard(DemoFrame f, [NonogramBoard board = _nonogram]) =>
+    DemoBoard(f, n: 5, fraction: 0.9, lead: nonogramLeadFraction(board));
 
 void _nonoPaint(Canvas canvas, DemoFrame f, DemoBoard b, List<int> cells,
-    {int? popCell, double pop = 1, double win = 0, int? focus}) {
+    {int? popCell, double pop = 1, double win = 0, int? focus, NonogramBoard board = _nonogram}) {
   final rows = <int>{};
   final cols = <int>{};
   for (var k = 0; k < 5; k++) {
     final row = [for (var c = 0; c < 5; c++) cells[k * 5 + c] == nonogramFilled ? 1 : 0];
     final col = [for (var r = 0; r < 5; r++) cells[r * 5 + k] == nonogramFilled ? 1 : 0];
-    if (_same(nonogramRuns(row), _nonogram.rows[k])) rows.add(k);
-    if (_same(nonogramRuns(col), _nonogram.cols[k])) cols.add(k);
+    if (_same(nonogramRuns(row), board.rows[k])) rows.add(k);
+    if (_same(nonogramRuns(col), board.cols[k])) cols.add(k);
   }
   b.draw(
     canvas,
     NonogramBoardPainter(
-      board: _nonogram,
+      board: board,
       theme: f.theme,
       cells: cells,
-      trouble: nonogramTrouble(_nonogram, cells),
+      trouble: nonogramTrouble(board, cells),
       satisfiedRows: rows,
       satisfiedCols: cols,
       focus: focus,
@@ -1035,6 +1035,106 @@ class NonogramGapDemo extends HowToDemo {
     final clue = Rect.fromLTRB(b.origin.dx, b.rect(0).top, b.rect(4).right, b.rect(0).bottom).deflate(1);
     paintSpotlight(canvas, clue, f.theme.accent, f.seg(0.04, 0.12) * (1 - f.seg(0.84, 0.9)));
     paintFinger(canvas, f, _taps(b, [for (final (t, i, _) in _plan) (t, i)]));
+  }
+}
+
+// A board whose top row reads `1 3` and whose left column reads `3 1`: the
+// same two numbers, opposite orders, side by side.
+const _nonogramOrder = NonogramBoard(
+  size: 5,
+  rows: [
+    [1, 3],
+    [1, 1],
+    [3, 1],
+    [1, 1],
+    [5],
+  ],
+  cols: [
+    [3, 1],
+    [1, 1],
+    [1, 3],
+    [1, 1],
+    [5],
+  ],
+);
+
+/// Clue order: the top row's `1 3` fills left to right, then the left
+/// column's `3 1` top to bottom. Each number lights up together with the run
+/// it stands for, so first number ↔ first run is something you see.
+class NonogramOrderDemo extends HowToDemo {
+  const NonogramOrderDemo();
+
+  @override
+  Duration get period => const Duration(milliseconds: 6400);
+
+  @override
+  double get still => 0.88;
+
+  // Each beat: the clue number lit (line, which number), the cells it owns,
+  // and when it is lit. Rows are lines 0..4, columns 5..9.
+  static const _beats = <(int, int, List<int>, double, double)>[
+    (0, 0, [0], 0.06, 0.24),
+    (0, 1, [2, 3, 4], 0.26, 0.46),
+    (5, 0, [0, 5, 10], 0.52, 0.7),
+    (5, 1, [20], 0.72, 0.88),
+  ];
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = _nonoBoard(f, _nonogramOrder);
+    final cells = List<int>.filled(25, nonogramUnknown);
+    // (time, cell, mark): the row first, then the column.
+    const plan = <(double, int, int)>[
+      (0.12, 0, nonogramFilled),
+      (0.2, 1, nonogramCrossed),
+      (0.31, 2, nonogramFilled),
+      (0.35, 3, nonogramFilled),
+      (0.39, 4, nonogramFilled),
+      (0.58, 5, nonogramFilled),
+      (0.62, 10, nonogramFilled),
+      (0.68, 15, nonogramCrossed),
+      (0.78, 20, nonogramFilled),
+    ];
+    int? popCell;
+    var p = 1.0;
+    for (final (t, i, v) in plan) {
+      if (!f.at(t)) continue;
+      cells[i] = v;
+      popCell = i;
+      p = f.pop(t);
+    }
+    _nonoPaint(canvas, f, b, cells, popCell: popCell, pop: p, board: _nonogramOrder);
+
+    final grid = b.grid;
+    final cell = grid.cell;
+    final step = cell * 0.6;
+    for (final (line, k, run, on, off) in _beats) {
+      final s = f.seg(on, on + 0.05) * (1 - f.seg(off, off + 0.05));
+      if (s <= 0) continue;
+      final column = line >= 5;
+      final clue = column ? _nonogramOrder.cols[line - 5] : _nonogramOrder.rows[line];
+      final back = grid.lead - cell * 0.42 - (clue.length - 1 - k) * step;
+      final along = grid.lead + ((column ? line - 5 : line) + 0.5) * cell;
+      final digit = b.origin + (column ? Offset(along, back) : Offset(back, along));
+      paintSpotlight(
+        canvas,
+        Rect.fromCenter(center: digit, width: cell * 0.62, height: cell * 0.58),
+        f.theme.accent,
+        s,
+        radius: 6,
+      );
+      final cover = run.map(b.rect).reduce((a, c) => a.expandToInclude(c));
+      paintSpotlight(canvas, cover.deflate(1.5), f.theme.accent, s, radius: 6);
+    }
+
+    paintFinger(canvas, f, [
+      ..._taps(b, [(0.12, 0), (0.2, 1)]),
+      ..._drag(b, [2, 3, 4], 0.31, 0.39),
+      ..._drag(b, [0, 5, 10], 0.54, 0.62),
+      ..._taps(b, [(0.68, 15), (0.78, 20)]),
+    ]);
+    paintSparkles(canvas, b.center(4), b.side * 0.18, f.seg(0.42, 0.6), f.theme.accent, count: 6);
+    paintSparkles(canvas, b.center(20), b.side * 0.18, f.seg(0.82, 0.98), f.theme.accent, count: 6, seed: 0.4);
   }
 }
 
@@ -1291,6 +1391,44 @@ class StarsTouchDemo extends HowToDemo {
       FingerKey(0.78, b.center(31), tap: true),
     ]);
     paintSparkles(canvas, b.center(31), b.side * 0.2, f.seg(0.8, 0.95), const Color(0xFFFFC53D));
+  }
+
+  @override
+  double get still => 0.5;
+}
+
+/// One square, three taps: dot, star, clear.
+class StarsControlsDemo extends HowToDemo {
+  const StarsControlsDemo();
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 8);
+    const taps = [0.18, 0.42, 0.66];
+    final n = f.count(taps);
+    final mark = switch (n) {
+      1 => StarMark.dot,
+      2 => StarMark.star,
+      _ => StarMark.none,
+    };
+    b.draw(
+      canvas,
+      StarBattleBoardPainter(
+        board: _stars,
+        theme: f.theme,
+        palette: f.palette,
+        marks: [for (var i = 0; i < 64; i++) i == 27 ? mark : StarMark.none],
+        popCell: 27,
+        pop: n == 0 ? 1 : f.pop(taps[n - 1]),
+      ),
+    );
+    // The finger steps aside after each tap, so the dot it left is seen.
+    paintFinger(canvas, f, [
+      for (final t in taps) ...[
+        FingerKey(t, b.center(27), tap: true),
+        FingerKey(t + 0.1, b.center(45)),
+      ],
+    ]);
   }
 
   @override

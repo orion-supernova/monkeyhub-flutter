@@ -198,6 +198,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'इस रूम के मैसेज अस्थायी हैं। रूम की सुरक्षा नीति के अनुसार वे अपने आप हट जाते हैं।';
 
   @override
+  String get roomReadOnlyFooter =>
+      'यह रूम सिर्फ़ पढ़ने के लिए है। यहाँ सिर्फ़ MonkeyHub पोस्ट करता है।';
+
+  @override
   String get roomScreenAutoDeleteTitle => 'ऑटो-डिलीट';
 
   @override
@@ -12010,17 +12014,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatGameNameDots => 'डॉट्स एंड बॉक्सेस';
 
   @override
-  String get chatGameDescTicTacToe => 'लगातार तीन जीतते हैं।';
+  String get chatGameDescTicTacToe => 'एक लाइन में तीन लगाएँ और जीतें।';
 
   @override
-  String get chatGameDescConnectFour => 'डिस्क गिराएँ। लगातार चार जीतते हैं।';
+  String get chatGameDescConnectFour =>
+      'डिस्क गिराएँ। एक लाइन में चार लगाएँ और जीतें।';
 
   @override
-  String get chatGameDescCheckers => 'कूदकर पकड़ें। हर मोहरा जीतें।';
+  String get chatGameDescCheckers => 'कूदकर पकड़ें। सारी गोटियाँ ले लें।';
 
   @override
   String get chatGameDescReversi =>
-      'घेरकर पलटें। सबसे ज़्यादा डिस्क जीतती हैं।';
+      'घेरकर पलटें। सबसे ज़्यादा डिस्क वाला जीतता है।';
 
   @override
   String get chatGameDescDots => 'रेखाएँ खींचें, डिब्बे बंद करें, फिर खेलें।';
@@ -12044,7 +12049,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatGameStatusFinished => 'समाप्त';
 
   @override
-  String get chatGameStatusEnded => 'खत्म';
+  String get chatGameStatusEnded => 'बीच में खत्म';
 
   @override
   String get chatGameYourMove => 'आपकी बारी';
@@ -12124,7 +12129,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get chatGameNotRanked =>
-      'सिर्फ़ मज़े के लिए। चैट गेम आपकी स्ट्रीक या रिकॉर्ड में नहीं गिने जाते।';
+      'सिर्फ़ मज़े के लिए। चैट गेम तुम्हारी स्ट्रीक या रिकॉर्ड में नहीं गिने जाते।';
 
   @override
   String get chatGameNotRankedShort => 'रैंक नहीं होता';
@@ -12283,6 +12288,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get chatGameErrTooMany =>
       'यहाँ पहले से 3 बारी वाले गेम चल रहे हैं। पहले एक पूरा करें।';
+
+  @override
+  String get chatGameErrEphemeral =>
+      'जिस चैट में मैसेज गायब हो जाते हैं, वहाँ गेम नहीं खेले जा सकते।';
 
   @override
   String get chatGameErrGeneric => 'कुछ गलत हो गया। फिर कोशिश करें।';
@@ -12505,6 +12514,11 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max खिलाड़ी';
+  }
+
+  @override
+  String chatGameNeedsPeople(int count) {
+    return 'कम से कम $count लोग चाहिए';
   }
 
   @override
@@ -12933,7 +12947,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'बस तुम और $bot। कुछ पोस्ट नहीं होगा, कोई नहीं देख रहा।';
+    return 'बस तुम और $bot। चालें सीखो, फिर दोस्तों को हराओ।';
   }
 
   @override
@@ -12955,6 +12969,10 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'सिर्फ़ मज़े के लिए। ये गेम तुम्हारी स्ट्रीक या रिकॉर्ड में नहीं गिने जाते।';
 
   @override
   String get chatGameMvYouPlayed => 'तुमने चाल चली';
@@ -13039,7 +13057,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToQueens4 =>
-      'ताज रखो, फिर जिन खानों में अब ताज नहीं आ सकता उन पर × लगा दो। बोर्ड फटाफट खुलेगा।';
+      'स्वतः क्रॉस ऑन हो तो ताज जिन खानों को रोकता है, उन पर × अपने आप लग जाता है। फिर देखो क्या बचा है।';
 
   @override
   String get howToTango1 => 'एक टैप में सूरज, दो में चाँद। सारे खाने भर दो।';
@@ -13048,7 +13066,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get howToTango2 => 'हर रो और कॉलम में आधे सूरज, आधे चाँद।';
 
   @override
-  String get howToTango3 => 'एक जैसे 3 लगातार नहीं। 2 चलेंगे।';
+  String get howToTango3 =>
+      'एक जैसे 3 लगातार नहीं, न आड़े में, न खड़े में। 2 चलेंगे।';
 
   @override
   String get howToTango4 => '= मतलब दोनों एक जैसे, × मतलब उल्टे।';
@@ -13070,7 +13089,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get howToSudoku2 => 'खाने पर टैप करो, फिर नंबर पर।';
 
   @override
-  String get howToSudoku3 => 'एक लाइन में वही नंबर दो बार? लाल हो जाएगा।';
+  String get howToSudoku3 =>
+      'एक रो, कॉलम या बॉक्स में वही नंबर दो बार? लाल हो जाएगा।';
 
   @override
   String get howToSudoku4 =>
@@ -13084,7 +13104,8 @@ class AppLocalizationsHi extends AppLocalizations {
       'पाइप एक-दूसरे को काट नहीं सकते और हर खाना भरना है। घुमाकर ले जाओ।';
 
   @override
-  String get howToFutoshiki1 => 'हर रो और कॉलम में हर नंबर बस एक बार।';
+  String get howToFutoshiki1 =>
+      'हर खाने में 1 से 5 तक का नंबर भरो। हर रो और कॉलम में हर नंबर ठीक एक बार।';
 
   @override
   String get howToFutoshiki2 => 'निशान की नोक छोटे नंबर की तरफ़ होती है।';
@@ -13094,11 +13115,15 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToNonogram1 =>
-      'नंबर बताते हैं कि लगातार कितने खाने रंगने हैं। 5 मतलब लगातार 5।';
+      'हर नंबर लगातार रंगे खानों का एक ब्लॉक है, बीच में कोई खाली नहीं। 5 मतलब 5 खाने एक साथ।';
 
   @override
   String get howToNonogram2 =>
-      '1 1 मतलब दो अलग खाने, बीच में कम से कम एक खाली।';
+      '1 1 मतलब दो अकेले खाने, बीच में कम से कम एक खाली खाना। गैप ज़्यादा भी हो सकता है।';
+
+  @override
+  String get howToNonogramOrder =>
+      'क्रम मायने रखता है: रो बाएँ से दाएँ पढ़ो, कॉलम ऊपर से नीचे। यानी 1 3 मतलब पहले 1, फिर 3।';
 
   @override
   String get howToNonogram3 =>
@@ -13110,7 +13135,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToMines1 =>
-      'खाना खोलने के लिए टैप करो। खाली हिस्से अपने आप खुल जाते हैं।';
+      'हर वो खाना खोलो जिसमें माइन नहीं है। खाली हिस्से अपने आप खुल जाते हैं।';
 
   @override
   String get howToMines2 =>
@@ -13130,11 +13155,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get howToStars2 => 'स्टार एक-दूसरे को छू नहीं सकते। तिरछे भी नहीं।';
 
   @override
-  String get howToStars3 =>
-      'हर स्टार के आसपास डॉट लगाओ। रो में 2 स्टार हो गए तो बाकी सब खाली।';
+  String get howToStarsControls =>
+      'एक बार टैप करो तो डॉट, दो बार तो स्टार, एक बार और तो साफ़।';
 
   @override
-  String get howToCode1 => '4 अलग-अलग सिंबल का एक सीक्रेट कोड है। उसे तोड़ो।';
+  String get howToStars3 =>
+      'स्वतः बिंदु ऑन हो तो स्टार अपने आसपास के खानों पर डॉट लगा देता है। रो में 2 स्टार हो गए तो बाकी खानों पर भी डॉट लग जाते हैं।';
+
+  @override
+  String get howToCode1 =>
+      '4 अलग-अलग सिंबल का एक सीक्रेट कोड है, कोई सिंबल रिपीट नहीं होता। उसे तोड़ो।';
 
   @override
   String get howToCode2 => 'हरा: सही सिंबल, सही जगह।';
@@ -13175,15 +13205,15 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToCheckers4 =>
-      'दूसरी तरफ़ पहुँचते ही गोटी राजा बन जाती है। राजा पीछे भी चल सकता है।';
+      'दूसरी तरफ़ पहुँचते ही गोटी राजा बन जाती है। राजा पीछे भी चल सकता है, पर एक बार में सिर्फ़ एक खाना।';
 
   @override
   String get howToCheckersWin =>
-      'सारी गोटियाँ ले लो या सामने वाले की कोई चाल न बचे, तो तुम जीते।';
+      'सारी गोटियाँ ले लो या सामने वाले की कोई चाल न बचे, तो तुम जीते। दोनों की 40-40 चालों तक न कोई गोटी मरे, न कोई आम गोटी चले, तो बराबरी।';
 
   @override
   String get howToReversi1 =>
-      'डिस्क ऐसे रखो कि सामने वाले की डिस्क तुम्हारी दो डिस्क के बीच फँस जाएँ।';
+      'डिस्क ऐसे रखो कि सामने वाले की डिस्क की एक लाइन तुम्हारी दो डिस्क के बीच फँस जाए। हर चाल में कम से कम एक डिस्क फँसनी चाहिए।';
 
   @override
   String get howToReversi2 =>
@@ -13221,7 +13251,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToChess4 =>
-      'शह का मतलब राजा पर हमला है, उसे बचाना ही पड़ेगा। बचने का रास्ता नहीं? शह-मात, खेल ख़त्म।';
+      'शह का मतलब राजा पर हमला है, उसे बचाना ही पड़ेगा। बचने का रास्ता नहीं? शह-मात, खेल ख़त्म। कोई चाल नहीं बची पर शह भी नहीं है? बराबरी।';
 
   @override
   String get howToLiars1 =>
@@ -13229,7 +13259,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToLiars2 =>
-      'अपनी बारी पर बोली लगाओ कि पूरी टेबल पर किसी एक नंबर के कितने पासे हैं। सबके पासे गिने जाते हैं। जैसे “चार 3”।';
+      'अपनी बारी पर बोली लगाओ कि पूरी टेबल पर किसी एक नंबर के कम से कम कितने पासे हैं। सबके पासे गिने जाते हैं। जैसे “चार 3”।';
 
   @override
   String get howToLiars3 =>
@@ -13245,7 +13275,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToLiars6 =>
-      'बोली सही निकली? “झूठ” बोलने वाला एक पासा खोता है। बोली ज़्यादा थी? बोली लगाने वाला खोता है।';
+      'कम से कम उतने निकले? “झूठ” बोलने वाला एक पासा खोता है। कम निकले? बोली लगाने वाला खोता है।';
 
   @override
   String get howToLiars7 =>
@@ -13269,11 +13299,11 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToImposter3 =>
-      'फिर सब वोट करते हैं कि उनके हिसाब से धोखेबाज़ कौन है।';
+      'फिर सब वोट करते हैं कि उनके हिसाब से धोखेबाज़ कौन है, या वोट छोड़ देते हैं।';
 
   @override
   String get howToImposter4 =>
-      'पकड़ा गया? धोखेबाज़ के पास एक आख़िरी मौका है: शब्द सही बताया तो जीत उसकी। ग़लत इंसान चुना या टाई हुआ? धोखेबाज़ जीता।';
+      'पकड़ा गया? धोखेबाज़ के पास एक आख़िरी मौका है: शब्द सही बताया तो जीत उसकी। ग़लत इंसान चुना, टाई हुआ या बहुतों ने वोट छोड़ा? धोखेबाज़ जीता।';
 
   @override
   String get howToRace1 => 'सबको एक ही बिल्कुल नई पहेली एक साथ मिलती है।';

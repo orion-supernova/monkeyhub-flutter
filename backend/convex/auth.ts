@@ -20,7 +20,8 @@ import {
   ERR_USERNAME_RESERVED,
   isReservedName,
 } from "./systemAccount";
-import { deleteStored, releaseMessageBlobs } from "./files";
+import { deleteStored } from "./files";
+import { removeMessageAndFanout } from "./messages";
 import { purgeUserExpressions } from "./expressions";
 import { purgeMomentComments, purgeUserComments } from "./momentComments";
 import {
@@ -506,62 +507,19 @@ async function purgeUser(ctx: any, userId: any) {
     .query("messages")
     .withIndex("by_user", byUser(userId))
     .collect();
+  // Through the same per-message teardown every other delete path uses
+  // (`messages.removeMessageAndFanout`): reactions and pins and bookmarks
+  // OTHER people put on these messages, the refcounted media, the view-once
+  // ledger, a posed poll's answers, a game's card taking its game (and the
+  // other player's move bubbles) with it, reply tethers, and the room preview.
+  //
+  // Re-read first: a game card earlier in this list takes its move bubbles
+  // with it, and some of those may be this user's own, still in the list.
+  // A second delete of one id throws.
   for (const msg of userMessages) {
-    const rxns = await ctx.db
-      .query("reactions")
-      .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-      .collect();
-    await deleteRows(ctx, rxns);
-    // Pins OTHER people put on this user's messages.
-    await deleteRows(
-      ctx,
-      await ctx.db
-        .query("pinnedMessages")
-        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-        .collect(),
-    );
-    // Bookmarks OTHER people put on this user's messages. The message row is
-    // about to go, so these would dangle exactly as the pins above would.
-    await deleteRows(
-      ctx,
-      await ctx.db
-        .query("messageBookmarks")
-        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-        .collect(),
-    );
-    // Refcounted: somebody else may have forwarded this message's file into a
-    // room that has nothing to do with this account. See `releaseMessageBlobs`.
-    await releaseMessageBlobs(ctx, msg);
-    // View-once ledger for photos this user SENT.
-    await deleteRows(
-      ctx,
-      await ctx.db
-        .query("viewOnceViews")
-        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-        .collect(),
-    );
-    // Polls, checklists and events this user POSED, and everybody's answers to
-    // them. This loop is the only sweep that reaches an interaction this user
-    // authored, and it is sufficient: an interaction row is written only in the
-    // same transaction as its message and by the same caller, so its
-    // `createdBy` is always that message's `userId`. See the invariant stated
-    // on `messageInteractions` in the schema — it is what makes a `by_creator`
-    // index unnecessary rather than merely unused.
-    await deleteRows(
-      ctx,
-      await ctx.db
-        .query("interactionResponses")
-        .withIndex("by_message_user", (q: any) => q.eq("messageId", msg._id))
-        .collect(),
-    );
-    await deleteRows(
-      ctx,
-      await ctx.db
-        .query("messageInteractions")
-        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-        .collect(),
-    );
-    await ctx.db.delete(msg._id);
+    const live = await ctx.db.get(msg._id);
+    if (!live) continue;
+    await removeMessageAndFanout(ctx, live, msg._id);
   }
   await deleteStored(ctx, user?.avatarStorageId);
 

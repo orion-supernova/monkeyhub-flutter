@@ -16,6 +16,8 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/location_share.dart' show formatCoordinates;
 import '../models/reaction_limits.dart';
+import '../models/room_posting_policy.dart';
+import 'read_only_composer_footer.dart';
 import '../companions/companion.dart';
 import '../companions/sebastian.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -1542,6 +1544,15 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final room = widget.repo.roomById(widget.roomId);
     final ephemeral = room?.isEphemeral ?? false;
     final classic = SettingsStore.instance.chatStyle == ChatStyle.classic;
+    // Everything sent from here is a reply, so a room whose posting policy
+    // takes no posts, or no replies, gets the room's read-only footer in the
+    // composer's place. See `room_posting_policy.dart`.
+    final posting = room == null
+        ? RoomPostingPolicy.open
+        : widget.repo.capabilitiesFor(room).posting;
+    if (!posting.canPost || !posting.canReply) {
+      return ChatColumn(child: ReadOnlyComposerFooter(glass: !classic));
+    }
     final theme = ThemeScope.of(context);
     // Same column as the thread transcript above it, so the composer lines up
     // with the conversation instead of running the full window width.

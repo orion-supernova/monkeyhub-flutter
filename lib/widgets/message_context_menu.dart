@@ -279,7 +279,9 @@ class _MessageContextMenuState extends State<MessageContextMenu>
     if (widget.album != null) {
       h += MessageContextMenu.albumH + MessageContextMenu.separatorH;
     }
-    final reactions = widget.showReactions || widget.reactionsOnly;
+    // `canReact` is the room's posting policy — see `MessageCapabilities`.
+    final reactions = (widget.showReactions || widget.reactionsOnly) &&
+        widget.capabilities.canReact;
     if (reactions) h += MessageContextMenu.emojiRowH;
     if (reactions && specs.isNotEmpty) h += MessageContextMenu.separatorH;
     final name = _onAlbum ? null : widget.fileName;
@@ -357,7 +359,8 @@ class _MessageContextMenuState extends State<MessageContextMenu>
       ));
       children.add(_Separator(theme: theme));
     }
-    if (widget.showReactions || widget.reactionsOnly) {
+    if ((widget.showReactions || widget.reactionsOnly) &&
+        widget.capabilities.canReact) {
       final whole = _onAlbum;
       children.add(_EmojiRow(
         selected: whole ? album!.myReactions : widget.myReactions,

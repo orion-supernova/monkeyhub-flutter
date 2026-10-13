@@ -201,6 +201,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les messages de ce salon sont éphémères. Ils sont automatiquement supprimés selon les règles de sécurité du salon.';
 
   @override
+  String get roomReadOnlyFooter =>
+      'Ce salon est en lecture seule. Seul MonkeyHub y publie.';
+
+  @override
   String get roomScreenAutoDeleteTitle => 'Suppression auto';
 
   @override
@@ -5740,7 +5744,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get gameZipRule =>
-      'une ligne par toutes les cases, les nombres dans l\'ordre';
+      'une ligne qui passe par toutes les cases, les nombres dans l’ordre';
 
   @override
   String get gameSudokuName => 'Mini sudoku';
@@ -5889,15 +5893,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get gameInfoScoringTimed =>
-      'Le plus rapide gagne. Le chrono s\'arrête quand tu quittes.';
+      'Le plus rapide gagne. Le chrono s’arrête quand tu quittes.';
 
   @override
   String get gameInfoScoringGuesses =>
-      'Le moins d\'essais gagne. Le temps ne compte pas.';
+      'Le moins d’essais gagne. Le temps ne compte pas.';
 
   @override
   String get gameInfoSameForEveryone =>
-      'Aujourd\'hui, tout le monde a le même puzzle.';
+      'Aujourd’hui, tout le monde a le même puzzle.';
 
   @override
   String get savedMessagesTitle => 'Messages enregistrés';
@@ -12185,7 +12189,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatGameDescConnectFour =>
-      'Lâche des jetons. Quatre alignés, c\'est gagné.';
+      'Lâche des jetons. Quatre alignés, c’est gagné.';
 
   @override
   String get chatGameDescCheckers => 'Saute pour prendre. Prends tout.';
@@ -12195,7 +12199,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Encadre pour retourner. Le plus de pions gagne.';
 
   @override
-  String get chatGameDescDots => 'Trace, ferme des cases, rejoue.';
+  String get chatGameDescDots => 'Trace, ferme des boîtes, rejoue.';
 
   @override
   String get chatGameKindLive => 'Partie en direct';
@@ -12395,7 +12399,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chatGameLeave => 'Quitter la partie';
 
   @override
-  String get chatGameGo => 'C\'est parti !';
+  String get chatGameGo => 'C’est parti !';
 
   @override
   String get chatGameNudge => 'Relancer';
@@ -12460,6 +12464,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get chatGameErrTooMany =>
       'Tu as déjà 3 parties tour à tour ici. Termines-en une d’abord.';
+
+  @override
+  String get chatGameErrEphemeral =>
+      'Impossible de jouer dans un chat où les messages disparaissent.';
 
   @override
   String get chatGameErrGeneric => 'Un problème est survenu. Réessaie.';
@@ -12691,6 +12699,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String chatGameNeedsPeople(int count) {
+    return '$count personnes minimum';
+  }
+
+  @override
   String get chatGameVoiceOption => 'Indices à voix haute';
 
   @override
@@ -12815,7 +12828,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatGameImpKeepSecret =>
-      'Ne le dis pas. Donne des indices que les autres comprendront.';
+      'Ne le dis pas directement. Donne des indices que les autres comprendront.';
 
   @override
   String get chatGameImpGotIt => 'Compris';
@@ -13033,7 +13046,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chatGameNameChess => 'Échecs';
 
   @override
-  String get chatGameDescChess => 'Faites échec et mat au roi.';
+  String get chatGameDescChess => 'Fais échec et mat au roi.';
 
   @override
   String get chessPawn => 'pion';
@@ -13115,7 +13128,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatGameTurnsClock =>
-      '2 jours par coup. On lui rappelle, et tu peux le relancer.';
+      '2 jours par coup. On lui envoie un rappel, et tu peux le relancer.';
 
   @override
   String get chatGameHowWillYouPlay => 'Tu veux jouer comment ?';
@@ -13125,7 +13138,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'Juste toi et $bot. Rien n’est posté, personne ne regarde.';
+    return 'Juste toi et $bot. Apprends les coups, puis va battre tes amis.';
   }
 
   @override
@@ -13147,6 +13160,10 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'Juste pour le plaisir. Ces parties ne comptent pas pour tes séries ni tes records.';
 
   @override
   String get chatGameMvYouPlayed => 'Tu as joué';
@@ -13177,17 +13194,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatGameMvStagedHint =>
-      'Pas encore envoyé. Change d\'avis ou appuie sur Envoyer.';
+      'Pas encore envoyé. Change d’avis ou appuie sur Envoyer.';
 
   @override
-  String get chatGameMvSentToast => 'Coup envoyé. À l\'autre de jouer.';
+  String get chatGameMvSentToast => 'Coup envoyé. À l’autre de jouer.';
 
   @override
   String get chatGameMvYourTurnSub =>
       'Joue ton coup, puis envoie-le. Rien ne presse.';
 
   @override
-  String get chatGameMvWaitingSub => 'On te prévient quand c\'est ton tour.';
+  String get chatGameMvWaitingSub => 'On te prévient quand c’est ton tour.';
 
   @override
   String get chatGameMvNudgeLater =>
@@ -13198,7 +13215,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Si le temps est écoulé, celui qui doit jouer perd';
 
   @override
-  String get chatGameMvAgain => 'C\'est encore à toi. Rejoue !';
+  String get chatGameMvAgain => 'C’est encore à toi. Rejoue !';
 
   @override
   String get chatGameMvSending => 'Envoi…';
@@ -13234,7 +13251,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToQueens4 =>
-      'Pose une couronne, puis mets un × partout où elle bloque. Ça se débloque vite.';
+      'Avec l’option Croix auto, chaque case qu’une couronne exclut reçoit un × pour toi. Ensuite, regarde ce qui reste.';
 
   @override
   String get howToTango1 =>
@@ -13242,16 +13259,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToTango2 =>
-      'Chaque ligne et chaque colonne, c\'est moitié soleils, moitié lunes.';
+      'Chaque ligne et chaque colonne, c’est moitié soleils, moitié lunes.';
 
   @override
-  String get howToTango3 => 'Jamais 3 pareils à la suite. 2, ça passe.';
+  String get howToTango3 =>
+      'Jamais 3 pareils à la suite, en ligne ou en colonne. 2, ça passe.';
 
   @override
-  String get howToTango4 => '= veut dire pareil. × veut dire l\'inverse.';
+  String get howToTango4 => '= veut dire pareil. × veut dire l’inverse.';
 
   @override
-  String get howToZip1 => 'Pars du 1 et glisse sur les numéros dans l\'ordre.';
+  String get howToZip1 => 'Pars du 1 et glisse sur les numéros dans l’ordre.';
 
   @override
   String get howToZip2 =>
@@ -13262,22 +13280,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToSudoku1 =>
-      'Chaque ligne, colonne et bloc contient 1 à 6. Aucun doublon.';
+      'Chaque ligne, colonne et bloc contient les chiffres de 1 à 6. Aucun doublon.';
 
   @override
   String get howToSudoku2 => 'Touche une case, puis un chiffre.';
 
   @override
   String get howToSudoku3 =>
-      'Deux fois le même chiffre sur une ligne ? Ça passe au rouge.';
+      'Deux fois le même chiffre sur une ligne, une colonne ou un bloc ? Ça passe au rouge.';
 
   @override
   String get howToSudoku4 =>
-      'Repère les lignes où il ne manque qu\'un chiffre. C\'est cadeau.';
+      'Repère les lignes où il ne manque qu’un chiffre. C’est cadeau.';
 
   @override
   String get howToFlow1 =>
-      'Glisse d\'un point jusqu\'à son jumeau pour tracer un tuyau.';
+      'Glisse d’un point jusqu’à son jumeau pour tracer un tuyau.';
 
   @override
   String get howToFlow2 =>
@@ -13285,7 +13303,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToFutoshiki1 =>
-      'Chaque ligne et colonne contient chaque chiffre une seule fois.';
+      'Remplis chaque case avec un chiffre de 1 à 5. Chaque ligne et chaque colonne contient chaque chiffre exactement une fois.';
 
   @override
   String get howToFutoshiki2 =>
@@ -13296,15 +13314,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToNonogram1 =>
-      'Les nombres disent combien de cases d\'affilée colorier. 5, c\'est 5 à la suite.';
+      'Chaque nombre est un bloc de cases coloriées sans trou. 5, c’est 5 cases à la suite.';
 
   @override
   String get howToNonogram2 =>
-      '1 1, c\'est deux cases séparées, avec au moins un trou entre elles.';
+      '1 1, c’est deux cases seules avec au moins une case vide entre elles. L’écart peut aussi être plus grand.';
+
+  @override
+  String get howToNonogramOrder =>
+      'L’ordre compte : les lignes se lisent de gauche à droite, les colonnes de haut en bas. 1 3, c’est d’abord un 1, puis un 3.';
 
   @override
   String get howToNonogram3 =>
-      'Un tap pour colorier, un autre pour ×, encore un pour effacer. Glisse pour en faire plein d\'un coup.';
+      'Un tap pour colorier, un autre pour ×, encore un pour effacer. Glisse pour en faire plein d’un coup.';
 
   @override
   String get howToNonogram4 =>
@@ -13312,7 +13334,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToMines1 =>
-      'Touche une case pour l\'ouvrir. Les zones vides s\'ouvrent toutes seules.';
+      'Ouvre toutes les cases sans mine. Les zones vides s’ouvrent toutes seules.';
 
   @override
   String get howToMines2 =>
@@ -13320,11 +13342,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToMines3 =>
-      'Sûr que c\'est une mine ? Appui long pour planter un drapeau.';
+      'Sûr que c’est une mine ? Appui long pour planter un drapeau.';
 
   @override
   String get howToMines4 =>
-      'Une mine, c\'est 30 secondes de pénalité. Mais tu n\'as jamais besoin de deviner.';
+      'Une mine, c’est 30 secondes de pénalité. Mais tu n’as jamais besoin de deviner.';
 
   @override
   String get howToStars1 =>
@@ -13335,31 +13357,34 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les étoiles ne se touchent pas. Même pas en diagonale.';
 
   @override
+  String get howToStarsControls =>
+      'Un tap pour un point, deux pour une étoile, encore un pour effacer.';
+
+  @override
   String get howToStars3 =>
-      'Mets des points autour de chaque étoile. Quand une ligne a ses 2, le reste est vide.';
+      'Avec l’option Points auto, une étoile met des points sur les cases autour d’elle. Quand une ligne a ses 2, le reste reçoit aussi des points.';
 
   @override
   String get howToCode1 =>
-      'Un code secret de 4 symboles différents t\'attend. Casse-le.';
+      'Un code secret de 4 symboles différents, sans doublon, t’attend. Casse-le.';
 
   @override
   String get howToCode2 => 'Vert : bon symbole, bonne place.';
 
   @override
   String get howToCode3 =>
-      'Jaune : il est dans le code, mais ailleurs. Gris : il n\'y est pas du tout.';
+      'Jaune : il est dans le code, mais ailleurs. Gris : il n’y est pas du tout.';
 
   @override
-  String get howToCode4 =>
-      'Tu as 6 essais. Moins tu en utilises, mieux c\'est.';
+  String get howToCode4 => 'Tu as 6 essais. Moins tu en utilises, mieux c’est.';
 
   @override
   String get howToTtt1 =>
-      'Chacun son tour, pose ton symbole. Aligne-en 3 et c\'est gagné.';
+      'Chacun son tour, pose ton symbole. Aligne-en 3 et c’est gagné.';
 
   @override
   String get howToTtt2 =>
-      'L\'autre en a 2 alignés ? Pique-lui la troisième case avant lui.';
+      'L’autre en a 2 alignés ? Pique la troisième case avant lui.';
 
   @override
   String get howToC41 =>
@@ -13367,11 +13392,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToC42 =>
-      'Aligne-en 4 pour gagner : à l\'horizontale, à la verticale ou en diagonale.';
+      'Aligne-en 4 pour gagner : à l’horizontale, à la verticale ou en diagonale.';
 
   @override
   String get howToCheckers1 =>
-      'Les pions avancent d\'une case en diagonale. Touche un pion, puis sa destination.';
+      'Les pions avancent d’une case en diagonale. Touche un pion, puis sa destination.';
 
   @override
   String get howToCheckers2 =>
@@ -13383,19 +13408,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToCheckers4 =>
-      'Atteins le bout du plateau et ton pion devient une dame. Les dames reculent aussi.';
+      'Atteins le bout du plateau et ton pion devient une dame. Les dames peuvent aussi reculer, mais toujours d’une seule case.';
 
   @override
   String get howToCheckersWin =>
-      'Tu gagnes en prenant tous ses pions ou en le bloquant complètement.';
+      'Tu gagnes en prenant tous ses pions ou en le bloquant complètement. 40 coups chacun sans prise ni déplacement de pion, c’est l’égalité.';
 
   @override
   String get howToReversi1 =>
-      'Pose un pion de façon à coincer une ligne des siens entre deux des tiens.';
+      'Pose un pion de façon à coincer une ligne des siens entre deux des tiens. Chaque coup doit en coincer au moins un.';
 
   @override
   String get howToReversi2 =>
-      'Tous les pions coincés passent à ta couleur, dans toutes les directions d\'un coup.';
+      'Tous les pions coincés passent à ta couleur, dans toutes les directions d’un coup.';
 
   @override
   String get howToReversi3 =>
@@ -13409,7 +13434,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToDots3 =>
-      'Attention au troisième côté d\'une boîte. Tu l\'offres au joueur suivant.';
+      'Attention au troisième côté d’une boîte. Tu l’offres au joueur suivant.';
 
   @override
   String get howToDotsWin =>
@@ -13421,7 +13446,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToChess2 =>
-      'Va sur la case d\'une pièce adverse pour la prendre.';
+      'Va sur la case d’une pièce adverse pour la prendre.';
 
   @override
   String get howToChess3 =>
@@ -13429,7 +13454,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToChess4 =>
-      'Échec, c\'est ton roi attaqué : tu dois le sortir de là. Aucune issue ? Échec et mat, c\'est fini.';
+      'Échec, c’est ton roi attaqué : tu dois le sortir de là. Aucune issue ? Échec et mat, c’est fini. Aucun coup possible sans être en échec ? C’est l’égalité.';
 
   @override
   String get howToLiars1 =>
@@ -13437,15 +13462,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToLiars2 =>
-      'À ton tour, fais une enchère : combien de dés d\'une même face il y a sur toute la table, en comptant ceux de tout le monde. Genre « quatre 3 ».';
+      'À ton tour, annonce qu’il y a au moins tant de dés d’une même face sur la table, en comptant ceux de tout le monde. Genre « quatre 3 ».';
 
   @override
   String get howToLiars3 =>
-      'Les 1 sont des jokers : ils comptent comme n\'importe quelle face. Sauf si l\'enchère porte sur les 1.';
+      'Les 1 sont des jokers : ils comptent comme n’importe quelle face. Sauf si l’enchère porte sur les 1.';
 
   @override
   String get howToLiars4 =>
-      'Le joueur suivant doit surenchérir : plus de dés, ou autant d\'une face plus haute…';
+      'Le joueur suivant doit surenchérir : plus de dés, ou autant d’une face plus haute…';
 
   @override
   String get howToLiars5 =>
@@ -13453,7 +13478,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToLiars6 =>
-      'L\'enchère était bonne ? Celui qui a crié menteur perd un dé. Trop haute ? C\'est celui qui l\'a faite qui en perd un.';
+      'Au moins autant ? Celui qui a crié menteur perd un dé. Moins ? C’est l’auteur de l’enchère qui en perd un.';
 
   @override
   String get howToLiars7 =>
@@ -13465,7 +13490,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToImposter1 =>
-      'Tout le monde reçoit le même mot secret. Sauf l\'imposteur, qui n\'a que la catégorie.';
+      'Tout le monde reçoit le même mot secret. Sauf l’imposteur, qui n’a que la catégorie.';
 
   @override
   String get howToImposter2 =>
@@ -13473,15 +13498,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToImposterVoice =>
-      'En mode vocal : dis ton indice à voix haute dans l\'appel, puis touche OK.';
+      'En mode vocal : dis ton indice à voix haute dans l’appel, puis touche OK.';
 
   @override
   String get howToImposter3 =>
-      'Ensuite, tout le monde vote pour celui qu\'il pense être l\'imposteur.';
+      'Ensuite, tout le monde vote pour celui qu’il pense être l’imposteur, ou passe.';
 
   @override
   String get howToImposter4 =>
-      'Démasqué ? L\'imposteur a une dernière chance : s\'il devine le mot, il vole la victoire. Mauvaise personne ou égalité ? L\'imposteur gagne.';
+      'Démasqué ? L’imposteur a une dernière chance : s’il devine le mot, il vole la victoire. Mauvaise personne, égalité ou trop de joueurs qui passent ? L’imposteur gagne.';
 
   @override
   String get howToRace1 =>
@@ -13496,11 +13521,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToLive1 =>
-      'Tout le monde joue en même temps. Dès que tous ont touché Je suis prêt, c\'est parti.';
+      'Tout le monde joue en même temps. Dès que tous ont touché Je suis prêt, c’est parti.';
 
   @override
   String get howToLive2 =>
-      'Quelqu\'un quitte la partie ? Elle se met en pause pour tous. Il a 2 minutes pour revenir, sinon il perd.';
+      'Quelqu’un quitte la partie ? Elle se met en pause pour tous. Il a 2 minutes pour revenir, sinon il perd.';
 
   @override
   String get howToLive3 =>
@@ -13512,9 +13537,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToTurns2 =>
-      'Chaque coup a 2 jours. On lui rappelle au bout de 20 heures, et après 12 heures de silence tu peux le relancer toi-même.';
+      'Chaque coup a 2 jours. On lui envoie un rappel au bout de 20 heures, et après 12 heures de silence tu peux le relancer toi-même.';
 
   @override
   String get howToTurns3 =>
-      'Pas de coup en 2 jours ? C\'est perdu. Jusqu\'à 3 parties en même temps par chat.';
+      'Pas de coup en 2 jours ? C’est perdu. Jusqu’à 3 parties en même temps par chat.';
 }

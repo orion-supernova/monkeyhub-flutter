@@ -5,6 +5,7 @@ import '../companions/translation/language_detector.dart';
 import 'chat_message.dart';
 import 'enums.dart';
 import 'room_capabilities.dart';
+import 'room_posting_policy.dart';
 
 /// How long after sending a message its author may still edit it. Mirrors
 /// `EDIT_WINDOW_MS` in `backend/convex/messages.ts`, which is the authority —
@@ -58,6 +59,7 @@ class MessageCapabilities {
     required this.canDelete,
     required this.canReport,
     this.canViewReceipts = false,
+    this.canReact = true,
   });
 
   final bool canReply;
@@ -116,6 +118,17 @@ class MessageCapabilities {
   /// nothing new.
   final bool canViewReceipts;
 
+  /// Whether the reaction pill (and the hover strip's react button) is
+  /// offered. Off where the room's posting policy refuses reactions
+  /// (`RoomPostingPolicy.canReact`) and on anything that cannot carry one.
+  ///
+  /// Defaults to TRUE, unlike the rows above — [none] included — because the
+  /// pill is not one of the menu's rows: it predates this table and was always
+  /// drawn, so a capabilities object assembled by hand (the album switch, a
+  /// test, a preview) keeps the menu it always had. [messageCapabilitiesFor]
+  /// is what states it, from the room's posting policy.
+  final bool canReact;
+
   /// Affords nothing. What an unknown state gets, and the base
   /// pending-message posture before the one row it keeps is added back.
   static const none = MessageCapabilities(
@@ -151,6 +164,7 @@ class MessageCapabilities {
     bool? canDelete,
     bool? canReport,
     bool? canViewReceipts,
+    bool? canReact,
   }) =>
       MessageCapabilities(
         canReply: canReply ?? this.canReply,
@@ -168,6 +182,7 @@ class MessageCapabilities {
         canDelete: canDelete ?? this.canDelete,
         canReport: canReport ?? this.canReport,
         canViewReceipts: canViewReceipts ?? this.canViewReceipts,
+        canReact: canReact ?? this.canReact,
       );
 }
 
@@ -211,6 +226,8 @@ MessageCapabilities messageCapabilitiesFor({
   final isEditableText =
       message.type == MessageType.text || message.type == MessageType.url;
   final canEdit = isMine &&
+      // An edit is a post of text as far as the room's policy is concerned.
+      room.posting.allows(PostKind.text) &&
       !isPending &&
       isSent &&
       isEditableText &&
@@ -218,8 +235,13 @@ MessageCapabilities messageCapabilitiesFor({
       serverNow.difference(message.createdAt) <
           (kMessageEditWindow - _kEditWindowGrace);
 
+  // What the room's posting policy lets a member add here. Only the rows that
+  // ADD something to the room read it: copy, translate, save, select and the
+  // rest take nothing in, so a read-only feed keeps all of them.
+  final posting = room.posting;
+
   return MessageCapabilities(
-    canReply: !isPending && isSent && !isSystem,
+    canReply: !isPending && isSent && !isSystem && posting.canReply,
     canEdit: canEdit,
     // The rule the selection bar applies to a whole batch, asked of one
     // message: nothing leaves an ephemeral room, nothing sealed, nothing the
@@ -265,7 +287,7 @@ MessageCapabilities messageCapabilitiesFor({
     // top of a room is one of the better reasons the banner exists — "vote on
     // this" is exactly what a pin says — and the banner renders it through
     // `messagePreviewLine`, which gives the prompt.
-    canPin: !isPending && isSent && !isSystem,
+    canPin: !isPending && isSent && !isSystem && posting.canPin,
     // Same three gates as pinning, plus the room capability — which is what
     // keeps Saved Messages from offering to save into itself. See
     // `RoomCapabilities.canSaveMessages`.
@@ -287,5 +309,8 @@ MessageCapabilities messageCapabilitiesFor({
     canViewProfile: !isMine && !isSystem,
     canDelete: isMine,
     canReport: !isMine && !isSystem,
+    // Same gates as the chips' own toggle: nothing to react to on a send in
+    // flight or a system notice — plus the room's say.
+    canReact: !isPending && !isSystem && posting.canReact,
   );
 }

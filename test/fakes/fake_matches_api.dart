@@ -126,6 +126,30 @@ class FakeMatchesApi implements MatchesApi {
     return (matchId: 'm-new', messageId: 'msg-new');
   }
 
+  /// Makes the next `startTurns` throw the given code.
+  String? failNextStart;
+
+  @override
+  Future<({String matchId, String messageId, int seq})> startTurns({
+    required String userId,
+    required String roomId,
+    required String game,
+    required String move,
+    required String clientMoveId,
+    String? senderName,
+    String? rematchOf,
+  }) async {
+    calls.add(
+      'startTurns:$game:$move${rematchOf == null ? '' : ':re=$rematchOf'}',
+    );
+    final fail = failNextStart;
+    if (fail != null) {
+      failNextStart = null;
+      throw Exception('ConvexError: $fail');
+    }
+    return (matchId: 'm-turns', messageId: 'msg-move-1', seq: 1);
+  }
+
   @override
   Future<({String matchId, String messageId})> rematch({
     required String userId,

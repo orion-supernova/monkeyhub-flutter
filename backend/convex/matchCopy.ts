@@ -9,6 +9,7 @@
  */
 
 export type MatchCopyKey =
+  | "started"
   | "yourMove"
   | "reminder"
   | "nudge"
@@ -21,6 +22,7 @@ type Copy = { names: Record<string, string> } & Record<MatchCopyKey, string>;
 const COPY: Record<string, Copy> = {
   en: {
     names: { tictactoe: "Tic-tac-toe", connectfour: "Connect Four", reversi: "Reversi", checkers: "Checkers", dots: "Dots and Boxes", chess: "Chess" },
+    started: "{name} started {game} and played. Your move.",
     yourMove: "{name} played. Your move in {game}.",
     reminder: "Still your move in {game} with {name}. Play before time runs out.",
     nudge: "{name} is waiting for your move in {game}.",
@@ -30,6 +32,7 @@ const COPY: Record<string, Copy> = {
   },
   tr: {
     names: { tictactoe: "XOX", connectfour: "Dörtlü", reversi: "Reversi", checkers: "Dama", dots: "Kutu Kapmaca", chess: "Satranç" },
+    started: "{name} {game} oyunu başlattı ve ilk hamlesini yaptı. Sıra sende.",
     yourMove: "{name} hamlesini yaptı. {game} oyununda sıra sende.",
     reminder: "{name} ile {game} oyununda hâlâ sıra sende. Süre dolmadan oyna.",
     nudge: "{name}, {game} oyununda hamleni bekliyor.",
@@ -39,6 +42,7 @@ const COPY: Record<string, Copy> = {
   },
   ar: {
     names: { tictactoe: "إكس أو", connectfour: "أربعة في صف", reversi: "ريفرسي", checkers: "الداما", dots: "النقاط والمربعات", chess: "الشطرنج" },
+    started: "بدأ {name} {game} ولعب. دورك.",
     yourMove: "لعب {name}. دورك في {game}.",
     reminder: "ما زال دورك في {game} مع {name}. العب قبل انتهاء الوقت.",
     nudge: "{name} ينتظر حركتك في {game}.",
@@ -48,6 +52,7 @@ const COPY: Record<string, Copy> = {
   },
   es: {
     names: { tictactoe: "Tres en raya", connectfour: "Conecta 4", reversi: "Reversi", checkers: "Damas", dots: "Puntos y cajas", chess: "Ajedrez" },
+    started: "{name} empezó {game} y ya jugó. Te toca.",
     yourMove: "{name} ya jugó. Te toca en {game}.",
     reminder: "Sigue siendo tu turno en {game} con {name}. Juega antes de que se acabe el tiempo.",
     nudge: "{name} está esperando tu jugada en {game}.",
@@ -57,6 +62,7 @@ const COPY: Record<string, Copy> = {
   },
   fr: {
     names: { tictactoe: "Morpion", connectfour: "Puissance 4", reversi: "Reversi", checkers: "Dames", dots: "Pipopipette", chess: "Échecs" },
+    started: "{name} a lancé {game} et a joué. À vous.",
     yourMove: "{name} a joué. À vous dans {game}.",
     reminder: "C’est toujours à vous dans {game} avec {name}. Jouez avant la fin du temps.",
     nudge: "{name} attend votre coup dans {game}.",
@@ -66,6 +72,7 @@ const COPY: Record<string, Copy> = {
   },
   hi: {
     names: { tictactoe: "टिक-टैक-टो", connectfour: "कनेक्ट फ़ोर", reversi: "रिवर्सी", checkers: "चेकर्स", dots: "डॉट्स एंड बॉक्सेस", chess: "शतरंज" },
+    started: "{name} ने {game} शुरू किया और चाल चली। आपकी बारी।",
     yourMove: "{name} ने चाल चली। {game} में आपकी बारी।",
     reminder: "{name} के साथ {game} में अब भी आपकी बारी है। समय खत्म होने से पहले खेलें।",
     nudge: "{name} {game} में आपकी चाल का इंतज़ार कर रहे हैं।",
@@ -75,6 +82,7 @@ const COPY: Record<string, Copy> = {
   },
   ja: {
     names: { tictactoe: "まるばつ", connectfour: "四目並べ", reversi: "リバーシ", checkers: "チェッカー", dots: "ドット・アンド・ボックス", chess: "チェス" },
+    started: "{name}さんが{game}を始めて指しました。あなたの番です。",
     yourMove: "{name}さんが指しました。{game}であなたの番です。",
     reminder: "{name}さんとの{game}はまだあなたの番です。時間切れになる前にどうぞ。",
     nudge: "{name}さんが{game}であなたの手を待っています。",
@@ -84,6 +92,7 @@ const COPY: Record<string, Copy> = {
   },
   ko: {
     names: { tictactoe: "틱택토", connectfour: "사목", reversi: "리버시", checkers: "체커", dots: "점과 상자", chess: "체스" },
+    started: "{name}님이 {game}을 시작하고 두었어요. 내 차례예요.",
     yourMove: "{name}님이 두었어요. {game}에서 내 차례예요.",
     reminder: "{name}님과의 {game}에서 아직 내 차례예요. 시간이 끝나기 전에 두세요.",
     nudge: "{name}님이 {game}에서 내 수를 기다리고 있어요.",
@@ -93,6 +102,7 @@ const COPY: Record<string, Copy> = {
   },
   "pt-br": {
     names: { tictactoe: "Jogo da velha", connectfour: "Lig 4", reversi: "Reversi", checkers: "Damas", dots: "Pontinhos", chess: "Xadrez" },
+    started: "{name} começou {game} e jogou. Sua vez.",
     yourMove: "{name} jogou. Sua vez em {game}.",
     reminder: "Ainda é a sua vez em {game} com {name}. Jogue antes que o tempo acabe.",
     nudge: "{name} está esperando sua jogada em {game}.",
@@ -102,6 +112,7 @@ const COPY: Record<string, Copy> = {
   },
   pt: {
     names: { tictactoe: "Jogo do galo", connectfour: "4 em linha", reversi: "Reversi", checkers: "Damas", dots: "Pontos e quadrados", chess: "Xadrez" },
+    started: "{name} começou {game} e jogou. É a tua vez.",
     yourMove: "{name} jogou. É a tua vez em {game}.",
     reminder: "Ainda é a tua vez em {game} com {name}. Joga antes que o tempo acabe.",
     nudge: "{name} está à espera da tua jogada em {game}.",
@@ -111,6 +122,7 @@ const COPY: Record<string, Copy> = {
   },
   sv: {
     names: { tictactoe: "Tre i rad", connectfour: "Fyra i rad", reversi: "Reversi", checkers: "Dam", dots: "Prickar och lådor", chess: "Schack" },
+    started: "{name} startade {game} och har gjort sitt drag. Din tur.",
     yourMove: "{name} har gjort sitt drag. Din tur i {game}.",
     reminder: "Det är fortfarande din tur i {game} med {name}. Spela innan tiden tar slut.",
     nudge: "{name} väntar på ditt drag i {game}.",
@@ -120,6 +132,7 @@ const COPY: Record<string, Copy> = {
   },
   zh: {
     names: { tictactoe: "井字棋", connectfour: "四子棋", reversi: "黑白棋", checkers: "跳棋", dots: "点格棋", chess: "国际象棋" },
+    started: "{name} 开始了 {game} 并已落子。轮到你了。",
     yourMove: "{name} 已落子。{game} 轮到你了。",
     reminder: "和 {name} 的 {game} 仍轮到你。请在时间用完前落子。",
     nudge: "{name} 正在等你在 {game} 中落子。",

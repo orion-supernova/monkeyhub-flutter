@@ -15,6 +15,7 @@ import {
   SYSTEM_VISIBILITY,
   isSystemAccount,
 } from "./systemAccount";
+import { LOG_ROOM_POSTING_PRESET } from "./roomPolicy";
 
 /**
  * Delivery for the "Report a problem" screen.
@@ -233,6 +234,10 @@ async function ensureReportRoom(
         // call, no "end conversation", no description, no settings. See
         // `systemAccount.SYSTEM_ROOM_LOGS`.
         system: SYSTEM_ROOM_LOGS,
+        // Members read; only the log account posts. A system room resolves to
+        // read-only without this too (`roomPolicy.postingPresetOf`), but the
+        // stamp says so on the row rather than by inference.
+        postingPolicy: LOG_ROOM_POSTING_PRESET,
         // The room wears the bot's face. Worth doing explicitly now that the
         // room is a group: a DM borrowed the other party's avatar, and a group
         // has only its own, so without this the one room in the app with a
@@ -262,6 +267,11 @@ async function repairLogRoom(ctx: any, room: any, logUserId: any): Promise<any> 
   // already exists, so the insert never runs again — and it would keep drawing
   // chrome that leads nowhere.
   if (room.system !== SYSTEM_ROOM_LOGS) patch.system = SYSTEM_ROOM_LOGS;
+  // Stamped only when ABSENT, so a deliberate later change of the logs room's
+  // preset is not undone by the next bug report.
+  if (room.postingPolicy === undefined) {
+    patch.postingPolicy = LOG_ROOM_POSTING_PRESET;
+  }
   // The rename. A room still carrying `dm:regular:<a>:<b>` is one that has not
   // been through this yet; leaving the name would title the room with a pair of
   // raw ids the moment a third member makes peer resolution impossible.

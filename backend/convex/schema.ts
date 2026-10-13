@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { postingPresetValidator } from "./roomPolicy";
 
 /**
  * One GIF or sticker, as a user's recents and favourites remember it.
@@ -306,6 +307,12 @@ export default defineSchema({
     // client reads it straight off the row (`listUserRooms` spreads the whole
     // document) to decide which chrome the room gets.
     system: v.optional(v.string()),
+    // What MEMBERS may post here: the name of a preset in
+    // `roomPolicy.POSTING_PRESETS` ("open" | "readOnly" | "agent"). Absent on
+    // every ordinary room, which resolves to "open" (today's behaviour), and on
+    // a system room resolves to "readOnly" until stamped. System accounts and
+    // internal writers are never bound by it. See `roomPolicy.ts`.
+    postingPolicy: v.optional(postingPresetValidator),
     // ── Who may widen the room ──────────────────────────────────────────
     //
     // Both absent on every room written before they existed, and both read
@@ -2625,8 +2632,11 @@ export default defineSchema({
   // no public query returns.
   matches: defineTable({
     roomId: v.id("rooms"),
-    // The card. Absent only between the insert and the patch in `create`,
-    // inside one transaction — no reader ever sees it unset.
+    // The card (a `game` message): a live game's lobby and anchor. Absent on
+    // a turn by turn game started by `matches.startTurns`, which has no card:
+    // its moves are `gameMove` bubbles pointing at it, and its anchor is the
+    // room (see "What anchors a game" in `matches.ts`). Async games made by
+    // older builds through `matches.create` still have one.
     messageId: v.optional(v.id("messages")),
     // A `turnGames` or `partyGames` registry id (the two never overlap).
     game: v.string(),

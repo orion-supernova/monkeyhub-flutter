@@ -9,6 +9,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
+import { assertRoomAllowsById } from "./roomPolicy";
 import { lensFor, levelOf } from "./visibility";
 import { TAKEN_PUSH_GRACE_MS } from "./calls";
 
@@ -238,6 +239,9 @@ export const start = mutation({
   handler: async (ctx, { roomId, userId, deviceId, type, inviteeIds }) => {
     if (type !== "audio" && type !== "video") throw new Error("BAD_CALL_TYPE");
     await requireMember(ctx, roomId, userId);
+    // The room's posting policy decides whether calls happen here at all.
+    // Checked before the roster walk below, which it makes unnecessary.
+    await assertRoomAllowsById(ctx, roomId, userId, { actions: ["call"] });
 
     // Scoped by ROOM rather than by callee, so unlike `calls.initiate` there is
     // no target id to check — the guard is that the room must contain no system

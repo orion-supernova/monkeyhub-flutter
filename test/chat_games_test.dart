@@ -400,6 +400,180 @@ void main() {
     });
   });
 
+  group('the room banner', () {
+    final store = MatchesStore.instance;
+
+    test('a game missing from the room list is evicted, a finished one kept', () async {
+      await store.watchRoom('me', 'r1');
+      api.pushRoom('r1', [
+        game(id: 'a'),
+        game(id: 'b'),
+        game(id: 'old', status: MatchStatus.finished),
+      ]);
+      expect(store.openIn('r1').map((m) => m.id), unorderedEquals(['a', 'b']));
+      // Card 'b' expired, which erased its game: the next delivery lacks it,
+      // and the finished one has slid out of the list's window.
+      api.pushRoom('r1', [game(id: 'a')]);
+      expect(store.openIn('r1').map((m) => m.id), ['a']);
+      expect(store.forMessage('msg-b'), isNull);
+      expect(store.forMessage('msg-old'), isNotNull);
+      api.pushRoom('r1', const []);
+      expect(store.openIn('r1'), isEmpty);
+      store.unwatchRoom('r1');
+    });
+
+    test('a just-created game survives a delivery read before it existed', () async {
+      await store.watchRoom('me', 'r1');
+      store.note(game(id: 'new'));
+      api.pushRoom('r1', const []);
+      expect(store.openIn('r1').map((m) => m.id), ['new']);
+      store.unwatchRoom('r1');
+    });
+
+    test('a screen that finds its game gone drops it from the banner', () async {
+      store.note(game(id: 'm1'));
+      expect(store.openIn('r1'), hasLength(1));
+      final c = MatchController(matchId: 'm1', userId: 'me');
+      await c.start();
+      api.push(null, matchId: 'm1');
+      expect(c.gone, isTrue);
+      expect(store.openIn('r1'), isEmpty);
+      c.dispose();
+    });
+
+    test('a move refused with NO_MATCH drops it too', () async {
+      final c = MatchController(matchId: 'm1', userId: 'me');
+      await c.start();
+      api.push(game());
+      store.note(game());
+      api.failNextMove = 'NO_MATCH';
+      await c.play('4');
+      expect(store.openIn('r1'), isEmpty);
+      c.dispose();
+    });
+  });
+
+  group('a turn by turn game before it exists', () {
+    const seats = [
+      MatchSeat(userId: 'me', name: 'Ada'),
+      MatchSeat(userId: 'bob', name: 'Bob'),
+    ];
+    const draft = TurnDraft(roomId: 'r1', game: 'tictactoe', seats: seats);
+
+    test('draws the opening board locally and tells the server nothing', () async {
+      final c = MatchController.draft(draft: draft, userId: 'me');
+      await c.start();
+      expect(c.isDraft, isTrue);
+      expect(c.matchId, isEmpty);
+      expect(c.match!.state, '........./0');
+      expect(c.match!.isTurnOf('me'), isTrue);
+      c.stage('4');
+      expect(c.match!.state, '....X..../1');
+      c.unstage();
+      // Backing out: nothing was ever sent, nothing watched.
+      c.dispose();
+      expect(api.calls, isEmpty);
+    });
+
+    test('Send creates the game with the move, then watches it', () async {
+      final c = MatchController.draft(draft: draft, userId: 'me');
+      await c.start();
+      c.stage('4');
+      // Only through Send: a bare play on a draft goes nowhere.
+      expect(await c.play('0'), isFalse);
+      expect(await c.sendStaged(), isTrue);
+      expect(api.calls, ['startTurns:tictactoe:4', 'watch']);
+      expect(c.isDraft, isFalse);
+      expect(c.matchId, 'm-turns');
+      // The sent board stays up until the game's first delivery.
+      expect(c.match!.state, '....X..../1');
+      expect(c.sending, isTrue);
+      api.push(game(
+        id: 'm-turns',
+        mode: MatchMode.async,
+        state: '....X..../1',
+        seq: 1,
+        turnSeat: 1,
+      ));
+      expect(c.sending, isFalse);
+      expect(c.match!.seq, 1);
+      expect(api.calls.where((x) => x.startsWith('move')), isEmpty);
+      c.dispose();
+    });
+
+    test('a refused first move creates nothing and says why', () async {
+      final c = MatchController.draft(draft: draft, userId: 'me');
+      await c.start();
+      c.stage('4');
+      api.failNextStart = 'TOO_MANY_GAMES';
+      expect(await c.sendStaged(), isFalse);
+      expect(c.lastRejection, MoveRejection.tooManyGames);
+      expect(c.isDraft, isTrue);
+      expect(c.match!.state, '........./0');
+      expect(api.calls.where((x) => x == 'watch'), isEmpty);
+      c.dispose();
+    });
+
+    test('the store shows a card-less game in the banner and drops it when gone', () async {
+      final store = MatchesStore.instance;
+      await store.watchRoom('me', 'r1');
+      final cardless = ChatMatch(
+        id: 'm-turns',
+        roomId: 'r1',
+        messageId: '',
+        game: 'tictactoe',
+        mode: MatchMode.async,
+        status: MatchStatus.active,
+        seats: seats,
+        state: '....X..../1',
+        seq: 1,
+        turnSeat: 1,
+        createdBy: 'me',
+        createdAt: DateTime(2026, 10, 13),
+      );
+      api.pushRoom('r1', [cardless, game(id: 'carded')]);
+      expect(
+        store.openIn('r1').map((m) => m.id),
+        unorderedEquals(['m-turns', 'carded']),
+      );
+      expect(store.forMatch('m-turns'), isNotNull);
+      expect(store.forMessage('msg-carded')?.id, 'carded');
+      expect(store.forMessage(''), isNull);
+      api.pushRoom('r1', [game(id: 'carded')]);
+      expect(store.openIn('r1').map((m) => m.id), ['carded']);
+      store.note(cardless);
+      expect(store.openIn('r1'), hasLength(2));
+      store.forget('m-turns');
+      expect(store.forMatch('m-turns'), isNull);
+      store.unwatchRoom('r1');
+    });
+
+    testWidgets('the screen opens on the local board and Send creates the game', (tester) async {
+      tester.view
+        ..physicalSize = const Size(420, 1600)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(host(
+        const MatchScreen(matchId: '', userId: 'me', draft: draft),
+      ));
+      await tester.pump();
+      expect(find.byType(TurnBoard), findsOneWidget);
+      expect(api.calls, isEmpty);
+      tester.widget<TurnBoard>(find.byType(TurnBoard)).onMove!('4');
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(find.text('Send move'), findsOneWidget);
+      expect(api.calls, isEmpty);
+      await tester.tap(find.text('Send move'));
+      await tester.pump();
+      expect(api.calls.first, 'startTurns:tictactoe:4');
+      expect(api.calls.where((x) => x.startsWith('move')), isEmpty);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
   group('the screen', () {
     testWidgets('a turn by turn move waits for Send', (tester) async {
       // The VIEW, not `setSurfaceSize`: that grows the render surface but
@@ -875,6 +1049,37 @@ void main() {
       expect(find.byKey(const ValueKey('mode_live')), findsOneWidget);
       expect(find.byKey(const ValueKey('mode_turns')), findsNothing);
       expect(find.text('How do you want to play?'), findsNothing);
+    });
+
+    testWidgets('a group too small for Imposter greys it out', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        host(const StartGameSheet(isDm: false, memberCount: 2)),
+      );
+      await settle(tester);
+      expect(find.byKey(const ValueKey('game_imposter')), findsOneWidget);
+      expect(find.text('Needs 3+ people'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('game_imposter')));
+      await settle(tester);
+      expect(find.text('Start Imposter'), findsNothing);
+      // Two people still get every two-player game.
+      await tester.tap(find.byKey(const ValueKey('game_liarsdice')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('game_start')), findsOneWidget);
+    });
+
+    testWidgets('a group big enough for Imposter opens it', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        host(const StartGameSheet(isDm: false, memberCount: 3)),
+      );
+      await settle(tester);
+      expect(find.text('Needs 3+ people'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('game_imposter')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('game_start')), findsOneWidget);
     });
 
     testWidgets('a DM board game defaults to taking turns, and can go live',

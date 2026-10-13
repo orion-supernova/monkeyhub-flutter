@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../data/chat_repository.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
+import '../models/room_posting_policy.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart';
 import 'adaptive_sheet.dart';
@@ -37,6 +38,11 @@ Future<List<ChatRoom>?> showForwardTargetSheet(
   /// Excluded from the list — forwarding a room's messages back into itself is
   /// refused by the server (`SAME_ROOM`) and would read as a bug if offered.
   required String excludeRoomId,
+
+  /// What is being forwarded. A room whose posting policy takes any one of
+  /// these is left out, the way the server would refuse the whole batch.
+  /// Empty checks only that the room takes forwards at all.
+  Set<PostKind> kinds = const {},
 }) {
   return showAdaptiveSheet<List<ChatRoom>>(
     context,
@@ -44,6 +50,7 @@ Future<List<ChatRoom>?> showForwardTargetSheet(
       repo: repo,
       messageCount: messageCount,
       excludeRoomId: excludeRoomId,
+      kinds: kinds,
     ),
   );
 }
@@ -53,11 +60,13 @@ class _ForwardTargetSheet extends StatefulWidget {
     required this.repo,
     required this.messageCount,
     required this.excludeRoomId,
+    this.kinds = const {},
   });
 
   final ChatRepository repo;
   final int messageCount;
   final String excludeRoomId;
+  final Set<PostKind> kinds;
 
   @override
   State<_ForwardTargetSheet> createState() => _ForwardTargetSheetState();
@@ -92,7 +101,9 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
       // `rooms:listPublic`'s alone and is false on everything this list holds,
       // so filtering on it emptied the sheet outright.
       // A write-only feed the app posts into is not a place to put things.
-      if (!widget.repo.capabilitiesFor(r).canReceiveForwards) continue;
+      final caps = widget.repo.capabilitiesFor(r);
+      if (!caps.canReceiveForwards) continue;
+      if (!caps.posting.allowsAll(widget.kinds)) continue;
       if (q.isNotEmpty && !_titleOf(r).toLowerCase().contains(q)) continue;
       out.add(r);
     }

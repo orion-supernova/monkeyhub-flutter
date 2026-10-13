@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import {
   ASYNC_EXPIRE_MS,
@@ -482,6 +482,242 @@ describe("an async DM game", () => {
   });
 });
 
+/** A turn by turn game started the current way: no card, first move sent. */
+async function startTurns(
+  t: ReturnType<typeof convexTest>,
+  who: Who,
+  roomId: any,
+  game: string,
+  move: string,
+  clientMoveId: string,
+  rematchOf?: any,
+) {
+  return (await t.mutation(api.matches.startTurns, {
+    ...as(who),
+    roomId,
+    game,
+    move,
+    clientMoveId,
+    rematchOf,
+  })) as { matchId: any; messageId: any; seq: number; replay: boolean };
+}
+
+async function rowsOf(t: ReturnType<typeof convexTest>) {
+  return await t.run(async (ctx) => ({
+    matches: await ctx.db.query("matches").collect(),
+    moves: await ctx.db.query("matchMoves").collect(),
+    messages: await ctx.db.query("messages").collect(),
+  }));
+}
+
+describe("a turn by turn game with no card", () => {
+  test("the first move creates the game, posts its bubble and nothing else", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const before = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).length,
+    );
+    const res = await startTurns(t, a, roomId, "tictactoe", "4", "mv-first");
+    expect(res.seq).toBe(1);
+    expect(res.replay).toBe(false);
+
+    const { matches, moves, messages } = await rowsOf(t);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].messageId).toBeUndefined();
+    // No card: the move bubble is the only message.
+    expect(messages.map((m: any) => m.type)).toEqual(["gameMove"]);
+    expect(messages[0]._id).toBe(res.messageId);
+    expect(messages[0].gameMove).toMatchObject({
+      matchId: res.matchId,
+      game: "tictactoe",
+      seq: 1,
+      seat: 0,
+      move: "4",
+    });
+    expect(moves).toHaveLength(1);
+    expect(moves[0].messageId).toBe(res.messageId);
+
+    const m = await read(t, b, res.matchId);
+    expect(m.status).toBe("active");
+    expect(m.seats.map((s: any) => s.name)).toEqual(["ada", "bob"]);
+    expect(m.turnSeat).toBe(1);
+    expect(m.state).toBe(messages[0].gameMove!.state);
+    expect(m.deadlineAt).toBeGreaterThan(Date.now());
+
+    // The banner and the chat list's dot both find it, with no card.
+    const list = (await t.query(api.matches.listForRoom, {
+      sessionToken: b.token,
+      roomId,
+      viewerUserId: b.userId,
+    })) as any[];
+    expect(list.map((x) => x.id)).toEqual([res.matchId]);
+    const turns = (await t.query(api.matches.myTurns, {
+      sessionToken: b.token,
+      viewerUserId: b.userId,
+    })) as any[];
+    expect(turns.map((x) => x.roomId)).toEqual([roomId]);
+    const room = (await t.run((ctx) => ctx.db.get(roomId))) as any;
+    expect(room.lastMessage).toBe("[game] Tic-tac-toe · move 1");
+
+    // One push, the game's own; the bubble is quiet.
+    const jobs = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).slice(before),
+    );
+    const pushes = jobs.filter((j: any) => j.name.includes("sendMatchPush"));
+    expect(pushes).toHaveLength(1);
+    expect(pushes[0].args[0]).toMatchObject({ toUserId: b.userId, key: "started" });
+    expect(
+      jobs.filter((j: any) => j.name.includes("sendMessagePush")),
+    ).toHaveLength(0);
+    expect(matchLine("en", "started", "tictactoe", "Ada")).toBe(
+      "Ada started Tic-tac-toe and played. Your move.",
+    );
+
+    // And it plays on like any async game.
+    await play(t, b, res.matchId, "0");
+    expect((await read(t, a, res.matchId)).turnSeat).toBe(0);
+  });
+
+  test("a resend is the success it was, not a second game", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const first = await startTurns(t, a, roomId, "connectfour", "3", "mv-x");
+    const again = await startTurns(t, a, roomId, "connectfour", "3", "mv-x");
+    expect(again.replay).toBe(true);
+    expect(again.matchId).toBe(first.matchId);
+    expect(again.messageId).toBe(first.messageId);
+    const { matches, messages } = await rowsOf(t);
+    expect(matches).toHaveLength(1);
+    expect(messages).toHaveLength(1);
+  });
+
+  test("the per-DM cap is enforced at the create, and a refusal writes nothing", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    // An older build's carded game counts against the same cap.
+    await create(t, b, roomId, "tictactoe", "async");
+    for (let i = 1; i < MAX_ASYNC_PER_DM; i++) {
+      await startTurns(t, i % 2 ? a : b, roomId, "tictactoe", "4", `mv-${i}`);
+    }
+    const before = await rowsOf(t);
+    await expect(
+      startTurns(t, a, roomId, "reversi", "19", "mv-over"),
+    ).rejects.toThrow("TOO_MANY_GAMES");
+    const after = await rowsOf(t);
+    expect(after.matches).toHaveLength(MAX_ASYNC_PER_DM);
+    expect(after.messages).toHaveLength(before.messages.length);
+    expect(after.moves).toHaveLength(before.moves.length);
+  });
+
+  test("an illegal first move is refused, creating nothing", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    await expect(
+      startTurns(t, a, roomId, "tictactoe", "9", "mv-bad"),
+    ).rejects.toThrow("ILLEGAL");
+    await expect(
+      startTurns(t, a, roomId, "liarsdice", "x", "mv-party"),
+    ).rejects.toThrow("LIVE_ONLY");
+    const g = await group(t, a, b);
+    await expect(
+      startTurns(t, a, g, "tictactoe", "4", "mv-group"),
+    ).rejects.toThrow("ASYNC_DM_ONLY");
+    const { matches, moves, messages } = await rowsOf(t);
+    expect(matches).toHaveLength(0);
+    expect(moves).toHaveLength(0);
+    expect(messages.filter((m: any) => m.type === "gameMove")).toHaveLength(0);
+    const room = (await t.run((ctx) => ctx.db.get(roomId))) as any;
+    expect(room.lastMessage ?? "").not.toContain("[game]");
+  });
+
+  test("deleting the first move's bubble leaves a playable game", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId, messageId } = await startTurns(
+      t, a, roomId, "tictactoe", "4", "mv-1",
+    );
+    await t.mutation(api.messages.deleteMessage, { ...as(a), messageId });
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(messageId)).toBeNull();
+      expect(await ctx.db.get(matchId)).not.toBeNull();
+      expect(await ctx.db.query("matchMoves").collect()).toHaveLength(1);
+    });
+    const list = (await t.query(api.matches.listForRoom, {
+      sessionToken: b.token,
+      roomId,
+      viewerUserId: b.userId,
+    })) as any[];
+    expect(list.map((x) => x.id)).toEqual([matchId]);
+    await play(t, b, matchId, "0");
+    const m = await read(t, a, matchId);
+    expect(m.status).toBe("active");
+    expect(m.seq).toBe(2);
+    // The orphan sweep leaves it alone too: its room is its anchor.
+    const swept: any = await t.mutation(internal.matches._purgeOrphanMatches, {
+      table: "matches",
+      paginationOpts: { numItems: 50, cursor: null },
+    });
+    expect(swept.removed).toBe(0);
+    expect(await read(t, a, matchId)).not.toBeNull();
+  });
+
+  test("an unanswered first move times out like any other", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await startTurns(t, a, roomId, "chess", "e2e4", "mv-1");
+    vi.advanceTimersByTime(ASYNC_EXPIRE_MS + 1000);
+    await t.finishInProgressScheduledFunctions();
+    const done = await read(t, a, matchId);
+    expect(done.status).toBe("finished");
+    expect(done.winner).toBe(0);
+    expect(done.reason).toBe("timeout");
+  });
+
+  test("a rematch is card-less too, and whoever asks moves first", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await startTurns(t, a, roomId, "tictactoe", "4", "mv-1");
+    await expect(
+      startTurns(t, b, roomId, "tictactoe", "0", "mv-early", matchId),
+    ).rejects.toThrow("NOT_FINISHED");
+    await t.mutation(api.matches.resign, { ...as(b), matchId });
+    const again = await startTurns(t, b, roomId, "tictactoe", "0", "mv-r", matchId);
+    const m = await read(t, a, again.matchId);
+    expect(m.seats.map((s: any) => s.name)).toEqual(["bob", "ada"]);
+    expect(m.turnSeat).toBe(1);
+    const { messages } = await rowsOf(t);
+    expect(messages.filter((x: any) => x.type === "game")).toHaveLength(0);
+  });
+
+  test("wiping the room erases it", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await dm(t, a, b);
+    const { matchId } = await startTurns(t, a, roomId, "tictactoe", "4", "mv-1");
+    await t.run(async (ctx) => {
+      const { purgeMatchesForRoom } = await import("./matchCore");
+      await purgeMatchesForRoom(ctx, roomId);
+      expect(await ctx.db.get(matchId)).toBeNull();
+      expect(await ctx.db.query("matchMoves").collect()).toHaveLength(0);
+    });
+  });
+});
+
 describe("the room around it", () => {
   test("outsiders cannot read, move or ask for a seat", async () => {
     const t = convexTest(schema);
@@ -526,6 +762,177 @@ describe("the room around it", () => {
       expect(left.map((m: any) => m.type)).toEqual(["text"]);
       const room = (await ctx.db.get(roomId)) as any;
       expect(room.lastMessage).toBe("good game so far");
+    });
+  });
+
+  test("deleting a live card in a group leaves no game, child row or banner entry", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const c = await signUp(t, "cem");
+    const roomId = await group(t, a, b, c);
+    // A party game, so the hidden-state table has a row to lose too.
+    const { matchId, messageId } = await create(t, a, roomId, "liarsdice", "live");
+    await t.mutation(api.matches.join, { ...as(b), matchId });
+    await t.mutation(api.matches.setReady, { ...as(a), matchId, ready: true });
+    await t.mutation(api.matches.setReady, { ...as(b), matchId, ready: true });
+    await t.mutation(api.matches.beat, { ...as(c), matchId });
+    await t.run(async (ctx) => {
+      expect(await ctx.db.query("matchHidden").collect()).toHaveLength(1);
+      expect(
+        (await ctx.db.query("matchPresence").collect()).length,
+      ).toBeGreaterThan(0);
+    });
+
+    await t.mutation(api.messages.deleteMessage, { ...as(a), messageId });
+
+    const gone = async () =>
+      await t.run(async (ctx) => {
+        expect(await ctx.db.get(matchId)).toBeNull();
+        expect(await ctx.db.query("matches").collect()).toHaveLength(0);
+        expect(await ctx.db.query("matchMoves").collect()).toHaveLength(0);
+        expect(await ctx.db.query("matchPresence").collect()).toHaveLength(0);
+        expect(await ctx.db.query("matchHidden").collect()).toHaveLength(0);
+      });
+    await gone();
+    for (const who of [a, b, c]) {
+      expect(
+        await t.query(api.matches.listForRoom, {
+          sessionToken: who.token,
+          roomId,
+          viewerUserId: who.userId,
+        }),
+      ).toEqual([]);
+      expect(await read(t, who, matchId)).toBeNull();
+    }
+    // A stale screen's heartbeat cannot bring a presence row back, and every
+    // timer the game had armed wakes to nothing and re-arms nothing.
+    await expect(
+      t.mutation(api.matches.beat, { ...as(b), matchId }),
+    ).rejects.toThrow(/NO_MATCH/);
+    await advance(t, LIVE_GRACE_MS * 3, matchId);
+    await gone();
+    // The room is free for a new live game.
+    await create(t, b, roomId, "tictactoe", "live");
+  });
+
+  test("a card that expires takes its game the same way", async () => {
+    const t = convexTest(schema);
+    const { matchId, a, roomId } = await liveGame(t);
+    const m = await read(t, a, matchId);
+    await t.mutation(internal.messages.expireMessage, {
+      messageId: m.messageId,
+    });
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(matchId)).toBeNull();
+      expect(await ctx.db.query("matchPresence").collect()).toHaveLength(0);
+    });
+    expect(
+      await t.query(api.matches.listForRoom, {
+        sessionToken: a.token,
+        roomId,
+        viewerUserId: a.userId,
+      }),
+    ).toEqual([]);
+  });
+
+  test("deleting the account that sent the card takes the game", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const c = await signUp(t, "cem");
+    const roomId = await group(t, a, b, c);
+    const { matchId } = await create(t, a, roomId, "connectfour", "live");
+    await t.mutation(api.matches.join, { ...as(b), matchId });
+    await t.mutation(api.matches.join, { ...as(c), matchId }).catch(() => {});
+    await t.mutation(api.auth.deleteAccount, {
+      sessionToken: a.token,
+      userId: a.userId,
+    });
+    // Before: the creator's seat was vacated, the lobby stayed open for the
+    // others, and its card was gone — a banner entry that could not open.
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(matchId)).toBeNull();
+      expect(await ctx.db.query("matchPresence").collect()).toHaveLength(0);
+    });
+    expect(
+      await t.query(api.matches.listForRoom, {
+        sessionToken: b.token,
+        roomId,
+        viewerUserId: b.userId,
+      }),
+    ).toEqual([]);
+  });
+
+  test("no game starts in a room whose messages self-destruct", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "ada");
+    const b = await signUp(t, "bob");
+    const roomId = await t.mutation(api.rooms.create, {
+      sessionToken: a.token,
+      userId: a.userId,
+      name: "the chamber",
+      isPrivate: false,
+      messageLifetime: 10,
+    });
+    await t.mutation(api.rooms.join, { ...as(b), roomId });
+    await expect(
+      create(t, a, roomId, "tictactoe", "live"),
+    ).rejects.toThrow(/EPHEMERAL_ROOM/);
+    await t.run(async (ctx) => {
+      expect(await ctx.db.query("matches").collect()).toHaveLength(0);
+      // Refused before the card is sent, not after.
+      const msgs = await ctx.db.query("messages").collect();
+      expect(msgs.filter((m: any) => m.type === "game")).toHaveLength(0);
+    });
+  });
+
+  test("the orphan sweep erases a card-less game and nothing live", async () => {
+    const t = convexTest(schema);
+    const { matchId: live } = await liveGame(t);
+    const orphan = await t.run(async (ctx) => {
+      const m = (await ctx.db.get(live)) as any;
+      const card = await ctx.db.insert("messages", {
+        ...(await ctx.db.get(m.messageId) as any),
+        _id: undefined,
+        _creationTime: undefined,
+      } as any);
+      const id = await ctx.db.insert("matches", {
+        ...m,
+        _id: undefined,
+        _creationTime: undefined,
+        messageId: card,
+        status: "finished",
+      } as any);
+      await ctx.db.insert("matchPresence", {
+        matchId: id,
+        userId: m.createdBy,
+        lastBeatAt: 0,
+      });
+      await ctx.db.delete(card);
+      return id;
+    });
+    // Paged: one row a call.
+    const sweep = async (table: any, dryRun?: boolean) => {
+      let removed = 0;
+      let cursor: string | null = null;
+      for (;;) {
+        const r: any = await t.mutation(internal.matches._purgeOrphanMatches, {
+          table,
+          paginationOpts: { numItems: 1, cursor },
+          dryRun,
+        });
+        removed += r.removed;
+        if (r.isDone) return removed;
+        cursor = r.continueCursor;
+      }
+    };
+    expect(await sweep("matches", true)).toBe(1);
+    expect(await sweep("matches")).toBe(1);
+    expect(await sweep("matchPresence")).toBe(0);
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(orphan)).toBeNull();
+      expect(await ctx.db.get(live)).not.toBeNull();
     });
   });
 

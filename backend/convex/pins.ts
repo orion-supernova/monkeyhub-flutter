@@ -1,6 +1,7 @@
 import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { sanitizeViewOnce } from "./messages";
+import { assertRoomAllowsById } from "./roomPolicy";
 
 /**
  * Ceiling on pins per room.
@@ -33,6 +34,10 @@ export const pin = mutation({
       )
       .first();
     if (!membership) throw new Error("NOT_A_MEMBER");
+
+    // A pin is a banner over everyone's transcript, so the room's posting
+    // policy has a say. Unpinning stays open. See `roomPolicy.ts`.
+    await assertRoomAllowsById(ctx, msg.roomId, userId, { actions: ["pin"] });
 
     // Idempotent, like `reactions:addReaction`. Mutations are serializable, so
     // a racing second pin loses its OCC check and re-runs this probe rather

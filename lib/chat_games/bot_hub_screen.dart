@@ -132,7 +132,7 @@ class _BotHubScreenState extends State<BotHubScreen> {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                sentenceCaseOf(context, l10n.chatGameNotRanked),
+                sentenceCaseOf(context, l10n.practiceNotRanked),
                 style: groupedFooterStyle(theme),
               ),
             ),

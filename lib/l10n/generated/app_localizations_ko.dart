@@ -191,6 +191,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 방의 메시지는 휘발성이에요. 방의 보안 정책에 따라 자동으로 삭제돼요.';
 
   @override
+  String get roomReadOnlyFooter => '읽기 전용 방이에요. 여기에는 MonkeyHub만 글을 올려요.';
+
+  @override
   String get roomScreenAutoDeleteTitle => '자동 삭제';
 
   @override
@@ -5597,13 +5600,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameInfoOpen => '게임 방법';
 
   @override
-  String get gameInfoScoringTimed => '가장 빨리 끝내면 이겨. 나가면 시계가 멈춰.';
+  String get gameInfoScoringTimed => '가장 빨리 끝내면 이겨요. 나가면 시계가 멈춰요.';
 
   @override
-  String get gameInfoScoringGuesses => '가장 적게 추측해서 맞히면 이겨. 시간은 상관없어.';
+  String get gameInfoScoringGuesses => '가장 적게 추측해서 맞히면 이겨요. 시간은 상관없어요.';
 
   @override
-  String get gameInfoSameForEveryone => '오늘은 모두 같은 퍼즐을 풀어.';
+  String get gameInfoSameForEveryone => '오늘은 모두 같은 퍼즐을 풀어요.';
 
   @override
   String get savedMessagesTitle => '저장한 메시지';
@@ -11595,7 +11598,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatGameStatusFinished => '종료';
 
   @override
-  String get chatGameStatusEnded => '끝남';
+  String get chatGameStatusEnded => '중단됨';
 
   @override
   String get chatGameYourMove => '내 차례';
@@ -11833,6 +11836,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatGameErrTooMany => '이미 턴제 게임이 3개 진행 중이에요. 먼저 하나를 끝내세요.';
 
   @override
+  String get chatGameErrEphemeral => '메시지가 사라지는 채팅에서는 게임을 할 수 없어요.';
+
+  @override
   String get chatGameErrGeneric => '문제가 생겼어요. 다시 시도하세요.';
 
   @override
@@ -11895,16 +11901,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameStarbattleName => '스타 배틀';
 
   @override
-  String get gameFlowRule => '같은 점끼리 잇고, 모든 칸을 채워';
+  String get gameFlowRule => '같은 점끼리 잇고 모든 칸 채우기';
 
   @override
   String get gameFutoshikiRule => '행·열마다 1~5를 한 번씩, 부등호는 모두 맞게';
 
   @override
-  String get gameNonogramRule => '모든 숫자 힌트에 맞게 칸을 칠해';
+  String get gameNonogramRule => '모든 숫자 힌트에 맞게 칸 칠하기';
 
   @override
-  String get gameMinesweeperRule => '안전한 칸을 모두 열어, 찍을 필요 없음';
+  String get gameMinesweeperRule => '안전한 칸을 모두 열기, 찍을 필요 없음';
 
   @override
   String get gameStarbattleRule => '행·열·색마다 별 두 개, 서로 붙으면 안 됨';
@@ -12053,6 +12059,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String chatGameNeedsPeople(int count) {
+    return '$count명 이상 필요';
+  }
+
+  @override
   String get chatGameVoiceOption => '음성 힌트';
 
   @override
@@ -12118,7 +12129,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String chatGameLdLosesDie(String name) {
-    return '$name 님이 주사위 1개를 잃어요';
+    return '$name님이 주사위 1개를 잃어요';
   }
 
   @override
@@ -12126,12 +12137,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String chatGameLdCalled(String name) {
-    return '$name 님이 거짓말을 외쳤어요';
+    return '$name님이 거짓말을 외쳤어요';
   }
 
   @override
   String chatGameLdTimedOut(String name) {
-    return '$name 님 시간 초과';
+    return '$name님 시간 초과';
   }
 
   @override
@@ -12185,7 +12196,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String chatGameImpGiving(String name) {
-    return '$name 님이 힌트를 주는 중';
+    return '$name님이 힌트를 주는 중';
   }
 
   @override
@@ -12255,7 +12266,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String chatGameImpWas(String name) {
-    return '임포스터는 $name 님이었어요';
+    return '임포스터는 $name님이었어요';
   }
 
   @override
@@ -12315,7 +12326,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String chatGameImpImposterWon(String name) {
-    return '임포스터 $name 님의 승리';
+    return '임포스터 $name님의 승리';
   }
 
   @override
@@ -12467,7 +12478,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return '나랑 $bot만. 아무것도 안 올라가고 아무도 안 봐요.';
+    return '나랑 $bot만. 수를 익히고 친구들을 이기러 가요.';
   }
 
   @override
@@ -12488,6 +12499,9 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked => '재미로 하는 게임이에요. 연속 기록이나 최고 기록에는 반영되지 않아요.';
 
   @override
   String get chatGameMvYouPlayed => '내가 둔 수';
@@ -12567,7 +12581,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToQueens3 => '한 번 탭하면 ×, 두 번은 왕관, 한 번 더 하면 지워져요.';
 
   @override
-  String get howToQueens4 => '왕관을 놓고, 못 놓게 된 칸엔 전부 ×를 쳐요. 금방 풀려요.';
+  String get howToQueens4 =>
+      '자동 X 표시를 켜면 왕관 때문에 못 놓게 된 칸마다 ×가 알아서 쳐져요. 그다음 남은 칸을 봐요.';
 
   @override
   String get howToTango1 => '한 번 탭하면 해, 두 번이면 달. 모든 칸을 채워요.';
@@ -12576,7 +12591,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToTango2 => '행과 열마다 해 반, 달 반.';
 
   @override
-  String get howToTango3 => '같은 게 3개 연달아 오면 안 돼요. 2개는 괜찮아요.';
+  String get howToTango3 => '같은 게 가로나 세로로 3개 연달아 오면 안 돼요. 2개는 괜찮아요.';
 
   @override
   String get howToTango4 => '=는 같은 것, ×는 반대인 것.';
@@ -12597,7 +12612,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToSudoku2 => '칸을 탭하고 숫자를 탭해요.';
 
   @override
-  String get howToSudoku3 => '한 줄에 같은 숫자가 두 번? 빨갛게 변해요.';
+  String get howToSudoku3 => '같은 행, 열, 박스에 같은 숫자가 두 번? 빨갛게 변해요.';
 
   @override
   String get howToSudoku4 => '숫자 하나만 빈 줄을 찾아봐요. 거저먹기예요.';
@@ -12609,7 +12624,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToFlow2 => '파이프는 교차할 수 없고 모든 칸을 채워야 해요. 돌아가요.';
 
   @override
-  String get howToFutoshiki1 => '행과 열마다 숫자는 딱 한 번씩.';
+  String get howToFutoshiki1 => '모든 칸을 1부터 5까지로 채워요. 행과 열마다 각 숫자는 딱 한 번씩.';
 
   @override
   String get howToFutoshiki2 => '부등호의 뾰족한 쪽이 작은 숫자예요.';
@@ -12618,10 +12633,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToFutoshiki3 => '부등호를 어기면 빨갛게 변해요.';
 
   @override
-  String get howToNonogram1 => '숫자는 이어서 칠할 칸 수예요. 5면 5칸 연속.';
+  String get howToNonogram1 => '숫자는 빈칸 없이 이어서 칠할 칸 수예요. 5면 5칸이 연달아.';
 
   @override
-  String get howToNonogram2 => '1 1은 떨어진 두 칸, 사이에 최소 한 칸은 비워요.';
+  String get howToNonogram2 =>
+      '1 1은 한 칸짜리 두 개예요. 사이에 빈칸이 최소 한 칸 있고, 더 벌어져도 괜찮아요.';
+
+  @override
+  String get howToNonogramOrder =>
+      '순서가 중요해요. 가로줄은 왼쪽에서 오른쪽, 세로줄은 위에서 아래로 읽어요. 1 3이면 1이 먼저, 그다음 3.';
 
   @override
   String get howToNonogram3 => '탭하면 칠하기, 또 탭하면 ×, 한 번 더 하면 지우기. 드래그하면 한꺼번에 돼요.';
@@ -12630,7 +12650,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToNonogram4 => '단서를 다 맞추면 숨은 그림이 짠 하고 나와요.';
 
   @override
-  String get howToMines1 => '칸을 탭해서 열어요. 빈 곳은 알아서 열려요.';
+  String get howToMines1 => '지뢰가 없는 칸을 전부 열어요. 빈 곳은 알아서 열려요.';
 
   @override
   String get howToMines2 => '숫자는 주변에 닿은 지뢰 수예요. 대각선도 세요.';
@@ -12648,16 +12668,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToStars2 => '별끼리는 붙으면 안 돼요. 대각선도 안 돼요.';
 
   @override
-  String get howToStars3 => '별 주변 칸엔 점을 찍어요. 한 줄에 별 2개가 차면 나머지는 전부 빈칸.';
+  String get howToStarsControls => '한 번 탭하면 점, 두 번은 별, 한 번 더 하면 지워져요.';
 
   @override
-  String get howToCode1 => '서로 다른 기호 4개로 된 비밀 코드가 있어요. 풀어 봐요.';
+  String get howToStars3 =>
+      '자동 점 표시를 켜면 별 주변 칸에 점이 찍혀요. 한 줄에 별 2개가 차면 나머지 칸에도 점이 찍혀요.';
+
+  @override
+  String get howToCode1 =>
+      '서로 다른 기호 4개로 된 비밀 코드가 있어요. 같은 기호는 두 번 안 나와요. 풀어 봐요.';
 
   @override
   String get howToCode2 => '초록: 기호도 자리도 정답.';
 
   @override
-  String get howToCode3 => '노랑: 코드에 있지만 자리가 틀렸어요. 회색: 아예 없어요.';
+  String get howToCode3 => '노랑: 코드에 있지만 자리가 틀렸어요. 회색: 코드에 아예 없어요.';
 
   @override
   String get howToCode4 => '기회는 6번. 적게 쓸수록 좋아요.';
@@ -12685,13 +12710,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToCheckers3 => '착지한 곳에서 또 뛸 수 있어요? 계속 가요. 한 수에 여러 개 잡을 수 있어요.';
 
   @override
-  String get howToCheckers4 => '끝까지 가면 킹이 돼요. 킹은 뒤로도 갈 수 있어요.';
+  String get howToCheckers4 =>
+      '끝까지 가면 킹이 돼요. 킹은 뒤로도 갈 수 있지만, 여전히 한 번에 한 칸씩이에요.';
 
   @override
-  String get howToCheckersWin => '상대 말을 다 잡거나 움직일 수 없게 만들면 승리.';
+  String get howToCheckersWin =>
+      '상대 말을 다 잡거나 움직일 수 없게 만들면 승리. 서로 40수씩 아무것도 잡지 않고 일반 말도 움직이지 않으면 무승부예요.';
 
   @override
-  String get howToReversi1 => '상대 돌이 내 돌 두 개 사이에 끼도록 놓아요.';
+  String get howToReversi1 => '상대 돌이 내 돌 두 개 사이에 끼도록 놓아요. 매번 적어도 하나는 끼워야 해요.';
 
   @override
   String get howToReversi2 => '끼인 돌은 전부 내 색으로 뒤집혀요. 모든 방향에서 한 번에.';
@@ -12721,14 +12748,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToChess3 => '폰이 끝 줄에 닿으면 퀸이 돼요. 원하는 다른 말로 바꿔도 돼요.';
 
   @override
-  String get howToChess4 => '체크는 킹이 공격받는 거예요. 꼭 피해야 해요. 피할 데가 없으면 체크메이트, 게임 끝.';
+  String get howToChess4 =>
+      '체크는 킹이 공격받는 거예요. 꼭 피해야 해요. 피할 데가 없으면 체크메이트, 게임 끝. 둘 수 있는 수가 없는데 체크도 아니라면? 무승부예요.';
 
   @override
   String get howToLiars1 => '모두 몰래 주사위 5개를 굴려요. 내 것만 보여요.';
 
   @override
   String get howToLiars2 =>
-      '내 차례엔 테이블 전체에 어떤 눈이 몇 개 있는지 걸어요. 모두의 주사위를 다 세요. 예를 들면 “3이 4개”.';
+      '내 차례엔 테이블 전체에 어떤 눈이 적어도 몇 개 있는지 걸어요. 모두의 주사위를 다 세요. 예를 들면 “3이 4개”.';
 
   @override
   String get howToLiars3 => '1은 와일드예요. 어떤 눈으로든 세요. 단, 1에 건 거라면 예외.';
@@ -12740,7 +12768,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToLiars5 => '…아니면 “거짓말!”을 외쳐요. 다 같이 주사위를 공개하고 세요.';
 
   @override
-  String get howToLiars6 => '건 게 맞았다면 외친 사람이 주사위 하나를 잃어요. 너무 높았다면 건 사람이 잃어요.';
+  String get howToLiars6 => '적어도 그만큼 있으면 외친 사람이 주사위 하나를 잃어요. 모자라면 건 사람이 잃어요.';
 
   @override
   String get howToLiars7 => '주사위가 다 떨어지면 탈락. 마지막까지 주사위가 남은 사람이 승리.';
@@ -12758,11 +12786,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToImposterVoice => '음성 모드에선 통화로 힌트를 말하고 완료를 탭해요.';
 
   @override
-  String get howToImposter3 => '그다음 모두 임포스터라고 생각하는 사람에게 투표해요.';
+  String get howToImposter3 => '그다음 모두 임포스터라고 생각하는 사람에게 투표하거나 건너뛰어요.';
 
   @override
   String get howToImposter4 =>
-      '잡혔나요? 임포스터에겐 마지막 기회가 있어요. 단어를 맞히면 승리를 뺏어가요. 엉뚱한 사람을 뽑거나 동점이면? 임포스터 승리.';
+      '잡혔나요? 임포스터에겐 마지막 기회가 있어요. 단어를 맞히면 승리를 뺏어가요. 엉뚱한 사람을 뽑거나, 동점이거나, 건너뛴 사람이 너무 많으면? 임포스터 승리.';
 
   @override
   String get howToRace1 => '모두 같은 새 퍼즐을 동시에 받아요.';

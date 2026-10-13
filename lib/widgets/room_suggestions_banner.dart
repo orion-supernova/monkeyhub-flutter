@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../l10n/text_case.dart';
 import '../models/room_admin.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
 import 'remote_image.dart';
+import 'strip_pill.dart';
 
 /// Height of a visible strip.
 ///
@@ -18,10 +18,6 @@ import 'remote_image.dart';
 /// sizing to its content, so the two cannot drift apart.
 const double kSuggestionsBannerHeight = 44.0;
 
-/// Borrowed from [PinnedMessageBanner] so the two read as one family when they
-/// stack under the header.
-const double _kGlassGutter = 16.0;
-const double _kGlassRadius = 22.0;
 const double _kThumb = 26.0;
 
 /// "Murat suggested a new group photo · REVIEW" — the admin's side of a
@@ -122,7 +118,7 @@ class _Strip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          _ReviewPill(label: l10n.roomSuggestionBannerReview),
+          StripPill(label: l10n.roomSuggestionBannerReview),
           const SizedBox(width: 8),
         ],
       ),
@@ -134,7 +130,7 @@ class _Strip extends StatelessWidget {
     final tappable = FocusableTap(
       onTap: onReview,
       semanticLabel: l10n.roomSuggestionBannerSemantic,
-      radius: glass ? _kGlassRadius : 0,
+      radius: glass ? kStripGlassRadius : 0,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onReview,
@@ -144,10 +140,10 @@ class _Strip extends StatelessWidget {
 
     if (glass) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: _kGlassGutter),
+        padding: const EdgeInsets.symmetric(horizontal: kStripGlassGutter),
         child: LiquidGlass(
           shape: LiquidGlassShape.rounded,
-          radius: _kGlassRadius,
+          radius: kStripGlassRadius,
           child: tappable,
         ),
       );
@@ -239,33 +235,3 @@ class _Lead extends StatelessWidget {
   }
 }
 
-class _ReviewPill extends StatelessWidget {
-  const _ReviewPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // RowPillButton's filled look, drawn static: the whole strip is the tap
-    // target, so this is a label shaped like the action, not a second button.
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.accent,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        child: Text(
-          sentenceCaseOf(context, label),
-          style: theme.bodySoft.copyWith(
-            fontSize: 15,
-            color: theme.accentInk,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-          ),
-        ),
-      ),
-    );
-  }
-}

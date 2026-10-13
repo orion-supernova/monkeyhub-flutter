@@ -190,6 +190,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'このルームのメッセージは一時的です。ルームのセキュリティポリシーに基づき、自動的に削除されます。';
 
   @override
+  String get roomReadOnlyFooter => 'このルームは閲覧専用です。投稿できるのはMonkeyHubだけです。';
+
+  @override
   String get roomScreenAutoDeleteTitle => '自動削除';
 
   @override
@@ -11544,7 +11547,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatGameDescTicTacToe => '3つ並べたら勝ち。';
 
   @override
-  String get chatGameDescConnectFour => 'コインを落として4つ並べたら勝ち。';
+  String get chatGameDescConnectFour => 'コマを落として4つ並べたら勝ち。';
 
   @override
   String get chatGameDescCheckers => '飛び越えて取る。全部取れば勝ち。';
@@ -11574,7 +11577,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatGameStatusFinished => '終了';
 
   @override
-  String get chatGameStatusEnded => '終了';
+  String get chatGameStatusEnded => '打ち切り';
 
   @override
   String get chatGameYourMove => 'あなたの番';
@@ -11811,6 +11814,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatGameErrTooMany => 'ここではすでにターン制の対局が3つ進行中です。先に1つ終えてください。';
 
   @override
+  String get chatGameErrEphemeral => 'メッセージが消えるチャットではゲームを遊べません。';
+
+  @override
   String get chatGameErrGeneric => '問題が発生しました。もう一度お試しください。';
 
   @override
@@ -12028,6 +12034,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String chatGamePlayersRange(int min, int max) {
     return '$min〜$max人';
+  }
+
+  @override
+  String chatGameNeedsPeople(int count) {
+    return '$count人以上が必要';
   }
 
   @override
@@ -12438,18 +12449,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatGameTurnsClock => '1手につき2日。リマインドするし、催促もできるよ。';
 
   @override
-  String get chatGameHowWillYouPlay => 'どうやって遊ぶ?';
+  String get chatGameHowWillYouPlay => 'どうやって遊ぶ？';
 
   @override
   String get botHubTitle => 'ボットと対戦';
 
   @override
   String botHubSubtitle(String bot) {
-    return 'あなたと$botだけ。投稿されないし、誰も見てないよ。';
+    return 'あなたと$botだけ。動きを覚えたら、友だちに勝ちにいこう。';
   }
 
   @override
-  String get botHubLevelTitle => '強さは?';
+  String get botHubLevelTitle => '強さは？';
 
   @override
   String get botHubPickGame => 'ゲームを選ぼう';
@@ -12466,6 +12477,9 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked => 'お楽しみ用です。この対戦は連続記録や歴代記録に含まれません。';
 
   @override
   String get chatGameMvYouPlayed => 'あなたの一手';
@@ -12545,7 +12559,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToQueens3 => '1回タップで×、2回で王冠、もう1回で消える。';
 
   @override
-  String get howToQueens4 => '王冠を置いたら、置けなくなったマスに×をつけよう。一気に解けていくよ。';
+  String get howToQueens4 => '自動バツをオンにすると、王冠のせいで置けなくなったマスに×が自動でつくよ。あとは残りを見よう。';
 
   @override
   String get howToTango1 => '1回タップで太陽、2回で月。全部のマスを埋めよう。';
@@ -12554,7 +12568,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToTango2 => 'どの行も列も、太陽と月が半分ずつ。';
 
   @override
-  String get howToTango3 => '同じものが3つ並ぶのはダメ。2つならOK。';
+  String get howToTango3 => '同じものが縦か横に3つ並ぶのはダメ。2つならOK。';
 
   @override
   String get howToTango4 => '=は同じもの、×は反対のもの。';
@@ -12575,10 +12589,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToSudoku2 => 'マスをタップして、数字をタップ。';
 
   @override
-  String get howToSudoku3 => '同じ数字がかぶると赤くなるよ。';
+  String get howToSudoku3 => '同じ行・列・ブロックで数字がかぶると赤くなるよ。';
 
   @override
-  String get howToSudoku4 => 'あと1つだけ空いてる列を探そう。すぐ埋まるよ。';
+  String get howToSudoku4 => 'あと1つだけ空いてる行や列を探そう。すぐ埋まるよ。';
 
   @override
   String get howToFlow1 => '点から同じ色の点までなぞって、パイプをつなごう。';
@@ -12587,7 +12601,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToFlow2 => 'パイプは交差できないし、全部のマスを埋めないとダメ。遠回りしよう。';
 
   @override
-  String get howToFutoshiki1 => 'どの行も列も、それぞれの数字はひとつだけ。';
+  String get howToFutoshiki1 => '全部のマスに1〜5を入れよう。どの行も列も、それぞれの数字はちょうど1回ずつ。';
 
   @override
   String get howToFutoshiki2 => '記号のとがった方が小さい数字。';
@@ -12596,10 +12610,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToFutoshiki3 => '記号に合わないと赤くなるよ。';
 
   @override
-  String get howToNonogram1 => '数字は、続けて塗るマスの数。5なら5マス続けて。';
+  String get howToNonogram1 => '数字は、すき間なく続けて塗るマスの数。5なら5マス連続。';
 
   @override
-  String get howToNonogram2 => '1 1は、間に1マス以上あけた2つのマス。';
+  String get howToNonogram2 => '1 1は、1マスずつの2つ。間は1マス以上あける。もっと広くてもOK。';
+
+  @override
+  String get howToNonogramOrder => '順番が大事。行は左から右、列は上から下に読む。1 3なら、先に1、そのあと3。';
 
   @override
   String get howToNonogram3 => 'タップで塗る、もう1回で×、もう1回で消す。なぞればまとめて塗れる。';
@@ -12608,7 +12625,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToNonogram4 => 'ヒントを全部合わせると、かくれた絵が出てくる。';
 
   @override
-  String get howToMines1 => 'マスをタップして開けよう。何もないところは自動で開くよ。';
+  String get howToMines1 => '地雷のないマスを全部開けよう。何もないところは自動で開くよ。';
 
   @override
   String get howToMines2 => '数字は、まわりにある地雷の数。ななめも数えるよ。';
@@ -12626,10 +12643,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToStars2 => '星どうしはくっつけちゃダメ。ななめもダメ。';
 
   @override
-  String get howToStars3 => '星のまわりに点を打とう。行に星が2つそろったら、残りは全部空き。';
+  String get howToStarsControls => '1回タップで点、2回で星、もう1回で消える。';
 
   @override
-  String get howToCode1 => '4つのちがう記号でできた暗号を当てよう。';
+  String get howToStars3 =>
+      '自動ドットをオンにすると、星のまわりのマスに点が打たれるよ。行に星が2つそろったら、残りのマスにも点がつく。';
+
+  @override
+  String get howToCode1 => '4つのちがう記号でできた暗号を当てよう。同じ記号は2回使われないよ。';
 
   @override
   String get howToCode2 => '緑：記号も場所も正解。';
@@ -12663,13 +12684,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToCheckers3 => '着地したところからまた飛べる？そのまま続けよう。1手で何個も取れるよ。';
 
   @override
-  String get howToCheckers4 => '反対側まで行ったらキングに昇格。キングは後ろにも進めるよ。';
+  String get howToCheckers4 => '反対側まで行ったらキングに昇格。キングは後ろにも進めるけど、やっぱり1マスずつだよ。';
 
   @override
-  String get howToCheckersWin => '相手のコマを全部取るか、動けなくしたら勝ち。';
+  String get howToCheckersWin =>
+      '相手のコマを全部取るか、動けなくしたら勝ち。お互い40手ずつ、コマを取らず普通のコマも動かさなければ引き分け。';
 
   @override
-  String get howToReversi1 => '相手の石を自分の石2つではさむように置こう。';
+  String get howToReversi1 => '相手の石を自分の石2つではさむように置こう。どの手でも最低1つははさまないとダメ。';
 
   @override
   String get howToReversi2 => 'はさんだ石は全部自分の色にひっくり返る。全方向いっぺんに。';
@@ -12699,14 +12721,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToChess3 => 'ポーンを最後の段まで進めたらクイーンに。好きなコマも選べるよ。';
 
   @override
-  String get howToChess4 => 'チェックはキングが狙われてる状態。必ず逃げよう。逃げ場がなければチェックメイトで終わり。';
+  String get howToChess4 =>
+      'チェックはキングが狙われてる状態。必ず逃げよう。逃げ場がなければチェックメイトで終わり。動かせる手がないのにチェックされていなければ引き分け。';
 
   @override
   String get howToLiars1 => 'みんなこっそりサイコロを5個振る。見えるのは自分のだけ。';
 
   @override
   String get howToLiars2 =>
-      '自分の番では、テーブル全体に同じ目がいくつあるか宣言する。全員のサイコロを数えるよ。たとえば「3が4つ」。';
+      '自分の番では、テーブル全体に同じ目が少なくともいくつあるか宣言する。全員のサイコロを数えるよ。たとえば「3が4つ」。';
 
   @override
   String get howToLiars3 => '1はワイルド。どの目としても数えられる。ただし1の宣言のときは別。';
@@ -12718,7 +12741,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToLiars5 => '…または「ダウト！」。全員サイコロを見せて数えるよ。';
 
   @override
-  String get howToLiars6 => '宣言が合ってたら、ダウトした人がサイコロを1個失う。多すぎたら、宣言した人が失う。';
+  String get howToLiars6 => '宣言の数以上あったら、ダウトした人がサイコロを1個失う。足りなかったら、宣言した人が失う。';
 
   @override
   String get howToLiars7 => 'サイコロがなくなったら脱落。最後までサイコロが残った人の勝ち。';
@@ -12736,11 +12759,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToImposterVoice => 'ボイスモードでは、通話でヒントを声に出して言ってから完了をタップ。';
 
   @override
-  String get howToImposter3 => 'そのあと全員で、インポスターだと思う人に投票。';
+  String get howToImposter3 => 'そのあと全員で、インポスターだと思う人に投票。投票しなくてもOK。';
 
   @override
   String get howToImposter4 =>
-      'バレた？インポスターには最後のチャンス。お題を当てたら逆転勝ち。違う人を選んだり同票なら、インポスターの勝ち。';
+      'バレた？インポスターには最後のチャンス。お題を当てたら逆転勝ち。違う人を選んだり、同票だったり、投票しない人が多すぎたら、インポスターの勝ち。';
 
   @override
   String get howToRace1 => '全員に、同じ新しいパズルが同時に配られる。';

@@ -188,6 +188,10 @@
   "@roomScreenSecretSpaceBody": {
     "description": "Explanatory body text under the 'Secret Space' welcome title."
   },
+  "roomReadOnlyFooter": "This is a read-only room. Only MonkeyHub posts here.",
+  "@roomReadOnlyFooter": {
+    "description": "Shown in place of the message composer in a system room members can't post in (e.g. the MonkeyHub Logs room admins read). Quiet, not an error. MonkeyHub is the app name; don't translate it."
+  },
   "roomScreenAutoDeleteTitle": "Auto-Delete",
   "@roomScreenAutoDeleteTitle": {
     "description": "Title of one of the feature cards in the ephemeral-room welcome view."
@@ -14580,6 +14584,10 @@
   "@chatGameErrTooMany": {
     "description": "Error: the DM already has the maximum number of turn-by-turn games."
   },
+  "chatGameErrEphemeral": "Games can’t be played in a chat where messages disappear.",
+  "@chatGameErrEphemeral": {
+    "description": "Toast when the server refuses to start a chat game in a room whose messages disappear (a secret room, or any chat with a message timer): the game card would vanish mid-game."
+  },
   "chatGameErrGeneric": "Something went wrong. Try again.",
   "@chatGameErrGeneric": {
     "description": "Error: a chat game action failed."
@@ -14918,6 +14926,15 @@
         "type": "int"
       },
       "max": {
+        "type": "int"
+      }
+    }
+  },
+  "chatGameNeedsPeople": "Needs {count}+ people",
+  "@chatGameNeedsPeople": {
+    "description": "Under a party game's tile in a group chat that has too few people to play it (the tile is greyed out). {count} is the minimum, e.g. 3.",
+    "placeholders": {
+      "count": {
         "type": "int"
       }
     }
@@ -15519,7 +15536,7 @@
   "@botHubTitle": {
     "description": "Title of the screen (and Feed tile) where you play board games against the app's bot."
   },
-  "botHubSubtitle": "Just you and {bot}. Nothing gets posted, nobody’s watching.",
+  "botHubSubtitle": "Just you and {bot}. Learn the moves, then go beat your friends.",
   "@botHubSubtitle": {
     "description": "Under the bot screen title. {bot} is the bot's name (Monkey).",
     "placeholders": {
@@ -15548,6 +15565,10 @@
         "type": "int"
       }
     }
+  },
+  "practiceNotRanked": "Just for fun. These games don’t count toward your streaks or records.",
+  "@practiceNotRanked": {
+    "description": "Footnote on the Play the bot screen and its games. Practice games against the bot are only played there (not in chats), and they don't count toward streaks or records."
   },
   "chatGameMvYouPlayed": "You played",
   "@chatGameMvYouPlayed": {
@@ -15664,7 +15685,7 @@
   "@howToQueens3": {
     "description": "Queens guide, step: the tap cycle."
   },
-  "howToQueens4": "Drop a crown, then × every square it rules out. The board cracks open fast.",
+  "howToQueens4": "With Auto-cross on, every square a crown rules out gets an × for you. Then see what's left.",
   "@howToQueens4": {
     "description": "Queens guide, strategy tip."
   },
@@ -15676,7 +15697,7 @@
   "@howToTango2": {
     "description": "Tango guide, step: balance rule."
   },
-  "howToTango3": "Never 3 of the same in a row. 2 is fine.",
+  "howToTango3": "Never 3 of the same side by side, across or down. 2 is fine.",
   "@howToTango3": {
     "description": "Tango guide, step: no three in a row."
   },
@@ -15704,7 +15725,7 @@
   "@howToSudoku2": {
     "description": "Mini Sudoku guide, step: controls."
   },
-  "howToSudoku3": "Same number twice in a line? It turns red.",
+  "howToSudoku3": "Same number twice in a row, column or box? It turns red.",
   "@howToSudoku3": {
     "description": "Mini Sudoku guide, step: a repeated number turns red."
   },
@@ -15720,7 +15741,7 @@
   "@howToFlow2": {
     "description": "Flow guide, step: no crossing, fill everything."
   },
-  "howToFutoshiki1": "Every row and column gets each number exactly once.",
+  "howToFutoshiki1": "Fill every square with 1 to 5. Each row and column gets each number exactly once.",
   "@howToFutoshiki1": {
     "description": "Futoshiki guide, step: each number once per row and column."
   },
@@ -15732,13 +15753,17 @@
   "@howToFutoshiki3": {
     "description": "Futoshiki guide, step: a broken sign turns red."
   },
-  "howToNonogram1": "The numbers say how many squares in a row to shade. 5 means 5 in a row.",
+  "howToNonogram1": "Each number is a run of shaded squares with no gaps. 5 means 5 squares side by side.",
   "@howToNonogram1": {
     "description": "Nonogram guide, step: what the clue numbers mean."
   },
-  "howToNonogram2": "1 1 means two separate squares, with at least one gap between them.",
+  "howToNonogram2": "1 1 means two single squares with at least one empty square between them. A bigger gap is fine too.",
   "@howToNonogram2": {
     "description": "Nonogram guide, step: several numbers need gaps between runs."
+  },
+  "howToNonogramOrder": "Order matters: rows read left to right, columns top to bottom. So 1 3 means a 1 first, then a 3.",
+  "@howToNonogramOrder": {
+    "description": "Nonogram guide, step: clue numbers are in order. Row clues read left to right, column clues top to bottom, so '1 3' is a run of 1 then a run of 3, never 3 then 1. The board is never mirrored, even in right-to-left languages, so keep 'left to right' literal."
   },
   "howToNonogram3": "Tap to shade, again for ×, again to clear. Drag to do loads at once.",
   "@howToNonogram3": {
@@ -15748,7 +15773,7 @@
   "@howToNonogram4": {
     "description": "Nonogram guide, step: the reveal."
   },
-  "howToMines1": "Tap a square to open it. Empty areas open up on their own.",
+  "howToMines1": "Open every square that isn't a mine. Empty areas open up on their own.",
   "@howToMines1": {
     "description": "Minesweeper guide, step: opening squares."
   },
@@ -15772,11 +15797,15 @@
   "@howToStars2": {
     "description": "Star Battle guide, step: stars may not touch."
   },
-  "howToStars3": "Dot out the squares around each star. Once a row has its 2, the rest is out.",
+  "howToStarsControls": "Tap once for a dot, twice for a star, once more to clear.",
+  "@howToStarsControls": {
+    "description": "Star Battle guide, step: controls. One tap places a dot, a second turns it into a star, a third clears."
+  },
+  "howToStars3": "With Auto-dot on, a star dots out the squares around it. Once a row has its 2, the rest gets dotted too.",
   "@howToStars3": {
     "description": "Star Battle guide, strategy tip."
   },
-  "howToCode1": "There's a secret code of 4 different symbols. Crack it.",
+  "howToCode1": "There's a secret code of 4 different symbols, no repeats. Crack it.",
   "@howToCode1": {
     "description": "Code puzzle guide, step: the goal."
   },
@@ -15784,7 +15813,7 @@
   "@howToCode2": {
     "description": "Code puzzle guide, step: green feedback."
   },
-  "howToCode3": "Yellow means it's in the code, just somewhere else. Grey means it's not in there at all.",
+  "howToCode3": "Yellow means it's in the code, just somewhere else. Grey means it's not in there.",
   "@howToCode3": {
     "description": "Code puzzle guide, step: yellow and grey feedback."
   },
@@ -15820,15 +15849,15 @@
   "@howToCheckers3": {
     "description": "Checkers guide step: multi-jumps."
   },
-  "howToCheckers4": "Reach the far side and your piece is crowned king. Kings can move backwards too.",
+  "howToCheckers4": "Reach the far side and your piece is crowned king. Kings can go backwards too, still one square at a time.",
   "@howToCheckers4": {
     "description": "Checkers guide step: kings."
   },
-  "howToCheckersWin": "Take all their pieces, or leave them with no move, to win.",
+  "howToCheckersWin": "Take all their pieces, or leave them with no move, to win. 40 moves each with no capture and no plain piece moving is a draw.",
   "@howToCheckersWin": {
     "description": "Checkers guide footnote: how you win."
   },
-  "howToReversi1": "Place a disc so a line of their discs ends up trapped between two of yours.",
+  "howToReversi1": "Place a disc so a line of their discs ends up trapped between two of yours. Every move has to trap at least one.",
   "@howToReversi1": {
     "description": "Reversi guide step: trapping."
   },
@@ -15868,7 +15897,7 @@
   "@howToChess3": {
     "description": "Chess guide step: promotion."
   },
-  "howToChess4": "Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over.",
+  "howToChess4": "Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over. No legal move but not in check? It's a draw.",
   "@howToChess4": {
     "description": "Chess guide step: check and checkmate."
   },
@@ -15876,7 +15905,7 @@
   "@howToLiars1": {
     "description": "Liar's Dice guide step: secret dice."
   },
-  "howToLiars2": "On your turn, bid how many of one face are on the whole table, counting everyone's dice. Like “four 3s”.",
+  "howToLiars2": "On your turn, bid that there are at least so many of one face on the table, counting everyone's dice. Like “four 3s”.",
   "@howToLiars2": {
     "description": "Liar's Dice guide step: what a bid is."
   },
@@ -15892,7 +15921,7 @@
   "@howToLiars5": {
     "description": "Liar's Dice guide step: calling liar (continues previous step)."
   },
-  "howToLiars6": "Bid was true? The caller loses a die. Bid was too high? The bidder loses one.",
+  "howToLiars6": "At least that many? The caller loses a die. Fewer? The bidder loses one.",
   "@howToLiars6": {
     "description": "Liar's Dice guide step: who loses a die."
   },
@@ -15916,11 +15945,11 @@
   "@howToImposterVoice": {
     "description": "Imposter guide step, voice mode only."
   },
-  "howToImposter3": "Then everyone votes for who they think the imposter is.",
+  "howToImposter3": "Then everyone votes for who they think the imposter is, or skips.",
   "@howToImposter3": {
     "description": "Imposter guide step: voting."
   },
-  "howToImposter4": "Caught? The imposter gets one last shot: guess the word to steal the win. Vote out the wrong person, or tie? Imposter wins.",
+  "howToImposter4": "Caught? The imposter gets one last shot: guess the word to steal the win. Wrong person, a tie or too many skips? Imposter wins.",
   "@howToImposter4": {
     "description": "Imposter guide step: last guess and who wins."
   },

@@ -203,6 +203,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'As mensagens desta sala são efémeras. São removidas automaticamente de acordo com a política de segurança da sala.';
 
   @override
+  String get roomReadOnlyFooter =>
+      'Esta sala é só de leitura. Só o MonkeyHub publica aqui.';
+
+  @override
   String get roomScreenAutoDeleteTitle => 'Eliminação Automática';
 
   @override
@@ -5719,7 +5723,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get gameSudokuName => 'Mini sudoku';
 
   @override
-  String get gameSudokuRule => 'de 1 a 6 uma vez por linha, coluna e caixa';
+  String get gameSudokuRule => 'de 1 a 6 uma vez por linha, coluna e bloco';
 
   @override
   String get gameCodeName => 'O código';
@@ -12170,7 +12174,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chatGameStatusFinished => 'Terminado';
 
   @override
-  String get chatGameStatusEnded => 'Terminado';
+  String get chatGameStatusEnded => 'Encerrado';
 
   @override
   String get chatGameYourMove => 'É a tua vez';
@@ -12414,6 +12418,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Já tens 3 jogos por turnos aqui. Termina um primeiro.';
 
   @override
+  String get chatGameErrEphemeral =>
+      'Não dá para jogar num chat onde as mensagens desaparecem.';
+
+  @override
   String get chatGameErrGeneric => 'Algo correu mal. Tenta outra vez.';
 
   @override
@@ -12642,6 +12650,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String chatGameNeedsPeople(int count) {
+    return 'Mínimo de $count pessoas';
+  }
+
+  @override
   String get chatGameVoiceOption => 'Pistas por voz';
 
   @override
@@ -12765,7 +12778,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chatGameImpKeepSecret =>
-      'Não a digas. Dá pistas que os outros percebam.';
+      'Não a digas diretamente. Dá pistas que os outros percebam.';
 
   @override
   String get chatGameImpGotIt => 'Percebi';
@@ -13060,7 +13073,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chatGameTurnsAnytime =>
-      'Joga quando quiseres. Cada jogada aparece na conversa.';
+      'Joga quando quiseres. Cada jogada aparece no chat.';
 
   @override
   String get chatGameTurnsClock =>
@@ -13074,7 +13087,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'Só tu e o $bot. Nada é publicado e ninguém está a ver.';
+    return 'Só tu e o $bot. Aprende as jogadas e depois vai ganhar aos teus amigos.';
   }
 
   @override
@@ -13096,6 +13109,10 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'Só por diversão. Estes jogos não contam para as tuas sequências nem recordes.';
 
   @override
   String get chatGameMvYouPlayed => 'Jogaste';
@@ -13182,7 +13199,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToQueens4 =>
-      'Põe uma coroa e marca com × tudo o que ela bloqueia. Resolve-se num instante.';
+      'Com as Cruzes automáticas ligadas, cada casa que uma coroa exclui leva um × por ti. Depois vê o que sobra.';
 
   @override
   String get howToTango1 =>
@@ -13192,7 +13209,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get howToTango2 => 'Cada linha e coluna é metade sóis, metade luas.';
 
   @override
-  String get howToTango3 => 'Nunca 3 iguais seguidos. 2 pode ser.';
+  String get howToTango3 =>
+      'Nunca 3 iguais seguidos, na horizontal ou na vertical. 2 pode ser.';
 
   @override
   String get howToTango4 => '= quer dizer iguais. × quer dizer opostos.';
@@ -13214,7 +13232,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get howToSudoku2 => 'Toca numa casa e depois num número.';
 
   @override
-  String get howToSudoku3 => 'Número repetido na mesma linha? Fica a vermelho.';
+  String get howToSudoku3 =>
+      'Número repetido na mesma linha, coluna ou bloco? Fica a vermelho.';
 
   @override
   String get howToSudoku4 =>
@@ -13230,7 +13249,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToFutoshiki1 =>
-      'Cada linha e coluna leva cada número uma só vez.';
+      'Preenche cada casa com um número de 1 a 5. Cada linha e coluna leva cada número exatamente uma vez.';
 
   @override
   String get howToFutoshiki2 =>
@@ -13241,11 +13260,15 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToNonogram1 =>
-      'Os números dizem quantas casas seguidas pintar. 5 são 5 seguidas.';
+      'Cada número é um bloco de casas pintadas, sem espaços. 5 são 5 casas seguidas.';
 
   @override
   String get howToNonogram2 =>
-      '1 1 são duas casas separadas, com pelo menos um espaço entre elas.';
+      '1 1 são duas casas soltas com pelo menos uma casa vazia entre elas. O espaço também pode ser maior.';
+
+  @override
+  String get howToNonogramOrder =>
+      'A ordem conta: as linhas leem-se da esquerda para a direita e as colunas de cima para baixo. 1 3 é primeiro um 1, depois um 3.';
 
   @override
   String get howToNonogram3 =>
@@ -13257,7 +13280,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToMines1 =>
-      'Toca numa casa para a abrir. As zonas vazias abrem-se sozinhas.';
+      'Abre todas as casas que não têm mina. As zonas vazias abrem-se sozinhas.';
 
   @override
   String get howToMines2 =>
@@ -13279,19 +13302,23 @@ class AppLocalizationsPt extends AppLocalizations {
   String get howToStars2 => 'As estrelas não se podem tocar. Nem na diagonal.';
 
   @override
+  String get howToStarsControls =>
+      'Toca uma vez para ponto, duas para estrela, mais uma para apagar.';
+
+  @override
   String get howToStars3 =>
-      'Marca com um ponto as casas à volta de cada estrela. Quando a linha tem as 2, o resto fica de fora.';
+      'Com os Pontos automáticos ligados, uma estrela marca com um ponto as casas à volta dela. Quando uma linha tem as suas 2, o resto também leva ponto.';
 
   @override
   String get howToCode1 =>
-      'Há um código secreto de 4 símbolos diferentes. Descobre-o.';
+      'Há um código secreto de 4 símbolos diferentes, sem repetições. Descobre-o.';
 
   @override
   String get howToCode2 => 'Verde: símbolo certo, sítio certo.';
 
   @override
   String get howToCode3 =>
-      'Amarelo: está no código, mas noutro sítio. Cinzento: não está lá.';
+      'Amarelo: está no código, mas noutro sítio. Cinzento: não está no código.';
 
   @override
   String get howToCode4 => 'Tens 6 tentativas. Quanto menos usares, melhor.';
@@ -13326,15 +13353,15 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToCheckers4 =>
-      'Chegaste ao outro lado? A tua peça passa a dama. As damas também andam para trás.';
+      'Chegaste ao outro lado? A tua peça passa a dama. As damas também andam para trás, mas sempre só uma casa de cada vez.';
 
   @override
   String get howToCheckersWin =>
-      'Ganha quem captura todas as peças ou deixa o outro sem jogadas.';
+      'Ganha quem captura todas as peças ou deixa o outro sem jogadas. 40 jogadas de cada um sem capturas e sem mexer peças normais dá empate.';
 
   @override
   String get howToReversi1 =>
-      'Põe uma peça de forma a que uma fila das dele fique presa entre duas tuas.';
+      'Põe uma peça de forma a que uma fila das dele fique presa entre duas tuas. Cada jogada tem de prender pelo menos uma.';
 
   @override
   String get howToReversi2 =>
@@ -13342,21 +13369,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToReversi3 =>
-      'Não tens jogada? A tua vez é saltada. Quando ninguém consegue jogar, ganha quem tem mais peças.';
+      'Não tens jogada? Passas a vez. Quando ninguém consegue jogar, ganha quem tem mais peças.';
 
   @override
   String get howToDots1 => 'À vez, cada um traça uma linha entre dois pontos.';
 
   @override
-  String get howToDots2 => 'Fechaste uma caixa? É tua. E voltas a jogar!';
+  String get howToDots2 => 'Fechaste um quadrado? É teu. E voltas a jogar!';
 
   @override
   String get howToDots3 =>
-      'Cuidado com o terceiro lado de uma caixa. Estás a oferecê-la ao próximo.';
+      'Cuidado com o terceiro lado de um quadrado. Estás a oferecê-lo ao próximo.';
 
   @override
   String get howToDotsWin =>
-      'Quando se traça a última linha, ganha quem tem mais caixas.';
+      'Quando se traça a última linha, ganha quem tem mais quadrados.';
 
   @override
   String get howToChess1 =>
@@ -13372,7 +13399,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToChess4 =>
-      'Xeque é o rei estar a ser atacado e tens de o safar. Sem saída? Xeque-mate, acabou.';
+      'Xeque é o rei estar a ser atacado e tens de o safar. Sem saída? Xeque-mate, acabou. Sem jogadas possíveis, mas sem estar em xeque? É empate.';
 
   @override
   String get howToLiars1 =>
@@ -13380,7 +13407,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToLiars2 =>
-      'Na tua vez, aposta quantos dados de uma face há na mesa toda, contando os de toda a gente. Tipo «quatro três».';
+      'Na tua vez, aposta que há pelo menos tantos dados de uma face na mesa toda, contando os de toda a gente. Tipo «quatro três».';
 
   @override
   String get howToLiars3 =>
@@ -13396,7 +13423,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToLiars6 =>
-      'A aposta era verdadeira? Quem gritou perde um dado. Exagerou? Perde quem apostou.';
+      'Há pelo menos esses? Quem gritou perde um dado. Há menos? Perde quem apostou.';
 
   @override
   String get howToLiars7 =>
@@ -13420,11 +13447,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToImposter3 =>
-      'Depois, toda a gente vota em quem acha que é o impostor.';
+      'Depois, toda a gente vota em quem acha que é o impostor, ou não vota.';
 
   @override
   String get howToImposter4 =>
-      'Apanhado? O impostor tem uma última hipótese: se acertar na palavra, rouba a vitória. Votaram na pessoa errada ou houve empate? Ganha o impostor.';
+      'Apanhado? O impostor tem uma última hipótese: se acertar na palavra, rouba a vitória. Votaram na pessoa errada, houve empate ou muitos não votaram? Ganha o impostor.';
 
   @override
   String get howToRace1 =>
@@ -13656,6 +13683,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get roomScreenSecretSpaceBody =>
       'As mensagens desta sala são temporárias. Elas são removidas automaticamente de acordo com a política de segurança da sala.';
+
+  @override
+  String get roomReadOnlyFooter =>
+      'Esta sala é só para leitura. Só o MonkeyHub publica aqui.';
 
   @override
   String get roomScreenAutoDeleteTitle => 'Exclusão Automática';
@@ -25606,10 +25637,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get chatGameStatusPlaying => 'Em jogo';
 
   @override
-  String get chatGameStatusPaused => 'Pausado';
+  String get chatGameStatusPaused => 'Pausada';
 
   @override
-  String get chatGameStatusFinished => 'Encerrada';
+  String get chatGameStatusFinished => 'Terminada';
 
   @override
   String get chatGameStatusEnded => 'Encerrada';
@@ -25856,6 +25887,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Você já tem 3 partidas por turnos aqui. Termine uma primeiro.';
 
   @override
+  String get chatGameErrEphemeral =>
+      'Não dá para jogar em um chat onde as mensagens desaparecem.';
+
+  @override
   String get chatGameErrGeneric => 'Algo deu errado. Tente de novo.';
 
   @override
@@ -26081,6 +26116,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String chatGamePlayersRange(int min, int max) {
     return '$min a $max jogadores';
+  }
+
+  @override
+  String chatGameNeedsPeople(int count) {
+    return 'Mínimo de $count pessoas';
   }
 
   @override
@@ -26516,7 +26556,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'Só você e o $bot. Nada é postado, ninguém tá vendo.';
+    return 'Só você e o $bot. Aprenda as jogadas e depois vá ganhar dos seus amigos.';
   }
 
   @override
@@ -26538,6 +26578,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'Só por diversão. Esses jogos não contam para suas sequências nem recordes.';
 
   @override
   String get chatGameMvYouPlayed => 'Você jogou';
@@ -26623,7 +26667,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToQueens4 =>
-      'Coloque uma coroa e marque × em tudo que ela bloqueia. O tabuleiro abre rapidinho.';
+      'Com as Cruzes automáticas ligadas, toda casa que uma coroa descarta ganha um × pra você. Aí é só ver o que sobrou.';
 
   @override
   String get howToTango1 =>
@@ -26633,7 +26677,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get howToTango2 => 'Cada linha e coluna tem metade sóis, metade luas.';
 
   @override
-  String get howToTango3 => 'Nunca 3 iguais seguidos. 2 pode.';
+  String get howToTango3 =>
+      'Nunca 3 iguais seguidos, na horizontal ou na vertical. 2 pode.';
 
   @override
   String get howToTango4 => '= quer dizer iguais. × quer dizer opostos.';
@@ -26657,7 +26702,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get howToSudoku2 => 'Toque numa casa e depois num número.';
 
   @override
-  String get howToSudoku3 => 'Número repetido na mesma linha? Fica vermelho.';
+  String get howToSudoku3 =>
+      'Número repetido na mesma linha, coluna ou bloco? Fica vermelho.';
 
   @override
   String get howToSudoku4 =>
@@ -26673,7 +26719,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToFutoshiki1 =>
-      'Cada linha e coluna tem cada número uma vez só.';
+      'Preencha cada casa com um número de 1 a 5. Cada linha e coluna tem cada número exatamente uma vez.';
 
   @override
   String get howToFutoshiki2 => 'A ponta do sinal aponta pro número menor.';
@@ -26683,11 +26729,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToNonogram1 =>
-      'Os números dizem quantas casas seguidas pintar. 5 são 5 seguidas.';
+      'Cada número é um bloco de casas pintadas, sem espaços. 5 são 5 casas seguidas.';
 
   @override
   String get howToNonogram2 =>
-      '1 1 são duas casas separadas, com pelo menos um espaço entre elas.';
+      '1 1 são duas casas soltas com pelo menos uma casa vazia entre elas. O espaço também pode ser maior.';
+
+  @override
+  String get howToNonogramOrder =>
+      'A ordem importa: as linhas são lidas da esquerda para a direita, e as colunas de cima para baixo. 1 3 é primeiro um 1, depois um 3.';
 
   @override
   String get howToNonogram3 =>
@@ -26699,7 +26749,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToMines1 =>
-      'Toque numa casa pra abrir. As áreas vazias abrem sozinhas.';
+      'Abra todas as casas que não são mina. As áreas vazias abrem sozinhas.';
 
   @override
   String get howToMines2 =>
@@ -26722,12 +26772,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'As estrelas não podem se encostar. Nem na diagonal.';
 
   @override
+  String get howToStarsControls =>
+      'Toque uma vez pra ponto, duas pra estrela, mais uma pra apagar.';
+
+  @override
   String get howToStars3 =>
-      'Marque um ponto em volta de cada estrela. Quando a linha tem as 2, o resto tá fora.';
+      'Com os Pontos automáticos ligados, uma estrela marca um ponto nas casas em volta dela. Quando uma linha tem as 2, o resto ganha ponto também.';
 
   @override
   String get howToCode1 =>
-      'Tem um código secreto de 4 símbolos diferentes. Descubra qual é.';
+      'Tem um código secreto de 4 símbolos diferentes, sem repetir. Descubra qual é.';
 
   @override
   String get howToCode2 => 'Verde: símbolo certo, lugar certo.';
@@ -26769,15 +26823,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToCheckers4 =>
-      'Chegou do outro lado? Sua peça vira dama. Damas andam pra trás também.';
+      'Chegou do outro lado? Sua peça vira dama. Damas andam pra trás também, mas sempre uma casa só.';
 
   @override
   String get howToCheckersWin =>
-      'Ganha quem captura todas as peças ou deixa o outro sem jogada.';
+      'Ganha quem captura todas as peças ou deixa o outro sem jogada. 40 jogadas de cada um sem captura e sem mexer peça comum é empate.';
 
   @override
   String get howToReversi1 =>
-      'Coloque uma peça de um jeito que uma fila das dele fique presa entre duas suas.';
+      'Coloque uma peça de um jeito que uma fila das dele fique presa entre duas suas. Toda jogada tem que prender pelo menos uma.';
 
   @override
   String get howToReversi2 =>
@@ -26785,7 +26839,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToReversi3 =>
-      'Sem jogada? Sua vez é pulada. Quando ninguém mais consegue jogar, ganha quem tem mais peças.';
+      'Sem jogada? Você passa a vez. Quando ninguém mais consegue jogar, ganha quem tem mais peças.';
 
   @override
   String get howToDots1 =>
@@ -26815,7 +26869,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToChess4 =>
-      'Xeque é quando o rei está sob ataque e você precisa salvá-lo. Sem saída? Xeque-mate, fim de jogo.';
+      'Xeque é quando o rei está sob ataque e você precisa salvá-lo. Sem saída? Xeque-mate, fim de jogo. Sem jogada possível, mas sem estar em xeque? É empate.';
 
   @override
   String get howToLiars1 =>
@@ -26823,7 +26877,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToLiars2 =>
-      'Na sua vez, aposte quantos dados de uma face tem na mesa inteira, contando os de todo mundo. Tipo “quatro três”.';
+      'Na sua vez, aposte que tem pelo menos tantos dados de uma face na mesa inteira, contando os de todo mundo. Tipo “quatro três”.';
 
   @override
   String get howToLiars3 =>
@@ -26839,7 +26893,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToLiars6 =>
-      'A aposta era verdade? Quem gritou perde um dado. Exagerou? Quem apostou perde.';
+      'Tem pelo menos isso? Quem gritou perde um dado. Tem menos? Quem apostou perde.';
 
   @override
   String get howToLiars7 =>
@@ -26863,11 +26917,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToImposter3 =>
-      'Depois, todo mundo vota em quem acha que é o impostor.';
+      'Depois, todo mundo vota em quem acha que é o impostor, ou pula o voto.';
 
   @override
   String get howToImposter4 =>
-      'Pegaram o impostor? Ele tem uma última chance: se acertar a palavra, rouba a vitória. Votaram na pessoa errada ou empatou? O impostor ganha.';
+      'Pegaram o impostor? Ele tem uma última chance: se acertar a palavra, rouba a vitória. Votaram na pessoa errada, empatou ou muita gente pulou? O impostor ganha.';
 
   @override
   String get howToRace1 =>
@@ -26898,7 +26952,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToTurns2 =>
-      'Cada jogada tem 2 dias. A gente lembra depois de 20 horas, e depois de 12 horas de silêncio você mesmo pode cutucar.';
+      'Cada jogada tem 2 dias. A gente lembra a pessoa depois de 20 horas, e depois de 12 horas de silêncio você mesmo pode cutucar.';
 
   @override
   String get howToTurns3 =>

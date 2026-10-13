@@ -198,6 +198,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Messages in this room are ephemeral. They are automatically removed based on the room’s security policy.';
 
   @override
+  String get roomReadOnlyFooter =>
+      'This is a read-only room. Only MonkeyHub posts here.';
+
+  @override
   String get roomScreenAutoDeleteTitle => 'Auto-Delete';
 
   @override
@@ -12291,6 +12295,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'You already have 3 turn games going here. Finish one first.';
 
   @override
+  String get chatGameErrEphemeral =>
+      'Games can’t be played in a chat where messages disappear.';
+
+  @override
   String get chatGameErrGeneric => 'Something went wrong. Try again.';
 
   @override
@@ -12514,6 +12522,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max players';
+  }
+
+  @override
+  String chatGameNeedsPeople(int count) {
+    return 'Needs $count+ people';
   }
 
   @override
@@ -12948,7 +12961,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'Just you and $bot. Nothing gets posted, nobody’s watching.';
+    return 'Just you and $bot. Learn the moves, then go beat your friends.';
   }
 
   @override
@@ -12970,6 +12983,10 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'Just for fun. These games don’t count toward your streaks or records.';
 
   @override
   String get chatGameMvYouPlayed => 'You played';
@@ -13054,7 +13071,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToQueens4 =>
-      'Drop a crown, then × every square it rules out. The board cracks open fast.';
+      'With Auto-cross on, every square a crown rules out gets an × for you. Then see what\'s left.';
 
   @override
   String get howToTango1 =>
@@ -13064,7 +13081,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howToTango2 => 'Every row and column is half suns, half moons.';
 
   @override
-  String get howToTango3 => 'Never 3 of the same in a row. 2 is fine.';
+  String get howToTango3 =>
+      'Never 3 of the same side by side, across or down. 2 is fine.';
 
   @override
   String get howToTango4 => '= means the two match. × means they\'re opposite.';
@@ -13086,7 +13104,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howToSudoku2 => 'Tap a square, then tap a number.';
 
   @override
-  String get howToSudoku3 => 'Same number twice in a line? It turns red.';
+  String get howToSudoku3 =>
+      'Same number twice in a row, column or box? It turns red.';
 
   @override
   String get howToSudoku4 =>
@@ -13101,7 +13120,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToFutoshiki1 =>
-      'Every row and column gets each number exactly once.';
+      'Fill every square with 1 to 5. Each row and column gets each number exactly once.';
 
   @override
   String get howToFutoshiki2 =>
@@ -13112,11 +13131,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToNonogram1 =>
-      'The numbers say how many squares in a row to shade. 5 means 5 in a row.';
+      'Each number is a run of shaded squares with no gaps. 5 means 5 squares side by side.';
 
   @override
   String get howToNonogram2 =>
-      '1 1 means two separate squares, with at least one gap between them.';
+      '1 1 means two single squares with at least one empty square between them. A bigger gap is fine too.';
+
+  @override
+  String get howToNonogramOrder =>
+      'Order matters: rows read left to right, columns top to bottom. So 1 3 means a 1 first, then a 3.';
 
   @override
   String get howToNonogram3 =>
@@ -13128,7 +13151,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToMines1 =>
-      'Tap a square to open it. Empty areas open up on their own.';
+      'Open every square that isn\'t a mine. Empty areas open up on their own.';
 
   @override
   String get howToMines2 =>
@@ -13149,19 +13172,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howToStars2 => 'Stars can\'t touch. Not even corner to corner.';
 
   @override
+  String get howToStarsControls =>
+      'Tap once for a dot, twice for a star, once more to clear.';
+
+  @override
   String get howToStars3 =>
-      'Dot out the squares around each star. Once a row has its 2, the rest is out.';
+      'With Auto-dot on, a star dots out the squares around it. Once a row has its 2, the rest gets dotted too.';
 
   @override
   String get howToCode1 =>
-      'There\'s a secret code of 4 different symbols. Crack it.';
+      'There\'s a secret code of 4 different symbols, no repeats. Crack it.';
 
   @override
   String get howToCode2 => 'Green means right symbol, right spot.';
 
   @override
   String get howToCode3 =>
-      'Yellow means it\'s in the code, just somewhere else. Grey means it\'s not in there at all.';
+      'Yellow means it\'s in the code, just somewhere else. Grey means it\'s not in there.';
 
   @override
   String get howToCode4 => 'You get 6 guesses. The fewer you need, the better.';
@@ -13196,15 +13223,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToCheckers4 =>
-      'Reach the far side and your piece is crowned king. Kings can move backwards too.';
+      'Reach the far side and your piece is crowned king. Kings can go backwards too, still one square at a time.';
 
   @override
   String get howToCheckersWin =>
-      'Take all their pieces, or leave them with no move, to win.';
+      'Take all their pieces, or leave them with no move, to win. 40 moves each with no capture and no plain piece moving is a draw.';
 
   @override
   String get howToReversi1 =>
-      'Place a disc so a line of their discs ends up trapped between two of yours.';
+      'Place a disc so a line of their discs ends up trapped between two of yours. Every move has to trap at least one.';
 
   @override
   String get howToReversi2 =>
@@ -13240,7 +13267,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToChess4 =>
-      'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over.';
+      'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over. No legal move but not in check? It\'s a draw.';
 
   @override
   String get howToLiars1 =>
@@ -13248,7 +13275,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToLiars2 =>
-      'On your turn, bid how many of one face are on the whole table, counting everyone\'s dice. Like “four 3s”.';
+      'On your turn, bid that there are at least so many of one face on the table, counting everyone\'s dice. Like “four 3s”.';
 
   @override
   String get howToLiars3 =>
@@ -13264,7 +13291,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToLiars6 =>
-      'Bid was true? The caller loses a die. Bid was too high? The bidder loses one.';
+      'At least that many? The caller loses a die. Fewer? The bidder loses one.';
 
   @override
   String get howToLiars7 =>
@@ -13288,11 +13315,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToImposter3 =>
-      'Then everyone votes for who they think the imposter is.';
+      'Then everyone votes for who they think the imposter is, or skips.';
 
   @override
   String get howToImposter4 =>
-      'Caught? The imposter gets one last shot: guess the word to steal the win. Vote out the wrong person, or tie? Imposter wins.';
+      'Caught? The imposter gets one last shot: guess the word to steal the win. Wrong person, a tie or too many skips? Imposter wins.';
 
   @override
   String get howToRace1 =>

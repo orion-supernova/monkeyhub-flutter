@@ -39,6 +39,24 @@ Future<void> openMatchScreen(
   ),
 );
 
+/// Opens a turn by turn game that does not exist yet ([TurnDraft]): the
+/// opening board, the viewer to move. Sending the first move creates it;
+/// backing out leaves nothing behind. [replace] swaps it in for the current
+/// route (a rematch from a finished game's screen), so Send lands in the
+/// chat rather than back on the old game.
+Future<void> openTurnDraft(
+  BuildContext context, {
+  required TurnDraft draft,
+  required String userId,
+  bool replace = false,
+}) {
+  final route = MaterialPageRoute<void>(
+    builder: (_) => MatchScreen(matchId: '', userId: userId, draft: draft),
+  );
+  final nav = Navigator.of(context);
+  return replace ? nav.pushReplacement(route) : nav.push(route);
+}
+
 /// An in-chat game, for whoever opens it: a seated player, or a room member
 /// watching.
 ///
@@ -59,22 +77,29 @@ class MatchScreen extends StatefulWidget {
     required this.matchId,
     required this.userId,
     this.initial,
+    this.draft,
   });
 
+  /// Empty for a [draft].
   final String matchId;
   final String userId;
   final ChatMatch? initial;
+
+  /// A turn by turn game not created yet: see [openTurnDraft].
+  final TurnDraft? draft;
 
   @override
   State<MatchScreen> createState() => _MatchScreenState();
 }
 
 class _MatchScreenState extends State<MatchScreen> {
-  late final MatchController _c = MatchController(
-    matchId: widget.matchId,
-    userId: widget.userId,
-    initial: widget.initial,
-  );
+  late final MatchController _c = widget.draft != null
+      ? MatchController.draft(draft: widget.draft!, userId: widget.userId)
+      : MatchController(
+          matchId: widget.matchId,
+          userId: widget.userId,
+          initial: widget.initial,
+        );
 
   MatchesApi get _api => MatchesStore.instance.api;
 
@@ -213,6 +238,10 @@ class _MatchScreenState extends State<MatchScreen> {
         toast.error(sentenceCaseOf(context, l10n.chatGameErrBadGuess));
       case MoveRejection.notSolved:
         toast.error(sentenceCaseOf(context, l10n.chatGameErrNotSolved));
+      case MoveRejection.tooManyGames:
+        toast.show(sentenceCaseOf(context, l10n.chatGameErrTooMany));
+      case MoveRejection.ephemeral:
+        toast.show(sentenceCaseOf(context, l10n.chatGameErrEphemeral));
       case MoveRejection.illegal:
       case MoveRejection.network:
         toast.error(sentenceCaseOf(context, l10n.chatGameMoveFailed));
@@ -273,7 +302,7 @@ class _MatchScreenState extends State<MatchScreen> {
       cancelLabel: sentenceCaseOf(context, l10n.chatGameCancel),
     );
     if (ok == true) {
-      await _act(() => _api.resign(widget.userId, widget.matchId));
+      await _act(() => _api.resign(widget.userId, _c.matchId));
     }
   }
 
@@ -292,11 +321,37 @@ class _MatchScreenState extends State<MatchScreen> {
     );
     if (ok == true) {
       HapticFeedback.selectionClick();
-      await _act(() => _api.requestSeat(widget.userId, widget.matchId, seat));
+      await _act(() => _api.requestSeat(widget.userId, _c.matchId, seat));
     }
   }
 
   Future<void> _rematch(ChatMatch m) async {
+    // Turn by turn: no card and no waiting game. The rematch opens as a draft
+    // with the asker to move, and their first move creates it.
+    if (m.mode == MatchMode.async && !m.party) {
+      final mine = m.seatOf(widget.userId);
+      if (mine < 0) return;
+      final others = [
+        for (final s in m.seats)
+          if (s.userId != widget.userId) s,
+      ];
+      if (others.isEmpty) return;
+      await openTurnDraft(
+        context,
+        userId: widget.userId,
+        replace: true,
+        draft: TurnDraft(
+          roomId: m.roomId,
+          game: m.game,
+          seats: [
+            MatchSeat(userId: widget.userId, name: m.seats[mine].name),
+            MatchSeat(userId: others.first.userId, name: others.first.name),
+          ],
+          rematchOf: m.id,
+        ),
+      );
+      return;
+    }
     await _act(() async {
       await _api.rematch(
         userId: widget.userId,
@@ -324,17 +379,18 @@ class _MatchScreenState extends State<MatchScreen> {
         viewerId: me,
         onHelp: m == null ? null : _openGuide,
         party: m?.party ?? false,
-        onResign: m != null && m.isSeated(me) && m.status.isOpen &&
-                m.status != MatchStatus.lobby
+        onResign: m != null && !_c.isDraft && m.isSeated(me) &&
+                m.status.isOpen && m.status != MatchStatus.lobby
             ? _confirmResign
             : null,
         onOfferDraw: m != null &&
+                !_c.isDraft &&
                 !m.party &&
                 m.status == MatchStatus.active &&
                 m.seats.length == 2 &&
                 m.isSeated(me) &&
                 m.drawOfferSeat == null
-            ? () => _act(() => _api.offerDraw(me, widget.matchId))
+            ? () => _act(() => _api.offerDraw(me, _c.matchId))
             : null,
       ),
       const SizedBox(height: 10),

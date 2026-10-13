@@ -2,6 +2,7 @@ import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { sendCore } from "./messages";
 import { isAdminRole, roleOf } from "./roomAdmin";
+import { assertRoomAllowsById } from "./roomPolicy";
 
 // `purgeInteraction` and `forkInteraction` deliberately live in
 // `interactionCore.ts` and not here — see that file's header for the cycle
@@ -513,6 +514,11 @@ export const respond = mutation({
   handler: async (ctx, { messageId, userId, choiceId }) => {
     const { msg, interaction } = await resolve(ctx, messageId);
     await assertMember(ctx, msg.roomId, userId);
+    // Answering is visible to the room, so the posting policy decides whether
+    // members may do it here. Retracting stays open. See `roomPolicy.ts`.
+    await assertRoomAllowsById(ctx, msg.roomId, userId, {
+      actions: ["interact"],
+    });
     if (interaction.closedAt !== undefined) throw new Error(ERR_CLOSED);
 
     // Matched against the STORED definition, never taken on faith. A choice id
@@ -670,6 +676,10 @@ export const addItem = mutation({
   handler: async (ctx, { messageId, userId, label }) => {
     const { msg, interaction } = await resolve(ctx, messageId);
     await assertMember(ctx, msg.roomId, userId);
+    // Adding an item is writing words into the room. See `respond`.
+    await assertRoomAllowsById(ctx, msg.roomId, userId, {
+      actions: ["interact"],
+    });
     if (interaction.kind !== "checklist") throw new Error(ERR_NOT_ALLOWED);
     if (interaction.closedAt !== undefined) throw new Error(ERR_CLOSED);
 

@@ -100,6 +100,15 @@ void main() {
     expect(dm.steps.where((s) => s.text == l10n.howToLive3), isEmpty);
   });
 
+  test('practice talks about practice, not chats', () async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final bot = chatGuide(l10n, 'dots', practice: true);
+    expect(bot.footnote, contains(l10n.practiceNotRanked));
+    expect(bot.footnote, isNot(contains(l10n.chatGameNotRanked)));
+    final chat = chatGuide(l10n, 'dots', modes: const [PlayStyle.live]);
+    expect(chat.footnote, contains(l10n.chatGameNotRanked));
+  });
+
   testWidgets('a game page in the start sheet opens its guide', (tester) async {
     tester.view.physicalSize = const Size(393, 852) * 3;
     tester.view.devicePixelRatio = 3;

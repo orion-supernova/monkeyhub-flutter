@@ -385,8 +385,20 @@ async function forfeitPartySeat(
   return after;
 }
 
-/** Erases one game and everything hanging off it. */
-async function eraseMatch(ctx: any, matchId: any) {
+/**
+ * Erases one game and everything hanging off it: its hidden state, its move
+ * history and its heartbeats. The ONE teardown every path that removes a game
+ * goes through (a deleted or expired card, a wiped room, the orphan sweep in
+ * `matches._purgeOrphanMatches`).
+ *
+ * Seats, the turn, offers and requests live on the row itself, so they go with
+ * it. Scheduled jobs (`liveness`, `graceExpire`, `asyncRemind`, `asyncExpire`,
+ * `partyTick`, `sendMatchPush`) are not cancelled: every one of them re-reads
+ * the row first and does nothing when it is gone, and `liveness`, the only one
+ * that re-arms itself, stops re-arming. Cancelling would mean scanning
+ * `_scheduled_functions`, which has no index on a job's arguments.
+ */
+export async function eraseMatch(ctx: any, matchId: any) {
   for (const h of await ctx.db
     .query("matchHidden")
     .withIndex("by_match", (q: any) => q.eq("matchId", matchId))
@@ -412,24 +424,34 @@ async function eraseMatch(ctx: any, matchId: any) {
  * The game behind a card that is being deleted. Returns its move bubbles'
  * message ids, for the caller (`messages.ts`, which owns message teardown)
  * to remove: a move left behind would open a game that no longer exists.
+ *
+ * A move bubble is never a card, so deleting one finds nothing here and the
+ * game plays on. That matters for a card-less turn by turn game
+ * (`matches.startTurns`): its moves are all it has in the transcript, and
+ * deleting one must not end it.
  */
 export async function purgeMatchForMessage(
   ctx: any,
   messageId: any,
 ): Promise<any[]> {
-  const match = await ctx.db
+  // `eq(undefined)` would match every row whose `messageId` is unset.
+  if (!messageId) return [];
+  // One game per card by construction; every one found goes regardless, so a
+  // second row could never outlive the card it hangs off.
+  const rows = await ctx.db
     .query("matches")
     .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
-    .first();
-  if (!match) return [];
+    .take(10);
   const bubbles: any[] = [];
-  for (const m of await ctx.db
-    .query("matchMoves")
-    .withIndex("by_match_seq", (q: any) => q.eq("matchId", match._id))
-    .collect()) {
-    if (m.messageId) bubbles.push(m.messageId);
+  for (const match of rows) {
+    for (const m of await ctx.db
+      .query("matchMoves")
+      .withIndex("by_match_seq", (q: any) => q.eq("matchId", match._id))
+      .collect()) {
+      if (m.messageId) bubbles.push(m.messageId);
+    }
+    await eraseMatch(ctx, match._id);
   }
-  await eraseMatch(ctx, match._id);
   return bubbles;
 }
 

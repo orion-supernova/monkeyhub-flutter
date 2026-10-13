@@ -188,6 +188,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomScreenSecretSpaceBody => '这个房间里的消息是限时的，会根据房间的安全策略自动删除。';
 
   @override
+  String get roomReadOnlyFooter => '这是只读房间，只有 MonkeyHub 会在这里发消息。';
+
+  @override
   String get roomScreenAutoDeleteTitle => '自动删除';
 
   @override
@@ -11700,6 +11703,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatGameErrTooMany => '这里已有 3 局轮流对局，请先完成一局。';
 
   @override
+  String get chatGameErrEphemeral => '消息会消失的聊天里不能玩游戏。';
+
+  @override
   String get chatGameErrGeneric => '出了点问题，请重试。';
 
   @override
@@ -11917,6 +11923,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max 人';
+  }
+
+  @override
+  String chatGameNeedsPeople(int count) {
+    return '至少需要 $count 人';
   }
 
   @override
@@ -12334,7 +12345,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return '只有你和$bot。不会发到聊天里，也没人看。';
+    return '只有你和$bot。先练熟招数，再去赢朋友。';
   }
 
   @override
@@ -12357,11 +12368,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get practiceNotRanked => '仅供娱乐。这些对局不计入连胜或纪录。';
+
+  @override
   String get chatGameMvYouPlayed => '你走了一步';
 
   @override
   String chatGameMvTheyPlayed(String name) {
-    return '$name走了一步';
+    return '$name 走了一步';
   }
 
   @override
@@ -12434,7 +12448,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToQueens3 => '点一下打 ×，点两下放王冠，再点一下清掉。';
 
   @override
-  String get howToQueens4 => '放好一顶王冠，就把它挡住的格子都打上 ×，很快就理清了。';
+  String get howToQueens4 => '开启“自动打叉”后，被王冠排除的格子都会自动打上 ×。然后看看还剩哪些格子。';
 
   @override
   String get howToTango1 => '点一下是太阳，点两下是月亮。把格子全填满。';
@@ -12443,7 +12457,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToTango2 => '每行每列都是一半太阳、一半月亮。';
 
   @override
-  String get howToTango3 => '同样的不能连着 3 个，2 个没问题。';
+  String get howToTango3 => '同样的不能横着或竖着连着 3 个，2 个没问题。';
 
   @override
   String get howToTango4 => '= 表示两个一样，× 表示两个相反。';
@@ -12464,10 +12478,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToSudoku2 => '先点格子，再点数字。';
 
   @override
-  String get howToSudoku3 => '同一行出现重复数字？会变红。';
+  String get howToSudoku3 => '同一行、同一列或同一宫出现重复数字？会变红。';
 
   @override
-  String get howToSudoku4 => '找只差一个数字的行，白送的。';
+  String get howToSudoku4 => '找只差一个数字的行或列，白送的。';
 
   @override
   String get howToFlow1 => '从一个点划到同色的另一个点，连成管道。';
@@ -12476,7 +12490,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToFlow2 => '管道不能交叉，每个格子都要填满。绕远一点也没关系。';
 
   @override
-  String get howToFutoshiki1 => '每行每列，每个数字只出现一次。';
+  String get howToFutoshiki1 => '在每个格子里填 1 到 5。每行每列，每个数字恰好出现一次。';
 
   @override
   String get howToFutoshiki2 => '符号尖的那头指向小的数字。';
@@ -12485,10 +12499,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToFutoshiki3 => '不符合符号就会变红。';
 
   @override
-  String get howToNonogram1 => '数字表示连续涂几格。5 就是连着涂 5 格。';
+  String get howToNonogram1 => '每个数字代表一段连续涂色的格子，中间不能有空。5 就是连着涂 5 格。';
 
   @override
-  String get howToNonogram2 => '1 1 是两个分开的格子，中间至少空一格。';
+  String get howToNonogram2 => '1 1 是两个单独的格子，中间至少空一格，空得更多也行。';
+
+  @override
+  String get howToNonogramOrder => '顺序很重要：行从左往右读，列从上往下读。1 3 就是先 1 格，再 3 格。';
 
   @override
   String get howToNonogram3 => '点一下涂色，再点打 ×，再点清除。拖动可以一次涂一大片。';
@@ -12497,7 +12514,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToNonogram4 => '所有提示都对上，隐藏的图案就出来了。';
 
   @override
-  String get howToMines1 => '点格子打开它。空白区域会自己展开。';
+  String get howToMines1 => '打开所有没有雷的格子。空白区域会自己展开。';
 
   @override
   String get howToMines2 => '数字表示周围有几颗雷，斜角也算。';
@@ -12515,10 +12532,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToStars2 => '星星不能挨着，斜着挨也不行。';
 
   @override
-  String get howToStars3 => '在每颗星周围点上圆点。一行凑齐 2 颗星，其余格子就都空了。';
+  String get howToStarsControls => '点一下打点，点两下放星星，再点一下清掉。';
 
   @override
-  String get howToCode1 => '有一串由 4 个不同符号组成的密码，破解它。';
+  String get howToStars3 => '开启“自动打点”后，星星周围的格子会自动打点。一行凑齐 2 颗星，其余格子也会被打点。';
+
+  @override
+  String get howToCode1 => '有一串由 4 个不同符号组成的密码，符号不会重复。破解它。';
 
   @override
   String get howToCode2 => '绿色：符号对，位置也对。';
@@ -12551,13 +12571,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToCheckers3 => '落下后还能接着跳？继续跳，一步就能吃好几个。';
 
   @override
-  String get howToCheckers4 => '走到对面底线就升为王，王还能往后走。';
+  String get howToCheckers4 => '走到对面底线就升为王，王还能往后走，但每次仍然只走一格。';
 
   @override
-  String get howToCheckersWin => '吃光对方的棋子，或让对方无路可走，就赢了。';
+  String get howToCheckersWin =>
+      '吃光对方的棋子，或让对方无路可走，就赢了。双方各走 40 步都没有吃子、也没有移动普通棋子，就是平局。';
 
   @override
-  String get howToReversi1 => '落子时，把对方的一排棋子夹在你的两颗棋子之间。';
+  String get howToReversi1 => '落子时，把对方的一排棋子夹在你的两颗棋子之间。每一步都必须至少夹住一颗。';
 
   @override
   String get howToReversi2 => '被夹住的棋子全部翻成你的颜色，所有方向一起翻。';
@@ -12587,13 +12608,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToChess3 => '把兵走到最后一行，它就能变成后，或者你选的其他棋子。';
 
   @override
-  String get howToChess4 => '将军就是王被攻击了，必须马上解围。无路可逃？将死，游戏结束。';
+  String get howToChess4 => '将军就是王被攻击了，必须马上解围。无路可逃？将死，游戏结束。没有能走的棋但也没被将军？那就是和棋。';
 
   @override
   String get howToLiars1 => '每人偷偷摇 5 颗骰子，你只能看到自己的。';
 
   @override
-  String get howToLiars2 => '轮到你时，叫全桌某个点数一共有几个，所有人的骰子都算。比如“4个3”。';
+  String get howToLiars2 => '轮到你时，叫全桌某个点数至少有几个，所有人的骰子都算。比如“4 个 3”。';
 
   @override
   String get howToLiars3 => '1 点是万能的，可以当任何点数。除非叫的就是 1。';
@@ -12605,7 +12626,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToLiars5 => '…或者直接“开！”。所有人亮出骰子一起数。';
 
   @override
-  String get howToLiars6 => '叫的数是真的？开的人丢一颗骰子。叫多了？叫的人丢一颗。';
+  String get howToLiars6 => '实际至少有那么多？开的人丢一颗骰子。不够？叫的人丢一颗。';
 
   @override
   String get howToLiars7 => '骰子没了就出局，最后还有骰子的人赢。';
@@ -12623,10 +12644,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToImposterVoice => '语音模式：在通话里把提示说出来，然后点完成。';
 
   @override
-  String get howToImposter3 => '然后大家投票，选出你觉得是卧底的人。';
+  String get howToImposter3 => '然后大家投票，选出你觉得是卧底的人，也可以弃权。';
 
   @override
-  String get howToImposter4 => '抓到了？卧底还有最后一次机会：猜中词就反杀。投错人或者平票？卧底赢。';
+  String get howToImposter4 => '抓到了？卧底还有最后一次机会：猜中词就反杀。投错人、平票或者弃权的人太多？卧底赢。';
 
   @override
   String get howToRace1 => '所有人同时拿到同一道全新的谜题。';

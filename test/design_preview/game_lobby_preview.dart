@@ -65,6 +65,18 @@ void main() {
         );
       });
     }
+    // A group of two: Imposter stays on the shelf, greyed, saying why.
+    testWidgets('shelf group of two $id', (tester) async {
+      await snap(
+        tester,
+        previewApp(
+          theme,
+          sheet(theme, const StartGameSheet(isDm: false, memberCount: 2), 1500),
+        ),
+        'lobby_shelf_group2_$id.png',
+        size: const Size(393, 1540),
+      );
+    });
     testWidgets('page dm connectfour $id', (tester) async {
       await snap(
         tester,

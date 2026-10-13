@@ -10,6 +10,7 @@ import '../media/file_meta.dart'
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/room_posting_policy.dart';
 import '../share/shared_payload.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -113,6 +114,16 @@ class _ShareTargetSheetState extends State<_ShareTargetSheet> {
 
   String get _query => _search.text.trim().toLowerCase();
 
+  /// What the share would post: each attachment's kind, plus text when there
+  /// is any (it lands in the composer and is sent as text).
+  Set<PostKind> get _payloadKinds {
+    final p = widget.payload;
+    return {
+      ...postKindsOf(p.sendable.map((i) => i.messageType)),
+      if (p.text != null && p.text!.trim().isNotEmpty) PostKind.text,
+    };
+  }
+
   String _titleOf(ChatRoom room) {
     final loc = AppLocalizations.of(context);
     if (room.isSavedMessages) return loc.savedMessagesTitle;
@@ -131,7 +142,11 @@ class _ShareTargetSheetState extends State<_ShareTargetSheet> {
       // No `isMember` test — see the note in `buildShareTargets`. The field is
       // `rooms:listPublic`'s alone and is false on everything this list holds,
       // so filtering on it emptied the sheet outright.
-      if (!widget.repo.capabilitiesFor(r).canReceiveForwards) continue;
+      final caps = widget.repo.capabilitiesFor(r);
+      if (!caps.canReceiveForwards) continue;
+      // And it must take what is being shared: a text-and-photos room is no
+      // place to land a PDF. See `room_posting_policy.dart`.
+      if (!caps.posting.allowsAll(_payloadKinds)) continue;
       if (q.isNotEmpty && !_titleOf(r).toLowerCase().contains(q)) continue;
       out.add(r);
     }

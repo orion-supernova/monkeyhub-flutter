@@ -628,6 +628,10 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               }(),
             ),
           ),
+        // Absent where the room's posting policy refuses reactions
+        // (`MessageCapabilities.canReact`); the space it would take stays, so
+        // the menu lands where it always does.
+        if (widget.capabilities.canReact)
         Positioned(
           top: pillTop,
           left: edgeLeft,

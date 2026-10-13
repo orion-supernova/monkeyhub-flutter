@@ -193,6 +193,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu odadaki mesajlar geçici. Odanın güvenlik ayarlarına göre otomatik olarak siliniyorlar.';
 
   @override
+  String get roomReadOnlyFooter =>
+      'Bu oda salt okunur. Buraya yalnızca MonkeyHub yazar.';
+
+  @override
   String get roomScreenAutoDeleteTitle => 'Otomatik Silme';
 
   @override
@@ -12083,7 +12087,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chatGameNotRanked =>
-      'Sadece eğlence için. Sohbet oyunları serilerine ve rekorlarına sayılmaz.';
+      'Sadece eğlence için. Sohbet oyunları serilerine ya da rekorlarına katılmaz.';
 
   @override
   String get chatGameNotRankedShort => 'Sıralamaya girmez';
@@ -12241,6 +12245,10 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get chatGameErrTooMany =>
       'Burada zaten 3 sıralı oyunun var. Önce birini bitir.';
+
+  @override
+  String get chatGameErrEphemeral =>
+      'Mesajların kaybolduğu bir sohbette oyun oynanamaz.';
 
   @override
   String get chatGameErrGeneric => 'Bir şeyler ters gitti. Tekrar dene.';
@@ -12467,6 +12475,11 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String chatGameNeedsPeople(int count) {
+    return 'En az $count kişi gerekli';
+  }
+
+  @override
   String get chatGameVoiceOption => 'Sesli ipuçları';
 
   @override
@@ -12510,7 +12523,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatGameLdLiar => 'Yalancı!';
 
   @override
-  String get chatGameLdOnesWild => '1’ler jokerdir';
+  String get chatGameLdOnesWild => '1\'ler jokerdir';
 
   @override
   String get chatGameLdOnesOnly => '1 teklifinde joker yok';
@@ -12633,7 +12646,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chatGameImpVoiceHint =>
-      'İpucunu sesli söyle, sonra Bitti’ye dokun.';
+      'İpucunu sesli söyle, sonra Bitti\'ye dokun.';
 
   @override
   String get chatGameImpDone => 'Bitti';
@@ -12646,7 +12659,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'Oy vermek için bir oyuncuya dokun. Süre bitene kadar değiştirebilirsin.';
 
   @override
-  String get chatGameImpSkip => 'Oy verme';
+  String get chatGameImpSkip => 'Pas geç';
 
   @override
   String chatGameImpVoted(int count, int total) {
@@ -12657,7 +12670,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatGameImpVotedBadge => 'Oy verdi';
 
   @override
-  String get chatGameImpYourVote => 'Oyun';
+  String get chatGameImpYourVote => 'Senin oyun';
 
   @override
   String get chatGameImpGuessing => 'Sahtekâr tahmin ediyor…';
@@ -12702,7 +12715,7 @@ class AppLocalizationsTr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count kişi oy vermedi',
+      other: '$count kişi pas geçti',
     );
     return '$_temp0';
   }
@@ -12780,7 +12793,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatGameRaceSolved => 'Çözdün!';
 
   @override
-  String get chatGamePartyLeaveConfirm => 'Oyundan ayrılınsın mı?';
+  String get chatGamePartyLeaveConfirm => 'Oyundan ayrılıyor musun?';
 
   @override
   String get chatGamePartyLeaveBody => 'Diğerleri sensiz devam eder.';
@@ -12894,7 +12907,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'Sadece sen ve $bot. Sohbete bir şey düşmez, kimse izlemiyor.';
+    return 'Sadece sen ve $bot. Hamleleri öğren, sonra arkadaşlarını yen.';
   }
 
   @override
@@ -12916,6 +12929,10 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'Sadece eğlence için. Bu oyunlar serilerine ya da rekorlarına katılmaz.';
 
   @override
   String get chatGameMvYouPlayed => 'Sen oynadın';
@@ -12998,7 +13015,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToQueens4 =>
-      'Tacı koy, sonra artık taç gelemeyecek her kareye × at. Tahta bir anda açılır.';
+      'Otomatik çarpı açıkken, bir tacın elediği her kareye senin yerine × konur. Sonra geriye ne kaldığına bak.';
 
   @override
   String get howToTango1 =>
@@ -13008,7 +13025,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get howToTango2 => 'Her satır ve sütunun yarısı güneş, yarısı ay.';
 
   @override
-  String get howToTango3 => 'Aynı şeyden 3 tane yan yana gelemez. 2 tamam.';
+  String get howToTango3 =>
+      'Aynı şeyden 3 tane yan yana ya da alt alta gelemez. 2 tamam.';
 
   @override
   String get howToTango4 => '= varsa ikisi aynı, × varsa ikisi farklı.';
@@ -13030,11 +13048,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get howToSudoku2 => 'Kareye dokun, sonra sayıya dokun.';
 
   @override
-  String get howToSudoku3 => 'Aynı sayı iki kere mi geldi? Kırmızı yanar.';
+  String get howToSudoku3 =>
+      'Bir satırda, sütunda ya da kutuda aynı sayı iki kere mi var? Kırmızı yanar.';
 
   @override
   String get howToSudoku4 =>
-      'Tek sayısı eksik olan satırları kolla. Bedava puan.';
+      'Sadece bir sayısı eksik olan satır ve sütunları kolla. Bedava puan.';
 
   @override
   String get howToFlow1 => 'Bir noktadan eşine sürükle, boruyu çek.';
@@ -13044,7 +13063,8 @@ class AppLocalizationsTr extends AppLocalizations {
       'Borular kesişemez, her kare de dolmalı. Gerekirse dolaş.';
 
   @override
-  String get howToFutoshiki1 => 'Her satır ve sütunda her sayı tam bir kere.';
+  String get howToFutoshiki1 =>
+      'Her kareyi 1\'den 5\'e kadar bir sayıyla doldur. Her satır ve sütunda her sayı tam bir kere.';
 
   @override
   String get howToFutoshiki2 => 'İşaretin sivri ucu küçük sayıyı gösterir.';
@@ -13054,11 +13074,15 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToNonogram1 =>
-      'Sayılar, o satırda yan yana kaç kare boyayacağını söyler. 5 demek yan yana 5 kare.';
+      'Her sayı, aralıksız boyanacak kare sayısıdır. 5, yan yana 5 kare demek.';
 
   @override
   String get howToNonogram2 =>
-      '1 1 demek iki ayrı kare, arada en az bir boşluk.';
+      '1 1, arasında en az bir boş kare olan iki tek kare demek. Boşluk daha büyük de olabilir.';
+
+  @override
+  String get howToNonogramOrder =>
+      'Sıra önemli: satırlar soldan sağa, sütunlar yukarıdan aşağıya okunur. Yani 1 3, önce 1 sonra 3 demek.';
 
   @override
   String get howToNonogram3 =>
@@ -13070,7 +13094,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToMines1 =>
-      'Açmak için kareye dokun. Boş yerler kendiliğinden açılır.';
+      'Mayın olmayan bütün kareleri aç. Boş alanlar kendiliğinden açılır.';
 
   @override
   String get howToMines2 =>
@@ -13091,12 +13115,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get howToStars2 => 'Yıldızlar birbirine değemez. Çaprazdan bile.';
 
   @override
+  String get howToStarsControls =>
+      'Bir kere dokun nokta, iki kere yıldız, bir daha dokunursan silinir.';
+
+  @override
   String get howToStars3 =>
-      'Her yıldızın etrafını noktayla kapat. Bir satır 2 yıldızını bulduysa gerisi boş.';
+      'Otomatik nokta açıkken, bir yıldız etrafındaki kareleri noktayla kapatır. Bir satır 2 yıldızını bulunca geri kalanı da noktalanır.';
 
   @override
   String get howToCode1 =>
-      '4 farklı sembolden oluşan gizli bir şifre var. Çöz bakalım.';
+      '4 farklı sembolden oluşan gizli bir şifre var, hiçbiri tekrar etmiyor. Çöz bakalım.';
 
   @override
   String get howToCode2 => 'Yeşil: sembol de doğru, yeri de.';
@@ -13139,15 +13167,15 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToCheckers4 =>
-      'Karşı tarafa ulaşan taş dama olur. Damalar geri de gidebilir.';
+      'Karşı tarafa ulaşan taş dama olur. Dama geri de gidebilir ama yine sadece bir kare gider, uzağa uçamaz.';
 
   @override
   String get howToCheckersWin =>
-      'Rakibin tüm taşlarını al ya da hamlesiz bırak, kazan.';
+      'Rakibin tüm taşlarını al ya da onu hamlesiz bırak, kazan. Taş alınmadan ve düz taş oynanmadan ikişer 40 hamle geçerse berabere.';
 
   @override
   String get howToReversi1 =>
-      'Pulunu öyle bir yere koy ki rakibin pulları iki pulunun arasında sıkışsın.';
+      'Pulunu öyle bir yere koy ki rakibin bir sıra pulu iki pulunun arasında sıkışsın. Her hamle en az bir pul sıkıştırmalı.';
 
   @override
   String get howToReversi2 =>
@@ -13184,7 +13212,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToChess4 =>
-      'Şah çekildiyse şahın saldırı altında demek, hemen kurtar. Kaçacak yer yoksa şah mat, oyun biter.';
+      'Şah çekildiyse şahın saldırı altında demek, hemen kurtar. Kaçacak yer yoksa şah mat, oyun biter. Şah çekilmediği hâlde oynayacak hamle yoksa berabere.';
 
   @override
   String get howToLiars1 =>
@@ -13192,7 +13220,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToLiars2 =>
-      'Sıran gelince teklif ver: masadaki bütün zarlarda bir sayıdan kaç tane var? Herkesin zarı sayılır. Mesela “dört tane 3”.';
+      'Sıran gelince, masada bir sayıdan en az kaç tane olduğunu iddia et. Herkesin zarı sayılır. Mesela “dört tane 3”.';
 
   @override
   String get howToLiars3 =>
@@ -13200,7 +13228,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToLiars4 =>
-      'Sıradaki oyuncu teklifi yükseltmek zorunda: ya daha çok zar ya da aynı sayıda daha büyük bir sayı…';
+      'Sıradaki oyuncu teklifi yükseltmek zorunda: ya daha çok zar ya da aynı adette daha büyük bir sayı…';
 
   @override
   String get howToLiars5 =>
@@ -13208,7 +13236,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToLiars6 =>
-      'Teklif tuttu mu? “Yalancı” diyen bir zar kaybeder. Teklif fazla mıydı? Teklifi veren kaybeder.';
+      'En az o kadar var mı? “Yalancı” diyen bir zar kaybeder. Daha az mı? Teklifi veren kaybeder.';
 
   @override
   String get howToLiars7 =>
@@ -13231,11 +13259,12 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sesli modda ipucunu aramada yüksek sesle söyle, sonra Bitti\'ye dokun.';
 
   @override
-  String get howToImposter3 => 'Sonra herkes sahtekâr sandığı kişiye oy verir.';
+  String get howToImposter3 =>
+      'Sonra herkes sahtekâr sandığı kişiye oy verir ya da pas geçer.';
 
   @override
   String get howToImposter4 =>
-      'Yakalandı mı? Sahtekârın son bir şansı var: kelimeyi bilirse galibiyeti kapar. Yanlış kişiyi seçtiniz ya da berabere mi? Sahtekâr kazanır.';
+      'Yakalandı mı? Sahtekârın son bir şansı var: kelimeyi bilirse galibiyeti kapar. Yanlış kişi mi seçildi, oylar mı eşit çıktı ya da çok kişi mi pas geçti? Sahtekâr kazanır.';
 
   @override
   String get howToRace1 => 'Herkese aynı anda aynı yepyeni bulmaca gelir.';

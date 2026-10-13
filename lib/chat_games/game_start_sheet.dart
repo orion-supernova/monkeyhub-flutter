@@ -42,12 +42,14 @@ class ChatGameDraft {
       mode == ChatGameMode.turns ? MatchMode.async : MatchMode.live;
 }
 
-/// The games this room can actually start, in the sheet's order. Nothing the
-/// room cannot seat is listed at all: a greyed tile with a reason under it is
-/// a dead end dressed as an option.
+/// The party games a room lists, in the sheet's order. A room that can never
+/// seat a game does not list it: a DM will always be two people, so Imposter,
+/// which needs three, is simply not there. A group that is only too small
+/// right now still lists it, greyed with what it needs ([isTooSmallFor]):
+/// adding someone fixes that, and the shelf is where people learn the game
+/// exists at all.
 ///
-/// The board games all seat two, so every room gets all of them. A DM drops
-/// Imposter, which needs three.
+/// The board games all seat two, so every room gets all of them.
 List<String> partyGamesFor({required bool isDm}) => [
   for (final g in kPartyGames)
     if (!isDm || minSeatsOf(g) <= 2) g,
@@ -56,6 +58,11 @@ List<String> partyGamesFor({required bool isDm}) => [
 /// The ways [game] can be played in this room. Take turns is a DM thing (the
 /// server refuses it elsewhere, `ASYNC_DM_ONLY`) and party games are live
 /// only, because a round of Liar's Dice spread over two days is not a round.
+/// Whether a group of [memberCount] people is too small to start [game].
+/// Null is a count we do not know, which never blocks.
+bool isTooSmallFor(String game, int? memberCount) =>
+    memberCount != null && memberCount < minSeatsOf(game);
+
 List<PlayStyle> playStylesOf(String game, {required bool isDm}) => [
   if (isDm && !isPartyGame(game)) PlayStyle.turns,
   PlayStyle.live,
@@ -73,17 +80,23 @@ List<PlayStyle> playStylesOf(String game, {required bool isDm}) => [
 /// on the Feed's games row ([BotHubScreen]).
 ///
 /// [voiceAvailable] is whether group calls exist on this build; without them
-/// Imposter's voice option is not offered.
+/// Imposter's voice option is not offered. [memberCount] is the room's size,
+/// for greying out a party game it cannot seat yet.
 Future<ChatGameDraft?> showGameStartSheet(
   BuildContext context, {
   required bool isDm,
   bool voiceAvailable = true,
+  int? memberCount,
 }) {
   HapticFeedback.selectionClick();
   return showAdaptiveSheet<ChatGameDraft>(
     context,
     useSafeArea: true,
-    builder: (_) => StartGameSheet(isDm: isDm, voiceAvailable: voiceAvailable),
+    builder: (_) => StartGameSheet(
+      isDm: isDm,
+      voiceAvailable: voiceAvailable,
+      memberCount: memberCount,
+    ),
   );
 }
 
@@ -93,11 +106,15 @@ class StartGameSheet extends StatefulWidget {
     super.key,
     required this.isDm,
     this.voiceAvailable = true,
+    this.memberCount,
     this.initialGame,
   });
 
   final bool isDm;
   final bool voiceAvailable;
+
+  /// How many people are in the room, or null when not known.
+  final int? memberCount;
 
   /// Opens straight onto this game's page. For previews.
   final String? initialGame;
@@ -175,6 +192,7 @@ class _StartSheetState extends State<StartGameSheet> {
         ? _Shelf(
             key: const ValueKey('shelf'),
             isDm: widget.isDm,
+            memberCount: widget.memberCount,
             onPick: _openGame,
           )
         : _GamePage(
@@ -249,9 +267,15 @@ class _StartSheetState extends State<StartGameSheet> {
 /// The shelf: board games, then party games, each section with the one line
 /// that says how its games are played in this room.
 class _Shelf extends StatelessWidget {
-  const _Shelf({super.key, required this.isDm, required this.onPick});
+  const _Shelf({
+    super.key,
+    required this.isDm,
+    required this.onPick,
+    this.memberCount,
+  });
 
   final bool isDm;
+  final int? memberCount;
   final ValueChanged<String> onPick;
 
   @override
@@ -296,6 +320,7 @@ class _Shelf extends StatelessWidget {
                         key: ValueKey('game_$g'),
                         game: g,
                         styles: playStylesOf(g, isDm: isDm),
+                        tooSmall: isTooSmallFor(g, memberCount),
                         onTap: () => onPick(g),
                       ),
                     ),
@@ -372,11 +397,16 @@ class _GameTile extends StatelessWidget {
     required this.game,
     required this.styles,
     required this.onTap,
+    this.tooSmall = false,
   });
 
   final String game;
   final List<PlayStyle> styles;
   final VoidCallback onTap;
+
+  /// The room has fewer people than the game seats: the tile stays on the
+  /// shelf, faded, saying what it needs, and does not open.
+  final bool tooSmall;
 
   @override
   Widget build(BuildContext context) {
@@ -405,12 +435,15 @@ class _GameTile extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            chatGamePlayers(l10n, game),
+            tooSmall
+                ? l10n.chatGameNeedsPeople(minSeatsOf(game))
+                : chatGamePlayers(l10n, game),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: groupedMetaStyle(theme).copyWith(
-              color: theme.inkMuted,
+              color: tooSmall ? theme.ink : theme.inkMuted,
               fontSize: 12,
+              fontWeight: tooSmall ? FontWeight.w600 : null,
             ),
           ),
           const SizedBox(height: 7),
@@ -422,6 +455,15 @@ class _GameTile extends StatelessWidget {
         ],
       ),
     );
+    if (tooSmall) {
+      return Semantics(
+        button: true,
+        enabled: false,
+        label: '$name, ${l10n.chatGameNeedsPeople(minSeatsOf(game))}',
+        excludeSemantics: true,
+        child: Opacity(opacity: 0.45, child: tile),
+      );
+    }
     return SpringPress(
       onTap: onTap,
       semanticLabel: [

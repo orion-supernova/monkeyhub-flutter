@@ -399,6 +399,12 @@ abstract class AppLocalizations {
   /// **'Messages in this room are ephemeral. They are automatically removed based on the room’s security policy.'**
   String get roomScreenSecretSpaceBody;
 
+  /// Shown in place of the message composer in a system room members can't post in (e.g. the MonkeyHub Logs room admins read). Quiet, not an error. MonkeyHub is the app name; don't translate it.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a read-only room. Only MonkeyHub posts here.'**
+  String get roomReadOnlyFooter;
+
   /// Title of one of the feature cards in the ephemeral-room welcome view.
   ///
   /// In en, this message translates to:
@@ -20641,6 +20647,12 @@ abstract class AppLocalizations {
   /// **'You already have 3 turn games going here. Finish one first.'**
   String get chatGameErrTooMany;
 
+  /// Toast when the server refuses to start a chat game in a room whose messages disappear (a secret room, or any chat with a message timer): the game card would vanish mid-game.
+  ///
+  /// In en, this message translates to:
+  /// **'Games can’t be played in a chat where messages disappear.'**
+  String get chatGameErrEphemeral;
+
   /// Error: a chat game action failed.
   ///
   /// In en, this message translates to:
@@ -21000,6 +21012,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{min}–{max} players'**
   String chatGamePlayersRange(int min, int max);
+
+  /// Under a party game's tile in a group chat that has too few people to play it (the tile is greyed out). {count} is the minimum, e.g. 3.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs {count}+ people'**
+  String chatGameNeedsPeople(int count);
 
   /// Imposter option toggle: give clues by voice on a call.
   ///
@@ -21712,7 +21730,7 @@ abstract class AppLocalizations {
   /// Under the bot screen title. {bot} is the bot's name (Monkey).
   ///
   /// In en, this message translates to:
-  /// **'Just you and {bot}. Nothing gets posted, nobody’s watching.'**
+  /// **'Just you and {bot}. Learn the moves, then go beat your friends.'**
   String botHubSubtitle(String bot);
 
   /// Header above the bot difficulty picker (easy / medium / hard).
@@ -21738,6 +21756,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 game} other{{count} games}}'**
   String botHubGameCount(int count);
+
+  /// Footnote on the Play the bot screen and its games. Practice games against the bot are only played there (not in chats), and they don't count toward streaks or records.
+  ///
+  /// In en, this message translates to:
+  /// **'Just for fun. These games don’t count toward your streaks or records.'**
+  String get practiceNotRanked;
 
   /// Turn-by-turn move bubble header when the viewer made the move.
   ///
@@ -21880,7 +21904,7 @@ abstract class AppLocalizations {
   /// Queens guide, strategy tip.
   ///
   /// In en, this message translates to:
-  /// **'Drop a crown, then × every square it rules out. The board cracks open fast.'**
+  /// **'With Auto-cross on, every square a crown rules out gets an × for you. Then see what\'s left.'**
   String get howToQueens4;
 
   /// Tango guide, step: how to fill.
@@ -21898,7 +21922,7 @@ abstract class AppLocalizations {
   /// Tango guide, step: no three in a row.
   ///
   /// In en, this message translates to:
-  /// **'Never 3 of the same in a row. 2 is fine.'**
+  /// **'Never 3 of the same side by side, across or down. 2 is fine.'**
   String get howToTango3;
 
   /// Tango guide, step: = and × signs between squares.
@@ -21940,7 +21964,7 @@ abstract class AppLocalizations {
   /// Mini Sudoku guide, step: a repeated number turns red.
   ///
   /// In en, this message translates to:
-  /// **'Same number twice in a line? It turns red.'**
+  /// **'Same number twice in a row, column or box? It turns red.'**
   String get howToSudoku3;
 
   /// Mini Sudoku guide, tip.
@@ -21964,7 +21988,7 @@ abstract class AppLocalizations {
   /// Futoshiki guide, step: each number once per row and column.
   ///
   /// In en, this message translates to:
-  /// **'Every row and column gets each number exactly once.'**
+  /// **'Fill every square with 1 to 5. Each row and column gets each number exactly once.'**
   String get howToFutoshiki1;
 
   /// Futoshiki guide, step: the < > sign points at the smaller number.
@@ -21982,14 +22006,20 @@ abstract class AppLocalizations {
   /// Nonogram guide, step: what the clue numbers mean.
   ///
   /// In en, this message translates to:
-  /// **'The numbers say how many squares in a row to shade. 5 means 5 in a row.'**
+  /// **'Each number is a run of shaded squares with no gaps. 5 means 5 squares side by side.'**
   String get howToNonogram1;
 
   /// Nonogram guide, step: several numbers need gaps between runs.
   ///
   /// In en, this message translates to:
-  /// **'1 1 means two separate squares, with at least one gap between them.'**
+  /// **'1 1 means two single squares with at least one empty square between them. A bigger gap is fine too.'**
   String get howToNonogram2;
+
+  /// Nonogram guide, step: clue numbers are in order. Row clues read left to right, column clues top to bottom, so '1 3' is a run of 1 then a run of 3, never 3 then 1. The board is never mirrored, even in right-to-left languages, so keep 'left to right' literal.
+  ///
+  /// In en, this message translates to:
+  /// **'Order matters: rows read left to right, columns top to bottom. So 1 3 means a 1 first, then a 3.'**
+  String get howToNonogramOrder;
 
   /// Nonogram guide, step: controls.
   ///
@@ -22006,7 +22036,7 @@ abstract class AppLocalizations {
   /// Minesweeper guide, step: opening squares.
   ///
   /// In en, this message translates to:
-  /// **'Tap a square to open it. Empty areas open up on their own.'**
+  /// **'Open every square that isn\'t a mine. Empty areas open up on their own.'**
   String get howToMines1;
 
   /// Minesweeper guide, step: what numbers mean.
@@ -22039,16 +22069,22 @@ abstract class AppLocalizations {
   /// **'Stars can\'t touch. Not even corner to corner.'**
   String get howToStars2;
 
+  /// Star Battle guide, step: controls. One tap places a dot, a second turns it into a star, a third clears.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap once for a dot, twice for a star, once more to clear.'**
+  String get howToStarsControls;
+
   /// Star Battle guide, strategy tip.
   ///
   /// In en, this message translates to:
-  /// **'Dot out the squares around each star. Once a row has its 2, the rest is out.'**
+  /// **'With Auto-dot on, a star dots out the squares around it. Once a row has its 2, the rest gets dotted too.'**
   String get howToStars3;
 
   /// Code puzzle guide, step: the goal.
   ///
   /// In en, this message translates to:
-  /// **'There\'s a secret code of 4 different symbols. Crack it.'**
+  /// **'There\'s a secret code of 4 different symbols, no repeats. Crack it.'**
   String get howToCode1;
 
   /// Code puzzle guide, step: green feedback.
@@ -22060,7 +22096,7 @@ abstract class AppLocalizations {
   /// Code puzzle guide, step: yellow and grey feedback.
   ///
   /// In en, this message translates to:
-  /// **'Yellow means it\'s in the code, just somewhere else. Grey means it\'s not in there at all.'**
+  /// **'Yellow means it\'s in the code, just somewhere else. Grey means it\'s not in there.'**
   String get howToCode3;
 
   /// Code puzzle guide, step: number of guesses.
@@ -22114,19 +22150,19 @@ abstract class AppLocalizations {
   /// Checkers guide step: kings.
   ///
   /// In en, this message translates to:
-  /// **'Reach the far side and your piece is crowned king. Kings can move backwards too.'**
+  /// **'Reach the far side and your piece is crowned king. Kings can go backwards too, still one square at a time.'**
   String get howToCheckers4;
 
   /// Checkers guide footnote: how you win.
   ///
   /// In en, this message translates to:
-  /// **'Take all their pieces, or leave them with no move, to win.'**
+  /// **'Take all their pieces, or leave them with no move, to win. 40 moves each with no capture and no plain piece moving is a draw.'**
   String get howToCheckersWin;
 
   /// Reversi guide step: trapping.
   ///
   /// In en, this message translates to:
-  /// **'Place a disc so a line of their discs ends up trapped between two of yours.'**
+  /// **'Place a disc so a line of their discs ends up trapped between two of yours. Every move has to trap at least one.'**
   String get howToReversi1;
 
   /// Reversi guide step: flipping.
@@ -22186,7 +22222,7 @@ abstract class AppLocalizations {
   /// Chess guide step: check and checkmate.
   ///
   /// In en, this message translates to:
-  /// **'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over.'**
+  /// **'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over. No legal move but not in check? It\'s a draw.'**
   String get howToChess4;
 
   /// Liar's Dice guide step: secret dice.
@@ -22198,7 +22234,7 @@ abstract class AppLocalizations {
   /// Liar's Dice guide step: what a bid is.
   ///
   /// In en, this message translates to:
-  /// **'On your turn, bid how many of one face are on the whole table, counting everyone\'s dice. Like “four 3s”.'**
+  /// **'On your turn, bid that there are at least so many of one face on the table, counting everyone\'s dice. Like “four 3s”.'**
   String get howToLiars2;
 
   /// Liar's Dice guide step: 1s are wild.
@@ -22222,7 +22258,7 @@ abstract class AppLocalizations {
   /// Liar's Dice guide step: who loses a die.
   ///
   /// In en, this message translates to:
-  /// **'Bid was true? The caller loses a die. Bid was too high? The bidder loses one.'**
+  /// **'At least that many? The caller loses a die. Fewer? The bidder loses one.'**
   String get howToLiars6;
 
   /// Liar's Dice guide step: elimination and winning.
@@ -22258,13 +22294,13 @@ abstract class AppLocalizations {
   /// Imposter guide step: voting.
   ///
   /// In en, this message translates to:
-  /// **'Then everyone votes for who they think the imposter is.'**
+  /// **'Then everyone votes for who they think the imposter is, or skips.'**
   String get howToImposter3;
 
   /// Imposter guide step: last guess and who wins.
   ///
   /// In en, this message translates to:
-  /// **'Caught? The imposter gets one last shot: guess the word to steal the win. Vote out the wrong person, or tie? Imposter wins.'**
+  /// **'Caught? The imposter gets one last shot: guess the word to steal the win. Wrong person, a tie or too many skips? Imposter wins.'**
   String get howToImposter4;
 
   /// Puzzle Race guide step.

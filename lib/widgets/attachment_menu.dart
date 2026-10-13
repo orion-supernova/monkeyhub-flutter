@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/room_posting_policy.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'glass_reveal.dart';
@@ -42,7 +43,47 @@ class AttachmentMenuChoice {
   /// An in-chat game: live, turn by turn in a DM, or solo against the bot.
   /// Text-shaped for the guardian policy, like the three above.
   static const game = AttachmentMenuChoice._('game');
+
+  /// What choosing this row would post, for the room's posting policy. A row
+  /// is offered when the policy takes ANY of these: the camera and a unified
+  /// gallery can each produce a photo or a video, and a room that takes
+  /// photos is a room the camera has something to offer.
+  Set<PostKind> kinds({required bool unifiedGallery}) {
+    if (this == camera) return const {PostKind.image, PostKind.video};
+    if (this == gallery) {
+      return unifiedGallery
+          ? const {PostKind.image, PostKind.video}
+          : const {PostKind.image};
+    }
+    if (this == video || this == videoNote) return const {PostKind.video};
+    if (this == voice) return const {PostKind.voice};
+    if (this == file) return const {PostKind.file};
+    if (this == location) return const {PostKind.location};
+    if (this == poll) return const {PostKind.poll};
+    if (this == checklist) return const {PostKind.checklist};
+    if (this == event) return const {PostKind.event};
+    if (this == game) return const {PostKind.game};
+    // A choice added without a mapping is offered nowhere a policy restricts.
+    return const {};
+  }
 }
+
+/// Whether a room with [posting] has anything for the attachment menu to
+/// offer. False is the host's cue to hide the "+" rather than open an empty
+/// sheet.
+bool attachmentMenuHasRows(RoomPostingPolicy posting) =>
+    posting.kinds == null ||
+    posting.allowsAny(const {
+      PostKind.image,
+      PostKind.video,
+      PostKind.voice,
+      PostKind.file,
+      PostKind.location,
+      PostKind.poll,
+      PostKind.checklist,
+      PostKind.event,
+      PostKind.game,
+    });
 
 /// [allowMedia] and [allowLocation] are the guardian policy, mirrored from
 /// `FamilyService`. Two flags rather than one because the two backend switches
@@ -54,6 +95,10 @@ class AttachmentMenuChoice {
 /// server refuses the send regardless, so a visible-but-dead tile would be a
 /// tap whose only possible outcome is a refusal, and children are the one
 /// audience for whom that reads as the app being broken.
+///
+/// [posting] is the room's posting policy (`RoomCapabilities.posting`), and
+/// removes rows the same way the guardian flags do: a room that takes no
+/// games offers no game row. The server refuses the send regardless.
 ///
 /// [anchor] is the "+" button's rect in global coordinates. The menu is a
 /// glass panel that grows out of the button and over the composer, the iOS 26
@@ -70,6 +115,7 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(
   bool allowLocation = true,
   bool allowGames = true,
   bool unifiedGallery = false,
+  RoomPostingPolicy posting = RoomPostingPolicy.open,
 }) {
   final calm = MotionScope.of(context).calm;
   // The root navigator: [anchor] is in window coordinates, and on a desktop
@@ -83,6 +129,7 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(
       allowLocation: allowLocation,
       allowGames: allowGames,
       unifiedGallery: unifiedGallery,
+      posting: posting,
     ),
   ));
 }
@@ -293,6 +340,7 @@ class _AttachmentSheet extends StatelessWidget {
     required this.allowLocation,
     this.allowGames = true,
     this.unifiedGallery = false,
+    this.posting = RoomPostingPolicy.open,
   });
 
   final bool allowMedia;
@@ -306,6 +354,9 @@ class _AttachmentSheet extends StatelessWidget {
   /// pickers are one kind each, so Photo and Video stay two rows.
   final bool unifiedGallery;
 
+  /// The room's posting policy. See [showAttachmentMenu].
+  final RoomPostingPolicy posting;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -313,7 +364,7 @@ class _AttachmentSheet extends StatelessWidget {
     // coloured disc and a name, rising in one after another. Camera leads —
     // the thing people reach for most — then the rest of the media, then the
     // things that are not media at all.
-    final rows = <(AttachmentMenuChoice, IconData, String, TileTone)>[
+    final offered = <(AttachmentMenuChoice, IconData, String, TileTone)>[
       if (allowMedia) ...[
         (
           AttachmentMenuChoice.camera,
@@ -401,6 +452,15 @@ class _AttachmentSheet extends StatelessWidget {
           l10n.chatGameMenuItem,
           TileTone.indigo,
         ),
+    ];
+    // The room's posting policy, applied once over the finished list rather
+    // than as one more `if` per row: a row added later is filtered by the same
+    // mapping ([AttachmentMenuChoice.kinds]) without anyone remembering to.
+    final rows = [
+      for (final row in offered)
+        if (posting.kinds == null ||
+            posting.allowsAny(row.$1.kinds(unifiedGallery: unifiedGallery)))
+          row,
     ];
     // The glass is the reveal's (see [_AttachMenuReveal]): its corner moves.
     return SingleChildScrollView(

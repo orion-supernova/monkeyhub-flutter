@@ -81,6 +81,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
       steps: [
         s(l10n.howToNonogram1, const NonogramClueDemo()),
         s(l10n.howToNonogram2, const NonogramGapDemo()),
+        s(l10n.howToNonogramOrder, const NonogramOrderDemo()),
         s(l10n.howToNonogram3, const NonogramControlsDemo()),
         s(l10n.howToNonogram4, const NonogramPictureDemo()),
       ],
@@ -103,6 +104,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
       steps: [
         s(l10n.howToStars1, const StarsRulesDemo()),
         s(l10n.howToStars2, const StarsTouchDemo()),
+        s(l10n.howToStarsControls, const StarsControlsDemo()),
         s(l10n.howToStars3, const StarsTipDemo(), tip: true),
       ],
     ),

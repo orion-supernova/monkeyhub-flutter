@@ -34,34 +34,61 @@ class MatchesStore extends ChangeNotifier {
   MatchesApi get api => _api ??= MatchesApi(ConvexBackend.instance);
   set api(MatchesApi value) => _api = value;
 
-  /// Every game this store has heard of, by its card's message id.
-  final Map<String, ChatMatch> _byMessage = {};
+  /// Every game this store has heard of, by its id. A game with a card (a
+  /// live game, or an async one from an older build) is also findable by
+  /// the card's message id through [_idByCard]; a turn by turn game started
+  /// with its first move has no card at all, and is reached by its id alone
+  /// (the room's banner, its move bubbles).
+  final Map<String, ChatMatch> _byId = {};
+  final Map<String, String> _idByCard = {};
   final Map<String, void Function()> _roomSubs = {};
   final Map<String, int> _roomRefs = {};
+
+  /// Card message ids [ensureFor] has asked about.
   final Set<String> _hydrating = {};
+
+  /// When [note] folded a game in, by its id: a room delivery read before
+  /// that game existed must not evict it. See [_merge].
+  final Map<String, DateTime> _notedAt = {};
+  static const _noteGrace = Duration(seconds: 15);
   void Function()? _turnsSub;
   String? _turnsUser;
   Set<String> _myTurnRooms = const {};
 
-  ChatMatch? forMessage(String messageId) => _byMessage[messageId];
-
-  /// The game [matchId] names, if this store has heard of it. A linear scan
-  /// of a map that holds a few dozen games at most; a move bubble asks once
-  /// per build, and a second index would be one more thing to keep in step.
-  ChatMatch? forMatch(String matchId) {
-    for (final m in _byMessage.values) {
-      if (m.id == matchId) return m;
-    }
-    return null;
+  /// The game behind the card [messageId], if this store has heard of it.
+  ChatMatch? forMessage(String messageId) {
+    final id = _idByCard[messageId];
+    return id == null ? null : _byId[id];
   }
 
+  /// The game [matchId] names, if this store has heard of it.
+  ChatMatch? forMatch(String matchId) => _byId[matchId];
+
   /// The room's games still being played or waiting to be, newest first.
+  /// Card or no card: the banner shows every one.
   List<ChatMatch> openIn(String roomId) {
     final out = [
-      for (final m in _byMessage.values)
+      for (final m in _byId.values)
         if (m.roomId == roomId && m.status.isOpen) m,
     ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return out;
+  }
+
+  void _put(ChatMatch m) {
+    _byId[m.id] = m;
+    if (m.messageId.isNotEmpty) _idByCard[m.messageId] = m.id;
+  }
+
+  /// Removes [matchId] and everything keyed to it. True when it was held.
+  bool _drop(String matchId) {
+    final m = _byId.remove(matchId);
+    _notedAt.remove(matchId);
+    if (m == null) return false;
+    if (m.messageId.isNotEmpty) {
+      _idByCard.remove(m.messageId);
+      _hydrating.remove(m.messageId);
+    }
+    return true;
   }
 
   /// Rooms where an async game is waiting on the viewer.
@@ -97,18 +124,44 @@ class MatchesStore extends ChangeNotifier {
     _roomSubs.remove(roomId)?.call();
   }
 
+  /// Folds one delivery of the room's list in.
+  ///
+  /// The list is the source of truth for the room's OPEN games: it carries
+  /// every one of them, card or not, so an open game this store holds for
+  /// [roomId] that is missing from it no longer exists (its card was deleted
+  /// or expired, which erases the game, or its room was wiped) and is
+  /// evicted. Without that the banner kept counting a game whose screen then
+  /// said it was gone. Finished games are left alone: the list carries only
+  /// the newest of those, and an older one was hydrated for its card by
+  /// [ensureFor].
+  ///
+  /// An evicted game's card is forgotten by [ensureFor] too, so a card still
+  /// on screen (a game that finished outside the list's window) re-hydrates.
   void _merge(String roomId, List<ChatMatch> rows) {
     var changed = false;
+    final present = {for (final m in rows) m.id};
+    final now = DateTime.now();
+    final gone = [
+      for (final m in _byId.values)
+        if (m.roomId == roomId &&
+            m.status.isOpen &&
+            !present.contains(m.id) &&
+            !(_notedAt[m.id] != null &&
+                now.difference(_notedAt[m.id]!) < _noteGrace))
+          m.id,
+    ];
+    for (final id in gone) {
+      changed = _drop(id) || changed;
+    }
     for (final m in rows) {
-      if (m.messageId.isEmpty) continue;
-      final before = _byMessage[m.messageId];
+      final before = _byId[m.id];
       if (before == null ||
           before.seq != m.seq ||
           before.status != m.status ||
           !_sameSeats(before, m) ||
           before.watching != m.watching ||
           before.seatRequest?.userId != m.seatRequest?.userId) {
-        _byMessage[m.messageId] = m;
+        _put(m);
         changed = true;
       }
     }
@@ -130,13 +183,13 @@ class MatchesStore extends ChangeNotifier {
     return true;
   }
 
-  /// Hydrates the games behind [messageIds] that the room's window does not
-  /// carry — cards scrolled back to. One-shot, and each id at most once per
-  /// session unless it comes back missing.
+  /// Hydrates the games behind the cards [messageIds] that the room's window
+  /// does not carry — cards scrolled back to. One-shot, and each id at most
+  /// once per session unless it comes back missing.
   Future<void> ensureFor(String userId, Iterable<String> messageIds) async {
     final want = [
       for (final id in messageIds)
-        if (!_byMessage.containsKey(id) && _hydrating.add(id)) id,
+        if (!_idByCard.containsKey(id) && _hydrating.add(id)) id,
     ];
     if (want.isEmpty) return;
     try {
@@ -146,7 +199,7 @@ class MatchesStore extends ChangeNotifier {
           want.sublist(i, (i + 100).clamp(0, want.length)),
         );
         for (final m in rows) {
-          _byMessage[m.messageId] = m;
+          _put(m);
         }
       }
       notifyListeners();
@@ -156,11 +209,18 @@ class MatchesStore extends ChangeNotifier {
   }
 
   /// Folds in a game the viewer just created or acted on, ahead of the
-  /// subscription's echo, so the card shows its body the moment it lands.
+  /// subscription's echo, so its card or banner entry shows at once.
   void note(ChatMatch m) {
-    if (m.messageId.isEmpty) return;
-    _byMessage[m.messageId] = m;
+    if (m.id.isEmpty) return;
+    _put(m);
+    _notedAt[m.id] = DateTime.now();
     notifyListeners();
+  }
+
+  /// Drops [matchId]: its screen found the server row gone (or the viewer no
+  /// longer in its room), so no banner or card should keep offering it.
+  void forget(String matchId) {
+    if (_drop(matchId)) notifyListeners();
   }
 
   Future<void> attach(String userId) async {
@@ -193,7 +253,9 @@ class MatchesStore extends ChangeNotifier {
     }
     _roomSubs.clear();
     _roomRefs.clear();
-    _byMessage.clear();
+    _byId.clear();
+    _idByCard.clear();
+    _notedAt.clear();
     _hydrating.clear();
     _myTurnRooms = const {};
   }
@@ -217,7 +279,14 @@ enum MoveRejection {
   badGuess,
 
   /// Puzzle Race: the board sent as finished is not solved.
-  notSolved;
+  notSolved,
+
+  /// A turn by turn game's first move, refused because the DM already has
+  /// as many of those going as it may (`TOO_MANY_GAMES`). Nothing was made.
+  tooManyGames,
+
+  /// A first move refused because the room's messages self-destruct.
+  ephemeral;
 
   static MoveRejection fromCode(String code) => switch (code) {
     'STALE' => MoveRejection.stale,
@@ -227,12 +296,60 @@ enum MoveRejection {
     'BAD_CLUE' => MoveRejection.badClue,
     'BAD_GUESS' => MoveRejection.badGuess,
     'NOT_SOLVED' => MoveRejection.notSolved,
+    'TOO_MANY_GAMES' => MoveRejection.tooManyGames,
+    'EPHEMERAL_ROOM' => MoveRejection.ephemeral,
     _ => MoveRejection.network,
   };
 }
 
+/// A turn by turn game that does not exist yet: the opening board, drawn on
+/// this phone, with the creator to move. Nothing reaches the server until
+/// the first move is sent, which creates the game, plays the move and posts
+/// its bubble in one go (`matches:startTurns`). Backing out sends nothing.
+///
+/// [seats] is creator first: seat 0 opens in every turn game. [rematchOf] is
+/// the finished game this one plays again.
+class TurnDraft {
+  const TurnDraft({
+    required this.roomId,
+    required this.game,
+    required this.seats,
+    this.rematchOf,
+  });
+
+  final String roomId;
+  final String game;
+  final List<MatchSeat> seats;
+  final String? rematchOf;
+
+  /// The game as the screen draws it before it exists: active, seq 0, seat 0
+  /// to move, no id and no card.
+  ChatMatch toMatch() => ChatMatch(
+    id: '',
+    roomId: roomId,
+    messageId: '',
+    game: game,
+    mode: MatchMode.async,
+    status: MatchStatus.active,
+    seats: seats,
+    state: turnGameFor(game)?.initialEncoded(seats.length),
+    seq: 0,
+    turnSeat: 0,
+    createdBy: seats.isEmpty ? '' : seats.first.userId,
+    createdAt: DateTime.now(),
+  );
+}
+
 /// One game's screen: its live row, the move in flight, and the heartbeat
 /// that tells the server this player is at the board.
+///
+/// ## A game not started yet ([MatchController.draft])
+///
+/// A turn by turn game opens as a [TurnDraft]: the opening board is local,
+/// a move is staged on it as usual, and [sendStaged] creates the game with
+/// that move (`MatchesApi.startTurns`). From then on [matchId] is the new
+/// game's and the controller watches it like any other. Until then there is
+/// no subscription, no heartbeat, and nothing to resign.
 ///
 /// ## Moves
 ///
@@ -272,13 +389,28 @@ enum MoveRejection {
 /// which resumes it.
 class MatchController extends ChangeNotifier with WidgetsBindingObserver {
   MatchController({
-    required this.matchId,
+    required String matchId,
     required this.userId,
     ChatMatch? initial,
-  }) : _match = initial;
+  }) : _matchId = matchId,
+       _match = initial;
 
-  final String matchId;
+  /// A game that does not exist until its first move is sent.
+  MatchController.draft({required TurnDraft draft, required this.userId})
+    : _matchId = '',
+      _draft = draft,
+      _match = draft.toMatch();
+
+  /// The game's id. Empty while [isDraft]; the created game's once the first
+  /// move lands.
+  String get matchId => _matchId;
+  String _matchId;
   final String userId;
+
+  TurnDraft? _draft;
+
+  /// Not created yet: the board is local and Send makes the game.
+  bool get isDraft => _draft != null;
 
   static const beatEvery = Duration(seconds: 10);
 
@@ -377,7 +509,54 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
       return false;
     }
     _staged = null;
+    final draft = _draft;
+    if (draft != null) return _startWith(draft, st.move, st.state);
     return play(st.move);
+  }
+
+  /// Creates the drafted game with its first [move] ([next] is the board it
+  /// makes), then watches it. The optimistic board stays up meanwhile, the
+  /// same way [play]'s does; a refusal snaps back to the opening board and
+  /// reports why. Retried on a lost reply with the same id, which the server
+  /// answers with the game the first send made.
+  Future<bool> _startWith(TurnDraft draft, String move, String next) async {
+    if (_pending != null) return false;
+    final clientMoveId = 'mv_${DateTime.now().microsecondsSinceEpoch}_0';
+    _pending = (
+      move: move,
+      expectedSeq: 0,
+      clientMoveId: clientMoveId,
+      state: next,
+    );
+    notifyListeners();
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final res = await _api.startTurns(
+          userId: userId,
+          roomId: draft.roomId,
+          game: draft.game,
+          move: move,
+          clientMoveId: clientMoveId,
+          rematchOf: draft.rematchOf,
+        );
+        _matchId = res.matchId;
+        _draft = null;
+        // The subscription's first delivery (seq 1) clears [_pending].
+        if (!_disposed) unawaited(_watch());
+        return true;
+      } catch (e) {
+        final code = matchErrorCode(e);
+        if (code == 'UNKNOWN' && attempt < 2) {
+          await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
+          if (_disposed) return false;
+          continue;
+        }
+        _pending = null;
+        _reject(MoveRejection.fromCode(code));
+        return false;
+      }
+    }
+    return false;
   }
 
   /// The party action in flight, until the server's row moves past the seq it
@@ -420,12 +599,20 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> start() async {
     WidgetsBinding.instance.addObserver(this);
+    // A draft has nothing on the server to watch until its first move.
+    if (_draft != null) return;
+    await _watch();
+  }
+
+  Future<void> _watch() async {
+    if (_disposed || _sub != null) return;
     try {
       final sub = await _api.watch(userId, matchId, (m) {
         if (_disposed) return;
         if (m == null) {
           _gone = true;
           _stopBeating();
+          MatchesStore.instance.forget(matchId);
           notifyListeners();
           return;
         }
@@ -462,6 +649,8 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
   Future<bool> play(String move) async {
     final m = _match;
     if (m == null || _pending != null || !m.isTurnOf(userId)) return false;
+    // A draft's only move is the staged first one, through [sendStaged].
+    if (_draft != null) return false;
     final game = turnGameFor(m.game);
     final state = m.state;
     if (game == null || state == null) return false;
@@ -501,6 +690,7 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
           continue;
         }
         _pending = null;
+        _forgetIfGone(code);
         _reject(MoveRejection.fromCode(code));
         return false;
       }
@@ -608,11 +798,18 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
           if (_disposed) return null;
           continue;
         }
+        _forgetIfGone(code);
         if (!quiet) _reject(MoveRejection.fromCode(code));
         return null;
       }
     }
     return null;
+  }
+
+  /// A refusal that says the game itself is gone: evict it from the room's
+  /// banner and cards at once rather than wait for the room's next delivery.
+  void _forgetIfGone(String code) {
+    if (code == 'NO_MATCH') MatchesStore.instance.forget(matchId);
   }
 
   void _reject(MoveRejection why) {

@@ -6,7 +6,8 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { sendCore } from "./messages";
+import { paginationOptsValidator } from "convex/server";
+import { removeMessageAndFanout, sendCore } from "./messages";
 import { assertMember, getRoomOrThrow, isGroupRoom } from "./roomAdmin";
 import { rulesFor } from "./turnGames/registry";
 import { partyRulesFor } from "./partyGames/registry";
@@ -16,6 +17,7 @@ import {
   autoplayOut,
   commitParty,
   commitState,
+  eraseMatch,
   finishMatch,
   forfeitSeat,
   isOpen,
@@ -38,6 +40,23 @@ import { matchLine, type MatchCopyKey } from "./matchCopy";
  *    player with a push; they have [ASYNC_EXPIRE_MS] to answer, with a
  *    reminder at [ASYNC_REMIND_MS] and a manual nudge at most every
  *    [NUDGE_EVERY_MS]. At most [MAX_ASYNC_PER_DM] at once per DM.
+ *
+ * ## What anchors a game in its room
+ *
+ * A live game has a CARD (`matches.messageId`, a `game` message): its lobby,
+ * and its anchor. Deleting or expiring the card erases the game
+ * (`matchCore.purgeMatchForMessage`), move bubbles and all.
+ *
+ * An async game started by current clients ([startTurns]) has NO card: it is
+ * born with its first move, and every move is a `gameMove` bubble pointing at
+ * it (`gameMove.matchId`; `matchMoves.messageId` points back). Its anchor is
+ * the room itself: it shows in the room's banner (`listForRoom` returns every
+ * open game, card or not) and in "your move" (`myTurns`). Deleting a move
+ * bubble removes only that bubble; the game plays on. It ends the way any
+ * game ends (a finish, a resignation, a timeout, a seat forfeited by leaving
+ * the room), and is erased with the room (`purgeMatchesForRoom`). Async
+ * games made by older builds through [create] still carry a card and keep
+ * the card's rules.
  *
  * Solo games against a bot never reach this file: the bot runs on the phone,
  * and there is nothing for a server to referee.
@@ -228,7 +247,7 @@ async function pushAbout(
  * message push as well would put two banners on the other phone per move.
  * A send refused by the room's guard (a block since the game began, a child's
  * policy) only loses the bubble: the move has already been played, and the
- * card at the top of the game still shows it.
+ * game's banner and board still show it. [first] is the exception: see below.
  */
 async function postMoveBubble(
   ctx: any,
@@ -238,18 +257,26 @@ async function postMoveBubble(
   move: string,
   seq: number,
   state: string,
+  first?: { clientId: string; senderName?: string },
 ) {
   const title = GAME_TITLES[match.game] ?? match.game;
-  try {
-    return await sendCore(ctx, {
+  const send = () =>
+    sendCore(ctx, {
       roomId: match.roomId,
       userId,
       content: `${title} · move ${seq}`,
       type: "gameMove",
-      senderName: match.seats[seat]?.name || undefined,
+      senderName: first?.senderName || match.seats[seat]?.name || undefined,
       gameMove: { matchId: match._id, game: match.game, seq, seat, move, state },
+      clientId: first?.clientId,
       quiet: true,
     });
+  // The opening move of a card-less game ([startTurns]) is the game's ONLY
+  // way into the transcript and the room's guard: refused, it takes the
+  // whole game with it (the throw rolls the transaction back).
+  if (first) return await send();
+  try {
+    return await send();
   } catch {
     // See the doc: the move stands without its bubble.
     return null;
@@ -293,8 +320,25 @@ function view(match: any) {
 }
 
 /**
+ * The room-wide caps on a new game: one live game per room, and at most
+ * [MAX_ASYNC_PER_DM] async ones. Read and enforced in the creating
+ * transaction, so two concurrent creates cannot both squeeze under it.
+ */
+async function assertRoomAtTable(ctx: any, roomId: any, mode: string) {
+  const open = await openMatches(ctx, roomId);
+  if (mode === "live") {
+    if (open.some((m) => m.mode === "live")) throw new Error("ALREADY_LIVE");
+  } else {
+    const active = open.filter((m) => m.mode === "async").length;
+    if (active >= MAX_ASYNC_PER_DM) throw new Error("TOO_MANY_GAMES");
+  }
+}
+
+/**
  * Starts a game in [room] with [seats] already chosen. Shared by [create] and
  * [rematch], so a rematch can never dodge an invariant a first game obeys.
+ * Turn by turn games from current clients start through [startTurns]
+ * instead; this path still posts a card for an async game, for older builds.
  */
 async function startMatch(
   ctx: any,
@@ -316,14 +360,13 @@ async function startMatch(
   if (!rules) throw new Error("UNKNOWN_GAME");
   const party = partyRulesFor(game) !== null;
   if (party && mode !== "live") throw new Error("LIVE_ONLY");
+  // A Chamber of Secrets room (`messageLifetime`) deletes the card on a timer,
+  // and the game goes with its card: a game there would vanish mid-play,
+  // seconds in. Refused outright rather than played on a card-less row. The
+  // client hides the entry in such a room, so this is a stale screen.
+  if (room.messageLifetime) throw new Error("EPHEMERAL_ROOM");
 
-  const open = await openMatches(ctx, room._id);
-  if (mode === "live") {
-    if (open.some((m) => m.mode === "live")) throw new Error("ALREADY_LIVE");
-  } else {
-    const active = open.filter((m) => m.mode === "async").length;
-    if (active >= MAX_ASYNC_PER_DM) throw new Error("TOO_MANY_GAMES");
-  }
+  await assertRoomAtTable(ctx, room._id, mode);
   if (mode === "async" && seats.length !== rules.minSeats) {
     throw new Error("BAD_SEATS");
   }
@@ -480,6 +523,9 @@ export const create = mutation({
  * Plays again with the same people. Live: a fresh lobby with everyone still
  * in the room already seated (nobody ready). Async: the seats swap, so the
  * player who went second goes first.
+ *
+ * Async here is for older builds only: current clients rematch a turn by turn
+ * game through [startTurns] (`rematchOf`), with no card.
  */
 export const rematch = mutation({
   args: {
@@ -515,6 +561,157 @@ export const rematch = mutation({
       options: old.options,
     });
     return { matchId: match._id, messageId: match.messageId };
+  },
+});
+
+/**
+ * Starts a turn by turn (async) DM game WITH its first move, in one
+ * transaction: the game row, the move, and that move's bubble in the chat.
+ * There is no card. The room's active-games banner is the game's place in
+ * the room, and the move bubbles are its transcript, from the first move on.
+ *
+ * The creator always moves first: they are seat 0, and every turn game's
+ * opening position has seat 0 to move. So the client draws the opening board
+ * locally, the creator stages a move, and only Send reaches the server. A
+ * creator who backs out before sending has created nothing, and no game can
+ * sit open with nothing played.
+ *
+ * Refused as a whole, writing nothing, when anything is wrong: an unknown or
+ * party game (`UNKNOWN_GAME`, `LIVE_ONLY`), not a DM (`ASYNC_DM_ONLY`), a
+ * room whose messages self-destruct (`EPHEMERAL_ROOM`), the DM already at
+ * [MAX_ASYNC_PER_DM] (`TOO_MANY_GAMES`), an illegal opening move (`ILLEGAL`),
+ * or the bubble refused by the room's send guard (a block, a child's policy).
+ *
+ * [rematchOf] plays a finished game again with the same two people. Whoever
+ * asks moves first, the same rule as a new game: a rematch that began on the
+ * other player's move would be a game with nothing in it yet, waiting.
+ *
+ * Idempotent on [clientMoveId], which is also the bubble's `clientId`: a
+ * resend after a lost reply finds that bubble and answers with its game.
+ */
+export const startTurns = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    game: v.string(),
+    move: v.string(),
+    clientMoveId: v.string(),
+    senderName: v.optional(v.string()),
+    rematchOf: v.optional(v.id("matches")),
+  },
+  returns: v.object({
+    matchId: v.id("matches"),
+    messageId: v.id("messages"),
+    seq: v.number(),
+    replay: v.boolean(),
+  }),
+  handler: async (
+    ctx,
+    { roomId, userId, game, move, clientMoveId, senderName, rematchOf },
+  ) => {
+    if (move.length === 0 || move.length > MAX_MOVE_LEN) {
+      throw new Error("BAD_ARGS");
+    }
+    const id = cleanId(clientMoveId)!;
+    const room = await getRoomOrThrow(ctx, roomId);
+    await assertMember(ctx, roomId, userId);
+
+    const sent = await ctx.db
+      .query("messages")
+      .withIndex("by_room_user_client", (q: any) =>
+        q.eq("roomId", roomId).eq("userId", userId).eq("clientId", id),
+      )
+      .first();
+    if (sent) {
+      const matchId = sent.gameMove?.matchId;
+      if (sent.type !== "gameMove" || !matchId) throw new Error("BAD_ARGS");
+      const match = await ctx.db.get(matchId);
+      return {
+        matchId,
+        messageId: sent._id,
+        seq: match?.seq ?? sent.gameMove!.seq,
+        replay: true,
+      };
+    }
+
+    if (partyRulesFor(game)) throw new Error("LIVE_ONLY");
+    const rules = rulesFor(game);
+    if (!rules) throw new Error("UNKNOWN_GAME");
+    if (room.name.startsWith("dm:self:")) throw new Error("NO_OPPONENT");
+    // See `startMatch`: nothing that outlives its messages starts here.
+    if (room.messageLifetime) throw new Error("EPHEMERAL_ROOM");
+    const partner = await dmPartner(ctx, room, userId);
+    if (!partner) throw new Error("ASYNC_DM_ONLY");
+    if (rematchOf !== undefined) {
+      const old = await loadMatch(ctx, rematchOf);
+      if (old.roomId !== roomId || old.game !== game || old.mode !== "async") {
+        throw new Error("BAD_ARGS");
+      }
+      if (isOpen(old.status)) throw new Error("NOT_FINISHED");
+      if (seatOf(old, userId) < 0) throw new Error("NOT_SEATED");
+    }
+    await assertRoomAtTable(ctx, roomId, "async");
+
+    const seats = [
+      { userId, name: nameOf(await ctx.db.get(userId)) },
+      { userId: partner, name: nameOf(await ctx.db.get(partner)) },
+    ];
+    const opening = rules.initial(seats.length);
+    if (rules.toMove(opening) !== 0) throw new Error("UNKNOWN_GAME");
+    let next;
+    try {
+      next = rules.apply(opening, move);
+    } catch {
+      throw new Error("ILLEGAL");
+    }
+
+    const now = Date.now();
+    const matchId = await ctx.db.insert("matches", {
+      roomId,
+      game,
+      mode: "async",
+      status: "active",
+      seats,
+      state: rules.encode(opening),
+      seq: 0,
+      turnSeat: 0,
+      turnUserId: userId,
+      createdBy: userId,
+      createdAt: now,
+      startedAt: now,
+      lastMoveAt: now,
+    });
+    const moveRow = await ctx.db.insert("matchMoves", {
+      matchId,
+      seq: 0,
+      seat: 0,
+      userId,
+      move,
+      clientMoveId: id,
+      at: now,
+    });
+    let after = await commitState(
+      ctx,
+      await ctx.db.get(matchId),
+      rules,
+      next,
+      1,
+      { lastMove: move },
+    );
+    after = await autoplayOut(ctx, after);
+    const messageId = await postMoveBubble(
+      ctx, after, 0, userId, move, 1, rules.encode(next),
+      { clientId: id, senderName },
+    );
+    await ctx.db.patch(moveRow, { messageId });
+
+    if (after.status === "finished") {
+      await announceEnd(ctx, after, userId);
+    } else {
+      await armAsyncTurn(ctx, matchId, after.seq);
+      await pushAbout(ctx, matchId, after.turnUserId, userId, "started");
+    }
+    return { matchId, messageId, seq: after.seq, replay: false };
   },
 });
 
@@ -1603,5 +1800,77 @@ export const forMessages = query({
       if (allowed.get(key)) out.push(view(match));
     }
     return out;
+  },
+});
+
+// ── One-off repair ──────────────────────────────────────────────────────────
+
+/**
+ * TEMPORARY. Erases every game whose card no longer exists (or whose room is
+ * gone), with its hidden state, moves, heartbeats and any move bubbles still
+ * in the transcript; and every child row whose game is gone. Rows like these
+ * were left by account deletion before it went through
+ * `messages.removeMessageAndFanout`.
+ *
+ * Paged, one table per run: call with `table` and `paginationOpts:
+ * { numItems: 200, cursor: null }`, then again with the returned
+ * `continueCursor` until `isDone`. Order: "matches" first, then
+ * "matchMoves", "matchPresence", "matchHidden". `dryRun: true` only counts.
+ * Deploy, run, delete, redeploy.
+ */
+export const _purgeOrphanMatches = internalMutation({
+  args: {
+    table: v.union(
+      v.literal("matches"),
+      v.literal("matchMoves"),
+      v.literal("matchPresence"),
+      v.literal("matchHidden"),
+    ),
+    paginationOpts: paginationOptsValidator,
+    dryRun: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    scanned: v.number(),
+    removed: v.number(),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  }),
+  handler: async (ctx, { table, paginationOpts, dryRun }) => {
+    const numItems = Math.max(1, Math.min(paginationOpts.numItems, 500));
+    const page = await ctx.db
+      .query(table)
+      .paginate({ ...paginationOpts, numItems });
+    let removed = 0;
+    for (const row of page.page as any[]) {
+      if (table === "matches") {
+        // A game that never had a card (a turn by turn game started by
+        // [startTurns]) is not an orphan: its anchor is its room. Only a
+        // card that existed and is gone, or a room that is gone, is.
+        const card = row.messageId ? await ctx.db.get(row.messageId) : null;
+        const room = await ctx.db.get(row.roomId);
+        if (room && (!row.messageId || card)) continue;
+        removed++;
+        if (dryRun) continue;
+        for (const m of await ctx.db
+          .query("matchMoves")
+          .withIndex("by_match_seq", (q) => q.eq("matchId", row._id))
+          .collect()) {
+          if (!m.messageId) continue;
+          const bubble = await ctx.db.get(m.messageId);
+          if (bubble) await removeMessageAndFanout(ctx, bubble, m.messageId);
+        }
+        await eraseMatch(ctx, row._id);
+      } else {
+        if (await ctx.db.get(row.matchId)) continue;
+        removed++;
+        if (!dryRun) await ctx.db.delete(row._id);
+      }
+    }
+    return {
+      scanned: page.page.length,
+      removed,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
   },
 });

@@ -200,6 +200,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'Meddelanden i det här rummet är flyktiga. De tas automatiskt bort enligt rummets säkerhetsinställningar.';
 
   @override
+  String get roomReadOnlyFooter =>
+      'Det här rummet är skrivskyddat. Bara MonkeyHub postar här.';
+
+  @override
   String get roomScreenAutoDeleteTitle => 'Auto-radering';
 
   @override
@@ -5664,7 +5668,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get gameQueensRule =>
-      'En krona per rad, kolumn och färg. Aldrig intill varandra';
+      'En krona per rad, kolumn och färg, aldrig intill varandra';
 
   @override
   String get gameTangoName => 'Tango';
@@ -5682,7 +5686,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameSudokuName => 'Minisudoku';
 
   @override
-  String get gameSudokuRule => '1 till 6 en gång per rad, kolumn och ruta';
+  String get gameSudokuRule => '1 till 6 en gång per rad, kolumn och låda';
 
   @override
   String get gameCodeName => 'Koden';
@@ -12049,7 +12053,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get chatGameDescConnectFour => 'Släpp brickor. Fyra i rad vinner.';
 
   @override
-  String get chatGameDescCheckers => 'Hoppa för att ta. Ta alla pjäser.';
+  String get chatGameDescCheckers => 'Hoppa för att ta. Ta alla brickor.';
 
   @override
   String get chatGameDescReversi =>
@@ -12321,6 +12325,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'Ni har redan 3 turspel igång här. Avsluta ett först.';
 
   @override
+  String get chatGameErrEphemeral =>
+      'Det går inte att spela i en chatt där meddelanden försvinner.';
+
+  @override
   String get chatGameErrGeneric => 'Något gick fel. Försök igen.';
 
   @override
@@ -12544,6 +12552,11 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max spelare';
+  }
+
+  @override
+  String chatGameNeedsPeople(int count) {
+    return 'Kräver minst $count personer';
   }
 
   @override
@@ -12979,7 +12992,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'Bara du och $bot. Inget postas, ingen tittar.';
+    return 'Bara du och $bot. Lär dig dragen och slå sedan dina vänner.';
   }
 
   @override
@@ -13001,6 +13014,10 @@ class AppLocalizationsSv extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'Bara för skojs skull. De här spelen räknas inte till dina sviter eller rekord.';
 
   @override
   String get chatGameMvYouPlayed => 'Du spelade';
@@ -13086,7 +13103,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToQueens4 =>
-      'Sätt ut en krona och kryssa alla rutor den stänger. Då lossnar det snabbt.';
+      'Med Autokryss på får varje ruta som en krona utesluter ett × åt dig. Se sen vad som är kvar.';
 
   @override
   String get howToTango1 =>
@@ -13097,7 +13114,8 @@ class AppLocalizationsSv extends AppLocalizations {
       'Varje rad och kolumn är hälften solar, hälften månar.';
 
   @override
-  String get howToTango3 => 'Aldrig 3 likadana i rad. 2 går bra.';
+  String get howToTango3 =>
+      'Aldrig 3 likadana i rad, varken vågrätt eller lodrätt. 2 går bra.';
 
   @override
   String get howToTango4 => '= betyder samma. × betyder olika.';
@@ -13120,7 +13138,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToSudoku3 =>
-      'Samma siffra två gånger i en rad? Den lyser rött.';
+      'Samma siffra två gånger i en rad, kolumn eller låda? Den lyser rött.';
 
   @override
   String get howToSudoku4 =>
@@ -13136,7 +13154,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToFutoshiki1 =>
-      'Varje rad och kolumn har varje siffra exakt en gång.';
+      'Fyll varje ruta med 1 till 5. Varje rad och kolumn har varje siffra exakt en gång.';
 
   @override
   String get howToFutoshiki2 => 'Tecknets spets pekar på den mindre siffran.';
@@ -13146,11 +13164,15 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToNonogram1 =>
-      'Siffrorna säger hur många rutor i rad du ska fylla. 5 betyder 5 i rad.';
+      'Varje siffra är en följd fyllda rutor utan mellanrum. 5 betyder 5 rutor efter varandra.';
 
   @override
   String get howToNonogram2 =>
-      '1 1 betyder två lösa rutor, med minst ett mellanrum.';
+      '1 1 betyder två ensamma rutor med minst en tom ruta emellan. Mellanrummet får gärna vara större.';
+
+  @override
+  String get howToNonogramOrder =>
+      'Ordningen spelar roll: rader läses från vänster till höger, kolumner uppifrån och ned. 1 3 är alltså först 1, sedan 3.';
 
   @override
   String get howToNonogram3 =>
@@ -13162,7 +13184,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToMines1 =>
-      'Tryck på en ruta för att öppna den. Tomma ytor öppnar sig själva.';
+      'Öppna alla rutor som inte är minor. Tomma ytor öppnar sig själva.';
 
   @override
   String get howToMines2 =>
@@ -13184,19 +13206,23 @@ class AppLocalizationsSv extends AppLocalizations {
   String get howToStars2 => 'Stjärnor får inte nudda varandra. Inte ens snett.';
 
   @override
+  String get howToStarsControls =>
+      'Tryck en gång för prick, två för stjärna, en gång till för att rensa.';
+
+  @override
   String get howToStars3 =>
-      'Pricka rutorna runt varje stjärna. När en rad har sina 2 är resten tomt.';
+      'Med Autoprick på prickar en stjärna rutorna runt sig. När en rad har sina 2 prickas resten också.';
 
   @override
   String get howToCode1 =>
-      'Det finns en hemlig kod med 4 olika symboler. Knäck den.';
+      'Det finns en hemlig kod med 4 olika symboler, ingen upprepas. Knäck den.';
 
   @override
   String get howToCode2 => 'Grön: rätt symbol, rätt plats.';
 
   @override
   String get howToCode3 =>
-      'Gul: finns i koden, fast på en annan plats. Grå: finns inte alls.';
+      'Gul: finns i koden, fast på en annan plats. Grå: finns inte i koden.';
 
   @override
   String get howToCode4 =>
@@ -13232,15 +13258,15 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToCheckers4 =>
-      'Nå andra sidan så blir brickan en dam. Damer kan gå bakåt också.';
+      'Nå andra sidan så blir brickan en dam. Damer kan gå bakåt också, men fortfarande bara ett steg i taget.';
 
   @override
   String get howToCheckersWin =>
-      'Ta alla deras brickor, eller lämna dem utan drag, så vinner du.';
+      'Ta alla deras brickor, eller lämna dem utan drag, så vinner du. 40 drag var utan att något tas och utan att en vanlig bricka flyttas blir oavgjort.';
 
   @override
   String get howToReversi1 =>
-      'Lägg en bricka så att en rad av deras hamnar instängd mellan två av dina.';
+      'Lägg en bricka så att en rad av deras hamnar instängd mellan två av dina. Varje drag måste stänga in minst en.';
 
   @override
   String get howToReversi2 =>
@@ -13248,20 +13274,20 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToReversi3 =>
-      'Inget drag att göra? Då hoppas din tur över. När ingen kan dra vinner den med flest brickor.';
+      'Inget drag att göra? Då står du över. När ingen kan dra vinner den med flest brickor.';
 
   @override
   String get howToDots1 => 'Turas om att dra ett streck mellan två prickar.';
 
   @override
-  String get howToDots2 => 'Stäng en ruta så är den din. Och du kör igen!';
+  String get howToDots2 => 'Stäng en låda så är den din. Och du kör igen!';
 
   @override
   String get howToDots3 =>
-      'Akta dig för en rutas tredje sida. Då ger du bort den till nästa spelare.';
+      'Akta dig för en lådas tredje sida. Då ger du bort den till nästa spelare.';
 
   @override
-  String get howToDotsWin => 'Flest rutor när sista strecket är draget vinner.';
+  String get howToDotsWin => 'Flest lådor när sista strecket är draget vinner.';
 
   @override
   String get howToChess1 =>
@@ -13277,7 +13303,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToChess4 =>
-      'Schack betyder att kungen är hotad och du måste rädda den. Ingen väg ut? Schackmatt, slut.';
+      'Schack betyder att kungen är hotad och du måste rädda den. Ingen väg ut? Schackmatt, slut. Inget drag kvar men ingen schack? Då blir det oavgjort.';
 
   @override
   String get howToLiars1 =>
@@ -13285,7 +13311,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToLiars2 =>
-      'På din tur bjuder du på hur många av en sida som finns på hela bordet, allas tärningar räknas. Typ ”fyra treor”.';
+      'På din tur bjuder du på att det finns minst så många av en sida på hela bordet, allas tärningar räknas. Typ ”fyra treor”.';
 
   @override
   String get howToLiars3 =>
@@ -13301,7 +13327,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToLiars6 =>
-      'Stämde budet? Då förlorar den som ropade en tärning. Var budet för högt? Då förlorar den som bjöd.';
+      'Minst så många? Då förlorar den som ropade en tärning. Färre? Då förlorar den som bjöd.';
 
   @override
   String get howToLiars7 =>
@@ -13324,11 +13350,12 @@ class AppLocalizationsSv extends AppLocalizations {
       'Röstläge: säg din ledtråd högt i samtalet och tryck sen på Klar.';
 
   @override
-  String get howToImposter3 => 'Sen röstar alla på den de tror är bedragaren.';
+  String get howToImposter3 =>
+      'Sen röstar alla på den de tror är bedragaren, eller avstår.';
 
   @override
   String get howToImposter4 =>
-      'Avslöjad? Bedragaren får en sista chans: gissa ordet och sno vinsten. Röstar ni ut fel person eller blir det lika? Bedragaren vinner.';
+      'Avslöjad? Bedragaren får en sista chans: gissa ordet och sno vinsten. Röstar ni ut fel person, blir det lika eller avstår för många? Bedragaren vinner.';
 
   @override
   String get howToRace1 =>

@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../calls/widgets/call_chrome.dart';
 import '../data/matches_store.dart';
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../models/chat_match.dart';
@@ -12,84 +12,168 @@ import '../theme/theme_scope.dart';
 import '../turn_games/board/turn_board.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/liquid_glass.dart';
 import '../widgets/sheet_kit.dart';
+import '../widgets/strip_pill.dart';
 import 'match_copy.dart';
 
-/// Height the banner takes when shown, for chrome that reserves its space
-/// (the floating header style). Padding plus the shared banner's one row.
-const kGamesBannerHeight = 64.0;
+/// Height the strip takes when shown, for chrome that reserves its space
+/// (the floating header style): the 44pt strip, plus the gap that keeps it
+/// from touching the strip below.
+const kGamesBannerHeight = kGamesStripHeight + kGamesStripGap;
+
+/// The strip itself: the height the pinned message and the suggestions strip
+/// already use, so the three stack as one family under the header.
+const kGamesStripHeight = 44.0;
+const kGamesStripGap = 6.0;
+const _kThumb = 26.0;
 
 /// The room's open games, under the header: one line, zero height when there
 /// are none.
 ///
-/// Built on the shared [CallStatusBanner], neutral like the "call in progress"
-/// banner for a call you are not in — the room is not asking anything of you
-/// unless it is your move, and then the action says so. One game is opened
-/// straight from here; several open a sheet listing them.
+/// Drawn as the pinned message's sibling, not as a call banner: a game is part
+/// of the conversation the way a pin is, and in the floating style a solid
+/// card stacked on a frosted pill read as two unrelated pieces of chrome. One
+/// game names itself and opens straight from here;
+/// several say how many and open a sheet listing them.
+/// The action pill fills with the accent only when it is your move.
 class ActiveGamesBanner extends StatelessWidget {
   const ActiveGamesBanner({
     super.key,
     required this.roomId,
     required this.userId,
+    this.glass = false,
   });
 
   final String roomId;
   final String userId;
 
+  /// Frosted and gutter-inset, for the floating chat style. Same flag, same
+  /// meaning as [PinnedMessageBanner.glass].
+  final bool glass;
+
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
     return ListenableBuilder(
       listenable: MatchesStore.instance,
       builder: (context, _) {
         final games = MatchesStore.instance.openIn(roomId);
-        if (games.isEmpty) return const SizedBox.shrink();
-        return _Banner(games: games, userId: userId);
+        return AnimatedSize(
+          duration: theme.motionFast,
+          curve: theme.motionEntrance,
+          alignment: Alignment.topCenter,
+          child: games.isEmpty
+              ? const SizedBox(width: double.infinity, height: 0)
+              : _Banner(games: games, userId: userId, glass: glass),
+        );
       },
     );
   }
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner({required this.games, required this.userId});
+  const _Banner({
+    required this.games,
+    required this.userId,
+    required this.glass,
+  });
 
   final List<ChatMatch> games;
   final String userId;
+  final bool glass;
 
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final mine = games.where((g) => g.isTurnOf(userId)).length;
     final one = games.length == 1 ? games.first : null;
     final title = one != null
         ? sentenceCaseOf(context, chatGameName(l10n, one.game))
         : sentenceCaseOf(context, l10n.chatGameBannerCount(games.length));
-    final meta = one != null
-        ? matchStatusLine(l10n, one, userId)
-        : mine > 0
-        ? l10n.chatGameBannerYourMoves(mine)
-        : l10n.chatGameStatusPlaying;
+    final meta = sentenceCaseOf(
+      context,
+      one != null
+          ? matchStatusLine(l10n, one, userId)
+          : mine > 0
+          ? l10n.chatGameBannerYourMoves(mine)
+          : l10n.chatGameStatusPlaying,
+    );
     void open() => one != null
         ? openMatchScreen(context, match: one, userId: userId)
         : _showList(context, userId);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
-      child: CallStatusBanner(
-        tone: CallBannerTone.neutral,
-        icon: CupertinoIcons.gamecontroller_fill,
-        title: title,
-        meta: Text(sentenceCaseOf(context, meta)),
-        onTap: open,
-        semanticLabel: '$title, $meta',
-        actions: [
-          CallBannerAction(
-            icon: CupertinoIcons.play_fill,
-            label: mine > 0 ? l10n.chatGamePlay : l10n.chatGameOpen,
-            semanticLabel: mine > 0 ? l10n.chatGamePlay : l10n.chatGameOpen,
-            prominent: mine > 0,
-            onTap: open,
+
+    final row = SizedBox(
+      height: kGamesStripHeight,
+      child: Row(
+        children: [
+          const SizedBox(width: 9),
+          _Lead(yourMove: mine > 0),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  TextSpan(
+                    text: '  $meta',
+                    style: TextStyle(color: theme.inkMuted),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.body.copyWith(color: theme.ink, fontSize: 15),
+            ),
           ),
+          const SizedBox(width: 6),
+          StripPill(
+            label: mine > 0 ? l10n.chatGamePlay : l10n.chatGameOpen,
+            prominent: mine > 0,
+          ),
+          const SizedBox(width: 8),
         ],
       ),
+    );
+
+    // The whole strip is the target: it does one thing, and a 44pt row whose
+    // left three quarters did nothing would be a trap for the thumb.
+    final tappable = FocusableTap(
+      onTap: open,
+      semanticLabel: '$title, $meta',
+      radius: glass ? kStripGlassRadius : 0,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: open,
+        child: row,
+      ),
+    );
+
+    if (glass) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(
+          kStripGlassGutter,
+          0,
+          kStripGlassGutter,
+          kGamesStripGap,
+        ),
+        child: LiquidGlass(
+          shape: LiquidGlassShape.rounded,
+          radius: kStripGlassRadius,
+          child: tappable,
+        ),
+      );
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.surfaceRaised,
+        border: Border(bottom: BorderSide(color: theme.divider)),
+      ),
+      child: tappable,
     );
   }
 
@@ -148,6 +232,31 @@ class _Banner extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The controller on a soft tile: the strip's glyph, the way the pin is the
+/// pinned strip's. Accent when a game here is waiting on you, quiet otherwise.
+/// Not the board itself: at 26pt a board is a smudge, and the name beside it
+/// already says which game.
+class _Lead extends StatelessWidget {
+  const _Lead({required this.yourMove});
+
+  final bool yourMove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final tint = yourMove ? theme.accent : theme.inkMuted;
+    return Container(
+      width: _kThumb,
+      height: _kThumb,
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(CupertinoIcons.gamecontroller_fill, size: 16, color: tint),
     );
   }
 }

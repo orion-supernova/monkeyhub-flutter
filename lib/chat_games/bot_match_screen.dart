@@ -66,7 +66,7 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
       if (mounted) {
         showHowToPlayOnce(
           context,
-          chatGuide(AppLocalizations.of(context), widget.game),
+          chatGuide(AppLocalizations.of(context), widget.game, practice: true),
         );
       }
     });
@@ -192,7 +192,7 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
             HowToPlayButton(
               onTap: () => showHowToPlay(
                 context,
-                chatGuide(l10n, widget.game),
+                chatGuide(l10n, widget.game, practice: true),
               ),
             ),
           ],
@@ -272,7 +272,7 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
               sidebar: Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  sentenceCaseOf(context, l10n.chatGameNotRanked),
+                  sentenceCaseOf(context, l10n.practiceNotRanked),
                   style: groupedFooterStyle(theme),
                 ),
               ),

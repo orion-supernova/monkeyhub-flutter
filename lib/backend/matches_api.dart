@@ -52,6 +52,38 @@ class MatchesApi {
     );
   }
 
+  /// Starts a turn by turn DM game WITH its first move, in one server
+  /// transaction: the game, the move, and the move's bubble. No card. Refused
+  /// as a whole (nothing created) for an illegal move, the per-DM cap
+  /// (`TOO_MANY_GAMES`), or a room that will not take it. [rematchOf] plays a
+  /// finished game again. A resend with the same [clientMoveId] answers with
+  /// the game the first send made.
+  Future<({String matchId, String messageId, int seq})> startTurns({
+    required String userId,
+    required String roomId,
+    required String game,
+    required String move,
+    required String clientMoveId,
+    String? senderName,
+    String? rematchOf,
+  }) async {
+    final res = await _cv.mutation('matches:startTurns', {
+      'userId': userId,
+      'roomId': roomId,
+      'game': game,
+      'move': move,
+      'clientMoveId': clientMoveId,
+      'senderName': ?senderName,
+      'rematchOf': ?rematchOf,
+    });
+    final m = (res as Map).cast<String, dynamic>();
+    return (
+      matchId: m['matchId'].toString(),
+      messageId: m['messageId'].toString(),
+      seq: (m['seq'] as num?)?.toInt() ?? 1,
+    );
+  }
+
   Future<void> _call(String name, String userId, String matchId,
           [Map<String, dynamic> extra = const {}]) =>
       _cv.mutation('matches:$name', {
@@ -250,6 +282,7 @@ String matchErrorCode(Object e) {
     'NOT_A_MEMBER',
     'NOT_MEMBER',
     'UNKNOWN_GAME',
+    'EPHEMERAL_ROOM',
   ];
   final text = e.toString();
   return known.firstWhere(text.contains, orElse: () => 'UNKNOWN');

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'chat_room.dart';
 import 'chat_user.dart';
+import 'room_posting_policy.dart';
 
 /// What a room IS, for the purpose of deciding what chrome it gets.
 ///
@@ -69,6 +70,7 @@ class RoomCapabilities {
     required this.canReceiveForwards,
     required this.canSaveMessages,
     required this.canMute,
+    this.posting = RoomPostingPolicy.open,
   });
 
   /// Whether the header offers to start a call — the 1:1 button in a DM, the
@@ -165,6 +167,21 @@ class RoomCapabilities {
   /// no switch, because the user has to find out the hard way.
   final bool canMute;
 
+  /// What members may post here — the room's posting policy, see
+  /// `room_posting_policy.dart`.
+  ///
+  /// A second axis rather than more rows in the kind table above: the kind
+  /// says what CHROME a room gets, the policy says what CONTENT goes in, and a
+  /// group room can be read-only while a system room might take text. The
+  /// two meet in [roomCapabilitiesFor], which ANDs the policy's [canCall] and
+  /// [canReceiveForwards] into these, so the header and the forward and share
+  /// sheets honour a policy without reading it. The composer, the attachment
+  /// menu and the message menu read this directly.
+  ///
+  /// Defaults to [RoomPostingPolicy.open] in every constant below; the real
+  /// value is attached by [roomCapabilitiesFor] from the room row.
+  final RoomPostingPolicy posting;
+
   /// An ordinary room: everything on. [canDelete] still narrows to the owner at
   /// the call site.
   static const group = RoomCapabilities(
@@ -245,6 +262,10 @@ class RoomCapabilities {
     canSaveMessages: false,
     // The exception to "nothing is afforded" — see [canMute].
     canMute: true,
+    // And nothing may be posted: the floor of the posting policy as well,
+    // matching `roomPolicy.postingPresetOf` server-side, where an unstamped
+    // system room resolves to read-only.
+    posting: RoomPostingPolicy.readOnly,
   );
 
   RoomCapabilities copyWith({
@@ -259,6 +280,7 @@ class RoomCapabilities {
     bool? canReceiveForwards,
     bool? canSaveMessages,
     bool? canMute,
+    RoomPostingPolicy? posting,
   }) =>
       RoomCapabilities(
         canCall: canCall ?? this.canCall,
@@ -272,6 +294,17 @@ class RoomCapabilities {
         canReceiveForwards: canReceiveForwards ?? this.canReceiveForwards,
         canSaveMessages: canSaveMessages ?? this.canSaveMessages,
         canMute: canMute ?? this.canMute,
+        posting: posting ?? this.posting,
+      );
+
+  /// These capabilities under [policy]: [posting] set, and the two answers the
+  /// policy shares with the kind table narrowed by it. Only ever narrows — a
+  /// permissive policy cannot give a call button to a room whose kind has
+  /// nobody to call.
+  RoomCapabilities underPolicy(RoomPostingPolicy policy) => copyWith(
+        canCall: canCall && policy.canCall,
+        canReceiveForwards: canReceiveForwards && policy.canReceiveForwards,
+        posting: policy,
       );
 }
 
@@ -318,16 +351,28 @@ RoomKind roomKindOf(ChatRoom room, {ChatUser? peer}) {
 ///
 /// Prefer `ChatRepository.capabilitiesFor`, which resolves [peer] for you.
 RoomCapabilities roomCapabilitiesFor(ChatRoom room, {ChatUser? peer}) {
+  final RoomCapabilities base;
   switch (roomKindOf(room, peer: peer)) {
     case RoomKind.group:
-      return RoomCapabilities.group;
+      base = RoomCapabilities.group;
     case RoomKind.dm:
-      return RoomCapabilities.dm;
+      base = RoomCapabilities.dm;
     case RoomKind.savedMessages:
-      return RoomCapabilities.savedMessages;
+      base = RoomCapabilities.savedMessages;
     case RoomKind.system:
       // `??` and not `[]!`: an unknown slug is the expected case for a client
       // older than the backend, not a programming error.
-      return _systemRoomOverrides[room.systemRole] ?? RoomCapabilities.system;
+      base = _systemRoomOverrides[room.systemRole] ?? RoomCapabilities.system;
   }
+  // A DM with a bot that the server never stamped is a system room by its
+  // peer, and gets the system default policy with it: read-only.
+  final policy = room.postingPolicy == null &&
+          !room.isSystemRoom &&
+          (peer?.isSystem ?? false)
+      ? RoomPostingPolicy.readOnly
+      : roomPostingPolicyOf(room);
+  // Skipped when the row already carries this policy — the open policy on
+  // every ordinary room, read-only on a system room — so those keep returning
+  // the shared constant rather than a fresh copy per call.
+  return identical(policy, base.posting) ? base : base.underPolicy(policy);
 }

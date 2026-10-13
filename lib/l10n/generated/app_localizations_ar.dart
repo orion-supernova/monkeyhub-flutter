@@ -212,6 +212,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'الرسائل في هذه الغرفة مؤقتة، ويتم حذفها تلقائيًا وفقًا لسياسة الأمان الخاصة بالغرفة.';
 
   @override
+  String get roomReadOnlyFooter =>
+      'هذه الغرفة للقراءة فقط. MonkeyHub وحده ينشر هنا.';
+
+  @override
   String get roomScreenAutoDeleteTitle => 'الحذف التلقائي';
 
   @override
@@ -12238,7 +12242,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatGameStatusFinished => 'انتهت';
 
   @override
-  String get chatGameStatusEnded => 'انتهت';
+  String get chatGameStatusEnded => 'انتهت بلا فائز';
 
   @override
   String get chatGameYourMove => 'دورك';
@@ -12482,6 +12486,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'لديكما 3 ألعاب بالتناوب هنا بالفعل. أنهيا واحدة أولًا.';
 
   @override
+  String get chatGameErrEphemeral => 'لا يمكن اللعب في دردشة تختفي رسائلها.';
+
+  @override
   String get chatGameErrGeneric => 'حدث خطأ ما. حاول مجددًا.';
 
   @override
@@ -12702,6 +12709,11 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String chatGamePlayersRange(int min, int max) {
     return '$min–$max لاعبين';
+  }
+
+  @override
+  String chatGameNeedsPeople(int count) {
+    return 'يلزم $count أشخاص على الأقل';
   }
 
   @override
@@ -13052,7 +13064,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatGameNameChess => 'الشطرنج';
 
   @override
-  String get chatGameDescChess => 'اكسب بكش ملك الخصم.';
+  String get chatGameDescChess => 'حقّق كش مات لتفوز.';
 
   @override
   String get chessPawn => 'بيدق';
@@ -13143,7 +13155,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String botHubSubtitle(String bot) {
-    return 'أنت و$bot فقط. لا شيء يُنشر ولا أحد يشاهد.';
+    return 'أنت و$bot فقط. تعلّم الحركات، ثم تغلّب على أصدقائك.';
   }
 
   @override
@@ -13168,6 +13180,10 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get practiceNotRanked =>
+      'للمتعة فقط. هذه الألعاب لا تُحتسب في سلاسلك أو أرقامك القياسية.';
 
   @override
   String get chatGameMvYouPlayed => 'أنت لعبت';
@@ -13248,7 +13264,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToQueens4 =>
-      'ضع تاجًا، ثم ضع × على كل مربع صار ممنوعًا. ستنحل اللوحة بسرعة.';
+      'مع تفعيل «تعليم تلقائي»، يوضع لك × على كل مربع يستبعده التاج. ثم انظر ماذا تبقّى.';
 
   @override
   String get howToTango1 => 'ضغطة للشمس وضغطتان للقمر. املأ كل المربعات.';
@@ -13257,7 +13273,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get howToTango2 => 'كل صف وكل عمود نصفه شموس ونصفه أقمار.';
 
   @override
-  String get howToTango3 => 'ممنوع 3 متشابهة متتالية. اثنان لا بأس.';
+  String get howToTango3 =>
+      'ممنوع 3 متشابهة متتالية، أفقيًا أو عموديًا. اثنان لا بأس.';
 
   @override
   String get howToTango4 => '= يعني أنهما متشابهان، و× يعني أنهما مختلفان.';
@@ -13278,7 +13295,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get howToSudoku2 => 'اضغط على مربع، ثم على رقم.';
 
   @override
-  String get howToSudoku3 => 'رقم مكرر في نفس الخط؟ يتحول للأحمر.';
+  String get howToSudoku3 =>
+      'رقم مكرر في الصف أو العمود أو المربع نفسه؟ يتحول للأحمر.';
 
   @override
   String get howToSudoku4 =>
@@ -13292,7 +13310,8 @@ class AppLocalizationsAr extends AppLocalizations {
       'الأنابيب لا تتقاطع، ولازم تمتلئ كل المربعات. خذ الطريق الأطول.';
 
   @override
-  String get howToFutoshiki1 => 'كل رقم يظهر مرة واحدة فقط في كل صف وعمود.';
+  String get howToFutoshiki1 =>
+      'املأ كل مربع برقم من 1 إلى 5. كل رقم يظهر مرة واحدة بالضبط في كل صف وعمود.';
 
   @override
   String get howToFutoshiki2 =>
@@ -13303,11 +13322,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToNonogram1 =>
-      'الأرقام تقول لك كم مربعًا متتاليًا تلوّن. 5 يعني 5 متتالية.';
+      'كل رقم مجموعة من المربعات الملوّنة المتتالية بلا فراغ. 5 يعني 5 مربعات متجاورة.';
 
   @override
   String get howToNonogram2 =>
-      '1 1 يعني مربعين منفصلين، بينهما فراغ واحد على الأقل.';
+      '1 1 يعني مربعين منفصلين بينهما مربع فارغ واحد على الأقل. ويمكن أن يكون الفراغ أكبر.';
+
+  @override
+  String get howToNonogramOrder =>
+      'الترتيب مهم: الصفوف تُقرأ من اليسار إلى اليمين، والأعمدة من الأعلى إلى الأسفل. يعني 1 3: أولًا 1 ثم 3.';
 
   @override
   String get howToNonogram3 =>
@@ -13317,7 +13340,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get howToNonogram4 => 'طابق كل الأدلة وستظهر الصورة المخفية.';
 
   @override
-  String get howToMines1 => 'اضغط على مربع لفتحه. المناطق الفارغة تنفتح وحدها.';
+  String get howToMines1 =>
+      'افتح كل مربع لا يحتوي على لغم. المناطق الفارغة تنفتح وحدها.';
 
   @override
   String get howToMines2 => 'الرقم يخبرك كم لغمًا يلمسه، والزوايا محسوبة.';
@@ -13336,18 +13360,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get howToStars2 => 'النجوم لا تتلامس، ولا حتى بشكل مائل.';
 
   @override
-  String get howToStars3 =>
-      'ضع نقطة حول كل نجمة. عندما يكتمل الصف بنجمتين، الباقي فارغ.';
+  String get howToStarsControls =>
+      'اضغط مرة لنقطة، ومرتين لنجمة، ومرة ثالثة للمسح.';
 
   @override
-  String get howToCode1 => 'هناك شيفرة سرية من 4 رموز مختلفة. فكّها.';
+  String get howToStars3 =>
+      'مع تفعيل «نقاط تلقائية»، تضع النجمة نقاطًا على المربعات حولها. وعندما يكتمل الصف بنجمتيه، توضع النقاط على باقيه أيضًا.';
+
+  @override
+  String get howToCode1 =>
+      'هناك شيفرة سرية من 4 رموز مختلفة، بلا تكرار. فكّها.';
 
   @override
   String get howToCode2 => 'الأخضر: الرمز صحيح ومكانه صحيح.';
 
   @override
   String get howToCode3 =>
-      'الأصفر: موجود في الشيفرة لكن في مكان آخر. الرمادي: غير موجود إطلاقًا.';
+      'الأصفر: موجود في الشيفرة لكن في مكان آخر. الرمادي: غير موجود فيها إطلاقًا.';
 
   @override
   String get howToCode4 => 'لديك 6 محاولات. كلما احتجت أقل، كان أفضل.';
@@ -13381,14 +13410,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToCheckers4 =>
-      'إذا وصلت قطعتك إلى الطرف الآخر تصبح ملكًا. والملوك يتحركون للخلف أيضًا.';
+      'إذا وصلت قطعتك إلى الطرف الآخر تصبح ملكًا. والملوك يتحركون للخلف أيضًا، لكن مربعًا واحدًا فقط في كل مرة.';
 
   @override
-  String get howToCheckersWin => 'تفوز إذا أخذت كل قطع خصمك أو تركته بلا نقلة.';
+  String get howToCheckersWin =>
+      'تفوز إذا أخذت كل قطع خصمك أو تركته بلا نقلة. وإذا لعب كل منكما 40 نقلة بلا أسر ولا تحريك قطعة عادية، فهو تعادل.';
 
   @override
   String get howToReversi1 =>
-      'ضع قرصك بحيث تُحاصَر أقراص خصمك في خط بين قرصين لك.';
+      'ضع قرصك بحيث تُحاصَر أقراص خصمك في خط بين قرصين لك. كل نقلة يجب أن تحاصر قرصًا واحدًا على الأقل.';
 
   @override
   String get howToReversi2 =>
@@ -13424,14 +13454,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToChess4 =>
-      'الكش يعني أن الملك مهدَّد ويجب أن تنقذه. لا مخرج؟ كش مات وانتهت اللعبة.';
+      'الكش يعني أن الملك مهدَّد ويجب أن تنقذه. لا مخرج؟ كش مات وانتهت اللعبة. لا نقلة متاحة لكن ملكك ليس في كش؟ إنه تعادل.';
 
   @override
   String get howToLiars1 => 'يرمي الجميع 5 نرود سرًّا. ولا ترى إلا نردك.';
 
   @override
   String get howToLiars2 =>
-      'في دورك، زايِد على عدد وجهٍ معيّن على الطاولة كلها، بحساب نرود الجميع. مثلًا «أربعة 3».';
+      'في دورك، زايِد بأنّ هناك على الأقل عددًا معيّنًا من وجهٍ ما على الطاولة كلها، بحساب نرود الجميع. مثلًا «أربعة 3».';
 
   @override
   String get howToLiars3 =>
@@ -13446,7 +13476,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToLiars6 =>
-      'المزايدة صحيحة؟ من قال «كذّاب» يخسر نردًا. المزايدة مبالغ فيها؟ صاحبها يخسر نردًا.';
+      'العدد يساوي المزايدة أو أكثر؟ من قال «كذّاب» يخسر نردًا. أقل؟ صاحب المزايدة يخسر نردًا.';
 
   @override
   String get howToLiars7 => 'إذا نفدت نرودك تخرج. آخر من يبقى معه نرد يفوز.';
@@ -13468,11 +13498,12 @@ class AppLocalizationsAr extends AppLocalizations {
       'في الوضع الصوتي: قل تلميحك بصوت عالٍ في المكالمة، ثم اضغط تم.';
 
   @override
-  String get howToImposter3 => 'بعدها يصوّت الجميع على من يظنونه المحتال.';
+  String get howToImposter3 =>
+      'بعدها يصوّت الجميع على من يظنونه المحتال، أو يتخطّون التصويت.';
 
   @override
   String get howToImposter4 =>
-      'انكشف؟ للمحتال فرصة أخيرة: إن خمّن الكلمة يخطف الفوز. صوّتوا على الشخص الخطأ أو تعادلت الأصوات؟ يفوز المحتال.';
+      'انكشف؟ للمحتال فرصة أخيرة: إن خمّن الكلمة يخطف الفوز. صوّتوا على الشخص الخطأ، أو تعادلت الأصوات، أو تخطّى كثيرون التصويت؟ يفوز المحتال.';
 
   @override
   String get howToRace1 => 'يحصل الجميع على اللغز الجديد نفسه في اللحظة نفسها.';

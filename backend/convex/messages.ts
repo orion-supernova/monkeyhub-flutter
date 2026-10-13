@@ -16,6 +16,12 @@ import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
 import { lensFor } from "./visibility";
 import { appendReceiptLog, receiptTimeFor } from "./receiptLog";
+import {
+  assertRoomAllows,
+  postKindOf,
+  type PostKind,
+  type RoomAction,
+} from "./roomPolicy";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -384,10 +390,14 @@ export function permissionsFor(
   // emoji it stands for, so it needs no grant beyond writing at all. A KLIPY
   // GIF or sticker, or a personal sticker cut out of somebody's photo, is a
   // picture from outside and falls through to the media gate below.
+  // The room posting policy's half of the answer (see `roomPolicy.ts`):
+  // WHAT this is, independent of whether a child may send it.
+  const kinds: PostKind[] = [postKindOf(type)];
   if (type === "sticker" && mediaSource === "pack" && !hasBlob) {
-    return { location: false, media: false };
+    return { location: false, media: false, kinds };
   }
   return {
+    kinds,
     location,
     // A location message is not media, but a location message with a file
     // attached to it needs both — see above. And an interactive message with a
@@ -422,7 +432,14 @@ export async function guardOutgoing(
   ctx: any,
   roomId: any,
   userId: any,
-  needs: { media: boolean; location: boolean },
+  needs: {
+    media: boolean;
+    location: boolean;
+    // What the room's posting policy is asked to grant. Required, so a new
+    // caller cannot forget it and slip past the policy by omission.
+    kinds: readonly PostKind[];
+    actions?: readonly RoomAction[];
+  },
   senderName?: string
 ) {
   // Membership, the sender and the room, together.
@@ -445,6 +462,18 @@ export async function guardOutgoing(
     ctx.db.get(roomId),
   ]);
   if (!membership) throw new Error("NOT_A_MEMBER");
+
+  // The room's posting policy: may a MEMBER put this here at all? Before the
+  // child guard so a read-only room answers the same way for everyone, and
+  // with the sender row already in hand so a system poster's bypass costs no
+  // extra read. See `roomPolicy.ts`.
+  await assertRoomAllows(
+    ctx,
+    room,
+    userId,
+    { kinds: needs.kinds, actions: needs.actions },
+    senderUser
+  );
 
   // The room's roster, fetched at most once and only if something actually
   // needs it. Three separate branches want it — the DM block check, the armed
@@ -545,7 +574,7 @@ export async function guardOutgoing(
     ? Date.now() + room.messageLifetime * 1000
     : undefined;
 
-  return { room, roster, resolvedSenderName, expiresAt };
+  return { room, roster, resolvedSenderName, expiresAt, senderUser };
 }
 
 /**
@@ -1062,20 +1091,27 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // room's message lifetime — all of it, in the order it has always run. See
   // `guardOutgoing`, which `forwardToRoom` shares so the two cannot disagree
   // about who may write where.
-  const { room, roster, resolvedSenderName, expiresAt } = await guardOutgoing(
-    ctx,
-    roomId,
-    userId,
-    // `mediaStorageId !== undefined` and not the type: a blob attached to a
-    // `location`-typed send is still an attachment, and used to skip the media
-    // gate by taking the location branch. See `permissionsFor`.
-    permissionsFor(
-      msgType,
-      mediaStorageId !== undefined,
-      expressionFields.mediaSource
-    ),
-    senderName
-  );
+  const { room, roster, resolvedSenderName, expiresAt, senderUser } =
+    await guardOutgoing(
+      ctx,
+      roomId,
+      userId,
+      {
+        // `mediaStorageId !== undefined` and not the type: a blob attached to
+        // a `location`-typed send is still an attachment, and used to skip the
+        // media gate by taking the location branch. See `permissionsFor`.
+        ...permissionsFor(
+          msgType,
+          mediaStorageId !== undefined,
+          expressionFields.mediaSource
+        ),
+        // A reply is its own grant in the posting policy: a room can take
+        // words without taking threads.
+        actions: replyToId ? ["reply"] : [],
+      },
+      senderName
+    );
+  const guardedKind = postKindOf(msgType);
 
   // Build a denormalized snapshot of the parent at send time. Survives the
   // parent's later deletion so the inline reply tether keeps rendering. We
@@ -1198,6 +1234,18 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     longitude >= -180 &&
     longitude <= 180;
   if (wantsLocation && !validCoords) msgType = "text";
+  // The downgrade changed what is being posted, so the posting policy is asked
+  // again about what will actually be written: a room that takes locations but
+  // not words must not receive words by way of a malformed location.
+  if (postKindOf(msgType) !== guardedKind) {
+    await assertRoomAllows(
+      ctx,
+      room,
+      userId,
+      { kinds: [postKindOf(msgType)] },
+      senderUser
+    );
+  }
 
   let locationFields: Record<string, any> = {};
   if (validCoords) {
@@ -1551,7 +1599,7 @@ export const updateLiveLocation = mutation({
         ctx,
         msg.roomId,
         userId,
-        { media: false, location: true },
+        { media: false, location: true, kinds: ["location"] },
         msg.senderName ?? "unknown"
       );
     } catch (_) {
@@ -1693,13 +1741,26 @@ export const gcExpiredLiveShares = internalMutation({
 
 /**
  * Everything that has to happen when a message stops existing, whether the
- * user deleted it or it self-destructed. Both paths ran verbatim copies of
- * this before; they had already drifted (neither repaired the room preview).
+ * user deleted it, it self-destructed, or its author's account is going. The
+ * ONE per-message delete: `deleteMessage`, `deleteMany`, `expireMessage` and
+ * `auth.purgeUser` all come through here, so a dependent added below (a
+ * game, a poll, a pin) is torn down on every path at once. Those paths ran
+ * verbatim copies of this before; they had already drifted (neither repaired
+ * the room preview, and account deletion left a game's card-less row live).
+ *
+ * The only bulk exception is wiping a whole room (`roomCleanup`), which sweeps
+ * each dependent table by `roomId` instead, through the same per-table
+ * teardown (`purgeMatchesForRoom` → `eraseMatch`).
  *
  * Ordering matters: this must run BEFORE `ctx.db.delete(messageId)`, because
- * it reads the message's siblings to re-derive the room preview.
+ * it reads the message's siblings to re-derive the room preview. [msg] must
+ * still exist; a caller that may hold a stale copy re-reads it first.
  */
-async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
+export async function removeMessageAndFanout(
+  ctx: any,
+  msg: any,
+  messageId: any,
+) {
   // Reactions.
   const reactions = await ctx.db
     .query("reactions")
@@ -1900,6 +1961,9 @@ export const editMessage = mutation({
     }
 
     const room = await ctx.db.get(msg.roomId);
+    // An edit is a post of text, and a room that no longer takes text (a room
+    // made read-only after the message was sent) takes no rewrites either.
+    await assertRoomAllows(ctx, room, userId, { kinds: ["text"] });
     // Lazy for the same reason `guardOutgoing`'s is: most edits carry no
     // mentions, and those must not pay for a roster collect.
     let rosterCache: any[] | null = null;
@@ -2083,16 +2147,22 @@ export const forwardToRoom = mutation({
           m.mediaStorageId !== undefined,
           m.mediaSource
         );
-        return { media: acc.media || p.media, location: acc.location || p.location };
+        return {
+          media: acc.media || p.media,
+          location: acc.location || p.location,
+          // Every kind in the batch, so the posting policy refuses the whole
+          // forward if any one message is something the target cannot take.
+          kinds: [...acc.kinds, ...p.kinds],
+        };
       },
-      { media: false, location: false }
+      { media: false, location: false, kinds: [] as PostKind[] }
     );
 
     const { resolvedSenderName, expiresAt } = await guardOutgoing(
       ctx,
       targetRoomId,
       userId,
-      batchNeeds
+      { ...batchNeeds, actions: ["forwardIn"] }
     );
 
     let forwarded = 0;

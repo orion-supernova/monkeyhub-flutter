@@ -14,13 +14,15 @@ import 'how_to_play.dart';
 /// [modes]: pass the one being played (the match screen), every mode the room
 /// offers (the start sheet), or none (a game against the bot). [group] adds
 /// the spectators and seat swap page to Live; [voice] adds Imposter's
-/// say-it-out-loud step.
+/// say-it-out-loud step. [practice] is a game against the bot, whose footnote
+/// cannot talk about chats: practice is the only place it is played.
 HowToPlayGuide chatGuide(
   AppLocalizations l10n,
   String game, {
   List<PlayStyle> modes = const [],
   bool group = false,
   bool voice = false,
+  bool practice = false,
 }) {
   HowToStep s(String text, HowToDemo demo, {bool tip = false}) =>
       HowToStep(text: text, demo: demo, tip: tip);
@@ -87,14 +89,15 @@ HowToPlayGuide chatGuide(
   HowToStep mode(PlayStyle style, String text, HowToDemo demo) =>
       HowToStep(text: text, demo: demo, chip: chip(style));
 
+  final notRanked = practice ? l10n.practiceNotRanked : l10n.chatGameNotRanked;
   return HowToPlayGuide(
     id: 'chat.$game',
     title: chatGameName(l10n, game),
     footnote: switch (game) {
-      'checkers' => '${l10n.howToCheckersWin} ${l10n.chatGameNotRanked}',
-      'dots' => '${l10n.howToDotsWin} ${l10n.chatGameNotRanked}',
-      'liarsdice' => '${l10n.howToLiarsClock} ${l10n.chatGameNotRanked}',
-      _ => l10n.chatGameNotRanked,
+      'checkers' => '${l10n.howToCheckersWin} $notRanked',
+      'dots' => '${l10n.howToDotsWin} $notRanked',
+      'liarsdice' => '${l10n.howToLiarsClock} $notRanked',
+      _ => notRanked,
     },
     steps: [
       ...steps,

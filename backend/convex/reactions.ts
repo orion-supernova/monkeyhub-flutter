@@ -1,6 +1,7 @@
 import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { assertRoomAllowsById } from "./roomPolicy";
 
 /**
  * How many distinct emoji one person may leave on one message.
@@ -35,6 +36,11 @@ export const addReaction = mutation({
       .withIndex("by_room_user", (q) => q.eq("roomId", msg.roomId).eq("userId", userId))
       .first();
     if (!membership) throw new Error("NOT_A_MEMBER");
+
+    // The room's posting policy (see `roomPolicy.ts`): a reaction is a mark
+    // everyone in the room sees, so a read-only room refuses it. Removing one
+    // is left open, so nobody is stuck with a mark they made before.
+    await assertRoomAllowsById(ctx, msg.roomId, userId, { actions: ["react"] });
 
     // Idempotent: one reaction per user per emoji per message. Read as the
     // viewer's whole set rather than a filtered `.first()`, because the cap

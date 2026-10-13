@@ -63,6 +63,7 @@ import '../services/live_location_permission.dart';
 import '../services/live_location_platform.dart';
 import '../services/live_share_resume_store.dart';
 import '../services/location_service.dart';
+import '../models/chat_match.dart';
 import '../models/chat_message.dart';
 import '../models/message_capabilities.dart';
 import '../models/message_formatting.dart';
@@ -72,6 +73,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/room_capabilities.dart';
+import '../models/room_posting_policy.dart';
 import '../models/room_content_item.dart';
 import '../models/room_pin.dart';
 import '../models/reaction_limits.dart';
@@ -89,6 +91,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
+import '../widgets/read_only_composer_footer.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
 import '../widgets/chat_bottom_inset.dart';
@@ -2098,6 +2101,8 @@ class _RoomScreenState extends State<RoomScreen>
       repo: widget.repo,
       messageCount: picked.length,
       excludeRoomId: widget.roomId,
+      // So a room whose posting policy takes none of these is not offered.
+      kinds: postKindsOf(picked.map((m) => m.type)),
     );
     if (targets == null || targets.isEmpty || !mounted) return;
 
@@ -2491,13 +2496,40 @@ class _RoomScreenState extends State<RoomScreen>
   /// `context` and over the room's live media permission — a `ComposerCapture`
   /// held across a permission change would keep offering a camera a supervised
   /// account has just lost.
-  ComposerCapture get _composerCapture => ComposerCapture(
-        modes: ComposerInputMode.values,
-        controller: _captureController,
-        onCamera: _onCamera,
-        onCaptured: _onCaptured,
-        onProblem: _onCaptureProblem,
-      );
+  /// Null where the room's posting policy takes none of what the control
+  /// records, which removes it from the composer outright.
+  ComposerCapture? get _composerCapture {
+    final posting = _posting;
+    final modes = [
+      for (final m in ComposerInputMode.values)
+        if (posting.allowsAny(_captureKinds(m))) m,
+    ];
+    if (modes.isEmpty) return null;
+    return ComposerCapture(
+      modes: modes,
+      controller: _captureController,
+      onCamera: _onCamera,
+      onCaptured: _onCaptured,
+      onProblem: _onCaptureProblem,
+    );
+  }
+
+  /// What a capture mode posts, for the room's posting policy.
+  static Set<PostKind> _captureKinds(ComposerInputMode mode) => switch (mode) {
+        ComposerInputMode.camera => const {PostKind.image, PostKind.video},
+        ComposerInputMode.voice => const {PostKind.voice},
+        ComposerInputMode.videoNote => const {PostKind.video},
+      };
+
+  /// The open room's posting policy (`RoomCapabilities.posting`): what a
+  /// member may put in it. Open until the room resolves, like everything else
+  /// that reads [_room]; the server is the authority either way.
+  RoomPostingPolicy get _posting {
+    final room = _room;
+    return room == null
+        ? RoomPostingPolicy.open
+        : widget.repo.capabilitiesFor(room).posting;
+  }
 
   /// A finished recording, straight into the same optimistic send path a photo
   /// takes. No separate upload flow: `sendMediaLocal` already owns the bubble,
@@ -2573,10 +2605,15 @@ class _RoomScreenState extends State<RoomScreen>
         anchor: anchor,
         allowMedia: family?.canSendMedia ?? true,
         allowLocation: family?.canShareLocation ?? true,
-        // Saved Messages has nobody to play with.
-        allowGames: !(_room?.isSavedMessages ?? false),
+        // Saved Messages has nobody to play with, and where messages expire
+        // the game card would vanish out from under a game still being
+        // played (the server refuses it too, `EPHEMERAL_ROOM`).
+        allowGames: !(_room?.isSavedMessages ?? false) &&
+            !(_room?.messagesExpire ?? false),
         // The inline picker shows photos and videos together.
         unifiedGallery: InlinePhotoPicker.supported,
+        // What this room takes at all. See `room_posting_policy.dart`.
+        posting: _posting,
       );
       if (mounted) setState(() => _attachMenuUp = false);
       if (choice == null || !mounted) return;
@@ -2654,16 +2691,48 @@ class _RoomScreenState extends State<RoomScreen>
     final me = widget.repo.userId;
     final room = _room;
     if (me == null || room == null || room.isSavedMessages) return;
+    if (room.messagesExpire) return;
     final draft = await showGameStartSheet(
       context,
       isDm: room.isDm,
       voiceAvailable: GroupCallService.maybeInstance != null,
+      memberCount: room.isDm ? null : room.memberCount,
     );
     if (draft == null || !mounted) return;
     final nav = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     final toast = AppToast.of(context);
     widget.repo.exitHistoryWindow(widget.roomId);
+    // Take turns: no card and nothing on the server yet. The board opens
+    // locally with the creator to move, and Send creates the game with that
+    // move (`matches:startTurns`); backing out creates nothing.
+    if (draft.matchMode == MatchMode.async) {
+      final other = room.otherParticipantId(me);
+      if (other == null) return;
+      final going = MatchesStore.instance
+          .openIn(widget.roomId)
+          .where((m) => m.mode == MatchMode.async)
+          .length;
+      if (going >= kMaxAsyncPerDm) {
+        toast.show(l10n.chatGameErrTooMany);
+        return;
+      }
+      String nameOf(String id) =>
+          (_members[id] ?? widget.repo.userById(id))?.displayName ?? '';
+      await openTurnDraft(
+        context,
+        userId: me,
+        draft: TurnDraft(
+          roomId: widget.roomId,
+          game: draft.game,
+          seats: [
+            MatchSeat(userId: me, name: nameOf(me)),
+            MatchSeat(userId: other, name: nameOf(other)),
+          ],
+        ),
+      );
+      return;
+    }
     try {
       final created = await MatchesStore.instance.api.create(
         userId: me,
@@ -2687,6 +2756,7 @@ class _RoomScreenState extends State<RoomScreen>
       toast.show(switch (matchErrorCode(e)) {
         'ALREADY_LIVE' => l10n.chatGameErrAlreadyLive,
         'TOO_MANY_GAMES' => l10n.chatGameErrTooMany,
+        'EPHEMERAL_ROOM' => l10n.chatGameErrEphemeral,
         _ => l10n.chatGameErrGeneric,
       });
     }
@@ -3230,6 +3300,10 @@ class _RoomScreenState extends State<RoomScreen>
   Future<void> _deliverShare(SharedPayload payload) async {
     final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
+    // Nothing lands in a room members cannot post in: the share sheet does not
+    // offer one, so reaching this is a stale suggestion. Dropped quietly, the
+    // footer already says why.
+    if (!_posting.canPost) return;
 
     // Text first and unconditionally: with attachments it reads as their
     // caption, and the user can send or discard it after the pictures land.
@@ -3424,6 +3498,8 @@ class _RoomScreenState extends State<RoomScreen>
   Future<void> _deliverDrop(DropBundle bundle) async {
     final toast = AppToast.of(context);
     final loc = AppLocalizations.of(context);
+    // See `_deliverShare`.
+    if (!_posting.canPost) return;
     final plan = planFor(bundle.toSnapshot(), policy: _dropPolicy);
 
     // Text first and unconditionally, for the reason `_deliverShare` gives:
@@ -5138,6 +5214,10 @@ class _RoomScreenState extends State<RoomScreen>
               theme,
               _selection.active
                   ? _selectionBar(room, me)
+                  // A room members cannot post in gets a quiet footer in
+                  // the composer's place. See `room_posting_policy.dart`.
+                  : !_posting.canPost
+                  ? const ReadOnlyComposerFooter()
                   : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -5188,21 +5268,27 @@ class _RoomScreenState extends State<RoomScreen>
                       ? widget.repo.pendingScheduledCount(room.id)
                       : 0,
                   onChanged: (_) => widget.repo.noteTyping(),
-                  onAttach: _onAttach,
+                  onAttach:
+                      attachmentMenuHasRows(_posting) ? _onAttach : null,
                   attachKey: _attachKey,
                   attachHidden: _attachMenuUp,
                   hasAttachments: _picker.hasPicks,
                   hint: _picker.hasPicks
                       ? AppLocalizations.of(context).inlinePickerCommentHint
                       : null,
-                  onCamera: _onCamera,
+                  onCamera: _posting
+                          .allowsAny(const {PostKind.image, PostKind.video})
+                      ? _onCamera
+                      : null,
                   capture: _composerCapture,
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
-                  onExpressions: () {
-                    _picker.close();
-                    _expressions.toggle(_composerFocus);
-                  },
+                  onExpressions: _posting.allows(PostKind.sticker)
+                      ? () {
+                          _picker.close();
+                          _expressions.toggle(_composerFocus);
+                        }
+                      : null,
                   expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
@@ -5346,7 +5432,8 @@ class _RoomScreenState extends State<RoomScreen>
                         userId: me,
                       ),
                     // Reserved in `topChromeH` above, when a game is open.
-                    ActiveGamesBanner(roomId: room.id, userId: me),
+                    // Frosted, the pinned strip's sibling.
+                    ActiveGamesBanner(roomId: room.id, userId: me, glass: true),
                     // Reserved in `topChromeH` above, like the pinned strip.
                     RoomSuggestionsBanner(
                       pending: suggestions,
@@ -5405,6 +5492,12 @@ class _RoomScreenState extends State<RoomScreen>
                   which: ChatChromeHeight.target,
                   child: _selection.active
                     ? _selectionBar(room, me)
+                    // Mirrors the classic column above.
+                    : !_posting.canPost
+                    ? ReadOnlyComposerFooter(
+                        glass: true,
+                        bottomInset: bottomSafe,
+                      )
                     : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -5449,21 +5542,27 @@ class _RoomScreenState extends State<RoomScreen>
                       ? widget.repo.pendingScheduledCount(room.id)
                       : 0,
                   onChanged: (_) => widget.repo.noteTyping(),
-                  onAttach: _onAttach,
+                  onAttach:
+                      attachmentMenuHasRows(_posting) ? _onAttach : null,
                   attachKey: _attachKey,
                   attachHidden: _attachMenuUp,
                   hasAttachments: _picker.hasPicks,
                   hint: _picker.hasPicks
                       ? AppLocalizations.of(context).inlinePickerCommentHint
                       : null,
-                  onCamera: _onCamera,
+                  onCamera: _posting
+                          .allowsAny(const {PostKind.image, PostKind.video})
+                      ? _onCamera
+                      : null,
                   capture: _composerCapture,
                   mention: _mention,
                   captureOpenHintRoomId: room.id,
-                  onExpressions: () {
-                    _picker.close();
-                    _expressions.toggle(_composerFocus);
-                  },
+                  onExpressions: _posting.allows(PostKind.sticker)
+                      ? () {
+                          _picker.close();
+                          _expressions.toggle(_composerFocus);
+                        }
+                      : null,
                   expressionsOpen: _expressions.isOpen && !_expressions.closing,
                   onFieldTap: _expressions.dismiss,
                   onContentInserted: _onKeyboardContent,
@@ -5961,6 +6060,7 @@ class _RoomScreenState extends State<RoomScreen>
                       oneLabel: l10n.messageMenuAlbumOne,
                       capabilities: MessageCapabilities.none.copyWith(
                         canReply: firstCaps.canReply,
+                        canReact: firstCaps.canReact,
                         canForward: albumRow.every((m) => widget.repo
                             .capabilitiesForMessage(m, room)
                             .canForward),
@@ -6019,7 +6119,8 @@ class _RoomScreenState extends State<RoomScreen>
                       // Same gate the reaction chips' own toggle sits behind:
                       // nothing to react to on a send still in flight.
                       showReactions: !targetPending &&
-                          target.type != MessageType.system,
+                          target.type != MessageType.system &&
+                          capabilities.canReact,
                       isPinned:
                           widget.repo.isMessagePinned(room.id, target.id),
                       isSaved: widget.repo.isMessageSaved(room.id, target.id),
@@ -6315,7 +6416,8 @@ class _RoomScreenState extends State<RoomScreen>
                     ? MessageHoverTarget(
                         id: m.id,
                         isMine: isMine,
-                        onReact: m.type == MessageType.system
+                        onReact: m.type == MessageType.system ||
+                                !caps.canReact
                             ? null
                             : (r) => longPressOn(m,
                                 at: r.bottomLeft, reactionsOnly: true),

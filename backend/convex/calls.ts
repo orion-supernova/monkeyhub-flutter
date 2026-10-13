@@ -9,6 +9,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
+import { assertRoomAllowsById } from "./roomPolicy";
 import { lensFor } from "./visibility";
 
 // ────────────────────────────── helpers ──────────────────────────────
@@ -375,6 +376,10 @@ export const initiate = mutation({
     if (!callerMembership || !calleeMembership) {
       throw new Error("NOT_A_MEMBER");
     }
+
+    // The room's posting policy: a room that takes no calls takes none
+    // between two of its members either. See `roomPolicy.ts`.
+    await assertRoomAllowsById(ctx, roomId, callerId, { actions: ["call"] });
 
     // Reject if either user is already in a live call (ringing / active) —
     // with a staleness allowance: a row every sweeper would agree is dead

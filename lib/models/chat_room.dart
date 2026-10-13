@@ -29,6 +29,7 @@ class ChatRoom {
     this.archivedAt,
     this.mute = RoomMute.none,
     this.systemRole,
+    this.postingPolicy,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
 
@@ -113,7 +114,22 @@ class ChatRoom {
   /// gets a call button, a member list or a way to end it.
   final String? systemRole;
 
+  /// What members may post here: the NAME of a preset (`rooms.postingPolicy`
+  /// server-side, `"open"` | `"readOnly"` | `"agent"`). Null on every ordinary
+  /// room and on any backend that predates the field.
+  ///
+  /// Like [systemRole], never inspected directly by UI code: it is resolved by
+  /// `roomPostingPolicyOf` in `room_posting_policy.dart` and reaches widgets as
+  /// `RoomCapabilities.posting`.
+  final String? postingPolicy;
+
   bool get isEphemeral => type == RoomType.secret;
+
+  /// Whether a message posted here goes away on its own: a secret room, or
+  /// any room with a message lifetime. Nothing that has to outlive its card
+  /// (a game) can start in one.
+  bool get messagesExpire =>
+      isEphemeral || (messageLifetime != null && messageLifetime! > Duration.zero);
   bool get isPublic => !isPrivate;
   bool get isDm => name.startsWith('dm:');
 
@@ -221,6 +237,7 @@ class ChatRoom {
         if (archivedAt != null) 'archivedAt': archivedAt!.millisecondsSinceEpoch,
         ...mute.toJson(),
         if (systemRole != null) 'system': systemRole,
+        if (postingPolicy != null) 'postingPolicy': postingPolicy,
       };
 
   factory ChatRoom.fromJson(Map<String, dynamic> j) {
@@ -264,6 +281,8 @@ class ChatRoom {
       // Absent on every ordinary room and on any backend that predates the
       // field, which both mean the same thing: not a system room.
       systemRole: j['system'] as String?,
+      // Absent means "decide from the room's kind" — see `roomPostingPolicyOf`.
+      postingPolicy: j['postingPolicy'] as String?,
       participantIds: (j['participantIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
