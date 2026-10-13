@@ -1,6 +1,6 @@
-// A highlight's comments sheet: a thread opened under its root, an author
-// reply with the badge, a reply-to-a-reply's "@name", a sticker comment, likes
-// and other reactions — light and dark.
+// A highlight's comments sheet, every thread shape on its rail: one reply,
+// three inline (with a reply-to-a-reply's "@name"), five folded and five
+// opened; an author reply with the badge. Light and dark.
 //
 //   flutter test test/design_preview/moment_comments_preview.dart
 import 'package:flutter/material.dart';
@@ -45,6 +45,10 @@ MomentComment _c(
     );
 
 final _fixture = [
+  // One reply: the rail turns straight into it.
+  _c('d', 'Can', text: 'ok this is wallpaper material', minutes: 48),
+  _c('d1', 'Selin', text: 'right?? already set it', parent: 'd', minutes: 40),
+  // Three replies, inline, one of them answering a reply.
   _c('a', 'Ece',
       text: 'the light in this one 😍 where was this?',
       minutes: 42,
@@ -63,9 +67,19 @@ final _fixture = [
       replyTo: 'Murat',
       minutes: 12,
       counts: {'😂': 2}),
-  _c('d', 'Can', text: 'ok this is wallpaper material', minutes: 8),
-  _c('e', 'Selin', text: 'POSTCARD', minutes: 2, counts: {'🔥': 3, '❤️': 2}),
-  _c('f', 'Selin', text: 'reply under Can', parent: 'd', minutes: 1),
+  _c('c2', 'Ece', text: 'same', parent: 'a', replyTo: 'Deniz', minutes: 10),
+  // Five replies, folded.
+  _c('e', 'Selin', text: 'POSTCARD', minutes: 9, counts: {'🔥': 3, '❤️': 2}),
+  for (var i = 1; i <= 5; i++)
+    _c('e$i', ['Can', 'Ece', 'Deniz', 'Murat', 'Can'][i - 1],
+        text: 'postcard reply $i', parent: 'e', minutes: 9 - i),
+  // Five replies, opened.
+  _c('g', 'Deniz', text: 'who took it though', minutes: 6),
+  _c('g1', 'Murat', text: 'me, obviously', parent: 'g', author: true, mine: true, minutes: 5),
+  _c('g2', 'Deniz', text: 'with what', parent: 'g', replyTo: 'Murat', minutes: 4),
+  _c('g3', 'Murat', text: 'my phone 😅', parent: 'g', author: true, mine: true, minutes: 3),
+  _c('g4', 'Selin', text: 'no way', parent: 'g', minutes: 2),
+  _c('g5', 'Can', text: 'teach me', parent: 'g', replyTo: 'Murat', minutes: 1),
 ];
 
 final _moment = Moment(
@@ -82,27 +96,43 @@ final _moment = Moment(
 
 void main() {
   setUpAll(loadPreviewFonts);
-  for (final id in ['basic', 'basic_daylight']) {
-    testWidgets('moment comments preview: $id', (tester) async {
+  for (final (id, rtl) in [
+    ('basic', false),
+    ('basic_daylight', false),
+    ('basic_daylight', true),
+  ]) {
+    final name = rtl ? '${id}_rtl' : id;
+    testWidgets('moment comments preview: $name', (tester) async {
       MomentConversation.debugComments = _fixture;
-      addTearDown(() => MomentConversation.debugComments = null);
+      MomentConversation.debugExpanded = {'g'};
+      addTearDown(() {
+        MomentConversation.debugComments = null;
+        MomentConversation.debugExpanded = null;
+      });
       await snap(
         tester,
         previewApp(
           ThemeController.byId(id),
           Builder(
-            builder: (context) => Align(
-              alignment: Alignment.bottomCenter,
-              child: MomentConversation(
-                moment: _moment,
-                api: ChatApi(ConvexBackend.instance),
-                feedApi: FeedApi(ConvexBackend.instance),
-                userId: 'Murat',
+            // The sheet's TextField wants a Material above it; a transparent
+            // one paints nothing.
+            builder: (context) => Material(
+              type: MaterialType.transparency,
+              child: Directionality(
+                textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+                child: MomentConversation(
+                  moment: _moment,
+                  api: ChatApi(ConvexBackend.instance),
+                  feedApi: FeedApi(ConvexBackend.instance),
+                  userId: 'Murat',
+                ),
               ),
             ),
           ),
         ),
-        'moment_comments_$id.png',
+        'moment_comments_$name.png',
+        // Tall enough for every thread shape at once.
+        size: const Size(393, 2000),
       );
     });
   }

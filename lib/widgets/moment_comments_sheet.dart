@@ -94,6 +94,10 @@ Future<void> showMomentComments(
   );
 }
 
+/// How many replies a thread shows without a toggle. Past this, it folds
+/// behind "View N replies".
+const kMomentInlineReplies = 3;
+
 /// A highlight's comments: the thread list over the app's own message
 /// composer, with the composer's inline emoji / GIF / sticker panel.
 ///
@@ -111,6 +115,10 @@ class MomentConversation extends StatefulWidget {
   /// subscribe to. Null everywhere else.
   @visibleForTesting
   static List<MomentComment>? debugComments;
+
+  /// Thread roots a design preview opens up front. Null opens the first.
+  @visibleForTesting
+  static Set<String>? debugExpanded;
 
   const MomentConversation({
     super.key,
@@ -197,7 +205,12 @@ class _MomentConversationState extends State<MomentConversation> {
     final fixture = MomentConversation.debugComments;
     if (fixture != null) {
       _comments = fixture;
-      if (fixture.isNotEmpty) _expanded.add(fixture.first.id);
+      final open = MomentConversation.debugExpanded;
+      if (open != null) {
+        _expanded.addAll(open);
+      } else if (fixture.isNotEmpty) {
+        _expanded.add(fixture.first.id);
+      }
       return;
     }
     unawaited(_subscribe());
@@ -649,28 +662,38 @@ class _MomentConversationState extends State<MomentConversation> {
       if (p != null) repliesOf.putIfAbsent(p, () => []).add(c);
     }
 
+    // Every thread hangs off one rail: it leaves the root's face, runs down
+    // past its replies, and turns into the last thing in the thread (the last
+    // reply, or the "View / Hide replies" toggle).
     final rows = <Widget>[];
     for (final root in roots) {
-      rows.add(_row(root));
       final replies = repliesOf[root.id] ?? const <MomentComment>[];
+      rows.add(_row(root, rail: replies.isEmpty ? null : MomentRail.start));
       if (replies.isEmpty) continue;
-      final open = _expanded.contains(root.id) ||
+      // A short thread just shows: a "View 1 reply" chip costs a tap to save
+      // one row. Only a longer one folds behind the toggle.
+      final folds = replies.length > kMomentInlineReplies;
+      final open = !folds ||
+          _expanded.contains(root.id) ||
           // Your own reply in flight is always shown: sending one into a
           // collapsed thread would look like it went nowhere.
           replies.any((r) => r.id.startsWith('tmp_'));
       if (open) {
-        for (final r in replies) {
-          rows.add(_row(r));
+        for (final (i, r) in replies.indexed) {
+          final last = !folds && i == replies.length - 1;
+          rows.add(_row(r, rail: last ? MomentRail.end : MomentRail.through));
         }
       }
-      rows.add(_ThreadToggle(
-        label: open
-            ? l10n.momentCommentHideReplies
-            : l10n.momentCommentViewReplies(replies.length),
-        onTap: () => setState(() {
-          open ? _expanded.remove(root.id) : _expanded.add(root.id);
-        }),
-      ));
+      if (folds) {
+        rows.add(_ThreadToggle(
+          label: open
+              ? l10n.momentCommentHideReplies
+              : l10n.momentCommentViewReplies(replies.length),
+          onTap: () => setState(() {
+            open ? _expanded.remove(root.id) : _expanded.add(root.id);
+          }),
+        ));
+      }
     }
 
     return ListView(
@@ -681,10 +704,11 @@ class _MomentConversationState extends State<MomentConversation> {
     );
   }
 
-  Widget _row(MomentComment c) {
+  Widget _row(MomentComment c, {MomentRail? rail}) {
     return _CommentRow(
       key: ValueKey(c.id),
       comment: c,
+      rail: rail,
       api: widget.api,
       userId: widget.userId,
       sending: c.id.startsWith('tmp_'),
@@ -923,41 +947,47 @@ class _MomentCommentComposerState extends State<MomentCommentComposer> {
   }
 }
 
-/// "View 3 replies" / "Hide replies", indented under the thread it opens:
-/// Instagram's short rule, then the words.
+/// "View 5 replies" / "Hide replies": the last stop on its thread's rail,
+/// which turns into the words the way it turns into a reply's face.
 class _ThreadToggle extends StatelessWidget {
   const _ThreadToggle({required this.label, required this.onTap});
   final String label;
   final VoidCallback onTap;
 
+  static const double _height = 32;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(60, 0, 16, 6),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: FocusableTap(
-          onTap: onTap,
-          semanticLabel: label,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
+    return MomentThreadRail(
+      rail: MomentRail.end,
+      elbowY: _height / 2,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(
+          start: _kReplyInset,
+          end: 16,
+          bottom: 6,
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FocusableTap(
             onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(width: 24, height: 1, color: theme.divider),
-                  const SizedBox(width: 8),
-                  Text(
+            semanticLabel: label,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: SizedBox(
+                height: _height,
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
                     label,
                     style: theme.caption.copyWith(
                       color: theme.inkMuted,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -967,10 +997,131 @@ class _ThreadToggle extends StatelessWidget {
   }
 }
 
+// ── the thread rail ─────────────────────────────────────────────────────────
+//
+// One geometry, shared by every row on a rail so the segments meet: rows are
+// separate list children, each painting its own stretch of the line.
+
+const double _kRowTop = 8;
+const double _kRootAvatar = 34;
+const double _kReplyAvatar = 24;
+
+/// The rail runs down the middle of the root's face.
+const double _kRailX = 16 + _kRootAvatar / 2;
+
+/// Where a reply's face (and the toggle's words) start.
+const double _kReplyInset = 56;
+
+/// The elbow's turn, and the breath it leaves before the face it points at.
+const double _kElbowRadius = 12;
+const double _kElbowGap = 5;
+
+/// Where a row sits on its thread's rail.
+enum MomentRail {
+  /// A root with replies: the rail leaves from under its face.
+  start,
+
+  /// A reply with more of the thread below: the rail turns into it and runs
+  /// on past.
+  through,
+
+  /// The thread's last stop: the rail turns into it and ends.
+  end,
+}
+
+/// Paints [rail]'s stretch of a thread's line behind [child]. The elbow into
+/// a reply or toggle sits at [elbowY] from the row's top. Mirrors under RTL.
+class MomentThreadRail extends StatelessWidget {
+  const MomentThreadRail({
+    super.key,
+    required this.rail,
+    required this.child,
+    this.elbowY = _kRowTop + _kReplyAvatar / 2,
+  });
+
+  final MomentRail rail;
+  final double elbowY;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return CustomPaint(
+      painter: _RailPainter(
+        rail: rail,
+        elbowY: elbowY,
+        color: theme.divider,
+        rtl: Directionality.of(context) == TextDirection.rtl,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _RailPainter extends CustomPainter {
+  _RailPainter({
+    required this.rail,
+    required this.elbowY,
+    required this.color,
+    required this.rtl,
+  });
+
+  final MomentRail rail;
+  final double elbowY;
+  final Color color;
+  final bool rtl;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    double x(double v) => rtl ? size.width - v : v;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      // Butt, not round: the divider is translucent, and round caps from two
+      // rows overlapping at their seam would print a darker bead there.
+      ..strokeCap = StrokeCap.butt
+      ..isAntiAlias = true;
+    // One path per row, so where the elbow peels off the line the two
+    // strokes share one coverage mask instead of doubling up.
+    final path = Path();
+    if (rail == MomentRail.start) {
+      path
+        ..moveTo(x(_kRailX), _kRowTop + _kRootAvatar + 6)
+        ..lineTo(x(_kRailX), size.height);
+    } else {
+      const r = _kElbowRadius;
+      path
+        ..moveTo(x(_kRailX), 0)
+        ..lineTo(x(_kRailX), elbowY - r)
+        ..arcToPoint(
+          Offset(x(_kRailX + r), elbowY),
+          radius: const Radius.circular(r),
+          clockwise: rtl,
+        )
+        ..lineTo(x(_kReplyInset - _kElbowGap), elbowY);
+      if (rail == MomentRail.through) {
+        path
+          ..moveTo(x(_kRailX), elbowY - r)
+          ..lineTo(x(_kRailX), size.height);
+      }
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_RailPainter old) =>
+      old.rail != rail ||
+      old.elbowY != elbowY ||
+      old.color != color ||
+      old.rtl != rtl;
+}
+
 class _CommentRow extends StatelessWidget {
   const _CommentRow({
     super.key,
     required this.comment,
+    required this.rail,
     required this.api,
     required this.userId,
     required this.sending,
@@ -986,6 +1137,9 @@ class _CommentRow extends StatelessWidget {
   final VoidCallback? onOpenProfile;
 
   final MomentComment comment;
+
+  /// Where this row sits on its thread's rail; null for a root on its own.
+  final MomentRail? rail;
   final ChatApi api;
   final String userId;
   final bool sending;
@@ -994,6 +1148,11 @@ class _CommentRow extends StatelessWidget {
   final VoidCallback onLike;
   final void Function(String emoji) onToggle;
   final void Function(String emoji) onShowReactors;
+
+  Widget _railed(Widget child) {
+    final r = rail;
+    return r == null ? child : MomentThreadRail(rail: r, child: child);
+  }
 
   static String _ago(BuildContext context, DateTime at) {
     final l10n = AppLocalizations.of(context);
@@ -1041,7 +1200,7 @@ class _CommentRow extends StatelessWidget {
               avatarStorageId: c.userAvatarStorageId,
             ),
             api: api,
-            size: reply ? 26 : 34,
+            size: reply ? _kReplyAvatar : _kRootAvatar,
             showStatus: false,
           ),
         ),
@@ -1096,7 +1255,9 @@ class _CommentRow extends StatelessWidget {
                     children: [
                       if (c.replyToName != null)
                         TextSpan(
-                          text: '@${c.replyToName} ',
+                          // Isolated, so a Latin "@name" opening an RTL
+                          // line keeps its "@" in front of the name.
+                          text: '\u2068@${c.replyToName}\u2069 ',
                           style: TextStyle(
                             color: theme.accent,
                             fontWeight: FontWeight.w600,
@@ -1166,9 +1327,16 @@ class _CommentRow extends StatelessWidget {
         onDoubleTap: sending || comment.myReactions.contains(_kLike)
             ? null
             : onLike,
-        child: Padding(
-          padding: EdgeInsetsDirectional.fromSTEB(reply ? 60 : 16, 8, 16, 6),
-          child: body,
+        child: _railed(
+          Padding(
+            padding: EdgeInsetsDirectional.fromSTEB(
+              reply ? _kReplyInset : 16,
+              _kRowTop,
+              16,
+              6,
+            ),
+            child: body,
+          ),
         ),
       ),
     );
