@@ -388,8 +388,7 @@ async function forfeitPartySeat(
 /**
  * Erases one game and everything hanging off it: its hidden state, its move
  * history and its heartbeats. The ONE teardown every path that removes a game
- * goes through (a deleted or expired card, a wiped room, the orphan sweep in
- * `matches._purgeOrphanMatches`).
+ * goes through (a deleted or expired card, a wiped room).
  *
  * Seats, the turn, offers and requests live on the row itself, so they go with
  * it. Scheduled jobs (`liveness`, `graceExpire`, `asyncRemind`, `asyncExpire`,

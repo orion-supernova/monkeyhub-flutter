@@ -662,13 +662,6 @@ describe("a turn by turn game with no card", () => {
     const m = await read(t, a, matchId);
     expect(m.status).toBe("active");
     expect(m.seq).toBe(2);
-    // The orphan sweep leaves it alone too: its room is its anchor.
-    const swept: any = await t.mutation(internal.matches._purgeOrphanMatches, {
-      table: "matches",
-      paginationOpts: { numItems: 50, cursor: null },
-    });
-    expect(swept.removed).toBe(0);
-    expect(await read(t, a, matchId)).not.toBeNull();
   });
 
   test("an unanswered first move times out like any other", async () => {
@@ -884,55 +877,6 @@ describe("the room around it", () => {
       // Refused before the card is sent, not after.
       const msgs = await ctx.db.query("messages").collect();
       expect(msgs.filter((m: any) => m.type === "game")).toHaveLength(0);
-    });
-  });
-
-  test("the orphan sweep erases a card-less game and nothing live", async () => {
-    const t = convexTest(schema);
-    const { matchId: live } = await liveGame(t);
-    const orphan = await t.run(async (ctx) => {
-      const m = (await ctx.db.get(live)) as any;
-      const card = await ctx.db.insert("messages", {
-        ...(await ctx.db.get(m.messageId) as any),
-        _id: undefined,
-        _creationTime: undefined,
-      } as any);
-      const id = await ctx.db.insert("matches", {
-        ...m,
-        _id: undefined,
-        _creationTime: undefined,
-        messageId: card,
-        status: "finished",
-      } as any);
-      await ctx.db.insert("matchPresence", {
-        matchId: id,
-        userId: m.createdBy,
-        lastBeatAt: 0,
-      });
-      await ctx.db.delete(card);
-      return id;
-    });
-    // Paged: one row a call.
-    const sweep = async (table: any, dryRun?: boolean) => {
-      let removed = 0;
-      let cursor: string | null = null;
-      for (;;) {
-        const r: any = await t.mutation(internal.matches._purgeOrphanMatches, {
-          table,
-          paginationOpts: { numItems: 1, cursor },
-          dryRun,
-        });
-        removed += r.removed;
-        if (r.isDone) return removed;
-        cursor = r.continueCursor;
-      }
-    };
-    expect(await sweep("matches", true)).toBe(1);
-    expect(await sweep("matches")).toBe(1);
-    expect(await sweep("matchPresence")).toBe(0);
-    await t.run(async (ctx) => {
-      expect(await ctx.db.get(orphan)).toBeNull();
-      expect(await ctx.db.get(live)).not.toBeNull();
     });
   });
 

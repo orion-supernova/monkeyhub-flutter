@@ -6,7 +6,6 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { paginationOptsValidator } from "convex/server";
 import { removeMessageAndFanout, sendCore } from "./messages";
 import { assertMember, getRoomOrThrow, isGroupRoom } from "./roomAdmin";
 import { rulesFor } from "./turnGames/registry";
@@ -1800,77 +1799,5 @@ export const forMessages = query({
       if (allowed.get(key)) out.push(view(match));
     }
     return out;
-  },
-});
-
-// ── One-off repair ──────────────────────────────────────────────────────────
-
-/**
- * TEMPORARY. Erases every game whose card no longer exists (or whose room is
- * gone), with its hidden state, moves, heartbeats and any move bubbles still
- * in the transcript; and every child row whose game is gone. Rows like these
- * were left by account deletion before it went through
- * `messages.removeMessageAndFanout`.
- *
- * Paged, one table per run: call with `table` and `paginationOpts:
- * { numItems: 200, cursor: null }`, then again with the returned
- * `continueCursor` until `isDone`. Order: "matches" first, then
- * "matchMoves", "matchPresence", "matchHidden". `dryRun: true` only counts.
- * Deploy, run, delete, redeploy.
- */
-export const _purgeOrphanMatches = internalMutation({
-  args: {
-    table: v.union(
-      v.literal("matches"),
-      v.literal("matchMoves"),
-      v.literal("matchPresence"),
-      v.literal("matchHidden"),
-    ),
-    paginationOpts: paginationOptsValidator,
-    dryRun: v.optional(v.boolean()),
-  },
-  returns: v.object({
-    scanned: v.number(),
-    removed: v.number(),
-    isDone: v.boolean(),
-    continueCursor: v.string(),
-  }),
-  handler: async (ctx, { table, paginationOpts, dryRun }) => {
-    const numItems = Math.max(1, Math.min(paginationOpts.numItems, 500));
-    const page = await ctx.db
-      .query(table)
-      .paginate({ ...paginationOpts, numItems });
-    let removed = 0;
-    for (const row of page.page as any[]) {
-      if (table === "matches") {
-        // A game that never had a card (a turn by turn game started by
-        // [startTurns]) is not an orphan: its anchor is its room. Only a
-        // card that existed and is gone, or a room that is gone, is.
-        const card = row.messageId ? await ctx.db.get(row.messageId) : null;
-        const room = await ctx.db.get(row.roomId);
-        if (room && (!row.messageId || card)) continue;
-        removed++;
-        if (dryRun) continue;
-        for (const m of await ctx.db
-          .query("matchMoves")
-          .withIndex("by_match_seq", (q) => q.eq("matchId", row._id))
-          .collect()) {
-          if (!m.messageId) continue;
-          const bubble = await ctx.db.get(m.messageId);
-          if (bubble) await removeMessageAndFanout(ctx, bubble, m.messageId);
-        }
-        await eraseMatch(ctx, row._id);
-      } else {
-        if (await ctx.db.get(row.matchId)) continue;
-        removed++;
-        if (!dryRun) await ctx.db.delete(row._id);
-      }
-    }
-    return {
-      scanned: page.page.length,
-      removed,
-      isDone: page.isDone,
-      continueCursor: page.continueCursor,
-    };
   },
 });

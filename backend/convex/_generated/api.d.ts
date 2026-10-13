@@ -78,6 +78,8 @@ import type * as roomCleanup from "../roomCleanup.js";
 import type * as roomContent from "../roomContent.js";
 import type * as roomInvitations from "../roomInvitations.js";
 import type * as roomInvites from "../roomInvites.js";
+import type * as roomPolicy from "../roomPolicy.js";
+import type * as roomPolicyBackfill from "../roomPolicyBackfill.js";
 import type * as rooms from "../rooms.js";
 import type * as scheduledMessages from "../scheduledMessages.js";
 import type * as serverDirectory from "../serverDirectory.js";
@@ -179,6 +181,8 @@ declare const fullApi: ApiFromModules<{
   roomContent: typeof roomContent;
   roomInvitations: typeof roomInvitations;
   roomInvites: typeof roomInvites;
+  roomPolicy: typeof roomPolicy;
+  roomPolicyBackfill: typeof roomPolicyBackfill;
   rooms: typeof rooms;
   scheduledMessages: typeof scheduledMessages;
   serverDirectory: typeof serverDirectory;
