@@ -41,6 +41,10 @@ node_modules/
 # every Android build; the plugin's sources themselves ARE tracked.
 /third_party/convex_flutter/android/.gradle/
 /third_party/convex_flutter/android/build/
+/third_party/flutter_callkit_incoming/android/.gradle/
+/third_party/flutter_callkit_incoming/android/build/
+/third_party/flutter_webrtc/android/.gradle/
+/third_party/flutter_webrtc/android/build/
 
 # Cargo scratch from building the vendored plugin's Rust crate, and the lockfile
 # `flutter_rust_bridge_codegen generate` drops while resolving the package. The
