@@ -66,6 +66,7 @@ import type * as push from "../push.js";
 import type * as pushCodec from "../pushCodec.js";
 import type * as pushTransport from "../pushTransport.js";
 import type * as puzzle from "../puzzle.js";
+import type * as ranking from "../ranking.js";
 import type * as rateLimit from "../rateLimit.js";
 import type * as reactions from "../reactions.js";
 import type * as receiptLog from "../receiptLog.js";
@@ -169,6 +170,7 @@ declare const fullApi: ApiFromModules<{
   pushCodec: typeof pushCodec;
   pushTransport: typeof pushTransport;
   puzzle: typeof puzzle;
+  ranking: typeof ranking;
   rateLimit: typeof rateLimit;
   reactions: typeof reactions;
   receiptLog: typeof receiptLog;
