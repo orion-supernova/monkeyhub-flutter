@@ -286,3 +286,256 @@ describe("minesweeper's clock penalty", () => {
     expect(out.durationMs).toBeLessThan(MINE_PENALTY_MS);
   });
 });
+
+describe("friends' results on the feed board", () => {
+  async function befriend(t: ReturnType<typeof convexTest>, a: Who, b: Who, bName: string) {
+    await t.mutation(api.friends.sendRequest, {
+      sessionToken: a.token,
+      userId: a.userId,
+      friendUsername: bName,
+    });
+    await t.mutation(api.friends.acceptRequest, {
+      sessionToken: b.token,
+      userId: b.userId,
+      requesterId: a.userId,
+    });
+  }
+
+  test("only finished rows reach plays, carrying hints and mistakes", async () => {
+    const t = convexTest(schema);
+    const viewer = await signUp(t, "viewer");
+    const friend = await signUp(t, "friend");
+    await befriend(t, viewer, friend, "friend");
+
+    const fb = { sessionToken: friend.token, userId: friend.userId, dayKey: DAY };
+    // One board finished with two slips, one left in progress.
+    await t.mutation(api.games.start, { ...fb, game: "nonogram" });
+    await t.mutation(api.games.submit, {
+      ...fb,
+      game: "nonogram",
+      solution: ANSWERS.nonogram,
+      elapsedMs: 0,
+      hintsUsed: 0,
+      mistakes: 2,
+    });
+    await t.mutation(api.games.start, { ...fb, game: "flow" });
+    // The viewer's own started-but-unfinished board still reaches the band.
+    await t.mutation(api.games.start, {
+      sessionToken: viewer.token,
+      userId: viewer.userId,
+      dayKey: DAY,
+      game: "futoshiki",
+    });
+
+    const board: any = await t.query(api.feed.board, {
+      sessionToken: viewer.token,
+      userId: viewer.userId,
+      dayKey: DAY,
+    } as any);
+    expect(board.plays).toHaveLength(1);
+    expect(board.plays[0]).toMatchObject({
+      userId: friend.userId,
+      game: "nonogram",
+      solved: true,
+      hintsUsed: 0,
+      mistakes: 2,
+    });
+    expect(board.plays.some((p: any) => p.game === "flow")).toBe(false);
+    expect(board.games).toEqual([
+      expect.objectContaining({ game: "futoshiki", started: true, finished: false }),
+    ]);
+  });
+
+  test("a friend's in-progress puzzle is not read, a finished one is", async () => {
+    const t = convexTest(schema);
+    const viewer = await signUp(t, "viewer");
+    const friend = await signUp(t, "friend");
+    await befriend(t, viewer, friend, "friend");
+    const now = Date.now();
+    await t.run(async (ctx: any) => {
+      await ctx.db.insert("puzzleResults", {
+        userId: friend.userId,
+        dayKey: DAY,
+        guesses: [[0, 1, 2, 3]],
+        solved: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+    const q = { sessionToken: viewer.token, userId: viewer.userId, dayKey: DAY } as any;
+    expect(((await t.query(api.feed.board, q)) as any).puzzle.scores).toEqual([]);
+
+    await t.run(async (ctx: any) => {
+      const row = await ctx.db
+        .query("puzzleResults")
+        .withIndex("by_user_day", (x: any) => x.eq("userId", friend.userId).eq("dayKey", DAY))
+        .first();
+      await ctx.db.patch(row._id, {
+        guesses: Array(6).fill([0, 0, 0, 0]),
+        finishedAt: now,
+      });
+    });
+    const scores = ((await t.query(api.feed.board, q)) as any).puzzle.scores;
+    expect(scores).toHaveLength(1);
+    expect(scores[0]).toMatchObject({ userId: friend.userId, guessCount: 6 });
+  });
+});
+
+describe("mistakes are monotonic and NaN-safe", () => {
+  test("reveal records the mistakes it is sent", async () => {
+    const t = convexTest(schema);
+    const base = await session(t, "nonogram");
+    await t.mutation(api.games.reveal, { ...base, mistakes: 3 });
+    const s: any = await t.mutation(api.games.start, base);
+    expect(s.mistakes).toBe(3);
+  });
+
+  test("reveal without mistakes keeps the autosaved count", async () => {
+    const t = convexTest(schema);
+    const base = await session(t, "nonogram");
+    await t.mutation(api.games.saveProgress, {
+      ...base,
+      progress: [],
+      elapsedMs: 0,
+      mistakes: 4,
+    });
+    await t.mutation(api.games.reveal, base);
+    const s: any = await t.mutation(api.games.start, base);
+    expect(s.mistakes).toBe(4);
+  });
+
+  test("submit never lowers the count and drops NaN", async () => {
+    const t = convexTest(schema);
+    const base = await session(t, "nonogram");
+    await t.mutation(api.games.saveProgress, {
+      ...base,
+      progress: [],
+      elapsedMs: 0,
+      mistakes: 5,
+    });
+    await t.mutation(api.games.submit, {
+      ...base,
+      solution: ANSWERS.nonogram,
+      elapsedMs: 0,
+      hintsUsed: 0,
+      mistakes: NaN,
+    });
+    const s: any = await t.mutation(api.games.start, base);
+    expect(s.mistakes).toBe(5);
+  });
+});
+
+describe("ties share a place", () => {
+  async function friends(t: ReturnType<typeof convexTest>, names: string[]) {
+    const viewer = await signUp(t, "viewer");
+    const others: Who[] = [];
+    for (const n of names) {
+      const f = await signUp(t, n);
+      await t.mutation(api.friends.sendRequest, {
+        sessionToken: viewer.token,
+        userId: viewer.userId,
+        friendUsername: n,
+      });
+      await t.mutation(api.friends.acceptRequest, {
+        sessionToken: f.token,
+        userId: f.userId,
+        requesterId: viewer.userId,
+      });
+      others.push(f);
+    }
+    return { viewer, others };
+  }
+
+  test("standings: same shown second is one place, surrenders share one", async () => {
+    const t = convexTest(schema);
+    const { viewer, others } = await friends(t, ["bea", "cal", "dan", "eve"]);
+    const now = Date.now();
+    const row = (userId: any, solved: boolean, durationMs?: number) => ({
+      userId,
+      dayKey: DAY,
+      game: "queens",
+      startedAt: now - 60_000,
+      solved,
+      gaveUp: !solved,
+      finishedAt: now,
+      hintsUsed: 0,
+      mistakes: 0,
+      ...(durationMs === undefined ? {} : { durationMs }),
+    });
+    await t.run(async (ctx: any) => {
+      // 42.9s and 42.1s both print "0:42": one place, not split by ms.
+      await ctx.db.insert("gameResults", row(others[0].userId, true, 42_900));
+      await ctx.db.insert("gameResults", row(viewer.userId, true, 42_100));
+      await ctx.db.insert("gameResults", row(others[1].userId, true, 50_000));
+      await ctx.db.insert("gameResults", row(others[2].userId, false));
+      await ctx.db.insert("gameResults", row(others[3].userId, false));
+    });
+    const out: any = await t.query(api.games.standings, {
+      sessionToken: viewer.token,
+      userId: viewer.userId,
+      dayKey: DAY,
+    } as any);
+    const places = out.boards.queens.map((r: any) => [r.name, r.place]);
+    // Within the tie the server orders by real name ("bea" < "viewer"), and
+    // the viewer is still emitted as "".
+    expect(places).toEqual([
+      ["bea", 1],
+      ["", 1],
+      ["cal", 3],
+      ["dan", 4],
+      ["eve", 4],
+    ]);
+  });
+
+  test("puzzle: equal guess counts share a place", async () => {
+    const t = convexTest(schema);
+    const { viewer, others } = await friends(t, ["bea", "cal", "dan"]);
+    const now = Date.now();
+    const solve = (n: number) => Array(n).fill([0, 0, 0, 0]);
+    await t.run(async (ctx: any) => {
+      const put = (userId: any, guesses: number[][], solved: boolean, at: number) =>
+        ctx.db.insert("puzzleResults", {
+          userId,
+          dayKey: DAY,
+          guesses,
+          solved,
+          createdAt: now,
+          updatedAt: now,
+          finishedAt: at,
+        });
+      await put(others[0].userId, solve(3), true, now + 5);
+      await put(others[1].userId, solve(3), true, now);
+      await put(others[2].userId, solve(6), false, now);
+    });
+    const board: any = await t.query(api.feed.board, {
+      sessionToken: viewer.token,
+      userId: viewer.userId,
+      dayKey: DAY,
+    } as any);
+    expect(board.puzzle.scores.map((s: any) => [s.name, s.place])).toEqual([
+      ["bea", 1],
+      ["cal", 1],
+      ["dan", 3],
+    ]);
+  });
+
+  test("records: same shown second shares a rank", async () => {
+    const t = convexTest(schema);
+    const { viewer, others } = await friends(t, ["bea", "cal"]);
+    await t.run(async (ctx: any) => {
+      const { noteSolve } = await import("./recordBook");
+      await noteSolve(ctx, { userId: others[1].userId, game: "queens", score: 61_200, dayKey: DAY, achievedAt: 1 });
+      await noteSolve(ctx, { userId: others[0].userId, game: "queens", score: 61_900, dayKey: DAY, achievedAt: 2 });
+      await noteSolve(ctx, { userId: viewer.userId, game: "queens", score: 70_000, dayKey: DAY, achievedAt: 3 });
+    });
+    const out: any = await t.query(api.records.board, {
+      sessionToken: viewer.token,
+      userId: viewer.userId,
+    } as any);
+    expect(out.games.queens.map((r: any) => [r.name, r.rank])).toEqual([
+      ["bea", 1],
+      ["cal", 1],
+      ["", 3],
+    ]);
+  });
+});

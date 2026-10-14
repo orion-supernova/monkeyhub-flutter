@@ -2109,6 +2109,11 @@ export default defineSchema({
     sharedAt: v.optional(v.number()),
   })
     .index("by_user_day", ["userId", "dayKey"])
+    // A friend's FINISHED result for the day, for `feed.board`. Read with
+    // `.gt("finishedAt", 0)`: an unset `finishedAt` sorts below every number,
+    // so in-progress rows sit outside the read range and a friend's guesses
+    // do not re-run every board subscribed to them, only their finish does.
+    .index("by_user_day_finished", ["userId", "dayKey", "finishedAt"])
     // Account teardown (auth.ts purgeUser).
     .index("by_user", ["userId"]),
 
@@ -2166,7 +2171,14 @@ export default defineSchema({
     // notifies fifty people again. `games:shareResult` refuses a row that
     // already carries this.
     sharedAt: v.optional(v.number()),
-  }).index("by_user_day_game", ["userId", "dayKey", "game"]),
+  })
+    .index("by_user_day_game", ["userId", "dayKey", "game"])
+    // A friend's FINISHED games for the day, for `feed.board`, read with
+    // `.gt("finishedAt", 0)` so an unset `finishedAt` (sorts lowest) is out of
+    // range. Without it every start, hint and autosave a friend makes re-ran
+    // the board of everyone subscribed to them, for rows the board then
+    // skipped anyway.
+    .index("by_user_day_finished", ["userId", "dayKey", "finishedAt"]),
 
   // One row per player per game, ALL TIME: their best, and how many times they
   // have solved it. Kept by `records.noteSolve` from `games.submit` and

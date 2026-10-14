@@ -8,6 +8,7 @@ import { deleteStored } from "./files";
 import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
 import { purgeMomentComments } from "./momentComments";
 import { lensFor } from "./visibility";
+import { byNameThenId, competitionPlaces } from "./ranking";
 
 /**
  * The Feed board — "TODAY".
@@ -78,7 +79,7 @@ const MAX_CAPTION = 280;
  * without limit is how a small box falls over. Beyond this the board shows the
  * most recently added friends; nothing breaks, it just stops growing.
  */
-const MAX_FANOUT = 200;
+export const MAX_FANOUT = 200;
 
 /**
  * A moment as any viewer may see it.
@@ -275,6 +276,10 @@ export const board = query({
     // not exist on it — on the line that builds the scoreboard's names.
     const authorIds: Id<"users">[] = [userId, ...friendIds];
 
+    // Each friend's `users` row, read once here and reused by the puzzle loop
+    // below, which needs the same row for its visibility check and name.
+    const authors = new Map<Id<"users">, any>();
+
     const out: any[] = [];
     for (const authorId of authorIds) {
       const mine = authorId === userId;
@@ -295,6 +300,7 @@ export const board = query({
         // would mean a change to it silently not applying to older rows.
         const author = await ctx.db.get(authorId);
         if (!author) continue;
+        authors.set(authorId, author);
         const vis = visibilityOf(author);
         allowHighlights = vis.feed;
         allowPoints = vis.points;
@@ -308,21 +314,28 @@ export const board = query({
       // a key this viewer is not asking for, and the highlight was on the
       // notification but missing from the board. Points stay day-scoped: the
       // scoreboard is "today's" by definition.
-      const rows = mine
-        ? await ctx.db
-            .query("moments")
-            .withIndex("by_user_day", (q: any) =>
-              q.eq("userId", authorId).eq("dayKey", dayKey)
-            )
-            .collect()
-        : (
-            await ctx.db
-              .query("moments")
-              .withIndex("by_user_created", (q: any) =>
-                q.eq("userId", authorId).gt("createdAt", now - VISIBLE_MS)
-              )
-              .collect()
-          ).filter((m: any) => m.tag === undefined || m.dayKey === dayKey);
+      const live = (
+        await ctx.db
+          .query("moments")
+          .withIndex("by_user_created", (q: any) =>
+            q.eq("userId", authorId).gt("createdAt", now - VISIBLE_MS)
+          )
+          .collect()
+      ).filter((m: any) => m.tag === undefined || m.dayKey === dayKey);
+      // Your own board is today's rows PLUS the live window above. Day-only,
+      // a highlight posted last night vanished from its author's rail at
+      // midnight while friends still saw it for hours.
+      let rows = live;
+      if (mine) {
+        const today = await ctx.db
+          .query("moments")
+          .withIndex("by_user_day", (q: any) =>
+            q.eq("userId", authorId).eq("dayKey", dayKey)
+          )
+          .collect();
+        const ids = new Set(live.map((m: any) => m._id));
+        rows = [...live, ...today.filter((m: any) => !ids.has(m._id))];
+      }
 
       for (const m of rows) {
         // Your own expired moments stay on your board for the rest of your
@@ -382,7 +395,9 @@ export const board = query({
       const isMe = playerId === userId;
       let playerName = "";
       if (!isMe) {
-        const player = await ctx.db.get(playerId);
+        const player = authors.has(playerId)
+          ? authors.get(playerId)
+          : await ctx.db.get(playerId);
         if (!player) continue;
         if (!visibilityOf(player).puzzle) continue;
         // The scoreboard needs a name, and this row is already loaded for the
@@ -396,12 +411,25 @@ export const board = query({
       // and the player row it needs is already loaded above. One indexed read
       // per player, and it has to run before the puzzle check below, because
       // somebody who played Queens but skipped the code still played.
-      const gameRows = await ctx.db
-        .query("gameResults")
-        .withIndex("by_user_day_game", (q: any) =>
-          q.eq("userId", playerId).eq("dayKey", dayKey)
-        )
-        .collect();
+      //
+      // A friend's rows come through `by_user_day_finished` with a floor on
+      // `finishedAt`. An unset `finishedAt` sorts below every number, so their
+      // in-progress boards are outside the read range entirely: a start, hint
+      // or autosave of theirs no longer re-runs this subscription. The viewer's
+      // own read still takes every started row, for the band below.
+      const gameRows = isMe
+        ? await ctx.db
+            .query("gameResults")
+            .withIndex("by_user_day_game", (q: any) =>
+              q.eq("userId", playerId).eq("dayKey", dayKey)
+            )
+            .collect()
+        : await ctx.db
+            .query("gameResults")
+            .withIndex("by_user_day_finished", (q: any) =>
+              q.eq("userId", playerId).eq("dayKey", dayKey).gt("finishedAt", 0)
+            )
+            .collect();
       if (isMe) myGameRows = gameRows;
       for (const g of gameRows) {
         // Unfinished boards stay private for the same reason an in-progress
@@ -415,15 +443,29 @@ export const board = query({
           gaveUp: g.gaveUp,
           durationMs: g.durationMs,
           finishedAt: g.finishedAt,
+          // Advisory, like on the hub: shown next to a result, never ranked.
+          hintsUsed: g.hintsUsed ?? 0,
+          mistakes: g.mistakes ?? 0,
         });
       }
 
-      const row = await ctx.db
-        .query("puzzleResults")
-        .withIndex("by_user_day", (q: any) =>
-          q.eq("userId", playerId).eq("dayKey", dayKey)
-        )
-        .first();
+      // Same split as the games above: the viewer needs their in-progress
+      // attempt for `mine`, a friend's is never shown, so a friend's read is
+      // finished-only and their guesses do not re-run this subscription.
+      // `puzzle.guess` sets `finishedAt` on a solve AND on the last guess.
+      const row = isMe
+        ? await ctx.db
+            .query("puzzleResults")
+            .withIndex("by_user_day", (q: any) =>
+              q.eq("userId", playerId).eq("dayKey", dayKey)
+            )
+            .first()
+        : await ctx.db
+            .query("puzzleResults")
+            .withIndex("by_user_day_finished", (q: any) =>
+              q.eq("userId", playerId).eq("dayKey", dayKey).gt("finishedAt", 0)
+            )
+            .first();
       if (!row) continue;
 
       const finished = row.solved || row.guesses.length >= MAX_GUESSES;
@@ -465,14 +507,24 @@ export const board = query({
       });
     }
 
-    // Solved first, then fewest guesses, then earliest finish. Ties broken by
-    // id so equal results hold a stable order rather than reshuffling on every
-    // board render — the leaderboard animates rows by identity.
+    // Solved first, then fewest guesses; every unsolved X/6 is one group
+    // below. Only what the board shows decides a place: equal results SHARE a
+    // `place` (1, 1, 3) and are never split by finish time or id. Within a tie
+    // the order is by name, only so rows hold still between renders (the
+    // leaderboard animates by identity); the client re-sorts tied names in its
+    // own locale. The viewer's own row sorts as "" here: reading their users
+    // row just for a tie order would put their own presence heartbeat on this
+    // subscription.
+    const shown = (r: any) => (r.solved ? r.guessCount : -1);
     scores.sort((a, b) => {
       if (a.solved !== b.solved) return a.solved ? -1 : 1;
-      if (a.guessCount !== b.guessCount) return a.guessCount - b.guessCount;
-      if (a.finishedAt !== b.finishedAt) return a.finishedAt - b.finishedAt;
-      return a.userId < b.userId ? -1 : 1;
+      const d = shown(a) - shown(b);
+      if (d !== 0) return d;
+      return byNameThenId(a, b);
+    });
+    const places = competitionPlaces(scores, shown);
+    scores.forEach((s, i) => {
+      s.place = places[i];
     });
 
     // ── The daily games ─────────────────────────────────────────────────────
@@ -480,9 +532,9 @@ export const board = query({
     // four tiles reading "solved in 1:42" or "not played", which is what makes
     // a game people already own discoverable rather than something they have
     // to remember to go and look for. Friends' FINISHED results ride along in
-    // `plays` for the Activity list; the full per-game leaderboards (hints,
-    // mistakes, ranking) stay on the hub, which `games.standings` serves
-    // one-shot when it opens.
+    // `plays` for the Activity list, hints and mistakes included; the full
+    // per-game leaderboards (ranking, streaks, faces) stay on the hub, which
+    // `games.standings` serves one-shot when it opens.
     const games = myGameRows.map((row: any) => ({
       game: row.game,
       solved: row.solved,

@@ -6,6 +6,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { GAMES } from "./games";
 import { CODE_GAME, extendStreak, reactionsOn } from "./recordBook";
 import { lensFor } from "./visibility";
+import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 
 /**
  * ALL-TIME RECORDS — everyone's best at every game, and the friends cheering it.
@@ -102,7 +103,6 @@ export const board = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
     type Person = { id: Id<"users">; name: string; isMe: boolean };
-    const people: Person[] = [{ id: userId, name: "", isMe: true }];
     // Faces by person, for the holders and the cheerers: through the lens the
     // Feed draws authors with, so a friend who keeps their picture from
     // friends is a monogram here too. Read off the user rows this loop
@@ -110,6 +110,10 @@ export const board = query({
     const lens = await lensFor(ctx, userId);
     const avatars: Record<string, string> = {};
     const me: any = await ctx.db.get(userId);
+    // The viewer's REAL name, for ordering a tie; emitted as "" below.
+    const people: Person[] = [
+      { id: userId, name: me?.name ?? me?.username ?? "", isMe: true },
+    ];
     if (me?.avatarStorageId) avatars[userId] = me.avatarStorageId;
     for (const friendId of await acceptedFriendIds(ctx, userId)) {
       const friend: any = await ctx.db.get(friendId);
@@ -140,20 +144,28 @@ export const board = query({
     const games: Record<string, any[]> = {};
     for (const g of RECORD_GAMES) {
       const rows = byGame.get(g)!;
-      // Best first; the earlier of two equal bests first, because it was set
-      // first; then id, so a tie holds its order instead of shuffling between
-      // opens.
+      // Best first, compared at the precision the board prints: guesses for
+      // the code, whole seconds for a timed game. Equal shown bests SHARE a
+      // `rank` (1, 1, 3); who set it first, the milliseconds and the id are
+      // hidden and decide nothing. Within a tie the order is by name for
+      // stability; the client re-sorts tied names in its own locale.
+      const shown = (x: { r: Doc<"gameRecords"> }) =>
+        g === CODE_GAME ? x.r.best! : shownSeconds(x.r.best);
       rows.sort((a, b) => {
-        if (a.r.best !== b.r.best) return a.r.best! - b.r.best!;
-        if (a.r.achievedAt !== b.r.achievedAt) {
-          return a.r.achievedAt - b.r.achievedAt;
-        }
-        return a.p.id < b.p.id ? -1 : 1;
+        const d = shown(a) - shown(b);
+        if (d !== 0) return d;
+        return byNameThenId(
+          { name: a.p.name, userId: a.p.id },
+          { name: b.p.name, userId: b.p.id },
+        );
       });
+      const places = competitionPlaces(rows, shown);
       const out: any[] = [];
       for (let i = 0; i < rows.length; i++) {
         const { r, p } = rows[i];
-        if (i >= TOP && !p.isMe) continue;
+        // The cut is by PLACE, not position: a tie group that starts inside
+        // the top [TOP] comes in whole rather than being split mid-tie.
+        if (places[i] > TOP && !p.isMe) continue;
         const live = (await reactionsOn(ctx, r._id)).filter(
           (x: any) => x.achievedAt === r.achievedAt,
         );
@@ -165,7 +177,7 @@ export const board = query({
           // Empty for the viewer, as on every other scoreboard: the client
           // says "you" in the viewer's own language.
           name: p.isMe ? "" : p.name,
-          rank: i + 1,
+          rank: places[i],
           best: r.best,
           dayKey: r.dayKey,
           achievedAt: r.achievedAt,

@@ -14,6 +14,8 @@ import * as hints from "./games/hints";
 import * as zip from "./games/zip";
 import { liveStreak, noteSolve } from "./recordBook";
 import { lensFor } from "./visibility";
+import { MAX_FANOUT } from "./feed";
+import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 
 /**
  * THE DAILY GAMES — Queens, Tango, Zip, Mini Sudoku, Flow, Futoshiki,
@@ -83,6 +85,16 @@ function isGameId(value: string): value is GameId {
  * there). Mirrored as `kMinePenalty` on the client.
  */
 export const MINE_PENALTY_MS = 30_000;
+
+/**
+ * A client-reported count (mistakes) as a whole number the row can hold:
+ * NaN, Infinity and negatives all become 0. `Math.round(NaN)` survives
+ * `Math.max`, so without this a bad payload writes NaN into the row and every
+ * later `Math.max(row.mistakes, …)` stays NaN for good.
+ */
+function safeCount(n: number | undefined): number {
+  return n !== undefined && Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+}
 
 /**
  * Largest grid each game's `progress` / `board` / `solution` can be: one entry
@@ -353,7 +365,7 @@ export const standings = query({
     // over.
     const friendIds = friendships
       .filter((f: any) => f.status === "accepted")
-      .slice(0, 200)
+      .slice(0, MAX_FANOUT)
       .map((f: any) => f.friendId);
 
     const mineRows = await rowsFor(ctx, userId, dayKey);
@@ -409,14 +421,11 @@ export const standings = query({
     }
 
     for (const friendId of friendIds) {
-      const rows = await rowsFor(ctx, friendId, dayKey);
-      // One more indexed read per friend: the code puzzle's scores live on
-      // the Feed's board rather than here, so its scorers' streaks have no
-      // other way onto the leaderboard.
-      const records = await recordsOf(ctx, friendId);
-      if (rows.size === 0 && records.length === 0) continue;
-      // One `users` read per friend who actually played, not per friend.
-      // Someone who has not touched today's games costs nothing here.
+      // The friend's own row FIRST, and their visibility gate before any of
+      // their results are read: a friend who hid their dailies must not cost
+      // two indexed reads (or have their rows in this query's read set) only
+      // to be skipped afterwards. One `users` read per friend; `standings` is
+      // served one-shot, so it does not re-run on their presence heartbeat.
       const friend: any = await ctx.db.get(friendId);
       if (!friend) continue;
       // The same `visibility.puzzle` switch the symbol-code scoreboard obeys.
@@ -425,6 +434,12 @@ export const standings = query({
       // two switches means the one they already set silently stops covering
       // half the feature.
       if ((friend.visibility?.puzzle ?? "friends") === "nobody") continue;
+      const rows = await rowsFor(ctx, friendId, dayKey);
+      // One more indexed read per friend: the code puzzle's scores live on
+      // the Feed's board rather than here, so its scorers' streaks have no
+      // other way onto the leaderboard.
+      const records = await recordsOf(ctx, friendId);
+      if (rows.size === 0 && records.length === 0) continue;
       noteStreaks(friendId, records);
       // A name for everyone on a streak, for the streak rankings: a friend
       // alive since yesterday has no row today to carry it.
@@ -441,23 +456,38 @@ export const standings = query({
       }
     }
 
+    // The viewer's row carries their REAL name until the boards are sorted,
+    // so a tie orders them among their friends the way the client will; it is
+    // blanked to "" below, as on every scoreboard (the client says "you").
+    const myName = me?.name ?? me?.username ?? "";
     for (const [game, row] of mineRows) {
       if (!row.finishedAt) continue;
-      boards[game]?.push({ ...resultView(row), userId, name: "" });
+      boards[game]?.push({ ...resultView(row), userId, name: myName });
     }
 
-    // Solved first, then fastest, then earliest finish, then id — a stable
-    // order, because the client animates these rows by identity and a tie that
-    // reshuffles on every refresh reads as the list glitching.
+    // Solved first, then fastest AT THE PRECISION SHOWN (whole seconds). Every
+    // surrender is one group below the solvers. A tie on what is shown shares
+    // a `place` (1, 1, 3) and is never split by milliseconds, finish time or
+    // id; within it the order is by name for stability, and the client
+    // re-sorts tied names in its own locale.
+    // -1 marks the surrender group: distinct from any solver's seconds, and
+    // only ever compared within it because the sort puts solvers first.
+    const shown = (r: any) => (r.solved ? shownSeconds(r.durationMs) : -1);
     for (const id of GAMES) {
-      boards[id].sort((a, b) => {
+      const rows = boards[id];
+      rows.sort((a, b) => {
         if (a.solved !== b.solved) return a.solved ? -1 : 1;
-        const at = a.durationMs ?? Number.MAX_SAFE_INTEGER;
-        const bt = b.durationMs ?? Number.MAX_SAFE_INTEGER;
+        const at = shown(a);
+        const bt = shown(b);
         if (at !== bt) return at - bt;
-        if (a.finishedAt !== b.finishedAt) return a.finishedAt - b.finishedAt;
-        return a.userId < b.userId ? -1 : 1;
+        return byNameThenId(a, b);
       });
+      const places = competitionPlaces(rows, shown);
+      boards[id] = rows.map((r, i) => ({
+        ...r,
+        place: places[i],
+        name: r.userId === userId ? "" : r.name,
+      }));
     }
 
     return {
@@ -563,7 +593,7 @@ export const saveProgress = mutation({
       // shorter session, and in both cases the longer reading is the honest
       // one.
       elapsedMs: Math.max(row.elapsedMs ?? 0, Math.max(0, Math.round(elapsedMs))),
-      mistakes: Math.max(row.mistakes, Math.max(0, Math.round(mistakes))),
+      mistakes: Math.max(row.mistakes, safeCount(mistakes)),
     });
     return null;
   },
@@ -713,7 +743,7 @@ export const submit = mutation({
     // ever lets a time be SLOWER than the window, never faster.
     const penaltyMs =
       game === "minesweeper"
-        ? MINE_PENALTY_MS * Math.max(0, Math.round(mistakes) || 0)
+        ? MINE_PENALTY_MS * safeCount(mistakes)
         : 0;
     const durationMs = Math.max(
       0,
@@ -728,7 +758,9 @@ export const submit = mutation({
       // number can add to it (a hint it counted that the server missed is
       // impossible, but harmless) and never take one away.
       hintsUsed: hints,
-      mistakes: Math.max(0, Math.round(mistakes)),
+      // Monotonic like `hintsUsed`: an autosave may already have recorded more
+      // slips than a late submit reports, and a NaN must not land in the row.
+      mistakes: Math.max(row.mistakes, safeCount(mistakes)),
       // The finished grid replaces the autosave, so reopening a board you
       // already solved shows the solved board rather than the state you were in
       // when you last happened to leave the screen.
@@ -816,8 +848,15 @@ export const shareResult = mutation({
  * which is what `finishedAt` being set here prevents.
  */
 export const reveal = mutation({
-  args: { userId: v.id("users"), dayKey: v.string(), game: v.string() },
-  handler: async (ctx, { userId, dayKey, game }) => {
+  args: {
+    userId: v.id("users"),
+    dayKey: v.string(),
+    game: v.string(),
+    // The mistakes made before giving up. Optional so builds that do not send
+    // it keep working; when absent the row keeps what autosave last wrote.
+    mistakes: v.optional(v.number()),
+  },
+  handler: async (ctx, { userId, dayKey, game, mistakes }) => {
     if (!isGameId(game)) throw new Error("UNKNOWN_GAME");
     const row = await ctx.db
       .query("gameResults")
@@ -832,6 +871,8 @@ export const reveal = mutation({
         gaveUp: true,
         solved: false,
         finishedAt: Date.now(),
+        // Never lowered, and NaN-safe: same rule as `submit`.
+        mistakes: Math.max(row.mistakes, safeCount(mistakes)),
       });
     }
     return { answer };
