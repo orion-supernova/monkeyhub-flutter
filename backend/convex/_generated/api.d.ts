@@ -34,6 +34,7 @@ import type * as games_grid from "../games/grid.js";
 import type * as games_hints from "../games/hints.js";
 import type * as games_minesweeper from "../games/minesweeper.js";
 import type * as games_nonogram from "../games/nonogram.js";
+import type * as games_patches from "../games/patches.js";
 import type * as games_queens from "../games/queens.js";
 import type * as games_rng from "../games/rng.js";
 import type * as games_starbattle from "../games/starbattle.js";
@@ -138,6 +139,7 @@ declare const fullApi: ApiFromModules<{
   "games/hints": typeof games_hints;
   "games/minesweeper": typeof games_minesweeper;
   "games/nonogram": typeof games_nonogram;
+  "games/patches": typeof games_patches;
   "games/queens": typeof games_queens;
   "games/rng": typeof games_rng;
   "games/starbattle": typeof games_starbattle;

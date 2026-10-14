@@ -24,5 +24,9 @@ GameTier tierOf(DailyGame? game) => switch (game) {
   DailyGame.futoshiki => GameTier.medium,
   DailyGame.nonogram => GameTier.medium,
   DailyGame.minesweeper => GameTier.medium,
+  // Shikaku with some numbers taken away: every board settles by plain
+  // reasoning (the generator checks), but cutting a 7×7 around half-blank
+  // clues is a sit-down rather than a warm-up.
+  DailyGame.patches => GameTier.medium,
   DailyGame.starbattle => GameTier.hard,
 };

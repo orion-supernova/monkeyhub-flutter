@@ -1011,6 +1011,115 @@
           0,
           0
         ]
+      },
+      "patches": {
+        "board": {
+          "size": 7,
+          "difficulty": "medium",
+          "clues": [
+            {
+              "cell": 3,
+              "shape": "wide",
+              "area": 3
+            },
+            {
+              "cell": 9,
+              "shape": "any",
+              "area": 3
+            },
+            {
+              "cell": 13,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 15,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 19,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 21,
+              "shape": "any",
+              "area": 4
+            },
+            {
+              "cell": 24,
+              "shape": "tall",
+              "area": 8
+            },
+            {
+              "cell": 30,
+              "shape": "square",
+              "area": 0
+            },
+            {
+              "cell": 41,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 44,
+              "shape": "square",
+              "area": 4
+            }
+          ]
+        },
+        "answer": [
+          3,
+          3,
+          1,
+          0,
+          0,
+          0,
+          2,
+          3,
+          3,
+          1,
+          6,
+          6,
+          4,
+          2,
+          3,
+          3,
+          1,
+          6,
+          6,
+          4,
+          2,
+          5,
+          7,
+          7,
+          6,
+          6,
+          4,
+          2,
+          5,
+          7,
+          7,
+          6,
+          6,
+          4,
+          2,
+          5,
+          9,
+          9,
+          8,
+          8,
+          8,
+          8,
+          5,
+          9,
+          9,
+          8,
+          8,
+          8,
+          8
+        ]
       }
     },
     {
@@ -2018,6 +2127,115 @@
           0,
           0,
           0
+        ]
+      },
+      "patches": {
+        "board": {
+          "size": 7,
+          "difficulty": "medium",
+          "clues": [
+            {
+              "cell": 9,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 11,
+              "shape": "tall",
+              "area": 4
+            },
+            {
+              "cell": 17,
+              "shape": "any",
+              "area": 5
+            },
+            {
+              "cell": 27,
+              "shape": "tall",
+              "area": 8
+            },
+            {
+              "cell": 28,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 30,
+              "shape": "any",
+              "area": 3
+            },
+            {
+              "cell": 32,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 44,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 45,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 48,
+              "shape": "tall",
+              "area": 3
+            }
+          ]
+        },
+        "answer": [
+          0,
+          0,
+          0,
+          2,
+          1,
+          3,
+          3,
+          0,
+          0,
+          0,
+          2,
+          1,
+          3,
+          3,
+          4,
+          4,
+          5,
+          2,
+          1,
+          3,
+          3,
+          4,
+          4,
+          5,
+          2,
+          1,
+          3,
+          3,
+          4,
+          4,
+          5,
+          2,
+          6,
+          6,
+          9,
+          7,
+          7,
+          7,
+          8,
+          6,
+          6,
+          9,
+          7,
+          7,
+          7,
+          8,
+          6,
+          6,
+          9
         ]
       }
     },
@@ -3042,6 +3260,115 @@
           1,
           0
         ]
+      },
+      "patches": {
+        "board": {
+          "size": 7,
+          "difficulty": "medium",
+          "clues": [
+            {
+              "cell": 1,
+              "shape": "square",
+              "area": 0
+            },
+            {
+              "cell": 5,
+              "shape": "square",
+              "area": 0
+            },
+            {
+              "cell": 10,
+              "shape": "square",
+              "area": 0
+            },
+            {
+              "cell": 14,
+              "shape": "any",
+              "area": 4
+            },
+            {
+              "cell": 22,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 25,
+              "shape": "wide",
+              "area": 6
+            },
+            {
+              "cell": 30,
+              "shape": "tall",
+              "area": 3
+            },
+            {
+              "cell": 35,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 40,
+              "shape": "any",
+              "area": 6
+            },
+            {
+              "cell": 46,
+              "shape": "tall",
+              "area": 6
+            }
+          ]
+        },
+        "answer": [
+          3,
+          0,
+          0,
+          2,
+          2,
+          1,
+          1,
+          3,
+          0,
+          0,
+          2,
+          2,
+          1,
+          1,
+          3,
+          4,
+          4,
+          4,
+          5,
+          5,
+          5,
+          3,
+          4,
+          4,
+          4,
+          5,
+          5,
+          5,
+          7,
+          7,
+          6,
+          9,
+          9,
+          8,
+          8,
+          7,
+          7,
+          6,
+          9,
+          9,
+          8,
+          8,
+          7,
+          7,
+          6,
+          9,
+          9,
+          8,
+          8
+        ]
       }
     },
     {
@@ -4042,6 +4369,115 @@
           1,
           0,
           0
+        ]
+      },
+      "patches": {
+        "board": {
+          "size": 7,
+          "difficulty": "medium",
+          "clues": [
+            {
+              "cell": 0,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 7,
+              "shape": "tall",
+              "area": 4
+            },
+            {
+              "cell": 15,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 19,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 20,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 24,
+              "shape": "any",
+              "area": 8
+            },
+            {
+              "cell": 27,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 39,
+              "shape": "any",
+              "area": 6
+            },
+            {
+              "cell": 44,
+              "shape": "wide",
+              "area": 8
+            },
+            {
+              "cell": 47,
+              "shape": "wide",
+              "area": 3
+            }
+          ]
+        },
+        "answer": [
+          0,
+          0,
+          0,
+          0,
+          3,
+          3,
+          4,
+          1,
+          2,
+          5,
+          5,
+          3,
+          3,
+          4,
+          1,
+          2,
+          5,
+          5,
+          3,
+          3,
+          4,
+          1,
+          2,
+          5,
+          5,
+          6,
+          6,
+          6,
+          1,
+          2,
+          5,
+          5,
+          7,
+          7,
+          7,
+          8,
+          8,
+          8,
+          8,
+          7,
+          7,
+          7,
+          8,
+          8,
+          8,
+          8,
+          9,
+          9,
+          9
         ]
       }
     },
@@ -5057,6 +5493,115 @@
           1,
           0
         ]
+      },
+      "patches": {
+        "board": {
+          "size": 7,
+          "difficulty": "medium",
+          "clues": [
+            {
+              "cell": 3,
+              "shape": "any",
+              "area": 6
+            },
+            {
+              "cell": 6,
+              "shape": "any",
+              "area": 3
+            },
+            {
+              "cell": 8,
+              "shape": "square",
+              "area": 4
+            },
+            {
+              "cell": 11,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 28,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 33,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 34,
+              "shape": "tall",
+              "area": 2
+            },
+            {
+              "cell": 36,
+              "shape": "wide",
+              "area": 8
+            },
+            {
+              "cell": 40,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 46,
+              "shape": "wide",
+              "area": 0
+            }
+          ]
+        },
+        "answer": [
+          2,
+          2,
+          0,
+          0,
+          3,
+          3,
+          1,
+          2,
+          2,
+          0,
+          0,
+          3,
+          3,
+          1,
+          4,
+          4,
+          0,
+          0,
+          3,
+          3,
+          1,
+          4,
+          4,
+          5,
+          5,
+          5,
+          5,
+          6,
+          4,
+          4,
+          5,
+          5,
+          5,
+          5,
+          6,
+          7,
+          7,
+          7,
+          7,
+          8,
+          8,
+          8,
+          7,
+          7,
+          7,
+          7,
+          9,
+          9,
+          9
+        ]
       }
     },
     {
@@ -6064,6 +6609,115 @@
           0,
           0,
           0
+        ]
+      },
+      "patches": {
+        "board": {
+          "size": 7,
+          "difficulty": "medium",
+          "clues": [
+            {
+              "cell": 2,
+              "shape": "any",
+              "area": 6
+            },
+            {
+              "cell": 11,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 14,
+              "shape": "tall",
+              "area": 5
+            },
+            {
+              "cell": 25,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 27,
+              "shape": "tall",
+              "area": 4
+            },
+            {
+              "cell": 30,
+              "shape": "tall",
+              "area": 0
+            },
+            {
+              "cell": 35,
+              "shape": "wide",
+              "area": 0
+            },
+            {
+              "cell": 45,
+              "shape": "any",
+              "area": 5
+            },
+            {
+              "cell": 47,
+              "shape": "wide",
+              "area": 2
+            },
+            {
+              "cell": 48,
+              "shape": "tall",
+              "area": 0
+            }
+          ]
+        },
+        "answer": [
+          2,
+          0,
+          0,
+          0,
+          1,
+          1,
+          4,
+          2,
+          0,
+          0,
+          0,
+          1,
+          1,
+          4,
+          2,
+          5,
+          5,
+          7,
+          1,
+          1,
+          4,
+          2,
+          5,
+          5,
+          7,
+          3,
+          3,
+          4,
+          2,
+          5,
+          5,
+          7,
+          3,
+          3,
+          9,
+          6,
+          6,
+          6,
+          7,
+          3,
+          3,
+          9,
+          6,
+          6,
+          6,
+          7,
+          8,
+          8,
+          9
         ]
       }
     }

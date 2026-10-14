@@ -6728,6 +6728,18 @@
   "@gameHintFlowPipe": {
     "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Flow: the hint draws one complete pipe between its two dots."
   },
+  "gameHintPatchesOnly": "Only one patch fits this clue.",
+  "@gameHintPatchesOnly": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Patches: only one rectangle fits this clue's shape and size."
+  },
+  "gameHintPatchesCell": "A square here can only belong to this clue, and that leaves it one patch.",
+  "@gameHintPatchesCell": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Patches: some square can only be reached by this clue's rectangles, which narrows the clue down to one rectangle."
+  },
+  "gameHintPatchesSqueeze": "The patches around it leave this clue only one way to fit.",
+  "@gameHintPatchesSqueeze": {
+    "description": "Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Patches: the neighbouring patches leave this clue's rectangle only one possible position."
+  },
   "gameErrorGeneric": "Couldn't reach the games. Try again",
   "@gameErrorGeneric": {
     "description": "Generic error when a daily-game action fails for an unrecognised reason."
@@ -14829,6 +14841,10 @@
   "@gameStarbattleName": {
     "description": "Name of the Star Battle daily game: place 2 stars in every row, column and colour region, never touching. Sentence case."
   },
+  "gamePatchesName": "Patches",
+  "@gamePatchesName": {
+    "description": "Name of the Patches daily game (LinkedIn's rectangle puzzle, also known as Shikaku): cut the board into rectangles, each holding exactly one clue. Sentence case."
+  },
   "gameFlowRule": "join matching dots, fill every square",
   "@gameFlowRule": {
     "description": "Flow's rules in one line, under its title. Join each pair of matching dots; the pipes must fill every square."
@@ -14848,6 +14864,10 @@
   "gameStarbattleRule": "two stars per row, column and colour, never touching",
   "@gameStarbattleRule": {
     "description": "Star Battle's rules in one line, under its title. Two stars in each row, column and colour region, and no two stars touching, including diagonally."
+  },
+  "gamePatchesRule": "cut the board into rectangles, one clue in each",
+  "@gamePatchesRule": {
+    "description": "Patches' rules in one line, under its title. Cut the board into rectangles; each rectangle contains exactly one clue. Lowercase start, like the other games' rule lines."
   },
   "gameFlag": "Flag",
   "@gameFlag": {
@@ -15872,6 +15892,10 @@
   "@howToTango4": {
     "description": "Tango guide, step: = and × signs between squares."
   },
+  "howToTangoTip": "Two the same side by side? The squares at both ends get the other one.",
+  "@howToTangoTip": {
+    "description": "Tango guide, strategy tip: two identical symbols side by side force the opposite symbol on both ends (otherwise there would be three in a row)."
+  },
   "howToZip1": "Start on 1 and drag through the numbers in order.",
   "@howToZip1": {
     "description": "Zip guide, step: start and order."
@@ -15883,6 +15907,10 @@
   "howToZip3": "Wrong turn? Just drag back to undo.",
   "@howToZip3": {
     "description": "Zip guide, tip: undo by dragging back."
+  },
+  "howToZipTip": "Don't strand a square. Sweep corners and edges as you pass.",
+  "@howToZipTip": {
+    "description": "Zip guide, strategy tip: don't leave a single square cut off; cover corners and edges as the line passes them."
   },
   "howToSudoku1": "Every row, column and box gets 1 to 6. No repeats.",
   "@howToSudoku1": {
@@ -15908,6 +15936,10 @@
   "@howToFlow2": {
     "description": "Flow guide, step: no crossing, fill everything."
   },
+  "howToFlowTip": "Run pipes along the edges first. The middle sorts itself out.",
+  "@howToFlowTip": {
+    "description": "Flow guide, strategy tip: route pipes along the board's edges first; the middle then follows."
+  },
   "howToFutoshiki1": "Fill every square with 1 to 5. Each row and column gets each number exactly once.",
   "@howToFutoshiki1": {
     "description": "Futoshiki guide, step: each number once per row and column."
@@ -15919,6 +15951,10 @@
   "howToFutoshiki3": "Break a sign and it lights up red.",
   "@howToFutoshiki3": {
     "description": "Futoshiki guide, step: a broken sign turns red."
+  },
+  "howToFutoshikiTip": "Follow the chains: if a < b < c, then c is at least 3.",
+  "@howToFutoshikiTip": {
+    "description": "Futoshiki guide, strategy tip: follow chains of inequality signs; with a < b < c, c must be at least 3 (and a at most 3)."
   },
   "howToNonogram1": "Each number is a run of shaded squares with no gaps. 5 means 5 squares side by side.",
   "@howToNonogram1": {
@@ -15940,6 +15976,10 @@
   "@howToNonogram4": {
     "description": "Nonogram guide, step: the reveal."
   },
+  "howToNonogramTip": "Start with the big clues. A 7 in a row of 10 always covers the middle 4.",
+  "@howToNonogramTip": {
+    "description": "Nonogram guide, strategy tip: start with large clues; a run of 7 in a row of 10 squares always covers the middle 4 squares, however it is placed."
+  },
   "howToMines1": "Open every square that isn't a mine. Empty areas open up on their own.",
   "@howToMines1": {
     "description": "Minesweeper guide, step: opening squares."
@@ -15955,6 +15995,10 @@
   "howToMines4": "Hit a mine and you eat a 30 second penalty. But you never actually have to guess.",
   "@howToMines4": {
     "description": "Minesweeper guide, step: penalty for hitting a mine, and no guessing needed."
+  },
+  "howToMinesTip": "A 1 with only one hidden square next to it? That square is the mine.",
+  "@howToMinesTip": {
+    "description": "Minesweeper guide, strategy tip: a 1 that touches exactly one hidden square means that square is a mine."
   },
   "howToStars1": "Two stars in every row, every column and every colour.",
   "@howToStars1": {
@@ -15972,6 +16016,22 @@
   "@howToStars3": {
     "description": "Star Battle guide, strategy tip."
   },
+  "howToPatches1": "Cut the board into rectangles. Each one holds exactly one clue.",
+  "@howToPatches1": {
+    "description": "Patches guide, step: cut the board into rectangles, exactly one clue in each."
+  },
+  "howToPatches2": "The badge shows the shape: square, tall or wide. A circle means any rectangle. A number is how many squares.",
+  "@howToPatches2": {
+    "description": "Patches guide, step: how to read a clue. The clue badge is drawn as the shape it asks for: a square, a tall (upright) bar, a wide (lying) bar, or a circle meaning any rectangle. A number inside, when present, is the rectangle's area in squares."
+  },
+  "howToPatches3": "Drag from corner to corner to cut a patch. Tap a patch to lift it off.",
+  "@howToPatches3": {
+    "description": "Patches guide, step: controls. Drag from one corner to the opposite corner to cut a rectangle; tap a placed rectangle to remove it."
+  },
+  "howToPatches4": "A big clue against the edge often fits only one way. Start there.",
+  "@howToPatches4": {
+    "description": "Patches guide, strategy tip: a large clue next to the board's edge usually fits in only one place."
+  },
   "howToCode1": "There's a secret code of 4 different symbols, no repeats. Crack it.",
   "@howToCode1": {
     "description": "Code puzzle guide, step: the goal."
@@ -15988,6 +16048,10 @@
   "@howToCode4": {
     "description": "Code puzzle guide, step: number of guesses."
   },
+  "howToCodeTip": "Spend your first guesses on new symbols. Learning beats guessing.",
+  "@howToCodeTip": {
+    "description": "Code puzzle guide, strategy tip: use the first guesses to try symbols not yet tried, to learn which symbols are in the code, rather than guessing for the win."
+  },
   "howToTtt1": "Take turns placing your mark. Get 3 in a row to win.",
   "@howToTtt1": {
     "description": "Tic-tac-toe guide step."
@@ -16003,6 +16067,10 @@
   "howToC42": "Line up 4 in a row to win: across, up and down, or diagonal.",
   "@howToC42": {
     "description": "Connect Four guide step: winning."
+  },
+  "howToC4Tip": "Play the middle column. It's part of more fours than any other.",
+  "@howToC4Tip": {
+    "description": "Connect Four guide, strategy tip: play the middle column; it is part of more possible fours than any other column."
   },
   "howToCheckers1": "Pieces move one square diagonally forward. Tap a piece, then where it goes.",
   "@howToCheckers1": {
@@ -16024,6 +16092,10 @@
   "@howToCheckersWin": {
     "description": "Checkers guide footnote: how you win."
   },
+  "howToCheckersTip": "Keep your back row at home. It stops them from crowning kings.",
+  "@howToCheckersTip": {
+    "description": "Checkers guide, strategy tip: keep the pieces on your own back row in place as long as possible; while occupied, the opponent cannot land there to be crowned king."
+  },
   "howToReversi1": "Place a disc so a line of their discs ends up trapped between two of yours. Every move has to trap at least one.",
   "@howToReversi1": {
     "description": "Reversi guide step: trapping."
@@ -16035,6 +16107,10 @@
   "howToReversi3": "No move to make? Your turn gets skipped. When nobody can move, most discs wins.",
   "@howToReversi3": {
     "description": "Reversi guide step: passing and winning."
+  },
+  "howToReversiTip": "Grab the corners. A disc in a corner can never be flipped.",
+  "@howToReversiTip": {
+    "description": "Reversi guide, strategy tip: take the corners; a disc in a corner can never be flipped."
   },
   "howToDots1": "Take turns drawing a line between two dots.",
   "@howToDots1": {
@@ -16068,6 +16144,10 @@
   "@howToChess4": {
     "description": "Chess guide step: check and checkmate."
   },
+  "howToChessTip": "Before every move, check what they can take.",
+  "@howToChessTip": {
+    "description": "Chess guide, strategy tip: before each move, look at which of your pieces the opponent could capture next."
+  },
   "howToLiars1": "Everyone rolls 5 dice in secret. You only see your own.",
   "@howToLiars1": {
     "description": "Liar's Dice guide step: secret dice."
@@ -16099,6 +16179,10 @@
   "howToLiarsClock": "45 seconds a turn. Run out and the game plays for you.",
   "@howToLiarsClock": {
     "description": "Liar's Dice guide footnote: turn timer."
+  },
+  "howToLiarsTip": "Count your own dice first. About a third of everyone else's match the face you bid, since 1s are wild.",
+  "@howToLiarsTip": {
+    "description": "Liar's Dice guide, strategy tip: count your own dice first; about one in three of the other players' dice show the face being bid, because 1s are wild (2 faces of 6 count)."
   },
   "howToImposter1": "Everyone gets the same secret word. Except the imposter, who only gets the category.",
   "@howToImposter1": {

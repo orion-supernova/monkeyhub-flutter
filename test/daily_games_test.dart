@@ -45,6 +45,7 @@ void main() {
           'nonogram',
           'minesweeper',
           'starbattle',
+          'patches',
         ]) {
           expect(day[game], isNotNull, reason: '${day['dayKey']}/$game');
         }
@@ -394,6 +395,79 @@ void main() {
         }
       }
     });
+
+    test('patches accepts the server answer and nothing beside it', () {
+      for (final day in days) {
+        final entry = day['patches'] as Map<String, dynamic>;
+        final board = PatchesBoard.fromJson(
+          (entry['board'] as Map).cast<String, dynamic>(),
+        );
+        final answer = ints(entry['answer']);
+        final patches = patchesFromLabels(board, answer);
+
+        expect(
+          patches.every((p) => p != null),
+          isTrue,
+          reason: '${day['dayKey']}: a server patch the mirror cannot read',
+        );
+        expect(
+          patchesSolved(board, patches),
+          isTrue,
+          reason: '${day['dayKey']}: server answer rejected by the mirror',
+        );
+        expect(patchesSolution(board, patches), answer);
+        expect(patchesLabels(board, patches), answer);
+        for (var k = 0; k < patches.length; k++) {
+          expect(patchJudge(board, patches[k]!), (clue: k, trouble: null));
+        }
+
+        // Every patch one row or column short: legal or not on its own, the
+        // board is no longer covered.
+        for (var k = 0; k < patches.length; k++) {
+          final p = patches[k]!;
+          if (p.area == 1) continue;
+          final shrunk = p.rows > 1
+              ? PatchRect(p.top, p.left, p.bottom - 1, p.right)
+              : PatchRect(p.top, p.left, p.bottom, p.right - 1);
+          final cut = List<PatchRect?>.of(patches)..[k] = shrunk;
+          expect(patchesSolved(board, cut), isFalse);
+        }
+
+        // The whole board as one rectangle holds every clue.
+        final n = board.size;
+        expect(
+          patchJudge(board, PatchRect(0, 0, n - 1, n - 1)).trouble,
+          PatchTrouble.twoClues,
+        );
+      }
+    });
+
+    test('a patch has to match its clue', () {
+      const board = PatchesBoard(
+        size: 4,
+        clues: [
+          PatchClue(cell: 0, shape: PatchShape.square, area: 4),
+          PatchClue(cell: 3, shape: PatchShape.tall),
+          PatchClue(cell: 12, shape: PatchShape.wide, area: 3),
+          PatchClue(cell: 15, shape: PatchShape.any, area: 2),
+        ],
+      );
+      expect(patchJudge(board, PatchRect.span(0, 5, 4)), (clue: 0, trouble: null));
+      // The top row holds two clues; the 1×3 holds one, at the wrong size.
+      expect(patchJudge(board, PatchRect.span(0, 3, 4)).trouble, PatchTrouble.twoClues);
+      expect(patchJudge(board, PatchRect.span(0, 12, 4)).trouble, PatchTrouble.twoClues);
+      expect(patchJudge(board, PatchRect.span(0, 2, 4)).trouble, PatchTrouble.area);
+      expect(patchJudge(board, PatchRect.span(1, 9, 4)).trouble, PatchTrouble.noClue);
+      // Tall with no number: any upright bar, never a lying one or a square.
+      expect(patchJudge(board, PatchRect.span(3, 11, 4)), (clue: 1, trouble: null));
+      expect(patchJudge(board, PatchRect.span(2, 3, 4)).trouble, PatchTrouble.shape);
+      expect(patchJudge(board, PatchRect.span(3, 3, 4)).trouble, PatchTrouble.shape);
+      expect(patchJudge(board, PatchRect.span(12, 14, 4)), (clue: 2, trouble: null));
+      expect(patchJudge(board, PatchRect.span(14, 15, 4)), (clue: 3, trouble: null));
+      expect(patchJudge(board, PatchRect.span(11, 15, 4)), (clue: 3, trouble: null));
+      // The drag can run either way round.
+      expect(PatchRect.span(15, 10, 4), PatchRect.span(10, 15, 4));
+    });
   });
 
   group('nonogram lines', () {
@@ -663,8 +737,11 @@ void main() {
         'nonogram': (day['nonogram'] as Map)['board'],
         'minesweeper': (day['minesweeper'] as Map)['board'],
         'starbattle': (day['starbattle'] as Map)['board'],
+        'patches': (day['patches'] as Map)['board'],
       });
       expect(boards.ready, isTrue);
+      expect(boards.patches.size, 7);
+      expect(boards.patches.clues.length, inInclusiveRange(8, 10));
       expect(boards.flow.size, 7);
       expect(boards.flow.endpoints.length, greaterThanOrEqualTo(6));
       expect(boards.futoshiki.givens, hasLength(25));

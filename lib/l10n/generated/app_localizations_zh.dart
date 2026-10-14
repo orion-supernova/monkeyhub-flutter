@@ -5629,6 +5629,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameHintFlowPipe => '这是一整条管道，从一个点连到另一个点。';
 
   @override
+  String get gameHintPatchesOnly => '这个提示只放得下一种拼块。';
+
+  @override
+  String get gameHintPatchesCell => '这里有个格子只能归这个提示，所以它的拼块就定了。';
+
+  @override
+  String get gameHintPatchesSqueeze => '周围的拼块让这个提示只剩一种放法。';
+
+  @override
   String get gameErrorGeneric => '无法连接游戏，请重试';
 
   @override
@@ -11889,6 +11898,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameStarbattleName => '星战';
 
   @override
+  String get gamePatchesName => '拼布';
+
+  @override
   String get gameFlowRule => '连接相同的点，填满每一格';
 
   @override
@@ -11902,6 +11914,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gameStarbattleRule => '每行、每列、每色各两颗星，且不相邻';
+
+  @override
+  String get gamePatchesRule => '把棋盘切成长方形，每块里一个提示';
 
   @override
   String get gameFlag => '插旗';
@@ -12584,6 +12599,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToTango4 => '= 表示两个一样，× 表示两个相反。';
 
   @override
+  String get howToTangoTip => '两个相同的挨在一起？两头的格子就是另一种。';
+
+  @override
   String get howToZip1 => '从 1 出发，按顺序划过每个数字。';
 
   @override
@@ -12591,6 +12609,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get howToZip3 => '走错了？往回划就撤销了。';
+
+  @override
+  String get howToZipTip => '别把哪个格子孤立出来。路过角落和边缘时顺手带上。';
 
   @override
   String get howToSudoku1 => '每行、每列、每个宫都是 1 到 6，不能重复。';
@@ -12611,6 +12632,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToFlow2 => '管道不能交叉，每个格子都要填满。绕远一点也没关系。';
 
   @override
+  String get howToFlowTip => '先把管道沿着边缘铺。中间自然就理顺了。';
+
+  @override
   String get howToFutoshiki1 => '在每个格子里填 1 到 5。每行每列，每个数字恰好出现一次。';
 
   @override
@@ -12618,6 +12642,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => '不符合符号就会变红。';
+
+  @override
+  String get howToFutoshikiTip => '顺着不等号链看：如果 a < b < c，那 c 至少是 3。';
 
   @override
   String get howToNonogram1 => '每个数字代表一段连续涂色的格子，中间不能有空。5 就是连着涂 5 格。';
@@ -12635,6 +12662,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToNonogram4 => '所有提示都对上，隐藏的图案就出来了。';
 
   @override
+  String get howToNonogramTip => '从大数字入手。10 格一行里的 7，无论怎么放都会盖住中间 4 格。';
+
+  @override
   String get howToMines1 => '打开所有没有雷的格子。空白区域会自己展开。';
 
   @override
@@ -12645,6 +12675,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get howToMines4 => '踩到雷罚 30 秒。不过你从来都不用靠猜。';
+
+  @override
+  String get howToMinesTip => '某个 1 旁边只有一个没翻开的格子？那格就是雷。';
 
   @override
   String get howToStars1 => '每行、每列、每种颜色，各放 2 颗星。';
@@ -12659,6 +12692,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToStars3 => '开启“自动打点”后，星星周围的格子会自动打点。一行凑齐 2 颗星，其余格子也会被打点。';
 
   @override
+  String get howToPatches1 => '把棋盘切成长方形，每块里正好有一个提示。';
+
+  @override
+  String get howToPatches2 => '徽章表示形状：正方形、竖长或横宽。圆形表示任意长方形。数字是格子数。';
+
+  @override
+  String get howToPatches3 => '从一个角拖到对角，切出一块拼块。点一下拼块就能拿掉。';
+
+  @override
+  String get howToPatches4 => '贴着边的大提示往往只有一种放法。从那里开始。';
+
+  @override
   String get howToCode1 => '有一串由 4 个不同符号组成的密码，符号不会重复。破解它。';
 
   @override
@@ -12671,6 +12716,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToCode4 => '你有 6 次机会，用得越少越厉害。';
 
   @override
+  String get howToCodeTip => '前几次先试没用过的符号。摸清情况比瞎猜强。';
+
+  @override
   String get howToTtt1 => '轮流放下你的标记，先连成 3 个的赢。';
 
   @override
@@ -12681,6 +12729,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get howToC42 => '连成 4 个就赢：横、竖、斜都算。';
+
+  @override
+  String get howToC4Tip => '下中间那一列。它能参与的四连比哪一列都多。';
 
   @override
   String get howToCheckers1 => '棋子斜着向前走一格。先点棋子，再点要去的格子。';
@@ -12699,6 +12750,9 @@ class AppLocalizationsZh extends AppLocalizations {
       '吃光对方的棋子，或让对方无路可走，就赢了。双方各走 40 步都没有吃子、也没有移动普通棋子，就是平局。';
 
   @override
+  String get howToCheckersTip => '守住自己的底线那一排。这样对方就没法升王。';
+
+  @override
   String get howToReversi1 => '落子时，把对方的一排棋子夹在你的两颗棋子之间。每一步都必须至少夹住一颗。';
 
   @override
@@ -12706,6 +12760,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get howToReversi3 => '没地方下？这回合跳过。双方都下不了时，棋子多的赢。';
+
+  @override
+  String get howToReversiTip => '抢角。角上的棋子永远不会被翻转。';
 
   @override
   String get howToDots1 => '轮流在两个点之间画一条线。';
@@ -12732,6 +12789,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToChess4 => '将军就是王被攻击了，必须马上解围。无路可逃？将死，游戏结束。没有能走的棋但也没被将军？那就是和棋。';
 
   @override
+  String get howToChessTip => '每走一步前，先看看对方能吃掉什么。';
+
+  @override
   String get howToLiars1 => '每人偷偷摇 5 颗骰子，你只能看到自己的。';
 
   @override
@@ -12754,6 +12814,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get howToLiarsClock => '每回合 45 秒，超时系统会替你出手。';
+
+  @override
+  String get howToLiarsTip => '先数自己的骰子。因为 1 是万能的，别人的骰子里大约三分之一会符合你叫的点数。';
 
   @override
   String get howToImposter1 => '大家拿到同一个秘密词，只有卧底拿到的是类别。';

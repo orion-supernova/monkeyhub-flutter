@@ -7,10 +7,11 @@ import * as flow from "./games/flow";
 import * as futoshiki from "./games/futoshiki";
 import * as minesweeper from "./games/minesweeper";
 import * as nonogram from "./games/nonogram";
+import * as patches from "./games/patches";
 import * as starbattle from "./games/starbattle";
 
 /**
- * The five newer dailies, end to end through the mutations.
+ * The six newer dailies, end to end through the mutations.
  *
  * The engines have their own tests (`games/*.test.ts`); what is pinned here is
  * the wiring in `games.ts` that those cannot see: each game is routed to its
@@ -42,6 +43,7 @@ const ANSWERS: Record<string, number[]> = {
   nonogram: nonogram.solve(nonogram.generate(DAY)),
   minesweeper: minesweeper.solve(minesweeper.generate(DAY), DAY),
   starbattle: starbattle.solve(starbattle.generate(DAY)),
+  patches: patches.solve(patches.generate(DAY)),
 };
 
 async function session(t: ReturnType<typeof convexTest>, game: string) {
@@ -62,7 +64,7 @@ async function hintsUsed(t: ReturnType<typeof convexTest>, base: any) {
 }
 
 describe("the daily payload", () => {
-  test("serves all nine boards", async () => {
+  test("serves all ten boards", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "reader");
     const day: any = await t.query(api.games.daily, {
@@ -79,12 +81,14 @@ describe("the daily payload", () => {
       "nonogram",
       "minesweeper",
       "starbattle",
+      "patches",
     ]);
     expect(day.flow).toEqual(flow.generate(DAY));
     expect(day.futoshiki.size).toBe(5);
     expect(day.nonogram.rows).toHaveLength(10);
     expect(typeof day.minesweeper.mines).toBe("string");
     expect(day.starbattle.regions).toHaveLength(100);
+    expect(day.patches).toEqual(patches.generate(DAY));
   });
 });
 
@@ -112,6 +116,9 @@ describe("submitting a new game", () => {
       // breaks adjacency; for the per-cell games flip the first cell.
       if (game === "flow") {
         [wrong[1], wrong[2]] = [wrong[2], wrong[1]];
+      } else if (game === "patches") {
+        // A square no patch covers.
+        wrong[0] = -1;
       } else if (game === "futoshiki") {
         wrong[0] = wrong[0] === 1 ? 2 : 1;
       } else {
@@ -138,6 +145,7 @@ describe("hints for a new game", () => {
     nonogram: () => new Array(100).fill(-1),
     minesweeper: () => new Array(81).fill(-1),
     starbattle: () => new Array(100).fill(0),
+    patches: () => new Array(49).fill(-1),
   };
 
   for (const game of Object.keys(ANSWERS)) {
@@ -160,6 +168,13 @@ describe("hints for a new game", () => {
         expect(h.value).toBe(h.index);
         expect(h.cells[0]).toBe(ends[0]);
         expect(h.cells[h.cells.length - 1]).toBe(ends[1]);
+      } else if (game === "patches") {
+        // A clue, and that clue's whole patch, which holds the clue's square.
+        const clue = patches.generate(DAY).clues[h.value];
+        expect(h.cell).toBe(clue.cell);
+        expect(h.cells).toContain(clue.cell);
+        for (const c of h.cells) expect(ANSWERS.patches[c]).toBe(h.value);
+        expect(h.cells).toHaveLength(ANSWERS.patches.filter((v) => v === h.value).length);
       } else {
         expect(h.value).toBe(ANSWERS[game][h.index]);
         expect(h.cells).toBeUndefined();

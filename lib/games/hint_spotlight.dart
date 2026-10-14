@@ -111,6 +111,9 @@ class HintCopy {
   String get gameHintMinesProofSafe => l10n.gameHintMinesProofSafe;
   String get gameHintMinesProofMine => l10n.gameHintMinesProofMine;
   String get gameHintFlowPipe => l10n.gameHintFlowPipe;
+  String get gameHintPatchesOnly => l10n.gameHintPatchesOnly;
+  String get gameHintPatchesCell => l10n.gameHintPatchesCell;
+  String get gameHintPatchesSqueeze => l10n.gameHintPatchesSqueeze;
 }
 
 /// The banner's main line, and a second one when there is more to say.
@@ -158,6 +161,9 @@ class HintCopy {
     'mines.proofSafe' => c.gameHintMinesProofSafe,
     'mines.proofMine' => c.gameHintMinesProofMine,
     'flow.pipe' => c.gameHintFlowPipe,
+    'patches.only' => c.gameHintPatchesOnly,
+    'patches.cell' => c.gameHintPatchesCell,
+    'patches.squeeze' => c.gameHintPatchesSqueeze,
     // A reveal, a reason this build does not know yet, or a server from
     // before explained hints: the square is still spotlit, honestly labelled.
     _ => c.gameHintReveal,

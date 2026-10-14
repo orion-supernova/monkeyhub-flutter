@@ -9,6 +9,7 @@ import '../games/game_canvas.dart';
 import '../games/game_names.dart';
 import '../games/minesweeper_board_art.dart';
 import '../games/nonogram_board_art.dart';
+import '../games/patches_board_art.dart';
 import '../games/queens_board_art.dart';
 import '../games/starbattle_board_art.dart';
 import '../games/sudoku_board_art.dart';
@@ -116,6 +117,11 @@ Widget dailyBoardPreview(DailyGame game, DailyBoards boards, AppTheme theme) {
     ),
     DailyGame.starbattle => StarBattleBoardPainter(
       board: boards.starbattle,
+      theme: theme,
+      palette: GamePalette(theme),
+    ),
+    DailyGame.patches => PatchesBoardPainter(
+      board: boards.patches,
       theme: theme,
       palette: GamePalette(theme),
     ),

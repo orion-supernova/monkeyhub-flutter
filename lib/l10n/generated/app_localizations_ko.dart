@@ -5719,6 +5719,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameHintFlowPipe => '점에서 점까지 파이프 하나를 통째로 보여 줄게요.';
 
   @override
+  String get gameHintPatchesOnly => '이 단서에 들어갈 수 있는 패치는 하나뿐이에요.';
+
+  @override
+  String get gameHintPatchesCell => '여기 있는 칸은 이 단서에만 속할 수 있어서 패치가 하나로 정해져요.';
+
+  @override
+  String get gameHintPatchesSqueeze => '주변 패치 때문에 이 단서가 들어갈 방법은 하나뿐이에요.';
+
+  @override
   String get gameErrorGeneric => '게임에 연결하지 못했어. 다시 시도해';
 
   @override
@@ -12029,6 +12038,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gameStarbattleName => '스타 배틀';
 
   @override
+  String get gamePatchesName => '패치';
+
+  @override
   String get gameFlowRule => '같은 점끼리 잇고 모든 칸 채우기';
 
   @override
@@ -12042,6 +12054,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gameStarbattleRule => '행·열·색마다 별 두 개, 서로 붙으면 안 됨';
+
+  @override
+  String get gamePatchesRule => '판을 직사각형으로 나누고, 하나에 단서 하나씩';
 
   @override
   String get gameFlag => '깃발';
@@ -12725,6 +12740,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToTango4 => '=는 같은 것, ×는 반대인 것.';
 
   @override
+  String get howToTangoTip => '같은 게 두 개 나란히 있으면 양 끝 칸은 다른 쪽이 들어가요.';
+
+  @override
   String get howToZip1 => '1에서 시작해서 숫자 순서대로 쭉 그어요.';
 
   @override
@@ -12732,6 +12750,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get howToZip3 => '길을 잘못 들었나요? 뒤로 그으면 취소돼요.';
+
+  @override
+  String get howToZipTip => '칸 하나를 외톨이로 남기지 마요. 모서리와 가장자리는 지나가면서 챙겨요.';
 
   @override
   String get howToSudoku1 => '행, 열, 박스마다 1부터 6까지. 겹치면 안 돼요.';
@@ -12752,6 +12773,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToFlow2 => '파이프는 교차할 수 없고 모든 칸을 채워야 해요. 돌아가요.';
 
   @override
+  String get howToFlowTip => '파이프는 먼저 가장자리를 따라 깔아요. 가운데는 저절로 풀려요.';
+
+  @override
   String get howToFutoshiki1 => '모든 칸을 1부터 5까지로 채워요. 행과 열마다 각 숫자는 딱 한 번씩.';
 
   @override
@@ -12759,6 +12783,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => '부등호를 어기면 빨갛게 변해요.';
+
+  @override
+  String get howToFutoshikiTip => '부등호 사슬을 따라가요. a < b < c면 c는 최소 3이에요.';
 
   @override
   String get howToNonogram1 => '숫자는 빈칸 없이 이어서 칠할 칸 수예요. 5면 5칸이 연달아.';
@@ -12778,6 +12805,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToNonogram4 => '단서를 다 맞추면 숨은 그림이 짠 하고 나와요.';
 
   @override
+  String get howToNonogramTip =>
+      '큰 숫자부터 시작해요. 10칸 줄의 7은 어디에 놓여도 가운데 4칸을 꼭 덮어요.';
+
+  @override
   String get howToMines1 => '지뢰가 없는 칸을 전부 열어요. 빈 곳은 알아서 열려요.';
 
   @override
@@ -12788,6 +12819,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get howToMines4 => '지뢰를 밟으면 30초 페널티. 그래도 찍을 필요는 전혀 없어요.';
+
+  @override
+  String get howToMinesTip => '옆에 숨은 칸이 하나뿐인 1이 있어요? 그 칸이 지뢰예요.';
 
   @override
   String get howToStars1 => '행, 열, 색깔마다 별 두 개씩.';
@@ -12803,6 +12837,19 @@ class AppLocalizationsKo extends AppLocalizations {
       '자동 점 표시를 켜면 별 주변 칸에 점이 찍혀요. 한 줄에 별 2개가 차면 나머지 칸에도 점이 찍혀요.';
 
   @override
+  String get howToPatches1 => '판을 직사각형으로 나눠요. 직사각형마다 단서가 딱 하나씩 있어야 해요.';
+
+  @override
+  String get howToPatches2 =>
+      '배지가 모양을 알려줘요: 정사각형, 세로로 긴 것, 가로로 긴 것. 원은 아무 직사각형이나 돼요. 숫자는 칸 수예요.';
+
+  @override
+  String get howToPatches3 => '모서리에서 모서리로 드래그해서 패치를 잘라요. 패치를 탭하면 떼어져요.';
+
+  @override
+  String get howToPatches4 => '가장자리에 붙은 큰 단서는 들어갈 방법이 하나뿐인 경우가 많아요. 거기서 시작해요.';
+
+  @override
   String get howToCode1 =>
       '서로 다른 기호 4개로 된 비밀 코드가 있어요. 같은 기호는 두 번 안 나와요. 풀어 봐요.';
 
@@ -12816,6 +12863,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get howToCode4 => '기회는 6번. 적게 쓸수록 좋아요.';
 
   @override
+  String get howToCodeTip => '처음 몇 번은 안 써본 기호에 써요. 찍는 것보다 알아내는 게 이겨요.';
+
+  @override
   String get howToTtt1 => '번갈아 가며 표시를 놓아요. 3개를 한 줄로 만들면 승리.';
 
   @override
@@ -12826,6 +12876,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get howToC42 => '4개를 한 줄로 만들면 승리. 가로, 세로, 대각선 다 돼요.';
+
+  @override
+  String get howToC4Tip => '가운데 열에 두세요. 다른 어떤 열보다 많은 4줄에 들어가요.';
 
   @override
   String get howToCheckers1 => '말은 대각선 앞으로 한 칸 움직여요. 말을 탭하고 갈 곳을 탭해요.';
@@ -12846,6 +12899,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '상대 말을 다 잡거나 움직일 수 없게 만들면 승리. 서로 40수씩 아무것도 잡지 않고 일반 말도 움직이지 않으면 무승부예요.';
 
   @override
+  String get howToCheckersTip => '맨 뒷줄은 최대한 지켜요. 상대가 킹이 되는 걸 막아줘요.';
+
+  @override
   String get howToReversi1 => '상대 돌이 내 돌 두 개 사이에 끼도록 놓아요. 매번 적어도 하나는 끼워야 해요.';
 
   @override
@@ -12853,6 +12909,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get howToReversi3 => '둘 곳이 없나요? 차례가 넘어가요. 아무도 못 두면 돌이 더 많은 쪽이 이겨요.';
+
+  @override
+  String get howToReversiTip => '모서리를 잡아요. 모서리에 놓인 돌은 절대 뒤집히지 않아요.';
 
   @override
   String get howToDots1 => '번갈아 가며 점 두 개 사이에 선을 그어요.';
@@ -12880,6 +12939,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '체크는 킹이 공격받는 거예요. 꼭 피해야 해요. 피할 데가 없으면 체크메이트, 게임 끝. 둘 수 있는 수가 없는데 체크도 아니라면? 무승부예요.';
 
   @override
+  String get howToChessTip => '매 수마다 상대가 뭘 잡을 수 있는지 먼저 봐요.';
+
+  @override
   String get howToLiars1 => '모두 몰래 주사위 5개를 굴려요. 내 것만 보여요.';
 
   @override
@@ -12903,6 +12965,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get howToLiarsClock => '한 턴에 45초. 시간이 다 되면 게임이 대신 해요.';
+
+  @override
+  String get howToLiarsTip =>
+      '먼저 내 주사위부터 세요. 1이 와일드라서 다른 사람 주사위의 약 3분의 1은 부른 눈과 맞아요.';
 
   @override
   String get howToImposter1 => '모두 같은 비밀 단어를 받아요. 임포스터만 빼고요. 임포스터는 카테고리만 알아요.';

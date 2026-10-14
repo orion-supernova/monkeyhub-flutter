@@ -9,6 +9,7 @@ import '../futoshiki_board_art.dart';
 import '../game_rules.dart';
 import '../minesweeper_board_art.dart';
 import '../nonogram_board_art.dart';
+import '../patches_board_art.dart';
 import '../queens_board_art.dart';
 import '../starbattle_board_art.dart';
 import '../sudoku_board_art.dart';
@@ -416,6 +417,46 @@ class TangoSignsDemo extends HowToDemo {
   double get still => 0.7;
 }
 
+/// Tip: two suns side by side. A third would make three in a row, so both
+/// ends are moons.
+class TangoTipDemo extends HowToDemo {
+  const TangoTipDemo();
+
+  static const _board = TangoBoard(
+    size: 4,
+    givens: [_empty, _empty, _empty, _empty, _empty, _sun, _sun, _empty, _empty, _empty, _empty, _empty, _empty, _empty, _empty, _empty],
+    signs: [],
+  );
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    // Each end is cycled sun → moon in one quick double tap; the sun it
+    // passes through never settles, so it never reads as a mistake.
+    _tango(canvas, f, b, _board, const [
+      (0.4, 4),
+      (0.46, 4),
+      (0.62, 7),
+      (0.68, 7),
+    ]);
+    paintSpotlight(
+      canvas,
+      b.rect(5).expandToInclude(b.rect(6)).deflate(1),
+      f.theme.accent,
+      f.seg(0.06, 0.14) * (1 - f.seg(0.84, 0.9)),
+    );
+    // Then the two squares the pair decides.
+    final ends = f.seg(0.2, 0.28) * (1 - f.seg(0.36, 0.4));
+    paintSpotlight(canvas, b.rect(4).deflate(3), f.theme.accent, ends);
+    paintSpotlight(canvas, b.rect(7).deflate(3), f.theme.accent, ends);
+    paintSparkles(canvas, b.center(4), b.side * 0.18, f.seg(0.48, 0.64), f.theme.accent, count: 6);
+    paintSparkles(canvas, b.center(7), b.side * 0.18, f.seg(0.7, 0.86), f.theme.accent, count: 6, seed: 0.4);
+  }
+
+  @override
+  double get still => 0.8;
+}
+
 // ── Zip ─────────────────────────────────────────────────────────────────────
 
 const _zip = ZipBoard(size: 4, checkpoints: [0, 6, 9, 12]);
@@ -515,6 +556,48 @@ class ZipUndoDemo extends HowToDemo {
 
   @override
   double get still => 0.3;
+}
+
+/// Tip: cutting from 3 down to 2 leaves the corner with one way in, so it can
+/// never be reached. Back off, sweep the corner, then go on to 2.
+class ZipTipDemo extends HowToDemo {
+  const ZipTipDemo();
+
+  static const _short = [0, 1, 2, 6];
+  static const _sweep = [2, 3, 7, 6];
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    final List<int> path;
+    if (!f.at(0.46)) {
+      path = _short.sublist(0, math.max(1, _dragCount(f, 4, 0.08, 0.3)));
+    } else if (!f.at(0.54)) {
+      path = _short.sublist(0, 3);
+    } else {
+      path = [0, 1, ..._sweep.take(math.max(1, _dragCount(f, 4, 0.54, 0.76)))];
+    }
+    b.draw(canvas, ZipBoardPainter(board: _zip, theme: f.theme, path: path));
+    paintFinger(canvas, f, [
+      ..._drag(b, _short, 0.08, 0.3),
+      FingerKey(0.46, b.center(6)),
+      FingerKey(0.54, b.center(2)),
+      ..._drag(b, _sweep, 0.54, 0.76),
+    ]);
+    // The stranded corner pulses red until the line comes back for it.
+    final pulse = 0.8 + 0.2 * math.sin(f.t * math.pi * 12);
+    paintSpotlight(
+      canvas,
+      b.rect(3).deflate(3),
+      f.theme.danger,
+      pulse * f.seg(0.3, 0.34) * (1 - f.seg(0.5, 0.56)),
+    );
+    paintSparkles(canvas, b.center(3), b.side * 0.18, f.seg(0.62, 0.78), f.theme.accent, count: 6);
+    paintSparkles(canvas, b.center(6), b.side * 0.2, f.seg(0.76, 0.92), f.theme.accent, count: 6, seed: 0.4);
+  }
+
+  @override
+  double get still => 0.4;
 }
 
 // ── Mini Sudoku ─────────────────────────────────────────────────────────────
@@ -798,6 +881,64 @@ class FlowLongWayDemo extends HowToDemo {
   double get still => 0.3;
 }
 
+/// Tip: the pipes that hug the edge go first. The one left over has exactly
+/// the middle to fill.
+class FlowTipDemo extends HowToDemo {
+  const FlowTipDemo();
+
+  static const _strokes = [
+    (1, 0.08, 0.3),
+    (0, 0.36, 0.5),
+    (2, 0.58, 0.8),
+  ];
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    final pipes = <List<int>>[const [], const [], const []];
+    int? active;
+    for (final (k, from, to) in _strokes) {
+      pipes[k] = _flowPipes[k].sublist(0, _dragCount(f, _flowPipes[k].length, from, to));
+      if (f.at(from) && !f.at(to)) active = k;
+    }
+    b.draw(
+      canvas,
+      FlowBoardPainter(
+        board: _flow,
+        theme: f.theme,
+        palette: f.palette,
+        pipes: pipes,
+        active: active,
+        win: f.seg(0.82, 0.96, Curves.linear),
+      ),
+    );
+    // The edges glow while the edge pipes go in; then the middle that is left.
+    final edge = f.seg(0.02, 0.08) * (1 - f.seg(0.5, 0.56));
+    paintSpotlight(canvas, b.rect(4).expandToInclude(b.rect(12)).deflate(1), f.theme.accent, edge);
+    paintSpotlight(canvas, b.rect(13).expandToInclude(b.rect(15)).deflate(1), f.theme.accent, edge);
+    paintSpotlight(canvas, b.rect(0).expandToInclude(b.rect(3)).deflate(1), f.theme.accent, edge);
+    paintSpotlight(
+      canvas,
+      b.rect(5).expandToInclude(b.rect(11)).deflate(1),
+      f.theme.accent,
+      f.seg(0.52, 0.58) * (1 - f.seg(0.78, 0.84)),
+    );
+    paintFinger(canvas, f, [
+      for (final (k, from, to) in _strokes) ..._drag(b, _flowPipes[k], from, to),
+    ]);
+    paintSparkles(
+      canvas,
+      b.origin + Offset(b.side / 2, b.side / 2),
+      b.side * 0.42,
+      f.seg(0.82, 0.98, Curves.linear),
+      f.theme.accent,
+    );
+  }
+
+  @override
+  double get still => 0.5;
+}
+
 // ── Futoshiki ───────────────────────────────────────────────────────────────
 
 const _futoSolution = [1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1];
@@ -914,6 +1055,100 @@ class FutoshikiWrongDemo extends HowToDemo {
   double get still => 0.45;
 }
 
+// Its own board: the second row holds a chain 1 < 2 < 3 and a printed 4.
+const _futoChainSolution = [2, 3, 4, 1, 1, 2, 3, 4, 4, 1, 2, 3, 3, 4, 1, 2];
+const _futoChain = FutoshikiBoard(
+  size: 4,
+  givens: [0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  signs: [
+    FutoshikiSign(a: 4, b: 5, lt: true),
+    FutoshikiSign(a: 5, b: 6, lt: true),
+  ],
+);
+
+/// Tip: a < b < c leaves c at least 3. With the 4 taken, c is the 3, and the
+/// 1 and 2 fall in behind it.
+class FutoshikiTipDemo extends HowToDemo {
+  const FutoshikiTipDemo();
+
+  static const _fills = [(0.5, 6), (0.62, 4), (0.7, 5)];
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    final cells = [..._futoChain.givens];
+    int? popCell;
+    var pop = 1.0;
+    for (final (t, i) in _fills) {
+      if (!f.at(t)) continue;
+      cells[i] = _futoChainSolution[i];
+      popCell = i;
+      pop = f.pop(t);
+    }
+    b.draw(
+      canvas,
+      FutoshikiBoardPainter(
+        board: _futoChain,
+        theme: f.theme,
+        cells: cells,
+        popCell: popCell,
+        pop: pop,
+      ),
+    );
+    final fade = 1 - f.seg(0.84, 0.9);
+    paintSpotlight(
+      canvas,
+      b.rect(4).expandToInclude(b.rect(6)).deflate(1),
+      f.theme.accent,
+      f.seg(0.06, 0.14) * fade,
+    );
+    // The printed 4 that leaves c exactly one choice.
+    paintSpotlight(
+      canvas,
+      b.rect(7).deflate(3),
+      f.theme.accent,
+      f.seg(0.34, 0.4) * (1 - f.seg(0.5, 0.56)),
+    );
+    _paintBadge(canvas, f, b.rect(6).topCenter, '≥ 3', f.seg(0.2, 0.28) * (1 - f.seg(0.46, 0.5)));
+    paintFinger(canvas, f, _taps(b, _fills));
+    paintSparkles(canvas, b.center(6), b.side * 0.2, f.seg(0.52, 0.68), f.theme.accent);
+  }
+
+  @override
+  double get still => 0.32;
+}
+
+/// A small accent pill reading [text], centred on [at]: a deduction written
+/// onto the board, the way a player would pencil it in.
+void _paintBadge(Canvas canvas, DemoFrame f, Offset at, String text, double strength) {
+  if (strength <= 0) return;
+  final tp = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: f.theme.body.copyWith(
+        fontSize: f.side * 0.06,
+        fontWeight: FontWeight.w800,
+        height: 1,
+        letterSpacing: 0,
+        color: f.theme.accentInk.withValues(alpha: strength),
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  final pill = Rect.fromCenter(
+    center: at,
+    width: tp.width + f.side * 0.05,
+    height: tp.height + f.side * 0.03,
+  );
+  final rise = (1 - Curves.easeOutCubic.transform(strength.clamp(0.0, 1.0))) * f.side * 0.02;
+  final shifted = pill.shift(Offset(0, rise));
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(shifted, Radius.circular(shifted.height / 2)),
+    Paint()..color = f.theme.accent.withValues(alpha: strength),
+  );
+  tp.paint(canvas, shifted.center - Offset(tp.width / 2, tp.height / 2));
+}
+
 // ── Nonogram ────────────────────────────────────────────────────────────────
 
 const _nonogram = NonogramBoard(
@@ -948,9 +1183,10 @@ void _nonoPaint(Canvas canvas, DemoFrame f, DemoBoard b, List<int> cells,
     {int? popCell, double pop = 1, double win = 0, int? focus, NonogramBoard board = _nonogram}) {
   final rows = <int>{};
   final cols = <int>{};
-  for (var k = 0; k < 5; k++) {
-    final row = [for (var c = 0; c < 5; c++) cells[k * 5 + c] == nonogramFilled ? 1 : 0];
-    final col = [for (var r = 0; r < 5; r++) cells[r * 5 + k] == nonogramFilled ? 1 : 0];
+  final n = board.size;
+  for (var k = 0; k < n; k++) {
+    final row = [for (var c = 0; c < n; c++) cells[k * n + c] == nonogramFilled ? 1 : 0];
+    final col = [for (var r = 0; r < n; r++) cells[r * n + k] == nonogramFilled ? 1 : 0];
     if (_same(nonogramRuns(row), board.rows[k])) rows.add(k);
     if (_same(nonogramRuns(col), board.cols[k])) cols.add(k);
   }
@@ -1186,6 +1422,89 @@ class NonogramPictureDemo extends HowToDemo {
   }
 }
 
+// A full-size 10×10 for the tip, because the tip is about a row of 10: a
+// sailboat, whose deck row reads 7.
+const _boat = [
+  0, 0, 0, 0, 0, 1, 0, 0, 0, 0, //
+  0, 0, 0, 0, 1, 1, 0, 0, 0, 0, //
+  0, 0, 0, 1, 1, 1, 0, 0, 0, 0, //
+  0, 0, 1, 1, 1, 1, 0, 0, 0, 0, //
+  0, 1, 1, 1, 1, 1, 0, 0, 0, 0, //
+  0, 0, 0, 0, 0, 1, 0, 0, 0, 0, //
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 0, //
+  0, 1, 1, 1, 1, 1, 1, 1, 0, 0, //
+  0, 0, 1, 1, 1, 1, 1, 0, 0, 0, //
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //
+];
+final _boatBoard = NonogramBoard(
+  size: 10,
+  rows: [
+    for (var r = 0; r < 10; r++) nonogramRuns(_boat.sublist(r * 10, r * 10 + 10)),
+  ],
+  cols: [
+    for (var c = 0; c < 10; c++) nonogramRuns([for (var r = 0; r < 10; r++) _boat[r * 10 + c]]),
+  ],
+);
+
+/// Tip: the 7 pushed all the way left, then all the way right. The four
+/// squares both cover are shaded before anything else is known.
+class NonogramTipDemo extends HowToDemo {
+  const NonogramTipDemo();
+
+  static const _row = 7;
+  static const _overlap = [73, 74, 75, 76];
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 10, fraction: 0.92, lead: nonogramLeadFraction(_boatBoard));
+    final cells = List<int>.filled(100, nonogramUnknown);
+    final shaded = _dragCount(f, 4, 0.66, 0.78);
+    for (final i in _overlap.take(shaded)) {
+      cells[i] = nonogramFilled;
+    }
+    _nonoPaint(
+      canvas,
+      f,
+      b,
+      cells,
+      board: _boatBoard,
+      popCell: shaded > 0 ? _overlap[shaded - 1] : null,
+    );
+    Rect span(int from, int to) =>
+        b.rect(_row * 10 + from).expandToInclude(b.rect(_row * 10 + to));
+    final fade = 1 - f.seg(0.86, 0.92);
+    // The clue and its row.
+    paintSpotlight(
+      canvas,
+      Rect.fromLTRB(b.origin.dx, span(0, 9).top, span(0, 9).right, span(0, 9).bottom).deflate(1),
+      f.theme.accent,
+      f.seg(0.04, 0.12) * (1 - f.seg(0.2, 0.26)),
+      radius: 6,
+    );
+    // As far left as it goes, then as far right: two placements, one row.
+    final left = f.seg(0.24, 0.3) * (1 - f.seg(0.6, 0.66));
+    final right = f.seg(0.4, 0.46) * (1 - f.seg(0.6, 0.66));
+    paintSpotlight(canvas, span(0, 6).deflate(2), f.theme.accent, left, radius: 6);
+    paintSpotlight(canvas, span(3, 9).deflate(2), const Color(0xFFFFC53D), right, radius: 6);
+    // Where they agree.
+    paintSpotlight(
+      canvas,
+      span(3, 6).deflate(1),
+      f.theme.success,
+      f.seg(0.54, 0.6) * fade,
+      radius: 6,
+    );
+    paintFinger(canvas, f, _drag(b, _overlap, 0.66, 0.78));
+    paintSparkles(canvas, span(3, 6).center, b.side * 0.2, f.seg(0.78, 0.94), f.theme.accent);
+  }
+
+  @override
+  Duration get period => const Duration(milliseconds: 5200);
+
+  @override
+  double get still => 0.56;
+}
+
 // ── Minesweeper ─────────────────────────────────────────────────────────────
 
 const _mineField = MinesweeperBoard(size: 5, start: 12, mineCount: 2, mines: '');
@@ -1302,6 +1621,52 @@ class MinesPenaltyDemo extends HowToDemo {
 
   @override
   double get still => 0.45;
+}
+
+/// Tip: a 1 lights up, then the one hidden square beside it, which is flagged.
+class MinesTipDemo extends HowToDemo {
+  const MinesTipDemo();
+
+  /// The opened 1 nearest the bottom-left mine whose only hidden neighbour
+  /// is that mine: found rather than hard-coded, so it stays true to the
+  /// demo field.
+  static final int _one = () {
+    final open = _opened.toSet();
+    for (final i in open) {
+      if (_mineNumbers[i] != 1) continue;
+      final hidden = minesweeperNeighbours(i, 5).where((x) => !open.contains(x));
+      if (hidden.length == 1 && hidden.single == 20) return i;
+    }
+    return 15;
+  }();
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 5);
+    final flagged = f.at(0.58);
+    b.draw(
+      canvas,
+      MinesweeperBoardPainter(
+        board: _mineField,
+        theme: f.theme,
+        cells: _field(open: _opened.toSet(), flags: {if (flagged) 20}),
+        popCell: 20,
+        pop: f.pop(0.58),
+      ),
+    );
+    final fade = 1 - f.seg(0.84, 0.9);
+    paintSpotlight(canvas, b.rect(_one).deflate(2), f.theme.accent, f.seg(0.06, 0.14) * fade);
+    // Its neighbours, all open but one.
+    final around = minesweeperNeighbours(_one, 5).map(b.rect).fold(b.rect(_one), (a, r) => a.expandToInclude(r));
+    paintSpotlight(canvas, around.deflate(1), f.theme.accent, f.seg(0.2, 0.28) * (1 - f.seg(0.4, 0.46)) * 0.6);
+    final pulse = flagged ? 0.0 : 0.55 + 0.45 * math.sin(f.t * math.pi * 12);
+    paintSpotlight(canvas, b.rect(20).deflate(3), f.theme.danger, pulse * f.seg(0.3, 0.36));
+    paintFinger(canvas, f, [FingerKey(0.42, b.center(20), hold: 0.16)]);
+    paintSparkles(canvas, b.center(20), b.side * 0.2, f.seg(0.6, 0.78), f.theme.accent, count: 6);
+  }
+
+  @override
+  double get still => 0.36;
 }
 
 // ── Star Battle ─────────────────────────────────────────────────────────────
@@ -1474,6 +1839,267 @@ class StarsTipDemo extends HowToDemo {
   }
 }
 
+// ── Patches ─────────────────────────────────────────────────────────────────
+
+// Five patches on a 4×4, and only one way to cut it: the wide 4 can only be
+// the bottom row, which leaves the blank tall clue the whole of its column.
+const _patches = PatchesBoard(
+  size: 4,
+  clues: [
+    PatchClue(cell: 2, shape: PatchShape.tall),
+    PatchClue(cell: 5, shape: PatchShape.square, area: 4),
+    PatchClue(cell: 8, shape: PatchShape.wide, area: 2),
+    PatchClue(cell: 11, shape: PatchShape.tall, area: 3),
+    PatchClue(cell: 12, shape: PatchShape.wide, area: 4),
+  ],
+);
+const _patchAnswer = [
+  PatchRect(0, 2, 2, 2),
+  PatchRect(0, 0, 1, 1),
+  PatchRect(2, 0, 2, 1),
+  PatchRect(0, 3, 2, 3),
+  PatchRect(3, 0, 3, 3),
+];
+
+/// One drag on the Patches board: the finger lands on the first key's square
+/// and glides through the rest, and the rectangle runs from where it landed
+/// to whichever square is under the finger — the board's own reading of a
+/// stroke, so the demo cannot draw a rectangle the real board would not.
+class _PatchStroke {
+  const _PatchStroke(this.keys);
+
+  /// (loop time, square) — the first is the press, the last the release.
+  final List<(double, int)> keys;
+
+  double get start => keys.first.$1;
+  double get end => keys.last.$1;
+
+  List<FingerKey> finger(DemoBoard b) => [
+    for (var i = 0; i < keys.length; i++)
+      FingerKey(keys[i].$1, b.center(keys[i].$2), tap: i == 0),
+  ];
+
+  /// The rectangle under the finger, while the stroke is in progress.
+  PatchRect? preview(DemoFrame f, DemoBoard b) {
+    if (!f.at(start) || f.at(end)) return null;
+    var pos = b.center(keys.first.$2);
+    for (var i = 1; i < keys.length; i++) {
+      final (t0, c0) = keys[i - 1];
+      final (t1, c1) = keys[i];
+      if (f.t >= t1) {
+        pos = b.center(c1);
+        continue;
+      }
+      // Eased exactly as the ghost finger is, so the rectangle and the
+      // fingertip never disagree about where the finger is.
+      final p = Curves.easeInOutCubic.transform(
+        ((f.t - t0) / (t1 - t0)).clamp(0.0, 1.0),
+      );
+      pos = Offset.lerp(b.center(c0), b.center(c1), p)!;
+      break;
+    }
+    final reach = b.grid.hit(pos - b.origin) ?? keys.first.$2;
+    return PatchRect.span(keys.first.$2, reach, b.n);
+  }
+
+  /// Where the finger let go, as the patch it laid down.
+  PatchRect get landed =>
+      PatchRect.span(keys.first.$2, keys.last.$2, _patches.size);
+}
+
+/// Draws [patches] plus [stroke]'s rectangle, judged the way the board judges
+/// it: in its clue's colour while it fits, red while it does not.
+void _paintPatches(
+  Canvas canvas,
+  DemoFrame f,
+  DemoBoard b,
+  List<PatchRect?> patches, {
+  PatchRect? preview,
+  int? popClue,
+  double pop = 1,
+  double win = 0,
+}) {
+  final judged = preview == null ? null : patchJudge(_patches, preview);
+  b.draw(
+    canvas,
+    PatchesBoardPainter(
+      board: _patches,
+      theme: f.theme,
+      palette: f.palette,
+      patches: patches,
+      preview: preview,
+      previewClue: judged?.clue ?? -1,
+      previewOk: judged != null && judged.trouble == null,
+      popClue: popClue,
+      pop: pop,
+      win: win,
+    ),
+  );
+}
+
+/// The whole board cut, patch by patch.
+class PatchesRulesDemo extends HowToDemo {
+  const PatchesRulesDemo();
+
+  static const _order = [1, 0, 3, 2, 4];
+  static const _strokes = [
+    _PatchStroke([(0.06, 0), (0.14, 5)]),
+    _PatchStroke([(0.2, 2), (0.28, 10)]),
+    _PatchStroke([(0.34, 3), (0.42, 11)]),
+    _PatchStroke([(0.48, 8), (0.54, 9)]),
+    _PatchStroke([(0.6, 12), (0.68, 15)]),
+  ];
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    final patches = List<PatchRect?>.filled(5, null);
+    PatchRect? preview;
+    int? last;
+    for (var i = 0; i < _strokes.length; i++) {
+      final s = _strokes[i];
+      if (f.at(s.end)) {
+        patches[_order[i]] = _patchAnswer[_order[i]];
+        last = i;
+      }
+      preview ??= s.preview(f, b);
+    }
+    _paintPatches(
+      canvas,
+      f,
+      b,
+      patches,
+      preview: preview,
+      popClue: last == null ? null : _order[last],
+      pop: last == null ? 1 : f.pop(_strokes[last].end),
+      win: f.seg(0.72, 0.92, Curves.linear),
+    );
+    paintFinger(canvas, f, [for (final s in _strokes) ...s.finger(b)]);
+    paintSparkles(
+      canvas,
+      b.origin + Offset(b.side / 2, b.side / 2),
+      b.side * 0.42,
+      f.seg(0.72, 0.94, Curves.linear),
+      const Color(0xFFFFC53D),
+    );
+  }
+}
+
+/// The badge is the rule: a square 4 refuses a bar of 3 (red), takes a 2×2.
+class PatchesShapeDemo extends HowToDemo {
+  const PatchesShapeDemo();
+
+  static const _stroke = _PatchStroke([(0.26, 4), (0.42, 6), (0.52, 6), (0.68, 1)]);
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    final done = f.at(_stroke.end);
+    _paintPatches(
+      canvas,
+      f,
+      b,
+      [null, if (done) _stroke.landed else null, null, null, null],
+      preview: _stroke.preview(f, b),
+      popClue: done ? 1 : null,
+      pop: f.pop(_stroke.end),
+    );
+    paintSpotlight(
+      canvas,
+      b.rect(5).deflate(b.grid.cell * 0.12),
+      f.theme.accent,
+      f.seg(0.04, 0.12) * (1 - f.seg(0.22, 0.28)),
+      radius: b.grid.cell * 0.2,
+    );
+    paintFinger(canvas, f, _stroke.finger(b));
+    paintSparkles(canvas, b.center(5), b.side * 0.22, f.seg(0.7, 0.86),
+        const Color(0xFFFFC53D));
+  }
+
+  @override
+  double get still => 0.46;
+}
+
+/// Drag to cut a patch; tap it to lift it off; cut it again.
+class PatchesControlsDemo extends HowToDemo {
+  const PatchesControlsDemo();
+
+  static const _first = _PatchStroke([(0.1, 8), (0.24, 9)]);
+  static const _again = _PatchStroke([(0.66, 9), (0.8, 8)]);
+  static const _lift = 0.48;
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    final down =
+        (f.at(_first.end) && !f.at(_lift)) || f.at(_again.end);
+    final pop = f.at(_again.end) ? f.pop(_again.end) : f.pop(_first.end);
+    _paintPatches(
+      canvas,
+      f,
+      b,
+      [null, null, if (down) _patchAnswer[2] else null, null, null],
+      preview: _first.preview(f, b) ?? _again.preview(f, b),
+      popClue: down ? 2 : null,
+      pop: pop,
+    );
+    paintFinger(canvas, f, [
+      ..._first.finger(b),
+      // Steps aside so the landed patch is seen, then comes back to tap it.
+      FingerKey(0.34, b.center(14)),
+      FingerKey(_lift, b.center(9), tap: true),
+      FingerKey(0.56, b.center(14)),
+      ..._again.finger(b),
+    ]);
+  }
+
+  @override
+  double get still => 0.3;
+}
+
+/// Tip: the wide 4 on the bottom edge fits one way only. Start there.
+class PatchesTipDemo extends HowToDemo {
+  const PatchesTipDemo();
+
+  static const _stroke = _PatchStroke([(0.4, 12), (0.6, 15)]);
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = DemoBoard(f, n: 4);
+    final done = f.at(_stroke.end);
+    _paintPatches(
+      canvas,
+      f,
+      b,
+      [null, null, null, null, if (done) _patchAnswer[4] else null],
+      preview: _stroke.preview(f, b),
+      popClue: done ? 4 : null,
+      pop: f.pop(_stroke.end),
+    );
+    final glow = f.seg(0.06, 0.14) * (1 - f.seg(0.34, 0.4));
+    paintSpotlight(
+      canvas,
+      b.rect(12).deflate(b.grid.cell * 0.12),
+      f.theme.accent,
+      glow,
+      radius: b.grid.cell * 0.2,
+    );
+    // Then the one row it can be.
+    paintSpotlight(
+      canvas,
+      b.rect(12).expandToInclude(b.rect(15)).deflate(1),
+      f.theme.accent,
+      f.seg(0.2, 0.28) * (1 - f.seg(0.36, 0.42)),
+    );
+    paintFinger(canvas, f, _stroke.finger(b));
+    paintSparkles(canvas, b.center(13), b.side * 0.24, f.seg(0.62, 0.8),
+        const Color(0xFFFFC53D));
+  }
+
+  @override
+  double get still => 0.3;
+}
+
 // ── Code puzzle ─────────────────────────────────────────────────────────────
 
 enum _Peg { exact, present, absent }
@@ -1499,6 +2125,8 @@ void _codeGrid(
   required List<int> typed,
   required List<double> flips,
   bool secret = false,
+  List<List<int>> guesses = _codeGuesses,
+  List<List<_Peg>> verdicts = _codeVerdicts,
 }) {
   final side = f.side * 0.82;
   final gap = side * 0.045;
@@ -1516,13 +2144,13 @@ void _codeGrid(
         cell,
         cell,
       );
-      final guess = r < _codeGuesses.length ? _codeGuesses[r] : null;
+      final guess = r < guesses.length ? guesses[r] : null;
       final has = guess != null && r < typed.length && c < typed[r];
       // Cell by cell, left to right, the way the real board checks a row.
       final flip = r < flips.length
           ? (flips[r] * 4 - c).clamp(0.0, 1.0)
           : 0.0;
-      final verdict = flip > 0.5 && guess != null ? _codeVerdicts[r][c] : null;
+      final verdict = flip > 0.5 && guess != null ? verdicts[r][c] : null;
       final fill = switch (verdict) {
         _Peg.exact => f.theme.success.withValues(alpha: 0.32),
         _Peg.present => const Color(0xFFF5B400).withValues(alpha: 0.55),
@@ -1557,6 +2185,18 @@ void _codeGrid(
       canvas.restore();
     }
   }
+}
+
+/// Where cell ([r], [c]) of a [rows]-row code grid sits: [_codeGrid]'s own
+/// layout, for drawing on top of it.
+Rect _codeCell(DemoFrame f, int rows, int r, int c) {
+  final side = f.side * 0.82;
+  final gap = side * 0.045;
+  final cell = math.min((side - gap * 3) / 4, (f.size.height * 0.84 - gap * (rows - 1)) / rows);
+  final width = cell * 4 + gap * 3;
+  final height = cell * rows + gap * (rows - 1);
+  final origin = Offset((f.size.width - width) / 2, (f.size.height - height) / 2);
+  return Rect.fromLTWH(origin.dx + c * (cell + gap), origin.dy + r * (cell + gap), cell, cell);
 }
 
 /// A row of four ? marks; symbols get typed in.
@@ -1618,4 +2258,69 @@ class CodeWinDemo extends HowToDemo {
       f.theme.success,
     );
   }
+}
+
+// The tip's game: the first guess finds 2 of the code's symbols, the second
+// spends its two free slots on the two symbols never tried, and all four turn
+// up. One reorder later, it's solved.
+const _tipGuesses = [
+  [0, 1, 2, 3],
+  [4, 5, 0, 2],
+  [2, 0, 4, 5],
+];
+const _tipVerdicts = [
+  [_Peg.present, _Peg.absent, _Peg.present, _Peg.absent],
+  [_Peg.present, _Peg.present, _Peg.present, _Peg.present],
+  [_Peg.exact, _Peg.exact, _Peg.exact, _Peg.exact],
+];
+
+/// Tip: guess two brings in the two symbols nobody has tried yet. All four
+/// light up, so the third guess only has to put them in order.
+class CodeTipDemo extends HowToDemo {
+  const CodeTipDemo();
+
+  @override
+  Duration get period => const Duration(milliseconds: 5200);
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final second = f.count(const [0.14, 0.2, 0.26, 0.32]);
+    final third = f.count(const [0.6, 0.64, 0.68, 0.72]);
+    _codeGrid(
+      canvas,
+      f,
+      rows: 3,
+      typed: [4, second, third],
+      flips: [1, f.seg(0.36, 0.52, Curves.linear), f.seg(0.76, 0.88, Curves.linear)],
+      guesses: _tipGuesses,
+      verdicts: _tipVerdicts,
+    );
+    // The two new symbols, as they go in.
+    final fresh = f.seg(0.14, 0.2) * (1 - f.seg(0.5, 0.56));
+    paintSpotlight(
+      canvas,
+      _codeCell(f, 3, 1, 0).expandToInclude(_codeCell(f, 3, 1, 1)).inflate(3),
+      f.theme.accent,
+      fresh,
+      radius: 10,
+    );
+    // Four yellows: every symbol found.
+    paintSpotlight(
+      canvas,
+      _codeCell(f, 3, 1, 0).expandToInclude(_codeCell(f, 3, 1, 3)).inflate(3),
+      const Color(0xFFF5B400),
+      f.seg(0.52, 0.56) * (1 - f.seg(0.64, 0.7)),
+      radius: 10,
+    );
+    paintSparkles(
+      canvas,
+      Offset(f.size.width / 2, f.size.height / 2),
+      f.side * 0.42,
+      f.seg(0.88, 0.99, Curves.linear),
+      f.theme.success,
+    );
+  }
+
+  @override
+  double get still => 0.56;
 }

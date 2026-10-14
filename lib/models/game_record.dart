@@ -18,7 +18,8 @@ enum RecordGame {
   futoshiki,
   nonogram,
   minesweeper,
-  starbattle;
+  starbattle,
+  patches;
 
   /// The id the backend keys records by.
   String get wire => name;
@@ -35,6 +36,7 @@ enum RecordGame {
         RecordGame.nonogram => DailyGame.nonogram,
         RecordGame.minesweeper => DailyGame.minesweeper,
         RecordGame.starbattle => DailyGame.starbattle,
+        RecordGame.patches => DailyGame.patches,
       };
 
   static RecordGame of(DailyGame game) => switch (game) {
@@ -47,6 +49,7 @@ enum RecordGame {
         DailyGame.nonogram => RecordGame.nonogram,
         DailyGame.minesweeper => RecordGame.minesweeper,
         DailyGame.starbattle => RecordGame.starbattle,
+        DailyGame.patches => RecordGame.patches,
       };
 
   static RecordGame? parse(String? s) {

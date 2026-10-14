@@ -130,6 +130,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "nonogram",
       minesweeper: "minesweeper",
       starbattle: "star battle",
+      patches: "patches",
     },
   },
   tr: {
@@ -160,6 +161,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "nonogram",
       minesweeper: "mayın tarlası",
       starbattle: "yıldız savaşı",
+      patches: "yamalar",
     },
   },
   es: {
@@ -190,6 +192,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "nonograma",
       minesweeper: "buscaminas",
       starbattle: "batalla de estrellas",
+      patches: "parches",
     },
   },
   fr: {
@@ -220,6 +223,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "nonogramme",
       minesweeper: "démineur",
       starbattle: "bataille d’étoiles",
+      patches: "patchs",
     },
   },
   pt: {
@@ -250,6 +254,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "nonograma",
       minesweeper: "caça-minas",
       starbattle: "batalha de estrelas",
+      patches: "retalhos",
     },
   },
   "pt-br": {
@@ -280,6 +285,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "nonograma",
       minesweeper: "campo minado",
       starbattle: "batalha de estrelas",
+      patches: "retalhos",
     },
   },
   sv: {
@@ -310,6 +316,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "nonogram",
       minesweeper: "minröjning",
       starbattle: "stjärnstrid",
+      patches: "lappar",
     },
   },
   ar: {
@@ -340,6 +347,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "نونوغرام",
       minesweeper: "كاسحة الألغام",
       starbattle: "معركة النجوم",
+      patches: "الرُّقَع",
     },
   },
   hi: {
@@ -370,6 +378,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "नोनोग्राम",
       minesweeper: "माइनस्वीपर",
       starbattle: "स्टार बैटल",
+      patches: "पैचेस",
     },
   },
   ja: {
@@ -400,6 +409,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "ノノグラム",
       minesweeper: "マインスイーパー",
       starbattle: "スターバトル",
+      patches: "パッチ",
     },
   },
   ko: {
@@ -430,6 +440,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "노노그램",
       minesweeper: "지뢰 찾기",
       starbattle: "스타 배틀",
+      patches: "패치",
     },
   },
   zh: {
@@ -460,6 +471,7 @@ const SOCIAL_COPY: Record<string, SocialCopy> = {
       nonogram: "数织",
       minesweeper: "扫雷",
       starbattle: "星战",
+      patches: "拼布",
     },
   },
 };

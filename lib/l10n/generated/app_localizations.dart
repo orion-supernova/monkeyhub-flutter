@@ -10091,6 +10091,24 @@ abstract class AppLocalizations {
   /// **'Here\'s one whole pipe, dot to dot.'**
   String get gameHintFlowPipe;
 
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Patches: only one rectangle fits this clue's shape and size.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one patch fits this clue.'**
+  String get gameHintPatchesOnly;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Patches: some square can only be reached by this clue's rectangles, which narrows the clue down to one rectangle.
+  ///
+  /// In en, this message translates to:
+  /// **'A square here can only belong to this clue, and that leaves it one patch.'**
+  String get gameHintPatchesCell;
+
+  /// Hint banner under a daily puzzle board, explaining in one line why the spotlit square is what it is. Patches: the neighbouring patches leave this clue's rectangle only one possible position.
+  ///
+  /// In en, this message translates to:
+  /// **'The patches around it leave this clue only one way to fit.'**
+  String get gameHintPatchesSqueeze;
+
   /// Generic error when a daily-game action fails for an unrecognised reason.
   ///
   /// In en, this message translates to:
@@ -20977,6 +20995,12 @@ abstract class AppLocalizations {
   /// **'Star battle'**
   String get gameStarbattleName;
 
+  /// Name of the Patches daily game (LinkedIn's rectangle puzzle, also known as Shikaku): cut the board into rectangles, each holding exactly one clue. Sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Patches'**
+  String get gamePatchesName;
+
   /// Flow's rules in one line, under its title. Join each pair of matching dots; the pipes must fill every square.
   ///
   /// In en, this message translates to:
@@ -21006,6 +21030,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'two stars per row, column and colour, never touching'**
   String get gameStarbattleRule;
+
+  /// Patches' rules in one line, under its title. Cut the board into rectangles; each rectangle contains exactly one clue. Lowercase start, like the other games' rule lines.
+  ///
+  /// In en, this message translates to:
+  /// **'cut the board into rectangles, one clue in each'**
+  String get gamePatchesRule;
 
   /// Minesweeper tool button. While on, a tap puts a flag ("a mine is here") on a square instead of opening it. Short, one word if possible.
   ///
@@ -22159,6 +22189,12 @@ abstract class AppLocalizations {
   /// **'= means the two match. × means they\'re opposite.'**
   String get howToTango4;
 
+  /// Tango guide, strategy tip: two identical symbols side by side force the opposite symbol on both ends (otherwise there would be three in a row).
+  ///
+  /// In en, this message translates to:
+  /// **'Two the same side by side? The squares at both ends get the other one.'**
+  String get howToTangoTip;
+
   /// Zip guide, step: start and order.
   ///
   /// In en, this message translates to:
@@ -22176,6 +22212,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wrong turn? Just drag back to undo.'**
   String get howToZip3;
+
+  /// Zip guide, strategy tip: don't leave a single square cut off; cover corners and edges as the line passes them.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t strand a square. Sweep corners and edges as you pass.'**
+  String get howToZipTip;
 
   /// Mini Sudoku guide, step: the rule (numbers 1 to 6).
   ///
@@ -22213,6 +22255,12 @@ abstract class AppLocalizations {
   /// **'Pipes can\'t cross, and every square has to be filled. Take the long way.'**
   String get howToFlow2;
 
+  /// Flow guide, strategy tip: route pipes along the board's edges first; the middle then follows.
+  ///
+  /// In en, this message translates to:
+  /// **'Run pipes along the edges first. The middle sorts itself out.'**
+  String get howToFlowTip;
+
   /// Futoshiki guide, step: each number once per row and column.
   ///
   /// In en, this message translates to:
@@ -22230,6 +22278,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Break a sign and it lights up red.'**
   String get howToFutoshiki3;
+
+  /// Futoshiki guide, strategy tip: follow chains of inequality signs; with a < b < c, c must be at least 3 (and a at most 3).
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the chains: if a < b < c, then c is at least 3.'**
+  String get howToFutoshikiTip;
 
   /// Nonogram guide, step: what the clue numbers mean.
   ///
@@ -22261,6 +22315,12 @@ abstract class AppLocalizations {
   /// **'Nail every clue and the hidden picture pops out.'**
   String get howToNonogram4;
 
+  /// Nonogram guide, strategy tip: start with large clues; a run of 7 in a row of 10 squares always covers the middle 4 squares, however it is placed.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with the big clues. A 7 in a row of 10 always covers the middle 4.'**
+  String get howToNonogramTip;
+
   /// Minesweeper guide, step: opening squares.
   ///
   /// In en, this message translates to:
@@ -22284,6 +22344,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hit a mine and you eat a 30 second penalty. But you never actually have to guess.'**
   String get howToMines4;
+
+  /// Minesweeper guide, strategy tip: a 1 that touches exactly one hidden square means that square is a mine.
+  ///
+  /// In en, this message translates to:
+  /// **'A 1 with only one hidden square next to it? That square is the mine.'**
+  String get howToMinesTip;
 
   /// Star Battle guide, step: two stars per row/column/colour.
   ///
@@ -22309,6 +22375,30 @@ abstract class AppLocalizations {
   /// **'With Auto-dot on, a star dots out the squares around it. Once a row has its 2, the rest gets dotted too.'**
   String get howToStars3;
 
+  /// Patches guide, step: cut the board into rectangles, exactly one clue in each.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut the board into rectangles. Each one holds exactly one clue.'**
+  String get howToPatches1;
+
+  /// Patches guide, step: how to read a clue. The clue badge is drawn as the shape it asks for: a square, a tall (upright) bar, a wide (lying) bar, or a circle meaning any rectangle. A number inside, when present, is the rectangle's area in squares.
+  ///
+  /// In en, this message translates to:
+  /// **'The badge shows the shape: square, tall or wide. A circle means any rectangle. A number is how many squares.'**
+  String get howToPatches2;
+
+  /// Patches guide, step: controls. Drag from one corner to the opposite corner to cut a rectangle; tap a placed rectangle to remove it.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag from corner to corner to cut a patch. Tap a patch to lift it off.'**
+  String get howToPatches3;
+
+  /// Patches guide, strategy tip: a large clue next to the board's edge usually fits in only one place.
+  ///
+  /// In en, this message translates to:
+  /// **'A big clue against the edge often fits only one way. Start there.'**
+  String get howToPatches4;
+
   /// Code puzzle guide, step: the goal.
   ///
   /// In en, this message translates to:
@@ -22333,6 +22423,12 @@ abstract class AppLocalizations {
   /// **'You get 6 guesses. The fewer you need, the better.'**
   String get howToCode4;
 
+  /// Code puzzle guide, strategy tip: use the first guesses to try symbols not yet tried, to learn which symbols are in the code, rather than guessing for the win.
+  ///
+  /// In en, this message translates to:
+  /// **'Spend your first guesses on new symbols. Learning beats guessing.'**
+  String get howToCodeTip;
+
   /// Tic-tac-toe guide step.
   ///
   /// In en, this message translates to:
@@ -22356,6 +22452,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Line up 4 in a row to win: across, up and down, or diagonal.'**
   String get howToC42;
+
+  /// Connect Four guide, strategy tip: play the middle column; it is part of more possible fours than any other column.
+  ///
+  /// In en, this message translates to:
+  /// **'Play the middle column. It\'s part of more fours than any other.'**
+  String get howToC4Tip;
 
   /// Checkers guide step: moving.
   ///
@@ -22387,6 +22489,12 @@ abstract class AppLocalizations {
   /// **'Take all their pieces, or leave them with no move, to win. 40 moves each with no capture and no plain piece moving is a draw.'**
   String get howToCheckersWin;
 
+  /// Checkers guide, strategy tip: keep the pieces on your own back row in place as long as possible; while occupied, the opponent cannot land there to be crowned king.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your back row at home. It stops them from crowning kings.'**
+  String get howToCheckersTip;
+
   /// Reversi guide step: trapping.
   ///
   /// In en, this message translates to:
@@ -22404,6 +22512,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No move to make? Your turn gets skipped. When nobody can move, most discs wins.'**
   String get howToReversi3;
+
+  /// Reversi guide, strategy tip: take the corners; a disc in a corner can never be flipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Grab the corners. A disc in a corner can never be flipped.'**
+  String get howToReversiTip;
 
   /// Dots and Boxes guide step: drawing lines.
   ///
@@ -22453,6 +22567,12 @@ abstract class AppLocalizations {
   /// **'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over. No legal move but not in check? It\'s a draw.'**
   String get howToChess4;
 
+  /// Chess guide, strategy tip: before each move, look at which of your pieces the opponent could capture next.
+  ///
+  /// In en, this message translates to:
+  /// **'Before every move, check what they can take.'**
+  String get howToChessTip;
+
   /// Liar's Dice guide step: secret dice.
   ///
   /// In en, this message translates to:
@@ -22500,6 +22620,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'45 seconds a turn. Run out and the game plays for you.'**
   String get howToLiarsClock;
+
+  /// Liar's Dice guide, strategy tip: count your own dice first; about one in three of the other players' dice show the face being bid, because 1s are wild (2 faces of 6 count).
+  ///
+  /// In en, this message translates to:
+  /// **'Count your own dice first. About a third of everyone else\'s match the face you bid, since 1s are wild.'**
+  String get howToLiarsTip;
 
   /// Imposter guide step: the secret word.
   ///

@@ -5913,6 +5913,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gameHintFlowPipe => 'İşte noktadan noktaya bütün bir boru.';
 
   @override
+  String get gameHintPatchesOnly => 'Bu ipucuna tek bir yama sığıyor.';
+
+  @override
+  String get gameHintPatchesCell =>
+      'Buradaki bir kare sadece bu ipucuna ait olabilir, bu da ona tek bir yama bırakıyor.';
+
+  @override
+  String get gameHintPatchesSqueeze =>
+      'Etrafındaki yamalar bu ipucuna sığacak tek bir yol bırakıyor.';
+
+  @override
   String get gameErrorGeneric => 'Oyunlara ulaşılamadı. Tekrar dene';
 
   @override
@@ -12457,6 +12468,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gameStarbattleName => 'Yıldız savaşı';
 
   @override
+  String get gamePatchesName => 'Yamalar';
+
+  @override
   String get gameFlowRule => 'aynı noktaları birleştir, her kareyi doldur';
 
   @override
@@ -12472,6 +12486,10 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get gameStarbattleRule =>
       'her satır, sütun ve renkte iki yıldız, asla bitişik değil';
+
+  @override
+  String get gamePatchesRule =>
+      'tahtayı dikdörtgenlere böl, her birinde bir ipucu';
 
   @override
   String get gameFlag => 'Bayrak';
@@ -13176,6 +13194,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get howToTango4 => '= varsa ikisi aynı, × varsa ikisi farklı.';
 
   @override
+  String get howToTangoTip =>
+      'Yan yana iki aynı mı var? İki ucundaki kareler diğeri olur.';
+
+  @override
   String get howToZip1 => '1\'den başla, sayıların üstünden sırayla geç.';
 
   @override
@@ -13183,6 +13205,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToZip3 => 'Yanlış mı döndün? Geri sürükle, silinsin.';
+
+  @override
+  String get howToZipTip =>
+      'Bir kareyi yalnız bırakma. Köşeleri ve kenarları geçerken topla.';
 
   @override
   String get howToSudoku1 =>
@@ -13207,6 +13233,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Borular kesişemez, her kare de dolmalı. Gerekirse dolaş.';
 
   @override
+  String get howToFlowTip =>
+      'Önce boruları kenarlardan geçir. Ortası kendiliğinden çözülür.';
+
+  @override
   String get howToFutoshiki1 =>
       'Her kareyi 1\'den 5\'e kadar bir sayıyla doldur. Her satır ve sütunda her sayı tam bir kere.';
 
@@ -13215,6 +13245,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => 'İşareti bozarsan kırmızı yanar.';
+
+  @override
+  String get howToFutoshikiTip =>
+      'Zincirleri takip et: a < b < c ise c en az 3’tür.';
 
   @override
   String get howToNonogram1 =>
@@ -13237,6 +13271,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bütün ipuçlarını tuttur, gizli resim ortaya çıksın.';
 
   @override
+  String get howToNonogramTip =>
+      'Büyük ipuçlarıyla başla. 10 karelik bir satırdaki 7, ortadaki 4 kareyi her zaman kaplar.';
+
+  @override
   String get howToMines1 =>
       'Mayın olmayan bütün kareleri aç. Boş alanlar kendiliğinden açılır.';
 
@@ -13253,6 +13291,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Mayına basarsan 30 saniye ceza yersin. Ama hiçbir zaman tahmin etmen gerekmez.';
 
   @override
+  String get howToMinesTip =>
+      'Yanında tek bir kapalı kare olan bir 1 mi var? Mayın o karede.';
+
+  @override
   String get howToStars1 => 'Her satıra, her sütuna ve her renge 2 yıldız.';
 
   @override
@@ -13265,6 +13307,22 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get howToStars3 =>
       'Otomatik nokta açıkken, bir yıldız etrafındaki kareleri noktayla kapatır. Bir satır 2 yıldızını bulunca geri kalanı da noktalanır.';
+
+  @override
+  String get howToPatches1 =>
+      'Tahtayı dikdörtgenlere böl. Her birinde tam olarak bir ipucu olmalı.';
+
+  @override
+  String get howToPatches2 =>
+      'Rozet şekli gösterir: kare, uzun ya da geniş. Daire, herhangi bir dikdörtgen demek. Sayı kaç kare olduğunu söyler.';
+
+  @override
+  String get howToPatches3 =>
+      'Yama kesmek için köşeden köşeye sürükle. Kaldırmak için yamaya dokun.';
+
+  @override
+  String get howToPatches4 =>
+      'Kenara dayanan büyük bir ipucu çoğu zaman tek şekilde sığar. Oradan başla.';
 
   @override
   String get howToCode1 =>
@@ -13282,6 +13340,10 @@ class AppLocalizationsTr extends AppLocalizations {
       '6 hakkın var. Ne kadar az denemede bulursan o kadar iyi.';
 
   @override
+  String get howToCodeTip =>
+      'İlk tahminlerini yeni sembollere harca. Öğrenmek, tahmin etmekten iyidir.';
+
+  @override
   String get howToTtt1 =>
       'Sırayla işaretini koy. 3\'ünü yan yana dizen kazanır.';
 
@@ -13296,6 +13358,10 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get howToC42 =>
       '4\'ünü yan yana dizen kazanır: yatay, dikey ya da çapraz.';
+
+  @override
+  String get howToC4Tip =>
+      'Ortadaki sütunu oyna. Diğerlerinden daha çok dörtlünün parçası.';
 
   @override
   String get howToCheckers1 =>
@@ -13318,6 +13384,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Rakibin tüm taşlarını al ya da onu hamlesiz bırak, kazan. Taş alınmadan ve düz taş oynanmadan ikişer 40 hamle geçerse berabere.';
 
   @override
+  String get howToCheckersTip =>
+      'Arka sıranı yerinde tut. Rakibin dama çıkarmasını engeller.';
+
+  @override
   String get howToReversi1 =>
       'Pulunu öyle bir yere koy ki rakibin bir sıra pulu iki pulunun arasında sıkışsın. Her hamle en az bir pul sıkıştırmalı.';
 
@@ -13328,6 +13398,9 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get howToReversi3 =>
       'Oynayacak hamlen yok mu? Sıran atlanır. Kimse oynayamayınca en çok pulu olan kazanır.';
+
+  @override
+  String get howToReversiTip => 'Köşeleri kap. Köşedeki taş asla çevrilemez.';
 
   @override
   String get howToDots1 => 'Sırayla iki nokta arasına çizgi çekin.';
@@ -13357,6 +13430,10 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get howToChess4 =>
       'Şah çekildiyse şahın saldırı altında demek, hemen kurtar. Kaçacak yer yoksa şah mat, oyun biter. Şah çekilmediği hâlde oynayacak hamle yoksa berabere.';
+
+  @override
+  String get howToChessTip =>
+      'Her hamleden önce rakibin neyi alabileceğine bak.';
 
   @override
   String get howToLiars1 =>
@@ -13389,6 +13466,10 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get howToLiarsClock =>
       'Her sıra 45 saniye. Süren biterse oyun senin yerine oynar.';
+
+  @override
+  String get howToLiarsTip =>
+      'Önce kendi zarlarını say. 1’ler joker olduğu için diğerlerinin zarlarının yaklaşık üçte biri söylediğin yüze uyar.';
 
   @override
   String get howToImposter1 =>

@@ -5,6 +5,7 @@ import 'flow_screen.dart';
 import 'futoshiki_screen.dart';
 import 'minesweeper_screen.dart';
 import 'nonogram_screen.dart';
+import 'patches_screen.dart';
 import 'queens_screen.dart';
 import 'starbattle_screen.dart';
 import 'sudoku_screen.dart';
@@ -26,4 +27,5 @@ Widget dailyGameScreen(DailyGame game, String userId) => switch (game) {
   DailyGame.nonogram => NonogramScreen(userId: userId),
   DailyGame.minesweeper => MinesweeperScreen(userId: userId),
   DailyGame.starbattle => StarBattleScreen(userId: userId),
+  DailyGame.patches => PatchesScreen(userId: userId),
 };

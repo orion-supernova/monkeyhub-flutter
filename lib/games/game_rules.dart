@@ -818,3 +818,161 @@ bool starBattleSolved(StarBattleBoard board, List<StarMark> marks) {
   }
   return starBattleConflicts(board, marks).isEmpty;
 }
+
+// ── Patches ─────────────────────────────────────────────────────────────────
+
+/// A patch: a rectangle by its inclusive corners.
+class PatchRect {
+  const PatchRect(this.top, this.left, this.bottom, this.right);
+
+  /// The rectangle with [a] and [b] at opposite corners, in either order —
+  /// what a drag from one square to another spans.
+  factory PatchRect.span(int a, int b, int n) => PatchRect(
+    math.min(a ~/ n, b ~/ n),
+    math.min(a % n, b % n),
+    math.max(a ~/ n, b ~/ n),
+    math.max(a % n, b % n),
+  );
+
+  final int top;
+  final int left;
+  final int bottom;
+  final int right;
+
+  int get rows => bottom - top + 1;
+  int get cols => right - left + 1;
+  int get area => rows * cols;
+
+  bool contains(int cell, int n) {
+    final r = cell ~/ n;
+    final c = cell % n;
+    return r >= top && r <= bottom && c >= left && c <= right;
+  }
+
+  bool overlaps(PatchRect o) =>
+      top <= o.bottom && o.top <= bottom && left <= o.right && o.left <= right;
+
+  /// The squares inside, row-major.
+  Iterable<int> cells(int n) sync* {
+    for (var r = top; r <= bottom; r++) {
+      for (var c = left; c <= right; c++) {
+        yield r * n + c;
+      }
+    }
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is PatchRect &&
+      other.top == top &&
+      other.left == left &&
+      other.bottom == bottom &&
+      other.right == right;
+
+  @override
+  int get hashCode => Object.hash(top, left, bottom, right);
+}
+
+/// Why a rectangle cannot be a patch.
+enum PatchTrouble {
+  /// No clue inside it.
+  noClue,
+
+  /// More than one clue inside it.
+  twoClues,
+
+  /// One clue, but the wrong proportions for it.
+  shape,
+
+  /// One clue, but the wrong number of squares for it.
+  area,
+}
+
+/// What [rect] would be on [board]: the clue it holds (-1 for none or
+/// several) and what is wrong with it, null when it is a legal patch for that
+/// clue. The rules `isSolved` in patches.ts checks, one patch at a time.
+({int clue, PatchTrouble? trouble}) patchJudge(PatchesBoard board, PatchRect rect) {
+  var clue = -1;
+  for (var k = 0; k < board.clues.length; k++) {
+    if (!rect.contains(board.clues[k].cell, board.size)) continue;
+    if (clue >= 0) return (clue: -1, trouble: PatchTrouble.twoClues);
+    clue = k;
+  }
+  if (clue < 0) return (clue: -1, trouble: PatchTrouble.noClue);
+  final c = board.clues[clue];
+  if (c.area > 0 && rect.area != c.area) {
+    return (clue: clue, trouble: PatchTrouble.area);
+  }
+  if (!c.shape.allows(rect.rows, rect.cols)) {
+    return (clue: clue, trouble: PatchTrouble.shape);
+  }
+  return (clue: clue, trouble: null);
+}
+
+/// The clue index covering each square, -1 where no patch is down: the
+/// autosave, and — once every square is covered — the submission.
+List<int> patchesLabels(PatchesBoard board, List<PatchRect?> patches) {
+  final n = board.size;
+  final out = List<int>.filled(n * n, -1);
+  for (var k = 0; k < patches.length; k++) {
+    final rect = patches[k];
+    if (rect == null) continue;
+    for (final c in rect.cells(n)) {
+      out[c] = k;
+    }
+  }
+  return out;
+}
+
+/// The inverse of [patchesLabels]. Each clue's squares are kept only if they
+/// form a legal patch for it that no earlier clue's patch overlaps — a stale
+/// save on a changed board then comes back with fewer patches, never with an
+/// illegal one.
+List<PatchRect?> patchesFromLabels(PatchesBoard board, List<int> labels) {
+  final n = board.size;
+  final out = List<PatchRect?>.filled(board.clues.length, null);
+  if (labels.length != n * n) return out;
+  for (var k = 0; k < board.clues.length; k++) {
+    var top = n, left = n, bottom = -1, right = -1, count = 0;
+    for (var i = 0; i < labels.length; i++) {
+      if (labels[i] != k) continue;
+      count++;
+      top = math.min(top, i ~/ n);
+      bottom = math.max(bottom, i ~/ n);
+      left = math.min(left, i % n);
+      right = math.max(right, i % n);
+    }
+    if (count == 0) continue;
+    final rect = PatchRect(top, left, bottom, right);
+    if (rect.area != count) continue;
+    final judged = patchJudge(board, rect);
+    if (judged.clue != k || judged.trouble != null) continue;
+    if (out.any((o) => o != null && o.overlaps(rect))) continue;
+    out[k] = rect;
+  }
+  return out;
+}
+
+/// The submission if every clue has a legal patch and together they cover
+/// the board, else null. Patches never overlap on the board (placing one lifts
+/// whatever it lands on), so full coverage is a square count.
+List<int>? patchesSolution(PatchesBoard board, List<PatchRect?> patches) {
+  final n = board.size;
+  if (n == 0 || patches.length != board.clues.length) return null;
+  var covered = 0;
+  for (var k = 0; k < patches.length; k++) {
+    final rect = patches[k];
+    if (rect == null) return null;
+    final judged = patchJudge(board, rect);
+    if (judged.clue != k || judged.trouble != null) return null;
+    covered += rect.area;
+  }
+  if (covered != n * n) return null;
+  final labels = patchesLabels(board, patches);
+  return labels.contains(-1) ? null : labels;
+}
+
+/// Whether the board is cut completely and legally. Mirrors `isSolved` in
+/// patches.ts.
+bool patchesSolved(PatchesBoard board, List<PatchRect?> patches) =>
+    patchesSolution(board, patches) != null;

@@ -396,6 +396,55 @@ class ConnectFourWinDemo extends HowToDemo {
   double get still => 0.7;
 }
 
+/// Tip: the middle column. Each hole glows by how many fours run through it,
+/// the middle burns brightest, and that is where the disc goes.
+class ConnectFourTipDemo extends HowToDemo {
+  const ConnectFourTipDemo();
+
+  /// Fours through each hole, row by row: the classic count, highest in the
+  /// middle column.
+  static const _fours = [
+    3, 4, 5, 7, 5, 4, 3, //
+    4, 6, 8, 10, 8, 6, 4, //
+    5, 8, 11, 13, 11, 8, 5, //
+    5, 8, 11, 13, 11, 8, 5, //
+    4, 6, 8, 10, 8, 6, 4, //
+    3, 4, 5, 7, 5, 4, 3, //
+  ];
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = _C4(f);
+    _c4(canvas, f, b, const {}, const [(0.6, 3, 0)]);
+    // The heat rises column by column from the edges in, so the eye ends on
+    // the middle; it fades once the disc has gone there.
+    final fade = 1 - f.seg(0.78, 0.9);
+    final glow = Paint();
+    for (var i = 0; i < 42; i++) {
+      final col = i % 7;
+      final edge = (col - 3).abs();
+      final p = f.seg(0.06 + (3 - edge) * 0.07, 0.2 + (3 - edge) * 0.07);
+      if (p <= 0) continue;
+      final row = i ~/ 7;
+      if (f.at(0.6) && row == 5 && col == 3) continue;
+      glow.color = f.theme.accent.withValues(alpha: 0.75 * p * fade * _fours[i] / 13);
+      canvas.drawCircle(b.hole(row, col), b.g.holeRadius * 0.86, glow);
+    }
+    final column = Rect.fromLTWH(
+      b.origin.dx + 3 * b.g.cell,
+      b.origin.dy,
+      b.g.cell,
+      b.g.cell * 6,
+    ).inflate(2);
+    paintSpotlight(canvas, column, f.theme.accent, f.seg(0.38, 0.46) * fade, radius: b.g.cell * 0.3);
+    paintFinger(canvas, f, [FingerKey(0.6, b.above(3), tap: true)]);
+    paintSparkles(canvas, b.hole(5, 3), f.side * 0.22, f.seg(0.66, 0.86), f.theme.accent);
+  }
+
+  @override
+  double get still => 0.5;
+}
+
 // ── Checkers ────────────────────────────────────────────────────────────────
 
 const _darkMan = 1;
@@ -591,6 +640,49 @@ class CheckersKingDemo extends HowToDemo {
   double get still => 0.45;
 }
 
+/// Tip: a rival man reaches your back row's doorstep and finds its crowning
+/// square taken by a man who never left home.
+class CheckersTipDemo extends HowToDemo {
+  const CheckersTipDemo();
+
+  // Dark's back row (0 to 3) all home, a light man two rows short of it on
+  // the edge. From 4 its only way down is 0, and no dark man can jump it
+  // there: the landing square would be off the board.
+  static const _pieces = {
+    0: _darkMan, 1: _darkMan, 2: _darkMan, 3: _darkMan, //
+    14: _darkMan, 8: _lightMan, 26: _lightMan, 27: _lightMan,
+  };
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = _Square(f, fraction: 0.88);
+    _checkers(
+      canvas,
+      f,
+      b,
+      before: _pieces,
+      after: {..._pieces}
+        ..remove(8)
+        ..[4] = _lightMan,
+      moveAt: 0.2,
+      path: const [8, 4],
+      captured: const [],
+      piece: _lightMan,
+    );
+    final geo = CheckersGeometry(b.size, flipped: true);
+    Rect at(int sq) => geo.square(sq).shift(b.origin).deflate(2);
+    // Where it wants to land: taken. Then the row that holds it.
+    final blocked = f.seg(0.36, 0.44) * (1 - f.seg(0.58, 0.64));
+    paintSpotlight(canvas, at(0), f.theme.danger, blocked, radius: 6);
+    final home = at(0).expandToInclude(at(3)).inflate(2);
+    paintSpotlight(canvas, home, f.theme.accent, f.seg(0.64, 0.72) * (1 - f.seg(0.88, 0.94)), radius: 8);
+    paintSparkles(canvas, home.center, b.side * 0.3, f.seg(0.66, 0.88), f.theme.accent);
+  }
+
+  @override
+  double get still => 0.42;
+}
+
 // ── Reversi ─────────────────────────────────────────────────────────────────
 
 void _reversi(
@@ -726,6 +818,62 @@ class ReversiCountDemo extends HowToDemo {
       paintSparkles(canvas, Offset(f.size.width * 0.32, y), f.side * 0.16, f.seg(0.58, 0.8), f.theme.success, count: 6);
     }
   }
+}
+
+/// Tip: you take a corner, they flip the disc beside it straight back, and
+/// the corner stays yours.
+class ReversiTipDemo extends HowToDemo {
+  const ReversiTipDemo();
+
+  // Black (1) takes the corner a1 at 0, trapping white's 9 against 18; white
+  // (2) answers on 8, trapping 9 against 10. Nothing can trap 0.
+  static const _start = {9: 2, 10: 2, 18: 1, 27: 2, 28: 1, 35: 1, 36: 2};
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = _Square(f, fraction: 0.88);
+    const first = 0.22;
+    const second = 0.5;
+    final cells = List<int>.filled(64, 0);
+    _start.forEach((i, v) => cells[i] = v);
+    int? placed;
+    var flips = const <int, int>{};
+    var at = 0.0;
+    if (f.at(first)) {
+      cells[0] = 1;
+      cells[9] = 1;
+      placed = 0;
+      flips = const {9: 1};
+      at = first;
+    }
+    if (f.at(second)) {
+      cells[8] = 2;
+      cells[9] = 2;
+      placed = 8;
+      flips = const {9: 1};
+      at = second;
+    }
+    b.draw(
+      canvas,
+      ReversiPainter(
+        cells: cells,
+        seats: SeatPalette(f.theme, gameId: 'reversi'),
+        theme: f.theme,
+        clock: _since(f, at, 900),
+        placed: placed,
+        flips: flips,
+        last: placed,
+      ),
+    );
+    paintFinger(canvas, f, [FingerKey(first, _cell8(b, 0), tap: true)]);
+    final cell = b.side / 8;
+    final corner = Rect.fromLTWH(b.origin.dx, b.origin.dy, cell, cell).deflate(2);
+    paintSpotlight(canvas, corner, f.theme.success, f.seg(0.66, 0.74) * (1 - f.seg(0.88, 0.94)), radius: 8);
+    paintSparkles(canvas, corner.center, b.side * 0.18, f.seg(0.68, 0.88), f.theme.success);
+  }
+
+  @override
+  double get still => 0.72;
 }
 
 // ── Dots and Boxes ──────────────────────────────────────────────────────────
@@ -1058,6 +1206,60 @@ class ChessMateDemo extends HowToDemo {
   double get still => 0.6;
 }
 
+/// Tip: your bishop is attacked. Spot it before you move, and move it.
+class ChessTipDemo extends HowToDemo {
+  const ChessTipDemo();
+
+  // The Ruy Lopez after 3...a6: the pawn on a6 hits the bishop on b5.
+  static final _before = _fen('r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4');
+  static final _after = _fen('r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4');
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final b = _Square(f, fraction: 0.88);
+    _chess(
+      canvas,
+      f,
+      b,
+      before: _before,
+      after: _after,
+      selectAt: 0.46,
+      moveAt: 0.64,
+      from: _sq('b5'),
+      to: _sq('a4'),
+      piece: chessBishop,
+      targets: {_sq('a4'), _sq('c4'), _sq('d3'), _sq('e2'), _sq('f1'), _sq('a6'), _sq('c6')},
+    );
+    final cell = b.side / 8;
+    Rect at(String sq) => Rect.fromCenter(center: _chessAt(b, _sq(sq)), width: cell, height: cell).deflate(1);
+    // The threat: the pawn, the bishop, and the line between them.
+    final threat = f.seg(0.16, 0.24) * (1 - f.seg(0.44, 0.5));
+    if (threat > 0) {
+      paintSpotlight(canvas, at('a6'), f.theme.danger, threat, radius: 4);
+      paintSpotlight(canvas, at('b5'), f.theme.danger, threat, radius: 4);
+      canvas.drawLine(
+        _chessAt(b, _sq('a6')),
+        _chessAt(b, _sq('b5')),
+        Paint()
+          ..strokeWidth = cell * 0.08
+          ..strokeCap = StrokeCap.round
+          ..color = f.theme.danger.withValues(alpha: 0.8 * threat),
+      );
+    }
+    paintFinger(canvas, f, [
+      // Reaching for a different piece, then thinking better of it.
+      FingerKey(0.08, _chessAt(b, _sq('d2'))),
+      FingerKey(0.3, _chessAt(b, _sq('d2'))),
+      FingerKey(0.46, _chessAt(b, _sq('b5')), tap: true),
+      FingerKey(0.64, _chessAt(b, _sq('a4')), tap: true),
+    ]);
+    paintSpotlight(canvas, at('a4'), f.theme.success, f.seg(0.7, 0.76) * (1 - f.seg(0.88, 0.94)), radius: 4);
+  }
+
+  @override
+  double get still => 0.3;
+}
+
 // ── Liar's Dice ─────────────────────────────────────────────────────────────
 
 const _ldYou = [3, 1, 5, 3, 6];
@@ -1361,6 +1563,55 @@ class LiarsWinDemo extends HowToDemo {
       paintSparkles(canvas, t.seat(0), f.side * 0.2, f.seg(0.72, 0.92), const Color(0xFFFFC53D));
     }
   }
+}
+
+/// Tip: thinking about 3s, count your own first (two 3s and a wild 1), then
+/// reckon on about a third of the hidden dice: about 5 of 15. Bid near 8.
+class LiarsTipDemo extends HowToDemo {
+  const LiarsTipDemo();
+
+  /// Five of the fifteen hidden dice, spread round the table: "about a
+  /// third", not a peek at which ones.
+  static const _third = <(int, int)>{(1, 1), (1, 4), (2, 2), (3, 0), (3, 3)};
+
+  @override
+  void paint(Canvas canvas, DemoFrame f) {
+    final t = _Table(f);
+    t.avatars(canvas, speaking: 0);
+    t.theirs(canvas);
+    t.yours(canvas, _ldYou, hits: {
+      if (f.at(0.12)) 0,
+      if (f.at(0.18)) 3,
+      if (f.at(0.24)) 1,
+    });
+    // The count floats up over your row, where the three hits are.
+    final row = t.dieAt(0, 2, 5) + Offset(t.die * 0.62, -t.die * 0.2);
+    paintFloatLabel(canvas, f, row, '3', f.seg(0.26, 0.5, Curves.linear), f.theme.accent);
+    // Then the hidden ones, a third of them, lighting up one at a time in the
+    // die's own shape: still face down, just counted.
+    var k = 0;
+    final small = t.die * 0.8;
+    final lit = Paint();
+    for (final (i, d) in _third) {
+      final p = f.seg(0.4 + k * 0.05, 0.46 + k * 0.05) * (1 - f.seg(0.88, 0.94));
+      k++;
+      if (p <= 0) continue;
+      lit.color = f.theme.accent.withValues(alpha: 0.9 * p);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          t.dieAt(i, d, 5) & Size.square(small),
+          Radius.circular(small * 0.24),
+        ),
+        lit,
+      );
+    }
+    paintFloatLabel(canvas, f, Offset(f.size.width / 2, f.size.height * 0.46), '≈ 5', f.seg(0.64, 0.86, Curves.linear), f.theme.accent);
+    // 3 of yours plus about 5: a bid near 8 is a fair one.
+    t.bid(canvas, 0, 8, 3, f.seg(0.72, 0.8, Curves.linear), nudge: Offset(f.side * 0.33, -f.side * 0.12), raised: true);
+  }
+
+  @override
+  double get still => 0.8;
 }
 
 // ── Imposter ────────────────────────────────────────────────────────────────

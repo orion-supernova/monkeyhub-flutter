@@ -36,6 +36,7 @@ const NAMES: Record<string, string> = {
   nonogram: "Nonogram",
   minesweeper: "Minesweeper",
   starbattle: "Star Battle",
+  patches: "Patches",
 };
 
 export const send = mutation({

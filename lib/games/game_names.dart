@@ -17,4 +17,5 @@ String dailyGameName(AppLocalizations l10n, DailyGame game) => switch (game) {
   DailyGame.nonogram => l10n.gameNonogramName,
   DailyGame.minesweeper => l10n.gameMinesweeperName,
   DailyGame.starbattle => l10n.gameStarbattleName,
+  DailyGame.patches => l10n.gamePatchesName,
 };

@@ -30,6 +30,7 @@ import * as flow from "./flow";
 import * as futoshiki from "./futoshiki";
 import * as minesweeper from "./minesweeper";
 import * as nonogram from "./nonogram";
+import * as patches from "./patches";
 import * as queens from "./queens";
 import * as starbattle from "./starbattle";
 import * as sudoku from "./sudoku";
@@ -56,7 +57,7 @@ export type Explained = {
   digit?: number;
   /** For "wrong": how many other wrong squares are still on the board. */
   more?: number;
-  /** Flow only: the whole pipe, dot to dot. */
+  /** Flow: the whole pipe, dot to dot. Patches: the whole patch. */
   cells?: number[];
   /** The reply's pre-existing `index`/`value`, for clients from before this. */
   legacy: { index: number; value: number };
@@ -876,5 +877,104 @@ export function flowHint(puzzle: flow.FlowPuzzle, board: number[]): Explained | 
     cause: [],
     cells: h.cells.slice(),
     legacy: { index: h.index, value: h.value },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Patches
+// ---------------------------------------------------------------------------
+
+/**
+ * Patches: one whole patch, the way Flow hands over one whole pipe. A patch is
+ * placed in one gesture, so half of one is not a move a player could make.
+ *
+ * [board] is the clue index covering each square, -1 where nothing does yet.
+ * A placed patch is either exactly its clue's answer or wrong, so the three
+ * tiers read:
+ *
+ *  1. **wrong** — the first patch (in clue order) that is not its answer;
+ *     `cells` is the patch as placed, for the client to lift off;
+ *  2. **step** — the next clue `patches.deduce` settles from the correct
+ *     patches already down, with the rule that settled it as the reason;
+ *  3. **reveal** — otherwise the clue with the fewest rectangles left. A board
+ *     the generator shipped always settles by reasoning, and placing correct
+ *     patches only ever helps, so this is a guard rather than a path.
+ *
+ * `cell` is the clue's square, `value` its index.
+ */
+export function patchesHint(puzzle: patches.PatchesPuzzle, board: number[]): Explained | null {
+  const answer = patches.solve(puzzle);
+  if (answer.length === 0) return null;
+  const n = puzzle.size;
+  const k = puzzle.clues.length;
+  const cells = Array.isArray(board) ? board : [];
+  const squaresOf = (labels: number[], i: number): number[] => {
+    const out: number[] = [];
+    for (let c = 0; c < n * n; c++) if (labels[c] === i) out.push(c);
+    return out;
+  };
+
+  const fixed: Array<patches.Rect | null> = new Array(k).fill(null);
+  const wrong: number[] = [];
+  for (let i = 0; i < k; i++) {
+    const placed = squaresOf(cells, i);
+    if (placed.length === 0) continue;
+    const right = squaresOf(answer, i);
+    if (placed.length === right.length && placed.every((c, j) => c === right[j])) {
+      fixed[i] = patches.rectOfLabel(answer, i, n);
+    } else {
+      wrong.push(i);
+    }
+  }
+  const legacy = (i: number) => ({ index: puzzle.clues[i].cell, value: i });
+
+  if (wrong.length > 0) {
+    const i = wrong[0];
+    const placed = squaresOf(cells, i);
+    return {
+      kind: "wrong",
+      cell: puzzle.clues[i].cell,
+      value: i,
+      reason: "wrong",
+      area: placed,
+      cause: [],
+      more: wrong.length - 1,
+      cells: placed,
+      legacy: legacy(i),
+    };
+  }
+  if (fixed.every((f) => f !== null)) return null;
+
+  const { options, settled } = patches.deduce(puzzle, fixed);
+  const next = settled.find((s) => fixed[s.clue] === null);
+  if (next) {
+    const patch = squaresOf(answer, next.clue);
+    return {
+      kind: "step",
+      cell: puzzle.clues[next.clue].cell,
+      value: next.clue,
+      reason: `patches.${next.rule}`,
+      area: patch,
+      cause: [],
+      cells: patch,
+      legacy: legacy(next.clue),
+    };
+  }
+
+  let pick = -1;
+  for (let i = 0; i < k; i++) {
+    if (fixed[i] !== null) continue;
+    if (pick < 0 || options[i].length < options[pick].length) pick = i;
+  }
+  const patch = squaresOf(answer, pick);
+  return {
+    kind: "reveal",
+    cell: puzzle.clues[pick].cell,
+    value: pick,
+    reason: "reveal",
+    area: patch,
+    cause: [],
+    cells: patch,
+    legacy: legacy(pick),
   };
 }

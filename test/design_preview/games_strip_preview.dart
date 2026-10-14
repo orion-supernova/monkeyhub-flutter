@@ -28,6 +28,7 @@ void main() {
       'nonogram',
       'minesweeper',
       'starbattle',
+      'patches',
     ])
       g: (day[g] as Map)['board'],
   });

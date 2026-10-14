@@ -34,17 +34,20 @@ HowToPlayGuide chatGuide(
     'connectfour' => [
       s(l10n.howToC41, const ConnectFourDropDemo()),
       s(l10n.howToC42, const ConnectFourWinDemo()),
+      s(l10n.howToC4Tip, const ConnectFourTipDemo(), tip: true),
     ],
     'checkers' => [
       s(l10n.howToCheckers1, const CheckersMoveDemo()),
       s(l10n.howToCheckers2, const CheckersJumpDemo()),
       s(l10n.howToCheckers3, const CheckersMultiDemo()),
       s(l10n.howToCheckers4, const CheckersKingDemo()),
+      s(l10n.howToCheckersTip, const CheckersTipDemo(), tip: true),
     ],
     'reversi' => [
       s(l10n.howToReversi1, const ReversiTrapDemo()),
       s(l10n.howToReversi2, const ReversiFlipDemo()),
       s(l10n.howToReversi3, const ReversiCountDemo()),
+      s(l10n.howToReversiTip, const ReversiTipDemo(), tip: true),
     ],
     'dots' => [
       s(l10n.howToDots1, const DotsLinesDemo()),
@@ -56,6 +59,7 @@ HowToPlayGuide chatGuide(
       s(l10n.howToChess2, const ChessCaptureDemo()),
       s(l10n.howToChess3, const ChessPromoteDemo()),
       s(l10n.howToChess4, const ChessMateDemo()),
+      s(l10n.howToChessTip, const ChessTipDemo(), tip: true),
     ],
     'liarsdice' => [
       s(l10n.howToLiars1, const LiarsSecretDemo()),
@@ -65,6 +69,7 @@ HowToPlayGuide chatGuide(
       s(l10n.howToLiars5, const LiarsCallDemo()),
       s(l10n.howToLiars6, const LiarsLoseDemo()),
       s(l10n.howToLiars7, const LiarsWinDemo()),
+      s(l10n.howToLiarsTip, const LiarsTipDemo(), tip: true),
     ],
     'imposter' => [
       s(l10n.howToImposter1, const ImposterWordDemo()),

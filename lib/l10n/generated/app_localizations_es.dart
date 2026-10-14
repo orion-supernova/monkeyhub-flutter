@@ -5999,6 +5999,17 @@ class AppLocalizationsEs extends AppLocalizations {
       'Aquí tienes una tubería entera, de punto a punto.';
 
   @override
+  String get gameHintPatchesOnly => 'En esta pista solo cabe un parche.';
+
+  @override
+  String get gameHintPatchesCell =>
+      'Una casilla de aquí solo puede ser de esta pista, y eso le deja un único parche.';
+
+  @override
+  String get gameHintPatchesSqueeze =>
+      'Los parches de alrededor dejan a esta pista una sola forma de encajar.';
+
+  @override
   String get gameErrorGeneric =>
       'No se pudo conectar con los juegos. Inténtalo de nuevo';
 
@@ -12626,6 +12637,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get gameStarbattleName => 'Batalla de estrellas';
 
   @override
+  String get gamePatchesName => 'Parches';
+
+  @override
   String get gameFlowRule => 'une los puntos iguales y llena cada casilla';
 
   @override
@@ -12641,6 +12655,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get gameStarbattleRule =>
       'dos estrellas por fila, columna y color, sin tocarse';
+
+  @override
+  String get gamePatchesRule =>
+      'divide el tablero en rectángulos, una pista en cada uno';
 
   @override
   String get gameFlag => 'Bandera';
@@ -13357,6 +13375,10 @@ class AppLocalizationsEs extends AppLocalizations {
       '= significa que son iguales. × significa que son distintos.';
 
   @override
+  String get howToTangoTip =>
+      '¿Dos iguales juntos? Las casillas de los dos extremos llevan el otro.';
+
+  @override
   String get howToZip1 =>
       'Empieza en el 1 y arrastra pasando por los números en orden.';
 
@@ -13367,6 +13389,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get howToZip3 =>
       '¿Te has equivocado? Arrastra hacia atrás y se deshace.';
+
+  @override
+  String get howToZipTip =>
+      'No dejes ninguna casilla aislada. Barre esquinas y bordes al pasar.';
 
   @override
   String get howToSudoku1 =>
@@ -13392,6 +13418,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Las tuberías no se cruzan y hay que llenar todas las casillas. Da la vuelta.';
 
   @override
+  String get howToFlowTip =>
+      'Lleva primero las tuberías por los bordes. El centro se resuelve solo.';
+
+  @override
   String get howToFutoshiki1 =>
       'Llena cada casilla con un número del 1 al 5. Cada fila y columna lleva cada número exactamente una vez.';
 
@@ -13401,6 +13431,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => '¿Rompes un signo? Se pone en rojo.';
+
+  @override
+  String get howToFutoshikiTip =>
+      'Sigue las cadenas: si a < b < c, entonces c es al menos 3.';
 
   @override
   String get howToNonogram1 =>
@@ -13423,6 +13457,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Acierta todas las pistas y aparece el dibujo escondido.';
 
   @override
+  String get howToNonogramTip =>
+      'Empieza por las pistas grandes. Un 7 en una fila de 10 siempre cubre las 4 del centro.';
+
+  @override
   String get howToMines1 =>
       'Abre todas las casillas que no tengan mina. Las zonas vacías se abren solas.';
 
@@ -13437,6 +13475,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get howToMines4 =>
       'Si pisas una mina, te comes 30 segundos de castigo. Pero nunca hace falta adivinar.';
+
+  @override
+  String get howToMinesTip =>
+      '¿Un 1 con una sola casilla oculta al lado? Esa casilla es la mina.';
 
   @override
   String get howToStars1 =>
@@ -13455,6 +13497,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'Con la opción Puntos automáticos, una estrella marca con un punto las casillas de su alrededor. Cuando una fila tiene sus 2, el resto también se marca.';
 
   @override
+  String get howToPatches1 =>
+      'Divide el tablero en rectángulos. Cada uno tiene exactamente una pista.';
+
+  @override
+  String get howToPatches2 =>
+      'La insignia muestra la forma: cuadrado, alto o ancho. Un círculo es cualquier rectángulo. El número indica cuántas casillas.';
+
+  @override
+  String get howToPatches3 =>
+      'Arrastra de esquina a esquina para cortar un parche. Toca un parche para quitarlo.';
+
+  @override
+  String get howToPatches4 =>
+      'Una pista grande pegada al borde suele encajar de una sola forma. Empieza por ahí.';
+
+  @override
   String get howToCode1 =>
       'Hay un código secreto de 4 símbolos distintos, sin repetir. Descífralo.';
 
@@ -13467,6 +13525,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get howToCode4 => 'Tienes 6 intentos. Cuantos menos uses, mejor.';
+
+  @override
+  String get howToCodeTip =>
+      'Usa tus primeros intentos en símbolos nuevos. Aprender gana a adivinar.';
 
   @override
   String get howToTtt1 => 'Por turnos, pon tu ficha. Haz 3 en raya y ganas.';
@@ -13482,6 +13544,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get howToC42 =>
       'Junta 4 en línea para ganar: en horizontal, en vertical o en diagonal.';
+
+  @override
+  String get howToC4Tip =>
+      'Juega en la columna del centro. Forma parte de más cuatros que ninguna otra.';
 
   @override
   String get howToCheckers1 =>
@@ -13504,6 +13570,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Gana quien se come todas las fichas rivales o deja al otro sin movimientos. Si pasan 40 jugadas de cada uno sin capturas y sin mover ninguna ficha normal, es empate.';
 
   @override
+  String get howToCheckersTip =>
+      'Mantén tu última fila en casa. Así no pueden coronar reyes.';
+
+  @override
   String get howToReversi1 =>
       'Pon una ficha de forma que una fila de las suyas quede atrapada entre dos tuyas. Cada jugada tiene que atrapar al menos una.';
 
@@ -13514,6 +13584,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get howToReversi3 =>
       '¿No tienes jugada? Te saltas el turno. Cuando nadie puede mover, gana quien tenga más fichas.';
+
+  @override
+  String get howToReversiTip =>
+      'Hazte con las esquinas. Una ficha en una esquina no se puede voltear nunca.';
 
   @override
   String get howToDots1 => 'Por turnos, dibuja una línea entre dos puntos.';
@@ -13546,6 +13620,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Jaque es que atacan a tu rey y tienes que sacarlo de ahí. ¿No hay salida? Jaque mate y se acabó. ¿No puedes mover pero no estás en jaque? Son tablas.';
 
   @override
+  String get howToChessTip => 'Antes de cada jugada, mira qué te pueden comer.';
+
+  @override
   String get howToLiars1 =>
       'Todos tiran 5 dados en secreto. Tú solo ves los tuyos.';
 
@@ -13576,6 +13653,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get howToLiarsClock =>
       '45 segundos por turno. Si se acaba, el juego mueve por ti.';
+
+  @override
+  String get howToLiarsTip =>
+      'Cuenta primero tus dados. Como los 1 son comodines, más o menos un tercio de los dados de los demás coinciden con la cara que apuestas.';
 
   @override
   String get howToImposter1 =>

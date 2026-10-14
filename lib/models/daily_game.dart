@@ -1,17 +1,17 @@
 /// The daily games' client-side models.
 ///
-/// Nine boards a day — Queens, Tango, Zip, Mini Sudoku, Flow, Futoshiki,
-/// Nonogram, Minesweeper and Star Battle — generated on the server from the day
-/// key alone, so everyone in every locale plays the identical board and the
-/// standings compare something real.
+/// Ten boards a day — Queens, Tango, Zip, Mini Sudoku, Flow, Futoshiki,
+/// Nonogram, Minesweeper, Star Battle and Patches — generated on the server from
+/// the day key alone, so everyone in every locale plays the identical board and
+/// the standings compare something real.
 ///
-/// **Why these nine.** They contain no words. `backend/convex/games.ts` and
+/// **Why these ten.** They contain no words. `backend/convex/games.ts` and
 /// `models/puzzle.dart` both spell out the argument at length: this app ships
-/// in twelve languages, and LinkedIn's word games (Crossclimb, Pinpoint) would
+/// in twelve languages, and LinkedIn's word games (Crossclimb, Pinpoint, Wend) would
 /// need a curated answer list per locale, which puts friends on different app
 /// languages in front of different puzzles and quietly makes the shared
-/// scoreboard meaningless. A crown, a sun, a line, a coloured pipe, a star and
-/// the digits 1-6 read the same everywhere.
+/// scoreboard meaningless. A crown, a sun, a line, a coloured pipe, a star, a
+/// rectangle and the digits read the same everywhere.
 ///
 /// Nothing here holds a solution. The server validates a finished board and the
 /// client only ever mirrors the *rules* (see `lib/games/game_rules.dart`), so
@@ -30,7 +30,8 @@ enum DailyGame {
   futoshiki,
   nonogram,
   minesweeper,
-  starbattle;
+  starbattle,
+  patches;
 
   String get wire => name;
 
@@ -396,6 +397,95 @@ class StarBattleBoard {
   }
 }
 
+/// What a Patches clue says about its patch's proportions. Wire names mirror
+/// `PatchShape` in backend/convex/games/patches.ts.
+enum PatchShape {
+  /// As many rows as columns.
+  square,
+
+  /// More rows than columns.
+  tall,
+
+  /// More columns than rows.
+  wide,
+
+  /// Any rectangle at all.
+  any;
+
+  static PatchShape parse(String? s) {
+    for (final v in values) {
+      if (v.name == s) return v;
+    }
+    return any;
+  }
+
+  /// Whether a [rows]×[cols] patch has this shape.
+  bool allows(int rows, int cols) => switch (this) {
+    PatchShape.square => rows == cols,
+    PatchShape.tall => rows > cols,
+    PatchShape.wide => cols > rows,
+    PatchShape.any => true,
+  };
+}
+
+/// One Patches clue: the square it is printed in, the shape of its patch and,
+/// when printed, its area.
+class PatchClue {
+  const PatchClue({required this.cell, required this.shape, this.area = 0});
+
+  /// Row-major. Clue k is also colour k: the server sends them in reading
+  /// order.
+  final int cell;
+
+  final PatchShape shape;
+
+  /// Squares in the patch, or 0 when the clue does not say.
+  final int area;
+
+  /// Whether a [rows]×[cols] patch is what this clue asks for.
+  bool fits(int rows, int cols) =>
+      (area == 0 || rows * cols == area) && shape.allows(rows, cols);
+
+  static PatchClue fromJson(Map<String, dynamic> j) => PatchClue(
+    cell: (j['cell'] as num?)?.toInt() ?? 0,
+    shape: PatchShape.parse(j['shape']?.toString()),
+    area: (j['area'] as num?)?.toInt() ?? 0,
+  );
+}
+
+/// PATCHES — cut the board into rectangles, one clue in each, every patch the
+/// shape its clue shows and, where it prints a number, that many squares.
+class PatchesBoard {
+  const PatchesBoard({required this.size, required this.clues});
+
+  final int size;
+
+  final List<PatchClue> clues;
+
+  static const empty = PatchesBoard(size: 0, clues: []);
+
+  bool get isEmpty => size == 0;
+
+  /// The clue printed on [cell], or -1.
+  int clueAt(int cell) {
+    for (var k = 0; k < clues.length; k++) {
+      if (clues[k].cell == cell) return k;
+    }
+    return -1;
+  }
+
+  static PatchesBoard fromJson(Map<String, dynamic>? j) {
+    if (j == null) return empty;
+    return PatchesBoard(
+      size: (j['size'] as num?)?.toInt() ?? 0,
+      clues: [
+        for (final c in (j['clues'] as List?) ?? const [])
+          PatchClue.fromJson((c as Map).cast<String, dynamic>()),
+      ],
+    );
+  }
+}
+
 /// Every board for one day.
 class DailyBoards {
   const DailyBoards({
@@ -409,6 +499,7 @@ class DailyBoards {
     this.nonogram = NonogramBoard.empty,
     this.minesweeper = MinesweeperBoard.empty,
     this.starbattle = StarBattleBoard.empty,
+    this.patches = PatchesBoard.empty,
   });
 
   final String dayKey;
@@ -421,14 +512,15 @@ class DailyBoards {
   final NonogramBoard nonogram;
   final MinesweeperBoard minesweeper;
   final StarBattleBoard starbattle;
+  final PatchesBoard patches;
 
   /// Whether every board arrived. The hub waits on this rather than on a
   /// separate loading flag, so a partial payload cannot render as a set of
   /// empty grids that look playable.
   ///
-  /// All nine, including the five that joined later: a payload cached on disk
+  /// All ten, including the six that joined later: a payload cached on disk
   /// by a build from before them reads as not ready, which is what makes the
-  /// store fetch a fresh one instead of rendering five empty tiles.
+  /// store fetch a fresh one instead of rendering empty tiles.
   bool get ready =>
       !queens.isEmpty &&
       !tango.isEmpty &&
@@ -438,7 +530,8 @@ class DailyBoards {
       !futoshiki.isEmpty &&
       !nonogram.isEmpty &&
       !minesweeper.isEmpty &&
-      !starbattle.isEmpty;
+      !starbattle.isEmpty &&
+      !patches.isEmpty;
 
   /// Cells per side of [game]'s board, 0 before it has arrived.
   int sizeOf(DailyGame game) => switch (game) {
@@ -451,6 +544,7 @@ class DailyBoards {
     DailyGame.nonogram => nonogram.size,
     DailyGame.minesweeper => minesweeper.size,
     DailyGame.starbattle => starbattle.size,
+    DailyGame.patches => patches.size,
   };
 
   static DailyBoards fromJson(dynamic raw) {
@@ -474,6 +568,9 @@ class DailyBoards {
       ),
       starbattle: StarBattleBoard.fromJson(
         (j['starbattle'] as Map?)?.cast<String, dynamic>(),
+      ),
+      patches: PatchesBoard.fromJson(
+        (j['patches'] as Map?)?.cast<String, dynamic>(),
       ),
     );
   }

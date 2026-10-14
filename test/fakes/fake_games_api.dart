@@ -92,6 +92,9 @@ class FakeGamesApi implements GamesApi {
   /// The mistake tally each [submit] carried, alongside [submitted].
   final List<int> submittedMistakes = [];
 
+  /// The board each [submit] carried, alongside [submitted].
+  final List<List<int>> submittedSolutions = [];
+
   @override
   Future<GameOutcome> submit({
     required String userId,
@@ -104,6 +107,7 @@ class FakeGamesApi implements GamesApi {
   }) async {
     submitted.add(elapsedMs);
     submittedMistakes.add(mistakes);
+    submittedSolutions.add(List<int>.of(solution));
     if (submitFailures > 0) {
       submitFailures--;
       throw Exception('MutationTimeout');

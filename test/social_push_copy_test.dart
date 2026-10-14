@@ -48,7 +48,7 @@ void main() {
     'reactedComment': ['{emoji}'],
   };
 
-  /// The five tags `feed.ts` accepts and the nine games `games.ts` serves.
+  /// The five tags `feed.ts` accepts and the ten games `games.ts` serves.
   /// Mirrored here rather than imported because that is the whole point: these
   /// are two files in two languages that have to agree.
   const tagIds = ['fate', 'jinx', 'luck', 'calledIt', 'npc'];
@@ -62,6 +62,7 @@ void main() {
     'nonogram',
     'minesweeper',
     'starbattle',
+    'patches',
   ];
 
   late String source;

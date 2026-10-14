@@ -37,6 +37,7 @@ void main() {
       'nonogram',
       'minesweeper',
       'starbattle',
+      'patches',
     ])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
   };

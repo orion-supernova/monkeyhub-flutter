@@ -27,6 +27,7 @@ import * as flow from "../convex/games/flow";
 import * as futoshiki from "../convex/games/futoshiki";
 import * as minesweeper from "../convex/games/minesweeper";
 import * as nonogram from "../convex/games/nonogram";
+import * as patches from "../convex/games/patches";
 import * as queens from "../convex/games/queens";
 import { randomFor } from "../convex/games/rng";
 import * as starbattle from "../convex/games/starbattle";
@@ -59,6 +60,7 @@ const out = {
     const no = nonogram.generate(dayKey);
     const ms = minesweeper.generate(dayKey);
     const sb = starbattle.generate(dayKey);
+    const pa = patches.generate(dayKey);
     // The four originals first and unchanged, so adding a game is a diff of
     // pure additions and the old games' fixtures are provably untouched.
     return {
@@ -74,6 +76,7 @@ const out = {
       // to unmask it to this exact list with the day key alone.
       minesweeper: { board: ms, answer: minesweeper.solve(ms, dayKey) },
       starbattle: { board: sb, answer: starbattle.solve(sb) },
+      patches: { board: pa, answer: patches.solve(pa) },
     };
   }),
   /**
@@ -122,7 +125,9 @@ for (const day of out.days) {
         ? nonogram.isSolved(board, answer)
         : game === "minesweeper"
         ? minesweeper.isSolved(board, answer, day.dayKey)
-        : starbattle.isSolved(board, answer);
+        : game === "starbattle"
+        ? starbattle.isSolved(board, answer)
+        : patches.isSolved(board, answer);
     if (!ok) throw new Error(`${day.dayKey}/${game}: answer fails isSolved`);
   }
 }
@@ -135,6 +140,6 @@ for (const m of out.minesweeperMasks) {
   if (back.some((v, i) => v !== m.map[i])) throw new Error(`${m.dayKey}: mask round-trip`);
 }
 console.log(
-  `wrote ${path} — ${out.days.length} days x 9 games, ` +
+  `wrote ${path} — ${out.days.length} days x 10 games, ` +
     `${out.minesweeperMasks.length} mask days`
 );

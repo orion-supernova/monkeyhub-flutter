@@ -6036,6 +6036,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gameHintFlowPipe => 'Voici un tuyau entier, d’un point à l’autre.';
 
   @override
+  String get gameHintPatchesOnly => 'Un seul patch rentre pour cet indice.';
+
+  @override
+  String get gameHintPatchesCell =>
+      'Une case ici ne peut appartenir qu’à cet indice, ce qui ne lui laisse qu’un patch.';
+
+  @override
+  String get gameHintPatchesSqueeze =>
+      'Les patchs autour ne laissent qu’une façon de placer celui-ci.';
+
+  @override
   String get gameErrorGeneric => 'Impossible de joindre les jeux. Réessaie';
 
   @override
@@ -12684,6 +12695,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gameStarbattleName => 'Bataille d’étoiles';
 
   @override
+  String get gamePatchesName => 'Patchs';
+
+  @override
   String get gameFlowRule => 'relie les points identiques, remplis chaque case';
 
   @override
@@ -12701,6 +12715,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get gameStarbattleRule =>
       'deux étoiles par ligne, colonne et couleur, jamais adjacentes';
+
+  @override
+  String get gamePatchesRule =>
+      'découpe la grille en rectangles, un indice dans chacun';
 
   @override
   String get gameFlag => 'Drapeau';
@@ -13419,6 +13437,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get howToTango4 => '= veut dire pareil. × veut dire l’inverse.';
 
   @override
+  String get howToTangoTip =>
+      'Deux pareils côte à côte ? Les cases aux deux bouts prennent l’autre.';
+
+  @override
   String get howToZip1 => 'Pars du 1 et glisse sur les numéros dans l’ordre.';
 
   @override
@@ -13427,6 +13449,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToZip3 => 'Mauvais virage ? Reviens en arrière en glissant.';
+
+  @override
+  String get howToZipTip =>
+      'Ne laisse aucune case isolée. Ramasse les coins et les bords au passage.';
 
   @override
   String get howToSudoku1 =>
@@ -13452,6 +13478,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les tuyaux ne se croisent pas et toutes les cases doivent être remplies. Fais le détour.';
 
   @override
+  String get howToFlowTip =>
+      'Fais d’abord passer les tuyaux le long des bords. Le milieu suit tout seul.';
+
+  @override
   String get howToFutoshiki1 =>
       'Remplis chaque case avec un chiffre de 1 à 5. Chaque ligne et chaque colonne contient chaque chiffre exactement une fois.';
 
@@ -13461,6 +13491,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => 'Un signe pas respecté passe au rouge.';
+
+  @override
+  String get howToFutoshikiTip =>
+      'Suis les chaînes : si a < b < c, alors c vaut au moins 3.';
 
   @override
   String get howToNonogram1 =>
@@ -13483,6 +13517,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Respecte tous les indices et le dessin caché apparaît.';
 
   @override
+  String get howToNonogramTip =>
+      'Commence par les gros indices. Un 7 dans une ligne de 10 couvre toujours les 4 du milieu.';
+
+  @override
   String get howToMines1 =>
       'Ouvre toutes les cases sans mine. Les zones vides s’ouvrent toutes seules.';
 
@@ -13497,6 +13535,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get howToMines4 =>
       'Une mine, c’est 30 secondes de pénalité. Mais tu n’as jamais besoin de deviner.';
+
+  @override
+  String get howToMinesTip =>
+      'Un 1 avec une seule case cachée à côté ? C’est elle, la mine.';
 
   @override
   String get howToStars1 =>
@@ -13515,6 +13557,22 @@ class AppLocalizationsFr extends AppLocalizations {
       'Avec l’option Points auto, une étoile met des points sur les cases autour d’elle. Quand une ligne a ses 2, le reste reçoit aussi des points.';
 
   @override
+  String get howToPatches1 =>
+      'Découpe la grille en rectangles. Chacun contient exactement un indice.';
+
+  @override
+  String get howToPatches2 =>
+      'Le badge montre la forme : carré, haut ou large. Un cercle veut dire n’importe quel rectangle. Le nombre, c’est le nombre de cases.';
+
+  @override
+  String get howToPatches3 =>
+      'Glisse d’un coin à l’autre pour découper un patch. Touche un patch pour l’enlever.';
+
+  @override
+  String get howToPatches4 =>
+      'Un gros indice collé au bord ne rentre souvent que d’une façon. Commence par là.';
+
+  @override
   String get howToCode1 =>
       'Un code secret de 4 symboles différents, sans doublon, t’attend. Casse-le.';
 
@@ -13527,6 +13585,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get howToCode4 => 'Tu as 6 essais. Moins tu en utilises, mieux c’est.';
+
+  @override
+  String get howToCodeTip =>
+      'Utilise tes premiers essais sur des symboles nouveaux. Apprendre vaut mieux que deviner.';
 
   @override
   String get howToTtt1 =>
@@ -13543,6 +13605,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get howToC42 =>
       'Aligne-en 4 pour gagner : à l’horizontale, à la verticale ou en diagonale.';
+
+  @override
+  String get howToC4Tip =>
+      'Joue la colonne du milieu. Elle fait partie de plus de lignes de 4 que les autres.';
 
   @override
   String get howToCheckers1 =>
@@ -13565,6 +13631,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tu gagnes en prenant tous ses pions ou en le bloquant complètement. 40 coups chacun sans prise ni déplacement de pion, c’est l’égalité.';
 
   @override
+  String get howToCheckersTip =>
+      'Garde ta rangée du fond en place. Ça les empêche de faire des dames.';
+
+  @override
   String get howToReversi1 =>
       'Pose un pion de façon à coincer une ligne des siens entre deux des tiens. Chaque coup doit en coincer au moins un.';
 
@@ -13575,6 +13645,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get howToReversi3 =>
       'Aucun coup possible ? Ton tour saute. Quand plus personne ne peut jouer, celui qui a le plus de pions gagne.';
+
+  @override
+  String get howToReversiTip =>
+      'Prends les coins. Un pion dans un coin ne peut jamais être retourné.';
 
   @override
   String get howToDots1 => 'Chacun son tour, trace un trait entre deux points.';
@@ -13607,6 +13681,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Échec, c’est ton roi attaqué : tu dois le sortir de là. Aucune issue ? Échec et mat, c’est fini. Aucun coup possible sans être en échec ? C’est l’égalité.';
 
   @override
+  String get howToChessTip =>
+      'Avant chaque coup, regarde ce qu’il peut te prendre.';
+
+  @override
   String get howToLiars1 =>
       'Tout le monde lance 5 dés en secret. Tu ne vois que les tiens.';
 
@@ -13637,6 +13715,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get howToLiarsClock =>
       '45 secondes par tour. Passé ce délai, le jeu joue à ta place.';
+
+  @override
+  String get howToLiarsTip =>
+      'Compte d’abord tes dés. Comme les 1 sont jokers, environ un tiers des dés des autres correspondent à la face que tu annonces.';
 
   @override
   String get howToImposter1 =>

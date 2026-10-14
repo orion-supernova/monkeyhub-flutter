@@ -5701,6 +5701,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameHintFlowPipe => '点から点まで、パイプを1本まるごと見せるね。';
 
   @override
+  String get gameHintPatchesOnly => 'このヒントに入るパッチは1つだけだよ。';
+
+  @override
+  String get gameHintPatchesCell => 'ここのマスはこのヒントにしか入れないから、パッチが1つに決まるよ。';
+
+  @override
+  String get gameHintPatchesSqueeze => 'まわりのパッチのせいで、このヒントの入り方は1通りしかないよ。';
+
+  @override
   String get gameErrorGeneric => 'ゲームに接続できませんでした。もう一度お試しください';
 
   @override
@@ -12003,6 +12012,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameStarbattleName => 'スターバトル';
 
   @override
+  String get gamePatchesName => 'パッチ';
+
+  @override
   String get gameFlowRule => '同じ点をつなぎ、すべてのマスをうめる';
 
   @override
@@ -12016,6 +12028,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get gameStarbattleRule => '各行・各列・各色に星2つ、隣接は不可';
+
+  @override
+  String get gamePatchesRule => '盤面を長方形に分けて、それぞれにヒントを1つ';
 
   @override
   String get gameFlag => '旗';
@@ -12698,6 +12713,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToTango4 => '=は同じもの、×は反対のもの。';
 
   @override
+  String get howToTangoTip => '同じ記号が2つ並んだら、その両端のマスはもう片方の記号になるよ。';
+
+  @override
   String get howToZip1 => '1からスタートして、数字の順番になぞっていこう。';
 
   @override
@@ -12705,6 +12723,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get howToZip3 => '道をまちがえた？なぞって戻ればやり直せる。';
+
+  @override
+  String get howToZipTip => 'マスを1つだけ取り残さないで。角と端は通りがかりに回収しよう。';
 
   @override
   String get howToSudoku1 => 'どの行・列・ブロックにも1〜6がひとつずつ。かぶりはなし。';
@@ -12725,6 +12746,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToFlow2 => 'パイプは交差できないし、全部のマスを埋めないとダメ。遠回りしよう。';
 
   @override
+  String get howToFlowTip => 'まずはパイプを端に沿わせよう。真ん中は自然に決まるよ。';
+
+  @override
   String get howToFutoshiki1 => '全部のマスに1〜5を入れよう。どの行も列も、それぞれの数字はちょうど1回ずつ。';
 
   @override
@@ -12732,6 +12756,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => '記号に合わないと赤くなるよ。';
+
+  @override
+  String get howToFutoshikiTip => '記号のつながりを追おう。a < b < c なら、c は3以上だよ。';
 
   @override
   String get howToNonogram1 => '数字は、すき間なく続けて塗るマスの数。5なら5マス連続。';
@@ -12749,6 +12776,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToNonogram4 => 'ヒントを全部合わせると、かくれた絵が出てくる。';
 
   @override
+  String get howToNonogramTip => '大きい数字から始めよう。10マスの列の7は、どこに置いても真ん中の4マスを必ず塗るよ。';
+
+  @override
   String get howToMines1 => '地雷のないマスを全部開けよう。何もないところは自動で開くよ。';
 
   @override
@@ -12759,6 +12789,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get howToMines4 => '地雷をふむと30秒のペナルティ。でも当てずっぽうは一度もいらないよ。';
+
+  @override
+  String get howToMinesTip => '隣に隠れたマスが1つしかない1があったら、そのマスが地雷だよ。';
 
   @override
   String get howToStars1 => 'どの行・列・色にも星を2つずつ。';
@@ -12774,6 +12807,18 @@ class AppLocalizationsJa extends AppLocalizations {
       '自動ドットをオンにすると、星のまわりのマスに点が打たれるよ。行に星が2つそろったら、残りのマスにも点がつく。';
 
   @override
+  String get howToPatches1 => '盤面を長方形に分けよう。どの長方形にもヒントがちょうど1つ。';
+
+  @override
+  String get howToPatches2 => 'バッジが形を表すよ。正方形、縦長、横長。丸はどんな長方形でもOK。数字はマスの数。';
+
+  @override
+  String get howToPatches3 => '角から角へドラッグしてパッチを切り取ろう。パッチをタップすると外せるよ。';
+
+  @override
+  String get howToPatches4 => '端にくっついた大きなヒントは、入り方が1通りのことが多い。そこから始めよう。';
+
+  @override
   String get howToCode1 => '4つのちがう記号でできた暗号を当てよう。同じ記号は2回使われないよ。';
 
   @override
@@ -12786,6 +12831,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToCode4 => 'チャンスは6回。少ない回数で当てるほどいいよ。';
 
   @override
+  String get howToCodeTip => '最初の数回はまだ試してない記号に使おう。当てにいくより、情報を集める方が強い。';
+
+  @override
   String get howToTtt1 => '交互に自分のマークを置こう。3つ並べたら勝ち。';
 
   @override
@@ -12796,6 +12844,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get howToC42 => '4つ並べたら勝ち。横、縦、ななめどれでもOK。';
+
+  @override
+  String get howToC4Tip => '真ん中の列に置こう。どの列よりも多くの4つ並びに関われるよ。';
 
   @override
   String get howToCheckers1 => 'コマはななめ前に1マス進むよ。コマをタップして、行き先をタップ。';
@@ -12815,6 +12866,9 @@ class AppLocalizationsJa extends AppLocalizations {
       '相手のコマを全部取るか、動けなくしたら勝ち。お互い40手ずつ、コマを取らず普通のコマも動かさなければ引き分け。';
 
   @override
+  String get howToCheckersTip => '自分の一番奥の列はなるべく動かさないで。相手が王になれなくなるよ。';
+
+  @override
   String get howToReversi1 => '相手の石を自分の石2つではさむように置こう。どの手でも最低1つははさまないとダメ。';
 
   @override
@@ -12822,6 +12876,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get howToReversi3 => '置ける場所がない？そのターンはパス。誰も置けなくなったら、石が多いほうの勝ち。';
+
+  @override
+  String get howToReversiTip => '角を取ろう。角の石は絶対にひっくり返されないよ。';
 
   @override
   String get howToDots1 => '交互に、点と点のあいだに線を1本引こう。';
@@ -12849,6 +12906,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'チェックはキングが狙われてる状態。必ず逃げよう。逃げ場がなければチェックメイトで終わり。動かせる手がないのにチェックされていなければ引き分け。';
 
   @override
+  String get howToChessTip => '毎回動かす前に、相手に何を取られるか確認しよう。';
+
+  @override
   String get howToLiars1 => 'みんなこっそりサイコロを5個振る。見えるのは自分のだけ。';
 
   @override
@@ -12872,6 +12932,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get howToLiarsClock => '1ターン45秒。時間切れになるとゲームが代わりに動くよ。';
+
+  @override
+  String get howToLiarsTip =>
+      'まずは自分のサイコロを数えよう。1はワイルドだから、ほかの人のサイコロのだいたい3分の1は宣言した目に当てはまるよ。';
 
   @override
   String get howToImposter1 => 'みんなに同じ秘密のお題が配られる。インポスターだけはカテゴリーしか知らない。';

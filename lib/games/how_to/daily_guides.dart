@@ -32,6 +32,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
         s(l10n.howToTango2, const TangoBalanceDemo()),
         s(l10n.howToTango3, const TangoThreeDemo()),
         s(l10n.howToTango4, const TangoSignsDemo()),
+        s(l10n.howToTangoTip, const TangoTipDemo(), tip: true),
       ],
     ),
     DailyGame.zip => HowToPlayGuide(
@@ -41,7 +42,8 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
       steps: [
         s(l10n.howToZip1, const ZipOrderDemo()),
         s(l10n.howToZip2, const ZipFillDemo()),
-        s(l10n.howToZip3, const ZipUndoDemo(), tip: true),
+        s(l10n.howToZip3, const ZipUndoDemo()),
+        s(l10n.howToZipTip, const ZipTipDemo(), tip: true),
       ],
     ),
     DailyGame.sudoku => HowToPlayGuide(
@@ -62,6 +64,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
       steps: [
         s(l10n.howToFlow1, const FlowConnectDemo()),
         s(l10n.howToFlow2, const FlowLongWayDemo()),
+        s(l10n.howToFlowTip, const FlowTipDemo(), tip: true),
       ],
     ),
     DailyGame.futoshiki => HowToPlayGuide(
@@ -72,6 +75,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
         s(l10n.howToFutoshiki1, const FutoshikiRulesDemo()),
         s(l10n.howToFutoshiki2, const FutoshikiSignDemo()),
         s(l10n.howToFutoshiki3, const FutoshikiWrongDemo()),
+        s(l10n.howToFutoshikiTip, const FutoshikiTipDemo(), tip: true),
       ],
     ),
     DailyGame.nonogram => HowToPlayGuide(
@@ -84,6 +88,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
         s(l10n.howToNonogramOrder, const NonogramOrderDemo()),
         s(l10n.howToNonogram3, const NonogramControlsDemo()),
         s(l10n.howToNonogram4, const NonogramPictureDemo()),
+        s(l10n.howToNonogramTip, const NonogramTipDemo(), tip: true),
       ],
     ),
     DailyGame.minesweeper => HowToPlayGuide(
@@ -95,6 +100,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
         s(l10n.howToMines2, const MinesNumberDemo()),
         s(l10n.howToMines3, const MinesFlagDemo()),
         s(l10n.howToMines4, const MinesPenaltyDemo()),
+        s(l10n.howToMinesTip, const MinesTipDemo(), tip: true),
       ],
     ),
     DailyGame.starbattle => HowToPlayGuide(
@@ -108,6 +114,17 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
         s(l10n.howToStars3, const StarsTipDemo(), tip: true),
       ],
     ),
+    DailyGame.patches => HowToPlayGuide(
+      id: 'daily.patches',
+      title: dailyGameName(l10n, game!),
+      footnote: timed,
+      steps: [
+        s(l10n.howToPatches1, const PatchesRulesDemo()),
+        s(l10n.howToPatches2, const PatchesShapeDemo()),
+        s(l10n.howToPatches3, const PatchesControlsDemo()),
+        s(l10n.howToPatches4, const PatchesTipDemo(), tip: true),
+      ],
+    ),
     null => HowToPlayGuide(
       id: 'daily.code',
       title: l10n.gameCodeName,
@@ -118,6 +135,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
         s(l10n.howToCode2, const CodeGreenDemo()),
         s(l10n.howToCode3, const CodeYellowDemo()),
         s(l10n.howToCode4, const CodeWinDemo()),
+        s(l10n.howToCodeTip, const CodeTipDemo(), tip: true),
       ],
     ),
   };

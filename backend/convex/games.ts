@@ -6,6 +6,7 @@ import * as flow from "./games/flow";
 import * as futoshiki from "./games/futoshiki";
 import * as minesweeper from "./games/minesweeper";
 import * as nonogram from "./games/nonogram";
+import * as patches from "./games/patches";
 import * as queens from "./games/queens";
 import * as starbattle from "./games/starbattle";
 import * as sudoku from "./games/sudoku";
@@ -19,13 +20,13 @@ import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 
 /**
  * THE DAILY GAMES — Queens, Tango, Zip, Mini Sudoku, Flow, Futoshiki,
- * Nonogram, Minesweeper and Star Battle.
+ * Nonogram, Minesweeper, Star Battle and Patches.
  *
- * Nine fresh boards every day, the same nine boards for everyone, ranked by how
+ * Ten fresh boards every day, the same ten boards for everyone, ranked by how
  * fast you finished them. They sit alongside the symbol-code puzzle in
  * `puzzle.ts`, which keeps its own table and its own guesses-based ranking.
  *
- * ## Why these nine, and not Crossclimb or Pinpoint
+ * ## Why these ten, and not Crossclimb, Pinpoint or Wend
  *
  * Because they contain no words. This app ships in twelve languages, and
  * `puzzle.ts` already spells out what that costs a word game: a curated answer
@@ -34,7 +35,8 @@ import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
  * sun, a line, a pipe, a star, a flag and the digits are the same in every
  * language, so every friend in the world plays the identical board and the
  * standings mean something. That constraint picked the shortlist; it was not a
- * shortcut.
+ * shortcut. (Patches, LinkedIn's rectangle puzzle, joined later for the same
+ * reason: its clues are a shape and a digit.)
  *
  * ## Where the boards live
  *
@@ -67,6 +69,7 @@ export const GAMES = [
   "nonogram",
   "minesweeper",
   "starbattle",
+  "patches",
 ] as const;
 export type GameId = (typeof GAMES)[number];
 
@@ -114,6 +117,7 @@ const MAX_CELLS: Record<GameId, number> = {
   nonogram: nonogram.SIZE * nonogram.SIZE,
   minesweeper: minesweeper.SIZE * minesweeper.SIZE,
   starbattle: starbattle.SIZE * starbattle.SIZE,
+  patches: patches.SIZE * patches.SIZE,
 };
 
 /** Each game's generator. The single place a new game's board is wired in. */
@@ -127,6 +131,7 @@ const GENERATE = {
   nonogram: nonogram.generate,
   minesweeper: minesweeper.generate,
   starbattle: starbattle.generate,
+  patches: patches.generate,
 } satisfies Record<GameId, (dayKey: string) => unknown>;
 
 type BoardOf<G extends GameId> = ReturnType<(typeof GENERATE)[G]>;
@@ -144,8 +149,8 @@ type DailyBoards = { dayKey: string } & { [G in GameId]: BoardOf<G> };
  * given Convex instance gets it for free.
  *
  * Per game, and filled lazily: `hint`, `submit` and `reveal` need one board,
- * and on a cold instance a Futoshiki submit should not pay for nine searches it
- * will never look at. `daily` still asks for all nine.
+ * and on a cold instance a Futoshiki submit should not pay for ten searches it
+ * will never look at. `daily` still asks for all ten.
  *
  * Bounded, and cleared rather than evicted one by one: the working set is
  * "today, and yesterday for anyone west of the dateline", so anything beyond a
@@ -196,6 +201,8 @@ function isSolved(dayKey: string, game: GameId, solution: number[]): boolean {
       return minesweeper.isSolved(boardOf(dayKey, game), solution, dayKey);
     case "starbattle":
       return starbattle.isSolved(boardOf(dayKey, game), solution);
+    case "patches":
+      return patches.isSolved(boardOf(dayKey, game), solution);
   }
 }
 
@@ -223,10 +230,13 @@ function answerOf(dayKey: string, game: GameId): number[] | null {
       return nonogram.solve(boardOf(dayKey, game));
     case "minesweeper":
       // The 0/1 mine map. The client could decode it itself, but a surrender
-      // answered from the server is one code path for all nine.
+      // answered from the server is one code path for all ten.
       return minesweeper.solve(boardOf(dayKey, game), dayKey);
     case "starbattle":
       return starbattle.solve(boardOf(dayKey, game));
+    case "patches":
+      // The clue index covering each square, as a submission is shaped.
+      return patches.solve(boardOf(dayKey, game));
   }
 }
 
@@ -236,7 +246,7 @@ function answerOf(dayKey: string, game: GameId): number[] | null {
  * `index` and `value` keep their original meaning for clients from before
  * explained hints (a ROW and its column for Queens, a colour for Flow, a
  * square and its answer otherwise). Everything after them is the explained
- * hint, see `games/hints.ts`; `cells` only for Flow.
+ * hint, see `games/hints.ts`; `cells` only for Flow and Patches.
  */
 type HintReply = {
   index: number;
@@ -271,6 +281,8 @@ function explainHint(dayKey: string, game: GameId, board: number[]): hints.Expla
       return hints.minesweeperHint(boardOf(dayKey, game), board, dayKey);
     case "starbattle":
       return hints.starbattleHint(boardOf(dayKey, game), board);
+    case "patches":
+      return hints.patchesHint(boardOf(dayKey, game), board);
     case "zip":
       return null;
   }
@@ -312,7 +324,7 @@ async function recordsOf(ctx: any, userId: any): Promise<any[]> {
 }
 
 /**
- * Today's nine boards.
+ * Today's ten boards.
  *
  * Takes no `userId` and reads no table on purpose: with no database read there
  * is nothing to invalidate it, so even though Convex will happily keep it live
@@ -335,6 +347,7 @@ export const daily = query({
       nonogram: boards.nonogram,
       minesweeper: boards.minesweeper,
       starbattle: boards.starbattle,
+      patches: boards.patches,
     };
   },
 });
@@ -618,7 +631,8 @@ export const saveProgress = mutation({
  * 2 crown; older clients send a column per row) and Star Battle (1 star, 2 dot),
  * a value per square for Tango, Sudoku and Futoshiki (printed squares may be
  * blank), Nonogram's -1/0/1 working grid, Minesweeper's progress (-1 hidden,
- * 0..8 open, 9 flagged) and Flow's pipes laid end to end.
+ * 0..8 open, 9 flagged), Flow's pipes laid end to end, and Patches' clue
+ * index per square (-1 where no patch is down yet).
  *
  * The reply keeps `index`/`value` exactly as older clients read them (see
  * [HintReply]) and adds the explained fields beside them.

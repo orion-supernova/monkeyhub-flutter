@@ -94,7 +94,7 @@ void main() {
     'dayKey': day['dayKey'],
     for (final game in [
       'queens', 'tango', 'zip', 'sudoku', 'flow', 'futoshiki', 'nonogram',
-      'minesweeper', 'starbattle',
+      'minesweeper', 'starbattle', 'patches',
     ])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
   };

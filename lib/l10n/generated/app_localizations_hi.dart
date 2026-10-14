@@ -5947,6 +5947,17 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameHintFlowPipe => 'यह रहा एक पूरा पाइप, डॉट से डॉट तक।';
 
   @override
+  String get gameHintPatchesOnly => 'इस सुराग में सिर्फ़ एक पैच फ़िट होता है।';
+
+  @override
+  String get gameHintPatchesCell =>
+      'यहाँ का एक खाना सिर्फ़ इसी सुराग का हो सकता है, इसलिए इसके लिए एक ही पैच बचता है।';
+
+  @override
+  String get gameHintPatchesSqueeze =>
+      'आसपास के पैच इस सुराग के लिए फ़िट होने का एक ही तरीका छोड़ते हैं।';
+
+  @override
   String get gameErrorGeneric => 'खेलों तक नहीं पहुँच सके, फिर कोशिश करें';
 
   @override
@@ -12499,6 +12510,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get gameStarbattleName => 'स्टार बैटल';
 
   @override
+  String get gamePatchesName => 'पैचेस';
+
+  @override
   String get gameFlowRule => 'एक जैसे बिंदु जोड़ें, हर खाना भरें';
 
   @override
@@ -12515,6 +12529,9 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get gameStarbattleRule =>
       'हर पंक्ति, स्तंभ और रंग में दो तारे, जो कभी छूते नहीं';
+
+  @override
+  String get gamePatchesRule => 'बोर्ड को आयतों में बाँटो, हर एक में एक सुराग';
 
   @override
   String get gameFlag => 'झंडा';
@@ -13216,6 +13233,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get howToTango4 => '= मतलब दोनों एक जैसे, × मतलब उल्टे।';
 
   @override
+  String get howToTangoTip =>
+      'दो एक जैसे साथ-साथ? दोनों सिरों वाले खानों में दूसरा वाला आएगा।';
+
+  @override
   String get howToZip1 => '1 से शुरू करो और नंबरों पर क्रम से उंगली फेरो।';
 
   @override
@@ -13223,6 +13244,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToZip3 => 'गलत मुड़ गए? बस पीछे खींचो, अनडू हो जाएगा।';
+
+  @override
+  String get howToZipTip =>
+      'कोई खाना अकेला मत छोड़ो। गुज़रते हुए कोने और किनारे साथ ले लो।';
 
   @override
   String get howToSudoku1 =>
@@ -13247,6 +13272,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'पाइप एक-दूसरे को काट नहीं सकते और हर खाना भरना है। घुमाकर ले जाओ।';
 
   @override
+  String get howToFlowTip =>
+      'पहले पाइप किनारों से ले जाओ। बीच वाला हिस्सा अपने आप सुलझ जाएगा।';
+
+  @override
   String get howToFutoshiki1 =>
       'हर खाने में 1 से 5 तक का नंबर भरो। हर रो और कॉलम में हर नंबर ठीक एक बार।';
 
@@ -13255,6 +13284,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => 'निशान टूटा तो लाल हो जाएगा।';
+
+  @override
+  String get howToFutoshikiTip =>
+      'चेन को फ़ॉलो करो: अगर a < b < c है, तो c कम से कम 3 है।';
 
   @override
   String get howToNonogram1 =>
@@ -13277,6 +13310,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'सारे क्लू सही करो और छुपी तस्वीर सामने आ जाएगी।';
 
   @override
+  String get howToNonogramTip =>
+      'बड़े नंबरों से शुरू करो। 10 खानों की लाइन में 7 हमेशा बीच के 4 खाने भरता है।';
+
+  @override
   String get howToMines1 =>
       'हर वो खाना खोलो जिसमें माइन नहीं है। खाली हिस्से अपने आप खुल जाते हैं।';
 
@@ -13290,6 +13327,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get howToMines4 =>
       'माइन पर पैर पड़ा तो 30 सेकंड की पेनल्टी। पर अंदाज़ा लगाने की ज़रूरत कभी नहीं पड़ती।';
+
+  @override
+  String get howToMinesTip =>
+      'किसी 1 के पास बस एक छिपा खाना है? वही खाना माइन है।';
 
   @override
   String get howToStars1 => 'हर रो, हर कॉलम और हर रंग में 2 स्टार।';
@@ -13306,6 +13347,22 @@ class AppLocalizationsHi extends AppLocalizations {
       'स्वतः बिंदु ऑन हो तो स्टार अपने आसपास के खानों पर डॉट लगा देता है। रो में 2 स्टार हो गए तो बाकी खानों पर भी डॉट लग जाते हैं।';
 
   @override
+  String get howToPatches1 =>
+      'बोर्ड को आयतों में बाँटो। हर आयत में ठीक एक सुराग होना चाहिए।';
+
+  @override
+  String get howToPatches2 =>
+      'बैज आकार बताता है: चौकोर, लंबा या चौड़ा। गोला मतलब कोई भी आयत। नंबर बताता है कितने खाने।';
+
+  @override
+  String get howToPatches3 =>
+      'पैच काटने के लिए एक कोने से दूसरे कोने तक खींचो। हटाने के लिए पैच पर टैप करो।';
+
+  @override
+  String get howToPatches4 =>
+      'किनारे से सटा बड़ा सुराग अक्सर एक ही तरह फ़िट होता है। वहीं से शुरू करो।';
+
+  @override
   String get howToCode1 =>
       '4 अलग-अलग सिंबल का एक सीक्रेट कोड है, कोई सिंबल रिपीट नहीं होता। उसे तोड़ो।';
 
@@ -13318,6 +13375,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToCode4 => '6 मौके मिलते हैं। जितने कम में करो, उतना बढ़िया।';
+
+  @override
+  String get howToCodeTip =>
+      'पहले अंदाज़े नए सिंबल आज़माने में लगाओ। सीखना, तुक्के से बेहतर है।';
 
   @override
   String get howToTtt1 =>
@@ -13333,6 +13394,10 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToC42 => '4 एक लाइन में लगाओ और जीतो: आड़ी, खड़ी या तिरछी।';
+
+  @override
+  String get howToC4Tip =>
+      'बीच वाला कॉलम खेलो। वह बाकी किसी भी कॉलम से ज़्यादा चौकों का हिस्सा है।';
 
   @override
   String get howToCheckers1 =>
@@ -13355,6 +13420,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'सारी गोटियाँ ले लो या सामने वाले की कोई चाल न बचे, तो तुम जीते। दोनों की 40-40 चालों तक न कोई गोटी मरे, न कोई आम गोटी चले, तो बराबरी।';
 
   @override
+  String get howToCheckersTip =>
+      'अपनी पिछली लाइन अपनी जगह रखो। इससे वो किंग नहीं बना पाएँगे।';
+
+  @override
   String get howToReversi1 =>
       'डिस्क ऐसे रखो कि सामने वाले की डिस्क की एक लाइन तुम्हारी दो डिस्क के बीच फँस जाए। हर चाल में कम से कम एक डिस्क फँसनी चाहिए।';
 
@@ -13365,6 +13434,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get howToReversi3 =>
       'कोई चाल नहीं बची? तुम्हारी बारी छूट जाएगी। जब कोई नहीं चल पाए, सबसे ज़्यादा डिस्क वाला जीतता है।';
+
+  @override
+  String get howToReversiTip =>
+      'कोने पकड़ो। कोने वाली डिस्क कभी पलटी नहीं जा सकती।';
 
   @override
   String get howToDots1 => 'बारी-बारी दो डॉट के बीच एक लाइन खींचो।';
@@ -13397,6 +13470,9 @@ class AppLocalizationsHi extends AppLocalizations {
       'शह का मतलब राजा पर हमला है, उसे बचाना ही पड़ेगा। बचने का रास्ता नहीं? शह-मात, खेल ख़त्म। कोई चाल नहीं बची पर शह भी नहीं है? बराबरी।';
 
   @override
+  String get howToChessTip => 'हर चाल से पहले देखो कि वो क्या मार सकते हैं।';
+
+  @override
   String get howToLiars1 =>
       'सब छुपकर 5 पासे फेंकते हैं। तुम्हें सिर्फ़ अपने दिखते हैं।';
 
@@ -13427,6 +13503,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get howToLiarsClock =>
       'हर बारी 45 सेकंड की। टाइम ख़त्म तो गेम तुम्हारी तरफ़ से चल देगा।';
+
+  @override
+  String get howToLiarsTip =>
+      'पहले अपने पासे गिनो। 1 वाइल्ड हैं, इसलिए बाकियों के लगभग एक-तिहाई पासे तुम्हारी बोली वाले अंक से मिलते हैं।';
 
   @override
   String get howToImposter1 =>

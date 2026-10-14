@@ -5970,6 +5970,17 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameHintFlowPipe => 'Här är ett helt rör, prick till prick.';
 
   @override
+  String get gameHintPatchesOnly => 'Bara en lapp passar den här ledtråden.';
+
+  @override
+  String get gameHintPatchesCell =>
+      'En ruta här kan bara höra till den här ledtråden, och då finns bara en lapp kvar för den.';
+
+  @override
+  String get gameHintPatchesSqueeze =>
+      'Lapparna runt omkring lämnar bara ett sätt för den här att passa.';
+
+  @override
   String get gameErrorGeneric => 'Kunde inte nå spelen. Försök igen';
 
   @override
@@ -12542,6 +12553,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get gameStarbattleName => 'Stjärnstrid';
 
   @override
+  String get gamePatchesName => 'Lappar';
+
+  @override
   String get gameFlowRule => 'koppla ihop lika prickar, fyll varje ruta';
 
   @override
@@ -12558,6 +12572,9 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get gameStarbattleRule =>
       'två stjärnor per rad, kolumn och färg, aldrig intill varandra';
+
+  @override
+  String get gamePatchesRule => 'dela brädet i rektanglar, en ledtråd i varje';
 
   @override
   String get gameFlag => 'Flagga';
@@ -13270,6 +13287,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get howToTango4 => '= betyder samma. × betyder olika.';
 
   @override
+  String get howToTangoTip =>
+      'Två likadana bredvid varandra? Rutorna i båda ändarna får den andra.';
+
+  @override
   String get howToZip1 => 'Börja på 1 och dra genom siffrorna i ordning.';
 
   @override
@@ -13277,6 +13298,10 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToZip3 => 'Svängt fel? Dra tillbaka så ångras det.';
+
+  @override
+  String get howToZipTip =>
+      'Lämna ingen ruta ensam. Ta med hörn och kanter när du passerar.';
 
   @override
   String get howToSudoku1 =>
@@ -13302,6 +13327,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'Rör får inte korsas och alla rutor måste fyllas. Ta omvägen.';
 
   @override
+  String get howToFlowTip =>
+      'Dra rören längs kanterna först. Mitten löser sig själv.';
+
+  @override
   String get howToFutoshiki1 =>
       'Fyll varje ruta med 1 till 5. Varje rad och kolumn har varje siffra exakt en gång.';
 
@@ -13310,6 +13339,9 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => 'Bryter du mot ett tecken lyser det rött.';
+
+  @override
+  String get howToFutoshikiTip => 'Följ kedjorna: om a < b < c är c minst 3.';
 
   @override
   String get howToNonogram1 =>
@@ -13332,6 +13364,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'Få alla ledtrådar rätt så dyker den dolda bilden upp.';
 
   @override
+  String get howToNonogramTip =>
+      'Börja med de stora ledtrådarna. En 7 i en rad på 10 täcker alltid de 4 i mitten.';
+
+  @override
   String get howToMines1 =>
       'Öppna alla rutor som inte är minor. Tomma ytor öppnar sig själva.';
 
@@ -13346,6 +13382,10 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToMines4 =>
       'Går du på en mina kostar det 30 sekunder. Men du behöver aldrig gissa.';
+
+  @override
+  String get howToMinesTip =>
+      'En 1 med bara en dold ruta bredvid sig? Den rutan är minan.';
 
   @override
   String get howToStars1 =>
@@ -13363,6 +13403,22 @@ class AppLocalizationsSv extends AppLocalizations {
       'Med Autoprick på prickar en stjärna rutorna runt sig. När en rad har sina 2 prickas resten också.';
 
   @override
+  String get howToPatches1 =>
+      'Dela brädet i rektanglar. Varje rektangel har exakt en ledtråd.';
+
+  @override
+  String get howToPatches2 =>
+      'Märket visar formen: kvadrat, hög eller bred. En cirkel betyder vilken rektangel som helst. Siffran är antalet rutor.';
+
+  @override
+  String get howToPatches3 =>
+      'Dra från hörn till hörn för att klippa ut en lapp. Tryck på en lapp för att ta bort den.';
+
+  @override
+  String get howToPatches4 =>
+      'En stor ledtråd mot kanten passar ofta bara på ett sätt. Börja där.';
+
+  @override
   String get howToCode1 =>
       'Det finns en hemlig kod med 4 olika symboler, ingen upprepas. Knäck den.';
 
@@ -13376,6 +13432,10 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToCode4 =>
       'Du har 6 gissningar. Ju färre du behöver, desto bättre.';
+
+  @override
+  String get howToCodeTip =>
+      'Lägg dina första gissningar på nya symboler. Att lära sig slår att gissa.';
 
   @override
   String get howToTtt1 =>
@@ -13392,6 +13452,10 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToC42 =>
       'Få 4 i rad för att vinna: vågrätt, lodrätt eller diagonalt.';
+
+  @override
+  String get howToC4Tip =>
+      'Spela i mittenkolumnen. Den ingår i fler fyror än någon annan.';
 
   @override
   String get howToCheckers1 =>
@@ -13414,6 +13478,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'Ta alla deras brickor, eller lämna dem utan drag, så vinner du. 40 drag var utan att något tas och utan att en vanlig bricka flyttas blir oavgjort.';
 
   @override
+  String get howToCheckersTip =>
+      'Håll kvar din bakersta rad. Då kan de inte kröna kungar.';
+
+  @override
   String get howToReversi1 =>
       'Lägg en bricka så att en rad av deras hamnar instängd mellan två av dina. Varje drag måste stänga in minst en.';
 
@@ -13424,6 +13492,10 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToReversi3 =>
       'Inget drag att göra? Då står du över. När ingen kan dra vinner den med flest brickor.';
+
+  @override
+  String get howToReversiTip =>
+      'Ta hörnen. En bricka i ett hörn kan aldrig vändas.';
 
   @override
   String get howToDots1 => 'Turas om att dra ett streck mellan två prickar.';
@@ -13453,6 +13525,9 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToChess4 =>
       'Schack betyder att kungen är hotad och du måste rädda den. Ingen väg ut? Schackmatt, slut. Inget drag kvar men ingen schack? Då blir det oavgjort.';
+
+  @override
+  String get howToChessTip => 'Kolla före varje drag vad de kan ta.';
 
   @override
   String get howToLiars1 =>
@@ -13485,6 +13560,10 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToLiarsClock =>
       '45 sekunder per tur. Tar tiden slut spelar spelet åt dig.';
+
+  @override
+  String get howToLiarsTip =>
+      'Räkna dina egna tärningar först. Eftersom ettor är jokrar matchar ungefär en tredjedel av de andras tärningar sidan du budar på.';
 
   @override
   String get howToImposter1 =>

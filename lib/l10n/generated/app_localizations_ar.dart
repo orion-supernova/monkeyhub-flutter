@@ -6022,6 +6022,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gameHintFlowPipe => 'إليك أنبوبًا كاملًا، من نقطة إلى نقطة.';
 
   @override
+  String get gameHintPatchesOnly => 'رقعة واحدة فقط تناسب هذا الدليل.';
+
+  @override
+  String get gameHintPatchesCell =>
+      'مربع هنا لا يمكن أن يتبع إلا هذا الدليل، وهذا يترك له رقعة واحدة.';
+
+  @override
+  String get gameHintPatchesSqueeze =>
+      'الرقع المحيطة لا تترك لهذا الدليل إلا طريقة واحدة ليتّسع.';
+
+  @override
   String get gameErrorGeneric => 'تعذّر الوصول إلى الألعاب. حاول مجددًا';
 
   @override
@@ -12695,6 +12706,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gameStarbattleName => 'معركة النجوم';
 
   @override
+  String get gamePatchesName => 'الرُّقَع';
+
+  @override
   String get gameFlowRule => 'صِل النقاط المتطابقة واملأ كل مربع';
 
   @override
@@ -12709,6 +12723,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gameStarbattleRule => 'نجمتان في كل صف وعمود ولون، دون تلامس';
+
+  @override
+  String get gamePatchesRule => 'قسّم اللوحة إلى مستطيلات، في كل واحد دليل';
 
   @override
   String get gameFlag => 'علَم';
@@ -13422,6 +13439,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get howToTango4 => '= يعني أنهما متشابهان، و× يعني أنهما مختلفان.';
 
   @override
+  String get howToTangoTip =>
+      'اثنان متشابهان جنبًا إلى جنب؟ المربعان على الطرفين يأخذان الرمز الآخر.';
+
+  @override
   String get howToZip1 => 'ابدأ من 1 واسحب على الأرقام بالترتيب.';
 
   @override
@@ -13429,6 +13450,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToZip3 => 'أخطأت الطريق؟ اسحب للخلف وتتراجع.';
+
+  @override
+  String get howToZipTip =>
+      'لا تترك مربعًا معزولًا. خذ الزوايا والحواف وأنت تمرّ بها.';
 
   @override
   String get howToSudoku1 => 'كل صف وعمود ومربع فيه من 1 إلى 6. بدون تكرار.';
@@ -13452,6 +13477,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'الأنابيب لا تتقاطع، ولازم تمتلئ كل المربعات. خذ الطريق الأطول.';
 
   @override
+  String get howToFlowTip =>
+      'مرّر الأنابيب على الحواف أولًا. الوسط سيحلّ نفسه.';
+
+  @override
   String get howToFutoshiki1 =>
       'املأ كل مربع برقم من 1 إلى 5. كل رقم يظهر مرة واحدة بالضبط في كل صف وعمود.';
 
@@ -13461,6 +13490,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => 'إذا خالفت إشارة تتحول للأحمر.';
+
+  @override
+  String get howToFutoshikiTip =>
+      'تتبّع السلاسل: إذا كان a < b < c فإن c لا يقل عن 3.';
 
   @override
   String get howToNonogram1 =>
@@ -13482,6 +13515,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get howToNonogram4 => 'طابق كل الأدلة وستظهر الصورة المخفية.';
 
   @override
+  String get howToNonogramTip =>
+      'ابدأ بالأرقام الكبيرة. الرقم 7 في صف من 10 يغطي دائمًا المربعات الأربعة في الوسط.';
+
+  @override
   String get howToMines1 =>
       'افتح كل مربع لا يحتوي على لغم. المناطق الفارغة تنفتح وحدها.';
 
@@ -13494,6 +13531,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get howToMines4 =>
       'إذا دست على لغم تُضاف 30 ثانية عقوبة. لكنك لن تحتاج للتخمين أبدًا.';
+
+  @override
+  String get howToMinesTip =>
+      'رقم 1 بجانبه مربع مخفي واحد فقط؟ هذا المربع هو اللغم.';
 
   @override
   String get howToStars1 => 'نجمتان في كل صف وكل عمود وكل لون.';
@@ -13510,6 +13551,22 @@ class AppLocalizationsAr extends AppLocalizations {
       'مع تفعيل «نقاط تلقائية»، تضع النجمة نقاطًا على المربعات حولها. وعندما يكتمل الصف بنجمتيه، توضع النقاط على باقيه أيضًا.';
 
   @override
+  String get howToPatches1 =>
+      'قسّم اللوحة إلى مستطيلات. كل مستطيل فيه دليل واحد بالضبط.';
+
+  @override
+  String get howToPatches2 =>
+      'الشارة توضّح الشكل: مربع أو طولي أو عرضي. الدائرة تعني أي مستطيل. والرقم هو عدد المربعات.';
+
+  @override
+  String get howToPatches3 =>
+      'اسحب من زاوية إلى زاوية لتقصّ رقعة. اضغط على رقعة لإزالتها.';
+
+  @override
+  String get howToPatches4 =>
+      'الدليل الكبير الملاصق للحافة غالبًا يتّسع بطريقة واحدة فقط. ابدأ منه.';
+
+  @override
   String get howToCode1 =>
       'هناك شيفرة سرية من 4 رموز مختلفة، بلا تكرار. فكّها.';
 
@@ -13522,6 +13579,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToCode4 => 'لديك 6 محاولات. كلما احتجت أقل، كان أفضل.';
+
+  @override
+  String get howToCodeTip =>
+      'استخدم محاولاتك الأولى على رموز جديدة. أن تتعلّم أفضل من أن تخمّن.';
 
   @override
   String get howToTtt1 =>
@@ -13537,6 +13598,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get howToC42 =>
       'صفّ 4 على خط واحد لتفوز: أفقيًا أو عموديًا أو قطريًا.';
+
+  @override
+  String get howToC4Tip =>
+      'العب في العمود الأوسط. يدخل في صفوف رباعية أكثر من أي عمود آخر.';
 
   @override
   String get howToCheckers1 =>
@@ -13559,6 +13624,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'تفوز إذا أخذت كل قطع خصمك أو تركته بلا نقلة. وإذا لعب كل منكما 40 نقلة بلا أسر ولا تحريك قطعة عادية، فهو تعادل.';
 
   @override
+  String get howToCheckersTip =>
+      'أبقِ صفك الأخير في مكانه. هذا يمنعهم من تتويج ملوك.';
+
+  @override
   String get howToReversi1 =>
       'ضع قرصك بحيث تُحاصَر أقراص خصمك في خط بين قرصين لك. كل نقلة يجب أن تحاصر قرصًا واحدًا على الأقل.';
 
@@ -13569,6 +13638,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get howToReversi3 =>
       'لا توجد نقلة متاحة؟ يُتخطّى دورك. وعندما لا يستطيع أحد اللعب، يفوز صاحب أكثر الأقراص.';
+
+  @override
+  String get howToReversiTip =>
+      'استولِ على الزوايا. القرص في الزاوية لا يمكن قلبه أبدًا.';
 
   @override
   String get howToDots1 => 'تناوبوا على رسم خط بين نقطتين.';
@@ -13599,6 +13672,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'الكش يعني أن الملك مهدَّد ويجب أن تنقذه. لا مخرج؟ كش مات وانتهت اللعبة. لا نقلة متاحة لكن ملكك ليس في كش؟ إنه تعادل.';
 
   @override
+  String get howToChessTip => 'قبل كل نقلة، انظر ماذا يستطيع خصمك أن يأخذ.';
+
+  @override
   String get howToLiars1 => 'يرمي الجميع 5 نرود سرًّا. ولا ترى إلا نردك.';
 
   @override
@@ -13626,6 +13702,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get howToLiarsClock =>
       '45 ثانية لكل دور. إذا انتهى الوقت تلعب اللعبة عنك.';
+
+  @override
+  String get howToLiarsTip =>
+      'عُدّ زهراتك أولًا. لأن الواحد جوكر، فحوالي ثلث زهرات الآخرين يطابق الوجه الذي تزايد عليه.';
 
   @override
   String get howToImposter1 =>

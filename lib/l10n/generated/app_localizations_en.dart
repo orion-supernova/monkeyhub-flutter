@@ -5930,6 +5930,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameHintFlowPipe => 'Here\'s one whole pipe, dot to dot.';
 
   @override
+  String get gameHintPatchesOnly => 'Only one patch fits this clue.';
+
+  @override
+  String get gameHintPatchesCell =>
+      'A square here can only belong to this clue, and that leaves it one patch.';
+
+  @override
+  String get gameHintPatchesSqueeze =>
+      'The patches around it leave this clue only one way to fit.';
+
+  @override
   String get gameErrorGeneric => 'Couldn\'t reach the games. Try again';
 
   @override
@@ -12509,6 +12520,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameStarbattleName => 'Star battle';
 
   @override
+  String get gamePatchesName => 'Patches';
+
+  @override
   String get gameFlowRule => 'join matching dots, fill every square';
 
   @override
@@ -12525,6 +12539,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get gameStarbattleRule =>
       'two stars per row, column and colour, never touching';
+
+  @override
+  String get gamePatchesRule =>
+      'cut the board into rectangles, one clue in each';
 
   @override
   String get gameFlag => 'Flag';
@@ -13234,6 +13252,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howToTango4 => '= means the two match. × means they\'re opposite.';
 
   @override
+  String get howToTangoTip =>
+      'Two the same side by side? The squares at both ends get the other one.';
+
+  @override
   String get howToZip1 => 'Start on 1 and drag through the numbers in order.';
 
   @override
@@ -13241,6 +13263,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToZip3 => 'Wrong turn? Just drag back to undo.';
+
+  @override
+  String get howToZipTip =>
+      'Don\'t strand a square. Sweep corners and edges as you pass.';
 
   @override
   String get howToSudoku1 =>
@@ -13265,6 +13291,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pipes can\'t cross, and every square has to be filled. Take the long way.';
 
   @override
+  String get howToFlowTip =>
+      'Run pipes along the edges first. The middle sorts itself out.';
+
+  @override
   String get howToFutoshiki1 =>
       'Fill every square with 1 to 5. Each row and column gets each number exactly once.';
 
@@ -13274,6 +13304,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToFutoshiki3 => 'Break a sign and it lights up red.';
+
+  @override
+  String get howToFutoshikiTip =>
+      'Follow the chains: if a < b < c, then c is at least 3.';
 
   @override
   String get howToNonogram1 =>
@@ -13296,6 +13330,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nail every clue and the hidden picture pops out.';
 
   @override
+  String get howToNonogramTip =>
+      'Start with the big clues. A 7 in a row of 10 always covers the middle 4.';
+
+  @override
   String get howToMines1 =>
       'Open every square that isn\'t a mine. Empty areas open up on their own.';
 
@@ -13309,6 +13347,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get howToMines4 =>
       'Hit a mine and you eat a 30 second penalty. But you never actually have to guess.';
+
+  @override
+  String get howToMinesTip =>
+      'A 1 with only one hidden square next to it? That square is the mine.';
 
   @override
   String get howToStars1 =>
@@ -13326,6 +13368,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'With Auto-dot on, a star dots out the squares around it. Once a row has its 2, the rest gets dotted too.';
 
   @override
+  String get howToPatches1 =>
+      'Cut the board into rectangles. Each one holds exactly one clue.';
+
+  @override
+  String get howToPatches2 =>
+      'The badge shows the shape: square, tall or wide. A circle means any rectangle. A number is how many squares.';
+
+  @override
+  String get howToPatches3 =>
+      'Drag from corner to corner to cut a patch. Tap a patch to lift it off.';
+
+  @override
+  String get howToPatches4 =>
+      'A big clue against the edge often fits only one way. Start there.';
+
+  @override
   String get howToCode1 =>
       'There\'s a secret code of 4 different symbols, no repeats. Crack it.';
 
@@ -13338,6 +13396,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToCode4 => 'You get 6 guesses. The fewer you need, the better.';
+
+  @override
+  String get howToCodeTip =>
+      'Spend your first guesses on new symbols. Learning beats guessing.';
 
   @override
   String get howToTtt1 =>
@@ -13354,6 +13416,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get howToC42 =>
       'Line up 4 in a row to win: across, up and down, or diagonal.';
+
+  @override
+  String get howToC4Tip =>
+      'Play the middle column. It\'s part of more fours than any other.';
 
   @override
   String get howToCheckers1 =>
@@ -13376,6 +13442,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Take all their pieces, or leave them with no move, to win. 40 moves each with no capture and no plain piece moving is a draw.';
 
   @override
+  String get howToCheckersTip =>
+      'Keep your back row at home. It stops them from crowning kings.';
+
+  @override
   String get howToReversi1 =>
       'Place a disc so a line of their discs ends up trapped between two of yours. Every move has to trap at least one.';
 
@@ -13386,6 +13456,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get howToReversi3 =>
       'No move to make? Your turn gets skipped. When nobody can move, most discs wins.';
+
+  @override
+  String get howToReversiTip =>
+      'Grab the corners. A disc in a corner can never be flipped.';
 
   @override
   String get howToDots1 => 'Take turns drawing a line between two dots.';
@@ -13414,6 +13488,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get howToChess4 =>
       'Check means the king is under attack, and you have to get it out. No way out? Checkmate, game over. No legal move but not in check? It\'s a draw.';
+
+  @override
+  String get howToChessTip => 'Before every move, check what they can take.';
 
   @override
   String get howToLiars1 =>
@@ -13446,6 +13523,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get howToLiarsClock =>
       '45 seconds a turn. Run out and the game plays for you.';
+
+  @override
+  String get howToLiarsTip =>
+      'Count your own dice first. About a third of everyone else\'s match the face you bid, since 1s are wild.';
 
   @override
   String get howToImposter1 =>
