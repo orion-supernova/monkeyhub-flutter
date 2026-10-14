@@ -82,6 +82,29 @@ void main() {
       expect(first, second);
       expect(first, ['ada', 'zoe']);
     });
+
+    test('equal totals share a place and list A to Z by name, not id', () {
+      Moment named(String id, String userId, String name) => Moment(
+        id: id,
+        userId: userId,
+        dayKey: '2026-08-07',
+        createdAt: DateTime(2026, 8, 7, 9),
+        expiresAt: DateTime(2026, 8, 8, 9),
+        authorName: name,
+        authorUsername: userId,
+        mine: false,
+        seen: false,
+        tag: MomentTag.fate,
+      );
+      final t = MomentTally.from([
+        named('1', 'a1', 'Zeynep'),
+        named('2', 'z9', 'İpek'),
+        named('3', 'm5', 'Ömer'),
+        named('4', 'm5', 'Ömer'),
+      ]);
+      expect(t.map((x) => x.name), ['Ömer', 'İpek', 'Zeynep']);
+      expect(MomentTally.placesOf(t), [1, 2, 2]);
+    });
   });
 
   group('decay', () {

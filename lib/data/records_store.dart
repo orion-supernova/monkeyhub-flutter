@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import '../backend/convex_client.dart';
 import '../backend/games_api.dart';
 import '../models/game_record.dart';
+import 'games_store.dart';
 
 /// Everyone's all-time bests, held across screens — the hub's ALL-TIME section
 /// and the records sheet a game screen opens both read this one copy.
@@ -36,6 +37,26 @@ class RecordsStore extends ChangeNotifier {
   Object? _error;
   int _gen = 0;
 
+  /// The read in flight, which a second plain [load] waits on rather than
+  /// returning before the board it is about to draw has landed.
+  Future<void>? _pending;
+
+  /// When the held board was last answered, and how many games the viewer had
+  /// finished by then ([GamesStore.finishedSeq]). A plain [load] inside
+  /// [ttl] with no finish since is answered from the held board.
+  DateTime? _answeredAt;
+  int _answeredSeq = -1;
+
+  /// How long a held board answers a plain [load]. Records only move when
+  /// somebody finishes a game, and the viewer's own finishes are tracked
+  /// separately, so this only bounds how late a friend's new best shows up.
+  @visibleForTesting
+  static Duration ttl = const Duration(seconds: 30);
+
+  /// The clock [ttl] is measured on. Swappable for the tests.
+  @visibleForTesting
+  static DateTime Function() now = DateTime.now;
+
   /// Reactions sent and not yet answered, by record — so a board that lands
   /// mid-flight does not snap a fresh reaction back to what the server had a
   /// moment before it.
@@ -61,15 +82,31 @@ class RecordsStore extends ChangeNotifier {
   }
 
   /// Reads the board for [userId]. Coalesced: a call while one is in flight
-  /// returns without starting a second.
-  Future<void> load(String userId, {bool force = false}) async {
+  /// shares it rather than starting a second, and a plain call with a fresh
+  /// board held (see [ttl]) does not read at all. [force] always reads.
+  Future<void> load(String userId, {bool force = false}) {
     if (userId != _userId) {
       _board = const RecordBoard();
       _answered = false;
+      _answeredAt = null;
       _inFlight.clear();
     }
-    if (_loading && !force && userId == _userId) return;
+    if (!force && userId == _userId) {
+      if (_loading) return _pending ?? Future.value();
+      final at = _answeredAt;
+      if (_answered &&
+          at != null &&
+          _answeredSeq == GamesStore.instance.finishedSeq &&
+          now().difference(at) < ttl) {
+        return Future.value();
+      }
+    }
+    return _pending = _read(userId);
+  }
+
+  Future<void> _read(String userId) async {
     final gen = ++_gen;
+    final seq = GamesStore.instance.finishedSeq;
     _userId = userId;
     _loading = true;
     _error = null;
@@ -79,6 +116,8 @@ class RecordsStore extends ChangeNotifier {
       if (gen != _gen) return;
       _board = _withInFlight(next);
       _answered = true;
+      _answeredAt = now();
+      _answeredSeq = seq;
       _error = null;
     } catch (e) {
       if (gen != _gen) return;
@@ -175,6 +214,8 @@ class RecordsStore extends ChangeNotifier {
     _board = const RecordBoard();
     _userId = null;
     _answered = false;
+    _answeredAt = null;
+    _pending = null;
     _loading = false;
     _error = null;
     _inFlight.clear();

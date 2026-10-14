@@ -39,7 +39,8 @@ final _standings = GameStandings(
       _r(DailyGame.queens, 'u_e', 'Ece Yıldız', 61),
       _r(DailyGame.queens, 'u1', '', 74),
       _r(DailyGame.queens, 'u_d', 'Deniz Kaya', 102),
-      _r(DailyGame.queens, 'u_m', 'Mert', 140),
+      // A dead heat with the leader, to the second: two golds.
+      _r(DailyGame.queens, 'u_m', 'Mert', 61),
       _r(DailyGame.queens, 'u_a', 'Arda', 0, solved: false),
     ],
     DailyGame.tango: [
@@ -121,6 +122,12 @@ final _records = RecordBoard(games: {
     _rec('q5', 'u_d', 'Deniz Kaya', 5, 104000),
   ],
   RecordGame.tango: [_rec('t1', 'u1', '', 1, 48000)],
+  // A shared record: same best to the second, both rank 1.
+  RecordGame.zip: [
+    _rec('z1', 'u_e', 'Ece Yıldız', 1, 33200),
+    _rec('z2', 'u_d', 'Deniz Kaya', 1, 33900),
+    _rec('z3', 'u1', '', 3, 41000),
+  ],
 });
 
 void main() {
@@ -234,7 +241,7 @@ void main() {
             ),
           ),
           'lb_${name}_$id.png',
-          size: const Size(393, 1400),
+          size: const Size(393, 2600),
           // The fake answers land after the first pump; let the podium's
           // entrance finish after them.
           act: () async {

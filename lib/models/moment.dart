@@ -10,6 +10,8 @@
 /// you just took is one tap rather than a second feature.
 library;
 
+import '../games/ranking.dart';
+
 /// The scoring categories.
 ///
 /// Wire values are mirrored in `backend/convex/feed.ts`'s `TAGS`. There is no
@@ -273,9 +275,17 @@ class Moment {
 /// are already there, and a second query for a sum would be a second
 /// subscription on a screen that is deliberately limited to one.
 class MomentTally {
-  const MomentTally({required this.userId, required this.counts});
+  const MomentTally({
+    required this.userId,
+    required this.counts,
+    this.name = '',
+  });
 
   final String userId;
+
+  /// The author's display name off their newest moment; equal totals are
+  /// listed A to Z by it.
+  final String name;
   final Map<MomentTag, int> counts;
 
   int get total => counts.values.fold(0, (a, b) => a + b);
@@ -289,21 +299,25 @@ class MomentTally {
   /// `RadialGeometry` and `pending_reconcile.dart` already follow here.
   static List<MomentTally> from(Iterable<Moment> moments) {
     final byUser = <String, Map<MomentTag, int>>{};
+    final names = <String, String>{};
     for (final m in moments) {
       final tag = m.tag;
       if (tag == null) continue;
+      names.putIfAbsent(m.userId, () => m.authorName);
       final counts = byUser.putIfAbsent(m.userId, () => <MomentTag, int>{});
       counts[tag] = (counts[tag] ?? 0) + 1;
     }
     final out = [
       for (final e in byUser.entries)
-        MomentTally(userId: e.key, counts: e.value),
+        MomentTally(userId: e.key, counts: e.value, name: names[e.key] ?? ''),
     ];
-    // Highest total first, then by userId so equal scores hold a stable order
-    // instead of shuffling every time the board re-renders.
+    // Highest total first; equal totals share a place (see [placesOf]) and
+    // are listed A to Z, with the id last only so identical names hold still.
     out.sort((a, b) {
       final c = b.total.compareTo(a.total);
-      return c != 0 ? c : a.userId.compareTo(b.userId);
+      if (c != 0) return c;
+      final byName = compareNames(a.name, b.name);
+      return byName != 0 ? byName : a.userId.compareTo(b.userId);
     });
     return out;
   }
@@ -311,13 +325,6 @@ class MomentTally {
   /// The 1-based place of each of [tallies] (in their order), equal totals
   /// sharing one: "1, 1, 3". A tie is a tie, and ranking one of two equal
   /// scores higher would be inventing an order the board does not have.
-  static List<int> placesOf(List<MomentTally> tallies) {
-    final out = <int>[];
-    for (var i = 0; i < tallies.length; i++) {
-      out.add(i > 0 && tallies[i].total == tallies[i - 1].total
-          ? out[i - 1]
-          : i + 1);
-    }
-    return out;
-  }
+  static List<int> placesOf(List<MomentTally> tallies) =>
+      rankedPlaces(tallies, (a, b) => a.total == b.total);
 }

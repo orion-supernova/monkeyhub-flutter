@@ -115,8 +115,10 @@ class _Card extends StatelessWidget {
       if (!today) {
         verdict = l10n.challengeClosed;
       } else if (played && result.solved && result.durationMs != null) {
-        final gap = result.durationMs! - c.durationMs;
-        if (gap.abs() < 1000) {
+        // Whole seconds, the clock's own precision: two times that read the
+        // same are a tie, never a win on milliseconds nobody can see.
+        final gap = (result.durationMs! ~/ 1000 - c.durationMs ~/ 1000) * 1000;
+        if (gap == 0) {
           verdict = l10n.challengeTie;
         } else if (gap < 0) {
           verdict = l10n.challengeYouBeat(formatGameTime(-gap));

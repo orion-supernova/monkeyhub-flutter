@@ -20,6 +20,7 @@ import '../../widgets/game_tile.dart' show StatusChip;
 import '../../widgets/game_celebration.dart';
 import '../../widgets/game_layout_shell.dart';
 import '../../widgets/game_records.dart';
+import '../../widgets/game_stat_line.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/score_row.dart';
 import '../../widgets/sheet_kit.dart';
@@ -538,10 +539,14 @@ class _ResultCard extends StatelessWidget {
     final mine = controller.durationMs;
     if (t == null || !controller.solved || mine == null) return null;
     final l10n = AppLocalizations.of(context);
-    if (mine < t.durationMs) {
+    // Whole seconds, the clock's own precision: two times that read the same
+    // are a tie, never a win on milliseconds nobody can see.
+    final gap = mine ~/ 1000 - t.durationMs ~/ 1000;
+    if (gap == 0) return (l10n.challengeTie, false);
+    if (gap < 0) {
       return (l10n.challengeBeatName(t.name, formatGameTime(t.durationMs)), true);
     }
-    return (l10n.challengeKept(t.name, formatGameTime(mine - t.durationMs)), false);
+    return (l10n.challengeKept(t.name, formatGameTime(gap * 1000)), false);
   }
 
   /// Sends this result to chats the player picks, as a "Beat my time" card.
@@ -643,15 +648,10 @@ class _ResultCard extends StatelessWidget {
           ),
           if (controller.hintsUsed > 0 || controller.mistakes > 0) ...[
             const SizedBox(height: 4),
-            Text(
-              [
-                if (controller.mistakes > 0)
-                  l10n.gameMistakeCount(controller.mistakes),
-                if (controller.hintsUsed > 0)
-                  l10n.gameHintCount(controller.hintsUsed),
-              ].join(' · '),
+            GameStatLine(
+              mistakes: controller.mistakes,
+              hints: controller.hintsUsed,
               textAlign: TextAlign.center,
-              style: groupedMetaStyle(theme),
             ),
           ],
           if (_challengeLine(context) case final line?) ...[
@@ -777,7 +777,11 @@ class GameStandingsList extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final rows = GamesStore.instance.standings.boards[game] ?? const [];
+    final rows = GamesStore.instance.standings.ranked(
+      game,
+      viewerId: viewerId,
+      you: sentenceCaseOf(context, l10n.momentRailYouLabel),
+    );
 
     final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
     final shown = rows.length < max ? rows.length : max;
@@ -803,7 +807,7 @@ class GameStandingsList extends StatelessWidget {
           for (var i = 0; i < shown; i++)
             TweenAnimationBuilder<double>(
               // Identity, never index — this list reorders as people finish.
-              key: ValueKey('${game.wire}_${rows[i].userId}'),
+              key: ValueKey('${game.wire}_${rows[i].row.userId}'),
               tween: Tween(begin: 0, end: 1),
               duration: motion.stagger(theme.motionMed, i, strideMs: 45),
               curve: motion.c(theme.motionEntrance),
@@ -814,7 +818,7 @@ class GameStandingsList extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _standingRow(context, i + 1, rows[i]),
+                  _standingRow(context, rows[i].place, rows[i].row),
                   if (i < shown - 1)
                     Padding(
                       padding: const EdgeInsets.only(

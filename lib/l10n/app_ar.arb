@@ -1660,8 +1660,8 @@
   "gameHintFlowPipe": "إليك أنبوبًا كاملًا، من نقطة إلى نقطة.",
   "gameErrorGeneric": "تعذّر الوصول إلى الألعاب. حاول مجددًا",
   "gameInfoOpen": "كيف تلعب",
-  "gameInfoScoringTimed": "الأسرع يفوز. تتوقف الساعة عندما تخرج.",
-  "gameInfoScoringGuesses": "الأقل تخمينًا يفوز. الوقت لا يُحسب.",
+  "gameInfoScoringTimed": "الأسرع يفوز. تتوقف الساعة عندما تخرج. الوقت نفسه، المركز نفسه.",
+  "gameInfoScoringGuesses": "الأقل تخمينًا يفوز. الوقت لا يُحسب. عدد التخمينات نفسه، المركز نفسه.",
   "gameInfoSameForEveryone": "الجميع يحصل على اللغز نفسه اليوم.",
   "savedMessagesTitle": "الرسائل المحفوظة",
   "homeScreenNoSearchResults": "لا توجد محادثات تطابق \"{query}\"",
@@ -3023,7 +3023,7 @@
   "roomContentMonthThis": "هذا الشهر",
   "roomContentMonthLast": "الشهر الماضي",
   "leaderboardOverall": "اليوم",
-  "leaderboardFooter": "1 نقطة لكل لغز تحلّه اليوم. عند التعادل، يتقدم من جاء أولًا مرات أكثر.",
+  "leaderboardFooter": "1 نقطة لكل لغز تحلّه اليوم. عند التعادل، يتقدم من جاء أولًا مرات أكثر. ما زال التعادل قائمًا؟ تتشاركون المركز، بالترتيب الأبجدي.",
   "leaderboardNotPlayed": "لم تلعب بعد",
   "leaderboardPlay": "العب",
   "leaderboardEmptyTitle": "لا نتائج بعد اليوم",
@@ -3737,5 +3737,12 @@
   "howToLive3": "يمكن لبقية المحادثة المشاهدة. يمكنهم طلب مقعد، ويمكن للاعب أن يتنازل عن مقعده.",
   "howToTurns1": "قم بحركتك، ثم اضغط أرسل الحركة. ستظهر في المحادثة كرسالة.",
   "howToTurns2": "لكل حركة يومان. نذكّره بعد 20 ساعة، وبعد 12 ساعة من الصمت يمكنك تذكيره بنفسك.",
-  "howToTurns3": "لا حركة خلال يومين؟ تُحسب خسارة. حتى 3 ألعاب في الوقت نفسه لكل محادثة."
+  "howToTurns3": "لا حركة خلال يومين؟ تُحسب خسارة. حتى 3 ألعاب في الوقت نفسه لكل محادثة.",
+  "momentActivityGamesSolvedAll": "{name} حلّ ألعابًا: {count, plural, other{{count}}}",
+  "momentActivityGamesSolvedSome": "{name} حلّ {solved} من {count, plural, other{{count}}}",
+  "momentActivityGamesPlayed": "{name} لعب ألعابًا: {count, plural, other{{count}}}",
+  "momentActivityHighlightsPosted": "{name} نشر لحظات: {count, plural, other{{count}}}",
+  "podiumSharedBy": "المركز {place}، يتشاركه {count}: {names}",
+  "myBestsLabel": "أفضل أرقامي",
+  "recordsSharedBy": "{name} +{count}"
 }

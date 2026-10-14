@@ -10106,13 +10106,13 @@ abstract class AppLocalizations {
   /// Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard.
   ///
   /// In en, this message translates to:
-  /// **'Finish fastest to win. The clock stops when you leave.'**
+  /// **'Finish fastest to win. The clock stops when you leave. Same time, same spot.'**
   String get gameInfoScoringTimed;
 
   /// Closing line of the how-to-play sheet for the symbol-code puzzle — the one game on the hub that is ranked by guesses rather than by time.
   ///
   /// In en, this message translates to:
-  /// **'Crack it in the fewest guesses to win. Time doesn\'t count.'**
+  /// **'Crack it in the fewest guesses to win. Time doesn\'t count. Same guesses, same spot.'**
   String get gameInfoScoringGuesses;
 
   /// Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful.
@@ -18298,7 +18298,7 @@ abstract class AppLocalizations {
   /// Footer under the overall leaderboard explaining the score.
   ///
   /// In en, this message translates to:
-  /// **'1 point for every puzzle you solve today. A tie goes to whoever came first more often.'**
+  /// **'1 point for every puzzle you solve today. A tie goes to whoever came first more often. Still tied? You share the spot, listed A to Z.'**
   String get leaderboardFooter;
 
   /// Subtitle of the viewer's own pinned leaderboard row when they have not finished a game today.
@@ -22584,6 +22584,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No move in 2 days? That\'s a loss. Up to 3 games at once per chat.'**
   String get howToTurns3;
+
+  /// Activity line for ONE friend who finished several daily games today and solved all of them; tapping opens the list. {name} is the friend's display name; conjugate the sentence around it. {count} is how many games (always 2 or more). The game names show on the line under it. gen-l10n emits parameters alphabetically (count, name).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} solved {count, plural, =1{1 game} other{{count} games}}'**
+  String momentActivityGamesSolvedAll(int count, String name);
+
+  /// Activity line for ONE friend who finished several daily games today and solved only some. {name} is the friend's display name; {solved} is how many they solved; {count} is how many they finished (2 or more). gen-l10n emits parameters alphabetically (count, name, solved).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} solved {solved} of {count, plural, =1{1 game} other{{count} games}}'**
+  String momentActivityGamesSolvedSome(int count, String name, int solved);
+
+  /// Activity line for ONE friend who finished several daily games today and solved none (gave up or ran out of guesses). {name} is the friend's display name; {count} is how many (2 or more). Parameters are alphabetical (count, name).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} played {count, plural, =1{1 game} other{{count} games}}'**
+  String momentActivityGamesPlayed(int count, String name);
+
+  /// Activity line for ONE friend who posted several highlights (photo/video moments) today; tapping opens the list. {name} is the friend's display name; conjugate the sentence around it. {count} is how many (always 2 or more). Their newest caption shows on the line under it. Same wording family as momentActivityPostedHighlight. Parameters are alphabetical (count, name).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} posted {count, plural, =1{1 highlight} other{{count} highlights}}'**
+  String momentActivityHighlightsPosted(int count, String name);
+
+  /// Screen-reader label for ONE podium seat that several people share because they tied, e.g. 'Place 1, shared by 2: Ece, Mert'. {place} is 1, 2 or 3; {count} is how many share it (2 or more); {names} is their names, comma-separated, A to Z. Parameters are alphabetical (count, names, place).
+  ///
+  /// In en, this message translates to:
+  /// **'Place {place}, shared by {count}: {names}'**
+  String podiumSharedBy(int count, String names, int place);
+
+  /// Leaderboard section header over the viewer's OWN all-time best at each game, under everyone's ALL-TIME records. Pairs with myStreaksLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'My bests'**
+  String get myBestsLabel;
+
+  /// Who holds a game's all-time record when it is SHARED by an exact tie: the first holder's name (alphabetically) and how many others share it, e.g. 'Ayşe +1'. {name} may be the localized 'You'. Parameters are alphabetical (count, name).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} +{count}'**
+  String recordsSharedBy(int count, String name);
 }
 
 class _AppLocalizationsDelegate

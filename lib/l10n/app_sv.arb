@@ -1660,8 +1660,8 @@
   "gameHintFlowPipe": "Här är ett helt rör, prick till prick.",
   "gameErrorGeneric": "Kunde inte nå spelen. Försök igen",
   "gameInfoOpen": "Så spelar du",
-  "gameInfoScoringTimed": "Snabbast vinner. Klockan stannar när du lämnar.",
-  "gameInfoScoringGuesses": "Färst gissningar vinner. Tiden räknas inte.",
+  "gameInfoScoringTimed": "Snabbast vinner. Klockan stannar när du lämnar. Samma tid, samma plats.",
+  "gameInfoScoringGuesses": "Färst gissningar vinner. Tiden räknas inte. Lika många gissningar, samma plats.",
   "gameInfoSameForEveryone": "Alla får samma pussel i dag.",
   "savedMessagesTitle": "Sparade meddelanden",
   "homeScreenNoSearchResults": "ingen chatt matchar \"{query}\"",
@@ -3023,7 +3023,7 @@
   "roomContentMonthThis": "Den här månaden",
   "roomContentMonthLast": "Förra månaden",
   "leaderboardOverall": "I dag",
-  "leaderboardFooter": "1 poäng för varje pussel du löser i dag. Vid lika vinner den som kom först flest gånger.",
+  "leaderboardFooter": "1 poäng för varje pussel du löser i dag. Vid lika vinner den som kom först flest gånger. Fortfarande lika? Ni delar platsen, i bokstavsordning.",
   "leaderboardNotPlayed": "Inte spelat än",
   "leaderboardPlay": "Spela",
   "leaderboardEmptyTitle": "Inga resultat än i dag",
@@ -3737,5 +3737,12 @@
   "howToLive3": "Andra i chatten kan titta på. De kan be om en plats, och en spelare kan lämna över sin.",
   "howToTurns1": "Gör ditt drag och tryck på Skicka draget. Det dyker upp i chatten som ett meddelande.",
   "howToTurns2": "Varje drag har 2 dagar. Vi påminner efter 20 timmar, och efter 12 tysta timmar kan du påminna själv.",
-  "howToTurns3": "Inget drag på 2 dagar? Då förlorar du. Upp till 3 spel samtidigt per chatt."
+  "howToTurns3": "Inget drag på 2 dagar? Då förlorar du. Upp till 3 spel samtidigt per chatt.",
+  "momentActivityGamesSolvedAll": "{name} löste {count, plural, other{{count} spel}}",
+  "momentActivityGamesSolvedSome": "{name} löste {solved} av {count, plural, other{{count} spel}}",
+  "momentActivityGamesPlayed": "{name} spelade {count, plural, other{{count} spel}}",
+  "momentActivityHighlightsPosted": "{name} lade upp {count, plural, =1{1 ögonblick} other{{count} ögonblick}}",
+  "podiumSharedBy": "Plats {place}, delad av {count}: {names}",
+  "myBestsLabel": "Mina rekord",
+  "recordsSharedBy": "{name} +{count}"
 }

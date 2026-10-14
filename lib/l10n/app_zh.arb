@@ -1660,8 +1660,8 @@
   "gameHintFlowPipe": "这是一整条管道，从一个点连到另一个点。",
   "gameErrorGeneric": "无法连接游戏，请重试",
   "gameInfoOpen": "玩法说明",
-  "gameInfoScoringTimed": "最快完成的人赢。离开时计时会暂停。",
-  "gameInfoScoringGuesses": "猜的次数最少的人赢。不计时间。",
+  "gameInfoScoringTimed": "最快完成的人赢。离开时计时会暂停。用时相同，名次相同。",
+  "gameInfoScoringGuesses": "猜的次数最少的人赢。不计时间。次数相同，名次相同。",
   "gameInfoSameForEveryone": "今天每个人的题目都一样。",
   "savedMessagesTitle": "保存的消息",
   "homeScreenNoSearchResults": "没有与\"{query}\"匹配的聊天",
@@ -3023,7 +3023,7 @@
   "roomContentMonthThis": "本月",
   "roomContentMonthLast": "上个月",
   "leaderboardOverall": "今天",
-  "leaderboardFooter": "今天每解出一题得 1 分。同分时，拿第一次数多的人排前面。",
+  "leaderboardFooter": "今天每解出一题得 1 分。同分时，拿第一次数多的人排前面。仍然同分则并列名次，按名字排序。",
   "leaderboardNotPlayed": "还没玩",
   "leaderboardPlay": "开始",
   "leaderboardEmptyTitle": "今天还没有成绩",
@@ -3737,5 +3737,12 @@
   "howToLive3": "群里其他人可以观战，也可以申请上场，玩家可以把座位让出来。",
   "howToTurns1": "走完一步后点“发送这步”，它会作为一条消息发到聊天里。",
   "howToTurns2": "每步有 2 天时间。20 小时后我们会提醒对方，安静 12 小时后你也可以亲自提醒。",
-  "howToTurns3": "2 天没走就算输。每个聊天最多同时进行 3 局。"
+  "howToTurns3": "2 天没走就算输。每个聊天最多同时进行 3 局。",
+  "momentActivityGamesSolvedAll": "{name} 解开了 {count, plural, other{{count} 个游戏}}",
+  "momentActivityGamesSolvedSome": "{name} 解开了 {count, plural, other{{count} 个}}中的 {solved} 个",
+  "momentActivityGamesPlayed": "{name} 玩了 {count, plural, other{{count} 个游戏}}",
+  "momentActivityHighlightsPosted": "{name} 发布了 {count, plural, other{{count} 个瞬间}}",
+  "podiumSharedBy": "第 {place} 名，{count} 人并列：{names}",
+  "myBestsLabel": "我的最佳",
+  "recordsSharedBy": "{name} +{count}"
 }

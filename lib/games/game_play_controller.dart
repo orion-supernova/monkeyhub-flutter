@@ -404,7 +404,12 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     try {
       final answer = await _untilLanded(
-        () => _api.reveal(userId: userId, dayKey: _dayKey, game: game),
+        () => _api.reveal(
+          userId: userId,
+          dayKey: _dayKey,
+          game: game,
+          mistakes: _mistakes,
+        ),
       );
       _busy = false;
       _finishing = false;

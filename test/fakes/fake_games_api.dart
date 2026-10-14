@@ -116,6 +116,7 @@ class FakeGamesApi implements GamesApi {
     required String userId,
     required String dayKey,
     required DailyGame game,
+    int mistakes = 0,
   }) async => const [];
 
   /// Every game whose result this fake was asked to share, in order.

@@ -1660,8 +1660,8 @@
   "gameHintFlowPipe": "Aquí tienes una tubería entera, de punto a punto.",
   "gameErrorGeneric": "No se pudo conectar con los juegos. Inténtalo de nuevo",
   "gameInfoOpen": "Cómo se juega",
-  "gameInfoScoringTimed": "Gana quien termina más rápido. El reloj se para si sales.",
-  "gameInfoScoringGuesses": "Gana quien lo descifra con menos intentos. El tiempo no cuenta.",
+  "gameInfoScoringTimed": "Gana quien termina más rápido. El reloj se para si sales. Mismo tiempo, mismo puesto.",
+  "gameInfoScoringGuesses": "Gana quien lo descifra con menos intentos. El tiempo no cuenta. Mismos intentos, mismo puesto.",
   "gameInfoSameForEveryone": "Hoy todos tienen el mismo puzle.",
   "savedMessagesTitle": "Mensajes guardados",
   "homeScreenNoSearchResults": "ningún chat coincide con \"{query}\"",
@@ -3023,7 +3023,7 @@
   "roomContentMonthThis": "Este mes",
   "roomContentMonthLast": "El mes pasado",
   "leaderboardOverall": "Hoy",
-  "leaderboardFooter": "1 punto por cada puzle que resuelvas hoy. En caso de empate, gana quien quedó primero más veces.",
+  "leaderboardFooter": "1 punto por cada puzle que resuelvas hoy. En caso de empate, gana quien quedó primero más veces. ¿Sigue el empate? Compartís el puesto, por orden alfabético.",
   "leaderboardNotPlayed": "Aún no has jugado",
   "leaderboardPlay": "Jugar",
   "leaderboardEmptyTitle": "Aún no hay puntuaciones hoy",
@@ -3737,5 +3737,12 @@
   "howToLive3": "Los demás del chat pueden mirar. Pueden pedir sitio y un jugador puede cederles el suyo.",
   "howToTurns1": "Haz tu jugada y toca Enviar jugada. Llega al chat como un mensaje.",
   "howToTurns2": "Cada jugada tiene 2 días. Le avisamos a las 20 horas y, tras 12 horas sin noticias, puedes avisarle tú.",
-  "howToTurns3": "¿Sin jugada en 2 días? Cuenta como derrota. Hasta 3 partidas a la vez por chat."
+  "howToTurns3": "¿Sin jugada en 2 días? Cuenta como derrota. Hasta 3 partidas a la vez por chat.",
+  "momentActivityGamesSolvedAll": "{name} ha resuelto {count, plural, =1{1 juego} other{{count} juegos}}",
+  "momentActivityGamesSolvedSome": "{name} ha resuelto {solved} de {count, plural, =1{1 juego} other{{count} juegos}}",
+  "momentActivityGamesPlayed": "{name} ha jugado {count, plural, =1{1 juego} other{{count} juegos}}",
+  "momentActivityHighlightsPosted": "{name} ha publicado {count, plural, =1{1 momento} other{{count} momentos}}",
+  "podiumSharedBy": "Puesto {place}, compartido por {count}: {names}",
+  "myBestsLabel": "Mis mejores marcas",
+  "recordsSharedBy": "{name} +{count}"
 }

@@ -1660,8 +1660,8 @@
   "gameHintFlowPipe": "यह रहा एक पूरा पाइप, डॉट से डॉट तक।",
   "gameErrorGeneric": "खेलों तक नहीं पहुँच सके, फिर कोशिश करें",
   "gameInfoOpen": "कैसे खेलें",
-  "gameInfoScoringTimed": "सबसे तेज़ खत्म करने वाला जीतता है। बाहर जाने पर घड़ी रुक जाती है।",
-  "gameInfoScoringGuesses": "सबसे कम अनुमानों में हल करने वाला जीतता है। समय नहीं गिना जाता।",
+  "gameInfoScoringTimed": "सबसे तेज़ खत्म करने वाला जीतता है। बाहर जाने पर घड़ी रुक जाती है। एक जैसा समय, एक जैसी जगह।",
+  "gameInfoScoringGuesses": "सबसे कम अनुमानों में हल करने वाला जीतता है। समय नहीं गिना जाता। एक जैसे अनुमान, एक जैसी जगह।",
   "gameInfoSameForEveryone": "आज सबको एक ही पहेली मिलती है।",
   "savedMessagesTitle": "सेव किए गए मैसेज",
   "homeScreenNoSearchResults": "\"{query}\" से कोई चैट मेल नहीं खाती",
@@ -3023,7 +3023,7 @@
   "roomContentMonthThis": "इस महीने",
   "roomContentMonthLast": "पिछले महीने",
   "leaderboardOverall": "आज",
-  "leaderboardFooter": "आज हल की गई हर पहेली के लिए 1 पॉइंट। बराबरी पर, जो ज़्यादा बार पहले आया वह आगे।",
+  "leaderboardFooter": "आज हल की गई हर पहेली के लिए 1 पॉइंट। बराबरी पर, जो ज़्यादा बार पहले आया वह आगे। फिर भी बराबर? तो जगह साझा होती है, नाम वर्णक्रम में।",
   "leaderboardNotPlayed": "अभी तक नहीं खेला",
   "leaderboardPlay": "खेलें",
   "leaderboardEmptyTitle": "आज अभी कोई स्कोर नहीं",
@@ -3737,5 +3737,12 @@
   "howToLive3": "चैट के बाकी लोग देख सकते हैं। वो सीट माँग सकते हैं, और कोई खिलाड़ी अपनी सीट दे सकता है।",
   "howToTurns1": "अपनी चाल चलो, फिर चाल भेजो पर टैप करो। वो चैट में मैसेज बनकर पहुँच जाएगी।",
   "howToTurns2": "हर चाल के लिए 2 दिन हैं। 20 घंटे बाद हम याद दिलाते हैं, और 12 घंटे की चुप्पी के बाद तुम ख़ुद भी याद दिला सकते हो।",
-  "howToTurns3": "2 दिन में चाल नहीं चली? वो हार मानी जाएगी। एक चैट में एक साथ 3 गेम तक।"
+  "howToTurns3": "2 दिन में चाल नहीं चली? वो हार मानी जाएगी। एक चैट में एक साथ 3 गेम तक।",
+  "momentActivityGamesSolvedAll": "{name} ने {count, plural, other{{count} गेम}} हल किए",
+  "momentActivityGamesSolvedSome": "{name} ने {count, plural, other{{count}}} में से {solved} गेम हल किए",
+  "momentActivityGamesPlayed": "{name} ने {count, plural, other{{count} गेम}} खेले",
+  "momentActivityHighlightsPosted": "{name} ने {count, plural, other{{count} पल}} साझा किए",
+  "podiumSharedBy": "स्थान {place}, {count} लोगों में साझा: {names}",
+  "myBestsLabel": "मेरे रिकॉर्ड",
+  "recordsSharedBy": "{name} +{count}"
 }

@@ -5977,11 +5977,11 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get gameInfoScoringTimed =>
-      'Snabbast vinner. Klockan stannar när du lämnar.';
+      'Snabbast vinner. Klockan stannar när du lämnar. Samma tid, samma plats.';
 
   @override
   String get gameInfoScoringGuesses =>
-      'Färst gissningar vinner. Tiden räknas inte.';
+      'Färst gissningar vinner. Tiden räknas inte. Lika många gissningar, samma plats.';
 
   @override
   String get gameInfoSameForEveryone => 'Alla får samma pussel i dag.';
@@ -10866,7 +10866,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get leaderboardFooter =>
-      '1 poäng för varje pussel du löser i dag. Vid lika vinner den som kom först flest gånger.';
+      '1 poäng för varje pussel du löser i dag. Vid lika vinner den som kom först flest gånger. Fortfarande lika? Ni delar platsen, i bokstavsordning.';
 
   @override
   String get leaderboardNotPlayed => 'Inte spelat än';
@@ -13540,4 +13540,58 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToTurns3 =>
       'Inget drag på 2 dagar? Då förlorar du. Upp till 3 spel samtidigt per chatt.';
+
+  @override
+  String momentActivityGamesSolvedAll(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spel',
+    );
+    return '$name löste $_temp0';
+  }
+
+  @override
+  String momentActivityGamesSolvedSome(int count, String name, int solved) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spel',
+    );
+    return '$name löste $solved av $_temp0';
+  }
+
+  @override
+  String momentActivityGamesPlayed(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spel',
+    );
+    return '$name spelade $_temp0';
+  }
+
+  @override
+  String momentActivityHighlightsPosted(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ögonblick',
+      one: '1 ögonblick',
+    );
+    return '$name lade upp $_temp0';
+  }
+
+  @override
+  String podiumSharedBy(int count, String names, int place) {
+    return 'Plats $place, delad av $count: $names';
+  }
+
+  @override
+  String get myBestsLabel => 'Mina rekord';
+
+  @override
+  String recordsSharedBy(int count, String name) {
+    return '$name +$count';
+  }
 }

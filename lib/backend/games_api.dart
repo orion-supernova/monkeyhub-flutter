@@ -262,11 +262,15 @@ class GamesApi {
     required String userId,
     required String dayKey,
     required DailyGame game,
+    // The mistakes made before giving up. The server keeps the higher of
+    // this and its last autosave, so the row matches what this phone shows.
+    int mistakes = 0,
   }) async {
     final res = await _cv.mutation('games:reveal', {
       'userId': userId,
       'dayKey': dayKey,
       'game': game.wire,
+      'mistakes': mistakes,
     });
     final j = (res as Map).cast<String, dynamic>();
     return [

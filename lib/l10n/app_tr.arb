@@ -1660,8 +1660,8 @@
   "gameHintFlowPipe": "İşte noktadan noktaya bütün bir boru.",
   "gameErrorGeneric": "Oyunlara ulaşılamadı. Tekrar dene",
   "gameInfoOpen": "Nasıl oynanır",
-  "gameInfoScoringTimed": "En hızlı bitiren kazanır. Çıkınca saat durur.",
-  "gameInfoScoringGuesses": "En az tahminde çözen kazanır. Süre önemli değil.",
+  "gameInfoScoringTimed": "En hızlı bitiren kazanır. Çıkınca saat durur. Aynı süre, aynı sıra.",
+  "gameInfoScoringGuesses": "En az tahminde çözen kazanır. Süre önemli değil. Aynı tahmin sayısı, aynı sıra.",
   "gameInfoSameForEveryone": "Bugün herkese aynı bulmaca çıkar.",
   "savedMessagesTitle": "Kaydedilmiş Mesajlar",
   "homeScreenNoSearchResults": "\"{query}\" ile eşleşen sohbet yok",
@@ -3023,7 +3023,7 @@
   "roomContentMonthThis": "Bu ay",
   "roomContentMonthLast": "Geçen ay",
   "leaderboardOverall": "Bugün",
-  "leaderboardFooter": "Bugün çözdüğün her bulmaca 1 puan. Eşitlikte, daha çok birinci olan öne geçer.",
+  "leaderboardFooter": "Bugün çözdüğün her bulmaca 1 puan. Eşitlikte, daha çok birinci olan öne geçer. Yine eşitseniz aynı sırayı paylaşırsınız, isimler A'dan Z'ye.",
   "leaderboardNotPlayed": "Henüz oynamadın",
   "leaderboardPlay": "Oyna",
   "leaderboardEmptyTitle": "Bugün henüz skor yok",
@@ -3737,5 +3737,12 @@
   "howToLive3": "Sohbetteki diğerleri izleyebilir. Yer isteyebilirler, oyunculardan biri de yerini devredebilir.",
   "howToTurns1": "Hamleni yap, sonra Hamleyi gönder'e dokun. Sohbete mesaj olarak düşer.",
   "howToTurns2": "Her hamle için 2 gün var. 20 saat sonra biz hatırlatırız, 12 saat ses çıkmazsa sen de dürtebilirsin.",
-  "howToTurns3": "2 gün içinde hamle yapmazsan yenilmiş sayılırsın. Bir sohbette aynı anda en fazla 3 oyun."
+  "howToTurns3": "2 gün içinde hamle yapmazsan yenilmiş sayılırsın. Bir sohbette aynı anda en fazla 3 oyun.",
+  "momentActivityGamesSolvedAll": "{name} {count, plural, other{{count} oyun}} çözdü",
+  "momentActivityGamesSolvedSome": "{name} {count, plural, other{{count} oyunun}} {solved} tanesini çözdü",
+  "momentActivityGamesPlayed": "{name} {count, plural, other{{count} oyun}} oynadı",
+  "momentActivityHighlightsPosted": "{name} {count, plural, other{{count} an}} paylaştı",
+  "podiumSharedBy": "{place}. sıra, {count} kişi paylaşıyor: {names}",
+  "myBestsLabel": "Rekorlarım",
+  "recordsSharedBy": "{name} +{count}"
 }

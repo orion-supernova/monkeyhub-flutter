@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/games_store.dart';
+import '../../games/ranking.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
 import '../../models/daily_game.dart';
@@ -44,6 +45,22 @@ class StreakCard extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final atRisk = streaks.values.any((s) => s.atRisk);
+    // Two rows, never one: ten games across one phone row left each name
+    // about 37pt, and shrinking each to its own column set every name at a
+    // different size. Half a row each, every name at one size.
+    final games = kLeaderboardGames;
+    final perRow = (games.length / 2).ceil();
+    Widget column(DailyGame? game) => Expanded(
+      child: _StreakColumn(
+        game: game,
+        streak: streaks[game],
+        onTap: () => showStreakSheet(
+          context,
+          game: game,
+          viewerId: viewerId,
+        ),
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -53,20 +70,18 @@ class StreakCard extends StatelessWidget {
             color: groupedFill(theme),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
                 children: [
-                  for (var i = 0; i < kLeaderboardGames.length; i++)
-                    Expanded(
-                      child: _StreakColumn(
-                        game: kLeaderboardGames[i],
-                        streak: streaks[kLeaderboardGames[i]],
-                        onTap: () => showStreakSheet(
-                          context,
-                          game: kLeaderboardGames[i],
-                          viewerId: viewerId,
-                        ),
-                      ),
+                  for (var r = 0; r < games.length; r += perRow)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var i = r; i < r + perRow; i++)
+                          if (i < games.length)
+                            column(games[i])
+                          else
+                            const Spacer(),
+                      ],
                     ),
                 ],
               ),
@@ -138,11 +153,17 @@ class _StreakColumn extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              _OneLine(
+              // One size for every name; a long one ("Mayın tarlası")
+              // takes a second line rather than shrinking alone.
+              Text(
                 sentenceCaseOf(context, name),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
                 style: groupedMetaStyle(theme).copyWith(
                   fontWeight: FontWeight.w600,
                   color: theme.inkSoft,
+                  height: 1.15,
                 ),
               ),
             ],
@@ -151,22 +172,6 @@ class _StreakColumn extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A label on one line that shrinks as a whole to fit its column, so a
-/// two-word name ("Mini sudoku") gets smaller rather than losing its second
-/// word to a wrap the line limit then cuts.
-class _OneLine extends StatelessWidget {
-  const _OneLine(this.text, {required this.style});
-
-  final String text;
-  final TextStyle style;
-
-  @override
-  Widget build(BuildContext context) => FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(text, maxLines: 1, softWrap: false, style: style),
-      );
 }
 
 /// One game's streak ranking: you and your friends, longest run first, with
@@ -206,7 +211,14 @@ class _StreakSheet extends StatelessWidget {
         listenable: GamesStore.instance,
         builder: (context, _) {
           final standings = GamesStore.instance.standings;
-          final ranking = standings.streakRanking(game, viewerId);
+          final ranking = standings.streakRanking(
+            game,
+            viewerId,
+            you: sentenceCaseOf(context, l10n.momentRailYouLabel),
+          );
+          // Equal runs share a place: a tie is a tie, not whoever's name
+          // sorts first.
+          final places = rankedPlaces(ranking, (a, b) => a.streak == b.streak);
           final longest = standings.myStreaks[game]?.best ?? 0;
           return ListView(
             shrinkWrap: true,
@@ -221,10 +233,8 @@ class _StreakSheet extends StatelessWidget {
                       for (var i = 0; i < ranking.length; i++)
                         ScoreRow(
                           key: ValueKey(ranking[i].userId),
-                          // Equal runs share a place: a tie is a tie, not
-                          // whoever's name sorts first.
-                          rank: _place(ranking, i),
-                          medal: _place(ranking, i) <= 3,
+                          rank: places[i],
+                          medal: places[i] <= 3,
                           userId: ranking[i].userId,
                           name: ranking[i].name,
                           isViewer: ranking[i].userId == viewerId,
@@ -249,15 +259,6 @@ class _StreakSheet extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The 1-based place of [i] in [ranking], equal runs sharing one.
-int _place(List<({String userId, String name, int streak})> ranking, int i) {
-  var at = i;
-  while (at > 0 && ranking[at - 1].streak == ranking[i].streak) {
-    at--;
-  }
-  return at + 1;
 }
 
 /// A streak as a ranking's score: the flame and the days, at the row

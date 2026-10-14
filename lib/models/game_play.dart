@@ -16,6 +16,8 @@ class GamePlay {
     required this.result,
     required this.finishedAt,
     this.durationMs,
+    this.mistakes = 0,
+    this.hintsUsed = 0,
   });
 
   final String userId;
@@ -37,6 +39,12 @@ class GamePlay {
   /// The solve time, for ranking. Null for the code and for a surrender.
   final int? durationMs;
 
+  /// Advisory, never ranked on: shown beside the result the way the
+  /// leaderboard and the result sheet show them. Always 0 for the code, whose
+  /// guesses are its whole score.
+  final int mistakes;
+  final int hintsUsed;
+
   /// Stable across board refreshes, so the Activity row keeps its identity.
   String get id => '${game?.wire ?? 'code'}_$userId';
 
@@ -56,6 +64,9 @@ class GamePlay {
         (j['finishedAt'] as num?)?.toInt() ?? 0,
       ),
       durationMs: durationMs,
+      // Absent from a server older than the field: read as a clean run.
+      mistakes: (j['mistakes'] as num?)?.toInt() ?? 0,
+      hintsUsed: (j['hintsUsed'] as num?)?.toInt() ?? 0,
     );
   }
 

@@ -1660,8 +1660,8 @@
   "gameHintFlowPipe": "点から点まで、パイプを1本まるごと見せるね。",
   "gameErrorGeneric": "ゲームに接続できませんでした。もう一度お試しください",
   "gameInfoOpen": "遊び方",
-  "gameInfoScoringTimed": "いちばん早く解いた人の勝ち。画面を離れると時計は止まります。",
-  "gameInfoScoringGuesses": "少ない回数で当てた人の勝ち。時間は関係ありません。",
+  "gameInfoScoringTimed": "いちばん早く解いた人の勝ち。画面を離れると時計は止まります。同じタイムなら同じ順位。",
+  "gameInfoScoringGuesses": "少ない回数で当てた人の勝ち。時間は関係ありません。同じ回数なら同じ順位。",
   "gameInfoSameForEveryone": "今日はみんな同じパズルです。",
   "savedMessagesTitle": "保存済みメッセージ",
   "homeScreenNoSearchResults": "「{query}」に一致するチャットはありません",
@@ -3023,7 +3023,7 @@
   "roomContentMonthThis": "今月",
   "roomContentMonthLast": "先月",
   "leaderboardOverall": "今日",
-  "leaderboardFooter": "今日解いたパズル1つにつき1ポイント。同点なら、1位になった回数が多い人が上。",
+  "leaderboardFooter": "今日解いたパズル1つにつき1ポイント。同点なら、1位になった回数が多い人が上。それでも同点なら同じ順位を分け合い、名前順に並びます。",
   "leaderboardNotPlayed": "まだプレイしていません",
   "leaderboardPlay": "プレイ",
   "leaderboardEmptyTitle": "今日のスコアはまだありません",
@@ -3737,5 +3737,12 @@
   "howToLive3": "チャットのほかの人は観戦できる。席をリクエストして、プレイヤーが譲ることもできるよ。",
   "howToTurns1": "手を指したら「この手で送る」をタップ。チャットにメッセージとして届くよ。",
   "howToTurns2": "1手につき2日。20時間たったらこっちからお知らせして、12時間音沙汰がなければ自分で催促もできる。",
-  "howToTurns3": "2日以内に指さないと負け。1つのチャットで同時に3ゲームまで。"
+  "howToTurns3": "2日以内に指さないと負け。1つのチャットで同時に3ゲームまで。",
+  "momentActivityGamesSolvedAll": "{name}が{count, plural, other{{count}個のゲーム}}をクリア",
+  "momentActivityGamesSolvedSome": "{name}が{count, plural, other{{count}個}}中{solved}個をクリア",
+  "momentActivityGamesPlayed": "{name}が{count, plural, other{{count}個のゲーム}}をプレイ",
+  "momentActivityHighlightsPosted": "{name}が{count, plural, other{{count}件のハイライト}}を投稿",
+  "podiumSharedBy": "{place}位、{count}人が同率：{names}",
+  "myBestsLabel": "自分の記録",
+  "recordsSharedBy": "{name} +{count}"
 }

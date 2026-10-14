@@ -191,6 +191,20 @@ class RecordBoard {
     return rows.isEmpty ? null : rows.first;
   }
 
+  /// Everyone who shares the record for [game]: an exact tie on the best is
+  /// a shared record, not a race to whoever happened to set it first. Empty
+  /// when nobody has solved it yet. In board order; display order is the
+  /// caller's (alphabetical, by the name it shows).
+  List<GameRecordRow> holdersOf(RecordGame game) {
+    final rows = rowsFor(game);
+    if (rows.isEmpty) return const [];
+    // The server ranks ties as one shared place at display precision (whole
+    // seconds), so every rank-1 row holds it. The equal-best test covers a
+    // server from before shared places, which numbered ties 1, 2.
+    final best = rows.first.best;
+    return [for (final r in rows) if (r.rank == 1 || r.best == best) r];
+  }
+
   /// The viewer's own best at [game], wherever it ranks.
   GameRecordRow? mineFor(RecordGame game, String viewerId) {
     for (final r in rowsFor(game)) {

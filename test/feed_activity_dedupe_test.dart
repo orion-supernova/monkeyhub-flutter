@@ -156,7 +156,11 @@ void main() {
     expect(find.text(l10n.feedBoardActivityLabel), findsOneWidget);
     final activity = find.byType(MomentActivity);
     expect(activity, findsOneWidget);
-    // Rows are keyed `act_<id>` — exactly the two highlights, no point.
+    // Ece's two highlights, back to back, fold into one row; no point.
+    final run = find.text(l10n.momentActivityHighlightsPosted(2, 'Ece'));
+    expect(run, findsOneWidget);
+    await tester.tap(run);
+    await tester.pump(const Duration(milliseconds: 600));
     for (final id in ['h1', 'h2']) {
       expect(
         find.descendant(of: activity, matching: find.byKey(ValueKey('act_$id'))),
@@ -224,19 +228,131 @@ void main() {
     );
 
     expect(find.text(l10n.feedBoardActivityLabel), findsOneWidget);
+    // One friend, two games: one row, folded, saying so.
+    expect(
+      find.text(l10n.momentActivityGamesSolvedAll(2, 'Ece')),
+      findsOneWidget,
+    );
+    expect(find.text('1:42'), findsNothing);
+
+    // Opened in place: each game's own line, with its result.
+    await tester.tap(find.text(l10n.momentActivityGamesSolvedAll(2, 'Ece')));
+    // The Feed animates forever (the masthead), so a fixed pump, not settle.
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('1:42'), findsOneWidget);
+    // The code comes off the puzzle scoreboard, with its guess count.
+    expect(find.text('3/6'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('one game reads as a sentence, with its mistakes and hints', (
+    tester,
+  ) async {
+    await pumpFeed(
+      tester,
+      [_m('p1', tag: MomentTag.jinx)],
+      plays: [
+        GamePlay(
+          userId: 'u_e',
+          name: 'Ece',
+          game: DailyGame.queens,
+          solved: true,
+          result: formatGameTime(102000),
+          durationMs: 102000,
+          mistakes: 2,
+          hintsUsed: 1,
+          finishedAt: _now.subtract(const Duration(minutes: 5)),
+        ),
+      ],
+    );
+
     expect(
       find.text(l10n.momentActivityGameSolved(l10n.gameQueensName, 'Ece')),
       findsOneWidget,
     );
     expect(find.text('1:42'), findsOneWidget);
-    // The code comes off the puzzle scoreboard, with its guess count.
     expect(
-      find.text(l10n.momentActivityCodeSolved('Ece')),
+      find.textContaining(
+        '${l10n.gameMistakeCount(2)} · ${l10n.gameHintCount(1)}',
+      ),
       findsOneWidget,
     );
-    expect(find.text('3/6'), findsOneWidget);
 
     await unmount(tester);
+  });
+
+  testWidgets('a clean run shows no stats, and a give-up says so', (
+    tester,
+  ) async {
+    await pumpFeed(
+      tester,
+      [_m('p1', tag: MomentTag.jinx)],
+      plays: [
+        GamePlay(
+          userId: 'u_e',
+          name: 'Ece',
+          game: DailyGame.tango,
+          solved: false,
+          result: '',
+          mistakes: 4,
+          finishedAt: _now.subtract(const Duration(minutes: 5)),
+        ),
+      ],
+    );
+
+    expect(
+      find.text(l10n.momentActivityGameMissed(l10n.gameTangoName, 'Ece')),
+      findsOneWidget,
+    );
+    // Not a blank trailing edge: the surrender, in words.
+    expect(find.text(l10n.gameStatusGaveUp), findsOneWidget);
+    // Mistakes before a surrender are noise.
+    expect(find.textContaining(l10n.gameMistakeCount(4)), findsNothing);
+
+    await unmount(tester);
+  });
+
+  test('a friend\'s games fold into one entry at their newest', () {
+    final entries = MomentActivity.entriesOf(
+      const [],
+      [
+        play('u_e', DailyGame.queens, 60000, agoMin: 30),
+        play('u_e', DailyGame.zip, 60000, agoMin: 3),
+        play('u1', DailyGame.zip, 60000, agoMin: 1),
+      ],
+      'u1',
+    );
+    expect(entries, hasLength(1));
+    expect(entries.single.plays.map((p) => p.game), [
+      DailyGame.zip,
+      DailyGame.queens,
+    ]);
+    // Keyed by the run's oldest, which a newer game never changes.
+    expect(activityKeyOf(entries.single), 'plays_queens_u_e');
+  });
+
+  test('anything in between splits a run; the list stays in time order', () {
+    final entries = MomentActivity.entriesOf(
+      [_m('h1', media: 's1'), _m('h2', media: 's2')],
+      [
+        play('u_z', DailyGame.zip, 60000, agoMin: 2),
+        play('u_e', DailyGame.zip, 60000, agoMin: 5),
+        play('u_z', DailyGame.queens, 60000, agoMin: 30),
+        play('u_z', DailyGame.tango, 60000, agoMin: 40),
+      ],
+      'u1',
+    );
+    // Zip (2m) · Ece's Zip (5m) · Ece's two highlights (10m) · the earlier
+    // Queens+Tango run (30m): the newer Zip did not pull the old run up.
+    final keys = entries.map(activityKeyOf).toList();
+    expect(keys, hasLength(4));
+    expect(keys[0], 'plays_zip_u_z');
+    expect(keys[1], 'plays_zip_u_e');
+    expect(keys[2], startsWith('moments_h'));
+    expect(keys[3], 'plays_tango_u_z');
+    expect(entries[2].moments, hasLength(2));
+    expect(entries[3].plays, hasLength(2));
   });
 
   test('a game rank needs somebody to rank against', () {

@@ -79,45 +79,88 @@ class GameTile extends StatelessWidget {
 
   String _name(AppLocalizations l10n) => dailyGameName(l10n, game);
 
-  Widget _preview(AppTheme theme) {
-    final painter = switch (game) {
-      DailyGame.queens => QueensBoardPainter(
-        board: boards.queens,
-        theme: theme,
-        palette: GamePalette(theme),
+  Widget _preview(AppTheme theme) => dailyBoardPreview(game, boards, theme);
+}
+
+/// Today's real board for [game], drawn by the playable board's own painter
+/// with no player state: the hub's tile preview and [GameAvatar] both.
+Widget dailyBoardPreview(DailyGame game, DailyBoards boards, AppTheme theme) {
+  final painter = switch (game) {
+    DailyGame.queens => QueensBoardPainter(
+      board: boards.queens,
+      theme: theme,
+      palette: GamePalette(theme),
+    ),
+    DailyGame.tango => TangoBoardPainter(board: boards.tango, theme: theme),
+    DailyGame.zip => ZipBoardPainter(board: boards.zip, theme: theme),
+    DailyGame.sudoku => SudokuBoardPainter(
+      board: boards.sudoku,
+      theme: theme,
+    ),
+    DailyGame.flow => FlowBoardPainter(
+      board: boards.flow,
+      theme: theme,
+      palette: GamePalette(theme),
+    ),
+    DailyGame.futoshiki => FutoshikiBoardPainter(
+      board: boards.futoshiki,
+      theme: theme,
+    ),
+    DailyGame.nonogram => NonogramBoardPainter(
+      board: boards.nonogram,
+      theme: theme,
+    ),
+    DailyGame.minesweeper => MinesweeperBoardPainter(
+      board: boards.minesweeper,
+      theme: theme,
+    ),
+    DailyGame.starbattle => StarBattleBoardPainter(
+      board: boards.starbattle,
+      theme: theme,
+      palette: GamePalette(theme),
+    ),
+  };
+  final size = boards.sizeOf(game);
+  if (size == 0) return GameBoardSkeleton(radius: theme.radiusMd);
+  return CustomPaint(painter: painter, size: Size.infinite);
+}
+
+/// A game's face, the way a person has one: today's board in a rounded
+/// square, sized like a [PlayerFace] so it sits in the same avatar slot.
+///
+/// Null [game] is the symbol-code puzzle. Not a stock icon, for the reason
+/// [GameTile] gives: the board is the game's identity, and it changes daily.
+class GameAvatar extends StatelessWidget {
+  const GameAvatar({
+    super.key,
+    required this.game,
+    required this.boards,
+    this.size = 40,
+  });
+
+  final DailyGame? game;
+  final DailyBoards boards;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final g = game;
+    return SizedBox.square(
+      dimension: size,
+      child: ClipRRect(
+        // An app icon's corner, not a face's circle: a person is round, a
+        // game is a board.
+        borderRadius: BorderRadius.circular(size * 0.24),
+        child: g == null
+            ? const _CodeGridPreview()
+            // Before today's boards land: a still, quiet square. A shimmer
+            // the size of a face, once per row, is a list that never rests.
+            : boards.sizeOf(g) == 0
+            ? ColoredBox(color: theme.ink.withValues(alpha: 0.06))
+            : dailyBoardPreview(g, boards, theme),
       ),
-      DailyGame.tango => TangoBoardPainter(board: boards.tango, theme: theme),
-      DailyGame.zip => ZipBoardPainter(board: boards.zip, theme: theme),
-      DailyGame.sudoku => SudokuBoardPainter(
-        board: boards.sudoku,
-        theme: theme,
-      ),
-      DailyGame.flow => FlowBoardPainter(
-        board: boards.flow,
-        theme: theme,
-        palette: GamePalette(theme),
-      ),
-      DailyGame.futoshiki => FutoshikiBoardPainter(
-        board: boards.futoshiki,
-        theme: theme,
-      ),
-      DailyGame.nonogram => NonogramBoardPainter(
-        board: boards.nonogram,
-        theme: theme,
-      ),
-      DailyGame.minesweeper => MinesweeperBoardPainter(
-        board: boards.minesweeper,
-        theme: theme,
-      ),
-      DailyGame.starbattle => StarBattleBoardPainter(
-        board: boards.starbattle,
-        theme: theme,
-        palette: GamePalette(theme),
-      ),
-    };
-    final size = boards.sizeOf(game);
-    if (size == 0) return GameBoardSkeleton(radius: theme.radiusMd);
-    return CustomPaint(painter: painter, size: Size.infinite);
+    );
   }
 }
 

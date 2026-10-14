@@ -16,6 +16,8 @@
 /// it: guesses are scored on the server and only feedback comes back.
 library;
 
+import '../games/ranking.dart';
+
 /// Symbols in the alphabet. Mirrored by `SYMBOLS` in backend/convex/puzzle.ts.
 const int kPuzzleSymbolCount = 6;
 
@@ -165,6 +167,7 @@ class PuzzleScore {
     required this.guessCount,
     required this.finishedAt,
     required this.feedback,
+    this.place,
   });
 
   final String userId;
@@ -178,6 +181,10 @@ class PuzzleScore {
   final DateTime finishedAt;
   final List<PuzzlePegs> feedback;
 
+  /// This row's shared place ("1, 1, 3"), when the server ranked it. Null
+  /// from an older server; [PuzzleState] computes it then.
+  final int? place;
+
   static PuzzleScore fromJson(Map<String, dynamic> j) => PuzzleScore(
     userId: j['userId'].toString(),
     name: j['name']?.toString() ?? '',
@@ -190,7 +197,15 @@ class PuzzleScore {
       for (final f in (j['feedback'] as List?) ?? const [])
         PuzzlePegs.fromJson((f as Map).cast<String, dynamic>()),
     ],
+    place: (j['place'] as num?)?.toInt(),
   );
+}
+
+/// Whether two code rows read the same: solved in the same number of guesses,
+/// or both unsolved (each reads X/6). When [PuzzleState] shares a place.
+bool samePuzzleScore(PuzzleScore a, PuzzleScore b) {
+  if (a.solved != b.solved) return false;
+  return !a.solved || a.guessCount == b.guessCount;
 }
 
 /// Today's puzzle as the board sees it.
@@ -202,12 +217,25 @@ class PuzzleState {
   /// Everyone who has finished today, best first.
   final List<PuzzleScore> scores;
 
-  /// Where the viewer placed among those who have finished, 1-based, or null
-  /// if they have not finished.
+  /// Where [userId] placed among those who have finished, 1-based and shared
+  /// on a tie ("1, 1, 3"), or null if they have not finished.
   int? rankOf(String userId) {
     final i = scores.indexWhere((s) => s.userId == userId);
-    return i < 0 ? null : i + 1;
+    if (i < 0) return null;
+    return scores[i].place ?? rankedPlaces(scores, samePuzzleScore)[i];
   }
+
+  /// [scores] with each row's shared place, ties A to Z. The viewer's row is
+  /// nameless, so it sorts by [you], the "You" the row shows.
+  List<({PuzzleScore row, int place})> ranked({
+    required String viewerId,
+    required String you,
+  }) => rankByPlace(
+    scores,
+    sameScore: samePuzzleScore,
+    nameOf: (s) => s.userId == viewerId ? you : s.name,
+    placeOf: (s) => s.place,
+  );
 
   static PuzzleState fromJson(Map<String, dynamic>? j) {
     if (j == null) return const PuzzleState();

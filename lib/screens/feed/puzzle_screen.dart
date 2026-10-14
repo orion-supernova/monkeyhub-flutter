@@ -940,7 +940,10 @@ class _Scoreboard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
-    final scores = state.scores;
+    final scores = state.ranked(
+      viewerId: viewerId,
+      you: sentenceCaseOf(context, l10n.momentRailYouLabel),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -961,20 +964,20 @@ class _Scoreboard extends StatelessWidget {
                 else
                   for (var i = 0; i < scores.length; i++) ...[
                     ScoreRow(
-                      key: ValueKey(scores[i].userId),
-                      rank: i + 1,
-                      medal: scores[i].solved,
-                      userId: scores[i].userId,
-                      name: scores[i].name,
-                      isViewer: scores[i].userId == viewerId,
-                      streak: scores[i].solved
+                      key: ValueKey(scores[i].row.userId),
+                      rank: scores[i].place,
+                      medal: scores[i].row.solved,
+                      userId: scores[i].row.userId,
+                      name: scores[i].row.name,
+                      isViewer: scores[i].row.userId == viewerId,
+                      streak: scores[i].row.solved
                           ? GamesStore.instance.standings
-                              .streakOf(scores[i].userId, null)
+                              .streakOf(scores[i].row.userId, null)
                           : 0,
-                      semantics: _score(scores[i]),
+                      semantics: _score(scores[i].row),
                       trailing: ScoreText(
-                        _score(scores[i]),
-                        muted: !scores[i].solved,
+                        _score(scores[i].row),
+                        muted: !scores[i].row.solved,
                       ),
                     ),
                     if (i < scores.length - 1)

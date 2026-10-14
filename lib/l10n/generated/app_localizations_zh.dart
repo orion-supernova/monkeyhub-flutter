@@ -5635,10 +5635,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gameInfoOpen => '玩法说明';
 
   @override
-  String get gameInfoScoringTimed => '最快完成的人赢。离开时计时会暂停。';
+  String get gameInfoScoringTimed => '最快完成的人赢。离开时计时会暂停。用时相同，名次相同。';
 
   @override
-  String get gameInfoScoringGuesses => '猜的次数最少的人赢。不计时间。';
+  String get gameInfoScoringGuesses => '猜的次数最少的人赢。不计时间。次数相同，名次相同。';
 
   @override
   String get gameInfoSameForEveryone => '今天每个人的题目都一样。';
@@ -10280,7 +10280,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get leaderboardOverall => '今天';
 
   @override
-  String get leaderboardFooter => '今天每解出一题得 1 分。同分时，拿第一次数多的人排前面。';
+  String get leaderboardFooter =>
+      '今天每解出一题得 1 分。同分时，拿第一次数多的人排前面。仍然同分则并列名次，按名字排序。';
 
   @override
   String get leaderboardNotPlayed => '还没玩';
@@ -12795,4 +12796,57 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get howToTurns3 => '2 天没走就算输。每个聊天最多同时进行 3 局。';
+
+  @override
+  String momentActivityGamesSolvedAll(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个游戏',
+    );
+    return '$name 解开了 $_temp0';
+  }
+
+  @override
+  String momentActivityGamesSolvedSome(int count, String name, int solved) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个',
+    );
+    return '$name 解开了 $_temp0中的 $solved 个';
+  }
+
+  @override
+  String momentActivityGamesPlayed(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个游戏',
+    );
+    return '$name 玩了 $_temp0';
+  }
+
+  @override
+  String momentActivityHighlightsPosted(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个瞬间',
+    );
+    return '$name 发布了 $_temp0';
+  }
+
+  @override
+  String podiumSharedBy(int count, String names, int place) {
+    return '第 $place 名，$count 人并列：$names';
+  }
+
+  @override
+  String get myBestsLabel => '我的最佳';
+
+  @override
+  String recordsSharedBy(int count, String name) {
+    return '$name +$count';
+  }
 }

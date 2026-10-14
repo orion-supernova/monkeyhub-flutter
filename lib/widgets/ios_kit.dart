@@ -890,6 +890,91 @@ class RowBadge extends StatelessWidget {
   }
 }
 
+/// One line that scrolls sideways when it does not fit, its overflowing
+/// edges faded so the cut reads as "more this way", not as clipped. Fits:
+/// plain, no fade, no scrolling.
+class EdgeFadeScroll extends StatefulWidget {
+  const EdgeFadeScroll({super.key, required this.child, this.fade = 18});
+
+  final Widget child;
+
+  /// How far in each fade reaches.
+  final double fade;
+
+  @override
+  State<EdgeFadeScroll> createState() => _EdgeFadeScrollState();
+}
+
+class _EdgeFadeScrollState extends State<EdgeFadeScroll> {
+  final _scroll = ScrollController();
+  bool _before = false;
+  bool _after = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_sync);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _sync());
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _sync() {
+    if (!mounted || !_scroll.hasClients) return;
+    final p = _scroll.position;
+    final before = p.pixels > 0.5;
+    final after = p.pixels < p.maxScrollExtent - 0.5;
+    if (before != _before || after != _after) {
+      setState(() {
+        _before = before;
+        _after = after;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = NotificationListener<ScrollMetricsNotification>(
+      onNotification: (_) {
+        _sync();
+        return false;
+      },
+      child: SingleChildScrollView(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: widget.child,
+      ),
+    );
+    if (!_before && !_after) return list;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    // A scroll view runs from the reading start, so "before" is the left in
+    // LTR and the right in RTL.
+    final left = rtl ? _after : _before;
+    final right = rtl ? _before : _after;
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (rect) {
+        final f = (widget.fade / rect.width).clamp(0.0, 0.5);
+        return LinearGradient(
+          colors: [
+            left ? Colors.transparent : Colors.black,
+            Colors.black,
+            Colors.black,
+            right ? Colors.transparent : Colors.black,
+          ],
+          stops: [0, f, 1 - f, 1],
+        ).createShader(rect);
+      },
+      child: list,
+    );
+  }
+}
+
 /// Width of the avatar slot in a [PersonRow].
 const double kPersonRowAvatar = 40;
 
@@ -916,6 +1001,9 @@ class PersonRow extends StatelessWidget {
     required this.avatar,
     required this.title,
     this.subtitle,
+    this.stamp,
+    this.stampAccessory,
+    this.subtitleScrolls = false,
     this.trailing,
     this.titleTrailing,
     this.onTap,
@@ -943,6 +1031,18 @@ class PersonRow extends StatelessWidget {
   final Widget avatar;
   final String title;
   final String? subtitle;
+
+  /// When it happened ("3m"), in a fixed corner: top right, on the title's
+  /// first baseline, the way Mail and Telegram set it, so a column of times
+  /// reads straight down the edge. With a stamp, [trailing] moves under it
+  /// (a score, a picture) and [stampAccessory] (a chevron) sits beside it.
+  final String? stamp;
+  final Widget? stampAccessory;
+
+  /// The subtitle scrolls sideways instead of ellipsizing, faded at the edge
+  /// that has more: a list of names ("Zip · Tango · Queens · …") where
+  /// every one is worth reaching. A tap still goes to the row.
+  final bool subtitleScrolls;
   final Widget? trailing;
 
   /// A tag right after the name — "You", "Admin", a verified glyph.
@@ -957,6 +1057,53 @@ class PersonRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final sub = subtitle;
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                title,
+                maxLines: titleMaxLines,
+                overflow: TextOverflow.ellipsis,
+                style: emphasis
+                    ? groupedTitleStyle(theme).copyWith(
+                        color: theme.accent,
+                        fontWeight: FontWeight.w600,
+                      )
+                    : groupedTitleStyle(theme),
+              ),
+            ),
+            if (titleTrailing != null) ...[
+              const SizedBox(width: 6),
+              titleTrailing!,
+            ],
+          ],
+        ),
+        if (sub != null && sub.isNotEmpty) ...[
+          const SizedBox(height: 1),
+          if (subtitleScrolls)
+            EdgeFadeScroll(
+              child: Text(
+                sub,
+                maxLines: 1,
+                softWrap: false,
+                style: groupedSubtitleStyle(theme),
+              ),
+            )
+          else
+            Text(
+              sub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: groupedSubtitleStyle(theme),
+            ),
+        ],
+      ],
+    );
     final row = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 56),
       child: Padding(
@@ -970,44 +1117,50 @@ class PersonRow extends StatelessWidget {
             SizedBox.square(dimension: kPersonRowAvatar, child: avatar),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          title,
-                          maxLines: titleMaxLines,
-                          overflow: TextOverflow.ellipsis,
-                          style: emphasis
-                              ? groupedTitleStyle(theme).copyWith(
-                                  color: theme.accent,
-                                  fontWeight: FontWeight.w600,
-                                )
-                              : groupedTitleStyle(theme),
+              child: stamp == null
+                  ? text
+                  // Baselines, not centres: the time sits on the title's
+                  // first line however many lines the title takes.
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Expanded(child: text),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  stamp!,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: groupedSubtitleStyle(theme).copyWith(
+                                    color: theme.inkMuted,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
+                                if (stampAccessory != null) ...[
+                                  const SizedBox(width: 6),
+                                  stampAccessory!,
+                                ],
+                              ],
+                            ),
+                            if (trailing != null) ...[
+                              const SizedBox(height: 4),
+                              trailing!,
+                            ],
+                          ],
                         ),
-                      ),
-                      if (titleTrailing != null) ...[
-                        const SizedBox(width: 6),
-                        titleTrailing!,
                       ],
-                    ],
-                  ),
-                  if (subtitle != null && subtitle!.isNotEmpty) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      subtitle!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: groupedSubtitleStyle(theme),
                     ),
-                  ],
-                ],
-              ),
             ),
-            if (trailing != null) ...[
+            if (trailing != null && stamp == null) ...[
               const SizedBox(width: 10),
               trailing!,
             ],

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../data/games_store.dart';
 import '../games/game_names.dart';
+import '../games/ranking.dart' show compareNames;
 import '../data/records_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -13,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'game_tile.dart' show GameAvatar;
 import 'app_toast.dart';
 import 'sheet_kit.dart';
 import 'skeleton_rows.dart';
@@ -205,8 +207,34 @@ class RecordFace extends StatelessWidget {
   }
 }
 
-/// One game's record as a row on "Today": the holder's face, the game, who
-/// holds it (and your own best beside it, the gap worth chasing), the time.
+/// The name a record row shows for [row]: "You" for the viewer.
+String recordHolderLabel(
+  BuildContext context,
+  GameRecordRow row,
+  String viewerId,
+) =>
+    row.userId == viewerId
+        ? sentenceCaseOf(context, AppLocalizations.of(context).momentRailYouLabel)
+        : row.name;
+
+/// [rows] in the order people who share a spot are listed: alphabetical by
+/// the name the reader sees ([compareNames]: case and accents folded,
+/// Turkish İ/ı included). Never by id, which would read
+/// as favouritism with no rule behind it.
+List<GameRecordRow> alphabetical(
+  BuildContext context,
+  List<GameRecordRow> rows,
+  String viewerId,
+) {
+  String label(GameRecordRow r) => recordHolderLabel(context, r, viewerId);
+  return [...rows]..sort((a, b) => compareNames(label(a), label(b)));
+}
+
+/// One game's record as a row on "Today": the GAME leads, as its own board
+/// in the avatar slot, because the row answers "what is the best Queens
+/// ever?" before it answers "by whom". Who holds it sits beside the number,
+/// face and medal, the way a record book prints holder next to mark. A tie
+/// on the record is a shared record: every holder's face, alphabetical.
 class _RecordRow extends StatelessWidget {
   const _RecordRow({
     required this.game,
@@ -224,43 +252,47 @@ class _RecordRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final holder = board.holderOf(game);
+    final holders = alphabetical(context, board.holdersOf(game), viewerId);
     final mine = board.mineFor(game, viewerId);
     final name = sentenceCaseOf(context, recordGameName(l10n, game));
-    final holderName = holder == null
+    final held = holders.isNotEmpty;
+    final youHold = holders.any((h) => h.userId == viewerId);
+    final String? holderNames = !held
         ? null
-        : (holder.userId == viewerId
-            ? sentenceCaseOf(context, l10n.momentRailYouLabel)
-            : holder.name);
-    final subtitle = holder == null
+        : holders.length == 1
+            ? recordHolderLabel(context, holders.first, viewerId)
+            : l10n.recordsSharedBy(
+                holders.length - 1,
+                recordHolderLabel(context, holders.first, viewerId),
+              );
+    final subtitle = !held
         ? sentenceCaseOf(context, l10n.recordsNoneYet)
         : [
-            holderName!,
-            if (mine != null && holder.userId != viewerId)
+            holderNames!,
+            if (mine != null && !youHold)
               l10n.recordsYourBest(game.formatBest(mine.best)),
           ].join(' · ');
+    final fill = groupedFill(theme);
 
     return PersonRow(
-      avatar: RecordFace(
-        holder: holder,
-        board: board,
-        viewerId: viewerId,
+      avatar: GameAvatar(
+        game: game.daily,
+        boards: GamesStore.instance.boards,
         size: kPersonRowAvatar,
-        ring: groupedFill(theme),
       ),
       title: name,
       subtitle: subtitle,
-      semanticLabel: holder == null
+      semanticLabel: !held
           ? '$name: ${l10n.recordsNoneYet}'
           : l10n.recordsHolderSemantic(
               name,
-              game.formatBest(holder.best),
-              holderName!,
+              game.formatBest(holders.first.best),
+              holderNames!,
             ),
-      onTap: holder == null
+      onTap: !held
           ? onPlay
           : () => showRecordsSheet(context, game: game, viewerId: viewerId),
-      trailing: holder == null
+      trailing: !held
           ? (onPlay == null
               ? null
               : RowPillButton(
@@ -271,7 +303,41 @@ class _RecordRow extends StatelessWidget {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ScoreText(game.formatBest(holder.best)),
+                // The holder, small, with the gold set into the front face:
+                // a medal on a person, beside the mark it was won with.
+                SizedBox(
+                  height: 26,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      FaceCluster(
+                        size: 26,
+                        ring: fill,
+                        max: 2,
+                        faces: [
+                          for (final h in holders)
+                            (
+                              userId: h.userId,
+                              label: recordHolderLabel(context, h, viewerId),
+                              storageId: board.avatars[h.userId],
+                            ),
+                        ],
+                      ),
+                      Positioned(
+                        left: 14,
+                        bottom: -4,
+                        child: MedalDisc(
+                          rank: 1,
+                          medal: true,
+                          size: 15,
+                          border: fill,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ScoreText(game.formatBest(holders.first.best)),
                 const SizedBox(width: 6),
                 Icon(
                   CupertinoIcons.chevron_forward,
@@ -280,6 +346,113 @@ class _RecordRow extends StatelessWidget {
                 ),
               ],
             ),
+    );
+  }
+}
+
+/// The viewer's own all-time best at every game they have solved: the
+/// personal half of the record book, next to everyone's.
+///
+/// One row per game, the game leading as on the records above. The trailing
+/// mark is your best; when it is also THE record, the gold sits beside it,
+/// shared or not. Otherwise your place among friends.
+class MyBestsSection extends StatelessWidget {
+  const MyBestsSection({super.key, required this.viewerId});
+
+  final String viewerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return AnimatedBuilder(
+      animation: RecordsStore.instance,
+      builder: (context, _) {
+        final store = RecordsStore.instance;
+        if (!store.answered) return const SizedBox.shrink();
+        final board = store.board;
+        final mine = [
+          for (final g in RecordGame.values)
+            if (board.mineFor(g, viewerId) case final row?) (game: g, row: row),
+        ];
+        // Nothing solved yet: the ALL-TIME block's empty line already says
+        // what fills this, so the section stays away rather than repeat it.
+        if (mine.isEmpty) return const SizedBox.shrink();
+        final fill = groupedFill(theme);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PageSectionHeader(
+              l10n.myBestsLabel,
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+            ),
+            GroupedSection(
+              margin: EdgeInsets.zero,
+              children: [
+                for (final e in mine)
+                  Builder(builder: (context) {
+                    final name =
+                        sentenceCaseOf(context, recordGameName(l10n, e.game));
+                    final best = e.game.formatBest(e.row.best);
+                    final record = board
+                        .holdersOf(e.game)
+                        .any((h) => h.userId == viewerId);
+                    final date = DateTime.tryParse(e.row.dayKey);
+                    final subtitle = [
+                      l10n.recordsSolves(e.row.solves),
+                      if (date != null)
+                        l10n.recordsSetOn(
+                          MaterialLocalizations.of(context)
+                              .formatShortDate(date),
+                        ),
+                    ].join(' · ');
+                    return PersonRow(
+                      avatar: GameAvatar(
+                        game: e.game.daily,
+                        boards: GamesStore.instance.boards,
+                        size: kPersonRowAvatar,
+                      ),
+                      title: name,
+                      subtitle: sentenceCaseOf(context, subtitle),
+                      semanticLabel: '$name, $best, $subtitle',
+                      onTap: () => showRecordsSheet(
+                        context,
+                        game: e.game,
+                        viewerId: viewerId,
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (record)
+                            MedalDisc(
+                              rank: 1,
+                              medal: true,
+                              size: 18,
+                              border: fill,
+                            )
+                          else
+                            Text(
+                              l10n.gameRankBadge('${e.row.rank}'),
+                              style: groupedMetaStyle(theme)
+                                  .copyWith(color: theme.inkMuted),
+                            ),
+                          const SizedBox(width: 8),
+                          ScoreText(best),
+                          const SizedBox(width: 6),
+                          Icon(
+                            CupertinoIcons.chevron_forward,
+                            size: 15,
+                            color: theme.inkMuted,
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -334,10 +507,21 @@ class RecordHero extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final fill = sheet ? sheetGroupFill(theme) : groupedFill(theme);
-    final holder = board.holderOf(game);
+    // A shared record leads with its first holder alphabetically; the name
+    // line says how many share it, and the rest stand at rank 1 under it.
+    final holders = alphabetical(context, board.holdersOf(game), viewerId);
+    final holder = holders.firstOrNull;
     final mine = board.mineFor(game, viewerId);
-    final yours = holder?.userId == viewerId;
+    final yours = holders.any((h) => h.userId == viewerId);
     final date = holder == null ? null : DateTime.tryParse(holder.dayKey);
+    final holderName = holder == null
+        ? ''
+        : holders.length == 1
+        ? recordHolderLabel(context, holder, viewerId)
+        : l10n.recordsSharedBy(
+            holders.length - 1,
+            recordHolderLabel(context, holder, viewerId),
+          );
 
     final String? meta;
     if (holder == null) {
@@ -383,9 +567,7 @@ class RecordHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  yours
-                      ? sentenceCaseOf(context, l10n.momentRailYouLabel)
-                      : holder.name,
+                  holderName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: groupedTitleStyle(theme).copyWith(
@@ -480,7 +662,7 @@ class RecordHero extends StatelessWidget {
       semanticLabel: l10n.recordsHolderSemantic(
         sentenceCaseOf(context, recordGameName(l10n, game)),
         game.formatBest(holder.best),
-        yours ? l10n.momentRailYouLabel : holder.name,
+        holderName,
       ),
       child: card,
     );
@@ -866,7 +1048,8 @@ class _RecordsSheetState extends State<_RecordsSheet> {
   @override
   void initState() {
     super.initState();
-    RecordsStore.instance.load(widget.viewerId, force: true);
+    // Fresh enough within the store's window; a finish since forces a read.
+    RecordsStore.instance.load(widget.viewerId);
   }
 
   Future<void> _react(GameRecordRow row, String emoji) async {
@@ -920,8 +1103,17 @@ class _RecordsSheetState extends State<_RecordsSheet> {
             content = [EmptyLine(l10n.recordsEmpty)];
           } else {
             // The holder is the hero and only the hero; the group starts at
-            // second place.
-            final rest = rows.skip(1).toList();
+            // the next row. On a shared record the hero is the first holder
+            // alphabetically, and the others stay in the group at rank 1.
+            final lead = alphabetical(
+              context,
+              board.holdersOf(widget.game),
+              widget.viewerId,
+            ).first;
+            final rest = [
+              for (final r in rows)
+                if (r.recordId != lead.recordId) r,
+            ];
             content = [
               SheetRise(
                 child: RecordHero(
@@ -929,7 +1121,7 @@ class _RecordsSheetState extends State<_RecordsSheet> {
                   board: board,
                   viewerId: widget.viewerId,
                   sheet: true,
-                  onCheer: (e) => _react(rows.first, e),
+                  onCheer: (e) => _react(lead, e),
                 ),
               ),
               if (rest.isNotEmpty) ...[

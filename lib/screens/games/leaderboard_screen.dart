@@ -19,6 +19,7 @@ import '../../widgets/game_records.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/skeleton_rows.dart';
 import '../../widgets/score_row.dart';
+import '../../widgets/scroll_detents.dart';
 import '../feed/puzzle_screen.dart';
 import 'leader_podium.dart';
 import 'daily_game_screens.dart';
@@ -90,6 +91,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Future<void> _open(Widget screen) async {
+    final finishedBefore = GamesStore.instance.finishedSeq;
+    final crackedBefore = FeedStore.instance.puzzle.mine?.done ?? false;
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => screen),
     );
@@ -97,9 +100,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     // A board finished behind this screen changes the standings, every
     // tile's status and the viewer's pinned row, so catch up on the way back
     // rather than showing a stale "not played" over a puzzle just solved.
+    // Cheap when it was: the board's own post-finish read is in flight or
+    // just landed, and this joins it or finds it fresh.
     GamesStore.instance.load(widget.userId);
-    // …and a solve may just have set a record.
-    RecordsStore.instance.load(widget.userId, force: true);
+    // …and a solve may just have set a record. Only a solve: backing out of
+    // a board unplayed changes nobody's all-time best.
+    final finished = GamesStore.instance.finishedSeq != finishedBefore ||
+        (FeedStore.instance.puzzle.mine?.done ?? false) != crackedBefore;
+    RecordsStore.instance.load(widget.userId, force: finished);
   }
 
   /// Opens one of the games; null is the code.
@@ -207,6 +215,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         : (game == null ? RecordGame.code : RecordGame.of(game)),
                   ),
                 ),
+                // Your own bests, every game, under everyone's: on "Today"
+                // only, since a game's own board already says "Yours" on its
+                // record.
+                if (_tab == 0)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
+                    child: MyBestsSection(viewerId: widget.userId),
+                  ),
               ],
             ),
           ),
@@ -250,6 +266,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       games.standings,
       FeedStore.instance.puzzle,
       widget.userId,
+      you: sentenceCaseOf(context, l10n.momentRailYouLabel),
     );
     if (rows.isEmpty) {
       // Nobody, the viewer included, has finished anything today.
@@ -273,6 +290,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             userId: rows[i].userId,
             name: rows[i].name,
             isViewer: rows[i].isViewer,
+            place: rows[i].place,
             medal: rows[i].solved > 0,
             streak: _overallStreak(rows[i].userId),
             semantics: l10n.leaderboardSolved(rows[i].solved, total),
@@ -307,20 +325,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final viewerId = widget.userId;
     const max = 50;
 
+    final you = sentenceCaseOf(context, l10n.momentRailYouLabel);
     final List<_Entry> entries;
     final String empty;
     if (game == null) {
-      final scores = FeedStore.instance.puzzle.scores;
+      final scores = FeedStore.instance.puzzle.ranked(
+        viewerId: viewerId,
+        you: you,
+      );
       empty = l10n.puzzleScoreboardEmpty;
       entries = [
-        for (var i = 0; i < scores.length && i < max; i++)
+        for (final (:row, :place) in scores.take(max))
           _entry(
-            userId: scores[i].userId,
-            name: scores[i].name,
-            solved: scores[i].solved,
+            userId: row.userId,
+            name: row.name,
+            place: place,
+            solved: row.solved,
             game: null,
-            text: scores[i].solved
-                ? '${scores[i].guessCount}/$kPuzzleMaxGuesses'
+            text: row.solved
+                ? '${row.guessCount}/$kPuzzleMaxGuesses'
                 : 'X/$kPuzzleMaxGuesses',
           ),
       ];
@@ -333,19 +356,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ));
       }
       if (!store.standingsReady) return _inset(const _Skeleton());
-      final rows = store.standings.boards[game] ?? const <GameResult>[];
+      final rows = store.standings.ranked(game, viewerId: viewerId, you: you);
       empty = l10n.gameStandingsEmpty;
       entries = [
-        for (var i = 0; i < rows.length && i < max; i++)
+        for (final (:row, :place) in rows.take(max))
           _entry(
-            userId: rows[i].userId,
-            name: rows[i].name,
-            solved: rows[i].solved,
+            userId: row.userId,
+            name: row.name,
+            place: place,
+            solved: row.solved,
             game: game,
-            text: rows[i].solved
-                ? formatGameTime(rows[i].durationMs)
+            text: row.solved
+                ? formatGameTime(row.durationMs)
                 : sentenceCaseOf(context, l10n.gameStatusGaveUp),
-            result: rows[i],
+            result: row,
           ),
       ];
     }
@@ -371,6 +395,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   _Entry _entry({
     required String userId,
     required String name,
+    required int place,
     required bool solved,
     required DailyGame? game,
     required String text,
@@ -381,6 +406,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       userId: userId,
       name: name,
       isViewer: isViewer,
+      place: place,
       medal: solved,
       streak: solved ? GamesStore.instance.standings.streakOf(userId, game) : 0,
       semantics: text,
@@ -435,6 +461,7 @@ class _Entry {
     required this.userId,
     required this.name,
     required this.isViewer,
+    required this.place,
     required this.medal,
     required this.streak,
     required this.semantics,
@@ -446,6 +473,9 @@ class _Entry {
   final String userId;
   final String name;
   final bool isViewer;
+
+  /// Their place on the board, shared on a tie ("1, 1, 3").
+  final int place;
 
   /// Earned a place at all: solved something. A podium needs it.
   final bool medal;
@@ -482,11 +512,13 @@ class _Board extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     // Medal places only: a gave-up row at the top of a board is first, but
-    // it did not win a place to stand on.
+    // it did not win a place to stand on. And every medal place, however
+    // many share it: a tie on the podium shares its seat there rather than
+    // spilling gold into the list.
     var podium = 0;
-    while (podium < 3 &&
-        podium < entries.length &&
-        entries[podium].medal) {
+    while (podium < entries.length &&
+        entries[podium].medal &&
+        entries[podium].place <= 3) {
       podium++;
     }
     final rest = entries.sublist(podium);
@@ -495,7 +527,7 @@ class _Board extends StatelessWidget {
     final rows = <Widget>[
       if (entries.isEmpty && none != null) EmptyLine(none),
       for (var i = 0; i < rest.length; i++)
-        _row(context, rank: podium + i + 1, entry: rest[i]),
+        _row(context, rank: rest[i].place, entry: rest[i]),
       ?pinned,
     ];
 
@@ -509,6 +541,7 @@ class _Board extends StatelessWidget {
                   userId: e.userId,
                   name: e.isViewer ? '' : e.name,
                   isViewer: e.isViewer,
+                  place: e.place,
                   metric: e.podiumMetric,
                   semantics: e.semantics,
                   streak: e.streak,
@@ -537,6 +570,9 @@ class _Board extends StatelessWidget {
       ScoreRow(
         key: ValueKey('row_${entry.userId}'),
         rank: rank,
+        // A tie past the podium still holds its medal: a fourth person tied
+        // for third is a bronze too.
+        medal: entry.medal,
         userId: entry.userId,
         name: entry.name,
         isViewer: entry.isViewer,
@@ -586,7 +622,9 @@ class _CapsulesState extends State<_Capsules> {
       for (final g in kLeaderboardGames) leaderboardGameName(l10n, g),
     ];
     return HorizontalWheelScroll(
-      child: SingleChildScrollView(
+      child: ScrollDetents(
+        items: _keys,
+        child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(
@@ -605,6 +643,7 @@ class _CapsulesState extends State<_Capsules> {
             ],
           ],
         ),
+      ),
       ),
     );
   }

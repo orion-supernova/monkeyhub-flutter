@@ -18,6 +18,8 @@
 /// what the device knows is what a player could work out anyway.
 library;
 
+import '../games/ranking.dart';
+
 /// The games that exist. Wire names mirror `GAMES` in backend/convex/games.ts.
 enum DailyGame {
   queens,
@@ -490,6 +492,7 @@ class GameResult {
     this.userId = '',
     this.name = '',
     this.shared = false,
+    this.place,
   });
 
   final DailyGame game;
@@ -525,6 +528,10 @@ class GameResult {
   /// server would now refuse with `ALREADY_SHARED`.
   final bool shared;
 
+  /// This row's shared place on its board ("1, 1, 3"), when the server
+  /// ranked it. Null from an older server; [GameStandings] computes it then.
+  final int? place;
+
   static GameResult? fromJson(Map<String, dynamic>? j, {DailyGame? game}) {
     if (j == null) return null;
     final id = game ?? DailyGame.parse(j['game']?.toString());
@@ -540,6 +547,7 @@ class GameResult {
       userId: j['userId']?.toString() ?? '',
       name: j['name']?.toString() ?? '',
       shared: j['shared'] == true,
+      place: (j['place'] as num?)?.toInt(),
     );
   }
 }
@@ -585,10 +593,13 @@ class GameStandings {
 
   /// Everyone on a live streak at [game] (null is the code), longest first,
   /// the viewer under [viewerId]; ties by name, so the order holds still.
+  /// The viewer's row is nameless, so it sorts by [you], the "You" the row
+  /// shows.
   List<({String userId, String name, int streak})> streakRanking(
     DailyGame? game,
-    String viewerId,
-  ) {
+    String viewerId, {
+    required String you,
+  }) {
     // The viewer's own run from [myStreaks], the number the streak card
     // shows, so the ranking and the card can never disagree about it.
     final mine = myStreaks[game]?.current ?? 0;
@@ -601,7 +612,10 @@ class GameStandings {
     out.sort((a, b) {
       final by = b.streak.compareTo(a.streak);
       if (by != 0) return by;
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return compareNames(
+        a.userId == viewerId ? you : a.name,
+        b.userId == viewerId ? you : b.name,
+      );
     });
     return out;
   }
@@ -609,13 +623,28 @@ class GameStandings {
   /// [userId]'s live streak on [game] (null is the code), 0 when none.
   int streakOf(String userId, DailyGame? game) => streaks[userId]?[game] ?? 0;
 
-  /// Where the viewer placed on [game], 1-based, or null if unfinished.
+  /// Where [userId] placed on [game], 1-based and shared on a tie
+  /// ("1, 1, 3"), or null if unfinished.
   int? rankOf(DailyGame game, String userId) {
     final rows = boards[game];
     if (rows == null) return null;
     final i = rows.indexWhere((r) => r.userId == userId);
-    return i < 0 ? null : i + 1;
+    if (i < 0) return null;
+    return rows[i].place ?? rankedPlaces(rows, sameGameScore)[i];
   }
+
+  /// [game]'s board with each row's shared place, ties A to Z. The viewer's
+  /// row is nameless, so it sorts by [you], the "You" the row shows.
+  List<({GameResult row, int place})> ranked(
+    DailyGame game, {
+    required String viewerId,
+    required String you,
+  }) => rankByPlace(
+    boards[game] ?? const <GameResult>[],
+    sameScore: sameGameScore,
+    nameOf: (r) => r.userId == viewerId ? you : r.name,
+    placeOf: (r) => r.place,
+  );
 
   static GameStandings fromJson(dynamic raw) {
     if (raw is! Map) return const GameStandings();
@@ -695,6 +724,15 @@ class GameStandings {
     );
   }
 }
+
+/// Whether two rows on one timed board read the same: the same whole second,
+/// or both unsolved. What [GameStandings] shares a place on.
+bool sameGameScore(GameResult a, GameResult b) => sameTimedScore(
+  aSolved: a.solved,
+  aMs: a.durationMs,
+  bSolved: b.solved,
+  bMs: b.durationMs,
+);
 
 /// The code puzzle's id where the server lists it beside the timed dailies.
 const _kCodeGame = 'code';

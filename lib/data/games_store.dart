@@ -45,6 +45,46 @@ class GamesStore extends ChangeNotifier {
   bool _fetchingBoards = false;
   Object? _error;
 
+  /// The full [load] in flight, so a second caller waits on it instead of
+  /// returning before the boards it is about to draw have landed.
+  Future<void>? _loadFuture;
+
+  /// The standings read in flight, shared by every caller that lands while it
+  /// is out. `games:standings` reads a row set per friend, and one finished
+  /// game used to cost four of them: the hub opening, the board's boot, the
+  /// post-finish refresh, and the hub again on the way back.
+  Future<void>? _standingsFetch;
+
+  /// A read queued behind [_standingsFetch] by [refreshStandings]: the one in
+  /// flight was issued before the result being refreshed for existed, so it
+  /// cannot be trusted to carry it.
+  Future<void>? _standingsFollowUp;
+
+  /// Bumped per standings read, so only the newest one clears
+  /// [_standingsFetch].
+  int _standingsSeq = 0;
+
+  /// When the held standings were last answered by the server.
+  DateTime? _standingsAt;
+
+  /// How long a held copy of the standings answers a plain [load] without a
+  /// round trip. Short enough that the hub still catches friends finishing
+  /// while the player was away, long enough that the hub, a board's boot and
+  /// the hub again inside one sitting share a single read. A finish bypasses
+  /// it through [refreshStandings]; a pull-to-refresh through `force`.
+  @visibleForTesting
+  static Duration standingsTtl = const Duration(seconds: 30);
+
+  /// The clock [standingsTtl] is measured on. Swappable for the tests.
+  @visibleForTesting
+  static DateTime Function() now = DateTime.now;
+
+  /// Bumped on every [noteFinished], so a surface can tell whether a game was
+  /// finished while it was covered (the hub re-reads the all-time records on
+  /// the way back only when one was).
+  int get finishedSeq => _finishedSeq;
+  int _finishedSeq = 0;
+
   /// Guards against a stale [load] finishing after a newer one — the same
   /// generation check `FeedStore.attach` uses, and needed for the same reason:
   /// a day rollover or a re-entry mid-flight would otherwise let the older
@@ -106,8 +146,10 @@ class GamesStore extends ChangeNotifier {
   ///
   /// The boards themselves are fetched once per day and then held: they are a
   /// pure function of the day key, so there is no version of them that can go
-  /// stale before midnight. Only the standings are re-read, and [force] is what
-  /// the hub passes on a pull-to-refresh.
+  /// stale before midnight. Only the standings are re-read, and only when the
+  /// held copy is older than [standingsTtl] — a board's boot right after the
+  /// hub drew them costs nothing. [force] is what the hub passes on a
+  /// pull-to-refresh, and re-reads regardless.
   Future<void> load(String userId, {bool force = false}) async {
     // FeedStore owns the day identity and the midnight timer for the whole app.
     // Deriving a second one here would give the games their own idea of "today"
@@ -123,15 +165,30 @@ class GamesStore extends ChangeNotifier {
       _boards = const DailyBoards();
       _standings = const GameStandings();
       _standingsReady = false;
+      _standingsAt = null;
     }
     if (!rolled && !switched && !force && _boards.ready && !_loading) {
       // Boards are held, but a leaderboard the player is looking at should
-      // still catch up with whoever finished while they were away.
-      await _refreshStandings(userId, day);
-      return;
+      // still catch up with whoever finished while they were away — unless it
+      // just did. A read already out answers this caller too.
+      final pending = _standingsFollowUp ?? _standingsFetch;
+      if (pending != null) return pending;
+      if (_standingsFresh) return;
+      return _refreshStandings(userId, day);
     }
-    if (_loading && !force) return;
+    if (_loading && !force) return _loadFuture ?? Future.value();
+    final future = _loadFuture = _load(userId, day, rolled: rolled);
+    return future;
+  }
 
+  bool get _standingsFresh {
+    final at = _standingsAt;
+    return _standingsReady &&
+        at != null &&
+        now().difference(at) < standingsTtl;
+  }
+
+  Future<void> _load(String userId, String day, {required bool rolled}) async {
     final gen = ++_gen;
     _dayKey = day;
     _userId = userId;
@@ -164,6 +221,7 @@ class GamesStore extends ChangeNotifier {
       }
       _standings = results[1] as GameStandings;
       _standingsReady = true;
+      _standingsAt = now();
       _loading = false;
       _error = null;
     } catch (e) {
@@ -262,25 +320,51 @@ class GamesStore extends ChangeNotifier {
 
   /// Re-reads the leaderboards alone. Called after a board is finished, so the
   /// player's own time appears in the standings they are being shown.
-  Future<void> refreshStandings() async {
+  ///
+  /// Ignores [standingsTtl]: the held copy predates the result. A read already
+  /// in flight predates it too, so rather than join that one this queues a
+  /// single read behind it, which every later caller shares.
+  Future<void> refreshStandings() {
     final userId = _userId;
-    if (userId == null || _dayKey.isEmpty) return;
-    await _refreshStandings(userId, _dayKey);
+    if (userId == null || _dayKey.isEmpty) return Future.value();
+    final pending = _standingsFetch;
+    if (pending == null) return _refreshStandings(userId, _dayKey);
+    return _standingsFollowUp ??= pending.then((_) {
+      _standingsFollowUp = null;
+      final id = _userId;
+      // Signed out or rolled over meanwhile: whatever load did that owns the
+      // standings now.
+      if (id == null || id != userId || _dayKey.isEmpty) return null;
+      return _refreshStandings(id, _dayKey);
+    });
   }
 
-  Future<void> _refreshStandings(String userId, String day) async {
+  Future<void> _refreshStandings(String userId, String day) {
+    final seq = ++_standingsSeq;
+    return _standingsFetch = _readStandings(userId, day, seq);
+  }
+
+  Future<void> _readStandings(String userId, String day, int seq) async {
     final gen = _gen;
     try {
       final next = await api.standings(userId: userId, dayKey: day);
       if (gen != _gen) return;
+      // A finish landed while this was out and has a read queued behind it.
+      // This answer predates that result, and laying it over the optimistic
+      // row would blink the player's own time back to a dash until the
+      // follow-up lands.
+      if (_standingsFollowUp != null && _standingsReady) return;
       _standings = next;
       _standingsReady = true;
+      _standingsAt = now();
       _error = null;
       _notify();
     } catch (e) {
       if (gen != _gen) return;
       _error = e;
       _notify();
+    } finally {
+      if (seq == _standingsSeq) _standingsFetch = null;
     }
   }
 
@@ -300,6 +384,7 @@ class GamesStore extends ChangeNotifier {
       avatars: _standings.avatars,
       names: _standings.names,
     );
+    _finishedSeq++;
     _notify();
   }
 
@@ -314,6 +399,10 @@ class GamesStore extends ChangeNotifier {
     _boards = const DailyBoards();
     _standings = const GameStandings();
     _standingsReady = false;
+    _standingsAt = null;
+    _standingsFetch = null;
+    _standingsFollowUp = null;
+    _loadFuture = null;
     _loading = false;
     _error = null;
     _notify();

@@ -126,20 +126,89 @@ void main() {
   });
 
   group('PuzzleState', () {
-    PuzzleScore score(String id) => PuzzleScore(
+    PuzzleScore score(
+      String id, {
+      int guesses = 3,
+      bool solved = true,
+      int? place,
+    }) => PuzzleScore(
       userId: id,
       name: id,
-      solved: true,
-      guessCount: 3,
+      solved: solved,
+      guessCount: guesses,
       finishedAt: DateTime(2026, 8, 7),
       feedback: const [],
+      place: place,
     );
 
     test('rank is 1-based and null when absent', () {
-      final s = PuzzleState(scores: [score('a'), score('b'), score('c')]);
+      final s = PuzzleState(
+        scores: [score('a', guesses: 2), score('b'), score('c', guesses: 4)],
+      );
       expect(s.rankOf('a'), 1);
       expect(s.rankOf('c'), 3);
       expect(s.rankOf('nobody'), isNull);
+    });
+
+    test('equal guesses share a place; the finish time never decides', () {
+      final s = PuzzleState(
+        scores: [
+          score('a'),
+          score('b'),
+          score('c', guesses: 5),
+          score('x', solved: false, guesses: 6),
+          score('y', solved: false, guesses: 6),
+        ],
+      );
+      expect([for (final id in ['a', 'b', 'c', 'x', 'y']) s.rankOf(id)], [
+        1, 1, 3, 4, 4,
+      ]);
+    });
+
+    test("the server's place wins when it sends one", () {
+      final s = PuzzleState(
+        scores: [score('a', place: 1), score('b', guesses: 4, place: 1)],
+      );
+      expect(s.rankOf('b'), 1);
+      expect(
+        PuzzleScore.fromJson({'userId': 'q', 'place': 2}).place,
+        2,
+      );
+      expect(PuzzleScore.fromJson({'userId': 'q'}).place, isNull);
+    });
+
+    test('ranked lists a tie A to Z, the viewer by "You"', () {
+      final s = PuzzleState(
+        scores: [
+          PuzzleScore(
+            userId: 'me',
+            name: '',
+            solved: true,
+            guessCount: 3,
+            finishedAt: DateTime(2026),
+            feedback: const [],
+          ),
+          PuzzleScore(
+            userId: 'w',
+            name: 'Wim',
+            solved: true,
+            guessCount: 3,
+            finishedAt: DateTime(2026),
+            feedback: const [],
+          ),
+          PuzzleScore(
+            userId: 'a',
+            name: 'Ada',
+            solved: true,
+            guessCount: 3,
+            finishedAt: DateTime(2026),
+            feedback: const [],
+          ),
+        ],
+      );
+      final r = s.ranked(viewerId: 'me', you: 'You');
+      expect([for (final e in r) e.row.userId], ['a', 'w', 'me']);
+      expect([for (final e in r) e.place], [1, 1, 1]);
     });
 
     test('an absent payload is an empty state, not a crash', () {

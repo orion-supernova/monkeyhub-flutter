@@ -232,6 +232,61 @@ class PlayerFace extends StatelessWidget {
   }
 }
 
+/// Several faces overlapped left to right, each ringed in [ring] so the one
+/// in front cuts the one behind like a coin: people who share a spot.
+///
+/// The first face is drawn in front. At most [max] are shown; the rest are
+/// the caller's to say in words.
+class FaceCluster extends StatelessWidget {
+  const FaceCluster({
+    super.key,
+    required this.faces,
+    required this.size,
+    required this.ring,
+    this.max = 3,
+  });
+
+  final List<({String userId, String label, String? storageId})> faces;
+  final double size;
+  final Color ring;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = faces.take(max).toList();
+    if (shown.isEmpty) return const SizedBox.shrink();
+    final step = size * 0.62;
+    return SizedBox(
+      width: size + step * (shown.length - 1),
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Back to front, so the first face lands on top.
+          for (var i = shown.length - 1; i >= 0; i--)
+            Positioned(
+              left: step * i,
+              top: 0,
+              child: DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: ring, width: 1.5),
+                ),
+                child: PlayerFace(
+                  userId: shown[i].userId,
+                  label: shown[i].label,
+                  size: size,
+                  storageId: shown[i].storageId,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// A face nobody has: the outline of one in the quiet fill. An untaken
 /// podium place and a record nobody holds yet are the same empty seat.
 class EmptyFace extends StatelessWidget {

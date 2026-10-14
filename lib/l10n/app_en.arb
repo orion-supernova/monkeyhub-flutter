@@ -6736,11 +6736,11 @@
   "@gameInfoOpen": {
     "description": "Screen-reader label and tooltip for the small question-mark button on a game tile, which opens the sheet explaining that game."
   },
-  "gameInfoScoringTimed": "Finish fastest to win. The clock stops when you leave.",
+  "gameInfoScoringTimed": "Finish fastest to win. The clock stops when you leave. Same time, same spot.",
   "@gameInfoScoringTimed": {
     "description": "Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard."
   },
-  "gameInfoScoringGuesses": "Crack it in the fewest guesses to win. Time doesn't count.",
+  "gameInfoScoringGuesses": "Crack it in the fewest guesses to win. Time doesn't count. Same guesses, same spot.",
   "@gameInfoScoringGuesses": {
     "description": "Closing line of the how-to-play sheet for the symbol-code puzzle — the one game on the hub that is ranked by guesses rather than by time."
   },
@@ -12641,7 +12641,7 @@
   "@leaderboardOverall": {
     "description": "Leaderboard filter capsule: the overall standings across all of today's games."
   },
-  "leaderboardFooter": "1 point for every puzzle you solve today. A tie goes to whoever came first more often.",
+  "leaderboardFooter": "1 point for every puzzle you solve today. A tie goes to whoever came first more often. Still tied? You share the spot, listed A to Z.",
   "@leaderboardFooter": {
     "description": "Footer under the overall leaderboard explaining the score."
   },
@@ -16155,5 +16155,87 @@
   "howToTurns3": "No move in 2 days? That's a loss. Up to 3 games at once per chat.",
   "@howToTurns3": {
     "description": "Play mode page, Turns: timeout and limit."
+  },
+  "momentActivityGamesSolvedAll": "{name} solved {count, plural, =1{1 game} other{{count} games}}",
+  "@momentActivityGamesSolvedAll": {
+    "description": "Activity line for ONE friend who finished several daily games today and solved all of them; tapping opens the list. {name} is the friend's display name; conjugate the sentence around it. {count} is how many games (always 2 or more). The game names show on the line under it. gen-l10n emits parameters alphabetically (count, name).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityGamesSolvedSome": "{name} solved {solved} of {count, plural, =1{1 game} other{{count} games}}",
+  "@momentActivityGamesSolvedSome": {
+    "description": "Activity line for ONE friend who finished several daily games today and solved only some. {name} is the friend's display name; {solved} is how many they solved; {count} is how many they finished (2 or more). gen-l10n emits parameters alphabetically (count, name, solved).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      },
+      "solved": {
+        "type": "int"
+      }
+    }
+  },
+  "momentActivityGamesPlayed": "{name} played {count, plural, =1{1 game} other{{count} games}}",
+  "@momentActivityGamesPlayed": {
+    "description": "Activity line for ONE friend who finished several daily games today and solved none (gave up or ran out of guesses). {name} is the friend's display name; {count} is how many (2 or more). Parameters are alphabetical (count, name).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentActivityHighlightsPosted": "{name} posted {count, plural, =1{1 highlight} other{{count} highlights}}",
+  "@momentActivityHighlightsPosted": {
+    "description": "Activity line for ONE friend who posted several highlights (photo/video moments) today; tapping opens the list. {name} is the friend's display name; conjugate the sentence around it. {count} is how many (always 2 or more). Their newest caption shows on the line under it. Same wording family as momentActivityPostedHighlight. Parameters are alphabetical (count, name).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "podiumSharedBy": "Place {place}, shared by {count}: {names}",
+  "@podiumSharedBy": {
+    "description": "Screen-reader label for ONE podium seat that several people share because they tied, e.g. 'Place 1, shared by 2: Ece, Mert'. {place} is 1, 2 or 3; {count} is how many share it (2 or more); {names} is their names, comma-separated, A to Z. Parameters are alphabetical (count, names, place).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      },
+      "place": {
+        "type": "int"
+      }
+    }
+  },
+  "myBestsLabel": "My bests",
+  "@myBestsLabel": {
+    "description": "Leaderboard section header over the viewer's OWN all-time best at each game, under everyone's ALL-TIME records. Pairs with myStreaksLabel."
+  },
+  "recordsSharedBy": "{name} +{count}",
+  "@recordsSharedBy": {
+    "description": "Who holds a game's all-time record when it is SHARED by an exact tie: the first holder's name (alphabetically) and how many others share it, e.g. 'Ayşe +1'. {name} may be the localized 'You'. Parameters are alphabetical (count, name).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

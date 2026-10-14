@@ -5707,10 +5707,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gameInfoOpen => '遊び方';
 
   @override
-  String get gameInfoScoringTimed => 'いちばん早く解いた人の勝ち。画面を離れると時計は止まります。';
+  String get gameInfoScoringTimed =>
+      'いちばん早く解いた人の勝ち。画面を離れると時計は止まります。同じタイムなら同じ順位。';
 
   @override
-  String get gameInfoScoringGuesses => '少ない回数で当てた人の勝ち。時間は関係ありません。';
+  String get gameInfoScoringGuesses => '少ない回数で当てた人の勝ち。時間は関係ありません。同じ回数なら同じ順位。';
 
   @override
   String get gameInfoSameForEveryone => '今日はみんな同じパズルです。';
@@ -10383,7 +10384,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get leaderboardOverall => '今日';
 
   @override
-  String get leaderboardFooter => '今日解いたパズル1つにつき1ポイント。同点なら、1位になった回数が多い人が上。';
+  String get leaderboardFooter =>
+      '今日解いたパズル1つにつき1ポイント。同点なら、1位になった回数が多い人が上。それでも同点なら同じ順位を分け合い、名前順に並びます。';
 
   @override
   String get leaderboardNotPlayed => 'まだプレイしていません';
@@ -12914,4 +12916,57 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get howToTurns3 => '2日以内に指さないと負け。1つのチャットで同時に3ゲームまで。';
+
+  @override
+  String momentActivityGamesSolvedAll(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のゲーム',
+    );
+    return '$nameが$_temp0をクリア';
+  }
+
+  @override
+  String momentActivityGamesSolvedSome(int count, String name, int solved) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個',
+    );
+    return '$nameが$_temp0中$solved個をクリア';
+  }
+
+  @override
+  String momentActivityGamesPlayed(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のゲーム',
+    );
+    return '$nameが$_temp0をプレイ';
+  }
+
+  @override
+  String momentActivityHighlightsPosted(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のハイライト',
+    );
+    return '$nameが$_temp0を投稿';
+  }
+
+  @override
+  String podiumSharedBy(int count, String names, int place) {
+    return '$place位、$count人が同率：$names';
+  }
+
+  @override
+  String get myBestsLabel => '自分の記録';
+
+  @override
+  String recordsSharedBy(int count, String name) {
+    return '$name +$count';
+  }
 }
