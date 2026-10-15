@@ -27,11 +27,13 @@ import {
   ERR_USERNAME_RESERVED,
   REPORT_INBOX_USERNAME,
   isReservedName,
+  isStaffHandle,
   isSystemAccount,
 } from "./systemAccount";
 import { lensFor } from "./visibility";
 import { assertCleanName, isObjectionableName } from "./contentFilter";
 import { fileContentReport } from "./moderationCore";
+import { isRetiredHandle } from "./retiredHandles";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -462,7 +464,9 @@ export const isUsernameAvailable = publicQuery({
     if (next.length === 0 || next.length > 32) {
       return { available: false, reason: "invalid" };
     }
-    if (isReservedName(next)) return { available: false, reason: "reserved" };
+    if (isReservedName(next) || (await isRetiredHandle(ctx, next))) {
+      return { available: false, reason: "reserved" };
+    }
     // A reason older builds do not know, which they read as "taken" — true
     // enough. See `contentFilter.isObjectionableName`.
     if (isObjectionableName(next)) {
@@ -540,7 +544,12 @@ export const applyUsernameChange = internalMutation({
     // `isReservedName` does not cover this: the inbox handle is a person's
     // ordinary name and matches no brand substring, so it is protected only by
     // being occupied. This is what keeps it occupied.
-    if (user.username === REPORT_INBOX_USERNAME) {
+    // Staff handles too: moderator rights follow the handle, so a renamed
+    // moderator would leave their rights behind for whoever registers it next.
+    if (
+      user.username === REPORT_INBOX_USERNAME ||
+      isStaffHandle(user.username ?? "")
+    ) {
       throw new Error(ERR_INBOX_HANDLE_LOCKED);
     }
 
@@ -548,7 +557,9 @@ export const applyUsernameChange = internalMutation({
     // accounts are created lazily, so a reserved handle is simply FREE until the
     // first report is filed, and answering "taken" or "available" would make the
     // rule depend on whether that has happened yet.
-    if (isReservedName(next)) throw new Error(ERR_USERNAME_RESERVED);
+    if (isReservedName(next) || (await isRetiredHandle(ctx, next))) {
+      throw new Error(ERR_USERNAME_RESERVED);
+    }
     assertCleanName(next);
 
     const changedAt = user.usernameChangedAt;

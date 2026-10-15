@@ -79,6 +79,7 @@ import type * as receiptToken from "../receiptToken.js";
 import type * as recordBook from "../recordBook.js";
 import type * as records from "../records.js";
 import type * as releases from "../releases.js";
+import type * as retiredHandles from "../retiredHandles.js";
 import type * as roomAccess from "../roomAccess.js";
 import type * as roomAdmin from "../roomAdmin.js";
 import type * as roomChangeRequests from "../roomChangeRequests.js";
@@ -192,6 +193,7 @@ declare const fullApi: ApiFromModules<{
   recordBook: typeof recordBook;
   records: typeof records;
   releases: typeof releases;
+  retiredHandles: typeof retiredHandles;
   roomAccess: typeof roomAccess;
   roomAdmin: typeof roomAdmin;
   roomChangeRequests: typeof roomChangeRequests;

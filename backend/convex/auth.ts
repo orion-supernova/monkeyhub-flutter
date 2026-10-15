@@ -36,6 +36,7 @@ import {
   refusal,
 } from "./rateLimit";
 import { revokeUserRoomAccess } from "./roomAccess";
+import { isRetiredHandle, retireIfStaff } from "./retiredHandles";
 
 /**
  * Who the caller actually is, resolved from the bearer token alone.
@@ -105,7 +106,7 @@ export const signup = publicMutation({
     // depend on whether a system account happens to exist yet: they are created
     // lazily, so until the first problem report the handle is simply free, and
     // whoever took it would own the name every report is posted from.
-    if (isReservedName(username)) {
+    if (isReservedName(username) || (await isRetiredHandle(ctx, username))) {
       throw new Error(ERR_USERNAME_RESERVED);
     }
     // And the display name, which is the field that actually renders next to
@@ -468,6 +469,7 @@ const byUser = (userId: any) => (q: any) => q.eq("userId", userId);
  */
 async function purgeUser(ctx: any, userId: any) {
   const user = await ctx.db.get(userId);
+  await retireIfStaff(ctx, user?.username);
 
   // "Beat my time" bodies this account sent, wherever they were sent.
   await purgeChallengesOfUser(ctx, userId);

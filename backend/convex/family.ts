@@ -49,6 +49,7 @@ import {
   pairingDeviceKey,
   refusal,
 } from "./rateLimit";
+import { isRetiredHandle } from "./retiredHandles";
 
 /** Pairing codes are deliberately short-lived — they're six digits read aloud. */
 const PAIRING_TTL_MS = 5 * 60 * 1000;
@@ -135,7 +136,7 @@ export const createChildAccount = mutation({
     // Reserved handles. Third of the three paths that can claim a username —
     // `auth.signup` and `socialAuth.completeSocialSignUp` are the others, and all
     // three need this, because reserving a name in two of them reserves nothing.
-    if (isReservedName(handle)) {
+    if (isReservedName(handle) || (await isRetiredHandle(ctx, handle))) {
       throw new Error(ERR_USERNAME_RESERVED);
     }
     // The child's display name too — a guardian naming a child account

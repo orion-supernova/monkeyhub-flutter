@@ -42,6 +42,7 @@ import {
   ERR_USERNAME_RESERVED,
   isReservedName,
 } from "./systemAccount";
+import { isRetiredHandle } from "./retiredHandles";
 
 /**
  * Parked in `users.passwordHash`, which is non-optional, for accounts that have
@@ -649,7 +650,7 @@ export const createWithIdentity = internalMutation({
     // Reserved handles. See the note in `family.createChildAccount`: this is the
     // third of three paths that can claim a username, and a name reserved in only
     // some of them is not reserved.
-    if (isReservedName(username)) {
+    if (isReservedName(username) || (await isRetiredHandle(ctx, username))) {
       throw new Error(ERR_USERNAME_RESERVED);
     }
     // The display name too. Checked here against the CLIENT-SUPPLIED `args.name`

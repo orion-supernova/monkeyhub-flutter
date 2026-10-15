@@ -532,11 +532,14 @@ export async function guardOutgoing(
   // so callers destructuring this get a name they can pass straight to the
   // push action without re-proving it is present.
   // Read off the document fetched above rather than fetching it again.
-  let resolvedSenderName: string = senderName ?? "";
-  if (!resolvedSenderName) {
-    resolvedSenderName =
-      senderUser?.name ?? senderUser?.username ?? "Unknown";
-  }
+  //
+  // The account's own name, never the caller's `senderName`: that argument
+  // is stored on the message and becomes the push notification's title, so
+  // trusting it let anyone send a push "from" MonkeyHub Team, past the
+  // reserved-name and language checks every real name goes through. Kept as
+  // a fallback only for a sender row that is somehow gone.
+  const resolvedSenderName: string =
+    senderUser?.name || senderUser?.username || senderName || "Unknown";
 
   // DM block enforcement.
   //

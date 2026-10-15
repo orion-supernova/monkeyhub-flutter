@@ -330,6 +330,19 @@ function foldsForReservation(name: string): [string, string] {
  * a mutation, so the rule can be absolute here without locking the app out of
  * its own name.
  */
+/**
+ * True for a handle on the staff list.
+ *
+ * Moderator rights are granted by HANDLE ([isModerationStaff]), so a staff
+ * handle must never be obtainable by anyone else: not by signing up with one
+ * that is listed but not yet registered, and not by registering it after its
+ * owner renamed or deleted their account. Every path that hands out a
+ * username refuses these, and a staff account cannot rename itself.
+ */
+export function isStaffHandle(name: string): boolean {
+  return moderationStaffUsernames().includes(name.trim().toLowerCase());
+}
+
 export function isReservedName(name: string): boolean {
   const folds = foldsForReservation(name);
   return RESERVED_SUBSTRINGS.some((word) =>

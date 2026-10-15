@@ -2668,6 +2668,13 @@ export default defineSchema({
     dayBytes: v.number(),
   }).index("by_user", ["userId"]),
 
+  // Staff handles of deleted accounts; never registrable again. See
+  // `retiredHandles.ts`.
+  retiredHandles: defineTable({
+    username: v.string(),
+    retiredAt: v.number(),
+  }).index("by_username", ["username"]),
+
   // Fixed-window call counters for `rateLimit.consume`. One row per key.
   rateBuckets: defineTable({
     key: v.string(),
