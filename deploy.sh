@@ -2714,8 +2714,10 @@ run_windows() {
                 sh -c 'msstore reconfigure --tenantId "$MS_STORE_TENANT_ID" --sellerId "$MS_STORE_SELLER_ID" \
                         --clientId "$MS_STORE_CLIENT_ID" --clientSecret "$MS_STORE_CLIENT_SECRET" \
                         >/tmp/monkeyhub_msstore.log 2>&1' || return 1
+            # -i is the DIRECTORY holding the .msix, not the file: given the
+            # file, msstore answers "Input directory does not exist".
             run_with_spinner "Submitting to the Microsoft Store" \
-                sh -c "msstore publish '$PWD' -i '$MSIX_PATH' -id '$MS_STORE_PRODUCT_ID' \
+                sh -c "msstore publish '$PWD' -i '$(dirname "$MSIX_PATH")' -id '$MS_STORE_PRODUCT_ID' \
                         >>/tmp/monkeyhub_msstore.log 2>&1" \
                 || { echo "     Log: /tmp/monkeyhub_msstore.log"; return 1; }
             publish_release windows "$MS_STORE_URL"
