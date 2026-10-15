@@ -4,7 +4,12 @@ import { mintSession } from "./sessionCore";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { assertNotLocked, clearFailures, noteFailure } from "./rateLimit";
+import {
+  assertNotLocked,
+  clearFailures,
+  noteFailure,
+  refusal,
+} from "./rateLimit";
 
 /**
  * QR / short-code sign-in for a signed-out web or desktop client — the
@@ -29,6 +34,10 @@ const REQUEST_TTL_MS = 3 * 60 * 1000;
  * defense against anything — the string is never trusted for more than
  * display. */
 const MAX_DEVICE_INFO_CHARS = 200;
+
+/** Live requests across everyone, before creation refuses with [ERR_BUSY]. */
+const MAX_LIVE_REQUESTS = 1000;
+export const ERR_BUSY = "DEVICE_LOGIN_BUSY";
 
 export const ERR_REQUEST_INVALID = "DEVICE_LOGIN_REQUEST_INVALID";
 export const ERR_REQUEST_EXPIRED = "DEVICE_LOGIN_REQUEST_EXPIRED";
@@ -62,10 +71,38 @@ const deviceLoginKey = (userId: Id<"users">) => `deviceLogin:${userId}`;
 export const createLoginRequest = publicMutation({
   args: {
     deviceInfo: v.string(),
-    codeHash: v.string(),
+    // Ignored. Builds before the fix sent their own code's hash, which is what
+    // let a stranger pre-register codes and have a victim approve the
+    // stranger's request. Accepted so those builds still get a working QR;
+    // their typed code simply won't match.
+    codeHash: v.optional(v.string()),
   },
-  handler: async (ctx, { deviceInfo, codeHash }) => {
+  handler: async (ctx, { deviceInfo }) => {
     const now = Date.now();
+    // No session exists yet, so nothing here can be per-user. A ceiling on
+    // live requests keeps an anonymous loop from filling the table.
+    const live = await ctx.db
+      .query("deviceLoginRequests")
+      .withIndex("by_expiresAt", (q) => q.gt("expiresAt", now))
+      .take(MAX_LIVE_REQUESTS + 1);
+    if (live.length > MAX_LIVE_REQUESTS) throw new Error(ERR_BUSY);
+
+    // The code is minted HERE, and never collides with another live one, so
+    // the row a typed code finds is always the one that code was issued for.
+    let code = "";
+    let codeHash = "";
+    for (let attempt = 0; attempt < 10; attempt++) {
+      code = randomCode();
+      codeHash = await sha256Hex(code);
+      const clash = await ctx.db
+        .query("deviceLoginRequests")
+        .withIndex("by_codeHash", (q) => q.eq("codeHash", codeHash))
+        .order("desc")
+        .first();
+      if (!clash || clash.expiresAt < now) break;
+      if (attempt === 9) throw new Error(ERR_BUSY);
+    }
+
     const requestId = randomHex(16);
     const expiresAt = now + REQUEST_TTL_MS;
     await ctx.db.insert("deviceLoginRequests", {
@@ -76,9 +113,27 @@ export const createLoginRequest = publicMutation({
       createdAt: now,
       expiresAt,
     });
-    return { requestId, expiresAt };
+    return { requestId, expiresAt, code };
   },
 });
+
+/** Six digits, from the platform CSPRNG, without modulo bias worth noting. */
+function randomCode(): string {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return (100000 + (buf[0] % 900000)).toString();
+}
+
+/** Lowercase hex SHA-256, matching the client's `sha256Hash`. */
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(input),
+  );
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+}
 
 /**
  * Live status of one request, keyed by `requestId`. The desktop/web client
@@ -128,7 +183,7 @@ async function resolveRequest(
     codeHash?: string;
     callerId: Id<"users">;
   },
-): Promise<Doc<"deviceLoginRequests">> {
+): Promise<Doc<"deviceLoginRequests"> | { __refused: string }> {
   const { requestId, codeHash, callerId } = args;
   if ((requestId == null) === (codeHash == null)) {
     // Both set or neither — a client bug, never a real user path.
@@ -148,10 +203,12 @@ async function resolveRequest(
     row = await ctx.db
       .query("deviceLoginRequests")
       .withIndex("by_codeHash", (q) => q.eq("codeHash", codeHash!))
+      // Newest: an expired row with the same code can linger until the GC.
+      .order("desc")
       .first();
     if (!row) {
       await noteFailure(ctx, key);
-      throw new Error(ERR_CODE_INVALID);
+      return refusal(ERR_CODE_INVALID);
     }
     await clearFailures(ctx, key);
   }
@@ -186,6 +243,7 @@ export const peekDeviceLoginRequest = mutation({
   },
   handler: async (ctx, { callerId, requestId, codeHash }) => {
     const row = await resolveRequest(ctx, { requestId, codeHash, callerId });
+    if ("__refused" in row) return row;
     return { deviceInfo: row.deviceInfo };
   },
 });
@@ -209,6 +267,7 @@ export const respondToDeviceLoginRequest = mutation({
   },
   handler: async (ctx, { callerId, approve, requestId, codeHash }) => {
     const row = await resolveRequest(ctx, { requestId, codeHash, callerId });
+    if ("__refused" in row) return row;
     await ctx.db.patch(
       row._id,
       approve

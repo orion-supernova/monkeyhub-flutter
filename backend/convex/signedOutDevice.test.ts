@@ -45,7 +45,7 @@ async function login(
   username: string,
   deviceId: string,
 ) {
-  return await t.mutation(api.auth.login, {
+  return await t.mutation(api.auth.login as any, {
     username,
     passwordHash: `hash-${username}`,
     deviceId,

@@ -2671,15 +2671,14 @@ class ChatApi {
   /// its hash crosses the wire.
   Future<DeviceLoginRequest> createDeviceLoginRequest({
     required String deviceInfo,
-    required String code,
   }) async {
     final res = await _cv.mutation('deviceLogin:createLoginRequest', {
       'deviceInfo': deviceInfo,
-      'codeHash': sha256Hash(code),
     });
     final map = (res as Map).cast<String, dynamic>();
     return DeviceLoginRequest(
       requestId: map['requestId'] as String,
+      code: map['code'] as String,
       expiresAt: DateTime.fromMillisecondsSinceEpoch(
         ((map['expiresAt'] ?? 0) as num).toInt(),
       ),
@@ -3254,12 +3253,17 @@ class AuthResult {
 }
 
 /// What `deviceLogin:createLoginRequest` hands back: the id that goes into
-/// the QR (and is subscribed on for status), plus when it dies. The six-digit
-/// fallback code is never part of this — the caller already generated it
-/// itself, the same way `PairingCodeScreen` does.
+/// the QR (and is subscribed on for status), the six-digit fallback code to
+/// show, and when both die. The server mints the code: one chosen here could
+/// be pre-registered by somebody else, and the phone would approve theirs.
 class DeviceLoginRequest {
-  DeviceLoginRequest({required this.requestId, required this.expiresAt});
+  DeviceLoginRequest({
+    required this.requestId,
+    required this.code,
+    required this.expiresAt,
+  });
   final String requestId;
+  final String code;
   final DateTime expiresAt;
 }
 

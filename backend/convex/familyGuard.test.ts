@@ -43,7 +43,7 @@ async function family(t: ReturnType<typeof convexTest>, kid = "lena") {
     childId: child.userId,
     codeHash,
   });
-  const redeemed = await t.mutation(api.family.redeemPairingCode, {
+  const redeemed = await t.mutation(api.family.redeemPairingCode as any, {
     codeHash,
     deviceId: "child-device",
     platform: "ios",

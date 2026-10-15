@@ -50,7 +50,7 @@ describe("minting", () => {
     const t = convexTest(schema);
     await signUp(t, "murat");
 
-    const res = await t.mutation(api.auth.login, {
+    const res = await t.mutation(api.auth.login as any, {
       username: "murat",
       passwordHash: "hash-murat",
       deviceId: DEVICE,
@@ -69,7 +69,7 @@ describe("minting", () => {
   test("signing in again on the same device revokes the old token", async () => {
     const t = convexTest(schema);
     const first = await signUp(t, "murat");
-    const second = await t.mutation(api.auth.login, {
+    const second = await t.mutation(api.auth.login as any, {
       username: "murat",
       passwordHash: "hash-murat",
       deviceId: DEVICE,
@@ -172,7 +172,7 @@ describe("revocation", () => {
     const me = await signUp(t, "murat");
 
     // A second device signs in.
-    const other = await t.mutation(api.auth.login, {
+    const other = await t.mutation(api.auth.login as any, {
       username: "murat",
       passwordHash: "hash-murat",
       deviceId: OTHER_DEVICE,
@@ -213,7 +213,7 @@ describe("revocation", () => {
   test("remove-all sweeps the others and keeps this one", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "murat");
-    const other = await t.mutation(api.auth.login, {
+    const other = await t.mutation(api.auth.login as any, {
       username: "murat",
       passwordHash: "hash-murat",
       deviceId: OTHER_DEVICE,
@@ -400,7 +400,7 @@ describe("deleting an account ends its sessions", () => {
   test("every device is signed out, not just the one that asked", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "goksu");
-    const second = await t.mutation(api.auth.login, {
+    const second = await t.mutation(api.auth.login as any, {
       username: "goksu",
       passwordHash: "hash-goksu",
       deviceId: OTHER_DEVICE,

@@ -111,7 +111,8 @@ Future<void> enterPublicRoom(
     }
     if (!context.mounted) return;
     final loc = AppLocalizations.of(context);
-    toast.show(e.toString().contains('WRONG_PASSWORD')
+    toast.show(e.toString().contains('ROOM_PASSWORD_INVALID') ||
+                e.toString().contains('WRONG_PASSWORD')
               ? loc.enterPublicRoomWrongPasswordMessage
               : loc.enterPublicRoomJoinFailedMessage,
       tone: ToastTone.danger,

@@ -38,6 +38,28 @@ export const MAX_PASSWORD_FAILURES = 10;
 export const MAX_RECOVERY_FAILURES = 5;
 
 export const loginKey = (userId: string) => `login:${userId}`;
+export const pairingDeviceKey = (deviceId: string) => `pair:device:${deviceId}`;
+/** One bucket for every pairing-code guess, whoever makes it. */
+export const PAIRING_GLOBAL_KEY = "pair:global";
+export const MAX_PAIRING_DEVICE_FAILURES = 10;
+export const MAX_PAIRING_GLOBAL_FAILURES = 60;
+export const roomPasswordKey = (roomId: string, userId: string) =>
+  `roompw:${roomId}:${userId}`;
+
+/**
+ * A credential failure, RETURNED rather than thrown.
+ *
+ * Convex mutations are transactions: a `throw` rolls back every write the
+ * call made, [noteFailure]'s included. Each credential path used to record
+ * the failure and then throw, so the count never survived and the lockout
+ * never engaged. Returning this commits the count; the client's mutation
+ * wrapper (`lib/backend/convex_client.dart`) turns it back into an error
+ * carrying [code], so every screen matching on the code still works.
+ */
+export const REFUSED = "__refused";
+export function refusal(code: string): { [REFUSED]: string } {
+  return { [REFUSED]: code };
+}
 export const recoveryKey = (userId: string) => `recovery:${userId}`;
 
 /**

@@ -33,6 +33,7 @@ import {
   noteFailure,
   recoveryKey,
   MAX_RECOVERY_FAILURES,
+  refusal,
 } from "./rateLimit";
 import { revokeUserRoomAccess } from "./roomAccess";
 
@@ -178,7 +179,7 @@ export const login = publicMutation({
     await assertNotLocked(ctx, key);
     if (user.passwordHash !== passwordHash) {
       await noteFailure(ctx, key);
-      throw new Error("WRONG_PASSWORD");
+      return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
 
@@ -271,7 +272,7 @@ export const resetPasswordWithRecoveryKey = publicMutation({
         user.recoveryKeyHash === legacyRecoveryKeyHash);
     if (!ok) {
       await noteFailure(ctx, key, MAX_RECOVERY_FAILURES);
-      throw new Error("INVALID_RECOVERY_KEY");
+      return refusal("INVALID_RECOVERY_KEY");
     }
     await clearFailures(ctx, key);
 
@@ -329,7 +330,7 @@ export const setRecoveryKey = mutation({
     await assertNotLocked(ctx, key);
     if (user.passwordHash !== passwordHash) {
       await noteFailure(ctx, key);
-      throw new Error("WRONG_PASSWORD");
+      return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
 
@@ -358,7 +359,10 @@ export const changeUsername = mutation({
     passwordHash: v.string(),
     username: v.string(),
   },
-  returns: v.object({ username: v.string() }),
+  returns: v.union(
+    v.object({ username: v.string() }),
+    v.object({ __refused: v.string() }),
+  ),
   // Annotated to break a self-referential inference cycle: this handler calls
   // through `internal.users.applyUsernameChange`, and the generated api type
   // covers this module too — so inferring the return type needs the return
@@ -368,7 +372,7 @@ export const changeUsername = mutation({
   handler: async (
     ctx,
     { userId, passwordHash, username },
-  ): Promise<{ username: string }> => {
+  ): Promise<{ username: string } | { __refused: string }> => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
 
@@ -390,7 +394,7 @@ export const changeUsername = mutation({
     await assertNotLocked(ctx, key);
     if (user.passwordHash !== passwordHash) {
       await noteFailure(ctx, key);
-      throw new Error("WRONG_PASSWORD");
+      return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
 

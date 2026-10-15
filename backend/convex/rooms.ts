@@ -27,6 +27,13 @@ import {
   removeMembership,
 } from "./roomAdmin";
 import { grantRoomAccess } from "./roomAccess";
+import {
+  assertNotLocked,
+  clearFailures,
+  noteFailure,
+  refusal,
+  roomPasswordKey,
+} from "./rateLimit";
 
 export const create = mutation({
   args: {
@@ -103,7 +110,13 @@ export const join = mutation({
 
     if (room.passwordHash) {
       if (!passwordHash || passwordHash.length === 0) throw new Error("ROOM_PASSWORD_REQUIRED");
-      if (passwordHash !== room.passwordHash) throw new Error("ROOM_PASSWORD_INVALID");
+      const key = roomPasswordKey(roomId, userId);
+      await assertNotLocked(ctx, key);
+      if (passwordHash !== room.passwordHash) {
+        await noteFailure(ctx, key);
+        return refusal("ROOM_PASSWORD_INVALID");
+      }
+      await clearFailures(ctx, key);
     }
 
     // Children need a guardian's yes first. `childMayUseRoom` already lets a

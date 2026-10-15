@@ -39,6 +39,16 @@ import {
 import { addMembership } from "./roomAdmin";
 import { leaveMatchesInRoom } from "./matchCore";
 import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
+import {
+  assertNotLocked,
+  loginKey,
+  MAX_PAIRING_DEVICE_FAILURES,
+  MAX_PAIRING_GLOBAL_FAILURES,
+  noteFailure,
+  PAIRING_GLOBAL_KEY,
+  pairingDeviceKey,
+  refusal,
+} from "./rateLimit";
 
 /** Pairing codes are deliberately short-lived — they're six digits read aloud. */
 const PAIRING_TTL_MS = 5 * 60 * 1000;
@@ -310,11 +320,23 @@ export const redeemPairingCode = publicMutation({
     deviceName: v.optional(v.string()),
   },
   handler: async (ctx, { codeHash, deviceId, platform, deviceName }) => {
+    // Six digits, five minutes, no session: a script walking the codes would
+    // land on a live one sooner or later. Two buckets, because the caller
+    // can't be identified: this device's guesses, and everyone's together. A
+    // family pairs a phone a handful of times, so the shared budget only ever
+    // fills under attack, and while it is full nobody can guess at all.
+    const deviceKey = pairingDeviceKey(deviceId);
+    await assertNotLocked(ctx, PAIRING_GLOBAL_KEY);
+    await assertNotLocked(ctx, deviceKey);
     const row = await ctx.db
       .query("pairingCodes")
       .withIndex("by_codeHash", (q) => q.eq("codeHash", codeHash))
       .first();
-    if (!row || row.consumedAt) throw new Error(ERR_CODE_INVALID);
+    if (!row || row.consumedAt) {
+      await noteFailure(ctx, deviceKey, MAX_PAIRING_DEVICE_FAILURES);
+      await noteFailure(ctx, PAIRING_GLOBAL_KEY, MAX_PAIRING_GLOBAL_FAILURES);
+      return refusal(ERR_CODE_INVALID);
+    }
     if (row.expiresAt < Date.now()) throw new Error(ERR_CODE_EXPIRED);
 
     const child = await ctx.db.get(row.childId);
@@ -422,12 +444,20 @@ export const createReleaseCode = mutation({
 /** Child-device side: redeem a guardian's release code. Single-use. */
 export const releaseDeviceByCode = mutation({
   args: { codeHash: v.string(), deviceId: v.string() },
-  handler: async (ctx, { codeHash, deviceId }) => {
+  handler: async (ctx, { codeHash, deviceId, userId }) => {
+    const key = pairingDeviceKey(`release:${userId}`);
+    await assertNotLocked(ctx, key);
     const row = await ctx.db
       .query("releaseCodes")
       .withIndex("by_codeHash", (q) => q.eq("codeHash", codeHash))
       .first();
-    if (!row || row.consumedAt) throw new Error(ERR_CODE_INVALID);
+    // Only the child the code was made for may spend it, from their own
+    // session: otherwise any account could walk the codes and sign a
+    // supervised child out.
+    if (!row || row.consumedAt || row.childId !== userId) {
+      await noteFailure(ctx, key, MAX_PAIRING_DEVICE_FAILURES);
+      return refusal(ERR_CODE_INVALID);
+    }
     if (row.expiresAt < Date.now()) throw new Error(ERR_CODE_EXPIRED);
 
     await ctx.db.patch(row._id, {
@@ -453,11 +483,20 @@ export const releaseDeviceByGuardianPassword = mutation({
     passwordHash: v.string(),
     deviceId: v.string(),
   },
-  handler: async (ctx, { childId, guardianUsername, passwordHash, deviceId }) => {
+  handler: async (
+    ctx,
+    { childId, guardianUsername, passwordHash, deviceId, userId },
+  ) => {
+    // From the child's own session only; anyone else could otherwise sign
+    // any child's device out.
+    if (userId !== childId) throw new Error(ERR_NOT_GUARDIAN);
     const guardian = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", guardianUsername.trim()))
       .first();
+    // The guardian's LOGIN bucket, so this is not a second, unlimited way to
+    // guess their password.
+    if (guardian) await assertNotLocked(ctx, loginKey(guardian._id));
 
     // A child account has no usable password (the stored sentinel), and must
     // never be a way out of supervision — same guard `auth.login` applies.
@@ -466,7 +505,10 @@ export const releaseDeviceByGuardianPassword = mutation({
       (guardian.accountType ?? ACCOUNT_ADULT) !== ACCOUNT_CHILD &&
       guardian.passwordHash === passwordHash &&
       (await isGuardianOf(ctx, guardian._id, childId));
-    if (!ok) throw new Error(ERR_NOT_GUARDIAN);
+    if (!ok) {
+      if (guardian) await noteFailure(ctx, loginKey(guardian._id));
+      return refusal(ERR_NOT_GUARDIAN);
+    }
 
     return releaseDevice(ctx, childId, deviceId);
   },

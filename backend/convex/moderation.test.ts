@@ -303,7 +303,7 @@ describe("moderator actions", () => {
     );
     // A fresh sign-in is refused.
     await expect(
-      t.mutation(api.auth.login, {
+      t.mutation(api.auth.login as any, {
         username: "bob",
         passwordHash: "hash-bob",
         deviceId: "device-b",
@@ -333,7 +333,7 @@ describe("moderator actions", () => {
       action: "unban",
     } as any);
     expect((await card())!.moderationCard!.userBanned).toBe(false);
-    const back = await t.mutation(api.auth.login, {
+    const back = await t.mutation(api.auth.login as any, {
       username: "bob",
       passwordHash: "hash-bob",
       deviceId: "device-b",

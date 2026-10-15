@@ -221,6 +221,8 @@ class ConvexBackend implements ConnectionProbe {
     try {
       final decoded = _decode(await _c.mutation(name: name, args: args));
       DiagLog.apiEnd(corr, name, sw.elapsedMilliseconds, decoded);
+      final refused = ServerRefusal.of(decoded);
+      if (refused != null) throw refused;
       return decoded;
     } catch (e) {
       if (_isVoidResultThrow(e)) {
@@ -594,4 +596,28 @@ class ConvexError implements Exception {
   @override
   String toString() =>
       'ConvexError($message${value == null ? '' : ': $value'})';
+}
+
+/// A credential check the server refused WITHOUT throwing.
+///
+/// Convex rolls back every write of a mutation that throws, and a failed
+/// password guess has to be counted, so those paths return
+/// `{"__refused": CODE}` instead (`backend/convex/rateLimit.ts`, `refusal`).
+/// This turns it back into an error. [toString] carries the code the same way
+/// a thrown server error does, so `humanizeAuthError` and every
+/// `e.toString().contains(...)` keep matching.
+class ServerRefusal implements Exception {
+  ServerRefusal(this.code);
+  final String code;
+
+  static ServerRefusal? of(Object? decoded) {
+    if (decoded is Map && decoded.length == 1) {
+      final code = decoded['__refused'];
+      if (code is String) return ServerRefusal(code);
+    }
+    return null;
+  }
+
+  @override
+  String toString() => 'ServerRefusal: $code';
 }

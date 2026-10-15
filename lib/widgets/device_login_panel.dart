@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -41,8 +40,6 @@ class DeviceLoginPanel extends StatefulWidget {
 }
 
 class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
-  static final _random = Random.secure();
-
   _Phase _phase = _Phase.minting;
   String? _code;
   String? _requestId;
@@ -96,18 +93,14 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
       _expiresAt = null;
       _exchanging = false;
     });
-    // Six digits, uniformly distributed across 100000–999999 — same
-    // distribution `PairingCodeScreen` uses.
-    final code = (100000 + _random.nextInt(900000)).toString();
     try {
       final deviceInfo = await DeviceIdentity.displayName();
       final req = await widget.auth.api.createDeviceLoginRequest(
         deviceInfo: deviceInfo,
-        code: code,
       );
       if (!mounted) return;
       setState(() {
-        _code = code;
+        _code = req.code;
         _requestId = req.requestId;
         _expiresAt = req.expiresAt;
         _phase = _Phase.waiting;
