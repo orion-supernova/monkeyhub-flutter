@@ -59,6 +59,7 @@ import 'profile_visibility_screen.dart';
 import 'release_device_screen.dart';
 import 'linked_accounts_screen.dart';
 import 'navigation/open_room.dart';
+import '../backend/server_limits.dart';
 
 /// Profile screen.
 ///
@@ -989,8 +990,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       await api.updateAvatar(userId: repo!.userId!, storageId: storageId);
       await _refresh();
-    } catch (_) {
-      /* silent — user can retry */
+    } catch (e) {
+      // Silent unless a server limit refused it (file too large, storage
+      // full, too many uploads): that the user can't fix by retrying.
+      if (mounted) {
+        final limit = serverLimitMessage(e, AppLocalizations.of(context));
+        if (limit != null) showAppToast(context, limit);
+      }
     } finally {
       if (mounted) {
         setState(() {

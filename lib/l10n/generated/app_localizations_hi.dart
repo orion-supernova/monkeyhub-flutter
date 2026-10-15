@@ -13830,4 +13830,35 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get sendLimitMessageTooLong =>
       'यह संदेश बहुत लंबा है। इसे कुछ संदेशों में बाँटकर देखें।';
+
+  @override
+  String get limitTooOften =>
+      'आप यह बहुत बार कर रहे हैं। थोड़ी देर बाद फिर से कोशिश करें।';
+
+  @override
+  String get limitRoomFull => 'यह रूम भर गया है।';
+
+  @override
+  String get limitRemovedFromRoom =>
+      'आपको इस रूम से हटा दिया गया था। कोई एडमिन आपको फिर से आमंत्रित कर सकता है।';
+
+  @override
+  String get limitTooManyRooms =>
+      'आप बहुत सारे रूम में हैं। पहले कोई ऐसा रूम छोड़ें जिसका आप अब इस्तेमाल नहीं करते।';
+
+  @override
+  String get limitRoomTextTooLong =>
+      'यह नाम या विवरण बहुत लंबा है। नाम 100 और विवरण 500 अक्षरों से कम रखें।';
+
+  @override
+  String get limitNotYourFile =>
+      'यह फ़ाइल इस्तेमाल नहीं की जा सकती। इसे फिर से चुनें और दोबारा कोशिश करें।';
+
+  @override
+  String get limitDeviceLoginBusy =>
+      'साइन-इन कोड अभी व्यस्त हैं। एक मिनट बाद फिर से कोशिश करें।';
+
+  @override
+  String get limitRequestMessages =>
+      'जब तक वे आपका अनुरोध स्वीकार नहीं करते, आप और नहीं भेज सकते।';
 }

@@ -3822,5 +3822,13 @@
   "sendLimitRateLimited": "Vous envoyez trop vite. Patientez un instant puis réessayez.",
   "sendLimitStorageFull": "Votre stockage est plein. Supprimez des photos ou fichiers envoyés pour libérer de l'espace.",
   "sendLimitFileTooLarge": "Ce fichier est trop volumineux pour être envoyé.",
-  "sendLimitMessageTooLong": "Ce message est trop long. Essayez de le diviser en plusieurs messages."
+  "sendLimitMessageTooLong": "Ce message est trop long. Essayez de le diviser en plusieurs messages.",
+  "limitTooOften": "Vous faites cela trop souvent. Réessayez dans un petit moment.",
+  "limitRoomFull": "Ce salon est complet.",
+  "limitRemovedFromRoom": "Vous avez été retiré de ce salon. Un administrateur peut vous réinviter.",
+  "limitTooManyRooms": "Vous êtes dans trop de salons. Quittez d'abord un salon que vous n'utilisez plus.",
+  "limitRoomTextTooLong": "Ce nom ou cette description est trop long. Les noms doivent faire moins de 100 caractères et les descriptions moins de 500.",
+  "limitNotYourFile": "Ce fichier ne peut pas être utilisé. Sélectionnez-le à nouveau et réessayez.",
+  "limitDeviceLoginBusy": "Les codes de connexion sont saturés pour le moment. Réessayez dans une minute.",
+  "limitRequestMessages": "Vous ne pouvez plus rien envoyer tant que votre demande n'est pas acceptée."
 }

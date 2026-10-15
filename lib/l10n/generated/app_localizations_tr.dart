@@ -13791,4 +13791,35 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get sendLimitMessageTooLong =>
       'Bu mesaj çok uzun. Birkaç mesaja bölmeyi dene.';
+
+  @override
+  String get limitTooOften =>
+      'Bunu çok sık yapıyorsun. Biraz sonra tekrar dene.';
+
+  @override
+  String get limitRoomFull => 'Bu oda dolu.';
+
+  @override
+  String get limitRemovedFromRoom =>
+      'Bu odadan çıkarıldın. Bir yönetici seni tekrar davet edebilir.';
+
+  @override
+  String get limitTooManyRooms =>
+      'Çok fazla odadasın. Önce artık kullanmadığın birinden ayrıl.';
+
+  @override
+  String get limitRoomTextTooLong =>
+      'Bu ad veya açıklama çok uzun. Adlar 100, açıklamalar 500 karakterden kısa olmalı.';
+
+  @override
+  String get limitNotYourFile =>
+      'Bu dosya kullanılamıyor. Tekrar seçip yeniden dene.';
+
+  @override
+  String get limitDeviceLoginBusy =>
+      'Giriş kodları şu an yoğun. Bir dakika sonra tekrar dene.';
+
+  @override
+  String get limitRequestMessages =>
+      'İsteğini kabul edene kadar daha fazla gönderemezsin.';
 }

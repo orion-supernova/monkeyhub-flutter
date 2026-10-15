@@ -19,6 +19,7 @@ import '../ios_kit.dart';
 import '../sheet_kit.dart' show sheetTitleStyle;
 import '../reaction_picker_sheet.dart';
 import '../desktop_scroll.dart';
+import '../../backend/server_limits.dart';
 
 /// How a photo becomes a sticker when its subject is not lifted out.
 enum StickerShape { circle, rounded, original }
@@ -274,7 +275,7 @@ class _StickerMakerScreenState extends State<StickerMakerScreen> {
       toast.show(
         e.toString().contains('TOO_MANY_STICKERS')
             ? l10n.stickerMakerTooMany
-            : l10n.stickerMakerFailed,
+            : friendlyServerError(e, l10n, l10n.stickerMakerFailed),
         tone: ToastTone.danger,
       );
     }

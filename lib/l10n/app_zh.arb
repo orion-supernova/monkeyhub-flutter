@@ -3822,5 +3822,13 @@
   "sendLimitRateLimited": "你发送得太快了。请稍等片刻再试。",
   "sendLimitStorageFull": "你的存储空间已满。删除一些已发送的照片或文件以释放空间。",
   "sendLimitFileTooLarge": "该文件太大，无法发送。",
-  "sendLimitMessageTooLong": "这条消息太长了。试着拆分成几条发送。"
+  "sendLimitMessageTooLong": "这条消息太长了。试着拆分成几条发送。",
+  "limitTooOften": "操作过于频繁，请稍后再试。",
+  "limitRoomFull": "此房间已满。",
+  "limitRemovedFromRoom": "你已被移出此房间。管理员可以重新邀请你。",
+  "limitTooManyRooms": "你加入的房间太多了。请先退出一个不再使用的房间。",
+  "limitRoomTextTooLong": "名称或简介太长。名称请少于 100 个字符，简介少于 500 个字符。",
+  "limitNotYourFile": "无法使用该文件。请重新选择后再试。",
+  "limitDeviceLoginBusy": "登录码暂时繁忙，请一分钟后再试。",
+  "limitRequestMessages": "在对方接受你的请求前，你无法再发送消息。"
 }

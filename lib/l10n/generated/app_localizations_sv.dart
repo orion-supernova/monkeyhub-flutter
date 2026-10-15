@@ -13887,4 +13887,35 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get sendLimitMessageTooLong =>
       'Meddelandet är för långt. Försök dela upp det i några meddelanden.';
+
+  @override
+  String get limitTooOften =>
+      'Du gör det för ofta. Försök igen om en liten stund.';
+
+  @override
+  String get limitRoomFull => 'Det här rummet är fullt.';
+
+  @override
+  String get limitRemovedFromRoom =>
+      'Du togs bort från det här rummet. En administratör kan bjuda in dig igen.';
+
+  @override
+  String get limitTooManyRooms =>
+      'Du är med i för många rum. Lämna först ett som du inte använder längre.';
+
+  @override
+  String get limitRoomTextTooLong =>
+      'Namnet eller beskrivningen är för lång. Håll namn under 100 tecken och beskrivningar under 500.';
+
+  @override
+  String get limitNotYourFile =>
+      'Filen kan inte användas. Välj den igen och försök på nytt.';
+
+  @override
+  String get limitDeviceLoginBusy =>
+      'Inloggningskoderna är upptagna just nu. Försök igen om en minut.';
+
+  @override
+  String get limitRequestMessages =>
+      'Du kan inte skicka mer förrän de godkänner din förfrågan.';
 }

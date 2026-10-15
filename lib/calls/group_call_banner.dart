@@ -8,6 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../widgets/app_toast.dart';
 import 'group_call_service.dart';
 import 'widgets/call_chrome.dart';
+import '../backend/server_limits.dart';
 
 /// "Ongoing call" banner for a room: green pulse + who's in + a Join pill.
 /// Renders nothing when no call is active in the room, or when this device
@@ -103,9 +104,10 @@ class _GroupCallBannerState extends State<GroupCallBanner>
       await widget.service.joinCall(call['groupCallId'].toString());
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       final msg = e.toString().contains('CALL_FULL')
-          ? AppLocalizations.of(context).groupCallBannerCallFullError
-          : AppLocalizations.of(context).groupCallBannerJoinFailedError;
+          ? l10n.groupCallBannerCallFullError
+          : friendlyServerError(e, l10n, l10n.groupCallBannerJoinFailedError);
       showAppToast(context, msg);
     }
   }

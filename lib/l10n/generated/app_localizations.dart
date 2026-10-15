@@ -23094,6 +23094,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That message is too long. Try splitting it into a few messages.'**
   String get sendLimitMessageTooLong;
+
+  /// Generic toast when the server refuses an action because the user did it too often (RATE_LIMITED): creating rooms, friend requests, invites, calls, uploads, reports and similar. Calm, not alarming.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re doing that too often. Try again in a little while.'**
+  String get limitTooOften;
+
+  /// Toast when joining or adding someone to a room that already has the maximum number of members (ROOM_FULL).
+  ///
+  /// In en, this message translates to:
+  /// **'This room is full.'**
+  String get limitRoomFull;
+
+  /// Toast when someone recently removed from a room by an admin tries to rejoin it on their own (REMOVED_FROM_ROOM). An admin can still invite them back.
+  ///
+  /// In en, this message translates to:
+  /// **'You were removed from this room. An admin can invite you back.'**
+  String get limitRemovedFromRoom;
+
+  /// Toast when the user is already in the maximum number of rooms and tries to join or create another (TOO_MANY_ROOMS).
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re in too many rooms. Leave one you no longer use first.'**
+  String get limitTooManyRooms;
+
+  /// Toast when a room name (max 100 characters) or description (max 500) is too long (ROOM_NAME_TOO_LONG / ROOM_DESCRIPTION_TOO_LONG).
+  ///
+  /// In en, this message translates to:
+  /// **'That name or description is too long. Keep names under 100 characters and descriptions under 500.'**
+  String get limitRoomTextTooLong;
+
+  /// Toast when the server refuses a file the user tried to attach because it isn't theirs or is too old to attach (NOT_YOUR_FILE). Telling them to pick it again fixes it.
+  ///
+  /// In en, this message translates to:
+  /// **'That file can\'t be used. Pick it again and retry.'**
+  String get limitNotYourFile;
+
+  /// Shown on the desktop/web sign-in-with-phone panel when the server can't hand out a sign-in code right now (DEVICE_LOGIN_BUSY).
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in codes are busy right now. Try again in a minute.'**
+  String get limitDeviceLoginBusy;
+
+  /// Toast when the user has sent the maximum number of messages on a pending message request (TOO_MANY_MESSAGES) and must wait for the other person to accept.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t send more until they accept your request.'**
+  String get limitRequestMessages;
 }
 
 class _AppLocalizationsDelegate

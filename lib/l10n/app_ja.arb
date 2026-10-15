@@ -3822,5 +3822,13 @@
   "sendLimitRateLimited": "送信が速すぎます。少し待ってからもう一度お試しください。",
   "sendLimitStorageFull": "ストレージがいっぱいです。送信した写真やファイルを削除して空き容量を作ってください。",
   "sendLimitFileTooLarge": "このファイルは大きすぎて送信できません。",
-  "sendLimitMessageTooLong": "メッセージが長すぎます。いくつかに分けて送ってみてください。"
+  "sendLimitMessageTooLong": "メッセージが長すぎます。いくつかに分けて送ってみてください。",
+  "limitTooOften": "操作の回数が多すぎます。しばらくしてからもう一度お試しください。",
+  "limitRoomFull": "このルームは満員です。",
+  "limitRemovedFromRoom": "このルームから削除されました。管理者がもう一度招待できます。",
+  "limitTooManyRooms": "参加しているルームが多すぎます。使わなくなったルームを先に退出してください。",
+  "limitRoomTextTooLong": "名前または説明が長すぎます。名前は100文字未満、説明は500文字未満にしてください。",
+  "limitNotYourFile": "このファイルは使用できません。もう一度選んでやり直してください。",
+  "limitDeviceLoginBusy": "サインインコードが混み合っています。1分後にもう一度お試しください。",
+  "limitRequestMessages": "相手がリクエストを承認するまで、これ以上送信できません。"
 }

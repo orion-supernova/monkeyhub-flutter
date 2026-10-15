@@ -14,6 +14,7 @@ import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/ios_kit.dart';
+import '../backend/server_limits.dart';
 
 /// Lets any user describe a problem and send it, with the identifiers that make
 /// it actionable already filled in.
@@ -116,9 +117,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
       // says "wait", not "something broke", and telling them to retry would be
       // telling them to do the thing that cannot work. Everything else is ours.
       ok = false;
-      message = e.toString().contains('TOO_MANY_REPORTS')
+      message = e.toString().contains('TOO_MANY_REPORTS') ||
+              e.toString().contains('RATE_LIMITED')
           ? l10n.reportProblemTooMany
-          : l10n.reportProblemSendFailed;
+          : friendlyServerError(e, l10n, l10n.reportProblemSendFailed);
     }
     if (!mounted) return;
     setState(() => _sending = false);

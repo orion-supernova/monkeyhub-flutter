@@ -13991,6 +13991,37 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get sendLimitMessageTooLong =>
       'Essa mensagem é demasiado longa. Tente dividi-la em várias mensagens.';
+
+  @override
+  String get limitTooOften =>
+      'Está a fazer isso com demasiada frequência. Tente novamente daqui a pouco.';
+
+  @override
+  String get limitRoomFull => 'Esta sala está cheia.';
+
+  @override
+  String get limitRemovedFromRoom =>
+      'Foi removido desta sala. Um administrador pode voltar a convidá-lo.';
+
+  @override
+  String get limitTooManyRooms =>
+      'Está em demasiadas salas. Saia primeiro de uma que já não usa.';
+
+  @override
+  String get limitRoomTextTooLong =>
+      'Esse nome ou descrição é demasiado longo. Use menos de 100 caracteres no nome e menos de 500 na descrição.';
+
+  @override
+  String get limitNotYourFile =>
+      'Não é possível usar esse ficheiro. Escolha-o novamente e tente outra vez.';
+
+  @override
+  String get limitDeviceLoginBusy =>
+      'Os códigos de início de sessão estão ocupados neste momento. Tente novamente dentro de um minuto.';
+
+  @override
+  String get limitRequestMessages =>
+      'Não pode enviar mais até a pessoa aceitar o seu pedido.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -27964,4 +27995,35 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get sendLimitMessageTooLong =>
       'Essa mensagem é longa demais. Tente dividi-la em algumas mensagens.';
+
+  @override
+  String get limitTooOften =>
+      'Você está fazendo isso com muita frequência. Tente de novo daqui a pouco.';
+
+  @override
+  String get limitRoomFull => 'Esta sala está cheia.';
+
+  @override
+  String get limitRemovedFromRoom =>
+      'Você foi removido desta sala. Um administrador pode convidar você de novo.';
+
+  @override
+  String get limitTooManyRooms =>
+      'Você está em salas demais. Saia primeiro de uma que não usa mais.';
+
+  @override
+  String get limitRoomTextTooLong =>
+      'Esse nome ou descrição é longo demais. Use menos de 100 caracteres no nome e menos de 500 na descrição.';
+
+  @override
+  String get limitNotYourFile =>
+      'Não é possível usar esse arquivo. Escolha de novo e tente outra vez.';
+
+  @override
+  String get limitDeviceLoginBusy =>
+      'Os códigos de login estão ocupados agora. Tente de novo em um minuto.';
+
+  @override
+  String get limitRequestMessages =>
+      'Você não pode enviar mais até a pessoa aceitar seu pedido.';
 }

@@ -13987,4 +13987,35 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get sendLimitMessageTooLong =>
       'Ese mensaje es demasiado largo. Prueba a dividirlo en varios mensajes.';
+
+  @override
+  String get limitTooOften =>
+      'Lo estás haciendo demasiado a menudo. Vuelve a intentarlo dentro de un rato.';
+
+  @override
+  String get limitRoomFull => 'Esta sala está llena.';
+
+  @override
+  String get limitRemovedFromRoom =>
+      'Te sacaron de esta sala. Un administrador puede volver a invitarte.';
+
+  @override
+  String get limitTooManyRooms =>
+      'Estás en demasiadas salas. Primero sal de una que ya no uses.';
+
+  @override
+  String get limitRoomTextTooLong =>
+      'Ese nombre o descripción es demasiado largo. Usa menos de 100 caracteres en el nombre y menos de 500 en la descripción.';
+
+  @override
+  String get limitNotYourFile =>
+      'No se puede usar ese archivo. Vuelve a elegirlo e inténtalo de nuevo.';
+
+  @override
+  String get limitDeviceLoginBusy =>
+      'Los códigos de inicio de sesión están ocupados ahora mismo. Vuelve a intentarlo en un minuto.';
+
+  @override
+  String get limitRequestMessages =>
+      'No puedes enviar más hasta que acepte tu solicitud.';
 }

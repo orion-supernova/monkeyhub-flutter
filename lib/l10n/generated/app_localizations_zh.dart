@@ -13111,4 +13111,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sendLimitMessageTooLong => '这条消息太长了。试着拆分成几条发送。';
+
+  @override
+  String get limitTooOften => '操作过于频繁，请稍后再试。';
+
+  @override
+  String get limitRoomFull => '此房间已满。';
+
+  @override
+  String get limitRemovedFromRoom => '你已被移出此房间。管理员可以重新邀请你。';
+
+  @override
+  String get limitTooManyRooms => '你加入的房间太多了。请先退出一个不再使用的房间。';
+
+  @override
+  String get limitRoomTextTooLong => '名称或简介太长。名称请少于 100 个字符，简介少于 500 个字符。';
+
+  @override
+  String get limitNotYourFile => '无法使用该文件。请重新选择后再试。';
+
+  @override
+  String get limitDeviceLoginBusy => '登录码暂时繁忙，请一分钟后再试。';
+
+  @override
+  String get limitRequestMessages => '在对方接受你的请求前，你无法再发送消息。';
 }

@@ -11,6 +11,7 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/approval_gate.dart';
 import '../../widgets/join_room_sheet.dart';
 import 'open_room.dart';
+import '../../backend/server_limits.dart';
 
 /// The one way into a public room you are not yet in.
 ///
@@ -114,7 +115,7 @@ Future<void> enterPublicRoom(
     toast.show(e.toString().contains('ROOM_PASSWORD_INVALID') ||
                 e.toString().contains('WRONG_PASSWORD')
               ? loc.enterPublicRoomWrongPasswordMessage
-              : loc.enterPublicRoomJoinFailedMessage,
+              : friendlyServerError(e, loc, loc.enterPublicRoomJoinFailedMessage),
       tone: ToastTone.danger,
     );
   }

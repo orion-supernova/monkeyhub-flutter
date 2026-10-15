@@ -17,6 +17,7 @@ import 'room_screen.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/ios_kit.dart';
 import '../l10n/text_case.dart';
+import '../backend/server_limits.dart';
 
 class CreateRoomSheet extends StatefulWidget {
   const CreateRoomSheet({super.key, required this.repo, required this.api});
@@ -95,7 +96,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
         // The language filter on the name or description, said in words.
         _error = s.contains('NAME_INAPPROPRIATE')
             ? AppLocalizations.of(context).nameInappropriate
-            : s;
+            : friendlyServerError(e, AppLocalizations.of(context), s);
       });
     }
   }

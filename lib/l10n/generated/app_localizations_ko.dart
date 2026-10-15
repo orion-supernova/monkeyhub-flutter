@@ -13270,4 +13270,29 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get sendLimitMessageTooLong => '메시지가 너무 길어요. 여러 개로 나눠 보내 보세요.';
+
+  @override
+  String get limitTooOften => '너무 자주 시도하고 있어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get limitRoomFull => '이 방은 정원이 가득 찼어요.';
+
+  @override
+  String get limitRemovedFromRoom => '이 방에서 내보내졌어요. 관리자가 다시 초대할 수 있어요.';
+
+  @override
+  String get limitTooManyRooms => '참여 중인 방이 너무 많아요. 더 이상 쓰지 않는 방에서 먼저 나가 주세요.';
+
+  @override
+  String get limitRoomTextTooLong =>
+      '이름이나 설명이 너무 길어요. 이름은 100자, 설명은 500자 미만으로 해 주세요.';
+
+  @override
+  String get limitNotYourFile => '이 파일은 사용할 수 없어요. 다시 선택한 뒤 재시도해 주세요.';
+
+  @override
+  String get limitDeviceLoginBusy => '지금은 로그인 코드를 발급할 수 없어요. 1분 후 다시 시도해 주세요.';
+
+  @override
+  String get limitRequestMessages => '상대가 요청을 수락할 때까지 더 보낼 수 없어요.';
 }

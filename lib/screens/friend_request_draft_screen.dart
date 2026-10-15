@@ -26,6 +26,7 @@ import 'room_screen.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/labeled_field.dart' show fieldDecoration;
 import '../widgets/ios_kit.dart';
+import '../backend/server_limits.dart';
 
 /// The draft chat that runs BEFORE a friend request is approved.
 ///
@@ -308,7 +309,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
           ? loc.friendRequestDraftScreenErrorBlocked
           : s.contains('NOT_ACCEPTING_REQUESTS')
               ? loc.friendRequestDraftScreenErrorNotAccepting
-              : loc.friendRequestDraftScreenErrorSendFailed;
+              : friendlyServerError(e, loc, loc.friendRequestDraftScreenErrorSendFailed);
       toast.show(msg);
     } finally {
       if (mounted) setState(() => _busy = false);

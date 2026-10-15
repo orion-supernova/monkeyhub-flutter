@@ -27,6 +27,7 @@ import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
 import 'points_explainer.dart';
 import '../../l10n/text_case.dart';
+import '../../backend/server_limits.dart';
 
 /// Logs a point: what happened, and which kind of thing it was.
 ///
@@ -101,6 +102,9 @@ class _PointComposerState extends State<_PointComposer> {
 
   bool _busy = false;
   String? _errorCode;
+
+  /// A server limit's own wording, shown when [_errorCode] is 'LIMIT'.
+  String? _limitText;
 
   /// Matches `MAX_CAPTION` in backend/convex/feed.ts.
   static const _maxNote = 280;
@@ -318,14 +322,17 @@ class _PointComposerState extends State<_PointComposer> {
     } catch (e) {
       if (!mounted) return;
       final s = e.toString();
+      _limitText = serverLimitMessage(e, AppLocalizations.of(context));
       setState(() {
         _busy = false;
-        _errorCode = [
-          'DAILY_CAP_REACHED',
-          'CHILD_NOT_ALLOWED',
-          'CAPTION_TOO_LONG',
-          'MESSAGE_FILTER_BLOCKED',
-        ].firstWhere(s.contains, orElse: () => 'UNKNOWN');
+        _errorCode = _limitText != null
+            ? 'LIMIT'
+            : [
+                'DAILY_CAP_REACHED',
+                'CHILD_NOT_ALLOWED',
+                'CAPTION_TOO_LONG',
+                'MESSAGE_FILTER_BLOCKED',
+              ].firstWhere(s.contains, orElse: () => 'UNKNOWN');
       });
     }
   }
@@ -490,6 +497,7 @@ class _PointComposerState extends State<_PointComposer> {
                 'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
                 'MESSAGE_FILTER_BLOCKED' => l10n.messageFilterBlocked,
                 'PICK_FAILED' => l10n.mediaPickFailedMessage,
+                'LIMIT' => _limitText ?? l10n.momentComposerErrorGeneric,
                 _ => l10n.momentComposerErrorGeneric,
               }),
             ],

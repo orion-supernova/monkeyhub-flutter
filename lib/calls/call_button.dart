@@ -9,6 +9,7 @@ import '../widgets/app_toast.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
 import 'call_service.dart';
+import '../backend/server_limits.dart';
 
 enum CallButtonVariant { classic, liquid }
 
@@ -81,6 +82,8 @@ class CallButton extends StatelessWidget {
   String _friendlyError(BuildContext context, Object e) {
     final l10n = AppLocalizations.of(context);
     final s = e.toString();
+    final limit = serverLimitMessage(e, l10n);
+    if (limit != null) return limit;
     if (s.contains('BUSY')) return l10n.callButtonErrorBusy;
     if (s.contains('CALL_FAILED')) return l10n.callButtonErrorCallFailed;
     if (s.contains('NOT_A_MEMBER')) return l10n.callButtonErrorNotMember;

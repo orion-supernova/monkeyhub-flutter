@@ -9,6 +9,7 @@ import 'ios_kit.dart';
 import 'labeled_field.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
+import '../backend/server_limits.dart';
 
 /// What is being reported, which decides what the sheet says will be sent.
 ///
@@ -101,7 +102,7 @@ Future<bool> fileReport(
     toast.error(
       e.toString().contains('TOO_MANY_REPORTS')
           ? l10n.reportTooMany
-          : l10n.reportFailed,
+          : friendlyServerError(e, l10n, l10n.reportFailed),
     );
     return false;
   }

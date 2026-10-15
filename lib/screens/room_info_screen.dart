@@ -55,6 +55,7 @@ import 'navigation/open_room.dart';
 import 'profile_screen.dart';
 import 'room_content_screen.dart';
 import '../l10n/text_case.dart';
+import '../backend/server_limits.dart';
 
 class RoomInfoScreen extends StatefulWidget {
   const RoomInfoScreen({
@@ -991,7 +992,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (s.contains('NOT_AUTHORIZED')) return l10n.roomInfoScreenErrorNotAuthorized;
     if (s.contains('ROOM_NAME_REQUIRED')) return l10n.roomInfoScreenNameRequiredError;
     if (s.contains('ROOM_NOT_FOUND')) return l10n.roomInfoScreenErrorRoomNotFound;
-    return s.replaceFirst('Exception: ', '');
+    return friendlyServerError(e, l10n, s.replaceFirst('Exception: ', ''));
   }
 
   String _fmtTtl(BuildContext context, Duration d) {
@@ -2176,7 +2177,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 ? l10n.callButtonErrorBusy
                 : str.contains('NOT_A_MEMBER')
                     ? l10n.callButtonErrorNotMember
-                    : l10n.callButtonErrorGeneric,
+                    : friendlyServerError(e, l10n, l10n.callButtonErrorGeneric),
         tone: ToastTone.danger,
       );
     }

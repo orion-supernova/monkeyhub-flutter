@@ -17,6 +17,7 @@
 /// real fix and is deliberately out of scope here.
 library;
 
+import '../backend/server_limits.dart';
 import '../l10n/generated/app_localizations.dart';
 
 /// A function rather than a top-level const — the copy comes from
@@ -137,6 +138,10 @@ String humanizeAuthError(
   for (final entry in authErrorMessages(l10n).entries) {
     if (s.contains(entry.key)) return entry.value;
   }
+  // A server limit (too often, room full, storage full...) says which, on
+  // every screen that routes its errors through here.
+  final limit = serverLimitMessage(e, l10n);
+  if (limit != null) return limit;
   if (fallback != null) return fallback;
   return s.length > 140 ? '${s.substring(0, 140)}…' : s;
 }

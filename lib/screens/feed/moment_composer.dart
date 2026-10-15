@@ -25,6 +25,7 @@ import '../../widgets/sheet_kit.dart';
 import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
 import '../../l10n/text_case.dart';
+import '../../backend/server_limits.dart';
 
 /// Composes a HIGHLIGHT: a picture or a video, and a few words about it.
 ///
@@ -81,6 +82,9 @@ class _MomentComposerState extends State<_MomentComposer> {
   ({Uint8List bytes, Uint8List? poster, String name})? _video;
   bool _busy = false;
   String? _errorCode;
+
+  /// A server limit's own wording, shown when [_errorCode] is 'LIMIT'.
+  String? _limitText;
 
   /// Matches `MAX_CAPTION` in backend/convex/feed.ts. Duplicated rather than
   /// shared because this repo has no Dart↔TypeScript constants mechanism —
@@ -345,8 +349,13 @@ class _MomentComposerState extends State<_MomentComposer> {
       // Convex wraps thrown errors in a longer server string, so these are
       // matched by substring — equality never works here.
       final s = e.toString();
+      _limitText = serverLimitMessage(e, AppLocalizations.of(context));
       setState(() {
         _busy = false;
+        if (_limitText != null) {
+          _errorCode = 'LIMIT';
+          return;
+        }
         _errorCode = [
           'DAILY_CAP_REACHED',
           'CHILD_NOT_ALLOWED',
@@ -366,6 +375,7 @@ class _MomentComposerState extends State<_MomentComposer> {
     'MESSAGE_FILTER_BLOCKED' => l10n.messageFilterBlocked,
     'TOO_BIG' => l10n.momentComposerErrorTooBig,
     'PICK_FAILED' => l10n.mediaPickFailedMessage,
+    'LIMIT' => _limitText ?? l10n.momentComposerErrorGeneric,
     _ => l10n.momentComposerErrorGeneric,
   };
 

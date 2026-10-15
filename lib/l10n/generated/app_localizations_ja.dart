@@ -13235,4 +13235,29 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get sendLimitMessageTooLong => 'メッセージが長すぎます。いくつかに分けて送ってみてください。';
+
+  @override
+  String get limitTooOften => '操作の回数が多すぎます。しばらくしてからもう一度お試しください。';
+
+  @override
+  String get limitRoomFull => 'このルームは満員です。';
+
+  @override
+  String get limitRemovedFromRoom => 'このルームから削除されました。管理者がもう一度招待できます。';
+
+  @override
+  String get limitTooManyRooms => '参加しているルームが多すぎます。使わなくなったルームを先に退出してください。';
+
+  @override
+  String get limitRoomTextTooLong =>
+      '名前または説明が長すぎます。名前は100文字未満、説明は500文字未満にしてください。';
+
+  @override
+  String get limitNotYourFile => 'このファイルは使用できません。もう一度選んでやり直してください。';
+
+  @override
+  String get limitDeviceLoginBusy => 'サインインコードが混み合っています。1分後にもう一度お試しください。';
+
+  @override
+  String get limitRequestMessages => '相手がリクエストを承認するまで、これ以上送信できません。';
 }

@@ -3822,5 +3822,13 @@
   "sendLimitRateLimited": "Çok hızlı gönderiyorsun. Biraz bekleyip tekrar dene.",
   "sendLimitStorageFull": "Depolama alanın dolu. Yer açmak için gönderdiğin bazı fotoğrafları veya dosyaları sil.",
   "sendLimitFileTooLarge": "Bu dosya göndermek için çok büyük.",
-  "sendLimitMessageTooLong": "Bu mesaj çok uzun. Birkaç mesaja bölmeyi dene."
+  "sendLimitMessageTooLong": "Bu mesaj çok uzun. Birkaç mesaja bölmeyi dene.",
+  "limitTooOften": "Bunu çok sık yapıyorsun. Biraz sonra tekrar dene.",
+  "limitRoomFull": "Bu oda dolu.",
+  "limitRemovedFromRoom": "Bu odadan çıkarıldın. Bir yönetici seni tekrar davet edebilir.",
+  "limitTooManyRooms": "Çok fazla odadasın. Önce artık kullanmadığın birinden ayrıl.",
+  "limitRoomTextTooLong": "Bu ad veya açıklama çok uzun. Adlar 100, açıklamalar 500 karakterden kısa olmalı.",
+  "limitNotYourFile": "Bu dosya kullanılamıyor. Tekrar seçip yeniden dene.",
+  "limitDeviceLoginBusy": "Giriş kodları şu an yoğun. Bir dakika sonra tekrar dene.",
+  "limitRequestMessages": "İsteğini kabul edene kadar daha fazla gönderemezsin."
 }
