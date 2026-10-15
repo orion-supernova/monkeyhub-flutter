@@ -31,7 +31,7 @@ async function signUp(
     name: username,
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
-    deviceId: DEVICE,
+    deviceId: `${DEVICE}-${username}`,
     ...extra,
   } as any);
 }

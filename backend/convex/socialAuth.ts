@@ -43,6 +43,9 @@ import {
   isReservedName,
 } from "./systemAccount";
 import { isRetiredHandle } from "./retiredHandles";
+import { verifyPassword } from "./passwords";
+import { refusal } from "./rateLimit";
+import { throttleSignup } from "./rateLimit";
 
 /**
  * Parked in `users.passwordHash`, which is non-optional, for accounts that have
@@ -95,14 +98,37 @@ const signInResultValidator = v.union(
  * Note what is deliberately absent — a charset rule. Handles are not
  * constrained to any alphabet, so one can legitimately contain spaces or
  * non-Latin characters, and a regex added here would invalidate names people
- * already answer to.
+ * already answer to. What IS refused is the invisible: control and format
+ * characters (zero-width joiners and spaces, direction overrides), which
+ * render as nothing and exist in a handle only to make it look like another.
  */
 export function normaliseUsername(raw: string): string {
   const username = raw.trim();
   if (username.length === 0 || username.length > 32) {
     throw new Error("USERNAME_INVALID");
   }
+  if (/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(username)) {
+    throw new Error("USERNAME_INVALID");
+  }
   return username;
+}
+
+/**
+ * Refuses a handle that differs from an existing one only by letter case.
+ *
+ * Lookups are exact, so "MuratCanKoc" was a separate, free handle beside
+ * "muratcankoc", and in a friend request the two read the same. Only the
+ * lowercase spelling is probed: cheap, and it covers the handles worth
+ * copying, which are overwhelmingly typed in lowercase.
+ */
+export async function assertNoCaseTwin(ctx: any, username: string) {
+  const lower = username.toLowerCase();
+  if (lower === username) return;
+  const twin = await ctx.db
+    .query("users")
+    .withIndex("by_username", (q: any) => q.eq("username", lower))
+    .first();
+  if (twin) throw new Error("USERNAME_TAKEN");
 }
 
 /**
@@ -378,7 +404,7 @@ export const unlink = mutation({
     passwordHash: v.string(),
     provider: providerValidator,
   },
-  returns: v.null(),
+  returns: v.union(v.null(), v.object({ __refused: v.string() })),
   handler: async (ctx, { userId, passwordHash, provider }) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
@@ -388,9 +414,9 @@ export const unlink = mutation({
     // a password-guessing oracle that sidesteps the login limiter.
     const key = loginKey(user._id);
     await assertNotLocked(ctx, key);
-    if (user.passwordHash !== passwordHash) {
+    if (!(await verifyPassword(user.passwordHash, passwordHash))) {
       await noteFailure(ctx, key);
-      throw new Error("WRONG_PASSWORD");
+      return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
 
@@ -642,6 +668,8 @@ export const createWithIdentity = internalMutation({
   handler: async (ctx, args) => {
     const username = normaliseUsername(args.username);
     const terms = termsStamp(args.termsVersion);
+    await assertNoCaseTwin(ctx, username);
+    await throttleSignup(ctx, args.deviceId);
 
     // Both uniqueness checks live inside this one mutation on purpose. Convex
     // mutations are serializable, so a concurrent signup that would collide is

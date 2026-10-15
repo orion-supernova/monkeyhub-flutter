@@ -3,12 +3,18 @@ import {  mutation, publicMutation, query  } from "./functions";
 import {
   ERR_SESSION_REVOKED,
   mintSession,
+  revokeOtherSessions,
   revokeSessionsForDevice,
 } from "./sessionCore";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
-import { SOCIAL_ONLY_PASSWORD_SENTINEL, ERR_USE_SOCIAL } from "./socialAuth";
+import {
+  SOCIAL_ONLY_PASSWORD_SENTINEL,
+  ERR_USE_SOCIAL,
+  assertNoCaseTwin,
+  normaliseUsername,
+} from "./socialAuth";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForUser } from "./speakerColors";
 import { ensureOwner } from "./roomAdmin";
@@ -34,9 +40,11 @@ import {
   recoveryKey,
   MAX_RECOVERY_FAILURES,
   refusal,
+  throttleSignup,
 } from "./rateLimit";
 import { revokeUserRoomAccess } from "./roomAccess";
 import { isRetiredHandle, retireIfStaff } from "./retiredHandles";
+import { hashPassword, upgradeIfLegacy, verifyPassword } from "./passwords";
 
 /**
  * Who the caller actually is, resolved from the bearer token alone.
@@ -97,10 +105,15 @@ export const signup = publicMutation({
   },
   handler: async (
     ctx,
-    { username, name, passwordHash, recoveryKeyHash, email, deviceId, termsVersion },
+    { username: rawUsername, name, passwordHash, recoveryKeyHash, email, deviceId, termsVersion },
   ) => {
+    let username = rawUsername;
     // Before anything else: a present-but-stale version is a refusal.
     const terms = termsStamp(termsVersion);
+    // Same handle rules as social signup and rename, which this path skipped.
+    username = normaliseUsername(username);
+    await assertNoCaseTwin(ctx, username);
+    await throttleSignup(ctx, deviceId);
     // Reserved handles — anything reading as the brand, not just the exact
     // system names. Checked before the collision test so the answer does not
     // depend on whether a system account happens to exist yet: they are created
@@ -127,7 +140,7 @@ export const signup = publicMutation({
     const userId = await ctx.db.insert("users", {
       username,
       name,
-      passwordHash,
+      passwordHash: await hashPassword(passwordHash),
       recoveryKeyHash,
       email,
       createdAt: Date.now(),
@@ -178,11 +191,12 @@ export const login = publicMutation({
     // resolved user, so a nonexistent username never creates a row.
     const key = loginKey(user._id);
     await assertNotLocked(ctx, key);
-    if (user.passwordHash !== passwordHash) {
+    if (!(await verifyPassword(user.passwordHash, passwordHash))) {
       await noteFailure(ctx, key);
       return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
+    await upgradeIfLegacy(ctx, user, passwordHash);
 
     await ctx.db.patch(user._id, { status: "online", lastSeen: Date.now() });
     return {
@@ -278,10 +292,13 @@ export const resetPasswordWithRecoveryKey = publicMutation({
     await clearFailures(ctx, key);
 
     await ctx.db.patch(user._id, {
-      passwordHash: newPasswordHash,
+      passwordHash: await hashPassword(newPasswordHash),
       status: "online",
       lastSeen: Date.now(),
     });
+    // A reset is what someone does when they think the password is known to
+    // somebody else, so every other signed-in device goes with it.
+    await revokeOtherSessions(ctx, user._id, deviceId);
     // `name` is not optional for the client: AuthResult.fromJson does
     // `j['name'].toString()`, so omitting it here wrote the literal string
     // "null" into the keychain as the user's display name on every reset.
@@ -329,11 +346,12 @@ export const setRecoveryKey = mutation({
     // as a password-guessing oracle that sidesteps the login limiter.
     const key = loginKey(user._id);
     await assertNotLocked(ctx, key);
-    if (user.passwordHash !== passwordHash) {
+    if (!(await verifyPassword(user.passwordHash, passwordHash))) {
       await noteFailure(ctx, key);
       return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
+    await upgradeIfLegacy(ctx, user, passwordHash);
 
     await ctx.db.patch(user._id, { recoveryKeyHash });
   },
@@ -393,11 +411,12 @@ export const changeUsername = mutation({
     // a password-guessing oracle that sidesteps the login limiter.
     const key = loginKey(user._id);
     await assertNotLocked(ctx, key);
-    if (user.passwordHash !== passwordHash) {
+    if (!(await verifyPassword(user.passwordHash, passwordHash))) {
       await noteFailure(ctx, key);
       return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
+    await upgradeIfLegacy(ctx, user, passwordHash);
 
     // Same transaction as the check above — a mutation calling a mutation does
     // not open a second one — so the proof and the rename commit or fail as one.

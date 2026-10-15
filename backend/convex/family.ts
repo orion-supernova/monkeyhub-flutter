@@ -50,6 +50,8 @@ import {
   refusal,
 } from "./rateLimit";
 import { isRetiredHandle } from "./retiredHandles";
+import { hashPassword, verifyPassword } from "./passwords";
+import { assertNoCaseTwin, normaliseUsername } from "./socialAuth";
 
 /** Pairing codes are deliberately short-lived — they're six digits read aloud. */
 const PAIRING_TTL_MS = 5 * 60 * 1000;
@@ -131,8 +133,9 @@ export const createChildAccount = mutation({
     // A child cannot itself become a guardian.
     if (await isChild(ctx, guardianId)) throw new Error(ERR_NOT_ALLOWED);
 
-    const handle = username.trim();
-    if (!handle) throw new Error("USERNAME_REQUIRED");
+    if (!username.trim()) throw new Error("USERNAME_REQUIRED");
+    const handle = normaliseUsername(username);
+    await assertNoCaseTwin(ctx, handle);
     // Reserved handles. Third of the three paths that can claim a username —
     // `auth.signup` and `socialAuth.completeSocialSignUp` are the others, and all
     // three need this, because reserving a name in two of them reserves nothing.
@@ -504,7 +507,7 @@ export const releaseDeviceByGuardianPassword = mutation({
     const ok =
       !!guardian &&
       (guardian.accountType ?? ACCOUNT_ADULT) !== ACCOUNT_CHILD &&
-      guardian.passwordHash === passwordHash &&
+      (await verifyPassword(guardian.passwordHash, passwordHash)) &&
       (await isGuardianOf(ctx, guardian._id, childId));
     if (!ok) {
       if (guardian) await noteFailure(ctx, loginKey(guardian._id));
@@ -1583,7 +1586,7 @@ export const promoteToAdult = mutation({
       childPolicy: undefined,
       // Only ever collected for a child account, and read nowhere.
       birthYear: undefined,
-      passwordHash,
+      passwordHash: await hashPassword(passwordHash),
     });
 
     const links = await ctx.db

@@ -8,7 +8,7 @@ import {
 import { deleteStored, claimUpload } from "./files";
 import {
   SOCIAL_ONLY_PASSWORD_SENTINEL,
-  normaliseUsername,
+  normaliseUsername, assertNoCaseTwin,
 } from "./socialAuth";
 import {
   ACCOUNT_ADULT,
@@ -532,6 +532,9 @@ export const applyUsernameChange = internalMutation({
     // regex introduced here — and nowhere else — would lock those users out of
     // the name they already answer to.
     const next = normaliseUsername(username);
+    if (next.toLowerCase() !== user.username?.toLowerCase()) {
+      await assertNoCaseTwin(ctx, next);
+    }
 
     // A no-op costs nothing and, more to the point, must not spend the thirty
     // days. Someone who opens the sheet, thinks better of it and saves the name
@@ -714,7 +717,14 @@ export async function searchUsersCore(
       const fuzzy =
         handle.includes(needle) ||
         (u.name ?? "").toLowerCase().includes(needle);
-      if (reachable === null) return fuzzy; // adult — unchanged
+      if (reachable === null) {
+        // An adult finds a child only by their exact handle, given to them
+        // in person: browsing a substring must not list children to anyone.
+        if (u.accountType === "child") {
+          return needle.length > 0 && handle === needle;
+        }
+        return fuzzy;
+      }
       // Child: fuzzy within the people they already have, exact anywhere.
       if (reachable.has(u._id.toString())) return fuzzy;
       return needle.length > 0 && handle === needle;

@@ -74,3 +74,22 @@ describe("pairing-code guessing is throttled", () => {
     await expect(guess(99)).rejects.toThrow("TOO_MANY_ATTEMPTS");
   });
 });
+
+describe("password storage", () => {
+  test("is salted, and a legacy bare hash upgrades on the next login", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "victim");
+    const stored = async () =>
+      (await t.run((ctx) => ctx.db.get(me.userId as any)) as any).passwordHash;
+    expect(await stored()).toMatch(/^pbkdf2-sha256\$/);
+
+    // A row written before salting: the client's hash, stored bare.
+    const bare = "a".repeat(64);
+    await t.run((ctx) => ctx.db.patch(me.userId as any, { passwordHash: bare }));
+    const res: any = await login(t, bare);
+    expect(res.token).toBeTruthy();
+    expect(await stored()).toMatch(/^pbkdf2-sha256\$/);
+    // And the upgraded row still accepts the same password.
+    expect((await login(t, bare) as any).token).toBeTruthy();
+  });
+});

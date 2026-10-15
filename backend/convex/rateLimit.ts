@@ -201,3 +201,18 @@ export const gcRateBuckets = internalMutation({
     for (const row of stale) await ctx.db.delete(row._id);
   },
 });
+
+/** Accounts one device may create per day, and everyone per minute. */
+export const MAX_SIGNUPS_PER_DEVICE_PER_DAY = 5;
+export const MAX_SIGNUPS_PER_MINUTE = 30;
+
+/**
+ * Signup has no session to key on, and Convex can't see the caller's IP, so
+ * this limits what it can: the device id the client sends, and the whole
+ * app's rate. A script rotating device ids still meets the global ceiling,
+ * which is far above any real launch-day rate.
+ */
+export async function throttleSignup(ctx: MutationCtx, deviceId: string) {
+  await consume(ctx, `signup:device:${deviceId}`, MAX_SIGNUPS_PER_DEVICE_PER_DAY, 24 * 60 * 60 * 1000);
+  await consume(ctx, "signup:global", MAX_SIGNUPS_PER_MINUTE, 60 * 1000);
+}
