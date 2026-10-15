@@ -258,18 +258,24 @@ class RoomCapabilities {
   /// The floor every system room stands on, and what an unrecognised
   /// [ChatRoom.systemRole] resolves to.
   ///
-  /// Nothing is afforded, [canMute] excepted. Each affordance a specific bot
-  /// room wants back is an explicit opt-in in [_systemRoomOverrides], so the
-  /// failure mode of a slug this build predates is a room with too little
-  /// chrome — never a call button that rings nothing or a "leave" that quietly
-  /// breaks the room. Mute is on because for that one flag "too little chrome"
-  /// means a bot you cannot shut up; see its own note.
+  /// Nothing is afforded, [canMute] and [hasMembers] excepted. Each
+  /// affordance a specific bot room wants back is an explicit opt-in in
+  /// [_systemRoomOverrides], so the failure mode of a slug this build predates
+  /// is a room with too little chrome — never a call button that rings nothing
+  /// or a "leave" that quietly breaks the room. Mute is on because for that one
+  /// flag "too little chrome" means a bot you cannot shut up; see its own note.
+  ///
+  /// The roster is on because every stamped system room is a staff group the
+  /// bot posts into, and "who else reads this" is the one question its members
+  /// ask. Keeping it off by default hid the moderation room's roster on every
+  /// build that predated the slug. A bot DM the server never stamped has no
+  /// such roster; see [_unstampedBotDm].
   static const system = RoomCapabilities(
     canCall: false,
     canLeave: false,
     canDelete: false,
     hasDescription: false,
-    hasMembers: false,
+    hasMembers: true,
     hasPeerHandle: false,
     canEditSettings: false,
     canOpenPeerProfile: false,
@@ -339,21 +345,16 @@ class RoomCapabilities {
 /// literals, so an affordance a bot room does NOT ask for keeps tracking that
 /// default when it changes — the whole point of the fallback being a floor.
 final Map<String, RoomCapabilities> _systemRoomOverrides = <String, RoomCapabilities>{
-  // `MonkeyHub Logs` stopped being a DM between the bot and one maintainer and
-  // became a staff room the bot posts into, so its roster went from "you and a
-  // bot" — the example [RoomCapabilities.hasMembers] cites as saying nothing —
-  // to the answer to a question that now has one: which of us can see the
-  // reports. Everything else stays locked down; a room the app writes to is
-  // still not a room anybody renames, leaves or deletes.
-  'logs': RoomCapabilities.system.copyWith(hasMembers: true),
   // The moderation inbox: a read-only feed Monkey Reporter posts report cards
   // into, exactly like the log room, plus the one thing the log room does not
   // need: acting on a card. See `backend/convex/moderation.ts`.
-  'moderation': RoomCapabilities.system.copyWith(
-    hasMembers: true,
-    canModerate: true,
-  ),
+  'moderation': RoomCapabilities.system.copyWith(canModerate: true),
 };
+
+/// A DM with a bot that the server never stamped: a system room by its peer,
+/// but a pair, and "you and a bot" is not a roster.
+final RoomCapabilities _unstampedBotDm =
+    RoomCapabilities.system.copyWith(hasMembers: false);
 
 /// Which [RoomKind] [room] is.
 ///
@@ -388,7 +389,9 @@ RoomCapabilities roomCapabilitiesFor(ChatRoom room, {ChatUser? peer}) {
     case RoomKind.system:
       // `??` and not `[]!`: an unknown slug is the expected case for a client
       // older than the backend, not a programming error.
-      base = _systemRoomOverrides[room.systemRole] ?? RoomCapabilities.system;
+      base = !room.isSystemRoom
+          ? _unstampedBotDm
+          : _systemRoomOverrides[room.systemRole] ?? RoomCapabilities.system;
   }
   // A DM with a bot that the server never stamped is a system room by its
   // peer, and gets the system default policy with it: read-only.

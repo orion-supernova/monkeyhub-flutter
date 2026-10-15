@@ -99,9 +99,8 @@ export async function ensureSystemAccount(
     // and presence and read receipts shared with friends.
     visibility: SYSTEM_VISIBILITY,
     // `avatarStorageId` is deliberately absent. A mutation cannot create a
-    // blob, so the avatar is deployment data — see
-    // `tools/monkeyhub-logs-avatar.md`. Until then the client draws its usual
-    // monogram.
+    // blob, so the avatar is deployment data, set with `systemAvatars:set`.
+    // Until then the client draws its usual monogram.
   });
 }
 

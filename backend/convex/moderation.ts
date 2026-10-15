@@ -25,7 +25,7 @@ import { REPORT_RETENTION_MS } from "./users";
  *
  * ── Who may act ─────────────────────────────────────────────────────────────
  *
- * Staff only, decided HERE against `MODERATION_STAFF_USERNAMES` and the
+ * Staff only, decided HERE against `moderationStaffUsernames()` and the
  * caller's own row — never against room membership, which the client shows
  * the buttons from but which is a row a bug could create. A caller who is not
  * staff gets NOT_AUTHORIZED whatever card id they hold.

@@ -2,7 +2,7 @@ import { internal } from "./_generated/api";
 import {
   ERR_SYSTEM_ACCOUNT,
   MODERATION_ROOM_NAME,
-  MODERATION_STAFF_USERNAMES,
+  moderationStaffUsernames,
   REPORTER_DISPLAY_NAME,
   REPORTER_USERNAME,
   SYSTEM_ROOM_MODERATION,
@@ -84,7 +84,7 @@ export const REPORT_TARGET_TYPES = ["user", "message", "room"] as const;
 async function moderationInbox(
   ctx: any,
 ): Promise<{ accountId: any; roomId: any } | null> {
-  const staff = await resolveStaff(ctx, MODERATION_STAFF_USERNAMES);
+  const staff = await resolveStaff(ctx, moderationStaffUsernames());
   if (staff.length === 0) return null;
   return await provisionSystemInbox(ctx, MODERATION_SPEC, staff);
 }

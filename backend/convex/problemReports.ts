@@ -6,7 +6,7 @@ import { galleryBucketFor } from "./messages";
 import {
   LOG_DISPLAY_NAME,
   LOG_ROOM_NAME,
-  LOG_ROOM_STAFF_USERNAMES,
+  logRoomStaffUsernames,
   LOG_USERNAME,
   REPORT_INBOX_USERNAME,
   SYSTEM_ROOM_LOGS,
@@ -101,7 +101,7 @@ export const LOG_ROOM_SPEC: SystemRoomSpec = {
 export async function resolveLogRoomReaders(ctx: any): Promise<any[]> {
   const readers = await resolveStaff(ctx, [
     REPORT_INBOX_USERNAME,
-    ...LOG_ROOM_STAFF_USERNAMES,
+    ...logRoomStaffUsernames(),
   ]);
   if (readers[0]?.username !== REPORT_INBOX_USERNAME) {
     throw new Error(ERR_NO_INBOX);

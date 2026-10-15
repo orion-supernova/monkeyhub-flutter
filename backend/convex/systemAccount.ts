@@ -13,7 +13,7 @@
  *
  * Note the account and the ROOM it writes into are separate things, and only the
  * account is a dead end. The room grew a second human reader
- * ([LOG_ROOM_STAFF_USERNAMES]) and stopped being a DM at all — see
+ * ([logRoomStaffUsernames]) and stopped being a DM at all — see
  * [LOG_ROOM_NAME]. Staff talking to each other in there is a live conversation;
  * it is only the bot in the corner that never answers.
  *
@@ -126,7 +126,7 @@ export const LOG_ROOM_NAME = "MonkeyHub Logs";
  * so pointing reports at a different maintainer is a one-line change.
  *
  * Still singular, and still the one that must exist: it is the account
- * `ERR_NO_INBOX` is about. [LOG_ROOM_STAFF_USERNAMES] is the softer list.
+ * `ERR_NO_INBOX` is about. [logRoomStaffUsernames] is the softer list.
  */
 export const REPORT_INBOX_USERNAME = "muratcankoc";
 
@@ -144,7 +144,26 @@ export const REPORT_INBOX_USERNAME = "muratcankoc";
  * rebuild of the deployment — and a system account listed here is skipped too:
  * this is where the humans go, and the room already has its bot.
  */
-export const LOG_ROOM_STAFF_USERNAMES: readonly string[] = ["oau"];
+export function logRoomStaffUsernames(): readonly string[] {
+  const raw = process.env.MONKEYHUB_STAFF_USERNAMES;
+  if (raw === undefined) return DEFAULT_STAFF_USERNAMES;
+  return raw
+    .split(",")
+    .map((name) => name.trim().toLowerCase())
+    .filter((name) => name.length > 0 && name !== REPORT_INBOX_USERNAME);
+}
+
+/**
+ * Who [logRoomStaffUsernames] means when `MONKEYHUB_STAFF_USERNAMES` is unset.
+ *
+ * Adding a moderator is an env change, not a deploy:
+ * `npx convex env set MONKEYHUB_STAFF_USERNAMES "oau,newadmin"`. The next
+ * report or log post adds them to both staff rooms. Removing a name revokes
+ * moderator actions at once, but leaves their room membership alone: room
+ * membership is only ever added automatically, so take them out by hand.
+ * An empty value means no staff besides [REPORT_INBOX_USERNAME].
+ */
+const DEFAULT_STAFF_USERNAMES: readonly string[] = [];
 
 // ── Monkey Reporter: the moderation inbox ───────────────────────────────────
 //
@@ -186,19 +205,18 @@ export const MODERATION_ROOM_NAME = "MonkeyHub Moderation";
  * is also the server-side authority for every moderator action — membership of
  * the room is what the client shows buttons from, but `moderation.ts` checks
  * the caller's username against THIS list, because a membership row is a thing
- * a bug could create and a constant in the source is not.
+ * a bug could create and an env var only the deployment's admin can set is not.
  */
-export const MODERATION_STAFF_USERNAMES: readonly string[] = [
-  REPORT_INBOX_USERNAME,
-  ...LOG_ROOM_STAFF_USERNAMES,
-];
+export function moderationStaffUsernames(): readonly string[] {
+  return [REPORT_INBOX_USERNAME, ...logRoomStaffUsernames()];
+}
 
 /** True if [username] is a moderator. Takes the row's handle, never an argument. */
 export function isModerationStaff(user: { username?: string } | null): boolean {
   return (
     !!user?.username &&
     !isSystemAccount(user as any) &&
-    MODERATION_STAFF_USERNAMES.includes(user.username)
+    moderationStaffUsernames().includes(user.username)
   );
 }
 

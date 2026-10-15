@@ -91,12 +91,19 @@ void main() {
       expect(caps.canDelete, isFalse);
       expect(caps.canLeave, isFalse);
       expect(caps.hasDescription, isFalse);
-      expect(caps.hasMembers, isFalse);
       expect(caps.hasPeerHandle, isFalse);
       expect(caps.canEditSettings, isFalse);
       expect(caps.canOpenPeerProfile, isFalse);
       expect(caps.canReceiveForwards, isFalse);
       expect(caps.canSaveMessages, isFalse);
+    });
+
+    test('an unknown slug still shows its roster', () {
+      // Every stamped system room is a staff group the bot posts into. A build
+      // that predates the slug used to hide who else reads it, which is how
+      // the moderation room shipped with no member list on older installs.
+      final caps = roomCapabilitiesFor(_room(systemRole: 'support-2027'));
+      expect(caps.hasMembers, isTrue);
     });
 
     test('the logs room gets its roster back, and nothing else', () {
