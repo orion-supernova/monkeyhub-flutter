@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'
+    show RenderAbstractViewport, RenderSliverPadding;
 
 import '../backend/chat_api.dart';
 import '../data/feed_store.dart';
@@ -1043,7 +1045,12 @@ class _FoldChevron extends StatelessWidget {
 
 /// A fold's lines, growing in under its header. Size only: a blur in flight
 /// is the one effect this app never animates.
-class _FoldBody extends StatelessWidget {
+///
+/// Opening one is asking to read it, so the list scrolls along as it grows
+/// until the last line clears the list's own bottom padding (the tab bar's
+/// clearance on the Feed, the home indicator's in the sheet). Never so far
+/// that the header leaves the top, and a finger on the list stops it.
+class _FoldBody extends StatefulWidget {
   const _FoldBody({
     required this.open,
     required this.duration,
@@ -1055,20 +1062,108 @@ class _FoldBody extends StatelessWidget {
   final List<Widget> children;
 
   @override
+  State<_FoldBody> createState() => _FoldBodyState();
+}
+
+class _FoldBodyState extends State<_FoldBody> {
+  /// Room left above the header when a tall fold stops at the top.
+  static const _headerRoom = 8.0;
+
+  final _lines = GlobalKey();
+
+  /// Whether a reveal is following this opening; a close cancels it.
+  bool _revealing = false;
+
+  @override
+  void didUpdateWidget(_FoldBody old) {
+    super.didUpdateWidget(old);
+    if (old.open == widget.open) return;
+    _revealing = widget.open;
+    if (widget.open) {
+      // The lines are laid out (at full size, clipped) from the next frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startReveal());
+    }
+  }
+
+  void _startReveal() {
+    if (!mounted || !_revealing) return;
+    final fold = context.findRenderObject();
+    final lines = _lines.currentContext?.findRenderObject();
+    final position = Scrollable.maybeOf(context)?.position;
+    if (fold is! RenderBox || lines is! RenderBox || position == null) return;
+    if (!fold.hasSize || !lines.hasSize || !fold.attached) return;
+    final viewport = RenderAbstractViewport.maybeOf(fold);
+    if (viewport == null) return;
+
+    // The whole row: header and fold, the Column they share.
+    final row = fold.parent is RenderBox ? fold.parent! as RenderBox : fold;
+    final headerAtTop =
+        viewport.getOffsetToReveal(row, 0).offset - _headerRoom;
+    final linesAtBottom = viewport
+            .getOffsetToReveal(
+              fold,
+              1,
+              rect: Offset.zero & Size(fold.size.width, lines.size.height),
+            )
+            .offset +
+        _listBottomPadding(fold);
+    final to = linesAtBottom < headerAtTop ? linesAtBottom : headerAtTop;
+    if (to <= position.pixels) return;
+    _follow(position, fold, lines, position.pixels, to);
+  }
+
+  /// Moves the list by the share of the fold that has grown, once per frame
+  /// after layout, so the scroll extent it lands in already exists.
+  void _follow(
+    ScrollPosition position,
+    RenderBox fold,
+    RenderBox lines,
+    double from,
+    double to,
+  ) {
+    if (!mounted || !_revealing || !fold.attached || !lines.attached) return;
+    // A drag or fling the reader started wins.
+    if (position.isScrollingNotifier.value) return;
+    final full = lines.size.height;
+    final grown = full <= 0 ? 1.0 : (fold.size.height / full).clamp(0.0, 1.0);
+    final target = (from + (to - from) * grown)
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if (target > position.pixels) position.jumpTo(target);
+    if (grown >= 1) return;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _follow(position, fold, lines, from, to),
+    );
+  }
+
+  /// The list's own bottom padding: where its content is meant to end above
+  /// whatever floats over its foot.
+  static double _listBottomPadding(RenderObject from) {
+    RenderObject? node = from.parent;
+    while (node != null && node is! RenderAbstractViewport) {
+      if (node is RenderSliverPadding) {
+        return node.resolvedPadding?.bottom ?? 0;
+      }
+      node = node.parent;
+    }
+    return 0;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     return AnimatedSize(
-      duration: duration,
+      duration: widget.duration,
       curve: motion.c(theme.motionEntrance),
       alignment: Alignment.topCenter,
-      child: !open
+      child: !widget.open
           ? const SizedBox(width: double.infinity)
           : Padding(
+              key: _lines,
               padding: const EdgeInsets.only(bottom: 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children,
+                children: widget.children,
               ),
             ),
     );
