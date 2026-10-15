@@ -28,6 +28,12 @@ import {
 export type SystemRoomSpec = {
   /** The account's handle. Must be inside a reserved substring. */
   username: string;
+  /**
+   * Handles this account has had before. A system row still holding one is
+   * renamed to [username] in place instead of a new account being minted,
+   * which would also mint a new, empty room and strand the old one.
+   */
+  formerUsernames?: readonly string[];
   /** The account's display name, which signs every post. */
   displayName: string;
   /** The room's display name. Never used as a lookup key. */
@@ -65,10 +71,21 @@ export async function ensureSystemAccount(
   ctx: any,
   spec: SystemRoomSpec,
 ): Promise<any> {
-  const existing = await ctx.db
-    .query("users")
-    .withIndex("by_username", (q: any) => q.eq("username", spec.username))
-    .first();
+  const byName = (username: string) =>
+    ctx.db
+      .query("users")
+      .withIndex("by_username", (q: any) => q.eq("username", username))
+      .first();
+  let existing = await byName(spec.username);
+  for (const former of spec.formerUsernames ?? []) {
+    if (existing) break;
+    const old = await byName(former);
+    // Only ever our own row: a real account on an old handle is not adopted.
+    if (old && isSystemAccount(old)) {
+      await ctx.db.patch(old._id, { username: spec.username });
+      existing = { ...old, username: spec.username };
+    }
+  }
   if (existing) {
     if (!isSystemAccount(existing)) {
       throw new Error(`${spec.username.toUpperCase()}_USERNAME_TAKEN`);
@@ -79,6 +96,10 @@ export async function ensureSystemAccount(
     // post.
     if (existing.visibility?.avatar !== SYSTEM_VISIBILITY.avatar) {
       await ctx.db.patch(existing._id, { visibility: SYSTEM_VISIBILITY });
+    }
+    // And a display name changed in code since the row was written.
+    if (existing.name !== spec.displayName) {
+      await ctx.db.patch(existing._id, { name: spec.displayName });
     }
     return existing._id;
   }

@@ -8,6 +8,7 @@ import {
   LOG_ROOM_NAME,
   logRoomStaffUsernames,
   LOG_USERNAME,
+  LOG_FORMER_USERNAMES,
   REPORT_INBOX_USERNAME,
   SYSTEM_ROOM_LOGS,
 } from "./systemAccount";
@@ -76,6 +77,7 @@ const MAX_BODY_CHARS = 8000;
  */
 export const LOG_ROOM_SPEC: SystemRoomSpec = {
   username: LOG_USERNAME,
+  formerUsernames: LOG_FORMER_USERNAMES,
   displayName: LOG_DISPLAY_NAME,
   roomName: LOG_ROOM_NAME,
   slug: SYSTEM_ROOM_LOGS,

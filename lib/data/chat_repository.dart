@@ -273,7 +273,11 @@ class ChatRepository extends ChangeNotifier {
   /// [roomById] may fail to resolve — an unresolvable room affords the
   /// locked-down floor, which drops SAVE/FORWARD rather than offering rows
   /// that would throw.
-  MessageCapabilities capabilitiesForMessage(ChatMessage message, ChatRoom? room) {
+  MessageCapabilities capabilitiesForMessage(
+    ChatMessage message,
+    ChatRoom? room, {
+    bool senderIsSystem = false,
+  }) {
     final me = _userId;
     return messageCapabilitiesFor(
       message: message,
@@ -281,6 +285,7 @@ class ChatRepository extends ChangeNotifier {
       room: room == null ? RoomCapabilities.system : capabilitiesFor(room),
       roomIsEphemeral: room?.isEphemeral ?? true,
       serverNow: serverNow,
+      senderIsSystem: senderIsSystem,
     );
   }
 

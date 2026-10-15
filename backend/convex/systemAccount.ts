@@ -54,8 +54,19 @@
  * cannot be presented as a password by somebody who read this file.
  */
 
-/** The account problem reports are posted BY. */
-export const LOG_USERNAME = "monkeyhub_logs";
+/**
+ * The account problem reports are posted BY. Named for what it is, like
+ * [REPORTER_USERNAME]; "MonkeyHub Logs" is the ROOM's name ([LOG_ROOM_NAME]).
+ */
+export const LOG_USERNAME = "monkeyhub_logger";
+
+/**
+ * What [LOG_USERNAME] used to be. `ensureSystemAccount` renames a row still
+ * holding it in place, so the existing account (and through its membership,
+ * the existing room with every report already filed) is carried over rather
+ * than replaced by a fresh empty pair.
+ */
+export const LOG_FORMER_USERNAMES: readonly string[] = ["monkeyhub_logs"];
 
 /**
  * The value of `rooms.system` on the report room, and the whole vocabulary of
@@ -95,7 +106,7 @@ export const SYSTEM_ROOM_LOGS = "logs";
 export const SYSTEM_ROOM_FALLBACK_BEHAVIOUR = "most-restricted" as const;
 
 /** Its display name — the one that signs each report. */
-export const LOG_DISPLAY_NAME = "MonkeyHub Logs";
+export const LOG_DISPLAY_NAME = "Monkey Logger";
 
 /**
  * The report room's display name.
@@ -107,17 +118,20 @@ export const LOG_DISPLAY_NAME = "MonkeyHub Logs";
  * reader ended that: with three people in the room there is no "other party" to
  * borrow from, so the room has to say what it is itself.
  *
- * The same words as [LOG_DISPLAY_NAME], and a separate constant rather than a
- * reference to it, because they name two different rows. Renaming the account
- * is not automatically the day every staff room list re-titles itself.
+ * Once the same words as [LOG_DISPLAY_NAME], and always a separate constant,
+ * because they name two different rows. Renaming the account (to "Monkey
+ * Logger") was not the day every staff room list re-titled itself.
  *
  * Nothing may look the room up by this string. Room names are not reserved the
  * way user names are — [isReservedName] guards `users`, not `rooms` — so any
  * user can create a group called "MonkeyHub Logs", and a `by_name` lookup would
  * happily return theirs. See `problemReports.findLogRoom` for the key that does
  * hold.
+ *
+ * "MH", not "MonkeyHub": the full name truncated in room lists. Existing rooms
+ * pick the new name up from `repairSystemRoom` on their next post.
  */
-export const LOG_ROOM_NAME = "MonkeyHub Logs";
+export const LOG_ROOM_NAME = "MH Logs";
 
 /**
  * The account problem reports are posted TO, by handle.
@@ -195,7 +209,7 @@ export const REPORTER_DISPLAY_NAME = "Monkey Reporter";
 export const SYSTEM_ROOM_MODERATION = "moderation";
 
 /** The moderation room's display name. Never used as a lookup key. */
-export const MODERATION_ROOM_NAME = "MonkeyHub Moderation";
+export const MODERATION_ROOM_NAME = "MH Moderation";
 
 /**
  * Who reads the moderation room AND who may act on a report card.
@@ -233,7 +247,11 @@ export function isModerationStaff(user: { username?: string } | null): boolean {
  *
  * A substring rule, so it holds for handles nobody has thought of yet.
  */
-const RESERVED_SUBSTRINGS: readonly string[] = ["monkeyhub", "monkeyreporter"];
+const RESERVED_SUBSTRINGS: readonly string[] = [
+  "monkeyhub",
+  "monkeyreporter",
+  "monkeylogger",
+];
 
 /** Refused when a requested username hits [isReservedName]. */
 export const ERR_USERNAME_RESERVED = "USERNAME_RESERVED";

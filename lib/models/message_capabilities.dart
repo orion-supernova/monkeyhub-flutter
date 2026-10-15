@@ -63,6 +63,7 @@ class MessageCapabilities {
     this.canModerate = false,
     this.canModerateMessage = false,
     this.canModerateUser = false,
+    this.moderatedUserBanned = false,
   });
 
   final bool canReply;
@@ -143,6 +144,10 @@ class MessageCapabilities {
   /// Of [canModerate]: the card names a person there is to ban or unban.
   final bool canModerateUser;
 
+  /// Of [canModerateUser]: that person is banned now, so the row is Unban
+  /// rather than Ban. One or the other, never both.
+  final bool moderatedUserBanned;
+
   /// Affords nothing. What an unknown state gets, and the base
   /// pending-message posture before the one row it keeps is added back.
   static const none = MessageCapabilities(
@@ -182,6 +187,7 @@ class MessageCapabilities {
     bool? canModerate,
     bool? canModerateMessage,
     bool? canModerateUser,
+    bool? moderatedUserBanned,
   }) =>
       MessageCapabilities(
         canReply: canReply ?? this.canReply,
@@ -203,6 +209,7 @@ class MessageCapabilities {
         canModerate: canModerate ?? this.canModerate,
         canModerateMessage: canModerateMessage ?? this.canModerateMessage,
         canModerateUser: canModerateUser ?? this.canModerateUser,
+        moderatedUserBanned: moderatedUserBanned ?? this.moderatedUserBanned,
       );
 }
 
@@ -216,12 +223,18 @@ class MessageCapabilities {
 /// [roomIsEphemeral] is a fact about the ROOM (`ChatRoom.isEphemeral`) that
 /// [RoomCapabilities] deliberately doesn't carry — it is about message
 /// lifetime, not room kind — so it rides in beside the table.
+///
+/// [senderIsSystem] is a fact about the SENDER: the app's own account, whose
+/// profile is a dead end (no DM, no call, no friend request). It can post into
+/// an ordinary group room, so the room's say alone does not cover it. Only the
+/// caller holding the roster knows it; false when unknown.
 MessageCapabilities messageCapabilitiesFor({
   required ChatMessage message,
   required bool isMine,
   required RoomCapabilities room,
   required bool roomIsEphemeral,
   required DateTime serverNow,
+  bool senderIsSystem = false,
 }) {
   final isPending = message.id.startsWith('tmp_');
   final isSent = message.status == MessageStatus.sent;
@@ -326,7 +339,8 @@ MessageCapabilities messageCapabilitiesFor({
     // `senderId` (the system account that wrote it) but no one reads that as
     // "the sender" the way they would on a real message — there is no one to
     // view the profile of or report.
-    canViewProfile: !isMine && !isSystem,
+    canViewProfile:
+        !isMine && !isSystem && !senderIsSystem && room.canViewSenderProfile,
     canDelete: isMine,
     // And not in a room whose content is the app's own (a system room): the
     // moderation room's cards are reports already.
@@ -336,6 +350,7 @@ MessageCapabilities messageCapabilitiesFor({
         room.canModerate && (message.moderationCard?.hasMessage ?? false),
     canModerateUser:
         room.canModerate && (message.moderationCard?.hasUser ?? false),
+    moderatedUserBanned: message.moderationCard?.userBanned ?? false,
     // Same gates as the chips' own toggle: nothing to react to on a send in
     // flight or a system notice — plus the room's say.
     canReact: !isPending && !isSystem && posting.canReact,

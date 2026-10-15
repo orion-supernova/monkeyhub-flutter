@@ -73,6 +73,7 @@ class RoomCapabilities {
     this.posting = RoomPostingPolicy.open,
     this.canReport = false,
     this.canModerate = false,
+    this.canViewSenderProfile = true,
   });
 
   /// Whether the header offers to start a call — the 1:1 button in a DM, the
@@ -195,6 +196,12 @@ class RoomCapabilities {
   /// because this is decided by a slug any client can read.
   final bool canModerate;
 
+  /// Whether a message's long-press offers "Profile" for whoever sent it.
+  /// Off in a system room: every message there is the bot's, and a bot's
+  /// profile is a dead end (no DM, no call, no friend request). The people in
+  /// the room are still reachable from its member list.
+  final bool canViewSenderProfile;
+
   /// An ordinary room: everything on. [canDelete] still narrows to the owner at
   /// the call site.
   static const group = RoomCapabilities(
@@ -287,6 +294,7 @@ class RoomCapabilities {
     // matching `roomPolicy.postingPresetOf` server-side, where an unstamped
     // system room resolves to read-only.
     posting: RoomPostingPolicy.readOnly,
+    canViewSenderProfile: false,
   );
 
   RoomCapabilities copyWith({
@@ -304,6 +312,7 @@ class RoomCapabilities {
     RoomPostingPolicy? posting,
     bool? canReport,
     bool? canModerate,
+    bool? canViewSenderProfile,
   }) =>
       RoomCapabilities(
         canCall: canCall ?? this.canCall,
@@ -320,6 +329,7 @@ class RoomCapabilities {
         posting: posting ?? this.posting,
         canReport: canReport ?? this.canReport,
         canModerate: canModerate ?? this.canModerate,
+        canViewSenderProfile: canViewSenderProfile ?? this.canViewSenderProfile,
       );
 
   /// These capabilities under [policy]: [posting] set, and the two answers the

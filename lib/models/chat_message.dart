@@ -746,6 +746,7 @@ class ModerationCard {
     required this.reportId,
     required this.hasMessage,
     required this.hasUser,
+    this.userBanned = false,
   });
 
   final String reportId;
@@ -756,6 +757,11 @@ class ModerationCard {
   /// There is a reported person to ban or unban.
   final bool hasUser;
 
+  /// That person is banned right now, so the card offers Unban, not Ban. The
+  /// server keeps it current on every card about them. Absent on cards posted
+  /// before it existed, which reads as not banned.
+  final bool userBanned;
+
   static ModerationCard? tryParse(Object? raw) {
     if (raw is! Map) return null;
     final id = raw['reportId'];
@@ -764,6 +770,7 @@ class ModerationCard {
       reportId: id,
       hasMessage: raw['hasMessage'] == true,
       hasUser: raw['hasUser'] == true,
+      userBanned: raw['userBanned'] == true,
     );
   }
 
@@ -771,5 +778,6 @@ class ModerationCard {
         'reportId': reportId,
         'hasMessage': hasMessage,
         'hasUser': hasUser,
+        'userBanned': userBanned,
       };
 }

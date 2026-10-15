@@ -6007,7 +6007,8 @@ class _RoomScreenState extends State<RoomScreen>
                 // Every menu gate in one object — the predicates that used to
                 // be derived inline here (and re-derived, by hand, in
                 // ThreadOverlay) live in `message_capabilities.dart` now.
-                final caps = widget.repo.capabilitiesForMessage(m, room);
+                final caps = widget.repo.capabilitiesForMessage(m, room,
+                    senderIsSystem: _members[m.senderId]?.isSystem ?? false);
                 final canReply = caps.canReply;
                 // Only a failed send gets handed live retry/discard callbacks.
                 // The tile draws the pair when it has them, so gating here is

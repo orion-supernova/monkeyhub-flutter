@@ -820,6 +820,8 @@ export default defineSchema({
   })
     .index("by_reporter", ["reporterId"])
     .index("by_target", ["targetType", "targetId"])
+    // Every card about one person, to flip their Ban/Unban row on a ban.
+    .index("by_reportedUser", ["reportedUserId"])
     // Retention sweep only. Reports used to be kept forever, which is a weak
     // answer under GDPR Art. 13(2)(a) and is not one the amended COPPA Rule
     // permits at all for a service children use — it requires a published
@@ -1264,6 +1266,10 @@ export default defineSchema({
         reportId: v.id("reports"),
         hasMessage: v.boolean(),
         hasUser: v.boolean(),
+        // Whether that person is banned right now, so the card offers Ban or
+        // Unban, never both. Kept current on every card for the person by
+        // `moderation.syncCardBanState`. Absent on cards posted before it.
+        userBanned: v.optional(v.boolean()),
       })
     ),
   })

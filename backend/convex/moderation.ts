@@ -21,7 +21,9 @@ import { REPORT_RETENTION_MS } from "./users";
  * actions: remove the reported message for everyone, ban (suspend) the person
  * — reversibly — or dismiss the report. Each updates the `reports` row and
  * posts a one-line outcome under the card, so the room doubles as the audit
- * log of who did what.
+ * log of what was decided. The line is signed "MonkeyHub", never a
+ * username: who pressed the button is recorded on the report row
+ * (`actionedBy`), not broadcast.
  *
  * ── Who may act ─────────────────────────────────────────────────────────────
  *
@@ -96,6 +98,26 @@ export async function unsuspendAccount(ctx: any, targetId: any) {
 }
 
 /**
+ * Sets `userBanned` on every report card about [userId], so each one offers
+ * Ban or Unban to match the account as it is now, not as it was when that
+ * card was posted. Every card, not only the one acted on: a second report
+ * about someone already banned must not offer to ban them again.
+ */
+async function syncCardBanState(ctx: any, userId: any, banned: boolean) {
+  const reports = await ctx.db
+    .query("reports")
+    .withIndex("by_reportedUser", (q: any) => q.eq("reportedUserId", userId))
+    .collect();
+  for (const r of reports) {
+    const card = r.cardMessageId ? await ctx.db.get(r.cardMessageId) : null;
+    if (!card?.moderationCard || card.moderationCard.userBanned === banned) continue;
+    await ctx.db.patch(card._id, {
+      moderationCard: { ...card.moderationCard, userBanned: banned },
+    });
+  }
+}
+
+/**
  * The one moderator mutation. One entry point with an `action` rather than
  * four mutations, so the staff check, the report lookup and the outcome line
  * cannot be forgotten by whichever action is added fifth.
@@ -113,10 +135,9 @@ export const act = mutation({
   },
   returns: v.object({ ok: v.boolean(), outcome: v.string() }),
   handler: async (ctx, { userId, reportId, action }) => {
-    const me = await assertStaff(ctx, userId);
+    await assertStaff(ctx, userId);
     const report = await ctx.db.get(reportId);
     if (!report) throw new Error(ERR_REPORT_NOT_FOUND);
-    const by = `@${me.username}`;
     let outcome: string;
 
     switch (action) {
@@ -128,28 +149,30 @@ export const act = mutation({
           const room = await ctx.db.get(msg.roomId);
           if (isSystemRoom(room)) throw new Error(ERR_NOT_STAFF);
           await removeMessageAndFanout(ctx, msg, msg._id);
-          outcome = `✅ Message removed for everyone by ${by}.`;
+          outcome = "✅ Message removed for everyone by MonkeyHub.";
         } else {
-          outcome = `ℹ️ Message was already gone (checked by ${by}).`;
+          outcome = "ℹ️ Message was already gone. Checked by MonkeyHub.";
         }
         break;
       }
       case "ban": {
         if (!report.reportedUserId) throw new Error("USER_NOT_FOUND");
         await suspendAccount(ctx, report.reportedUserId, userId);
+        await syncCardBanState(ctx, report.reportedUserId, true);
         const u = await ctx.db.get(report.reportedUserId);
-        outcome = `⛔ @${u?.username ?? "unknown"} banned by ${by}. Long-press the card to unban.`;
+        outcome = `⛔ @${u?.username ?? "unknown"} was banned by MonkeyHub. Long-press the card to unban.`;
         break;
       }
       case "unban": {
         if (!report.reportedUserId) throw new Error("USER_NOT_FOUND");
         await unsuspendAccount(ctx, report.reportedUserId);
+        await syncCardBanState(ctx, report.reportedUserId, false);
         const u = await ctx.db.get(report.reportedUserId);
-        outcome = `↩️ @${u?.username ?? "unknown"} unbanned by ${by}.`;
+        outcome = `↩️ @${u?.username ?? "unknown"} was unbanned by MonkeyHub.`;
         break;
       }
       case "dismiss": {
-        outcome = `🗂 Dismissed by ${by}. No action taken.`;
+        outcome = "🗂 Dismissed by MonkeyHub. No action taken.";
         break;
       }
     }

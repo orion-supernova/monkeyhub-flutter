@@ -122,14 +122,26 @@ void main() {
       expect(c.canModerate, isTrue);
       expect(c.canModerateMessage, isTrue);
       expect(c.canModerateUser, isTrue);
-      // Nobody reports a report.
+      // Nobody reports a report, or opens the bot's dead-end profile.
       expect(c.canReport, isFalse);
+      expect(c.canViewProfile, isFalse);
     });
 
     test('a card anywhere else, or a plain message, offers none', () {
       expect(_caps(_msg(card: _card), group).canModerate, isFalse);
       expect(_caps(_msg(), modRoom).canModerate, isFalse);
       expect(_caps(_msg(), group).canReport, isTrue);
+      expect(_caps(_msg(), group).canViewProfile, isTrue);
+      // The bot posting into an ordinary room has no profile to open either.
+      final fromBot = messageCapabilitiesFor(
+        message: _msg(),
+        isMine: false,
+        room: group,
+        roomIsEphemeral: false,
+        serverNow: DateTime(2026, 3, 1),
+        senderIsSystem: true,
+      );
+      expect(fromBot.canViewProfile, isFalse);
     });
 
     test('a filter-hit card has a person to ban but no message to remove', () {
@@ -139,29 +151,43 @@ void main() {
       expect(c.canModerateUser, isTrue);
     });
 
-    test('moderator rows keep the menu ordering rule', () async {
+    Future<List<MessageActionSpec>> specsFor(ModerationCard card) async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      final specs = messageActionSpecs(
+      return messageActionSpecs(
         l10n: l10n,
-        capabilities: _caps(_msg(card: _card), modRoom),
+        capabilities: _caps(_msg(card: card), modRoom),
         isPinned: false,
         isSaved: false,
         isTranslated: false,
         hasFileName: false,
       );
-      final actions = specs.map((s) => s.action).toList();
-      expect(
-        actions.where((a) => a.name.startsWith('mod')).toList(),
-        [
-          MessageAction.modUnbanUser,
-          MessageAction.modDismiss,
-          MessageAction.modRemoveMessage,
-          MessageAction.modBanUser,
-        ],
-      );
+    }
+
+    List<MessageAction> modRows(List<MessageActionSpec> specs) => specs
+        .map((s) => s.action)
+        .where((a) => a.name.startsWith('mod'))
+        .toList();
+
+    test('a card about someone not banned offers Ban, not Unban', () async {
+      final specs = await specsFor(_card);
+      expect(modRows(specs), [
+        MessageAction.modDismiss,
+        MessageAction.modRemoveMessage,
+        MessageAction.modBanUser,
+      ]);
       // Every destructive row comes after every neutral one.
       final firstRed = specs.indexWhere((s) => s.destructive);
       expect(specs.skip(firstRed).every((s) => s.destructive), isTrue);
+    });
+
+    test('a card about someone banned offers Unban, not Ban', () async {
+      const banned = ModerationCard(
+          reportId: 'rep1', hasMessage: true, hasUser: true, userBanned: true);
+      expect(modRows(await specsFor(banned)), [
+        MessageAction.modUnbanUser,
+        MessageAction.modDismiss,
+        MessageAction.modRemoveMessage,
+      ]);
     });
 
     test('the card survives the disk cache', () {
@@ -169,6 +195,7 @@ void main() {
       expect(back.moderationCard?.reportId, 'rep1');
       expect(back.moderationCard?.hasMessage, isTrue);
       expect(back.moderationCard?.hasUser, isTrue);
+      expect(back.moderationCard?.userBanned, isFalse);
     });
   });
 

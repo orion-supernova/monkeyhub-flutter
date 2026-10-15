@@ -1481,8 +1481,9 @@ List<MessageActionSpec> messageActionSpecs({
       ),
     // A moderator's two neutral answers to a report card: undo a ban, or
     // decline to act. Neither takes anything away, so neither is red, and both
-    // sit above the destructive block per the ordering rule.
-    if (caps.canModerate && caps.canModerateUser)
+    // sit above the destructive block per the ordering rule. Unban only while
+    // the person IS banned; Ban (below) only while they are not.
+    if (caps.canModerate && caps.canModerateUser && caps.moderatedUserBanned)
       MessageActionSpec(
         action: MessageAction.modUnbanUser,
         icon: CupertinoIcons.arrow_uturn_left_circle,
@@ -1519,7 +1520,7 @@ List<MessageActionSpec> messageActionSpecs({
         label: l10n.moderationActionRemoveMessage,
         destructive: true,
       ),
-    if (caps.canModerate && caps.canModerateUser)
+    if (caps.canModerate && caps.canModerateUser && !caps.moderatedUserBanned)
       MessageActionSpec(
         action: MessageAction.modBanUser,
         icon: CupertinoIcons.nosign,

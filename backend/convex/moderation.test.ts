@@ -117,6 +117,7 @@ describe("filing a report", () => {
       reportId: report._id,
       hasMessage: true,
       hasUser: true,
+      userBanned: false,
     });
     expect(card.content).toContain("Harassment");
     expect(card.content).toContain("@bob");
@@ -322,12 +323,16 @@ describe("moderator actions", () => {
       currentUserId: staff.userId,
     } as any);
     expect(found).toHaveLength(0);
+    // The card now offers Unban instead of Ban.
+    const card = (): Promise<any> => t.run((ctx) => ctx.db.get(report.cardMessageId!));
+    expect((await card())!.moderationCard!.userBanned).toBe(true);
 
     await t.mutation(api.moderation.act, {
       ...as(staff),
       reportId: report._id,
       action: "unban",
     } as any);
+    expect((await card())!.moderationCard!.userBanned).toBe(false);
     const back = await t.mutation(api.auth.login, {
       username: "bob",
       passwordHash: "hash-bob",

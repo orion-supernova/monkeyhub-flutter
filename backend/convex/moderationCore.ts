@@ -245,11 +245,22 @@ async function collectEvidence(
  * when no message points at it any more, so the evidence survives the source
  * message being deleted, expiring, or removed by a moderator.
  */
+/** Whether [userId] is banned right now. False for no one. */
+async function isSuspended(ctx: any, userId: any): Promise<boolean> {
+  if (!userId) return false;
+  return (await ctx.db.get(userId))?.suspendedAt !== undefined;
+}
+
 async function postAsReporter(
   ctx: any,
   inbox: { accountId: any; roomId: any },
   text: string,
-  card: { reportId: any; hasMessage: boolean; hasUser: boolean } | null,
+  card: {
+    reportId: any;
+    hasMessage: boolean;
+    hasUser: boolean;
+    userBanned: boolean;
+  } | null,
   media: any[] = [],
 ): Promise<any> {
   const { accountId, roomId } = inbox;
@@ -498,6 +509,7 @@ export async function fileContentReport(
         reportId,
         hasMessage: message !== null,
         hasUser: reportedUserId !== null,
+        userBanned: await isSuspended(ctx, reportedUserId),
       },
       evidence.media,
     );
@@ -589,6 +601,7 @@ export async function fileFilterHit(
     reportId,
     hasMessage: false,
     hasUser: true,
+    userBanned: await isSuspended(ctx, args.authorId),
   });
   await ctx.db.patch(reportId, { cardMessageId });
 }

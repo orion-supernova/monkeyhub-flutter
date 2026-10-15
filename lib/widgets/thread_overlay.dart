@@ -913,7 +913,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // the locked-down floor inside `capabilitiesForMessage`, which drops the
     // SAVE row rather than offering one that would throw.
     final caps = widget.repo
-        .capabilitiesForMessage(m, widget.repo.roomById(widget.roomId))
+        .capabilitiesForMessage(m, widget.repo.roomById(widget.roomId),
+            senderIsSystem: widget.members
+                .any((u) => u.id == m.senderId && u.isSystem))
         .copyWith(
           canViewThread: false,
           canForward: false,

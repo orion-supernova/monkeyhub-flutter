@@ -40,8 +40,8 @@ ChatRoom _legacyLogsDm() => _dm(systemRole: 'logs');
 
 ChatUser _user({bool isSystem = false}) => ChatUser(
       id: 'u1',
-      username: isSystem ? 'monkeyhub_logs' : 'someone',
-      name: isSystem ? 'MonkeyHub Logs' : 'Someone',
+      username: isSystem ? 'monkeyhub_logger' : 'someone',
+      name: isSystem ? 'Monkey Logger' : 'Someone',
       isSystem: isSystem,
     );
 

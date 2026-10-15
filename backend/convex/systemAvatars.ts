@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { isSystemAccount } from "./systemAccount";
 
 /**
- * Sets a system account's picture, and the picture of every system room it
+ * Sets a system account's picture, or the picture of the system rooms it
  * owns, from an image passed in as base64.
  *
  * A mutation cannot create a blob, which is why `ensureSystemAccount` leaves
@@ -14,6 +14,10 @@ import { isSystemAccount } from "./systemAccount";
  *   npx convex run systemAvatars:set \
  *     '{"username":"monkeyhub_reporter","imageBase64":"…","contentType":"image/jpeg"}'
  *
+ * `target` picks which face: "account" (the default) is the bot's own
+ * picture, "room" is the picture of its room. A room that has never had its own
+ * picture shows the bot's, so setting only the account is enough to start.
+ *
  * Internal, so no client can reach it. The previous blob is left in storage:
  * it is a few KB, and nothing here can prove no message still points at it.
  */
@@ -22,6 +26,7 @@ export const set = internalAction({
     username: v.string(),
     imageBase64: v.string(),
     contentType: v.string(),
+    target: v.optional(v.union(v.literal("account"), v.literal("room"))),
   },
   returns: v.object({ storageId: v.id("_storage"), rooms: v.number() }),
   handler: async (ctx, args): Promise<{ storageId: any; rooms: number }> => {
@@ -34,6 +39,7 @@ export const set = internalAction({
     const rooms: number = await ctx.runMutation(internal.systemAvatars.apply, {
       username: args.username,
       storageId,
+      target: args.target,
     });
     return { storageId, rooms };
   },
@@ -44,9 +50,13 @@ export const set = internalAction({
  * to change a person's picture.
  */
 export const apply = internalMutation({
-  args: { username: v.string(), storageId: v.id("_storage") },
+  args: {
+    username: v.string(),
+    storageId: v.id("_storage"),
+    target: v.optional(v.union(v.literal("account"), v.literal("room"))),
+  },
   returns: v.number(),
-  handler: async (ctx, { username, storageId }) => {
+  handler: async (ctx, { username, storageId, target }) => {
     const account = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -54,7 +64,11 @@ export const apply = internalMutation({
     if (!account || !isSystemAccount(account)) {
       throw new Error("NOT_A_SYSTEM_ACCOUNT");
     }
-    await ctx.db.patch(account._id, { avatarStorageId: storageId });
+    const forRoom = target === "room";
+    const previous = account.avatarStorageId;
+    if (!forRoom) {
+      await ctx.db.patch(account._id, { avatarStorageId: storageId });
+    }
 
     // Only the stamped rooms this account owns. Its friendships point into
     // the same rooms, so there is nothing else carrying its face.
@@ -67,6 +81,15 @@ export const apply = internalMutation({
       if (m.role !== "owner") continue;
       const room = await ctx.db.get(m.roomId);
       if (!room?.system) continue;
+      // A new bot face only reaches a room still wearing the old one (or none),
+      // so it never overwrites a picture set for the room itself.
+      if (
+        !forRoom &&
+        room.avatarStorageId &&
+        room.avatarStorageId !== previous
+      ) {
+        continue;
+      }
       await ctx.db.patch(room._id, { avatarStorageId: storageId });
       rooms++;
     }
