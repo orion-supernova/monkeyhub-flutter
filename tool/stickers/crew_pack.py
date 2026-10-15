@@ -196,15 +196,15 @@ class Crew:
     def __init__(self, fluent_dir):
         logo = prepare(cutout('branding/logo.png'))
         self.logo = Actor(logo, 410, x=250)
-        astro = prepare(cutout('branding/monkey/monkey-astronaut.png'),
+        astro = prepare(cutout('branding/source/astronaut.png'),
                         crop=(0, 0, 1, 0.74), oval=(0.5, 0.36, 0.56, 0.66))
         self.astro = Actor(astro, 400)
-        steam = prepare(cutout('branding/monkey/monkey-fields.png'),
+        steam = prepare(cutout('branding/source/goggles.png'),
                         crop=(0, 0, 1, 0.7), oval=(0.5, 0.34, 0.6, 0.68))
         self.steam = Actor(steam, 400)
-        self.hiker = Actor(prepare(cutout('branding/monkey/monkey-hiking.png')),
+        self.hiker = Actor(prepare(cutout('branding/source/hiker.png')),
                            420)
-        hmm = prepare(cutout('branding/monkey/monkey-hmm.png'),
+        hmm = prepare(cutout('branding/source/thinker.png'),
                       crop=(0.0, 0.0, 1, 1), oval=(0.5, 0.52, 0.5, 0.5))
         self.hmm = Actor(hmm, 330, foot=470, x=300)
         f = lambda name: Prop(fluent_dir, name)  # noqa: E731

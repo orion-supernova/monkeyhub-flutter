@@ -777,7 +777,12 @@ class MainActivity : FlutterActivity() {
         "risograph_pop", "bio_organic", "cyberpunk",
         "retro_wave", "neon_night", "deep_ocean",
         // Monkey Collection — see lib/widgets/monkey_collection.dart
-        "mh_monkey_hmm", "mh_monkey_fields", "mh_monkey_hiking", "mh_monkey_astronaut",
+        "mh_monkey_bubble_head", "mh_monkey_bubble_peek",
+        "mh_monkey_bubble_hang", "mh_monkey_neon_hang", "mh_monkey_tail_bubble",
+        "mh_monkey_typing", "mh_monkey_ops_tech", "mh_monkey_detective",
+        "mh_monkey_safety_spotter", "mh_monkey_control_room",
+        "mh_monkey_case_board", "mh_monkey_astronaut", "mh_monkey_hiking",
+        "mh_monkey_fields", "mh_monkey_hmm",
     )
 
     private fun currentAlternateIconName(): String? {

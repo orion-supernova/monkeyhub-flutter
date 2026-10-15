@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 /// One entry in the curated "Monkey Collection" section of the logo picker.
 ///
-/// Each variant is a self-contained illustration shipped as a PNG asset
-/// (`branding/monkey/*.png`). `MonkeyIconCanvas` renders the asset filling
-/// the canvas — same widget runs in the picker tile AND the launcher-icon
-/// PNG generator so preview ≡ launcher.
+/// Each variant is a self-contained illustration shipped as a 512px WebP
+/// (`branding/monkey/*.webp`), cut from the full-size original in
+/// `branding/source/`, which is not bundled. `MonkeyIconCanvas` renders the
+/// asset filling the canvas in the picker tile; the native launcher icons are
+/// cut from the same original by `tool/brand_images.py`.
 @immutable
 class MonkeyVariant {
   const MonkeyVariant({
@@ -24,30 +25,92 @@ class MonkeyVariant {
   /// Display label in the picker tile.
   final String displayName;
 
-  /// Path to the source PNG asset (must be declared in `pubspec.yaml`).
+  /// Path to the bundled WebP asset (declared in `pubspec.yaml`).
   final String assetPath;
 }
 
+/// The ids of the last four (`mh_monkey_astronaut`, `_hiking`, `_fields`,
+/// `_hmm`) predate their current names and must not change: an id is the
+/// Android activity-alias a user may have enabled, and shipping an update
+/// without that alias leaves the app with no launcher entry at all.
+///
+/// After adding or changing one, run `python3 tool/brand_images.py`, which
+/// reads this list and writes the bundled WebP and every native icon size.
 const List<MonkeyVariant> monkeyCollection = <MonkeyVariant>[
   MonkeyVariant(
-    id: 'mh_monkey_hmm',
-    displayName: 'Monkey Hmm',
-    assetPath: 'branding/monkey/monkey-hmm.png',
+    id: 'mh_monkey_bubble_head',
+    displayName: 'Bubble Head',
+    assetPath: 'branding/monkey/bubble-head.webp',
   ),
   MonkeyVariant(
-    id: 'mh_monkey_fields',
-    displayName: 'Monkey Fields',
-    assetPath: 'branding/monkey/monkey-fields.png',
+    id: 'mh_monkey_bubble_peek',
+    displayName: 'Bubble Peek',
+    assetPath: 'branding/monkey/bubble-peek.webp',
   ),
   MonkeyVariant(
-    id: 'mh_monkey_hiking',
-    displayName: 'Monkey Hiking',
-    assetPath: 'branding/monkey/monkey-hiking.png',
+    id: 'mh_monkey_bubble_hang',
+    displayName: 'Bubble Hang',
+    assetPath: 'branding/monkey/bubble-hang.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_neon_hang',
+    displayName: 'Neon Hang',
+    assetPath: 'branding/monkey/neon-hang.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_tail_bubble',
+    displayName: 'Tail Bubble',
+    assetPath: 'branding/monkey/tail-bubble.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_typing',
+    displayName: 'Typing',
+    assetPath: 'branding/monkey/typing.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_ops_tech',
+    displayName: 'Ops Tech',
+    assetPath: 'branding/monkey/ops-tech.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_detective',
+    displayName: 'Detective',
+    assetPath: 'branding/monkey/detective.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_safety_spotter',
+    displayName: 'Safety Spotter',
+    assetPath: 'branding/monkey/safety-spotter.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_control_room',
+    displayName: 'Control Room',
+    assetPath: 'branding/monkey/control-room.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_case_board',
+    displayName: 'Case Board',
+    assetPath: 'branding/monkey/case-board.webp',
   ),
   MonkeyVariant(
     id: 'mh_monkey_astronaut',
-    displayName: 'Monkey Astronaut',
-    assetPath: 'branding/monkey/monkey-astronaut.png',
+    displayName: 'Astronaut',
+    assetPath: 'branding/monkey/astronaut.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_hiking',
+    displayName: 'Hiker',
+    assetPath: 'branding/monkey/hiker.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_fields',
+    displayName: 'Goggles',
+    assetPath: 'branding/monkey/goggles.webp',
+  ),
+  MonkeyVariant(
+    id: 'mh_monkey_hmm',
+    displayName: 'Thinker',
+    assetPath: 'branding/monkey/thinker.webp',
   ),
 ];
 
@@ -64,8 +127,8 @@ MonkeyVariant? monkeyVariantById(String id) {
   return null;
 }
 
-/// Renders the variant's PNG filling the [size]×[size] canvas. The source
-/// PNGs are already self-contained illustrations (full-bleed, opaque), so
+/// Renders the variant's image filling the [size]×[size] canvas. The source
+/// images are already self-contained illustrations (full-bleed, opaque), so
 /// no backdrop colour is needed — iOS/Android apply their own masks.
 class MonkeyIconCanvas extends StatelessWidget {
   const MonkeyIconCanvas({

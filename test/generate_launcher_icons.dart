@@ -35,7 +35,6 @@ import 'package:monkeyhub/services/launcher_icon_names.dart';
 import 'package:monkeyhub/theme/app_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/brand_icon_canvas.dart';
-import 'package:monkeyhub/widgets/monkey_collection.dart';
 
 const _iosSizes = {120: '@2x', 180: '@3x'};
 const _androidSizes = {
@@ -62,7 +61,6 @@ void main() {
       final iosDir = Directory('ios/Runner/AlternateIcons');
       iosDir.createSync(recursive: true);
 
-      // 1) Theme-derived alt icons.
       for (final theme in ThemeController.all) {
         // A borrowed icon belongs to another theme; rendering this one under
         // its name would overwrite the owner's art.
@@ -78,15 +76,8 @@ void main() {
         );
       }
 
-      // 2) Monkey Collection alt icons — same compositing path, different
-      //    canvas (branding/logo.png on a fixed backdrop). Filename equals the
-      //    variant id, no renaming pass needed.
-      for (final variant in monkeyCollection) {
-        final masterPng = await _renderMonkeyMaster(tester, variant);
-        await _writeAllSizes(tester, masterPng, variant.id, iosDir);
-        // ignore: avoid_print
-        print('[generate_launcher_icons] wrote ${variant.id} (monkey)');
-      }
+      // The Monkey Collection is not rendered here: its icons are photos, cut
+      // and compressed straight from the originals by tool/brand_images.py.
     },
     timeout: const Timeout(Duration(minutes: 5)),
   );
@@ -149,43 +140,6 @@ Future<Uint8List> _renderMaster(WidgetTester tester, AppTheme theme) async {
 
   // Skia work has to run on the real async loop, not the test's fake clock —
   // otherwise toImage's future never completes and the test times out.
-  return (await tester.runAsync(() async {
-    final image = await boundary.toImage(pixelRatio: 1.0);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
-  }))!;
-}
-
-Future<Uint8List> _renderMonkeyMaster(
-  WidgetTester tester,
-  MonkeyVariant variant,
-) async {
-  final key = GlobalKey();
-  await tester.binding.setSurfaceSize(const Size(_masterSize, _masterSize));
-  await tester.pumpWidget(
-    MediaQuery(
-      data: const MediaQueryData(size: Size(_masterSize, _masterSize)),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: RepaintBoundary(
-          key: key,
-          // Same widget the picker tile uses.
-          child: MonkeyIconCanvas(variant: variant, size: _masterSize),
-        ),
-      ),
-    ),
-  );
-  // Image.asset is async — give the asset loader real-time to resolve the
-  // branding/logo.png bytes, then pump again to repaint with the loaded image.
-  await tester.pump();
-  await tester.runAsync(() async {
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-  });
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 100));
-
-  final boundary =
-      key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   return (await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 1.0);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);

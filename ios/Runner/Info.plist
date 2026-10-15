@@ -114,6 +114,60 @@
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
+			<key>mh_monkey_bubble_hang</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_bubble_hang</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_bubble_head</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_bubble_head</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_bubble_peek</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_bubble_peek</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_case_board</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_case_board</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_control_room</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_control_room</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_detective</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_detective</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
 			<key>mh_monkey_fields</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -137,6 +191,51 @@
 				<key>CFBundleIconFiles</key>
 				<array>
 					<string>mh_monkey_hmm</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_neon_hang</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_neon_hang</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_ops_tech</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_ops_tech</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_safety_spotter</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_safety_spotter</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_tail_bubble</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_tail_bubble</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_typing</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_typing</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>
@@ -298,6 +397,72 @@
 				<key>UIPrerenderedIcon</key>
 				<false/>
 			</dict>
+			<key>mh_monkey_bubble_hang</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_bubble_hang</string>
+					<string>mh_monkey_bubble_hang76x76</string>
+					<string>mh_monkey_bubble_hang83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_bubble_head</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_bubble_head</string>
+					<string>mh_monkey_bubble_head76x76</string>
+					<string>mh_monkey_bubble_head83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_bubble_peek</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_bubble_peek</string>
+					<string>mh_monkey_bubble_peek76x76</string>
+					<string>mh_monkey_bubble_peek83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_case_board</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_case_board</string>
+					<string>mh_monkey_case_board76x76</string>
+					<string>mh_monkey_case_board83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_control_room</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_control_room</string>
+					<string>mh_monkey_control_room76x76</string>
+					<string>mh_monkey_control_room83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_detective</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_detective</string>
+					<string>mh_monkey_detective76x76</string>
+					<string>mh_monkey_detective83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
 			<key>mh_monkey_fields</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -327,6 +492,61 @@
 					<string>mh_monkey_hmm</string>
 					<string>mh_monkey_hmm76x76</string>
 					<string>mh_monkey_hmm83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_neon_hang</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_neon_hang</string>
+					<string>mh_monkey_neon_hang76x76</string>
+					<string>mh_monkey_neon_hang83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_ops_tech</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_ops_tech</string>
+					<string>mh_monkey_ops_tech76x76</string>
+					<string>mh_monkey_ops_tech83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_safety_spotter</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_safety_spotter</string>
+					<string>mh_monkey_safety_spotter76x76</string>
+					<string>mh_monkey_safety_spotter83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_tail_bubble</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_tail_bubble</string>
+					<string>mh_monkey_tail_bubble76x76</string>
+					<string>mh_monkey_tail_bubble83.5x83.5</string>
+				</array>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>mh_monkey_typing</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>mh_monkey_typing</string>
+					<string>mh_monkey_typing76x76</string>
+					<string>mh_monkey_typing83.5x83.5</string>
 				</array>
 				<key>UIPrerenderedIcon</key>
 				<false/>

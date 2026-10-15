@@ -427,6 +427,8 @@ flutter_launcher_icons:
     generate: true
     image_path: "branding/logo.png"
 
+# Both of these write full-colour PNGs from the master. Run
+# `python3 tool/brand_images.py` afterwards to compress them again.
 flutter_native_splash:
   color: "#0E0E10"
   image: "branding/logo.png"
@@ -472,16 +474,18 @@ flutter:
   assets:
     # env.local is gitignored. Copy env.example → env.local before running.
     - env.local
-    - branding/logo.png
+    # The in-app mark, 512px WebP. NOT branding/logo.png: that 1024px PNG is
+    # the master the launcher-icon, splash and msix tools read from disk, and
+    # bundling it cost 1.3MB on every platform. tool/brand_images.py cuts this.
+    - branding/logo.webp
     # Google's official "G", for the Google sign-in button. Their artwork,
     # unmodified — see the file's own header before touching it.
     - branding/google_g.svg
     # Monkey Collection — curated alternate-icon set. See
-    # lib/widgets/monkey_collection.dart.
-    - branding/monkey/monkey-hmm.png
-    - branding/monkey/monkey-fields.png
-    - branding/monkey/monkey-hiking.png
-    - branding/monkey/monkey-astronaut.png
+    # lib/widgets/monkey_collection.dart. 512px WebPs cut by
+    # tool/brand_images.py from the originals in branding/source/, which stay
+    # out of the bundle.
+    - branding/monkey/
     # EVERY typeface the themes use, bundled. The google_fonts package looks up
     # <Family>-<Variant>.ttf in declared asset paths and prefers a bundled file
     # over a network fetch; `GoogleFonts.config.allowRuntimeFetching = false` in

@@ -502,9 +502,9 @@
         <!-- Monkey Collection — see lib/widgets/monkey_collection.dart -->
         <activity-alias
             android:label="MonkeyHub"
-            android:icon="@mipmap/ic_launcher_mh_monkey_hmm"
-            android:roundIcon="@mipmap/ic_launcher_mh_monkey_hmm"
-            android:name=".mh_monkey_hmm"
+            android:icon="@mipmap/ic_launcher_mh_monkey_bubble_head"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_bubble_head"
+            android:name=".mh_monkey_bubble_head"
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
@@ -518,9 +518,169 @@
         </activity-alias>
         <activity-alias
             android:label="MonkeyHub"
-            android:icon="@mipmap/ic_launcher_mh_monkey_fields"
-            android:roundIcon="@mipmap/ic_launcher_mh_monkey_fields"
-            android:name=".mh_monkey_fields"
+            android:icon="@mipmap/ic_launcher_mh_monkey_bubble_peek"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_bubble_peek"
+            android:name=".mh_monkey_bubble_peek"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_bubble_hang"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_bubble_hang"
+            android:name=".mh_monkey_bubble_hang"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_neon_hang"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_neon_hang"
+            android:name=".mh_monkey_neon_hang"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_tail_bubble"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_tail_bubble"
+            android:name=".mh_monkey_tail_bubble"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_typing"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_typing"
+            android:name=".mh_monkey_typing"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_ops_tech"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_ops_tech"
+            android:name=".mh_monkey_ops_tech"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_detective"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_detective"
+            android:name=".mh_monkey_detective"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_safety_spotter"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_safety_spotter"
+            android:name=".mh_monkey_safety_spotter"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_control_room"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_control_room"
+            android:name=".mh_monkey_control_room"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_case_board"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_case_board"
+            android:name=".mh_monkey_case_board"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_astronaut"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_astronaut"
+            android:name=".mh_monkey_astronaut"
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">
@@ -550,9 +710,25 @@
         </activity-alias>
         <activity-alias
             android:label="MonkeyHub"
-            android:icon="@mipmap/ic_launcher_mh_monkey_astronaut"
-            android:roundIcon="@mipmap/ic_launcher_mh_monkey_astronaut"
-            android:name=".mh_monkey_astronaut"
+            android:icon="@mipmap/ic_launcher_mh_monkey_fields"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_fields"
+            android:name=".mh_monkey_fields"
+            android:exported="true"
+            android:enabled="false"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/share_targets" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:label="MonkeyHub"
+            android:icon="@mipmap/ic_launcher_mh_monkey_hmm"
+            android:roundIcon="@mipmap/ic_launcher_mh_monkey_hmm"
+            android:name=".mh_monkey_hmm"
             android:exported="true"
             android:enabled="false"
             android:targetActivity=".MainActivity">

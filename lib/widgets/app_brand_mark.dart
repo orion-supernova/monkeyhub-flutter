@@ -59,7 +59,7 @@ class CanonicalLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'branding/logo.png',
+      'branding/logo.webp',
       width: size,
       height: size,
       filterQuality: FilterQuality.medium,
