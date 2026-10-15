@@ -56,3 +56,29 @@ describe("rooms", () => {
     await expect(join()).rejects.toThrow("ROOM_FULL");
   });
 });
+
+describe("blocking", () => {
+  test("hides the blocked person's messages in a shared group", async () => {
+    const t = convexTest(schema);
+    const { owner, guest, roomId, join } = await publicRoom(t);
+    await join();
+    for (const who of [owner, guest]) {
+      await t.mutation(api.messages.send, {
+        sessionToken: who.token,
+        userId: who.userId as any,
+        roomId,
+        content: `from ${who.userId}`,
+      });
+    }
+    await t.mutation(api.users.blockUser, {
+      sessionToken: owner.token,
+      userId: owner.userId as any,
+      targetUserId: guest.userId as any,
+    } as any);
+    const seen = await t.query(api.messages.list, {
+      sessionToken: owner.token,
+      roomId,
+    });
+    expect(seen.map((m: any) => m.userId)).toEqual([owner.userId]);
+  });
+});

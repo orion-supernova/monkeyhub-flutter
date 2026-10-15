@@ -2540,6 +2540,56 @@ export const deleteMany = mutation({
   },
 });
 
+/**
+ * Everyone [viewer] has blocked. Their messages are left out of every room
+ * read below: blocking used to hide a person only in DMs, and in a shared
+ * group their messages kept arriving. Read from `blocks`, which changes only
+ * when somebody blocks or unblocks, so live queries stay cheap.
+ */
+async function blockedAuthors(ctx: any, viewer: any): Promise<Set<string>> {
+  if (!viewer) return new Set();
+  const rows = await ctx.db
+    .query("blocks")
+    .withIndex("by_user", (q: any) => q.eq("userId", viewer))
+    .take(1000);
+  return new Set(rows.map((b: any) => b.blockedUserId.toString()));
+}
+
+/**
+ * One page of [roomId]'s messages past [from], with [hidden] authors left
+ * out but the page still filled: the client takes a short page to mean the
+ * start of history, so dropping rows without refilling would end scrollback
+ * early. Bounded at five extra reads.
+ */
+async function visiblePage(
+  ctx: any,
+  roomId: any,
+  from: number,
+  direction: "older" | "newer",
+  want: number,
+  hidden: Set<string>,
+) {
+  const out: any[] = [];
+  let cursor = from;
+  for (let round = 0; round < 5 && out.length < want; round++) {
+    const batch = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q: any) =>
+        direction === "older"
+          ? q.eq("roomId", roomId).lt("createdAt", cursor)
+          : q.eq("roomId", roomId).gt("createdAt", cursor),
+      )
+      .order(direction === "older" ? "desc" : "asc")
+      .take(want);
+    for (const m of batch) {
+      if (!hidden.has(m.userId.toString())) out.push(m);
+    }
+    if (batch.length < want) break;
+    cursor = batch[batch.length - 1].createdAt;
+  }
+  return out.slice(0, want);
+}
+
 /** A client-supplied page size, kept between 1 and [max]. */
 function clampPage(limit: number | undefined, fallback: number, max = 200) {
   return Math.max(1, Math.min(Math.floor(limit ?? fallback), max));
@@ -2558,11 +2608,14 @@ export const list = query({
   handler: async (ctx, { roomId, limit, viewerUserId }) => {
     // Members only. Through `roomAccess`, not `roomMembers`: see why there.
     if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
-    const msgs = await ctx.db
-      .query("messages")
-      .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
-      .order("desc")
-      .take(clampPage(limit, 100));
+    const hidden = await blockedAuthors(ctx, viewerUserId);
+    const msgs = (
+      await ctx.db
+        .query("messages")
+        .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
+        .order("desc")
+        .take(clampPage(limit, 100))
+    ).filter((m) => !hidden.has(m.userId.toString()));
 
     // Do NOT read `users` here. Convex reactivity tracks every doc read, so
     // including `ctx.db.get(msg.userId)` made this subscription re-fire on
@@ -2600,13 +2653,14 @@ export const listBefore = query({
   },
   handler: async (ctx, { roomId, beforeTimestamp, limit, viewerUserId }) => {
     if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
-    const msgs = await ctx.db
-      .query("messages")
-      .withIndex("by_room_time", (q) =>
-        q.eq("roomId", roomId).lt("createdAt", beforeTimestamp)
-      )
-      .order("desc")
-      .take(clampPage(limit, 30));
+    const msgs = await visiblePage(
+      ctx,
+      roomId,
+      beforeTimestamp,
+      "older",
+      clampPage(limit, 30),
+      await blockedAuthors(ctx, viewerUserId),
+    );
 
     // Mirrors the no-user-doc-read pattern from `list` above — see comment
     // there for why we never enrich with users in a reactive query.
@@ -2634,13 +2688,14 @@ export const listAfter = query({
   },
   handler: async (ctx, { roomId, afterTimestamp, limit, viewerUserId }) => {
     if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
-    const msgs = await ctx.db
-      .query("messages")
-      .withIndex("by_room_time", (q) =>
-        q.eq("roomId", roomId).gt("createdAt", afterTimestamp)
-      )
-      .order("asc")
-      .take(clampPage(limit, 30));
+    const msgs = await visiblePage(
+      ctx,
+      roomId,
+      afterTimestamp,
+      "newer",
+      clampPage(limit, 30),
+      await blockedAuthors(ctx, viewerUserId),
+    );
 
     // Mirrors the no-user-doc-read pattern from `list` above.
     return await Promise.all(
@@ -2706,7 +2761,10 @@ export const listAround = query({
       .order("asc")
       .take(fwdCap);
 
-    const collected = [...older.reverse(), anchor, ...newer];
+    const hidden = await blockedAuthors(ctx, viewerUserId);
+    const collected = [...older.reverse(), anchor, ...newer].filter(
+      (m) => m === anchor || !hidden.has(m.userId.toString()),
+    );
 
     // Reactions only. Do NOT read `users` here — same reason as `list`.
     const enriched = await Promise.all(

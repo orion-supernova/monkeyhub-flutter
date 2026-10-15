@@ -166,8 +166,19 @@ export const list = query({
     const viewerIsChild = viewer?.accountType === ACCOUNT_CHILD;
 
     // The supervised-account carve-out — see the header.
+    // People the viewer blocked: their comments are hidden like their
+    // messages are (an App Review requirement for blocking).
+    const blocked = new Set(
+      (
+        await ctx.db
+          .query("blocks")
+          .withIndex("by_user", (q: any) => q.eq("userId", userId))
+          .take(1000)
+      ).map((b: any) => b.blockedUserId.toString()),
+    );
     const shown = (c: any) => {
       const authorId = c.userId;
+      if (blocked.has(authorId.toString())) return false;
       if (lens.isSelf(authorId) || authorId === m.userId) return true;
       if (viewerIsChild && !lens.isFriend(authorId)) return false;
       const author = people.get(authorId.toString());
