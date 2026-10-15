@@ -6,8 +6,8 @@
    panel > "Localize..." on Info.plist) — see the matching note in
    tr.lproj/InfoPlist.strings. */
 
-"NSCameraUsageDescription" = "This app requires access to your camera.";
-"NSMicrophoneUsageDescription" = "This app requires access to your microphone.";
-"NSPhotoLibraryAddUsageDescription" = "This app needs to save photos to your library.";
-"NSPhotoLibraryUsageDescription" = "This app requires access to your photo library.";
+"NSCameraUsageDescription" = "MonkeyHub uses your camera for video calls and to take photos and videos you send in chats.";
+"NSMicrophoneUsageDescription" = "MonkeyHub uses your microphone for voice and video calls and to record voice messages.";
+"NSPhotoLibraryAddUsageDescription" = "MonkeyHub saves photos and videos you choose to keep from your chats to your library.";
+"NSPhotoLibraryUsageDescription" = "Shows your recent photos under the camera so you can send one with a tap.";
 "NSLocalNetworkUsageDescription" = "MonkeyHub uses the local network to connect calls directly between devices on the same Wi-Fi.";

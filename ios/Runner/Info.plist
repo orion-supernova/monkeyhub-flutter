@@ -471,11 +471,11 @@
 	<key>RTCScreenSharingExtension</key>
 	<string>com.walhallaa.chatTest-20241220.BroadcastExtension</string>
 	<key>NSCameraUsageDescription</key>
-	<string>This app requires access to your camera.</string>
+	<string>MonkeyHub uses your camera for video calls and to take photos and videos you send in chats.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app requires access to your microphone.</string>
+	<string>MonkeyHub uses your microphone for voice and video calls and to record voice messages.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This app needs to save photos to your library.</string>
+	<string>MonkeyHub saves photos and videos you choose to keep from your chats to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Shows your recent photos under the camera so you can send one with a tap.</string>
 	<!-- With "Limited" access, iOS would otherwise re-offer its select-more

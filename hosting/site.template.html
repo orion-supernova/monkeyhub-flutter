@@ -24,9 +24,12 @@
 
      This page used to pull both families from fonts.googleapis.com, which
      handed Google the IP address of every visitor before a single pixel was
-     drawn. That is a third-party data flow the product otherwise does not have:
-     the app ships no analytics and no ads, and lib/main.dart sets
-     GoogleFonts.config.allowRuntimeFetching = false for exactly this reason.
+     drawn. That is a third-party data flow the product otherwise avoids: the
+     app ships no analytics SDK, its only ads are the sponsored tiles KLIPY
+     mixes into GIF & sticker search (iOS/Android only, never for supervised
+     accounts; see the #ads note below and backend/convex/expressions.ts), and
+     lib/main.dart sets GoogleFonts.config.allowRuntimeFetching = false for
+     exactly this reason.
      A landing page that quietly does what the app refuses to do makes the
      privacy policy this site links to untrue.
 
@@ -176,6 +179,50 @@
   .where a { color: var(--banana); text-decoration: none; }
   .where a:hover { text-decoration: underline; }
 
+  /* ── Ads note + Support ───────────────────────────────────────────────── */
+  /* Both are static, below-the-fold reference content: no entrance
+     animation, so a visitor landing straight on /#support (the App Store
+     Support URL) sees it at once instead of waiting for a fade. */
+  .note-ads { margin-top: 14px; border-left-color: var(--banana-deep); }
+  .section { margin-top: 56px; scroll-margin-top: 24px; }
+  .section > h2 {
+    font-family: "Fredoka", sans-serif; font-weight: 600;
+    font-size: clamp(1.6rem, 6vw, 2rem); letter-spacing: .3px;
+  }
+  .section > .lede { margin-top: 8px; color: var(--ink-dim); line-height: 1.6; max-width: 36rem; }
+  .contact {
+    margin-top: 20px; padding: 20px 22px; border-radius: 18px;
+    background: linear-gradient(180deg, rgba(46,77,56,.45), rgba(19,28,22,.6));
+    border: 1px solid rgba(255,197,61,.28);
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center;
+  }
+  .contact .btn { min-width: 0; }
+  .contact p { color: var(--ink-dim); font-size: .95rem; line-height: 1.6; flex: 1 1 16rem; }
+  .contact p b { color: var(--ink); }
+  .help { margin-top: 14px; animation: none; }
+  .feat a, .faq a, .contact a:not(.btn) { color: var(--banana); text-decoration: none; overflow-wrap: anywhere; }
+  .feat a:hover, .faq a:hover, .contact a:not(.btn):hover { text-decoration: underline; }
+  .feat p b { color: var(--ink); font-weight: 700; }
+  .faq { margin-top: 14px; display: grid; gap: 10px; }
+  .faq details {
+    background: var(--jungle-2); border: 1px solid rgba(242,239,230,.08);
+    border-radius: 14px; padding: 0 18px;
+  }
+  .faq summary {
+    cursor: pointer; list-style: none; padding: 16px 0;
+    font-family: "Fredoka", sans-serif; font-weight: 500; font-size: 1.05rem;
+    display: flex; justify-content: space-between; gap: 12px;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; color: var(--banana); flex: none; }
+  .faq details[open] summary::after { content: "–"; }
+  .faq details p { color: var(--ink-dim); font-size: .95rem; line-height: 1.6; padding-bottom: 16px; }
+  .faq details p b { color: var(--ink); }
+  .h3 {
+    margin-top: 28px; font-family: "Fredoka", sans-serif; font-weight: 500;
+    font-size: 1.25rem; color: var(--ink);
+  }
+
   footer {
     margin-top: 40px; text-align: center;
     color: var(--ink-dim); font-size: .85rem; line-height: 1.7;
@@ -237,9 +284,9 @@
     </div>
     <div class="feat">
       <span class="ico" aria-hidden="true">👨‍👩‍👧</span>
-      <h2>Safe for the kids</h2>
-      <p>Pair a child's device with a code. Guardians decide who gets through,
-      set the rules, and stay in control.</p>
+      <h2>Parental controls built in</h2>
+      <p>Set up a supervised account and pair the device with a code.
+      Guardians decide who gets through, set the rules, and stay in control.</p>
     </div>
     <div class="feat">
       <span class="ico" aria-hidden="true">🎨</span>
@@ -258,6 +305,127 @@
     the app wins.
   </p>
 
+  <!-- MH:DOC — keep this note true to the code, not to the marketing.
+       Ads: KLIPY's tiles, requested only on iOS/Android (KlipyClient._adPlatform),
+       never for a child account (expression_store.dart: adsEnabled && !_isChild),
+       killable server-side with KLIPY_ADS=0 (backend/convex/expressions.ts).
+       What KLIPY gets is exactly what lib/expressions/klipy.dart sends. If that
+       file starts sending something new (an ad-ifa, a model name), this
+       paragraph and the privacy policy change in the same commit. -->
+  <p class="where note-ads" id="ads">
+    <b>About ads.</b> There are no ads in your chats, calls, games or feed.
+    The one place you might spot one is GIF &amp; sticker search, which is
+    powered by <a href="https://klipy.com" rel="noopener">KLIPY</a>: on iPhone,
+    iPad and Android, KLIPY slips the occasional sponsored tile in among the
+    results, and that's what keeps the GIFs free. Supervised accounts never
+    see them, and they get KLIPY's strictest content filter too.<br>
+    When you search, KLIPY receives your search words, which GIFs you send,
+    your IP address, your language and region, and basic device details like
+    screen size and operating system, tagged with a scrambled ID that isn't
+    your MonkeyHub account. Never your messages, contacts or name. The
+    <a href="https://walhallaa.com/monkeyhub-privacy-terms.html#klipy">privacy policy</a>
+    has the full list.
+  </p>
+
+  <section class="section" id="support" aria-labelledby="support-title">
+    <h2 id="support-title">Support</h2>
+    <p class="lede">Stuck, found a bug, or worried about someone? A real person
+    reads every message.</p>
+
+    <div class="contact">
+      <a class="btn btn-primary" href="mailto:info@walhallaa.com?subject=MonkeyHub%20support">Email info@walhallaa.com</a>
+      <p><b>Contact:</b> <a href="mailto:info@walhallaa.com">info@walhallaa.com</a>.
+      Tell us your username and what happened. If it's about a supervised
+      account's safety, put that in the subject line and it goes to the front
+      of the queue.</p>
+    </div>
+
+    <div class="features help">
+      <div class="feat">
+        <span class="ico" aria-hidden="true">🐞</span>
+        <h2>Report a problem</h2>
+        <p>In the app, open <b>Settings → Help &amp; legal → Report a
+        problem</b>. Your app version, device details and a short technical
+        log come along automatically, so we can find the cause.</p>
+      </div>
+      <div class="feat">
+        <span class="ico" aria-hidden="true">🚩</span>
+        <h2>Report a message</h2>
+        <p><b>Long-press the message → Report</b>, then pick a reason. Reports
+        are private: the other person isn't told.</p>
+      </div>
+      <div class="feat">
+        <span class="ico" aria-hidden="true">🙅</span>
+        <h2>Report or block someone</h2>
+        <p>Open their <b>profile → Report</b> or <b>Block</b>. Blocking stops
+        them reaching you straight away, and they aren't notified.</p>
+      </div>
+      <div class="feat">
+        <span class="ico" aria-hidden="true">⏱️</span>
+        <h2>Reviewed within 24 hours</h2>
+        <p>A moderator looks at every report within 24 hours. Content that
+        breaks the rules comes down, and the account behind it is removed from
+        MonkeyHub. Abuse gets zero tolerance.</p>
+      </div>
+      <div class="feat">
+        <span class="ico" aria-hidden="true">🗑️</span>
+        <h2>Delete your account</h2>
+        <p>From your profile in the app, or
+        <a href="https://walhallaa.com/monkeyhub-delete-account.html">on the
+        web</a> if you've already uninstalled it.</p>
+      </div>
+      <div class="feat">
+        <span class="ico" aria-hidden="true">📄</span>
+        <h2>Privacy &amp; terms</h2>
+        <p>Read the <a href="https://walhallaa.com/monkeyhub-privacy-terms.html#privacy">privacy
+        policy</a>, the <a href="https://walhallaa.com/monkeyhub-privacy-terms.html#terms">terms</a>
+        and the <a href="https://walhallaa.com/monkeyhub-eula.html">licence</a>.</p>
+      </div>
+    </div>
+
+    <h3 class="h3" id="parental-controls">Parental controls</h3>
+    <div class="faq">
+      <details>
+        <summary>How do I set up a supervised account?</summary>
+        <p>On your own account, open your <b>profile → Family → Add a
+        child</b>. Pick their name and username, then tap <b>Create +
+        pair</b>. You become their guardian.</p>
+      </details>
+      <details>
+        <summary>How do I pair their device?</summary>
+        <p>Install MonkeyHub on their device and tap <b>Set up a child
+        account</b> on the sign-in screen. Then scan the code on your phone,
+        or type its six digits. Need a fresh code later? Tap <b>Pair</b> under
+        their card in Family. Each code works once and expires quickly.</p>
+      </details>
+      <details>
+        <summary>How do I approve contacts?</summary>
+        <p>They can talk to their guardians and siblings straight away.
+        Everyone else needs your OK first, both people they ask for and
+        people who ask for them. Requests wait for you in <b>Family</b>, and
+        you can remove a contact at any time.</p>
+      </details>
+      <details>
+        <summary>What can guardians see?</summary>
+        <p>When they're online and who they talk to, not their messages.
+        Guardians control who gets through and which features are on (calls,
+        photos and video, new contacts, creating rooms), rather than reading
+        conversations.</p>
+      </details>
+      <details>
+        <summary>Can a second parent help?</summary>
+        <p>Yes. In the child's settings, add another grown-up by username.
+        They get exactly what you have: every request to approve and every
+        setting to change.</p>
+      </details>
+      <details>
+        <summary>Do supervised accounts see ads?</summary>
+        <p>No. GIF &amp; sticker search shows them no sponsored tiles at all,
+        and uses KLIPY's strictest content filter.</p>
+      </details>
+    </div>
+  </section>
+
   <footer>
     <!-- MH:DOC — these four links are a store requirement, not decoration.
          Apple 5.1.1(i) and Google's User Data policy both want the privacy
@@ -266,6 +434,7 @@
          who has already uninstalled. They live on walhallaa.com rather than
          here because that is the domain both store listings already point at,
          and a second copy would be a second thing to keep true. -->
+    <a href="#support">Support</a> ·
     <a href="https://walhallaa.com/monkeyhub-privacy-terms.html#privacy">Privacy</a> ·
     <a href="https://walhallaa.com/monkeyhub-privacy-terms.html#terms">Terms</a> ·
     <a href="https://walhallaa.com/monkeyhub-eula.html">Licence</a> ·
