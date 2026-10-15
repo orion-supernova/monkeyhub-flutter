@@ -691,6 +691,9 @@ class _ServerChip extends StatelessWidget {
         final theme = ThemeScope.of(context);
         final l10n = AppLocalizations.of(context);
         final store = ServerStore.instance;
+        // Hidden on a store build's default server; see
+        // `ServerStore.showsServerTools`.
+        if (!store.showsServerTools) return const SizedBox.shrink();
         // Marked for anything that is not the ordinary deployment; named only
         // when the user chose it. A homeserver follow is temporary and not
         // theirs — it says so, and does not publish the address.

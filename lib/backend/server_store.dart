@@ -37,6 +37,7 @@ class ServerStore extends ChangeNotifier {
   /// because it cannot be recovered from the URL: the address is identical
   /// either way — see [isPinned].
   static const _kPinned = 'mh.server.pinned';
+  static const _kUnlocked = 'mh.server.toolsUnlocked';
 
   /// `first_unlock`, like the preferences: readable on a locked launch, so a
   /// VoIP cold start on a locked phone connects to the server this install
@@ -190,6 +191,29 @@ class ServerStore extends ChangeNotifier {
   /// one — it is shown separately — and never contains the bundled default.
   List<ServerEndpoint> get recent => List.unmodifiable(_recent);
 
+  bool _unlocked = false;
+
+  /// Whether the server picker is offered at all.
+  ///
+  /// A store build hides it: App Review reads a "point the app at any server"
+  /// screen, shown before sign-in, as a way around the moderation the review
+  /// is checking. It stays reachable for the people who use it: debug builds,
+  /// anyone already on a non-default server (so they can always get back), and
+  /// anyone who opened Diagnostics through the version stamp's hidden taps,
+  /// which calls [unlockTools].
+  bool get showsServerTools =>
+      kDebugMode || _unlocked || role != ServerRole.primary;
+
+  /// Remembers that this install asked for the server tools.
+  Future<void> unlockTools() async {
+    if (_unlocked) return;
+    _unlocked = true;
+    notifyListeners();
+    try {
+      await _storage.write(key: _kUnlocked, value: '1');
+    } catch (_) {/* best effort; unlocked for this run regardless */}
+  }
+
   Future<void> load() async {
     if (_loaded) return;
     try {
@@ -207,6 +231,7 @@ class ServerStore extends ChangeNotifier {
         _pinned = await _storage.read(key: _kPinned) == '1';
       }
       _recent = ServerEndpoint.decodeList(await _storage.read(key: _kRecent));
+      _unlocked = await _storage.read(key: _kUnlocked) == '1';
     } catch (_) {
       /* secure storage unavailable in the test harness — bundled default */
     }

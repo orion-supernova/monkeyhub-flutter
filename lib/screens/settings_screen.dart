@@ -1335,7 +1335,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           enKw: en.settingsSearchKwLegal,
           onOpen: () => LinkOpener.open(context, kTermsOfServiceUrl)),
       // ── Advanced
-      if (!isChild)
+      if (!isChild && ServerStore.instance.showsServerTools)
         page('server',
             title: l10n.settingsHubServer,
             enTitle: en.settingsHubServer,
@@ -1951,6 +1951,7 @@ class _VersionStampState extends State<_VersionStamp> {
   /// a long press — on an unlabelled version string keep it out of the way,
   /// not out of reach.
   void _openDiagnostics() {
+    ServerStore.instance.unlockTools();
     openSettingsDetail(
       context,
       key: 'diagnostics',
