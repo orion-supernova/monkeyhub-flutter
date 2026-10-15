@@ -13099,4 +13099,16 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get reportSheetDisclosureComment =>
       '举报会将这条评论发送给 MonkeyHub 管理员审核。对方不会知道你举报了他们。';
+
+  @override
+  String get sendLimitRateLimited => '你发送得太快了。请稍等片刻再试。';
+
+  @override
+  String get sendLimitStorageFull => '你的存储空间已满。删除一些已发送的照片或文件以释放空间。';
+
+  @override
+  String get sendLimitFileTooLarge => '该文件太大，无法发送。';
+
+  @override
+  String get sendLimitMessageTooLong => '这条消息太长了。试着拆分成几条发送。';
 }

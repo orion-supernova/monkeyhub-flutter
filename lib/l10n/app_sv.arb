@@ -3818,5 +3818,9 @@
   "termsAcceptFailed": "Det gick inte att spara. Försök igen.",
   "settingsHubContactSupport": "Kontakta support",
   "reportSheetDisclosureMoment": "När du rapporterar skickas det här ögonblicket till MonkeyHubs moderatorer för granskning. Personen får inte veta att du rapporterade.",
-  "reportSheetDisclosureComment": "När du rapporterar skickas den här kommentaren till MonkeyHubs moderatorer för granskning. Personen får inte veta att du rapporterade."
+  "reportSheetDisclosureComment": "När du rapporterar skickas den här kommentaren till MonkeyHubs moderatorer för granskning. Personen får inte veta att du rapporterade.",
+  "sendLimitRateLimited": "Du skickar för snabbt. Vänta en stund och försök igen.",
+  "sendLimitStorageFull": "Ditt lagringsutrymme är fullt. Radera några foton eller filer du har skickat för att frigöra plats.",
+  "sendLimitFileTooLarge": "Filen är för stor för att skickas.",
+  "sendLimitMessageTooLong": "Meddelandet är för långt. Försök dela upp det i några meddelanden."
 }

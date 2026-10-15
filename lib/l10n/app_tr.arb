@@ -3818,5 +3818,9 @@
   "termsAcceptFailed": "Kaydedilemedi. Tekrar dene.",
   "settingsHubContactSupport": "Destekle iletişime geç",
   "reportSheetDisclosureMoment": "Şikayet etmek bu anı incelenmek üzere MonkeyHub moderatörlerine gönderir. Kişi şikayet ettiğini bilmez.",
-  "reportSheetDisclosureComment": "Şikayet etmek bu yorumu incelenmek üzere MonkeyHub moderatörlerine gönderir. Kişi şikayet ettiğini bilmez."
+  "reportSheetDisclosureComment": "Şikayet etmek bu yorumu incelenmek üzere MonkeyHub moderatörlerine gönderir. Kişi şikayet ettiğini bilmez.",
+  "sendLimitRateLimited": "Çok hızlı gönderiyorsun. Biraz bekleyip tekrar dene.",
+  "sendLimitStorageFull": "Depolama alanın dolu. Yer açmak için gönderdiğin bazı fotoğrafları veya dosyaları sil.",
+  "sendLimitFileTooLarge": "Bu dosya göndermek için çok büyük.",
+  "sendLimitMessageTooLong": "Bu mesaj çok uzun. Birkaç mesaja bölmeyi dene."
 }

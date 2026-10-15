@@ -41,6 +41,15 @@ import 'pending_reconcile.dart';
 import 'room_filter.dart';
 import 'settings_store.dart';
 
+/// Server refusals a send can hit that a retry can't fix right away. See
+/// `backend/convex/rateLimit.ts`, `files.ts` and `messages.ts`.
+const kSendLimitCodes = [
+  'RATE_LIMITED',
+  'STORAGE_QUOTA_EXCEEDED',
+  'FILE_TOO_LARGE',
+  'MESSAGE_TOO_LONG',
+];
+
 /// Source of truth for chat data (rooms + open-room messages).
 ///
 /// Mirrors v02's `ChatRepository` SSOT pattern. Owns:
@@ -3876,6 +3885,16 @@ class ChatRepository extends ChangeNotifier {
         notifyListeners();
         return;
       }
+      // A server limit (too fast, storage full, too large, too long) leaves
+      // the bubble failed like any error, but says which, so the room can
+      // tell the user why a retry won't help yet.
+      final text = e.toString();
+      for (final code in kSendLimitCodes) {
+        if (text.contains(code)) {
+          _lastSendLimit = code;
+          break;
+        }
+      }
       optimistic.status = MessageStatus.error;
       notifyListeners();
     }
@@ -4163,6 +4182,15 @@ class ChatRepository extends ChangeNotifier {
   /// Set when the last send was refused by a child guard, so the room screen
   /// can show the "ask a grown-up" sheet instead of a silent failure.
   /// Read-and-clear: consuming it resets the flag.
+  String? _lastSendLimit;
+
+  /// The server limit the last failed send ran into, read-and-clear.
+  String? takeSendLimit() {
+    final code = _lastSendLimit;
+    _lastSendLimit = null;
+    return code;
+  }
+
   String? _lastChildGateError;
   String? takeChildGateError() {
     final e = _lastChildGateError;

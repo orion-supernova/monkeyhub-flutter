@@ -13872,4 +13872,19 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get reportSheetDisclosureComment =>
       'När du rapporterar skickas den här kommentaren till MonkeyHubs moderatorer för granskning. Personen får inte veta att du rapporterade.';
+
+  @override
+  String get sendLimitRateLimited =>
+      'Du skickar för snabbt. Vänta en stund och försök igen.';
+
+  @override
+  String get sendLimitStorageFull =>
+      'Ditt lagringsutrymme är fullt. Radera några foton eller filer du har skickat för att frigöra plats.';
+
+  @override
+  String get sendLimitFileTooLarge => 'Filen är för stor för att skickas.';
+
+  @override
+  String get sendLimitMessageTooLong =>
+      'Meddelandet är för långt. Försök dela upp det i några meddelanden.';
 }

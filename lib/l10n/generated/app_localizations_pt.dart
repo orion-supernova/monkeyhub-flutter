@@ -13975,6 +13975,22 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get reportSheetDisclosureComment =>
       'Denunciar envia este comentário aos moderadores do MonkeyHub para revisão. A pessoa não saberá que a denunciou.';
+
+  @override
+  String get sendLimitRateLimited =>
+      'Está a enviar demasiado depressa. Aguarde um pouco e tente novamente.';
+
+  @override
+  String get sendLimitStorageFull =>
+      'O seu armazenamento está cheio. Apague algumas fotos ou ficheiros que enviou para libertar espaço.';
+
+  @override
+  String get sendLimitFileTooLarge =>
+      'Esse ficheiro é demasiado grande para enviar.';
+
+  @override
+  String get sendLimitMessageTooLong =>
+      'Essa mensagem é demasiado longa. Tente dividi-la em várias mensagens.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -27932,4 +27948,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get reportSheetDisclosureComment =>
       'Denunciar envia este comentário para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou.';
+
+  @override
+  String get sendLimitRateLimited =>
+      'Você está enviando rápido demais. Espere um pouco e tente de novo.';
+
+  @override
+  String get sendLimitStorageFull =>
+      'Seu armazenamento está cheio. Apague algumas fotos ou arquivos que você enviou para liberar espaço.';
+
+  @override
+  String get sendLimitFileTooLarge =>
+      'Esse arquivo é grande demais para enviar.';
+
+  @override
+  String get sendLimitMessageTooLong =>
+      'Essa mensagem é longa demais. Tente dividi-la em algumas mensagens.';
 }

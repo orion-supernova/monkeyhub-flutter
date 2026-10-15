@@ -1170,6 +1170,7 @@ class _RoomScreenState extends State<RoomScreen>
       _scrolledUp.value = false;
     }
     _drainChildGate();
+    _drainSendLimit();
     // Deferred a frame so _rowIndexOf reflects the rebuild this notification
     // just triggered above, rather than whatever it held before it.
     if (_unreadLandingPending) {
@@ -1394,6 +1395,28 @@ class _RoomScreenState extends State<RoomScreen>
   /// silent — the bubble was dropped, the reason was stashed, and nothing ever
   /// read it. This is the catch-all. `takeChildGateError` is read-and-clear, so
   /// the text path still wins its own race.
+  /// Says why a send was refused by a server limit. Runs from the same
+  /// listener as [_drainChildGate], for the same reason: media sends fail
+  /// after the composer has moved on.
+  void _drainSendLimit() {
+    final code = widget.repo.takeSendLimit();
+    if (code == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        switch (code) {
+          'STORAGE_QUOTA_EXCEEDED' => l10n.sendLimitStorageFull,
+          'FILE_TOO_LARGE' => l10n.sendLimitFileTooLarge,
+          'MESSAGE_TOO_LONG' => l10n.sendLimitMessageTooLong,
+          _ => l10n.sendLimitRateLimited,
+        },
+        tone: ToastTone.neutral,
+      );
+    });
+  }
+
   void _drainChildGate() {
     if (_gateSheetOpen) return;
     final gate = widget.repo.takeChildGateError();

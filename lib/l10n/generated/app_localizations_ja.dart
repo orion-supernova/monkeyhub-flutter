@@ -13222,4 +13222,17 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get reportSheetDisclosureComment =>
       '報告すると、このコメントがMonkeyHubのモデレーターに送られ、確認されます。相手に報告したことは伝わりません。';
+
+  @override
+  String get sendLimitRateLimited => '送信が速すぎます。少し待ってからもう一度お試しください。';
+
+  @override
+  String get sendLimitStorageFull =>
+      'ストレージがいっぱいです。送信した写真やファイルを削除して空き容量を作ってください。';
+
+  @override
+  String get sendLimitFileTooLarge => 'このファイルは大きすぎて送信できません。';
+
+  @override
+  String get sendLimitMessageTooLong => 'メッセージが長すぎます。いくつかに分けて送ってみてください。';
 }

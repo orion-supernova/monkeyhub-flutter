@@ -3818,5 +3818,9 @@
   "termsAcceptFailed": "Enregistrement impossible. Réessayez.",
   "settingsHubContactSupport": "Contacter l’assistance",
   "reportSheetDisclosureMoment": "Signaler envoie ce moment aux modérateurs de MonkeyHub pour examen. La personne ne saura pas que vous l'avez signalée.",
-  "reportSheetDisclosureComment": "Signaler envoie ce commentaire aux modérateurs de MonkeyHub pour examen. La personne ne saura pas que vous l'avez signalée."
+  "reportSheetDisclosureComment": "Signaler envoie ce commentaire aux modérateurs de MonkeyHub pour examen. La personne ne saura pas que vous l'avez signalée.",
+  "sendLimitRateLimited": "Vous envoyez trop vite. Patientez un instant puis réessayez.",
+  "sendLimitStorageFull": "Votre stockage est plein. Supprimez des photos ou fichiers envoyés pour libérer de l'espace.",
+  "sendLimitFileTooLarge": "Ce fichier est trop volumineux pour être envoyé.",
+  "sendLimitMessageTooLong": "Ce message est trop long. Essayez de le diviser en plusieurs messages."
 }

@@ -3818,5 +3818,9 @@
   "termsAcceptFailed": "Não foi possível salvar. Tente de novo.",
   "settingsHubContactSupport": "Falar com o suporte",
   "reportSheetDisclosureMoment": "Denunciar envia este momento para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou.",
-  "reportSheetDisclosureComment": "Denunciar envia este comentário para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou."
+  "reportSheetDisclosureComment": "Denunciar envia este comentário para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou.",
+  "sendLimitRateLimited": "Você está enviando rápido demais. Espere um pouco e tente de novo.",
+  "sendLimitStorageFull": "Seu armazenamento está cheio. Apague algumas fotos ou arquivos que você enviou para liberar espaço.",
+  "sendLimitFileTooLarge": "Esse arquivo é grande demais para enviar.",
+  "sendLimitMessageTooLong": "Essa mensagem é longa demais. Tente dividi-la em algumas mensagens."
 }

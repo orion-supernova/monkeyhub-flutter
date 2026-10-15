@@ -16553,5 +16553,21 @@
   "reportSheetDisclosureComment": "Reporting sends this comment to MonkeyHub moderators for review. The person won't know you reported them.",
   "@reportSheetDisclosureComment": {
     "description": "Report sheet disclosure when reporting a comment on a moment. Says exactly what is sent to moderators. MonkeyHub is the app name; don't translate it."
+  },
+  "sendLimitRateLimited": "You're sending too fast. Wait a moment and try again.",
+  "@sendLimitRateLimited": {
+    "description": "Toast when the server refuses a send because the user sent too many messages too quickly (RATE_LIMITED). Calm, not an error tone."
+  },
+  "sendLimitStorageFull": "Your storage is full. Delete some photos or files you've sent to free up space.",
+  "@sendLimitStorageFull": {
+    "description": "Toast when the server refuses an upload because the user's storage quota is used up (STORAGE_QUOTA_EXCEEDED). Tells them how to free space."
+  },
+  "sendLimitFileTooLarge": "That file is too large to send.",
+  "@sendLimitFileTooLarge": {
+    "description": "Toast when the server refuses an upload because the file is over the size limit (FILE_TOO_LARGE)."
+  },
+  "sendLimitMessageTooLong": "That message is too long. Try splitting it into a few messages.",
+  "@sendLimitMessageTooLong": {
+    "description": "Toast when the server refuses a message for being over the length limit (MESSAGE_TOO_LONG)."
   }
 }

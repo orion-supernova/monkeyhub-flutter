@@ -13776,4 +13776,19 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get reportSheetDisclosureComment =>
       'Şikayet etmek bu yorumu incelenmek üzere MonkeyHub moderatörlerine gönderir. Kişi şikayet ettiğini bilmez.';
+
+  @override
+  String get sendLimitRateLimited =>
+      'Çok hızlı gönderiyorsun. Biraz bekleyip tekrar dene.';
+
+  @override
+  String get sendLimitStorageFull =>
+      'Depolama alanın dolu. Yer açmak için gönderdiğin bazı fotoğrafları veya dosyaları sil.';
+
+  @override
+  String get sendLimitFileTooLarge => 'Bu dosya göndermek için çok büyük.';
+
+  @override
+  String get sendLimitMessageTooLong =>
+      'Bu mesaj çok uzun. Birkaç mesaja bölmeyi dene.';
 }

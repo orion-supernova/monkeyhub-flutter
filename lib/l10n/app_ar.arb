@@ -3818,5 +3818,9 @@
   "termsAcceptFailed": "تعذر الحفظ. حاول مرة أخرى.",
   "settingsHubContactSupport": "التواصل مع الدعم",
   "reportSheetDisclosureMoment": "يؤدي الإبلاغ إلى إرسال هذه اللحظة إلى مشرفي MonkeyHub لمراجعتها. لن يعرف الشخص أنك أبلغت عنه.",
-  "reportSheetDisclosureComment": "يؤدي الإبلاغ إلى إرسال هذا التعليق إلى مشرفي MonkeyHub لمراجعته. لن يعرف الشخص أنك أبلغت عنه."
+  "reportSheetDisclosureComment": "يؤدي الإبلاغ إلى إرسال هذا التعليق إلى مشرفي MonkeyHub لمراجعته. لن يعرف الشخص أنك أبلغت عنه.",
+  "sendLimitRateLimited": "أنت ترسل بسرعة كبيرة. انتظر قليلًا ثم حاول مرة أخرى.",
+  "sendLimitStorageFull": "مساحة التخزين لديك ممتلئة. احذف بعض الصور أو الملفات التي أرسلتها لتوفير مساحة.",
+  "sendLimitFileTooLarge": "هذا الملف كبير جدًا بحيث لا يمكن إرساله.",
+  "sendLimitMessageTooLong": "هذه الرسالة طويلة جدًا. جرّب تقسيمها إلى عدة رسائل."
 }

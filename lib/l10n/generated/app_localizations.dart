@@ -23070,6 +23070,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reporting sends this comment to MonkeyHub moderators for review. The person won\'t know you reported them.'**
   String get reportSheetDisclosureComment;
+
+  /// Toast when the server refuses a send because the user sent too many messages too quickly (RATE_LIMITED). Calm, not an error tone.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re sending too fast. Wait a moment and try again.'**
+  String get sendLimitRateLimited;
+
+  /// Toast when the server refuses an upload because the user's storage quota is used up (STORAGE_QUOTA_EXCEEDED). Tells them how to free space.
+  ///
+  /// In en, this message translates to:
+  /// **'Your storage is full. Delete some photos or files you\'ve sent to free up space.'**
+  String get sendLimitStorageFull;
+
+  /// Toast when the server refuses an upload because the file is over the size limit (FILE_TOO_LARGE).
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to send.'**
+  String get sendLimitFileTooLarge;
+
+  /// Toast when the server refuses a message for being over the length limit (MESSAGE_TOO_LONG).
+  ///
+  /// In en, this message translates to:
+  /// **'That message is too long. Try splitting it into a few messages.'**
+  String get sendLimitMessageTooLong;
 }
 
 class _AppLocalizationsDelegate
