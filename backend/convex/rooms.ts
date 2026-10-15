@@ -26,6 +26,7 @@ import {
   membershipOf,
   removeMembership,
 } from "./roomAdmin";
+import { grantRoomAccess } from "./roomAccess";
 
 export const create = mutation({
   args: {
@@ -72,6 +73,7 @@ export const create = mutation({
       role: ROLE_OWNER,
       seenVisibility: await seenVisibilityOf(ctx, userId),
     });
+    await grantRoomAccess(ctx, roomId, userId);
     return roomId;
   },
 });
@@ -599,6 +601,8 @@ export const getMembers = query({
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
+    // Members only; the roster is already read, so this costs nothing.
+    if (!members.some((m) => m.userId === viewerUserId)) return [];
     const lens = await lensFor(ctx, viewerUserId);
     const now = Date.now();
     const users = await Promise.all(
@@ -778,13 +782,15 @@ export const getMemberIds = internalQuery({
 
 export const getRoom = query({
   args: { roomId: v.id("rooms") },
-  handler: async (ctx, { roomId }) => {
+  handler: async (ctx, { roomId, userId }) => {
     const room = await ctx.db.get(roomId);
     if (!room) return null;
     const members = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
+    // Members only: the row carries `lastMessage`, a DM's preview text.
+    if (!members.some((m) => m.userId === userId)) return null;
     const { passwordHash, ...rest } = room;
     return { ...rest, participantIds: members.map((m) => m.userId.toString()), hasPassword: !!passwordHash };
   },
@@ -887,6 +893,7 @@ export const getOrCreateDM = mutation({
       role: "owner",
       seenVisibility: await seenVisibilityOf(ctx, userId),
     });
+    await grantRoomAccess(ctx, roomId, userId);
     await ctx.db.insert("roomMembers", {
       roomId,
       userId: friendId,
@@ -894,6 +901,7 @@ export const getOrCreateDM = mutation({
       role: "member",
       seenVisibility: await seenVisibilityOf(ctx, friendId),
     });
+    await grantRoomAccess(ctx, roomId, friendId);
 
     return roomId;
   },
@@ -954,6 +962,7 @@ export const ensureSavedMessagesRoom = mutation({
       isPinned: true,
       pinnedAt: Date.now(),
     });
+    await grantRoomAccess(ctx, roomId, userId);
     return roomId;
   },
 });

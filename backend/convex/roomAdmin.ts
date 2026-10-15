@@ -39,6 +39,7 @@ import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForMember } from "./speakerColors";
 import { deleteStored } from "./files";
 import { leaveMatchesInRoom } from "./matchCore";
+import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
 
 export const ROLE_OWNER = "owner";
 export const ROLE_ADMIN = "admin";
@@ -197,6 +198,7 @@ export async function addMembership(
     role,
     seenVisibility: await seenVisibilityOf(ctx, userId),
   });
+  await grantRoomAccess(ctx, roomId, userId);
   const room = await ctx.db.get(roomId);
   if (room) await ctx.db.patch(roomId, { memberCount: room.memberCount + 1 });
   return true;
@@ -222,6 +224,7 @@ export async function removeMembership(
   if (!member) return "absent";
 
   await ctx.db.delete(member._id);
+  await revokeRoomAccess(ctx, roomId, userId);
 
   // Their open games here: a lobby seat vacated, a seat in play forfeited.
   await leaveMatchesInRoom(ctx, roomId, userId);

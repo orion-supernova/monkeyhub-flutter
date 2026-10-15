@@ -17,6 +17,7 @@ import { purgeSpeakerColorsForRoom } from "./speakerColors";
 import { purgeChallengesForRoom, purgeMatchesForRoom } from "./matchCore";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { revokeAllRoomAccess } from "./roomAccess";
 
 /**
  * Deletes messages, reactions, media, and membership-related data for a room.
@@ -53,6 +54,7 @@ async function wipeRoomContents(ctx: any, roomId: any) {
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const m of members) await ctx.db.delete(m._id);
+  await revokeAllRoomAccess(ctx, roomId);
   // Pins. Swept by room rather than inside the per-message loop above,
   // precisely because this table denormalizes roomId: one index range instead
   // of an index probe per message in the room.

@@ -357,6 +357,16 @@ export default defineSchema({
     // Discover lists public rooms only.
     .index("by_visibility", ["isPrivate"]),
 
+  // Who may read a room: one row per membership, written only on join and
+  // leave so live queries can check it without re-running on every receipt.
+  // See `roomAccess.ts`.
+  roomAccess: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+  })
+    .index("by_room_user", ["roomId", "userId"])
+    .index("by_user", ["userId"]),
+
   roomMembers: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),
@@ -2330,6 +2340,10 @@ export default defineSchema({
     roomId: v.id("rooms"),
     userId: v.id("users"),
     updatedAt: v.number(),
+    // When the row was last WRITTEN, which the refresh throttle keys on.
+    // Separate from `updatedAt` because `clearTyping` zeroes that to hide the
+    // indicator, and a zeroed timestamp would wave the next write through.
+    writtenAt: v.optional(v.number()),
     // Denormalized at write time (`typing:setTyping`), same reason
     // `messages.senderName`/`moments.authorName` are: `getTypingForUser` is a
     // GLOBAL subscription held for the whole signed-in session, so a

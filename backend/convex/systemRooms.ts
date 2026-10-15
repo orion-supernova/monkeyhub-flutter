@@ -5,6 +5,7 @@ import {
   SYSTEM_VISIBILITY,
   isSystemAccount,
 } from "./systemAccount";
+import { grantRoomAccess } from "./roomAccess";
 
 /**
  * A system account and the one private staff room it posts into, created on
@@ -19,9 +20,9 @@ import {
  * [SystemRoomSpec] each, and this module is the only code that writes a
  * system account's row or its room.
  *
- * Imports no mutation module (only `visibility`, `roomPolicy` and
- * `systemAccount`, none of which import back), so `messages.ts` can reach the
- * moderation inbox through `moderationCore.ts` without a cycle.
+ * Imports no mutation module (only `visibility`, `roomPolicy`, `systemAccount`
+ * and `roomAccess`, none of which import back), so `messages.ts` can reach
+ * the moderation inbox through `moderationCore.ts` without a cycle.
  */
 
 /** Everything that distinguishes one system inbox from another. */
@@ -263,6 +264,7 @@ async function reconcileSystemRoomMembers(
       role: "owner",
       seenVisibility: await seenVisibilityOf(ctx, accountId),
     });
+    await grantRoomAccess(ctx, roomId, accountId);
     present.add(accountId.toString());
   } else if (botRow.role !== "owner") {
     await ctx.db.patch(botRow._id, { role: "owner" });
@@ -280,6 +282,7 @@ async function reconcileSystemRoomMembers(
       // responsible for reading it, which is the honest number.
       seenVisibility: await seenVisibilityOf(ctx, readerId),
     });
+    await grantRoomAccess(ctx, roomId, readerId);
     present.add(key);
   }
 

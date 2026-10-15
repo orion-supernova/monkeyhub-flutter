@@ -34,6 +34,7 @@ import {
   recoveryKey,
   MAX_RECOVERY_FAILURES,
 } from "./rateLimit";
+import { revokeUserRoomAccess } from "./roomAccess";
 
 /**
  * Who the caller actually is, resolved from the bearer token alone.
@@ -472,6 +473,7 @@ async function purgeUser(ctx: any, userId: any) {
     .query("roomMembers")
     .withIndex("by_user", byUser(userId))
     .collect();
+  await revokeUserRoomAccess(ctx, userId);
 
   for (const membership of memberships) {
     const roomId = membership.roomId;

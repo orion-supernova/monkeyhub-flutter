@@ -1,6 +1,7 @@
 import { internalMutation, internalQuery } from "./_generated/server";
 import { mutation, query } from "./functions";
 import { v } from "convex/values";
+import { canReadRoom } from "./roomAccess";
 
 // Generate a short-lived upload URL for the client to PUT a file directly to Convex storage
 export const generateUploadUrl = mutation({
@@ -23,14 +24,29 @@ export const generateUploadUrl = mutation({
 // second lock, for the case where an id leaks by some route we didn't foresee.
 // View-once bytes are served exclusively by the `/viewOnce` HTTP action against
 // a single-use nonce.
+//
+// Message media is also members-only: the id travels with the message, but a
+// copy forwarded or leaked out of a room must not open it for a non-member.
+// A forward shares the blob, so any one readable copy is enough. Ids that
+// belong to no message (avatars, stickers, moments) keep the old behaviour.
 export const getFileUrl = query({
   args: { storageId: v.id("_storage") },
-  handler: async (ctx, { storageId }) => {
-    const owner = await ctx.db
+  handler: async (ctx, { storageId, userId }) => {
+    const owners = await ctx.db
       .query("messages")
       .withIndex("by_media", (q) => q.eq("mediaStorageId", storageId))
-      .first();
-    if (owner?.viewOnce === true) return null;
+      .take(50);
+    if (owners.some((m) => m.viewOnce === true)) return null;
+    if (owners.length > 0) {
+      let readable = false;
+      for (const m of owners) {
+        if (await canReadRoom(ctx, m.roomId, userId)) {
+          readable = true;
+          break;
+        }
+      }
+      if (!readable) return null;
+    }
     return await ctx.storage.getUrl(storageId);
   },
 });

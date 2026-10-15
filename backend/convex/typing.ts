@@ -1,6 +1,7 @@
 import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { lensFor } from "./visibility";
+import { canReadRoom } from "./roomAccess";
 
 const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 3s inactivity, heartbeat every 2s
 
@@ -61,6 +62,7 @@ export const setTyping = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, { roomId, userId }) => {
+    if (!(await canReadRoom(ctx, roomId, userId))) return;
     const existing = await ctx.db
       .query("typingIndicators")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
@@ -71,7 +73,12 @@ export const setTyping = mutation({
     // Still fresh — the row already says "typing" and will keep saying it for
     // seconds yet. Returning here skips the users read below as well as the
     // write, so a suppressed beat costs one indexed lookup and nothing else.
-    if (existing && now - existing.updatedAt < TYPING_REFRESH_MS) return;
+    if (
+      existing &&
+      now - (existing.writtenAt ?? existing.updatedAt) < TYPING_REFRESH_MS
+    ) {
+      return;
+    }
 
     // Denormalized onto the row so neither typing query has to read the
     // typist's `users` document — see `typistOf`. Read here, in a mutation,
@@ -84,12 +91,13 @@ export const setTyping = mutation({
     };
 
     if (existing) {
-      await ctx.db.patch(existing._id, { updatedAt: now, ...stamp });
+      await ctx.db.patch(existing._id, { updatedAt: now, writtenAt: now, ...stamp });
     } else {
       await ctx.db.insert("typingIndicators", {
         roomId,
         userId,
         updatedAt: now,
+        writtenAt: now,
         ...stamp,
       });
     }
@@ -106,7 +114,12 @@ export const clearTyping = mutation({
       .query("typingIndicators")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
-    if (existing) await ctx.db.delete(existing._id);
+    // Hidden, not deleted: an absent row let the next `setTyping` skip the
+    // refresh throttle, so a set/clear loop wrote on every call. `writtenAt`
+    // is left alone so the throttle still counts the last real write.
+    if (existing && existing.updatedAt !== 0) {
+      await ctx.db.patch(existing._id, { updatedAt: 0 });
+    }
   },
 });
 
@@ -155,7 +168,8 @@ export const getTypingForUser = query({
 
 export const getTypingUsers = query({
   args: { roomId: v.id("rooms"), currentUserId: v.id("users") },
-  handler: async (ctx, { roomId, currentUserId }) => {
+  handler: async (ctx, { roomId, currentUserId, userId }) => {
+    if (!(await canReadRoom(ctx, roomId, userId))) return [];
     const now = Date.now();
     const indicators = await ctx.db
       .query("typingIndicators")

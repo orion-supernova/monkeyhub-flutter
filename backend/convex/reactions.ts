@@ -2,6 +2,7 @@ import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { assertRoomAllowsById } from "./roomPolicy";
+import { canReadRoom } from "./roomAccess";
 
 /**
  * How many distinct emoji one person may leave on one message.
@@ -128,7 +129,9 @@ export const removeReaction = mutation({
 
 export const getReactions = query({
   args: { messageId: v.id("messages") },
-  handler: async (ctx, { messageId }) => {
+  handler: async (ctx, { messageId, userId }) => {
+    const msg = await ctx.db.get(messageId);
+    if (!msg || !(await canReadRoom(ctx, msg.roomId, userId))) return [];
     return await ctx.db
       .query("reactions")
       .withIndex("by_message", (q) => q.eq("messageId", messageId))
@@ -140,9 +143,17 @@ export const getReactions = query({
 // Bulk-fetch reactions for multiple messages (used when loading a room)
 export const getReactionsForMessages = query({
   args: { messageIds: v.array(v.id("messages")) },
-  handler: async (ctx, { messageIds }) => {
+  handler: async (ctx, { messageIds, userId }) => {
     const result: Record<string, unknown[]> = {};
-    for (const messageId of messageIds) {
+    const readable = new Map<string, boolean>();
+    for (const messageId of messageIds.slice(0, 200)) {
+      const msg = await ctx.db.get(messageId);
+      if (!msg) continue;
+      const key = msg.roomId.toString();
+      if (!readable.has(key)) {
+        readable.set(key, await canReadRoom(ctx, msg.roomId, userId));
+      }
+      if (!readable.get(key)) continue;
       const reactions = await ctx.db
         .query("reactions")
         .withIndex("by_message", (q) => q.eq("messageId", messageId))

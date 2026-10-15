@@ -16,6 +16,7 @@ import { ERR_SYSTEM_ACCOUNT, isSystemAccount } from "./systemAccount";
 import { lensFor, publicUserView, seenVisibilityOf } from "./visibility";
 import { addMembership } from "./roomAdmin";
 import { searchUsersCore } from "./users";
+import { grantRoomAccess } from "./roomAccess";
 
 /**
  * Pings whoever now holds a request.
@@ -171,6 +172,7 @@ async function createDirectRoom(
     role: "owner",
     seenVisibility: await seenVisibilityOf(ctx, requesterId),
   });
+  await grantRoomAccess(ctx, roomId, requesterId);
   await ctx.db.insert("roomMembers", {
     roomId,
     userId: receiverId,
@@ -178,6 +180,7 @@ async function createDirectRoom(
     role: "member",
     seenVisibility: await seenVisibilityOf(ctx, receiverId),
   });
+  await grantRoomAccess(ctx, roomId, receiverId);
 
   return roomId;
 }

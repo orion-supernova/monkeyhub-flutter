@@ -26,6 +26,7 @@ import {
 import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 import { FilterBlockedError, screenAndReport } from "./moderationCore";
 import { isSystemAccount, isSystemRoom } from "./systemAccount";
+import { canReadRoom } from "./roomAccess";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -2490,6 +2491,11 @@ export const deleteMany = mutation({
   },
 });
 
+/** A client-supplied page size, kept between 1 and [max]. */
+function clampPage(limit: number | undefined, fallback: number, max = 200) {
+  return Math.max(1, Math.min(Math.floor(limit ?? fallback), max));
+}
+
 export const list = query({
   identityArg: "viewerUserId" as const,
   args: {
@@ -2501,11 +2507,13 @@ export const list = query({
     viewerUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, { roomId, limit, viewerUserId }) => {
+    // Members only. Through `roomAccess`, not `roomMembers`: see why there.
+    if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
       .order("desc")
-      .take(limit ?? 100);
+      .take(clampPage(limit, 100));
 
     // Do NOT read `users` here. Convex reactivity tracks every doc read, so
     // including `ctx.db.get(msg.userId)` made this subscription re-fire on
@@ -2542,13 +2550,14 @@ export const listBefore = query({
     viewerUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, { roomId, beforeTimestamp, limit, viewerUserId }) => {
+    if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_room_time", (q) =>
         q.eq("roomId", roomId).lt("createdAt", beforeTimestamp)
       )
       .order("desc")
-      .take(limit ?? 30);
+      .take(clampPage(limit, 30));
 
     // Mirrors the no-user-doc-read pattern from `list` above — see comment
     // there for why we never enrich with users in a reactive query.
@@ -2575,13 +2584,14 @@ export const listAfter = query({
     viewerUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, { roomId, afterTimestamp, limit, viewerUserId }) => {
+    if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_room_time", (q) =>
         q.eq("roomId", roomId).gt("createdAt", afterTimestamp)
       )
       .order("asc")
-      .take(limit ?? 30);
+      .take(clampPage(limit, 30));
 
     // Mirrors the no-user-doc-read pattern from `list` above.
     return await Promise.all(
@@ -2616,7 +2626,11 @@ export const listAround = query({
   },
   handler: async (ctx, { roomId, messageId, before, after, viewerUserId }) => {
     const anchor = await ctx.db.get(messageId);
-    if (!anchor || anchor.roomId.toString() !== roomId.toString()) {
+    if (
+      !anchor ||
+      anchor.roomId.toString() !== roomId.toString() ||
+      !(await canReadRoom(ctx, roomId, viewerUserId))
+    ) {
       return {
         messages: [],
         hasMoreOlder: true,
@@ -2763,12 +2777,17 @@ export const getThreadPage = query({
 // to keep the round-trip bounded; branching threads still work but only the
 // first 50 BFS-collected rows come back.
 export const getThread = query({
+  identityArg: "viewerUserId" as const,
   args: {
     messageId: v.id("messages"),
     maxTotal: v.optional(v.number()),
   },
-  handler: async (ctx, { messageId, maxTotal }) => {
+  handler: async (ctx, { messageId, maxTotal, viewerUserId }) => {
     const cap = Math.min(maxTotal ?? 50, 100);
+    const start = await ctx.db.get(messageId);
+    if (!start || !(await canReadRoom(ctx, start.roomId, viewerUserId))) {
+      return [];
+    }
 
     // 1. Walk up to the root. Bounded by 20 hops + cycle-guard set.
     // Typed, so `ctx.db.get(rootId)` below resolves to a message. As `any` it
@@ -3408,6 +3427,8 @@ export const getReadState = query({
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
+    // Members only; the roster is already read, so this costs nothing.
+    if (!members.some((m) => m.userId === viewerUserId)) return [];
 
     // One lens for the whole room instead of a friendship pair-lookup per
     // member, and — more importantly — the same level check every other
@@ -3489,6 +3510,8 @@ export const getReceiptTimes = query({
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
+    // Members only; the roster is already read, so this costs nothing.
+    if (!members.some((m) => m.userId === viewerUserId)) return [];
     const lens = await lensFor(ctx, viewerUserId);
     const out: Array<{
       userId: any;

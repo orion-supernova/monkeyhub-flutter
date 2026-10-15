@@ -2,6 +2,7 @@ import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { sanitizeViewOnce } from "./messages";
 import { assertRoomAllowsById } from "./roomPolicy";
+import { canReadRoom } from "./roomAccess";
 
 /**
  * Ceiling on pins per room.
@@ -122,11 +123,9 @@ export const unpin = mutation({
  * and an edited pinned message updating in the banner is the behaviour a
  * reader would call correct anyway.
  *
- * Deliberately does NOT check room membership. Reading `roomMembers` from a
- * subscribed query makes it refire on every `markRoomRead` patch — the cascade
- * `messages:getThreadPage` documents. Exposure is unchanged either way: this is
- * keyed by room id exactly like `messages:list`, and returns a strict subset of
- * what that already hands out.
+ * Members only, checked through `roomAccess` rather than `roomMembers`:
+ * reading the membership row from a subscribed query would refire it on every
+ * `markRoomRead` patch, the cascade `messages:getThreadPage` documents.
  */
 export const listForRoom = query({
   identityArg: "viewerUserId" as const,
@@ -137,6 +136,7 @@ export const listForRoom = query({
     viewerUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, { roomId, viewerUserId }) => {
+    if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
     const rows = await ctx.db
       .query("pinnedMessages")
       .withIndex("by_room_message", (q) => q.eq("roomId", roomId))

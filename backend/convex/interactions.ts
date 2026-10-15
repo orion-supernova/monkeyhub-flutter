@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { sendCore } from "./messages";
 import { isAdminRole, roleOf } from "./roomAdmin";
 import { assertRoomAllowsById } from "./roomPolicy";
+import { canReadRoom } from "./roomAccess";
 
 // `purgeInteraction` and `forkInteraction` deliberately live in
 // `interactionCore.ts` and not here — see that file's header for the cycle
@@ -826,6 +827,7 @@ export const listForRoom = query({
     viewerUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, { roomId, viewerUserId }) => {
+    if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
     const rows = await ctx.db
       .query("messageInteractions")
       .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
