@@ -51,7 +51,7 @@ the version bump, so it builds while the Mac does iOS/Android. deploy.sh
 then collects the artifacts into `build/`, deletes the tag, and does the
 uploads locally like every other platform. Stages: `--windows-build`
 `--windows-upload` `--linux-build` `--linux-upload` (build = CI + download).
-Neither is in `--all` yet.
+Windows is in `--all`; Linux is not yet (add `--linux`).
 
 What CI sees: **HEAD as pushed to origin**, not your working tree. deploy.sh
 pushes the branch if origin doesn't have HEAD, and warns about uncommitted
@@ -325,11 +325,15 @@ flag and nothing else.
 | Flag | Effect |
 |---|---|
 | `--ios` | iOS → App Store Connect |
-| `--macos` | macOS → App Store Connect. **Not** included in `--all` yet — run it explicitly until the App Store Connect side is proven out (see [macOS](#macos) below) |
+| `--macos` | macOS → App Store Connect (see [macOS](#macos) below) |
 | `--android` | AAB → Google Play internal track (`--android=play` still works; `--android=apk` now errors out) |
 | `--web` | Flutter web build → https://monkeyhub.walhallaa.com/web/ |
 | `--site` | Landing + downloads pages only. No build, no Convex — seconds |
-| `--all` | Convex + iOS + Android + web + site |
+| `--all` | Convex + iOS + Android + macOS + Windows + web + site (Linux stays opt-in) |
+
+Platforms ship in a fixed order: Convex first, then iOS → Android → macOS →
+Windows → Linux → web, then the site last. In the interactive picker they ship
+in the order you tick them instead; each ticked row shows its number.
 | `--convex-only` | Backend only (no builds, no version bump) |
 | `--no-convex` / `--no-upload` / `--no-git` / `--skip-version-bump` / `--dry` | Same as before |
 
@@ -761,8 +765,7 @@ list, not a per-bundle-ID one). Apple sometimes auto-adds it on the first
 build for a new platform, sometimes it wants a manual add first via the app's
 page. If it's missing, the archive/export steps still succeed — it's the
 `xcrun altool --upload-app` step that will reject it, and the fix is that ASC
-click, not a new app. Not part of `--all` yet; ship it with an explicit
-`--macos` until that first upload is confirmed working end to end.
+click, not a new app. Part of `--all`.
 
 ## The backend's memory on the VM
 

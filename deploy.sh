@@ -9,9 +9,7 @@
 #   Convex   → npx convex deploy (from backend/)
 #   iOS      → flutter build ios → xcodebuild archive/export → App Store Connect
 #   macOS    → --macos: flutter build macos → xcodebuild archive/export →
-#                       App Store Connect. Same ASC API key as iOS. Not part
-#                       of --all yet — run it explicitly until the App Store
-#                       Connect side is proven out; see DEPLOY.md.
+#                       App Store Connect. Same ASC API key as iOS.
 #   Android  → flutter build appbundle → Google Play internal track
 #              (needs a verified Play account; see DEPLOY.md)
 #   Web      → --web: flutter build web → rsync to the Oracle VM, served by
@@ -27,7 +25,11 @@
 #                       when an AUR SSH key is set up. See DEPLOY.md.
 #   Windows and Linux share ONE workflow run, started right after the version
 #   bump so it builds while this Mac does iOS/Android, and collected when their
-#   turn comes. Neither is in --all yet, same as macOS was.
+#   turn comes. Windows is in --all; Linux is not yet.
+#
+# Order: Convex first, then the platforms in PLATFORM_ORDER (mobile first:
+# iOS → Android → macOS → Windows → Linux → web, or the picker's tick order),
+# then the site last.
 #
 # One host, three paths (see hosting/caddy-monkeyhub.conf):
 #   /            landing page      /srv/monkeyhub/site
@@ -124,12 +126,16 @@ RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 # it wrote to agreed.
 RUN_HOMESERVER=true
 DEPLOY_IOS=""
-DEPLOY_MACOS=false # --macos: App Store Connect. NOT in --all yet.
+DEPLOY_MACOS=false # --macos: App Store Connect. Also included by --all.
 DEPLOY_ANDROID=""
 DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
 DEPLOY_SITE=false  # --site: landing + downloads pages. No build. Also by --all.
-DEPLOY_WINDOWS=false # --windows: CI build → Microsoft Store. NOT in --all yet.
+DEPLOY_WINDOWS=false # --windows: CI build → Microsoft Store. Also by --all.
 DEPLOY_LINUX=false   # --linux: CI build → /downloads/ + AUR. NOT in --all yet.
+# The order the platforms ship in. Mobile first: those are what testers are
+# waiting on. The interactive picker replaces it with the order its rows were
+# ticked in. Convex always runs before all of these and Site after them.
+PLATFORM_ORDER="ios android macos windows linux web"
 RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android: AAB to Play. Web: to the VM.
 # Delete a platform's build output (and its Xcode DerivedData) the moment its
 # upload succeeds, so the next platform builds into the space it leaves. This
@@ -166,20 +172,22 @@ print_help() {
 Usage: ./deploy.sh [flags]
 
 No platform flags + a terminal → interactive picker (space toggles, enter go).
+Platforms ship in the order you tick them; flags ship mobile first:
+iOS → Android → macOS → Windows → Linux → web, then the site.
 No platform flags + no TTY     → legacy default: Convex + iOS.
 
 Platform flags (any of these skips the picker):
   --ios                 Ship iOS to App Store Connect.
-  --macos               Ship macOS to App Store Connect. Not included in
-                        --all yet — see DEPLOY.md.
+  --macos               Ship macOS to App Store Connect.
   --android             Ship Android: AAB to the Google Play internal track.
   --web                 Build Flutter web and publish it at $WEB_URL.
   --site                Landing + downloads pages only. No build — seconds.
   --windows             Build on GitHub Actions, submit the MSIX to the
-                        Microsoft Store. Not included in --all yet.
+                        Microsoft Store.
   --linux               Build on GitHub Actions, publish the tarball on
-                        /downloads/ and push the AUR package. Not in --all yet.
-  --all                 Convex + iOS + Android + web + site.
+                        /downloads/ and push the AUR package. Not in --all.
+  --all                 Convex + iOS + Android + macOS + Windows + web + site.
+                        (Linux is still opt-in: add --linux.)
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
   --no-homeserver       Push Convex to the VPS only, not the home server —
@@ -279,7 +287,8 @@ while [[ $# -gt 0 ]]; do
         --linux)             DEPLOY_LINUX=true; PLATFORM_ARGS=true ;;
         --linux-build)        DEPLOY_LINUX=true; PLATFORM_ARGS=true; LINUX_STAGES="${LINUX_STAGES:+$LINUX_STAGES }build" ;;
         --linux-upload)       DEPLOY_LINUX=true; PLATFORM_ARGS=true; LINUX_STAGES="${LINUX_STAGES:+$LINUX_STAGES }upload" ;;
-        --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
+        --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_MACOS=true
+                             DEPLOY_WINDOWS=true; DEPLOY_WEB=true
                              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         # Zeroes web and site too, so "backend only" holds even after --all.
         --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_MACOS=false
@@ -825,6 +834,17 @@ pick_multi_menu() {
     echo "${out# }"
 }
 
+# Picker row → platform key, for the ship order. Rows 1-6 are platforms.
+picker_row_key() {
+    case "$1" in
+        1) echo ios ;; 2) echo macos ;; 3) echo android ;;
+        4) echo windows ;; 5) echo linux ;; 6) echo web ;;
+    esac
+}
+# Space-separated list helpers for that order.
+order_without() { local out="" k; for k in $1; do [ "$k" = "$2" ] || out="$out $k"; done; echo "${out# }"; }
+order_index() { local i=1 k; for k in $1; do [ "$k" = "$2" ] && { echo $i; return; }; i=$((i + 1)); done; }
+
 # Checkbox menu on the controlling terminal. Only used when the caller gave no
 # platform flags and we actually have a TTY to talk to.
 pick_platforms() {
@@ -864,7 +884,17 @@ pick_platforms() {
     { [ "${selected[1]}" = 1 ] || [ "${selected[2]}" = 1 ] || [ "${selected[3]}" = 1 ] \
       || [ "${selected[4]}" = 1 ] || [ "${selected[5]}" = 1 ]; } \
         && prev_any_app=true
-    local cursor=0 count=10 extra=2 i marker arrow label
+    local cursor=0 count=10 extra=2 i marker arrow label key pos
+    # Ship order = the order platform rows get ticked. Rows already ticked by
+    # a flag (--macos etc.) start it, in the default mobile-first order.
+    local pick_order=""
+    for key in $PLATFORM_ORDER; do
+        for i in 1 2 3 4 5 6; do
+            [ "$(picker_row_key $i)" = "$key" ] && [ "${selected[$i]}" = 1 ] \
+                && pick_order="$pick_order $key"
+        done
+    done
+    pick_order="${pick_order# }"
     # Per-platform stage override, set via Tab. Empty = full pipeline. Threaded
     # into IOS_STAGES etc. below once Enter is pressed — see "stage defaults".
     local pstage_ios="" pstage_macos="" pstage_android="" pstage_web=""
@@ -873,12 +903,18 @@ pick_platforms() {
     exec 3</dev/tty
     tput civis 2>/dev/null || true
     echo "Select what to deploy  (↑/↓ move · space toggle · enter go · tab stage · f force-update)"
+    echo "Platforms ship in the order you tick them (the number). Convex goes first, Site last."
     while true; do
         local skip_erase=false
         for i in $(seq 0 $((count - 1))); do
             [ "${selected[$i]}" = 1 ] && marker="◉" || marker="◯"
             [ "$i" = "$cursor" ] && arrow="❯" || arrow=" "
             label="${labels[$i]}"
+            key=$(picker_row_key "$i")
+            if [ -n "$key" ]; then
+                pos=$(order_index "$pick_order" "$key")
+                [ -n "$pos" ] && label="$pos. $label" || label="   $label"
+            fi
             case "$i" in
                 1) [ -n "$pstage_ios" ]     && label="$label  [$pstage_ios]" ;;
                 2) [ -n "$pstage_macos" ]   && label="$label  [$pstage_macos]" ;;
@@ -899,6 +935,11 @@ pick_platforms() {
             :  # bare Esc on the checklist itself is a no-op
         elif [ "$KEY_KIND" = "PLAIN" ] && [ "$KEY_CHAR" = " " ]; then
             selected[$cursor]=$(( 1 - selected[$cursor] ))
+            key=$(picker_row_key "$cursor")
+            if [ -n "$key" ]; then
+                pick_order=$(order_without "$pick_order" "$key")
+                [ "${selected[$cursor]}" = 1 ] && pick_order="${pick_order:+$pick_order }$key"
+            fi
             case "$cursor" in
                 1|2|3|4|5)
                     local any_app=false
@@ -933,6 +974,10 @@ pick_platforms() {
             esac
             if [ "$rc" = 0 ]; then
                 [ "$choice" = "full" ] && choice=""
+                key=$(picker_row_key "$cursor")
+                if [ -n "$key" ] && [ -z "$(order_index "$pick_order" "$key")" ]; then
+                    pick_order="${pick_order:+$pick_order }$key"
+                fi
                 case "$cursor" in
                     1) pstage_ios="$choice";     selected[1]=1 ;;
                     2) pstage_macos="$choice";   selected[2]=1 ;;
@@ -1049,6 +1094,11 @@ pick_platforms() {
     DEPLOY_SITE=$([ "${selected[7]}" = 1 ] && echo true || echo false)
     SKIP_VERSION_BUMP=$([ "${selected[8]}" = 1 ] && echo false || echo true)
     FREE_SPACE=$([ "${selected[9]}" = 1 ] && echo true || echo false)
+    # Ticked platforms in tick order, then the rest (unticked, so they no-op).
+    for key in $PLATFORM_ORDER; do
+        [ -z "$(order_index "$pick_order" "$key")" ] && pick_order="${pick_order:+$pick_order }$key"
+    done
+    PLATFORM_ORDER="$pick_order"
     [ -n "$pstage_ios" ]     && IOS_STAGES="$pstage_ios"
     [ -n "$pstage_macos" ]   && MACOS_STAGES="$pstage_macos"
     [ -n "$pstage_android" ] && ANDROID_STAGES="$pstage_android"
@@ -1166,6 +1216,13 @@ echo "  • Windows build:    $([ "$DEPLOY_WINDOWS" = true ] && echo "yes (CI �
 echo "  • Linux build:      $([ "$DEPLOY_LINUX" = true ] && echo "yes (CI → downloads + AUR)" || echo no)$([ "$DEPLOY_LINUX" = true ] && stage_note "$LINUX_STAGES" "build upload")"
 echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)$([ "$DEPLOY_WEB" = true ] && stage_note "$WEB_STAGES" "build upload")"
 echo "  • Landing/downloads:$([ "$DEPLOY_SITE" = true ] && echo " yes" || echo " no")"
+SHIP_ORDER_NOTE=""
+for p in $PLATFORM_ORDER; do
+    flag="DEPLOY_$(printf '%s' "$p" | tr '[:lower:]' '[:upper:]')"
+    [ "${!flag}" = true ] && SHIP_ORDER_NOTE="${SHIP_ORDER_NOTE:+$SHIP_ORDER_NOTE → }$p"
+done
+[ "$DEPLOY_SITE" = true ] && SHIP_ORDER_NOTE="${SHIP_ORDER_NOTE:+$SHIP_ORDER_NOTE → }site"
+[ -n "$SHIP_ORDER_NOTE" ] && echo "  • Ship order:       $SHIP_ORDER_NOTE"
 echo "  • Upload/publish:   $([ "$RUN_UPLOAD" = true ] && echo yes || echo no)"
 echo "  • Git commit/push:  $([ "$RUN_GIT" = true ] && echo yes || echo no)"
 echo "  • Free disk:        $([ "$FREE_SPACE" = true ] && echo "yes (each platform's build is deleted after its upload)" || echo no)"
@@ -2437,15 +2494,6 @@ run_ios() {
     IOS_BUILD_TIME=$((IOS_END_TIME - IOS_START_TIME))
     return 0
 }
-if [ "$DEPLOY_IOS" = true ]; then
-    if run_ios; then
-        IOS_STATUS="ok"
-    else
-        IOS_STATUS="failed"
-        ANY_STEP_FAILED=true
-        echo "  ⚠️  iOS failed — continuing with the rest of the run."
-    fi
-fi
 
 # ----- macOS build -----
 # Same shape as iOS: archive via xcodebuild, export a signed artifact, upload
@@ -2552,15 +2600,6 @@ run_macos() {
     MACOS_BUILD_TIME=$((MACOS_END_TIME - MACOS_START_TIME))
     return 0
 }
-if [ "$DEPLOY_MACOS" = true ]; then
-    if run_macos; then
-        MACOS_STATUS="ok"
-    else
-        MACOS_STATUS="failed"
-        ANY_STEP_FAILED=true
-        echo "  ⚠️  macOS failed — continuing with the rest of the run."
-    fi
-fi
 
 # ----- Android build -----
 # Two independent stages: build (produces the AAB) and upload (fastlane supply
@@ -2636,15 +2675,6 @@ run_android() {
     ANDROID_BUILD_TIME=$((ANDROID_END_TIME - ANDROID_START_TIME))
     return 0
 }
-if [ "$DEPLOY_ANDROID" = true ]; then
-    if run_android; then
-        ANDROID_STATUS="ok"
-    else
-        ANDROID_STATUS="failed"
-        ANY_STEP_FAILED=true
-        echo "  ⚠️  Android failed — continuing with the rest of the run."
-    fi
-fi
 
 # ----- Windows (--windows) -----
 # build  = collect the CI run's MSIX into build/windows-store/
@@ -2703,15 +2733,6 @@ run_windows() {
     WINDOWS_BUILD_TIME=$(( $(date +%s) - start ))
     return 0
 }
-if [ "$DEPLOY_WINDOWS" = true ]; then
-    if run_windows; then
-        WINDOWS_STATUS="ok"
-    else
-        WINDOWS_STATUS="failed"
-        ANY_STEP_FAILED=true
-        echo "  ⚠️  Windows failed — continuing with the rest of the run."
-    fi
-fi
 
 # ----- Linux (--linux) -----
 # build  = collect the CI run's tarball into build/linux-release/
@@ -2828,15 +2849,6 @@ run_linux() {
     return 0
 }
 LINUX_AUR_FAILED=false
-if [ "$DEPLOY_LINUX" = true ]; then
-    if run_linux; then
-        LINUX_STATUS="ok"
-    else
-        LINUX_STATUS="failed"
-        ANY_STEP_FAILED=true
-        echo "  ⚠️  Linux failed — continuing with the rest of the run."
-    fi
-fi
 
 # ----- Web build (--web, or as part of --all) -----
 # Published under /web/, with the landing page owning the root. --base-href is
@@ -2952,15 +2964,33 @@ run_web() {
     WEB_BUILD_TIME=$((WEB_END_TIME - WEB_START_TIME))
     return 0
 }
-if [ "$DEPLOY_WEB" = true ]; then
-    if run_web; then
-        WEB_STATUS="ok"
+
+# ----- Ship the platforms, in PLATFORM_ORDER -----
+# Each platform above only DEFINES its run_<p>; this is where they run. Order
+# is PLATFORM_ORDER (mobile first by default, or the order the picker's rows
+# were ticked in). Convex has already run, and Site always runs after all of
+# them — see below. Isolated: one failing never stops the next.
+ship_platform() {   # $1 = ios|android|macos|windows|linux|web
+    local upper label flag status_var
+    upper=$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')
+    flag="DEPLOY_$upper"
+    [ "${!flag}" = true ] || return 0
+    case "$1" in
+        ios) label="iOS" ;; macos) label="macOS" ;; android) label="Android" ;;
+        windows) label="Windows" ;; linux) label="Linux" ;; web) label="Web" ;;
+    esac
+    status_var="${upper}_STATUS"
+    if "run_$1"; then
+        printf -v "$status_var" '%s' ok
     else
-        WEB_STATUS="failed"
+        printf -v "$status_var" '%s' failed
         ANY_STEP_FAILED=true
-        echo "  ⚠️  Web failed — continuing with the rest of the run."
+        echo "  ⚠️  $label failed — continuing with the rest of the run."
     fi
-fi
+}
+for p in $PLATFORM_ORDER; do
+    ship_platform "$p"
+done
 
 # ----- Landing + downloads pages -----
 # Last, so the downloads page renders from a manifest that already includes
