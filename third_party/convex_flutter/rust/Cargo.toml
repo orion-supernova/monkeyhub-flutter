@@ -23,6 +23,15 @@ parking_lot = { version = "0.12.3" }
 serde_json = { version = "1.0.120" }
 serde = { version = "1.0", features = ["derive"] }
 base64 = { version = "0.21" }
+# monkeyhub patch: size. Cargo's default release profile links with no LTO,
+# 16 codegen units and every symbol kept, which made this the fourth-largest
+# framework in the iOS app. Same opt-level, so no speed is traded; unwinding
+# stays on because flutter_rust_bridge turns a Rust panic into a Dart error.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 

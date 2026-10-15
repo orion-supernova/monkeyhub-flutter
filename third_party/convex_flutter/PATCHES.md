@@ -6,7 +6,7 @@ Vendored from `pub.dev/convex_flutter-3.0.1` and wired up through
 except the changes below, each bracketed by `monkeyhub patch` comments so the
 whole delta is greppable.
 
-There are three independent patch sets, for three unrelated bugs:
+There are four independent patch sets:
 
 1. **The web reconnect loop** — five defects in
    `lib/src/impl/convex_client_web.dart`, described below.
@@ -14,6 +14,9 @@ There are three independent patch sets, for three unrelated bugs:
    that expose it, described in [Native: a real reconnect](#native-a-real-reconnect).
 3. **The macOS archive** — `cargokit/build_pod.sh`, described in
    [macOS: the deployment target and proc-macros](#macos-the-deployment-target-and-proc-macros).
+4. **Binary size** — a `[profile.release]` in `rust/Cargo.toml` (fat LTO, one
+   codegen unit, symbols stripped, opt-level unchanged). An iOS arm64 cdylib
+   went from 4.5 MB to 2.6 MB; the shipped framework was 9.7 MB.
 
 Regenerate after touching `rust/src/lib.rs`:
 

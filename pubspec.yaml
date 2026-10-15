@@ -508,6 +508,8 @@ flutter:
     # themes — are static cuts subset to Inter-Regular's code points.
     # Re-cutting them means
     # instancing from google/fonts and subsetting again; do not hand-edit.
+    # After any re-cut, run tool/slim_fonts.py: it drops hinting and the glyphs
+    # only unused OpenType features reach (7.9 MB -> 5.0 MB, same rendering).
     #
     # Note what is NOT here: Google Sans, which is declared under `fonts:`
     # below rather than resolved by the package. See the comment there.
