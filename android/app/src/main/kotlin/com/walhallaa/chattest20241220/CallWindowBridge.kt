@@ -2,7 +2,9 @@ package com.walhallaa.chattest20241220
 
 import android.app.Activity
 import android.content.Context
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -107,6 +109,11 @@ object CallWindowBridge {
                             Log.i(TAG, "call window keepScreenOn=$keepScreenOn proximity=$proximityWanted")
                             result.success(null)
                         }
+                        // The output the call's audio is on right now, for the
+                        // in-call speaker button's glyph and the route sheet's
+                        // check (lib/calls/call_audio_devices.dart). Read-only:
+                        // routing stays flutter_webrtc's AudioSwitch's.
+                        "audioOutput" -> result.success(currentOutput(context))
                         else -> result.notImplemented()
                     }
                 }
@@ -143,6 +150,43 @@ object CallWindowBridge {
             return
         }
         handler.postDelayed(watchdog, WATCHDOG_MS)
+    }
+
+    /// `kind` in AudioSwitch's type names (`earpiece`, `speaker`,
+    /// `bluetooth`, `wired-headset`, or `other`) and the device's name.
+    /// Android 12+ names the communication device outright; before that the
+    /// legacy flags AudioSwitch itself sets are the answer.
+    private fun currentOutput(context: Context): Map<String, Any?> {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            ?: return emptyMap()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val device = am.communicationDevice
+            if (device != null) {
+                val kind = when (device.type) {
+                    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "earpiece"
+                    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
+                    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE -> "speaker"
+                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+                    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+                    AudioDeviceInfo.TYPE_BLE_HEADSET,
+                    AudioDeviceInfo.TYPE_BLE_SPEAKER,
+                    AudioDeviceInfo.TYPE_HEARING_AID -> "bluetooth"
+                    AudioDeviceInfo.TYPE_WIRED_HEADSET,
+                    AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+                    AudioDeviceInfo.TYPE_USB_HEADSET -> "wired-headset"
+                    else -> "other"
+                }
+                return mapOf("kind" to kind, "name" to device.productName?.toString())
+            }
+        }
+        @Suppress("DEPRECATION")
+        val kind = when {
+            am.isSpeakerphoneOn -> "speaker"
+            am.isBluetoothScoOn -> "bluetooth"
+            am.isWiredHeadsetOn -> "wired-headset"
+            else -> "earpiece"
+        }
+        return mapOf("kind" to kind)
     }
 
     private fun inCall(context: Context): Boolean {

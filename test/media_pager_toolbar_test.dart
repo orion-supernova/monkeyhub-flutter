@@ -57,7 +57,7 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  Future<Future<int?>> open(
+  Future<Future<ChatMessage?>> open(
     WidgetTester tester, {
     required List<ChatMessage> items,
     int initialIndex = 0,
@@ -156,10 +156,10 @@ void main() {
       0,
     );
 
-    // Close: the index handed back is b's in the set the opener passed in.
+    // Close: the message handed back is b.
     await tester.tap(find.bySemanticsLabel('Close'));
     await tester.pumpAndSettle();
-    expect(await result, 1);
+    expect((await result)?.id, 'b');
   });
 
   testWidgets('deleting the only picture closes the gallery', (tester) async {

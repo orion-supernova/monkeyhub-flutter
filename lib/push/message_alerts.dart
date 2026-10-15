@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart' show VoidCallback, visibleForTesting;
+
 import '../audio/alert_sounds.dart';
 import '../platform.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_room.dart';
+import 'push_manager.dart';
 import 'viewer_presence.dart';
 import 'web_notifier.dart';
 
@@ -9,14 +12,21 @@ import 'web_notifier.dart';
 /// message arrives in a room the user isn't currently viewing.
 ///
 /// Why this exists: on mobile, APNs/FCM deliver a banner with the OS
-/// notification sound. Desktop has no push at all, and a FOREGROUND web tab
-/// gets no Web Push banner either, so new messages arrived silently. This
+/// notification sound. Windows and Linux have no push at all, a FOREGROUND web
+/// tab gets no Web Push banner either, and a Mac in front of its user has its
+/// APNs banner suppressed on purpose (macos/Runner/AppDelegate.swift
+/// `willPresent`), so without this new messages would arrive silently. This
 /// observes the rooms-list subscription — which refires with an advanced
 /// `lastMessageTime` on every new message — and fires an alert when a room's
 /// newest message moves forward while the room `hasUnread` (i.e. it isn't the
 /// user's own send) and isn't the room on screen.
 ///
 /// Scope: web + desktop only. Mobile is served by the OS notification.
+///
+/// On a Mac with working push ([PushManager.osDeliversMessageAlerts]) the work
+/// is split by whether anyone is looking: in front of the user this pings and
+/// the OS stays silent; otherwise the OS banner (with its own sound) speaks and
+/// this stays silent. Exactly one of the two, never both.
 class MessageAlerts {
   MessageAlerts._();
   static final MessageAlerts instance = MessageAlerts._();
@@ -25,6 +35,11 @@ class MessageAlerts {
   /// mobile is served by the OS notification the backend pushes directly
   /// (backend/convex/push.ts → APNs / FCM).
   static bool get _enabled => isWebOrDesktop;
+
+  /// Replaces the sound under `flutter test`, so the alert rules can be
+  /// asserted without an audio player.
+  @visibleForTesting
+  static VoidCallback? debugOnPing;
 
   ChatRepository? _repo;
   // roomId → newest message time we've already alerted on (ms since epoch).
@@ -77,6 +92,13 @@ class MessageAlerts {
     if (repo == null) return;
     final active = repo.activeRoomId;
     final focused = _focused;
+    // Nobody is looking and the OS is already showing a banner with a sound
+    // for this message: a ping on top would be the same alert twice.
+    if (!focused && PushManager.instance.osDeliversMessageAlerts) {
+      _snapshot(repo);
+      return;
+    }
+    final me = repo.userId;
     var pinged = false;
     for (final r in repo.rooms) {
       final t = _msgTime(r);
@@ -103,6 +125,10 @@ class MessageAlerts {
       // room muted down to its counts is silent here as a side effect, and a
       // room muted only for notifications would otherwise still ping.
       if (r.notificationsMuted) continue;
+      // Your own message, sent from another device (or this one). It moves
+      // `lastMessageTime` like anything inbound, and in the room on screen
+      // nothing else would stop it: that branch can't consult `hasUnread`.
+      if (r.isLastMessageFrom(me)) continue;
       final isActive = r.id == active;
       final shouldAlert = isActive ? !focused : r.hasUnread;
       if (!shouldAlert) continue;
@@ -115,7 +141,12 @@ class MessageAlerts {
       // on an alive-but-backgrounded tab, where both paths are awake.
       if (!pinged) {
         pinged = true;
-        AlertSounds.instance.playPing();
+        final hook = debugOnPing;
+        if (hook != null) {
+          hook();
+        } else {
+          AlertSounds.instance.playPing();
+        }
       }
     }
   }

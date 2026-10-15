@@ -298,7 +298,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   }
 
   Future<void> _openPager(ChatMessage m) async {
-    final media = _c.items;
+    final c = _c;
+    final media = c.items;
     final start = media.indexWhere((x) => x.id == m.id);
     if (start < 0) return;
 
@@ -330,6 +331,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       // Keeps the tile the reader has swiped to laid out, so the closing
       // flight has a destination however deep into the set they went.
       onPageChanged: (msg) => _revealInGrid(msg.id),
+      // The grid's set runs newest first, so older pictures join at the end.
+      newestFirst: true,
+      loadOlder: (oldest) => _olderForPager(c, oldest),
       onShowInChat: (msg) {
         handBack = msg;
         // Pop the pager (a root-navigator route) before handing the message
@@ -343,8 +347,35 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       _showInChat(target);
       return;
     }
-    if (landed == null || landed == start) return;
-    _revealInGrid(media[landed].id);
+    if (landed == null || landed.id == m.id) return;
+    _revealInGrid(landed.id);
+  }
+
+  /// The pager's next batch, taken from the grid's own paging rather than a
+  /// second query: [RoomContentController.loadMore] fetches the page the grid
+  /// would have fetched on scrolling down, so the tile for every picture the
+  /// pager reaches exists in the grid too, and the closing flight has
+  /// somewhere to land. Oldest first, as the pager wants it.
+  ///
+  /// A load already running for the grid's own scroll makes this one a
+  /// no-op that returns nothing new; the pager asks again on its next page.
+  Future<RoomContentPage> _olderForPager(
+    RoomContentController c,
+    ChatMessage oldest,
+  ) async {
+    await c.loadMore();
+    final items = c.items;
+    final at = items.indexWhere((x) => x.id == oldest.id);
+    final older = at >= 0
+        ? items.sublist(at + 1)
+        : [
+            for (final x in items)
+              if (x.createdAt.isBefore(oldest.createdAt)) x,
+          ];
+    return RoomContentPage(
+      items: older.reversed.toList(),
+      hasMore: c.hasMore,
+    );
   }
 
   /// Scrolls the grid so the tile for [messageId] is on screen.

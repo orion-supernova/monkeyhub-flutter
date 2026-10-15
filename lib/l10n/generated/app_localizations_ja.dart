@@ -1641,6 +1641,42 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callScreenControlSpeaker => 'スピーカー';
 
   @override
+  String get callAudioControlLabel => 'オーディオ';
+
+  @override
+  String get callAudioSheetTitle => 'オーディオ';
+
+  @override
+  String get callAudioRoutePhone => '電話';
+
+  @override
+  String get callAudioRouteHeadphones => 'ヘッドフォン';
+
+  @override
+  String get callAudioRouteBluetooth => 'Bluetooth';
+
+  @override
+  String get callAudioRouteCar => '車';
+
+  @override
+  String get callAudioRouteOther => 'その他のデバイス';
+
+  @override
+  String get callAudioMicFollowsNote => 'マイクも選択したデバイスに切り替わります。';
+
+  @override
+  String get callAudioMicrophoneHeader => 'マイク';
+
+  @override
+  String get callAudioUnknownDevice => '不明なデバイス';
+
+  @override
+  String get callAudioNoDevices => 'デバイスが見つかりません';
+
+  @override
+  String get callAudioSwitchFailed => 'オーディオデバイスを切り替えられませんでした';
+
+  @override
   String get callScreenControlEnd => '終了';
 
   @override
@@ -12153,6 +12189,42 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return '$nameさんに挑戦し返す';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return '$roomで返信';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '友達$count人がプレイしました',
+      zero: 'ここにいる友達はまだ誰もプレイしていません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'あなたと友達$count人がプレイしました',
+      zero: '今のところプレイしたのはあなただけです',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'ここには友達だけが表示されます。このチャットの他の人もプレイしているかもしれません。';
+
+  @override
   String get chatGameNameLiarsDice => 'ブラフダイス';
 
   @override
@@ -12810,7 +12882,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get howToPatches1 => '盤面を長方形に分けよう。どの長方形にもヒントがちょうど1つ。';
 
   @override
-  String get howToPatches2 => 'バッジが形を表すよ。正方形、縦長、横長。丸はどんな長方形でもOK。数字はマスの数。';
+  String get howToPatches2 =>
+      'バッジはパッチの形だよ。正方形、縦長、横長。点線のバッジは、この3つのどれでもOK。数字があれば、パッチが覆うマスの数。';
 
   @override
   String get howToPatches3 => '角から角へドラッグしてパッチを切り取ろう。パッチをタップすると外せるよ。';

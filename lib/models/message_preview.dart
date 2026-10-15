@@ -112,7 +112,7 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       // "Chess · move 12".
       return m.content.isEmpty ? 'game' : m.content;
     case MessageType.challenge:
-      // "Beat my time: Queens 2:41".
+      // "Can you beat my 2:41 on Queens?".
       return m.content.isEmpty ? 'challenge' : m.content;
     case MessageType.gif:
       // The word, not the title. `content` is the GIF's alt text ("Hello"),

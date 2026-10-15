@@ -1727,6 +1727,44 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callScreenControlSpeaker => 'Altifalante';
 
   @override
+  String get callAudioControlLabel => 'Áudio';
+
+  @override
+  String get callAudioSheetTitle => 'Áudio';
+
+  @override
+  String get callAudioRoutePhone => 'Telemóvel';
+
+  @override
+  String get callAudioRouteHeadphones => 'Auscultadores';
+
+  @override
+  String get callAudioRouteBluetooth => 'Bluetooth';
+
+  @override
+  String get callAudioRouteCar => 'Carro';
+
+  @override
+  String get callAudioRouteOther => 'Outro dispositivo';
+
+  @override
+  String get callAudioMicFollowsNote =>
+      'O microfone muda com o dispositivo que escolheres.';
+
+  @override
+  String get callAudioMicrophoneHeader => 'Microfone';
+
+  @override
+  String get callAudioUnknownDevice => 'Dispositivo desconhecido';
+
+  @override
+  String get callAudioNoDevices => 'Nenhum dispositivo encontrado';
+
+  @override
+  String get callAudioSwitchFailed =>
+      'Não foi possível mudar o dispositivo de áudio';
+
+  @override
   String get callScreenControlEnd => 'Terminar';
 
   @override
@@ -12789,6 +12827,44 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return 'Devolve o desafio a $name';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return 'Responder em $room';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count amigos jogaram',
+      one: '1 amigo jogou',
+      zero: 'Nenhum dos teus amigos daqui jogou ainda',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tu e $count amigos jogaram',
+      one: 'Tu e 1 amigo jogaram',
+      zero: 'Por agora só tu jogaste',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'Só os teus amigos aparecem aqui. Outras pessoas desta conversa também podem ter jogado.';
+
+  @override
   String get chatGameNameLiarsDice => 'Dados mentirosos';
 
   @override
@@ -13504,7 +13580,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get howToPatches2 =>
-      'O emblema mostra a forma: quadrado, alto ou largo. Um círculo é qualquer retângulo. O número diz quantas casas.';
+      'O emblema é a forma do retalho: quadrado, alto ou largo. Um emblema tracejado quer dizer que pode ser qualquer uma das três. O número, quando existe, diz quantas casas o retalho ocupa.';
 
   @override
   String get howToPatches3 =>
@@ -15491,6 +15567,44 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get callScreenControlSpeaker => 'Viva-voz';
+
+  @override
+  String get callAudioControlLabel => 'Áudio';
+
+  @override
+  String get callAudioSheetTitle => 'Áudio';
+
+  @override
+  String get callAudioRoutePhone => 'Celular';
+
+  @override
+  String get callAudioRouteHeadphones => 'Fones de ouvido';
+
+  @override
+  String get callAudioRouteBluetooth => 'Bluetooth';
+
+  @override
+  String get callAudioRouteCar => 'Carro';
+
+  @override
+  String get callAudioRouteOther => 'Outro dispositivo';
+
+  @override
+  String get callAudioMicFollowsNote =>
+      'O microfone muda junto com o dispositivo escolhido.';
+
+  @override
+  String get callAudioMicrophoneHeader => 'Microfone';
+
+  @override
+  String get callAudioUnknownDevice => 'Dispositivo desconhecido';
+
+  @override
+  String get callAudioNoDevices => 'Nenhum dispositivo encontrado';
+
+  @override
+  String get callAudioSwitchFailed =>
+      'Não foi possível trocar o dispositivo de áudio';
 
   @override
   String get callScreenControlEnd => 'Encerrar';
@@ -26543,6 +26657,44 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
+  String challengeBackName(String name) {
+    return 'Devolva o desafio para $name';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return 'Responder em $room';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count amigos jogaram',
+      one: '1 amigo jogou',
+      zero: 'Nenhum amigo seu daqui jogou ainda',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Você e $count amigos jogaram',
+      one: 'Você e 1 amigo jogaram',
+      zero: 'Por enquanto só você jogou',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'Só seus amigos aparecem aqui. Outras pessoas desta conversa também podem ter jogado.';
+
+  @override
   String get chatGameNameLiarsDice => 'Dado mentiroso';
 
   @override
@@ -27259,7 +27411,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get howToPatches2 =>
-      'O selo mostra a forma: quadrado, alto ou largo. Um círculo é qualquer retângulo. O número diz quantas casas.';
+      'O selo é a forma do retalho: quadrado, alto ou largo. Um selo tracejado quer dizer que pode ser qualquer uma das três. O número, quando tem, diz quantas casas o retalho ocupa.';
 
   @override
   String get howToPatches3 =>

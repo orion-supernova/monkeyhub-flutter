@@ -17,6 +17,8 @@ import '../widgets/app_toast.dart';
 import '../widgets/route_landing.dart';
 import '../theme/motion.dart';
 import 'audio_level_monitor.dart';
+import 'call_audio_devices.dart';
+import 'call_audio_sheet.dart';
 import 'call_media.dart';
 import 'call_models.dart';
 import 'call_options_sheet.dart';
@@ -131,6 +133,10 @@ class _CallScreenState extends State<CallScreen>
     }
     widget.service.addListener(_onChanged);
     widget.service.drawArmed.addListener(_onChanged);
+    CallAudioDevices.instance
+      ..attach()
+      ..registerWebSinks(_renderers)
+      ..addListener(_onChanged);
     // Known on the first frame wherever it can be: an answer that came a
     // frame later grew the tray a share button mid-slide, and on a phone
     // that sixth control wrapped it onto a second row, so the whole tray
@@ -280,6 +286,7 @@ class _CallScreenState extends State<CallScreen>
   void _syncStreams() {
     if (!_renderersReady) return;
     final svc = widget.service;
+    final remoteBefore = (_boundRemoteTick, _boundRemoteScreenTick);
     if (_localRenderer.srcObject != svc.localStream ||
         _boundLocalTick != svc.localStreamTick) {
       _localRenderer.srcObject = svc.localStream;
@@ -303,6 +310,11 @@ class _CallScreenState extends State<CallScreen>
         _boundLocalScreenTick != svc.localScreenStreamTick) {
       _localScreenRenderer.srcObject = ownScreen;
       _boundLocalScreenTick = svc.localScreenStreamTick;
+    }
+    // Web: a freshly bound renderer made a new <audio> element, which
+    // plays on the default speaker until pointed at the chosen one.
+    if (remoteBefore != (_boundRemoteTick, _boundRemoteScreenTick)) {
+      unawaited(CallAudioDevices.instance.reapplyWebSink());
     }
   }
 
@@ -334,6 +346,7 @@ class _CallScreenState extends State<CallScreen>
       svc.remoteScreenStreamTick,
       svc.localScreenStreamTick,
       svc.drawArmed.value,
+      CallAudioDevices.instance.revision,
       _renderersReady,
       _pipIsLocal,
       _controlsVisible,
@@ -421,6 +434,10 @@ class _CallScreenState extends State<CallScreen>
   void dispose() {
     widget.service.removeListener(_onChanged);
     widget.service.drawArmed.removeListener(_onChanged);
+    CallAudioDevices.instance
+      ..removeListener(_onChanged)
+      ..unregisterWebSinks(_renderers)
+      ..detach();
     // Still initializing: _setupRenderers frees them once it finishes, see
     // there.
     if (_renderersUsed && !_settingUp) _releaseRenderers();
@@ -532,9 +549,9 @@ class _CallScreenState extends State<CallScreen>
   );
 
   /// The tray's controls, in the order they keep the first row: the
-  /// everyday toggles first, the occasional ones last. The speaker toggle
-  /// is ALWAYS present (video defaults to loudspeaker, voice to earpiece,
-  /// both switchable).
+  /// everyday toggles first, the occasional ones last. The audio control
+  /// is ALWAYS present (on a phone video defaults to loudspeaker, voice to
+  /// earpiece, both switchable; see [callAudioTrayAction]).
   List<CallTrayAction> _trayActions(
     AppLocalizations l10n,
     CallSession s,
@@ -561,11 +578,18 @@ class _CallScreenState extends State<CallScreen>
             ? l10n.callScreenControlCamOff
             : l10n.callScreenControlCamOn,
       ),
-      CallTrayAction(
-        icon: s.speakerOn ? CallGlyphs.speakerOn : CallGlyphs.speakerOff,
-        active: s.speakerOn,
-        onTap: widget.service.toggleSpeaker,
-        label: l10n.callScreenControlSpeaker,
+      // The real route on a phone (a toggle, or the route sheet once a
+      // headset is a choice); the device picker on desktop and web.
+      callAudioTrayAction(
+        context,
+        speakerOn: s.speakerOn,
+        onToggleSpeaker: widget.service.toggleSpeaker,
+        selectSpeaker: widget.service.selectSpeaker,
+        switchWebMic: (id) => switchWebMicrophone(
+          deviceId: id,
+          localStream: svc.localStream,
+          peerConnections: [?svc.peerConnection],
+        ),
       ),
       if (_shareSupported)
         CallTrayAction(

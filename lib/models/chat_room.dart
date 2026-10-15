@@ -12,6 +12,7 @@ class ChatRoom {
     this.description,
     this.lastMessage,
     this.lastMessageTime,
+    this.lastMessageSenderId,
     this.lastReadAt,
     this.lastDeliveredAt,
     this.passwordHash,
@@ -20,6 +21,7 @@ class ChatRoom {
     this.messageLifetime,
     this.avatarStorageId,
     this.unreadCount = 0,
+    this.unreadCountFromServer = false,
     this.unreadCapped = false,
     this.hasMention = false,
     this.isMember = false,
@@ -42,6 +44,20 @@ class ChatRoom {
   int memberCount;
   String? lastMessage;
   DateTime? lastMessageTime;
+
+  /// Who sent the message [lastMessage] previews (`rooms.lastMessageSenderId`).
+  ///
+  /// Null on a backend that predates the field and on a room whose newest
+  /// write did too. The one question it answers is "is the newest message
+  /// mine?" (see [isLastMessageFrom]): a message you sent from your phone
+  /// moves `lastMessageTime` on your Mac exactly like an inbound one does.
+  String? lastMessageSenderId;
+
+  /// Whether [lastMessageSenderId] names [myId]. False when either is unknown,
+  /// so an old backend keeps today's behaviour.
+  bool isLastMessageFrom(String? myId) =>
+      myId != null && myId.isNotEmpty && lastMessageSenderId == myId;
+
   /// This user's own read cursor for the room (ms since epoch, from
   /// roomMembers.lastReadAt). Null until the user has ever read the room.
   DateTime? lastReadAt;
@@ -68,6 +84,12 @@ class ChatRoom {
   /// higher, so the UI can render "99+".
   int unreadCount;
   bool unreadCapped;
+
+  /// Whether [unreadCount] is the server's answer rather than the constructor
+  /// default. Set by [fromJson] when the payload carries `unreadCount` (every
+  /// backend since the field shipped, and every cached room, since [toJson]
+  /// always writes it). It is what lets [hasUnread] take a 0 at its word.
+  final bool unreadCountFromServer;
 
   /// Whether any of those unread messages named this user with an `@` (or
   /// addressed the whole room with `@everyone`).
@@ -178,21 +200,30 @@ class ChatRoom {
 
   /// True when the room has a message newer than this user's read cursor.
   ///
-  /// Prefers the server-computed [unreadCount], which — unlike the timestamp
-  /// comparison — doesn't count the user's own sends. The timestamp fallback
-  /// is kept for the deploy window where a client is talking to a backend that
-  /// doesn't send `unreadCount` yet.
+  /// The server-computed [unreadCount] decides whenever the server sent one,
+  /// zero included. It never counts the user's own sends, which the timestamp
+  /// comparison below cannot tell apart: sending from another device moves
+  /// `lastMessageTime` past `lastReadAt` (only reading moves the cursor), so
+  /// the fallback used to light up a room whose newest message was your own.
+  ///
+  /// The timestamp comparison is left for a room built without a server count
+  /// (a backend that predates it), and even then not for a room whose newest
+  /// message is known to be from someone who has read it — see
+  /// [isLastMessageFrom], which the caller with a user id applies.
   ///
   /// Answers "does this room look unread", not "does it hold unread messages",
   /// which is why muting badges makes it false: hiding the pill but keeping
   /// the glowing dot and the bold name would silence the number and none of
   /// the noise around it.
-  bool get hasUnread =>
-      !badgesMuted &&
-      (unreadCount > 0 ||
-          (unreadCount == 0 &&
-              lastMessageTime != null &&
-              (lastReadAt == null || lastMessageTime!.isAfter(lastReadAt!))));
+  bool get hasUnread {
+    if (badgesMuted) return false;
+    if (unreadCount > 0) return true;
+    if (unreadCountFromServer) return false;
+    final t = lastMessageTime;
+    if (t == null) return false;
+    final read = lastReadAt;
+    return read == null || t.isAfter(read);
+  }
 
   /// [hasMention], with the same badge-mute suppression as [hasUnread]. An `@`
   /// marker is a louder unread count, so it cannot outlive one.
@@ -220,6 +251,8 @@ class ChatRoom {
         'memberCount': memberCount,
         if (lastMessage != null) 'lastMessage': lastMessage,
         if (lastMessageTime != null) 'lastMessageTime': lastMessageTime!.millisecondsSinceEpoch,
+        if (lastMessageSenderId != null)
+          'lastMessageSenderId': lastMessageSenderId,
         if (lastReadAt != null) 'lastReadAt': lastReadAt!.millisecondsSinceEpoch,
         if (lastDeliveredAt != null)
           'lastDeliveredAt': lastDeliveredAt!.millisecondsSinceEpoch,
@@ -254,6 +287,12 @@ class ChatRoom {
       lastMessageTime: j['lastMessageTime'] is num
           ? DateTime.fromMillisecondsSinceEpoch((j['lastMessageTime'] as num).toInt())
           : null,
+      // Parsed defensively: an `Id<"users">` arrives as a string, and anything
+      // else (absent, null, a shape this build never heard of) means unknown.
+      lastMessageSenderId: j['lastMessageSenderId'] is String &&
+              (j['lastMessageSenderId'] as String).isNotEmpty
+          ? j['lastMessageSenderId'] as String
+          : null,
       lastReadAt: j['lastReadAt'] is num
           ? DateTime.fromMillisecondsSinceEpoch((j['lastReadAt'] as num).toInt())
           : null,
@@ -266,6 +305,7 @@ class ChatRoom {
       messageLifetime: ml is num ? Duration(seconds: ml.toInt()) : null,
       avatarStorageId: j['avatarStorageId'] as String?,
       unreadCount: ((j['unreadCount'] ?? 0) as num).toInt(),
+      unreadCountFromServer: j['unreadCount'] is num,
       unreadCapped: (j['unreadCapped'] ?? false) as bool,
       hasMention: (j['hasMention'] ?? false) as bool,
       isMember: (j['isMember'] ?? false) as bool,

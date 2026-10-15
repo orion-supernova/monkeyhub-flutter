@@ -569,6 +569,8 @@ class CallAudioRoute {
     required this.output,
     required this.reason,
     this.echo = false,
+    this.portName,
+    this.routes = const [],
   });
 
   factory CallAudioRoute.fromMap(Map<Object?, Object?> m) {
@@ -582,6 +584,11 @@ class CallAudioRoute {
         orElse: () => CallAudioRouteReason.other,
       ),
       echo: m['echo'] == true,
+      portName: m['portName']?.toString(),
+      routes: [
+        for (final r in (m['routes'] as List?) ?? const [])
+          if (r is Map) r,
+      ],
     );
   }
 
@@ -599,6 +606,15 @@ class CallAudioRoute {
   /// Within half a second of a native write of ours: most likely that write
   /// echoing back, not a user's choice.
   final bool echo;
+
+  /// The output's own name ("Murat's AirPods Pro", "Headphones"), when the
+  /// native side sends one. Display only; the policy never reads it.
+  final String? portName;
+
+  /// Every route the user could pick right now, raw from the native side
+  /// (`kind`, `uid`, `name`, `selected`), parsed by `CallAudioDevices`.
+  /// Empty from an older native build: the speaker button stays a toggle.
+  final List<Map<Object?, Object?>> routes;
 
   @override
   String toString() => 'CallAudioRoute(output: $output, speaker: $speaker, '
@@ -670,6 +686,10 @@ final StreamController<CallAudioRoute> _callAudioRoutes =
 Stream<CallAudioRoute> get callAudioRouteChanges => _callAudioRoutes.stream;
 
 bool _routeListenerInstalled = false;
+
+/// Installs the iOS route listener without an apply, for the route picker,
+/// which can open before the call's first apply. Idempotent.
+void ensureCallAudioRouteListener() => _listenForCallAudioRoutes();
 
 void _listenForCallAudioRoutes() {
   if (_routeListenerInstalled) return;
@@ -752,6 +772,30 @@ AndroidCallRoute androidCallRouteFor({
 
 AndroidCallRoute? _androidRoute;
 
+/// The AudioSwitch device (its type name: `earpiece`, `bluetooth`,
+/// `wired-headset`) the user picked in the in-call route sheet, or null for
+/// AudioSwitch's own choice. Only the non-speaker side is pinned: on that
+/// side [applyAndroidCallRoute]'s `setSpeakerphoneOn(false)` picks the
+/// FIRST headset it finds, so "the phone, not my earbuds" needs the pick
+/// re-asserted after every re-apply. Cleared with the call.
+String? _androidPinnedOutput;
+
+/// The pinned Android output, null when AudioSwitch chooses.
+String? get androidPinnedCallOutput => _androidPinnedOutput;
+
+/// Pins (or with null, unpins) the Android output the route sheet chose.
+/// Takes effect at the next [applyAndroidCallRoute], which the caller
+/// triggers by setting the speaker side.
+void pinAndroidCallOutput(String? typeName) {
+  _androidPinnedOutput = typeName;
+  debugPrint('[MHCallAudio] android output pinned: ${typeName ?? 'none'}');
+}
+
+/// flutter_webrtc's AudioSwitch device selection, swappable for tests.
+@visibleForTesting
+Future<void> Function(String typeName) androidSelectAudioOutput =
+    Helper.selectAudioOutput;
+
 /// The Android route last asked for in the current call. Tests only.
 @visibleForTesting
 AndroidCallRoute? get debugAndroidCallRoute => _androidRoute;
@@ -813,6 +857,12 @@ Future<void> applyAndroidCallRoute({
         if (previous == null) await androidSetSpeakerphoneOn(true);
         await androidSetSpeakerphoneButPreferHeadset();
     }
+    // The route sheet's pick, on the side it was made for. Posted to the
+    // same AudioSwitch handler after the call above, so it lands last.
+    final pin = _androidPinnedOutput;
+    if (pin != null && route == AndroidCallRoute.earpiece) {
+      await androidSelectAudioOutput(pin);
+    }
   } catch (e) {
     debugPrint('[MHCallAudio] android route ${route.name} failed: $e');
   }
@@ -824,6 +874,7 @@ Future<void> applyAndroidCallRoute({
 void resetAndroidCallRoute() {
   final hadCall = _androidRoute != null;
   _androidRoute = null;
+  _androidPinnedOutput = null;
   if (hadCall) {
     unawaited(_setAndroidCallWindow(
       (keepScreenOn: false, proximity: false),

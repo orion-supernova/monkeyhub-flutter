@@ -3861,6 +3861,8 @@ class _RoomScreenState extends State<RoomScreen>
         roomId: widget.roomId,
       ),
       onPageChanged: _alignTranscriptTo,
+      // Past the transcript's loaded window, the gallery fetches its own.
+      loadOlder: _olderGalleryMedia,
       onShowInChat: (msg) {
         travelTo = msg;
         // Pop the pager (a root-navigator route) before travelling, or the
@@ -3877,7 +3879,46 @@ class _RoomScreenState extends State<RoomScreen>
     // Closed by hand, on a photograph the reader swiped to. `onPageChanged`
     // has already put its row under the flight; this is the belt to that
     // braces, for the case where the swipe and the close landed in one frame.
-    if (landed != null && landed != start) _alignTranscriptTo(media[landed]);
+    // By id: the landed picture may be one the gallery fetched itself, older
+    // than anything the transcript holds, in which case there is no row to
+    // align and `_alignTranscriptTo` leaves the transcript where it is.
+    if (landed != null && landed.id != m.id) _alignTranscriptTo(landed);
+  }
+
+  /// Older media for the gallery, once a reader swipes past the oldest
+  /// picture the transcript has loaded. Straight from the room's media index
+  /// (`roomContent:listBucket`, the shared-content grid's query) rather than
+  /// by paging the transcript: a long chat can hold hundreds of messages
+  /// between two photographs, and the gallery wants the photographs.
+  ///
+  /// Filtered through [messageBelongsIn] like the transcript's own set, and
+  /// it keeps paging while a page filters down to nothing — the pager's
+  /// cursor is the oldest item it HOLDS, so an empty answer with more behind
+  /// it would ask for the same page again on every swipe.
+  Future<RoomContentPage> _olderGalleryMedia(ChatMessage oldest) async {
+    final me = widget.repo.userId;
+    if (me == null) return RoomContentPage.empty;
+    var before = oldest.createdAt;
+    for (var tries = 0; tries < 8; tries++) {
+      final page = await widget.api.listRoomContent(
+        roomId: widget.roomId,
+        userId: me,
+        bucket: 'media',
+        before: before,
+        limit: 30,
+      );
+      final items = [
+        for (final x in page.items.reversed)
+          if (messageBelongsIn(x, RoomContentTab.media)) x,
+      ];
+      if (items.isNotEmpty || !page.hasMore || page.items.isEmpty) {
+        return RoomContentPage(items: items, hasMore: page.hasMore);
+      }
+      before = page.items.last.createdAt;
+    }
+    // Eight pages in a row of nothing the gallery can show is treated as the
+    // end, rather than asked for again from the same cursor on every swipe.
+    return RoomContentPage.empty;
   }
 
   /// The [Hero] tag [m]'s picture wears in THIS transcript.

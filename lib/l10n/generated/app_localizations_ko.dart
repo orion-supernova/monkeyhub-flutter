@@ -1642,6 +1642,42 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callScreenControlSpeaker => '스피커';
 
   @override
+  String get callAudioControlLabel => '오디오';
+
+  @override
+  String get callAudioSheetTitle => '오디오';
+
+  @override
+  String get callAudioRoutePhone => '휴대폰';
+
+  @override
+  String get callAudioRouteHeadphones => '헤드폰';
+
+  @override
+  String get callAudioRouteBluetooth => '블루투스';
+
+  @override
+  String get callAudioRouteCar => '자동차';
+
+  @override
+  String get callAudioRouteOther => '기타 기기';
+
+  @override
+  String get callAudioMicFollowsNote => '마이크도 선택한 기기로 전환됩니다.';
+
+  @override
+  String get callAudioMicrophoneHeader => '마이크';
+
+  @override
+  String get callAudioUnknownDevice => '알 수 없는 기기';
+
+  @override
+  String get callAudioNoDevices => '기기를 찾을 수 없음';
+
+  @override
+  String get callAudioSwitchFailed => '오디오 기기를 전환할 수 없습니다';
+
+  @override
   String get callScreenControlEnd => '종료';
 
   @override
@@ -12179,6 +12215,42 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return '$name님에게 도전장 돌려주기';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return '$room에 답장하기';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '친구 $count명이 플레이했어요',
+      zero: '여기 있는 친구 중 아직 플레이한 사람이 없어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '나와 친구 $count명이 플레이했어요',
+      zero: '지금까지 나만 플레이했어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      '여기에는 친구만 표시돼요. 이 채팅의 다른 사람도 플레이했을 수 있어요.';
+
+  @override
   String get chatGameNameLiarsDice => '라이어 다이스';
 
   @override
@@ -12841,7 +12913,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get howToPatches2 =>
-      '배지가 모양을 알려줘요: 정사각형, 세로로 긴 것, 가로로 긴 것. 원은 아무 직사각형이나 돼요. 숫자는 칸 수예요.';
+      '배지가 패치의 모양이에요: 정사각형, 세로로 긴 것, 가로로 긴 것. 점선 배지는 이 셋 중 어느 것이든 돼요. 숫자가 있으면 패치가 차지하는 칸 수예요.';
 
   @override
   String get howToPatches3 => '모서리에서 모서리로 드래그해서 패치를 잘라요. 패치를 탭하면 떼어져요.';

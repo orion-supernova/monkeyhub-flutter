@@ -1467,6 +1467,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   await ctx.db.patch(roomId, {
     lastMessage: preview,
     lastMessageTime: sentAt,
+    lastMessageSenderId: userId,
   });
 
   // Fire push notifications in background (non-blocking). [quiet] is for a
@@ -1859,6 +1860,7 @@ export async function removeMessageAndFanout(
     await ctx.db.patch(msg.roomId, {
       lastMessage: newest ? roomPreviewFor(newest) : undefined,
       lastMessageTime: newest ? newest.createdAt : undefined,
+      lastMessageSenderId: newest ? newest.userId : undefined,
     });
   }
 
@@ -2310,6 +2312,7 @@ export const forwardToRoom = mutation({
       await ctx.db.patch(targetRoomId, {
         lastMessage: preview,
         lastMessageTime: Date.now(),
+        lastMessageSenderId: userId,
       });
 
       // One push for the batch as well. Ten banners for one tap on FORWARD is

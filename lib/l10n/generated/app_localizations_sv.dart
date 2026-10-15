@@ -1717,6 +1717,43 @@ class AppLocalizationsSv extends AppLocalizations {
   String get callScreenControlSpeaker => 'Högtalare';
 
   @override
+  String get callAudioControlLabel => 'Ljud';
+
+  @override
+  String get callAudioSheetTitle => 'Ljud';
+
+  @override
+  String get callAudioRoutePhone => 'Telefon';
+
+  @override
+  String get callAudioRouteHeadphones => 'Hörlurar';
+
+  @override
+  String get callAudioRouteBluetooth => 'Bluetooth';
+
+  @override
+  String get callAudioRouteCar => 'Bil';
+
+  @override
+  String get callAudioRouteOther => 'Annan enhet';
+
+  @override
+  String get callAudioMicFollowsNote =>
+      'Mikrofonen byter till den enhet du väljer.';
+
+  @override
+  String get callAudioMicrophoneHeader => 'Mikrofon';
+
+  @override
+  String get callAudioUnknownDevice => 'Okänd enhet';
+
+  @override
+  String get callAudioNoDevices => 'Inga enheter hittades';
+
+  @override
+  String get callAudioSwitchFailed => 'Det gick inte att byta ljudenhet';
+
+  @override
   String get callScreenControlEnd => 'Avsluta';
 
   @override
@@ -12697,6 +12734,44 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return 'Utmana $name tillbaka';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return 'Svara i $room';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count vänner har spelat',
+      one: '1 vän har spelat',
+      zero: 'Ingen av dina vänner här har spelat än',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Du och $count vänner har spelat',
+      one: 'Du och 1 vän har spelat',
+      zero: 'Bara du har spelat än så länge',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'Bara dina vänner visas här. Andra i chatten kan också ha spelat.';
+
+  @override
   String get chatGameNameLiarsDice => 'Lögnartärning';
 
   @override
@@ -13408,7 +13483,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get howToPatches2 =>
-      'Märket visar formen: kvadrat, hög eller bred. En cirkel betyder vilken rektangel som helst. Siffran är antalet rutor.';
+      'Märket är lappens form: kvadrat, hög eller bred. Ett streckat märke betyder att den kan vara vilken som helst av de tre. En siffra, när det finns en, är hur många rutor lappen täcker.';
 
   @override
   String get howToPatches3 =>

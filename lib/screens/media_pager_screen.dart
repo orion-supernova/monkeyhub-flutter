@@ -16,6 +16,7 @@ import '../media/native_gallery.dart';
 import '../media/storage/media_ledger.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
+import '../models/room_content_item.dart' show RoomContentPage;
 import '../platform.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
@@ -160,6 +161,8 @@ class MediaPagerScreen extends StatefulWidget {
     this.sourceDecodeWidth,
     this.actions,
     this.fileAsSeen = true,
+    this.loadOlder,
+    this.newestFirst = false,
   });
 
   final List<ChatMessage> items;
@@ -207,13 +210,34 @@ class MediaPagerScreen extends StatefulWidget {
   /// messages may be stand-ins that know less than the ledger already does.
   final bool fileAsSeen;
 
-  /// Returns the index the pager was left on, so the grid can put that tile
-  /// back under the reader's eyes. Null if it was dismissed without settling.
+  /// Fetches the media older than the oldest item the pager holds, OLDEST
+  /// FIRST, and whether anything older still exists.
+  ///
+  /// [items] is a snapshot of whatever the opener had loaded — the
+  /// transcript's live window, the grid's pages so far — and a reader swiping
+  /// back through a long conversation used to run off the end of it a few
+  /// dozen photographs in, with years of pictures still behind them. Asked
+  /// when the reader is within [_MediaPagerScreenState._olderLead] pages of
+  /// the oldest item, one request at a time, until it says there is no more.
+  /// Null means the set is complete as handed in.
+  final Future<RoomContentPage> Function(ChatMessage oldest)? loadOlder;
+
+  /// Whether [items] runs newest to oldest (the shared-content grid's order)
+  /// rather than oldest to newest (the transcript's). Decides which end older
+  /// media from [loadOlder] joins: appended past the end, or slid in before
+  /// the start without moving the page on screen.
+  final bool newestFirst;
+
+  /// Returns the message the pager was left on, so the opener can put that
+  /// tile back under the reader's eyes. Null if it was dismissed without
+  /// settling.
   ///
   /// Swiping four photos deep and closing should not land you looking at the
   /// one you opened — and the hero has nowhere to fly home to if the tile it
-  /// belongs to has been scrolled out of the grid's build range.
-  static Future<int?> open(
+  /// belongs to has been scrolled out of the grid's build range. A message
+  /// rather than an index, because the set grows while it is open: a picture
+  /// fetched by [loadOlder] has no index in the list the opener handed in.
+  static Future<ChatMessage?> open(
     BuildContext context, {
     required List<ChatMessage> items,
     required int initialIndex,
@@ -224,9 +248,11 @@ class MediaPagerScreen extends StatefulWidget {
     int? sourceDecodeWidth,
     MediaPagerActions? actions,
     bool fileAsSeen = true,
+    Future<RoomContentPage> Function(ChatMessage oldest)? loadOlder,
+    bool newestFirst = false,
   }) {
-    return Navigator.of(context, rootNavigator: true).push<int>(
-      PageRouteBuilder<int>(
+    return Navigator.of(context, rootNavigator: true).push<ChatMessage>(
+      PageRouteBuilder<ChatMessage>(
         opaque: false,
         barrierColor: Colors.transparent,
         // Matches `FullscreenImageViewer`: the flight is a direct response to
@@ -244,6 +270,8 @@ class MediaPagerScreen extends StatefulWidget {
           sourceDecodeWidth: sourceDecodeWidth,
           actions: actions,
           fileAsSeen: fileAsSeen,
+          loadOlder: loadOlder,
+          newestFirst: newestFirst,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -288,10 +316,107 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     Navigator.of(context).removeRoute(route);
   }
 
-  /// The set as it stands now. A copy of [MediaPagerScreen.items] that only
-  /// ever shrinks — Delete takes the picture out from under the reader and
-  /// the gallery carries on with its neighbour, as Photos does.
+  /// The set as it stands now. A copy of [MediaPagerScreen.items] that
+  /// shrinks when Delete takes the picture out from under the reader (the
+  /// gallery carries on with its neighbour, as Photos does) and grows at its
+  /// oldest end as [MediaPagerScreen.loadOlder] brings in more.
   late final List<ChatMessage> _items = [...widget.items];
+
+  // ── Older media ──
+
+  /// How close to the oldest item, in pages, the reader gets before the next
+  /// batch is asked for. Far enough ahead that a page of thirty normally
+  /// lands before they reach the end; near enough that opening on today's
+  /// photo does not fetch last year's.
+  static const _olderLead = 3;
+
+  /// A [MediaPagerScreen.loadOlder] request is out. One at a time: every
+  /// page change near the edge asks, and two requests from the same cursor
+  /// would fetch the same batch twice.
+  bool _loadingOlder = false;
+
+  /// The loader said there is nothing older. Never asked again.
+  bool _olderExhausted = false;
+
+  /// A batch that arrived while the pages were moving, held until they come
+  /// to rest. See [_applyOlder].
+  List<ChatMessage>? _pendingOlder;
+
+  /// Pages between the current one and the oldest item.
+  int get _fromOldest =>
+      widget.newestFirst ? _items.length - 1 - _index : _index;
+
+  /// Asks for the next batch of older media if the reader is near enough to
+  /// the oldest end, nothing is in flight and the loader has more to give.
+  void _maybeLoadOlder() {
+    final load = widget.loadOlder;
+    if (load == null || _loadingOlder || _olderExhausted || _closing) return;
+    if (_items.isEmpty || _pendingOlder != null) return;
+    if (_fromOldest > _olderLead) return;
+    _loadingOlder = true;
+    final oldest = widget.newestFirst ? _items.last : _items.first;
+    load(oldest).then((page) {
+      if (!mounted) return;
+      _loadingOlder = false;
+      if (!page.hasMore) _olderExhausted = true;
+      // By id, not by trusting the cursor: two messages can share a
+      // millisecond, and the transcript and the index can both hold one.
+      final known = {for (final m in _items) m.id};
+      final fresh = [
+        for (final m in page.items)
+          if (known.add(m.id)) m,
+      ];
+      // Nothing new and not exhausted (a failed or empty page): no retry
+      // here, or a bad network would spin. The next page change asks again.
+      if (fresh.isEmpty) return;
+      _pendingOlder = fresh;
+      _applyOlder();
+    }, onError: (Object e) {
+      debugPrint('media pager: older media failed: $e');
+      if (mounted) _loadingOlder = false;
+    });
+  }
+
+  /// Puts the held batch into the set without moving the picture on screen.
+  ///
+  /// Appended, for a newest-first set, that is all there is to it. Slid in
+  /// before the start of an oldest-first one, every page index shifts by the
+  /// batch's length, so the current index and the scroll offset are moved by
+  /// exactly that much in the same frame — the reader sees the same
+  /// photograph, now with more of them behind it.
+  ///
+  /// Only at rest. A settling swipe or an arrow-key step is a simulation
+  /// aimed at an absolute offset, and correcting the offset under it would
+  /// carry the reader to the wrong page; the batch waits for the scroll to
+  /// end (see the [ScrollEndNotification] listener in [build]).
+  void _applyOlder() {
+    final fresh = _pendingOlder;
+    if (fresh == null || !mounted || _closing) return;
+    if (!widget.newestFirst) {
+      if (!_pager.hasClients) {
+        // Not laid out yet: the controller would attach on the old index.
+        WidgetsBinding.instance.addPostFrameCallback((_) => _applyOlder());
+        return;
+      }
+      if (_pager.position.isScrollingNotifier.value) return;
+    }
+    _pendingOlder = null;
+    if (widget.newestFirst) {
+      setState(() => _items.addAll(fresh.reversed));
+    } else {
+      setState(() {
+        _items.insertAll(0, fresh);
+        _index += fresh.length;
+      });
+      // `correctPixels`, not `jumpToPage`: the jump runs before the new
+      // pages are laid out, lands past the old end, and springs back. The
+      // correction is read by the layout this setState schedules.
+      final p = _pager.position;
+      p.correctPixels(p.pixels + fresh.length * p.viewportDimension);
+    }
+    // A small batch can leave the reader still near the edge.
+    _maybeLoadOlder();
+  }
 
   /// Live dismiss-drag offset, written by whichever page is under a finger and
   /// painted here. Shared across the pages on purpose — only one of them can be
@@ -346,6 +471,8 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.items.length - 1);
     _pager = PageController(initialPage: _index);
+    // Opened on one of the oldest few: ask now rather than on the first swipe.
+    _maybeLoadOlder();
   }
 
   @override
@@ -356,17 +483,12 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     super.dispose();
   }
 
-  /// Pops with the index the reader settled on — in the set the opener HANDED
-  /// in, which is the list it knows, even after a delete has shortened ours.
-  /// Guarded because a committed dismiss drag and a tap on the close button can
-  /// land in the same frame.
+  /// Pops with the message the reader settled on. Guarded because a committed
+  /// dismiss drag and a tap on the close button can land in the same frame.
   void _close() {
     if (_closing) return;
     _closing = true;
-    final at = _items.isEmpty
-        ? -1
-        : widget.items.indexWhere((m) => m.id == _items[_index].id);
-    Navigator.of(context).pop(at < 0 ? null : at);
+    Navigator.of(context).pop(_items.isEmpty ? null : _items[_index]);
   }
 
   Object _heroTag(ChatMessage m) =>
@@ -760,80 +882,92 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
             },
             // Built once and passed through the builder: the pages are the
             // expensive part and none of them depend on the drag offset.
-            child: PageView.builder(
-              controller: _pager,
-              physics: _zoomed
-                  ? const NeverScrollableScrollPhysics()
-                  : const PageScrollPhysics(),
-              itemCount: _items.length,
-              // Keyed by message, so a delete that slides every later page one
-              // slot left hands each its own state rather than its neighbour's.
-              findChildIndexCallback: (key) {
-                if (key is! ValueKey<String>) return null;
-                final i = _items.indexWhere((m) => m.id == key.value);
-                return i < 0 ? null : i;
+            child: NotificationListener<ScrollEndNotification>(
+              // A batch of older media that arrived mid-swipe goes in once the
+              // pages are still. A microtask, because the position reports
+              // itself idle only after this notification has been sent.
+              onNotification: (n) {
+                if (n.depth == 0 && _pendingOlder != null) {
+                  scheduleMicrotask(_applyOlder);
+                }
+                return false;
               },
-              onPageChanged: (i) {
-                setState(() {
-                  _index = i;
-                  // Belt and braces. A zoomed page cannot be swiped away, so this
-                  // should already be false — but a stuck `true` would leave the
-                  // gallery unswipeable with nothing on screen to explain why.
-                  _zoomed = false;
-                });
-                widget.onPageChanged?.call(_items[i]);
-              },
-              itemBuilder: (_, i) {
-                // Every page reached by a swipe is filed under its chat, the
-                // same as a bubble would file it. See `MediaLedger`.
-                if (widget.fileAsSeen) MediaLedger.instance.noteSeen(_items[i]);
-                return HeroMode(
-                  key: ValueKey<String>(_items[i].id),
-                  // Neighbours stay built; only the visible one may fly. See the
-                  // class comment.
-                  enabled: i == _index,
-                  child: _Page(
-                    message: _items[i],
-                    api: widget.api,
-                    gallery: _nativeGallery(),
-                    heroTag: _heroTag(_items[i]),
-                    // Only the page the flight actually opened on. The rest were
-                    // never a thumbnail on the route below, so there is no warm
-                    // decode of theirs to defer to, and offering one would only
-                    // pin them to a resolution they never had.
-                    sourceDecodeWidth: _items[i].id ==
-                            widget.items[widget.initialIndex
-                                    .clamp(0, widget.items.length - 1)]
-                                .id
-                        ? widget.sourceDecodeWidth
-                        : null,
-                    landed: landed,
-                    drag: _drag,
-                    chromeClearance: _chrome || wide
-                        ? _bottomChromeHeight(context)
-                        : 0,
-                    onDismiss: _close,
-                    onToggleChrome: () => setState(() => _chrome = !_chrome),
-                    // Only the page on screen takes ⌘= and friends.
-                    zoom: i == _index ? _zoom : null,
-                    onBackdropClick: _desktop ? _close : null,
-                    onWheelStep: _desktop ? _step : null,
-                    cursorHidden: _desktop && _idle,
-                    onZoomChanged: (z) {
-                      if (i == _index && z != _zoomed) {
-                        setState(() {
-                          _zoomed = z;
-                          // Like Photos: zooming in gives the picture the
-                          // whole screen. A tap brings the chrome back. Not
-                          // on a desk, where the chrome is how a mouse gets
-                          // back out, and leaves on its own when still.
-                          if (z && !_desktop) _chrome = false;
-                        });
-                      }
-                    },
-                  ),
-                );
-              },
+              child: PageView.builder(
+                controller: _pager,
+                physics: _zoomed
+                    ? const NeverScrollableScrollPhysics()
+                    : const PageScrollPhysics(),
+                itemCount: _items.length,
+                // Keyed by message, so a delete that slides every later page one
+                // slot left hands each its own state rather than its neighbour's.
+                findChildIndexCallback: (key) {
+                  if (key is! ValueKey<String>) return null;
+                  final i = _items.indexWhere((m) => m.id == key.value);
+                  return i < 0 ? null : i;
+                },
+                onPageChanged: (i) {
+                  setState(() {
+                    _index = i;
+                    // Belt and braces. A zoomed page cannot be swiped away, so this
+                    // should already be false — but a stuck `true` would leave the
+                    // gallery unswipeable with nothing on screen to explain why.
+                    _zoomed = false;
+                  });
+                  widget.onPageChanged?.call(_items[i]);
+                  _maybeLoadOlder();
+                },
+                itemBuilder: (_, i) {
+                  // Every page reached by a swipe is filed under its chat, the
+                  // same as a bubble would file it. See `MediaLedger`.
+                  if (widget.fileAsSeen) MediaLedger.instance.noteSeen(_items[i]);
+                  return HeroMode(
+                    key: ValueKey<String>(_items[i].id),
+                    // Neighbours stay built; only the visible one may fly. See the
+                    // class comment.
+                    enabled: i == _index,
+                    child: _Page(
+                      message: _items[i],
+                      api: widget.api,
+                      gallery: _nativeGallery(),
+                      heroTag: _heroTag(_items[i]),
+                      // Only the page the flight actually opened on. The rest were
+                      // never a thumbnail on the route below, so there is no warm
+                      // decode of theirs to defer to, and offering one would only
+                      // pin them to a resolution they never had.
+                      sourceDecodeWidth: _items[i].id ==
+                              widget.items[widget.initialIndex
+                                      .clamp(0, widget.items.length - 1)]
+                                  .id
+                          ? widget.sourceDecodeWidth
+                          : null,
+                      landed: landed,
+                      drag: _drag,
+                      chromeClearance: _chrome || wide
+                          ? _bottomChromeHeight(context)
+                          : 0,
+                      onDismiss: _close,
+                      onToggleChrome: () => setState(() => _chrome = !_chrome),
+                      // Only the page on screen takes ⌘= and friends.
+                      zoom: i == _index ? _zoom : null,
+                      onBackdropClick: _desktop ? _close : null,
+                      onWheelStep: _desktop ? _step : null,
+                      cursorHidden: _desktop && _idle,
+                      onZoomChanged: (z) {
+                        if (i == _index && z != _zoomed) {
+                          setState(() {
+                            _zoomed = z;
+                            // Like Photos: zooming in gives the picture the
+                            // whole screen. A tap brings the chrome back. Not
+                            // on a desk, where the chrome is how a mouse gets
+                            // back out, and leaves on its own when still.
+                            if (z && !_desktop) _chrome = false;
+                          });
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),

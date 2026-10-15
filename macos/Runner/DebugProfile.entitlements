@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Alert push (APNs). macOS spells the key with the full
+	     `com.apple.developer.` prefix, unlike iOS's bare `aps-environment`.
+	     Without it `registerForRemoteNotifications` fails ("no valid
+	     aps-environment entitlement") and the Mac never gets a token, so the
+	     backend has nothing to send to. Like keychain-access-groups, a missing
+	     entitlement here fails silently.
+
+	     The provisioning profile must grant it too: Push Notifications has to
+	     be enabled for the App ID (it is shared with iOS) and the macOS
+	     profiles regenerated after that. `development` here, `production` in
+	     Release.entitlements, matching ios/Runner/Runner*.entitlements. -->
+	<key>com.apple.developer.aps-environment</key>
+	<string>development</string>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
 	<key>com.apple.security.cs.allow-jit</key>

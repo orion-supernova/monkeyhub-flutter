@@ -302,6 +302,13 @@ export default defineSchema({
     avatarStorageId: v.optional(v.id("_storage")),
     lastMessage: v.optional(v.string()),
     lastMessageTime: v.optional(v.number()),
+    // Who sent the message `lastMessage` previews. Written wherever the
+    // preview is, in the same patch, so it costs no extra invalidation. The
+    // client reads it (`ChatRoom.lastMessageSenderId`) to tell its OWN newest
+    // message from an inbound one: without it a room whose last message you
+    // sent from another device looked unread and made the desktop ping.
+    // Absent on rooms whose last write predates the field.
+    lastMessageSenderId: v.optional(v.id("users")),
     // Set only on rooms the APP owns rather than people — see
     // `systemAccount.SYSTEM_ROOM_LOGS`. Absent on every ordinary room, and the
     // client reads it straight off the row (`listUserRooms` spreads the whole

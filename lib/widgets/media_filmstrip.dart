@@ -141,6 +141,20 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
     // Also on a count change: removing the tile before the current one shifts
     // everything after it left, so the ring would otherwise sit under a
     // neighbour until the next tap.
+    // Tiles slid in BEFORE the current one (the gallery fetching older
+    // pictures): the ring's tile moved right by exactly that many, so the
+    // offset moves with it, unanimated, and the reader sees the same tiles.
+    // Otherwise the reveal below would slide the rail across the whole batch.
+    // Read by this frame's layout; a rail that fitted without scrolling has
+    // no offset to keep.
+    final grew = widget.count - old.count;
+    if (grew > 0 &&
+        widget.index - old.index == grew &&
+        _scroll.hasClients &&
+        _scroll.position.maxScrollExtent > 0) {
+      final p = _scroll.position;
+      p.correctPixels(p.pixels + grew * widget._extent);
+    }
     if (old.index != widget.index || old.count != widget.count) {
       // After the frame that lays the new count out — `maxScrollExtent` is
       // read below and a strip that just got shorter has not yet recomputed

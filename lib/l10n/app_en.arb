@@ -1976,6 +1976,54 @@
   "@callScreenControlSpeaker": {
     "description": "Small label under the speaker/earpiece toggle control button in the call screen's bottom control bar."
   },
+  "callAudioControlLabel": "Audio",
+  "@callAudioControlLabel": {
+    "description": "Small label under the call screen's audio control when it opens a route list (a headset is connected), and on desktop/web where it opens the microphone and speaker picker. Also the screen-reader prefix before the current route's name."
+  },
+  "callAudioSheetTitle": "Audio",
+  "@callAudioSheetTitle": {
+    "description": "Title of the in-call sheet that lists audio routes (phone) or microphones and speakers (desktop/web)."
+  },
+  "callAudioRoutePhone": "Phone",
+  "@callAudioRoutePhone": {
+    "description": "Audio route row: the phone's own earpiece (iOS shows the device model, e.g. 'iPhone', instead when known)."
+  },
+  "callAudioRouteHeadphones": "Headphones",
+  "@callAudioRouteHeadphones": {
+    "description": "Audio route: wired headphones or headset."
+  },
+  "callAudioRouteBluetooth": "Bluetooth",
+  "@callAudioRouteBluetooth": {
+    "description": "Audio route: a Bluetooth headset whose name is unknown."
+  },
+  "callAudioRouteCar": "Car",
+  "@callAudioRouteCar": {
+    "description": "Audio route: the car's audio system (CarPlay/Android Auto), when its name is unknown."
+  },
+  "callAudioRouteOther": "Other device",
+  "@callAudioRouteOther": {
+    "description": "Audio route of an unknown kind."
+  },
+  "callAudioMicFollowsNote": "The microphone switches with the device you pick.",
+  "@callAudioMicFollowsNote": {
+    "description": "Footnote under the phone audio route list: phones cannot keep the phone's microphone while sound plays on a Bluetooth headset, so the microphone follows the chosen device."
+  },
+  "callAudioMicrophoneHeader": "Microphone",
+  "@callAudioMicrophoneHeader": {
+    "description": "Section header for the list of microphones in the desktop/web audio device sheet."
+  },
+  "callAudioUnknownDevice": "Unknown device",
+  "@callAudioUnknownDevice": {
+    "description": "Fallback name for an audio device that reports no name."
+  },
+  "callAudioNoDevices": "No devices found",
+  "@callAudioNoDevices": {
+    "description": "Shown when no microphones are found in the desktop/web audio device sheet."
+  },
+  "callAudioSwitchFailed": "Couldn't switch the audio device",
+  "@callAudioSwitchFailed": {
+    "description": "Error toast when switching the microphone or speaker failed."
+  },
   "callScreenControlEnd": "End",
   "@callScreenControlEnd": {
     "description": "Small label under the red hang-up (end call) button in the call screen's bottom control bar."
@@ -15081,6 +15129,46 @@
       }
     }
   },
+  "challengeBackName": "Challenge {name} back",
+  "@challengeBackName": {
+    "description": "Primary button on a daily game's result card after the player solved a board they were challenged to in a one-to-one chat: sends their own time straight back to that person as a new challenge. {name} is the challenger's display name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeBackRoom": "Reply in {room}",
+  "@challengeBackRoom": {
+    "description": "Primary button on a daily game's result card after the player solved a board they were challenged to in a group chat: posts their own time into that group as a new challenge. {room} is the group's name.",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeFriendsPlayed": "{count, plural, =0{None of your friends here have played yet} =1{1 friend played} other{{count} friends played}}",
+  "@challengeFriendsPlayed": {
+    "description": "On a challenge card in a group chat, when the viewer has NOT finished the board yet: how many of the viewer's friends in this chat have finished it. Only friends are counted, never other members, so the text says 'friends'. {count} = number of friends.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeYouAndFriendsPlayed": "{count, plural, =0{Only you have played so far} =1{You and 1 friend played} other{You and {count} friends played}}",
+  "@challengeYouAndFriendsPlayed": {
+    "description": "On a challenge card in a group chat, when the viewer HAS finished the board: the viewer plus how many of their friends in this chat finished it. {count} = number of friends, not counting the viewer.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeFriendsOnlyNote": "Only your friends show up here. Other people in this chat may have played too.",
+  "@challengeFriendsOnlyNote": {
+    "description": "Footnote under a group chat's challenge leaderboard explaining why some members are missing: only the viewer's friends are listed; other members of the chat may also have played but are not shown."
+  },
   "chatGameNameLiarsDice": "Liar’s Dice",
   "@chatGameNameLiarsDice": {
     "description": "Party game name: the bluffing dice game."
@@ -16020,9 +16108,9 @@
   "@howToPatches1": {
     "description": "Patches guide, step: cut the board into rectangles, exactly one clue in each."
   },
-  "howToPatches2": "The badge shows the shape: square, tall or wide. A circle means any rectangle. A number is how many squares.",
+  "howToPatches2": "The badge is the patch's shape: square, tall or wide. A dashed badge means it can be any of those three. A number, when there is one, is how many grid squares the patch covers.",
   "@howToPatches2": {
-    "description": "Patches guide, step: how to read a clue. The clue badge is drawn as the shape it asks for: a square, a tall (upright) bar, a wide (lying) bar, or a circle meaning any rectangle. A number inside, when present, is the rectangle's area in squares."
+    "description": "Patches guide, step: how to read a clue. The clue badge is drawn as the shape it asks for: a square, a tall (upright) bar, a wide (lying) bar, or a dashed (broken-outline) square meaning the patch may be any of those three (square, tall or wide). A number inside is optional: when present, it is how many grid cells the patch covers; some clues show only the shape. Use the game grid's word for cells, distinct from the word for the square shape where the language allows."
   },
   "howToPatches3": "Drag from corner to corner to cut a patch. Tap a patch to lift it off.",
   "@howToPatches3": {

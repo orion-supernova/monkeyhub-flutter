@@ -2016,6 +2016,21 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     await _syncSpeakerRoute();
   }
 
+  /// The in-call route sheet's pick (see `CallAudioRouteSheet`): the
+  /// loudspeaker, or not. An explicit choice, like [toggleSpeaker], but it
+  /// re-applies even when the flag already reads [on]: moving between two
+  /// routes off the speaker (AirPods to the phone) leaves the flag alone,
+  /// and the native side still needs the pass that carries the pick.
+  Future<void> selectSpeaker(bool on) async {
+    final s = _session;
+    if (s == null) return;
+    if (s.speakerOn != on) _session = s.copyWith(speakerOn: on);
+    _speakerChosenFor = s.callId;
+    _routeResyncs = 0;
+    notifyListeners();
+    await _syncSpeakerRoute();
+  }
+
   /// The call whose speaker side the user picked themselves, by the button
   /// or from the system's route controls. Keyed by callId so a new call
   /// starts from its kind's default without anyone resetting it.

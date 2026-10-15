@@ -2302,6 +2302,19 @@ class GroupCallService extends ChangeNotifier
     await _syncAudio();
   }
 
+  /// The in-call route sheet's pick; the 1:1 twin is
+  /// `CallService.selectSpeaker`. Re-applies even when the flag already
+  /// reads [on], so a move between two routes off the speaker still runs
+  /// the pass that carries it.
+  Future<void> selectSpeaker(bool on) async {
+    if (!inCall) return;
+    speakerOn = on;
+    _speakerChosen = true;
+    _routeResyncs = 0;
+    notifyListeners();
+    await _syncAudio();
+  }
+
   /// Whether the user picked the current speaker side themselves (the
   /// button, or the system's route controls). Reset on every join.
   bool _speakerChosen = false;

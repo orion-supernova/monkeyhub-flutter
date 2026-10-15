@@ -3039,6 +3039,78 @@ abstract class AppLocalizations {
   /// **'Speaker'**
   String get callScreenControlSpeaker;
 
+  /// Small label under the call screen's audio control when it opens a route list (a headset is connected), and on desktop/web where it opens the microphone and speaker picker. Also the screen-reader prefix before the current route's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get callAudioControlLabel;
+
+  /// Title of the in-call sheet that lists audio routes (phone) or microphones and speakers (desktop/web).
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get callAudioSheetTitle;
+
+  /// Audio route row: the phone's own earpiece (iOS shows the device model, e.g. 'iPhone', instead when known).
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get callAudioRoutePhone;
+
+  /// Audio route: wired headphones or headset.
+  ///
+  /// In en, this message translates to:
+  /// **'Headphones'**
+  String get callAudioRouteHeadphones;
+
+  /// Audio route: a Bluetooth headset whose name is unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth'**
+  String get callAudioRouteBluetooth;
+
+  /// Audio route: the car's audio system (CarPlay/Android Auto), when its name is unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Car'**
+  String get callAudioRouteCar;
+
+  /// Audio route of an unknown kind.
+  ///
+  /// In en, this message translates to:
+  /// **'Other device'**
+  String get callAudioRouteOther;
+
+  /// Footnote under the phone audio route list: phones cannot keep the phone's microphone while sound plays on a Bluetooth headset, so the microphone follows the chosen device.
+  ///
+  /// In en, this message translates to:
+  /// **'The microphone switches with the device you pick.'**
+  String get callAudioMicFollowsNote;
+
+  /// Section header for the list of microphones in the desktop/web audio device sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone'**
+  String get callAudioMicrophoneHeader;
+
+  /// Fallback name for an audio device that reports no name.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown device'**
+  String get callAudioUnknownDevice;
+
+  /// Shown when no microphones are found in the desktop/web audio device sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'No devices found'**
+  String get callAudioNoDevices;
+
+  /// Error toast when switching the microphone or speaker failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t switch the audio device'**
+  String get callAudioSwitchFailed;
+
   /// Small label under the red hang-up (end call) button in the call screen's bottom control bar.
   ///
   /// In en, this message translates to:
@@ -21229,6 +21301,36 @@ abstract class AppLocalizations {
   /// **'{name} keeps it, by {time}'**
   String challengeKept(String name, String time);
 
+  /// Primary button on a daily game's result card after the player solved a board they were challenged to in a one-to-one chat: sends their own time straight back to that person as a new challenge. {name} is the challenger's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge {name} back'**
+  String challengeBackName(String name);
+
+  /// Primary button on a daily game's result card after the player solved a board they were challenged to in a group chat: posts their own time into that group as a new challenge. {room} is the group's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply in {room}'**
+  String challengeBackRoom(String room);
+
+  /// On a challenge card in a group chat, when the viewer has NOT finished the board yet: how many of the viewer's friends in this chat have finished it. Only friends are counted, never other members, so the text says 'friends'. {count} = number of friends.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{None of your friends here have played yet} =1{1 friend played} other{{count} friends played}}'**
+  String challengeFriendsPlayed(int count);
+
+  /// On a challenge card in a group chat, when the viewer HAS finished the board: the viewer plus how many of their friends in this chat finished it. {count} = number of friends, not counting the viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Only you have played so far} =1{You and 1 friend played} other{You and {count} friends played}}'**
+  String challengeYouAndFriendsPlayed(int count);
+
+  /// Footnote under a group chat's challenge leaderboard explaining why some members are missing: only the viewer's friends are listed; other members of the chat may also have played but are not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Only your friends show up here. Other people in this chat may have played too.'**
+  String get challengeFriendsOnlyNote;
+
   /// Party game name: the bluffing dice game.
   ///
   /// In en, this message translates to:
@@ -22381,10 +22483,10 @@ abstract class AppLocalizations {
   /// **'Cut the board into rectangles. Each one holds exactly one clue.'**
   String get howToPatches1;
 
-  /// Patches guide, step: how to read a clue. The clue badge is drawn as the shape it asks for: a square, a tall (upright) bar, a wide (lying) bar, or a circle meaning any rectangle. A number inside, when present, is the rectangle's area in squares.
+  /// Patches guide, step: how to read a clue. The clue badge is drawn as the shape it asks for: a square, a tall (upright) bar, a wide (lying) bar, or a dashed (broken-outline) square meaning the patch may be any of those three (square, tall or wide). A number inside is optional: when present, it is how many grid cells the patch covers; some clues show only the shape. Use the game grid's word for cells, distinct from the word for the square shape where the language allows.
   ///
   /// In en, this message translates to:
-  /// **'The badge shows the shape: square, tall or wide. A circle means any rectangle. A number is how many squares.'**
+  /// **'The badge is the patch\'s shape: square, tall or wide. A dashed badge means it can be any of those three. A number, when there is one, is how many grid squares the patch covers.'**
   String get howToPatches2;
 
   /// Patches guide, step: controls. Drag from one corner to the opposite corner to cut a rectangle; tap a placed rectangle to remove it.

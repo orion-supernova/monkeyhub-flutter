@@ -1711,6 +1711,43 @@ class AppLocalizationsHi extends AppLocalizations {
   String get callScreenControlSpeaker => 'स्पीकर';
 
   @override
+  String get callAudioControlLabel => 'ऑडियो';
+
+  @override
+  String get callAudioSheetTitle => 'ऑडियो';
+
+  @override
+  String get callAudioRoutePhone => 'फ़ोन';
+
+  @override
+  String get callAudioRouteHeadphones => 'हेडफ़ोन';
+
+  @override
+  String get callAudioRouteBluetooth => 'ब्लूटूथ';
+
+  @override
+  String get callAudioRouteCar => 'कार';
+
+  @override
+  String get callAudioRouteOther => 'अन्य डिवाइस';
+
+  @override
+  String get callAudioMicFollowsNote =>
+      'माइक्रोफ़ोन भी आपके चुने गए डिवाइस पर चला जाता है।';
+
+  @override
+  String get callAudioMicrophoneHeader => 'माइक्रोफ़ोन';
+
+  @override
+  String get callAudioUnknownDevice => 'अज्ञात डिवाइस';
+
+  @override
+  String get callAudioNoDevices => 'कोई डिवाइस नहीं मिला';
+
+  @override
+  String get callAudioSwitchFailed => 'ऑडियो डिवाइस नहीं बदल सका';
+
+  @override
   String get callScreenControlEnd => 'कट';
 
   @override
@@ -12654,6 +12691,44 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return '$name को वापस चुनौती दें';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return '$room में जवाब दें';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दोस्तों ने खेला',
+      one: '1 दोस्त ने खेला',
+      zero: 'यहाँ आपके किसी दोस्त ने अभी तक नहीं खेला',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'आपने और $count दोस्तों ने खेला',
+      one: 'आपने और 1 दोस्त ने खेला',
+      zero: 'अभी तक सिर्फ़ आपने खेला है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'यहाँ सिर्फ़ आपके दोस्त दिखते हैं। इस चैट में दूसरों ने भी खेला हो सकता है।';
+
+  @override
   String get chatGameNameLiarsDice => 'झूठे पासे';
 
   @override
@@ -13352,7 +13427,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get howToPatches2 =>
-      'बैज आकार बताता है: चौकोर, लंबा या चौड़ा। गोला मतलब कोई भी आयत। नंबर बताता है कितने खाने।';
+      'बैज पैच का आकार है: चौकोर, लंबा या चौड़ा। डैश वाला बैज मतलब इन तीनों में से कोई भी। नंबर हो, तो वह बताता है कि पैच कितने खाने घेरता है।';
 
   @override
   String get howToPatches3 =>

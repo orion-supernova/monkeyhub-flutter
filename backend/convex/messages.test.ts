@@ -263,3 +263,81 @@ describe("read receipts carry a real read time", () => {
     }
   });
 });
+
+/**
+ * `rooms.lastMessageSenderId` — who wrote the message the room card previews.
+ *
+ * The client uses it to tell its OWN newest message from an inbound one: a
+ * message sent from your phone moves the room's `lastMessageTime` on your Mac
+ * exactly as a peer's does, and the Mac used to ping for it.
+ */
+describe("the room card names its last sender", () => {
+  const DEVICE = "device-a";
+
+  async function signUp(t: ReturnType<typeof convexTest>, username: string) {
+    return await t.mutation(api.auth.signup, {
+      username,
+      name: username,
+      passwordHash: `hash-${username}`,
+      recoveryKeyHash: `recovery-${username}`,
+      deviceId: DEVICE,
+    });
+  }
+
+  test("send stamps it, listUserRooms carries it, delete repairs it", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "me");
+    const peer = await signUp(t, "peer");
+    const roomId = await t.mutation(api.rooms.create, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      name: "room",
+      isPrivate: false,
+    });
+    await t.mutation(api.rooms.join, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      roomId,
+    } as any);
+
+    await t.mutation(api.messages.send, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      roomId,
+      content: "from my phone",
+    });
+    let room = await t.run((ctx) => ctx.db.get(roomId as Id<"rooms">));
+    expect(room?.lastMessageSenderId).toBe(me.userId);
+
+    // My own newest message: the card names me, and the count says 0 even
+    // though my read cursor never moved past it.
+    let mine = (
+      await t.query(api.rooms.listUserRooms, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+      } as any)
+    ).find((r: any) => r._id === roomId) as any;
+    expect(mine.lastMessageSenderId).toBe(me.userId);
+    expect(mine.unreadCount).toBe(0);
+
+    const peerMsg = await t.mutation(api.messages.send, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      roomId,
+      content: "hi",
+    });
+    room = await t.run((ctx) => ctx.db.get(roomId as Id<"rooms">));
+    expect(room?.lastMessageSenderId).toBe(peer.userId);
+
+    // The peer takes it back: the card falls back to my message, and so does
+    // its sender.
+    await t.mutation(api.messages.deleteMessage, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      messageId: peerMsg as any,
+    } as any);
+    room = await t.run((ctx) => ctx.db.get(roomId as Id<"rooms">));
+    expect(room?.lastMessage).toBe("from my phone");
+    expect(room?.lastMessageSenderId).toBe(me.userId);
+  });
+});

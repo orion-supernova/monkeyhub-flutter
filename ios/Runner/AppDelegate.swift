@@ -1698,6 +1698,20 @@ import WebRTC
             headsetWins: args["headsetWins"] as? Bool ?? false,
             callId: args["callId"] as? String
           ) { applied in result(applied) }
+        case "callAudioRoutes":
+          // The in-call route sheet's opening state: the same map
+          // `routeChanged` pushes (output, portName, routes), read on the
+          // router's queue since listing the inputs can block.
+          CallAudioRouter.shared.currentRoutes { state in result(state) }
+        case "selectCallAudioInput":
+          // The route sheet picked AirPods, a wired headset, a car or the
+          // phone itself: that port's mic as the preferred input, which
+          // takes the output with it during a call. Nil/empty: the
+          // system's own choice. The speaker side goes through
+          // applyCallAudio first. Answers whether the port was found.
+          let args = call.arguments as? [String: Any] ?? [:]
+          let uid = (args["uid"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+          CallAudioRouter.shared.selectInput(uid: uid) { ok in result(ok) }
         case "callAudioState":
           // Diagnostics: the session as a tone about to play into it sees
           // it. Logged by Dart at ringback start.
@@ -2293,6 +2307,14 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
   /// [echoWindow] of it is most likely our own write echoing back.
   private var lastWrite = Date.distantPast
   private static let echoWindow: TimeInterval = 0.5
+  /// The input port the in-app route sheet picked (its UID), nil for the
+  /// system's choice. During a call iOS moves a Bluetooth or wired
+  /// headset's output with its mic, so the preferred input IS the route
+  /// pick: AirPods, a car, or the phone's own mic for "iPhone" with AirPods
+  /// still connected. The speaker side stays the override's
+  /// ([speaker]), so this coexists with headset-wins: a headset that
+  /// connects later clears it ([routeChanged]), as does the call ending.
+  private var preferredInputUID: String?
 
   /// Main-thread only.
   private var channel: FlutterMethodChannel?
@@ -2311,6 +2333,9 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
     self.channel = channel
     guard !installed else { return }
     installed = true
+    // UIKit, so read here on main once; [routes] runs on the queue.
+    Self.receiverName =
+      UIDevice.current.userInterfaceIdiom == .phone ? UIDevice.current.model : nil
     let center = NotificationCenter.default
     center.addObserver(
       forName: AVAudioSession.routeChangeNotification, object: nil, queue: nil
@@ -2392,6 +2417,62 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
         "[call-audio] apply call=\(callId ?? "?") video=\(video) speaker=\(speaker) headsetWins=\(headsetWins) -> speaker=\(applied) route=\(Self.describe(session))"
       )
       DispatchQueue.main.async { completion(applied) }
+    }
+  }
+
+  /// The route sheet's pick of an input port ([uid]; nil for the system's
+  /// choice). Completes on main with whether the port was there to take.
+  func selectInput(uid: String?, completion: @escaping (Bool) -> Void) {
+    queue.async {
+      self.locked { self.preferredInputUID = uid }
+      let ok = self.applyPreferredInput(force: true)
+      NSLog(
+        "[call-audio] select input \(uid ?? "system") -> \(ok) route=\(Self.describe(AVAudioSession.sharedInstance()))"
+      )
+      DispatchQueue.main.async { completion(ok) }
+    }
+  }
+
+  /// [snapshot] for Dart's route sheet, on [queue]; completes on main.
+  func currentRoutes(completion: @escaping ([String: Any]) -> Void) {
+    queue.async {
+      var state = Self.snapshot(AVAudioSession.sharedInstance())
+      state["reason"] = "other"
+      DispatchQueue.main.async { completion(state) }
+    }
+  }
+
+  /// On [queue]. Puts [preferredInputUID] on the session if it is not
+  /// already there. [force] also applies a nil (hand the choice back to
+  /// the system); otherwise nil means there is nothing of ours to keep.
+  /// A port that is gone clears the pick. Cheap when nothing changes: the
+  /// inputs are listed only while a pick is held.
+  @discardableResult
+  private func applyPreferredInput(force: Bool = false) -> Bool {
+    let (isClaimed, uid) = locked { (self.claimed, self.preferredInputUID) }
+    guard isClaimed else { return false }
+    if uid == nil && !force { return true }
+    let session = AVAudioSession.sharedInstance()
+    var port: AVAudioSessionPortDescription?
+    if let uid = uid {
+      guard let found = (session.availableInputs ?? []).first(where: { $0.uid == uid }) else {
+        locked { self.preferredInputUID = nil }
+        NSLog("[call-audio] preferred input \(uid) is gone; system choice")
+        return false
+      }
+      port = found
+    }
+    if session.preferredInput?.uid == port?.uid { return true }
+    let rtc = RTCAudioSession.sharedInstance()
+    rtc.lockForConfiguration()
+    defer { rtc.unlockForConfiguration() }
+    do {
+      try session.setPreferredInput(port)
+      lastWrite = Date()
+      return true
+    } catch {
+      NSLog("[call-audio] setPreferredInput failed: \(error)")
+      return false
     }
   }
 
@@ -2489,6 +2570,7 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
       owner = nil
       video = false
       speaker = false
+      preferredInputUID = nil
       return true
     }
     guard current else {
@@ -2502,6 +2584,7 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
     rtc.lockForConfiguration()
     defer { rtc.unlockForConfiguration() }
     try? session.overrideOutputAudioPort(.none)
+    if session.preferredInput != nil { try? session.setPreferredInput(nil) }
     do {
       try session.setActive(false, options: [.notifyOthersOnDeactivation])
     } catch let error as NSError
@@ -2594,6 +2677,10 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
     }
     rtc.unlockForConfiguration()
     lastWrite = Date()
+    // A category write can drop the preferred input; put the sheet's pick
+    // back (a no-op without one). Outside the lock above, which it takes
+    // itself.
+    applyPreferredInput()
     if locked({ live }) { updateScreen(inCall: true, earpiece: Self.onEarpiece(session)) }
   }
 
@@ -2632,6 +2719,12 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
     queue.async {
       guard self.locked({ self.claimed }) else { return }
       let session = AVAudioSession.sharedInstance()
+      // A headset connecting takes the sound (the product rule Dart's
+      // policy follows), over an earlier pick in the route sheet.
+      if reason == .newDeviceAvailable, self.locked({ self.preferredInputUID != nil }) {
+        self.locked { self.preferredInputUID = nil }
+        self.applyPreferredInput(force: true)
+      }
       var state = Self.snapshot(session)
       let echo = Date().timeIntervalSince(self.lastWrite) < Self.echoWindow
       let name = Self.reasonName(reason)
@@ -2677,7 +2770,57 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
       "speaker": outputs.contains(.builtInSpeaker),
       "headset": headsetConnected(session),
       "output": outputName(outputs.first),
+      "portName": session.currentRoute.outputs.first?.portName ?? "",
+      "routes": routes(session),
     ]
+  }
+
+  /// The phone's own name for its earpiece route ("iPhone"); nil on a
+  /// device without an earpiece. Set at [install].
+  private static var receiverName: String?
+
+  /// Every route the in-app sheet can offer, in FaceTime's order: the
+  /// phone (iPhone only; selected by its built-in mic), the speaker, then
+  /// each headset by its mic port, and the current output when it is a
+  /// headset with no mic of its own (A2DP-only, plain headphones, AirPlay).
+  /// `uid` is what `selectCallAudioInput` takes; empty selects no port.
+  static func routes(_ session: AVAudioSession) -> [[String: Any]] {
+    let current = session.currentRoute.outputs.first
+    let currentKind = outputName(current?.portType)
+    let inputs = session.availableInputs ?? []
+    var list: [[String: Any]] = []
+    if let receiverName = receiverName,
+      let mic = inputs.first(where: { $0.portType == .builtInMic }) {
+      list.append([
+        "kind": "receiver", "uid": mic.uid, "name": receiverName,
+        "selected": currentKind == "receiver",
+      ])
+    }
+    list.append(["kind": "speaker", "uid": "", "selected": currentKind == "speaker"])
+    var matched = false
+    for input in inputs where headsetPorts.contains(input.portType) {
+      let kind: String
+      switch input.portType {
+      case .carAudio: kind = "car"
+      case .headsetMic, .usbAudio: kind = "headphones"
+      default: kind = "bluetooth"
+      }
+      // Wired: the output is "Headphones", the mic "Headset Microphone",
+      // so the kind alone matches; wireless sets share a name across both.
+      let selected = currentKind == kind
+        && (kind == "headphones" || current?.portName == input.portName)
+      if selected { matched = true }
+      list.append([
+        "kind": kind, "uid": input.uid, "name": input.portName, "selected": selected,
+      ])
+    }
+    if !matched, let current = current,
+      !["receiver", "speaker", "none"].contains(currentKind) {
+      list.append([
+        "kind": currentKind, "uid": "", "name": current.portName, "selected": true,
+      ])
+    }
+    return list
   }
 
   private static func outputName(_ port: AVAudioSession.Port?) -> String {

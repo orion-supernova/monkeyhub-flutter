@@ -565,6 +565,7 @@ export const approveDirectRequest = mutation({
       await ctx.db.patch(roomId, {
         lastMessage: last.content.slice(0, 100),
         lastMessageTime: last.createdAt,
+        lastMessageSenderId: last.userId,
       });
       await clearRequestMessages(ctx, request._id);
     }

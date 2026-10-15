@@ -57,7 +57,7 @@ void main() {
 
   /// Opens a three-photo pager on [start] in a 1280x800 window. Returns the
   /// list of messages the reader has settled on, and the pop result.
-  Future<(List<String>, Future<int?>)> open(
+  Future<(List<String>, Future<ChatMessage?>)> open(
     WidgetTester tester, {
     int start = 0,
   }) async {
@@ -147,7 +147,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
     expect(find.byType(MediaPagerScreen), findsNothing);
-    expect(await result, 0);
+    expect((await result)?.id, 'a');
   }, variant: mac);
 
   testWidgets('chevrons come with the mouse, stop at the ends, and page',

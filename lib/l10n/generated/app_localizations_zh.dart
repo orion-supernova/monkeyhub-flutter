@@ -1620,6 +1620,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callScreenControlSpeaker => '扬声器';
 
   @override
+  String get callAudioControlLabel => '音频';
+
+  @override
+  String get callAudioSheetTitle => '音频';
+
+  @override
+  String get callAudioRoutePhone => '手机';
+
+  @override
+  String get callAudioRouteHeadphones => '耳机';
+
+  @override
+  String get callAudioRouteBluetooth => '蓝牙';
+
+  @override
+  String get callAudioRouteCar => '汽车';
+
+  @override
+  String get callAudioRouteOther => '其他设备';
+
+  @override
+  String get callAudioMicFollowsNote => '麦克风会随所选设备一起切换。';
+
+  @override
+  String get callAudioMicrophoneHeader => '麦克风';
+
+  @override
+  String get callAudioUnknownDevice => '未知设备';
+
+  @override
+  String get callAudioNoDevices => '未找到设备';
+
+  @override
+  String get callAudioSwitchFailed => '无法切换音频设备';
+
+  @override
   String get callScreenControlEnd => '挂断';
 
   @override
@@ -12039,6 +12075,41 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return '向$name回敬挑战';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return '在$room中回复';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 位好友玩过了',
+      zero: '这里还没有好友玩过',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '你和 $count 位好友玩过了',
+      zero: '目前只有你玩过',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote => '这里只显示你的好友。这个聊天里的其他人可能也玩过。';
+
+  @override
   String get chatGameNameLiarsDice => '吹牛骰';
 
   @override
@@ -12695,7 +12766,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get howToPatches1 => '把棋盘切成长方形，每块里正好有一个提示。';
 
   @override
-  String get howToPatches2 => '徽章表示形状：正方形、竖长或横宽。圆形表示任意长方形。数字是格子数。';
+  String get howToPatches2 =>
+      '徽章就是拼块的形状：正方形、竖长或横宽。虚线徽章表示这三种都可以。有数字时，数字是拼块占的格子数。';
 
   @override
   String get howToPatches3 => '从一个角拖到对角，切出一块拼块。点一下拼块就能拿掉。';

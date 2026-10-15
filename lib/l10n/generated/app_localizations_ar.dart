@@ -1728,6 +1728,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callScreenControlSpeaker => 'مكبر الصوت';
 
   @override
+  String get callAudioControlLabel => 'الصوت';
+
+  @override
+  String get callAudioSheetTitle => 'الصوت';
+
+  @override
+  String get callAudioRoutePhone => 'الهاتف';
+
+  @override
+  String get callAudioRouteHeadphones => 'سماعات الرأس';
+
+  @override
+  String get callAudioRouteBluetooth => 'بلوتوث';
+
+  @override
+  String get callAudioRouteCar => 'السيارة';
+
+  @override
+  String get callAudioRouteOther => 'جهاز آخر';
+
+  @override
+  String get callAudioMicFollowsNote =>
+      'ينتقل الميكروفون مع الجهاز الذي تختاره.';
+
+  @override
+  String get callAudioMicrophoneHeader => 'الميكروفون';
+
+  @override
+  String get callAudioUnknownDevice => 'جهاز غير معروف';
+
+  @override
+  String get callAudioNoDevices => 'لم يتم العثور على أجهزة';
+
+  @override
+  String get callAudioSwitchFailed => 'تعذر تبديل جهاز الصوت';
+
+  @override
   String get callScreenControlEnd => 'إنهاء';
 
   @override
@@ -12848,6 +12885,50 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return 'رُدّ التحدي على $name';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return 'الرد في $room';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'لعب $count صديق',
+      many: 'لعب $count صديقًا',
+      few: 'لعب $count أصدقاء',
+      two: 'لعب صديقان',
+      one: 'لعب صديق واحد',
+      zero: 'لم يلعب أي من أصدقائك هنا بعد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'لعبتَ أنت و$count صديق',
+      many: 'لعبتَ أنت و$count صديقًا',
+      few: 'لعبتَ أنت و$count أصدقاء',
+      two: 'لعبتَ أنت وصديقان',
+      one: 'لعبتَ أنت وصديق واحد',
+      zero: 'أنت فقط من لعب حتى الآن',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'يظهر هنا أصدقاؤك فقط. ربما لعب أشخاص آخرون في هذه الدردشة أيضًا.';
+
+  @override
   String get chatGameNameLiarsDice => 'نرد الكذّاب';
 
   @override
@@ -13556,7 +13637,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get howToPatches2 =>
-      'الشارة توضّح الشكل: مربع أو طولي أو عرضي. الدائرة تعني أي مستطيل. والرقم هو عدد المربعات.';
+      'الشارة تحدّد شكل الرقعة: مربع أو طولي أو عرضي. الشارة المتقطّعة تعني أنها قد تكون أيًّا من الثلاثة. والرقم، إن وُجد، هو عدد خانات الشبكة التي تغطيها الرقعة.';
 
   @override
   String get howToPatches3 =>

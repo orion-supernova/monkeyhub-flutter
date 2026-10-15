@@ -70,6 +70,21 @@ abstract final class CallGlyphs {
   static const cameraOff = CupertinoIcons.video_camera;
   static const speakerOn = CupertinoIcons.speaker_3_fill;
   static const speakerOff = CupertinoIcons.speaker_1_fill;
+
+  /// The audio route the call is on, when a headset makes it a choice
+  /// (see `callAudioButtonLook`). There is no AirPods glyph in either
+  /// icon set: Bluetooth is the headphones Apple draws for a generic
+  /// Bluetooth set, wired is the headset with its mic, so the two read
+  /// apart.
+  static const routeBluetooth = CupertinoIcons.headphones;
+  static const routeWired = Icons.headset_rounded;
+  static const routeCar = CupertinoIcons.car_fill;
+  static const routeAirPlay = Icons.airplay_rounded;
+  static const routePhone = CupertinoIcons.device_phone_portrait;
+  static const routeOther = CupertinoIcons.speaker_2_fill;
+
+  /// Desktop and web: the microphone and speaker picker.
+  static const audioDevices = CupertinoIcons.slider_horizontal_3;
   static const share = CupertinoIcons.rectangle_on_rectangle_angled;
   static const stopShare = CupertinoIcons.stop_fill;
   static const draw = CupertinoIcons.scribble;
@@ -211,6 +226,7 @@ class CallTrayAction {
     this.active = false,
     this.enabled = true,
     this.key,
+    this.semanticLabel,
   });
 
   final IconData icon;
@@ -218,6 +234,10 @@ class CallTrayAction {
   final VoidCallback onTap;
   final bool active;
   final bool enabled;
+
+  /// What a screen reader says, when it should say more than [label] (the
+  /// audio control names the route: "Murat's AirPods Pro").
+  final String? semanticLabel;
 
   /// Handed to the button, so a test can find one control among many.
   final Key? key;
@@ -462,6 +482,7 @@ class CallTray extends StatelessWidget {
                                 key: a.key,
                                 icon: a.icon,
                                 label: a.label,
+                                semanticLabel: a.semanticLabel,
                                 onTap: a.onTap,
                                 active: a.active,
                                 enabled: a.enabled,
@@ -1771,11 +1792,15 @@ class CallControlButton extends StatelessWidget {
     this.diameter,
     this.subdued = false,
     this.labelSize,
+    this.semanticLabel,
   });
 
   final IconData icon;
   final VoidCallback onTap;
   final String label;
+
+  /// Read in place of [label] by a screen reader, when set.
+  final String? semanticLabel;
 
   /// The label's size, shared across a [CallTray] so every control in it
   /// reads at one size. Defaults to 13.
@@ -1867,7 +1892,7 @@ class CallControlButton extends StatelessWidget {
           children: [
             FocusableTap(
               onTap: _tap,
-              semanticLabel: label,
+              semanticLabel: semanticLabel ?? label,
               shape: FocusRingShape.circle,
               // FocusableTap adds keyboard focus/activation only — the
               // child GestureDetector is what makes this tappable.

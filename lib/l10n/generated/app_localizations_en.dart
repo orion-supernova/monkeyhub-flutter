@@ -1699,6 +1699,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callScreenControlSpeaker => 'Speaker';
 
   @override
+  String get callAudioControlLabel => 'Audio';
+
+  @override
+  String get callAudioSheetTitle => 'Audio';
+
+  @override
+  String get callAudioRoutePhone => 'Phone';
+
+  @override
+  String get callAudioRouteHeadphones => 'Headphones';
+
+  @override
+  String get callAudioRouteBluetooth => 'Bluetooth';
+
+  @override
+  String get callAudioRouteCar => 'Car';
+
+  @override
+  String get callAudioRouteOther => 'Other device';
+
+  @override
+  String get callAudioMicFollowsNote =>
+      'The microphone switches with the device you pick.';
+
+  @override
+  String get callAudioMicrophoneHeader => 'Microphone';
+
+  @override
+  String get callAudioUnknownDevice => 'Unknown device';
+
+  @override
+  String get callAudioNoDevices => 'No devices found';
+
+  @override
+  String get callAudioSwitchFailed => 'Couldn\'t switch the audio device';
+
+  @override
   String get callScreenControlEnd => 'End';
 
   @override
@@ -12665,6 +12702,44 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return 'Challenge $name back';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return 'Reply in $room';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count friends played',
+      one: '1 friend played',
+      zero: 'None of your friends here have played yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'You and $count friends played',
+      one: 'You and 1 friend played',
+      zero: 'Only you have played so far',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'Only your friends show up here. Other people in this chat may have played too.';
+
+  @override
   String get chatGameNameLiarsDice => 'Liar’s Dice';
 
   @override
@@ -13373,7 +13448,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToPatches2 =>
-      'The badge shows the shape: square, tall or wide. A circle means any rectangle. A number is how many squares.';
+      'The badge is the patch\'s shape: square, tall or wide. A dashed badge means it can be any of those three. A number, when there is one, is how many grid squares the patch covers.';
 
   @override
   String get howToPatches3 =>

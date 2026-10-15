@@ -1694,6 +1694,42 @@ class AppLocalizationsTr extends AppLocalizations {
   String get callScreenControlSpeaker => 'Hoparlör';
 
   @override
+  String get callAudioControlLabel => 'Ses';
+
+  @override
+  String get callAudioSheetTitle => 'Ses';
+
+  @override
+  String get callAudioRoutePhone => 'Telefon';
+
+  @override
+  String get callAudioRouteHeadphones => 'Kulaklık';
+
+  @override
+  String get callAudioRouteBluetooth => 'Bluetooth';
+
+  @override
+  String get callAudioRouteCar => 'Araç';
+
+  @override
+  String get callAudioRouteOther => 'Diğer cihaz';
+
+  @override
+  String get callAudioMicFollowsNote => 'Mikrofon da seçtiğin cihaza geçer.';
+
+  @override
+  String get callAudioMicrophoneHeader => 'Mikrofon';
+
+  @override
+  String get callAudioUnknownDevice => 'Bilinmeyen cihaz';
+
+  @override
+  String get callAudioNoDevices => 'Cihaz bulunamadı';
+
+  @override
+  String get callAudioSwitchFailed => 'Ses cihazı değiştirilemedi';
+
+  @override
   String get callScreenControlEnd => 'Bitir';
 
   @override
@@ -12612,6 +12648,44 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String challengeBackName(String name) {
+    return '$name adlı kişiye meydan oku';
+  }
+
+  @override
+  String challengeBackRoom(String room) {
+    return '$room grubunda yanıtla';
+  }
+
+  @override
+  String challengeFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count arkadaşın oynadı',
+      one: '1 arkadaşın oynadı',
+      zero: 'Buradaki arkadaşlarından henüz oynayan yok',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String challengeYouAndFriendsPlayed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sen ve $count arkadaşın oynadınız',
+      one: 'Sen ve 1 arkadaşın oynadınız',
+      zero: 'Şimdilik sadece sen oynadın',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get challengeFriendsOnlyNote =>
+      'Burada sadece arkadaşların görünür. Bu sohbetteki diğer kişiler de oynamış olabilir.';
+
+  @override
   String get chatGameNameLiarsDice => 'Yalancı Zar';
 
   @override
@@ -13314,7 +13388,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get howToPatches2 =>
-      'Rozet şekli gösterir: kare, uzun ya da geniş. Daire, herhangi bir dikdörtgen demek. Sayı kaç kare olduğunu söyler.';
+      'Rozet yamanın şeklidir: kare, uzun ya da geniş. Kesik çizgili rozet, bu üçünden herhangi biri olabilir demek. Sayı varsa, yamanın kaç kareyi kapladığını söyler.';
 
   @override
   String get howToPatches3 =>

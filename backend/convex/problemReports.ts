@@ -598,6 +598,7 @@ export const submit = mutation({
     await ctx.db.patch(roomId, {
       lastMessage: preview,
       lastMessageTime: now + seq - 1,
+      lastMessageSenderId: logUserId,
     });
 
     await ctx.db.insert("problemReports", {

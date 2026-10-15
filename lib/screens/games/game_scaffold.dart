@@ -128,10 +128,6 @@ class _GameScaffoldState extends State<GameScaffold> {
   @override
   void dispose() {
     _touch.dispose();
-    // A challenge is for one sitting at the board it named.
-    if (ChallengesStore.instance.target?.game == widget.controller.game) {
-      ChallengesStore.instance.target = null;
-    }
     super.dispose();
   }
 
@@ -152,7 +148,7 @@ class _GameScaffoldState extends State<GameScaffold> {
       :hintBanner,
     ) = widget;
 
-    final target = challengeTargetFor(controller);
+    final target = challengeTargetFor(context, controller);
     final header = <Widget>[
       _TopBar(controller: controller, onHelp: _openGuide),
       if (target != null)
@@ -459,11 +455,14 @@ class _PauseCover extends StatelessWidget {
   }
 }
 
-/// Shown once the player can no longer act on today's board.
 /// The challenge a board is being played against, when it is this board and
-/// today's.
-ChallengeTarget? challengeTargetFor(GamePlayController controller) {
-  final t = ChallengesStore.instance.target;
+/// today's. Read off this route's [ChallengeScope], so a board opened from
+/// anywhere but a challenge card has none.
+ChallengeTarget? challengeTargetFor(
+  BuildContext context,
+  GamePlayController controller,
+) {
+  final t = ChallengeScope.of(context);
   if (t == null || t.game != controller.game) return null;
   if (t.dayKey != FeedStore.instance.dayKey) return null;
   return t;
@@ -535,7 +534,7 @@ class _ResultCard extends StatelessWidget {
   /// "You beat Selin's 2:41" or "Selin keeps it, by 0:08", and whether it
   /// was a win — when this board was played against a challenge.
   (String, bool)? _challengeLine(BuildContext context) {
-    final t = challengeTargetFor(controller);
+    final t = challengeTargetFor(context, controller);
     final mine = controller.durationMs;
     if (t == null || !controller.solved || mine == null) return null;
     final l10n = AppLocalizations.of(context);
@@ -578,8 +577,61 @@ class _ResultCard extends StatelessWidget {
     }
   }
 
+  /// Answers the card this board was opened from, in its own chat: no
+  /// picker, the one room the dare came from.
+  Future<void> _answer(BuildContext context, ChallengeTarget target) async {
+    final l10n = AppLocalizations.of(context);
+    final toast = AppToast.of(context);
+    final failed = sentenceCaseOf(context, l10n.chatGameErrGeneric);
+    try {
+      await ChallengesStore.instance.answer(userId: viewerId, target: target);
+      HapticFeedback.lightImpact();
+    } catch (_) {
+      toast.error(failed);
+    }
+  }
+
+  /// "Challenge Selin back" in a DM, "Reply in Climbers" in a group: the
+  /// result card's first offer when this board was opened from a challenge
+  /// and solved. Its own sent state once used, so it is never pressed twice.
+  GameResultAction? _answerAction(BuildContext context) {
+    final t = challengeTargetFor(context, controller);
+    if (t == null || !controller.solved) return null;
+    if (t.roomId.isEmpty || t.messageId.isEmpty) return null;
+    final l10n = AppLocalizations.of(context);
+    final store = ChallengesStore.instance;
+    if (store.answered(t.messageId)) {
+      return GameResultAction(
+        icon: CupertinoIcons.checkmark_alt,
+        label: sentenceCaseOf(context, l10n.challengeSent),
+        onTap: null,
+        prominent: true,
+      );
+    }
+    final room = t.roomName;
+    return GameResultAction(
+      icon: CupertinoIcons.flag_fill,
+      label: sentenceCaseOf(
+        context,
+        t.isGroup && room != null && room.isNotEmpty
+            ? l10n.challengeBackRoom(room)
+            : l10n.challengeBackName(t.name),
+      ),
+      onTap: store.answering(t.messageId) ? null : () => _answer(context, t),
+      prominent: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // The "challenge back" action's sending and sent states live on the store.
+    return ListenableBuilder(
+      listenable: ChallengesStore.instance,
+      builder: (context, _) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final standings = GamesStore.instance.standings;
@@ -588,6 +640,7 @@ class _ResultCard extends StatelessWidget {
 
     final motion = MotionScope.of(context);
     final solved = controller.solved;
+    final answer = _answerAction(context);
     final card = Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       decoration: BoxDecoration(
@@ -665,10 +718,11 @@ class _ResultCard extends StatelessWidget {
               ),
             ),
           ],
-          if (onShare != null || onTellFriends != null) ...[
+          if (onShare != null || onTellFriends != null || answer != null) ...[
             const SizedBox(height: 18),
             GameResultActions(
               actions: [
+                ?answer,
                 if (solved && ChallengesStore.instance.repo != null)
                   GameResultAction(
                     icon: CupertinoIcons.paperplane,
@@ -695,7 +749,9 @@ class _ResultCard extends StatelessWidget {
                           icon: CupertinoIcons.bell_fill,
                           label: sentenceCaseOf(context, l10n.gameTellFriends),
                           onTap: onTellFriends,
-                          prominent: true,
+                          // One filled button per card: answering the dare
+                          // outranks telling everyone.
+                          prominent: answer == null,
                         ),
               ],
             ),

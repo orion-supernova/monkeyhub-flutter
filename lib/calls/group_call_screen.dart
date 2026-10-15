@@ -19,6 +19,8 @@ import '../widgets/app_toast.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/user_avatar.dart';
 import 'audio_level_monitor.dart';
+import 'call_audio_devices.dart';
+import 'call_audio_sheet.dart';
 import 'call_media.dart';
 import 'call_options_sheet.dart';
 import 'call_stats_monitor.dart';
@@ -104,6 +106,9 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     svc.addListener(_onChanged);
     svc.drawArmed.addListener(_onChanged);
     SettingsStore.instance.addListener(_onSettings);
+    CallAudioDevices.instance
+      ..attach()
+      ..addListener(_onChanged);
     _levels.sources = () sync* {
       for (final p in svc.peers.values) {
         final pc = p.pc;
@@ -279,6 +284,9 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     if (_boundTicks[key] != tick || r.srcObject != stream) {
       r.srcObject = stream;
       _boundTicks[key] = tick;
+      // Web: the new <audio> element starts on the default speaker.
+      CallAudioDevices.instance.registerWebSinks([r]);
+      unawaited(CallAudioDevices.instance.reapplyWebSink());
     }
   }
 
@@ -286,6 +294,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     final r = _renderers.remove(key);
     _boundTicks.remove(key);
     if (r != null) {
+      CallAudioDevices.instance.unregisterWebSinks([r]);
       r.srcObject = null;
       r.dispose();
     }
@@ -370,6 +379,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       svc.localStreamTick,
       svc.localScreenStreamTick,
       svc.speakerOn,
+      CallAudioDevices.instance.revision,
       svc.hasAnyVideo,
       svc.drawArmed.value,
       _controlsVisible,
@@ -429,6 +439,9 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     svc.removeListener(_onChanged);
     svc.drawArmed.removeListener(_onChanged);
     SettingsStore.instance.removeListener(_onSettings);
+    CallAudioDevices.instance
+      ..removeListener(_onChanged)
+      ..detach();
     for (final m in _stats.values) {
       m.dispose();
     }
@@ -775,11 +788,20 @@ class _GroupCallScreenState extends State<GroupCallScreen>
             ? l10n.groupCallScreenCamOffLabel
             : l10n.groupCallScreenCamOnLabel,
       ),
-      CallTrayAction(
-        icon: svc.speakerOn ? CallGlyphs.speakerOn : CallGlyphs.speakerOff,
-        active: svc.speakerOn,
-        onTap: () => unawaited(svc.toggleSpeaker()),
-        label: l10n.groupCallScreenSpeakerLabel,
+      // The real route on a phone (a toggle, or the route sheet once a
+      // headset is a choice); the device picker on desktop and web.
+      callAudioTrayAction(
+        context,
+        speakerOn: svc.speakerOn,
+        onToggleSpeaker: () => unawaited(svc.toggleSpeaker()),
+        selectSpeaker: svc.selectSpeaker,
+        switchWebMic: (id) => switchWebMicrophone(
+          deviceId: id,
+          localStream: svc.localStream,
+          peerConnections: [
+            for (final p in svc.peers.values) ?p.pc,
+          ],
+        ),
       ),
       if (_shareSupported)
         CallTrayAction(

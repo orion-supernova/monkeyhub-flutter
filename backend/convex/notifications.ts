@@ -2,6 +2,7 @@ import { internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { lensFor } from "./visibility";
+import { challengePushBody } from "./challengeCopy";
 
 // What each kind of event says on a lock screen.
 //
@@ -323,8 +324,11 @@ export const sendMessagePush = internalAction({
                         ? // An in-chat game's card: `[game] Connect Four`.
                           `🎮 ${content.replace(/^\[\w+\]\s*/, "")}`.trim()
                       : type === "challenge"
-                        ? // "Beat my time": `[challenge] Beat my time: Queens 2:41`.
-                          `🏁 ${content.replace(/^\[\w+\]\s*/, "")}`.trim()
+                        ? // "Beat my time": `[challenge] Can you beat my 2:41
+                          // on Queens?`. Only the fallback: each recipient
+                          // gets it in their own language below. No glyph,
+                          // see `challengeCopy.ts`.
+                          content.replace(/^\[\w+\]\s*/, "").trim()
                       : type === "gif"
                         ? "GIF"
                         : type === "sticker"
@@ -351,8 +355,40 @@ export const sendMessagePush = internalAction({
     // closed, not open, if a future recipient bucket is added and forgets it.
     const perUser: Record<
       string,
-      { title?: string; subtitle?: string; data: Record<string, string> }
+      {
+        title?: string;
+        subtitle?: string;
+        body?: string;
+        data: Record<string, string>;
+      }
     > = {};
+
+    // A challenge's words are ours, not the sender's, so each recipient reads
+    // it in their own language — resolved off their most recently used
+    // handset, as a reaction push is. The shared `body` above stays the
+    // English fallback for anyone the plan does not cover.
+    const challengeBodies: Record<string, string> = {};
+    if (type === "challenge") {
+      const plan: {
+        game: string;
+        durationMs: number;
+        locales: Record<string, string>;
+      } | null = await ctx.runQuery(internal.challenges._pushPlan, {
+        messageId,
+        userIds: members.map((m) => m.userId) as any,
+      });
+      if (plan) {
+        for (const m of members) {
+          const uid = m.userId.toString();
+          challengeBodies[uid] = challengePushBody(
+            plan.locales[uid],
+            plan.game,
+            plan.durationMs,
+          );
+        }
+      }
+    }
+
     for (const m of members) {
       const uid = m.userId.toString();
       const mentionedHere = mentionsAll || mentioned.has(uid);
@@ -360,6 +396,8 @@ export const sendMessagePush = internalAction({
       if (senderAvatarUrl && m.avatarVisible) {
         extra.senderAvatarUrl = senderAvatarUrl;
       }
+      const ownBody = challengeBodies[uid];
+      if (ownBody !== undefined) extra.content = ownBody;
       if (mentionedHere) {
         perUser[uid] = {
           title: `${senderName} mentioned you`,
@@ -373,10 +411,14 @@ export const sendMessagePush = internalAction({
             isGroup && roomName
               ? `mentioned you in ${roomName}`
               : "mentioned you",
+          ...(ownBody !== undefined ? { body: ownBody } : {}),
           data: { mention: "true", ...extra },
         };
       } else if (Object.keys(extra).length > 0) {
-        perUser[uid] = { data: extra };
+        perUser[uid] = {
+          ...(ownBody !== undefined ? { body: ownBody } : {}),
+          data: extra,
+        };
       }
     }
 

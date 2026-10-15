@@ -16,15 +16,16 @@ import 'web_push.dart';
 
 /// This device's side of push notifications.
 ///
-/// There is no push SDK. The app registers directly with APNs (iOS) and FCM
-/// (Android), uploads the resulting tokens to Convex, and the backend talks to
+/// There is no push SDK. The app registers directly with APNs (iOS and macOS)
+/// and FCM (Android), uploads the resulting tokens to Convex, and the backend talks to
 /// Apple and Google itself — see backend/convex/push.ts. Everything visible is
 /// rendered by our own native code, which is what makes grouping, collapse and
 /// per-room dismissal possible.
 ///
 /// Three channels, all installed natively:
 ///   monkeyhub/notifications  the alert token, the permission prompt, the
-///                            visible room, and dismissal (iOS + Android)
+///                            visible room, and dismissal (iOS, Android and
+///                            macOS; on macOS also `getApnsEnvironment`)
 ///   monkeyhub/voip           the PushKit token, iOS only
 ///   monkeyhub/fcm            the FCM token, Android only
 ///
@@ -98,6 +99,44 @@ class PushManager {
   /// `kIsWeb` is a compile-time const, so on web the `&&` short-circuits
   /// before `Platform.*` (dart:io) is touched — evaluating it on web throws.
   bool get _pushSupported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+  /// macOS: an APNs ALERT token on the `monkeyhub/notifications` channel
+  /// (macos/Runner/AppDelegate.swift), and nothing else — no PushKit, no
+  /// Notification Service Extension, so no push inbox.
+  ///
+  /// Kept apart from [_pushSupported] rather than folded into it, because that
+  /// one also gates the inbox paths, and because `flutter test` runs on a macOS
+  /// host: widening it would send every test's room open down a channel that
+  /// isn't there.
+  bool get _isMacPush => !kIsWeb && Platform.isMacOS;
+
+  /// Whether this platform registers an OS alert token at all.
+  bool get _alertPushSupported => _pushSupported || _isMacPush;
+
+  /// The last APNs upload from this Mac went through. Cleared on logout.
+  bool _macTokenRegistered = false;
+
+  /// The OS notification permission as last read on this Mac.
+  bool _macAlertsAuthorized = false;
+
+  /// The user's per-device notification switch ([optOut] / [optIn]).
+  bool _alertsOptedOut = false;
+
+  /// True when the OS is delivering message banners to this Mac: a token is
+  /// registered, notifications are allowed, and the user has not switched
+  /// them off. [MessageAlerts] reads it to stay quiet while the window is not
+  /// in front of the user, because then the OS banner's own sound is already
+  /// the alert, and both would be the same message twice.
+  ///
+  /// False everywhere else, and on a Mac whose push is not working (no
+  /// entitlement in the profile, permission denied), so the in-app ping keeps
+  /// covering exactly the cases the OS cannot.
+  bool get osDeliversMessageAlerts =>
+      _isMacPush &&
+      _userId != null &&
+      _macTokenRegistered &&
+      _macAlertsAuthorized &&
+      !_alertsOptedOut;
 
   /// Exposed so [CallService] can stamp the deviceId on accept/reject
   /// so the backend's `taken` signal includes a `byDeviceId` field —
@@ -175,7 +214,7 @@ class PushManager {
     if (onOpenRoom != null) _onOpenRoom = onOpenRoom;
     if (api != null) _api = api;
     if (_initialized) return;
-    if (!_pushSupported) {
+    if (!_alertPushSupported) {
       _initialized = true; // nothing native to wire up on desktop/web
       // Retire the previous vendor's service worker, which would otherwise
       // keep its own live subscription and deliver alongside ours. No-op
@@ -189,6 +228,11 @@ class PushManager {
       // arrives at launch, and a tap can BE the launch. Calling in also flips
       // the native side to direct delivery from here on.
       await _drainPendingNotifEvents();
+      if (_isMacPush) {
+        // No PushKit and no fallback ringer on the Mac: nothing below applies.
+        _initialized = true;
+        return;
+      }
 
       // Watch for iOS PushKit token rotation. Forward the new token to the
       // backend if a user is currently logged in.
@@ -388,7 +432,7 @@ class PushManager {
     // thing a slow login dropped. It creates the device row on its own, so
     // nothing below depends on having run first.
     await syncDeviceContext(force: true);
-    if (_pushSupported && _initialized) {
+    if (_alertPushSupported && _initialized) {
       await _maybeRequestNotificationPermission();
     }
     // Upload push tokens. Failures here are non-fatal — the app still works,
@@ -396,6 +440,12 @@ class PushManager {
     // kIsWeb first so Platform.* (dart:io) is never evaluated on web, where it
     // throws — web falls through to the no-push registration path.
     if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
+      await refreshTokens();
+    } else if (_isMacPush) {
+      // The plain device row first, exactly as before this Mac had push, so a
+      // profile without the push entitlement (no token ever arrives) still
+      // leaves the "Move call here" pill able to name it. Then the APNs token.
+      await _registerNoPushDevice();
       await refreshTokens();
     } else {
       // macOS / Windows / Linux / Web — register the device row so the
@@ -557,6 +607,7 @@ class PushManager {
         locale: _appLocale,
         tzOffsetMinutes: _tzOffsetMinutes,
       );
+      if (_isMacPush) _macTokenRegistered = true;
     } catch (e) {
       debugPrint('PushManager: setApnsToken failed: $e');
     }
@@ -567,8 +618,10 @@ class PushManager {
   /// tokens are minted under the same profile, so one answer covers both.
   Future<String> _resolveApnsEnv() async {
     try {
-      final native =
-          await _voipChannel.invokeMethod<String>('getApnsEnvironment');
+      // The Mac has no voip channel; its AppDelegate answers on the
+      // notification channel instead, reading Contents/embedded.provisionprofile.
+      final channel = _isMacPush ? _notifChannel : _voipChannel;
+      final native = await channel.invokeMethod<String>('getApnsEnvironment');
       if (native == 'sandbox' || native == 'production') return native!;
     } catch (e) {
       debugPrint('PushManager: getApnsEnvironment failed: $e');
@@ -581,7 +634,8 @@ class PushManager {
   /// exist. Called on app resume so a token the backend cleared (e.g. after
   /// a transient APNs error) is restored without waiting for a cold login.
   Future<void> refreshTokens() async {
-    if (!_pushSupported) return; // web/desktop have no native token
+    // Web, Windows and Linux have no native token.
+    if (!_alertPushSupported) return;
     if (_userId == null) return;
     // Repair a device id that [login] never got. It reads the keychain, which
     // throws `errSecInteractionNotAllowed (-25308)` on a locked phone — the
@@ -616,6 +670,28 @@ class PushManager {
         if (_pendingVoipToken != null) {
           await _uploadVoipToken(_pendingVoipToken);
         }
+      }
+      try {
+        final token =
+            await _notifChannel.invokeMethod<String>('getApnsToken') ??
+                _pendingApnsToken;
+        await _uploadApnsToken(token);
+      } catch (e) {
+        debugPrint('PushManager.refreshTokens: APNs fetch failed: $e');
+        if (_pendingApnsToken != null) {
+          await _uploadApnsToken(_pendingApnsToken);
+        }
+      }
+    } else if (_isMacPush) {
+      // The alert token only. Read the permission alongside it: it is what
+      // [osDeliversMessageAlerts] needs, and a resume is exactly when someone
+      // comes back from flipping it in System Settings.
+      try {
+        final status =
+            await _notifChannel.invokeMethod<String>('authorizationStatus');
+        _macAlertsAuthorized = status == 'granted' || status == 'provisional';
+      } catch (e) {
+        debugPrint('PushManager.refreshTokens: authorizationStatus failed: $e');
       }
       try {
         final token =
@@ -694,6 +770,8 @@ class PushManager {
       }
     }
     _userId = null;
+    _macTokenRegistered = false;
+    _alertsOptedOut = false;
     // Forget what was uploaded, not what was resolved: the language is still
     // whatever this app is running in, but the row it was written to is gone,
     // so the next account must write its own rather than being deduped against
@@ -716,6 +794,10 @@ class PushManager {
   Future<void> optOut() => _setPushEnabled(false);
 
   Future<void> _setPushEnabled(bool enabled) async {
+    // The intent, recorded before the round trip: if the write fails the
+    // backend may keep sending, and a doubled alert is the lesser evil next
+    // to a silent one.
+    _alertsOptedOut = !enabled;
     final userId = _userId;
     final api = _api;
     final deviceId = _deviceId;

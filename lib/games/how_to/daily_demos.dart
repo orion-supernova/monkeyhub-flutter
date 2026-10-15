@@ -1843,13 +1843,15 @@ class StarsTipDemo extends HowToDemo {
 
 // Five patches on a 4×4, and only one way to cut it: the wide 4 can only be
 // the bottom row, which leaves the blank tall clue the whole of its column.
+// Every kind of badge is on it, a blank one included, so the guide shows each
+// before the player meets it on a real board.
 const _patches = PatchesBoard(
   size: 4,
   clues: [
     PatchClue(cell: 2, shape: PatchShape.tall),
     PatchClue(cell: 5, shape: PatchShape.square, area: 4),
     PatchClue(cell: 8, shape: PatchShape.wide, area: 2),
-    PatchClue(cell: 11, shape: PatchShape.tall, area: 3),
+    PatchClue(cell: 11, shape: PatchShape.any, area: 3),
     PatchClue(cell: 12, shape: PatchShape.wide, area: 4),
   ],
 );
@@ -1985,11 +1987,18 @@ class PatchesRulesDemo extends HowToDemo {
   }
 }
 
-/// The badge is the rule: a square 4 refuses a bar of 3 (red), takes a 2×2.
+/// The badge is the rule. A spotlight walks the four kinds in the order the
+/// step names them (square, tall, wide, dashed), then a square 4 refuses a
+/// bar of 3 (red) and takes a 2×2.
 class PatchesShapeDemo extends HowToDemo {
   const PatchesShapeDemo();
 
-  static const _stroke = _PatchStroke([(0.26, 4), (0.42, 6), (0.52, 6), (0.68, 1)]);
+  /// The square, tall, wide and "any" clues' squares.
+  static const _tour = [5, 2, 8, 11];
+  static const _stroke = _PatchStroke([(0.46, 4), (0.58, 6), (0.64, 6), (0.78, 1)]);
+
+  @override
+  Duration get period => const Duration(milliseconds: 5600);
 
   @override
   void paint(Canvas canvas, DemoFrame f) {
@@ -2004,20 +2013,27 @@ class PatchesShapeDemo extends HowToDemo {
       popClue: done ? 1 : null,
       pop: f.pop(_stroke.end),
     );
+    // One spotlight gliding badge to badge, rather than four blinking on and
+    // off: the eye follows it instead of hunting for the next one.
+    var spot = b.rect(_tour.first);
+    for (var i = 1; i < _tour.length; i++) {
+      final start = 0.1 * i;
+      spot = Rect.lerp(spot, b.rect(_tour[i]), f.seg(start, start + 0.04))!;
+    }
     paintSpotlight(
       canvas,
-      b.rect(5).deflate(b.grid.cell * 0.12),
+      spot.deflate(b.grid.cell * 0.12),
       f.theme.accent,
-      f.seg(0.04, 0.12) * (1 - f.seg(0.22, 0.28)),
+      f.seg(0.02, 0.06) * (1 - f.seg(0.4, 0.44)),
       radius: b.grid.cell * 0.2,
     );
     paintFinger(canvas, f, _stroke.finger(b));
-    paintSparkles(canvas, b.center(5), b.side * 0.22, f.seg(0.7, 0.86),
+    paintSparkles(canvas, b.center(5), b.side * 0.22, f.seg(0.8, 0.92),
         const Color(0xFFFFC53D));
   }
 
   @override
-  double get still => 0.46;
+  double get still => 0.61;
 }
 
 /// Drag to cut a patch; tap it to lift it off; cut it again.

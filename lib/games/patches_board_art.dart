@@ -11,8 +11,9 @@ import 'game_rules.dart';
 /// has cut, and the rectangle under their finger.
 ///
 /// **The badge is the clue.** Its outline is the shape it asks for — a square,
-/// an upright bar, a lying bar, or a circle for "any rectangle" — and the
-/// number inside is the area, when the board prints one. A shape drawn as
+/// an upright bar, a lying bar, or a dashed open square for "any of the three" —
+/// and the number inside is the area, when the board prints one (an "any"
+/// clue always does: a dashed badge with no number would say nothing). A shape drawn as
 /// itself needs no legend and no translation, and it stays readable on the hub
 /// tile where a word or an icon font would be a smudge.
 ///
@@ -212,30 +213,52 @@ class PatchesBoardPainter extends CustomPainter {
     final cell = grid.cell;
     final center = grid.center(clue.cell);
     final ink = palette.regionInk(k);
-    final (w, h) = switch (clue.shape) {
-      PatchShape.square => (0.6, 0.6),
-      PatchShape.tall => (0.44, 0.7),
-      PatchShape.wide => (0.7, 0.44),
-      PatchShape.any => (0.64, 0.64),
-    };
-    final badge = Rect.fromCenter(
-      center: center,
-      width: cell * w,
-      height: cell * h,
-    );
-    final shape = clue.shape == PatchShape.any
-        ? RRect.fromRectAndRadius(badge, Radius.circular(badge.width / 2))
-        : RRect.fromRectAndRadius(badge, Radius.circular(cell * 0.1));
-    canvas.drawRRect(shape, Paint()..color = ink);
-    // A hairline in the background colour, so the badge keeps an edge on top
-    // of its own patch, which is the same hue.
-    canvas.drawRRect(
-      shape,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(1, cell * 0.035)
-        ..color = theme.background.withValues(alpha: 0.55),
-    );
+    final Color label;
+    if (clue.shape == PatchShape.any) {
+      // Open, not solid: a dashed square says "a rectangle, size it as you
+      // like", and stays a different thing from the solid square badge even
+      // on the hub tile, where the dashes melt into a thin outline.
+      final badge = Rect.fromCenter(
+        center: center,
+        width: cell * 0.66,
+        height: cell * 0.66,
+      );
+      final radius = cell * 0.12;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(badge, Radius.circular(radius)),
+        Paint()..color = ink.withValues(alpha: 0.2),
+      );
+      canvas.drawPath(
+        _dashedOutline(badge, radius),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = math.max(1.2, cell * 0.06)
+          ..color = ink,
+      );
+      label = ink;
+    } else {
+      final (w, h) = switch (clue.shape) {
+        PatchShape.tall => (0.44, 0.7),
+        PatchShape.wide => (0.7, 0.44),
+        _ => (0.6, 0.6),
+      };
+      final shape = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: center, width: cell * w, height: cell * h),
+        Radius.circular(cell * 0.1),
+      );
+      canvas.drawRRect(shape, Paint()..color = ink);
+      // A hairline in the background colour, so the badge keeps an edge on
+      // top of its own patch, which is the same hue.
+      canvas.drawRRect(
+        shape,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1, cell * 0.035)
+          ..color = theme.background.withValues(alpha: 0.55),
+      );
+      label = _onInk(ink);
+    }
     if (clue.area > 0) {
       _labels.paint(
         canvas,
@@ -243,13 +266,53 @@ class PatchesBoardPainter extends CustomPainter {
         '${clue.area}',
         theme.body.copyWith(
           letterSpacing: 0,
-          color: _onInk(ink),
+          color: label,
           fontSize: _half(cell * (clue.area >= 10 ? 0.3 : 0.36)),
           fontWeight: FontWeight.w700,
           height: 1,
         ),
       );
     }
+  }
+
+  /// A rounded square's outline broken into eight dashes: one round each
+  /// corner and one centred on each side, so it reads the same at every size
+  /// rather than as however many dashes happen to fit.
+  static Path _dashedOutline(Rect r, double radius) {
+    final straight = r.width - radius * 2;
+    final arc = math.pi / 2 * radius;
+    final gap = straight * 0.22;
+    final tail = math.max(0.0, (straight - gap * 2 - arc) / 4);
+    final mid = straight - gap * 2 - tail * 2;
+    final c = Radius.circular(radius);
+    final path = Path()
+      ..moveTo(r.left, r.top + radius + tail)
+      ..lineTo(r.left, r.top + radius)
+      ..arcToPoint(Offset(r.left + radius, r.top), radius: c)
+      ..lineTo(r.left + radius + tail, r.top)
+      ..moveTo(r.right - radius - tail, r.top)
+      ..lineTo(r.right - radius, r.top)
+      ..arcToPoint(Offset(r.right, r.top + radius), radius: c)
+      ..lineTo(r.right, r.top + radius + tail)
+      ..moveTo(r.right, r.bottom - radius - tail)
+      ..lineTo(r.right, r.bottom - radius)
+      ..arcToPoint(Offset(r.right - radius, r.bottom), radius: c)
+      ..lineTo(r.right - radius - tail, r.bottom)
+      ..moveTo(r.left + radius + tail, r.bottom)
+      ..lineTo(r.left + radius, r.bottom)
+      ..arcToPoint(Offset(r.left, r.bottom - radius), radius: c)
+      ..lineTo(r.left, r.bottom - radius - tail);
+    final cx = r.center.dx;
+    final cy = r.center.dy;
+    return path
+      ..moveTo(cx - mid / 2, r.top)
+      ..lineTo(cx + mid / 2, r.top)
+      ..moveTo(r.right, cy - mid / 2)
+      ..lineTo(r.right, cy + mid / 2)
+      ..moveTo(cx - mid / 2, r.bottom)
+      ..lineTo(cx + mid / 2, r.bottom)
+      ..moveTo(r.left, cy - mid / 2)
+      ..lineTo(r.left, cy + mid / 2);
   }
 
   /// The dragged rectangle's size, in a pill on its top edge: the number the
