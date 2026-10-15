@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
@@ -19,6 +20,7 @@ import '../theme/theme_scope.dart';
 import '../update/update_availability.dart';
 import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
+import '../widgets/terms_consent.dart';
 import '../widgets/ios_kit.dart' show quietFill;
 import 'discover_screen.dart';
 import 'feed_screen.dart';
@@ -74,6 +76,12 @@ class _HomeShellState extends State<HomeShell> {
     // Lights the Settings tab the moment either the launch check or a manual
     // "Check for Updates" tap finds a newer build.
     UpdateAvailability.instance.addListener(_onSettings);
+    // The Terms of Use, for an account that never ticked the sign-up box (it
+    // predates the box, or an old build made it). Once per shell, a frame
+    // late because it pushes a sheet; a no-op for everyone who agreed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(ensureTermsAccepted(context, widget.api));
+    });
   }
 
   @override

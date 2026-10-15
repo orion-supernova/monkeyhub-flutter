@@ -223,6 +223,17 @@ crons.interval(
   {},
 );
 
+// The moderation room's evidence snapshots, on the same 24-month period as the
+// `reports` rows they belong to. They outlive their source messages on purpose
+// (a reported self-destructing message must still be reviewable), so they
+// need a lifetime of their own. See moderation.gcExpiredEvidence.
+crons.interval(
+  "moderation.gcExpiredEvidence",
+  { hours: 24 },
+  internal.moderation.gcExpiredEvidence,
+  {},
+);
+
 // Sweep expired device-login requests (QR / short-code sign-in for a
 // signed-out web or desktop client). Unlike pairingCodes/releaseCodes, a row
 // here often belongs to nobody at all — the desktop that created it may never

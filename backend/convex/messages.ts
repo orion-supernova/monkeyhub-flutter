@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
+  ACCOUNT_CHILD,
   ERR_APPROVAL_REQUIRED,
   ERR_NOT_ALLOWED,
   LOCATION_POLICY_FLAG,
@@ -22,6 +23,9 @@ import {
   type PostKind,
   type RoomAction,
 } from "./roomPolicy";
+import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
+import { FilterBlockedError, screenAndReport } from "./moderationCore";
+import { isSystemAccount, isSystemRoom } from "./systemAccount";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -934,6 +938,61 @@ const formattingArg = v.optional(
  * insert, the three `scheduler` calls and the room patch all run in the same
  * transaction as the caller.
  */
+// ── Objectionable-text filter ───────────────────────────────────────────────
+
+/** Members whose accounts are read to answer "is a child in here". */
+const CHILD_SCAN_LIMIT = 500;
+
+/**
+ * The filter, applied to one piece of outgoing chat text. Returns the text to
+ * store (masked when needed) or throws `moderationCore.FilterBlockedError`.
+ *
+ * Cost on the common path is the scan alone: [hasHit] is a fold and three
+ * precompiled regexes, no reads. Only a HIT pays for the audience question —
+ * is the sender a child (already in hand), or is anyone else in the room one
+ * (the lazily fetched roster, then one `get` per member) — and a hit is rare.
+ *
+ * Skipped in system rooms (the moderation room quotes what it is about, and
+ * must not mask its own evidence) and for system senders. A filter hit worth
+ * a moderator's attention is filed BEFORE any throw, so a caller that catches
+ * the refusal keeps the card: `send` and the scheduled-release path both do.
+ */
+export async function screenOutgoingText(
+  ctx: any,
+  args: {
+    text: string;
+    room: any;
+    roster: () => Promise<any[]>;
+    senderUser: any;
+    roomId: any;
+    surface: string;
+  },
+): Promise<string> {
+  const { text, room, senderUser } = args;
+  if (!text || isSystemRoom(room) || isSystemAccount(senderUser)) return text;
+  if (!hasHit(text)) return text;
+
+  let childInvolved = senderUser?.accountType === ACCOUNT_CHILD;
+  if (!childInvolved) {
+    const members = (await args.roster()).slice(0, CHILD_SCAN_LIMIT);
+    for (const m of members) {
+      if (m.userId.toString() === senderUser?._id?.toString()) continue;
+      const u = await ctx.db.get(m.userId);
+      if (u?.accountType === ACCOUNT_CHILD) {
+        childInvolved = true;
+        break;
+      }
+    }
+  }
+  return await screenAndReport(ctx, {
+    text,
+    authorId: senderUser._id,
+    childInvolved,
+    surface: args.surface,
+    roomId: args.roomId,
+  });
+}
+
 export const send = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -1002,7 +1061,21 @@ export const send = mutation({
     // before `albumId` existed, which the server has no way to count.
     replyAlbumCount: v.optional(v.number()),
   },
-  handler: async (ctx, args) => await sendCore(ctx, args),
+  // A filter refusal is RETURNED as the code string rather than thrown. A
+  // throw would roll back the whole mutation, and with it the "Filter hit"
+  // card `screenOutgoingText` filed for a moderator — which is the one thing
+  // a slur aimed at a child must never lose. Current clients read this value
+  // and treat it exactly like a thrown guard refusal (`ChatRepository.
+  // _postMessage`); a build older than the filter shows the bubble as sent
+  // and never sees it echoed, which is the accepted cost for testers.
+  handler: async (ctx, args) => {
+    try {
+      return await sendCore(ctx, args);
+    } catch (err) {
+      if (err instanceof FilterBlockedError) return ERR_FILTER_BLOCKED;
+      throw err;
+    }
+  },
 });
 
 /**
@@ -1112,6 +1185,20 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       senderName
     );
   const guardedKind = postKindOf(msgType);
+
+  // The objectionable-text filter: masks, refuses, or files a moderator card.
+  // After the guard (so a message that could never be sent is never scanned)
+  // and before anything is written. Game moves are machine text.
+  if (msgType !== "gameMove") {
+    content = await screenOutgoingText(ctx, {
+      text: content,
+      room,
+      roster,
+      senderUser,
+      roomId,
+      surface: "message",
+    });
+  }
 
   // Build a denormalized snapshot of the parent at send time. Survives the
   // parent's later deletion so the inline reply tether keeps rendering. We
@@ -1974,6 +2061,22 @@ export const editMessage = mutation({
         .query("roomMembers")
         .withIndex("by_room_user", (q: any) => q.eq("roomId", msg.roomId))
         .collect());
+
+    // The filter, or an edit would be the way around it. Returned as a code
+    // like the window refusal above, for the reason `send` returns it.
+    try {
+      content = await screenOutgoingText(ctx, {
+        text: content,
+        room,
+        roster,
+        senderUser: await ctx.db.get(userId),
+        roomId: msg.roomId,
+        surface: "edit",
+      });
+    } catch (err) {
+      if (err instanceof FilterBlockedError) return ERR_FILTER_BLOCKED;
+      throw err;
+    }
     const { resolvedMentions, everyone } = await resolveMentions(
       ctx,
       content,

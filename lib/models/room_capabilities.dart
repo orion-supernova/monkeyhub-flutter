@@ -71,6 +71,8 @@ class RoomCapabilities {
     required this.canSaveMessages,
     required this.canMute,
     this.posting = RoomPostingPolicy.open,
+    this.canReport = false,
+    this.canModerate = false,
   });
 
   /// Whether the header offers to start a call — the 1:1 button in a DM, the
@@ -182,6 +184,17 @@ class RoomCapabilities {
   /// value is attached by [roomCapabilitiesFor] from the room row.
   final RoomPostingPolicy posting;
 
+  /// Room info offers "Report": the room itself for a group, the other person
+  /// for a DM. Nobody reports Saved Messages, and a system room is the app's
+  /// own fixture, with no one in it to report.
+  final bool canReport;
+
+  /// A report card here can be acted on: remove the message, ban or unban the
+  /// person, dismiss. Only the moderation room. Presentation only: the server
+  /// checks the caller against its staff list on every action regardless,
+  /// because this is decided by a slug any client can read.
+  final bool canModerate;
+
   /// An ordinary room: everything on. [canDelete] still narrows to the owner at
   /// the call site.
   static const group = RoomCapabilities(
@@ -196,6 +209,7 @@ class RoomCapabilities {
     canReceiveForwards: true,
     canSaveMessages: true,
     canMute: true,
+    canReport: true,
   );
 
   /// A two-person conversation. No leaving and no settings — the room is the
@@ -217,6 +231,7 @@ class RoomCapabilities {
     canReceiveForwards: true,
     canSaveMessages: true,
     canMute: true,
+    canReport: true,
   );
 
   /// Notes to self. Nobody to call, nothing to describe, no list worth drawing,
@@ -281,6 +296,8 @@ class RoomCapabilities {
     bool? canSaveMessages,
     bool? canMute,
     RoomPostingPolicy? posting,
+    bool? canReport,
+    bool? canModerate,
   }) =>
       RoomCapabilities(
         canCall: canCall ?? this.canCall,
@@ -295,6 +312,8 @@ class RoomCapabilities {
         canSaveMessages: canSaveMessages ?? this.canSaveMessages,
         canMute: canMute ?? this.canMute,
         posting: posting ?? this.posting,
+        canReport: canReport ?? this.canReport,
+        canModerate: canModerate ?? this.canModerate,
       );
 
   /// These capabilities under [policy]: [posting] set, and the two answers the
@@ -327,6 +346,13 @@ final Map<String, RoomCapabilities> _systemRoomOverrides = <String, RoomCapabili
   // reports. Everything else stays locked down; a room the app writes to is
   // still not a room anybody renames, leaves or deletes.
   'logs': RoomCapabilities.system.copyWith(hasMembers: true),
+  // The moderation inbox: a read-only feed Monkey Reporter posts report cards
+  // into, exactly like the log room, plus the one thing the log room does not
+  // need: acting on a card. See `backend/convex/moderation.ts`.
+  'moderation': RoomCapabilities.system.copyWith(
+    hasMembers: true,
+    canModerate: true,
+  ),
 };
 
 /// Which [RoomKind] [room] is.

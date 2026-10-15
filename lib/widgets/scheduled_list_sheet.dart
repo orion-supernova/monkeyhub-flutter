@@ -35,6 +35,7 @@ String scheduleErrorSentence(BuildContext context, String code) {
     'SCHEDULE_NOT_IN_EPHEMERAL' => l10n.scheduleErrorNotInEphemeral,
     'NOT_A_MEMBER' => l10n.scheduleErrorNotMember,
     'UNBLOCK_FIRST' => l10n.scheduleErrorBlocked,
+    'MESSAGE_FILTER_BLOCKED' => l10n.messageFilterBlocked,
     // `MESSAGE_FAILED` lands here on purpose. It is what the backend throws
     // when the OTHER person has blocked this one, and it is deliberately
     // indistinguishable from a generic failure — telling someone they have

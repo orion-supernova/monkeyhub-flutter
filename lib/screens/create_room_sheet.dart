@@ -89,9 +89,13 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
         );
       }
     } catch (e) {
+      final s = e.toString();
       setState(() {
         _busy = false;
-        _error = e.toString();
+        // The language filter on the name or description, said in words.
+        _error = s.contains('NAME_INAPPROPRIATE')
+            ? AppLocalizations.of(context).nameInappropriate
+            : s;
       });
     }
   }

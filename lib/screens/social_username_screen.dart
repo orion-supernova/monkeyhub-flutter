@@ -14,6 +14,7 @@ import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/username_status_label.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/terms_consent.dart';
 
 /// Where a first-time Apple/Google sign-in lands, with two ways out.
 ///
@@ -81,6 +82,12 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
   /// so the error can offer the fix rather than just stating the problem.
   bool _offerLink = false;
 
+  /// The EULA box. Creating an account is where agreement is formed, so the
+  /// create mode will not submit without it; linking an existing account
+  /// does not ask again (that account answered, or will answer, at the
+  /// acceptance sheet).
+  bool _termsAccepted = false;
+
   @override
   void dispose() {
     _availability.dispose();
@@ -113,6 +120,10 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
     if (_mode == _Mode.link && _password.text.isEmpty) {
       setState(() => _error =
           AppLocalizations.of(context).audioMessagePasswordRequiredError);
+      return;
+    }
+    if (_mode == _Mode.create && !_termsAccepted) {
+      setState(() => _error = AppLocalizations.of(context).termsMustAccept);
       return;
     }
 
@@ -283,6 +294,14 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: (_) => _submit(),
                                 ),
+                              if (creating) ...[
+                                const SizedBox(height: 14),
+                                TermsConsentRow(
+                                  value: _termsAccepted,
+                                  onChanged: (v) =>
+                                      setState(() => _termsAccepted = v),
+                                ),
+                              ],
                               if (_error != null) ...[
                                 const SizedBox(height: 14),
                                 FormErrorBanner(

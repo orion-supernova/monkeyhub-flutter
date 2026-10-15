@@ -13690,4 +13690,121 @@ class AppLocalizationsHi extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      'रिपोर्ट करने पर यह मैसेज और इस चैट के पिछले कुछ मैसेज समीक्षा के लिए MonkeyHub मॉडरेटर को भेजे जाते हैं। उस व्यक्ति को पता नहीं चलेगा कि आपने रिपोर्ट किया।';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      'रिपोर्ट करने पर इस व्यक्ति के साथ आपके पिछले कुछ मैसेज समीक्षा के लिए MonkeyHub मॉडरेटर को भेजे जाते हैं। उन्हें पता नहीं चलेगा कि आपने रिपोर्ट किया।';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      'रिपोर्ट करने पर इस ग्रुप के पिछले कुछ मैसेज समीक्षा के लिए MonkeyHub मॉडरेटर को भेजे जाते हैं। यहाँ किसी को पता नहीं चलेगा कि आपने रिपोर्ट किया।';
+
+  @override
+  String get reportSheetAlsoBlock => 'इस व्यक्ति को ब्लॉक भी करें';
+
+  @override
+  String get reportSentReviewed =>
+      'धन्यवाद। हमारे मॉडरेटर 24 घंटे के भीतर रिपोर्ट की समीक्षा करते हैं।';
+
+  @override
+  String get reportSentAndBlocked =>
+      'धन्यवाद। हमारे मॉडरेटर 24 घंटे के भीतर रिपोर्ट की समीक्षा करते हैं। आपने इस व्यक्ति को ब्लॉक कर दिया है।';
+
+  @override
+  String get reportTooMany =>
+      'आपने बहुत सारी रिपोर्ट भेजी हैं। थोड़ी देर बाद फिर कोशिश करें।';
+
+  @override
+  String get reportFailed => 'रिपोर्ट नहीं भेजी जा सकी। फिर कोशिश करें।';
+
+  @override
+  String get riReportPerson => 'इस व्यक्ति को रिपोर्ट करें';
+
+  @override
+  String get riReportGroup => 'इस ग्रुप को रिपोर्ट करें';
+
+  @override
+  String get moderationActionRemoveMessage => 'मैसेज हटाएँ';
+
+  @override
+  String get moderationActionBan => 'यूज़र को बैन करें';
+
+  @override
+  String get moderationActionUnban => 'बैन हटाएँ';
+
+  @override
+  String get moderationActionDismiss => 'रिपोर्ट खारिज करें';
+
+  @override
+  String get moderationConfirmRemoveTitle => 'यह मैसेज हटाएँ?';
+
+  @override
+  String get moderationConfirmRemoveBody =>
+      'यह बातचीत में सभी के लिए डिलीट हो जाएगा। रिपोर्ट कार्ड में इसकी कॉपी बनी रहेगी।';
+
+  @override
+  String get moderationConfirmBanTitle => 'इस अकाउंट को बैन करें?';
+
+  @override
+  String get moderationConfirmBanBody =>
+      'वे हर जगह से साइन आउट हो जाएँगे, फिर से साइन इन नहीं कर पाएँगे, सर्च से गायब हो जाएँगे और हर पब्लिक रूम से निकल जाएँगे। आप इस कार्ड से बैन हटा सकते हैं।';
+
+  @override
+  String get moderationActionDone => 'हो गया';
+
+  @override
+  String get moderationActionFailed => 'यह पूरा नहीं हो सका। फिर कोशिश करें।';
+
+  @override
+  String get moderationCantBan =>
+      'मॉडरेटर और सिस्टम अकाउंट को बैन नहीं किया जा सकता।';
+
+  @override
+  String get messageFilterBlocked =>
+      'यह मैसेज नहीं भेजा जा सकता क्योंकि इसमें अनुचित भाषा हो सकती है।';
+
+  @override
+  String get nameInappropriate =>
+      'इस नाम में अनुचित भाषा हो सकती है। कृपया कोई दूसरा नाम चुनें।';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'उपयोग की शर्तों का उल्लंघन करने के कारण आपका अकाउंट निलंबित कर दिया गया है।';
+
+  @override
+  String get termsConsentPrefix => 'मैं ';
+
+  @override
+  String get termsConsentLink => 'उपयोग की शर्तों (EULA)';
+
+  @override
+  String get termsConsentSuffix =>
+      ' से सहमत हूँ और समझता/समझती हूँ कि आपत्तिजनक कंटेंट या दुर्व्यवहार करने वाले यूज़र के प्रति बिल्कुल भी सहनशीलता नहीं है।';
+
+  @override
+  String get termsConsentSemanticLabel => 'उपयोग की शर्तों से सहमत हों';
+
+  @override
+  String get termsMustAccept =>
+      'जारी रखने के लिए कृपया उपयोग की शर्तों से सहमत हों।';
+
+  @override
+  String get termsSheetTitle => 'उपयोग की शर्तें';
+
+  @override
+  String get termsSheetBody =>
+      'MonkeyHub का इस्तेमाल जारी रखने के लिए कृपया हमारी उपयोग की शर्तों से सहमत हों। यहाँ आपत्तिजनक कंटेंट या दुर्व्यवहार की कोई जगह नहीं है, और रिपोर्ट किए गए कंटेंट की समीक्षा हमारे मॉडरेटर करते हैं।';
+
+  @override
+  String get termsSheetAccept => 'सहमत हूँ और जारी रखें';
+
+  @override
+  String get termsAcceptFailed => 'सेव नहीं हो सका। फिर कोशिश करें।';
+
+  @override
+  String get settingsHubContactSupport => 'सपोर्ट से संपर्क करें';
 }

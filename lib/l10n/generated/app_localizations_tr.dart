@@ -13651,4 +13651,121 @@ class AppLocalizationsTr extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      'Şikayet etmek bu mesajı ve bu sohbetteki son birkaç mesajı incelenmek üzere MonkeyHub moderatörlerine gönderir. Kişi şikayet ettiğini bilmez.';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      'Şikayet etmek bu kişiyle son birkaç mesajını incelenmek üzere MonkeyHub moderatörlerine gönderir. Şikayet ettiğini bilmezler.';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      'Şikayet etmek bu gruptaki son birkaç mesajı incelenmek üzere MonkeyHub moderatörlerine gönderir. Buradaki kimse şikayet ettiğini bilmez.';
+
+  @override
+  String get reportSheetAlsoBlock => 'Bu kişiyi engelle';
+
+  @override
+  String get reportSentReviewed =>
+      'Teşekkürler. Moderatörlerimiz şikayetleri 24 saat içinde inceler.';
+
+  @override
+  String get reportSentAndBlocked =>
+      'Teşekkürler. Moderatörlerimiz şikayetleri 24 saat içinde inceler. Bu kişiyi engelledin.';
+
+  @override
+  String get reportTooMany =>
+      'Çok fazla şikayet gönderdin. Biraz sonra tekrar dene.';
+
+  @override
+  String get reportFailed => 'Şikayet gönderilemedi. Tekrar dene.';
+
+  @override
+  String get riReportPerson => 'Bu kişiyi şikayet et';
+
+  @override
+  String get riReportGroup => 'Bu grubu şikayet et';
+
+  @override
+  String get moderationActionRemoveMessage => 'Mesajı kaldır';
+
+  @override
+  String get moderationActionBan => 'Kullanıcıyı yasakla';
+
+  @override
+  String get moderationActionUnban => 'Yasağı kaldır';
+
+  @override
+  String get moderationActionDismiss => 'Şikayeti kapat';
+
+  @override
+  String get moderationConfirmRemoveTitle => 'Bu mesaj kaldırılsın mı?';
+
+  @override
+  String get moderationConfirmRemoveBody =>
+      'Sohbetteki herkes için silinir. Şikayet kartı kendi kopyasını saklar.';
+
+  @override
+  String get moderationConfirmBanTitle => 'Bu hesap yasaklansın mı?';
+
+  @override
+  String get moderationConfirmBanBody =>
+      'Her yerde oturumu kapanır, tekrar giriş yapamaz, aramada görünmez ve tüm herkese açık odalardan çıkar. Yasağı bu karttan kaldırabilirsin.';
+
+  @override
+  String get moderationActionDone => 'Tamam';
+
+  @override
+  String get moderationActionFailed => 'Bu işlem tamamlanamadı. Tekrar dene.';
+
+  @override
+  String get moderationCantBan =>
+      'Moderatörler ve sistem hesapları yasaklanamaz.';
+
+  @override
+  String get messageFilterBlocked =>
+      'Bu mesaj uygunsuz ifadeler içerebileceği için gönderilemiyor.';
+
+  @override
+  String get nameInappropriate =>
+      'Bu ad uygunsuz ifadeler içerebilir. Lütfen başka bir ad seç.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'Hesabın Kullanım Koşulları\'nı ihlal ettiği için askıya alındı.';
+
+  @override
+  String get termsConsentPrefix => '';
+
+  @override
+  String get termsConsentLink => 'Kullanım Koşulları\'nı (EULA)';
+
+  @override
+  String get termsConsentSuffix =>
+      ' kabul ediyorum ve uygunsuz içeriğe ya da taciz eden kullanıcılara hiçbir şekilde tolerans gösterilmediğini anlıyorum.';
+
+  @override
+  String get termsConsentSemanticLabel => 'Kullanım Koşulları\'nı kabul et';
+
+  @override
+  String get termsMustAccept =>
+      'Devam etmek için lütfen Kullanım Koşulları\'nı kabul et.';
+
+  @override
+  String get termsSheetTitle => 'Kullanım Koşulları';
+
+  @override
+  String get termsSheetBody =>
+      'MonkeyHub\'ı kullanmaya devam etmek için lütfen Kullanım Koşulları\'nı kabul et. Burada uygunsuz içeriğe ya da taciz edici davranışa yer yok ve şikayet edilen içerikler moderatörlerimiz tarafından incelenir.';
+
+  @override
+  String get termsSheetAccept => 'Kabul et ve devam et';
+
+  @override
+  String get termsAcceptFailed => 'Kaydedilemedi. Tekrar dene.';
+
+  @override
+  String get settingsHubContactSupport => 'Destekle iletişime geç';
 }

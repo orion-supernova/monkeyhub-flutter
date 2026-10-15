@@ -3,19 +3,19 @@ import { mutation } from "./functions";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { galleryBucketFor } from "./messages";
-import { seenVisibilityOf } from "./visibility";
 import {
   LOG_DISPLAY_NAME,
   LOG_ROOM_NAME,
   LOG_ROOM_STAFF_USERNAMES,
   LOG_USERNAME,
   REPORT_INBOX_USERNAME,
-  SYSTEM_PASSWORD_PREFIX,
   SYSTEM_ROOM_LOGS,
-  SYSTEM_VISIBILITY,
-  isSystemAccount,
 } from "./systemAccount";
-import { LOG_ROOM_POSTING_PRESET } from "./roomPolicy";
+import {
+  type SystemRoomSpec,
+  provisionSystemInbox,
+  resolveStaff,
+} from "./systemRooms";
 
 /**
  * Delivery for the "Report a problem" screen.
@@ -34,8 +34,8 @@ import { LOG_ROOM_POSTING_PRESET } from "./roomPolicy";
  *
  * Reusing the chat stack is also what makes the room's shape a routing decision
  * rather than a rebuild: reports needed to reach more than one person, and the
- * answer was to add a member. See `ensureReportRoom` for what changed and what
- * a DM could not have done.
+ * answer was to add a member. See `systemRooms.ensureSystemRoom`, which now
+ * builds this room and the moderation room alike.
  *
  * What the user sees is "report sent". They are not shown the account, the
  * handle it lands in, or that it is a chat room at all; the mechanism is not
@@ -68,302 +68,25 @@ export const ERR_NO_INBOX = "REPORT_INBOX_MISSING";
 /** Belt-and-braces cap on the note. The client caps the field at 2000. */
 const MAX_BODY_CHARS = 8000;
 
-/** Same shape as `messages.mintNonce` — see the note there on `Math.random`. */
-function randomHex(bytes: number): string {
-  const buf = new Uint8Array(bytes);
-  crypto.getRandomValues(buf);
-  return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
 /**
- * The log account, created on first report.
- *
- * Created lazily rather than seeded by a migration so a fresh deployment needs
- * no setup step to make the report screen work.
- *
- * Throws if the handle is already held by a REAL account. `isReservedUsername`
- * refuses anything containing the brand at all three signup paths, so this cannot
- * happen going forward — but a deployment that predates the reservation could
- * already have one, and quietly posting as somebody else's account would
- * put messages the user never wrote into their sent history and show the
- * maintainer a report apparently from a stranger. A collision has to stop the
- * report, not reroute it.
+ * The log inbox, as a [SystemRoomSpec]. The account, the room, the roster and
+ * the contacts are all built by `systemRooms.ts`, which this file used to own
+ * outright — see the note there on why it moved when the moderation inbox
+ * arrived.
  */
-async function ensureLogAccount(ctx: any) {
-  const existing = await ctx.db
-    .query("users")
-    .withIndex("by_username", (q: any) => q.eq("username", LOG_USERNAME))
-    .first();
-  if (existing) {
-    if (!isSystemAccount(existing)) throw new Error("LOG_USERNAME_TAKEN");
-    // Repair a row created before `SYSTEM_VISIBILITY` existed, which would
-    // otherwise keep the server's "public" defaults for avatar and presence.
-    // Idempotent: patched only when it differs, so this is not a write per
-    // report.
-    if (existing.visibility?.avatar !== SYSTEM_VISIBILITY.avatar) {
-      await ctx.db.patch(existing._id, { visibility: SYSTEM_VISIBILITY });
-    }
-    return existing._id;
-  }
-
-  return await ctx.db.insert("users", {
-    username: LOG_USERNAME,
-    name: LOG_DISPLAY_NAME,
-    passwordHash: SYSTEM_PASSWORD_PREFIX + randomHex(16),
-    createdAt: Date.now(),
-    // Never "online": this account has no client and no heartbeat, and letting
-    // it read as online would put a green dot on a thing that cannot answer.
-    // It also keeps the row permanently outside `sweepStalePresence`, which
-    // ranges only within status "online" and "away" — so this account costs
-    // that cron nothing, forever, rather than being re-read every five minutes.
-    status: "offline",
-    // Absent `lastSeen` on purpose, for the same reason — there is no last
-    // time this account was seen, and inventing one would be a lie the
-    // presence UI would happily render.
-    //
-    // The visibility block is what makes the account private. Leaving it
-    // absent would hand this account `visibility.DEFAULT_LEVEL`: a public face,
-    // and presence and read receipts shared with friends.
-    // See the note on `SYSTEM_VISIBILITY`.
-    visibility: SYSTEM_VISIBILITY,
-    // `avatarStorageId` is deliberately absent. A mutation cannot create a blob
-    // (`ctx.storage.store` is action-only), so the avatar is deployment data —
-    // see `tools/monkeyhub-logs-avatar.md` for the file and the three commands
-    // that attach it. Until that runs the client draws its usual monogram, which
-    // is a working account with a plain face rather than a broken one.
-  });
-}
-
-/**
- * Finds the report room, by the only key that has ever been reliable: the log
- * account's own membership.
- *
- * NOT by name, which is what this used to do and what the rename would have
- * broken. Three things are wrong with a name lookup here. The old name encoded
- * the two member ids (`dm:regular:<a>:<b>`), so it changes the moment the
- * membership does — the exact event this function has to survive. The new name
- * is a display name, and room names are not reserved: any user may create a
- * group called "MonkeyHub Logs", and `by_name` would hand back theirs. And a
- * lookup that misses does not fail loudly, it creates a SECOND report room and
- * silently orphans every report already filed in the first.
- *
- * Membership has none of the three. The log account has no client and no session,
- * so it joins nothing on its own, and this function is the only thing in the
- * codebase that writes a `roomMembers` row for it. So "the room the log account
- * is in" IS the report room, whatever it is currently called.
- *
- * The membership is still a filter and not the whole answer, because `rooms.join`
- * takes the joining user as an ARGUMENT and does not refuse a system account —
- * anybody holding this id could put it in a room. (`systemAccount.ts` is explicit
- * that the id being unobtainable is the protection, not the guard list.) So a
- * candidate must also look like the report room: stamped with the slug, or —
- * for a deployment whose room predates `rooms.system` — carrying the exact DM
- * name this function used to mint. Anything else the account somehow ended up in
- * is skipped rather than adopted and renamed.
- */
-async function findLogRoom(ctx: any, logUserId: any) {
-  const memberships = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_user", (q: any) => q.eq("userId", logUserId))
-    .collect();
-  let legacy: any = null;
-  for (const m of memberships) {
-    const room = await ctx.db.get(m.roomId);
-    if (!room) continue;
-    if (room.system === SYSTEM_ROOM_LOGS) return room;
-    // The pre-slug shape: the DM `ensureReportRoom` used to mint, whose name is
-    // `dm:regular:` plus the two member ids sorted.
-    if (
-      typeof room.name === "string" &&
-      room.name.startsWith("dm:regular:") &&
-      room.name.includes(logUserId.toString())
-    ) {
-      legacy = room;
-    }
-  }
-  return legacy;
-}
-
-/**
- * The room the reports land in, created on first use: a private group owned by
- * the log account, with every staff reader in it.
- *
- * ── Why it is a group and not a DM ─────────────────────────────────────────
- *
- * It was a DM, built by hand rather than through `rooms.getOrCreateDM` (that
- * mutation requires an accepted friendship in both directions, and this pair has
- * none), with a name kept byte-identical to the one that mutation would produce
- * so every `startsWith("dm:")` read path would classify it correctly.
- *
- * That shape held exactly one reader, because a DM is defined by having two
- * members and one of them is the bot. Reports have to reach the people who fix
- * things, and that is now more than one person — so the room stops being a pair
- * and becomes what it always was in substance: a staff channel that a bot posts
- * into. Everything that keyed off the `dm:` prefix now correctly classifies it
- * as a group: `@everyone` becomes meaningful (there is a crowd), the DM block
- * check stops applying (there is no counterparty to have blocked), and the
- * client titles the room from `rooms.name` instead of resolving a peer.
- *
- * ── Migration ──────────────────────────────────────────────────────────────
- *
- * In place, on the next report, with no backfill job. The room already holds
- * every report ever filed, so recreating it is not an option — it is patched
- * where it differs and left alone where it does not, which also makes this
- * function the repair path for a room that predates `rooms.system`, one whose
- * roster has drifted, or one whose count is stale.
- */
-async function ensureReportRoom(
-  ctx: any,
-  logUserId: any,
-  readerIds: any[],
-): Promise<any> {
-  const existing = await findLogRoom(ctx, logUserId);
-  const roomId = existing
-    ? await repairLogRoom(ctx, existing, logUserId)
-    : await ctx.db.insert("rooms", {
-        name: LOG_ROOM_NAME,
-        createdBy: logUserId,
-        createdAt: Date.now(),
-        // Never discoverable: `by_visibility` lists public rooms only.
-        isPrivate: true,
-        // Corrected by `reconcileLogRoomMembers` below, in this same mutation,
-        // so no reader ever observes the zero.
-        memberCount: 0,
-        type: "Regular Room",
-        // What tells the client this is a fixture and not a conversation: no
-        // call, no "end conversation", no description, no settings. See
-        // `systemAccount.SYSTEM_ROOM_LOGS`.
-        system: SYSTEM_ROOM_LOGS,
-        // Members read; only the log account posts. A system room resolves to
-        // read-only without this too (`roomPolicy.postingPresetOf`), but the
-        // stamp says so on the row rather than by inference.
-        postingPolicy: LOG_ROOM_POSTING_PRESET,
-        // The room wears the bot's face. Worth doing explicitly now that the
-        // room is a group: a DM borrowed the other party's avatar, and a group
-        // has only its own, so without this the one room in the app with a
-        // designed icon would fall back to a monogram. Absent on a deployment
-        // where the avatar has never been attached, which is fine — the client
-        // draws the monogram, exactly as it does for any new group.
-        avatarStorageId: (await ctx.db.get(logUserId))?.avatarStorageId,
-        // No `messageLifetime`. A Chamber-of-Secrets lifetime here would delete
-        // bug reports on a timer, which is the one thing this room must not do.
-      });
-  await reconcileLogRoomMembers(ctx, roomId, logUserId, readerIds);
-  return roomId;
-}
-
-/**
- * Brings an existing report room up to the current shape.
- *
- * Every field is patched only when it actually differs, and that is not a
- * micro-optimisation: this runs on every report, `rooms` is a live subscription,
- * and an unconditional patch would re-fire the room list of everyone in it once
- * per bug report for no change at all.
- */
-async function repairLogRoom(ctx: any, room: any, logUserId: any): Promise<any> {
-  const patch: Record<string, any> = {};
-  // A room created before `rooms.system` existed. Without this the deployment's
-  // ONE report room is the only room in the app that never gets the slug — it
-  // already exists, so the insert never runs again — and it would keep drawing
-  // chrome that leads nowhere.
-  if (room.system !== SYSTEM_ROOM_LOGS) patch.system = SYSTEM_ROOM_LOGS;
-  // Stamped only when ABSENT, so a deliberate later change of the logs room's
-  // preset is not undone by the next bug report.
-  if (room.postingPolicy === undefined) {
-    patch.postingPolicy = LOG_ROOM_POSTING_PRESET;
-  }
-  // The rename. A room still carrying `dm:regular:<a>:<b>` is one that has not
-  // been through this yet; leaving the name would title the room with a pair of
-  // raw ids the moment a third member makes peer resolution impossible.
-  if (room.name !== LOG_ROOM_NAME) patch.name = LOG_ROOM_NAME;
-  // Belt to `isPrivate`'s braces — a public report room would be listed in
-  // Discover, which is the one place bug reports must never appear.
-  if (room.isPrivate !== true) patch.isPrivate = true;
-  if (!room.avatarStorageId) {
-    const avatar = (await ctx.db.get(logUserId))?.avatarStorageId;
-    if (avatar) patch.avatarStorageId = avatar;
-  }
-  if (Object.keys(patch).length > 0) await ctx.db.patch(room._id, patch);
-  return room._id;
-}
-
-/**
- * Puts the bot and every staff reader in the room, and makes `memberCount`
- * agree with the rows.
- *
- * Additive only: it inserts what is missing and never removes anybody. Taking
- * the roster as authoritative in both directions would mean deleting a
- * membership row on the next bug report anybody happened to file, which is the
- * wrong trigger for that decision no matter how right the decision is. Somebody
- * dropped from [LOG_ROOM_STAFF_USERNAMES] probably should lose access — by a
- * deliberate act, at a moment somebody chose, not as a side effect of a stranger
- * tapping "send" on a crash report. And revoking access is exactly the operation
- * that must not be automated from a list this function cannot verify is current.
- *
- * `memberCount` is recomputed from the rows rather than incremented, because the
- * denormalized count is what the header renders and drift in it is invisible
- * until somebody counts the faces underneath.
- */
-async function reconcileLogRoomMembers(
-  ctx: any,
-  roomId: any,
-  logUserId: any,
-  readerIds: any[],
-): Promise<void> {
-  const rows = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  const byUser = new Map<string, any>(
-    rows.map((r: any) => [r.userId.toString(), r]),
-  );
-  // Grown as rows are inserted, so the count below is the membership this
-  // function is leaving behind rather than arithmetic over the one it found —
-  // and so a repeated id in `readerIds` cannot inflate it.
-  const present = new Set<string>(byUser.keys());
-
-  // The bot owns the room, and it is the only owner that keeps working: an
-  // owner has to be somebody, and every human in here is a reader who may come
-  // and go. Re-stamped rather than assumed, because ownership is what the
-  // client draws the OWNER badge from and what `_isOwner` gates on.
-  const botRow = byUser.get(logUserId.toString());
-  if (!botRow) {
-    await ctx.db.insert("roomMembers", {
-      roomId,
-      userId: logUserId,
-      joinedAt: Date.now(),
-      role: "owner",
-      seenVisibility: await seenVisibilityOf(ctx, logUserId),
-    });
-    present.add(logUserId.toString());
-  } else if (botRow.role !== "owner") {
-    await ctx.db.patch(botRow._id, { role: "owner" });
-  }
-
-  for (const readerId of readerIds) {
-    const key = readerId.toString();
-    if (present.has(key)) continue;
-    await ctx.db.insert("roomMembers", {
-      roomId,
-      userId: readerId,
-      joinedAt: Date.now(),
-      role: "member",
-      // No `lastReadAt`, which means every report filed before this person
-      // arrived counts as unread to them. That is what `rooms.join` does for
-      // every other room in the app, and the alternative — seeding the cursor
-      // to now — would hide the entire backlog from the one person newly
-      // responsible for reading it. A big number on a room they just got
-      // access to is the honest one.
-      seenVisibility: await seenVisibilityOf(ctx, readerId),
-    });
-    present.add(key);
-  }
-
-  const room = await ctx.db.get(roomId);
-  if (room && room.memberCount !== present.size) {
-    await ctx.db.patch(roomId, { memberCount: present.size });
-  }
-}
+export const LOG_ROOM_SPEC: SystemRoomSpec = {
+  username: LOG_USERNAME,
+  displayName: LOG_DISPLAY_NAME,
+  roomName: LOG_ROOM_NAME,
+  slug: SYSTEM_ROOM_LOGS,
+  // The pre-slug shape: the DM this file used to mint, named `dm:regular:`
+  // plus the two member ids sorted. Adopted and renamed rather than
+  // duplicated, so a deployment's existing reports stay in the one room.
+  isLegacyRoom: (room: any, accountId: any) =>
+    typeof room.name === "string" &&
+    room.name.startsWith("dm:regular:") &&
+    room.name.includes(accountId.toString()),
+};
 
 /**
  * Who the report room is for: the maintainer, plus whatever staff handles
@@ -371,105 +94,19 @@ async function reconcileLogRoomMembers(
  *
  * Two different failure modes on purpose. A missing [REPORT_INBOX_USERNAME]
  * throws — that is the deployment having nowhere to put reports, which is the
- * silent-drop this whole module was written to eliminate. A missing staff handle
- * is skipped, because refusing a bug report over a typo in a constant would be
- * trading the thing for the bookkeeping about the thing.
- *
- * A system account named in the staff list is skipped too. It would otherwise be
- * added as a `member` alongside the bot's own `owner` row, giving the room a
- * second occupant that cannot read it.
- *
- * The inbox is first in the returned array and never duplicated, so listing the
- * maintainer's own handle in the staff list is harmless.
+ * silent-drop this whole module was written to eliminate. A missing staff
+ * handle is skipped, because refusing a bug report over a typo in a constant
+ * would be trading the thing for the bookkeeping about the thing.
  */
-async function resolveLogRoomReaders(ctx: any): Promise<any[]> {
-  const inbox = await ctx.db
-    .query("users")
-    .withIndex("by_username", (q: any) => q.eq("username", REPORT_INBOX_USERNAME))
-    .first();
-  if (!inbox) throw new Error(ERR_NO_INBOX);
-
-  const readers = [inbox];
-  const seen = new Set<string>([inbox._id.toString()]);
-  for (const username of LOG_ROOM_STAFF_USERNAMES) {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_username", (q: any) => q.eq("username", username))
-      .first();
-    if (!user) continue;
-    if (isSystemAccount(user)) continue;
-    if (seen.has(user._id.toString())) continue;
-    seen.add(user._id.toString());
-    readers.push(user);
+export async function resolveLogRoomReaders(ctx: any): Promise<any[]> {
+  const readers = await resolveStaff(ctx, [
+    REPORT_INBOX_USERNAME,
+    ...LOG_ROOM_STAFF_USERNAMES,
+  ]);
+  if (readers[0]?.username !== REPORT_INBOX_USERNAME) {
+    throw new Error(ERR_NO_INBOX);
   }
   return readers;
-}
-
-/**
- * Makes the log account and one reader accepted contacts, both directions.
- *
- * Not decoration. It began as the fix for a DM that would not render — the
- * client resolves a DM's peer out of the friends cache, and a DM with a
- * non-contact used to title itself `dm:regular:jn7ab…:kx02…` — and the room
- * being a group has retired that job: a group is titled from `rooms.name`.
- *
- * What it still does is the face. `SYSTEM_VISIBILITY` sets the log account's
- * `avatar` level to `"friends"`, so its picture reaches accepted contacts and
- * nobody else. That is the property worth keeping as the roster grows: the set
- * of people who can see this account is exactly the set of people in its room,
- * maintained by adding contacts rather than by widening the account to
- * `"public"` and hoping nothing else surfaces it.
- *
- * Written in both directions because the friends list is read from `by_user`
- * only, so one row would render for one side and not the other.
- *
- * Called on every report rather than only when the room is created, so it also
- * repairs a deployment whose room predates this function — and so unfriending
- * the log account is undone by the next report instead of leaving one staff
- * member looking at a faceless bot.
- */
-async function ensureFriendship(
-  ctx: any,
-  a: any,
-  b: any,
-  roomId: any,
-): Promise<void> {
-  for (const [userId, friendId] of [
-    [a, b],
-    [b, a],
-  ]) {
-    const existing = await ctx.db
-      .query("friendships")
-      .withIndex("by_pair", (q: any) =>
-        q.eq("userId", userId).eq("friendId", friendId),
-      )
-      .first();
-    if (existing) {
-      // Never downgrade a row somebody else wrote, and never re-stamp one that
-      // is already right — a patch here would re-fire the friends subscription
-      // on every report.
-      if (existing.status !== "accepted") {
-        await ctx.db.patch(existing._id, {
-          status: "accepted",
-          respondedAt: Date.now(),
-          stage: undefined,
-          deniedBy: undefined,
-        });
-      }
-      continue;
-    }
-    await ctx.db.insert("friendships", {
-      userId,
-      friendId,
-      status: "accepted",
-      createdAt: Date.now(),
-      respondedAt: Date.now(),
-      roomId,
-      // No `stage`: absent means "fully visible to the recipient", which is the
-      // only correct value for a contact that was never requested and never
-      // needed releasing along a guardian chain.
-    });
-  }
 }
 
 /**
@@ -527,15 +164,11 @@ export const submit = mutation({
     }
 
     const readers = await resolveLogRoomReaders(ctx);
-    const logUserId = await ensureLogAccount(ctx);
-    const roomId = await ensureReportRoom(
+    const { accountId: logUserId, roomId } = await provisionSystemInbox(
       ctx,
-      logUserId,
-      readers.map((u) => u._id),
+      LOG_ROOM_SPEC,
+      readers,
     );
-    for (const reader of readers) {
-      await ensureFriendship(ctx, logUserId, reader._id, roomId);
-    }
 
     // `Date.now()` is fixed for the whole mutation — Convex freezes it so a
     // replay is deterministic. Every row below would therefore share one

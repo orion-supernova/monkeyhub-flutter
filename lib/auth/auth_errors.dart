@@ -95,6 +95,16 @@ Map<String, String> authErrorMessages(AppLocalizations l10n) => {
   // Only the maintainer can ever see this: their account is the address
   // problem reports are delivered to, resolved by handle rather than by id.
   'INBOX_HANDLE_LOCKED': l10n.authErrorInboxHandleLocked,
+
+  // ── moderation ─────────────────────────────────────────────────────────
+  // contentFilter.ERR_NAME_INAPPROPRIATE: a username or display name that
+  // trips the language filter, at signup or on a profile edit.
+  'NAME_INAPPROPRIATE': l10n.nameInappropriate,
+  // sessionCore.ERR_ACCOUNT_SUSPENDED: a moderator banned this account. Thrown
+  // at sign-in by every path, and by every call a banned session makes.
+  'ACCOUNT_SUSPENDED': l10n.authErrorAccountSuspended,
+  // terms.ERR_TERMS_NOT_ACCEPTED: a sign-up that sent a stale EULA version.
+  'TERMS_NOT_ACCEPTED': l10n.termsMustAccept,
 };
 
 /// Maps a thrown backend error onto human copy.

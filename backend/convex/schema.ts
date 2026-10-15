@@ -127,6 +127,19 @@ export default defineSchema({
         locationSharingEnabled: v.optional(v.boolean()),
       })
     ),
+    // Moderation: an account a moderator has banned. Set by
+    // `moderation.banUser`, cleared by `moderation.unbanUser`. While set,
+    // `sessionCore.requireSession` and `mintSession` refuse the account with
+    // ACCOUNT_SUSPENDED, search hides it, and its public-room memberships are
+    // gone. Absent on every account in good standing.
+    suspendedAt: v.optional(v.number()),
+    suspendedBy: v.optional(v.id("users")),
+    // The EULA the account agreed to, and when. Absent on accounts created
+    // before acceptance was asked for, and on accounts an old client created
+    // without the checkbox; both are stopped by the in-app acceptance sheet
+    // until `terms.accept` runs. See `terms.ts` for the version number.
+    termsAcceptedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.number()),
   })
     .index("by_username", ["username"])
     // Presence staleness sweep (users.sweepStalePresence) ranges over lastSeen
@@ -786,7 +799,24 @@ export default defineSchema({
     reason: v.string(),
     note: v.optional(v.string()),
     createdAt: v.number(),
-    status: v.optional(v.string()), // "open" | "resolved" | "rejected"
+    // "open" until a moderator acts: "actioned" (message removed or user
+    // banned) or "dismissed". Older rows may say "resolved"/"rejected".
+    status: v.optional(v.string()),
+    // "user" for a report a person filed, "filter" for one the text filter
+    // filed on its own (`moderationCore.fileFilterHit`). Absent = "user".
+    source: v.optional(v.string()),
+    // Resolved at filing time so a moderator's action never has to re-derive
+    // who or what was meant from `targetType`/`targetId`: the person reported
+    // (the sender, for a message), the message itself, and where it happened.
+    reportedUserId: v.optional(v.id("users")),
+    messageId: v.optional(v.id("messages")),
+    roomId: v.optional(v.id("rooms")),
+    // The card Monkey Reporter posted for this report, in the moderation room.
+    cardMessageId: v.optional(v.id("messages")),
+    // What a moderator did, by whom and when. See `moderation.ts`.
+    action: v.optional(v.string()), // "removeMessage" | "ban" | "unban" | "dismiss"
+    actionedBy: v.optional(v.id("users")),
+    actionedAt: v.optional(v.number()),
   })
     .index("by_reporter", ["reporterId"])
     .index("by_target", ["targetType", "targetId"])
@@ -1223,6 +1253,19 @@ export default defineSchema({
     // ends. Identical mechanism and identical reasoning to `viewOnceLive`
     // above — see `by_liveLocation_live_expiry`.
     liveShareLive: v.optional(v.boolean()),
+
+    // A report card in the moderation room: which `reports` row it stands for,
+    // and whether there is a message / a person on it to act on. Server-made
+    // only (`moderationCore.ts`); the client shows moderator actions on a
+    // message carrying this, in a room whose slug grants `canModerate`, and
+    // `moderation.ts` re-checks the caller against the staff list regardless.
+    moderationCard: v.optional(
+      v.object({
+        reportId: v.id("reports"),
+        hasMessage: v.boolean(),
+        hasUser: v.boolean(),
+      })
+    ),
   })
     // No standalone `by_room` — every call site ranges by time too, so
     // `by_room_time` alone serves both as a prefix scan on `roomId` and as

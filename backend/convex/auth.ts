@@ -21,6 +21,8 @@ import {
   isReservedName,
 } from "./systemAccount";
 import { deleteStored } from "./files";
+import { assertCleanName } from "./contentFilter";
+import { termsStamp } from "./terms";
 import { removeMessageAndFanout } from "./messages";
 import { purgeUserExpressions } from "./expressions";
 import { purgeMomentComments, purgeUserComments } from "./momentComments";
@@ -86,11 +88,16 @@ export const signup = publicMutation({
     // tied to a device cannot be shown in the Devices list or revoked from it,
     // which is the whole reason sessions exist here.
     deviceId: v.string(),
+    // The EULA version the user ticked the box for. Optional only so old
+    // builds can still sign up — see the compatibility note in `terms.ts`.
+    termsVersion: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { username, name, passwordHash, recoveryKeyHash, email, deviceId },
+    { username, name, passwordHash, recoveryKeyHash, email, deviceId, termsVersion },
   ) => {
+    // Before anything else: a present-but-stale version is a refusal.
+    const terms = termsStamp(termsVersion);
     // Reserved handles — anything reading as the brand, not just the exact
     // system names. Checked before the collision test so the answer does not
     // depend on whether a system account happens to exist yet: they are created
@@ -104,6 +111,9 @@ export const signup = publicMutation({
     if (isReservedName(name)) {
       throw new Error(ERR_DISPLAY_NAME_RESERVED);
     }
+    // The objectionable-word filter, on both names. See `contentFilter.ts`.
+    assertCleanName(username);
+    assertCleanName(name);
 
     const existing = await ctx.db
       .query("users")
@@ -120,6 +130,7 @@ export const signup = publicMutation({
       createdAt: Date.now(),
       status: "online",
       lastSeen: Date.now(),
+      ...terms,
     });
     return { userId, username, name, token: await mintSession(ctx, userId, deviceId) };
   },

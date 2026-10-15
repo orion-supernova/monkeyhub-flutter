@@ -13845,4 +13845,122 @@ class AppLocalizationsEs extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      'Al denunciar, este mensaje y los últimos mensajes de este chat se envían a los moderadores de MonkeyHub para su revisión. La persona no sabrá que la denunciaste.';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      'Al denunciar, tus últimos mensajes con esta persona se envían a los moderadores de MonkeyHub para su revisión. No sabrá que la denunciaste.';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      'Al denunciar, los últimos mensajes de este grupo se envían a los moderadores de MonkeyHub para su revisión. Nadie aquí sabrá que lo denunciaste.';
+
+  @override
+  String get reportSheetAlsoBlock => 'Bloquear también a esta persona';
+
+  @override
+  String get reportSentReviewed =>
+      'Gracias. Nuestros moderadores revisan las denuncias en un plazo de 24 horas.';
+
+  @override
+  String get reportSentAndBlocked =>
+      'Gracias. Nuestros moderadores revisan las denuncias en un plazo de 24 horas. Has bloqueado a esta persona.';
+
+  @override
+  String get reportTooMany =>
+      'Has enviado muchas denuncias. Inténtalo de nuevo en un rato.';
+
+  @override
+  String get reportFailed =>
+      'No se pudo enviar la denuncia. Inténtalo de nuevo.';
+
+  @override
+  String get riReportPerson => 'Denunciar a esta persona';
+
+  @override
+  String get riReportGroup => 'Denunciar este grupo';
+
+  @override
+  String get moderationActionRemoveMessage => 'Eliminar mensaje';
+
+  @override
+  String get moderationActionBan => 'Suspender usuario';
+
+  @override
+  String get moderationActionUnban => 'Quitar suspensión';
+
+  @override
+  String get moderationActionDismiss => 'Descartar denuncia';
+
+  @override
+  String get moderationConfirmRemoveTitle => '¿Eliminar este mensaje?';
+
+  @override
+  String get moderationConfirmRemoveBody =>
+      'Se borra para todos en la conversación. La tarjeta de la denuncia conserva su copia.';
+
+  @override
+  String get moderationConfirmBanTitle => '¿Suspender esta cuenta?';
+
+  @override
+  String get moderationConfirmBanBody =>
+      'Se cerrará su sesión en todas partes, no podrá volver a entrar, desaparecerá de las búsquedas y saldrá de todas las salas públicas. Puedes quitar la suspensión desde esta tarjeta.';
+
+  @override
+  String get moderationActionDone => 'Hecho';
+
+  @override
+  String get moderationActionFailed =>
+      'No se pudo completar. Inténtalo de nuevo.';
+
+  @override
+  String get moderationCantBan =>
+      'No se puede suspender a moderadores ni a cuentas del sistema.';
+
+  @override
+  String get messageFilterBlocked =>
+      'Este mensaje no se puede enviar porque puede contener lenguaje inapropiado.';
+
+  @override
+  String get nameInappropriate =>
+      'Ese nombre puede contener lenguaje inapropiado. Elige otro, por favor.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'Tu cuenta ha sido suspendida por infringir las Condiciones de uso.';
+
+  @override
+  String get termsConsentPrefix => 'Acepto las ';
+
+  @override
+  String get termsConsentLink => 'Condiciones de uso (EULA)';
+
+  @override
+  String get termsConsentSuffix =>
+      ' y entiendo que no se tolera en absoluto el contenido inapropiado ni a los usuarios abusivos.';
+
+  @override
+  String get termsConsentSemanticLabel => 'Aceptar las Condiciones de uso';
+
+  @override
+  String get termsMustAccept => 'Acepta las Condiciones de uso para continuar.';
+
+  @override
+  String get termsSheetTitle => 'Condiciones de uso';
+
+  @override
+  String get termsSheetBody =>
+      'Para seguir usando MonkeyHub, acepta nuestras Condiciones de uso. Aquí no hay lugar para contenido inapropiado ni comportamientos abusivos, y nuestros moderadores revisan el contenido denunciado.';
+
+  @override
+  String get termsSheetAccept => 'Aceptar y continuar';
+
+  @override
+  String get termsAcceptFailed => 'No se pudo guardar. Inténtalo de nuevo.';
+
+  @override
+  String get settingsHubContactSupport => 'Contactar con soporte';
 }

@@ -6,6 +6,8 @@ import { ACCOUNT_CHILD, assertChildPolicy } from "./childGuard";
 import { canSeeMoment, isReactionEmoji, MAX_MOMENT_REACTIONS_PER_PERSON } from "./feed";
 import { expressionFieldsFor } from "./messages";
 import { lensFor } from "./visibility";
+import { hasHit } from "./contentFilter";
+import { screenAndReport } from "./moderationCore";
 
 /**
  * Comments on a highlight — and their replies, and the reactions on both.
@@ -287,9 +289,26 @@ export const add = mutation({
     if (!m) throw new Error("MOMENT_NOT_FOUND");
     if (!(await canSeeMoment(ctx, userId, m))) throw new Error("NOT_A_FRIEND");
 
-    const text = args.text?.trim() || undefined;
+    let text = args.text?.trim() || undefined;
     if (text !== undefined && text.length > MAX_COMMENT) {
       throw new Error("COMMENT_TOO_LONG");
+    }
+    // The objectionable-text filter. Strict when a child is on either end:
+    // the commenter, or the moment's author it is addressed to. Both reads
+    // happen only on a hit.
+    if (text !== undefined && hasHit(text)) {
+      const [author, owner] = await Promise.all([
+        ctx.db.get(userId),
+        ctx.db.get(m.userId),
+      ]);
+      text = await screenAndReport(ctx, {
+        text,
+        authorId: userId,
+        childInvolved:
+          author?.accountType === ACCOUNT_CHILD ||
+          owner?.accountType === ACCOUNT_CHILD,
+        surface: "comment",
+      });
     }
 
     let expression: Record<string, any> | null = null;

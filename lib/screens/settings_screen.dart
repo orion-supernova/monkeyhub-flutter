@@ -858,6 +858,17 @@ class _SettingsScreenState extends State<SettingsScreen>
                     (_) => ReportProblemScreen(auth: widget.auth, api: widget.api),
                   ),
                 ),
+                // A person to write to, in the app itself — what App Store
+                // Guideline 1.2 asks of an app with user-generated content.
+                // The address shows on the row, so it is still there for
+                // somebody with no mail app to hand it to.
+                _HubRow(
+                  icon: CupertinoIcons.envelope_fill,
+                  tone: TileTone.green,
+                  title: l10n.settingsHubContactSupport,
+                  value: kSupportEmail,
+                  onTap: () => LinkOpener.open(context, kSupportMailto),
+                ),
                 _HubRow(
                   icon: CupertinoIcons.hand_raised_fill,
                   tone: TileTone.blue,
@@ -1296,6 +1307,15 @@ class _SettingsScreenState extends State<SettingsScreen>
           onOpen: () => _open(
               'report',
               (_) => ReportProblemScreen(auth: widget.auth, api: widget.api))),
+      page('contactSupport',
+          title: l10n.settingsHubContactSupport,
+          enTitle: en.settingsHubContactSupport,
+          section: help,
+          icon: CupertinoIcons.envelope_fill,
+          tone: TileTone.green,
+          kw: l10n.settingsSearchKwReport,
+          enKw: en.settingsSearchKwReport,
+          onOpen: () => LinkOpener.open(context, kSupportMailto)),
       page('privacyPolicy',
           title: l10n.settingsHubPrivacyPolicy,
           enTitle: en.settingsHubPrivacyPolicy,

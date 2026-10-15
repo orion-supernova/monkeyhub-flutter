@@ -1,3 +1,5 @@
+import { assertCleanName } from "./contentFilter";
+import { TERMS_VERSION } from "./terms";
 import { mutation, publicMutation, query } from "./functions";
 import { mintSession } from "./sessionCore";
 import { internal } from "./_generated/api";
@@ -132,6 +134,8 @@ export const createChildAccount = mutation({
     if (isReservedName(name)) {
       throw new Error(ERR_DISPLAY_NAME_RESERVED);
     }
+    assertCleanName(handle);
+    assertCleanName(name);
     const existing = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", handle))
@@ -139,6 +143,11 @@ export const createChildAccount = mutation({
     if (existing) throw new Error("USERNAME_TAKEN");
 
     const childId = await ctx.db.insert("users", {
+      // The guardian accepts the Terms on the child's behalf, as they accept
+      // everything else here. A guardian who has not accepted yet cannot be
+      // here at all: the acceptance sheet stops them first.
+      termsAcceptedAt: Date.now(),
+      termsVersion: TERMS_VERSION,
       username: handle,
       name: name.trim() || handle,
       passwordHash: CHILD_PASSWORD_SENTINEL,

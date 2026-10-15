@@ -3,6 +3,7 @@ import 'dart:async';
 import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
+import '../legal_links.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -54,6 +55,9 @@ class ChatApi {
       // Binds the minted session to this device, so it can be named and
       // revoked from the Devices screen.
       'deviceId': await DeviceIdentity.ensure(),
+      // The EULA box on the sign-up form, which the form will not submit
+      // without. See `terms.ts`.
+      'termsVersion': kTermsVersion,
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -260,6 +264,8 @@ class ChatApi {
         'authorizationCode': credential.authorizationCode,
       'username': username,
       if (name != null && name.isNotEmpty) 'name': name,
+      // The EULA box on the username step, which will not submit without it.
+      'termsVersion': kTermsVersion,
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -2433,20 +2439,59 @@ class ChatApi {
 
   /// Submit a report against a user / message / room.
   /// `targetType` ∈ {"user", "message", "room"}.
-  Future<void> report({
+  ///
+  /// The server posts it, with the reported message and the last few messages
+  /// of the conversation, to the moderators' room — what the report sheet
+  /// tells the user before they send. [alsoBlock] blocks the person in the
+  /// same call. Returns whether a block was written.
+  Future<bool> report({
     required String reporterId,
     required String targetType,
     required String targetId,
     required String reason,
     String? note,
+    bool alsoBlock = false,
   }) async {
-    await _cv.mutation('users:report', {
+    final res = await _cv.mutation('users:report', {
       'reporterId': reporterId,
       'targetType': targetType,
       'targetId': targetId,
       'reason': reason,
       if (note != null && note.isNotEmpty) 'note': note,
+      if (alsoBlock) 'alsoBlock': true,
     });
+    return res is Map && res['blocked'] == true;
+  }
+
+  /// A moderator's action on a report card. [action] is one of
+  /// `removeMessage`, `ban`, `unban`, `dismiss`. Staff only: the server checks
+  /// the caller against its staff list and throws `NOT_AUTHORIZED` otherwise.
+  Future<void> moderationAct({
+    required String reportId,
+    required String action,
+  }) async {
+    await _cv.mutation('moderation:act', {
+      'reportId': reportId,
+      'action': action,
+    });
+  }
+
+  /// Whether this account has accepted the current Terms of Use (EULA).
+  /// Null when the server could not say (offline, or a backend too old to
+  /// know): the acceptance sheet only blocks on a definite "no".
+  Future<bool?> termsAccepted() async {
+    try {
+      final res = await _cv.query('terms:status', const {});
+      if (res is! Map) return null;
+      return res['accepted'] == true;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Records acceptance of [kTermsVersion].
+  Future<void> acceptTerms() async {
+    await _cv.mutation('terms:accept', {'version': kTermsVersion});
   }
 
   Future<List<ChatUser>> searchUsers({required String query, required String currentUserId}) async {

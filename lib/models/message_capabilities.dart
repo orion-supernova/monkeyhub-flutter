@@ -60,6 +60,9 @@ class MessageCapabilities {
     required this.canReport,
     this.canViewReceipts = false,
     this.canReact = true,
+    this.canModerate = false,
+    this.canModerateMessage = false,
+    this.canModerateUser = false,
   });
 
   final bool canReply;
@@ -129,6 +132,17 @@ class MessageCapabilities {
   /// is what states it, from the room's posting policy.
   final bool canReact;
 
+  /// The moderator rows (remove message, ban, unban, dismiss) on a report
+  /// card. Only a card ([ChatMessage.moderationCard]) in a room that grants
+  /// [RoomCapabilities.canModerate]. False by default, like [canViewReceipts].
+  final bool canModerate;
+
+  /// Of [canModerate]: the card names a message there is to remove.
+  final bool canModerateMessage;
+
+  /// Of [canModerate]: the card names a person there is to ban or unban.
+  final bool canModerateUser;
+
   /// Affords nothing. What an unknown state gets, and the base
   /// pending-message posture before the one row it keeps is added back.
   static const none = MessageCapabilities(
@@ -165,6 +179,9 @@ class MessageCapabilities {
     bool? canReport,
     bool? canViewReceipts,
     bool? canReact,
+    bool? canModerate,
+    bool? canModerateMessage,
+    bool? canModerateUser,
   }) =>
       MessageCapabilities(
         canReply: canReply ?? this.canReply,
@@ -183,6 +200,9 @@ class MessageCapabilities {
         canReport: canReport ?? this.canReport,
         canViewReceipts: canViewReceipts ?? this.canViewReceipts,
         canReact: canReact ?? this.canReact,
+        canModerate: canModerate ?? this.canModerate,
+        canModerateMessage: canModerateMessage ?? this.canModerateMessage,
+        canModerateUser: canModerateUser ?? this.canModerateUser,
       );
 }
 
@@ -308,7 +328,14 @@ MessageCapabilities messageCapabilitiesFor({
     // view the profile of or report.
     canViewProfile: !isMine && !isSystem,
     canDelete: isMine,
-    canReport: !isMine && !isSystem,
+    // And not in a room whose content is the app's own (a system room): the
+    // moderation room's cards are reports already.
+    canReport: !isMine && !isSystem && room.canReport,
+    canModerate: room.canModerate && message.moderationCard != null,
+    canModerateMessage:
+        room.canModerate && (message.moderationCard?.hasMessage ?? false),
+    canModerateUser:
+        room.canModerate && (message.moderationCard?.hasUser ?? false),
     // Same gates as the chips' own toggle: nothing to react to on a send in
     // flight or a system notice — plus the room's say.
     canReact: !isPending && !isSystem && posting.canReact,

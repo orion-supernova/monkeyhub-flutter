@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
+import '../auth/session_guard.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
 import '../backend/server_directory.dart';
@@ -28,6 +29,7 @@ import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/social_sign_in_buttons.dart';
+import '../widgets/terms_consent.dart';
 import '../widgets/username_status_label.dart';
 import '../widgets/ios_kit.dart';
 import 'child_pair_screen.dart';
@@ -149,6 +151,24 @@ class _LoginScreenState extends State<LoginScreen> {
     api: widget.auth.api,
   );
 
+  /// The EULA box on the sign-up form. Sign-up will not run without it.
+  bool _termsAccepted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Landed here because a moderator banned the account: say so, rather
+    // than looking like an ordinary sign-out. See `SessionGuard`.
+    if (SessionGuard.instance.takeSuspendedNotice()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _error = AppLocalizations.of(context).authErrorAccountSuspended;
+        });
+      });
+    }
+  }
+
   @override
   void dispose() {
     _availability.dispose();
@@ -223,6 +243,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (_busy) return;
+    if (_mode == _AuthMode.signUp && !_termsAccepted) {
+      setState(() {
+        _error = AppLocalizations.of(context).termsMustAccept;
+      });
+      return;
+    }
     if (_mode == _AuthMode.signUp && _password.text != _confirmPassword.text) {
       setState(() {
         _error = AppLocalizations.of(
@@ -530,6 +556,16 @@ class _LoginScreenState extends State<LoginScreen> {
           hint: l10n.loginNameField,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
+        ),
+        // The EULA, agreed to explicitly, just above OPEN ACCOUNT. See
+        // `TermsConsentRow` for why it is a box and why the words are shared.
+        const SizedBox(height: 14),
+        TermsConsentRow(
+          value: _termsAccepted,
+          onChanged: (v) => setState(() {
+            _termsAccepted = v;
+            if (v && _error == l10n.termsMustAccept) _error = null;
+          }),
         ),
       ],
       if (_mode == _AuthMode.reset) ...[

@@ -32,6 +32,7 @@
  * which is what somebody who picked twice actually meant.
  */
 
+import { assertCleanName, assertCleanText } from "./contentFilter";
 import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -234,6 +235,9 @@ export const propose = mutation({
       if (field === FIELD_DESCRIPTION && trimmed.length > DESCRIPTION_MAX) {
         throw new Error(ERR_MISSING_VALUE);
       }
+      // Refused at proposal, so an admin is never asked to approve it.
+      if (field === FIELD_NAME) assertCleanName(trimmed);
+      if (field === FIELD_DESCRIPTION) assertCleanText(trimmed);
       proposed = trimmed;
     }
 

@@ -91,6 +91,22 @@ class SessionGuard {
   static const _unknown = 'SESSION_UNKNOWN';
   static const _revoked = 'SESSION_REVOKED';
 
+  /// A moderator banned this account (`moderation.suspendAccount`). A loss
+  /// like the two above, plus a reason the login screen has to give.
+  static const _suspended = 'ACCOUNT_SUSPENDED';
+
+  /// Set when the last loss was a ban, so the login screen the user lands on
+  /// can say why instead of looking like an ordinary sign-out. Read-and-clear
+  /// through [takeSuspendedNotice].
+  bool _suspendedNotice = false;
+
+  /// Whether the user was just signed out by a ban. Clears the flag.
+  bool takeSuspendedNotice() {
+    final v = _suspendedNotice;
+    _suspendedNotice = false;
+    return v;
+  }
+
 
   /// Installed by `app.dart`. Called at most once per lost session — see
   /// [noteError]'s latch.
@@ -129,7 +145,9 @@ class SessionGuard {
   /// backend error code in this app.
   static bool isSessionLoss(Object error) {
     final text = error.toString();
-    return text.contains(_unknown) || text.contains(_revoked);
+    return text.contains(_unknown) ||
+        text.contains(_revoked) ||
+        text.contains(_suspended);
   }
 
   /// Report a failed call, together with the token it actually went out under
@@ -171,6 +189,7 @@ class SessionGuard {
     if (_lost || !isSessionLoss(error)) return;
     if (carried != live) return;
     _lost = true;
+    if (error.toString().contains(_suspended)) _suspendedNotice = true;
     debugPrint('[session] server rejected our token — signing out');
     onSessionLost?.call();
   }

@@ -3,7 +3,9 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 
-import { assertChildPolicy } from "./childGuard";
+import { ACCOUNT_CHILD, assertChildPolicy } from "./childGuard";
+import { hasHit } from "./contentFilter";
+import { screenAndReport } from "./moderationCore";
 import { deleteStored } from "./files";
 import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
 import { purgeMomentComments } from "./momentComments";
@@ -582,9 +584,22 @@ export const post = mutation({
 
     // A moment has to be *something*. Media-less tagged points are legitimate
     // ("washed the car, it rained" needs no photo) but an empty row is not.
-    const text = caption?.trim();
+    let text = caption?.trim();
     if (!mediaStorageId && !text) throw new Error("EMPTY_MOMENT");
     if (text && text.length > MAX_CAPTION) throw new Error("CAPTION_TOO_LONG");
+
+    // The objectionable-text filter. A moment reaches the author's friends,
+    // so the strict policy applies when the AUTHOR is a child; an adult's
+    // caption is masked. Reading every viewer to ask whether one of them is a
+    // child would put a fan-out on every post for a rare hit.
+    if (text && hasHit(text)) {
+      text = await screenAndReport(ctx, {
+        text,
+        authorId: userId,
+        childInvolved: user.accountType === ACCOUNT_CHILD,
+        surface: "moment",
+      });
+    }
 
     // Parental controls. Only the media path is gated: a child writing a
     // one-line point to their own family board is not what mediaEnabled is

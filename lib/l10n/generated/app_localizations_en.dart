@@ -13714,4 +13714,120 @@ class AppLocalizationsEn extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      'Reporting sends this message and the last few messages in this chat to MonkeyHub moderators for review. The person won\'t know you reported them.';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      'Reporting sends your last few messages with this person to MonkeyHub moderators for review. They won\'t know you reported them.';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      'Reporting sends the last few messages in this group to MonkeyHub moderators for review. No one here will know you reported it.';
+
+  @override
+  String get reportSheetAlsoBlock => 'Also block this person';
+
+  @override
+  String get reportSentReviewed =>
+      'Thanks. Our moderators review reports within 24 hours.';
+
+  @override
+  String get reportSentAndBlocked =>
+      'Thanks. Our moderators review reports within 24 hours. You\'ve blocked this person.';
+
+  @override
+  String get reportTooMany =>
+      'You\'ve sent a lot of reports. Try again in a little while.';
+
+  @override
+  String get reportFailed => 'Couldn\'t send the report. Try again.';
+
+  @override
+  String get riReportPerson => 'Report this person';
+
+  @override
+  String get riReportGroup => 'Report this group';
+
+  @override
+  String get moderationActionRemoveMessage => 'Remove message';
+
+  @override
+  String get moderationActionBan => 'Ban user';
+
+  @override
+  String get moderationActionUnban => 'Unban user';
+
+  @override
+  String get moderationActionDismiss => 'Dismiss report';
+
+  @override
+  String get moderationConfirmRemoveTitle => 'Remove this message?';
+
+  @override
+  String get moderationConfirmRemoveBody =>
+      'It\'s deleted for everyone in the conversation. The report card keeps its copy.';
+
+  @override
+  String get moderationConfirmBanTitle => 'Ban this account?';
+
+  @override
+  String get moderationConfirmBanBody =>
+      'They\'re signed out everywhere, can\'t sign back in, disappear from search and leave every public room. You can unban them from this card.';
+
+  @override
+  String get moderationActionDone => 'Done';
+
+  @override
+  String get moderationActionFailed => 'That didn\'t go through. Try again.';
+
+  @override
+  String get moderationCantBan =>
+      'Moderators and system accounts can\'t be banned.';
+
+  @override
+  String get messageFilterBlocked =>
+      'This message can\'t be sent because it may contain inappropriate language.';
+
+  @override
+  String get nameInappropriate =>
+      'That name may contain inappropriate language. Please pick a different one.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'Your account has been suspended for violating the Terms of Use.';
+
+  @override
+  String get termsConsentPrefix => 'I agree to the ';
+
+  @override
+  String get termsConsentLink => 'Terms of Use (EULA)';
+
+  @override
+  String get termsConsentSuffix =>
+      ' and understand there is zero tolerance for objectionable content or abusive users.';
+
+  @override
+  String get termsConsentSemanticLabel => 'Agree to the Terms of Use';
+
+  @override
+  String get termsMustAccept => 'Please agree to the Terms of Use to continue.';
+
+  @override
+  String get termsSheetTitle => 'Terms of Use';
+
+  @override
+  String get termsSheetBody =>
+      'To keep using MonkeyHub, please agree to our Terms of Use. There is no place here for objectionable content or abusive behaviour, and reported content is reviewed by our moderators.';
+
+  @override
+  String get termsSheetAccept => 'Agree and continue';
+
+  @override
+  String get termsAcceptFailed => 'Couldn\'t save that. Try again.';
+
+  @override
+  String get settingsHubContactSupport => 'Contact support';
 }

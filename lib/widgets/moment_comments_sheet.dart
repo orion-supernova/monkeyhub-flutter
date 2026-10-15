@@ -15,6 +15,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../models/chat_user.dart';
 import '../models/expression_item.dart';
+import '../models/family.dart';
 import '../models/message_reaction.dart';
 import '../models/moment.dart';
 import '../models/moment_comment.dart';
@@ -311,13 +312,18 @@ class _MomentConversationState extends State<MomentConversation> {
         setState(() => _pending.remove(pending));
       }
       return true;
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return false;
       setState(() {
         _pending.remove(pending);
         _replyTo ??= replyTo;
       });
-      toast.show(l10n.momentCommentFailed, tone: ToastTone.danger);
+      // The language filter is a refusal, not a failure: say why.
+      if (isFilterBlockedError(e)) {
+        toast.show(l10n.messageFilterBlocked);
+      } else {
+        toast.show(l10n.momentCommentFailed, tone: ToastTone.danger);
+      }
       return false;
     }
   }

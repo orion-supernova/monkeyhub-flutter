@@ -77,6 +77,13 @@ void main() {
       // keeps the problem-report inbox's handle occupied.
       'USERNAME_CHANGED_RECENTLY',
       'INBOX_HANDLE_LOCKED',
+      // The moderation pack: contentFilter.ERR_NAME_INAPPROPRIATE (signup and
+      // profile edits), sessionCore.ERR_ACCOUNT_SUSPENDED (every sign-in path,
+      // and every call a banned session makes) and terms.ERR_TERMS_NOT_ACCEPTED
+      // (a sign-up carrying a stale EULA version).
+      'NAME_INAPPROPRIATE',
+      'ACCOUNT_SUSPENDED',
+      'TERMS_NOT_ACCEPTED',
       // deviceLogin.ts — QR / short-code sign-in.
       'DEVICE_LOGIN_REQUEST_INVALID',
       'DEVICE_LOGIN_CODE_INVALID',

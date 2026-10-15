@@ -16,12 +16,28 @@ const kChildNotAllowed = 'CHILD_NOT_ALLOWED';
 /// This account can only sign in by redeeming a pairing code.
 const kChildMustPair = 'CHILD_MUST_PAIR';
 
+/// The objectionable-text filter refused a message outright, because a child
+/// is on one end of it (`backend/convex/contentFilter.ts`). Not a child-guard
+/// code, but it travels the same road: a refusal no retry can fix.
+const kMessageFilterBlocked = 'MESSAGE_FILTER_BLOCKED';
+
 /// True when [error] is a child guard rejection rather than a real failure.
 /// These must not be retried: they'll fail identically until a guardian acts.
+///
+/// Also true for [kMessageFilterBlocked], which behaves identically on the
+/// send path (drop the bubble, give the text back, explain) and differs only
+/// in the explanation — see [isFilterBlockedError].
 bool isChildGateError(Object error) {
   final s = error.toString();
-  return s.contains(kChildApprovalRequired) || s.contains(kChildNotAllowed);
+  return s.contains(kChildApprovalRequired) ||
+      s.contains(kChildNotAllowed) ||
+      s.contains(kMessageFilterBlocked);
 }
+
+/// True for the filter's refusal specifically: a sentence about language,
+/// never the "ask a grown-up" sheet, since no grown-up can approve it.
+bool isFilterBlockedError(Object error) =>
+    error.toString().contains(kMessageFilterBlocked);
 
 /// True specifically for "switched off for you", as opposed to "needs
 /// approval" — a different sentence, because asking won't change it.

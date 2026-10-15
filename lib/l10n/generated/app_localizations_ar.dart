@@ -13893,4 +13893,118 @@ class AppLocalizationsAr extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      'يؤدي الإبلاغ إلى إرسال هذه الرسالة وآخر بضع رسائل في هذه الدردشة إلى مشرفي MonkeyHub لمراجعتها. لن يعرف الشخص أنك أبلغت عنه.';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      'يؤدي الإبلاغ إلى إرسال آخر بضع رسائل بينك وبين هذا الشخص إلى مشرفي MonkeyHub لمراجعتها. لن يعرف أنك أبلغت عنه.';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      'يؤدي الإبلاغ إلى إرسال آخر بضع رسائل في هذه المجموعة إلى مشرفي MonkeyHub لمراجعتها. لن يعرف أحد هنا أنك أبلغت عنها.';
+
+  @override
+  String get reportSheetAlsoBlock => 'حظر هذا الشخص أيضًا';
+
+  @override
+  String get reportSentReviewed =>
+      'شكرًا. يراجع مشرفونا البلاغات خلال 24 ساعة.';
+
+  @override
+  String get reportSentAndBlocked =>
+      'شكرًا. يراجع مشرفونا البلاغات خلال 24 ساعة. لقد حظرت هذا الشخص.';
+
+  @override
+  String get reportTooMany => 'لقد أرسلت بلاغات كثيرة. حاول مرة أخرى بعد قليل.';
+
+  @override
+  String get reportFailed => 'تعذر إرسال البلاغ. حاول مرة أخرى.';
+
+  @override
+  String get riReportPerson => 'الإبلاغ عن هذا الشخص';
+
+  @override
+  String get riReportGroup => 'الإبلاغ عن هذه المجموعة';
+
+  @override
+  String get moderationActionRemoveMessage => 'إزالة الرسالة';
+
+  @override
+  String get moderationActionBan => 'حظر المستخدم';
+
+  @override
+  String get moderationActionUnban => 'إلغاء حظر المستخدم';
+
+  @override
+  String get moderationActionDismiss => 'تجاهل البلاغ';
+
+  @override
+  String get moderationConfirmRemoveTitle => 'إزالة هذه الرسالة؟';
+
+  @override
+  String get moderationConfirmRemoveBody =>
+      'ستُحذف لدى الجميع في المحادثة. تحتفظ بطاقة البلاغ بنسختها.';
+
+  @override
+  String get moderationConfirmBanTitle => 'حظر هذا الحساب؟';
+
+  @override
+  String get moderationConfirmBanBody =>
+      'سيُسجَّل خروجه من كل مكان، ولن يتمكن من تسجيل الدخول مجددًا، وسيختفي من البحث ويغادر كل الغرف العامة. يمكنك إلغاء الحظر من هذه البطاقة.';
+
+  @override
+  String get moderationActionDone => 'تم';
+
+  @override
+  String get moderationActionFailed => 'لم تكتمل العملية. حاول مرة أخرى.';
+
+  @override
+  String get moderationCantBan => 'لا يمكن حظر المشرفين أو حسابات النظام.';
+
+  @override
+  String get messageFilterBlocked =>
+      'لا يمكن إرسال هذه الرسالة لأنها قد تحتوي على لغة غير لائقة.';
+
+  @override
+  String get nameInappropriate =>
+      'قد يحتوي هذا الاسم على لغة غير لائقة. يُرجى اختيار اسم آخر.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'تم تعليق حسابك لمخالفته شروط الاستخدام.';
+
+  @override
+  String get termsConsentPrefix => 'أوافق على ';
+
+  @override
+  String get termsConsentLink => 'شروط الاستخدام (EULA)';
+
+  @override
+  String get termsConsentSuffix =>
+      ' وأدرك أنه لا تسامح إطلاقًا مع المحتوى المسيء أو المستخدمين المسيئين.';
+
+  @override
+  String get termsConsentSemanticLabel => 'الموافقة على شروط الاستخدام';
+
+  @override
+  String get termsMustAccept => 'يُرجى الموافقة على شروط الاستخدام للمتابعة.';
+
+  @override
+  String get termsSheetTitle => 'شروط الاستخدام';
+
+  @override
+  String get termsSheetBody =>
+      'لمواصلة استخدام MonkeyHub، يُرجى الموافقة على شروط الاستخدام. لا مكان هنا للمحتوى المسيء أو السلوك المسيء، ويراجع مشرفونا المحتوى المُبلَّغ عنه.';
+
+  @override
+  String get termsSheetAccept => 'موافق ومتابعة';
+
+  @override
+  String get termsAcceptFailed => 'تعذر الحفظ. حاول مرة أخرى.';
+
+  @override
+  String get settingsHubContactSupport => 'التواصل مع الدعم';
 }

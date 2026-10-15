@@ -35,6 +35,8 @@ import {
   refreshTokenStillValid,
 } from "./appleTokens";
 import { assertNotLocked, clearFailures, loginKey, noteFailure } from "./rateLimit";
+import { assertCleanName } from "./contentFilter";
+import { termsStamp } from "./terms";
 import {
   ERR_DISPLAY_NAME_RESERVED,
   ERR_USERNAME_RESERVED,
@@ -191,6 +193,8 @@ export const completeSignUp = publicAction({
     authorizationCode: v.optional(v.string()),
     username: v.string(),
     name: v.optional(v.string()),
+    // The EULA checkbox on the username step. See `terms.ts`.
+    termsVersion: v.optional(v.number()),
   },
   returns: authResultValidator,
   // Annotated to break a self-referential inference cycle — see the note on
@@ -214,6 +218,7 @@ export const completeSignUp = publicAction({
       username: args.username,
       name: args.name,
       appleRefreshToken,
+      termsVersion: args.termsVersion,
     });
   },
 });
@@ -630,10 +635,12 @@ export const createWithIdentity = internalMutation({
     username: v.string(),
     name: v.optional(v.string()),
     appleRefreshToken: v.optional(v.string()),
+    termsVersion: v.optional(v.number()),
   },
   returns: authResultValidator,
   handler: async (ctx, args) => {
     const username = normaliseUsername(args.username);
+    const terms = termsStamp(args.termsVersion);
 
     // Both uniqueness checks live inside this one mutation on purpose. Convex
     // mutations are serializable, so a concurrent signup that would collide is
@@ -652,6 +659,8 @@ export const createWithIdentity = internalMutation({
     if (args.name !== undefined && isReservedName(args.name)) {
       throw new Error(ERR_DISPLAY_NAME_RESERVED);
     }
+    assertCleanName(username);
+    assertCleanName(args.name);
 
     const taken = await ctx.db
       .query("users")
@@ -695,6 +704,7 @@ export const createWithIdentity = internalMutation({
       createdAt: now,
       status: "online",
       lastSeen: now,
+      ...terms,
     });
 
     await ctx.db.insert("socialIdentities", {

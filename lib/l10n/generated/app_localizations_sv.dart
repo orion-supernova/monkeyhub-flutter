@@ -13748,4 +13748,120 @@ class AppLocalizationsSv extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      'När du rapporterar skickas det här meddelandet och de senaste meddelandena i chatten till MonkeyHubs moderatorer för granskning. Personen får inte veta att du rapporterade dem.';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      'När du rapporterar skickas dina senaste meddelanden med den här personen till MonkeyHubs moderatorer för granskning. De får inte veta att du rapporterade dem.';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      'När du rapporterar skickas de senaste meddelandena i gruppen till MonkeyHubs moderatorer för granskning. Ingen här får veta att du rapporterade den.';
+
+  @override
+  String get reportSheetAlsoBlock => 'Blockera även den här personen';
+
+  @override
+  String get reportSentReviewed =>
+      'Tack. Våra moderatorer granskar rapporter inom 24 timmar.';
+
+  @override
+  String get reportSentAndBlocked =>
+      'Tack. Våra moderatorer granskar rapporter inom 24 timmar. Du har blockerat den här personen.';
+
+  @override
+  String get reportTooMany =>
+      'Du har skickat många rapporter. Försök igen om en liten stund.';
+
+  @override
+  String get reportFailed => 'Det gick inte att skicka rapporten. Försök igen.';
+
+  @override
+  String get riReportPerson => 'Rapportera den här personen';
+
+  @override
+  String get riReportGroup => 'Rapportera den här gruppen';
+
+  @override
+  String get moderationActionRemoveMessage => 'Ta bort meddelandet';
+
+  @override
+  String get moderationActionBan => 'Stäng av användaren';
+
+  @override
+  String get moderationActionUnban => 'Häv avstängningen';
+
+  @override
+  String get moderationActionDismiss => 'Avfärda rapporten';
+
+  @override
+  String get moderationConfirmRemoveTitle => 'Ta bort det här meddelandet?';
+
+  @override
+  String get moderationConfirmRemoveBody =>
+      'Det raderas för alla i konversationen. Rapportkortet behåller sin kopia.';
+
+  @override
+  String get moderationConfirmBanTitle => 'Stäng av det här kontot?';
+
+  @override
+  String get moderationConfirmBanBody =>
+      'Personen loggas ut överallt, kan inte logga in igen, försvinner ur sökningen och lämnar alla offentliga rum. Du kan häva avstängningen från det här kortet.';
+
+  @override
+  String get moderationActionDone => 'Klart';
+
+  @override
+  String get moderationActionFailed => 'Det gick inte igenom. Försök igen.';
+
+  @override
+  String get moderationCantBan =>
+      'Moderatorer och systemkonton kan inte stängas av.';
+
+  @override
+  String get messageFilterBlocked =>
+      'Det här meddelandet kan inte skickas eftersom det kan innehålla olämpligt språk.';
+
+  @override
+  String get nameInappropriate =>
+      'Namnet kan innehålla olämpligt språk. Välj ett annat.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'Ditt konto har stängts av för brott mot användarvillkoren.';
+
+  @override
+  String get termsConsentPrefix => 'Jag godkänner ';
+
+  @override
+  String get termsConsentLink => 'användarvillkoren (EULA)';
+
+  @override
+  String get termsConsentSuffix =>
+      ' och förstår att det råder nolltolerans mot stötande innehåll och kränkande användare.';
+
+  @override
+  String get termsConsentSemanticLabel => 'Godkänn användarvillkoren';
+
+  @override
+  String get termsMustAccept => 'Godkänn användarvillkoren för att fortsätta.';
+
+  @override
+  String get termsSheetTitle => 'Användarvillkor';
+
+  @override
+  String get termsSheetBody =>
+      'För att fortsätta använda MonkeyHub behöver du godkänna våra användarvillkor. Här finns ingen plats för stötande innehåll eller kränkande beteende, och våra moderatorer granskar rapporterat innehåll.';
+
+  @override
+  String get termsSheetAccept => 'Godkänn och fortsätt';
+
+  @override
+  String get termsAcceptFailed => 'Det gick inte att spara. Försök igen.';
+
+  @override
+  String get settingsHubContactSupport => 'Kontakta support';
 }

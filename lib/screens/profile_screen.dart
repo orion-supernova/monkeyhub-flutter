@@ -1089,20 +1089,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _confirmReport() async {
     final api = widget.api;
-    final repo = widget.repo;
-    if (api == null || repo?.userId == null) return;
-    final toast = AppToast.of(context);
-    final reason = await showReportSheet(context);
-    if (reason == null || reason.isEmpty) return;
+    final myId = widget.repo?.userId;
+    if (api == null || myId == null) return;
     setState(() => _busy = true);
     try {
-      await api.report(reporterId: repo!.userId!, targetType: 'user', targetId: _u.id, reason: reason);
-      if (!mounted) return;
-      toast.show(
-        AppLocalizations.of(context).profileScreenReportSent,
-        tone: ToastTone.success,
+      // The sheet, the call and the 24-hour confirmation, shared with every
+      // other report entry point (`report_sheet.dart`).
+      await fileReport(
+        context,
+        api: api,
+        reporterId: myId,
+        target: ReportTarget.user,
+        targetId: _u.id,
       );
-    } catch (_) {
     } finally {
       if (mounted) setState(() => _busy = false);
     }

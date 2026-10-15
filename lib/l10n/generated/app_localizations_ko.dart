@@ -13138,4 +13138,115 @@ class AppLocalizationsKo extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      '신고하면 이 메시지와 이 채팅의 최근 메시지 몇 개가 검토를 위해 MonkeyHub 운영자에게 전송됩니다. 상대방은 신고 사실을 알 수 없습니다.';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      '신고하면 이 사람과 주고받은 최근 메시지 몇 개가 검토를 위해 MonkeyHub 운영자에게 전송됩니다. 상대방은 신고 사실을 알 수 없습니다.';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      '신고하면 이 그룹의 최근 메시지 몇 개가 검토를 위해 MonkeyHub 운영자에게 전송됩니다. 여기 있는 누구도 신고 사실을 알 수 없습니다.';
+
+  @override
+  String get reportSheetAlsoBlock => '이 사람도 차단';
+
+  @override
+  String get reportSentReviewed => '감사합니다. 운영자가 24시간 이내에 신고를 검토합니다.';
+
+  @override
+  String get reportSentAndBlocked =>
+      '감사합니다. 운영자가 24시간 이내에 신고를 검토합니다. 이 사람을 차단했습니다.';
+
+  @override
+  String get reportTooMany => '신고를 너무 많이 보냈습니다. 잠시 후 다시 시도하세요.';
+
+  @override
+  String get reportFailed => '신고를 보내지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get riReportPerson => '이 사람 신고';
+
+  @override
+  String get riReportGroup => '이 그룹 신고';
+
+  @override
+  String get moderationActionRemoveMessage => '메시지 삭제';
+
+  @override
+  String get moderationActionBan => '사용자 정지';
+
+  @override
+  String get moderationActionUnban => '정지 해제';
+
+  @override
+  String get moderationActionDismiss => '신고 기각';
+
+  @override
+  String get moderationConfirmRemoveTitle => '이 메시지를 삭제할까요?';
+
+  @override
+  String get moderationConfirmRemoveBody =>
+      '대화의 모든 사람에게서 삭제됩니다. 신고 카드에는 사본이 남습니다.';
+
+  @override
+  String get moderationConfirmBanTitle => '이 계정을 정지할까요?';
+
+  @override
+  String get moderationConfirmBanBody =>
+      '모든 기기에서 로그아웃되고, 다시 로그인할 수 없으며, 검색에서 사라지고 모든 공개 방에서 나가게 됩니다. 이 카드에서 정지를 해제할 수 있습니다.';
+
+  @override
+  String get moderationActionDone => '완료';
+
+  @override
+  String get moderationActionFailed => '처리하지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get moderationCantBan => '운영자와 시스템 계정은 정지할 수 없습니다.';
+
+  @override
+  String get messageFilterBlocked => '부적절한 표현이 포함되어 있을 수 있어 이 메시지를 보낼 수 없습니다.';
+
+  @override
+  String get nameInappropriate =>
+      '이 이름에 부적절한 표현이 포함되어 있을 수 있습니다. 다른 이름을 선택하세요.';
+
+  @override
+  String get authErrorAccountSuspended => '이용약관 위반으로 계정이 정지되었습니다.';
+
+  @override
+  String get termsConsentPrefix => '';
+
+  @override
+  String get termsConsentLink => '이용약관(EULA)';
+
+  @override
+  String get termsConsentSuffix =>
+      '에 동의하며, 불쾌한 콘텐츠나 악의적인 사용자에 대해 무관용 원칙이 적용된다는 것을 이해합니다.';
+
+  @override
+  String get termsConsentSemanticLabel => '이용약관에 동의';
+
+  @override
+  String get termsMustAccept => '계속하려면 이용약관에 동의하세요.';
+
+  @override
+  String get termsSheetTitle => '이용약관';
+
+  @override
+  String get termsSheetBody =>
+      'MonkeyHub를 계속 사용하려면 이용약관에 동의하세요. 이곳에는 불쾌한 콘텐츠나 악의적인 행동이 설 자리가 없으며, 신고된 콘텐츠는 운영자가 검토합니다.';
+
+  @override
+  String get termsSheetAccept => '동의하고 계속';
+
+  @override
+  String get termsAcceptFailed => '저장하지 못했습니다. 다시 시도하세요.';
+
+  @override
+  String get settingsHubContactSupport => '고객 지원 문의';
 }

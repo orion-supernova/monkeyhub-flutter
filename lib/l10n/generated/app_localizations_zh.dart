@@ -12984,4 +12984,111 @@ class AppLocalizationsZh extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      '举报后，这条消息及此聊天中最近的几条消息会发送给 MonkeyHub 管理员审核。对方不会知道你举报了他们。';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      '举报后，你与此人最近的几条消息会发送给 MonkeyHub 管理员审核。对方不会知道你举报了他们。';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      '举报后，此群组中最近的几条消息会发送给 MonkeyHub 管理员审核。这里的任何人都不会知道你举报了它。';
+
+  @override
+  String get reportSheetAlsoBlock => '同时屏蔽此人';
+
+  @override
+  String get reportSentReviewed => '谢谢。我们的管理员会在 24 小时内审核举报。';
+
+  @override
+  String get reportSentAndBlocked => '谢谢。我们的管理员会在 24 小时内审核举报。你已屏蔽此人。';
+
+  @override
+  String get reportTooMany => '你发送的举报太多了。请稍后再试。';
+
+  @override
+  String get reportFailed => '无法发送举报。请重试。';
+
+  @override
+  String get riReportPerson => '举报此人';
+
+  @override
+  String get riReportGroup => '举报此群组';
+
+  @override
+  String get moderationActionRemoveMessage => '移除消息';
+
+  @override
+  String get moderationActionBan => '封禁用户';
+
+  @override
+  String get moderationActionUnban => '解除封禁';
+
+  @override
+  String get moderationActionDismiss => '驳回举报';
+
+  @override
+  String get moderationConfirmRemoveTitle => '要移除这条消息吗？';
+
+  @override
+  String get moderationConfirmRemoveBody => '这条消息会对对话中的所有人删除。举报卡片会保留副本。';
+
+  @override
+  String get moderationConfirmBanTitle => '要封禁此账号吗？';
+
+  @override
+  String get moderationConfirmBanBody =>
+      '对方将在所有设备上退出登录，无法再次登录，不会出现在搜索中，并会退出所有公开房间。你可以在此卡片上解除封禁。';
+
+  @override
+  String get moderationActionDone => '完成';
+
+  @override
+  String get moderationActionFailed => '操作未完成。请重试。';
+
+  @override
+  String get moderationCantBan => '管理员和系统账号无法被封禁。';
+
+  @override
+  String get messageFilterBlocked => '这条消息可能包含不当用语，因此无法发送。';
+
+  @override
+  String get nameInappropriate => '该名称可能包含不当用语。请换一个。';
+
+  @override
+  String get authErrorAccountSuspended => '你的账号因违反使用条款已被停用。';
+
+  @override
+  String get termsConsentPrefix => '我同意';
+
+  @override
+  String get termsConsentLink => '使用条款（EULA）';
+
+  @override
+  String get termsConsentSuffix => '，并理解对不良内容或滥用行为的用户零容忍。';
+
+  @override
+  String get termsConsentSemanticLabel => '同意使用条款';
+
+  @override
+  String get termsMustAccept => '请同意使用条款以继续。';
+
+  @override
+  String get termsSheetTitle => '使用条款';
+
+  @override
+  String get termsSheetBody =>
+      '要继续使用 MonkeyHub，请同意我们的使用条款。这里不容许不良内容或滥用行为，被举报的内容会由我们的管理员审核。';
+
+  @override
+  String get termsSheetAccept => '同意并继续';
+
+  @override
+  String get termsAcceptFailed => '无法保存。请重试。';
+
+  @override
+  String get settingsHubContactSupport => '联系支持';
 }

@@ -1,25 +1,107 @@
 import 'package:flutter/material.dart';
 
+import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'app_toast.dart';
 import 'ios_kit.dart';
 import 'labeled_field.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
 
-/// Prompts the user to pick a report reason. Resolves to the reason string
-/// (or null on dismiss). The "other" path lets the user type a free-form
-/// reason; everything is short to keep the sheet tight.
-Future<String?> showReportSheet(BuildContext context) {
-  return showAdaptiveSheet<String>(
+/// What is being reported, which decides what the sheet says will be sent.
+///
+/// The disclosure has to be exact, because it is a promise: the server
+/// (`moderationCore.fileContentReport`) sends the moderators the reported
+/// message and the messages around it, or the last few messages of the DM or
+/// room, and the sheet says precisely that before the user taps send.
+enum ReportTarget {
+  /// One message, from a long-press.
+  message,
+
+  /// A person, from their profile or a DM's info page.
+  user,
+
+  /// A group, from its info page.
+  room;
+
+  String get wire => switch (this) {
+        ReportTarget.message => 'message',
+        ReportTarget.user => 'user',
+        ReportTarget.room => 'room',
+      };
+
+  /// A room has no one person to block.
+  bool get canBlock => this != ReportTarget.room;
+}
+
+/// The user's answer: why, and whether to block too.
+class ReportChoice {
+  const ReportChoice({required this.reason, required this.alsoBlock});
+  final String reason;
+  final bool alsoBlock;
+}
+
+/// Prompts the user to pick a report reason. Resolves to their choice (or
+/// null on dismiss). The "other" path lets the user type a free-form reason;
+/// everything is short to keep the sheet tight.
+///
+/// Prefer [fileReport], which also sends it and confirms; this is the sheet
+/// alone, for a caller that needs to do something else with the answer.
+Future<ReportChoice?> showReportSheet(
+  BuildContext context, {
+  ReportTarget target = ReportTarget.message,
+}) {
+  return showAdaptiveSheet<ReportChoice>(
     context,
-    builder: (_) => const _ReportSheet(),
+    builder: (_) => _ReportSheet(target: target),
   );
 }
 
+/// The whole report flow, shared by every surface that offers one (message
+/// long-press, the thread overlay, a profile, room info): the sheet, the
+/// call, and the confirmation that moderators review within 24 hours.
+///
+/// One function rather than four call sites each awaiting the sheet and the
+/// API, because the confirmation copy is a promise the App Store review reads
+/// and it must say the same thing everywhere. Returns true once a report was
+/// filed.
+Future<bool> fileReport(
+  BuildContext context, {
+  required ChatApi api,
+  required String reporterId,
+  required ReportTarget target,
+  required String targetId,
+}) async {
+  // Captured before the sheet's await, per AppToast's own advice.
+  final toast = AppToast.of(context);
+  final l10n = AppLocalizations.of(context);
+  final choice = await showReportSheet(context, target: target);
+  if (choice == null || choice.reason.isEmpty) return false;
+  try {
+    final blocked = await api.report(
+      reporterId: reporterId,
+      targetType: target.wire,
+      targetId: targetId,
+      reason: choice.reason,
+      alsoBlock: target.canBlock && choice.alsoBlock,
+    );
+    toast.success(blocked ? l10n.reportSentAndBlocked : l10n.reportSentReviewed);
+    return true;
+  } catch (e) {
+    toast.error(
+      e.toString().contains('TOO_MANY_REPORTS')
+          ? l10n.reportTooMany
+          : l10n.reportFailed,
+    );
+    return false;
+  }
+}
+
 class _ReportSheet extends StatefulWidget {
-  const _ReportSheet();
+  const _ReportSheet({required this.target});
+  final ReportTarget target;
 
   @override
   State<_ReportSheet> createState() => _ReportSheetState();
@@ -37,6 +119,11 @@ class _ReportSheetState extends State<_ReportSheet> {
   final _note = TextEditingController();
   String? _selected;
 
+  /// "Also block this person". On by default where there is a person to
+  /// block: somebody reporting abuse almost always wants it to stop now, not
+  /// after the review, and unticking is one tap.
+  late bool _alsoBlock = widget.target.canBlock;
+
   @override
   void dispose() {
     _note.dispose();
@@ -51,7 +138,9 @@ class _ReportSheetState extends State<_ReportSheet> {
     final reason = selected == 'OTHER' && _note.text.trim().isNotEmpty
         ? 'OTHER: ${_note.text.trim()}'
         : selected;
-    Navigator.of(context).pop(reason);
+    Navigator.of(context).pop(
+      ReportChoice(reason: reason, alsoBlock: _alsoBlock),
+    );
   }
 
   /// Display label for a reason code. The code itself (`r.$1`) stays the
@@ -94,6 +183,13 @@ class _ReportSheetState extends State<_ReportSheet> {
     }
   }
 
+  /// What leaves the device, said before it does. See [ReportTarget].
+  String _disclosure(AppLocalizations l10n) => switch (widget.target) {
+        ReportTarget.message => l10n.reportSheetDisclosureMessage,
+        ReportTarget.user => l10n.reportSheetDisclosureUser,
+        ReportTarget.room => l10n.reportSheetDisclosureRoom,
+      };
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -117,7 +213,7 @@ class _ReportSheetState extends State<_ReportSheet> {
             SheetRise(
               index: 1,
               child: Text(
-                sc(l10n.reportSheetPrivacyNote),
+                _disclosure(l10n),
                 textAlign: TextAlign.center,
                 style: theme.bodySoft.copyWith(color: theme.inkMuted),
               ),
@@ -155,6 +251,18 @@ class _ReportSheetState extends State<_ReportSheet> {
                     )
                   : const SizedBox(width: double.infinity),
             ),
+            if (widget.target.canBlock) ...[
+              const SizedBox(height: 12),
+              SheetGroup(
+                children: [
+                  GroupedRow.toggle(
+                    title: l10n.reportSheetAlsoBlock,
+                    value: _alsoBlock,
+                    onChanged: (v) => setState(() => _alsoBlock = v),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 18),
             Semantics(
               label: l10n.reportSheetSubmitSemanticLabel,

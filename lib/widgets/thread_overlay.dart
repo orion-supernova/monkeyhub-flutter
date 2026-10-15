@@ -52,6 +52,7 @@ import 'interaction_respondents_sheet.dart';
 import 'message_bubble.dart';
 import 'reaction_limit_notice.dart';
 import 'reaction_picker_sheet.dart';
+import 'moderation_actions.dart';
 import 'report_sheet.dart';
 import 'scroll_to_latest.dart';
 import 'speaker_scope.dart';
@@ -1067,20 +1068,28 @@ class _ThreadSheetState extends State<_ThreadSheet>
         break;
       case MessageAction.report:
         if (!context.mounted) return;
-        final reason = await showReportSheet(context);
-        if (reason == null || reason.isEmpty) return;
         final myId = widget.repo.userId;
         if (myId == null) return;
-        try {
-          await widget.api.report(
-            reporterId: myId,
-            targetType: 'message',
-            targetId: m.id,
-            reason: reason,
-          );
-          if (!context.mounted) return;
-          _showToast(AppLocalizations.of(context).threadOverlayReportedToast);
-        } catch (_) {}
+        await fileReport(
+          context,
+          api: widget.api,
+          reporterId: myId,
+          target: ReportTarget.message,
+          targetId: m.id,
+        );
+        break;
+      case MessageAction.modRemoveMessage:
+      case MessageAction.modBanUser:
+      case MessageAction.modUnbanUser:
+      case MessageAction.modDismiss:
+        final card = m.moderationCard;
+        if (card == null || !context.mounted) return;
+        await runModeratorAction(
+          context,
+          api: widget.api,
+          card: card,
+          action: result.action!,
+        );
         break;
       case MessageAction.viewThread:
       case MessageAction.forward:

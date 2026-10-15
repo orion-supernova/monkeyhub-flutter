@@ -1,8 +1,11 @@
 /**
  * The system accounts, and the one rule that governs them.
  *
- * There is currently exactly one: `MonkeyHub Logs`, which `problemReports.ts`
- * posts problem reports as. It is not a *person*. It has no client, no device, no
+ * There are two: `MonkeyHub Logs`, which `problemReports.ts` posts problem
+ * reports as, and `Monkey Reporter`, which `moderationCore.ts` posts content
+ * reports and filter hits as. Everything below is written against the marker,
+ * not against either handle, so a third costs a spec in `systemRooms.ts` and
+ * nothing here. It is not a *person*. It has no client, no device, no
  * session and no password anybody can present, so every ordinary thing you can
  * do to a user is, applied to this row, a dead end that looks like a live one:
  * a friend request nobody will ever accept, a DM nobody will ever read, a call
@@ -143,6 +146,62 @@ export const REPORT_INBOX_USERNAME = "muratcankoc";
  */
 export const LOG_ROOM_STAFF_USERNAMES: readonly string[] = ["oau"];
 
+// ── Monkey Reporter: the moderation inbox ───────────────────────────────────
+//
+// The second system account, and the reason the account/room plumbing in
+// `systemRooms.ts` is generic. Same contract as the logs account in every
+// respect — invisible, unaddressable, marked by [SYSTEM_PASSWORD_PREFIX] — but
+// it posts content reports and filter hits instead of bug reports, into its
+// own room, so a moderator can tell "somebody is being abused" from "the app
+// crashed" by which room lit up. See `moderationCore.ts`.
+
+/**
+ * The account content reports are posted BY.
+ *
+ * Inside the reserved `monkeyhub` substring on purpose: [isReservedName] has
+ * refused that substring at every signup path since before this account
+ * existed, so the handle is guaranteed free on every deployment. A handle
+ * outside the reservation could already belong to a person, and
+ * `ensureSystemAccount` refuses to adopt a real account rather than post as it.
+ */
+export const REPORTER_USERNAME = "monkeyhub_reporter";
+
+/** Its display name, which signs every report card. */
+export const REPORTER_DISPLAY_NAME = "Monkey Reporter";
+
+/**
+ * `rooms.system` on the moderation room. Permanent once shipped, like
+ * [SYSTEM_ROOM_LOGS]; the client keys `canModerate` off it.
+ */
+export const SYSTEM_ROOM_MODERATION = "moderation";
+
+/** The moderation room's display name. Never used as a lookup key. */
+export const MODERATION_ROOM_NAME = "MonkeyHub Moderation";
+
+/**
+ * Who reads the moderation room AND who may act on a report card.
+ *
+ * The same people as the log room, derived rather than restated so the two
+ * lists cannot drift: whoever triages bug reports triages abuse reports. This
+ * is also the server-side authority for every moderator action — membership of
+ * the room is what the client shows buttons from, but `moderation.ts` checks
+ * the caller's username against THIS list, because a membership row is a thing
+ * a bug could create and a constant in the source is not.
+ */
+export const MODERATION_STAFF_USERNAMES: readonly string[] = [
+  REPORT_INBOX_USERNAME,
+  ...LOG_ROOM_STAFF_USERNAMES,
+];
+
+/** True if [username] is a moderator. Takes the row's handle, never an argument. */
+export function isModerationStaff(user: { username?: string } | null): boolean {
+  return (
+    !!user?.username &&
+    !isSystemAccount(user as any) &&
+    MODERATION_STAFF_USERNAMES.includes(user.username)
+  );
+}
+
 /**
  * Words no human account's username may contain.
  *
@@ -156,7 +215,7 @@ export const LOG_ROOM_STAFF_USERNAMES: readonly string[] = ["oau"];
  *
  * A substring rule, so it holds for handles nobody has thought of yet.
  */
-const RESERVED_SUBSTRINGS: readonly string[] = ["monkeyhub"];
+const RESERVED_SUBSTRINGS: readonly string[] = ["monkeyhub", "monkeyreporter"];
 
 /** Refused when a requested username hits [isReservedName]. */
 export const ERR_USERNAME_RESERVED = "USERNAME_RESERVED";

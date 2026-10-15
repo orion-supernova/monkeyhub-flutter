@@ -13106,4 +13106,112 @@ class AppLocalizationsJa extends AppLocalizations {
   String recordsSharedBy(int count, String name) {
     return '$name +$count';
   }
+
+  @override
+  String get reportSheetDisclosureMessage =>
+      '通報すると、このメッセージとこのチャットの直近のメッセージがMonkeyHubのモデレーターに送られ、確認されます。相手に通報したことは伝わりません。';
+
+  @override
+  String get reportSheetDisclosureUser =>
+      '通報すると、この人とのあなたの直近のメッセージがMonkeyHubのモデレーターに送られ、確認されます。相手に通報したことは伝わりません。';
+
+  @override
+  String get reportSheetDisclosureRoom =>
+      '通報すると、このグループの直近のメッセージがMonkeyHubのモデレーターに送られ、確認されます。ここにいる誰にも通報したことは伝わりません。';
+
+  @override
+  String get reportSheetAlsoBlock => 'この人をブロックする';
+
+  @override
+  String get reportSentReviewed => 'ありがとうございます。モデレーターが24時間以内に通報を確認します。';
+
+  @override
+  String get reportSentAndBlocked =>
+      'ありがとうございます。モデレーターが24時間以内に通報を確認します。この人をブロックしました。';
+
+  @override
+  String get reportTooMany => '通報が多すぎます。しばらくしてからもう一度お試しください。';
+
+  @override
+  String get reportFailed => '通報を送信できませんでした。もう一度お試しください。';
+
+  @override
+  String get riReportPerson => 'この人を通報';
+
+  @override
+  String get riReportGroup => 'このグループを通報';
+
+  @override
+  String get moderationActionRemoveMessage => 'メッセージを削除';
+
+  @override
+  String get moderationActionBan => 'ユーザーを停止';
+
+  @override
+  String get moderationActionUnban => '停止を解除';
+
+  @override
+  String get moderationActionDismiss => '通報を却下';
+
+  @override
+  String get moderationConfirmRemoveTitle => 'このメッセージを削除しますか？';
+
+  @override
+  String get moderationConfirmRemoveBody => '会話の全員から削除されます。通報カードにはコピーが残ります。';
+
+  @override
+  String get moderationConfirmBanTitle => 'このアカウントを停止しますか？';
+
+  @override
+  String get moderationConfirmBanBody =>
+      'すべての端末からサインアウトされ、再びサインインできず、検索に表示されなくなり、すべての公開ルームから退出します。このカードから停止を解除できます。';
+
+  @override
+  String get moderationActionDone => '完了';
+
+  @override
+  String get moderationActionFailed => '完了できませんでした。もう一度お試しください。';
+
+  @override
+  String get moderationCantBan => 'モデレーターとシステムアカウントは停止できません。';
+
+  @override
+  String get messageFilterBlocked => '不適切な表現が含まれている可能性があるため、このメッセージは送信できません。';
+
+  @override
+  String get nameInappropriate => 'この名前には不適切な表現が含まれている可能性があります。別の名前を選んでください。';
+
+  @override
+  String get authErrorAccountSuspended => '利用規約に違反したため、アカウントは停止されました。';
+
+  @override
+  String get termsConsentPrefix => '';
+
+  @override
+  String get termsConsentLink => '利用規約（EULA）';
+
+  @override
+  String get termsConsentSuffix => 'に同意し、不適切なコンテンツや迷惑なユーザーは一切容認されないことを理解しました。';
+
+  @override
+  String get termsConsentSemanticLabel => '利用規約に同意する';
+
+  @override
+  String get termsMustAccept => '続けるには利用規約に同意してください。';
+
+  @override
+  String get termsSheetTitle => '利用規約';
+
+  @override
+  String get termsSheetBody =>
+      'MonkeyHubを引き続き使うには、利用規約に同意してください。不適切なコンテンツや迷惑行為は一切認められず、通報された内容はモデレーターが確認します。';
+
+  @override
+  String get termsSheetAccept => '同意して続ける';
+
+  @override
+  String get termsAcceptFailed => '保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get settingsHubContactSupport => 'サポートに問い合わせる';
 }

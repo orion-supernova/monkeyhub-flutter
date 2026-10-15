@@ -83,6 +83,12 @@ export async function mintSession(
   userId: Id<"users">,
   deviceId: string,
 ): Promise<string> {
+  // The one door every sign-in path walks through, so the one place a ban has
+  // to be checked to cover them all.
+  const account = await ctx.db.get(userId);
+  if (account?.suspendedAt !== undefined && account !== null) {
+    throw new Error(ERR_ACCOUNT_SUSPENDED);
+  }
   const now = Date.now();
   const previous = await ctx.db
     .query("sessions")
@@ -109,6 +115,13 @@ export async function mintSession(
 /** Thrown by [requireSession]; the two are deliberately distinguishable. */
 export const ERR_SESSION_UNKNOWN = "SESSION_UNKNOWN";
 export const ERR_SESSION_REVOKED = "SESSION_REVOKED";
+/**
+ * The account was banned by a moderator (`moderation.suspendAccount`). Thrown
+ * by [requireSession] and by [mintSession], so a banned person can neither
+ * keep using a session nor mint a new one by ANY sign-in path — password,
+ * Apple/Google, QR device login or a pairing code all end in [mintSession].
+ */
+export const ERR_ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED";
 
 /**
  * Resolve a bearer token to the user it belongs to, or throw.
@@ -135,7 +148,18 @@ export async function requireSession(
     .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
     .first();
   if (!row) throw new Error(ERR_SESSION_UNKNOWN);
-  if (row.revokedAt !== undefined) throw new Error(ERR_SESSION_REVOKED);
+  // A banned account answers ACCOUNT_SUSPENDED rather than REVOKED, even
+  // though the ban also revoked its sessions: the client signs out either way,
+  // but only this code lets the login screen say WHY. Checked before the
+  // revoked test for exactly that reason — which costs a revoked token one
+  // extra `get`, on a path that ends in a sign-out anyway.
+  if (row.revokedAt !== undefined) {
+    const owner = await ctx.db.get(row.userId);
+    if (owner?.suspendedAt !== undefined && owner !== null) {
+      throw new Error(ERR_ACCOUNT_SUSPENDED);
+    }
+    throw new Error(ERR_SESSION_REVOKED);
+  }
   // The account itself must still exist. `purgeUser` now revokes sessions on
   // its way out, so this is belt-and-braces for the rows it already left
   // behind — but it is the check that actually closes the hole, because a
@@ -152,6 +176,8 @@ export async function requireSession(
   // is a session layer that cannot tell a live account from a deleted one.
   const user = await ctx.db.get(row.userId);
   if (!user) throw new Error(ERR_SESSION_REVOKED);
+  // Free: the row is already in hand. See `moderation.suspendAccount`.
+  if (user.suspendedAt !== undefined) throw new Error(ERR_ACCOUNT_SUSPENDED);
   return row.userId;
 }
 

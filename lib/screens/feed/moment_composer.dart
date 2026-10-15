@@ -352,6 +352,7 @@ class _MomentComposerState extends State<_MomentComposer> {
           'CHILD_NOT_ALLOWED',
           'CAPTION_TOO_LONG',
           'EMPTY_MOMENT',
+          'MESSAGE_FILTER_BLOCKED',
         ].firstWhere(s.contains, orElse: () => 'UNKNOWN');
       });
     }
@@ -362,6 +363,7 @@ class _MomentComposerState extends State<_MomentComposer> {
     'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
     'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
     'EMPTY_MOMENT' => l10n.momentComposerErrorEmpty,
+    'MESSAGE_FILTER_BLOCKED' => l10n.messageFilterBlocked,
     'TOO_BIG' => l10n.momentComposerErrorTooBig,
     'PICK_FAILED' => l10n.mediaPickFailedMessage,
     _ => l10n.momentComposerErrorGeneric,

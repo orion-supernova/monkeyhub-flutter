@@ -324,6 +324,7 @@ class _PointComposerState extends State<_PointComposer> {
           'DAILY_CAP_REACHED',
           'CHILD_NOT_ALLOWED',
           'CAPTION_TOO_LONG',
+          'MESSAGE_FILTER_BLOCKED',
         ].firstWhere(s.contains, orElse: () => 'UNKNOWN');
       });
     }
@@ -487,6 +488,7 @@ class _PointComposerState extends State<_PointComposer> {
                 'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
                 'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
                 'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
+                'MESSAGE_FILTER_BLOCKED' => l10n.messageFilterBlocked,
                 'PICK_FAILED' => l10n.mediaPickFailedMessage,
                 _ => l10n.momentComposerErrorGeneric,
               }),

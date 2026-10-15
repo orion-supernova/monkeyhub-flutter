@@ -151,6 +151,7 @@ class ChatMessage {
     this.stickerStorageId,
     this.stickerFormat,
     this.gameMove,
+    this.moderationCard,
   })  : reactions = reactions ?? [],
         formatting = formatting ?? const [],
         mentions = mentions ?? const [];
@@ -419,6 +420,12 @@ class ChatMessage {
   /// A `gameMove` row's move and the board it made. Null on every other type.
   final GameMoveSnapshot? gameMove;
 
+  /// Set on a report card Monkey Reporter posted in the moderation room: the
+  /// `reports` row it stands for. Server-made only. A moderator's long-press
+  /// offers the actions in `widgets/moderation_actions.dart` on a message
+  /// carrying this, in a room whose capabilities grant `canModerate`.
+  final ModerationCard? moderationCard;
+
   /// The GIF or sticker this message carries, or null for any other message.
   ///
   /// Gated on the type as well as the fields, the same way [locationShare] is.
@@ -541,6 +548,7 @@ class ChatMessage {
           ? null
           : ExpressionItem.parseFormat(j['stickerFormat']),
       gameMove: GameMoveSnapshot.tryParse(j['gameMove']),
+      moderationCard: ModerationCard.tryParse(j['moderationCard']),
     );
   }
 
@@ -632,6 +640,7 @@ class ChatMessage {
         if (stickerFormat != null) 'stickerFormat': stickerFormat!.name,
         // The move bubble IS this, like the GIF fields above.
         if (gameMove != null) 'gameMove': gameMove!.toJson(),
+        if (moderationCard != null) 'moderationCard': moderationCard!.toJson(),
       };
 
   ChatMessage copyWith({
@@ -726,5 +735,41 @@ class ChatMessage {
         stickerFormat: stickerFormat,
         // Carried, or a reaction on a move would blank its board.
         gameMove: gameMove,
+        moderationCard: moderationCard,
       );
+}
+
+/// What a report card in the moderation room is about. Mirrors
+/// `messages.moderationCard` in `backend/convex/schema.ts`.
+class ModerationCard {
+  const ModerationCard({
+    required this.reportId,
+    required this.hasMessage,
+    required this.hasUser,
+  });
+
+  final String reportId;
+
+  /// There is a reported message to remove.
+  final bool hasMessage;
+
+  /// There is a reported person to ban or unban.
+  final bool hasUser;
+
+  static ModerationCard? tryParse(Object? raw) {
+    if (raw is! Map) return null;
+    final id = raw['reportId'];
+    if (id is! String) return null;
+    return ModerationCard(
+      reportId: id,
+      hasMessage: raw['hasMessage'] == true,
+      hasUser: raw['hasUser'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'reportId': reportId,
+        'hasMessage': hasMessage,
+        'hasUser': hasUser,
+      };
 }

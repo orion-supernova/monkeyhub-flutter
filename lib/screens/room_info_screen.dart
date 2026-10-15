@@ -32,6 +32,7 @@ import '../widgets/chat_list_row.dart' show MonogramAvatar;
 import '../widgets/companion_install_sheet.dart';
 import '../widgets/editable_info_row.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/report_sheet.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
@@ -985,6 +986,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final l10n = AppLocalizations.of(context);
     final s = e.toString();
     if (s.contains('ROOM_EXISTS')) return l10n.roomInfoScreenErrorRoomExists;
+    if (s.contains('NAME_INAPPROPRIATE')) return l10n.nameInappropriate;
     if (s.contains('NOT_OWNER')) return l10n.roomInfoScreenErrorNotOwner;
     if (s.contains('NOT_AUTHORIZED')) return l10n.roomInfoScreenErrorNotAuthorized;
     if (s.contains('ROOM_NAME_REQUIRED')) return l10n.roomInfoScreenNameRequiredError;
@@ -1372,7 +1374,39 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 ),
             ],
           ),
+        // Report: the group itself, or the other person in a DM. Its own block
+        // below the leave/delete pair because it ends nothing: the room stays
+        // exactly as it is, and what leaves is a copy of its last messages for
+        // the moderators. `caps.canReport` keeps it off Saved Messages and the
+        // app's own rooms.
+        if (caps.canReport && (!r.isDm || peer != null))
+          GroupedSection(
+            children: [
+              GroupedRow(
+                icon: CupertinoIcons.flag_fill,
+                tone: TileTone.red,
+                title: r.isDm ? l10n.riReportPerson : l10n.riReportGroup,
+                destructive: true,
+                onTap: busy ? null : () => _report(r, peer),
+              ),
+            ],
+          ),
       ],
+    );
+  }
+
+  /// Files a report on this room or, in a DM, on the other person. The sheet,
+  /// the call and the confirmation are the shared flow in `report_sheet.dart`.
+  Future<void> _report(ChatRoom r, ChatUser? peer) async {
+    final me = widget.repo.userId;
+    if (me == null) return;
+    final isDm = r.isDm && peer != null;
+    await fileReport(
+      context,
+      api: widget.api,
+      reporterId: me,
+      target: isDm ? ReportTarget.user : ReportTarget.room,
+      targetId: isDm ? peer.id : r.id,
     );
   }
 

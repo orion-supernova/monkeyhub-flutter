@@ -99,6 +99,14 @@ enum MessageAction {
   delete,
   report,
   viewProfile,
+
+  /// The moderator rows on a report card in the moderation room. See
+  /// [MessageCapabilities.canModerate] and `widgets/moderation_actions.dart`,
+  /// which carries them out. Never offered anywhere else.
+  modRemoveMessage,
+  modBanUser,
+  modUnbanUser,
+  modDismiss,
 }
 
 /// Resolved choice from [showMessageActionMenu]. Exactly one of the three
@@ -1471,6 +1479,23 @@ List<MessageActionSpec> messageActionSpecs({
         label: l10n.messageActionMenuProfileLabel,
         destructive: false,
       ),
+    // A moderator's two neutral answers to a report card: undo a ban, or
+    // decline to act. Neither takes anything away, so neither is red, and both
+    // sit above the destructive block per the ordering rule.
+    if (caps.canModerate && caps.canModerateUser)
+      MessageActionSpec(
+        action: MessageAction.modUnbanUser,
+        icon: CupertinoIcons.arrow_uturn_left_circle,
+        label: l10n.moderationActionUnban,
+        destructive: false,
+      ),
+    if (caps.canModerate)
+      MessageActionSpec(
+        action: MessageAction.modDismiss,
+        icon: CupertinoIcons.archivebox,
+        label: l10n.moderationActionDismiss,
+        destructive: false,
+      ),
     if (caps.canDelete)
       MessageActionSpec(
         action: MessageAction.delete,
@@ -1483,6 +1508,22 @@ List<MessageActionSpec> messageActionSpecs({
         action: MessageAction.report,
         icon: CupertinoIcons.flag,
         label: l10n.messageActionMenuReportLabel,
+        destructive: true,
+      ),
+    // Last, and only ever on a report card: the two moderator actions that
+    // take something away. Their neutral siblings sit above the red block.
+    if (caps.canModerate && caps.canModerateMessage)
+      MessageActionSpec(
+        action: MessageAction.modRemoveMessage,
+        icon: CupertinoIcons.trash,
+        label: l10n.moderationActionRemoveMessage,
+        destructive: true,
+      ),
+    if (caps.canModerate && caps.canModerateUser)
+      MessageActionSpec(
+        action: MessageAction.modBanUser,
+        icon: CupertinoIcons.nosign,
+        label: l10n.moderationActionBan,
         destructive: true,
       ),
   ];

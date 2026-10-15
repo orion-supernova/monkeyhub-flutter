@@ -20,6 +20,9 @@ enum UsernameCheck {
   /// Reads as the brand. `isReservedName` server-side.
   reserved,
 
+  /// Trips the language filter. `contentFilter.isObjectionableName`.
+  inappropriate,
+
   taken,
 
   /// The check itself failed — offline, most likely.
@@ -126,6 +129,7 @@ class UsernameAvailabilityController extends ChangeNotifier {
             : switch (res.reason) {
                 'invalid' => UsernameCheck.invalid,
                 'reserved' => UsernameCheck.reserved,
+                'inappropriate' => UsernameCheck.inappropriate,
                 'taken' => UsernameCheck.taken,
                 // A reason this build predates. "Not available" is true of
                 // every false, so it is the safe generalisation.

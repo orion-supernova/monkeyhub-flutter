@@ -29,6 +29,7 @@ class UsernameStatusLabel extends StatelessWidget {
           UsernameCheck.available => (l10n.usernameStatusAvailable, theme.success),
           UsernameCheck.taken => (l10n.usernameStatusTaken, theme.danger),
           UsernameCheck.reserved => (l10n.usernameStatusReserved, theme.danger),
+          UsernameCheck.inappropriate => (l10n.nameInappropriate, theme.danger),
           UsernameCheck.invalid => (l10n.usernameStatusInvalid, theme.danger),
           // Muted, not red: this is a statement about the connection, and
           // colouring it as a rejection would read as "that name is no good".

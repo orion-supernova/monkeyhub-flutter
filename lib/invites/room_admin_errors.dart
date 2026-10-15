@@ -72,6 +72,8 @@ Map<String, String> roomAdminErrorMessages(AppLocalizations l10n) => {
       // neither was in this map before.
       'ROOM_NAME_REQUIRED': l10n.roomChangeErrorMissingValue,
       'ROOM_EXISTS': l10n.roomInfoScreenErrorRoomExists,
+      // `contentFilter.assertCleanName`, on a suggested name or description.
+      'NAME_INAPPROPRIATE': l10n.nameInappropriate,
 
       // Reachable from the Discover door, which no longer opens onto a private
       // room — the only ways in are a link somebody handed out and an invite

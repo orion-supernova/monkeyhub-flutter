@@ -24,5 +24,16 @@ const String kTermsOfServiceUrl =
 
 const String kEulaUrl = 'https://walhallaa.com/monkeyhub-eula.html';
 
+/// The EULA revision the sign-up checkbox and the acceptance sheet agree to.
+/// Mirrors `TERMS_VERSION` in `backend/convex/terms.ts`; bump both together
+/// when the document changes in a way people must accept again.
+const int kTermsVersion = 1;
+
+/// Where in-app "Contact support" writes to.
+const String kSupportEmail = 'info@walhallaa.com';
+
+/// [kSupportEmail] as a link the mail app opens, subject prefilled.
+const String kSupportMailto = 'mailto:$kSupportEmail?subject=MonkeyHub%20support';
+
 const String kDeleteAccountUrl =
     'https://walhallaa.com/monkeyhub-delete-account.html';

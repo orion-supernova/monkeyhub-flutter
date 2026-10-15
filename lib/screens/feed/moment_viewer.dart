@@ -16,6 +16,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../media/media_aspect_cache.dart';
 import '../../models/chat_user.dart';
 import '../../models/expression_item.dart';
+import '../../models/family.dart';
 import '../../models/moment.dart';
 import '../../theme/interaction.dart';
 import '../../theme/motion.dart';
@@ -833,8 +834,13 @@ class _MomentStageState extends State<_MomentStage>
         text: text,
         expression: item,
       );
-    } catch (_) {
-      toast.show(l10n.momentCommentFailed, tone: ToastTone.danger);
+    } catch (e) {
+      // The language filter is a refusal, not a failure: say why.
+      if (isFilterBlockedError(e)) {
+        toast.show(l10n.messageFilterBlocked);
+      } else {
+        toast.show(l10n.momentCommentFailed, tone: ToastTone.danger);
+      }
       return false;
     }
     _book.noteComments(m, _book.commentsOf(m) + 1);

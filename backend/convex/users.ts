@@ -30,6 +30,8 @@ import {
   isSystemAccount,
 } from "./systemAccount";
 import { lensFor } from "./visibility";
+import { assertCleanName, isObjectionableName } from "./contentFilter";
+import { fileContentReport } from "./moderationCore";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -394,6 +396,7 @@ export const updateProfile = mutation({
     // name with `ctx.db.insert`, and no session exists that could reach this
     // mutation as one anyway.
     if (isReservedName(name)) throw new Error(ERR_DISPLAY_NAME_RESERVED);
+    assertCleanName(name);
     // An ABSENT email leaves the stored one alone; only an explicitly empty
     // string clears it. The old code treated both as "delete", which was
     // harmless only because the client always echoed the currently-loaded
@@ -460,6 +463,11 @@ export const isUsernameAvailable = publicQuery({
       return { available: false, reason: "invalid" };
     }
     if (isReservedName(next)) return { available: false, reason: "reserved" };
+    // A reason older builds do not know, which they read as "taken" — true
+    // enough. See `contentFilter.isObjectionableName`.
+    if (isObjectionableName(next)) {
+      return { available: false, reason: "inappropriate" };
+    }
 
     const existing = await ctx.db
       .query("users")
@@ -541,6 +549,7 @@ export const applyUsernameChange = internalMutation({
     // first report is filed, and answering "taken" or "available" would make the
     // rule depend on whether that has happened yet.
     if (isReservedName(next)) throw new Error(ERR_USERNAME_RESERVED);
+    assertCleanName(next);
 
     const changedAt = user.usernameChangedAt;
     if (
@@ -684,6 +693,9 @@ export async function searchUsersCore(
       // no friend requests, joins no public rooms, and appears in no roster
       // except the single DM it writes to.
       if (isSystemAccount(u)) return false;
+      // Banned accounts are unfindable for as long as the ban lasts. See
+      // `moderation.suspendAccount`.
+      if (u.suspendedAt !== undefined) return false;
       const handle = u.username.toLowerCase();
       const fuzzy =
         handle.includes(needle) ||
@@ -780,14 +792,28 @@ export const blockUser = mutation({
      */
     deleteDm: v.optional(v.boolean()),
   },
-  handler: async (ctx, { userId, targetUserId, deleteDm }) => {
+  handler: async (ctx, { userId, targetUserId, deleteDm }) =>
+    await blockCore(ctx, userId, targetUserId, deleteDm === true),
+});
+
+/**
+ * Everything `blockUser` does, as a plain function, so a report can block in
+ * the same transaction it files in ("Also block this person" on the report
+ * sheet) instead of the client making two calls that can half-succeed.
+ */
+export async function blockCore(
+  ctx: any,
+  userId: any,
+  targetUserId: any,
+  deleteDm: boolean,
+) {
     if (userId.toString() === targetUserId.toString()) {
       throw new Error("CANT_BLOCK_SELF");
     }
     // Idempotent: don't insert if a pair row already exists.
     const existing = await ctx.db
       .query("blocks")
-      .withIndex("by_pair", (q) =>
+      .withIndex("by_pair", (q: any) =>
         q.eq("userId", userId).eq("blockedUserId", targetUserId)
       )
       .first();
@@ -802,7 +828,7 @@ export const blockUser = mutation({
     // Tear down any existing friendship so the block is binding.
     const friendships = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
       .collect();
     for (const f of friendships) {
       if (f.friendId.toString() === targetUserId.toString()) {
@@ -811,7 +837,7 @@ export const blockUser = mutation({
     }
     const reverse = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q) => q.eq("userId", targetUserId))
+      .withIndex("by_user", (q: any) => q.eq("userId", targetUserId))
       .collect();
     for (const f of reverse) {
       if (f.friendId.toString() === userId.toString()) {
@@ -826,8 +852,7 @@ export const blockUser = mutation({
         await wipeRoomCompletely(ctx, roomId);
       }
     }
-  },
-});
+}
 
 export const unblockUser = mutation({
   args: { userId: v.id("users"), targetUserId: v.id("users") },
@@ -907,27 +932,65 @@ export const isBlocked = query({
 
 // ─────────────────────────────── Reporting ───────────────────────────────
 
+/**
+ * Files a content report. The `reports` row, then Monkey Reporter's card in
+ * the moderation room with the reported message and the last few messages of
+ * the conversation as evidence — what the report sheet tells the user will
+ * happen. See `moderationCore.fileContentReport`.
+ *
+ * [alsoBlock] is the sheet's "Also block this person" box: the block is
+ * written in this same mutation, so a report never lands without the block
+ * the user asked for, or the other way round. Ignored for a room report,
+ * which has no one person to block.
+ *
+ * The reported person is never told, and nothing here writes anywhere they
+ * can read.
+ */
 export const report = mutation({
+  // The caller IS the reporter. Without this the wrapper injects `userId`,
+  // which this handler does not read, and `reporterId` stayed whatever the
+  // client sent — so anyone could file reports in somebody else's name and
+  // spend their rate limit. Same fix as `users.getProfile`'s `viewerUserId`.
+  identityArg: "reporterId" as const,
   args: {
     reporterId: v.id("users"),
     targetType: v.string(), // "user" | "message" | "room"
     targetId: v.string(),
     reason: v.string(),
     note: v.optional(v.string()),
+    alsoBlock: v.optional(v.boolean()),
   },
-  handler: async (ctx, { reporterId, targetType, targetId, reason, note }) => {
-    if (!["user", "message", "room"].includes(targetType)) {
-      throw new Error("INVALID_TARGET_TYPE");
+  returns: v.object({
+    ok: v.boolean(),
+    blocked: v.boolean(),
+  }),
+  handler: async (
+    ctx,
+    { reporterId, targetType, targetId, reason, note, alsoBlock },
+  ) => {
+    // A person's report carries the context of the caller's DM with them, if
+    // any — the thing a moderator needs to judge a report made from a profile.
+    let evidenceRoomId: any;
+    if (targetType === "user") {
+      const target = ctx.db.normalizeId("users", targetId);
+      if (target) {
+        evidenceRoomId = (await findDmRoomsBetween(ctx, reporterId, target))[0];
+      }
     }
-    await ctx.db.insert("reports", {
+    const filed = await fileContentReport(ctx, {
       reporterId,
       targetType,
       targetId,
       reason,
-      note: note && note.length > 0 ? note : undefined,
-      createdAt: Date.now(),
-      status: "open",
+      note,
+      evidenceRoomId,
     });
+    let blocked = false;
+    if (alsoBlock === true && targetType !== "room" && filed.reportedUserId) {
+      await blockCore(ctx, reporterId, filed.reportedUserId, false);
+      blocked = true;
+    }
+    return { ok: true, blocked };
   },
 });
 

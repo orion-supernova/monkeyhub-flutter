@@ -22854,6 +22854,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} +{count}'**
   String recordsSharedBy(int count, String name);
+
+  /// Report sheet, reporting one message: what is sent to moderators, said before sending. Must state that the message and the last few messages go to MonkeyHub moderators and that the person is not told.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting sends this message and the last few messages in this chat to MonkeyHub moderators for review. The person won\'t know you reported them.'**
+  String get reportSheetDisclosureMessage;
+
+  /// Report sheet, reporting a person (profile or DM info): what is sent to moderators.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting sends your last few messages with this person to MonkeyHub moderators for review. They won\'t know you reported them.'**
+  String get reportSheetDisclosureUser;
+
+  /// Report sheet, reporting a group from its info page: what is sent to moderators.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting sends the last few messages in this group to MonkeyHub moderators for review. No one here will know you reported it.'**
+  String get reportSheetDisclosureRoom;
+
+  /// Switch row on the report sheet, on by default: also block the reported person.
+  ///
+  /// In en, this message translates to:
+  /// **'Also block this person'**
+  String get reportSheetAlsoBlock;
+
+  /// Toast after a report is sent. Promises review within 24 hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks. Our moderators review reports within 24 hours.'**
+  String get reportSentReviewed;
+
+  /// Toast after a report is sent with 'Also block' on.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks. Our moderators review reports within 24 hours. You\'ve blocked this person.'**
+  String get reportSentAndBlocked;
+
+  /// Toast when the user has sent too many reports in the last hour.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve sent a lot of reports. Try again in a little while.'**
+  String get reportTooMany;
+
+  /// Toast when a report could not be sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the report. Try again.'**
+  String get reportFailed;
+
+  /// Room info row in a DM: report the other person.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this person'**
+  String get riReportPerson;
+
+  /// Room info row in a group: report the group.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this group'**
+  String get riReportGroup;
+
+  /// Moderator menu row on a report card: delete the reported message for everyone.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove message'**
+  String get moderationActionRemoveMessage;
+
+  /// Moderator menu row on a report card: suspend the reported account.
+  ///
+  /// In en, this message translates to:
+  /// **'Ban user'**
+  String get moderationActionBan;
+
+  /// Moderator menu row on a report card: lift a suspension.
+  ///
+  /// In en, this message translates to:
+  /// **'Unban user'**
+  String get moderationActionUnban;
+
+  /// Moderator menu row on a report card: close the report with no action.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss report'**
+  String get moderationActionDismiss;
+
+  /// Confirmation title before a moderator removes a reported message.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this message?'**
+  String get moderationConfirmRemoveTitle;
+
+  /// Confirmation body before a moderator removes a reported message.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s deleted for everyone in the conversation. The report card keeps its copy.'**
+  String get moderationConfirmRemoveBody;
+
+  /// Confirmation title before a moderator bans an account.
+  ///
+  /// In en, this message translates to:
+  /// **'Ban this account?'**
+  String get moderationConfirmBanTitle;
+
+  /// Confirmation body before a moderator bans an account.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'re signed out everywhere, can\'t sign back in, disappear from search and leave every public room. You can unban them from this card.'**
+  String get moderationConfirmBanBody;
+
+  /// Toast after a moderator action succeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get moderationActionDone;
+
+  /// Toast after a moderator action failed.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t go through. Try again.'**
+  String get moderationActionFailed;
+
+  /// Toast when a moderator tries to ban another moderator or a system account.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderators and system accounts can\'t be banned.'**
+  String get moderationCantBan;
+
+  /// Shown when the language filter refuses a message (a child is involved).
+  ///
+  /// In en, this message translates to:
+  /// **'This message can\'t be sent because it may contain inappropriate language.'**
+  String get messageFilterBlocked;
+
+  /// Shown when a username, display name or room name trips the language filter.
+  ///
+  /// In en, this message translates to:
+  /// **'That name may contain inappropriate language. Please pick a different one.'**
+  String get nameInappropriate;
+
+  /// Login screen error for an account a moderator suspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been suspended for violating the Terms of Use.'**
+  String get authErrorAccountSuspended;
+
+  /// Sign-up EULA checkbox, text before the link. Full sentence: prefix + link + suffix.
+  ///
+  /// In en, this message translates to:
+  /// **'I agree to the '**
+  String get termsConsentPrefix;
+
+  /// Sign-up EULA checkbox, the tappable link to the EULA.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Use (EULA)'**
+  String get termsConsentLink;
+
+  /// Sign-up EULA checkbox, text after the link. Must say there is zero tolerance for objectionable content or abusive users.
+  ///
+  /// In en, this message translates to:
+  /// **' and understand there is zero tolerance for objectionable content or abusive users.'**
+  String get termsConsentSuffix;
+
+  /// Screen reader label for the EULA checkbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to the Terms of Use'**
+  String get termsConsentSemanticLabel;
+
+  /// Error when trying to sign up without ticking the EULA box.
+  ///
+  /// In en, this message translates to:
+  /// **'Please agree to the Terms of Use to continue.'**
+  String get termsMustAccept;
+
+  /// Title of the blocking sheet asking existing users to accept the Terms of Use.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Use'**
+  String get termsSheetTitle;
+
+  /// Body of the blocking Terms of Use sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'To keep using MonkeyHub, please agree to our Terms of Use. There is no place here for objectionable content or abusive behaviour, and reported content is reviewed by our moderators.'**
+  String get termsSheetBody;
+
+  /// Button on the Terms of Use sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and continue'**
+  String get termsSheetAccept;
+
+  /// Toast when accepting the terms failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that. Try again.'**
+  String get termsAcceptFailed;
+
+  /// Settings > Help row that opens an email to support.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get settingsHubContactSupport;
 }
 
 class _AppLocalizationsDelegate

@@ -16409,5 +16409,141 @@
         "type": "String"
       }
     }
+  },
+  "reportSheetDisclosureMessage": "Reporting sends this message and the last few messages in this chat to MonkeyHub moderators for review. The person won't know you reported them.",
+  "@reportSheetDisclosureMessage": {
+    "description": "Report sheet, reporting one message: what is sent to moderators, said before sending. Must state that the message and the last few messages go to MonkeyHub moderators and that the person is not told."
+  },
+  "reportSheetDisclosureUser": "Reporting sends your last few messages with this person to MonkeyHub moderators for review. They won't know you reported them.",
+  "@reportSheetDisclosureUser": {
+    "description": "Report sheet, reporting a person (profile or DM info): what is sent to moderators."
+  },
+  "reportSheetDisclosureRoom": "Reporting sends the last few messages in this group to MonkeyHub moderators for review. No one here will know you reported it.",
+  "@reportSheetDisclosureRoom": {
+    "description": "Report sheet, reporting a group from its info page: what is sent to moderators."
+  },
+  "reportSheetAlsoBlock": "Also block this person",
+  "@reportSheetAlsoBlock": {
+    "description": "Switch row on the report sheet, on by default: also block the reported person."
+  },
+  "reportSentReviewed": "Thanks. Our moderators review reports within 24 hours.",
+  "@reportSentReviewed": {
+    "description": "Toast after a report is sent. Promises review within 24 hours."
+  },
+  "reportSentAndBlocked": "Thanks. Our moderators review reports within 24 hours. You've blocked this person.",
+  "@reportSentAndBlocked": {
+    "description": "Toast after a report is sent with 'Also block' on."
+  },
+  "reportTooMany": "You've sent a lot of reports. Try again in a little while.",
+  "@reportTooMany": {
+    "description": "Toast when the user has sent too many reports in the last hour."
+  },
+  "reportFailed": "Couldn't send the report. Try again.",
+  "@reportFailed": {
+    "description": "Toast when a report could not be sent."
+  },
+  "riReportPerson": "Report this person",
+  "@riReportPerson": {
+    "description": "Room info row in a DM: report the other person."
+  },
+  "riReportGroup": "Report this group",
+  "@riReportGroup": {
+    "description": "Room info row in a group: report the group."
+  },
+  "moderationActionRemoveMessage": "Remove message",
+  "@moderationActionRemoveMessage": {
+    "description": "Moderator menu row on a report card: delete the reported message for everyone."
+  },
+  "moderationActionBan": "Ban user",
+  "@moderationActionBan": {
+    "description": "Moderator menu row on a report card: suspend the reported account."
+  },
+  "moderationActionUnban": "Unban user",
+  "@moderationActionUnban": {
+    "description": "Moderator menu row on a report card: lift a suspension."
+  },
+  "moderationActionDismiss": "Dismiss report",
+  "@moderationActionDismiss": {
+    "description": "Moderator menu row on a report card: close the report with no action."
+  },
+  "moderationConfirmRemoveTitle": "Remove this message?",
+  "@moderationConfirmRemoveTitle": {
+    "description": "Confirmation title before a moderator removes a reported message."
+  },
+  "moderationConfirmRemoveBody": "It's deleted for everyone in the conversation. The report card keeps its copy.",
+  "@moderationConfirmRemoveBody": {
+    "description": "Confirmation body before a moderator removes a reported message."
+  },
+  "moderationConfirmBanTitle": "Ban this account?",
+  "@moderationConfirmBanTitle": {
+    "description": "Confirmation title before a moderator bans an account."
+  },
+  "moderationConfirmBanBody": "They're signed out everywhere, can't sign back in, disappear from search and leave every public room. You can unban them from this card.",
+  "@moderationConfirmBanBody": {
+    "description": "Confirmation body before a moderator bans an account."
+  },
+  "moderationActionDone": "Done",
+  "@moderationActionDone": {
+    "description": "Toast after a moderator action succeeded."
+  },
+  "moderationActionFailed": "That didn't go through. Try again.",
+  "@moderationActionFailed": {
+    "description": "Toast after a moderator action failed."
+  },
+  "moderationCantBan": "Moderators and system accounts can't be banned.",
+  "@moderationCantBan": {
+    "description": "Toast when a moderator tries to ban another moderator or a system account."
+  },
+  "messageFilterBlocked": "This message can't be sent because it may contain inappropriate language.",
+  "@messageFilterBlocked": {
+    "description": "Shown when the language filter refuses a message (a child is involved)."
+  },
+  "nameInappropriate": "That name may contain inappropriate language. Please pick a different one.",
+  "@nameInappropriate": {
+    "description": "Shown when a username, display name or room name trips the language filter."
+  },
+  "authErrorAccountSuspended": "Your account has been suspended for violating the Terms of Use.",
+  "@authErrorAccountSuspended": {
+    "description": "Login screen error for an account a moderator suspended."
+  },
+  "termsConsentPrefix": "I agree to the ",
+  "@termsConsentPrefix": {
+    "description": "Sign-up EULA checkbox, text before the link. Full sentence: prefix + link + suffix."
+  },
+  "termsConsentLink": "Terms of Use (EULA)",
+  "@termsConsentLink": {
+    "description": "Sign-up EULA checkbox, the tappable link to the EULA."
+  },
+  "termsConsentSuffix": " and understand there is zero tolerance for objectionable content or abusive users.",
+  "@termsConsentSuffix": {
+    "description": "Sign-up EULA checkbox, text after the link. Must say there is zero tolerance for objectionable content or abusive users."
+  },
+  "termsConsentSemanticLabel": "Agree to the Terms of Use",
+  "@termsConsentSemanticLabel": {
+    "description": "Screen reader label for the EULA checkbox."
+  },
+  "termsMustAccept": "Please agree to the Terms of Use to continue.",
+  "@termsMustAccept": {
+    "description": "Error when trying to sign up without ticking the EULA box."
+  },
+  "termsSheetTitle": "Terms of Use",
+  "@termsSheetTitle": {
+    "description": "Title of the blocking sheet asking existing users to accept the Terms of Use."
+  },
+  "termsSheetBody": "To keep using MonkeyHub, please agree to our Terms of Use. There is no place here for objectionable content or abusive behaviour, and reported content is reviewed by our moderators.",
+  "@termsSheetBody": {
+    "description": "Body of the blocking Terms of Use sheet."
+  },
+  "termsSheetAccept": "Agree and continue",
+  "@termsSheetAccept": {
+    "description": "Button on the Terms of Use sheet."
+  },
+  "termsAcceptFailed": "Couldn't save that. Try again.",
+  "@termsAcceptFailed": {
+    "description": "Toast when accepting the terms failed."
+  },
+  "settingsHubContactSupport": "Contact support",
+  "@settingsHubContactSupport": {
+    "description": "Settings > Help row that opens an email to support."
   }
 }

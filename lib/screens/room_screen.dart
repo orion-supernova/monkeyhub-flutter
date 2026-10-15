@@ -150,6 +150,7 @@ import '../widgets/message_action_menu.dart';
 import '../widgets/message_context_menu.dart';
 import '../widgets/message_hover_actions.dart';
 import '../widgets/room_translate_bar.dart';
+import '../widgets/moderation_actions.dart';
 import '../widgets/report_sheet.dart';
 import '../share/share_intake.dart';
 import '../share/share_targets.dart';
@@ -1782,6 +1783,12 @@ class _RoomScreenState extends State<RoomScreen>
   /// ask has to actually raise a request — offering a button that does
   /// nothing would be worse than not offering one.
   Future<void> _handleSendGate(String gate) async {
+    // The language filter, not a guardian: nobody can approve it, so it gets
+    // a sentence rather than the approval sheet.
+    if (isFilterBlockedError(gate)) {
+      showAppToast(context, AppLocalizations.of(context).messageFilterBlocked);
+      return;
+    }
     final uid = widget.repo.userId;
     final blockedOutright = isChildBlockedOutright(gate);
     final wantsToAsk = await showApprovalGate(
@@ -1977,8 +1984,10 @@ class _RoomScreenState extends State<RoomScreen>
       context,
       err == 'EDIT_WINDOW_EXPIRED'
           ? l10n.roomScreenEditExpiredSnack
-          : l10n.roomScreenEditFailedSnack,
-      tone: ToastTone.danger,
+          : err == kMessageFilterBlocked
+              ? l10n.messageFilterBlocked
+              : l10n.roomScreenEditFailedSnack,
+      tone: err == kMessageFilterBlocked ? ToastTone.neutral : ToastTone.danger,
     );
     // A transient failure gets the whole session back for a retry. An expired
     // window does NOT: re-arming an edit the server can only refuse again
@@ -6428,21 +6437,28 @@ class _RoomScreenState extends State<RoomScreen>
                       if (author != null) _openProfile(author);
                       break;
                     case MessageAction.report:
-                      final reason = await showReportSheet(this.context);
-                      if (reason == null || reason.isEmpty) return;
                       final myId = widget.repo.userId;
                       if (myId == null) return;
-                      try {
-                        await widget.api.report(
-                          reporterId: myId,
-                          targetType: 'message',
-                          targetId: target.id,
-                          reason: reason,
-                        );
-                        if (!context.mounted) return;
-                        toast.show(AppLocalizations.of(context)
-                              .roomScreenReportSentSnack);
-                      } catch (_) {}
+                      await fileReport(
+                        this.context,
+                        api: widget.api,
+                        reporterId: myId,
+                        target: ReportTarget.message,
+                        targetId: target.id,
+                      );
+                      break;
+                    case MessageAction.modRemoveMessage:
+                    case MessageAction.modBanUser:
+                    case MessageAction.modUnbanUser:
+                    case MessageAction.modDismiss:
+                      final card = target.moderationCard;
+                      if (card == null) return;
+                      await runModeratorAction(
+                        this.context,
+                        api: widget.api,
+                        card: card,
+                        action: result.action!,
+                      );
                       break;
                   }
                 }

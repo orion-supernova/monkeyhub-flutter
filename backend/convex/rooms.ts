@@ -10,6 +10,7 @@ import {
   isChild,
 } from "./childGuard";
 import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
+import { assertCleanName, assertCleanText } from "./contentFilter";
 import { lensFor, levelOf, publicUserView, seenVisibilityOf } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
@@ -43,6 +44,9 @@ export const create = mutation({
     await assertChildPolicy(ctx, userId, "canCreateRooms");
     const creatorIsChild = await isChild(ctx, userId);
     const visibility = creatorIsChild ? true : isPrivate;
+    // A room's name and description are shown to everyone who can find it.
+    assertCleanName(name);
+    assertCleanText(description);
 
     const existing = await ctx.db
       .query("rooms")
@@ -221,6 +225,8 @@ export const updateRoom = mutation({
 
     const trimmed = name.trim();
     if (!trimmed) throw new Error("ROOM_NAME_REQUIRED");
+    assertCleanName(trimmed);
+    assertCleanText(description);
     if (trimmed !== room.name) {
       const existing = await ctx.db
         .query("rooms")

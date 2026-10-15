@@ -3835,6 +3835,12 @@ class ChatRepository extends ChangeNotifier {
         // GIF must still name the GIF.
         expression: optimistic.expression,
       );
+      // The filter's refusal comes back as a VALUE, not a throw, so the server
+      // can keep the moderator card it filed (see `messages.send`). Turned
+      // back into the refusal it is, for the catch below.
+      if (serverId == kMessageFilterBlocked) {
+        throw StateError(kMessageFilterBlocked);
+      }
       // The ack is proof, so stop drawing "sending". The bubble stays in the
       // pending list — the live copy is still what carries reactions, read
       // state and the real id — but it is now marked `sent`, which is what
@@ -4871,6 +4877,7 @@ class ChatRepository extends ChangeNotifier {
       'NOT_YOURS',
       'UNBLOCK_FIRST',
       'NOT_A_MEMBER',
+      'MESSAGE_FILTER_BLOCKED',
     ]) {
       if (s.contains(code)) return code;
     }
