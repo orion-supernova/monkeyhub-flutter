@@ -13967,6 +13967,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsHubContactSupport => 'Contactar o suporte';
+
+  @override
+  String get reportSheetDisclosureMoment =>
+      'Denunciar envia este momento aos moderadores do MonkeyHub para revisão. A pessoa não saberá que a denunciou.';
+
+  @override
+  String get reportSheetDisclosureComment =>
+      'Denunciar envia este comentário aos moderadores do MonkeyHub para revisão. A pessoa não saberá que a denunciou.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -27916,4 +27924,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsHubContactSupport => 'Falar com o suporte';
+
+  @override
+  String get reportSheetDisclosureMoment =>
+      'Denunciar envia este momento para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou.';
+
+  @override
+  String get reportSheetDisclosureComment =>
+      'Denunciar envia este comentário para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou.';
 }

@@ -71,7 +71,15 @@ const EXCERPT_CHARS = 280;
 const MAX_NOTE_CHARS = 1000;
 
 /** Valid `targetType`s. */
-export const REPORT_TARGET_TYPES = ["user", "message", "room"] as const;
+export const REPORT_TARGET_TYPES = [
+  "user",
+  "message",
+  "room",
+  // A moment and a comment on one: the feed's user content, which App Review
+  // expects to be reportable where it is shown, not only through its author.
+  "moment",
+  "comment",
+] as const;
 
 // ── Provisioning ────────────────────────────────────────────────────────────
 
@@ -422,8 +430,40 @@ export async function fileContentReport(
   let message: any = null;
   let room: any = null;
   let reportedUserId: any = null;
+  // What a moment or comment report shows the moderator, in place of a
+  // message: the words, and what kind of media came with them.
+  const feedLines: string[] = [];
   const db = ctx.db;
-  if (targetType === "message") {
+  if (targetType === "moment") {
+    const id = db.normalizeId("moments", targetId);
+    const moment = id ? await db.get(id) : null;
+    if (moment) {
+      reportedUserId = moment.userId;
+      feedLines.push(
+        "",
+        "Reported moment:",
+        `» ${excerpt(moment.caption ?? "", 500) || "(no caption)"}` +
+          (moment.mediaStorageId ? " [with photo/video]" : ""),
+      );
+    } else {
+      feedLines.push("", "Reported moment: [already deleted]");
+    }
+  } else if (targetType === "comment") {
+    const id = db.normalizeId("momentComments", targetId);
+    const comment = id ? await db.get(id) : null;
+    if (comment) {
+      reportedUserId = comment.userId;
+      const on = await db.get(comment.momentId);
+      feedLines.push(
+        "",
+        "Reported comment:",
+        `» ${excerpt(comment.text ?? "", 500) || "(sticker or reaction)"}`,
+        ...(on ? [`On a moment by: ${await who(ctx, on.userId)}`] : []),
+      );
+    } else {
+      feedLines.push("", "Reported comment: [already deleted]");
+    }
+  } else if (targetType === "message") {
     const id = db.normalizeId("messages", targetId);
     message = id ? await db.get(id) : null;
     if (message) {
@@ -492,6 +532,7 @@ export async function fileContentReport(
       `Ref: ${reportId}`,
     ];
     const body: string[] = [];
+    body.push(...feedLines);
     if (message) {
       body.push("", "Reported message:", `» ${describeMessage(message)}`);
     } else if (targetType === "message") {

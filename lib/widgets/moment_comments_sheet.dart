@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart'
     show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'report_sheet.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
@@ -471,6 +472,13 @@ class _MomentConversationState extends State<MomentConversation> {
             destructive: true,
             icon: CupertinoIcons.trash,
           ),
+        if (c.userId != widget.userId)
+          IosSheetAction(
+            label: l10n.messageActionMenuReportLabel,
+            value: 'report',
+            destructive: true,
+            icon: CupertinoIcons.flag,
+          ),
       ],
     );
     if (!mounted || choice == null) return;
@@ -481,6 +489,14 @@ class _MomentConversationState extends State<MomentConversation> {
         await _reactWithAny(c);
       case 'delete':
         await _delete(c);
+      case 'report':
+        await fileReport(
+          context,
+          api: widget.api,
+          reporterId: widget.userId,
+          target: ReportTarget.comment,
+          targetId: c.id,
+        );
     }
   }
 

@@ -3816,5 +3816,7 @@
   "termsSheetBody": "Para continuar usando o MonkeyHub, concorde com nossos Termos de Uso. Aqui não tem lugar para conteúdo impróprio nem comportamento abusivo, e nossos moderadores analisam o conteúdo denunciado.",
   "termsSheetAccept": "Concordar e continuar",
   "termsAcceptFailed": "Não foi possível salvar. Tente de novo.",
-  "settingsHubContactSupport": "Falar com o suporte"
+  "settingsHubContactSupport": "Falar com o suporte",
+  "reportSheetDisclosureMoment": "Denunciar envia este momento para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou.",
+  "reportSheetDisclosureComment": "Denunciar envia este comentário para os moderadores do MonkeyHub revisarem. A pessoa não vai saber que você a denunciou."
 }

@@ -13214,4 +13214,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsHubContactSupport => 'サポートに問い合わせる';
+
+  @override
+  String get reportSheetDisclosureMoment =>
+      '報告すると、このモーメントがMonkeyHubのモデレーターに送られ、確認されます。相手に報告したことは伝わりません。';
+
+  @override
+  String get reportSheetDisclosureComment =>
+      '報告すると、このコメントがMonkeyHubのモデレーターに送られ、確認されます。相手に報告したことは伝わりません。';
 }

@@ -3816,5 +3816,7 @@
   "termsSheetBody": "MonkeyHubを引き続き使うには、利用規約に同意してください。不適切なコンテンツや迷惑行為は一切認められず、通報された内容はモデレーターが確認します。",
   "termsSheetAccept": "同意して続ける",
   "termsAcceptFailed": "保存できませんでした。もう一度お試しください。",
-  "settingsHubContactSupport": "サポートに問い合わせる"
+  "settingsHubContactSupport": "サポートに問い合わせる",
+  "reportSheetDisclosureMoment": "報告すると、このモーメントがMonkeyHubのモデレーターに送られ、確認されます。相手に報告したことは伝わりません。",
+  "reportSheetDisclosureComment": "報告すると、このコメントがMonkeyHubのモデレーターに送られ、確認されます。相手に報告したことは伝わりません。"
 }

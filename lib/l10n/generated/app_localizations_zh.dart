@@ -13091,4 +13091,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsHubContactSupport => '联系支持';
+
+  @override
+  String get reportSheetDisclosureMoment =>
+      '举报会将这条动态发送给 MonkeyHub 管理员审核。对方不会知道你举报了他们。';
+
+  @override
+  String get reportSheetDisclosureComment =>
+      '举报会将这条评论发送给 MonkeyHub 管理员审核。对方不会知道你举报了他们。';
 }

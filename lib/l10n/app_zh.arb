@@ -3816,5 +3816,7 @@
   "termsSheetBody": "要继续使用 MonkeyHub，请同意我们的使用条款。这里不容许不良内容或滥用行为，被举报的内容会由我们的管理员审核。",
   "termsSheetAccept": "同意并继续",
   "termsAcceptFailed": "无法保存。请重试。",
-  "settingsHubContactSupport": "联系支持"
+  "settingsHubContactSupport": "联系支持",
+  "reportSheetDisclosureMoment": "举报会将这条动态发送给 MonkeyHub 管理员审核。对方不会知道你举报了他们。",
+  "reportSheetDisclosureComment": "举报会将这条评论发送给 MonkeyHub 管理员审核。对方不会知道你举报了他们。"
 }

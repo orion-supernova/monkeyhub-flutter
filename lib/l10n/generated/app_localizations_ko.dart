@@ -13249,4 +13249,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsHubContactSupport => '고객 지원 문의';
+
+  @override
+  String get reportSheetDisclosureMoment =>
+      '신고하면 이 모먼트가 검토를 위해 MonkeyHub 운영진에게 전송됩니다. 상대방은 신고 사실을 알 수 없습니다.';
+
+  @override
+  String get reportSheetDisclosureComment =>
+      '신고하면 이 댓글이 검토를 위해 MonkeyHub 운영진에게 전송됩니다. 상대방은 신고 사실을 알 수 없습니다.';
 }

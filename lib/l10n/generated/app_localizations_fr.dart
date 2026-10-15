@@ -14023,4 +14023,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsHubContactSupport => 'Contacter l’assistance';
+
+  @override
+  String get reportSheetDisclosureMoment =>
+      'Signaler envoie ce moment aux modérateurs de MonkeyHub pour examen. La personne ne saura pas que vous l\'avez signalée.';
+
+  @override
+  String get reportSheetDisclosureComment =>
+      'Signaler envoie ce commentaire aux modérateurs de MonkeyHub pour examen. La personne ne saura pas que vous l\'avez signalée.';
 }

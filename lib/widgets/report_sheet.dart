@@ -24,12 +24,20 @@ enum ReportTarget {
   user,
 
   /// A group, from its info page.
-  room;
+  room,
+
+  /// A moment, from the viewer's menu.
+  moment,
+
+  /// A comment on a moment, from its long-press menu.
+  comment;
 
   String get wire => switch (this) {
         ReportTarget.message => 'message',
         ReportTarget.user => 'user',
         ReportTarget.room => 'room',
+        ReportTarget.moment => 'moment',
+        ReportTarget.comment => 'comment',
       };
 
   /// A room has no one person to block.
@@ -188,6 +196,8 @@ class _ReportSheetState extends State<_ReportSheet> {
         ReportTarget.message => l10n.reportSheetDisclosureMessage,
         ReportTarget.user => l10n.reportSheetDisclosureUser,
         ReportTarget.room => l10n.reportSheetDisclosureRoom,
+        ReportTarget.moment => l10n.reportSheetDisclosureMoment,
+        ReportTarget.comment => l10n.reportSheetDisclosureComment,
       };
 
   @override

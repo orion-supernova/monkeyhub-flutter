@@ -3816,5 +3816,7 @@
   "termsSheetBody": "لمواصلة استخدام MonkeyHub، يُرجى الموافقة على شروط الاستخدام. لا مكان هنا للمحتوى المسيء أو السلوك المسيء، ويراجع مشرفونا المحتوى المُبلَّغ عنه.",
   "termsSheetAccept": "موافق ومتابعة",
   "termsAcceptFailed": "تعذر الحفظ. حاول مرة أخرى.",
-  "settingsHubContactSupport": "التواصل مع الدعم"
+  "settingsHubContactSupport": "التواصل مع الدعم",
+  "reportSheetDisclosureMoment": "يؤدي الإبلاغ إلى إرسال هذه اللحظة إلى مشرفي MonkeyHub لمراجعتها. لن يعرف الشخص أنك أبلغت عنه.",
+  "reportSheetDisclosureComment": "يؤدي الإبلاغ إلى إرسال هذا التعليق إلى مشرفي MonkeyHub لمراجعته. لن يعرف الشخص أنك أبلغت عنه."
 }

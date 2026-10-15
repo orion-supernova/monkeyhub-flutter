@@ -13963,4 +13963,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsHubContactSupport => 'Contactar con soporte';
+
+  @override
+  String get reportSheetDisclosureMoment =>
+      'Al denunciar, este momento se envía a los moderadores de MonkeyHub para que lo revisen. La persona no sabrá que la denunciaste.';
+
+  @override
+  String get reportSheetDisclosureComment =>
+      'Al denunciar, este comentario se envía a los moderadores de MonkeyHub para que lo revisen. La persona no sabrá que la denunciaste.';
 }

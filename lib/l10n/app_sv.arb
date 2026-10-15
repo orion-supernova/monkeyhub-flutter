@@ -3816,5 +3816,7 @@
   "termsSheetBody": "För att fortsätta använda MonkeyHub behöver du godkänna våra användarvillkor. Här finns ingen plats för stötande innehåll eller kränkande beteende, och våra moderatorer granskar rapporterat innehåll.",
   "termsSheetAccept": "Godkänn och fortsätt",
   "termsAcceptFailed": "Det gick inte att spara. Försök igen.",
-  "settingsHubContactSupport": "Kontakta support"
+  "settingsHubContactSupport": "Kontakta support",
+  "reportSheetDisclosureMoment": "När du rapporterar skickas det här ögonblicket till MonkeyHubs moderatorer för granskning. Personen får inte veta att du rapporterade.",
+  "reportSheetDisclosureComment": "När du rapporterar skickas den här kommentaren till MonkeyHubs moderatorer för granskning. Personen får inte veta att du rapporterade."
 }

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
+import '../../widgets/report_sheet.dart';
 import '../../backend/feed_api.dart';
 import '../../keyboard/app_shortcuts.dart';
 import '../../keyboard/focusable_tap.dart';
@@ -1340,6 +1341,15 @@ class _MomentStageState extends State<_MomentStage>
                     api: widget.api,
                     onClose: _close,
                     onDelete: current.mine ? () => _delete(current) : null,
+                    onReport: current.mine
+                        ? null
+                        : () => fileReport(
+                              context,
+                              api: widget.api,
+                              reporterId: widget.userId,
+                              target: ReportTarget.moment,
+                              targetId: current.id,
+                            ),
                     // Offered only when it would change something: a landscape
                     // or square picture is shown whole either way.
                     onToggleFill: photoFillsScreen(
@@ -2082,7 +2092,11 @@ class _StageTopBar extends StatelessWidget {
     required this.onToggleFill,
     required this.filled,
     required this.onOpenAuthor,
+    this.onReport,
   });
+
+  /// Reports this moment to moderators. Null for your own.
+  final VoidCallback? onReport;
 
   final Moment moment;
   final ChatApi api;
@@ -2124,6 +2138,13 @@ class _StageTopBar extends StatelessWidget {
             destructive: true,
             icon: CupertinoIcons.trash,
           ),
+        if (onReport != null)
+          IosSheetAction(
+            label: l10n.messageActionMenuReportLabel,
+            value: 'report',
+            destructive: true,
+            icon: CupertinoIcons.flag,
+          ),
       ],
     );
     switch (choice) {
@@ -2131,6 +2152,8 @@ class _StageTopBar extends StatelessWidget {
         onToggleFill?.call();
       case 'delete':
         onDelete?.call();
+      case 'report':
+        onReport?.call();
     }
   }
 
@@ -2139,7 +2162,8 @@ class _StageTopBar extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final pad = MediaQuery.paddingOf(context);
-    final hasMenu = onToggleFill != null || onDelete != null;
+    final hasMenu =
+        onToggleFill != null || onDelete != null || onReport != null;
     final name = moment.mine
         ? sentenceCaseOf(context, l10n.momentRailYouLabel)
         : moment.authorName;

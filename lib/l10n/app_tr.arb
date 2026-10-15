@@ -3816,5 +3816,7 @@
   "termsSheetBody": "MonkeyHub'ı kullanmaya devam etmek için lütfen Kullanım Koşulları'nı kabul et. Burada uygunsuz içeriğe ya da taciz edici davranışa yer yok ve şikayet edilen içerikler moderatörlerimiz tarafından incelenir.",
   "termsSheetAccept": "Kabul et ve devam et",
   "termsAcceptFailed": "Kaydedilemedi. Tekrar dene.",
-  "settingsHubContactSupport": "Destekle iletişime geç"
+  "settingsHubContactSupport": "Destekle iletişime geç",
+  "reportSheetDisclosureMoment": "Şikayet etmek bu anı incelenmek üzere MonkeyHub moderatörlerine gönderir. Kişi şikayet ettiğini bilmez.",
+  "reportSheetDisclosureComment": "Şikayet etmek bu yorumu incelenmek üzere MonkeyHub moderatörlerine gönderir. Kişi şikayet ettiğini bilmez."
 }

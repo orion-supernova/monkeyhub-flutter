@@ -23058,6 +23058,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact support'**
   String get settingsHubContactSupport;
+
+  /// Report sheet disclosure when reporting a moment (a post in the feed). Says exactly what is sent to moderators. MonkeyHub is the app name; don't translate it.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting sends this moment to MonkeyHub moderators for review. The person won\'t know you reported them.'**
+  String get reportSheetDisclosureMoment;
+
+  /// Report sheet disclosure when reporting a comment on a moment. Says exactly what is sent to moderators. MonkeyHub is the app name; don't translate it.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting sends this comment to MonkeyHub moderators for review. The person won\'t know you reported them.'**
+  String get reportSheetDisclosureComment;
 }
 
 class _AppLocalizationsDelegate
