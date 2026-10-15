@@ -27,6 +27,7 @@ import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 import { FilterBlockedError, screenAndReport } from "./moderationCore";
 import { isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
+import { consume } from "./rateLimit";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -44,6 +45,26 @@ import { canReadRoom } from "./roomAccess";
  * call is skipped before the round trip — keep the two in step.
  */
 const DELIVERY_MEMBER_LIMIT = 50;
+
+/** Longest message, in UTF-16 units. Generous: Telegram stops at 4096. */
+export const MAX_CONTENT_CHARS = 8000;
+export const ERR_TOO_LONG = "MESSAGE_TOO_LONG";
+/** Per user: a burst a person can type, and an hour a person can sustain. */
+export const MAX_SENDS_PER_10S = 30;
+export const MAX_SENDS_PER_HOUR = 1500;
+const MAX_EDITS_PER_MINUTE = 30;
+/** Rooms up to this size let any member use @everyone. */
+const EVERYONE_OPEN_MAX_MEMBERS = 20;
+/** Read-cursor moves per user per minute, across every room. */
+const MAX_READS_PER_MINUTE = 240;
+
+/** Spends [count] sends from [userId]'s budget, or refuses. */
+export async function throttleSend(ctx: any, userId: any, count: number) {
+  for (let i = 0; i < count; i++) {
+    await consume(ctx, `send:${userId}`, MAX_SENDS_PER_10S, 10 * 1000);
+    await consume(ctx, `sendh:${userId}`, MAX_SENDS_PER_HOUR, 60 * 60 * 1000);
+  }
+}
 
 // ── View-once tuning ────────────────────────────────────────────────────────
 
@@ -772,10 +793,19 @@ async function resolveMentions(
   }
   // `@everyone` is only meaningful where there is a crowd to address, and a
   // DM already has the other person's full attention.
-  const everyone =
+  let everyone =
     mentionsEveryone === true &&
     !room?.name?.startsWith("dm:") &&
     content.includes("@everyone");
+  // In a crowd it pings everyone's phone, so past a small group only admins
+  // may. Downgraded to a plain message rather than refused: the text still
+  // posts, it just doesn't ring the room.
+  if (everyone && (room?.memberCount ?? 0) > EVERYONE_OPEN_MAX_MEMBERS) {
+    const mine = (await roster()).find(
+      (m: any) => m.userId.toString() === userId.toString(),
+    );
+    everyone = mine?.role === "owner" || mine?.role === "admin";
+  }
   return { resolvedMentions, everyone };
 }
 
@@ -1073,6 +1103,7 @@ export const send = mutation({
   // _postMessage`); a build older than the filter shows the bubble as sent
   // and never sees it echoed, which is the accepted cost for testers.
   handler: async (ctx, args) => {
+    await throttleSend(ctx, args.userId, 1);
     // Media in a room nobody else is in counts against the private budget.
     const room = await ctx.db.get(args.roomId);
     const solo = (room?.memberCount ?? 0) <= 1;
@@ -1109,6 +1140,12 @@ export const send = mutation({
  * transaction as whoever called this.
  */
 export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount, gameMove, quiet }: any) {
+  if (typeof content === "string" && content.length > MAX_CONTENT_CHARS) {
+    throw new Error(ERR_TOO_LONG);
+  }
+  if (typeof fileName === "string" && fileName.length > 255) {
+    fileName = fileName.slice(0, 255);
+  }
   // Idempotency, checked before anything else has a chance to happen twice.
   //
   // Everything below this line has side effects that must not be repeated:
@@ -2030,6 +2067,8 @@ export const editMessage = mutation({
     ctx,
     { messageId, userId, content, mentionedUserIds, mentionsEveryone, formatting }
   ) => {
+    await consume(ctx, `edit:${userId}`, MAX_EDITS_PER_MINUTE, 60 * 1000);
+    if (content.length > MAX_CONTENT_CHARS) throw new Error(ERR_TOO_LONG);
     const msg = await ctx.db.get(messageId);
     if (!msg) throw new Error("MESSAGE_NOT_FOUND");
 
@@ -2213,6 +2252,8 @@ export const forwardToRoom = mutation({
     if (messageIds.length > MAX_FORWARD_MESSAGES) {
       throw new Error("TOO_MANY_MESSAGES");
     }
+    // Each forwarded copy is a send, and spends the same budget.
+    await throttleSend(ctx, userId, messageIds.length);
     // Not an error worth its own code — the UI has no way to offer it — but
     // writing a room's own messages back into it would look like a bug.
     if (sourceRoomId.toString() === targetRoomId.toString()) {
@@ -3225,14 +3266,21 @@ export const markRoomRead = mutation({
     // createdAt` (room_screen.dart), and the newest message satisfies both.
     // Clients from before the argument existed send none and take the room
     // read as before.
+    // Never in the future: a cursor that could run ahead let a client patch
+    // this row (and refire everyone's read state) on every call by nudging
+    // `upTo` up by one. Clamped to the clock rather than the room's newest
+    // message so this still doesn't read the room row (see above).
     let newest: number;
     if (upTo !== undefined) {
-      newest = upTo;
+      newest = Math.min(upTo, Date.now());
     } else {
       const room = await ctx.db.get(roomId);
       newest = room?.lastMessageTime ?? 0;
     }
     if ((membership.lastReadAt ?? 0) >= newest) return;
+    // Only cursor moves count: the early return above already makes a
+    // repeated call free.
+    await consume(ctx, `read:${userId}`, MAX_READS_PER_MINUTE, 60 * 1000);
 
     // The cursor is the message's timestamp, but WHEN it was read is now —
     // stamped separately so the receipts screen has a real read time rather

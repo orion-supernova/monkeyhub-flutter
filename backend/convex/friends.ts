@@ -17,6 +17,8 @@ import { lensFor, publicUserView, seenVisibilityOf } from "./visibility";
 import { addMembership } from "./roomAdmin";
 import { searchUsersCore } from "./users";
 import { grantRoomAccess } from "./roomAccess";
+import { consume } from "./rateLimit";
+import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 
 /**
  * Pings whoever now holds a request.
@@ -60,6 +62,13 @@ async function notifyHolder(
   });
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** Friend and message requests one account may send per day. */
+const MAX_FRIEND_REQUESTS_PER_DAY = 30;
+const MAX_REQUEST_MESSAGE_CHARS = 1000;
+/** Messages on one pending request, both people together. */
+const MAX_REQUEST_MESSAGES = 20;
+
 async function insertRequestMessage(
   ctx: any,
   requestId: string,
@@ -67,6 +76,15 @@ async function insertRequestMessage(
   content: string,
   timestamp = Date.now()
 ) {
+  // A message request is a stranger's text, so the strictest surface for the
+  // filter, and it had none: no filter, no length cap, no count cap.
+  if (content.length > MAX_REQUEST_MESSAGE_CHARS) throw new Error("MESSAGE_TOO_LONG");
+  if (hasHit(content)) throw new Error(ERR_FILTER_BLOCKED);
+  const sent = await ctx.db
+    .query("friendRequestMessages")
+    .withIndex("by_request", (q: any) => q.eq("requestId", requestId))
+    .take(MAX_REQUEST_MESSAGES + 1);
+  if (sent.length >= MAX_REQUEST_MESSAGES) throw new Error("TOO_MANY_MESSAGES");
   await ctx.db.insert("friendRequestMessages", {
     requestId,
     userId,
@@ -188,10 +206,16 @@ async function createDirectRoom(
 export const sendRequest = mutation({
   args: { userId: v.id("users"), friendUsername: v.string() },
   handler: async (ctx, { userId, friendUsername }) => {
+    await consume(ctx, `freq:${userId}`, MAX_FRIEND_REQUESTS_PER_DAY, DAY_MS);
     const friend = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", friendUsername))
       .first();
+    // Rejection deletes the row, so the same person could be asked again at
+    // once, forever. Three asks per pair per week.
+    if (friend) {
+      await consume(ctx, `freqpair:${userId}:${friend._id}`, 3, 7 * DAY_MS);
+    }
     if (!friend) throw new Error("USER_NOT_FOUND");
     if (friend._id === userId) throw new Error("CANNOT_ADD_SELF");
     // Nobody befriends a system account. This path resolves its target from a
@@ -356,6 +380,8 @@ export const createDirectRequest = mutation({
   },
   handler: async (ctx, { userId, friendId, roomType, messageLifetime, initialMessage }) => {
     if (userId.toString() === friendId.toString()) throw new Error("CANNOT_ADD_SELF");
+    await consume(ctx, `freq:${userId}`, MAX_FRIEND_REQUESTS_PER_DAY, DAY_MS);
+    await consume(ctx, `freqpair:${userId}:${friendId}`, 3, 7 * DAY_MS);
 
     const target = await ctx.db.get(friendId);
     if (!target) throw new Error("USER_NOT_FOUND");
@@ -443,6 +469,14 @@ export const appendDirectRequestMessage = mutation({
   handler: async (ctx, { requestId, userId, content }) => {
     const request = await ctx.db.get(requestId);
     if (!request || request.status !== "pending") throw new Error("REQUEST_NOT_FOUND");
+    // Only the two people on the request. Anyone holding its id could write
+    // into it before.
+    if (
+      request.userId.toString() !== userId.toString() &&
+      request.friendId.toString() !== userId.toString()
+    ) {
+      throw new Error("REQUEST_NOT_FOUND");
+    }
 
     await insertRequestMessage(ctx, requestId, userId, content.trim());
   },

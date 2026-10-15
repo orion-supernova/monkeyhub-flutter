@@ -12,6 +12,7 @@ import { assertNoSystemAccount } from "./systemAccount";
 import { assertRoomAllowsById } from "./roomPolicy";
 import { lensFor, levelOf } from "./visibility";
 import { TAKEN_PUSH_GRACE_MS } from "./calls";
+import { consume } from "./rateLimit";
 
 // ────────────────────────────── constants ──────────────────────────────
 
@@ -228,6 +229,9 @@ export const _pendingInvitees = internalQuery({
 // null/absent = everyone in the room except the starter; otherwise the
 // given subset. Members blocked from/by the starter, and child accounts
 // the starter may not reach, are silently skipped.
+/** Most people one call start may ring. */
+const MAX_RING_INVITEES = 32;
+
 export const start = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -239,6 +243,10 @@ export const start = mutation({
   handler: async (ctx, { roomId, userId, deviceId, type, inviteeIds }) => {
     if (type !== "audio" && type !== "video") throw new Error("BAD_CALL_TYPE");
     await requireMember(ctx, roomId, userId);
+    // Starting a call rings the room. Start, end, repeat used to ring
+    // everyone in it without limit.
+    await consume(ctx, `gcall:${roomId}`, 2, 60 * 1000);
+    await consume(ctx, `gcallh:${userId}`, 10, 60 * 60 * 1000);
     // The room's posting policy decides whether calls happen here at all.
     // Checked before the roster walk below, which it makes unnecessary.
     await assertRoomAllowsById(ctx, roomId, userId, { actions: ["call"] });
@@ -295,6 +303,8 @@ export const start = mutation({
       inviteeIds ?? members.map((m) => m.userId);
     const invited: any[] = [];
     for (const inviteeId of requested) {
+      // A call holds six; ringing a whole public room for six seats is noise.
+      if (invited.length >= MAX_RING_INVITEES) break;
       const key = inviteeId.toString();
       if (key === userId.toString()) continue;
       if (!memberIds.has(key)) continue;

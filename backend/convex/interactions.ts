@@ -1,9 +1,10 @@
 import { mutation, query } from "./functions";
 import { v } from "convex/values";
-import { sendCore } from "./messages";
+import { sendCore, throttleSend } from "./messages";
 import { isAdminRole, roleOf } from "./roomAdmin";
 import { assertRoomAllowsById } from "./roomPolicy";
 import { canReadRoom } from "./roomAccess";
+import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 
 // `purgeInteraction` and `forkInteraction` deliberately live in
 // `interactionCore.ts` and not here — see that file's header for the cycle
@@ -357,6 +358,7 @@ export const create = mutation({
       clientId,
     } = args;
 
+    await throttleSend(ctx, userId, 1);
     if (kind !== "poll" && kind !== "checklist" && kind !== "event") {
       throw new Error(ERR_BAD_DEFINITION);
     }
@@ -401,6 +403,8 @@ export const create = mutation({
       const raw = (labels ?? [])
         .map((l) => text(l, MAX_LABEL, false))
         .filter((l) => l.length > 0);
+      // Option labels are text every member reads, and skipped the filter.
+      if (raw.some((l) => hasHit(l))) throw new Error(ERR_FILTER_BLOCKED);
       const min = kind === "poll" ? MIN_POLL_OPTIONS : 1;
       const max = kind === "poll" ? MAX_POLL_OPTIONS : MAX_CHECKLIST_ITEMS;
       if (raw.length < min || raw.length > max) {
@@ -693,6 +697,7 @@ export const addItem = mutation({
     }
 
     const clean = text(label, MAX_LABEL, true);
+    if (hasHit(clean)) throw new Error(ERR_FILTER_BLOCKED);
     // `?? choices.length` covers rows written before the counter existed. It is
     // the one case where reusing the length is safe: such a list has never had
     // an item removed, because nothing could remove one.

@@ -34,6 +34,7 @@ import { lensFor } from "./visibility";
 import { assertCleanName, isObjectionableName } from "./contentFilter";
 import { fileContentReport } from "./moderationCore";
 import { isRetiredHandle } from "./retiredHandles";
+import { consume } from "./rateLimit";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -212,6 +213,14 @@ export const updateStatus = mutation({
       user.lastSeen != null &&
       now - user.lastSeen < PRESENCE_WRITE_INTERVAL_MS
     ) {
+      return;
+    }
+    // A real status CHANGE is still written, but not without limit: flipping
+    // online/away on a loop rewrote this row, and every subscription reading
+    // it, on every call. Over the limit the flip is dropped, not refused.
+    try {
+      await consume(ctx, `presence:${userId}`, 20, 60 * 1000);
+    } catch {
       return;
     }
     await ctx.db.patch(userId, {

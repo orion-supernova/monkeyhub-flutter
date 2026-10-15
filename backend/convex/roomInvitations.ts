@@ -41,6 +41,7 @@ import {
   membershipOf,
   roleOf,
 } from "./roomAdmin";
+import { consume } from "./rateLimit";
 
 export const ERR_ALREADY_MEMBER = "ALREADY_MEMBER";
 export const ERR_ALREADY_INVITED = "ALREADY_INVITED";
@@ -70,6 +71,10 @@ export const invite = mutation({
     inviteeId: v.id("users"),
   },
   handler: async (ctx, { roomId, userId, inviteeId }) => {
+    // Each invite pushes the invitee, and a declined one used to be
+    // re-sendable at once. 50 a day per inviter, 3 a week per room+person.
+    await consume(ctx, `invite:${userId}`, 50, 24 * 60 * 60 * 1000);
+    await consume(ctx, `invitepair:${roomId}:${inviteeId}`, 3, 7 * 24 * 60 * 60 * 1000);
     const room = await assertAdministrableRoom(ctx, roomId);
     await assertMayInvite(ctx, room, userId);
     if (inviteeId.toString() === userId.toString()) {

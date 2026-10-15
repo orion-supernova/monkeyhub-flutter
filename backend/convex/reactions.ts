@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { assertRoomAllowsById } from "./roomPolicy";
 import { canReadRoom } from "./roomAccess";
+import { consume } from "./rateLimit";
 
 /**
  * How many distinct emoji one person may leave on one message.
@@ -26,6 +27,10 @@ export const addReaction = mutation({
     album: v.optional(v.boolean()),
   },
   handler: async (ctx, { messageId, userId, emoji, album }) => {
+    // Each add can push the author; add/remove/add used to buzz them on loop.
+    await consume(ctx, `react:${userId}`, 60, 60 * 1000);
+    await consume(ctx, `reactmsg:${userId}:${messageId}`, 20, 10 * 60 * 1000);
+    if (emoji.length === 0 || emoji.length > 32) throw new Error("BAD_EMOJI");
     const toAlbum = album === true;
     // Verify message exists
     const msg = await ctx.db.get(messageId);

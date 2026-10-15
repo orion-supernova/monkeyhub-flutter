@@ -11,6 +11,7 @@ import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
 import { assertRoomAllowsById } from "./roomPolicy";
 import { lensFor } from "./visibility";
+import { consume } from "./rateLimit";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -334,6 +335,10 @@ export const initiate = mutation({
     if (callerId.toString() === calleeId.toString()) {
       throw new Error("CANNOT_CALL_SELF");
     }
+    // A ring is a full-screen interruption on someone else's phone. Calling,
+    // cancelling and calling again used to ring them without limit.
+    await consume(ctx, `ring:${callerId}:${calleeId}`, 3, 2 * 60 * 1000);
+    await consume(ctx, `ringh:${callerId}`, 30, 60 * 60 * 1000);
     if (type !== "audio" && type !== "video") throw new Error("BAD_CALL_TYPE");
 
     // A system account has no device to ring. The membership check below would
