@@ -109,6 +109,16 @@ export function linkJoinPolicyOf(room: any): string {
   return room?.linkJoinPolicy === JOIN_APPROVAL ? JOIN_APPROVAL : JOIN_OPEN;
 }
 
+/** Members per room. WhatsApp allows 1024, Signal 1000. */
+export const MAX_ROOM_MEMBERS = 1000;
+/** Rooms one account may be in at once, DMs included. */
+export const MAX_ROOMS_PER_USER = 500;
+/** How long a removed member is kept from rejoining on their own. */
+const REMOVAL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+export const ERR_ROOM_FULL = "ROOM_FULL";
+export const ERR_TOO_MANY_ROOMS = "TOO_MANY_ROOMS";
+export const ERR_REMOVED = "REMOVED_FROM_ROOM";
+
 // ──────────────────────────── assertions ────────────────────────────
 
 /** Loads the room or throws. Every mutation below starts here. */
@@ -191,6 +201,15 @@ export async function addMembership(
 ): Promise<boolean> {
   const existing = await membershipOf(ctx, roomId, userId);
   if (existing) return false;
+  const target = await ctx.db.get(roomId);
+  if (target && target.memberCount >= MAX_ROOM_MEMBERS) {
+    throw new Error(ERR_ROOM_FULL);
+  }
+  const joined = await ctx.db
+    .query("roomMembers")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .take(MAX_ROOMS_PER_USER);
+  if (joined.length >= MAX_ROOMS_PER_USER) throw new Error(ERR_TOO_MANY_ROOMS);
   await ctx.db.insert("roomMembers", {
     roomId,
     userId,
@@ -475,8 +494,34 @@ export const removeMember = mutation({
     }
 
     await removeMembership(ctx, roomId, targetUserId);
+    // Removed means removed: without this they walked straight back in
+    // through Discover or the room's link.
+    const ban = await ctx.db
+      .query("roomBans")
+      .withIndex("by_room_user", (q: any) =>
+        q.eq("roomId", roomId).eq("userId", targetUserId),
+      )
+      .first();
+    const until = Date.now() + REMOVAL_COOLDOWN_MS;
+    if (ban) await ctx.db.patch(ban._id, { until });
+    else await ctx.db.insert("roomBans", { roomId, userId: targetUserId, until });
   },
 });
+
+/**
+ * Refuses [userId] re-entering [roomId] on their own while a removal is
+ * still in force. Called by the self-service doors only (Discover join and
+ * open links); an invitation or an approved request is an admin's decision.
+ */
+export async function assertNotRemoved(ctx: any, roomId: any, userId: any) {
+  const ban = await ctx.db
+    .query("roomBans")
+    .withIndex("by_room_user", (q: any) =>
+      q.eq("roomId", roomId).eq("userId", userId),
+    )
+    .first();
+  if (ban && ban.until > Date.now()) throw new Error(ERR_REMOVED);
+}
 
 /**
  * The room's two administrative switches, set together because they live in

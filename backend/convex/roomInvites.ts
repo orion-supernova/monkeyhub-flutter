@@ -41,6 +41,7 @@ import {
   linkJoinPolicyOf,
   membershipOf,
   roleOf,
+  assertNotRemoved,
 } from "./roomAdmin";
 
 /**
@@ -430,6 +431,7 @@ export const redeem = mutation({
       return { status: "pending", roomId };
     }
 
+    await assertNotRemoved(ctx, roomId, userId);
     await addMembership(ctx, roomId, userId);
     await clearPendingFor(ctx, roomId, userId);
     await ctx.db.patch(invite!._id, { useCount: (invite!.useCount ?? 0) + 1 });

@@ -18,6 +18,7 @@ import { purgeChallengesForRoom, purgeMatchesForRoom } from "./matchCore";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { revokeAllRoomAccess } from "./roomAccess";
+import { internal } from "./_generated/api";
 
 /**
  * Deletes messages, reactions, media, and membership-related data for a room.
@@ -26,12 +27,34 @@ import { revokeAllRoomAccess } from "./roomAccess";
  * orphaned memberships (when the room doc is already gone).
  */
 async function wipeRoomContents(ctx: any, roomId: any) {
+  // Messages go in batches. A room with thousands of them could not be
+  // deleted in one transaction (Convex caps reads and writes per call), and
+  // because the last member leaving also lands here, nobody could leave it
+  // either. The rest is gone by the time this returns; leftover messages are
+  // unreadable already (memberships and access are dropped below) and are
+  // finished by [wipeMessagesLater].
+  if (await wipeMessagesBatch(ctx, roomId, WIPE_BATCH)) {
+    await ctx.scheduler.runAfter(0, internal.roomCleanup.wipeMessagesLater, {
+      roomId,
+    });
+  }
+  await wipeRoomRows(ctx, roomId);
+}
+
+/** Messages deleted per transaction during a room teardown. */
+const WIPE_BATCH = 300;
+
+/**
+ * Deletes up to [limit] of [roomId]'s messages with their reactions, media
+ * and view-once rows. True when more remain.
+ */
+async function wipeMessagesBatch(ctx: any, roomId: any, limit: number) {
   // Messages → reactions + media + row
   const msgs = await ctx.db
     .query("messages")
     .withIndex("by_room_time", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const msg of msgs) {
+    .take(limit + 1);
+  for (const msg of msgs.slice(0, limit)) {
     const reactions = await ctx.db
       .query("reactions")
       .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
@@ -48,6 +71,23 @@ async function wipeRoomContents(ctx: any, roomId: any) {
     for (const vw of views) await ctx.db.delete(vw._id);
     await ctx.db.delete(msg._id);
   }
+  return msgs.length > limit;
+}
+
+/** Finishes a teardown's messages, one batch per transaction. */
+export const wipeMessagesLater = internalMutation({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    if (await wipeMessagesBatch(ctx, roomId, WIPE_BATCH)) {
+      await ctx.scheduler.runAfter(0, internal.roomCleanup.wipeMessagesLater, {
+        roomId,
+      });
+    }
+  },
+});
+
+/** Everything about a room except its messages. */
+async function wipeRoomRows(ctx: any, roomId: any) {
   // Memberships
   const members = await ctx.db
     .query("roomMembers")

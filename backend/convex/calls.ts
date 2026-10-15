@@ -1009,9 +1009,24 @@ export const activeCallForUser = query({
 // Convex env, generates short-lived TURN REST API credentials (HMAC-SHA1 of
 // "<unix-ts + ttl>:<userId>", 1 hour validity). Coturn must be running with
 // `use-auth-secret` + the matching `static-auth-secret`.
+/**
+ * Spends one TURN credential from [userId]'s hourly budget. Credentials are
+ * a relay on our server, and any account could mint them on a loop with no
+ * call in sight; a real user fetches one per call attempt.
+ */
+export const spendIceQuota = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    await consume(ctx, `ice:${userId}`, MAX_ICE_CONFIGS_PER_HOUR, 60 * 60 * 1000);
+  },
+});
+
+const MAX_ICE_CONFIGS_PER_HOUR = 60;
+
 export const getIceConfig = action({
   args: { userId: v.id("users") },
-  handler: async (_ctx, { userId }) => {
+  handler: async (ctx, { userId }) => {
+    await ctx.runMutation(internal.calls.spendIceQuota, { userId });
     const stun = [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },

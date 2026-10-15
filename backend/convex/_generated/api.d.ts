@@ -64,6 +64,7 @@ import type * as partyGames_liarsDice from "../partyGames/liarsDice.js";
 import type * as partyGames_race from "../partyGames/race.js";
 import type * as partyGames_registry from "../partyGames/registry.js";
 import type * as partyGames_types from "../partyGames/types.js";
+import type * as passwords from "../passwords.js";
 import type * as pins from "../pins.js";
 import type * as presence from "../presence.js";
 import type * as problemReports from "../problemReports.js";
@@ -178,6 +179,7 @@ declare const fullApi: ApiFromModules<{
   "partyGames/race": typeof partyGames_race;
   "partyGames/registry": typeof partyGames_registry;
   "partyGames/types": typeof partyGames_types;
+  passwords: typeof passwords;
   pins: typeof pins;
   presence: typeof presence;
   problemReports: typeof problemReports;

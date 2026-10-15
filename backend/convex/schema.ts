@@ -355,7 +355,8 @@ export default defineSchema({
     .index("by_name", ["name"])
     .index("by_last_activity", ["lastMessageTime"])
     // Discover lists public rooms only.
-    .index("by_visibility", ["isPrivate"]),
+    .index("by_visibility", ["isPrivate"])
+    .index("by_visibility_activity", ["isPrivate", "lastMessageTime"]),
 
   // Who may read a room: one row per membership, written only on join and
   // leave so live queries can check it without re-running on every receipt.
@@ -2674,6 +2675,15 @@ export default defineSchema({
     username: v.string(),
     retiredAt: v.number(),
   }).index("by_username", ["username"]),
+
+  // Who an admin removed from a room, and until when they can't walk back in
+  // through the public door or a link. An explicit invite or an approved
+  // join request still lets them in: that is an admin choosing again.
+  roomBans: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    until: v.number(),
+  }).index("by_room_user", ["roomId", "userId"]),
 
   // Fixed-window call counters for `rateLimit.consume`. One row per key.
   rateBuckets: defineTable({

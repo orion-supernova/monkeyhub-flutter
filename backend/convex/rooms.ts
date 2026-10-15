@@ -25,6 +25,7 @@ import {
   isGroupRoom,
   membershipOf,
   removeMembership,
+  assertNotRemoved,
 } from "./roomAdmin";
 import { grantRoomAccess } from "./roomAccess";
 import {
@@ -33,7 +34,22 @@ import {
   noteFailure,
   refusal,
   roomPasswordKey,
+  consume,
 } from "./rateLimit";
+
+/** Rooms one account may create per day. */
+const MAX_ROOMS_CREATED_PER_DAY = 10;
+/** Public rooms Discover lists, most recently active first. */
+const DISCOVER_LIMIT = 200;
+const ROOM_NAME_MAX = 100;
+const ROOM_DESCRIPTION_MAX = 500;
+
+function assertRoomTextLengths(name: string, description: string | undefined) {
+  if (name.length > ROOM_NAME_MAX) throw new Error("ROOM_NAME_TOO_LONG");
+  if ((description ?? "").length > ROOM_DESCRIPTION_MAX) {
+    throw new Error("ROOM_DESCRIPTION_TOO_LONG");
+  }
+}
 
 export const create = mutation({
   args: {
@@ -50,6 +66,8 @@ export const create = mutation({
     // then only private ones — a child publishing a public room would be a
     // discoverable surface nobody approved.
     await assertChildPolicy(ctx, userId, "canCreateRooms");
+    await consume(ctx, `roomcreate:${userId}`, MAX_ROOMS_CREATED_PER_DAY, 24 * 60 * 60 * 1000);
+    assertRoomTextLengths(name, description);
     const creatorIsChild = await isChild(ctx, userId);
     const visibility = creatorIsChild ? true : isPrivate;
     // A room's name and description are shown to everyone who can find it.
@@ -107,6 +125,7 @@ export const join = mutation({
     // this with a private room, because nothing shows the user one to call it
     // with.
     if (room.isPrivate) throw new Error("ROOM_IS_PRIVATE");
+    await assertNotRemoved(ctx, roomId, userId);
 
     if (room.passwordHash) {
       if (!passwordHash || passwordHash.length === 0) throw new Error("ROOM_PASSWORD_REQUIRED");
@@ -240,6 +259,7 @@ export const updateRoom = mutation({
 
     const trimmed = name.trim();
     if (!trimmed) throw new Error("ROOM_NAME_REQUIRED");
+    assertRoomTextLengths(trimmed, description);
     assertCleanName(trimmed);
     assertCleanText(description);
     if (trimmed !== room.name) {
@@ -306,10 +326,15 @@ export const listPublic = query({
       const viewer = await ctx.db.get(viewerUserId);
       if (viewer?.accountType === "child") return [];
     }
+    // The most active public rooms, not all of them. Every message in any
+    // public room patches its row and re-runs this for everyone with Discover
+    // open, so an unbounded list let a few thousand junk rooms take Discover
+    // down for everybody.
     const rooms = await ctx.db
       .query("rooms")
-      .withIndex("by_visibility", (q) => q.eq("isPrivate", false))
-      .collect();
+      .withIndex("by_visibility_activity", (q) => q.eq("isPrivate", false))
+      .order("desc")
+      .take(DISCOVER_LIMIT);
 
     // Which of these the viewer is already in. Read once over `by_user` and
     // held as a Set — a per-room `by_room_user` lookup would be one query per
@@ -328,11 +353,16 @@ export const listPublic = query({
     }
 
     // Strip passwordHash for security — expose only a boolean indicator
-    return rooms.map(({ passwordHash, ...rest }) => ({
-      ...rest,
-      hasPassword: !!passwordHash,
-      isMember: joined.has(rest._id.toString()),
-    }));
+    // `lastMessage` is a room's content, which is for its members.
+    return rooms.map(({ passwordHash, lastMessage, ...rest }) => {
+      const isMember = joined.has(rest._id.toString());
+      return {
+        ...rest,
+        ...(isMember ? { lastMessage } : {}),
+        hasPassword: !!passwordHash,
+        isMember,
+      };
+    });
   },
 });
 

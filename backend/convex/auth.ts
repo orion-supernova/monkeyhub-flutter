@@ -486,6 +486,27 @@ const byUser = (userId: any) => (q: any) => q.eq("userId", userId);
  * Ordering matters in one place only — rooms go first, because wiping a room
  * takes its messages with it and leaves the per-message pass less to walk.
  */
+/** Messages removed per transaction when an account is deleted. */
+const PURGE_BATCH = 200;
+
+/** Finishes deleting a removed account's messages, one batch at a time. */
+export const purgeMessagesLater = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const batch = await ctx.db
+      .query("messages")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .take(PURGE_BATCH + 1);
+    for (const msg of batch.slice(0, PURGE_BATCH)) {
+      const live = await ctx.db.get(msg._id);
+      if (live) await removeMessageAndFanout(ctx, live, msg._id);
+    }
+    if (batch.length > PURGE_BATCH) {
+      await ctx.scheduler.runAfter(0, internal.auth.purgeMessagesLater, { userId });
+    }
+  },
+});
+
 async function purgeUser(ctx: any, userId: any) {
   const user = await ctx.db.get(userId);
   await retireIfStaff(ctx, user?.username);
@@ -541,10 +562,17 @@ async function purgeUser(ctx: any, userId: any) {
   }
 
   // ── Messages this user sent in rooms that survived ───────────────────────
+  // In batches: a heavy user's history did not fit one transaction, and the
+  // deletion Apple requires simply failed. The rest finishes in
+  // [purgeMessagesLater]; the account itself is gone when this returns.
   const userMessages = await ctx.db
     .query("messages")
     .withIndex("by_user", byUser(userId))
-    .collect();
+    .take(PURGE_BATCH + 1);
+  if (userMessages.length > PURGE_BATCH) {
+    userMessages.length = PURGE_BATCH;
+    await ctx.scheduler.runAfter(0, internal.auth.purgeMessagesLater, { userId });
+  }
   // Through the same per-message teardown every other delete path uses
   // (`messages.removeMessageAndFanout`): reactions and pins and bookmarks
   // OTHER people put on these messages, the refcounted media, the view-once
