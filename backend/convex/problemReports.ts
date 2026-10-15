@@ -17,6 +17,8 @@ import {
   provisionSystemInbox,
   resolveStaff,
 } from "./systemRooms";
+import { claimUpload } from "./files";
+import { consume } from "./rateLimit";
 
 /**
  * Delivery for the "Report a problem" screen.
@@ -67,6 +69,9 @@ export const ERR_TOO_MANY_REPORTS = "TOO_MANY_REPORTS";
 export const ERR_NO_INBOX = "REPORT_INBOX_MISSING";
 
 /** Belt-and-braces cap on the note. The client caps the field at 2000. */
+/** Screenshots kept per report; the rest are dropped (and swept). */
+const MAX_SCREENSHOTS = 3;
+
 const MAX_BODY_CHARS = 8000;
 
 /**
@@ -147,8 +152,14 @@ export const submit = mutation({
   returns: v.object({ ok: v.boolean() }),
   handler: async (
     ctx,
-    { deviceId, reporterId, body, logStorageId, logFileName, logFileSize, screenshots },
+    { deviceId, reporterId, body, logStorageId, logFileName, logFileSize, screenshots, userId },
   ) => {
+    // Per account as well as per device: the device id is the client's word,
+    // so a script rotating it was never limited at all.
+    await consume(ctx, `report:${userId}`, MAX_REPORTS_PER_WINDOW, REPORT_WINDOW_MS);
+    screenshots = (screenshots ?? []).slice(0, MAX_SCREENSHOTS);
+    await claimUpload(ctx, logStorageId, userId, "report");
+    for (const id of screenshots) await claimUpload(ctx, id, userId, "report");
     // Throttle first, before anything is created or written. A device that has
     // spent its budget must not be able to conjure the log account or the room
     // as a side effect of being refused.

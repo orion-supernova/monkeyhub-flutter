@@ -106,6 +106,24 @@ crons.interval(
   {},
 );
 
+// Uploads since the ledger existed that nothing claimed: abandoned sends, and
+// anything a script PUT to use the server as storage. Cursor-driven, so each
+// run is one page however big storage gets. See files.sweepUnclaimed.
+crons.interval(
+  "files.sweepUnclaimed",
+  { hours: 1 },
+  internal.files.sweepUnclaimed,
+  {},
+);
+
+// Idle rate-limit counters. See rateLimit.consume.
+crons.interval(
+  "rateLimit.gcRateBuckets",
+  { hours: 24 },
+  internal.rateLimit.gcRateBuckets,
+  {},
+);
+
 // Repair incomplete room teardowns: scan for roomMembers rows whose room
 // document no longer exists (can happen if a teardown crashes mid-flow), and
 // delete the orphaned messages, reactions, and membership rows. A deleted room

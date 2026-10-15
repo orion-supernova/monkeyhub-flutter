@@ -3,7 +3,7 @@ import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { guardOutgoing, permissionsFor, sendCore } from "./messages";
-import { deleteStored } from "./files";
+import { deleteStored, claimUpload } from "./files";
 
 // ── Tuning ──────────────────────────────────────────────────────────────────
 
@@ -271,6 +271,12 @@ export const schedule = mutation({
       (await ctx.db.system.get(mediaStorageId)) === null
     ) {
       throw new Error("SCHEDULE_BAD_MEDIA");
+    }
+    if (mediaStorageId !== undefined) {
+      const target = await ctx.db.get(roomId);
+      await claimUpload(ctx, mediaStorageId, userId, "media", {
+        solo: (target?.memberCount ?? 0) <= 1,
+      });
     }
 
     // Idempotency, before anything with a side effect — the same rule and the

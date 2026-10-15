@@ -2641,6 +2641,47 @@ export default defineSchema({
     // have.
     .index("by_revoked_at", ["revokedAt"]),
 
+  // One row per uploaded file someone has attached to something: who owns
+  // it and what it weighs. Ownership is what stops one account attaching (and
+  // later deleting) another's file; the weight feeds `uploadUsage`. A file
+  // with no row here was never attached, and `files.sweepUnclaimed` reclaims
+  // it. See `files.ts`.
+  uploads: defineTable({
+    storageId: v.id("_storage"),
+    // Absent for files the server made itself (bot avatars, official stickers).
+    userId: v.optional(v.id("users")),
+    size: v.number(),
+    // Counted against the owner's private-storage budget: media kept in a room
+    // nobody else is in (Saved Messages, a room of one).
+    solo: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_storage", ["storageId"])
+    .index("by_user", ["userId"]),
+
+  // Running totals per user, so a quota check is one read. See `files.ts`.
+  uploadUsage: defineTable({
+    userId: v.id("users"),
+    totalBytes: v.number(),
+    soloBytes: v.number(),
+    dayStart: v.number(),
+    dayBytes: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Fixed-window call counters for `rateLimit.consume`. One row per key.
+  rateBuckets: defineTable({
+    key: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_window", ["windowStart"]),
+
+  // The single cursor `files.sweepUnclaimed` resumes from.
+  uploadSweep: defineTable({
+    cursor: v.number(),
+  }),
+
   authAttempts: defineTable({
     key: v.string(), // "login:<userId>" | "recovery:<userId>"
     failures: v.number(),

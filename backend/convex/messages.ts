@@ -12,7 +12,7 @@ import {
   childPolicyOf,
   childPolicyOfUser,
 } from "./childGuard";
-import { deleteStored, releaseMessageBlobs } from "./files";
+import { deleteStored, releaseMessageBlobs, claimUpload } from "./files";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
 import { lensFor } from "./visibility";
@@ -1070,6 +1070,11 @@ export const send = mutation({
   // _postMessage`); a build older than the filter shows the bubble as sent
   // and never sees it echoed, which is the accepted cost for testers.
   handler: async (ctx, args) => {
+    // Media in a room nobody else is in counts against the private budget.
+    const room = await ctx.db.get(args.roomId);
+    const solo = (room?.memberCount ?? 0) <= 1;
+    await claimUpload(ctx, args.mediaStorageId, args.userId, "media", { solo });
+    await claimUpload(ctx, args.posterStorageId, args.userId, "media", { solo });
     try {
       return await sendCore(ctx, args);
     } catch (err) {

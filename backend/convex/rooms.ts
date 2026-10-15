@@ -14,7 +14,7 @@ import { assertCleanName, assertCleanText } from "./contentFilter";
 import { lensFor, levelOf, publicUserView, seenVisibilityOf } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
-import { deleteStored } from "./files";
+import { deleteStored, claimUpload } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
 import {
   ROLE_MEMBER,
@@ -270,6 +270,7 @@ export const updateRoomAvatar = mutation({
   handler: async (ctx, { roomId, userId, storageId }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
+    await claimUpload(ctx, storageId, userId, "avatar");
     // Same rule as `updateRoom`, for the same reason — the avatar is the most
     // visible thing about a group, and it is the one a griefer reaches for.
     if (isGroupRoom(room)) {

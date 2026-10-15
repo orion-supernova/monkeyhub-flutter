@@ -36,7 +36,7 @@ import { assertCleanName, assertCleanText } from "./contentFilter";
 import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { deleteStored } from "./files";
+import { deleteStored, claimUpload } from "./files";
 import { lensFor, publicUserView } from "./visibility";
 import {
   assertAdministrableRoom,
@@ -225,6 +225,7 @@ export const propose = mutation({
     let proposed: string;
     if (field === FIELD_AVATAR) {
       if (!storageId) throw new Error(ERR_MISSING_VALUE);
+      await claimUpload(ctx, storageId, userId, "avatar");
       proposed = storageId.toString();
     } else {
       const trimmed = (value ?? "").trim();

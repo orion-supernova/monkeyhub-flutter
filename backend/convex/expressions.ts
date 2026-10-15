@@ -7,7 +7,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { expressionRef } from "./schema";
-import { deleteStored } from "./files";
+import { deleteStored, claimUpload } from "./files";
 import { isKlipyUrl } from "./messages";
 
 /**
@@ -362,6 +362,7 @@ export const createPersonalSticker = mutation({
     // day either way.
     const meta = await ctx.db.system.get(storageId);
     if (!meta) throw new Error("FILE_NOT_FOUND");
+    await claimUpload(ctx, storageId, userId, "media");
     // A sticker is a picture. Anything else uploaded under this name would be
     // served to whoever receives it as though it were one. Checked only when
     // the upload declared a type — the client always sends one, and an
@@ -738,6 +739,8 @@ export const insertOfficialSticker = internalMutation({
     format: v.optional(v.string()),
   },
   handler: async (ctx, { format, ...args }) => {
+    // Server-owned, so the unclaimed-file sweep leaves it alone.
+    await claimUpload(ctx, args.storageId, undefined, "media");
     await ctx.db.insert("stickers", {
       ...args,
       format: format === "image" ? "image" : "lottie",

@@ -153,3 +153,51 @@ export const gcAuthAttempts = internalMutation({
     for (const r of stale) await ctx.db.delete(r._id);
   },
 });
+
+/** Refused by [consume] once a key is out of calls for its window. */
+export const ERR_RATE_LIMITED = "RATE_LIMITED";
+
+/**
+ * Counts one call against [key], refusing past [max] per [windowMs].
+ *
+ * For how OFTEN something may happen, unlike the failure counters above,
+ * which only count mistakes. A fixed window: simple, one indexed row per key,
+ * and a burst at a window edge costs at most double, which every limit here
+ * is sized to tolerate. Throwing is right for this one: a refused call has
+ * nothing to record, so the rollback loses nothing.
+ */
+export async function consume(
+  ctx: MutationCtx,
+  key: string,
+  max: number,
+  windowMs: number,
+): Promise<void> {
+  const now = Date.now();
+  const row = await ctx.db
+    .query("rateBuckets")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first();
+  if (!row) {
+    await ctx.db.insert("rateBuckets", { key, windowStart: now, count: 1 });
+    return;
+  }
+  if (now - row.windowStart >= windowMs) {
+    await ctx.db.patch(row._id, { windowStart: now, count: 1 });
+    return;
+  }
+  if (row.count >= max) throw new Error(ERR_RATE_LIMITED);
+  await ctx.db.patch(row._id, { count: row.count + 1 });
+}
+
+/** Drops counter rows idle for a day; scheduled from `crons.ts`. */
+export const gcRateBuckets = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const stale = await ctx.db
+      .query("rateBuckets")
+      .withIndex("by_window", (q) => q.lt("windowStart", cutoff))
+      .take(500);
+    for (const row of stale) await ctx.db.delete(row._id);
+  },
+});

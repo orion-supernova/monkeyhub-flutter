@@ -5,7 +5,7 @@ import {
   PRESENCE_OFFLINE_MS,
   PRESENCE_WRITE_INTERVAL_MS,
 } from "./presence";
-import { deleteStored } from "./files";
+import { deleteStored, claimUpload } from "./files";
 import {
   SOCIAL_ONLY_PASSWORD_SENTINEL,
   normaliseUsername,
@@ -601,6 +601,9 @@ export const updateAvatar = mutation({
   handler: async (ctx, { userId, storageId }) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
+    // Before anything else: an id somebody else uploaded must not become this
+    // avatar, or replacing it later would delete their file.
+    await claimUpload(ctx, storageId, userId, "avatar");
     const previous = user.avatarStorageId;
     await ctx.db.patch(userId, { avatarStorageId: storageId });
     // Guard against re-submitting the id already stored: that would delete the

@@ -2,6 +2,7 @@ import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { isSystemAccount } from "./systemAccount";
+import { claimUpload } from "./files";
 
 /**
  * Sets a system account's picture, or the picture of the system rooms it
@@ -57,6 +58,7 @@ export const apply = internalMutation({
   },
   returns: v.number(),
   handler: async (ctx, { username, storageId, target }) => {
+    await claimUpload(ctx, storageId, undefined, "avatar");
     const account = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))

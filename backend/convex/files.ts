@@ -2,11 +2,211 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { canReadRoom } from "./roomAccess";
+import { consume } from "./rateLimit";
+import { internal } from "./_generated/api";
+
+// ─── Upload limits ──────────────────────────────────────────────────────────
+//
+// Nothing used to stop an account using the app as a free drive or CDN: no
+// size check (only the client's), no quota, no limit on upload URLs, and
+// unsigned URLs that never expire. The server now owns each limit:
+//
+//  * [generateUploadUrl] is rate limited per user.
+//  * A file is CLAIMED ([claimUpload]) by whichever call attaches it. The
+//    claim checks the real stored size and type, records the owner, and
+//    counts it against the owner's quota. A file somebody else claimed cannot
+//    be attached, which is also what stops "set my avatar to your photo, then
+//    change it" from deleting your photo.
+//  * A file nobody claims is swept after [UNCLAIMED_GRACE_MS]
+//    ([sweepUnclaimed]).
+//
+// Files from before the ledger existed have no owner on record, so they can
+// no longer be attached by anyone ([UPLOADS_EPOCH]). Nothing legitimate does:
+// every send uploads a fresh file, and forwards share the blob directly.
+
+/** Before this, files have no ledger row; see the header above. */
+export const UPLOADS_EPOCH = Date.UTC(2026, 9, 15, 18, 0, 0);
+
+const MB = 1024 * 1024;
+/** Per file. The client compresses photos and video to 20 MB before upload. */
+export const MAX_FILE_BYTES = { media: 25 * MB, avatar: 10 * MB, report: 10 * MB } as const;
+/** Per user per rolling day, across everything. */
+export const MAX_DAILY_BYTES = 1024 * MB;
+/** Per user, everything still stored. */
+export const MAX_TOTAL_BYTES = 10 * 1024 * MB;
+/** Per user, media kept where nobody else can see it: the "drive" use. */
+export const MAX_SOLO_BYTES = 1024 * MB;
+/** Upload URLs per user per hour. A busy chat sends a few dozen photos. */
+export const MAX_UPLOAD_URLS_PER_HOUR = 120;
+/** How long an uploaded file may sit unattached before it is reclaimed. */
+const UNCLAIMED_GRACE_MS = 6 * 60 * 60 * 1000;
+
+export const ERR_NOT_YOUR_FILE = "NOT_YOUR_FILE";
+export const ERR_FILE_TOO_LARGE = "FILE_TOO_LARGE";
+export const ERR_QUOTA = "STORAGE_QUOTA_EXCEEDED";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Generate a short-lived upload URL for the client to PUT a file directly to Convex storage
 export const generateUploadUrl = mutation({
-  handler: async (ctx) => {
+  handler: async (ctx, { userId }) => {
+    await consume(ctx, `upload:${userId}`, MAX_UPLOAD_URLS_PER_HOUR, 60 * 60 * 1000);
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+async function ledgerRow(ctx: any, storageId: any) {
+  return await ctx.db
+    .query("uploads")
+    .withIndex("by_storage", (q: any) => q.eq("storageId", storageId))
+    .first();
+}
+
+async function usageRow(ctx: any, userId: any) {
+  return await ctx.db
+    .query("uploadUsage")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .first();
+}
+
+/**
+ * Takes ownership of an uploaded file for [userId] (or for the server, when
+ * [userId] is undefined), enforcing the per-file cap for [kind] and the
+ * owner's quotas. Idempotent for the same owner, so attaching one file as
+ * both a message and, say, its poster is fine.
+ *
+ * Throws, rolling back the attach: the refused file stays unclaimed and is
+ * swept like any other orphan.
+ */
+export async function claimUpload(
+  ctx: any,
+  storageId: any,
+  userId: any,
+  kind: keyof typeof MAX_FILE_BYTES,
+  opts: { solo?: boolean } = {},
+) {
+  if (!storageId) return;
+  const existing = await ledgerRow(ctx, storageId);
+  if (existing) {
+    if (existing.userId?.toString() !== userId?.toString()) {
+      throw new Error(ERR_NOT_YOUR_FILE);
+    }
+    return;
+  }
+  const meta = await ctx.db.system.get(storageId);
+  if (!meta) throw new Error("FILE_NOT_FOUND");
+  if (meta._creationTime < UPLOADS_EPOCH) throw new Error(ERR_NOT_YOUR_FILE);
+  const size = meta.size ?? 0;
+  if (size > MAX_FILE_BYTES[kind]) throw new Error(ERR_FILE_TOO_LARGE);
+  const solo = opts.solo === true;
+
+  if (userId) {
+    const now = Date.now();
+    const usage = await usageRow(ctx, userId);
+    const fresh = !usage || now - usage.dayStart >= DAY_MS;
+    const next = {
+      totalBytes: (usage?.totalBytes ?? 0) + size,
+      soloBytes: (usage?.soloBytes ?? 0) + (solo ? size : 0),
+      dayStart: fresh ? now : usage.dayStart,
+      dayBytes: (fresh ? 0 : usage.dayBytes) + size,
+    };
+    if (
+      next.dayBytes > MAX_DAILY_BYTES ||
+      next.totalBytes > MAX_TOTAL_BYTES ||
+      next.soloBytes > MAX_SOLO_BYTES
+    ) {
+      throw new Error(ERR_QUOTA);
+    }
+    if (usage) await ctx.db.patch(usage._id, next);
+    else await ctx.db.insert("uploadUsage", { userId, ...next });
+  }
+  await ctx.db.insert("uploads", {
+    storageId,
+    userId: userId ?? undefined,
+    size,
+    solo: solo || undefined,
+    createdAt: Date.now(),
+  });
+}
+
+/** Drops [storageId]'s ledger row and gives its bytes back to the owner. */
+async function releaseLedger(ctx: any, storageId: any) {
+  const row = await ledgerRow(ctx, storageId);
+  if (!row) return;
+  await ctx.db.delete(row._id);
+  if (!row.userId) return;
+  const usage = await usageRow(ctx, row.userId);
+  if (!usage) return;
+  await ctx.db.patch(usage._id, {
+    totalBytes: Math.max(0, usage.totalBytes - row.size),
+    soloBytes: Math.max(0, usage.soloBytes - (row.solo ? row.size : 0)),
+  });
+}
+
+/**
+ * What one user has stored and may still store, for a settings screen.
+ */
+export const myUsage = query({
+  args: {},
+  handler: async (ctx, { userId }) => {
+    const usage = await usageRow(ctx, userId);
+    return {
+      totalBytes: usage?.totalBytes ?? 0,
+      soloBytes: usage?.soloBytes ?? 0,
+      maxTotalBytes: MAX_TOTAL_BYTES,
+      maxSoloBytes: MAX_SOLO_BYTES,
+    };
+  },
+});
+
+/**
+ * Reclaims files uploaded since [UPLOADS_EPOCH] that nothing ever claimed:
+ * the upload that never got sent, and every file a script PUT on purpose.
+ *
+ * Walks `_storage` in creation order from a saved cursor, so each run costs
+ * one page however large storage grows. A message pointing at an unclaimed
+ * file (a path that forgot to claim) is claimed for its author instead of
+ * deleted: the sweep must never be the thing that loses a photo.
+ */
+export const sweepUnclaimed = internalMutation({
+  args: {},
+  returns: v.object({ deleted: v.number(), scanned: v.number() }),
+  handler: async (ctx) => {
+    const state = await ctx.db.query("uploadSweep").first();
+    const from = Math.max(state?.cursor ?? 0, UPLOADS_EPOCH);
+    const until = Date.now() - UNCLAIMED_GRACE_MS;
+    const page = await ctx.db.system
+      .query("_storage")
+      .withIndex("by_creation_time", (q: any) =>
+        q.gt("_creationTime", from).lt("_creationTime", until),
+      )
+      .take(200);
+    let deleted = 0;
+    for (const f of page) {
+      if (await ledgerRow(ctx, f._id)) continue;
+      const msg = await ctx.db
+        .query("messages")
+        .withIndex("by_media", (q: any) => q.eq("mediaStorageId", f._id))
+        .first();
+      if (msg) {
+        await ctx.db.insert("uploads", {
+          storageId: f._id,
+          userId: msg.userId,
+          size: f.size ?? 0,
+          createdAt: Date.now(),
+        });
+        continue;
+      }
+      await ctx.storage.delete(f._id);
+      deleted++;
+    }
+    const cursor = page.length > 0 ? page[page.length - 1]._creationTime : from;
+    if (state) await ctx.db.patch(state._id, { cursor });
+    else await ctx.db.insert("uploadSweep", { cursor });
+    if (page.length === 200) {
+      await ctx.scheduler.runAfter(0, internal.files.sweepUnclaimed, {});
+    }
+    return { deleted, scanned: page.length };
   },
 });
 
@@ -65,6 +265,7 @@ export const getFileUrl = query({
  */
 export async function deleteStored(ctx: any, storageId: any) {
   if (!storageId) return;
+  await releaseLedger(ctx, storageId);
   try {
     await ctx.storage.delete(storageId);
   } catch (_) {/* already gone */}

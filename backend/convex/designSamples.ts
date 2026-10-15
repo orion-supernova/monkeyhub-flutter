@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 import { isKlipyUrl, sendCore } from "./messages";
+import { claimUpload } from "./files";
 
 /** Operator-only design examples. No room argument: samples can only reach
  * the named account's single-member Saved Messages room. Stable client ids
@@ -68,6 +69,9 @@ export const send = internalMutation({
   },
   handler: async (ctx, args) => {
     const { user, room } = await savedRoom(ctx, args.username);
+    for (const id of Object.values(args.media)) {
+      await claimUpload(ctx, id, undefined, "media");
+    }
     if (!isKlipyUrl(args.gif.url)) throw new Error("SAMPLE_REAL_GIF_REQUIRED");
     const sticker = await ctx.db.get(args.stickerId);
     const pack = sticker && await ctx.db.get(sticker.packId);

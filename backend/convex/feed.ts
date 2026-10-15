@@ -6,7 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import { ACCOUNT_CHILD, assertChildPolicy } from "./childGuard";
 import { hasHit } from "./contentFilter";
 import { screenAndReport } from "./moderationCore";
-import { deleteStored } from "./files";
+import { deleteStored, claimUpload } from "./files";
 import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
 import { purgeMomentComments } from "./momentComments";
 import { lensFor } from "./visibility";
@@ -579,6 +579,8 @@ export const post = mutation({
   ) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
+    await claimUpload(ctx, mediaStorageId, userId, "media");
+    await claimUpload(ctx, posterStorageId, userId, "media");
 
     if (tag !== undefined && !TAGS.has(tag)) throw new Error("UNKNOWN_TAG");
 
