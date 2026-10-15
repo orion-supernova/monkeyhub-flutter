@@ -51,7 +51,7 @@ the version bump, so it builds while the Mac does iOS/Android. deploy.sh
 then collects the artifacts into `build/`, deletes the tag, and does the
 uploads locally like every other platform. Stages: `--windows-build`
 `--windows-upload` `--linux-build` `--linux-upload` (build = CI + download).
-Windows is in `--all`; Linux is not yet (add `--linux`).
+Both are in `--all`.
 
 What CI sees: **HEAD as pushed to origin**, not your working tree. deploy.sh
 pushes the branch if origin doesn't have HEAD, and warns about uncommitted
@@ -329,7 +329,7 @@ flag and nothing else.
 | `--android` | AAB → Google Play internal track (`--android=play` still works; `--android=apk` now errors out) |
 | `--web` | Flutter web build → https://monkeyhub.walhallaa.com/web/ |
 | `--site` | Landing + downloads pages only. No build, no Convex — seconds |
-| `--all` | Convex + iOS + Android + macOS + Windows + web + site (Linux stays opt-in) |
+| `--all` | Convex + iOS + Android + macOS + Windows + Linux + web + site |
 
 Platforms ship in a fixed order: Convex first, then iOS → Android → macOS →
 Windows → Linux → web, then the site last. In the interactive picker they ship

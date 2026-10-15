@@ -25,7 +25,7 @@
 #                       when an AUR SSH key is set up. See DEPLOY.md.
 #   Windows and Linux share ONE workflow run, started right after the version
 #   bump so it builds while this Mac does iOS/Android, and collected when their
-#   turn comes. Windows is in --all; Linux is not yet.
+#   turn comes. Both are in --all.
 #
 # Order: Convex first, then the platforms in PLATFORM_ORDER (mobile first:
 # iOS → Android → macOS → Windows → Linux → web, or the picker's tick order),
@@ -131,7 +131,7 @@ DEPLOY_ANDROID=""
 DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
 DEPLOY_SITE=false  # --site: landing + downloads pages. No build. Also by --all.
 DEPLOY_WINDOWS=false # --windows: CI build → Microsoft Store. Also by --all.
-DEPLOY_LINUX=false   # --linux: CI build → /downloads/ + AUR. NOT in --all yet.
+DEPLOY_LINUX=false   # --linux: CI build → /downloads/ + AUR. Also by --all.
 # The order the platforms ship in. Mobile first: those are what testers are
 # waiting on. The interactive picker replaces it with the order its rows were
 # ticked in. Convex always runs before all of these and Site after them.
@@ -185,9 +185,9 @@ Platform flags (any of these skips the picker):
   --windows             Build on GitHub Actions, submit the MSIX to the
                         Microsoft Store.
   --linux               Build on GitHub Actions, publish the tarball on
-                        /downloads/ and push the AUR package. Not in --all.
-  --all                 Convex + iOS + Android + macOS + Windows + web + site.
-                        (Linux is still opt-in: add --linux.)
+                        /downloads/ and push the AUR package.
+  --all                 Convex + iOS + Android + macOS + Windows + Linux +
+                        web + site.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
   --no-homeserver       Push Convex to the VPS only, not the home server —
@@ -288,7 +288,7 @@ while [[ $# -gt 0 ]]; do
         --linux-build)        DEPLOY_LINUX=true; PLATFORM_ARGS=true; LINUX_STAGES="${LINUX_STAGES:+$LINUX_STAGES }build" ;;
         --linux-upload)       DEPLOY_LINUX=true; PLATFORM_ARGS=true; LINUX_STAGES="${LINUX_STAGES:+$LINUX_STAGES }upload" ;;
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_MACOS=true
-                             DEPLOY_WINDOWS=true; DEPLOY_WEB=true
+                             DEPLOY_WINDOWS=true; DEPLOY_LINUX=true; DEPLOY_WEB=true
                              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         # Zeroes web and site too, so "backend only" holds even after --all.
         --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_MACOS=false
