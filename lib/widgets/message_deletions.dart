@@ -273,9 +273,13 @@ class MessageDeletions {
 
 /// A transcript row that can be deleted to dust.
 ///
-/// Always in the tree, so a row that starts to dissolve keeps its element and
-/// paints its last frame exactly as it was: with no [entry] it is the row,
-/// untouched. Given one, it waits out [DeletionEntry.delay], burns the row
+/// Costs nothing while idle: with no [entry] it returns the row itself, no
+/// wrapper, no controller, no repaint boundary. Every transcript row carries
+/// one and rows mount and unmount all through a scroll, so anything more here
+/// was paid on every frame of a fling (it cost 120 Hz scrolling its
+/// smoothness). The wrapper and the controller appear only once a deletion
+/// starts on this row; the row remounts inside it then, and the dust is taken
+/// from the frame it paints there. Given one, it waits out [DeletionEntry.delay], burns the row
 /// through [DustDissolve], and closes the row's height as the dust leaves —
 /// starting once the wave has crossed, so the rows around it slide together
 /// while the motes are still in the air — then calls [onGone].
@@ -300,15 +304,20 @@ class DissolvingRow extends StatefulWidget {
 
 class _DissolvingRowState extends State<DissolvingRow>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _collapse = AnimationController(
-    vsync: this,
-    duration: DissolvingRow.collapseDuration,
-    value: 1,
-  );
-  late final Animation<double> _height = CurvedAnimation(
-    parent: _collapse,
-    curve: Curves.easeInOut,
-  );
+  /// Made on the first deletion, never for a row that is only scrolled past.
+  AnimationController? _collapseOrNull;
+  Animation<double>? _heightOrNull;
+
+  AnimationController get _collapse => _collapseOrNull ??= AnimationController(
+        vsync: this,
+        duration: DissolvingRow.collapseDuration,
+        value: 1,
+      );
+
+  Animation<double> get _height => _heightOrNull ??= CurvedAnimation(
+        parent: _collapse,
+        curve: Curves.easeInOut,
+      );
 
   Timer? _startTimer;
   Timer? _closeTimer;
@@ -337,7 +346,7 @@ class _DissolvingRowState extends State<DissolvingRow>
   void dispose() {
     _startTimer?.cancel();
     _closeTimer?.cancel();
-    _collapse.dispose();
+    _collapseOrNull?.dispose();
     super.dispose();
   }
 
@@ -348,7 +357,7 @@ class _DissolvingRowState extends State<DissolvingRow>
       setState(() => _burning = true);
       // Close once the wave has crossed the row: everything left of it is in
       // the air, not in the box.
-      final wave = DustDissolve.defaultDuration * 0.55;
+      const wave = DustDissolve.waveDuration;
       _closeTimer = Timer(wave, _close);
     }
 
@@ -362,8 +371,8 @@ class _DissolvingRowState extends State<DissolvingRow>
   void _reset() {
     _startTimer?.cancel();
     _closeTimer?.cancel();
-    _collapse.stop();
-    _collapse.value = 1;
+    _collapseOrNull?.stop();
+    _collapseOrNull?.value = 1;
     _burning = false;
     _dustDone = false;
     _closing = false;
@@ -396,6 +405,8 @@ class _DissolvingRowState extends State<DissolvingRow>
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry;
+    // Idle: the row and nothing else.
+    if (entry == null && !_burning && _collapseOrNull == null) return widget.child;
     return IgnorePointer(
       ignoring: entry != null,
       child: AnimatedBuilder(

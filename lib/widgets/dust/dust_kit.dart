@@ -45,6 +45,107 @@ class DustTrig {
   static double cos(double turns) => sin(turns + 0.25);
 }
 
+/// A divergence-free wind, as a table: the curl of a smooth periodic stream
+/// function, sampled once onto a [n]×[n] grid and read back bilinearly.
+///
+/// Curl noise is what makes smoke and dust move in streams that wrap around
+/// each other instead of in parallel lines: being the curl of a field, it has
+/// no sources or sinks, so motes neither clump into points nor tear apart —
+/// they swirl. Building it costs a few hundred thousand sines, once per run of
+/// the app; reading it costs four table loads and three lerps, with no
+/// allocation, so a few thousand motes can read it every frame.
+///
+/// The domain is a unit torus: [sample] takes coordinates in periods, wraps
+/// them, and leaves the answer in [x] and [y] (unit-ish: the table is scaled
+/// so its strongest gust is 1).
+class DustFlow {
+  DustFlow._();
+
+  static const int n = 64;
+  static final Float32List _vx = Float32List(n * n);
+  static final Float32List _vy = Float32List(n * n);
+  static bool _built = false;
+
+  /// The last [sample]'s answer. Statics, so a sample allocates nothing.
+  static double x = 0, y = 0;
+
+  static void _build() {
+    _built = true;
+    // ψ(u, v) = Σ A·sin(2π(kx·u + ky·v) + φ) with integer wave numbers, so it
+    // tiles; amplitudes fall with frequency, so the big eddies lead and the
+    // small ones roughen them.
+    final rand = math.Random(0x5EED);
+    const waves = 12;
+    final kx = Float64List(waves), ky = Float64List(waves);
+    final amp = Float64List(waves), ph = Float64List(waves);
+    for (var w = 0; w < waves; w++) {
+      int a, b;
+      do {
+        a = rand.nextInt(9) - 4;
+        b = rand.nextInt(9) - 4;
+      } while (a == 0 && b == 0);
+      kx[w] = a.toDouble();
+      ky[w] = b.toDouble();
+      amp[w] = 1 / math.sqrt(a * a + b * b);
+      ph[w] = rand.nextDouble() * 2 * math.pi;
+    }
+    var peak = 1e-9;
+    for (var j = 0; j < n; j++) {
+      for (var i = 0; i < n; i++) {
+        final u = i / n, v = j / n;
+        var du = 0.0, dv = 0.0;
+        for (var w = 0; w < waves; w++) {
+          final c = amp[w] * math.cos(2 * math.pi * (kx[w] * u + ky[w] * v) + ph[w]);
+          du += c * kx[w];
+          dv += c * ky[w];
+        }
+        // curl ψ = (∂ψ/∂v, −∂ψ/∂u).
+        _vx[j * n + i] = dv;
+        _vy[j * n + i] = -du;
+        final m = math.sqrt(du * du + dv * dv);
+        if (m > peak) peak = m;
+      }
+    }
+    final s = 1 / peak;
+    for (var k = 0; k < n * n; k++) {
+      _vx[k] *= s;
+      _vy[k] *= s;
+    }
+  }
+
+  /// Builds the table now rather than on the first frame that needs it.
+  static void warm() {
+    if (!_built) _build();
+  }
+
+  /// The wind at ([u], [v]) periods, into [x] and [y].
+  static void sample(double u, double v) {
+    if (!_built) _build();
+    final fu = u * n, fv = v * n;
+    final iu = fu.floor(), iv = fv.floor();
+    final tu = fu - iu, tv = fv - iv;
+    final i0 = iu & (n - 1), i1 = (iu + 1) & (n - 1);
+    final j0 = (iv & (n - 1)) * n, j1 = ((iv + 1) & (n - 1)) * n;
+    final a = _vx[j0 + i0], b = _vx[j0 + i1];
+    final c = _vx[j1 + i0], d = _vx[j1 + i1];
+    final top = a + (b - a) * tu;
+    x = top + (c + (d - c) * tu - top) * tv;
+    final e = _vy[j0 + i0], f = _vy[j0 + i1];
+    final g = _vy[j1 + i0], h = _vy[j1 + i1];
+    final top2 = e + (f - e) * tu;
+    y = top2 + (g + (h - g) * tu - top2) * tv;
+  }
+}
+
+/// A cheap hash of two ints to 0..1, for per-mote per-frame coin flips
+/// (flicker, sparkle) that must not allocate or touch a `Random`.
+double dustHash(int a, int b) {
+  var h = (a * 374761393 + b * 668265263) & 0x7fffffff;
+  h = ((h ^ (h >> 13)) * 1274126177) & 0x7fffffff;
+  h ^= h >> 16;
+  return (h & 0xFFFF) / 65536.0;
+}
+
 /// The one sprite every mote is drawn from: a soft dot, white, so a per-mote
 /// colour can tint it through `BlendMode.modulate`.
 ///

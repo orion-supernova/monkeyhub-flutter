@@ -373,7 +373,9 @@ void main() {
       expect(tester.widget<DustDissolve>(find.byType(DustDissolve)).active, isTrue);
       expect(find.byType(VideoNoteFocus), findsOneWidget);
       expect(find.text('Played'), findsOneWidget);
-      for (var i = 0; i < 80; i++) {
+      // The whole burn, tail included, and a little over.
+      final frames = DustDissolve.defaultDuration.inMilliseconds ~/ 20 + 15;
+      for (var i = 0; i < frames; i++) {
         await tester.pump(const Duration(milliseconds: 20));
       }
       expect(find.byType(VideoNoteFocus), findsNothing);

@@ -85,6 +85,9 @@ void main() {
     ) async {
       await tester.pumpWidget(list());
       final below = tester.getTopLeft(find.text('m2')).dy;
+      // Idle rows are just rows: no dissolve wrapper is built until a delete
+      // starts, which is what keeps a long fling at full frame rate.
+      expect(find.byType(DustDissolve), findsNothing);
 
       // As the screen does: the ledger first, then the optimistic removal.
       expect(deletions.begin([source[1]]), 1);
@@ -94,8 +97,9 @@ void main() {
       // Held: still drawn, still taking its place, and now burning.
       expect(find.text('m1'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 16));
+      // Only the burning row has one.
       expect(
-        tester.widget<DustDissolve>(find.byType(DustDissolve).at(1)).active,
+        tester.widget<DustDissolve>(find.byType(DustDissolve)).active,
         isTrue,
       );
       expect(tester.getTopLeft(find.text('m2')).dy, below);
