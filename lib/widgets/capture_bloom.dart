@@ -48,6 +48,7 @@ class CaptureBloom extends StatefulWidget {
     required this.theme,
     required this.active,
     required this.locked,
+    required this.holding,
     required this.lockProgress,
     required this.cancelProgress,
     required this.video,
@@ -61,6 +62,11 @@ class CaptureBloom extends StatefulWidget {
   final AppTheme theme;
   final bool active;
   final bool locked;
+
+  /// The finger is still on the screen. A latched lock stays in view until
+  /// it lifts: the padlock is what the finger just did, and taking it away
+  /// under the finger reads as the lock being undone.
+  final bool holding;
   final double lockProgress;
   final double cancelProgress;
 
@@ -112,6 +118,10 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
   final _pill = Spring(response: 0.22, ratio: 0.55);
 
   double? _lockedAt;
+
+  /// When the finger lifted off a latched lock, so the padlock goes a beat
+  /// after the release and not before it.
+  double? _releasedAt;
   double? _kickAt;
   bool _calm = false;
 
@@ -142,8 +152,10 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
     }
     if (widget.active && widget.locked && !old.locked) {
       _lockedAt = _clock;
+      _releasedAt = widget.holding ? null : _clock;
       _pill.retarget(1, response: 0.24, ratio: 0.8);
     }
+    if (widget.locked && old.holding && !widget.holding) _releasedAt ??= _clock;
     _wake();
   }
 
@@ -167,6 +179,7 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       ..snap(0)
       ..retarget(1, response: 0.22, ratio: 0.55);
     _lockedAt = null;
+    _releasedAt = null;
     _kickAt = null;
     if (_calm) {
       _scale.snap(1);
@@ -236,8 +249,10 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       _dy.retarget(-up * 64, response: widget.locked ? 0.24 : 0.12, ratio: widget.locked ? 0.72 : 1);
       final lockedAt = _lockedAt;
       if (lockedAt != null && _clock - lockedAt > 0.12) _morph.retarget(1);
-      // The padlock holds closed a moment once latched, then goes.
-      if (lockedAt != null && _clock - lockedAt > 0.3) _pill.retarget(0, response: 0.18, ratio: 1);
+      // The padlock stays closed under the finger, and goes a beat after it
+      // lifts.
+      final releasedAt = _releasedAt;
+      if (releasedAt != null && _clock - releasedAt > 0.15) _pill.retarget(0, response: 0.18, ratio: 1);
     }
     if (_kickAt != null && _clock - _kickAt! > 0.24) _kickAt = null;
 
@@ -278,14 +293,21 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
         clipBehavior: Clip.none,
         children: [
           if (_pill.value > 0.01) _lockPill(theme),
-          IgnorePointer(
-            child: Stack(
-              children: [
-                _haloRing(c, d / 2 + 10 + 16 * halo, 0.13 * haloAlpha),
-                _haloRing(c, d / 2 + 4 + 9 * halo, 0.28 * haloAlpha),
-              ],
+          if (haloAlpha > 0.002)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _BlobPainter(
+                    center: c,
+                    radius: d / 2,
+                    level: halo,
+                    time: _calm ? 0 : _clock,
+                    color: theme.accent,
+                    opacity: haloAlpha,
+                  ),
+                ),
+              ),
             ),
-          ),
           Positioned(
             left: c.dx - d / 2,
             top: c.dy - d / 2,
@@ -294,32 +316,6 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
             child: _disc(theme, d, fade),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _haloRing(Offset c, double r, double alpha) {
-    if (alpha <= 0.002 || r <= 0) return const SizedBox.shrink();
-    final accent = widget.theme.accent;
-    // A soft 6pt edge from a gradient, never a blur filter.
-    final edge = (1 - 6 / r).clamp(0.0, 1.0);
-    return Positioned(
-      left: c.dx - r,
-      top: c.dy - r,
-      width: r * 2,
-      height: r * 2,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [
-              accent.withValues(alpha: alpha),
-              accent.withValues(alpha: alpha),
-              accent.withValues(alpha: 0),
-            ],
-            stops: [0, edge, 1],
-          ),
-        ),
       ),
     );
   }
@@ -434,23 +430,27 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
             opacity: (widget.active && widget.lockProgress < 1 && !widget.locked ? pill * 1.6 : pill * pill).clamp(0.0, 1.0),
             child: CustomPaint(
               painter: _PillPainter(theme: theme),
-              child: Column(
+              // Placed, not stacked in a column: the capsule shrinks from 72 to
+              // 40 under its contents, and a column would overflow it.
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  SizedBox(height: 12 + 6 * p),
-                  Transform.translate(
-                    offset: Offset(0, -bob * 0.5),
+                  // The padlock settles from the top of the capsule to the
+                  // middle of the circle it becomes.
+                  Positioned(
+                    left: 9,
+                    top: 11 - 2 * p - bob * 0.5,
                     child: PadlockGlyph(closed: p, size: 22, color: ink),
                   ),
-                  if (p < 0.5) ...[
-                    const SizedBox(height: 6),
-                    Opacity(
-                      opacity: (1 - p / 0.5).clamp(0.0, 1.0),
-                      child: Transform.translate(
-                        offset: Offset(0, -6 * p - 2 * (0.5 + 0.5 * bob)),
+                  if (p < 0.5)
+                    Positioned(
+                      left: 12,
+                      top: 44 - 6 * p - 2 * (0.5 + 0.5 * bob),
+                      child: Opacity(
+                        opacity: (1 - p / 0.5).clamp(0.0, 1.0),
                         child: ChevronGlyph(direction: AxisDirection.up, size: 16, color: theme.inkMuted),
                       ),
                     ),
-                  ],
                 ],
               ),
             ),
@@ -459,6 +459,98 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       ),
     );
   }
+}
+
+/// Telegram's voice blobs: two translucent, wavy shapes behind the disc that
+/// never stop moving while the recording is live. Each is a circle whose
+/// edge carries a few slow waves; the two turn against each other, swell
+/// with the voice and churn faster when it is loud. Silence leaves a small,
+/// lazy ripple, so the disc always reads as listening.
+///
+/// One path each, sampled around the circle; no blur, no layers.
+class _BlobPainter extends CustomPainter {
+  const _BlobPainter({
+    required this.center,
+    required this.radius,
+    required this.level,
+    required this.time,
+    required this.color,
+    required this.opacity,
+  });
+
+  final Offset center;
+
+  /// The disc's own radius; the blobs start just outside it.
+  final double radius;
+
+  /// 0..1, smoothed.
+  final double level;
+  final double time;
+  final Color color;
+  final double opacity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (radius <= 0) return;
+    final l = level.clamp(0.0, 1.0);
+    // Louder churns faster, as well as bigger.
+    final t = time * (0.9 + 0.9 * l);
+    // The big outer blob first, under the tighter inner one.
+    _blob(
+      canvas,
+      base: radius + 10 + 22 * l,
+      amp: 0.035 + 0.075 * l,
+      waves: const [3, 5],
+      speeds: const [0.7, -1.1],
+      phase: t,
+      alpha: 0.14,
+    );
+    _blob(
+      canvas,
+      base: radius + 4 + 12 * l,
+      amp: 0.03 + 0.06 * l,
+      waves: const [4, 6],
+      speeds: const [-0.9, 1.3],
+      phase: t + 1.7,
+      alpha: 0.26,
+    );
+  }
+
+  void _blob(
+    Canvas canvas, {
+    required double base,
+    required double amp,
+    required List<int> waves,
+    required List<double> speeds,
+    required double phase,
+    required double alpha,
+  }) {
+    const samples = 72;
+    final path = Path();
+    for (var i = 0; i <= samples; i++) {
+      final a = 2 * math.pi * i / samples;
+      final wobble = 0.6 * math.sin(waves[0] * a + speeds[0] * phase) +
+          0.4 * math.sin(waves[1] * a + speeds[1] * phase + 1.3);
+      final r = base * (1 + amp * wobble);
+      final p = center + Offset(math.cos(a) * r, math.sin(a) * r);
+      if (i == 0) {
+        path.moveTo(p.dx, p.dy);
+      } else {
+        path.lineTo(p.dx, p.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, Paint()..color = color.withValues(alpha: alpha * opacity));
+  }
+
+  @override
+  bool shouldRepaint(_BlobPainter old) =>
+      old.center != center ||
+      old.radius != radius ||
+      old.level != level ||
+      old.time != time ||
+      old.color != color ||
+      old.opacity != opacity;
 }
 
 /// The lock's capsule: the same still chrome as every disc in the app, its

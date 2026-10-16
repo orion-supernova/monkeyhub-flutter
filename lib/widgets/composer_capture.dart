@@ -268,6 +268,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// shows 0:00,00 until bytes flow.
   bool _arming = false;
 
+  /// A finger is on the record button (a hold, before or after it locked).
+  bool _fingerDown = false;
+
   /// How the bloom leaves when this recording ends.
   CaptureBloomExit _bloomExit = CaptureBloomExit.send;
 
@@ -833,6 +836,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   void _onLongPressStart(LongPressStartDetails d) {
     if (_machine.mode == ComposerInputMode.camera) return;
     _holdOrigin = d.localPosition;
+    setState(() => _fingerDown = true);
     unawaited(_startRecording(locked: false));
   }
 
@@ -846,6 +850,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   void _onLongPressEnd(LongPressEndDetails d) {
+    if (_fingerDown) setState(() => _fingerDown = false);
     if (!_machine.isRecording) return;
     // Fed one last time so a release that has never produced a move update —
     // a flick straight off the edge — is still judged on where it ended.
@@ -862,6 +867,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   void _onLongPressCancel() {
+    if (_fingerDown) setState(() => _fingerDown = false);
     // The recognizer gave up before the press became a long press. Nothing was
     // started, so there is nothing to stop — but if a start is in flight it
     // must not be left running under a finger that is gone.
@@ -1491,6 +1497,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           theme: ThemeScope.of(context),
           active: active,
           locked: _machine.stage == CaptureStage.locked,
+          holding: _fingerDown,
           lockProgress: _machine.lockProgress,
           cancelProgress: _machine.cancelProgress,
           video: mode == ComposerInputMode.videoNote,
