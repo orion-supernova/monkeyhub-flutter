@@ -1587,11 +1587,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           ),
         ),
         // Closes the preview: back to the composer's first mode, which lets
-        // the camera go. Small, on the lower rim: the top one belongs to the
-        // "Preview" badge, which the X ran into up there.
+        // the camera go. Top left, where every close in the app sits, on the
+        // rim just below the "Preview" badge's line so the two never touch
+        // (the badge is centred on the top edge).
         Positioned(
-          bottom: 2,
-          right: 2,
+          top: 12,
+          left: 0,
           child: ChromeDisc(
             size: 26,
             still: true,
