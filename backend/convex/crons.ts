@@ -116,15 +116,6 @@ crons.interval(
   {},
 );
 
-// App Store rows follow what Apple actually sells. See
-// releases.syncAppStoreReleases.
-crons.interval(
-  "releases.syncAppStoreReleases",
-  { hours: 1 },
-  internal.releases.syncAppStoreReleases,
-  {},
-);
-
 // Idle rate-limit counters. See rateLimit.consume.
 crons.interval(
   "rateLimit.gcRateBuckets",

@@ -407,12 +407,12 @@ server is unreachable.
 | Channel | Who publishes it | How the app knows it's on that channel |
 |---|---|---|
 | `ios-testflight` | deploy.sh, after the ASC upload | its own receipt at runtime (`sandboxReceipt`) |
-| `ios-appstore` | **automatic** — `releases.syncAppStoreReleases` (hourly cron) reads Apple's public lookup API and publishes the version the store actually sells, with the store link | its own receipt at runtime |
+| `ios-appstore` | **manual**, after Apple approves a version (an upload isn't a release). The row carries the store link, so publish only `version` (and `minSupported` to force) | its own receipt at runtime |
 | `android-apk` | deploy.sh, after each **Play** upload — it is a migration notice now, not a release. See [Retired: the APK](#retired-the-apk) | `--dart-define` baked into the retired APKs |
 | `android-play` | deploy.sh, after the fastlane upload. Only `minSupported` and notes matter now: whether a Play install is *offered* an update is Google Play's answer for its own track (In-App Updates, `lib/update/play_update.dart`), since internal and production installs are the same binary | `--dart-define`, and Play-vs-sideload at runtime |
 | `web` | deploy.sh, after the web rsync | `--dart-define` |
 | `macos-testflight` | deploy.sh, after the ASC upload | `--dart-define` — see caveat below |
-| `macos-appstore` | **automatic**, same cron as `ios-appstore` | `macos-testflight` define + StoreKit `AppTransaction.environment` at runtime (macOS 13+) |
+| `macos-appstore` | **manual**, after approval, same as `ios-appstore` | `macos-testflight` define + StoreKit `AppTransaction.environment` at runtime (macOS 13+) |
 | `macos-dmg` | **manual** (no self-hosted DMG build in deploy.sh yet) | `--dart-define` only |
 | `windows` | deploy.sh, after the `msstore` Store submission (manual until MS_STORE_* is set up) | `--dart-define` only |
 | `linux` | deploy.sh, after the tarball lands on `/downloads/` | `--dart-define` only |
@@ -430,12 +430,21 @@ is a TestFlight build until someone submits it for review, same as
 `ios-testflight`. The same binary is what the Mac App Store sells after
 approval, so at runtime a `macos-testflight` build asks StoreKit
 (`AppTransaction.environment`, `macos/Runner/InstallerEnvironment.swift`) and
-reads `macos-appstore` when it is a store install. `macos-appstore` itself is
-published automatically by the App Store sync cron, like `ios-appstore`.
+reads `macos-appstore` when it is a store install.
 
-**Forcing an update on a store channel** still works the usual way:
-`./deploy.sh --set-min-supported ios-appstore <version>` (or `macos-appstore`).
-The sync cron never touches `minSupported`, only `version` and the store link. A future
+**After Apple approves a version**, move the store row (no server job polls
+Apple, by choice: it would be load on the VPS for something that changes a
+few times a month). Both rows already carry their store link, which `publish`
+keeps when it is omitted:
+
+```sh
+cd backend
+npx convex run releases:publish '{"channel":"ios-appstore","version":"1.3.130"}'
+npx convex run releases:publish '{"channel":"macos-appstore","version":"1.3.131"}'
+```
+
+**Forcing an update on a store channel** works the usual way:
+`./deploy.sh --set-min-supported ios-appstore <version>` (or `macos-appstore`). A future
 self-hosted DMG build would stamp `macos-dmg` instead.
 
 ### Manual commands
