@@ -136,7 +136,11 @@ class _SwipeToReplyState extends State<SwipeToReply>
     // has to start moving on that same beat — waiting for the bubble to slide
     // home first reads as lag, not as cause → effect. The snap runs in
     // parallel with the reply card and keyboard.
-    if (crossed) widget.onReplyTriggered();
+    if (crossed) {
+      // The threshold armed it; the lift is the commit, and is felt too.
+      HapticFeedback.lightImpact();
+      widget.onReplyTriggered();
+    }
   }
 
   void _onCancel() {

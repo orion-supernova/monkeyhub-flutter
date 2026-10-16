@@ -6116,6 +6116,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => '丢弃视频留言';
 
   @override
+  String get videoNoteScrubHint => '手指远离圆圈可更精细地拖动';
+
+  @override
+  String get videoNoteScrubHalf => '半速拖动';
+
+  @override
+  String get videoNoteScrubFine => '精细拖动';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return '播放速度 $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => '自动播放：开';
+
+  @override
+  String get videoNoteAutoAdvanceOff => '自动播放：关';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel => '自动播放下一条视频留言';
+
+  @override
+  String get composerCaptureStartRecordingLabel => '开始录制';
+
+  @override
   String get attachmentMenuVideoNoteLabel => '视频留言';
 
   @override

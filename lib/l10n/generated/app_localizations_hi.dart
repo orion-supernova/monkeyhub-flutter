@@ -6464,6 +6464,34 @@ class AppLocalizationsHi extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => 'वीडियो नोट हटाएँ';
 
   @override
+  String get videoNoteScrubHint =>
+      'बारीकी से आगे-पीछे करने के लिए उंगली गोले से दूर ले जाएँ';
+
+  @override
+  String get videoNoteScrubHalf => 'आधी गति से आगे-पीछे';
+
+  @override
+  String get videoNoteScrubFine => 'बारीकी से आगे-पीछे';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return 'चलाने की गति $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => 'ऑटोप्ले चालू';
+
+  @override
+  String get videoNoteAutoAdvanceOff => 'ऑटोप्ले बंद';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel =>
+      'अगला वीडियो नोट अपने आप चलाएँ';
+
+  @override
+  String get composerCaptureStartRecordingLabel => 'रिकॉर्डिंग शुरू करें';
+
+  @override
   String get attachmentMenuVideoNoteLabel => 'वीडियो नोट';
 
   @override

@@ -138,6 +138,7 @@ import '../widgets/chat_list_row.dart' show MonogramAvatar, monogramGradient;
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/room_gallery_scope.dart';
+import '../widgets/video_note_message.dart' show VideoNoteRef;
 import '../widgets/steady_hero.dart';
 import '../widgets/swipe_to_receipts.dart';
 import '../widgets/swipe_to_reply.dart';
@@ -3838,6 +3839,29 @@ class _RoomScreenState extends State<RoomScreen>
         },
       );
 
+  /// The video notes after [m] in the transcript, for a focused note's
+  /// auto-advance. A snapshot, like the gallery's: a note that arrives while
+  /// one is playing joins the run the next time a note is opened, not under
+  /// the one playing now. Each one knows how to bring its own bubble on
+  /// screen behind the focus, so closing always has somewhere to land.
+  List<VideoNoteRef> _videoNotesAfter(ChatMessage m) {
+    final timeline = widget.repo.timelineFor(widget.roomId);
+    final at = timeline.indexWhere((x) => x.id == m.id);
+    if (at < 0) return const [];
+    return [
+      for (final x in timeline.skip(at + 1))
+        if (x.type == MessageType.videoNote &&
+            x.upload == null &&
+            (x.mediaStorageId?.isNotEmpty ?? false))
+          VideoNoteRef(
+            storageId: x.mediaStorageId!,
+            posterStorageId: x.posterStorageId,
+            durationMs: x.mediaDurationMs,
+            reveal: () => _alignTranscriptTo(x),
+          ),
+    ];
+  }
+
   Future<void> _openGallery(
     ChatMessage m, {
     required int sourceDecodeWidth,
@@ -5080,6 +5104,7 @@ class _RoomScreenState extends State<RoomScreen>
     final screen = RoomGalleryScope(
       openGallery: _openGallery,
       videoGalleryFor: _videoGalleryFor,
+      videoNotesAfter: _videoNotesAfter,
       child: SpeakerScope(
         // A DM hands out no colours at all. Two people, two margins — the layout
         // has already said everything a colour could, and tinting the one

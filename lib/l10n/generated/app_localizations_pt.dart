@@ -6533,6 +6533,34 @@ class AppLocalizationsPt extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => 'Descartar nota de vídeo';
 
   @override
+  String get videoNoteScrubHint =>
+      'Afaste o dedo do círculo para avançar com mais precisão';
+
+  @override
+  String get videoNoteScrubHalf => 'Avanço a meia velocidade';
+
+  @override
+  String get videoNoteScrubFine => 'Avanço preciso';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return 'Velocidade de reprodução $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => 'Reprodução automática: sim';
+
+  @override
+  String get videoNoteAutoAdvanceOff => 'Reprodução automática: não';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel =>
+      'Reproduzir automaticamente a próxima nota de vídeo';
+
+  @override
+  String get composerCaptureStartRecordingLabel => 'Começar a gravar';
+
+  @override
   String get attachmentMenuVideoNoteLabel => 'Nota de vídeo';
 
   @override
@@ -20547,6 +20575,34 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get videoNoteMessageDiscardLabel => 'Descartar nota de vídeo';
+
+  @override
+  String get videoNoteScrubHint =>
+      'Afaste o dedo do círculo para avançar com mais precisão';
+
+  @override
+  String get videoNoteScrubHalf => 'Avanço a meia velocidade';
+
+  @override
+  String get videoNoteScrubFine => 'Avanço preciso';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return 'Velocidade de reprodução $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => 'Reprodução automática: sim';
+
+  @override
+  String get videoNoteAutoAdvanceOff => 'Reprodução automática: não';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel =>
+      'Reproduzir automaticamente a próxima nota de vídeo';
+
+  @override
+  String get composerCaptureStartRecordingLabel => 'Começar a gravar';
 
   @override
   String get attachmentMenuVideoNoteLabel => 'Nota de vídeo';

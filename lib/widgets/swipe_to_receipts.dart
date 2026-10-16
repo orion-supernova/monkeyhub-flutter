@@ -231,6 +231,8 @@ class _SwipeToReceiptsState extends State<SwipeToReceipts>
     final speed = math.max(v.abs(), _kSettleVelocity);
 
     if (commit) {
+      // The line only armed it; letting go is the commit, and is felt too.
+      HapticFeedback.lightImpact();
       _land(speed);
     } else {
       _slide.fling(velocity: -speed);

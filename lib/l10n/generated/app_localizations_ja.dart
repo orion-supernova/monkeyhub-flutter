@@ -6192,6 +6192,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => 'ビデオメッセージを破棄';
 
   @override
+  String get videoNoteScrubHint => '指を円から遠ざけると細かく移動できます';
+
+  @override
+  String get videoNoteScrubHalf => '半分の速さで移動';
+
+  @override
+  String get videoNoteScrubFine => '細かく移動';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return '再生速度 $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => '自動再生オン';
+
+  @override
+  String get videoNoteAutoAdvanceOff => '自動再生オフ';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel => '次のビデオメッセージを自動再生';
+
+  @override
+  String get composerCaptureStartRecordingLabel => '録画を開始';
+
+  @override
   String get attachmentMenuVideoNoteLabel => 'ビデオ';
 
   @override

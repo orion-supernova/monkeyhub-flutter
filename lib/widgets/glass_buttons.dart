@@ -402,6 +402,8 @@ class GlassPillButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.icon,
+    this.glyph,
+    this.color,
     this.tint,
     this.tone = GlassTone.app,
     this.semanticLabel,
@@ -411,6 +413,13 @@ class GlassPillButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
+
+  /// A drawn glyph before the label, for one that animates: a toggle's state
+  /// reads first, as iOS puts it. Sized and coloured by the caller.
+  final Widget? glyph;
+
+  /// The label's colour. Defaults to the tone's ink (dimmed when disabled).
+  final Color? color;
   final Color? tint;
   final GlassTone tone;
   final String? semanticLabel;
@@ -427,7 +436,9 @@ class GlassPillButton extends StatelessWidget {
     final height = this.height ?? dense.iconButton;
     final type = dense.compact ? 15.0 : 17.0;
     final Color ink;
-    if (tone == GlassTone.media) {
+    if (color != null) {
+      ink = color!;
+    } else if (tone == GlassTone.media) {
       ink = enabled ? MediaGlass.ink : MediaGlass.inkDisabled;
     } else {
       final theme = ThemeScope.of(context);
@@ -453,6 +464,10 @@ class GlassPillButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (glyph != null) ...[
+                  glyph!,
+                  const SizedBox(width: 8),
+                ],
                 Text(
                   sentenceCaseOf(context, label),
                   style: TextStyle(
@@ -466,7 +481,7 @@ class GlassPillButton extends StatelessWidget {
                     decoration: TextDecoration.none,
                   ),
                 ),
-                if (icon != null) ...[
+                if (icon != null && glyph == null) ...[
                   const SizedBox(width: 7),
                   Icon(icon, size: type, color: ink),
                 ],

@@ -6212,6 +6212,32 @@ class AppLocalizationsKo extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => '영상 메시지 삭제';
 
   @override
+  String get videoNoteScrubHint => '원에서 손가락을 멀리 움직이면 더 세밀하게 이동합니다';
+
+  @override
+  String get videoNoteScrubHalf => '절반 속도로 이동';
+
+  @override
+  String get videoNoteScrubFine => '세밀하게 이동';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return '재생 속도 $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => '자동 재생 켬';
+
+  @override
+  String get videoNoteAutoAdvanceOff => '자동 재생 끔';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel => '다음 영상 메시지 자동 재생';
+
+  @override
+  String get composerCaptureStartRecordingLabel => '녹화 시작';
+
+  @override
   String get attachmentMenuVideoNoteLabel => '영상 메시지';
 
   @override

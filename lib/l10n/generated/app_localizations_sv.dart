@@ -6484,6 +6484,33 @@ class AppLocalizationsSv extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => 'Kasta videonotisen';
 
   @override
+  String get videoNoteScrubHint => 'Dra bort från cirkeln för finare spolning';
+
+  @override
+  String get videoNoteScrubHalf => 'Spolning i halv hastighet';
+
+  @override
+  String get videoNoteScrubFine => 'Fin spolning';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return 'Uppspelningshastighet $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => 'Autouppspelning på';
+
+  @override
+  String get videoNoteAutoAdvanceOff => 'Autouppspelning av';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel =>
+      'Spela nästa videonotis automatiskt';
+
+  @override
+  String get composerCaptureStartRecordingLabel => 'Börja spela in';
+
+  @override
   String get attachmentMenuVideoNoteLabel => 'Videonotis';
 
   @override

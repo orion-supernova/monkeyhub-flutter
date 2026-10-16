@@ -31,6 +31,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kThemeOnboarded = 'mh.theme.onboarded';
   static const _kLayout = 'mh.roomLayout';
   static const _kMonogram = 'mh.roomMonogram';
+  static const _kVideoNoteAutoAdvance = 'mh.videoNoteAutoAdvance';
   static const _kNav = 'mh.nav';
   static const _kSection = 'mh.section';
   static const _kPushEnabled = 'mh.pushEnabled';
@@ -116,6 +117,9 @@ class SettingsStore extends ChangeNotifier {
   // show, and whether it reads as texture or as clutter is a matter of
   // taste rather than of layout.
   bool _roomMonogram = false;
+  // On by default: a run of round videos is a conversation, and having to
+  // reopen each one is the friction this exists to remove.
+  bool _videoNoteAutoAdvance = true;
   NavStyle _navStyle = NavStyle.pill;
   HomeSection _section = HomeSection.chat;
   // Null until the user drags the split shell's divider; the shell owns the
@@ -229,6 +233,10 @@ class SettingsStore extends ChangeNotifier {
       );
   RoomLayout get roomLayout => _roomLayout;
   bool get roomMonogram => _roomMonogram;
+
+  /// Whether a focused video note, on ending, carries straight on into the
+  /// next one in the chat. Toggled from the focus itself.
+  bool get videoNoteAutoAdvance => _videoNoteAutoAdvance;
   NavStyle get navStyle => _navStyle;
 
   /// Width the user dragged the split shell's chat list to, or null for the
@@ -561,6 +569,7 @@ class SettingsStore extends ChangeNotifier {
     );
     final mono = s[_kMonogram];
     _roomMonogram = mono == 'true'; // default false
+    _videoNoteAutoAdvance = s[_kVideoNoteAutoAdvance] != 'false'; // default true
     final nav = s[_kNav];
     // First-launch default is pill; honor an explicit 'radial' selection.
     _navStyle = nav == 'radial' ? NavStyle.radial : NavStyle.pill;
@@ -765,6 +774,13 @@ class SettingsStore extends ChangeNotifier {
     _roomMonogram = on;
     notifyListeners();
     await _storage.write(key: _kMonogram, value: '$on');
+  }
+
+  Future<void> setVideoNoteAutoAdvance(bool on) async {
+    if (_videoNoteAutoAdvance == on) return;
+    _videoNoteAutoAdvance = on;
+    notifyListeners();
+    await _storage.write(key: _kVideoNoteAutoAdvance, value: '$on');
   }
 
   Future<void> setNavStyle(NavStyle s) async {

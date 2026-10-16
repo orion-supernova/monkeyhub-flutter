@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../media/native_gallery.dart';
 import '../models/chat_message.dart';
+import 'video_note_message.dart' show VideoNoteRef;
 
 /// Lets a photo in the transcript open the room's whole gallery without knowing
 /// what is in it.
@@ -24,6 +25,7 @@ class RoomGalleryScope extends InheritedWidget {
     super.key,
     required this.openGallery,
     this.videoGalleryFor,
+    this.videoNotesAfter,
     required super.child,
   });
 
@@ -31,6 +33,11 @@ class RoomGalleryScope extends InheritedWidget {
   /// open the OS player as a swipeable gallery. Null where there is no
   /// conversation behind the bubble, and the player opens on the one video.
   final VideoGallery Function(ChatMessage message)? videoGalleryFor;
+
+  /// The chat's video notes after [message], oldest first, for a focused
+  /// note to carry on into when it ends. Null where there is no conversation
+  /// behind the bubble, and the note simply ends.
+  final List<VideoNoteRef> Function(ChatMessage message)? videoNotesAfter;
 
   /// Opens the fullscreen gallery on [message] and completes when it closes.
   /// The room decides what the set is and where the flight goes.
@@ -57,5 +64,6 @@ class RoomGalleryScope extends InheritedWidget {
   @override
   bool updateShouldNotify(RoomGalleryScope old) =>
       old.openGallery != openGallery ||
-      old.videoGalleryFor != videoGalleryFor;
+      old.videoGalleryFor != videoGalleryFor ||
+      old.videoNotesAfter != videoNotesAfter;
 }

@@ -6559,6 +6559,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => 'Supprimer la note vidéo';
 
   @override
+  String get videoNoteScrubHint =>
+      'Éloignez le doigt du cercle pour un défilement plus précis';
+
+  @override
+  String get videoNoteScrubHalf => 'Défilement à demi-vitesse';
+
+  @override
+  String get videoNoteScrubFine => 'Défilement précis';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return 'Vitesse de lecture $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => 'Lecture auto activée';
+
+  @override
+  String get videoNoteAutoAdvanceOff => 'Lecture auto désactivée';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel =>
+      'Lire automatiquement la note vidéo suivante';
+
+  @override
+  String get composerCaptureStartRecordingLabel => 'Démarrer l\'enregistrement';
+
+  @override
   String get attachmentMenuVideoNoteLabel => 'Note vidéo';
 
   @override

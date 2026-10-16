@@ -6429,6 +6429,34 @@ class AppLocalizationsTr extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => 'Video notunu sil';
 
   @override
+  String get videoNoteScrubHint =>
+      'Daha hassas sarmak için parmağını çemberin dışına doğru uzaklaştır';
+
+  @override
+  String get videoNoteScrubHalf => 'Yarı hızda sarma';
+
+  @override
+  String get videoNoteScrubFine => 'Hassas sarma';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return 'Oynatma hızı $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => 'Otomatik oynatma açık';
+
+  @override
+  String get videoNoteAutoAdvanceOff => 'Otomatik oynatma kapalı';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel =>
+      'Sonraki video notunu otomatik oynat';
+
+  @override
+  String get composerCaptureStartRecordingLabel => 'Kaydı başlat';
+
+  @override
   String get attachmentMenuVideoNoteLabel => 'Video notu';
 
   @override

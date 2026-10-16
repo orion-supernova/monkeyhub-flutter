@@ -6534,6 +6534,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get videoNoteMessageDiscardLabel => 'تجاهل ملاحظة الفيديو';
 
   @override
+  String get videoNoteScrubHint => 'أبعد إصبعك عن الدائرة للتنقل بدقة أكبر';
+
+  @override
+  String get videoNoteScrubHalf => 'تنقل بنصف السرعة';
+
+  @override
+  String get videoNoteScrubFine => 'تنقل دقيق';
+
+  @override
+  String videoNoteSpeedLabel(String speed) {
+    return 'سرعة التشغيل $speed';
+  }
+
+  @override
+  String get videoNoteAutoAdvanceOn => 'التشغيل التلقائي: مفعّل';
+
+  @override
+  String get videoNoteAutoAdvanceOff => 'التشغيل التلقائي: متوقف';
+
+  @override
+  String get videoNoteAutoAdvanceSemanticLabel =>
+      'تشغيل ملاحظة الفيديو التالية تلقائيًا';
+
+  @override
+  String get composerCaptureStartRecordingLabel => 'بدء التسجيل';
+
+  @override
   String get attachmentMenuVideoNoteLabel => 'ملاحظة فيديو';
 
   @override

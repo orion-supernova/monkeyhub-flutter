@@ -539,6 +539,12 @@ class VideoNoteCaptureRecorder implements CaptureRecorder {
       // not a message. This is also what makes the microphone grant part of
       // this flow, and why a refusal arrives as an `Audio*` CameraException.
       enableAudio: true,
+      // Size is bitrate × duration, not resolution. Left unset, each platform
+      // picks ~1.5–2.5 Mbps for 480p, a 12–20 MB minute. A face filling a
+      // small circle holds up at Telegram's round-video rate: ~5 MB a minute.
+      fps: 30,
+      videoBitrate: 700000,
+      audioBitrate: 64000,
     );
     try {
       await controller.initialize();

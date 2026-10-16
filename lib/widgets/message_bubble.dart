@@ -2021,6 +2021,11 @@ Widget buildMessageContent({
         posterStorageId: message.posterStorageId,
         durationMs: message.mediaDurationMs,
         diameter: noteSize,
+        // Read at tap time, like the gallery: what comes next is the room's
+        // knowledge, and a bubble outside a room has nothing after it.
+        upNext: () =>
+            RoomGalleryScope.maybeOf(context)?.videoNotesAfter?.call(message) ??
+            const [],
       );
     case MessageType.system:
       return Container(

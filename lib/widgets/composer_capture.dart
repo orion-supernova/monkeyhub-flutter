@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb, listEquals, visibleForTesting;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
@@ -16,9 +17,12 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'destructive_sheet.dart';
+import 'glass_buttons.dart';
+import 'glass_reveal.dart' show GlassStill;
 import 'liquid_glass.dart';
 
 /// Which composer this capture control is drawn inside.
@@ -203,6 +207,50 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// open two recorders onto one microphone.
   bool _busy = false;
 
+  /// A tap (or the attachment sheet) asked for a video note: the big preview
+  /// is up with its record button, and nothing is recording yet.
+  ///
+  /// A tap used to start a hands-free recording on the spot, and people were
+  /// caught mid-sentence by it ("aah, it started"). A voice note is still
+  /// tap-to-record — there is nothing to frame — but a video note is a picture
+  /// of you, and you get to see it before it goes.
+  bool _staged = false;
+
+  /// The big centred circle, drawn over the chat while a video note is staged
+  /// or recording. Always shown; it draws nothing the rest of the time.
+  final _bigPreview = OverlayPortalController();
+
+  /// The composer itself, measured so the big preview's dim stops at its top
+  /// edge and the strip under it stays lit and tappable.
+  final _composerKey = GlobalKey();
+
+  /// The small preview's place over the composer: where the big circle lifts
+  /// from and lands back on. Kept, empty, while the circle is flying home.
+  final _slotKey = GlobalKey();
+
+  /// [_slotKey]'s last rect in the overlay. The slot is gone from the layout
+  /// once the circle is up, and the lift still has to know where it left.
+  Rect? _slotRect;
+
+  /// 0 the small preview over the composer, 1 the big circle over the chat.
+  /// One circle travelling between the two, never two swapped: the picture
+  /// you were already looking at is the one that grows.
+  late final AnimationController _lift = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 360),
+    reverseDuration: const Duration(milliseconds: 300),
+  )..addStatusListener((status) {
+      // Landed: the inline preview takes the picture back from the overlay.
+      if (status == AnimationStatus.dismissed && mounted) setState(() {});
+    });
+
+  /// Decelerates into both ends, as a received note's focus does.
+  late final CurvedAnimation _liftCurve = CurvedAnimation(
+    parent: _lift,
+    curve: Curves.easeOutCubic,
+    reverseCurve: Curves.easeInCubic,
+  );
+
   /// Where the finger went down, so hold movement is measured from the press
   /// rather than from the button's centre.
   Offset _holdOrigin = Offset.zero;
@@ -253,6 +301,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   void initState() {
     super.initState();
 
+    _bigPreview.show();
     _modeBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
     _entranceBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 640));
 
@@ -285,19 +334,36 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   /// The attachment sheet (or anything else holding the controller) asked for a
-  /// mode. Switching *and* starting is deliberate: nobody taps "voice message"
-  /// in a sheet to be shown a button they then have to hold.
+  /// mode. Voice switches *and* starts: nobody taps "voice message" in a sheet
+  /// to be shown a button they then have to hold. A video note stops at the
+  /// staged preview instead — see [_staged].
   void _onExternalRequest() {
     final mode = widget.capture?.controller?.takePending();
     if (mode == null || !mounted || _machine.isRecording) return;
     if (!_machine.modes.contains(mode)) return;
     _machine.selectMode(mode);
     _onModeChanged();
-    if (mode == ComposerInputMode.camera) {
-      widget.capture?.onCamera?.call();
-    } else {
-      unawaited(_startRecording(locked: true));
+    switch (mode) {
+      case ComposerInputMode.camera:
+        widget.capture?.onCamera?.call();
+      case ComposerInputMode.voice:
+        unawaited(_startRecording(locked: true));
+      case ComposerInputMode.videoNote:
+        _stage();
     }
+  }
+
+  void _stage() {
+    if (widget.capture == null || _machine.isRecording) return;
+    HapticFeedback.selectionClick();
+    _rememberSlot();
+    setState(() => _staged = true);
+    unawaited(_warmPreview());
+  }
+
+  void _unstage() {
+    if (!_staged) return;
+    setState(() => _staged = false);
   }
 
   @override
@@ -337,6 +403,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     if (!identical(video, recorder)) unawaited(video?.dispose());
     _modeBumpController.dispose();
     _entranceBumpController.dispose();
+    _liftCurve.dispose();
+    _lift.dispose();
     _machine.dispose();
     super.dispose();
   }
@@ -443,6 +511,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   void _onModeChanged() {
     _modeBumpController.forward(from: 0.0);
     _triggerTooltip();
+    if (_machine.mode != ComposerInputMode.videoNote) _unstage();
 
     if (_machine.mode == ComposerInputMode.videoNote) {
       unawaited(_warmPreview());
@@ -466,6 +535,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     final mode = _machine.mode;
     if (mode == ComposerInputMode.camera) return;
     _busy = true;
+    _rememberSlot();
     try {
       final CaptureRecorder recorder;
       final injected = capture.recorderFactory?.call(mode);
@@ -506,6 +576,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       }
       _startedAt = DateTime.now();
       _elapsed = Duration.zero;
+      _staged = false;
       _machine.markRecording();
       if (locked) _machine.updateHold(const Offset(0, -kLockDragThreshold), TextDirection.ltr);
       _announce(
@@ -659,13 +730,21 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       case ComposerInputMode.camera:
         capture.onCamera?.call();
       case ComposerInputMode.voice:
-      case ComposerInputMode.videoNote:
         // A tap starts a *locked* recording. This is the whole accessible
         // story for the hold gesture: a hold cannot be performed by a keyboard
         // and is not discoverable by a screen reader, so the same control has
         // to work as a plain button — and hands-free is the only sensible
         // reading of a button press that starts a recording nobody is holding.
         unawaited(_startRecording(locked: true));
+      case ComposerInputMode.videoNote:
+        // The same accessible story, one step later: a tap stages the big
+        // preview, and its record button (a plain button again) starts the
+        // hands-free recording. A second tap on this button puts it away.
+        if (_staged) {
+          _unstage();
+        } else {
+          _stage();
+        }
     }
   }
 
@@ -766,40 +845,91 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   @override
   Widget build(BuildContext context) {
     if (widget.capture == null) return widget.builder(context, null);
+    final motion = MotionScope.of(context);
+    _lift
+      ..duration = motion.d(const Duration(milliseconds: 360))
+      ..reverseDuration = motion.d(const Duration(milliseconds: 300));
     return ListenableBuilder(
       listenable: _machine,
       builder: (context, _) {
-        if (_machine.isRecording || _machine.stage == CaptureStage.finishing) {
-          return _recordingBody(context);
-        }
-        final row = widget.builder(context, _keyedModeButton(context));
-        // The idle preview. Shown for as long as the button sits on video-note
-        // mode, and that is not decoration — it is what justifies holding a
-        // capture session at all. Warming the camera on mode entry is what
-        // makes the first hold instant and puts the permission prompt before
-        // the gesture rather than in the middle of it, but a session held with
-        // nothing on screen is battery, heat and a recording indicator the user
-        // cannot account for. Either show the preview or let the camera go;
-        // this shows it.
-        if (_machine.mode != ComposerInputMode.videoNote || _video?.controller == null) {
-          return row;
-        }
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(right: _previewTrailingGap(recording: false)),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: _previewWithBadge(ThemeScope.of(context), idle: true),
-              ),
-            ),
-            const SizedBox(height: 12),
-            row,
-          ],
+        // After layout: the slot's rect is only true once this frame has
+        // placed it, and the lift starts from the frame that hid it.
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _rememberSlot();
+          _syncLift();
+        });
+        return OverlayPortal(
+          controller: _bigPreview,
+          overlayChildBuilder: _bigPreviewLayer,
+          child: KeyedSubtree(key: _composerKey, child: _body(context)),
         );
       },
+    );
+  }
+
+  /// Whether the circle belongs big over the chat: staged, or recording.
+  bool get _wantsBig =>
+      _machine.mode == ComposerInputMode.videoNote &&
+      (_staged || _machine.isRecording || _machine.stage == CaptureStage.finishing);
+
+  void _syncLift() {
+    if (_wantsBig) {
+      if (_lift.status != AnimationStatus.forward && _lift.value < 1) _lift.forward();
+    } else if (_lift.status != AnimationStatus.reverse && _lift.value > 0) {
+      _lift.reverse();
+    }
+  }
+
+  /// The small preview's rect in the overlay, or null while it is not laid
+  /// out.
+  Rect? _slotNow() {
+    final slot = _slotKey.currentContext?.findRenderObject();
+    final overlay = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (slot is! RenderBox || !slot.attached || !slot.hasSize) return null;
+    if (overlay is! RenderBox || !overlay.hasSize) return null;
+    return overlay.globalToLocal(slot.localToGlobal(Offset.zero)) & slot.size;
+  }
+
+  void _rememberSlot() => _slotRect = _slotNow() ?? _slotRect;
+
+  Widget _body(BuildContext context) {
+    if (_machine.isRecording || _machine.stage == CaptureStage.finishing) {
+      return _recordingBody(context);
+    }
+    final row = widget.builder(context, _keyedModeButton(context));
+    // The idle preview. Shown for as long as the button sits on video-note
+    // mode, and that is not decoration — it is what justifies holding a
+    // capture session at all. Warming the camera on mode entry is what
+    // makes the first hold instant and puts the permission prompt before
+    // the gesture rather than in the middle of it, but a session held with
+    // nothing on screen is battery, heat and a recording indicator the user
+    // cannot account for. Either show the preview or let the camera go;
+    // this shows it.
+    if (_machine.mode != ComposerInputMode.videoNote || _video?.controller == null || _wantsBig) {
+      return row;
+    }
+    // Still flying home: the slot holds its place, empty, for the circle
+    // drawn over the chat to land in.
+    final landing = _lift.value > 0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(right: _previewTrailingGap()),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox.square(
+              key: _slotKey,
+              dimension: _idlePreviewSize,
+              child: landing ? null : _previewWithBadge(ThemeScope.of(context)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        row,
+      ],
     );
   }
 
@@ -1083,24 +1213,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   // ───────────────────────────── recording UI ─────────────────────────────
 
-  Widget _recordingBody(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final showPreview = _machine.mode == ComposerInputMode.videoNote;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showPreview) ...[
-          Padding(
-            padding: EdgeInsets.only(right: _previewTrailingGap(recording: true)),
-            child: Align(alignment: Alignment.centerRight, child: _previewWithBadge(theme, idle: false)),
-          ),
-          const SizedBox(height: 12),
-        ],
-        _strip(theme),
-      ],
-    );
-  }
+  /// Just the strip: a video note's picture is in the big preview over the
+  /// chat (see [_bigPreviewLayer]), not squeezed into the composer.
+  Widget _recordingBody(BuildContext context) => _strip(ThemeScope.of(context));
 
   /// Horizontal gap between the preview's right edge and the composer's right
   /// edge, so the circle lines up with the mode button that owns it instead of
@@ -1108,34 +1223,31 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// away from the button that actually produces it, which is what made it
   /// read as a stray, possibly-broken shape rather than a viewfinder.
   ///
-  /// The button's own position differs by state. In the idle row it sits one
-  /// Send-button-and-gap in from the row's right edge, because Send is always
-  /// the last control (see `chat_composer.dart`, where the mode button and
-  /// Send are drawn at the same diameter in both styles). In the recording
-  /// strip it — or the Send control it turns into once locked — IS the last
-  /// control, flush against the strip's own inset. Either way this lines the
-  /// preview's centre up with the button's centre, clamped at zero so a
-  /// preview wider than that reach just hugs the edge instead of overshooting
-  /// past it.
-  double _previewTrailingGap({required bool recording}) {
+  /// In the idle row the button sits one Send-button-and-gap in from the
+  /// row's right edge, because Send is always the last control (see
+  /// `chat_composer.dart`, where the mode button and Send are drawn at the
+  /// same diameter in both styles). This lines the preview's centre up with
+  /// the button's centre, clamped at zero so a preview wider than that reach
+  /// just hugs the edge instead of overshooting past it.
+  double _previewTrailingGap() {
     final diameter = _buttonDiameter;
-    final stripInset = widget.style == ComposerCaptureStyle.classic ? 0.0 : 4.0;
     final rowGap = widget.style == ComposerCaptureStyle.classic ? 10.0 : 12.0;
-    final buttonCenterFromRight = recording ? stripInset + diameter / 2 : diameter * 1.5 + rowGap;
-    final previewRadius = (recording ? 168.0 : 108.0) / 2;
-    return math.max(0.0, buttonCenterFromRight - previewRadius);
+    final buttonCenterFromRight = diameter * 1.5 + rowGap;
+    return math.max(0.0, buttonCenterFromRight - _idlePreviewSize / 2);
   }
+
+  static const _idlePreviewSize = 108.0;
 
   /// The preview circle, tagged with the same "PREVIEW" badge the theme
   /// screen uses for its own live preview — so a first-time video note reads
   /// as a deliberate viewfinder instead of something rendering by mistake.
-  Widget _previewWithBadge(AppTheme theme, {required bool idle}) {
+  Widget _previewWithBadge(AppTheme theme) {
     final l10n = AppLocalizations.of(context);
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: [
-        _preview(theme, idle: idle),
+        SizedBox.square(dimension: _idlePreviewSize, child: _cameraFace(theme)),
         Positioned(
           top: -8,
           child: DecoratedBox(
@@ -1156,56 +1268,267 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     );
   }
 
-  /// The circular live preview.
-  ///
-  /// Grows the composer upward rather than floating over the transcript: the
-  /// classic composer is a `Column` child and the thread overlay's is inside a
-  /// root `OverlayEntry`, and a `Positioned` escaping either would be clipped
-  /// by something different in each. Both hosts already wrap the composer in an
-  /// `AnimatedSize`, so the growth animates for free.
-  Widget _preview(AppTheme theme, {bool idle = false}) {
-    // Smaller when idle: it is a viewfinder the user has not committed to yet,
-    // and a full-size circle sitting over the transcript while somebody types
-    // would be the feature shouting rather than waiting.
-    final size = idle ? 108.0 : 168.0;
+  /// The live camera, cropped to a circle. Sized by its parent: the small
+  /// idle viewfinder over the composer, or the big one over the chat.
+  Widget _cameraFace(AppTheme theme) {
     final controller = _video?.controller;
-    final max = _maxDuration ?? kVideoNoteMaxDuration;
-    final progress = idle || max.inMilliseconds == 0
-        ? 0.0
-        : (_elapsed.inMilliseconds / max.inMilliseconds).clamp(0.0, 1.0);
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClipOval(
-            child: controller != null && controller.value.isInitialized
-                // Cover, so the sensor's 4∶3 frame fills the circle instead of
-                // being letterboxed inside it. This is the same crop the sent
-                // bubble applies, so what the sender frames is what lands.
-                ? FittedBox(
-                    fit: BoxFit.cover,
-                    clipBehavior: Clip.hardEdge,
-                    child: SizedBox(
-                      width: controller.value.previewSize?.height ?? size,
-                      height: controller.value.previewSize?.width ?? size,
-                      child: CameraPreview(controller),
-                    ),
-                  )
-                : ColoredBox(color: theme.surfaceSunken),
+    return ClipOval(
+      child: controller != null && controller.value.isInitialized
+          // Cover, so the sensor's 4∶3 frame fills the circle instead of
+          // being letterboxed inside it. This is the same crop the sent
+          // bubble applies, so what the sender frames is what lands.
+          ? FittedBox(
+              fit: BoxFit.cover,
+              clipBehavior: Clip.hardEdge,
+              child: SizedBox(
+                width: controller.value.previewSize?.height ?? 1,
+                height: controller.value.previewSize?.width ?? 1,
+                child: CameraPreview(controller),
+              ),
+            )
+          : ColoredBox(color: theme.surfaceSunken),
+    );
+  }
+
+  /// The big circle over the chat while a video note is staged or recording —
+  /// the same size and place a received note plays at, so what you frame is
+  /// what they will see.
+  ///
+  /// It is the small preview, lifted: the circle flies from its place over
+  /// the composer to the middle of the chat, and back down when it is put
+  /// away or the recording ends. With no small preview to leave from (no
+  /// camera yet, or another mode) it grows and fades in place.
+  ///
+  /// A dim over the chat, stopping short of the composer so the strip's
+  /// controls stay lit and live; it fades out over the band just above the
+  /// composer, which is where the hold's slide-up-to-lock affordance travels.
+  /// The dim is a plain colour, never a blur — see `VideoNoteFocus`.
+  Widget _bigPreviewLayer(BuildContext context) => Positioned.fill(
+        child: Material(
+          type: MaterialType.transparency,
+          child: AnimatedBuilder(
+            animation: _liftCurve,
+            builder: (context, _) => _bigPreviewFrame(context),
           ),
-          IgnorePointer(
-            child: CustomPaint(
-              painter: _RingPainter(
-                progress: progress,
-                track: theme.ink.withValues(alpha: 0.15),
-                ink: _elapsed >= max - kMaxDurationWarning ? theme.danger : theme.accent,
+        ),
+      );
+
+  Widget _bigPreviewFrame(BuildContext context) {
+    final t = _liftCurve.value;
+    final up = _wantsBig;
+    if (t == 0 && !up) return const SizedBox.shrink();
+    final recording = _machine.isRecording || _machine.stage == CaptureStage.finishing;
+    final overlayBox = Overlay.of(context).context.findRenderObject();
+    final composerBox = _composerKey.currentContext?.findRenderObject();
+    if (overlayBox is! RenderBox || !overlayBox.hasSize || composerBox is! RenderBox || !composerBox.hasSize) {
+      return const SizedBox.shrink();
+    }
+    final composerTop = math.max(0.0, overlayBox.globalToLocal(composerBox.localToGlobal(Offset.zero)).dy);
+    final width = overlayBox.size.width;
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final pad = MediaQuery.paddingOf(context);
+    const fadeBand = 140.0;
+    const controlsHeight = 64.0;
+    const controlsGap = 24.0;
+    final staged = _staged && !recording;
+
+    // Staged leaves room under the circle for its controls; recording does
+    // not. The circle eases between the two instead of jumping on Record.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: staged ? controlsGap + controlsHeight : 0.0),
+      duration: MotionScope.of(context).d(const Duration(milliseconds: 280)),
+      curve: Curves.easeOutCubic,
+      builder: (context, reserve, _) {
+        final usable = composerTop - pad.top - fadeBand / 2;
+        final diameter = math.max(0.0, math.min(math.min(width - 40, usable - reserve - 24), 460.0));
+        final top = pad.top + math.max(0.0, (usable - diameter - reserve) / 2);
+        final target = Rect.fromLTWH((width - diameter) / 2, top, diameter, diameter);
+
+        // From the slot while it is on screen (flying home), else from where
+        // it last was (the slot left the layout as the circle went up).
+        final source = _machine.mode == ComposerInputMode.videoNote && _video?.controller != null
+            ? _slotNow() ?? _slotRect
+            : null;
+        final circle = source == null
+            ? Rect.fromCenter(
+                center: target.center,
+                width: diameter * (0.7 + 0.3 * t),
+                height: diameter * (0.7 + 0.3 * t),
+              )
+            : Rect.lerp(source, target, t)!;
+        final controlsOpacity = ((t - 0.5) / 0.5).clamp(0.0, 1.0);
+
+        return IgnorePointer(
+          // Flying home: nothing here is a target any more.
+          ignoring: !up,
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                height: composerTop,
+                child: Opacity(
+                  opacity: t,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    // Staged, a tap outside puts the preview away. Recording,
+                    // a stray tap on the chat must not do anything at all.
+                    onTap: staged ? _unstage : null,
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xB8000000), Color(0xB8000000), Color(0x00000000)],
+                          stops: [0, 0.72, 1],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fromRect(
+                rect: circle,
+                child: Opacity(
+                  opacity: source == null ? t : 1,
+                  child: _bigCircle(theme, l10n, recording: recording, lift: t),
+                ),
+              ),
+              if (staged)
+                Positioned(
+                  top: top + diameter + controlsGap,
+                  left: 0,
+                  right: 0,
+                  height: controlsHeight,
+                  child: Opacity(
+                    opacity: controlsOpacity,
+                    child: GlassStill(still: true, child: _stagedControls(theme, l10n)),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// [lift] is the flight: at 0 the circle is still the small preview, so
+  /// its ring is not drawn yet and its badge sits as the small one does.
+  Widget _bigCircle(AppTheme theme, AppLocalizations l10n, {required bool recording, double lift = 1}) {
+    final max = _maxDuration ?? kVideoNoteMaxDuration;
+    final startedAt = _startedAt;
+    return Stack(
+      clipBehavior: Clip.none,
+      fit: StackFit.expand,
+      children: [
+        _cameraFace(theme),
+        IgnorePointer(
+          child: Opacity(
+            opacity: lift,
+            child: recording && startedAt != null
+                ? _LiveRing(
+                    startedAt: startedAt,
+                    max: max,
+                    track: Colors.white.withValues(alpha: 0.25),
+                    ink: theme.accent,
+                    warn: theme.danger,
+                  )
+                : CustomPaint(
+                    painter: _RingPainter(
+                      progress: 0,
+                      track: Colors.white.withValues(alpha: 0.25),
+                      ink: theme.accent,
+                      stroke: 4,
+                    ),
+                  ),
+          ),
+        ),
+        Positioned(
+          top: -8 - 6 * lift,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: recording ? _recordingBadge(theme) : _previewBadge(theme, l10n, lift: lift),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// What the big circle says while it is only a viewfinder.
+  Widget _previewBadge(AppTheme theme, AppLocalizations l10n, {double lift = 1}) {
+    return DecoratedBox(
+      decoration: ShapeDecoration(
+        color: theme.surfaceRaised.withValues(alpha: 0.92),
+        shape: StadiumBorder(side: BorderSide(color: theme.divider, width: 0.5)),
+      ),
+      child: Padding(
+        // The small preview's badge at 0, so the lift carries it without a
+        // jump in size.
+        padding: EdgeInsets.symmetric(horizontal: 8 + 2 * lift, vertical: 3 + lift),
+        child: Text(
+          l10n.glassScreenPreviewBadge,
+          style: theme.monoTiny.copyWith(color: theme.inkSoft, letterSpacing: 1.2),
+        ),
+      ),
+    );
+  }
+
+  /// What it says once it is recording: the live dot and the clock, which is
+  /// what every camera app shows and needs no word in any language.
+  Widget _recordingBadge(AppTheme theme) {
+    return DecoratedBox(
+      decoration: const ShapeDecoration(color: Color(0xCC000000), shape: StadiumBorder()),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _RecordingPulse(color: theme.danger),
+            const SizedBox(width: 8),
+            Text(
+              formatClockDuration(_elapsed),
+              style: theme.body.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                decoration: TextDecoration.none,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  /// Under the staged preview: put it away, or record.
+  Widget _stagedControls(AppTheme theme, AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: GlassIconButton(
+              tone: GlassTone.media,
+              icon: Icons.close,
+              semanticLabel: l10n.photoChromeCloseSemanticLabel,
+              onTap: _unstage,
+            ),
+          ),
+        ),
+        const SizedBox(width: 28),
+        _RecordButton(
+          label: l10n.composerCaptureStartRecordingLabel,
+          color: theme.danger,
+          onTap: _busy ? null : () => unawaited(_startRecording(locked: true)),
+        ),
+        const SizedBox(width: 28),
+        // Balances the close button so the record button sits dead centre.
+        const Expanded(child: SizedBox()),
+      ],
     );
   }
 
@@ -1689,15 +2012,15 @@ class _SlidingCancelHintState extends State<_SlidingCancelHint> with SingleTicke
 
 /// The progress ring around the video-note preview.
 class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.progress, required this.track, required this.ink});
+  const _RingPainter({required this.progress, required this.track, required this.ink, this.stroke = 3});
 
   final double progress;
   final Color track;
   final Color ink;
+  final double stroke;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const stroke = 3.0;
     final rect = Offset.zero & size;
     final circle = rect.deflate(stroke / 2);
     final base = Paint()
@@ -1717,7 +2040,96 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) => old.progress != progress || old.ink != ink || old.track != track;
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.ink != ink || old.track != track || old.stroke != stroke;
+}
+
+/// The recording ring on the big circle, advanced every frame from the start
+/// time rather than from the strip's 100ms timer: on a circle this size a
+/// 100ms step is a visible jump. Its own ticker, so the frames repaint one
+/// ring and nothing else.
+class _LiveRing extends StatefulWidget {
+  const _LiveRing({
+    required this.startedAt,
+    required this.max,
+    required this.track,
+    required this.ink,
+    required this.warn,
+  });
+
+  final DateTime startedAt;
+  final Duration max;
+  final Color track;
+  final Color ink;
+
+  /// The ring's colour in the last [kMaxDurationWarning] — the strip's
+  /// countdown, said in the circle too.
+  final Color warn;
+
+  @override
+  State<_LiveRing> createState() => _LiveRingState();
+}
+
+class _LiveRingState extends State<_LiveRing> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker = createTicker((_) => setState(() {}))..start();
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final elapsed = DateTime.now().difference(widget.startedAt);
+    final max = widget.max;
+    final progress = max.inMilliseconds == 0 ? 0.0 : (elapsed.inMilliseconds / max.inMilliseconds).clamp(0.0, 1.0);
+    return CustomPaint(
+      painter: _RingPainter(
+        progress: progress,
+        track: widget.track,
+        ink: elapsed >= max - kMaxDurationWarning ? widget.warn : widget.ink,
+        stroke: 4,
+      ),
+    );
+  }
+}
+
+/// The shutter-style record button under a staged video note: a red disc in
+/// a white ring, the button every camera app uses for "start". A bare
+/// GestureDetector plus [FocusableTap], like every other control here.
+class _RecordButton extends StatelessWidget {
+  const _RecordButton({required this.label, required this.color, required this.onTap});
+
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 64.0;
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Says what went wrong, with a route out of it.

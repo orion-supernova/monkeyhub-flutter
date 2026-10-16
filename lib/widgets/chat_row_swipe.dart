@@ -138,7 +138,10 @@ class _ChatRowSwipeState extends State<ChatRowSwipe>
     }
     final armed = next.abs() >= _fullSwipe;
     if (armed != _armed) {
-      HapticFeedback.mediumImpact();
+      // Only on the way in, as in `swipe_to_receipts.dart`: falling back
+      // below the line already shows on screen, and a second knock there
+      // reads as a malfunction.
+      if (armed) HapticFeedback.mediumImpact();
       _armed = armed;
     }
     setState(() => _dx = next);
@@ -149,6 +152,9 @@ class _ChatRowSwipeState extends State<ChatRowSwipe>
     if (_armed) {
       final actions = _dx > 0 ? widget.leading : widget.trailing;
       _armed = false;
+      // Crossing the line only armed it; the release is the commit, and it
+      // lands its own, heavier knock.
+      HapticFeedback.heavyImpact();
       _fire(_dx > 0 ? actions.first : actions.last);
       return;
     }
@@ -161,6 +167,12 @@ class _ChatRowSwipeState extends State<ChatRowSwipe>
     } else {
       _animateTo(0, velocity: v);
     }
+  }
+
+  /// A revealed button tapped: lighter than a full swipe's commit.
+  void _tapAction(SwipeAction a) {
+    HapticFeedback.lightImpact();
+    _fire(a);
   }
 
   void _fire(SwipeAction a) {
@@ -189,7 +201,7 @@ class _ChatRowSwipeState extends State<ChatRowSwipe>
                     reveal: _dx,
                     leading: true,
                     armed: _armed,
-                    onTap: _fire,
+                    onTap: _tapAction,
                   ),
                 ),
               if (_dx < 0)
@@ -199,7 +211,7 @@ class _ChatRowSwipeState extends State<ChatRowSwipe>
                     reveal: -_dx,
                     leading: false,
                     armed: _armed,
-                    onTap: _fire,
+                    onTap: _tapAction,
                   ),
                 ),
               Transform.translate(

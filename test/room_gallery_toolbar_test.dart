@@ -113,8 +113,15 @@ void main() {
         ),
       ),
     ));
-    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
-    await t.pump();
+    // Waits for the room to subscribe rather than for a fixed 100ms: it
+    // takes 150-450ms of real time here, and a fixed sleep passed or failed
+    // on how fast the machine happened to be.
+    final subscribing = Stopwatch()..start();
+    while (cv.sinks['messages:list'] == null &&
+        subscribing.elapsed < const Duration(seconds: 5)) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await t.pump();
+    }
     cv.sinks['messages:list']!([
       photoWire('p1', t0),
       photoWire('p2', t0.add(const Duration(minutes: 1))),

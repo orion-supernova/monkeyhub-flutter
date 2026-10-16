@@ -7382,6 +7382,44 @@
   "@videoNoteMessageDiscardLabel": {
     "description": "Semantic label of the discard control on a failed outgoing circular video note, which throws the send away."
   },
+  "videoNoteScrubHint": "Slide outward from the circle for finer scrubbing",
+  "@videoNoteScrubHint": {
+    "description": "Caption over a focused video note while a finger drags around the circle at full scrub speed; teaches that moving the finger further from the circle slows scrubbing down for precise positioning."
+  },
+  "videoNoteScrubHalf": "Half-speed scrubbing",
+  "@videoNoteScrubHalf": {
+    "description": "Caption over a focused video note while the finger is far enough from the circle that dragging around it scrubs at half speed."
+  },
+  "videoNoteScrubFine": "Fine scrubbing",
+  "@videoNoteScrubFine": {
+    "description": "Caption over a focused video note while the finger is far from the circle and dragging around it scrubs at a quarter speed, for precise positioning."
+  },
+  "videoNoteSpeedLabel": "Playback speed {speed}",
+  "@videoNoteSpeedLabel": {
+    "description": "Semantic label of the playback-speed pill under a focused video note; tapping cycles 1×, 1.5×, 2×. The placeholder is the current rate, already formatted (\"1.5×\").",
+    "placeholders": {
+      "speed": {
+        "type": "String",
+        "example": "1.5×"
+      }
+    }
+  },
+  "videoNoteAutoAdvanceOn": "Autoplay on",
+  "@videoNoteAutoAdvanceOn": {
+    "description": "Text of the toggle pill above a focused video note while autoplay is on: a note that ends goes straight on to the next video note in the chat."
+  },
+  "videoNoteAutoAdvanceOff": "Autoplay off",
+  "@videoNoteAutoAdvanceOff": {
+    "description": "Text of the same toggle pill while autoplay is off: a note that ends just stops. Tapping the pill turns autoplay on."
+  },
+  "videoNoteAutoAdvanceSemanticLabel": "Play the next video note automatically",
+  "@videoNoteAutoAdvanceSemanticLabel": {
+    "description": "Screen-reader label of the autoplay toggle on a focused video note; its on/off state is announced separately."
+  },
+  "composerCaptureStartRecordingLabel": "Start recording",
+  "@composerCaptureStartRecordingLabel": {
+    "description": "Screen-reader label of the round red record button under the big video-note preview. Tapping the video-note button only opens that preview now; this button is what starts recording."
+  },
   "attachmentMenuVideoNoteLabel": "Video note",
   "@attachmentMenuVideoNoteLabel": {
     "description": "Label under the video-note icon in the attachment picker sheet (attachment_menu.dart); the non-gesture route to the composer's video-note mode. Hidden on web."

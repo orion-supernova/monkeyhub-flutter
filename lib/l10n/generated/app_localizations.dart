@@ -10991,6 +10991,54 @@ abstract class AppLocalizations {
   /// **'Discard video note'**
   String get videoNoteMessageDiscardLabel;
 
+  /// Caption over a focused video note while a finger drags around the circle at full scrub speed; teaches that moving the finger further from the circle slows scrubbing down for precise positioning.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide outward from the circle for finer scrubbing'**
+  String get videoNoteScrubHint;
+
+  /// Caption over a focused video note while the finger is far enough from the circle that dragging around it scrubs at half speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Half-speed scrubbing'**
+  String get videoNoteScrubHalf;
+
+  /// Caption over a focused video note while the finger is far from the circle and dragging around it scrubs at a quarter speed, for precise positioning.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine scrubbing'**
+  String get videoNoteScrubFine;
+
+  /// Semantic label of the playback-speed pill under a focused video note; tapping cycles 1×, 1.5×, 2×. The placeholder is the current rate, already formatted ("1.5×").
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed {speed}'**
+  String videoNoteSpeedLabel(String speed);
+
+  /// Text of the toggle pill above a focused video note while autoplay is on: a note that ends goes straight on to the next video note in the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay on'**
+  String get videoNoteAutoAdvanceOn;
+
+  /// Text of the same toggle pill while autoplay is off: a note that ends just stops. Tapping the pill turns autoplay on.
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay off'**
+  String get videoNoteAutoAdvanceOff;
+
+  /// Screen-reader label of the autoplay toggle on a focused video note; its on/off state is announced separately.
+  ///
+  /// In en, this message translates to:
+  /// **'Play the next video note automatically'**
+  String get videoNoteAutoAdvanceSemanticLabel;
+
+  /// Screen-reader label of the round red record button under the big video-note preview. Tapping the video-note button only opens that preview now; this button is what starts recording.
+  ///
+  /// In en, this message translates to:
+  /// **'Start recording'**
+  String get composerCaptureStartRecordingLabel;
+
   /// Label under the video-note icon in the attachment picker sheet (attachment_menu.dart); the non-gesture route to the composer's video-note mode. Hidden on web.
   ///
   /// In en, this message translates to:

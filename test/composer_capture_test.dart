@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/composer/capture_machine.dart';
 import 'package:monkeyhub/composer/capture_recorder.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/chat_composer.dart';
@@ -325,7 +326,7 @@ void main() {
         expect(find.byType(TextField), findsOneWidget);
       });
 
-      testWidgets('the attachment sheet can reach a recording mode with no drag',
+      testWidgets('a voice note from the attachment sheet starts straight away',
           (tester) async {
         final controller = ComposerCaptureController();
         final recorder = _FakeRecorder();
@@ -335,17 +336,74 @@ void main() {
         )));
         await tester.pumpAndSettle();
 
-        controller.requestMode(ComposerInputMode.videoNote);
+        controller.requestMode(ComposerInputMode.voice);
         await tester.pump();
         await tester.pump();
 
-        // Requested AND started, hands-free: nobody taps "video note" in a
+        // Requested AND started, hands-free: nobody taps "voice message" in a
         // sheet to be shown a button they then have to hold.
         expect(recorder.started, isTrue);
         expect(find.byIcon(Icons.delete_outline), findsOneWidget);
 
         await tester.tap(find.byIcon(Icons.delete_outline));
         await _frames(tester);
+      });
+
+      // A tap used to start a video note recording on the spot, and people
+      // were caught mid-sentence by it. It stages the big preview instead;
+      // only its record button records.
+      testWidgets('a video note from the sheet waits for the record button',
+          (tester) async {
+        final l10n = AppLocalizationsEn();
+        final controller = ComposerCaptureController();
+        final recorder = _FakeRecorder();
+        await tester.pumpWidget(host(build(
+          onCamera: () {},
+          capture: _capture(recorder: recorder, controller: controller),
+        )));
+        await tester.pumpAndSettle();
+
+        controller.requestMode(ComposerInputMode.videoNote);
+        await _frames(tester);
+        expect(recorder.started, isFalse);
+        expect(find.text(l10n.glassScreenPreviewBadge), findsOneWidget);
+        final record = find.bySemanticsLabel(l10n.composerCaptureStartRecordingLabel);
+        expect(record, findsOneWidget);
+
+        await tester.tap(record);
+        await _frames(tester);
+        expect(recorder.started, isTrue);
+        // Recording: the circle says so, and no longer says "preview".
+        expect(find.text(l10n.glassScreenPreviewBadge), findsNothing);
+        expect(find.text('0:00'), findsWidgets);
+        expect(record, findsNothing);
+
+        await tester.tap(find.byIcon(Icons.delete_outline));
+        await _frames(tester);
+        expect(recorder.cancelled, isTrue);
+      });
+
+      testWidgets('a tap on the video-note button stages, and closing un-stages',
+          (tester) async {
+        final l10n = AppLocalizationsEn();
+        final controller = ComposerCaptureController();
+        final recorder = _FakeRecorder();
+        await tester.pumpWidget(host(build(
+          onCamera: () {},
+          capture: _capture(recorder: recorder, controller: controller),
+        )));
+        await tester.pumpAndSettle();
+        controller.requestMode(ComposerInputMode.videoNote);
+        await _frames(tester);
+
+        await tester.tap(find.bySemanticsLabel(l10n.photoChromeCloseSemanticLabel));
+        await _frames(tester);
+        expect(find.text(l10n.glassScreenPreviewBadge), findsNothing);
+
+        await tester.tap(find.byIcon(Icons.videocam_outlined));
+        await _frames(tester);
+        expect(recorder.started, isFalse, reason: 'a tap is not a recording');
+        expect(find.text(l10n.glassScreenPreviewBadge), findsOneWidget);
       });
     });
   });
