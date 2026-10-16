@@ -1576,7 +1576,32 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: [
-        SizedBox.square(dimension: _idlePreviewSize, child: _cameraFace(theme)),
+        // A tap lifts it into the big preview: the same circle, flying up.
+        Semantics(
+          button: true,
+          label: l10n.composerCaptureVideoNoteModeLabel,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _stage,
+            child: SizedBox.square(dimension: _idlePreviewSize, child: _cameraFace(theme)),
+          ),
+        ),
+        // Closes the preview: back to the composer's first mode, which lets
+        // the camera go. Small, on the rim, out of the way of the face.
+        Positioned(
+          top: 2,
+          right: 2,
+          child: ChromeDisc(
+            size: 26,
+            still: true,
+            onTap: _closeIdlePreview,
+            child: Semantics(
+              label: l10n.photoChromeCloseSemanticLabel,
+              button: true,
+              child: Icon(Icons.close_rounded, size: 15, color: theme.ink),
+            ),
+          ),
+        ),
         Positioned(
           top: -8,
           child: DecoratedBox(
@@ -1595,6 +1620,16 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         ),
       ],
     );
+  }
+
+  /// The small preview's X: off video notes, back to the composer's first
+  /// mode. [_onModeChanged] drops the camera with it.
+  void _closeIdlePreview() {
+    HapticFeedback.selectionClick();
+    final back = _machine.modes.firstWhere((m) => m != ComposerInputMode.videoNote, orElse: () => _machine.mode);
+    if (back == _machine.mode) return;
+    _machine.selectMode(back, haptic: false);
+    _onModeChanged();
   }
 
   /// The live camera, cropped to a circle. Sized by its parent: the small
