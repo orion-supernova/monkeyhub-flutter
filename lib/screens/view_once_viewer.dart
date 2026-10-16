@@ -153,7 +153,7 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                 right: 0,
                 child: ViewerTopBar(
                   onClose: _close,
-                  center: const _ViewOnceBadge(),
+                  center: const ViewOnceBadge(),
                 ),
               ),
               // Deliberately no save, share, or download control.
@@ -169,8 +169,14 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
 /// "1 · view once" marker, so it is unambiguous what is being looked at and why
 /// it will not be here again. On the media glass capsule every note over a
 /// photo wears ([MediaNoteCapsule]'s material), not a flat white wash.
-class _ViewOnceBadge extends StatelessWidget {
-  const _ViewOnceBadge();
+///
+/// Public because the play-once video note's focus wears it too, with its own
+/// [label]; one badge, so "once" looks the same over a photo and over a face.
+class ViewOnceBadge extends StatelessWidget {
+  const ViewOnceBadge({super.key, this.label});
+
+  /// What follows the "1". Null is the photo viewer's "View once".
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +220,7 @@ class _ViewOnceBadge extends StatelessWidget {
             Text(
               sentenceCaseOf(
                 context,
-                AppLocalizations.of(context).viewOnceViewerBadgeLabel,
+                label ?? AppLocalizations.of(context).viewOnceViewerBadgeLabel,
               ),
               style: style,
             ),

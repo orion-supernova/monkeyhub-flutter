@@ -989,12 +989,18 @@ export default defineSchema({
     // migration state — the grid's play-glyph tile is the real fallback, not a
     // placeholder waiting to be filled in.
     //
-    // NEVER written on an armed send. A view-once video's poster is a still of
-    // the thing whose entire promise is that it leaks nothing, and neither
-    // guard that protects `mediaStorageId` can see this one: `sanitizeViewOnce`
-    // strips a fixed list of fields, and `files:getFileUrl` refuses view-once
-    // by looking up `by_media`, which is keyed on `mediaStorageId` alone.
-    // Not writing it is the guard; the sanitizer lists it as well, in depth.
+    // Not written on an armed send, with one exception. A view-once video's
+    // poster is a still of the thing whose entire promise is that it leaks
+    // nothing, and for a video note that still is the sender's face, so
+    // `messages:send` deletes a poster that arrives with an armed send rather
+    // than storing it. The exception is a video note's MICRO poster: at most
+    // `VIEW_ONCE_POSTER_MAX_BYTES` (2048) by storage metadata, which the
+    // client makes a blurred JPEG of at most 16x16 px for the sealed bubble's
+    // dust layer. That reveals colours, not a face, so it is stored and served.
+    // Locks behind the send check: `sanitizeViewOnce` strips any other armed
+    // poster, `files:getFileUrl` re-checks the size before serving a poster
+    // whose message is armed (via `by_poster` below), and the burn deletes the
+    // poster alongside the media.
     posterStorageId: v.optional(v.id("_storage")),
 
     // ── GIFs and stickers (`type: "gif"` / `type: "sticker"`) ───────────────
@@ -1136,9 +1142,13 @@ export default defineSchema({
     // left while missing people who have since joined.
     mentionsEveryone: v.optional(v.boolean()),
 
-    // ── View-once photos ────────────────────────────────────────────────────
+    // ── View-once media ─────────────────────────────────────────────────────
     //
-    // Armed by the sender in the pre-send editor. The promise is that the blob
+    // Photos, videos, voice messages and video notes. Armed by the sender in
+    // the pre-send editor or the recorder; nothing here depends on the type,
+    // except that an armed voice message or video note keeps its
+    // `mediaDurationMs` (the sealed bubble shows how long it is, as Telegram's
+    // does) where every other armed kind drops it. The promise is that the blob
     // leaves the server once every recipient has opened it (or after
     // `viewOnceDeadline`), while THIS ROW SURVIVES as a greyed ghost bubble so
     // the transcript keeps its shape.
@@ -1320,6 +1330,12 @@ export default defineSchema({
     // belonging to a view-once message. Defence in depth — after sanitizing,
     // no client should be able to name one in the first place.
     .index("by_media", ["mediaStorageId"])
+    // The same reverse lookup for a video's poster frame. Without it a poster
+    // id was served to anyone who named it: `getFileUrl` could see neither the
+    // owning message's room nor whether it was armed. Absent on almost every
+    // row, which costs nothing here — the lookup is always `eq(<an id>)`, and
+    // `undefined` never matches one.
+    .index("by_poster", ["posterStorageId"])
     // The shared-content browser, one page per tab. `galleryBucket` leads for
     // the same reason `viewOnceLive` does: it is absent on the overwhelming
     // majority of rows, and Convex orders `undefined` before every string, so

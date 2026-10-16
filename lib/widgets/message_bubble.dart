@@ -18,6 +18,7 @@ import '../keyboard/focusable_tap.dart';
 import '../media/media_aspect_cache.dart';
 import '../media/storage/auto_download.dart';
 import '../media/storage/media_ledger.dart';
+import '../media/view_once_fetch.dart' show ViewOnceOpener;
 import '../platform.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
@@ -26,6 +27,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../screens/fullscreen_image_viewer.dart';
 import '../screens/fullscreen_video_viewer.dart';
+import '../screens/view_once_viewer.dart';
 import '../services/link_opener.dart';
 import 'audio_message.dart';
 import 'auto_download_gate.dart';
@@ -59,6 +61,7 @@ import 'message_hover_actions.dart';
 import 'video_message.dart';
 import 'secondary_click_recognizer.dart';
 import 'video_note_message.dart';
+import 'view_once_seal.dart';
 import 'expressions/expression_bubble.dart';
 import 'expressions/expression_sheet.dart';
 
@@ -167,9 +170,10 @@ class MessageBubble extends StatelessWidget {
   final String? albumHighlightId;
   final double albumHighlightT;
 
-  /// Spends this viewer's one look at a view-once photo and shows it. Null
-  /// leaves the sealed tile inert.
-  final Future<void> Function()? onOpenViewOnce;
+  /// Spends this viewer's one look at a view-once photo, voice message or
+  /// video note and hands back its bytes, in memory. The sealed bubble decides
+  /// how to present them. Null leaves the sealed bubble inert.
+  final ViewOnceOpener? onOpenViewOnce;
 
   /// Ends a running live-location share. Null on everything except the sender's
   /// own live share, which is what makes the bubble draw STOP at all.
@@ -663,9 +667,10 @@ class EphemeralMessageBubble extends StatelessWidget {
   final MessageInteraction? interaction;
   final InteractionActions interactionActions;
 
-  /// Spends this viewer's one look at a view-once photo and shows it. Null
-  /// leaves the sealed tile inert.
-  final Future<void> Function()? onOpenViewOnce;
+  /// Spends this viewer's one look at a view-once photo, voice message or
+  /// video note and hands back its bytes, in memory. The sealed bubble decides
+  /// how to present them. Null leaves the sealed bubble inert.
+  final ViewOnceOpener? onOpenViewOnce;
 
   /// Ends a running live-location share. Null on everything except the sender's
   /// own live share, which is what makes the bubble draw STOP at all.
@@ -1548,10 +1553,12 @@ Widget buildMessageContent({
   /// Whether the message is one of the room's pins. See [MessageStamp.pinned].
   bool pinned = false,
 
-  /// Spends this viewer's one look at a view-once photo and shows it. Null
+  /// Spends this viewer's one look at a view-once message and hands back its
+  /// bytes, in memory: the photo tile shows them in [ViewOnceViewer], the voice
+  /// pill plays them in place, the video note flies them into its focus. Null
   /// where no repository is wired up (tests, previews), which leaves the sealed
-  /// tile inert rather than half-working.
-  Future<void> Function()? onOpenViewOnce,
+  /// bubble inert rather than half-working.
+  ViewOnceOpener? onOpenViewOnce,
 
   /// Ends a running live-location share, and whether this device is the one
   /// publishing it. Threaded exactly like [onOpenViewOnce]: null leaves the
@@ -1805,7 +1812,20 @@ Widget buildMessageContent({
       // a null one as the literal text "[audio missing]" — which is true of a
       // broken message and alarmingly false of one that is uploading fine.
       final audioUpload = message.upload;
-      final Widget player = audioUpload != null
+      // A play-once note, once it has left the sender: the same pill, sealed.
+      // Never `AudioMessage`, whose caches would keep a copy past the burn —
+      // the server sends no storage id for it to resolve anyway.
+      final Widget player = message.viewOnce && audioUpload == null
+          ? ViewOnceAudioMessage(
+              messageId: message.id,
+              isMine: isMine,
+              durationMs: message.mediaDurationMs,
+              opened: message.viewOnceOpened,
+              burned: message.viewOnceBurned,
+              surface: speakerFill ?? authoredFill,
+              onOpen: onOpenViewOnce,
+            )
+          : audioUpload != null
           ? _OutboundAudioRow(
               theme: theme,
               upload: audioUpload,
@@ -2012,6 +2032,21 @@ Widget buildMessageContent({
             onRetry: onRetrySend,
             onDiscard: onDiscardSend,
           ),
+        );
+      }
+      // Ahead of the real circle, for the image case's reason: a sealed note
+      // has no storage id, and must never reach a path with a disk cache.
+      if (message.viewOnce) {
+        return ViewOnceVideoNote(
+          api: api,
+          messageId: message.id,
+          isMine: isMine,
+          posterStorageId: message.posterStorageId,
+          durationMs: message.mediaDurationMs,
+          opened: message.viewOnceOpened,
+          burned: message.viewOnceBurned,
+          diameter: noteSize,
+          onOpen: onOpenViewOnce,
         );
       }
       return VideoNoteMessage(
@@ -2433,7 +2468,7 @@ class _ViewOnceTile extends StatefulWidget {
   final double width;
   final BorderRadius radius;
   final MessageStamp? stamp;
-  final Future<void> Function()? onOpen;
+  final ViewOnceOpener? onOpen;
 
   /// Only ever non-null on the sender's own copy of a send that failed. A sealed
   /// photo on its way up has no picture to show and no picture to show it *on* —
@@ -2464,7 +2499,12 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
     if (!_openable) return;
     setState(() => _busy = true);
     try {
-      await widget.onOpen!();
+      final bytes = await widget.onOpen!();
+      // Null means the look could not be had, and the caller has already said
+      // why. Bytes go straight to the memory-only viewer and nowhere else.
+      if (bytes != null && mounted) {
+        await ViewOnceViewer.open(context, bytes: bytes);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -2528,23 +2568,10 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
     } else if (_busy) {
       inner = PhotoSpinner(color: t.accent);
     } else {
-      return SizedBox(
-        width: _ViewOnceTile._sealSize,
-        height: _ViewOnceTile._sealSize,
-        child: CustomPaint(
-          painter: _ViewOnceSealPainter(color: seal, struck: _spent),
-          child: Center(
-            child: Text(
-              '1',
-              style: TextStyle(
-                color: seal,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                height: 1,
-              ),
-            ),
-          ),
-        ),
+      return ViewOnceSeal(
+        color: seal,
+        struck: _spent,
+        size: _ViewOnceTile._sealSize,
       );
     }
     return SizedBox(
@@ -2679,54 +2706,6 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
       ),
     );
   }
-}
-
-/// The seal: a ring around the "1", filled while the photo can still be opened
-/// and struck through once it can't.
-class _ViewOnceSealPainter extends CustomPainter {
-  const _ViewOnceSealPainter({required this.color, required this.struck});
-
-  final Color color;
-  final bool struck;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = math.min(size.width, size.height) / 2 - 1;
-    if (!struck) {
-      // A disc behind the numeral, so a live seal reads as a wax stamp rather
-      // than an outline waiting to be filled in.
-      canvas.drawCircle(
-        c,
-        r,
-        Paint()
-          ..style = PaintingStyle.fill
-          ..isAntiAlias = true
-          ..color = color.withValues(alpha: 0.12),
-      );
-    }
-    final p = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4
-      ..isAntiAlias = true
-      ..color = color;
-    canvas.drawCircle(c, r, p);
-    if (!struck) return;
-    // Trailing-to-leading slash, the same direction a "no" symbol reads. Held
-    // back from full strength: spent is a state, not an error.
-    final d = r * 0.72;
-    canvas.drawLine(
-      Offset(c.dx - d, c.dy + d),
-      Offset(c.dx + d, c.dy - d),
-      p
-        ..strokeWidth = 1.3
-        ..color = color.withValues(alpha: 0.7),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_ViewOnceSealPainter old) =>
-      old.color != color || old.struck != struck;
 }
 
 class _ImageTile extends StatefulWidget {

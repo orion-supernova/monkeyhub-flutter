@@ -267,6 +267,55 @@ class AppLocalizationsSv extends AppLocalizations {
       'Engångsfoto, tryck för att visa';
 
   @override
+  String get messageBubblePlayOnceLabel => 'Spela en gång';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'Tryck för att spela';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'Spelad';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'Röstmeddelande som spelas en gång, tryck för att spela';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'Videonotis som spelas en gång, tryck för att spela';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel =>
+      'Röstmeddelande · spelas en gång';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'Videonotis · spelas en gång';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'Du har redan lyssnat på det här röstmeddelandet.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone =>
+      'Det här röstmeddelandet finns inte längre.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'Kunde inte läsa in röstmeddelandet.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'Du har redan sett den här videonotisen.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'Den här videonotisen finns inte längre.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'Kunde inte läsa in videonotisen.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => 'Försök att skicka igen';
 
   @override
@@ -6422,6 +6471,30 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'Avbryt';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'Spela en gång';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint => 'De kan bara lyssna en gång';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => 'De kan bara titta en gång';
+
+  @override
+  String get composerCapturePauseLabel => 'Pausa inspelningen';
+
+  @override
+  String get composerCaptureResumeLabel => 'Fortsätt spela in';
+
+  @override
+  String get composerCaptureFlashLabel => 'Blixt';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'Spela upp inspelningen';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'Sluta spela upp';
 
   @override
   String get composerCaptureCancelLabel => 'kasta inspelningen';

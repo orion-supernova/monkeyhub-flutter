@@ -39,7 +39,16 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
   // Checked before content, and before the media branch. A burn-after-reading
   // photo has no thumbnail to show at any callsite — the server withholds the
   // storage id — so it can never fall through to the caption-only case.
-  if (m.viewOnce) return 'photo · view once';
+  // Named by kind, matching what the server's own preview says: "photo" on a
+  // sealed voice message is the kind of small wrongness people notice.
+  if (m.viewOnce) {
+    return switch (m.type) {
+      MessageType.audio => 'voice message · play once',
+      MessageType.videoNote => 'video note · play once',
+      MessageType.video => 'video · view once',
+      _ => 'photo · view once',
+    };
+  }
 
   switch (m.type) {
     case MessageType.text:

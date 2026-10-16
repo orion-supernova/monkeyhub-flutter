@@ -477,7 +477,12 @@ String _previewLabel(BuildContext context, ReplyPreview preview) {
   // `_mediaThumb` drops the slot when the preview carries no storage id, which
   // for a view-once parent it never does.
   if (preview.isViewOnce) {
-    return AppLocalizations.of(context).replyIndicatorViewOnceLabel;
+    final l10n = AppLocalizations.of(context);
+    return switch (preview.type) {
+      MessageType.audio => l10n.replyIndicatorPlayOnceVoiceLabel,
+      MessageType.videoNote => l10n.replyIndicatorPlayOnceVideoNoteLabel,
+      _ => l10n.replyIndicatorViewOnceLabel,
+    };
   }
   // A reply to a whole album: what it points at is the stack, so it says how
   // big the stack was, beside a thumbnail drawn as one.

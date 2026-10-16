@@ -268,6 +268,55 @@ class AppLocalizationsFr extends AppLocalizations {
       'Photo à vue unique, touche pour voir';
 
   @override
+  String get messageBubblePlayOnceLabel => 'Lecture unique';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'Touchez pour lire';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'Lu';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'Message vocal à lecture unique, touchez pour lire';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'Note vidéo à lecture unique, touchez pour lire';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel =>
+      'Message vocal · lecture unique';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'Note vidéo · lecture unique';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'Tu as déjà écouté ce message vocal.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone =>
+      'Ce message vocal n’est plus disponible.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'Impossible de charger ce message vocal.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'Tu as déjà regardé cette note vidéo.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'Cette note vidéo n’est plus disponible.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'Impossible de charger cette note vidéo.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => 'Réessayer l\'envoi';
 
   @override
@@ -6497,6 +6546,32 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'Annuler';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'Lecture unique';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint =>
+      'Ne pourra l\'écouter qu\'une fois';
+
+  @override
+  String get composerCaptureViewOnceVideoHint =>
+      'Ne pourra la regarder qu\'une fois';
+
+  @override
+  String get composerCapturePauseLabel => 'Mettre en pause';
+
+  @override
+  String get composerCaptureResumeLabel => 'Reprendre l\'enregistrement';
+
+  @override
+  String get composerCaptureFlashLabel => 'Flash';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'Lire l\'enregistrement';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'Arrêter la lecture';
 
   @override
   String get composerCaptureCancelLabel => 'supprimer l\'enregistrement';

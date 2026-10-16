@@ -12,7 +12,13 @@ import {
   childPolicyOf,
   childPolicyOfUser,
 } from "./childGuard";
-import { deleteStored, releaseMessageBlobs, claimUpload } from "./files";
+import {
+  deleteStored,
+  releaseMessageBlobs,
+  claimUpload,
+  discardUpload,
+  isMicroPoster,
+} from "./files";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
 import { lensFor } from "./visibility";
@@ -68,7 +74,7 @@ export async function throttleSend(ctx: any, userId: any, count: number) {
 
 // ── View-once tuning ────────────────────────────────────────────────────────
 
-/** Burn an armed photo this long after it was sent, opened or not. */
+/** Burn an armed message's media this long after it was sent, opened or not. */
 const VIEW_ONCE_DEADLINE_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
@@ -149,19 +155,25 @@ const LIVE_SHARE_SUPERSEDE_SCAN_LIMIT = 100;
  */
 export async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
   if (msg?.viewOnce !== true) return msg;
-  // `posterStorageId` is here in depth, not as the guard. `send` never writes
-  // one on an armed message in the first place — which it has to be, because
-  // this is a list of field names rather than a rule, and because
-  // `files:getFileUrl` refuses a view-once blob by looking it up in `by_media`,
-  // an index keyed on `mediaStorageId` alone. A poster that reached storage
-  // would be fetchable by anyone who learned its id, forever.
+  // `posterStorageId` is stripped in depth, not as the guard. `send` never
+  // writes one on an armed message (it deletes the blob instead) except a
+  // video note's micro poster: a blurred frame of at most
+  // `VIEW_ONCE_POSTER_MAX_BYTES`, which the sealed bubble draws under its dust
+  // layer and which reveals nothing. That one is passed through after the
+  // same size check `files:getFileUrl` makes before serving it: one storage
+  // metadata read, and only for an armed video note that has a poster.
+  // `mediaDurationMs` is deliberately NOT stripped: see `viewOnceKeepsDuration`.
   const {
     mediaStorageId: _id,
     mediaWidth: _w,
     mediaHeight: _h,
-    posterStorageId: _p,
+    posterStorageId: poster,
     ...rest
   } = msg;
+  const keptPoster =
+    msg.type === "videoNote" && (await isMicroPoster(ctx, poster))
+      ? { posterStorageId: poster }
+      : {};
   let opened = false;
   if (viewerUserId) {
     const row = await ctx.db
@@ -172,7 +184,7 @@ export async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
       .first();
     opened = row !== null;
   }
-  return { ...rest, viewOnceOpened: opened };
+  return { ...rest, ...keptPoster, viewOnceOpened: opened };
 }
 
 /**
@@ -607,6 +619,44 @@ export async function guardOutgoing(
 }
 
 /**
+ * The room-card line for an armed message: what KIND it is, and nothing else.
+ *
+ * Never the caption, a duration or a filename, because this string is also the
+ * push body and so lands on a lock screen. The words match the ones the
+ * moderator transcript uses (`describeMessage` in moderationCore.ts) and the
+ * client's own preview line, so a voice note reads as one wherever it is
+ * named. `[photo]` rather than `[image]` is the existing wire value for an
+ * armed photo and is kept. Anything else that can be armed in principle (no
+ * UI arms a document) gets a word that names no content at all.
+ */
+export function viewOncePreviewFor(type: string): string {
+  switch (type) {
+    case "image":
+      return "[photo]";
+    case "video":
+      return "[video]";
+    case "videoNote":
+      return "[video note]";
+    case "audio":
+      return "[voice message]";
+    default:
+      return "[media]";
+  }
+}
+
+/**
+ * Whether an armed message of [type] keeps its playing time.
+ *
+ * A voice message or video note is sealed but not secret about its length:
+ * the bubble shows "0:12" before it is opened, as Telegram's does, and the
+ * sender's own recorder already showed the same number. Every other armed
+ * kind drops it with the rest of its metadata.
+ */
+export function viewOnceKeepsDuration(type: string): boolean {
+  return type === "audio" || type === "videoNote";
+}
+
+/**
  * The one line a room card shows for its newest message.
  *
  * Also the push body (`notifications.sendMessagePush` is handed this exact
@@ -638,7 +688,7 @@ export function roomPreviewFor(msg: {
   if (type === "text") {
     return maskSpoilers(msg.content ?? "", msg.formatting).slice(0, 100);
   }
-  if (msg.viewOnce === true) return "[photo]";
+  if (msg.viewOnce === true) return viewOncePreviewFor(type);
   if (type === "file") {
     const name = (msg.fileName ?? "").slice(0, 100);
     return name.length > 0 ? name : "[file]";
@@ -1045,10 +1095,13 @@ export const send = mutation({
     fileSize: v.optional(v.number()),
     mimeType: v.optional(v.string()),
     // Playing time of an audio or video attachment, when the sender measured
-    // it, so a shared-content row can show a duration without decoding.
+    // it, so a shared-content row can show a duration without decoding. Kept
+    // on an armed voice message or video note, dropped on any other armed
+    // send; see `viewOnceKeepsDuration`.
     mediaDurationMs: v.optional(v.number()),
-    // A poster frame for a video, uploaded as a second blob. Refused on an
-    // armed send — see the schema comment.
+    // A poster frame for a video, uploaded as a second blob. On an armed send
+    // only a video note's micro poster (<= VIEW_ONCE_POSTER_MAX_BYTES) is
+    // kept; anything else is deleted, not stored. See the schema comment.
     posterStorageId: v.optional(v.id("_storage")),
     senderName: v.optional(v.string()),
     replyToId: v.optional(v.id("messages")),
@@ -1108,9 +1161,28 @@ export const send = mutation({
     const room = await ctx.db.get(args.roomId);
     const solo = (room?.memberCount ?? 0) <= 1;
     await claimUpload(ctx, args.mediaStorageId, args.userId, "media", { solo });
-    await claimUpload(ctx, args.posterStorageId, args.userId, "media", { solo });
+    // A poster sent with an armed message is deleted, not kept, unless it is
+    // a video note's micro poster (`isMicroPoster`: at most
+    // `VIEW_ONCE_POSTER_MAX_BYTES` by storage metadata). Anything bigger is a
+    // still of the sender's face, and a blob that is claimed but pointed at by
+    // nothing would sit fetchable by id until the orphan sweep. The same-id
+    // check stops a poster that names the media itself from deleting the
+    // very file this send is about to attach.
+    let posterStorageId = args.posterStorageId;
+    if (
+      args.viewOnce === true &&
+      args.mediaStorageId !== undefined &&
+      posterStorageId !== undefined &&
+      !(args.type === "videoNote" && (await isMicroPoster(ctx, posterStorageId)))
+    ) {
+      if (posterStorageId.toString() !== args.mediaStorageId.toString()) {
+        await discardUpload(ctx, posterStorageId, args.userId);
+      }
+      posterStorageId = undefined;
+    }
+    await claimUpload(ctx, posterStorageId, args.userId, "media", { solo });
     try {
-      return await sendCore(ctx, args);
+      return await sendCore(ctx, { ...args, posterStorageId });
     } catch (err) {
       if (err instanceof FilterBlockedError) return ERR_FILTER_BLOCKED;
       throw err;
@@ -1446,6 +1518,8 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // is opened, and span offsets are a partial description (they say where
   // the interesting parts are).
   const fmt = armed ? undefined : sanitizeFormatting(content, formatting);
+  const armedPosterOk =
+    armed && msgType === "videoNote" && (await isMicroPoster(ctx, posterStorageId));
 
   // One timestamp for the row AND the room card. Convex freezes Date.now()
   // per mutation in production, but nothing else does (convex-test, for
@@ -1473,12 +1547,15 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     fileName: armed ? undefined : fileName,
     fileSize: armed ? undefined : fileSize,
     mimeType: armed ? undefined : mimeType,
-    mediaDurationMs: armed ? undefined : mediaDurationMs,
-    // THE guard, not a redundancy. `sanitizeViewOnce` lists this field too,
-    // but that is a hardcoded list on the read path; the poster must never
-    // reach storage in the first place, because `files:getFileUrl` refuses a
-    // view-once blob via `by_media` — an index that cannot see this id.
-    posterStorageId: armed ? undefined : posterStorageId,
+    // Kept on an armed voice message or video note only; see
+    // `viewOnceKeepsDuration`.
+    mediaDurationMs:
+      armed && !viewOnceKeepsDuration(msgType) ? undefined : mediaDurationMs,
+    // THE guard, not a redundancy. An armed row points at a poster only when
+    // it is a video note's micro poster, re-checked here against storage so
+    // a caller of `sendCore` that skipped `send`'s check cannot write a full
+    // frame. `send` has already deleted any other poster (`discardUpload`).
+    posterStorageId: armed && !armedPosterOk ? undefined : posterStorageId,
     // Which shared-content tab this belongs in, or nothing. Passing
     // `mediaStorageId !== undefined` rather than `msgType` alone is what
     // keeps a failed upload out of the grid — see `galleryBucketFor`.
@@ -2963,7 +3040,7 @@ export const getThread = query({
   },
 });
 
-// ─────────────────────────────── View-once photos ────────────────────────────
+// ─────────────────────────────── View-once media ─────────────────────────────
 
 /** Drops every ledger row for one message. Shared by all three delete paths. */
 export async function purgeViewOnceViews(ctx: any, messageId: any) {
@@ -3117,9 +3194,38 @@ export const resolveViewOnceGrant = internalQuery({
 
     const msg = await ctx.db.get(messageId);
     if (!msg || msg.viewOnce !== true || !msg.mediaStorageId) return null;
-    return { storageId: msg.mediaStorageId };
+    // The type rides along so the HTTP action can pick a Content-Type the
+    // player will accept; see `viewOnceContentType` in http.ts.
+    return { storageId: msg.mediaStorageId, type: msg.type ?? "image" };
   },
 });
+
+/**
+ * The part of a burn both burn paths share: every blob the message owns goes,
+ * and the fields that point at them are cleared. Returned as a patch so each
+ * caller writes the row once.
+ *
+ * The poster goes too: a video note's micro poster is part of the message,
+ * and the ghost bubble has nothing left to draw it for. A row armed by an
+ * older server, or by a path nobody has written yet, must not keep a frame
+ * after the media it was taken from is gone either. `deleteStored` tolerates an
+ * absent id, so the common case costs nothing.
+ */
+async function burnBlobs(ctx: any, msg: any): Promise<Record<string, any>> {
+  await deleteStored(ctx, msg.mediaStorageId);
+  await deleteStored(ctx, msg.posterStorageId);
+  return {
+    mediaStorageId: undefined,
+    posterStorageId: undefined,
+    mediaWidth: undefined,
+    mediaHeight: undefined,
+    viewOnceBurnedAt: Date.now(),
+    viewOnceDeadline: undefined,
+    // Drops the row out of the sweep's index bucket entirely — see the
+    // `viewOnceLive` comment in schema.ts.
+    viewOnceLive: undefined,
+  };
+}
 
 /**
  * Deletes the blob and leaves the message behind as a ghost.
@@ -3134,19 +3240,9 @@ export const burnViewOnce = internalMutation({
     const msg = await ctx.db.get(messageId);
     if (!msg || msg.viewOnce !== true || !msg.mediaStorageId) return;
 
-    await deleteStored(ctx, msg.mediaStorageId);
     // The ROW SURVIVES. Clearing these fields is what flips every client to the
     // greyed ghost bubble, reactively, without deleting anyone's transcript.
-    await ctx.db.patch(messageId, {
-      mediaStorageId: undefined,
-      mediaWidth: undefined,
-      mediaHeight: undefined,
-      viewOnceBurnedAt: Date.now(),
-      viewOnceDeadline: undefined,
-      // Drops the row out of the sweep's index bucket entirely — see the
-      // `viewOnceLive` comment in schema.ts.
-      viewOnceLive: undefined,
-    });
+    await ctx.db.patch(messageId, await burnBlobs(ctx, msg));
     // Tickets outlive their usefulness the moment the file is gone.
     const rows = await ctx.db
       .query("viewOnceViews")
@@ -3186,15 +3282,7 @@ export const gcExpiredViewOnce = internalMutation({
 
     let burned = 0;
     for (const msg of due) {
-      await deleteStored(ctx, msg.mediaStorageId);
-      await ctx.db.patch(msg._id, {
-        mediaStorageId: undefined,
-        mediaWidth: undefined,
-        mediaHeight: undefined,
-        viewOnceBurnedAt: Date.now(),
-        viewOnceDeadline: undefined,
-        viewOnceLive: undefined,
-      });
+      await ctx.db.patch(msg._id, await burnBlobs(ctx, msg));
       burned++;
     }
     return { scanned: due.length, burned };

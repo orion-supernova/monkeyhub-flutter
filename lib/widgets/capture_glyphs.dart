@@ -725,3 +725,118 @@ class _ChevronPainter extends _GridPainter {
   bool shouldRepaint(_ChevronPainter old) =>
       old.color != color || old.direction != direction;
 }
+
+// ---------------------------------------------------------------------------
+// Play once
+
+/// The play-once toggle: a "1" in a ring. Off ([on] 0), the ring is dashed,
+/// an unsealed promise; turning on closes the dashes into a solid ring and
+/// floods it with [color], knocking the "1" out in [knockout]. Values past 1
+/// overshoot the flood a touch, so a spring can pop it.
+class ViewOnceGlyph extends StatelessWidget {
+  const ViewOnceGlyph({
+    super.key,
+    required this.color,
+    required this.knockout,
+    this.on = 0,
+    this.size = 20,
+  });
+
+  final Color color;
+
+  /// The "1" once the ring is flooded: whatever is behind the glyph.
+  final Color knockout;
+  final double on;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      _Glyph(size: size, painter: _ViewOncePainter(color, knockout, on));
+}
+
+class _ViewOncePainter extends _GridPainter {
+  const _ViewOncePainter(super.color, this.knockout, this.on);
+
+  final Color knockout;
+  final double on;
+
+  @override
+  void draw(Canvas canvas, Paint line, Paint fill) {
+    final t = on.clamp(0.0, 1.2);
+    final closed = t.clamp(0.0, 1.0);
+    const c = Offset(12, 12);
+    const r = 9.0;
+    // Eight dashes whose gaps close as it turns on.
+    const dashes = 8;
+    final gap = 0.42 * (1 - closed);
+    final sweep = 2 * math.pi / dashes;
+    final rect = Rect.fromCircle(center: c, radius: r);
+    for (var i = 0; i < dashes; i++) {
+      final start = -math.pi / 2 + sweep * i + sweep * gap / 2;
+      canvas.drawArc(rect, start, sweep * (1 - gap), false, line);
+    }
+    // The flood, from the centre out.
+    if (closed > 0) {
+      canvas.drawCircle(c, (r + line.strokeWidth / 2) * math.min(1.0, t), fill..color = color.withValues(alpha: color.a * closed));
+    }
+    final one = Paint()
+      ..color = Color.lerp(color, knockout, Curves.easeOut.transform(closed))!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = line.strokeWidth * 0.95
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(
+      Path()
+        ..moveTo(9.9, 9.2)
+        ..lineTo(12.3, 7.4)
+        ..lineTo(12.3, 16.6),
+      one,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ViewOncePainter old) =>
+      old.color != color || old.knockout != knockout || old.on != on;
+}
+
+/// A small solid flame for the play-once tooltip. [flicker] is a phase the
+/// caller advances; the tip leans and the body breathes with it.
+class FlameGlyph extends StatelessWidget {
+  const FlameGlyph({super.key, required this.color, this.flicker = 0, this.size = 20});
+
+  final Color color;
+  final double flicker;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      _Glyph(size: size, painter: _FlamePainter(color, flicker));
+}
+
+class _FlamePainter extends _GridPainter {
+  const _FlamePainter(super.color, this.flicker);
+
+  final double flicker;
+
+  @override
+  void draw(Canvas canvas, Paint line, Paint fill) {
+    final lean = 1.1 * math.sin(flicker * 2 * math.pi);
+    final breathe = 0.4 * math.sin(flicker * 4 * math.pi + 0.8);
+    final tip = Offset(12 + lean, 2.8 - breathe);
+    canvas.drawPath(
+      Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..cubicTo(13.6 + lean * 0.5, 6.6, 18.2, 8.6, 18.2, 14.1)
+        ..cubicTo(18.2, 18.1, 15.4, 21.1, 12, 21.1)
+        ..cubicTo(8.6, 21.1, 5.8, 18.1, 5.8, 14.1)
+        ..cubicTo(5.8, 11.1, 7.8, 9.1, 8.9, 7.6)
+        ..cubicTo(9.2, 9.6, 10.2, 10.7, 11.2, 10.9)
+        ..cubicTo(10.9, 8.1, 11.2, 5.5, tip.dx, tip.dy)
+        ..close(),
+      fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FlamePainter old) => old.color != color || old.flicker != flicker;
+}

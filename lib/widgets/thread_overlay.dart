@@ -33,6 +33,8 @@ import 'chat_composer.dart';
 import '../expressions/expression_store.dart';
 import '../family/family_service.dart';
 import '../media/image_raster.dart';
+import '../media/view_once_fetch.dart';
+import '../media/view_once_media.dart' show viewOnceMicroPoster;
 import '../models/expression_item.dart';
 import 'expressions/expression_panel.dart';
 import 'expressions/expression_sheet.dart';
@@ -609,17 +611,30 @@ class _ThreadSheetState extends State<_ThreadSheet>
       _showToast(AppLocalizations.of(context).threadOverlayStillSending);
       return;
     }
-    widget.repo.sendMediaLocal(
-      roomId: widget.roomId,
-      bytes: outcome.bytes,
-      contentType: outcome.contentType,
-      type: mode == ComposerInputMode.videoNote
-          ? MessageType.videoNote
-          : MessageType.audio,
-      posterBytes: outcome.posterBytes,
-      mediaDurationMs: outcome.duration.inMilliseconds,
-      replyToId: target.id,
-    );
+    final type = mode == ComposerInputMode.videoNote
+        ? MessageType.videoNote
+        : MessageType.audio;
+    void send(Uint8List? poster) => widget.repo.sendMediaLocal(
+          roomId: widget.roomId,
+          bytes: outcome.bytes,
+          contentType: outcome.contentType,
+          type: type,
+          posterBytes: poster,
+          mediaDurationMs: outcome.duration.inMilliseconds,
+          replyToId: target.id,
+          viewOnce: outcome.viewOnce,
+        );
+    if (!outcome.viewOnce) {
+      send(outcome.posterBytes);
+    } else {
+      // The room screen's rule: never the full poster on a play-once send,
+      // only a video note's sixteen-pixel stand-in.
+      unawaited(() async {
+        send(type == MessageType.videoNote
+            ? await viewOnceMicroPoster(outcome.posterBytes)
+            : null);
+      }());
+    }
     if (_scroll.hasClients) {
       _scroll.animateTo(
         0,
@@ -1219,9 +1234,31 @@ class _ThreadSheetState extends State<_ThreadSheet>
           : null,
       onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
       onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
+      // A play-once voice message plays in its own pill, so it can be heard
+      // here. A sealed photo or video note opens a route, and a route pushed
+      // from this root overlay entry lands BENEATH it — the one look would be
+      // spent on a viewer nobody can see. Those stay inert in a thread, as
+      // photos always have.
+      onOpenViewOnce:
+          m.type == MessageType.audio ? () => _openViewOnce(m) : null,
       interaction: interaction,
       interactionActions: _interactionActions,
     );
+  }
+
+  /// The room screen's `_openViewOnce`: spends the look, says why not when it
+  /// can't be had, and hands the bytes to the bubble.
+  Future<Uint8List?> _openViewOnce(ChatMessage m) async {
+    final l10n = AppLocalizations.of(context);
+    final res = await fetchViewOnce(
+      repo: widget.repo,
+      roomId: widget.roomId,
+      messageId: m.id,
+    );
+    final bytes = res.bytes;
+    if (bytes != null) return bytes;
+    _showToast(viewOnceFailureMessage(l10n, m.type, res.failure!));
+    return null;
   }
 
   @override

@@ -1813,6 +1813,12 @@ import WebRTC
       VideoShrink.register(with: shrinkRegistrar.messenger())
     }
 
+    // monkeyhub/media_compose — joins and trims the segments of a paused
+    // voice or video note.
+    if let composeRegistrar = engine.registrar(forPlugin: "MonkeyHubMediaComposePlugin") {
+      MediaCompose.register(with: composeRegistrar.messenger())
+    }
+
     // monkeyhub/badge — set or clear the app icon badge count.
     // Register the channel via a plugin registrar so we get a binaryMessenger
     // without depending on the rootViewController being a FlutterViewController.

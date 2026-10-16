@@ -525,6 +525,84 @@ abstract class AppLocalizations {
   /// **'View once photo, tap to view'**
   String get messageBubbleViewOnceSemanticLabel;
 
+  /// Label for a play-once voice message or video note: on the sender's own sealed bubble, and on the badge over a playing play-once video note. Must match composerCaptureViewOnceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Play once'**
+  String get messageBubblePlayOnceLabel;
+
+  /// Caption on a sealed play-once voice message or video note the reader has not played yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to play'**
+  String get messageBubblePlayOnceTapToPlay;
+
+  /// Caption on a play-once voice message or video note once this reader has played it.
+  ///
+  /// In en, this message translates to:
+  /// **'Played'**
+  String get messageBubblePlayOncePlayed;
+
+  /// Screen-reader label for the play button of a sealed play-once voice message.
+  ///
+  /// In en, this message translates to:
+  /// **'Play-once voice message, tap to play'**
+  String get messageBubblePlayOnceVoiceSemanticLabel;
+
+  /// Screen-reader label for a sealed play-once video note (the round video bubble).
+  ///
+  /// In en, this message translates to:
+  /// **'Play-once video note, tap to play'**
+  String get messageBubblePlayOnceVideoNoteSemanticLabel;
+
+  /// Reply quote label when the quoted message is a play-once voice message.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message · play once'**
+  String get replyIndicatorPlayOnceVoiceLabel;
+
+  /// Reply quote label when the quoted message is a play-once video note.
+  ///
+  /// In en, this message translates to:
+  /// **'Video note · play once'**
+  String get replyIndicatorPlayOnceVideoNoteLabel;
+
+  /// Toast when the reader tries to play a play-once voice message they already played (maybe on another device).
+  ///
+  /// In en, this message translates to:
+  /// **'You’ve already played this voice message.'**
+  String get roomScreenPlayOnceVoiceAlreadyPlayed;
+
+  /// Toast when a play-once voice message has been deleted or has expired.
+  ///
+  /// In en, this message translates to:
+  /// **'This voice message is no longer available.'**
+  String get roomScreenPlayOnceVoiceGone;
+
+  /// Toast when a play-once voice message could not be downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load that voice message.'**
+  String get roomScreenPlayOnceVoiceNetworkError;
+
+  /// Toast when the reader tries to play a play-once video note they already watched (maybe on another device).
+  ///
+  /// In en, this message translates to:
+  /// **'You’ve already watched this video note.'**
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed;
+
+  /// Toast when a play-once video note has been deleted or has expired.
+  ///
+  /// In en, this message translates to:
+  /// **'This video note is no longer available.'**
+  String get roomScreenPlayOnceVideoNoteGone;
+
+  /// Toast when a play-once video note could not be downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load that video note.'**
+  String get roomScreenPlayOnceVideoNoteNetworkError;
+
   /// Screen-reader semantic label for the retry (refresh icon) control on a failed outgoing attachment.
   ///
   /// In en, this message translates to:
@@ -10882,6 +10960,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get composerCaptureLockedCancel;
+
+  /// Label of the toggle above a locked recording that makes the voice or video note playable only once by the recipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Play once'**
+  String get composerCaptureViewOnceLabel;
+
+  /// Tooltip shown when the play-once toggle is turned on for a voice message.
+  ///
+  /// In en, this message translates to:
+  /// **'They can listen to it only once'**
+  String get composerCaptureViewOnceVoiceHint;
+
+  /// Tooltip shown when the play-once toggle is turned on for a video note.
+  ///
+  /// In en, this message translates to:
+  /// **'They can watch it only once'**
+  String get composerCaptureViewOnceVideoHint;
+
+  /// Label of the button above a locked recording that pauses it, to review and trim before sending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause recording'**
+  String get composerCapturePauseLabel;
+
+  /// Label of the same button while paused: carries on recording.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume recording'**
+  String get composerCaptureResumeLabel;
+
+  /// Label of the flash button over a video note being recorded: the torch on the back camera, a white screen on the front one.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash'**
+  String get composerCaptureFlashLabel;
+
+  /// Label of the play button in a paused recording's review strip.
+  ///
+  /// In en, this message translates to:
+  /// **'Play recording'**
+  String get composerCaptureReviewPlayLabel;
+
+  /// Label of the same button while the review is playing.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop playing'**
+  String get composerCaptureReviewStopLabel;
 
   /// Semantic label of the trash button in the recording strip, which aborts the recording and deletes it.
   ///

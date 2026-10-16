@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../diagnostics/diag_log.dart';
+import '../media/view_once_media.dart' show kViewOnceMicroPosterMaxBytes;
 import '../media/image_raster.dart' show CroppedImage;
 import '../media/upload_service.dart';
 import '../models/chat_message.dart';
@@ -3974,13 +3975,27 @@ class ChatRepository extends ChangeNotifier {
     String? albumId,
     bool viewOnce = false,
   }) async {
+    // Play-once voice and video notes keep their length: it gives nothing
+    // away, and the sealed bubble says it. A photo's or video's armed fields
+    // are still dropped below.
+    final keepsDuration = type == MessageType.audio ||
+        type == MessageType.videoNote;
     final upload = PendingUpload(
       bytes: bytes,
       contentType: contentType,
-      // Never on an armed send: the server refuses to store a poster for one,
-      // so uploading it would only orphan a blob — and a still frame of a
-      // view-once video is the exact thing that must not leak.
-      posterBytes: viewOnce ? null : posterBytes,
+      // Never a real poster on an armed send: a still frame of a view-once
+      // video is the exact thing that must not leak, and the server refuses
+      // to store one. The single exception is a play-once video note's MICRO
+      // poster (`viewOnceMicroPoster`: sixteen pixels, colours not a face),
+      // which the caller has already shrunk — anything heavier than that is
+      // dropped here rather than sent to be refused.
+      posterBytes: !viewOnce
+          ? posterBytes
+          : (type == MessageType.videoNote &&
+                  posterBytes != null &&
+                  posterBytes.length <= kViewOnceMicroPosterMaxBytes
+              ? posterBytes
+              : null),
     );
     final optimistic = _buildOptimistic(
       roomId: roomId,
@@ -3989,7 +4004,7 @@ class ChatRepository extends ChangeNotifier {
       fileName: fileName,
       fileSize: fileSize,
       mimeType: fileName == null ? null : contentType,
-      mediaDurationMs: viewOnce ? null : mediaDurationMs,
+      mediaDurationMs: viewOnce && !keepsDuration ? null : mediaDurationMs,
       // Null until the upload hands one back. This is exactly why
       // MessageStatus.uploading exists — see enums.dart.
       mediaStorageId: null,

@@ -265,6 +265,53 @@ class AppLocalizationsEn extends AppLocalizations {
       'View once photo, tap to view';
 
   @override
+  String get messageBubblePlayOnceLabel => 'Play once';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'Tap to play';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'Played';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'Play-once voice message, tap to play';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'Play-once video note, tap to play';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel => 'Voice message · play once';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel => 'Video note · play once';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'You’ve already played this voice message.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone =>
+      'This voice message is no longer available.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'Couldn’t load that voice message.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'You’ve already watched this video note.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'This video note is no longer available.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'Couldn’t load that video note.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => 'Retry sending';
 
   @override
@@ -6383,6 +6430,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'Cancel';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'Play once';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint =>
+      'They can listen to it only once';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => 'They can watch it only once';
+
+  @override
+  String get composerCapturePauseLabel => 'Pause recording';
+
+  @override
+  String get composerCaptureResumeLabel => 'Resume recording';
+
+  @override
+  String get composerCaptureFlashLabel => 'Flash';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'Play recording';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'Stop playing';
 
   @override
   String get composerCaptureCancelLabel => 'discard recording';

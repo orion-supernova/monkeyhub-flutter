@@ -12,10 +12,15 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/audio_file_cache.dart';
 import '../media/file_url_cache.dart';
+import '../media/view_once_fetch.dart' show ViewOnceOpener;
+import '../media/view_once_media.dart';
+import '../privacy/capture_protection.dart';
 import '../screens/room_items.dart' show formatClockDuration;
+import '../screens/voice_recorder_screen.dart' show voiceNoteContentType;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'spring_press.dart';
+import 'view_once_seal.dart';
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoIcons;
 
 /// How the bubble is currently rendering.
@@ -415,6 +420,448 @@ class _AudioMessageState extends State<AudioMessage> {
           },
         );
       },
+    );
+  }
+}
+
+/// A play-once voice message: the same pill as [AudioMessage], with the
+/// view-once "1" on its play button — Telegram's treatment.
+///
+/// Never touches [AudioFileCache] or [FileUrlCache] — the server sends no
+/// storage id for an armed message, and a cached copy would outlive the burn.
+/// The bytes arrive once, through [onOpen], and play in place from a
+/// [ViewOnceMedia] that is released the moment playback ends, the pill goes
+/// away, or the app leaves the foreground.
+///
+/// One look means one listen: there is no scrubber and no replay. A pause is
+/// allowed — it is still the same listen — but the note never rewinds.
+///
+/// All three states (sealed, played, expired) and the playing one share the
+/// pill's geometry, so the transcript does not move as one becomes another.
+class ViewOnceAudioMessage extends StatefulWidget {
+  const ViewOnceAudioMessage({
+    super.key,
+    required this.messageId,
+    required this.isMine,
+    required this.durationMs,
+    required this.opened,
+    required this.burned,
+    this.surface,
+    this.onOpen,
+  });
+
+  /// Seeds the waveform's shape, and tells a recycled row it now shows a
+  /// different note.
+  final String messageId;
+  final bool isMine;
+
+  /// Recorded length. Kept on an armed send (unlike a photo's dimensions,
+  /// it gives nothing away), so the sealed pill can say how long it is.
+  final int? durationMs;
+
+  /// This viewer has had their listen.
+  final bool opened;
+
+  /// The server has deleted the audio for everyone.
+  final bool burned;
+
+  /// The bubble's own fill, for the cut-out ring round the "1" badge.
+  final Color? surface;
+
+  /// Spends the listen and hands back the bytes. Null leaves the pill inert.
+  final ViewOnceOpener? onOpen;
+
+  @override
+  State<ViewOnceAudioMessage> createState() => _ViewOnceAudioMessageState();
+}
+
+class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
+    with WidgetsBindingObserver {
+  AudioPlayer? _player;
+  ViewOnceMedia? _media;
+  StreamSubscription<PlayerState>? _sub;
+  Duration? _total;
+
+  /// Between the tap and the first sound: the fetch, the staging, the load.
+  bool _busy = false;
+
+  /// This pill played its note through (or was interrupted doing so). The
+  /// message flag says the same once the repository has caught up; this covers
+  /// the frames in between, and a load that failed after the look was spent.
+  bool _done = false;
+
+  /// Holding a [CaptureProtection] scope, exactly while there is something to
+  /// hear.
+  bool _scoped = false;
+
+  /// Guards a slow fetch landing after a recycled row has moved on.
+  int _gen = 0;
+
+  bool get _spent =>
+      _done || widget.opened || widget.burned || widget.isMine;
+
+  bool get _openable =>
+      widget.onOpen != null && !_busy && _player == null && !_spent;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didUpdateWidget(ViewOnceAudioMessage old) {
+    super.didUpdateWidget(old);
+    // Built with no key, like [AudioMessage], so the ListView can hand this
+    // State a different message. The note that was playing is over.
+    if (old.messageId == widget.messageId) return;
+    _gen++;
+    _finish(rebuild: false);
+    _busy = false;
+    _done = false;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _gen++;
+    _finish(rebuild: false);
+    super.dispose();
+  }
+
+  /// The photo viewer's rule: leaving the app ends the look. On iOS both the
+  /// screenshot gesture and Control Center (where recording starts) raise
+  /// `inactive`, so a note cannot be left playing into a capture.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) return;
+    if (_player != null) _finish();
+  }
+
+  Future<void> _open() async {
+    if (!_openable) return;
+    final gen = ++_gen;
+    setState(() => _busy = true);
+    Uint8List? bytes = await widget.onOpen!();
+    if (!mounted || gen != _gen) return;
+    if (bytes == null) {
+      // The opener has said why. The message flags will redraw the pill.
+      setState(() => _busy = false);
+      return;
+    }
+    ViewOnceMedia? media;
+    AudioPlayer? player;
+    try {
+      media = await ViewOnceMedia.stage(
+        bytes,
+        contentType: voiceNoteContentType,
+        extension: 'm4a',
+      );
+      // Ours was the last reference; the staged copy is the only one now.
+      bytes = null;
+      player = AudioPlayer();
+      final total = media.isFile
+          ? await player.setFilePath(media.source)
+          : await player.setUrl(media.source);
+      if (!mounted ||
+          gen != _gen ||
+          _backgrounded()) {
+        throw StateError('view-once voice: gone before it could play');
+      }
+      _player = player;
+      _media = media;
+      _total = total;
+      _scoped = true;
+      unawaited(CaptureProtection.instance.pushScope());
+      unawaited(CaptureProtection.instance.ensureListening());
+      _sub = player.playerStateStream.listen((s) {
+        if (s.processingState == ProcessingState.completed) _finish();
+      });
+      setState(() => _busy = false);
+      unawaited(player.play());
+    } catch (e) {
+      debugPrint('ViewOnceAudioMessage: ${widget.messageId}: $e');
+      // Nothing below the hand-over to `_player` can throw, so whatever got
+      // this far is still only ours to drop.
+      unawaited(player?.dispose());
+      unawaited(media?.release());
+      // The listen was spent the moment the server handed out the ticket, so
+      // there is nothing to retry: the pill goes straight to played.
+      if (mounted && gen == _gen) {
+        setState(() {
+          _busy = false;
+          _done = true;
+        });
+      }
+    }
+  }
+
+  /// The app left the foreground while the bytes were on their way: the look
+  /// ends there, as it would have had it been playing. Unknown (no lifecycle
+  /// reported yet) counts as present.
+  bool _backgrounded() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state != null && state != AppLifecycleState.resumed;
+  }
+
+  /// Ends the listen and lets go of everything it held.
+  void _finish({bool rebuild = true}) {
+    final hadSession = _player != null;
+    final p = _player;
+    _player = null;
+    unawaited(_sub?.cancel());
+    _sub = null;
+    if (p != null) unawaited(p.dispose());
+    final media = _media;
+    _media = null;
+    if (media != null) unawaited(media.release());
+    if (_scoped) {
+      _scoped = false;
+      unawaited(CaptureProtection.instance.popScope());
+    }
+    if (!hadSession) return;
+    _done = true;
+    if (rebuild && mounted) setState(() {});
+  }
+
+  void _togglePause(bool playing) {
+    final p = _player;
+    if (p == null) return;
+    if (playing) {
+      unawaited(p.pause());
+    } else {
+      unawaited(p.play());
+    }
+  }
+
+  /// The word after the duration. Played and expired are different facts —
+  /// "you had it" against "nobody gets it" — the photo tile's distinction.
+  String _caption(AppLocalizations l10n) {
+    if (widget.burned) {
+      return widget.opened || _done || widget.isMine
+          ? l10n.messageBubblePlayOncePlayed
+          : l10n.messageBubbleViewOnceExpired;
+    }
+    if (widget.opened || _done) return l10n.messageBubblePlayOncePlayed;
+    if (widget.isMine) return l10n.messageBubblePlayOnceLabel;
+    return l10n.messageBubblePlayOnceTapToPlay;
+  }
+
+  TextStyle _metaStyle(AppTheme theme, Color ink) => theme.body.copyWith(
+        fontSize: 13,
+        height: 1.2,
+        color: ink.withValues(alpha: 0.8),
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final ink = widget.isMine ? theme.accentInk : theme.ink;
+    final onDisc = widget.isMine ? ink : theme.accentInk;
+    final p = _player;
+    if (p != null) return _playing(theme, ink, onDisc, p);
+
+    final spent = _spent && !_busy;
+    final ms = widget.durationMs;
+    final length = ms == null || ms <= 0
+        ? null
+        : formatClockDuration(Duration(milliseconds: ms));
+    final caption = _caption(l10n);
+    final Widget disc;
+    if (_busy) {
+      disc = _badged(
+        theme,
+        _disc(
+          theme,
+          ink,
+          child: CupertinoActivityIndicator(radius: 7, color: onDisc),
+        ),
+      );
+    } else if (spent) {
+      // No fill: a spent pill is a hole where a note was, like the sunken
+      // photo tile, and the struck seal says why.
+      disc = SizedBox(
+        width: 34,
+        height: 34,
+        child: Center(
+          child: ViewOnceSeal(
+            color: ink.withValues(alpha: 0.55),
+            struck: true,
+            size: 30,
+          ),
+        ),
+      );
+    } else {
+      disc = _badged(
+        theme,
+        _disc(
+          theme,
+          ink,
+          onTap: _openable ? _open : null,
+          child: Icon(CupertinoIcons.play_fill, color: onDisc, size: 17),
+        ),
+      );
+    }
+    return Semantics(
+      label: _openable
+          ? l10n.messageBubblePlayOnceVoiceSemanticLabel
+          : null,
+      child: _row(
+        disc: disc,
+        progress: 0,
+        played: spent ? ink.withValues(alpha: 0.14) : ink,
+        unplayed: ink.withValues(alpha: spent ? 0.14 : 0.32),
+        meta: Text(
+          // Sealed and waiting, the pill reads like any other: just its
+          // length, the badge says the rest. Once spent it says why.
+          !spent && !_busy && length != null
+              ? length
+              : (length == null ? caption : '$length · $caption'),
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.ellipsis,
+          style: _metaStyle(theme, spent ? ink.withValues(alpha: 0.7) : ink),
+        ),
+      ),
+    );
+  }
+
+  Widget _playing(AppTheme theme, Color ink, Color onDisc, AudioPlayer p) {
+    return StreamBuilder<PlayerState>(
+      stream: p.playerStateStream,
+      builder: (context, snap) {
+        return StreamBuilder<Duration?>(
+          stream: p.positionStream,
+          builder: (context, posSnap) {
+            final total = p.duration ?? _total ?? Duration.zero;
+            final display = audioDisplayFor(
+              rawPlaying: snap.data?.playing ?? false,
+              completed: snap.data?.processingState ==
+                  ProcessingState.completed,
+              position: posSnap.data ?? Duration.zero,
+              total: total,
+            );
+            return _row(
+              disc: _badged(
+                theme,
+                _disc(
+                  theme,
+                  ink,
+                  onTap: () => _togglePause(display.playing),
+                  child: Icon(
+                    display.playing
+                        ? CupertinoIcons.pause_fill
+                        : CupertinoIcons.play_fill,
+                    color: onDisc,
+                    size: 17,
+                  ),
+                ),
+              ),
+              progress: display.progress,
+              played: ink,
+              unplayed: ink.withValues(alpha: 0.32),
+              meta: Text(
+                '${formatClockDuration(display.elapsed)}'
+                ' / ${formatClockDuration(total)}',
+                maxLines: 1,
+                softWrap: false,
+                style: _metaStyle(theme, ink),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// The play button with the view-once "1" over its bottom-trailing edge.
+  /// Overhangs rather than resizes, so the pill keeps [AudioMessage]'s exact
+  /// width.
+  Widget _badged(AppTheme theme, Widget disc) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        disc,
+        PositionedDirectional(
+          end: -4,
+          bottom: -4,
+          child: ViewOnceCornerBadge(
+            color: theme.accent,
+            knockout: theme.accentInk,
+            ring: widget.surface ?? theme.surface,
+            size: 17,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// [AudioMessage]'s exact geometry: a 34pt disc, then a 120pt column of a
+  /// 20pt waveform over one 13pt line.
+  Widget _row({
+    required Widget disc,
+    required double progress,
+    required Color played,
+    required Color unplayed,
+    required Widget meta,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        disc,
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 120,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 20,
+                width: double.infinity,
+                child: CustomPaint(
+                  painter: _WaveformPainter(
+                    seed: widget.messageId.hashCode,
+                    progress: progress,
+                    played: played,
+                    unplayed: unplayed,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              meta,
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _disc(
+    AppTheme theme,
+    Color ink, {
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
+    final disc = Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: widget.isMine ? ink.withValues(alpha: 0.2) : theme.accent,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: child,
+    );
+    if (onTap == null) return disc;
+    return SpringPress(
+      onTap: onTap,
+      scale: PressSpec.scaleSmall,
+      focusShape: FocusRingShape.circle,
+      focusRadius: 17,
+      child: disc,
     );
   }
 }

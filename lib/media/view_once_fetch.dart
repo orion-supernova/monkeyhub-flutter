@@ -2,6 +2,17 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../data/chat_repository.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../models/enums.dart';
+
+/// Spends the viewer's one look at a view-once message and hands back its
+/// bytes, in memory — or null when the look could not be had, in which case
+/// whoever made the opener has already told the reader why.
+///
+/// The one shape every sealed bubble is handed, so the photo tile, the voice
+/// pill and the video-note disc all open through [fetchViewOnce] and nothing
+/// else; each then decides only how to present what came back.
+typedef ViewOnceOpener = Future<Uint8List?> Function();
 
 /// Why a view-once open didn't produce a picture.
 enum ViewOnceFailure {
@@ -18,7 +29,34 @@ enum ViewOnceFailure {
   network,
 }
 
-/// Result of trying to open a view-once photo: bytes, or a reason.
+/// What to tell the reader when [failure] stopped them opening a view-once
+/// message of [type]. Named per kind, because "this photo" on a voice message
+/// is the kind of small wrongness that makes people distrust the rest.
+String viewOnceFailureMessage(
+  AppLocalizations l10n,
+  MessageType type,
+  ViewOnceFailure failure,
+) =>
+    switch (type) {
+      MessageType.audio => switch (failure) {
+          ViewOnceFailure.alreadyViewed => l10n.roomScreenPlayOnceVoiceAlreadyPlayed,
+          ViewOnceFailure.gone => l10n.roomScreenPlayOnceVoiceGone,
+          ViewOnceFailure.network => l10n.roomScreenPlayOnceVoiceNetworkError,
+        },
+      MessageType.videoNote => switch (failure) {
+          ViewOnceFailure.alreadyViewed =>
+            l10n.roomScreenPlayOnceVideoNoteAlreadyPlayed,
+          ViewOnceFailure.gone => l10n.roomScreenPlayOnceVideoNoteGone,
+          ViewOnceFailure.network => l10n.roomScreenPlayOnceVideoNoteNetworkError,
+        },
+      _ => switch (failure) {
+          ViewOnceFailure.alreadyViewed => l10n.roomScreenViewOnceAlreadyViewed,
+          ViewOnceFailure.gone => l10n.roomScreenViewOnceGone,
+          ViewOnceFailure.network => l10n.roomScreenViewOnceNetworkError,
+        },
+    };
+
+/// Result of trying to open a view-once message: bytes, or a reason.
 class ViewOnceResult {
   const ViewOnceResult.ok(this.bytes) : failure = null;
   const ViewOnceResult.failed(this.failure) : bytes = null;
@@ -37,11 +75,14 @@ class ViewOnceResult {
 /// answer is that the photo is gone.
 const _attempts = 3;
 
-/// Spends the viewer's one look and downloads the photo into memory.
+/// Spends the viewer's one look and downloads the media into memory.
 ///
-/// The bytes deliberately never reach the filesystem: no `CachedNetworkImage`,
-/// no `FileUrlCache`, no temp file. The caller holds them, shows them, and
-/// drops them.
+/// The bytes deliberately never reach the persistent caches: no
+/// `CachedNetworkImage`, no `FileUrlCache`, no `AudioFileCache`, no
+/// `VideoFileCache`. A photo is shown from memory and dropped. A voice message
+/// or video note has to be handed to a platform player, which wants a source
+/// rather than bytes — see `ViewOnceMedia` for the one short-lived copy that
+/// costs, and how it is cleaned up.
 Future<ViewOnceResult> fetchViewOnce({
   required ChatRepository repo,
   required String roomId,

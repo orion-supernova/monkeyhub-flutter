@@ -387,7 +387,8 @@ void main() {
         expect(recorder.started, isTrue);
         // Recording: the circle says so, and no longer says "preview".
         expect(find.text(l10n.glassScreenPreviewBadge), findsNothing);
-        expect(find.text('0:00'), findsWidgets);
+        // The strip's clock is the one clock now, to the hundredth.
+        expect(find.textContaining('0:00'), findsWidgets);
         expect(record, findsNothing);
 
         await tester.tap(find.text(l10n.composerCaptureLockedCancel));
@@ -478,6 +479,13 @@ class _FakeRecorder implements CaptureRecorder {
       duration: const Duration(seconds: 4),
     );
   }
+
+  @override
+  Future<CaptureSegment> stopSegment() async => const CaptureSegment(
+        path: '',
+        duration: Duration(seconds: 2),
+        contentType: 'audio/mp4',
+      );
 
   @override
   Future<void> cancel() async => cancelled = true;

@@ -266,6 +266,55 @@ class AppLocalizationsEs extends AppLocalizations {
       'Foto de vista única, toca para ver';
 
   @override
+  String get messageBubblePlayOnceLabel => 'Reproducir una vez';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'Toca para reproducir';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'Reproducido';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'Mensaje de voz de una sola reproducción, toca para reproducir';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'Nota de vídeo de una sola reproducción, toca para reproducir';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel =>
+      'Mensaje de voz · una sola vez';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'Nota de vídeo · una sola vez';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'Ya escuchaste este mensaje de voz.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone =>
+      'Este mensaje de voz ya no está disponible.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'No se pudo cargar el mensaje de voz.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'Ya viste esta nota de vídeo.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'Esta nota de vídeo ya no está disponible.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'No se pudo cargar la nota de vídeo.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => 'Reintentar envío';
 
   @override
@@ -6460,6 +6509,31 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'Cancelar';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'Reproducir una vez';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint =>
+      'Solo podrá escucharlo una vez';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => 'Solo podrá verlo una vez';
+
+  @override
+  String get composerCapturePauseLabel => 'Pausar grabación';
+
+  @override
+  String get composerCaptureResumeLabel => 'Reanudar grabación';
+
+  @override
+  String get composerCaptureFlashLabel => 'Flash';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'Reproducir grabación';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'Detener reproducción';
 
   @override
   String get composerCaptureCancelLabel => 'descartar grabación';

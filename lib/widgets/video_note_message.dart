@@ -3,19 +3,27 @@ import 'package:flutter/cupertino.dart'
 import 'dart:async';
 import 'dart:io' show File;
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../composer/capture_recorder.dart' show videoNoteContentType;
 import '../media/file_url_cache.dart';
 import '../media/video_file_cache.dart';
+import '../media/view_once_fetch.dart' show ViewOnceOpener;
+import '../media/view_once_media.dart';
+import '../keyboard/focusable_tap.dart';
+import '../privacy/capture_protection.dart';
 import '../screens/room_items.dart' show formatClockDuration;
+import '../screens/view_once_viewer.dart' show ViewOnceBadge;
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
@@ -23,7 +31,9 @@ import 'glass_buttons.dart';
 import 'glass_reveal.dart' show GlassStill;
 import 'liquid_glass.dart' show GlassTone, MediaGlass;
 import 'photo_chrome.dart';
+import 'capture_shield.dart';
 import 'remote_image.dart';
+import 'view_once_seal.dart';
 
 /// How the circular bubble is currently rendering.
 ///
@@ -815,6 +825,788 @@ class _VideoNoteMessageState extends State<VideoNoteMessage> {
   }
 }
 
+/// A play-once video note: the same circle as [VideoNoteMessage], sealed.
+///
+/// Never the real poster: that is the sender's face. An armed send carries a
+/// sixteen-pixel stand-in instead (`viewOnceMicroPoster`), drawn up to the
+/// circle and blurred until only its colours survive, under a twinkling dust
+/// of specks — Telegram's sealed note. A note with no stand-in (sent before
+/// there was one) gets a dark accent-tinted field under the same dust. Then a
+/// dark play button with the view-once "1" on its corner, and the length.
+///
+/// The stand-in is fetched into memory and drawn with [Image.memory]: never
+/// [RemoteImage], whose disk cache this whole family of bubbles stays away
+/// from.
+///
+/// A tap spends the watch through [onOpen], stages the bytes in a
+/// [ViewOnceMedia] (never the video caches), and flies the circle into
+/// [VideoNoteFocus] in its `once` mode. When the focus closes — at the end of
+/// the note, on a tap outside, or when the app leaves the foreground — the
+/// player is released, the staged copy deleted, and the circle comes back as
+/// played. Nothing here can lead anywhere else: no up-next, no autoplay into
+/// it from a neighbour (it has no storage id for `_videoNotesAfter` to find),
+/// and no scrub or replay in the focus.
+///
+/// Sealed, played and expired are one circle, the same size as a real note,
+/// so the transcript holds still as one becomes the other.
+class ViewOnceVideoNote extends StatefulWidget {
+  const ViewOnceVideoNote({
+    super.key,
+    required this.messageId,
+    required this.isMine,
+    required this.durationMs,
+    required this.opened,
+    required this.burned,
+    this.api,
+    this.posterStorageId,
+    this.diameter = 180,
+    this.onOpen,
+    this.playbackFactory,
+    this.posterLoader,
+  });
+
+  /// Seeds the sealed disc's colour field, keys the focus's flight, and tells
+  /// a recycled row it now shows a different note.
+  final String messageId;
+  final bool isMine;
+
+  /// Recorded length, kept on an armed send so the seal can say it.
+  final int? durationMs;
+
+  /// This viewer has had their watch.
+  final bool opened;
+
+  /// The server has deleted the video for everyone.
+  final bool burned;
+
+  /// Resolves [posterStorageId]. Null draws the fallback field.
+  final ChatApi? api;
+
+  /// The micro poster: at most sixteen pixels a side.
+  final String? posterStorageId;
+
+  final double diameter;
+
+  /// Spends the watch and hands back the bytes. Null leaves the disc inert.
+  final ViewOnceOpener? onOpen;
+
+  /// Builds the playback. Null uses `video_player`; tests pass a fake.
+  @visibleForTesting
+  final VideoNotePlayback Function(String source, bool isFile)? playbackFactory;
+
+  /// Fetches the micro poster's bytes. Null uses [api]; tests pass a fake.
+  @visibleForTesting
+  final Future<Uint8List?> Function(String storageId)? posterLoader;
+
+  @override
+  State<ViewOnceVideoNote> createState() => _ViewOnceVideoNoteState();
+}
+
+class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
+    with SingleTickerProviderStateMixin {
+  /// Drives the dust. Runs only while the circle is sealed and on screen
+  /// ([TickerMode] stops it under a covering route), and never under reduced
+  /// motion, where the specks hold still.
+  late final AnimationController _twinkle = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 12),
+  );
+
+  Uint8List? _poster;
+  /// [VideoNoteMessage]'s ceiling, for the same stalled-source failure.
+  static const _loadTimeout = Duration(seconds: 45);
+
+  final GlobalKey _circleKey = GlobalKey();
+
+  /// Between the tap and the flight: the fetch, the staging, the load.
+  bool _busy = false;
+
+  /// This circle has been watched (or the watch was spent and could not
+  /// play). The message flag says the same once the repository catches up.
+  bool _done = false;
+
+  /// The player, while a focus this circle opened is showing it.
+  VideoNotePlayback? _playback;
+  VideoNoteHandoff? _handoff;
+
+  int _gen = 0;
+
+  /// Its own namespace on the stage, so it can never be mistaken for a real
+  /// note's storage id.
+  String get _stageKey => 'once:${widget.messageId}';
+
+  bool get _focused => _VideoNoteStage.showing.value == _stageKey;
+
+  bool get _spent =>
+      _done || widget.opened || widget.burned || widget.isMine;
+
+  bool get _openable =>
+      widget.onOpen != null && !_busy && _handoff == null && !_spent;
+
+  @override
+  void initState() {
+    super.initState();
+    _VideoNoteStage.showing.addListener(_onStage);
+    _loadPoster();
+  }
+
+  @override
+  void didUpdateWidget(covariant ViewOnceVideoNote old) {
+    super.didUpdateWidget(old);
+    if (old.posterStorageId != widget.posterStorageId) _loadPoster();
+    if (old.messageId == widget.messageId) return;
+    _gen++;
+    _release();
+    _busy = false;
+    _done = false;
+  }
+
+  @override
+  void dispose() {
+    _VideoNoteStage.showing.removeListener(_onStage);
+    _twinkle.dispose();
+    _gen++;
+    _release();
+    super.dispose();
+  }
+
+  Future<void> _loadPoster() async {
+    final id = widget.posterStorageId;
+    _poster = id == null ? null : _MicroPosters.peek(id);
+    if (id == null || _poster != null) return;
+    final bytes = await _MicroPosters.load(
+      id,
+      widget.posterLoader ?? _fetchPoster,
+    );
+    if (!mounted || widget.posterStorageId != id || bytes == null) return;
+    setState(() => _poster = bytes);
+  }
+
+  Future<Uint8List?> _fetchPoster(String id) async {
+    final api = widget.api;
+    if (api == null) return null;
+    final url = await api.getFileUrl(id);
+    if (url == null) return null;
+    final res = await http
+        .get(Uri.parse(url))
+        .timeout(const Duration(seconds: 20));
+    // Anything heavier than a micro poster is not one; draw the field.
+    if (res.statusCode != 200 ||
+        res.bodyBytes.length > kViewOnceMicroPosterMaxBytes) {
+      return null;
+    }
+    return res.bodyBytes;
+  }
+
+  /// Twinkles only while there is a seal to twinkle over and motion is wanted.
+  void _syncTwinkle(bool sealed) {
+    final run = sealed && !MediaQuery.disableAnimationsOf(context);
+    if (run && !_twinkle.isAnimating) {
+      _twinkle.repeat();
+    } else if (!run && _twinkle.isAnimating) {
+      _twinkle.stop();
+    }
+  }
+
+  void _onStage() {
+    if (mounted) setState(() {});
+  }
+
+  /// Lets go of the player — or, while a focus is still showing it, hands it
+  /// to the focus to release, as [VideoNoteMessage] does.
+  void _release() {
+    final p = _playback;
+    _playback = null;
+    final handoff = _handoff;
+    _handoff = null;
+    if (handoff != null) {
+      handoff.orphaned = true;
+      return;
+    }
+    p?.dispose();
+  }
+
+  Duration get _total {
+    final ms = widget.durationMs;
+    return ms == null || ms <= 0 ? Duration.zero : Duration(milliseconds: ms);
+  }
+
+  Rect? _circleRect() {
+    if (!mounted) return null;
+    final box = _circleKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Future<void> _open() async {
+    if (!_openable) return;
+    final gen = ++_gen;
+    setState(() => _busy = true);
+    Uint8List? bytes = await widget.onOpen!();
+    if (!mounted || gen != _gen) return;
+    if (bytes == null) {
+      // The opener has said why. The message flags will redraw the disc.
+      setState(() => _busy = false);
+      return;
+    }
+    ViewOnceMedia? media;
+    VideoNotePlayback? playback;
+    try {
+      media = await ViewOnceMedia.stage(
+        bytes,
+        contentType: videoNoteContentType,
+        extension: 'mp4',
+      );
+      // Ours was the last reference; the staged copy is the only one now.
+      bytes = null;
+      final inner = widget.playbackFactory?.call(media.source, media.isFile) ??
+          VideoNotePlayerController(source: media.source, isFile: media.isFile);
+      playback = _ReleasingPlayback(inner, media);
+      await playback.load().timeout(_loadTimeout);
+      if (!mounted ||
+          gen != _gen ||
+          _backgrounded()) {
+        throw StateError('view-once note: gone before it could play');
+      }
+    } catch (e) {
+      debugPrint('ViewOnceVideoNote: ${widget.messageId}: $e');
+      // Releasing the playback releases the staged copy with it.
+      if (playback != null) {
+        playback.dispose();
+      } else {
+        unawaited(media?.release());
+      }
+      // The watch was spent when the server handed out the ticket, so there
+      // is nothing to retry: the circle goes straight to played.
+      if (mounted && gen == _gen) {
+        setState(() {
+          _busy = false;
+          _done = true;
+        });
+      }
+      return;
+    }
+    _playback = playback;
+    setState(() => _busy = false);
+    await _focus(playback, gen);
+  }
+
+  /// The app left the foreground while the bytes were on their way: the look
+  /// ends there, as it would have had it been playing. Unknown (no lifecycle
+  /// reported yet) counts as present.
+  bool _backgrounded() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state != null && state != AppLifecycleState.resumed;
+  }
+
+  /// Flies the note into the focus and plays it through once; comes back as
+  /// played.
+  Future<void> _focus(VideoNotePlayback p, int gen) async {
+    final key = _stageKey;
+    final handoff = VideoNoteHandoff();
+    final route = VideoNoteFocus.route(
+      context,
+      playback: p,
+      storageId: key,
+      fallbackTotal: _total,
+      // Only ever this circle, and only while it still shows this note.
+      rectFor: (id) =>
+          id == key && _stageKey == key ? _circleRect() : null,
+      handoff: handoff,
+      initialSource: _circleRect(),
+      once: true,
+    );
+    _handoff = handoff;
+    _VideoNoteStage.showing.value = key;
+    unawaited(p.play());
+    unawaited(Navigator.of(context, rootNavigator: true).push(route));
+    await route.completed;
+    // Gone or recycled while the focus was up: `_release` marked the handoff
+    // orphaned and the focus has released the player itself.
+    if (!mounted || !identical(_handoff, handoff)) return;
+    _handoff = null;
+    final played = _playback;
+    _playback = null;
+    // After the frame that stops drawing it, like the focus's own players.
+    SchedulerBinding.instance.addPostFrameCallback((_) => played?.dispose());
+    if (gen == _gen) setState(() => _done = true);
+  }
+
+  /// The one line under the seal — the photo tile's three facts, in the
+  /// words a voice or video note takes.
+  String _caption(AppLocalizations l10n) {
+    if (widget.burned) {
+      return widget.opened || _done || widget.isMine
+          ? l10n.messageBubblePlayOncePlayed
+          : l10n.messageBubbleViewOnceExpired;
+    }
+    if (widget.opened || _done) return l10n.messageBubblePlayOncePlayed;
+    if (widget.isMine) return l10n.messageBubblePlayOnceLabel;
+    return l10n.messageBubblePlayOnceTapToPlay;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.diameter;
+    // A gap while the focus shows this note, for [VideoNoteMessage]'s reason:
+    // two copies of the circle would read as two notes.
+    return SizedBox(
+      key: _circleKey,
+      width: size,
+      height: size,
+      child: _focused ? null : _disc(context),
+    );
+  }
+
+  Widget _disc(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final size = widget.diameter;
+    final spent = _spent && !_busy;
+    final total = _total;
+    _syncTwinkle(!spent);
+
+    if (spent) return _spentDisc(theme, l10n, size, total);
+
+    // A Telegram-sized play button: 44pt at Telegram's 200pt circle, and in
+    // proportion either side of it.
+    final button = (size * 0.22).clamp(36.0, 52.0);
+    final poster = _poster;
+    final disc = SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // The fallback field always, the poster over it once decoded: a
+          // frame of transcript showing through a circle mid-decode would read
+          // as a hole.
+          ClipOval(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _SealedNotePainter(
+                  seed: widget.messageId.hashCode,
+                  tint: theme.accent,
+                ),
+              ),
+            ),
+          ),
+          if (poster != null)
+            ClipOval(
+              // Sixteen pixels drawn up to the circle is already mush; the
+              // blur takes the last of the edges off it. Static, so the
+              // boundary rasterises it once.
+              child: RepaintBoundary(
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(
+                    sigmaX: 20,
+                    sigmaY: 20,
+                    tileMode: TileMode.mirror,
+                  ),
+                  child: Image.memory(
+                    poster,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.medium,
+                    gaplessPlayback: true,
+                  ),
+                ),
+              ),
+            ),
+          // A touch of dark so the white specks and the button read over a
+          // bright frame.
+          const ClipOval(child: ColoredBox(color: Color(0x33000000))),
+          ClipOval(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _NoteDustPainter(
+                  seed: widget.messageId.hashCode,
+                  clock: _twinkle,
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: SizedBox(
+              width: button + 8,
+              height: button + 8,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Center(
+                    child: Container(
+                      width: button,
+                      height: button,
+                      decoration: const BoxDecoration(
+                        color: Color(0x73000000),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: _busy
+                          ? const CupertinoActivityIndicator(
+                              radius: 9,
+                              color: Colors.white,
+                            )
+                          : Icon(
+                              CupertinoIcons.play_fill,
+                              color: Colors.white,
+                              size: button * 0.42,
+                            ),
+                    ),
+                  ),
+                  const PositionedDirectional(
+                    end: 0,
+                    bottom: 0,
+                    child: ViewOnceCornerBadge(
+                      color: Colors.white,
+                      knockout: Color(0xFF111114),
+                      ring: Color(0x73000000),
+                      size: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Bottom-leading, where Telegram keeps it, with the dot that says
+          // nobody has watched it yet.
+          if (total > Duration.zero)
+            PositionedDirectional(
+              start: size * 0.2,
+              bottom: size * 0.12,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  MediaDurationBadge(duration: total),
+                  if (!widget.isMine) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: theme.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+
+    if (!_openable) return disc;
+    return FocusableTap(
+      onTap: _open,
+      semanticLabel: l10n.messageBubblePlayOnceVideoNoteSemanticLabel,
+      shape: FocusRingShape.circle,
+      radius: size / 2,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _open,
+        child: disc,
+      ),
+    );
+  }
+
+  /// Played, expired, or the sender's own: the spent photo tile's treatment
+  /// in a circle. Sunken and flat, a hole where a note was, with the struck
+  /// seal and the one word that says why — nothing about it to catch the eye,
+  /// and no picture, not even the blurred one.
+  Widget _spentDisc(
+    AppTheme theme,
+    AppLocalizations l10n,
+    double size,
+    Duration total,
+  ) {
+    final seal = (size * 0.26).clamp(36.0, 56.0);
+    final ink = theme.inkMuted;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.surfaceSunken,
+              shape: BoxShape.circle,
+              border: Border.all(color: theme.divider),
+            ),
+          ),
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: size * 0.14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ViewOnceSeal(color: ink, struck: true, size: seal),
+                  const SizedBox(height: 6),
+                  Text(
+                    _caption(l10n),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: theme.body.copyWith(
+                      fontSize: 13,
+                      height: 1.15,
+                      fontWeight: FontWeight.w600,
+                      color: ink,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (total > Duration.zero)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: size * 0.11,
+              child: Center(
+                child: Text(
+                  formatClockDuration(total),
+                  style: theme.body.copyWith(
+                    fontSize: 12,
+                    height: 1.2,
+                    color: ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Micro posters, in memory, by storage id. A handful of sixteen-pixel JPEGs —
+/// a few hundred bytes each — so a small bound is plenty, and nothing of them
+/// is ever written to disk.
+abstract final class _MicroPosters {
+  static const _cap = 64;
+  static final Map<String, Uint8List> _bytes = {};
+  static final Map<String, Future<Uint8List?>> _inflight = {};
+
+  static Uint8List? peek(String id) => _bytes[id];
+
+  static Future<Uint8List?> load(
+    String id,
+    Future<Uint8List?> Function(String id) fetch,
+  ) {
+    final have = _bytes[id];
+    if (have != null) return Future.value(have);
+    return _inflight[id] ??= () async {
+      try {
+        final bytes = await fetch(id);
+        if (bytes != null) {
+          if (_bytes.length >= _cap) _bytes.remove(_bytes.keys.first);
+          _bytes[id] = bytes;
+        }
+        return bytes;
+      } catch (e) {
+        debugPrint('ViewOnceVideoNote: micro poster $id: $e');
+        return null;
+      } finally {
+        _inflight.remove(id);
+      }
+    }();
+  }
+}
+
+/// The dust over a sealed note: a fixed, seeded set of tiny white specks that
+/// twinkle and drift a pixel or two — Telegram's spoiler particles.
+///
+/// Repaints off [clock] alone, inside its own [RepaintBoundary], so a frame of
+/// twinkle never rebuilds a widget. One `drawCircle` per speck, about 120.
+class _NoteDustPainter extends CustomPainter {
+  _NoteDustPainter({required this.seed, required this.clock})
+      : super(repaint: clock);
+
+  final int seed;
+  final Animation<double> clock;
+
+  static const _count = 120;
+  static final Map<int, List<_Speck>> _cache = {};
+
+  List<_Speck> _specks() => _cache.putIfAbsent(seed, () {
+        if (_cache.length > 64) _cache.clear();
+        final r = math.Random(seed);
+        return [
+          for (var i = 0; i < _count; i++)
+            _Speck(
+              // Uniform over the disc, not the square: sqrt for the radius.
+              angle: r.nextDouble() * math.pi * 2,
+              reach: math.sqrt(r.nextDouble()) * 0.97,
+              radius: 0.5 + r.nextDouble() * 0.6,
+              alpha: 0.35 + r.nextDouble() * 0.6,
+              phase: r.nextDouble() * math.pi * 2,
+              // Whole cycles per loop of the clock, so the loop has no seam.
+              speed: (1 + r.nextInt(4)).toDouble(),
+            ),
+        ];
+      });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = clock.value * math.pi * 2;
+    final c = size.center(Offset.zero);
+    final half = size.shortestSide / 2;
+    final paint = Paint()..isAntiAlias = true;
+    for (final s in _specks()) {
+      final wave = 0.5 + 0.5 * math.sin(s.phase + t * s.speed);
+      paint.color = Color.fromRGBO(255, 255, 255, s.alpha * (0.2 + 0.8 * wave));
+      final drift = Offset(
+        math.cos(s.phase + t) * 1.6,
+        math.sin(s.phase + t * 2) * 1.2,
+      );
+      final at = c +
+          Offset(math.cos(s.angle), math.sin(s.angle)) * (s.reach * half) +
+          drift;
+      canvas.drawCircle(at, s.radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NoteDustPainter old) =>
+      old.seed != seed || old.clock != clock;
+}
+
+@immutable
+class _Speck {
+  const _Speck({
+    required this.angle,
+    required this.reach,
+    required this.radius,
+    required this.alpha,
+    required this.phase,
+    required this.speed,
+  });
+
+  final double angle;
+  final double reach;
+  final double radius;
+  final double alpha;
+  final double phase;
+  final double speed;
+}
+
+/// A playback that deletes its staged copy when it is released, so the copy
+/// goes with the player whoever ends up releasing it — the circle, or the
+/// focus when the circle went first.
+class _ReleasingPlayback implements VideoNotePlayback {
+  _ReleasingPlayback(this._inner, this._media);
+
+  final VideoNotePlayback _inner;
+  final ViewOnceMedia _media;
+
+  @override
+  void addListener(VoidCallback listener) => _inner.addListener(listener);
+
+  @override
+  void removeListener(VoidCallback listener) =>
+      _inner.removeListener(listener);
+
+  @override
+  Future<void> load() => _inner.load();
+
+  @override
+  Duration get position => _inner.position;
+
+  @override
+  Duration get duration => _inner.duration;
+
+  @override
+  bool get isPlaying => _inner.isPlaying;
+
+  @override
+  bool get isCompleted => _inner.isCompleted;
+
+  @override
+  Future<void> play() => _inner.play();
+
+  @override
+  Future<void> pause() => _inner.pause();
+
+  @override
+  Future<void> seekToStart() => _inner.seekToStart();
+
+  @override
+  Future<void> seekTo(Duration position) => _inner.seekTo(position);
+
+  @override
+  Future<void> setSpeed(double speed) => _inner.setSpeed(speed);
+
+  @override
+  Widget view() => _inner.view();
+
+  @override
+  void dispose() {
+    _inner.dispose();
+    unawaited(_media.release());
+  }
+}
+
+/// The sealed disc's face when there is no micro poster: a dark field with a
+/// few soft, blurred pools of the accent in it, placed by the message id so
+/// neighbouring notes differ.
+///
+/// Painted, not filtered — no `BackdropFilter`, no image — so there is nothing
+/// of the sender in it to recover and nothing to re-rasterise per frame; the
+/// [RepaintBoundary] around it caches the one paint.
+class _SealedNotePainter extends CustomPainter {
+  const _SealedNotePainter({required this.seed, required this.tint});
+
+  final int seed;
+  final Color tint;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final base = Color.alphaBlend(
+      tint.withValues(alpha: 0.22),
+      const Color(0xFF15151A),
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.25, -0.35),
+          radius: 0.95,
+          colors: [base, const Color(0xFF0A0A0D)],
+        ).createShader(rect),
+    );
+    final r = math.Random(seed);
+    final d = size.shortestSide;
+    final blur = MaskFilter.blur(BlurStyle.normal, d * 0.12);
+    for (var i = 0; i < 3; i++) {
+      final c = Offset(
+        size.width * (0.2 + r.nextDouble() * 0.6),
+        size.height * (0.2 + r.nextDouble() * 0.6),
+      );
+      final colour = i == 0
+          ? tint.withValues(alpha: 0.38)
+          : Color.lerp(tint, Colors.white, 0.35 * i)!
+              .withValues(alpha: 0.14 + r.nextDouble() * 0.1);
+      canvas.drawCircle(
+        c,
+        d * (0.18 + r.nextDouble() * 0.16),
+        Paint()
+          ..color = colour
+          ..maskFilter = blur,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SealedNotePainter old) =>
+      old.seed != seed || old.tint != tint;
+}
+
 /// The focus's autoplay pill: no accent fill for on and off, the glyph
 /// carries it, leading the label. On, two chevrons; off, the front chevron
 /// folds into a stop bar. Both states stay full white: a dimmed pill reads as
@@ -1058,6 +1850,7 @@ class VideoNoteFocus extends StatefulWidget {
     this.upNext = const [],
     this.open,
     this.initialSource,
+    this.once = false,
   });
 
   /// The note that was tapped. Its bubble owns it — unless [handoff] says the
@@ -1087,6 +1880,15 @@ class VideoNoteFocus extends StatefulWidget {
   /// [rectFor] can measure it again.
   final Rect? initialSource;
 
+  /// A play-once note ([ViewOnceVideoNote]): one watch, start to finish.
+  ///
+  /// No scrub (a drag round the ring is a way back), no replay (the end
+  /// closes, and a tap on a finished note closes rather than rewinding), no
+  /// autoplay toggle. It holds a [CaptureProtection] scope and wears the
+  /// capture shield exactly as `ViewOnceViewer` does, and leaving the app
+  /// closes it, for the same reason the photo closes.
+  final bool once;
+
   static TransitionRoute<void> route(
     BuildContext context, {
     required VideoNotePlayback playback,
@@ -1097,6 +1899,7 @@ class VideoNoteFocus extends StatefulWidget {
     List<VideoNoteRef> upNext = const [],
     Future<VideoNotePlayback> Function(VideoNoteRef note)? open,
     Rect? initialSource,
+    bool once = false,
   }) {
     final motion = MotionScope.of(context);
     return _VideoNoteFocusRoute(
@@ -1112,6 +1915,7 @@ class VideoNoteFocus extends StatefulWidget {
         upNext: upNext,
         open: open,
         initialSource: initialSource,
+        once: once,
       ),
     );
   }
@@ -1167,7 +1971,7 @@ class _VideoNoteFocusRoute extends PopupRoute<void> {
 }
 
 class _VideoNoteFocusState extends State<VideoNoteFocus>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const _controlsGap = 28.0;
   static const _controlsHeight = 52.0;
   static const _toggleGap = 18.0;
@@ -1244,6 +2048,17 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     _playback.addListener(_onPlayback);
     widget.animation.addStatusListener(_onRouteStatus);
     _syncTicker();
+    if (widget.once) {
+      WidgetsBinding.instance.addObserver(this);
+      CaptureProtection.instance.pushScope();
+      CaptureProtection.instance.ensureListening();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!widget.once || state == AppLifecycleState.resumed) return;
+    _close();
   }
 
   /// Frames only while the note is actually moving: paused, ended or held
@@ -1263,6 +2078,10 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
 
   @override
   void dispose() {
+    if (widget.once) {
+      CaptureProtection.instance.popScope();
+      WidgetsBinding.instance.removeObserver(this);
+    }
     widget.animation.removeStatusListener(_onRouteStatus);
     _playback.removeListener(_onPlayback);
     _ticker.dispose();
@@ -1447,6 +2266,8 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     final p = _playback;
     HapticFeedback.selectionClick();
     if (p.isCompleted) {
+      // Played once means played: the end is a close, never a rewind.
+      if (widget.once) return _close();
       unawaited(p.seekToStart().then((_) => p.play()));
       return;
     }
@@ -1588,7 +2409,10 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     // The circle sits in the middle of everything around it: the controls
     // below and, when there is a chat to carry on into, the toggle above.
     final below = _controlsGap + _controlsHeight;
-    final above = widget.open != null ? _toggleGap + _toggleHeight : 0.0;
+    // The play-once badge takes the toggle's place above the circle.
+    final above = widget.open != null || widget.once
+        ? _toggleGap + _toggleHeight
+        : 0.0;
     final target = Rect.fromCenter(
       center: Offset(
         screen.width / 2,
@@ -1668,6 +2492,24 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
               ),
             ),
           ),
+        if (widget.once)
+          Positioned(
+            left: 16,
+            right: 16,
+            top: target.top - _toggleGap - _toggleHeight,
+            height: _toggleHeight,
+            child: Center(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: chromeOpacity,
+                  child: GlassStill(
+                    still: true,
+                    child: ViewOnceBadge(label: l10n.messageBubblePlayOnceLabel),
+                  ),
+                ),
+              ),
+            ),
+          ),
         // Last, so appearing mid-drag never shifts the circle's element and
         // drops the gesture that is driving it.
         if (_scrubbing)
@@ -1688,6 +2530,9 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
               ),
             ),
           ),
+        // Over everything, the photo viewer's shield: a recording or a mirror
+        // sees the shield, not the face.
+        if (widget.once) const CaptureShield(),
       ],
     );
   }
@@ -1710,11 +2555,14 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: settled ? _togglePlay : null,
-        onPanStart:
-            settled ? (d) => _scrubStart(d.localPosition, radius) : null,
-        onPanUpdate: (d) => _scrubTrack(d.localPosition, radius),
-        onPanEnd: (_) => _scrubEnd(),
-        onPanCancel: _scrubEnd,
+        // No scrub on a play-once note: a drag round the ring is a way back.
+        onPanStart: settled && !widget.once
+            ? (d) => _scrubStart(d.localPosition, radius)
+            : null,
+        onPanUpdate:
+            widget.once ? null : (d) => _scrubTrack(d.localPosition, radius),
+        onPanEnd: widget.once ? null : (_) => _scrubEnd(),
+        onPanCancel: widget.once ? null : _scrubEnd,
         child: Stack(
           fit: StackFit.expand,
           children: [

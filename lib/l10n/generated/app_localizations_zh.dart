@@ -251,6 +251,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get messageBubbleViewOnceSemanticLabel => '阅后即焚照片，点击查看';
 
   @override
+  String get messageBubblePlayOnceLabel => '仅播放一次';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => '轻点播放';
+
+  @override
+  String get messageBubblePlayOncePlayed => '已播放';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel => '仅可播放一次的语音消息，轻点播放';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel => '仅可播放一次的视频留言，轻点播放';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel => '语音消息 · 仅播放一次';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel => '视频留言 · 仅播放一次';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed => '你已经听过这条语音消息了。';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone => '这条语音消息已不可用。';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError => '无法加载这条语音消息。';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed => '你已经看过这条视频留言了。';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone => '这条视频留言已不可用。';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError => '无法加载这条视频留言。';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => '重新发送';
 
   @override
@@ -6059,6 +6098,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => '取消';
+
+  @override
+  String get composerCaptureViewOnceLabel => '仅播放一次';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint => '对方只能听一次';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => '对方只能看一次';
+
+  @override
+  String get composerCapturePauseLabel => '暂停录制';
+
+  @override
+  String get composerCaptureResumeLabel => '继续录制';
+
+  @override
+  String get composerCaptureFlashLabel => '闪光灯';
+
+  @override
+  String get composerCaptureReviewPlayLabel => '播放录音';
+
+  @override
+  String get composerCaptureReviewStopLabel => '停止播放';
 
   @override
   String get composerCaptureCancelLabel => '丢弃录制';

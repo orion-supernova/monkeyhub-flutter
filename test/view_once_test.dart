@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -59,7 +60,7 @@ void main() {
   Widget bubble(
     ChatMessage m, {
     String currentUserId = 'bob',
-    Future<void> Function()? onOpen,
+    Future<Uint8List?> Function()? onOpen,
   }) => MessageBubble(
     message: m,
     now: DateTime(2026, 3, 1, 12),
@@ -114,7 +115,10 @@ void main() {
     testWidgets('an unopened photo can be opened once', (tester) async {
       var opens = 0;
       await tester.pumpWidget(
-        host(bubble(photo(), onOpen: () async => opens++)),
+        host(bubble(photo(), onOpen: () async {
+          opens++;
+          return null;
+        })),
       );
       await tester.tap(find.text('Photo'));
       await tester.pumpAndSettle();
@@ -124,7 +128,10 @@ void main() {
     testWidgets('a spent photo ignores taps', (tester) async {
       var opens = 0;
       await tester.pumpWidget(
-        host(bubble(photo(opened: true), onOpen: () async => opens++)),
+        host(bubble(photo(opened: true), onOpen: () async {
+          opens++;
+          return null;
+        })),
       );
       await tester.tap(find.text('Photo'), warnIfMissed: false);
       await tester.pumpAndSettle();
@@ -137,7 +144,10 @@ void main() {
         host(
           bubble(
             photo(burnedAt: DateTime(2026, 3, 15)),
-            onOpen: () async => opens++,
+            onOpen: () async {
+          opens++;
+          return null;
+        },
           ),
         ),
       );
@@ -150,7 +160,10 @@ void main() {
       var opens = 0;
       await tester.pumpWidget(
         host(
-          bubble(photo(), currentUserId: 'alice', onOpen: () async => opens++),
+          bubble(photo(), currentUserId: 'alice', onOpen: () async {
+          opens++;
+          return null;
+        }),
         ),
       );
       await tester.tap(find.text('Photo'), warnIfMissed: false);

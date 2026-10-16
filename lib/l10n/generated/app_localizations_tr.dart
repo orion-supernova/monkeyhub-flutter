@@ -261,6 +261,54 @@ class AppLocalizationsTr extends AppLocalizations {
       'Tek seferlik fotoğraf, görüntülemek için dokun';
 
   @override
+  String get messageBubblePlayOnceLabel => 'Bir kez oynat';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'Oynatmak için dokun';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'Oynatıldı';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'Bir kez oynatılabilen sesli mesaj, oynatmak için dokun';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'Bir kez oynatılabilen video notu, oynatmak için dokun';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel =>
+      'Sesli mesaj · bir kez oynatılır';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'Video notu · bir kez oynatılır';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'Bu sesli mesajı zaten dinledin.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone =>
+      'Bu sesli mesaj artık mevcut değil.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError => 'Sesli mesaj yüklenemedi.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'Bu video notunu zaten izledin.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'Bu video notu artık mevcut değil.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'Video notu yüklenemedi.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => 'Gönderimi yeniden dene';
 
   @override
@@ -6367,6 +6415,31 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'İptal';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'Bir kez oynat';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint =>
+      'Yalnızca bir kez dinleyebilir';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => 'Yalnızca bir kez izleyebilir';
+
+  @override
+  String get composerCapturePauseLabel => 'Kaydı duraklat';
+
+  @override
+  String get composerCaptureResumeLabel => 'Kayda devam et';
+
+  @override
+  String get composerCaptureFlashLabel => 'Flaş';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'Kaydı oynat';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'Oynatmayı durdur';
 
   @override
   String get composerCaptureCancelLabel => 'kaydı sil';

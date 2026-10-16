@@ -35,6 +35,42 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
+/**
+ * The Content-Type to serve a view-once blob with.
+ *
+ * Convex keeps whatever type the uploader's PUT declared, and on a storage
+ * stream that is the only container signal a player gets (the URL has no
+ * extension; see `voiceNoteContentType` in lib/screens/voice_recorder_screen.dart
+ * for what that cost voice notes on iOS). So the stored type is used when it
+ * belongs to the message's own family, and a family default when it is
+ * missing or does not: an `audio` message is never served as `text/html`
+ * from this origin just because the sender's client said so.
+ *
+ * The defaults are what current clients upload: `audio/mp4` for a voice
+ * message, `video/mp4` for a video or video note, JPEG for a photo.
+ */
+export function viewOnceContentType(messageType: string, stored: string): string {
+  const family =
+    messageType === "audio"
+      ? "audio/"
+      : messageType === "video" || messageType === "videoNote"
+        ? "video/"
+        : messageType === "image"
+          ? "image/"
+          : null;
+  const fallback =
+    family === "audio/"
+      ? "audio/mp4"
+      : family === "video/"
+        ? "video/mp4"
+        : family === "image/"
+          ? "image/jpeg"
+          : "application/octet-stream";
+  const type = (stored ?? "").trim().toLowerCase();
+  if (family !== null && type.startsWith(family)) return type;
+  return fallback;
+}
+
 http.route({
   path: "/viewOnce",
   method: "OPTIONS",
@@ -75,11 +111,20 @@ http.route({
     const blob = await ctx.storage.get(grant.storageId);
     if (!blob) return deny();
 
+    // Always the whole file, as one 200. A `Range` header is ignored rather
+    // than honoured, and `Accept-Ranges: none` says so up front: a streaming
+    // player handed this URL would otherwise issue a probe and then a run of
+    // partial reads, each one a fresh fetch of a ticket that is meant to be
+    // spent once. The contract for audio and video is the same as for a
+    // photo: fetch the bytes once, into memory, and play from there.
     return new Response(blob, {
       status: 200,
       headers: {
         ...corsHeaders,
-        "Content-Type": blob.type || "application/octet-stream",
+        "Content-Type": viewOnceContentType(grant.type, blob.type),
+        "Accept-Ranges": "none",
+        // The type above is chosen, not sniffed; keep it that way.
+        "X-Content-Type-Options": "nosniff",
         // Nothing about this may be written down. A cache entry anywhere
         // between here and the decoder is a second viewing.
         "Cache-Control": "no-store, no-cache, must-revalidate, private",

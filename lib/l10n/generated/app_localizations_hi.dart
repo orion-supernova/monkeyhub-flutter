@@ -264,6 +264,53 @@ class AppLocalizationsHi extends AppLocalizations {
       'एक बार देखने वाली फोटो, देखने के लिए टैप करें';
 
   @override
+  String get messageBubblePlayOnceLabel => 'एक बार चलाएं';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'चलाने के लिए टैप करें';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'चलाया गया';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'एक बार चलने वाला वॉइस मैसेज, चलाने के लिए टैप करें';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'एक बार चलने वाला वीडियो नोट, चलाने के लिए टैप करें';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel => 'वॉइस मैसेज · एक बार चलाएं';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'वीडियो नोट · एक बार चलाएं';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'यह वॉइस मैसेज पहले ही सुना जा चुका है।';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone => 'यह वॉइस मैसेज अब उपलब्ध नहीं है।';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'वह वॉइस मैसेज लोड नहीं हो सका।';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'यह वीडियो नोट पहले ही देखा जा चुका है।';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'यह वीडियो नोट अब उपलब्ध नहीं है।';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'वह वीडियो नोट लोड नहीं हो सका।';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => 'भेजना फिर से आज़माएं';
 
   @override
@@ -6402,6 +6449,32 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'रद्द करें';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'एक बार चलाएं';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint =>
+      'वे इसे केवल एक बार सुन सकेंगे';
+
+  @override
+  String get composerCaptureViewOnceVideoHint =>
+      'वे इसे केवल एक बार देख सकेंगे';
+
+  @override
+  String get composerCapturePauseLabel => 'रिकॉर्डिंग रोकें';
+
+  @override
+  String get composerCaptureResumeLabel => 'रिकॉर्डिंग जारी रखें';
+
+  @override
+  String get composerCaptureFlashLabel => 'फ़्लैश';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'रिकॉर्डिंग चलाएं';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'चलाना रोकें';
 
   @override
   String get composerCaptureCancelLabel => 'रिकॉर्डिंग हटाएँ';

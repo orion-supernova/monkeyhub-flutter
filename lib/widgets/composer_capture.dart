@@ -8,9 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
 
 import '../composer/capture_machine.dart';
 import '../composer/capture_permissions.dart';
+import '../composer/capture_compose.dart';
 import '../composer/capture_recorder.dart';
 import '../composer/recording_haptics.dart';
 import '../data/settings_store.dart';
@@ -23,6 +25,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'capture_bloom.dart';
 import 'capture_glyphs.dart';
+import 'capture_review.dart';
 import 'destructive_sheet.dart';
 import 'glass_buttons.dart';
 import 'glass_reveal.dart' show GlassStill;
@@ -271,6 +274,26 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// A finger is on the record button (a hold, before or after it locked).
   bool _fingerDown = false;
 
+  /// This recording goes as play-once. Per recording: each one starts off.
+  bool _viewOnce = false;
+
+  /// The parts of a paused recording so far. Pause finishes a segment file;
+  /// resume starts the next; send joins them (see `composeCapture`). Empty
+  /// for a recording that was never paused, which keeps the old fast path.
+  final _segments = <CaptureSegment>[];
+
+  /// Paused: the strip is the review (see [_review]) and nothing records.
+  bool _paused = false;
+
+  /// The paused recording's review: playback and the trim window.
+  CaptureReviewController? _review;
+
+  /// Flips so far, for the flip glyph's half turn per tap.
+  int _flips = 0;
+
+  /// The front camera's "flash": the screen behind the circle goes white.
+  bool _screenFlash = false;
+
   /// How the bloom leaves when this recording ends.
   CaptureBloomExit _bloomExit = CaptureBloomExit.send;
 
@@ -403,7 +426,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   void _unstage() {
     if (!_staged) return;
-    setState(() => _staged = false);
+    setState(() {
+      _staged = false;
+      _screenFlash = false;
+    });
   }
 
   @override
@@ -584,6 +610,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     setState(() {
       _arming = true;
       _bloomExit = CaptureBloomExit.send;
+      _viewOnce = false;
     });
     HapticFeedback.mediumImpact();
     try {
@@ -690,14 +717,17 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     _machine.markFinishing();
     _stopTicker();
     try {
-      final outcome = await _stopSafely(recorder);
+      final review = _review;
+      final outcome = _segments.isEmpty && !(review?.trimmed ?? false)
+          ? await _stopSafely(recorder)
+          : await _composeSafely(recorder, video: mode == ComposerInputMode.videoNote);
       if (outcome.duration < kMinRecordingDuration) {
         // Can only happen on the locked path, where there is no release to
         // check the floor at. Silent: a note this short was a mis-tap.
         _machine.markIdle();
         return;
       }
-      capture.onCaptured(mode, outcome);
+      capture.onCaptured(mode, outcome.withViewOnce(_viewOnce));
       if (mounted) {
         _announce(AppLocalizations.of(context).composerCaptureSentAnnouncement);
       }
@@ -710,8 +740,109 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     } finally {
       _busy = false;
       _recorder = null;
+      _endReview();
+      _screenFlash = false;
       if (!identical(recorder, _video)) unawaited(recorder.dispose());
       if (mounted) setState(() => _elapsed = Duration.zero);
+    }
+  }
+
+  /// Joins the segments (and the one still recording, if any), trims to the
+  /// review's window, and hands back the finished note. On failure the parts
+  /// are thrown away: a send that cannot be built must not leave files.
+  Future<CaptureOutcome> _composeSafely(CaptureRecorder recorder, {required bool video}) async {
+    final review = _review;
+    if (!_paused) _segments.add(await recorder.stopSegment());
+    final parts = List.of(_segments);
+    _segments.clear();
+    try {
+      return await composeCapture(
+        segments: parts,
+        video: video,
+        trimStart: review != null && review.trimmed ? review.trimStart : null,
+        trimEnd: review != null && review.trimmed ? review.trimEnd : null,
+      );
+    } catch (e) {
+      unawaited(discardSegments(parts));
+      if (e is CaptureFailure) rethrow;
+      debugPrint('capture compose failed: $e');
+      throw const CaptureFailure(CaptureFailureKind.unavailable);
+    }
+  }
+
+  /// Pause and resume. Pausing finishes the current part and turns the
+  /// strip into its review; resuming drops the review (and any trim) and
+  /// records the next part, the clock carrying on from where it stopped.
+  Future<void> _togglePause() async {
+    final recorder = _recorder;
+    if (recorder == null || _busy || !_machine.isRecording) return;
+    _busy = true;
+    final video = _machine.mode == ComposerInputMode.videoNote;
+    HapticFeedback.mediumImpact();
+    try {
+      if (!_paused) {
+        final part = await recorder.stopSegment();
+        _segments.add(part);
+        _stopTicker();
+        final review = CaptureReviewController(segments: List.of(_segments), video: video);
+        if (!mounted) return;
+        setState(() {
+          _paused = true;
+          _review = review;
+          _elapsed = totalDuration(_segments);
+        });
+        unawaited(review.load());
+      } else {
+        _endReview();
+        await recorder.start();
+        await allowHapticsWhileRecording();
+        if (!mounted) return;
+        setState(() {
+          _paused = false;
+          _startedAt = DateTime.now().subtract(totalDuration(_segments));
+        });
+        _startTicker();
+        _levelSub = recorder.levels?.listen((v) => _level.value = v);
+      }
+    } on CaptureFailure catch (f) {
+      if (mounted) widget.capture?.onProblem(f);
+    } catch (e) {
+      debugPrint('capture pause/resume failed: $e');
+    } finally {
+      _busy = false;
+    }
+  }
+
+  void _endReview() {
+    final review = _review;
+    _review = null;
+    _paused = false;
+    review?.dispose();
+  }
+
+  Future<void> _flipCamera() async {
+    final video = _video;
+    if (video == null || !video.canFlip) return;
+    HapticFeedback.selectionClick();
+    setState(() => _flips++);
+    try {
+      await video.flip();
+    } on CaptureFailure catch (f) {
+      if (mounted) widget.capture?.onProblem(f);
+    }
+    // The white screen is the front camera's flash; the back one has a torch.
+    if (mounted) setState(() => _screenFlash = _screenFlash && video.frontFacing);
+  }
+
+  Future<void> _toggleFlash() async {
+    final video = _video;
+    if (video == null) return;
+    HapticFeedback.selectionClick();
+    if (video.frontFacing) {
+      setState(() => _screenFlash = !_screenFlash);
+    } else if (video.hasTorch) {
+      await video.setTorch(!video.torchOn);
+      if (mounted) setState(() {});
     }
   }
 
@@ -733,13 +864,20 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   Future<void> _abort({CaptureFailureKind? kind, bool silent = false}) async {
     final recorder = _recorder;
     final startedAt = _startedAt;
+    final wasPaused = _paused;
     _bloomExit = CaptureBloomExit.discard;
+    if (_segments.isNotEmpty) {
+      unawaited(discardSegments(List.of(_segments)));
+      _segments.clear();
+    }
+    _endReview();
+    _screenFlash = false;
     // Thrown away from the strip the user is looking at: sweep it into the
     // bin rather than snapping the row back.
     // `startedAt`, not the machine: a release that cancels has already put the
     // machine back to idle by the time this runs.
-    if (!silent && mounted && startedAt != null && !MotionScope.of(context).calm) {
-      _discardedAt = DateTime.now().difference(startedAt);
+    if (!silent && mounted && (startedAt != null || wasPaused) && !MotionScope.of(context).calm) {
+      _discardedAt = startedAt != null ? DateTime.now().difference(startedAt) : _elapsed;
       _gulped = false;
       _discard.forward(from: 0);
     }
@@ -1225,8 +1363,6 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         final bumpScaleX = 1.0 + initialImpulse * 0.16 * (1.0 - t) + oscillation * 0.08;
         final bumpScaleY = 1.0 - initialImpulse * 0.14 * (1.0 - t) - oscillation * 0.08;
 
-        final dir = _machine.lastStepDirection.toDouble();
-        final bumpSkew = dir * oscillation * 0.045;
 
         // --- 1b. The same squash/stretch shape as the mode-switch bump above,
         // played once when the composer opens — sized up well past that one
@@ -1238,8 +1374,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         final eOscillation = eDecay * math.sin(et * math.pi * 3.0);
         final eImpulse = math.sin(math.pow(et, 0.6) * math.pi);
 
-        final entranceScaleX = 1.0 + eImpulse * 0.46 * (1.0 - et * 0.4) + eOscillation * 0.20;
-        final entranceScaleY = 1.0 - eImpulse * 0.40 * (1.0 - et * 0.4) - eOscillation * 0.20;
+        // Calmer than it was (0.46/0.40/0.20): the jelly read as cheap next
+        // to the bloom it now leads into.
+        final entranceScaleX = 1.0 + eImpulse * 0.18 * (1.0 - et * 0.4) + eOscillation * 0.08;
+        final entranceScaleY = 1.0 - eImpulse * 0.15 * (1.0 - et * 0.4) - eOscillation * 0.08;
 
         // --- 2. Live Gesture Deformation (Drag, Lock, Cancel) ---
         final dragRatio = (_machine.modeDrag / kModeSwitchStep).clamp(-1.0, 1.0);
@@ -1247,19 +1385,15 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         final dragStretchX = 1.0 - dragRatio.abs() * 0.06;
         final dragSkew = -dragRatio * 0.035;
 
-        final cancelProgress = _machine.cancelProgress.clamp(0.0, 1.0);
-        final cancelScaleX = 1.0 + cancelProgress * 0.14;
-        final cancelScaleY = 1.0 - cancelProgress * 0.08;
-        final cancelSkew = -cancelProgress * 0.04;
-
-        final lockProgress = _machine.lockProgress.clamp(0.0, 1.0);
-        final lockScaleY = 1.0 + lockProgress * 0.16;
-        final lockScaleX = 1.0 - lockProgress * 0.08;
+        // No squash for lock or cancel: while recording the bloom disc covers
+        // the button, and it is the disc that answers the finger.
 
         // --- 3. Combined Scale & Matrix Transformation ---
-        final totalScaleX = bumpScaleX * entranceScaleX * dragStretchX * cancelScaleX * lockScaleX;
-        final totalScaleY = bumpScaleY * entranceScaleY * dragStretchY * cancelScaleY * lockScaleY;
-        final totalSkew = bumpSkew + dragSkew + cancelSkew;
+        final totalScaleX = bumpScaleX * entranceScaleX * dragStretchX;
+        final totalScaleY = bumpScaleY * entranceScaleY * dragStretchY;
+        // Skew only follows a mode drag the finger is making; a bump never
+        // leans, it read as wobble.
+        final totalSkew = dragSkew;
 
         return Transform(
           alignment: Alignment.center,
@@ -1475,6 +1609,11 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     );
   }
 
+  void _toggleViewOnce() {
+    HapticFeedback.selectionClick();
+    setState(() => _viewOnce = !_viewOnce);
+  }
+
   /// The bloom over the mode button: the disc, its halo and the lock pill
   /// (see [CaptureBloom]). Always mounted while capture is wired, painting
   /// nothing at rest, so its springs carry straight through a recording's
@@ -1506,6 +1645,16 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           onSend: _machine.stage == CaptureStage.locked ? () => unawaited(_finish()) : null,
           sendLabel: l10n.composerCaptureSendLabel,
           lockLabel: l10n.composerCaptureLockLabel,
+          viewOnce: _viewOnce,
+          onToggleViewOnce: _machine.stage == CaptureStage.locked ? _toggleViewOnce : null,
+          viewOnceLabel: l10n.composerCaptureViewOnceLabel,
+          viewOnceHint: mode == ComposerInputMode.videoNote
+              ? l10n.composerCaptureViewOnceVideoHint
+              : l10n.composerCaptureViewOnceVoiceHint,
+          pauseLabel: l10n.composerCapturePauseLabel,
+          resumeLabel: l10n.composerCaptureResumeLabel,
+          paused: _paused,
+          onPause: _machine.stage == CaptureStage.locked && captureComposeSupported ? () => unawaited(_togglePause()) : null,
         ),
       ),
     );
@@ -1562,7 +1711,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       curve: Curves.easeOutCubic,
       builder: (context, reserve, _) {
         final usable = composerTop - pad.top - fadeBand / 2;
-        final diameter = math.max(0.0, math.min(math.min(width - 40, usable - reserve - 24), 460.0));
+        final diameter = math.max(0.0, math.min(math.min(width - 24, usable - reserve - 24), 460.0));
         final top = pad.top + math.max(0.0, (usable - diameter - reserve) / 2);
         final target = Rect.fromLTWH((width - diameter) / 2, top, diameter, diameter);
 
@@ -1580,11 +1729,25 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
             : Rect.lerp(source, target, t)!;
         final controlsOpacity = ((t - 0.5) / 0.5).clamp(0.0, 1.0);
 
+        final video = _video;
+        final showCameraControls = video != null && video.controller != null && !_paused && _machine.mode == ComposerInputMode.videoNote;
         return IgnorePointer(
           // Flying home: nothing here is a target any more.
           ignoring: !up,
           child: Stack(
             children: [
+              // The front camera's flash: the screen itself, white, lighting
+              // the face. Under the circle and above nothing else.
+              if (_screenFlash)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: composerTop,
+                  child: IgnorePointer(
+                    child: Opacity(opacity: t.clamp(0.0, 1.0), child: const ColoredBox(color: Color(0xFFFFFFFF))),
+                  ),
+                ),
               Positioned(
                 left: 0,
                 right: 0,
@@ -1617,6 +1780,52 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                   child: _bigCircle(theme, l10n, recording: recording, lift: t),
                 ),
               ),
+              // Flip and flash, above the strip's leading end, as Telegram's.
+              if (showCameraControls)
+                Positioned(
+                  left: 16,
+                  top: composerTop - 12 - 36,
+                  child: Opacity(
+                    opacity: controlsOpacity,
+                    child: Row(
+                      children: [
+                        if (video.canFlip)
+                          ChromeDisc(
+                            size: 36,
+                            still: true,
+                            onTap: () => unawaited(_flipCamera()),
+                            child: Semantics(
+                              label: l10n.cameraScreenSwitchCameraLabel,
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween(end: _flips.toDouble()),
+                                duration: MotionScope.of(context).d(const Duration(milliseconds: 360)),
+                                curve: Curves.easeInOutCubic,
+                                builder: (context, spin, _) => FlipCameraGlyph(color: theme.ink, spin: spin, size: 22),
+                              ),
+                            ),
+                          ),
+                        if (video.frontFacing || video.hasTorch) ...[
+                          const SizedBox(width: 10),
+                          ChromeDisc(
+                            size: 36,
+                            still: true,
+                            tint: (video.frontFacing ? _screenFlash : video.torchOn) ? const Color(0xFFFFD60A) : null,
+                            onTap: () => unawaited(_toggleFlash()),
+                            child: Semantics(
+                              label: l10n.composerCaptureFlashLabel,
+                              toggled: video.frontFacing ? _screenFlash : video.torchOn,
+                              child: Icon(
+                                (video.frontFacing ? _screenFlash : video.torchOn) ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                                size: 18,
+                                color: (video.frontFacing ? _screenFlash : video.torchOn) ? Colors.black : theme.ink,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               if (staged)
                 Positioned(
                   top: top + diameter + controlsGap,
@@ -1645,25 +1854,40 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       fit: StackFit.expand,
       children: [
         _cameraFace(theme),
+        // Paused, the circle plays the recording back over the live camera.
+        if (_review != null)
+          ListenableBuilder(
+            listenable: _review!,
+            builder: (context, _) {
+              final player = _review?.videoPlayer;
+              if (player == null || !player.value.isInitialized) return const SizedBox.shrink();
+              return ClipOval(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  clipBehavior: Clip.hardEdge,
+                  child: SizedBox(
+                    width: player.value.size.width,
+                    height: player.value.size.height,
+                    child: VideoPlayer(player),
+                  ),
+                ),
+              );
+            },
+          ),
         IgnorePointer(
           child: Opacity(
             opacity: lift,
             child: recording && startedAt != null
+                // Telegram's: a thin white arc on the edge, no track. A track
+                // read as a border drawn round the picture.
                 ? _LiveRing(
                     startedAt: startedAt,
                     max: max,
-                    track: Colors.white.withValues(alpha: 0.25),
-                    ink: theme.accent,
+                    track: const Color(0x00FFFFFF),
+                    ink: Colors.white.withValues(alpha: 0.92),
                     warn: theme.danger,
                   )
-                : CustomPaint(
-                    painter: _RingPainter(
-                      progress: 0,
-                      track: Colors.white.withValues(alpha: 0.25),
-                      ink: theme.accent,
-                      stroke: 4,
-                    ),
-                  ),
+                : const SizedBox.shrink(),
           ),
         ),
         Positioned(
@@ -1671,7 +1895,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           left: 0,
           right: 0,
           child: Center(
-            child: recording ? _recordingBadge(theme) : _previewBadge(theme, l10n, lift: lift),
+            // Recording, the strip's clock is the one clock; the circle only
+            // says "preview" while it is one.
+            child: recording ? const SizedBox.shrink() : _previewBadge(theme, l10n, lift: lift),
           ),
         ),
       ],
@@ -1692,34 +1918,6 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         child: Text(
           l10n.glassScreenPreviewBadge,
           style: theme.monoTiny.copyWith(color: theme.inkSoft, letterSpacing: 1.2),
-        ),
-      ),
-    );
-  }
-
-  /// What it says once it is recording: the live dot and the clock, which is
-  /// what every camera app shows and needs no word in any language.
-  Widget _recordingBadge(AppTheme theme) {
-    return DecoratedBox(
-      decoration: const ShapeDecoration(color: Color(0xCC000000), shape: StadiumBorder()),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _RecordingPulse(color: theme.danger),
-            const SizedBox(width: 8),
-            Text(
-              formatClockDuration(_elapsed),
-              style: theme.body.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                fontFeatures: const [FontFeature.tabularFigures()],
-                decoration: TextDecoration.none,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -1804,7 +2002,37 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       );
     }
 
-    final row = Row(
+    final review = _review;
+    final row = _paused && review != null
+        // Paused: the recording itself, to play and trim. The bin throws it
+        // all away; the disc beside it still sends.
+        ? Row(
+            children: [
+              _stripTrashButton(
+                theme,
+                label: l10n.composerCaptureCancelLabel,
+                cancelProgress: 0,
+                wouldCancel: false,
+                onTap: finishing ? null : () => unawaited(_abort()),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SlideIn(
+                  dx: 16,
+                  duration: const Duration(milliseconds: 220),
+                  child: CaptureReviewStrip(
+                    controller: review,
+                    theme: theme,
+                    playLabel: l10n.composerCaptureReviewPlayLabel,
+                    pauseLabel: l10n.composerCaptureReviewStopLabel,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Opacity(opacity: 0, child: _keyedModeButton(context)),
+            ],
+          )
+        : Row(
       children: [
         SizedBox.square(
           dimension: _buttonDiameter,
@@ -2219,7 +2447,7 @@ class _LiveRingState extends State<_LiveRing> with SingleTickerProviderStateMixi
         progress: progress,
         track: widget.track,
         ink: elapsed >= max - kMaxDurationWarning ? widget.warn : widget.ink,
-        stroke: 4,
+        stroke: 3,
       ),
     );
   }

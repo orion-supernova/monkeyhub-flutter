@@ -278,6 +278,54 @@ class AppLocalizationsAr extends AppLocalizations {
       'صورة ذات مشاهدة واحدة، اضغط للمشاهدة';
 
   @override
+  String get messageBubblePlayOnceLabel => 'تشغيل مرة واحدة';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'انقر للتشغيل';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'تم التشغيل';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'رسالة صوتية تُشغَّل مرة واحدة، انقر للتشغيل';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'ملاحظة فيديو تُشغَّل مرة واحدة، انقر للتشغيل';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel =>
+      'رسالة صوتية · تشغيل مرة واحدة';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'ملاحظة فيديو · تشغيل مرة واحدة';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'لقد استمعت إلى هذه الرسالة الصوتية من قبل.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone => 'لم تعد هذه الرسالة الصوتية متاحة.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'تعذّر تحميل تلك الرسالة الصوتية.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'لقد شاهدت ملاحظة الفيديو هذه من قبل.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'لم تعد ملاحظة الفيديو هذه متاحة.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'تعذّر تحميل ملاحظة الفيديو تلك.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => 'إعادة الإرسال';
 
   @override
@@ -6473,6 +6521,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'إلغاء';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'تشغيل مرة واحدة';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint =>
+      'يمكنه الاستماع إليها مرة واحدة فقط';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => 'يمكنه مشاهدتها مرة واحدة فقط';
+
+  @override
+  String get composerCapturePauseLabel => 'إيقاف التسجيل مؤقتًا';
+
+  @override
+  String get composerCaptureResumeLabel => 'استئناف التسجيل';
+
+  @override
+  String get composerCaptureFlashLabel => 'الفلاش';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'تشغيل التسجيل';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'إيقاف التشغيل';
 
   @override
   String get composerCaptureCancelLabel => 'تجاهل التسجيل';

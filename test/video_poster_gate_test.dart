@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/media/view_once_media.dart' show kViewOnceMicroPosterMaxBytes;
 
 /// What this pins: poster extraction reads `XFile.path`, and on web that is a
 /// `blob:` URL with no filesystem behind it.
@@ -95,18 +96,19 @@ void main() {
     );
   });
 
-  test('a poster is never uploaded for an armed send', () {
+  test('an armed send uploads no poster, except a micro one for a video note', () {
     // A still frame of a view-once video is precisely the thing that must not
-    // outlive it. The server refuses to store one, so uploading it anyway
-    // would orphan a blob containing exactly the leaked content.
+    // outlive it. The one exception is Telegram's: a play-once video note
+    // shows a few-pixel blur of itself (colours only, no face), so its poster
+    // goes up only when it is that small. The server caps it again (2 KB) and
+    // deletes anything bigger; this pins the client half.
     final source = File('lib/data/chat_repository.dart').readAsStringSync();
-    expect(
-      source.contains('posterBytes: viewOnce ? null : posterBytes'),
-      isTrue,
-      reason:
-          'sendMediaLocal must drop the poster on an armed send, matching '
-          "the server's refusal in messages:send",
-    );
+    expect(source.contains('posterBytes: !viewOnce'), isTrue,
+        reason: 'sendMediaLocal must gate the poster on viewOnce');
+    expect(source.contains('posterBytes.length <= kViewOnceMicroPosterMaxBytes'), isTrue,
+        reason: 'an armed poster goes up only when it is micro-sized');
+    expect(kViewOnceMicroPosterMaxBytes, lessThanOrEqualTo(2048),
+        reason: "under the server's VIEW_ONCE_POSTER_MAX_BYTES");
   });
 
   test('the poster upload cannot fail the video it belongs to', () {

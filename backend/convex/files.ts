@@ -129,6 +129,64 @@ export async function claimUpload(
   });
 }
 
+/**
+ * The largest poster a view-once video note may carry, in bytes.
+ *
+ * A view-once note's sealed bubble shows its first frame the way Telegram's
+ * does: blurred past recognition, under a layer of animated dust. The client
+ * makes that a JPEG of at most 16x16 pixels, blurred, typically well under
+ * 1 KB. At that size the frame is a smear of colour; no face survives it. So
+ * the size is the guarantee, checked against storage metadata rather than
+ * anything the client says: a blob over this cap is not a micro poster, and is
+ * deleted at send like any other poster on an armed message.
+ */
+export const VIEW_ONCE_POSTER_MAX_BYTES = 2048;
+
+/** Whether [storageId] exists and is small enough to be a micro poster. */
+export async function isMicroPoster(ctx: any, storageId: any): Promise<boolean> {
+  if (!storageId) return false;
+  const meta = await ctx.db.system.get(storageId);
+  return !!meta && typeof meta.size === "number" && meta.size <= VIEW_ONCE_POSTER_MAX_BYTES;
+}
+
+/**
+ * Deletes an upload the caller sent but the server will not keep, instead of
+ * claiming it. Today that is one case: the poster frame of an armed message
+ * that is not a micro poster on a video note (see `VIEW_ONCE_POSTER_MAX_BYTES`),
+ * which `messages:send` refuses to store. Claiming it and leaving it for the
+ * orphan sweep would keep a still of the sender's face fetchable for a day.
+ *
+ * Never deletes what the caller has no right to: a file claimed by somebody
+ * else throws exactly as `claimUpload` would, and a file any message still
+ * points at is left alone. Tolerates a file that is already gone, which is
+ * what a retried send (same `clientId`) presents the second time.
+ */
+export async function discardUpload(ctx: any, storageId: any, userId: any) {
+  if (!storageId) return;
+  const row = await ledgerRow(ctx, storageId);
+  if (row && row.userId?.toString() !== userId?.toString()) {
+    throw new Error(ERR_NOT_YOUR_FILE);
+  }
+  const meta = await ctx.db.system.get(storageId);
+  if (!meta) {
+    if (row) await releaseLedger(ctx, storageId);
+    return;
+  }
+  // No ledger row and older than the ledger: owner unknown, so not ours.
+  if (!row && meta._creationTime < UPLOADS_EPOCH) throw new Error(ERR_NOT_YOUR_FILE);
+  const inUse =
+    (await ctx.db
+      .query("messages")
+      .withIndex("by_media", (q: any) => q.eq("mediaStorageId", storageId))
+      .first()) ??
+    (await ctx.db
+      .query("messages")
+      .withIndex("by_poster", (q: any) => q.eq("posterStorageId", storageId))
+      .first());
+  if (inUse) return;
+  await deleteStored(ctx, storageId);
+}
+
 /** Drops [storageId]'s ledger row and gives its bytes back to the owner. */
 async function releaseLedger(ctx: any, storageId: any) {
   const row = await ledgerRow(ctx, storageId);
@@ -229,14 +287,35 @@ export const sweepUnclaimed = internalMutation({
 // copy forwarded or leaked out of a room must not open it for a non-member.
 // A forward shares the blob, so any one readable copy is enough. Ids that
 // belong to no message (avatars, stickers, moments) keep the old behaviour.
+//
+// A video's poster frame is looked up as well (`by_poster`), and gets both
+// rules: it is a picture of the video, so it is members-only like the video,
+// and a poster on an armed message is refused. The one exception is a view-
+// once video note's micro poster, a blurred frame of at most
+// `VIEW_ONCE_POSTER_MAX_BYTES` that reveals nothing; its size is re-checked
+// here against storage, so a poster that is not micro is refused even if it
+// somehow reached an armed row.
 export const getFileUrl = query({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, { storageId, userId }) => {
-    const owners = await ctx.db
-      .query("messages")
-      .withIndex("by_media", (q) => q.eq("mediaStorageId", storageId))
-      .take(50);
-    if (owners.some((m) => m.viewOnce === true)) return null;
+    const owners = [
+      ...(await ctx.db
+        .query("messages")
+        .withIndex("by_media", (q) => q.eq("mediaStorageId", storageId))
+        .take(50)),
+      ...(await ctx.db
+        .query("messages")
+        .withIndex("by_poster", (q) => q.eq("posterStorageId", storageId))
+        .take(50)),
+    ];
+    for (const m of owners) {
+      if (m.viewOnce !== true) continue;
+      const microPoster =
+        m.type === "videoNote" &&
+        m.posterStorageId === storageId &&
+        (await isMicroPoster(ctx, storageId));
+      if (!microPoster) return null;
+    }
     if (owners.length > 0) {
       let readable = false;
       for (const m of owners) {

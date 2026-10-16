@@ -272,6 +272,58 @@
   "@messageBubbleViewOnceSemanticLabel": {
     "description": "Screen-reader semantic label for the tappable sealed view-once photo tile."
   },
+  "messageBubblePlayOnceLabel": "Play once",
+  "@messageBubblePlayOnceLabel": {
+    "description": "Label for a play-once voice message or video note: on the sender's own sealed bubble, and on the badge over a playing play-once video note. Must match composerCaptureViewOnceLabel."
+  },
+  "messageBubblePlayOnceTapToPlay": "Tap to play",
+  "@messageBubblePlayOnceTapToPlay": {
+    "description": "Caption on a sealed play-once voice message or video note the reader has not played yet."
+  },
+  "messageBubblePlayOncePlayed": "Played",
+  "@messageBubblePlayOncePlayed": {
+    "description": "Caption on a play-once voice message or video note once this reader has played it."
+  },
+  "messageBubblePlayOnceVoiceSemanticLabel": "Play-once voice message, tap to play",
+  "@messageBubblePlayOnceVoiceSemanticLabel": {
+    "description": "Screen-reader label for the play button of a sealed play-once voice message."
+  },
+  "messageBubblePlayOnceVideoNoteSemanticLabel": "Play-once video note, tap to play",
+  "@messageBubblePlayOnceVideoNoteSemanticLabel": {
+    "description": "Screen-reader label for a sealed play-once video note (the round video bubble)."
+  },
+  "replyIndicatorPlayOnceVoiceLabel": "Voice message · play once",
+  "@replyIndicatorPlayOnceVoiceLabel": {
+    "description": "Reply quote label when the quoted message is a play-once voice message."
+  },
+  "replyIndicatorPlayOnceVideoNoteLabel": "Video note · play once",
+  "@replyIndicatorPlayOnceVideoNoteLabel": {
+    "description": "Reply quote label when the quoted message is a play-once video note."
+  },
+  "roomScreenPlayOnceVoiceAlreadyPlayed": "You’ve already played this voice message.",
+  "@roomScreenPlayOnceVoiceAlreadyPlayed": {
+    "description": "Toast when the reader tries to play a play-once voice message they already played (maybe on another device)."
+  },
+  "roomScreenPlayOnceVoiceGone": "This voice message is no longer available.",
+  "@roomScreenPlayOnceVoiceGone": {
+    "description": "Toast when a play-once voice message has been deleted or has expired."
+  },
+  "roomScreenPlayOnceVoiceNetworkError": "Couldn’t load that voice message.",
+  "@roomScreenPlayOnceVoiceNetworkError": {
+    "description": "Toast when a play-once voice message could not be downloaded."
+  },
+  "roomScreenPlayOnceVideoNoteAlreadyPlayed": "You’ve already watched this video note.",
+  "@roomScreenPlayOnceVideoNoteAlreadyPlayed": {
+    "description": "Toast when the reader tries to play a play-once video note they already watched (maybe on another device)."
+  },
+  "roomScreenPlayOnceVideoNoteGone": "This video note is no longer available.",
+  "@roomScreenPlayOnceVideoNoteGone": {
+    "description": "Toast when a play-once video note has been deleted or has expired."
+  },
+  "roomScreenPlayOnceVideoNoteNetworkError": "Couldn’t load that video note.",
+  "@roomScreenPlayOnceVideoNoteNetworkError": {
+    "description": "Toast when a play-once video note could not be downloaded."
+  },
   "messageBubbleRetrySendingSemanticLabel": "Retry sending",
   "@messageBubbleRetrySendingSemanticLabel": {
     "description": "Screen-reader semantic label for the retry (refresh icon) control on a failed outgoing attachment."
@@ -7309,6 +7361,38 @@
   "composerCaptureLockedCancel": "Cancel",
   "@composerCaptureLockedCancel": {
     "description": "Text button in the middle of a locked recording's strip that throws the recording away (the disc beside it sends). Short, like iOS's Cancel."
+  },
+  "composerCaptureViewOnceLabel": "Play once",
+  "@composerCaptureViewOnceLabel": {
+    "description": "Label of the toggle above a locked recording that makes the voice or video note playable only once by the recipient."
+  },
+  "composerCaptureViewOnceVoiceHint": "They can listen to it only once",
+  "@composerCaptureViewOnceVoiceHint": {
+    "description": "Tooltip shown when the play-once toggle is turned on for a voice message."
+  },
+  "composerCaptureViewOnceVideoHint": "They can watch it only once",
+  "@composerCaptureViewOnceVideoHint": {
+    "description": "Tooltip shown when the play-once toggle is turned on for a video note."
+  },
+  "composerCapturePauseLabel": "Pause recording",
+  "@composerCapturePauseLabel": {
+    "description": "Label of the button above a locked recording that pauses it, to review and trim before sending."
+  },
+  "composerCaptureResumeLabel": "Resume recording",
+  "@composerCaptureResumeLabel": {
+    "description": "Label of the same button while paused: carries on recording."
+  },
+  "composerCaptureFlashLabel": "Flash",
+  "@composerCaptureFlashLabel": {
+    "description": "Label of the flash button over a video note being recorded: the torch on the back camera, a white screen on the front one."
+  },
+  "composerCaptureReviewPlayLabel": "Play recording",
+  "@composerCaptureReviewPlayLabel": {
+    "description": "Label of the play button in a paused recording's review strip."
+  },
+  "composerCaptureReviewStopLabel": "Stop playing",
+  "@composerCaptureReviewStopLabel": {
+    "description": "Label of the same button while the review is playing."
   },
   "composerCaptureCancelLabel": "discard recording",
   "@composerCaptureCancelLabel": {

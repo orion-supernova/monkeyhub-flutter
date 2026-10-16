@@ -130,6 +130,9 @@ class MainActivity : FlutterActivity() {
         PhoneCallBridge.register(this, flutterEngine)
         MapsBridge.register(this, flutterEngine)
         VideoShrink.register(this, flutterEngine)
+        // monkeyhub/media_compose — joins and trims the segments of a paused
+        // voice or video note.
+        MediaCompose.register(this, flutterEngine)
 
         // monkeyhub/capture — toggles FLAG_SECURE on the window. With
         // FLAG_SECURE set, Android blocks screenshots AND screen-recording at

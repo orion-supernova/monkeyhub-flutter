@@ -58,6 +58,7 @@ import '../widgets/gallery_tray.dart' show GalleryTray;
 import '../widgets/inline_photo_picker.dart';
 import '../media/photo_picking.dart';
 import '../media/view_once_fetch.dart';
+import '../media/view_once_media.dart';
 import '../privacy/capture_protection.dart';
 import '../services/live_location_permission.dart';
 import '../services/live_location_platform.dart';
@@ -496,6 +497,10 @@ class _RoomScreenState extends State<RoomScreen>
   @override
   void initState() {
     super.initState();
+    // A play-once note staged for a player that never got to release it — the
+    // process died mid-listen — is still on disk. Gone before this room can
+    // show anything.
+    unawaited(ViewOnceMedia.sweep());
     // The room's games: the cards' bodies and the banner. Held for exactly
     // as long as this screen is, like the room's other secondary queries.
     final me = widget.repo.userId;
@@ -2581,15 +2586,37 @@ class _RoomScreenState extends State<RoomScreen>
       ));
       return;
     }
-    _sendMedia(
-      bytes: outcome.bytes,
-      type: mode == ComposerInputMode.videoNote
-          ? MessageType.videoNote
-          : MessageType.audio,
-      contentType: outcome.contentType,
-      posterBytes: outcome.posterBytes,
-      mediaDurationMs: outcome.duration.inMilliseconds,
-    );
+    final type = mode == ComposerInputMode.videoNote
+        ? MessageType.videoNote
+        : MessageType.audio;
+    if (!outcome.viewOnce) {
+      _sendMedia(
+        bytes: outcome.bytes,
+        type: type,
+        contentType: outcome.contentType,
+        posterBytes: outcome.posterBytes,
+        mediaDurationMs: outcome.duration.inMilliseconds,
+      );
+      return;
+    }
+    // Play once. The full poster is the sender's face and must never leave
+    // the device for an armed send; a video note carries a sixteen-pixel
+    // stand-in instead, for the sealed circle to blur. A few milliseconds
+    // off the UI thread before the bubble appears, which nobody can see.
+    unawaited(() async {
+      final micro = type == MessageType.videoNote
+          ? await viewOnceMicroPoster(outcome.posterBytes)
+          : null;
+      if (!mounted) return;
+      _sendMedia(
+        bytes: outcome.bytes,
+        type: type,
+        contentType: outcome.contentType,
+        posterBytes: micro,
+        mediaDurationMs: outcome.duration.inMilliseconds,
+        viewOnce: true,
+      );
+    }());
   }
 
   void _onCaptureProblem(CaptureFailure failure) {
@@ -3850,7 +3877,10 @@ class _RoomScreenState extends State<RoomScreen>
     if (at < 0) return const [];
     return [
       for (final x in timeline.skip(at + 1))
+        // Never into a play-once note: it has no storage id to find anyway,
+        // but autoplay is not a way to spend somebody's one watch.
         if (x.type == MessageType.videoNote &&
+            !x.viewOnce &&
             x.upload == null &&
             (x.mediaStorageId?.isNotEmpty ?? false))
           VideoNoteRef(
@@ -4046,27 +4076,27 @@ class _RoomScreenState extends State<RoomScreen>
   /// picture is dismissed — so a failure after that point is reported plainly
   /// rather than pretended away. Saying "that's gone" is more honest than a
   /// silent retry that can't work.
-  Future<void> _openViewOnce(ChatMessage m) async {
+  ///
+  /// Hands the bytes back to the sealed bubble rather than presenting them
+  /// here: a photo goes to [ViewOnceViewer], a voice message plays in its pill,
+  /// a video note flies into its focus — each bubble knows its own shape.
+  Future<Uint8List?> _openViewOnce(ChatMessage m) async {
     final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
     final res = await fetchViewOnce(
       repo: widget.repo,
       roomId: widget.roomId,
       messageId: m.id,
     );
-    if (!mounted) return;
     final bytes = res.bytes;
-    if (bytes != null) {
-      await ViewOnceViewer.open(context, bytes: bytes);
-      return;
+    if (bytes != null) return bytes;
+    if (mounted) {
+      toast.show(
+        viewOnceFailureMessage(l10n, m.type, res.failure!),
+        tone: ToastTone.danger,
+      );
     }
-    final l10n = AppLocalizations.of(context);
-    toast.show(switch (res.failure!) {
-      ViewOnceFailure.alreadyViewed => l10n.roomScreenViewOnceAlreadyViewed,
-      ViewOnceFailure.gone => l10n.roomScreenViewOnceGone,
-      ViewOnceFailure.network => l10n.roomScreenViewOnceNetworkError,
-    },
-      tone: ToastTone.danger,
-    );
+    return null;
   }
 
   /// Puts one or more photographs in front of the user before anything is sent.

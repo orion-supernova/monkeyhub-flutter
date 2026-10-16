@@ -68,16 +68,72 @@ class CaptureOutcome {
     required this.contentType,
     required this.duration,
     this.posterBytes,
+    this.viewOnce = false,
   });
 
   final Uint8List bytes;
   final String contentType;
   final Duration duration;
 
+  /// Sent to be played once: the recipient hears or sees it a single time,
+  /// then it burns, exactly as a view-once photo does. Chosen in the
+  /// recording strip, carried here so the send path needs no second channel.
+  final bool viewOnce;
+
+  CaptureOutcome withViewOnce(bool value) => CaptureOutcome(
+        bytes: bytes,
+        contentType: contentType,
+        duration: duration,
+        posterBytes: posterBytes,
+        viewOnce: value,
+      );
+
   /// A JPEG still for a video note, so the circular bubble has something to
   /// draw before anyone taps it. Null for audio and on any platform
   /// [VideoPoster] cannot serve.
   final Uint8List? posterBytes;
+}
+
+/// One stretch of a paused-and-resumed recording, still on disk.
+///
+/// Pause is not a pause. Neither `record` nor `camera` can suspend a file
+/// mid-write on every platform this app ships to, so "pause" finishes the file
+/// being written and "resume" starts a new one; the send joins them back up in
+/// `composeCapture`. This is the hand-over between those two moments.
+///
+/// **Whoever holds a segment owns its file.** [CaptureRecorder.stopSegment]
+/// gives it up and never looks at the path again, so a segment that is
+/// dropped without going through `composeCapture` (which deletes it) or
+/// `discardSegments` is a leaked file until the next launch's sweep.
+@immutable
+class CaptureSegment {
+  const CaptureSegment({
+    required this.path,
+    required this.duration,
+    required this.contentType,
+    this.levels = const [],
+  });
+
+  /// A real filesystem path. Inside [CaptureTempFiles]' folder for every
+  /// segment this file produces, so the sweeper covers it if the app dies
+  /// before it is sent.
+  final String path;
+
+  /// How long the segment ran, by the wall clock between start and stop.
+  /// Within a frame or two of the file's own duration — close enough to lay
+  /// out a timeline with, not close enough to cut on, which is why
+  /// `composeCapture` answers the true duration of what it produced.
+  final Duration duration;
+
+  final String contentType;
+
+  /// 0..1 loudness samples observed while this segment recorded, one per
+  /// meter tick (120 ms). Empty for video. Concatenated across segments by
+  /// `waveform`, which is what the review strip draws.
+  final List<double> levels;
+
+  @override
+  String toString() => 'CaptureSegment($path, $duration)';
 }
 
 /// Where in-progress captures live, and the sweeper that stops them piling up.
@@ -181,6 +237,17 @@ abstract class CaptureRecorder {
 
   /// Closes the stream and returns the bytes, or throws [CaptureFailure].
   Future<CaptureOutcome> stop();
+
+  /// Pause: finishes the file being written and hands it over *without*
+  /// reading or deleting it. The caller owns the file from here (see
+  /// [CaptureSegment]). Throws [CaptureFailure] when nothing was recording or
+  /// the file came out empty — in which case it is already deleted.
+  ///
+  /// The device stays open: for a video note the preview keeps running while
+  /// paused, and [start] afterwards begins a fresh segment file. The
+  /// single-take path is unchanged — [stop] is still what a recording that
+  /// was never paused ends with.
+  Future<CaptureSegment> stopSegment();
 
   /// Stops and throws the recording away, deleting its temp file. Never
   /// throws — cancel is the path failures fall back to.
@@ -290,6 +357,11 @@ class VoiceCaptureRecorder implements CaptureRecorder {
   final _levels = StreamController<double>.broadcast();
   bool _disposed = false;
 
+  /// Every meter sample of the segment being written, kept for the review
+  /// strip's waveform. A 5-minute cap at one sample per 120 ms is 2,500
+  /// doubles — not worth a ring buffer.
+  final List<double> _segmentLevels = [];
+
   @override
   VoidCallback? onSessionLost;
 
@@ -349,13 +421,16 @@ class VoiceCaptureRecorder implements CaptureRecorder {
     }
     _path = path;
     _startedAt = DateTime.now();
+    _segmentLevels.clear();
     _ampSub = _rec
         .onAmplitudeChanged(const Duration(milliseconds: 120))
         .listen((a) {
       if (_disposed || _levels.isClosed) return;
       // dBFS, typically -60..0. The same normalisation the full-screen
       // recorder's meter uses, so the two look like the same app.
-      _levels.add(((a.current + 45) / 45).clamp(0.0, 1.0));
+      final level = ((a.current + 45) / 45).clamp(0.0, 1.0);
+      _segmentLevels.add(level);
+      _levels.add(level);
     }, onError: (Object e) => debugPrint('amplitude: $e'));
     // A `stop` we did not ask for is the platform taking the microphone away —
     // an incoming call is the ordinary case, and without this the timer would
@@ -415,11 +490,59 @@ class VoiceCaptureRecorder implements CaptureRecorder {
   }
 
   @override
+  Future<CaptureSegment> stopSegment() async {
+    final started = _startedAt;
+    await _ampSub?.cancel();
+    _ampSub = null;
+    await _stateSub?.cancel();
+    _stateSub = null;
+    // Cleared before the stop for the same reason [stop] clears it: our own
+    // stop must not read as the platform taking the microphone away.
+    final ours = _path;
+    _path = null;
+    _startedAt = null;
+    final levels = List<double>.unmodifiable(_segmentLevels);
+    _segmentLevels.clear();
+    if (ours == null) {
+      throw const CaptureFailure(CaptureFailureKind.interrupted);
+    }
+    String? path;
+    try {
+      path = await _rec.stop();
+    } catch (e) {
+      debugPrint('VoiceCaptureRecorder.stopSegment: $e');
+    }
+    path ??= ours;
+
+    // Checked here rather than at compose time: an empty segment discovered
+    // at send is a recording the user already thinks they have.
+    var length = 0;
+    try {
+      length = await File(path).length();
+    } catch (e) {
+      debugPrint('VoiceCaptureRecorder.stopSegment length: $e');
+    }
+    if (length == 0) {
+      await CaptureTempFiles.delete(path);
+      if (path != ours) await CaptureTempFiles.delete(ours);
+      throw const CaptureFailure(CaptureFailureKind.storage);
+    }
+    return CaptureSegment(
+      path: path,
+      duration:
+          started == null ? Duration.zero : DateTime.now().difference(started),
+      contentType: voiceNoteContentType,
+      levels: levels,
+    );
+  }
+
+  @override
   Future<void> cancel() async {
     await _ampSub?.cancel();
     _ampSub = null;
     await _stateSub?.cancel();
     _stateSub = null;
+    _segmentLevels.clear();
     final ours = _path;
     _path = null;
     _startedAt = null;
@@ -469,15 +592,50 @@ class VoiceCaptureRecorder implements CaptureRecorder {
 /// crop was not known about.
 class VideoNoteCaptureRecorder implements CaptureRecorder {
   VideoNoteCaptureRecorder({
-    this.lens = CameraLensDirection.front,
+    CameraLensDirection lens = CameraLensDirection.front,
     @visibleForTesting Future<List<CameraDescription>> Function()? cameras,
-  }) : _cameras = cameras ?? availableCameras;
+  })  : _lens = lens,
+        _cameras = cameras ?? availableCameras;
 
   /// Opens on the front lens. A video note is a message *of you*, the same
   /// reasoning the composer's camera button already uses.
-  final CameraLensDirection lens;
+  CameraLensDirection _lens;
+
+  /// The lens the session is on, or will open on. Changes on [flip], and in
+  /// [warm] when the device has no lens facing the asked-for way.
+  CameraLensDirection get lens => _lens;
+
+  /// The lens is the user's own face. The UI's answer to a "flash" here is a
+  /// white screen, which is why [hasTorch] is false on this side.
+  bool get frontFacing => _lens == CameraLensDirection.front;
 
   final Future<List<CameraDescription>> Function() _cameras;
+
+  /// What [warm] found, kept for [flip]. Empty until the first warm.
+  List<CameraDescription> _available = const [];
+
+  /// More than one way to face. False before the first [warm], which is when
+  /// nobody has asked the OS yet.
+  bool get canFlip =>
+      _available.any((c) => c.lensDirection == CameraLensDirection.front) &&
+      _available.any((c) => c.lensDirection != CameraLensDirection.front);
+
+  bool _flipping = false;
+  bool _torch = false;
+
+  /// Set once the platform refuses a torch on this lens — the plugin has no
+  /// "does this camera have a flash" query, so the first refusal is the
+  /// answer. Cleared on flip: it belongs to the lens, not the device.
+  bool _torchRefused = false;
+
+  /// A torch is a back-camera thing. Optimistic until [setTorch] has been
+  /// refused once (iPads and a few budget phones have no LED at all).
+  bool get hasTorch =>
+      _controller != null &&
+      _lens == CameraLensDirection.back &&
+      !_torchRefused;
+
+  bool get torchOn => _torch;
 
   CameraController? _controller;
   CameraController? get controller => _controller;
@@ -523,10 +681,12 @@ class VideoNoteCaptureRecorder implements CaptureRecorder {
     if (list.isEmpty) {
       throw const CaptureFailure(CaptureFailureKind.unavailable);
     }
+    _available = list;
     final description = list.firstWhere(
-      (c) => c.lensDirection == lens,
+      (c) => c.lensDirection == _lens,
       orElse: () => list.first,
     );
+    _lens = description.lensDirection;
 
     final controller = CameraController(
       description,
@@ -671,6 +831,130 @@ class VideoNoteCaptureRecorder implements CaptureRecorder {
   }
 
   @override
+  Future<CaptureSegment> stopSegment() async {
+    final c = _controller;
+    final started = _startedAt;
+    _startedAt = null;
+    if (c == null || !_recording) {
+      throw const CaptureFailure(CaptureFailureKind.interrupted);
+    }
+    _recording = false;
+
+    // `stopVideoRecording` finalises the file and leaves the capture session —
+    // and so the preview — running on both platforms. That is the whole of
+    // "the picture stays live while paused".
+    final XFile file;
+    try {
+      file = await c.stopVideoRecording();
+    } catch (e) {
+      debugPrint('VideoNoteCaptureRecorder.stopSegment: $e');
+      throw const CaptureFailure(CaptureFailureKind.interrupted);
+    }
+    final path = await _adopt(file.path);
+
+    var length = 0;
+    try {
+      length = await File(path).length();
+    } catch (e) {
+      debugPrint('VideoNoteCaptureRecorder.stopSegment length: $e');
+    }
+    if (length == 0) {
+      await CaptureTempFiles.delete(path);
+      throw const CaptureFailure(CaptureFailureKind.storage);
+    }
+    return CaptureSegment(
+      path: path,
+      duration:
+          started == null ? Duration.zero : DateTime.now().difference(started),
+      contentType: videoNoteContentType,
+    );
+  }
+
+  /// Moves the plugin's output into [CaptureTempFiles]' folder.
+  ///
+  /// `camera` writes wherever it likes, and a segment can sit on disk for as
+  /// long as the user lingers on the review strip. Inside our folder a crash
+  /// in that window is the sweeper's problem; outside it, the file is
+  /// nobody's. The extension is kept — AVFoundation picks a reader from it.
+  /// A move that fails (another volume, a sandbox quirk) leaves the file where
+  /// it was, which is still a working segment.
+  Future<String> _adopt(String path) async {
+    final dot = path.lastIndexOf('.');
+    final ext = dot > path.lastIndexOf('/') ? path.substring(dot + 1) : 'mp4';
+    try {
+      final target = await CaptureTempFiles.newPath(ext);
+      await File(path).rename(target);
+      return target;
+    } catch (e) {
+      debugPrint('VideoNoteCaptureRecorder.adopt: $e');
+      return path;
+    }
+  }
+
+  /// Switches between the front and back lens. A no-op when [canFlip] is
+  /// false or a flip is already in flight.
+  ///
+  /// Works idle, paused and mid-recording. Mid-recording it is
+  /// `CameraController.setDescription`, which camera 0.12 routes to the
+  /// platform's `setDescriptionWhileRecording` — camera_avfoundation 0.10
+  /// swaps the capture input under the running asset writer, and
+  /// camera_android_camerax 0.7 rebinds the use cases around a persistent
+  /// recording (persistence is the controller's default) — so the take keeps
+  /// going in the *same file*, with no segment break. Idle or paused, the same
+  /// call disposes and reopens the session on the new lens; the controller
+  /// object survives, so the widget's preview just rebuilds.
+  ///
+  /// The torch goes off first: the front lens has none, and leaving a back
+  /// LED lit while the user looks at themselves is a bug report.
+  ///
+  /// Throws [CaptureFailure] when the new session could not open; a failure
+  /// mid-recording is reported through [onSessionLost] by the controller's
+  /// error state, as any other lost session is.
+  Future<void> flip() async {
+    final c = _controller;
+    if (c == null || _flipping || !canFlip) return;
+    final wantFront = _lens != CameraLensDirection.front;
+    final target = _available.firstWhere(
+      (d) => wantFront
+          ? d.lensDirection == CameraLensDirection.front
+          : d.lensDirection != CameraLensDirection.front,
+      orElse: () => c.description,
+    );
+    if (target.name == c.description.name) return;
+    _flipping = true;
+    try {
+      if (_torch) await setTorch(false);
+      await c.setDescription(target);
+      _lens = target.lensDirection;
+      _torchRefused = false;
+    } on CameraException catch (e) {
+      debugPrint('VideoNoteCaptureRecorder.flip: $e');
+      throw const CaptureFailure(CaptureFailureKind.unavailable);
+    } finally {
+      _flipping = false;
+    }
+  }
+
+  /// The back LED, held on (FlashMode.torch) for as long as it is wanted —
+  /// paused, recording, or framing. Ignored when [hasTorch] is false.
+  ///
+  /// A refusal flips [hasTorch] to false rather than throwing: the torch is a
+  /// nicety, and the UI's answer to "no torch" is to hide the button, not to
+  /// show an error.
+  Future<void> setTorch(bool on) async {
+    final c = _controller;
+    if (c == null || (on && !hasTorch) || on == _torch) return;
+    try {
+      await c.setFlashMode(on ? FlashMode.torch : FlashMode.off);
+      _torch = on;
+    } catch (e) {
+      debugPrint('VideoNoteCaptureRecorder.setTorch: $e');
+      if (on) _torchRefused = true;
+      _torch = false;
+    }
+  }
+
+  @override
   Future<void> cancel() async {
     _startedAt = null;
     final c = _controller;
@@ -698,6 +982,8 @@ class VideoNoteCaptureRecorder implements CaptureRecorder {
     if (c == null) return;
     _controller = null;
     _recording = false;
+    // The OS drops the LED with the session; the flag has to follow.
+    _torch = false;
     c.removeListener(_onControllerUpdate);
     try {
       await c.dispose();

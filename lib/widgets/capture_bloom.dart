@@ -57,6 +57,14 @@ class CaptureBloom extends StatefulWidget {
     required this.onSend,
     required this.sendLabel,
     required this.lockLabel,
+    this.viewOnce = false,
+    this.onToggleViewOnce,
+    this.viewOnceLabel = '',
+    this.viewOnceHint = '',
+    this.paused = false,
+    this.onPause,
+    this.pauseLabel = '',
+    this.resumeLabel = '',
   });
 
   final AppTheme theme;
@@ -81,6 +89,22 @@ class CaptureBloom extends StatefulWidget {
   final VoidCallback? onSend;
   final String sendLabel;
   final String lockLabel;
+
+  /// Play once: the recipient gets it a single time. The toggle shows above
+  /// a locked recording once the finger is off; null hides it.
+  final bool viewOnce;
+  final VoidCallback? onToggleViewOnce;
+  final String viewOnceLabel;
+
+  /// Said once, with a flame, when play-once turns on.
+  final String viewOnceHint;
+
+  /// Pause and resume, above the play-once toggle. Null hides it (a recorder
+  /// that cannot pause).
+  final bool paused;
+  final VoidCallback? onPause;
+  final String pauseLabel;
+  final String resumeLabel;
 
   static const double disc = 96;
   static const Size boxSize = Size(360, 420);
@@ -116,6 +140,15 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
 
   /// The lock pill: 0 tucked behind the disc, 1 in place.
   final _pill = Spring(response: 0.22, ratio: 0.55);
+
+  /// The locked controls (pause, play once): 0 tucked away, 1 in place.
+  final _controls = Spring(response: 0.24, ratio: 0.8);
+
+  /// The play-once ring's flood, with a pop on the way in.
+  final _once = Spring(response: 0.28, ratio: 0.5);
+
+  /// When play-once last turned on, for its tooltip.
+  double? _tipAt;
 
   double? _lockedAt;
 
@@ -156,6 +189,11 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       _pill.retarget(1, response: 0.24, ratio: 0.8);
     }
     if (widget.locked && old.holding && !widget.holding) _releasedAt ??= _clock;
+    if (widget.viewOnce != old.viewOnce) {
+      _once.retarget(widget.viewOnce ? 1 : 0, ratio: widget.viewOnce ? 0.5 : 1);
+      _tipAt = widget.viewOnce ? _clock : null;
+      if (_calm) _once.snap(_once.target);
+    }
     _wake();
   }
 
@@ -181,6 +219,9 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
     _lockedAt = null;
     _releasedAt = null;
     _kickAt = null;
+    _tipAt = null;
+    _controls.snap(0);
+    _once.snap(widget.viewOnce ? 1 : 0);
     if (_calm) {
       _scale.snap(1);
       _pill.snap(1);
@@ -190,6 +231,8 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
 
   void _leave() {
     _pill.retarget(0, response: 0.16, ratio: 1);
+    _controls.retarget(0, response: 0.16, ratio: 1);
+    _tipAt = null;
     if (widget.exit == CaptureBloomExit.send) {
       _kickAt = _clock;
       _scale.retarget(44 / CaptureBloom.disc, response: 0.3, ratio: 0.82);
@@ -226,6 +269,9 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       !_level.atRest ||
       !_morph.atRest ||
       !_pill.atRest ||
+      !_controls.atRest ||
+      !_once.atRest ||
+      _tipAt != null ||
       _kickAt != null;
 
   void _wake() {
@@ -252,11 +298,16 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       // The padlock stays closed under the finger, and goes a beat after it
       // lifts.
       final releasedAt = _releasedAt;
-      if (releasedAt != null && _clock - releasedAt > 0.15) _pill.retarget(0, response: 0.18, ratio: 1);
+      if (releasedAt != null && _clock - releasedAt > 0.15) {
+        _pill.retarget(0, response: 0.18, ratio: 1);
+        // And the controls take its place.
+        if (_clock - releasedAt > 0.22) _controls.retarget(1);
+      }
     }
     if (_kickAt != null && _clock - _kickAt! > 0.24) _kickAt = null;
+    if (_tipAt != null && _clock - _tipAt! > 2.8) _tipAt = null;
 
-    for (final s in [_scale, _fade, _dx, _dy, _level, _morph, _pill]) {
+    for (final s in [_scale, _fade, _dx, _dy, _level, _morph, _pill, _controls, _once]) {
       s.tick(dt);
     }
     if (!((_live && !_calm) || _moving)) _ticker.stop();
@@ -285,7 +336,8 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
     final c = CaptureBloom.center + Offset(_dx.value, _dy.value);
     final fade = _fade.value.clamp(0.0, 1.0);
     final halo = _haloLevel;
-    final haloAlpha = (1 - cancel) * fade * scale.clamp(0.0, 1.0);
+    // Paused, nothing is listening: the blobs go.
+    final haloAlpha = widget.paused ? 0.0 : (1 - cancel) * fade * scale.clamp(0.0, 1.0);
 
     return SizedBox.fromSize(
       size: CaptureBloom.boxSize,
@@ -293,6 +345,7 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
         clipBehavior: Clip.none,
         children: [
           if (_pill.value > 0.01) _lockPill(theme),
+          if (_controls.value > 0.01) ..._lockedControls(theme),
           if (haloAlpha > 0.002)
             Positioned.fill(
               child: IgnorePointer(
@@ -459,15 +512,144 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       ),
     );
   }
+
+  /// Pause (when the recorder can) and play once, as 40pt chrome discs in
+  /// the lane the padlock just left: pause where the padlock was, play once
+  /// above it. Each springs up from the disc, the second a beat later.
+  List<Widget> _lockedControls(AppTheme theme) {
+    final v = _controls.value;
+    final cx = CaptureBloom.center.dx;
+    final out = <Widget>[];
+    var slot = 0;
+    Widget disc({required int slot, required Widget child, required String label, required VoidCallback onTap, bool? toggled}) {
+      // The second slot trails the first a little.
+      final t = (slot == 0 ? v : (v - 0.12) / 0.88).clamp(0.0, 1.2);
+      final y = CaptureBloom.center.dy - 99 - 52.0 * slot;
+      return Positioned(
+        left: cx - 20,
+        top: y - 20 + (1 - t) * 40,
+        width: 40,
+        height: 40,
+        child: Opacity(
+          opacity: t.clamp(0.0, 1.0),
+          child: Transform.scale(
+            scale: 0.6 + 0.4 * t,
+            child: Semantics(
+              toggled: toggled,
+              child: FocusableTap(
+                onTap: onTap,
+                semanticLabel: label,
+                shape: FocusRingShape.circle,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTap,
+                  child: CustomPaint(
+                    painter: _PillPainter(theme: theme),
+                    child: Center(child: child),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final onPause = widget.onPause;
+    if (onPause != null) {
+      out.add(disc(
+        slot: slot++,
+        label: widget.paused ? widget.resumeLabel : widget.pauseLabel,
+        onTap: onPause,
+        child: widget.paused
+            ? MicGlyph(color: theme.ink, size: 20)
+            : PauseGlyph(color: theme.ink, size: 20),
+      ));
+    }
+    final onOnce = widget.onToggleViewOnce;
+    if (onOnce != null) {
+      final onceSlot = slot++;
+      out.add(disc(
+        slot: onceSlot,
+        label: widget.viewOnceLabel,
+        toggled: widget.viewOnce,
+        onTap: onOnce,
+        child: ViewOnceGlyph(
+          color: theme.ink,
+          knockout: chromeDiscFill(theme),
+          on: _once.value,
+          size: 24,
+        ),
+      ));
+      final tipAt = _tipAt;
+      if (tipAt != null) out.add(_onceTip(theme, CaptureBloom.center.dy - 99 - 52.0 * onceSlot, _clock - tipAt));
+    }
+    return out;
+  }
+
+  /// "They can listen to it only once", beside the play-once disc, with a
+  /// flickering flame: in for a beat, out by itself.
+  Widget _onceTip(AppTheme theme, double y, double age) {
+    final inT = Curves.easeOutCubic.transform((age / 0.22).clamp(0.0, 1.0));
+    final outT = ((age - 2.4) / 0.4).clamp(0.0, 1.0);
+    final t = inT * (1 - outT);
+    final right = CaptureBloom.boxSize.width - (CaptureBloom.center.dx - 20 - 10);
+    return Positioned(
+      right: right - (1 - t) * 12,
+      top: y - 20,
+      height: 40,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: t,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: const Color(0xE6000000),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FlameGlyph(color: Colors.white, flicker: _clock / 0.9, size: 16),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    child: Text(
+                      widget.viewOnceHint,
+                      maxLines: 2,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-/// Telegram's voice blobs: two translucent, wavy shapes behind the disc that
-/// never stop moving while the recording is live. Each is a circle whose
-/// edge carries a few slow waves; the two turn against each other, swell
-/// with the voice and churn faster when it is loud. Silence leaves a small,
-/// lazy ripple, so the disc always reads as listening.
+/// Telegram's voice blobs: two translucent, glassy shapes behind the disc
+/// that never stop moving while the recording is live.
 ///
-/// One path each, sampled around the circle; no blur, no layers.
+/// Organic rather than wavy: each blob is eight control points around the
+/// disc, every one drifting in and out on its own slow, incommensurate
+/// rhythm, joined by a closed Catmull-Rom curve. No two moments repeat and
+/// nothing reads as a sine wave. The voice swells both blobs (the outer one
+/// to about 1.6× the disc), deepens the drift and speeds it up; silence
+/// leaves a small, lazy wobble, so the disc always reads as listening.
+///
+/// Glass, not paint: a fill that is denser at the disc and thins toward the
+/// edge, and a faint light rim on the outer blob. One path each; no blur,
+/// no layers.
 class _BlobPainter extends CustomPainter {
   const _BlobPainter({
     required this.center,
@@ -489,58 +671,98 @@ class _BlobPainter extends CustomPainter {
   final Color color;
   final double opacity;
 
+  static const _points = 8;
+
+  // Per-point rhythms: frequencies chosen to never line up, phases spread.
+  static const _freqA = [0.71, 0.93, 0.62, 1.07, 0.84, 0.57, 0.99, 0.76];
+  static const _freqB = [1.31, 1.13, 1.49, 1.21, 1.37, 1.17, 1.43, 1.27];
+  static const _phase = [0.0, 2.1, 4.3, 1.2, 5.6, 3.4, 0.7, 2.8];
+
   @override
   void paint(Canvas canvas, Size size) {
     if (radius <= 0) return;
     final l = level.clamp(0.0, 1.0);
-    // Louder churns faster, as well as bigger.
-    final t = time * (0.9 + 0.9 * l);
+    final t = time * (0.8 + 1.2 * l);
     // The big outer blob first, under the tighter inner one.
     _blob(
       canvas,
-      base: radius + 10 + 22 * l,
-      amp: 0.035 + 0.075 * l,
-      waves: const [3, 5],
-      speeds: const [0.7, -1.1],
-      phase: t,
-      alpha: 0.14,
+      base: radius * (1.12 + 0.48 * l),
+      depth: 0.035 + 0.075 * l,
+      turn: t * 0.12,
+      t: t,
+      seed: 0,
+      alpha: 0.24,
+      rim: true,
     );
     _blob(
       canvas,
-      base: radius + 4 + 12 * l,
-      amp: 0.03 + 0.06 * l,
-      waves: const [4, 6],
-      speeds: const [-0.9, 1.3],
-      phase: t + 1.7,
-      alpha: 0.26,
+      base: radius * (1.05 + 0.24 * l),
+      depth: 0.03 + 0.06 * l,
+      turn: -t * 0.17,
+      t: t + 7.3,
+      seed: 3,
+      alpha: 0.34,
+      rim: false,
     );
   }
 
   void _blob(
     Canvas canvas, {
     required double base,
-    required double amp,
-    required List<int> waves,
-    required List<double> speeds,
-    required double phase,
+    required double depth,
+    required double turn,
+    required double t,
+    required int seed,
     required double alpha,
+    required bool rim,
   }) {
-    const samples = 72;
-    final path = Path();
-    for (var i = 0; i <= samples; i++) {
-      final a = 2 * math.pi * i / samples;
-      final wobble = 0.6 * math.sin(waves[0] * a + speeds[0] * phase) +
-          0.4 * math.sin(waves[1] * a + speeds[1] * phase + 1.3);
-      final r = base * (1 + amp * wobble);
-      final p = center + Offset(math.cos(a) * r, math.sin(a) * r);
-      if (i == 0) {
-        path.moveTo(p.dx, p.dy);
-      } else {
-        path.lineTo(p.dx, p.dy);
-      }
+    final pts = <Offset>[];
+    for (var i = 0; i < _points; i++) {
+      final k = (i + seed) % _points;
+      final drift = 0.62 * math.sin(_freqA[k] * t + _phase[k]) + 0.38 * math.sin(_freqB[k] * t * 1.3 + _phase[k] * 1.7);
+      final r = base * (1 + depth * drift);
+      final a = turn + 2 * math.pi * i / _points;
+      pts.add(center + Offset(math.cos(a) * r, math.sin(a) * r));
+    }
+    // Closed Catmull-Rom through the points, as cubic Béziers.
+    final path = Path()..moveTo(pts[0].dx, pts[0].dy);
+    for (var i = 0; i < _points; i++) {
+      final p0 = pts[(i - 1 + _points) % _points];
+      final p1 = pts[i];
+      final p2 = pts[(i + 1) % _points];
+      final p3 = pts[(i + 2) % _points];
+      final c1 = p1 + (p2 - p0) / 6;
+      final c2 = p2 - (p3 - p1) / 6;
+      path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, p2.dx, p2.dy);
     }
     path.close();
-    canvas.drawPath(path, Paint()..color = color.withValues(alpha: alpha * opacity));
+
+    final a = alpha * opacity;
+    final reach = base * (1 + depth);
+    // A touch lighter than the disc: glass catching light, not a darker
+    // shadow of the same blue.
+    final glass = Color.lerp(color, Colors.white, 0.18)!;
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            glass.withValues(alpha: a * 1.2),
+            glass.withValues(alpha: a),
+            glass.withValues(alpha: a * 0.6),
+          ],
+          stops: [radius / reach, 0.72, 1],
+        ).createShader(Rect.fromCircle(center: center, radius: reach)),
+    );
+    if (rim) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = Colors.white.withValues(alpha: 0.16 * opacity),
+      );
+    }
   }
 
   @override

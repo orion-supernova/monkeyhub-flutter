@@ -270,6 +270,55 @@ class AppLocalizationsPt extends AppLocalizations {
       'Foto de visualização única, toca para ver';
 
   @override
+  String get messageBubblePlayOnceLabel => 'Reproduzir uma vez';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'Toca para reproduzir';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'Reproduzido';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'Mensagem de voz de reprodução única, toca para reproduzir';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'Nota de vídeo de reprodução única, toca para reproduzir';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel =>
+      'Mensagem de voz · reprodução única';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'Nota de vídeo · reprodução única';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'Já ouviste esta mensagem de voz.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone =>
+      'Esta mensagem de voz já não está disponível.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'Não foi possível carregar essa mensagem de voz.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'Já viste esta nota de vídeo.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'Esta nota de vídeo já não está disponível.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'Não foi possível carregar essa nota de vídeo.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel =>
       'Tentar enviar novamente';
 
@@ -6471,6 +6520,30 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => 'Cancelar';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'Reproduzir uma vez';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint => 'Só poderá ouvir uma vez';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => 'Só poderá ver uma vez';
+
+  @override
+  String get composerCapturePauseLabel => 'Pausar gravação';
+
+  @override
+  String get composerCaptureResumeLabel => 'Retomar gravação';
+
+  @override
+  String get composerCaptureFlashLabel => 'Flash';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'Reproduzir gravação';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'Parar reprodução';
 
   @override
   String get composerCaptureCancelLabel => 'descartar gravação';
@@ -14318,6 +14391,55 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Foto de visualização única, toque para ver';
 
   @override
+  String get messageBubblePlayOnceLabel => 'Reproduzir uma vez';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => 'Toque para reproduzir';
+
+  @override
+  String get messageBubblePlayOncePlayed => 'Reproduzido';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      'Mensagem de voz de reprodução única, toque para reproduzir';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      'Nota de vídeo de reprodução única, toque para reproduzir';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel =>
+      'Mensagem de voz · reprodução única';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel =>
+      'Nota de vídeo · reprodução única';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed =>
+      'Você já ouviu essa mensagem de voz.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone =>
+      'Essa mensagem de voz não está mais disponível.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError =>
+      'Não deu pra carregar essa mensagem de voz.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed =>
+      'Você já assistiu essa nota de vídeo.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone =>
+      'Essa nota de vídeo não está mais disponível.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError =>
+      'Não deu pra carregar essa nota de vídeo.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel =>
       'Tentar enviar novamente';
 
@@ -20518,6 +20640,30 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get composerCaptureLockedCancel => 'Cancelar';
+
+  @override
+  String get composerCaptureViewOnceLabel => 'Reproduzir uma vez';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint => 'Só vai poder ouvir uma vez';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => 'Só vai poder ver uma vez';
+
+  @override
+  String get composerCapturePauseLabel => 'Pausar gravação';
+
+  @override
+  String get composerCaptureResumeLabel => 'Retomar gravação';
+
+  @override
+  String get composerCaptureFlashLabel => 'Flash';
+
+  @override
+  String get composerCaptureReviewPlayLabel => 'Reproduzir gravação';
+
+  @override
+  String get composerCaptureReviewStopLabel => 'Parar reprodução';
 
   @override
   String get composerCaptureCancelLabel => 'descartar gravação';

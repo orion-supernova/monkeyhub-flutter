@@ -255,6 +255,47 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messageBubbleViewOnceSemanticLabel => '한 번 보기 사진, 탭하여 보기';
 
   @override
+  String get messageBubblePlayOnceLabel => '한 번만 재생';
+
+  @override
+  String get messageBubblePlayOnceTapToPlay => '탭하여 재생';
+
+  @override
+  String get messageBubblePlayOncePlayed => '재생됨';
+
+  @override
+  String get messageBubblePlayOnceVoiceSemanticLabel =>
+      '한 번만 재생되는 음성 메시지, 탭하여 재생';
+
+  @override
+  String get messageBubblePlayOnceVideoNoteSemanticLabel =>
+      '한 번만 재생되는 영상 메시지, 탭하여 재생';
+
+  @override
+  String get replyIndicatorPlayOnceVoiceLabel => '음성 메시지 · 한 번만 재생';
+
+  @override
+  String get replyIndicatorPlayOnceVideoNoteLabel => '영상 메시지 · 한 번만 재생';
+
+  @override
+  String get roomScreenPlayOnceVoiceAlreadyPlayed => '이 음성 메시지는 이미 들었어요.';
+
+  @override
+  String get roomScreenPlayOnceVoiceGone => '이 음성 메시지는 더 이상 들을 수 없어요.';
+
+  @override
+  String get roomScreenPlayOnceVoiceNetworkError => '그 음성 메시지를 불러올 수 없어요.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteAlreadyPlayed => '이 영상 메시지는 이미 봤어요.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteGone => '이 영상 메시지는 더 이상 볼 수 없어요.';
+
+  @override
+  String get roomScreenPlayOnceVideoNoteNetworkError => '그 영상 메시지를 불러올 수 없어요.';
+
+  @override
   String get messageBubbleRetrySendingSemanticLabel => '다시 전송하기';
 
   @override
@@ -6154,6 +6195,30 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get composerCaptureLockedCancel => '취소';
+
+  @override
+  String get composerCaptureViewOnceLabel => '한 번만 재생';
+
+  @override
+  String get composerCaptureViewOnceVoiceHint => '상대방은 한 번만 들을 수 있어요';
+
+  @override
+  String get composerCaptureViewOnceVideoHint => '상대방은 한 번만 볼 수 있어요';
+
+  @override
+  String get composerCapturePauseLabel => '녹음 일시정지';
+
+  @override
+  String get composerCaptureResumeLabel => '녹음 재개';
+
+  @override
+  String get composerCaptureFlashLabel => '플래시';
+
+  @override
+  String get composerCaptureReviewPlayLabel => '녹음 재생';
+
+  @override
+  String get composerCaptureReviewStopLabel => '재생 중지';
 
   @override
   String get composerCaptureCancelLabel => '녹음 삭제';
