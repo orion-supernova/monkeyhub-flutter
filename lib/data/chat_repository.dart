@@ -4285,8 +4285,15 @@ class ChatRepository extends ChangeNotifier {
     if (id == null) return;
     final roomId = _activeRoomId;
     final undo = roomId == null
-        ? const <_MessagePatch>[]
+        ? <_MessagePatch>[]
         : _patchMessageEverywhere(roomId, messageId, (_) => null);
+    // An open thread's own pages too, or a deleted reply that was paged in
+    // there would stand in the thread until it was closed.
+    for (final list in _threadPages.values) {
+      final i = list.indexWhere((m) => m.id == messageId);
+      if (i < 0) continue;
+      undo.add(_MessagePatch(list, i, list.removeAt(i), removed: true));
+    }
     if (roomId != null) {
       // Held until the server stops sending the row. Removing it from the lists
       // is not enough on its own: this subscription refires on anything that
@@ -5189,6 +5196,33 @@ class ChatRepository extends ChangeNotifier {
   /// confirmed. See [_parseLiveWindow] for why they have to be held.
   final Map<String, Set<String>> _deletedLocally = {};
 
+  /// Per room: the rows the latest `messages:list` delivery stopped sending
+  /// from INSIDE its window, and a serial bumped each time there were some.
+  /// See [serverRemovals].
+  final Map<String, ({int serial, Set<String> ids})> _serverRemovals = {};
+  int _removalSerial = 0;
+
+  /// Rows the server REMOVED from [roomId]'s live window in its latest
+  /// delivery — deleted by their author or a moderator, somewhere else —
+  /// as opposed to rows that merely left the window.
+  ///
+  /// `messages:list` is the newest [kLiveWindow] rows of one contiguous
+  /// range, so the only way a row can leave it without being removed is off
+  /// its OLDEST edge (newer rows pushing it out). A row that was in the last
+  /// delivery and is missing from this one although it is newer than this
+  /// delivery's oldest row cannot have been pushed out: it was removed. Paged
+  /// history ([_olderPrefix]) and jumped-to windows ([_historyWindow]) are
+  /// separate lists and never reach this, and rows this device deleted itself
+  /// are left out (the screen already knows about those).
+  ///
+  /// The server keeps no tombstone, so a removal that also scrolls a row out —
+  /// the oldest row of the window deleted — is indistinguishable from paging
+  /// and is not reported. Blocking an author also removes their rows from the
+  /// inside, and is reported the same way. Readers compare [serial] with the
+  /// last one they acted on.
+  ({int serial, Set<String> ids}) serverRemovals(String roomId) =>
+      _serverRemovals[roomId] ?? (serial: 0, ids: const <String>{});
+
   /// Take whatever the native notification handlers staged and turn it into
   /// provisional bubbles, so a room opened from a notification is already
   /// showing the message that caused it.
@@ -5321,6 +5355,25 @@ class ChatRepository extends ChangeNotifier {
     // Anything the server no longer sends has been deleted for real, so the
     // tombstone has done its job and must not outlive it — otherwise an id the
     // server later reuses (or a room reopened) would be invisible.
+    if (prevRaw != null && prevRaw.isNotEmpty && nextRaw.isNotEmpty) {
+      int? oldest;
+      for (final raw in nextRaw.values) {
+        final at = raw['createdAt'];
+        if (at is num && (oldest == null || at < oldest)) oldest = at.toInt();
+      }
+      Set<String>? removed;
+      if (oldest != null) {
+        for (final e in prevRaw.entries) {
+          if (sent.contains(e.key)) continue;
+          if (tombstones != null && tombstones.contains(e.key)) continue;
+          final at = e.value['createdAt'];
+          if (at is num && at > oldest) (removed ??= <String>{}).add(e.key);
+        }
+      }
+      if (removed != null) {
+        _serverRemovals[roomId] = (serial: ++_removalSerial, ids: removed);
+      }
+    }
     if (tombstones != null) {
       tombstones.removeWhere((id) => !sent.contains(id));
       if (tombstones.isEmpty) _deletedLocally.remove(roomId);

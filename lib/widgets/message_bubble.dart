@@ -2486,6 +2486,18 @@ class _ViewOnceTile extends StatefulWidget {
 class _ViewOnceTileState extends State<_ViewOnceTile> {
   bool _busy = false;
 
+  /// The one look has been had on this device and the picture is burning
+  /// (or burnt) away. Opened from that moment, so the tile under the dust is
+  /// already the spent one — the message flag says the same once the
+  /// repository catches up.
+  bool _seen = false;
+
+  @override
+  void didUpdateWidget(covariant _ViewOnceTile old) {
+    super.didUpdateWidget(old);
+    if (old.message.id != widget.message.id) _seen = false;
+  }
+
   /// This is the sender's own copy and it hasn't reached the server yet.
   bool get _outbound => widget.message.upload != null;
   bool get _sending => _outbound && widget.message.status != MessageStatus.error;
@@ -2495,6 +2507,7 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
       widget.onOpen != null &&
       !_busy &&
       !_outbound &&
+      !_seen &&
       widget.message.viewOnceOpenable(isMine: widget.isMine);
 
   Future<void> _open() async {
@@ -2505,7 +2518,18 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
       // Null means the look could not be had, and the caller has already said
       // why. Bytes go straight to the memory-only viewer and nowhere else.
       if (bytes != null && mounted) {
-        await ViewOnceViewer.open(context, bytes: bytes);
+        await ViewOnceViewer.open(
+          context,
+          bytes: bytes,
+          onBurn: () {
+            if (mounted) {
+              setState(() {
+                _seen = true;
+                _busy = false;
+              });
+            }
+          },
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -2527,7 +2551,7 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
           ? l10n.messageBubbleViewOnceOpened
           : l10n.messageBubbleViewOnceExpired;
     }
-    if (m.viewOnceOpened) return l10n.messageBubbleViewOnceOpened;
+    if (m.viewOnceOpened || _seen) return l10n.messageBubbleViewOnceOpened;
     if (_sendersCopy) return l10n.messageBubbleViewOnceLabel;
     return l10n.messageBubbleViewOnceTapToView;
   }
@@ -2540,6 +2564,7 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
       !_outbound &&
       (widget.message.viewOnceBurned ||
           widget.message.viewOnceOpened ||
+          _seen ||
           _sendersCopy);
 
   /// The sender's own copy, spent from the start — except in Saved Messages,

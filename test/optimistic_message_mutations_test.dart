@@ -296,6 +296,46 @@ void main() {
     });
   });
 
+  group('server removals', () {
+    // What the transcript dissolves for a delete somebody else made. A row
+    // can only leave the live window off its oldest edge, so one missing
+    // from the inside was removed — and paging must never read as one.
+    test('a row missing from inside the window is reported', () async {
+      serve([_row('m1'), _row('m2', atMs: 2000), _row('m3', atMs: 3000)]);
+      final before = repo.serverRemovals('r').serial;
+      serve([_row('m1'), _row('m3', atMs: 3000)]);
+      final r = repo.serverRemovals('r');
+      expect(r.serial, isNot(before));
+      expect(r.ids, {'m2'});
+    });
+
+    test('the newest row deleted is reported too', () async {
+      serve([_row('m1'), _row('m2', atMs: 2000)]);
+      serve([_row('m1')]);
+      expect(repo.serverRemovals('r').ids, {'m2'});
+    });
+
+    test('a row pushed off the oldest edge is not', () async {
+      serve([_row('m1'), _row('m2', atMs: 2000), _row('m3', atMs: 3000)]);
+      final before = repo.serverRemovals('r').serial;
+      // A new message slides the window: m1 falls off the back.
+      serve([_row('m2', atMs: 2000), _row('m3', atMs: 3000), _row('m4', atMs: 4000)]);
+      expect(repo.serverRemovals('r').serial, before);
+    });
+
+    test('older pages and an own delete are not', () async {
+      serve([_row('m2', atMs: 2000), _row('m3', atMs: 3000)]);
+      api.olderPage = [ChatMessage.fromJson(_row('old', atMs: 500))];
+      await repo.loadOlder('r');
+      final before = repo.serverRemovals('r').serial;
+
+      await repo.deleteMessage('m2');
+      serve([_row('m3', atMs: 3000)]);
+      expect(repo.serverRemovals('r').serial, before);
+      expect(idsOnScreen(), ['old', 'm3']);
+    });
+  });
+
   group('push seeding', () {
     // The native handlers park an arriving push under `monkeyhub/notifications`
     // and Dart drains it. Standing in for them here is the whole of the seam.

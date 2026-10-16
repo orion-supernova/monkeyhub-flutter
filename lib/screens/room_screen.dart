@@ -122,6 +122,7 @@ import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
 import '../widgets/departing_row.dart';
 import '../widgets/message_arrivals.dart';
+import '../widgets/message_deletions.dart';
 import '../widgets/message_departures.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
@@ -1086,6 +1087,18 @@ class _RoomScreenState extends State<RoomScreen>
     },
   );
 
+  /// Which rows are being DELETED, and are turning to dust on their way out.
+  /// Never an ephemeral row: those leave through [_departures]. See
+  /// [MessageDeletions] for how a deletion is told apart from paging.
+  late final MessageDeletions _deletions = MessageDeletions(
+    onChanged: () {
+      if (mounted) setState(() {});
+    },
+  );
+
+  /// The last [ChatRepository.serverRemovals] serial acted on.
+  int _seenRemovals = 0;
+
   /// The timeline the last build drew, ghosts included. What
   /// [_onRepoChange] diffs a delivery against to catch a row the server
   /// removed before this device's clock ran out.
@@ -1109,6 +1122,22 @@ class _RoomScreenState extends State<RoomScreen>
     final room = widget.repo.roomById(widget.roomId);
     final current = widget.repo.timelineFor(widget.roomId);
     _noteArrivals(current);
+    // Somebody else deleted messages that are on screen: they dissolve. Also
+    // before the rebuild, so the rows are held in the frame that would have
+    // dropped them.
+    final removals = widget.repo.serverRemovals(widget.roomId);
+    if (removals.serial != _seenRemovals) {
+      _seenRemovals = removals.serial;
+      final gone = [
+        for (final m in _lastTimeline)
+          if (removals.ids.contains(m.id)) m,
+      ];
+      // A burst is not a deletion anybody watched happen (a block, a
+      // moderator clearing a room): those rows just go.
+      if (gone.isNotEmpty && gone.length <= 12) {
+        _deletions.begin(gone, haptic: false);
+      }
+    }
     // BEFORE the rebuild below, and synchronously: a row the server just
     // deleted is still the last painted frame right now, and this is the
     // only moment its pixels can still be taken for the exit.
@@ -1564,6 +1593,7 @@ class _RoomScreenState extends State<RoomScreen>
     _datePresentation.dispose();
     _arrivals.dispose();
     _departures.dispose();
+    _deletions.dispose();
     _scroll.removeListener(_onScroll);
     _scroll.removeListener(_hover.dismiss);
     _hover.dispose();
@@ -1878,8 +1908,14 @@ class _RoomScreenState extends State<RoomScreen>
       case MessageAction.forward:
         await _forwardMessages(album);
       case MessageAction.delete:
+        _deletions.begin(album);
         for (final m in album) {
-          await widget.repo.deleteMessage(m.id);
+          try {
+            await widget.repo.deleteMessage(m.id);
+          } catch (_) {
+            _deletions.cancel([m.id]);
+            rethrow;
+          }
         }
       default:
         break;
@@ -2171,16 +2207,22 @@ class _RoomScreenState extends State<RoomScreen>
     );
     if (!confirmed || !mounted) return;
 
+    // Out of selection first, so the rows burn as they read normally — no
+    // check marks in the dust — and in one wave, top to bottom.
+    _selection.clear();
+    _deletions.begin(picked);
+    final ids = [for (final m in picked) m.id];
     final result = await deleteMessages(
       api: widget.api,
       repo: widget.repo,
-      messageIds: [for (final m in picked) m.id],
+      messageIds: ids,
     );
     if (!mounted) return;
 
-    // No local removal: the room subscription carries the deletion back, the
-    // same way it does for the single-message DELETE in the action menu.
-    _selection.clear();
+    // No local removal: the room subscription carries the deletion back. The
+    // dissolved rows stay hidden until it does (see [MessageDeletions]); a
+    // delete that failed outright gives them back.
+    if (result.ok == 0) _deletions.cancel(ids);
     toast.show(result.summary);
   }
 
@@ -5099,8 +5141,10 @@ class _RoomScreenState extends State<RoomScreen>
     // cache — still reads the live list.
     // ...plus every message whose exit is still playing: the ledger keeps a
     // departed row in the list until its picture has blown away.
-    final messages =
-        _departures.withGhosts(widget.repo.timelineFor(widget.roomId));
+    // ...and every message being deleted, until its dust has left.
+    final messages = _departures.withGhosts(
+      _deletions.withHeld(widget.repo.timelineFor(widget.roomId)),
+    );
     _lastTimeline = messages;
     final me = widget.repo.userId ?? '';
     // ListView is rendered with reverse:true so the viewport naturally
@@ -6507,7 +6551,13 @@ class _RoomScreenState extends State<RoomScreen>
                       await widget.repo.unsaveMessage(room.id, target.id);
                       break;
                     case MessageAction.delete:
-                      await widget.repo.deleteMessage(target.id);
+                      _deletions.begin([target]);
+                      try {
+                        await widget.repo.deleteMessage(target.id);
+                      } catch (_) {
+                        _deletions.cancel([target.id]);
+                        rethrow;
+                      }
                       break;
                     case MessageAction.info:
                       _openReceipts(target);
@@ -6834,6 +6884,14 @@ class _RoomScreenState extends State<RoomScreen>
                     rowKey,
                     _dateTracks['m_${m.id}']!.key,
                   );
+                } else {
+                  _deletions.registerRow(
+                    m.id,
+                    messageItem.album.isEmpty
+                        ? [m.id]
+                        : [for (final p in messageItem.album) p.id],
+                    _dateTracks['m_${m.id}']!.key,
+                  );
                 }
                 return ArrivingRow(
                   // Only a row that was not in the transcript a moment ago
@@ -6848,7 +6906,13 @@ class _RoomScreenState extends State<RoomScreen>
                   mine: m.senderId == me,
                   duration: theme.motionMed,
                   curve: theme.motionEntrance,
-                  child: tracked,
+                  // Always here, so a row that starts to dissolve keeps its
+                  // element and burns exactly the frame it last painted.
+                  child: DissolvingRow(
+                    entry: _deletions.entryFor(m.id),
+                    onGone: () => _deletions.end(m.id),
+                    child: tracked,
+                  ),
                 );
               },
                   ),

@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/capture_shield.dart';
+import '../widgets/dust_dissolve.dart';
 import '../widgets/liquid_glass.dart';
 import '../l10n/text_case.dart';
 import '../widgets/viewer_chrome.dart';
@@ -31,20 +32,35 @@ import '../widgets/viewer_chrome.dart';
 ///  * Leaving the app closes the picture. On iOS the screenshot gesture and
 ///    Control Center both raise `inactive`, so this also means you cannot line
 ///    up a capture and leave the photo sitting there while you do it.
+///
+/// Closing it is the end of the one look, and reads as one: the picture burns
+/// to dust where it is ([DustDissolve], as the play-once video note's circle
+/// does) while the black lifts off the chat, which already shows the tile as
+/// opened underneath ([onBurn]). Leaving the app, and Reduce Motion, skip the
+/// burn and close at once.
 class ViewOnceViewer extends StatefulWidget {
-  const ViewOnceViewer({super.key, required this.bytes});
+  const ViewOnceViewer({super.key, required this.bytes, this.onBurn});
 
   final Uint8List bytes;
 
-  /// Opaque route on purpose — there is no thumbnail underneath to show through
-  /// and no Hero to fly, because the sealed bubble never held the picture.
-  static Future<void> open(BuildContext context, {required Uint8List bytes}) {
+  /// The look is over and the picture has started to burn: the tile it was
+  /// opened from can show itself spent now, under the dust.
+  final VoidCallback? onBurn;
+
+  /// No Hero to fly, because the sealed bubble never held the picture. Not
+  /// opaque only so the chat can show through as the picture burns away; until
+  /// then the page is solid black over it.
+  static Future<void> open(
+    BuildContext context, {
+    required Uint8List bytes,
+    VoidCallback? onBurn,
+  }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder<void>(
-        opaque: true,
+        opaque: false,
         transitionDuration: const Duration(milliseconds: 180),
         reverseTransitionDuration: const Duration(milliseconds: 150),
-        pageBuilder: (_, _, _) => ViewOnceViewer(bytes: bytes),
+        pageBuilder: (_, _, _) => ViewOnceViewer(bytes: bytes, onBurn: onBurn),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
       ),
@@ -56,12 +72,23 @@ class ViewOnceViewer extends StatefulWidget {
 }
 
 class _ViewOnceViewerState extends State<ViewOnceViewer>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final TransformationController _xform = TransformationController();
 
   /// Guards against popping twice — a drag-dismiss and a lifecycle change can
   /// land in the same frame.
   bool _closing = false;
+
+  /// The picture is turning to dust; [_lift] takes the black and the chrome
+  /// away over the first half of it.
+  bool _burning = false;
+  late final AnimationController _lift = AnimationController(
+    vsync: this,
+    duration: DustDissolve.defaultDuration * 0.55,
+  );
+  late final Animation<double> _shown = ReverseAnimation(
+    CurvedAnimation(parent: _lift, curve: Curves.easeOut),
+  );
 
   @override
   void initState() {
@@ -75,6 +102,7 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
   void dispose() {
     CaptureProtection.instance.popScope();
     WidgetsBinding.instance.removeObserver(this);
+    _lift.dispose();
     _xform.dispose();
     super.dispose();
   }
@@ -82,13 +110,34 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) return;
-    _close();
+    // Gone at once, mid-burn too: the app switcher's snapshot must not catch
+    // half a picture.
+    if (_burning) return _burnt();
+    _close(burn: false);
   }
 
-  void _close() {
+  void _close({bool burn = true}) {
     if (_closing || !mounted) return;
     _closing = true;
-    Navigator.of(context).maybePop();
+    if (burn && !MediaQuery.disableAnimationsOf(context)) {
+      setState(() => _burning = true);
+      _lift.forward();
+      widget.onBurn?.call();
+      return;
+    }
+    widget.onBurn?.call();
+    Navigator.of(context).pop();
+  }
+
+  /// The dust has settled, or the app left mid-burn.
+  void _burnt() {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent) {
+      Navigator.of(context).pop();
+    } else if (route != null && route.isActive) {
+      Navigator.of(context).removeRoute(route);
+    }
   }
 
   bool get _zoomed => _xform.value.getMaxScaleOnAxis() > 1.05;
@@ -100,36 +149,36 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
     // no family (which dropped to boxes in the preview and the system
     // fallback on device).
     final theme = ThemeScope.of(context);
-    return Material(
-      type: MaterialType.transparency,
-      child: DefaultTextStyle(
-        style: theme.body.copyWith(
-          color: Colors.white,
-          fontSize: 13,
-          decoration: TextDecoration.none,
-        ),
-        child: ColoredBox(
-          color: Colors.black,
+    // Back is a close like any other, and so a burn.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close();
+      },
+      child: Material(
+        type: MaterialType.transparency,
+        child: DefaultTextStyle(
+          style: theme.body.copyWith(
+            color: Colors.white,
+            fontSize: 13,
+            decoration: TextDecoration.none,
+          ),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // The badge and the close button used to sit on dead black above
-              // a `contain`-fitted photo, which read as a toolbar over a
-              // letterbox rather than as a fullscreen picture. The blurred copy
-              // fills that space with the photograph's own colour.
-              //
-              // Decoded from the SAME in-memory bytes, at 96px: nothing is
-              // written to disk and nothing new is fetched, which is the
-              // property this whole screen exists to preserve.
               // Black void around a photo that doesn't fill the screen, like
-          // Photos — the blurred copy of the picture read as a smudge.
-          const ColoredBox(color: Colors.black),
+              // Photos — a blurred copy of the picture read as a smudge. It
+              // lifts off the chat as the picture burns.
+              FadeTransition(
+                opacity: _shown,
+                child: const ColoredBox(color: Colors.black),
+              ),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 // Only when un-zoomed: while zoomed the vertical drag belongs
                 // to the pan, not to dismissal.
                 onVerticalDragEnd: (d) {
-                  if (_zoomed) return;
+                  if (_zoomed || _closing) return;
                   if (d.velocity.pixelsPerSecond.dy.abs() > 300) _close();
                 },
                 child: InteractiveViewer(
@@ -139,10 +188,14 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                   // Always the whole picture — never a `cover` crop, which cut a
                   // portrait shot's sides off on a tall phone.
                   child: Center(
-                    child: Image.memory(
-                      widget.bytes,
-                      fit: BoxFit.contain,
-                      gaplessPlayback: true,
+                    child: DustDissolve(
+                      active: _burning,
+                      onDone: _burnt,
+                      child: Image.memory(
+                        widget.bytes,
+                        fit: BoxFit.contain,
+                        gaplessPlayback: true,
+                      ),
                     ),
                   ),
                 ),
@@ -151,9 +204,15 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                 top: 0,
                 left: 0,
                 right: 0,
-                child: ViewerTopBar(
-                  onClose: _close,
-                  center: const ViewOnceBadge(),
+                child: FadeTransition(
+                  opacity: _shown,
+                  child: IgnorePointer(
+                    ignoring: _closing,
+                    child: ViewerTopBar(
+                      onClose: _close,
+                      center: const ViewOnceBadge(),
+                    ),
+                  ),
                 ),
               ),
               // Deliberately no save, share, or download control.

@@ -54,6 +54,7 @@ import 'interaction_respondents_sheet.dart';
 import 'message_bubble.dart';
 import 'reaction_limit_notice.dart';
 import 'reaction_picker_sheet.dart';
+import 'message_deletions.dart';
 import 'moderation_actions.dart';
 import 'report_sheet.dart';
 import 'scroll_to_latest.dart';
@@ -292,6 +293,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     _fadeNow.dispose();
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeThread(widget.rootId);
+    _deletions.dispose();
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
     _scrolledUp.dispose();
@@ -400,8 +402,32 @@ class _ThreadSheetState extends State<_ThreadSheet>
     if (!_scrolledUp.value) _jumpBack.clear();
   }
 
+  /// Replies being deleted, turning to dust on their way out. The room
+  /// screen's ledger, for this list. See [MessageDeletions].
+  late final MessageDeletions _deletions = MessageDeletions(
+    onChanged: () {
+      if (mounted) setState(() {});
+    },
+  );
+  int _seenRemovals = 0;
+
+  /// What the list drew last, held rows included: where a reply someone
+  /// else deleted is looked up.
+  List<ChatMessage> _lastShown = const [];
+
   void _onRepoChange() {
     if (!mounted) return;
+    final removals = widget.repo.serverRemovals(widget.roomId);
+    if (removals.serial != _seenRemovals) {
+      _seenRemovals = removals.serial;
+      final gone = [
+        for (final m in _lastShown)
+          if (removals.ids.contains(m.id)) m,
+      ];
+      if (gone.isNotEmpty && gone.length <= 12) {
+        _deletions.begin(gone, haptic: false);
+      }
+    }
     // A thread emptied under the reader (ephemeral replies expiring) leaves no
     // list to scroll, so _onScroll can never clear this on its own — and the
     // pill would reappear over the next reply while already at the bottom.
@@ -1081,7 +1107,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
         await widget.repo.unsaveMessage(widget.roomId, m.id);
         break;
       case MessageAction.delete:
-        await widget.repo.deleteMessage(m.id);
+        _deletions.begin([m]);
+        try {
+          await widget.repo.deleteMessage(m.id);
+        } catch (_) {
+          _deletions.cancel([m.id]);
+          rethrow;
+        }
         break;
       case MessageAction.report:
         if (!context.mounted) return;
@@ -1406,7 +1438,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                   child: Stack(
                                     children: [
                                       Positioned.fill(
-                                        child: _buildList(messages, loading),
+                                        child: _buildList(
+                                          _lastShown =
+                                              _deletions.withHeld(messages),
+                                          loading,
+                                        ),
                                       ),
                                       Positioned(
                                         bottom: 12,
@@ -1574,12 +1610,18 @@ class _ThreadSheetState extends State<_ThreadSheet>
             ),
           );
 
+          final rowKey = _keys.putIfAbsent(
+            m.id,
+            () => GlobalKey(debugLabel: 'thread-${m.id}'),
+          );
+          if (!m.isEphemeral) _deletions.registerRow(m.id, [m.id], rowKey);
           return KeyedSubtree(
-            key: _keys.putIfAbsent(
-              m.id,
-              () => GlobalKey(debugLabel: 'thread-${m.id}'),
+            key: rowKey,
+            child: DissolvingRow(
+              entry: _deletions.entryFor(m.id),
+              onGone: () => _deletions.end(m.id),
+              child: bubble,
             ),
-            child: bubble,
           );
         },
       ),

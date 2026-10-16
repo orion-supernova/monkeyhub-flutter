@@ -55,6 +55,7 @@ class DustDissolve extends StatefulWidget {
     this.sweep = const Offset(1, 0),
     this.duration = defaultDuration,
     this.seed = 0,
+    this.particles = maxParticles,
   });
 
   final Widget child;
@@ -84,6 +85,11 @@ class DustDissolve extends StatefulWidget {
   /// same way.
   final int seed;
 
+  /// This dissolve's share of the particle budget, at most [maxParticles].
+  /// Several rows dissolving together split one budget between them (see
+  /// `MessageDeletions`), so ten deletes cost what one does.
+  final int particles;
+
   static const Duration defaultDuration = Duration(milliseconds: 1100);
 
   /// Blocks per picture, at most. A bigger child gets bigger blocks rather
@@ -112,7 +118,12 @@ class _DustDissolveState extends State<DustDissolve>
   final GlobalKey _boundaryKey = GlobalKey(debugLabel: 'dust:boundary');
   final GlobalKey _boxKey = GlobalKey(debugLabel: 'dust:box');
   final GlobalKey _canvasKey = GlobalKey(debugLabel: 'dust:canvas');
-  final OverlayPortalController _portal = OverlayPortalController();
+
+  /// The motes' canvas in the root overlay, while the dust flies. An entry
+  /// rather than an `OverlayPortal`: nothing about the widget tree changes
+  /// when the dust starts, and a portal in every transcript row tripped the
+  /// semantics tree whenever a row was reparented.
+  OverlayEntry? _entry;
 
   _Phase _phase = _Phase.idle;
   _DustField? _field;
@@ -128,9 +139,25 @@ class _DustDissolveState extends State<DustDissolve>
     if (old.active && !widget.active) _reset();
   }
 
+  /// Out of the tree for this frame at least, and this frame still paints:
+  /// the canvas, which lives elsewhere, must not go looking for the box.
+  @override
+  void deactivate() {
+    _field?.retired = true;
+    super.deactivate();
+  }
+
+  /// Moved, not removed (a reparented row).
+  @override
+  void activate() {
+    super.activate();
+    _field?.retired = false;
+  }
+
   @override
   void dispose() {
     _run++;
+    _dropEntry();
     _clock.dispose();
     _field?.image.dispose();
     _field = null;
@@ -141,13 +168,7 @@ class _DustDissolveState extends State<DustDissolve>
     _run++;
     _clock.stop();
     _clock.value = 0;
-    // Called from didUpdateWidget, inside a build: the portal may not be
-    // hidden here. Its builder already draws nothing outside the dust phase,
-    // so it comes down after the frame.
-    final run = _run;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (mounted && run == _run && _portal.isShowing) _portal.hide();
-    });
+    _dropEntry();
     _releaseField();
     _phase = _Phase.idle;
     _size = null;
@@ -217,13 +238,18 @@ class _DustDissolveState extends State<DustDissolve>
       sweep: widget.sweep,
       seed: widget.seed,
       seconds: widget.duration.inMicroseconds / 1e6,
+      particles: widget.particles.clamp(64, DustDissolve.maxParticles),
     );
     setState(() {
       _field = field;
       _size = size;
       _phase = _Phase.dust;
     });
-    if (_hasOverlay) _portal.show();
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay != null) {
+      _entry = OverlayEntry(builder: _buildCanvas);
+      overlay.insert(_entry!);
+    }
     _clock.duration = widget.duration;
     _clock.forward(from: 0).whenCompleteOrCancel(() {
       if (mounted && run == _run) _finish();
@@ -239,14 +265,48 @@ class _DustDissolveState extends State<DustDissolve>
 
   void _finish() {
     if (_phase == _Phase.done) return;
-    if (_portal.isShowing) _portal.hide();
+    _dropEntry();
     _releaseField();
     setState(() => _phase = _Phase.done);
     widget.onDone?.call();
   }
 
-  bool get _hasOverlay =>
-      Overlay.maybeOf(context, rootOverlay: true) != null;
+  /// Safe from anywhere, a build included: the overlay defers its own
+  /// rebuild past the frame.
+  void _dropEntry() {
+    final entry = _entry;
+    _entry = null;
+    // The entry leaves the overlay after this frame, and may paint once more
+    // first — over a box that is no longer in the tree.
+    _field?.retired = true;
+    if (entry == null) return;
+    entry.remove();
+    entry.dispose();
+  }
+
+  Widget _buildCanvas(BuildContext _) {
+    final field = _field;
+    if (field == null || _phase != _Phase.dust) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Material(
+          type: MaterialType.transparency,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              key: _canvasKey,
+              painter: _DustPainter(
+                field: field,
+                clock: _clock,
+                boxKey: _boxKey,
+                canvasKey: _canvasKey,
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,48 +352,14 @@ class _DustDissolveState extends State<DustDissolve>
             ),
     );
 
-    final field = _field;
-    if (field == null || _phase != _Phase.dust) {
-      // The portal stays in the tree so its element is stable across phases.
-      return _hasOverlay
-          ? OverlayPortal(
-              controller: _portal,
-              overlayLocation: OverlayChildLocation.rootOverlay,
-              overlayChildBuilder: (_) => const SizedBox.shrink(),
-              child: layered,
-            )
-          : layered;
+    // In the overlay, the motes are the entry's; here, only the box.
+    if (_entry != null || _field == null || _phase != _Phase.dust) {
+      return layered;
     }
-
-    final canvas = IgnorePointer(
-      child: Material(
-        type: MaterialType.transparency,
-        child: RepaintBoundary(
-          child: CustomPaint(
-            key: _canvasKey,
-            painter: _DustPainter(
-              field: field,
-              clock: _clock,
-              boxKey: _boxKey,
-              canvasKey: _canvasKey,
-            ),
-            child: const SizedBox.expand(),
-          ),
-        ),
-      ),
-    );
-
-    if (!_hasOverlay) {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [layered, Positioned.fill(child: canvas)],
-      );
-    }
-    return OverlayPortal(
-      controller: _portal,
-      overlayLocation: OverlayChildLocation.rootOverlay,
-      overlayChildBuilder: (_) => Positioned.fill(child: canvas),
-      child: layered,
+    // No overlay (a bare harness): the motes paint in place, unclipped.
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [layered, Positioned.fill(child: _buildCanvas(context))],
     );
   }
 }
@@ -352,10 +378,11 @@ class _DustField {
     required Offset sweep,
     required int seed,
     required this.seconds,
+    required int particles,
   }) : width = size.width {
     final w = size.width;
     final h = size.height;
-    step = math.max(_minStep, math.sqrt(w * h / DustDissolve.maxParticles));
+    step = math.max(_minStep, math.sqrt(w * h / particles));
     final cols = (w / step).ceil();
     final rows = (h / step).ceil();
     final stepPx = step * pixelRatio;
@@ -474,6 +501,9 @@ class _DustField {
   late final Int32List colors;
   int alive = 0;
 
+  /// Its dissolve has finished or gone: draw nothing more.
+  bool retired = false;
+
   /// The finest grain: a block under about a logical pixel and a half buys
   /// nothing but more motes than the eye can separate.
   static const double _minStep = 1.5;
@@ -581,6 +611,7 @@ class _DustPainter extends CustomPainter {
     // Where the child's box is now, in this canvas's coordinates. Read here,
     // after this frame's layout, so the waiting blocks never trail a flight
     // or a scroll by a frame.
+    if (field.retired) return;
     final box = boxKey.currentContext?.findRenderObject();
     final self = canvasKey.currentContext?.findRenderObject();
     if (box is! RenderBox ||
