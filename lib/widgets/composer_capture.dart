@@ -253,7 +253,11 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     reverseDuration: const Duration(milliseconds: 300),
   )..addStatusListener((status) {
       // Landed: the inline preview takes the picture back from the overlay.
-      if (status == AnimationStatus.dismissed && mounted) setState(() {});
+      if (status != AnimationStatus.dismissed || !mounted) return;
+      // Put away (its X, or a note just sent): the camera goes once the
+      // circle has.
+      if (_idlePreviewHidden) unawaited(_releasePreview());
+      setState(() {});
     });
 
   /// A thrown-away recording being swept into the trash: the strip stays up
@@ -757,6 +761,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         return;
       }
       capture.onCaptured(mode, outcome.withViewOnce(_viewOnce));
+      // Sent: the viewfinder does not come back on its own. Flying the circle
+      // back into a live preview read as still recording; it shrinks away
+      // instead and the camera goes. A tap on the button brings it back.
+      if (mode == ComposerInputMode.videoNote && mounted) {
+        setState(() => _idlePreviewHidden = true);
+      }
       if (mounted) {
         _announce(AppLocalizations.of(context).composerCaptureSentAnnouncement);
       }
@@ -1188,7 +1198,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     // nothing on screen is battery, heat and a recording indicator the user
     // cannot account for. Either show the preview or let the camera go;
     // this shows it.
-    if (_machine.mode != ComposerInputMode.videoNote || _video?.controller == null || _wantsBig || (_idlePreviewHidden && _lift.value == 0)) {
+    if (_machine.mode != ComposerInputMode.videoNote || _video?.controller == null || _wantsBig || _idlePreviewHidden) {
       return row;
     }
     // Still flying home: the slot holds its place, empty, for the circle
@@ -1790,7 +1800,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
         // From the slot while it is on screen (flying home), else from where
         // it last was (the slot left the layout as the circle went up).
-        final source = _machine.mode == ComposerInputMode.videoNote && _video?.controller != null
+        // A put-away preview has no slot to land in: the circle shrinks and
+        // fades where it is instead of flying back to a live viewfinder.
+        final source = _machine.mode == ComposerInputMode.videoNote && _video?.controller != null && !_idlePreviewHidden
             ? _slotNow() ?? _slotRect
             : null;
         final circle = source == null
