@@ -131,6 +131,7 @@ class ChatMessage {
     this.viewOnce = false,
     this.viewOnceOpened = false,
     this.viewOnceBurnedAt,
+    this.viewOnceSelf = false,
     this.upload,
     this.clientId,
     this.albumId,
@@ -317,6 +318,19 @@ class ChatMessage {
 
   bool get viewOnceBurned => viewOnceBurnedAt != null;
 
+  /// Sent armed into the sender's own Saved Messages, where the sender is the
+  /// one recipient there is. Decided by the server at send time (the room is
+  /// the sender's `dm:self:` room with no other member), never inferred here:
+  /// it is the only case in which the sender's copy is sealed rather than
+  /// spent, and the server answers anyone else's open of their own send with
+  /// `gone`.
+  final bool viewOnceSelf;
+
+  /// Whether [isMine] makes this copy the sender's spent one. False in Saved
+  /// Messages ([viewOnceSelf]), where the sender gets the one look a
+  /// recipient would.
+  bool viewOnceSendersCopy({required bool isMine}) => isMine && !viewOnceSelf;
+
   /// The attachment's own bytes, present only on an optimistic message whose
   /// upload has not been reconciled away yet. Non-null is what makes a bubble
   /// paint the picture the sender chose instead of fetching back the one they
@@ -330,9 +344,13 @@ class ChatMessage {
   /// Can this viewer still open it? False once burned, once spent, and on the
   /// sender's own copy — there is no reopen path for the sender, because with
   /// no authentication a "sender may always look" branch would be an oracle any
-  /// recipient could drive by passing the sender's id.
+  /// recipient could drive by passing the sender's id. Saved Messages is the
+  /// exception ([viewOnceSelf]): there the sender IS the recipient, once.
   bool viewOnceOpenable({required bool isMine}) =>
-      viewOnce && !isMine && !viewOnceOpened && !viewOnceBurned;
+      viewOnce &&
+      !viewOnceSendersCopy(isMine: isMine) &&
+      !viewOnceOpened &&
+      !viewOnceBurned;
 
   // ── Location ──────────────────────────────────────────────────────────────
   //
@@ -521,6 +539,7 @@ class ChatMessage {
           ? DateTime.fromMillisecondsSinceEpoch(
               (j['viewOnceBurnedAt'] as num).toInt())
           : null,
+      viewOnceSelf: (j['viewOnceSelf'] ?? false) as bool,
       clientId: j['clientId'] as String?,
       albumId: j['albumId'] as String?,
       mentions: (j['mentions'] as List?)
@@ -613,6 +632,7 @@ class ChatMessage {
         if (viewOnceOpened) 'viewOnceOpened': true,
         if (viewOnceBurnedAt != null)
           'viewOnceBurnedAt': viewOnceBurnedAt!.millisecondsSinceEpoch,
+        if (viewOnceSelf) 'viewOnceSelf': true,
         // A location bubble IS its coordinates — there is no thumbnail and no
         // text underneath — so dropping these from the cache would give a cold
         // boot a row of empty map cards, the same failure the `fileName`
@@ -696,6 +716,7 @@ class ChatMessage {
         viewOnce: viewOnce,
         viewOnceOpened: viewOnceOpened ?? this.viewOnceOpened,
         viewOnceBurnedAt: viewOnceBurnedAt,
+        viewOnceSelf: viewOnceSelf,
         // Carried, not droppable. A copyWith that quietly lost the bytes of an
         // in-flight send would leave a bubble that can neither paint its picture
         // nor be retried, and nothing about the call site would hint at it.

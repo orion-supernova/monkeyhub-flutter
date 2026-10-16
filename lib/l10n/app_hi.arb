@@ -273,6 +273,7 @@
   "roomInfoScreenEndConversationPeerFallback": "दूसरा व्यक्ति",
   "roomInfoScreenConfirmCancelButton": "रद्द करें",
   "roomInfoScreenErrorRoomExists": "इस नाम का रूम पहले से मौजूद है",
+  "roomNameReservedError": "रूम का नाम dm: से शुरू नहीं हो सकता",
   "roomInfoScreenErrorNotOwner": "यह सिर्फ़ ओनर ही कर सकता है",
   "roomInfoScreenErrorNotAuthorized": "तुम्हारे पास इसकी अनुमति नहीं है",
   "roomInfoScreenErrorRoomNotFound": "यह रूम अब मौजूद नहीं है",

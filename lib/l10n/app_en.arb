@@ -1110,6 +1110,10 @@
   "@roomInfoScreenErrorRoomExists": {
     "description": "Error message shown when saving a room name that collides with an existing room (server ROOM_EXISTS error)."
   },
+  "roomNameReservedError": "Room names can't start with dm:",
+  "@roomNameReservedError": {
+    "description": "Error when someone names (or renames) a room with the dm: prefix, which the app reserves for direct chats and Saved Messages."
+  },
   "roomInfoScreenErrorNotOwner": "Only the owner can do that",
   "@roomInfoScreenErrorNotOwner": {
     "description": "Error message shown when a non-owner attempts an owner-only action (server NOT_OWNER error)."

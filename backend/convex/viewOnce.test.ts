@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import { roomPreviewFor, viewOncePreviewFor } from "./messages";
 import { viewOnceContentType } from "./http";
@@ -363,5 +363,212 @@ describe("view-once voice message", () => {
     expect(row?.replyToPreview?.type).toBe("audio");
     expect(row?.replyToPreview?.mediaStorageId).toBeUndefined();
     expect(row?.replyToPreview?.contentPreview).toBe("__VIEW_ONCE__");
+  });
+});
+
+/**
+ * Saved Messages (`dm:self:<userId>`, the sender alone) is the one room where
+ * the sender opens their own view-once message: with nobody else to receive
+ * it, the sender is counted as its single recipient, gets exactly one open,
+ * and the burn follows it. Everywhere else the sender still cannot open.
+ */
+describe("view-once in Saved Messages", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Past `VIEW_ONCE_BURN_GRACE_MS` (nonce TTL + 30 s) with room to spare.
+  const PAST_GRACE_MS = 200_000;
+
+  for (const kind of ["audio", "videoNote"] as const) {
+    test(`${kind}: the sender opens once, fetches, then it burns`, async () => {
+      vi.useFakeTimers();
+      const t = convexTest(schema);
+      const me = await signUp(t, "solo");
+      const roomId = await t.mutation(api.rooms.ensureSavedMessagesRoom, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+      });
+      const blob = await store(t, kind === "audio" ? "audio/mp4" : "video/mp4");
+      const messageId = (await t.mutation(api.messages.send, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+        roomId,
+        content: "",
+        type: kind,
+        mediaStorageId: blob,
+        viewOnce: true,
+      })) as Id<"messages">;
+
+      const row = await t.run((ctx) => ctx.db.get(messageId));
+      expect(row?.viewOnceRecipients).toBe(1);
+      expect(row?.viewOnceSelf).toBe(true);
+
+      // No "nobody to receive it" burn any more: the blob outlives the grace
+      // period that used to delete it unopened.
+      vi.advanceTimersByTime(PAST_GRACE_MS);
+      await t.finishInProgressScheduledFunctions();
+      expect(await t.run((ctx) => ctx.db.system.get(blob))).not.toBeNull();
+
+      const listed = async () =>
+        ((await t.query(api.messages.list, {
+          sessionToken: me.token,
+          roomId,
+          viewerUserId: me.userId as any,
+        } as any)) as any[]).find((x) => x._id === messageId);
+      const before = await listed();
+      expect(before.viewOnceOpened).toBe(false);
+      expect(before.mediaStorageId).toBeUndefined();
+
+      const grant = (await t.mutation(api.messages.openViewOnce, {
+        sessionToken: me.token,
+        messageId,
+        userId: me.userId as any,
+      } as any)) as any;
+      expect(typeof grant.nonce).toBe("string");
+      expect((await listed()).viewOnceOpened).toBe(true);
+
+      const res = await t.fetch(
+        `/viewOnce?m=${messageId}&u=${me.userId}&n=${grant.nonce}`,
+        { method: "GET" }
+      );
+      expect(res.status).toBe(200);
+      expect((await res.arrayBuffer()).byteLength).toBe(512);
+
+      // The open itself scheduled the burn; let it land.
+      vi.advanceTimersByTime(PAST_GRACE_MS);
+      await t.finishInProgressScheduledFunctions();
+      expect(await t.run((ctx) => ctx.db.system.get(blob))).toBeNull();
+      const burned = await t.run((ctx) => ctx.db.get(messageId));
+      expect(burned?.viewOnceBurnedAt).toBeTypeOf("number");
+      expect(burned?.mediaStorageId).toBeUndefined();
+
+      const dead = await t.fetch(
+        `/viewOnce?m=${messageId}&u=${me.userId}&n=${grant.nonce}`,
+        { method: "GET" }
+      );
+      expect(dead.status).toBe(403);
+      const second = (await t.mutation(api.messages.openViewOnce, {
+        sessionToken: me.token,
+        messageId,
+        userId: me.userId as any,
+      } as any)) as any;
+      expect(second.nonce).toBeUndefined();
+      expect(second.gone).toBe(true);
+    });
+  }
+
+  test("the second open, before the burn lands, is refused", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "solo");
+    const roomId = await t.mutation(api.rooms.ensureSavedMessagesRoom, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+    });
+    const messageId = (await t.mutation(api.messages.send, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      roomId,
+      content: "",
+      type: "audio",
+      mediaStorageId: await store(t, "audio/mp4"),
+      viewOnce: true,
+    })) as Id<"messages">;
+    const open = () =>
+      t.mutation(api.messages.openViewOnce, {
+        sessionToken: me.token,
+        messageId,
+        userId: me.userId as any,
+      } as any) as Promise<any>;
+    const first = await open();
+    expect(typeof first.nonce).toBe("string");
+    // Inside the ticket window: the same ticket back, never a fresh one.
+    const again = await open();
+    expect(again.nonce).toBe(first.nonce);
+    // Ticket expired: spent.
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("viewOnceViews")
+        .withIndex("by_message_user", (q) =>
+          q.eq("messageId", messageId).eq("userId", me.userId as any)
+        )
+        .first();
+      await ctx.db.patch(row!._id, { grantExpiresAt: Date.now() - 1 });
+    });
+    expect(await open()).toEqual({ alreadyViewed: true });
+    const views = await t.run((ctx) =>
+      ctx.db
+        .query("viewOnceViews")
+        .withIndex("by_message", (q) => q.eq("messageId", messageId))
+        .collect()
+    );
+    expect(views).toHaveLength(1);
+  });
+
+  test("in a normal room the sender still cannot open their own", async () => {
+    const t = convexTest(schema);
+    const { me, roomId } = await pair(t);
+    const audio = await store(t, "audio/mp4");
+    const messageId = (await t.mutation(api.messages.send, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      roomId,
+      content: "",
+      type: "audio",
+      mediaStorageId: audio,
+      viewOnce: true,
+    })) as Id<"messages">;
+    const row = await t.run((ctx) => ctx.db.get(messageId));
+    expect(row?.viewOnceRecipients).toBe(1);
+    expect(row?.viewOnceSelf).toBeUndefined();
+
+    const res = (await t.mutation(api.messages.openViewOnce, {
+      sessionToken: me.token,
+      messageId,
+      userId: me.userId as any,
+    } as any)) as any;
+    expect(res).toEqual({ gone: true });
+    const views = await t.run((ctx) =>
+      ctx.db
+        .query("viewOnceViews")
+        .withIndex("by_message", (q) => q.eq("messageId", messageId))
+        .collect()
+    );
+    expect(views).toHaveLength(0);
+  });
+
+  test("a room of one that is NOT the sender's Saved Messages still self-burns", async () => {
+    vi.useFakeTimers();
+    const t = convexTest(schema);
+    const me = await signUp(t, "loner");
+    const roomId = await t.mutation(api.rooms.create, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      name: "empty room",
+      isPrivate: false,
+    });
+    const audio = await store(t, "audio/mp4");
+    const messageId = (await t.mutation(api.messages.send, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      roomId,
+      content: "",
+      type: "audio",
+      mediaStorageId: audio,
+      viewOnce: true,
+    })) as Id<"messages">;
+    const row = await t.run((ctx) => ctx.db.get(messageId));
+    expect(row?.viewOnceRecipients).toBe(0);
+    expect(row?.viewOnceSelf).toBeUndefined();
+    expect(
+      await t.mutation(api.messages.openViewOnce, {
+        sessionToken: me.token,
+        messageId,
+        userId: me.userId as any,
+      } as any)
+    ).toEqual({ gone: true });
+    vi.advanceTimersByTime(PAST_GRACE_MS);
+    await t.finishInProgressScheduledFunctions();
+    expect(await t.run((ctx) => ctx.db.system.get(audio))).toBeNull();
   });
 });

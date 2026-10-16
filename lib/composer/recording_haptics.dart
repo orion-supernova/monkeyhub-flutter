@@ -16,3 +16,16 @@ Future<void> allowHapticsWhileRecording() async {
     debugPrint('allowHapticsWhileRecording: $e');
   }
 }
+
+/// Holds the screen at full brightness while the front camera's white-screen
+/// flash is on, and hands the user's brightness back when it goes off. Only
+/// this app's window on Android; iOS restores the remembered level. A no-op
+/// off mobile.
+Future<void> setFlashBrightness(bool on) async {
+  if (kIsWeb || (defaultTargetPlatform != TargetPlatform.iOS && defaultTargetPlatform != TargetPlatform.android)) return;
+  try {
+    await const MethodChannel('monkeyhub/screen').invokeMethod<void>('setFlashBrightness', {'on': on});
+  } catch (e) {
+    debugPrint('setFlashBrightness: $e');
+  }
+}

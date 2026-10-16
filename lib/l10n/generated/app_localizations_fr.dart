@@ -980,6 +980,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un salon avec ce nom existe déjà';
 
   @override
+  String get roomNameReservedError =>
+      'Un nom de salon ne peut pas commencer par dm:';
+
+  @override
   String get roomInfoScreenErrorNotOwner =>
       'Seul le propriétaire peut faire ça';
 

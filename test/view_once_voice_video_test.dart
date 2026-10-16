@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,7 @@ import 'package:monkeyhub/models/message_preview.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/audio_message.dart';
+import 'package:monkeyhub/widgets/dust_dissolve.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/remote_image.dart';
 import 'package:monkeyhub/widgets/video_note_message.dart';
@@ -40,6 +42,7 @@ void main() {
     DateTime? burnedAt,
     String senderId = 'alice',
     int? durationMs = 12000,
+    bool self = false,
   }) => ChatMessage(
     id: 'm1',
     roomId: 'r',
@@ -53,6 +56,7 @@ void main() {
     viewOnce: true,
     viewOnceOpened: opened,
     viewOnceBurnedAt: burnedAt,
+    viewOnceSelf: self,
   );
 
   // ThemeScope above the app, as in `app.dart`: the focus is pushed on the
@@ -164,6 +168,40 @@ void main() {
       await tester.pump();
       expect(opens, 1);
     });
+
+    testWidgets('Saved Messages: the sender\'s copy is sealed and opens once', (
+      tester,
+    ) async {
+      var opens = 0;
+      Future<Uint8List?> open() async {
+        opens++;
+        return null;
+      }
+
+      await show(
+        tester,
+        bubble(note(self: true), currentUserId: 'alice', onOpen: open),
+      );
+      expect(find.byType(ViewOnceCornerBadge), findsOneWidget);
+      expect(find.text('0:12'), findsOneWidget);
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byType(ViewOnceAudioMessage),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      await tester.pump();
+      expect(opens, 1);
+
+      // Elsewhere the sender's copy stays spent.
+      await show(tester, bubble(note(), currentUserId: 'alice', onOpen: open));
+      expect(find.text('0:12 · Play once'), findsOneWidget);
+      await tester.tap(find.byType(ViewOnceAudioMessage), warnIfMissed: false);
+      await tester.pump();
+      expect(opens, 1);
+    });
   });
 
   group('video note', () {
@@ -177,11 +215,13 @@ void main() {
       bool opened = false,
       DateTime? burnedAt,
       String senderId = 'alice',
+      bool self = false,
     }) => note(
       type: MessageType.videoNote,
       opened: opened,
       burnedAt: burnedAt,
       senderId: senderId,
+      self: self,
       durationMs: 8000,
     );
 
@@ -249,6 +289,32 @@ void main() {
       expect(sealed.width, sealed.height);
     });
 
+    testWidgets('Saved Messages: the sender\'s circle is sealed and opens once', (
+      tester,
+    ) async {
+      var opens = 0;
+      Future<Uint8List?> open() async {
+        opens++;
+        return null;
+      }
+
+      await show(
+        tester,
+        bubble(vnote(self: true), currentUserId: 'alice', onOpen: open),
+      );
+      expect(find.byType(ViewOnceCornerBadge), findsOneWidget);
+      expect(find.text('Play once'), findsNothing);
+      await tester.tap(find.byType(ViewOnceVideoNote));
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(opens, 1);
+
+      await show(tester, bubble(vnote(), currentUserId: 'alice', onOpen: open));
+      expect(find.text('Play once'), findsOneWidget);
+      await tester.tap(find.byType(ViewOnceVideoNote), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(opens, 1);
+    });
+
     testWidgets('one watch: focus in once mode, released and spent after', (
       tester,
     ) async {
@@ -292,10 +358,22 @@ void main() {
       expect(focus.open, isNull);
       expect(focus.upNext, isEmpty);
       expect(playback.isPlaying, isTrue);
+      // No transport row in once mode: a Close pill, no pause.
+      expect(find.bySemanticsLabel('Close'), findsWidgets);
+      expect(find.byIcon(CupertinoIcons.pause_fill), findsNothing);
 
       // It plays to the end, and the end is a close, never a replay.
       playback.complete();
-      for (var i = 0; i < 40; i++) {
+      // A beat on the last frame (250ms), then the burn.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      // The circle burns to dust in place; the bubble beneath already
+      // reads as spent.
+      expect(tester.widget<DustDissolve>(find.byType(DustDissolve)).active, isTrue);
+      expect(find.byType(VideoNoteFocus), findsOneWidget);
+      expect(find.text('Played'), findsOneWidget);
+      for (var i = 0; i < 80; i++) {
         await tester.pump(const Duration(milliseconds: 20));
       }
       expect(find.byType(VideoNoteFocus), findsNothing);

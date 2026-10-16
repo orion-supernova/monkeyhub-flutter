@@ -949,6 +949,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomInfoScreenErrorRoomExists => 'Bu isimde bir oda zaten var';
 
   @override
+  String get roomNameReservedError => 'Oda adları dm: ile başlayamaz';
+
+  @override
   String get roomInfoScreenErrorNotOwner => 'Bunu sadece sahibi yapabilir';
 
   @override

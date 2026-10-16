@@ -283,6 +283,7 @@
   "roomInfoScreenEndConversationPeerFallback": "Den andra personen",
   "roomInfoScreenConfirmCancelButton": "AVBRYT",
   "roomInfoScreenErrorRoomExists": "Ett rum med det namnet finns redan",
+  "roomNameReservedError": "Rumsnamn kan inte börja med dm:",
   "roomInfoScreenErrorNotOwner": "Bara ägaren kan göra det",
   "roomInfoScreenErrorNotAuthorized": "Du har inte behörighet",
   "roomInfoScreenErrorRoomNotFound": "Det här rummet finns inte längre",

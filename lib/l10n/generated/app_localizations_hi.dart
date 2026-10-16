@@ -958,6 +958,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenErrorRoomExists => 'इस नाम का रूम पहले से मौजूद है';
 
   @override
+  String get roomNameReservedError => 'रूम का नाम dm: से शुरू नहीं हो सकता';
+
+  @override
   String get roomInfoScreenErrorNotOwner => 'यह सिर्फ़ ओनर ही कर सकता है';
 
   @override

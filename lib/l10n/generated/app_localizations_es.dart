@@ -967,6 +967,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ya existe una sala con ese nombre';
 
   @override
+  String get roomNameReservedError =>
+      'Los nombres de sala no pueden empezar por dm:';
+
+  @override
   String get roomInfoScreenErrorNotOwner => 'Solo el dueño puede hacer eso';
 
   @override

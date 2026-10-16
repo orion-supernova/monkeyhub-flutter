@@ -912,6 +912,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomInfoScreenErrorRoomExists => 'その名前のルームはすでに存在します';
 
   @override
+  String get roomNameReservedError => 'ルーム名を dm: で始めることはできません';
+
+  @override
   String get roomInfoScreenErrorNotOwner => 'オーナーのみ操作できます';
 
   @override

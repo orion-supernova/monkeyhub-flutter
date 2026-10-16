@@ -963,6 +963,9 @@ class AppLocalizationsSv extends AppLocalizations {
       'Ett rum med det namnet finns redan';
 
   @override
+  String get roomNameReservedError => 'Rumsnamn kan inte börja med dm:';
+
+  @override
   String get roomInfoScreenErrorNotOwner => 'Bara ägaren kan göra det';
 
   @override

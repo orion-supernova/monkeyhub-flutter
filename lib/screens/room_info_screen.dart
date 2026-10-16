@@ -987,6 +987,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final l10n = AppLocalizations.of(context);
     final s = e.toString();
     if (s.contains('ROOM_EXISTS')) return l10n.roomInfoScreenErrorRoomExists;
+    if (s.contains('ROOM_NAME_RESERVED')) return l10n.roomNameReservedError;
     if (s.contains('NAME_INAPPROPRIATE')) return l10n.nameInappropriate;
     if (s.contains('NOT_OWNER')) return l10n.roomInfoScreenErrorNotOwner;
     if (s.contains('NOT_AUTHORIZED')) return l10n.roomInfoScreenErrorNotAuthorized;

@@ -910,6 +910,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomInfoScreenErrorRoomExists => '이미 같은 이름의 방이 있어요';
 
   @override
+  String get roomNameReservedError => '방 이름은 dm:으로 시작할 수 없어요';
+
+  @override
   String get roomInfoScreenErrorNotOwner => '방장만 할 수 있어요';
 
   @override

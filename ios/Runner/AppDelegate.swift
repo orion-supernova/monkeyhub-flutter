@@ -1376,6 +1376,9 @@ import WebRTC
   // Registers the app's custom method channels on the pre-warmed engine.
   // Called from didFinishLaunchingWithOptions right after
   // GeneratedPluginRegistrant (which registers the third-party plugins).
+  /// The user's brightness while the video-note flash holds it at full.
+  private var brightnessBeforeFlash: CGFloat?
+
   private func allowHapticsWhileRecording() {
     do {
       try AVAudioSession.sharedInstance().setAllowHapticsAndSystemSoundsDuringRecording(true)
@@ -1413,6 +1416,34 @@ import WebRTC
           result(nil)
         default:
           result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+
+    // monkeyhub/screen — the front camera's "flash" for a video note is the
+    // screen itself, white; it only lights a face at full brightness. The
+    // user's own brightness is remembered and handed back when it goes off.
+    if let screenRegistrar = engine.registrar(forPlugin: "MonkeyHubScreenPlugin") {
+      FlutterMethodChannel(
+        name: "monkeyhub/screen",
+        binaryMessenger: screenRegistrar.messenger()
+      ).setMethodCallHandler { [weak self] call, result in
+        guard call.method == "setFlashBrightness" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        let on = ((call.arguments as? [String: Any])?["on"] as? Bool) ?? false
+        DispatchQueue.main.async {
+          if on {
+            if self?.brightnessBeforeFlash == nil {
+              self?.brightnessBeforeFlash = UIScreen.main.brightness
+            }
+            UIScreen.main.brightness = 1.0
+          } else if let before = self?.brightnessBeforeFlash {
+            UIScreen.main.brightness = before
+            self?.brightnessBeforeFlash = nil
+          }
+          result(nil)
         }
       }
     }

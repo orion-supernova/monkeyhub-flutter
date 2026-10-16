@@ -51,6 +51,19 @@ function assertRoomTextLengths(name: string, description: string | undefined) {
   }
 }
 
+/**
+ * Names under `dm:` are the system's own keys (`dm:self:<id>` is a user's
+ * Saved Messages, `dm:regular:<a>:<b>` a direct chat), looked up by name.
+ * A user-chosen room must never take one: a room created as
+ * `dm:self:<someoneElse>` before that person first opened Saved Messages
+ * would be found as theirs. Refused wherever a user writes a room name.
+ */
+export const ERR_ROOM_NAME_RESERVED = "ROOM_NAME_RESERVED";
+
+export function assertUserRoomName(name: string): void {
+  if (name.trim().toLowerCase().startsWith("dm:")) throw new Error(ERR_ROOM_NAME_RESERVED);
+}
+
 export const create = mutation({
   args: {
     name: v.string(),
@@ -68,6 +81,7 @@ export const create = mutation({
     await assertChildPolicy(ctx, userId, "canCreateRooms");
     await consume(ctx, `roomcreate:${userId}`, MAX_ROOMS_CREATED_PER_DAY, 24 * 60 * 60 * 1000);
     assertRoomTextLengths(name, description);
+    assertUserRoomName(name);
     const creatorIsChild = await isChild(ctx, userId);
     const visibility = creatorIsChild ? true : isPrivate;
     // A room's name and description are shown to everyone who can find it.
@@ -258,6 +272,7 @@ export const updateRoom = mutation({
     }
 
     const trimmed = name.trim();
+    if (trimmed !== room.name) assertUserRoomName(trimmed);
     if (!trimmed) throw new Error("ROOM_NAME_REQUIRED");
     assertRoomTextLengths(trimmed, description);
     assertCleanName(trimmed);

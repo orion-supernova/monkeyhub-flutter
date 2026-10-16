@@ -164,6 +164,27 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
+        // monkeyhub/screen — the front camera's "flash" for a video note is
+        // the screen itself, white; it only lights a face at full brightness.
+        // Overrides this window's brightness, never the system setting, and
+        // hands it back when the flash goes off.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/screen")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setFlashBrightness" -> {
+                        val on = call.argument<Boolean>("on") ?: false
+                        runOnUiThread {
+                            val params = window.attributes
+                            params.screenBrightness = if (on) 1f
+                                else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                            window.attributes = params
+                        }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
         // Stub events channel so the Dart layer's stream listen call is
         // accepted on Android — we just never emit.
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/capture/events")

@@ -1166,6 +1166,13 @@ export default defineSchema({
     // of once per open, which matters on the box crons.ts:6-13 describes.
     viewOnceRecipients: v.optional(v.number()),
     viewOnceViewCount: v.optional(v.number()),
+    // True when the message was armed in its sender's own Saved Messages room
+    // (`dm:self:<senderId>`, nobody else in it) and the sender was therefore
+    // counted as its one recipient. It is the only thing that lets the sender
+    // open their own view-once message (`openViewOnce`), and it is decided
+    // once, at send, so a later roster or name change cannot hand a sender a
+    // reopen path in any other room. Absent everywhere else.
+    viewOnceSelf: v.optional(v.boolean()),
     // Set when the blob is gone. The client renders the ghost off this.
     viewOnceBurnedAt: v.optional(v.number()),
     // Hard deadline — burn even if somebody never opens it.

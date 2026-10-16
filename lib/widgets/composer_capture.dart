@@ -292,7 +292,16 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   int _flips = 0;
 
   /// The front camera's "flash": the screen behind the circle goes white.
-  bool _screenFlash = false;
+  bool _screenFlashOn = false;
+  bool get _screenFlash => _screenFlashOn;
+
+  /// Every change goes through here so the screen's brightness follows: full
+  /// while the white flash is up, the user's own the moment it is not.
+  set _screenFlash(bool on) {
+    if (on == _screenFlashOn) return;
+    _screenFlashOn = on;
+    unawaited(setFlashBrightness(on));
+  }
 
   /// How the bloom leaves when this recording ends.
   CaptureBloomExit _bloomExit = CaptureBloomExit.send;
@@ -472,6 +481,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     _liftCurve.dispose();
     _lift.dispose();
     _discard.dispose();
+    _screenFlash = false;
     unawaited(_levelSub?.cancel());
     _level.dispose();
     _machine.dispose();
@@ -1736,18 +1746,6 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           ignoring: !up,
           child: Stack(
             children: [
-              // The front camera's flash: the screen itself, white, lighting
-              // the face. Under the circle and above nothing else.
-              if (_screenFlash)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  height: composerTop,
-                  child: IgnorePointer(
-                    child: Opacity(opacity: t.clamp(0.0, 1.0), child: const ColoredBox(color: Color(0xFFFFFFFF))),
-                  ),
-                ),
               Positioned(
                 left: 0,
                 right: 0,
@@ -1773,6 +1771,32 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                   ),
                 ),
               ),
+              // The front camera's flash: the screen itself, white and solid,
+              // over the dim and everything above the strip, lighting the face
+              // the way Telegram's does; a soft white glow rings the circle
+              // so its edge does not cut a dark line through the light.
+              if (_screenFlash) ...[
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: composerTop,
+                  child: IgnorePointer(
+                    child: Opacity(opacity: t.clamp(0.0, 1.0), child: const ColoredBox(color: Color(0xFFFFFFFF))),
+                  ),
+                ),
+                Positioned.fromRect(
+                  rect: circle.inflate(28),
+                  child: const IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Color(0xFFFFF4E0), blurRadius: 40, spreadRadius: 6)],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               Positioned.fromRect(
                 rect: circle,
                 child: Opacity(
@@ -1823,6 +1847,30 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                           ),
                         ],
                       ],
+                    ),
+                  ),
+                ),
+              // A real close for the preview: 44pt, top left, where every
+              // camera on the phone keeps it. The small one that sat beside
+              // Record was easy to miss and easy to hit by accident.
+              if (staged)
+                Positioned(
+                  left: 16,
+                  top: pad.top + 8,
+                  child: Opacity(
+                    opacity: controlsOpacity,
+                    child: ChromeDisc(
+                      size: 44,
+                      still: true,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _unstage();
+                      },
+                      child: Semantics(
+                        label: l10n.photoChromeCloseSemanticLabel,
+                        button: true,
+                        child: Icon(Icons.close_rounded, size: 22, color: theme.ink),
+                      ),
                     ),
                   ),
                 ),
@@ -1925,29 +1973,13 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   /// Under the staged preview: put it away, or record.
   Widget _stagedControls(AppTheme theme, AppLocalizations l10n) {
-    return Row(
-      children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: GlassIconButton(
-              tone: GlassTone.media,
-              icon: Icons.close,
-              semanticLabel: l10n.photoChromeCloseSemanticLabel,
-              onTap: _unstage,
-            ),
-          ),
-        ),
-        const SizedBox(width: 28),
-        _RecordButton(
-          label: l10n.composerCaptureStartRecordingLabel,
-          color: theme.danger,
-          onTap: _busy ? null : () => unawaited(_startRecording(locked: true)),
-        ),
-        const SizedBox(width: 28),
-        // Balances the close button so the record button sits dead centre.
-        const Expanded(child: SizedBox()),
-      ],
+    // Record alone, dead centre; closing is the X in the corner.
+    return Center(
+      child: _RecordButton(
+        label: l10n.composerCaptureStartRecordingLabel,
+        color: theme.danger,
+        onTap: _busy ? null : () => unawaited(_startRecording(locked: true)),
+      ),
     );
   }
 

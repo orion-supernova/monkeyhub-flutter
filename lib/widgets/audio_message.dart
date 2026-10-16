@@ -19,6 +19,7 @@ import '../screens/room_items.dart' show formatClockDuration;
 import '../screens/voice_recorder_screen.dart' show voiceNoteContentType;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'dust_dissolve.dart';
 import 'spring_press.dart';
 import 'view_once_seal.dart';
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoIcons;
@@ -446,6 +447,7 @@ class ViewOnceAudioMessage extends StatefulWidget {
     required this.durationMs,
     required this.opened,
     required this.burned,
+    this.selfChat = false,
     this.surface,
     this.onOpen,
   });
@@ -464,6 +466,10 @@ class ViewOnceAudioMessage extends StatefulWidget {
 
   /// The server has deleted the audio for everyone.
   final bool burned;
+
+  /// Sent into the sender's own Saved Messages ([ChatMessage.viewOnceSelf]):
+  /// the sender's copy is sealed there, and opens once, like a recipient's.
+  final bool selfChat;
 
   /// The bubble's own fill, for the cut-out ring round the "1" badge.
   final Color? surface;
@@ -497,8 +503,21 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
   /// Guards a slow fetch landing after a recycled row has moved on.
   int _gen = 0;
 
+  /// The listen has just ended and the pill is turning to dust over its
+  /// played self ([DustDissolve]).
+  bool _burning = false;
+
+  /// Where the playing pill was when the listen ended, so the picture that
+  /// burns is the last one shown. Written by the playing builder, never read
+  /// back into it.
+  double _lastProgress = 1;
+  String? _lastMeta;
+
   bool get _spent =>
-      _done || widget.opened || widget.burned || widget.isMine;
+      _done || widget.opened || widget.burned || _sendersCopy;
+
+  /// The sender's own copy, spent from the start — except in Saved Messages.
+  bool get _sendersCopy => widget.isMine && !widget.selfChat;
 
   bool get _openable =>
       widget.onOpen != null && !_busy && _player == null && !_spent;
@@ -519,6 +538,7 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
     _finish(rebuild: false);
     _busy = false;
     _done = false;
+    _burning = false;
   }
 
   @override
@@ -621,7 +641,8 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
     }
     if (!hadSession) return;
     _done = true;
-    if (rebuild && mounted) setState(() {});
+    // Spent on screen: the pill burns. A recycled or disposed one just goes.
+    if (rebuild && mounted) setState(() => _burning = true);
   }
 
   void _togglePause(bool playing) {
@@ -638,12 +659,12 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
   /// "you had it" against "nobody gets it" — the photo tile's distinction.
   String _caption(AppLocalizations l10n) {
     if (widget.burned) {
-      return widget.opened || _done || widget.isMine
+      return widget.opened || _done || _sendersCopy
           ? l10n.messageBubblePlayOncePlayed
           : l10n.messageBubbleViewOnceExpired;
     }
     if (widget.opened || _done) return l10n.messageBubblePlayOncePlayed;
-    if (widget.isMine) return l10n.messageBubblePlayOnceLabel;
+    if (_sendersCopy) return l10n.messageBubblePlayOnceLabel;
     return l10n.messageBubblePlayOnceTapToPlay;
   }
 
@@ -662,7 +683,55 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
     final onDisc = widget.isMine ? ink : theme.accentInk;
     final p = _player;
     if (p != null) return _playing(theme, ink, onDisc, p);
+    if (_burning) {
+      return DustDissolve(
+        active: true,
+        seed: widget.messageId.hashCode,
+        sweep: Directionality.of(context) == TextDirection.rtl
+            ? const Offset(-1, 0)
+            : const Offset(1, 0),
+        onDone: () {
+          if (mounted) setState(() => _burning = false);
+        },
+        beneath: _sealedOrSpent(theme, l10n, ink, onDisc),
+        child: _ended(theme, ink, onDisc),
+      );
+    }
+    return _sealedOrSpent(theme, l10n, ink, onDisc);
+  }
 
+  /// The playing pill's last picture, held still for the burn.
+  Widget _ended(AppTheme theme, Color ink, Color onDisc) {
+    final total = _total;
+    return _row(
+      disc: _badged(
+        theme,
+        _disc(
+          theme,
+          ink,
+          child: Icon(CupertinoIcons.play_fill, color: onDisc, size: 17),
+        ),
+      ),
+      progress: _lastProgress,
+      played: ink,
+      unplayed: ink.withValues(alpha: 0.32),
+      meta: Text(
+        _lastMeta ??
+            (total == null ? '' : '${formatClockDuration(total)}'
+                ' / ${formatClockDuration(total)}'),
+        maxLines: 1,
+        softWrap: false,
+        style: _metaStyle(theme, ink),
+      ),
+    );
+  }
+
+  Widget _sealedOrSpent(
+    AppTheme theme,
+    AppLocalizations l10n,
+    Color ink,
+    Color onDisc,
+  ) {
     final spent = _spent && !_busy;
     final ms = widget.durationMs;
     final length = ms == null || ms <= 0
@@ -743,6 +812,10 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
               position: posSnap.data ?? Duration.zero,
               total: total,
             );
+            final meta = '${formatClockDuration(display.elapsed)}'
+                ' / ${formatClockDuration(total)}';
+            _lastProgress = display.progress;
+            _lastMeta = meta;
             return _row(
               disc: _badged(
                 theme,
@@ -763,8 +836,7 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
               played: ink,
               unplayed: ink.withValues(alpha: 0.32),
               meta: Text(
-                '${formatClockDuration(display.elapsed)}'
-                ' / ${formatClockDuration(total)}',
+                meta,
                 maxLines: 1,
                 softWrap: false,
                 style: _metaStyle(theme, ink),

@@ -32,6 +32,7 @@ import 'glass_reveal.dart' show GlassStill;
 import 'liquid_glass.dart' show GlassTone, MediaGlass;
 import 'photo_chrome.dart';
 import 'capture_shield.dart';
+import 'dust_dissolve.dart';
 import 'remote_image.dart';
 import 'view_once_seal.dart';
 
@@ -857,6 +858,7 @@ class ViewOnceVideoNote extends StatefulWidget {
     required this.durationMs,
     required this.opened,
     required this.burned,
+    this.selfChat = false,
     this.api,
     this.posterStorageId,
     this.diameter = 180,
@@ -878,6 +880,10 @@ class ViewOnceVideoNote extends StatefulWidget {
 
   /// The server has deleted the video for everyone.
   final bool burned;
+
+  /// Sent into the sender's own Saved Messages ([ChatMessage.viewOnceSelf]):
+  /// the sender's copy is sealed there, and opens once, like a recipient's.
+  final bool selfChat;
 
   /// Resolves [posterStorageId]. Null draws the fallback field.
   final ChatApi? api;
@@ -938,7 +944,10 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
   bool get _focused => _VideoNoteStage.showing.value == _stageKey;
 
   bool get _spent =>
-      _done || widget.opened || widget.burned || widget.isMine;
+      _done || widget.opened || widget.burned || _sendersCopy;
+
+  /// The sender's own copy, spent from the start — except in Saved Messages.
+  bool get _sendersCopy => widget.isMine && !widget.selfChat;
 
   bool get _openable =>
       widget.onOpen != null && !_busy && _handoff == null && !_spent;
@@ -1100,10 +1109,16 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
   }
 
   /// Flies the note into the focus and plays it through once; comes back as
-  /// played.
+  /// played — under the focus's dust, normally, or by the flight home when
+  /// the burn is skipped.
   Future<void> _focus(VideoNotePlayback p, int gen) async {
     final key = _stageKey;
-    final handoff = VideoNoteHandoff();
+    // Played from the moment the focus starts to burn, so the circle under
+    // the dust is already the spent one.
+    final handoff = VideoNoteHandoff()
+      ..onBurn = () {
+        if (mounted && gen == _gen) setState(() => _done = true);
+      };
     final route = VideoNoteFocus.route(
       context,
       playback: p,
@@ -1136,12 +1151,12 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
   /// words a voice or video note takes.
   String _caption(AppLocalizations l10n) {
     if (widget.burned) {
-      return widget.opened || _done || widget.isMine
+      return widget.opened || _done || _sendersCopy
           ? l10n.messageBubblePlayOncePlayed
           : l10n.messageBubbleViewOnceExpired;
     }
     if (widget.opened || _done) return l10n.messageBubblePlayOncePlayed;
-    if (widget.isMine) return l10n.messageBubblePlayOnceLabel;
+    if (_sendersCopy) return l10n.messageBubblePlayOnceLabel;
     return l10n.messageBubblePlayOnceTapToPlay;
   }
 
@@ -1277,7 +1292,7 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   MediaDurationBadge(duration: total),
-                  if (!widget.isMine) ...[
+                  if (!_sendersCopy) ...[
                     const SizedBox(width: 4),
                     Container(
                       width: 6,
@@ -1887,6 +1902,14 @@ class VideoNoteFocus extends StatefulWidget {
   /// autoplay toggle. It holds a [CaptureProtection] scope and wears the
   /// capture shield exactly as `ViewOnceViewer` does, and leaving the app
   /// closes it, for the same reason the photo closes.
+  ///
+  /// It does not fly home, either. Closed, the circle burns: it turns to
+  /// dust ([DustDissolve]) on its way back down to the bubble, the dust left
+  /// hanging where it let go, and the bubble underneath is already the
+  /// played one — Telegram's disintegration. Reduced motion, and leaving the
+  /// app, skip the burn for the ordinary flight home: a burn takes a second,
+  /// and the face must not still be on screen when the app switcher takes
+  /// its snapshot.
   final bool once;
 
   static TransitionRoute<void> route(
@@ -1930,6 +1953,11 @@ class VideoNoteFocus extends StatefulWidget {
 /// player to the focus rather than pulling it out from under the picture.
 class VideoNoteHandoff {
   bool orphaned = false;
+
+  /// A play-once focus has begun turning its circle to dust: the watch is
+  /// over from this moment, and the bubble can show itself played under the
+  /// dust rather than wait out the burn as a gap.
+  VoidCallback? onBurn;
 }
 
 /// A popup, not a page route, on purpose: `MaterialApp`'s HeroController
@@ -1971,7 +1999,7 @@ class _VideoNoteFocusRoute extends PopupRoute<void> {
 }
 
 class _VideoNoteFocusState extends State<VideoNoteFocus>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const _controlsGap = 28.0;
   static const _controlsHeight = 52.0;
   static const _toggleGap = 18.0;
@@ -2003,6 +2031,17 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
   late Rect? _lastSource = widget.initialSource;
 
   bool _closing = false;
+
+  /// A play-once close: the circle is turning to dust (see [VideoNoteFocus.once]).
+  bool _burning = false;
+
+  /// Drives the burn's flight home and the dim lifting, in step with the
+  /// dust. The route's own animation stays at 1 throughout: the route is
+  /// removed, not popped, when the dust has settled.
+  late final AnimationController _burn = AnimationController(
+    vsync: this,
+    duration: DustDissolve.defaultDuration,
+  );
 
   /// Set once this playthrough has actually played, so reaching the end
   /// closes or advances only when the note ran out — not when a paused scrub
@@ -2058,7 +2097,9 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!widget.once || state == AppLifecycleState.resumed) return;
-    _close();
+    // Mid-burn, the dust goes at once: no face in the app switcher.
+    if (_burning) return _burnt();
+    _close(burn: false);
   }
 
   /// Frames only while the note is actually moving: paused, ended or held
@@ -2085,6 +2126,7 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     widget.animation.removeStatusListener(_onRouteStatus);
     _playback.removeListener(_onPlayback);
     _ticker.dispose();
+    _burn.dispose();
     _shown.dispose();
     _flight.dispose();
     // Normally cleared when the flight home lands (see [_onRouteStatus]); this
@@ -2256,10 +2298,40 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     setState(() => _advancing = false);
   }
 
-  void _close() {
+  void _close({bool burn = true}) {
     if (_closing || !mounted) return;
     _closing = true;
+    if (burn &&
+        widget.once &&
+        widget.animation.status == AnimationStatus.completed &&
+        !MediaQuery.disableAnimationsOf(context)) {
+      _startBurn();
+      return;
+    }
     Navigator.of(context).pop();
+  }
+
+  /// The watch is over: the circle stops where it is and starts to burn.
+  void _startBurn() {
+    unawaited(_playback.pause());
+    setState(() => _burning = true);
+    unawaited(_burn.forward());
+    // The bubble draws itself again — played, under the dust — now rather
+    // than when the route goes.
+    widget.handoff.onBurn?.call();
+    if (_VideoNoteStage.showing.value == _storageId) {
+      _VideoNoteStage.showing.value = null;
+    }
+  }
+
+  /// The dust has settled. Removed rather than popped: there is nothing left
+  /// to fly home.
+  void _burnt() {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && route.isActive) {
+      Navigator.of(context).removeRoute(route);
+    }
   }
 
   void _togglePlay() {
@@ -2386,10 +2458,18 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     // here falls back to Flutter's debug style.
     return Material(
       type: MaterialType.transparency,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([widget.animation, _playback]),
-        builder: (context, _) => LayoutBuilder(
-          builder: (context, box) => _layout(context, box.biggest),
+      // Back and Esc on a play-once note burn it like any other close; the
+      // route is removed by the burn, never popped out from under it.
+      child: PopScope(
+        canPop: !widget.once,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _close();
+        },
+        child: AnimatedBuilder(
+          animation: Listenable.merge([widget.animation, _playback, _burn]),
+          builder: (context, _) => LayoutBuilder(
+            builder: (context, box) => _layout(context, box.biggest),
+          ),
         ),
       ),
     );
@@ -2398,8 +2478,17 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
   Widget _layout(BuildContext context, Size screen) {
     final l10n = AppLocalizations.of(context);
     final pad = MediaQuery.paddingOf(context);
-    final fade = widget.animation.value;
-    final t = _flight.value;
+    // Burning, the burn's own clock stands in for the route's: the dim
+    // lifts over its first half, and the circle sinks home through the
+    // middle of it, so the last of it lets go over the bubble.
+    final burn = _burn.value;
+    final fade = widget.animation.value *
+        (1 - const Interval(0, 0.55, curve: Curves.easeOut).transform(burn));
+    final t = _burning
+        ? 1 -
+            const Interval(0.1, 0.8, curve: Curves.easeInOutCubic)
+                .transform(burn)
+        : _flight.value;
 
     final usableHeight = screen.height - pad.vertical;
     final diameter = math.min(
@@ -2407,8 +2496,10 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
       460.0,
     );
     // The circle sits in the middle of everything around it: the controls
-    // below and, when there is a chat to carry on into, the toggle above.
-    final below = _controlsGap + _controlsHeight;
+    // below and, when there is a chat to carry on into, the toggle above. A
+    // play-once note has no controls row, only its Close at the foot of the
+    // screen.
+    final below = widget.once ? 0.0 : _controlsGap + _controlsHeight;
     // The play-once badge takes the toggle's place above the circle.
     final above = widget.open != null || widget.once
         ? _toggleGap + _toggleHeight
@@ -2433,7 +2524,8 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
           )
         : Rect.lerp(source, target, t)!;
 
-    final settled = widget.animation.status == AnimationStatus.completed;
+    final settled =
+        widget.animation.status == AnimationStatus.completed && !_burning;
     final chromeOpacity = ((fade - 0.5) / 0.5).clamp(0.0, 1.0);
 
     return Stack(
@@ -2455,24 +2547,57 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
           rect: circle,
           child: Opacity(
             opacity: source == null ? fade : 1,
-            child: _circle(context, circle.width),
+            child: widget.once
+                ? DustDissolve(
+                    active: _burning,
+                    shape: const CircleBorder(),
+                    seed: _storageId.hashCode,
+                    onDone: _burnt,
+                    child: _circle(context, circle.width),
+                  )
+                : _circle(context, circle.width),
           ),
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: target.bottom + _controlsGap,
-          height: _controlsHeight,
-          child: IgnorePointer(
-            ignoring: !settled,
-            child: Opacity(
-              opacity: chromeOpacity,
-              // The controls fade with the flight; a fading blur is a
-              // BackdropFilter re-rasterising every frame.
-              child: GlassStill(still: true, child: _controls(l10n)),
+        // Telegram's: one capsule at the foot of the screen, and nothing else
+        // to press.
+        if (widget.once)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: pad.bottom + 24,
+            child: Center(
+              child: IgnorePointer(
+                ignoring: !settled,
+                child: Opacity(
+                  opacity: chromeOpacity,
+                  child: GlassStill(
+                    still: true,
+                    child: GlassPillButton(
+                      tone: GlassTone.media,
+                      label: l10n.photoChromeCloseSemanticLabel,
+                      onTap: _close,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
+        if (!widget.once)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: target.bottom + _controlsGap,
+            height: _controlsHeight,
+            child: IgnorePointer(
+              ignoring: !settled,
+              child: Opacity(
+                opacity: chromeOpacity,
+                // The controls fade with the flight; a fading blur is a
+                // BackdropFilter re-rasterising every frame.
+                child: GlassStill(still: true, child: _controls(l10n)),
+              ),
+            ),
+          ),
         // Above the circle, as the controls are below it. The scrub hint takes
         // its place while a finger is on the ring.
         if (widget.open != null && !_scrubbing)
@@ -2545,7 +2670,15 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     final holding = _scrubbing || _seekLoop != null;
     final playing = p.isPlaying && !p.isCompleted && !holding;
     final radius = diameter / 2;
-    final settled = widget.animation.status == AnimationStatus.completed;
+    final settled =
+        widget.animation.status == AnimationStatus.completed && !_burning;
+    // The dim and the play disc over a paused note. Not over a play-once
+    // note that has ended or is burning: what turns to dust is the last
+    // frame, not a play button that was never going to be pressed.
+    final resting = !playing &&
+        !holding &&
+        !_burning &&
+        !(widget.once && p.isCompleted);
 
     return Semantics(
       button: true,
@@ -2567,7 +2700,7 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
           fit: StackFit.expand,
           children: [
             ClipOval(child: p.view()),
-            if (!playing && !holding)
+            if (resting)
               const ClipOval(child: ColoredBox(color: Color(0x40000000))),
             // The ring and the countdown read the per-frame position, so the
             // rest of the circle does not rebuild sixty times a second.
@@ -2613,7 +2746,7 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
                   color: Colors.white,
                 ),
               )
-            else if (!playing && !holding)
+            else if (resting)
               const Center(child: MediaPlayDisc(size: 64)),
           ],
         ),

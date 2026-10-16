@@ -273,6 +273,7 @@
   "roomInfoScreenEndConversationPeerFallback": "الشخص الآخر",
   "roomInfoScreenConfirmCancelButton": "إلغاء",
   "roomInfoScreenErrorRoomExists": "توجد غرفة بهذا الاسم بالفعل",
+  "roomNameReservedError": "لا يمكن أن يبدأ اسم الغرفة بـ dm:",
   "roomInfoScreenErrorNotOwner": "المالك فقط يمكنه فعل ذلك",
   "roomInfoScreenErrorNotAuthorized": "ليس لديك إذن بذلك",
   "roomInfoScreenErrorRoomNotFound": "هذه الغرفة لم تعد موجودة",

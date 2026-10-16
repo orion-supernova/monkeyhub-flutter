@@ -273,6 +273,7 @@
   "roomInfoScreenEndConversationPeerFallback": "Diğer kişi",
   "roomInfoScreenConfirmCancelButton": "VAZGEÇ",
   "roomInfoScreenErrorRoomExists": "Bu isimde bir oda zaten var",
+  "roomNameReservedError": "Oda adları dm: ile başlayamaz",
   "roomInfoScreenErrorNotOwner": "Bunu sadece sahibi yapabilir",
   "roomInfoScreenErrorNotAuthorized": "Bunun için yetkin yok",
   "roomInfoScreenErrorRoomNotFound": "Bu oda artık yok",

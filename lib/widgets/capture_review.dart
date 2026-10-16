@@ -43,8 +43,16 @@ class CaptureReviewController extends ChangeNotifier {
   /// The video note's frames, once decoded; empty until then (and for voice).
   List<Uint8List> frames = const [];
 
-  /// The voice note's bars, 0..1.
-  late final List<double> bars = video ? const [] : waveform(segments, 48);
+  /// The voice note's bars, 0..1, scaled to the recording's own loudest
+  /// moment: quiet speech is most of what anyone records, and drawn raw it
+  /// was a flat row of dots.
+  late final List<double> bars = video ? const [] : _normalized(waveform(segments, 56));
+
+  static List<double> _normalized(List<double> raw) {
+    final peak = raw.fold<double>(0, math.max);
+    if (peak < 0.02) return [for (final _ in raw) 0.12];
+    return [for (final v in raw) math.max(0.12, math.sqrt(v / peak))];
+  }
 
   AudioPlayer? _audio;
   VideoPlayerController? _videoPlayer;
@@ -77,7 +85,18 @@ class CaptureReviewController extends ChangeNotifier {
         debugPrint('CaptureReview.filmstrip: $e');
       }
       await _openVideo(0);
+      // The first few frames of a take are dark while the camera settles its
+      // exposure; the still the circle rests on is a beat in.
+      await _videoPlayer?.seekTo(_stillOffset(0));
     }
+  }
+
+  /// Where the resting still sits inside a part: a third of a second in, or
+  /// the middle of a very short part.
+  Duration _stillOffset(int index) {
+    final d = segments[index].duration;
+    const settle = Duration(milliseconds: 320);
+    return d > settle * 2 ? settle : d ~/ 2;
   }
 
   // ─────────────────────────────── timeline ───────────────────────────────
@@ -106,16 +125,43 @@ class CaptureReviewController extends ChangeNotifier {
 
   // ──────────────────────────────── trim ──────────────────────────────────
 
-  void setStart(double v) {
-    start = v.clamp(0.0, end - minSpan);
-    if (position < start) position = start;
+  /// Returns whether [v] had to be clamped (the handle hit its limit).
+  bool setStart(double v) {
+    final clamped = v.clamp(0.0, end - minSpan);
+    start = clamped;
+    position = start;
+    _preview(start);
     notifyListeners();
+    return clamped != v;
   }
 
-  void setEnd(double v) {
-    end = v.clamp(start + minSpan, 1.0);
-    if (position > end) position = start;
+  bool setEnd(double v) {
+    final clamped = v.clamp(start + minSpan, 1.0);
+    end = clamped;
+    position = start;
+    _preview(end);
     notifyListeners();
+    return clamped != v;
+  }
+
+  /// A video note shows the frame under the handle while it is dragged, the
+  /// way a video editor does. One seek in flight at a time; the latest wins.
+  double? _previewAt;
+  bool _previewing = false;
+
+  void _preview(double at) {
+    if (!video || playing) return;
+    _previewAt = at;
+    if (_previewing) return;
+    _previewing = true;
+    () async {
+      while (_previewAt != null && !_disposed) {
+        final next = _previewAt!;
+        _previewAt = null;
+        await _seekVideo(next);
+      }
+      _previewing = false;
+    }();
   }
 
   // ────────────────────────────── playback ────────────────────────────────
@@ -261,27 +307,59 @@ class CaptureReviewStrip extends StatefulWidget {
 }
 
 class _CaptureReviewStripState extends State<CaptureReviewStrip> {
-  /// Which handle the finger has: -1 start, 1 end, 0 none.
+  /// What the finger has: -1 the start handle, 1 the end handle, 2 the
+  /// playhead (a touch away from both handles scrubs), 0 nothing.
   int _grab = 0;
+
+  /// Where on the grabbed handle the finger landed, so the handle stays
+  /// under the same spot of the finger instead of jumping to its centre.
+  double _grabOffset = 0;
   bool _atLimit = false;
 
   CaptureReviewController get _c => widget.controller;
 
   static const _handle = 10.0;
 
-  void _drag(double dx, double width) {
-    if (_grab == 0 || width <= 0) return;
-    final delta = dx / width;
-    final before = _grab < 0 ? _c.start : _c.end;
-    if (_grab < 0) {
-      _c.setStart(_c.start + delta);
+  /// How close to a handle (either side) a touch has to land to take it.
+  static const _reach = 24.0;
+
+  double _xOf(double f, double w) => _handle + f * (w - _handle * 2);
+  double _fOf(double x, double w) => ((x - _handle) / (w - _handle * 2)).clamp(0.0, 1.0);
+
+  void _down(double x, double w) {
+    final ds = (x - _xOf(_c.start, w)).abs();
+    final de = (x - _xOf(_c.end, w)).abs();
+    if (ds <= _reach || de <= _reach) {
+      // Overlapping reach (a tiny window): the nearer one, and the end one
+      // when a finger is past the middle of them.
+      _grab = ds < de || (ds == de && x < _xOf(_c.start, w)) ? -1 : 1;
+      _grabOffset = x - _xOf(_grab < 0 ? _c.start : _c.end, w);
+      HapticFeedback.selectionClick();
     } else {
-      _c.setEnd(_c.end + delta);
+      _grab = 2;
+      unawaited(_c.seekTo(_fOf(x, w)));
     }
-    final after = _grab < 0 ? _c.start : _c.end;
-    final limit = (after - before).abs() < delta.abs() * 0.5;
-    if (limit && !_atLimit) HapticFeedback.selectionClick();
-    _atLimit = limit;
+    _atLimit = false;
+    if (_c.playing && _grab != 2) unawaited(_c.pause());
+    setState(() {});
+  }
+
+  void _move(double x, double w) {
+    if (_grab == 2) {
+      unawaited(_c.seekTo(_fOf(x, w)));
+      return;
+    }
+    if (_grab == 0) return;
+    final f = _fOf(x - _grabOffset, w);
+    final limited = _grab < 0 ? _c.setStart(f) : _c.setEnd(f);
+    // A tick each time a handle runs into its stop, not every frame on it.
+    if (limited && !_atLimit) HapticFeedback.selectionClick();
+    _atLimit = limited;
+  }
+
+  void _up() {
+    _grab = 0;
+    setState(() {});
   }
 
   @override
@@ -326,23 +404,21 @@ class _CaptureReviewStripState extends State<CaptureReviewStrip> {
                   final w = box.maxWidth;
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onHorizontalDragStart: (d) {
-                      final x = d.localPosition.dx / w;
-                      _grab = (x - _c.start).abs() <= (x - _c.end).abs() ? -1 : 1;
-                      _atLimit = false;
-                      HapticFeedback.selectionClick();
-                      if (_c.playing) unawaited(_c.pause());
+                    onHorizontalDragDown: (d) => _down(d.localPosition.dx, w),
+                    onHorizontalDragUpdate: (d) => _move(d.localPosition.dx, w),
+                    onHorizontalDragEnd: (_) => _up(),
+                    onHorizontalDragCancel: _up,
+                    onTapUp: (d) {
+                      _up();
+                      unawaited(_c.seekTo(_fOf(d.localPosition.dx, w)));
                     },
-                    onHorizontalDragUpdate: (d) => _drag(d.delta.dx, w),
-                    onHorizontalDragEnd: (_) {
-                      _grab = 0;
-                      unawaited(_c.seekTo(_c.start));
-                    },
-                    onTapUp: (d) => unawaited(_c.seekTo(d.localPosition.dx / w)),
                     child: SizedBox(
                       height: 32,
+                      // In front of the frames, not behind them: the handles,
+                      // the cut veil and the playhead have to sit on the
+                      // filmstrip, which otherwise covered every one of them.
                       child: CustomPaint(
-                        painter: _TrackPainter(
+                        foregroundPainter: _TrackPainter(
                           bars: _c.bars,
                           frames: _c.frames.length,
                           start: _c.start,
@@ -351,7 +427,7 @@ class _CaptureReviewStripState extends State<CaptureReviewStrip> {
                           playing: _c.playing,
                           ink: theme.accent,
                           handle: Colors.white,
-                          grabbed: _grab,
+                          grabbed: _grab == 2 ? 0 : _grab,
                         ),
                         child: _c.video && _c.frames.isNotEmpty
                             ? Padding(
@@ -466,11 +542,17 @@ class _TrackPainter extends CustomPainter {
     double x(double f) => _h + f * w;
 
     if (bars.isNotEmpty) {
-      final gap = 2.0;
-      final barW = math.max(1.5, (w - gap * (bars.length - 1)) / bars.length);
-      for (var i = 0; i < bars.length; i++) {
-        final f = (i + 0.5) / bars.length;
-        final bh = 4 + (size.height - 12) * bars[i];
+      // As many bars as fit the track, resampled from the recording's: a
+      // fixed count with a minimum width ran past the end handle on a narrow
+      // strip.
+      const gap = 2.0;
+      const want = 2.5;
+      final n = math.max(1, ((w + gap) / (want + gap)).floor());
+      final barW = (w - gap * (n - 1)) / n;
+      for (var i = 0; i < n; i++) {
+        final f = (i + 0.5) / n;
+        final v = bars[math.min(bars.length - 1, (f * bars.length).floor())];
+        final bh = 4 + (size.height - 12) * v;
         final inside = f >= start && f <= end;
         final played = f <= position && inside;
         final paint = Paint()

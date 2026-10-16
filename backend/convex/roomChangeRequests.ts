@@ -33,6 +33,7 @@
  */
 
 import { assertCleanName, assertCleanText } from "./contentFilter";
+import { assertUserRoomName } from "./rooms";
 import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -149,6 +150,8 @@ async function applyChange(ctx: any, room: any, row: any) {
     const trimmed = (row.value ?? "").trim();
     if (!trimmed) throw new Error("ROOM_NAME_REQUIRED");
     if (trimmed !== room.name) {
+      // Checked again at approval: a suggestion predates this rule.
+      assertUserRoomName(trimmed);
       const clash = await ctx.db
         .query("rooms")
         .withIndex("by_name", (q: any) => q.eq("name", trimmed))
@@ -237,7 +240,10 @@ export const propose = mutation({
         throw new Error(ERR_MISSING_VALUE);
       }
       // Refused at proposal, so an admin is never asked to approve it.
-      if (field === FIELD_NAME) assertCleanName(trimmed);
+      if (field === FIELD_NAME) {
+        assertCleanName(trimmed);
+        assertUserRoomName(trimmed);
+      }
       if (field === FIELD_DESCRIPTION) assertCleanText(trimmed);
       proposed = trimmed;
     }

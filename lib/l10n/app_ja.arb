@@ -273,6 +273,7 @@
   "roomInfoScreenEndConversationPeerFallback": "相手",
   "roomInfoScreenConfirmCancelButton": "キャンセル",
   "roomInfoScreenErrorRoomExists": "その名前のルームはすでに存在します",
+  "roomNameReservedError": "ルーム名を dm: で始めることはできません",
   "roomInfoScreenErrorNotOwner": "オーナーのみ操作できます",
   "roomInfoScreenErrorNotAuthorized": "権限がありません",
   "roomInfoScreenErrorRoomNotFound": "このルームはもうありません",

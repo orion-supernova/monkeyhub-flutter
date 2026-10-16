@@ -1400,13 +1400,22 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   const armed = viewOnce === true && mediaStorageId !== undefined;
   let viewOnceFields: Record<string, any> = {};
   if (armed) {
-    const recipients = (await roster()).filter(
+    const others = (await roster()).filter(
       (m: any) => m.userId.toString() !== userId.toString()
     ).length;
+    // Saved Messages has nobody to receive it, so the sender stands in as the
+    // one recipient: they get the single open a recipient would, and the burn
+    // follows it as usual. Both halves of the test matter. The name is the
+    // canonical marker (`rooms.ensureSavedMessagesRoom`) and must be THIS
+    // sender's; the empty roster keeps a squatted `dm:self:` name with real
+    // members in it on the ordinary path, where the sender cannot open.
+    const self =
+      others === 0 && room?.name === `dm:self:${userId.toString()}`;
     viewOnceFields = {
       viewOnce: true,
       viewOnceLive: true,
-      viewOnceRecipients: recipients,
+      viewOnceRecipients: self ? 1 : others,
+      ...(self ? { viewOnceSelf: true } : {}),
       viewOnceViewCount: 0,
       viewOnceDeadline: Date.now() + VIEW_ONCE_DEADLINE_MS,
     };
@@ -1617,7 +1626,8 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     );
     // A room with exactly one member has no recipients at all, so the
     // "everyone has seen it" condition is already true on arrival. Without
-    // this the blob would idle for the full deadline.
+    // this the blob would idle for the full deadline. Saved Messages never
+    // lands here: its sender is counted as the recipient (see above).
     if ((viewOnceFields.viewOnceRecipients ?? 0) === 0) {
       await ctx.scheduler.runAfter(
         VIEW_ONCE_BURN_GRACE_MS,
@@ -3110,7 +3120,17 @@ export const openViewOnce = mutation({
     // argument — and a message's sender id is visible to everyone who receives
     // it. A "the sender may always look again" branch is therefore an oracle
     // any recipient can drive: pass the sender's id, get unlimited views.
-    if (msg.userId.toString() === userId.toString()) return { gone: true };
+    //
+    // The one exception is Saved Messages, where `send` counted the sender as
+    // the single recipient (`viewOnceSelf`). That is not a reopen path: the
+    // sender goes through the same ledger as any recipient below, so they get
+    // exactly one open and the burn follows it.
+    if (
+      msg.userId.toString() === userId.toString() &&
+      msg.viewOnceSelf !== true
+    ) {
+      return { gone: true };
+    }
 
     const now = Date.now();
     const existing = await ctx.db
@@ -3314,9 +3334,11 @@ export const recountViewOnceRecipients = internalMutation({
 
     for (const msg of recent) {
       if (msg.viewOnce !== true || !msg.mediaStorageId) continue;
-      const recipients = roster.filter(
-        (m) => m.userId.toString() !== msg.userId.toString()
-      ).length;
+      // A Saved Messages row keeps its sender as a recipient, or this would
+      // recount it to zero and burn it before they ever opened it.
+      const recipients =
+        roster.filter((m) => m.userId.toString() !== msg.userId.toString())
+          .length + (msg.viewOnceSelf === true ? 1 : 0);
       // Only count views from people who are still here — a departed member's
       // row would otherwise keep inflating the tally.
       const rows = await ctx.db

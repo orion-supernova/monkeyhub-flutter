@@ -283,6 +283,7 @@
   "roomInfoScreenEndConversationPeerFallback": "La otra persona",
   "roomInfoScreenConfirmCancelButton": "CANCELAR",
   "roomInfoScreenErrorRoomExists": "Ya existe una sala con ese nombre",
+  "roomNameReservedError": "Los nombres de sala no pueden empezar por dm:",
   "roomInfoScreenErrorNotOwner": "Solo el dueño puede hacer eso",
   "roomInfoScreenErrorNotAuthorized": "No tienes permiso",
   "roomInfoScreenErrorRoomNotFound": "Esta sala ya no existe",

@@ -799,44 +799,80 @@ class _ViewOncePainter extends _GridPainter {
       old.color != color || old.knockout != knockout || old.on != on;
 }
 
-/// A small solid flame for the play-once tooltip. [flicker] is a phase the
-/// caller advances; the tip leans and the body breathes with it.
+/// A solid flame for the play-once tooltip, alive: [flicker] is a phase the
+/// caller advances, and the tip leans and stretches with it while an inner
+/// core (drawn in [core], usually the colour behind the flame, so it reads as
+/// a cut-out) dances on its own rhythm. [ignite] 0..1 grows it from a spark:
+/// it shoots up stretched and settles.
 class FlameGlyph extends StatelessWidget {
-  const FlameGlyph({super.key, required this.color, this.flicker = 0, this.size = 20});
+  const FlameGlyph({
+    super.key,
+    required this.color,
+    this.core,
+    this.flicker = 0,
+    this.ignite = 1,
+    this.size = 20,
+  });
 
   final Color color;
+  final Color? core;
   final double flicker;
+  final double ignite;
   final double size;
 
   @override
   Widget build(BuildContext context) =>
-      _Glyph(size: size, painter: _FlamePainter(color, flicker));
+      _Glyph(size: size, painter: _FlamePainter(color, core, flicker, ignite));
 }
 
 class _FlamePainter extends _GridPainter {
-  const _FlamePainter(super.color, this.flicker);
+  const _FlamePainter(super.color, this.core, this.flicker, this.ignite);
 
+  final Color? core;
   final double flicker;
+  final double ignite;
 
-  @override
-  void draw(Canvas canvas, Paint line, Paint fill) {
-    final lean = 1.1 * math.sin(flicker * 2 * math.pi);
-    final breathe = 0.4 * math.sin(flicker * 4 * math.pi + 0.8);
-    final tip = Offset(12 + lean, 2.8 - breathe);
-    canvas.drawPath(
-      Path()
-        ..moveTo(tip.dx, tip.dy)
-        ..cubicTo(13.6 + lean * 0.5, 6.6, 18.2, 8.6, 18.2, 14.1)
-        ..cubicTo(18.2, 18.1, 15.4, 21.1, 12, 21.1)
-        ..cubicTo(8.6, 21.1, 5.8, 18.1, 5.8, 14.1)
-        ..cubicTo(5.8, 11.1, 7.8, 9.1, 8.9, 7.6)
-        ..cubicTo(9.2, 9.6, 10.2, 10.7, 11.2, 10.9)
-        ..cubicTo(10.9, 8.1, 11.2, 5.5, tip.dx, tip.dy)
-        ..close(),
-      fill,
-    );
+  Path _flame(double cx, double base, double width, double height, double lean, double curl) {
+    final tip = Offset(cx + lean, base - height);
+    final w = width / 2;
+    return Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..cubicTo(cx + w * 0.35 + lean * 0.6, base - height * 0.66, cx + w, base - height * 0.55, cx + w, base - height * 0.3)
+      ..cubicTo(cx + w, base - height * 0.08, cx + w * 0.55, base, cx, base)
+      ..cubicTo(cx - w * 0.55, base, cx - w, base - height * 0.08, cx - w, base - height * 0.3)
+      ..cubicTo(cx - w, base - height * 0.5, cx - w * 0.7 + curl, base - height * 0.62, cx - w * 0.45 + curl, base - height * 0.74)
+      ..cubicTo(cx - w * 0.3, base - height * 0.6, cx - w * 0.12, base - height * 0.56, cx, base - height * 0.58)
+      ..cubicTo(cx - w * 0.08, base - height * 0.75, tip.dx - 0.4, tip.dy + height * 0.12, tip.dx, tip.dy)
+      ..close();
   }
 
   @override
-  bool shouldRepaint(_FlamePainter old) => old.color != color || old.flicker != flicker;
+  void draw(Canvas canvas, Paint line, Paint fill) {
+    final p = flicker * 2 * math.pi;
+    final g = Curves.easeOutBack.transform(ignite.clamp(0.0, 1.0));
+    // Lit, it stretches tall and thin before it settles to its shape.
+    final stretch = 1 + 0.35 * (1 - ignite.clamp(0.0, 1.0));
+    final lean = 1.3 * math.sin(p) + 0.5 * math.sin(p * 2.7 + 1.1);
+    final breathe = 0.9 * math.sin(p * 1.9 + 0.6);
+    final curl = 0.6 * math.sin(p * 1.4 + 2.0);
+    canvas.save();
+    canvas.translate(12, 21.4);
+    canvas.scale(g / math.sqrt(stretch), g * stretch);
+    canvas.translate(-12, -21.4);
+    canvas.drawPath(_flame(12, 21.4, 12.6 + 0.5 * math.sin(p * 2.3), 18.6 + breathe, lean, curl), fill);
+    final c = core;
+    if (c != null) {
+      // The heart of it: smaller, lower, on its own faster beat.
+      final q = p * 1.7 + 0.9;
+      canvas.drawPath(
+        _flame(12 + 0.3 * math.sin(q), 20.2, 5.6 + 0.6 * math.sin(q * 1.3), 8.2 + 1.1 * math.sin(q), 0.9 * math.sin(q * 0.8), 0.3 * math.sin(q)),
+        Paint()..color = c,
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_FlamePainter old) =>
+      old.color != color || old.core != core || old.flicker != flicker || old.ignite != ignite;
 }

@@ -273,6 +273,7 @@
   "roomInfoScreenEndConversationPeerFallback": "对方",
   "roomInfoScreenConfirmCancelButton": "取消",
   "roomInfoScreenErrorRoomExists": "已经有同名房间了",
+  "roomNameReservedError": "房间名称不能以 dm: 开头",
   "roomInfoScreenErrorNotOwner": "只有房主才能这么做",
   "roomInfoScreenErrorNotAuthorized": "你没有权限",
   "roomInfoScreenErrorRoomNotFound": "这个房间已经不存在了",

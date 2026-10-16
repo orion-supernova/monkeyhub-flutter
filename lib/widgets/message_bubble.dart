@@ -1822,6 +1822,7 @@ Widget buildMessageContent({
               durationMs: message.mediaDurationMs,
               opened: message.viewOnceOpened,
               burned: message.viewOnceBurned,
+              selfChat: message.viewOnceSelf,
               surface: speakerFill ?? authoredFill,
               onOpen: onOpenViewOnce,
             )
@@ -2045,6 +2046,7 @@ Widget buildMessageContent({
           durationMs: message.mediaDurationMs,
           opened: message.viewOnceOpened,
           burned: message.viewOnceBurned,
+          selfChat: message.viewOnceSelf,
           diameter: noteSize,
           onOpen: onOpenViewOnce,
         );
@@ -2521,12 +2523,12 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
     if (_failed) return l10n.messageBubbleAttachmentStatusFailed;
     if (_sending) return l10n.messageBubbleAttachmentStatusSending;
     if (m.viewOnceBurned) {
-      return m.viewOnceOpened || widget.isMine
+      return m.viewOnceOpened || _sendersCopy
           ? l10n.messageBubbleViewOnceOpened
           : l10n.messageBubbleViewOnceExpired;
     }
     if (m.viewOnceOpened) return l10n.messageBubbleViewOnceOpened;
-    if (widget.isMine) return l10n.messageBubbleViewOnceLabel;
+    if (_sendersCopy) return l10n.messageBubbleViewOnceLabel;
     return l10n.messageBubbleViewOnceTapToView;
   }
 
@@ -2538,7 +2540,12 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
       !_outbound &&
       (widget.message.viewOnceBurned ||
           widget.message.viewOnceOpened ||
-          widget.isMine);
+          _sendersCopy);
+
+  /// The sender's own copy, spent from the start — except in Saved Messages,
+  /// where the sender is the one recipient (see [ChatMessage.viewOnceSelf]).
+  bool get _sendersCopy =>
+      widget.message.viewOnceSendersCopy(isMine: widget.isMine);
 
   /// What sits above the "Photo" label: the wax seal, or whatever has replaced it
   /// for the moment.

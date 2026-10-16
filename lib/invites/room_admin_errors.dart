@@ -72,6 +72,7 @@ Map<String, String> roomAdminErrorMessages(AppLocalizations l10n) => {
       // neither was in this map before.
       'ROOM_NAME_REQUIRED': l10n.roomChangeErrorMissingValue,
       'ROOM_EXISTS': l10n.roomInfoScreenErrorRoomExists,
+      'ROOM_NAME_RESERVED': l10n.roomNameReservedError,
       // `contentFilter.assertCleanName`, on a suggested name or description.
       'NAME_INAPPROPRIATE': l10n.nameInappropriate,
 

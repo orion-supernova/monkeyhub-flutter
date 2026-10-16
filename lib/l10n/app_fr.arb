@@ -283,6 +283,7 @@
   "roomInfoScreenEndConversationPeerFallback": "L'autre personne",
   "roomInfoScreenConfirmCancelButton": "ANNULER",
   "roomInfoScreenErrorRoomExists": "Un salon avec ce nom existe déjà",
+  "roomNameReservedError": "Un nom de salon ne peut pas commencer par dm:",
   "roomInfoScreenErrorNotOwner": "Seul le propriétaire peut faire ça",
   "roomInfoScreenErrorNotAuthorized": "Tu n'as pas la permission",
   "roomInfoScreenErrorRoomNotFound": "Ce salon a disparu",

@@ -163,6 +163,12 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
     super.initState();
     widget.level?.addListener(_onLevel);
     if (widget.active) _enter();
+    // Built already locked (a recording that started hands-free): the lock
+    // was never seen to latch, so treat it as latched and released now.
+    if (widget.active && widget.locked) {
+      _lockedAt = 0;
+      _releasedAt = widget.holding ? null : 0;
+    }
   }
 
   @override
@@ -189,6 +195,13 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       _pill.retarget(1, response: 0.24, ratio: 0.8);
     }
     if (widget.locked && old.holding && !widget.holding) _releasedAt ??= _clock;
+    // Paused, the disc settles back to a plain send button the size of the
+    // one it grew from, leaving the strip its width for the review; resumed,
+    // it blooms again.
+    if (widget.active && widget.paused != old.paused) {
+      _scale.retarget(widget.paused ? 44 / CaptureBloom.disc : 1, response: 0.3, ratio: widget.paused ? 0.9 : 0.6);
+      if (_calm) _scale.snap(_scale.target);
+    }
     if (widget.viewOnce != old.viewOnce) {
       _once.retarget(widget.viewOnce ? 1 : 0, ratio: widget.viewOnce ? 0.5 : 1);
       _tipAt = widget.viewOnce ? _clock : null;
@@ -305,7 +318,7 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       }
     }
     if (_kickAt != null && _clock - _kickAt! > 0.24) _kickAt = null;
-    if (_tipAt != null && _clock - _tipAt! > 2.8) _tipAt = null;
+    if (_tipAt != null && _clock - _tipAt! > 2.9) _tipAt = null;
 
     for (final s in [_scale, _fade, _dx, _dy, _level, _morph, _pill, _controls, _once]) {
       s.tick(dt);
@@ -383,8 +396,11 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
     final kick = kickAt == null
         ? 0.0
         : math.sin(math.pi * Curves.easeOut.transform(((_clock - kickAt) / 0.24).clamp(0.0, 1.0)));
-    final glyphSize = 28 * (d / CaptureBloom.disc).clamp(0.4, 1.2);
-    final glyphIn = ((_scale.value - 0.46) / 0.54).clamp(0.0, 1.0);
+    // Never smaller than a send button's arrow, even on the 44pt disc a
+    // paused recording settles to.
+    final glyphSize = math.max(18.0, 28 * (d / CaptureBloom.disc).clamp(0.4, 1.2));
+    // Fades in with the bloom's entrance only; a paused (small) disc keeps it.
+    final glyphIn = widget.paused || _morph.value > 0 ? 1.0 : ((_scale.value - 0.46) / 0.54).clamp(0.0, 1.0);
 
     Widget glyph;
     if (widget.video && m == 0) {
@@ -588,46 +604,62 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
   }
 
   /// "They can listen to it only once", beside the play-once disc, with a
-  /// flickering flame: in for a beat, out by itself.
+  /// living flame: the bubble pops out of the "1" with an overshoot, the
+  /// flame ignites from a spark and keeps dancing, and the whole thing goes by
+  /// itself after a few seconds.
   Widget _onceTip(AppTheme theme, double y, double age) {
-    final inT = Curves.easeOutCubic.transform((age / 0.22).clamp(0.0, 1.0));
-    final outT = ((age - 2.4) / 0.4).clamp(0.0, 1.0);
-    final t = inT * (1 - outT);
-    final right = CaptureBloom.boxSize.width - (CaptureBloom.center.dx - 20 - 10);
+    const bg = Color(0xF0101012);
+    final pop = Curves.easeOutBack.transform((age / 0.34).clamp(0.0, 1.0));
+    final outT = Curves.easeIn.transform(((age - 2.5) / 0.3).clamp(0.0, 1.0));
+    final ignite = ((age - 0.08) / 0.5).clamp(0.0, 1.0);
+    final right = CaptureBloom.boxSize.width - (CaptureBloom.center.dx - 20 - 12);
     return Positioned(
-      right: right - (1 - t) * 12,
-      top: y - 20,
-      height: 40,
+      right: right,
+      top: y - 26,
+      height: 52,
       child: IgnorePointer(
         child: Opacity(
-          opacity: t,
-          child: DecoratedBox(
-            decoration: ShapeDecoration(
-              color: const Color(0xE6000000),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FlameGlyph(color: Colors.white, flicker: _clock / 0.9, size: 16),
-                  const SizedBox(width: 8),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    child: Text(
-                      widget.viewOnceHint,
-                      maxLines: 2,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        height: 1.2,
-                        decoration: TextDecoration.none,
+          opacity: (1 - outT) * (pop.clamp(0.0, 1.0)),
+          child: Transform.scale(
+            // Grows out of the button it belongs to.
+            alignment: Alignment.centerRight,
+            scale: (0.55 + 0.45 * pop) * (1 - 0.15 * outT),
+            child: DecoratedBox(
+              decoration: ShapeDecoration(
+                color: bg,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                shadows: const [BoxShadow(color: Color(0x66000000), blurRadius: 16, offset: Offset(0, 4))],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FlameGlyph(
+                      color: Colors.white,
+                      core: bg,
+                      flicker: _clock / 0.7,
+                      ignite: ignite,
+                      size: 30,
+                    ),
+                    const SizedBox(width: 10),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 210),
+                      child: Text(
+                        widget.viewOnceHint,
+                        maxLines: 2,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                          letterSpacing: -0.2,
+                          decoration: TextDecoration.none,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

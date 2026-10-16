@@ -970,6 +970,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomInfoScreenErrorRoomExists => 'توجد غرفة بهذا الاسم بالفعل';
 
   @override
+  String get roomNameReservedError => 'لا يمكن أن يبدأ اسم الغرفة بـ dm:';
+
+  @override
   String get roomInfoScreenErrorNotOwner => 'المالك فقط يمكنه فعل ذلك';
 
   @override

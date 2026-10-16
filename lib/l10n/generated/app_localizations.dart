@@ -1755,6 +1755,12 @@ abstract class AppLocalizations {
   /// **'A room with that name already exists'**
   String get roomInfoScreenErrorRoomExists;
 
+  /// Error when someone names (or renames) a room with the dm: prefix, which the app reserves for direct chats and Saved Messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Room names can\'t start with dm:'**
+  String get roomNameReservedError;
+
   /// Error message shown when a non-owner attempts an owner-only action (server NOT_OWNER error).
   ///
   /// In en, this message translates to:

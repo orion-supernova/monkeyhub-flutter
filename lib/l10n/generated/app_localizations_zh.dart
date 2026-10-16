@@ -894,6 +894,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoScreenErrorRoomExists => '已经有同名房间了';
 
   @override
+  String get roomNameReservedError => '房间名称不能以 dm: 开头';
+
+  @override
   String get roomInfoScreenErrorNotOwner => '只有房主才能这么做';
 
   @override
