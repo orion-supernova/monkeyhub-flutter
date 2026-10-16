@@ -13933,4 +13933,22 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get limitRequestMessages =>
       'İsteğini kabul edene kadar daha fazla gönderemezsin.';
+
+  @override
+  String get mediaSendViewOnceTip => 'Yalnızca bir kez açabilir';
+
+  @override
+  String get mediaSendSpoilerTip => 'Dokunana kadar tozun altında gizli';
+
+  @override
+  String get mediaSendSpoilerNote => 'Dokununca görünür';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'Spoiler: açık';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'Spoiler: kapalı';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Göstermek için dokun';
 }

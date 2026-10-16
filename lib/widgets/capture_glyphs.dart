@@ -876,3 +876,264 @@ class _FlamePainter extends _GridPainter {
   bool shouldRepaint(_FlamePainter old) =>
       old.color != color || old.core != core || old.flicker != flicker || old.ignite != ignite;
 }
+
+// ---------------------------------------------------------------------------
+// Send toggles: spoiler, HD, pen
+
+/// [path] drawn on from its start up to [t] of its length. 1 is the whole
+/// path, 0 nothing.
+Path _traced(Path path, double t) {
+  if (t >= 1) return path;
+  final out = Path();
+  if (t <= 0) return out;
+  for (final m in path.computeMetrics()) {
+    out.addPath(m.extractPath(0, m.length * t), Offset.zero);
+  }
+  return out;
+}
+
+/// The spoiler toggle: an eye. Off ([on] 0) it is open, pupil and all: they
+/// will see it. Turning on closes it, the upper lid folding down onto the
+/// lower one and the pupil shrinking away, lashes drop under the shut lid,
+/// and dust rises over it: a few specks and one sparkle. [burst] is a
+/// one-off kick run 0 → 1 as it turns on: the dust puffs out and settles.
+class SpoilerGlyph extends StatelessWidget {
+  const SpoilerGlyph({
+    super.key,
+    required this.color,
+    this.on = 0,
+    this.burst = 0,
+    this.size = 20,
+  });
+
+  final Color color;
+  final double on;
+  final double burst;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      _Glyph(size: size, painter: _SpoilerPainter(color, on, burst));
+}
+
+class _SpoilerPainter extends _GridPainter {
+  const _SpoilerPainter(super.color, this.on, this.burst);
+
+  final double on;
+  final double burst;
+
+  @override
+  void draw(Canvas canvas, Paint line, Paint fill) {
+    final t = on.clamp(0.0, 1.0);
+    final shut = Curves.easeInOut.transform(t);
+    // The eye settles lower as it shuts, making room for the dust above.
+    final dy = 3.2 * shut;
+    const left = 2.6;
+    const right = 21.4;
+    final mid = 12.0 + dy;
+    // Lower lid, and the upper lid folding down onto it.
+    final lowerY = 19.0 + dy * 0.6;
+    final upperY = lerpDouble(4.6, lowerY - 0.4, shut)!;
+    canvas.drawPath(
+      Path()
+        ..moveTo(left, mid)
+        ..quadraticBezierTo(12, upperY, right, mid),
+      line,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(left, mid)
+        ..quadraticBezierTo(12, lowerY, right, mid),
+      line,
+    );
+    // The pupil, gone by the time the lid meets it.
+    final pupil = 3.3 * (1 - _span(t, 0, 0.6));
+    if (pupil > 0.05) canvas.drawCircle(Offset(12, mid), pupil, line);
+    // Lashes, under the shut lid: points on the lid's own curve, dropping.
+    final lash = _span(t, 0.55, 1);
+    if (lash > 0) {
+      final lashPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = line.strokeWidth * 0.8
+        ..strokeCap = StrokeCap.round;
+      for (final u in const [0.27, 0.5, 0.73]) {
+        // On the quadratic from (left, mid) via (12, lowerY) to (right, mid).
+        final a = 1 - u;
+        final x = a * a * left + 2 * a * u * 12 + u * u * right;
+        final y = a * a * mid + 2 * a * u * lowerY + u * u * mid;
+        final lean = (u - 0.5) * 1.6;
+        canvas.drawLine(
+          Offset(x, y + 0.6),
+          Offset(x + lean * lash, y + 0.6 + 2.4 * lash),
+          lashPaint,
+        );
+      }
+    }
+    // The dust: it rises with the lid and puffs out on the kick.
+    final dust = Curves.easeOutBack.transform(_span(t, 0.3, 1));
+    if (dust <= 0) return;
+    final puff = burst <= 0
+        ? 0.0
+        : math.sin(math.pi * Curves.easeOut.transform(burst.clamp(0.0, 1.0)));
+    const centre = Offset(12, 10);
+    const specks = [
+      (Offset(5.2, 7.4), 1.15),
+      (Offset(9.6, 3.6), 0.95),
+      (Offset(14.4, 6.6), 1.2),
+      (Offset(7.6, 11.2), 0.8),
+    ];
+    for (final (p, r) in specks) {
+      final out = p + (p - centre) * (0.35 * puff);
+      final lifted = Offset(out.dx, out.dy + 3 * (1 - dust));
+      canvas.drawCircle(lifted, r * dust, fill..color = color);
+    }
+    // One sparkle: a four-point star, the dust's light.
+    final s = Offset(18.6, 4.8) + const Offset(1.2, -1.2) * puff;
+    final arm = 3.0 * dust * (1 + 0.25 * puff);
+    final star = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = line.strokeWidth * 0.75
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(s.translate(0, -arm), s.translate(0, arm), star);
+    canvas.drawLine(s.translate(-arm * 0.8, 0), s.translate(arm * 0.8, 0), star);
+  }
+
+  @override
+  bool shouldRepaint(_SpoilerPainter old) =>
+      old.color != color || old.on != on || old.burst != burst;
+}
+
+/// The HD toggle: the letters, drawn. Turning on traces a badge frame round
+/// them, starting at the top-left corner, and [kick] (a one-off 0 → 1)
+/// swells the badge once as the frame closes. Off, the frame is gone and
+/// the caller dims the ink.
+class HdGlyph extends StatelessWidget {
+  const HdGlyph({
+    super.key,
+    required this.color,
+    this.on = 0,
+    this.kick = 0,
+    this.size = 20,
+  });
+
+  final Color color;
+  final double on;
+  final double kick;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      _Glyph(size: size, painter: _HdPainter(color, on, kick));
+}
+
+class _HdPainter extends _GridPainter {
+  const _HdPainter(super.color, this.on, this.kick);
+
+  final double on;
+  final double kick;
+
+  @override
+  void draw(Canvas canvas, Paint line, Paint fill) {
+    final swell = kick <= 0
+        ? 0.0
+        : math.sin(math.pi * Curves.easeOut.transform(kick.clamp(0.0, 1.0)));
+    canvas.translate(12, 12);
+    canvas.scale(1 + 0.14 * swell);
+    canvas.translate(-12, -12);
+    // The letters sit a size in from the frame, so a traced badge has air.
+    canvas.save();
+    canvas.translate(12, 12);
+    canvas.scale(0.84);
+    canvas.translate(-12.4, -12);
+    final letters = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = line.strokeWidth * 0.9
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(
+      Path()
+        ..moveTo(6.2, 8.2)
+        ..lineTo(6.2, 15.8)
+        ..moveTo(11.0, 8.2)
+        ..lineTo(11.0, 15.8)
+        ..moveTo(6.2, 12)
+        ..lineTo(11.0, 12)
+        ..moveTo(13.8, 8.2)
+        ..lineTo(15.4, 8.2)
+        ..cubicTo(19.6, 8.2, 19.6, 15.8, 15.4, 15.8)
+        ..lineTo(13.8, 15.8)
+        ..close(),
+      letters,
+    );
+    canvas.restore();
+    final t = Curves.easeOut.transform(on.clamp(0.0, 1.0));
+    if (t <= 0) return;
+    final frame = Path()
+      ..addRRect(RRect.fromLTRBR(2.4, 4.6, 21.6, 19.4, const Radius.circular(4)));
+    canvas.drawPath(_traced(frame, t), line);
+  }
+
+  @override
+  bool shouldRepaint(_HdPainter old) =>
+      old.color != color || old.on != on || old.kick != kick;
+}
+
+/// The pen toggle: a pencil. Turning it on lifts the pencil and draws a
+/// squiggle under its tip, the stroke it is about to make; off, the line
+/// is gone and the pencil rests.
+class PenGlyph extends StatelessWidget {
+  const PenGlyph({
+    super.key,
+    required this.color,
+    this.on = 0,
+    this.size = 20,
+  });
+
+  final Color color;
+  final double on;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      _Glyph(size: size, painter: _PenPainter(color, on));
+}
+
+class _PenPainter extends _GridPainter {
+  const _PenPainter(super.color, this.on);
+
+  final double on;
+
+  @override
+  void draw(Canvas canvas, Paint line, Paint fill) {
+    final t = on.clamp(0.0, 1.0);
+    final lift = Curves.easeOutBack.transform(t);
+    canvas.save();
+    canvas.translate(1.2 * lift, -3.0 * lift);
+    // The pencil along the diagonal: body, ferrule line, tip.
+    const tip = Offset(4.6, 19.4);
+    const back = Offset(19.4, 4.6);
+    const across = Offset(1.9, 1.9);
+    final body = Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(8.2 - 0.6, 13.0 - 0.6)
+      ..lineTo(back.dx - across.dx, back.dy - across.dy)
+      ..lineTo(back.dx + across.dx, back.dy + across.dy)
+      ..lineTo(11.0 + 0.6, 16.4 + 0.6)
+      ..close();
+    canvas.drawPath(body, line);
+    canvas.drawLine(const Offset(15.6, 5.4), const Offset(18.6, 8.4), line);
+    canvas.restore();
+    if (t <= 0) return;
+    final squiggle = Path()
+      ..moveTo(3.2, 21.2)
+      ..cubicTo(6.2, 18.6, 8.4, 23.4, 11.4, 20.9)
+      ..cubicTo(13.6, 19.1, 15.6, 22.6, 18.2, 20.6);
+    canvas.drawPath(_traced(squiggle, Curves.easeOut.transform(t)), line);
+  }
+
+  @override
+  bool shouldRepaint(_PenPainter old) => old.color != color || old.on != on;
+}

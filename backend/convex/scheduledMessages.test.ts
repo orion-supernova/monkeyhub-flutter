@@ -210,3 +210,36 @@ describe("scheduled photos", () => {
     ).rejects.toThrow("SCHEDULE_EMPTY");
   });
 });
+
+describe("scheduled spoiler photos", () => {
+  test("a scheduled spoiler photo is released as a spoiler", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "sender");
+    const roomId = await makeRoom(t, me);
+    const id = await t.mutation(api.scheduledMessages.schedule, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      roomId,
+      content: "",
+      delayMs: 60 * 60 * 1000,
+      type: "image",
+      mediaStorageId: await upload(t),
+      mediaSpoiler: true,
+      clientId: "sch_spoiler",
+    } as any);
+    const row = await rowOf(t, id);
+    expect(row.mediaSpoiler).toBe(true);
+
+    await t.mutation(internal.scheduledMessages.release, {
+      id,
+      expectSendAt: row.sendAt,
+    });
+    const sent = await t.run(async (ctx: any) =>
+      (await ctx.db.query("messages").collect()).filter(
+        (m: any) => m.type === "image"
+      )
+    );
+    expect(sent).toHaveLength(1);
+    expect(sent[0].mediaSpoiler).toBe(true);
+  });
+});

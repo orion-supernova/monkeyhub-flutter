@@ -8,6 +8,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/capture_shield.dart';
 import '../widgets/dust_dissolve.dart';
 import '../widgets/liquid_glass.dart';
+import '../widgets/media_spoiler.dart';
 import '../l10n/text_case.dart';
 import '../widgets/viewer_chrome.dart';
 
@@ -39,9 +40,19 @@ import '../widgets/viewer_chrome.dart';
 /// opened underneath ([onBurn]). Leaving the app, and Reduce Motion, skip the
 /// burn and close at once.
 class ViewOnceViewer extends StatefulWidget {
-  const ViewOnceViewer({super.key, required this.bytes, this.onBurn});
+  const ViewOnceViewer({
+    super.key,
+    required this.bytes,
+    this.onBurn,
+    this.spoiler = false,
+  });
 
   final Uint8List bytes;
+
+  /// Also sent as a spoiler. View once's rules stand (one look, the burn);
+  /// the spoiler only dresses that look: it opens under dust and a tap
+  /// clears it, so the one look still starts with a choice.
+  final bool spoiler;
 
   /// The look is over and the picture has started to burn: the tile it was
   /// opened from can show itself spent now, under the dust.
@@ -54,13 +65,15 @@ class ViewOnceViewer extends StatefulWidget {
     BuildContext context, {
     required Uint8List bytes,
     VoidCallback? onBurn,
+    bool spoiler = false,
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder<void>(
         opaque: false,
         transitionDuration: const Duration(milliseconds: 180),
         reverseTransitionDuration: const Duration(milliseconds: 150),
-        pageBuilder: (_, _, _) => ViewOnceViewer(bytes: bytes, onBurn: onBurn),
+        pageBuilder: (_, _, _) =>
+            ViewOnceViewer(bytes: bytes, onBurn: onBurn, spoiler: spoiler),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
       ),
@@ -142,6 +155,22 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
 
   bool get _zoomed => _xform.value.getMaxScaleOnAxis() > 1.05;
 
+  /// Whether the chrome is showing. A tap on the picture toggles it, as it
+  /// does in the gallery, so nothing has to sit over the one look.
+  bool _chrome = true;
+
+  /// The chrome is mid-fade: its glass draws blur-free until it settles,
+  /// because a `BackdropFilter` is never animated.
+  bool _fading = false;
+
+  void _toggleChrome() {
+    if (_closing) return;
+    setState(() {
+      _chrome = !_chrome;
+      _fading = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Material + DefaultTextStyle so nothing here can fall back to Flutter's
@@ -177,6 +206,7 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                 behavior: HitTestBehavior.opaque,
                 // Only when un-zoomed: while zoomed the vertical drag belongs
                 // to the pan, not to dismissal.
+                onTap: _toggleChrome,
                 onVerticalDragEnd: (d) {
                   if (_zoomed || _closing) return;
                   if (d.velocity.pixelsPerSecond.dy.abs() > 300) _close();
@@ -191,10 +221,13 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                     child: DustDissolve(
                       active: _burning,
                       onDone: _burnt,
-                      child: Image.memory(
-                        widget.bytes,
-                        fit: BoxFit.contain,
-                        gaplessPlayback: true,
+                      child: MediaSpoilerCover(
+                        sealed: widget.spoiler,
+                        child: Image.memory(
+                          widget.bytes,
+                          fit: BoxFit.contain,
+                          gaplessPlayback: true,
+                        ),
                       ),
                     ),
                   ),
@@ -207,10 +240,27 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
                 child: FadeTransition(
                   opacity: _shown,
                   child: IgnorePointer(
-                    ignoring: _closing,
-                    child: ViewerTopBar(
-                      onClose: _close,
-                      center: const ViewOnceBadge(),
+                    // Hidden chrome that still swallowed taps would make the
+                    // tap that hid it impossible to undo.
+                    ignoring: _closing || !_chrome,
+                    child: AnimatedOpacity(
+                      opacity: _chrome ? 1 : 0,
+                      // The gallery's tap-to-hide fade.
+                      duration: const Duration(milliseconds: 90),
+                      onEnd: () {
+                        if (mounted && _fading) {
+                          setState(() => _fading = false);
+                        }
+                      },
+                      child: ViewerTopBar(
+                        // A scrim over the picture, not a solid band: a
+                        // portrait shot fills the screen top to bottom, and
+                        // a band sat on its top edge.
+                        band: false,
+                        still: _fading || !_chrome || _burning,
+                        onClose: _close,
+                        center: const ViewOnceBadge(),
+                      ),
                     ),
                   ),
                 ),

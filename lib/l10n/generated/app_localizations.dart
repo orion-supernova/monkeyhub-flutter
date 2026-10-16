@@ -23334,6 +23334,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You can\'t send more until they accept your request.'**
   String get limitRequestMessages;
+
+  /// Tooltip that pops up the first time the sender arms view-once in the photo send preview. The recipient can open the photo a single time.
+  ///
+  /// In en, this message translates to:
+  /// **'They can open it only once'**
+  String get mediaSendViewOnceTip;
+
+  /// Tooltip that pops up the first time the sender arms the spoiler toggle in the photo send preview. A spoiler photo reaches recipients blurred under animated dust until they tap it.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden under dust until they tap'**
+  String get mediaSendSpoilerTip;
+
+  /// Short note shown above the photo send preview's controls while the spoiler toggle is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden until tapped'**
+  String get mediaSendSpoilerNote;
+
+  /// Accessibility label of the spoiler toggle in the photo send preview, when on. Match the style of "HD: on".
+  ///
+  /// In en, this message translates to:
+  /// **'Spoiler: on'**
+  String get mediaSendSpoilerOnSemanticLabel;
+
+  /// Accessibility label of the spoiler toggle in the photo send preview, when off. Match the style of "HD: off".
+  ///
+  /// In en, this message translates to:
+  /// **'Spoiler: off'**
+  String get mediaSendSpoilerOffSemanticLabel;
+
+  /// Accessibility label on a photo or video in a chat that was sent as a spoiler and is still covered by dust. Activating it reveals the picture.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoiler. Tap to reveal'**
+  String get mediaSpoilerRevealSemanticLabel;
 }
 
 class _AppLocalizationsDelegate

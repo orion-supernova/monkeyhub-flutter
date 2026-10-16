@@ -15,6 +15,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../models/expression_item.dart';
 import 'expressions/expression_media.dart';
+import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
@@ -615,7 +616,7 @@ Widget _mediaThumb({
   final hasMedia =
       preview.mediaStorageId != null && preview.mediaStorageId!.isNotEmpty;
   if (hasMedia) {
-    final image = ClipRRect(
+    Widget image = ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: RemoteImage(
         storageId: preview.mediaStorageId!,
@@ -625,6 +626,16 @@ Widget _mediaThumb({
         borderRadius: BorderRadius.circular(4),
       ),
     );
+    // A quote of a spoiler stays hidden: blurred, too small for dust.
+    if (preview.mediaSpoiler) {
+      image = MediaSpoilerCover(
+        interactive: false,
+        dust: false,
+        sigma: 3,
+        borderRadius: BorderRadius.circular(4),
+        child: image,
+      );
+    }
     return preview.albumCount == null
         ? image
         : albumStackThumb(theme: theme, size: size, child: image);

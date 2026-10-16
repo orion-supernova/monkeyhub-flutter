@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "名前または説明が長すぎます。名前は100文字未満、説明は500文字未満にしてください。",
   "limitNotYourFile": "このファイルは使用できません。もう一度選んでやり直してください。",
   "limitDeviceLoginBusy": "サインインコードが混み合っています。1分後にもう一度お試しください。",
-  "limitRequestMessages": "相手がリクエストを承認するまで、これ以上送信できません。"
+  "limitRequestMessages": "相手がリクエストを承認するまで、これ以上送信できません。",
+  "mediaSendViewOnceTip": "相手は1回だけ開けます",
+  "mediaSendSpoilerTip": "タップするまでチリの下に隠れます",
+  "mediaSendSpoilerNote": "タップするまで隠れます",
+  "mediaSendSpoilerOnSemanticLabel": "スポイラー: オン",
+  "mediaSendSpoilerOffSemanticLabel": "スポイラー: オフ",
+  "mediaSpoilerRevealSemanticLabel": "スポイラー。タップして表示"
 }

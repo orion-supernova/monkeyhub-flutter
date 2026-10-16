@@ -8,6 +8,7 @@ import 'package:monkeyhub/screens/camera_editor_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/widgets/media_send_switches.dart';
 
 /// The editor's chrome contract.
 ///
@@ -25,6 +26,12 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 /// work that never resolves under flutter_test's fake-async binding — see the
 /// note in image_crop_geometry_test.dart. The way around that is
 /// `tester.runAsync`, which image_mirror_test.dart uses to pin the selfie flip.
+
+/// One of the shared send switches, by kind: drawn glyphs, not icons.
+Finder _switch(SendSwitch kind) => find.byWidgetPredicate(
+      (w) => w is SendSwitchGlyph && w.kind == kind,
+    );
+
 void main() {
   /// A solid PNG for the screen to decode.
   ///
@@ -101,17 +108,17 @@ void main() {
   ) async {
     await settle(tester, host(photo));
 
-    expect(find.byIcon(CupertinoIcons.scribble), findsOneWidget);
+    expect(_switch(SendSwitch.pen), findsOneWidget);
     // The tray, and everything only reachable through it.
     expect(find.byIcon(CupertinoIcons.trash), findsNothing);
 
-    await tester.tap(find.byIcon(CupertinoIcons.scribble));
+    await tester.tap(_switch(SendSwitch.pen));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(CupertinoIcons.trash), findsOneWidget);
 
     // And it puts away again.
-    await tester.tap(find.byIcon(CupertinoIcons.scribble));
+    await tester.tap(_switch(SendSwitch.pen));
     await tester.pumpAndSettle();
     expect(find.byIcon(CupertinoIcons.trash), findsNothing);
   });
@@ -134,7 +141,7 @@ void main() {
       ),
     );
 
-    expect(find.byIcon(CupertinoIcons.scribble), findsNothing);
+    expect(_switch(SendSwitch.pen), findsNothing);
     expect(find.bySemanticsLabel('Send'), findsNothing);
     expect(find.text('Use photo'), findsOneWidget);
 
@@ -204,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
 
-    await tester.tap(find.byIcon(CupertinoIcons.scribble));
+    await tester.tap(_switch(SendSwitch.pen));
     await tester.pumpAndSettle();
 
     await tester.drag(
@@ -221,7 +228,7 @@ void main() {
     tester,
   ) async {
     await settle(tester, host(photo));
-    await tester.tap(find.byIcon(CupertinoIcons.scribble));
+    await tester.tap(_switch(SendSwitch.pen));
     await tester.pumpAndSettle();
 
     final undo = find.byIcon(CupertinoIcons.arrow_uturn_left);
@@ -422,7 +429,7 @@ void main() {
         tester,
         host(photo, draft: draft, allowCaptions: true, maxPhotos: 10),
       );
-      await tester.tap(find.text('1'));
+      await tester.tap(_switch(SendSwitch.viewOnce));
       await tester.pump();
 
       final field = tester.widget<TextField>(
@@ -444,7 +451,7 @@ void main() {
       await tester.enterText(find.byKey(cameraEditorCaptionKey), 'first');
       await tester.pump();
 
-      await tester.tap(find.text('1'));
+      await tester.tap(_switch(SendSwitch.viewOnce));
       await tester.pump();
       expect(captionText(tester), isEmpty);
       expect(find.text('No captions on view-once photos'), findsOneWidget);
@@ -453,7 +460,7 @@ void main() {
       );
       expect(field.focusNode!.hasFocus, isFalse);
 
-      await tester.tap(find.text('1'));
+      await tester.tap(_switch(SendSwitch.viewOnce));
       await tester.pump();
       expect(captionText(tester), 'first');
     });

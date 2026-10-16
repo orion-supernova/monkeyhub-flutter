@@ -47,6 +47,7 @@ bool reconcilesWith(ChatMessage live, ChatMessage pending) {
   if (live.senderId != pending.senderId) return false;
   if (live.type != pending.type) return false;
   if (live.viewOnce != pending.viewOnce) return false;
+  if (live.mediaSpoiler != pending.mediaSpoiler) return false;
 
   final liveId = live.mediaStorageId;
   final pendingId = pending.mediaStorageId;

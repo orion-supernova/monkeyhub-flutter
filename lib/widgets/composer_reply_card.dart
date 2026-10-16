@@ -9,6 +9,7 @@ import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
 import 'spring_press.dart';
 import 'expressions/expression_media.dart';
+import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'reply_indicator.dart' show albumStackThumb;
 import 'speaker_scope.dart';
@@ -185,7 +186,7 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: () {
-                        final image = ClipRRect(
+                        Widget image = ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: RemoteImage(
                             storageId: (m.type == MessageType.video
@@ -197,6 +198,16 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                             borderRadius: BorderRadius.circular(6),
                           ),
                         );
+                        // Replying to a spoiler does not show it either.
+                        if (m.mediaSpoiler) {
+                          image = MediaSpoilerCover(
+                            interactive: false,
+                            dust: false,
+                            sigma: 4,
+                            borderRadius: BorderRadius.circular(6),
+                            child: image,
+                          );
+                        }
                         return widget.albumCount == null
                             ? image
                             : albumStackThumb(

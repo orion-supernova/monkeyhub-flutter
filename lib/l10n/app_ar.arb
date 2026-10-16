@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "هذا الاسم أو الوصف طويل جدًا. اجعل الأسماء أقل من 100 حرف والأوصاف أقل من 500.",
   "limitNotYourFile": "لا يمكن استخدام هذا الملف. اختره مرة أخرى وأعد المحاولة.",
   "limitDeviceLoginBusy": "رموز تسجيل الدخول مشغولة الآن. حاول مرة أخرى بعد دقيقة.",
-  "limitRequestMessages": "لا يمكنك إرسال المزيد حتى يقبل طلبك."
+  "limitRequestMessages": "لا يمكنك إرسال المزيد حتى يقبل طلبك.",
+  "mediaSendViewOnceTip": "يمكنه فتحها مرة واحدة فقط",
+  "mediaSendSpoilerTip": "مخفية تحت الغبار حتى يلمسها",
+  "mediaSendSpoilerNote": "مخفية حتى اللمس",
+  "mediaSendSpoilerOnSemanticLabel": "سبويلر: مفعّل",
+  "mediaSendSpoilerOffSemanticLabel": "سبويلر: معطّل",
+  "mediaSpoilerRevealSemanticLabel": "سبويلر. المس للإظهار"
 }

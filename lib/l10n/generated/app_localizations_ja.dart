@@ -13363,4 +13363,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get limitRequestMessages => '相手がリクエストを承認するまで、これ以上送信できません。';
+
+  @override
+  String get mediaSendViewOnceTip => '相手は1回だけ開けます';
+
+  @override
+  String get mediaSendSpoilerTip => 'タップするまでチリの下に隠れます';
+
+  @override
+  String get mediaSendSpoilerNote => 'タップするまで隠れます';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'スポイラー: オン';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'スポイラー: オフ';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => 'スポイラー。タップして表示';
 }

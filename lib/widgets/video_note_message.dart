@@ -866,7 +866,13 @@ class ViewOnceVideoNote extends StatefulWidget {
     this.onOpen,
     this.playbackFactory,
     this.posterLoader,
+    this.seedKey,
   });
+
+  /// What seeds the disc's dust and colour field, when it is not
+  /// [messageId]: the bubble passes the send's client id, which the upload's
+  /// circle used too, so the sent circle carries on from it grain for grain.
+  final String? seedKey;
 
   /// Seeds the sealed disc's colour field, keys the focus's flight, and tells
   /// a recycled row it now shows a different note.
@@ -915,6 +921,18 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote> {
   static const _loadTimeout = Duration(seconds: 45);
 
   final GlobalKey _circleKey = GlobalKey();
+
+  /// The face (field, poster, dim, dust) under every state of the disc, kept
+  /// across sealed, sender's and played so a change between them animates
+  /// in place instead of rebuilding.
+  final GlobalKey _faceKey = GlobalKey();
+
+  String get _key => widget.seedKey ?? widget.messageId;
+  int get _seed => _key.hashCode;
+
+  /// Came up where the upload's circle (same seed) was showing a moment ago:
+  /// the words fade in where the progress ring was, rather than popping.
+  late final bool _carriedOn = SpoilerDust.wasShowing(_seed);
 
   /// Between the tap and the flight: the fetch, the staging, the load.
   bool _busy = false;
@@ -972,12 +990,22 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote> {
 
   Future<void> _loadPoster() async {
     final id = widget.posterStorageId;
-    _poster = id == null ? null : _MicroPosters.peek(id);
-    if (id == null || _poster != null) return;
+    final key = _key;
+    // By storage id, or failing that by the message: what the upload's
+    // circle drew (the very same sixteen pixels), or what this session
+    // decoded before the server deleted it on the burn.
+    _poster = (id == null ? null : _MicroPosters.peek(id)) ??
+        _MicroPosters.peekKey(key);
+    if (_poster != null) {
+      if (id != null) _MicroPosters.rememberId(id, _poster!);
+      return;
+    }
+    if (id == null) return;
     final bytes = await _MicroPosters.load(
       id,
       widget.posterLoader ?? _fetchPoster,
     );
+    if (bytes != null) _MicroPosters.rememberKey(key, bytes);
     if (!mounted || widget.posterStorageId != id || bytes == null) return;
     setState(() => _poster = bytes);
   }
@@ -1173,49 +1201,13 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // The fallback field always, the poster over it once decoded: a
-          // frame of transcript showing through a circle mid-decode would read
-          // as a hole.
-          ClipOval(
-            child: RepaintBoundary(
-              child: CustomPaint(
-                painter: _SealedNotePainter(
-                  seed: widget.messageId.hashCode,
-                  tint: theme.accent,
-                ),
-              ),
-            ),
-          ),
-          if (poster != null)
-            ClipOval(
-              // Sixteen pixels drawn up to the circle is already mush; the
-              // blur takes the last of the edges off it. Static, so the
-              // boundary rasterises it once.
-              child: RepaintBoundary(
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(
-                    sigmaX: 20,
-                    sigmaY: 20,
-                    tileMode: TileMode.mirror,
-                  ),
-                  child: Image.memory(
-                    poster,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.medium,
-                    gaplessPlayback: true,
-                  ),
-                ),
-              ),
-            ),
-          // A touch of dark so the white specks and the button read over a
-          // bright frame.
-          const ClipOval(child: ColoredBox(color: Color(0x33000000))),
-          // Telegram's spoiler over it: the shared field, kept to the
-          // circle without a clip, built only while the note is sealed.
-          SpoilerDust(
-            oval: true,
-            seed: widget.messageId.hashCode,
-            brightness: 1.35,
+          _OnceFace(
+            key: _faceKey,
+            seed: _seed,
+            tint: theme.accent,
+            poster: poster,
+            dust: true,
+            ghost: false,
           ),
           Center(
             child: SizedBox(
@@ -1301,10 +1293,11 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote> {
     );
   }
 
-  /// Played, expired, or the sender's own: the spent photo tile's treatment
-  /// in a circle. Sunken and flat, a hole where a note was, with the struck
-  /// seal and the one word that says why — nothing about it to catch the eye,
-  /// and no picture, not even the blurred one.
+  /// Played, expired, or the sender's own. One face with the sealed disc:
+  /// the same blurred stand-in (or colour field), so the circle keeps its
+  /// colour; dimmed to a ghost once the watch is spent, with the struck seal
+  /// and the one word that says why. The sender's copy, still unwatched, keeps
+  /// the dust: for everyone else it is still sealed.
   Widget _spentDisc(
     AppTheme theme,
     AppLocalizations l10n,
@@ -1312,44 +1305,58 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote> {
     Duration total,
   ) {
     final seal = (size * 0.26).clamp(36.0, 56.0);
-    final ink = theme.inkMuted;
+    final live = _sendersCopy && !widget.burned && !widget.opened && !_done;
+    final ink = live ? Colors.white : const Color(0xD9FFFFFF);
+    final words = Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: size * 0.14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ViewOnceSeal(color: ink, struck: !live, size: seal),
+            const SizedBox(height: 6),
+            Text(
+              _caption(l10n),
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: theme.body.copyWith(
+                fontSize: 13,
+                height: 1.15,
+                fontWeight: FontWeight.w600,
+                color: ink,
+                decoration: TextDecoration.none,
+                shadows: const [Shadow(color: Color(0x66000000), blurRadius: 6)],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
     return SizedBox(
       width: size,
       height: size,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.surfaceSunken,
-              shape: BoxShape.circle,
-              border: Border.all(color: theme.divider),
-            ),
+          _OnceFace(
+            key: _faceKey,
+            seed: _seed,
+            tint: theme.accent,
+            poster: _poster,
+            dust: live,
+            ghost: !live,
           ),
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: size * 0.14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ViewOnceSeal(color: ink, struck: true, size: seal),
-                  const SizedBox(height: 6),
-                  Text(
-                    _caption(l10n),
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: theme.body.copyWith(
-                      fontSize: 13,
-                      height: 1.15,
-                      fontWeight: FontWeight.w600,
-                      color: ink,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ],
-              ),
+          // Where the upload's ring was a moment ago: in, not popped.
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: _carriedOn ? 0 : 1, end: 1),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOut,
+            builder: (context, v, child) => Opacity(opacity: v, child: child),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: KeyedSubtree(key: ValueKey(live), child: words),
             ),
           ),
           if (total > Duration.zero)
@@ -1376,6 +1383,95 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote> {
   }
 }
 
+/// The face of a play-once circle, under every state of it and under the
+/// upload's circle too: the accent field, the stand-in blurred to its colours
+/// over it once decoded (crossfaded in, never popped), a dim (light while
+/// sealed, deep once spent, animated between), and the spoiler dust (faded
+/// in and out, never cut).
+class _OnceFace extends StatelessWidget {
+  const _OnceFace({
+    super.key,
+    required this.seed,
+    required this.tint,
+    required this.poster,
+    required this.dust,
+    required this.ghost,
+  });
+
+  final int seed;
+  final Color tint;
+  final Uint8List? poster;
+  final bool dust;
+
+  /// Spent: dimmed to about two fifths of its brightness.
+  final bool ghost;
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = poster;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // The fallback field always, the poster over it once decoded: a
+        // frame of transcript showing through a circle mid-decode would read
+        // as a hole.
+        ClipOval(
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: _SealedNotePainter(seed: seed, tint: tint),
+            ),
+          ),
+        ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          // Tight, like the rest of the face: the default layout loosens,
+          // and a loose image sits at its sixteen pixels.
+          layoutBuilder: (current, previous) => Stack(
+            fit: StackFit.expand,
+            children: [...previous, ?current],
+          ),
+          child: bytes == null
+              ? const SizedBox.expand()
+              : ClipOval(
+                  key: ValueKey(identityHashCode(bytes)),
+                  // Sixteen pixels drawn up to the circle is already mush;
+                  // the blur takes the last of the edges off it. Static, so
+                  // the boundary rasterises it once.
+                  child: RepaintBoundary(
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: 20,
+                        sigmaY: 20,
+                        tileMode: TileMode.mirror,
+                      ),
+                      child: Image.memory(
+                        bytes,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.medium,
+                        gaplessPlayback: true,
+                      ),
+                    ),
+                  ),
+                ),
+        ),
+        // A touch of dark so the specks and the button read over a bright
+        // frame; most of the light taken once the watch is spent.
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: ghost ? 0.6 : 0.2),
+          duration: const Duration(milliseconds: 380),
+          curve: Curves.easeInOut,
+          builder: (context, a, _) => ClipOval(
+            child: ColoredBox(color: Color.fromRGBO(0, 0, 0, a)),
+          ),
+        ),
+        // Telegram's spoiler: the shared field, kept to the circle without a
+        // clip, ticking only while it shows.
+        SpoilerDust(oval: true, seed: seed, brightness: 1.35, active: dust),
+      ],
+    );
+  }
+}
+
 /// Micro posters, in memory, by storage id. A handful of sixteen-pixel JPEGs —
 /// a few hundred bytes each — so a small bound is plenty, and nothing of them
 /// is ever written to disk.
@@ -1385,6 +1481,25 @@ abstract final class _MicroPosters {
   static final Map<String, Future<Uint8List?>> _inflight = {};
 
   static Uint8List? peek(String id) => _bytes[id];
+
+  /// By message (the send's client id, or the message id), for the session:
+  /// the upload's circle leaves its bytes here for the sent circle, and a
+  /// note keeps its colours after the burn deletes the stored copy.
+  static final Map<String, Uint8List> _byKey = {};
+
+  static Uint8List? peekKey(String key) => _byKey[key];
+
+  static void rememberKey(String key, Uint8List bytes) {
+    if (identical(_byKey[key], bytes)) return;
+    if (_byKey.length >= _cap) _byKey.remove(_byKey.keys.first);
+    _byKey[key] = bytes;
+  }
+
+  static void rememberId(String id, Uint8List bytes) {
+    if (_bytes.containsKey(id)) return;
+    if (_bytes.length >= _cap) _bytes.remove(_bytes.keys.first);
+    _bytes[id] = bytes;
+  }
 
   static Future<Uint8List?> load(
     String id,
@@ -2732,11 +2847,23 @@ class OutboundVideoNote extends StatelessWidget {
     this.posterBytes,
     this.onRetry,
     this.onDiscard,
+    this.viewOnce = false,
+    this.seedKey,
   });
 
   final AppTheme theme;
   final double diameter;
   final bool failed;
+
+  /// A play-once send: [posterBytes] is the sixteen-pixel stand-in, and the
+  /// circle wears the sealed face from its first frame (the stand-in blurred,
+  /// the dust fading in), so the sent circle that replaces it is the same
+  /// object carrying on, not a swap.
+  final bool viewOnce;
+
+  /// What seeds the face; the sent circle is handed the same (see
+  /// [ViewOnceVideoNote.seedKey]).
+  final String? seedKey;
 
   /// 0..1, or null for an indeterminate upload (the web, where the transport
   /// reports nothing until it is done).
@@ -2749,18 +2876,33 @@ class OutboundVideoNote extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final poster = posterBytes;
+    final key = seedKey;
+    // Left for the sent circle, so it draws these very pixels at once.
+    if (viewOnce && key != null && poster != null) {
+      _MicroPosters.rememberKey(key, poster);
+    }
     return SizedBox(
       width: diameter,
       height: diameter,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ClipOval(
-            child: poster == null
-                ? ColoredBox(color: theme.surfaceSunken)
-                : Image.memory(poster, fit: BoxFit.cover),
-          ),
-          const ClipOval(child: ColoredBox(color: Color(0x59000000))),
+          if (viewOnce)
+            _OnceFace(
+              seed: (key ?? '').hashCode,
+              tint: theme.accent,
+              poster: poster,
+              dust: true,
+              ghost: false,
+            )
+          else ...[
+            ClipOval(
+              child: poster == null
+                  ? ColoredBox(color: theme.surfaceSunken)
+                  : Image.memory(poster, fit: BoxFit.cover),
+            ),
+            const ClipOval(child: ColoredBox(color: Color(0x59000000))),
+          ],
           if (!failed)
             Center(
               child: SizedBox(

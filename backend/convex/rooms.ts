@@ -746,8 +746,13 @@ export const getMemberIds = internalQuery({
       // bubble that gained any of them a moment after it appeared would
       // RE-LAY-OUT rather than just repaint. So a message carrying one is
       // announced as it always was and simply is not seeded.
+      // A spoiler photo is not seeded either: a stub bubble built from the
+      // push knows nothing of the blur, and would have to grow one on arrival.
       plain =
-        !msg.formatting?.length && !msg.mentions?.length && !msg.replyToId;
+        !msg.formatting?.length &&
+        !msg.mentions?.length &&
+        !msg.replyToId &&
+        msg.mediaSpoiler !== true;
     }
     const memberRows = await ctx.db
       .query("roomMembers")

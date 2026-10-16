@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "名称或简介太长。名称请少于 100 个字符，简介少于 500 个字符。",
   "limitNotYourFile": "无法使用该文件。请重新选择后再试。",
   "limitDeviceLoginBusy": "登录码暂时繁忙，请一分钟后再试。",
-  "limitRequestMessages": "在对方接受你的请求前，你无法再发送消息。"
+  "limitRequestMessages": "在对方接受你的请求前，你无法再发送消息。",
+  "mediaSendViewOnceTip": "对方只能打开一次",
+  "mediaSendSpoilerTip": "被尘埃遮住，点一下才显示",
+  "mediaSendSpoilerNote": "点一下才显示",
+  "mediaSendSpoilerOnSemanticLabel": "剧透：开",
+  "mediaSendSpoilerOffSemanticLabel": "剧透：关",
+  "mediaSpoilerRevealSemanticLabel": "剧透。点按显示"
 }

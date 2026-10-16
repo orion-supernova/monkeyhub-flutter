@@ -7,13 +7,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/editor_geometry.dart';
 import '../media/file_meta.dart' show formatFileSize, kMaxFileUploadBytes;
 import '../media/image_raster.dart';
+import '../media/media_send_options.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
@@ -27,6 +27,7 @@ import 'review_route.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
 import '../widgets/glass_reveal.dart' show GlassStill;
+import '../widgets/media_send_switches.dart';
 import '../widgets/desktop_scroll.dart';
 
 /// Post-capture composer: draw on a photo, frame it, caption it, send it — or
@@ -78,6 +79,7 @@ class CameraEditorScreen extends StatefulWidget {
     this.mirrored = false,
     this.allowDrawing = true,
     this.allowViewOnce = true,
+    this.allowSpoiler = false,
     this.allowCaptions = false,
     this.maxPhotos = 1,
     this.galleryOverCamera = false,
@@ -86,6 +88,9 @@ class CameraEditorScreen extends StatefulWidget {
     this.scheduleRefusal,
     this.confirmLabel,
     this.busyLabel,
+    this.options,
+    this.closeKeeps = false,
+    this.initialCaption,
   }) : assert(source != null || draft != null);
 
   /// The encoded photo. Bytes rather than a `dart:io` File so this screen works
@@ -134,6 +139,25 @@ class CameraEditorScreen extends StatefulWidget {
   /// "view once" has nothing to mean there.
   final bool allowViewOnce;
 
+  /// Whether the spoiler switch is offered: the photo reaches everyone under
+  /// dust until tapped. Chat only, like view once; a board post or an avatar
+  /// has nobody to hide it from.
+  final bool allowSpoiler;
+
+  /// The send's switches (view once, spoiler, HD), when the caller keeps
+  /// them: the inline picker hands in its own, so a switch flipped here is
+  /// the one its strip sends with. Null uses the draft's.
+  final MediaSendOptions? options;
+
+  /// The gallery's preview of one pick: the × goes back to the picks and
+  /// KEEPS what was done here (the drawing, the crop, the caption), popping
+  /// [EditorKeep]. Nothing to confirm, because nothing is thrown away.
+  final bool closeKeeps;
+
+  /// The caption the photo already has, for a preview reopened on a pick
+  /// that was captioned before.
+  final String? initialCaption;
+
   /// Whether each photo gets a caption field. Chat only — the feed's composers
   /// have a caption of their own, on the post rather than on the picture.
   final bool allowCaptions;
@@ -180,6 +204,7 @@ class CameraEditorScreen extends StatefulWidget {
     bool overCamera = false,
     bool allowDrawing = true,
     bool allowViewOnce = true,
+    bool allowSpoiler = false,
     bool allowCaptions = false,
     int maxPhotos = 1,
     bool galleryOverCamera = false,
@@ -188,6 +213,9 @@ class CameraEditorScreen extends StatefulWidget {
     String? scheduleRefusal,
     String? confirmLabel,
     String? busyLabel,
+    MediaSendOptions? options,
+    bool closeKeeps = false,
+    String? initialCaption,
   }) {
     final screen = CameraEditorScreen(
       source: source,
@@ -196,6 +224,7 @@ class CameraEditorScreen extends StatefulWidget {
       mirrored: mirrored,
       allowDrawing: allowDrawing,
       allowViewOnce: allowViewOnce,
+      allowSpoiler: allowSpoiler,
       allowCaptions: allowCaptions,
       maxPhotos: maxPhotos,
       galleryOverCamera: galleryOverCamera,
@@ -204,6 +233,9 @@ class CameraEditorScreen extends StatefulWidget {
       scheduleRefusal: scheduleRefusal,
       confirmLabel: confirmLabel,
       busyLabel: busyLabel,
+      options: options,
+      closeKeeps: closeKeeps,
+      initialCaption: initialCaption,
     );
     return Navigator.of(context).push<EditorOutcome>(
       overCamera
@@ -241,6 +273,7 @@ class EditorSend extends EditorOutcome {
   const EditorSend({
     required this.photos,
     required this.viewOnce,
+    this.spoiler = false,
     this.dropped = 0,
     this.scheduleAt,
   });
@@ -260,6 +293,10 @@ class EditorSend extends EditorOutcome {
   /// outlives its photo and would be the one part of it that did not vanish.
   final bool viewOnce;
 
+  /// Sent as a spoiler, every photo of it: blurred under dust for everyone
+  /// until tapped. See `ChatMessage.mediaSpoiler`.
+  final bool spoiler;
+
   /// How many photos failed to export. Reported rather than swallowed: a send
   /// of five that quietly becomes a send of four is worse than one that says
   /// so.
@@ -277,6 +314,17 @@ class EditorRetake extends EditorOutcome {
   const EditorRetake();
 }
 
+/// Back to the picks, keeping what was done (see
+/// [CameraEditorScreen.closeKeeps]): [image] is the photo as edited, null
+/// when nothing about the picture changed, and [caption] is what was written
+/// under it (empty for none).
+class EditorKeep extends EditorOutcome {
+  const EditorKeep({this.image, this.caption = ''});
+
+  final CroppedImage? image;
+  final String caption;
+}
+
 /// Keep the draft and go back to the camera's recents gallery for another
 /// photo. Only popped with [CameraEditorScreen.galleryOverCamera].
 class EditorAddFromLibrary extends EditorOutcome {
@@ -288,12 +336,19 @@ class EditorAddFromLibrary extends EditorOutcome {
 /// Lives outside the editor so it can survive the editor popping — see
 /// [CameraEditorScreen.draft]. Whoever creates one disposes it.
 class EditorDraft {
+  EditorDraft({MediaSendOptions? options})
+      : options = options ?? MediaSendOptions();
+
   final List<_EditorPage> _pages = [];
   int _index = 0;
 
-  /// The circled "1". A decision about the whole send, so it lives here rather
-  /// than on a page.
-  bool viewOnce = false;
+  /// The send's switches: view once, spoiler, HD. Decisions about the whole
+  /// send, so they live here rather than on a page.
+  final MediaSendOptions options;
+
+  /// The circled "1". See [MediaSendOptions.viewOnce].
+  bool get viewOnce => options.viewOnce;
+  set viewOnce(bool v) => options.viewOnce = v;
 
   int get length => _pages.length;
 
@@ -519,13 +574,12 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   /// an OS sheet that has already slid away.
   bool _adding = false;
 
-  /// Send this photo at source resolution instead of the capped default.
-  ///
-  /// Seeded from the sticky preference and written back on toggle, so the
-  /// choice carries between photos — see `SettingsStore.photoHd` for why that
-  /// is the right stickiness. Held as local state as well so the switch feels
-  /// instant and a send already in flight cannot change under itself.
-  bool _hd = SettingsStore.instance.photoHd;
+  /// The send's switches: the caller's, or the draft's. HD is sticky (see
+  /// `SettingsStore.photoHd`); [_saving] keeps a send in flight from changing
+  /// under itself.
+  late final MediaSendOptions _options = widget.options ?? _draft.options;
+
+  bool get _hd => _options.hd;
 
   _EditorStroke? _current;
 
@@ -627,8 +681,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   _AspectPreset get _preset => _page.preset;
   set _preset(_AspectPreset v) => _page.preset = v;
 
-  bool get _viewOnce => _draft.viewOnce;
-  set _viewOnce(bool v) => _draft.viewOnce = v;
+  bool get _viewOnce => _options.viewOnce;
 
   bool get _multi => widget.maxPhotos > 1;
   bool get _hasRoom => _draft.length < widget.maxPhotos;
@@ -637,15 +690,26 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   void initState() {
     super.initState();
     _draft._attach();
+    final seeded = widget.initialCaption;
+    if (seeded != null && _page.caption.isEmpty) _page.caption = seeded;
     _caption.text = _page.caption;
+    _options.addListener(_onOptions);
     _caption.addListener(_onCaptionChanged);
     _zoom.addListener(_onZoomChanged);
     _captionFocus.addListener(_onCaptionFocus);
     _ensureLoaded(_page);
   }
 
+  void _onOptions() {
+    // View once turns the caption off under the cursor; take the keyboard
+    // with it rather than leave it up over nothing to type in.
+    if (_viewOnce) _captionFocus.unfocus();
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _options.removeListener(_onOptions);
     // The draft may outlive this route — the camera's "take another" — but its
     // decoded pictures should not: they are re-made in a frame when shown.
     _draft.releaseImages();
@@ -893,6 +957,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     if (_saving) return;
     HapticFeedback.selectionClick();
     _captionFocus.unfocus();
+    if (widget.closeKeeps) return _keep();
     if (_draft.hasWork) {
       final l10n = AppLocalizations.of(context);
       final go = await showConfirmSheet(
@@ -904,6 +969,22 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       if (!go || !mounted) return;
     }
     Navigator.of(context).pop();
+  }
+
+  /// The gallery preview's ×: back to the picks with what was done here.
+  /// Only a photo that was actually edited is exported; an untouched one goes
+  /// back as the pick it was.
+  Future<void> _keep() async {
+    final page = _page;
+    final caption = page.caption.trim();
+    if (!page.hasEdits) {
+      Navigator.of(context).pop(EditorKeep(caption: caption));
+      return;
+    }
+    setState(() => _saving = true);
+    final (image, _) = await _exportPage(page);
+    if (!mounted) return;
+    Navigator.of(context).pop(EditorKeep(image: image, caption: caption));
   }
 
   // ------------------------------------------------------------------- tools
@@ -1181,6 +1262,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       EditorSend(
         photos: out,
         viewOnce: _viewOnce,
+        spoiler: widget.allowSpoiler && _options.spoiler,
         dropped: dropped,
         scheduleAt: scheduleAt,
       ),
@@ -1398,7 +1480,13 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     final interactive =
         !cropping && !_penArmed && _display != null && !_saving && !typing;
 
-    return Scaffold(
+    // The gallery's preview: a system back is the ×, and keeps the work.
+    return PopScope(
+      canPop: !widget.closeKeeps,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_saving) _discard();
+      },
+      child: Scaffold(
       backgroundColor: Colors.black,
       // The keyboard lifts the caption bar, not the photo: resizing the stage
       // under a rising keyboard made the picture shrink and jump.
@@ -1514,6 +1602,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
               ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1698,6 +1787,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
           tone: GlassTone.media,
           semanticLabel: cropping
               ? l10n.cameraEditorScreenCancelCropSemanticLabel
+              : widget.closeKeeps
+              ? MaterialLocalizations.of(context).closeButtonLabel
               : (_draft.length > 1
                     ? l10n.photoTrayDiscardSemanticLabel
                     : l10n.cameraEditorScreenDiscardPhotoSemanticLabel),
@@ -2015,43 +2106,17 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
           onTap: _saving ? null : _takeAnother,
         ),
     ];
-    // What happens to the picture and to the send, in one pill.
-    final switches = [
-      if (widget.allowDrawing)
-        GlassGroupItem(
-          icon: CupertinoIcons.scribble,
-          semanticLabel: _penArmed
-              ? l10n.cameraEditorScreenPenPutAwaySemanticLabel
-              : l10n.cameraEditorScreenPenDrawSemanticLabel,
-          active: _penArmed,
-          onTap: _saving ? null : _togglePen,
-        ),
-      if (widget.allowViewOnce)
-        GlassGroupItem(
-          text: '1',
-          semanticLabel: _viewOnce
-              ? l10n.cameraEditorScreenViewOnceOnSemanticLabel
-              : l10n.cameraEditorScreenViewOnceOffSemanticLabel,
-          active: _viewOnce,
-          onTap: _saving
-              ? null
-              : () {
-                  HapticFeedback.selectionClick();
-                  // The field turns off under the cursor; take the keyboard
-                  // with it rather than leave it up over nothing to type in.
-                  if (!_viewOnce) _captionFocus.unfocus();
-                  setState(() => _viewOnce = !_viewOnce);
-                },
-        ),
-      GlassGroupItem(
-        text: 'HD',
-        semanticLabel: _hd
-            ? l10n.cameraEditorScreenHdOnSemanticLabel
-            : l10n.cameraEditorScreenHdOffSemanticLabel,
-        active: _hd,
-        onTap: _saving ? null : _toggleHd,
-      ),
-    ];
+    // What happens to the picture and to the send, in one pill: the shared
+    // send switches every picture preview offers, drawn glyphs that morph.
+    final switches = mediaSendSwitchItems(
+      context,
+      options: _options,
+      enabled: !_saving,
+      viewOnce: widget.allowViewOnce,
+      spoiler: widget.allowSpoiler,
+      penArmed: widget.allowDrawing ? _penArmed : null,
+      onPen: _togglePen,
+    );
     final ready = !_saving && _display != null;
     // Chat's send is the round accent arrow every iOS messenger uses; a
     // caller with its own word for it ("Use photo") gets that word on the
@@ -2079,24 +2144,30 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         // Only while armed — in crop mode the rail means "commit the frame",
         // and a note about sending would answer a question the user isn't
         // asking yet.
+        // One note at most, the weightiest armed switch's: three stacked
+        // capsules over a photo would be a form, not a reminder.
         if (_viewOnce)
           _note(
             CupertinoIcons.flame_fill,
             l10n.cameraEditorScreenViewOnceNote,
             theme,
-          ),
+          )
+        else if (widget.allowSpoiler && _options.spoiler)
+          _note(CupertinoIcons.eye_slash, l10n.mediaSendSpoilerNote, theme)
         // Only when HD is armed. The compressed default needs no caption —
         // it is what every photo has always looked like to the recipient, and
         // narrating it would turn a good default into a decision.
-        if (_hd && !_viewOnce)
+        else if (_hd)
           _note(CupertinoIcons.sparkles, l10n.cameraEditorScreenHdNote, theme),
         if (_penArmed)
           Padding(
+            key: const ValueKey('pen'),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: _penTray(theme),
           ),
         if (_draft.length > 1)
           Padding(
+            key: const ValueKey('filmstrip'),
             padding: const EdgeInsets.only(bottom: 4),
             child: MediaFilmstrip(
               count: _draft.length,
@@ -2111,7 +2182,10 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
               ),
             ),
           ),
+        // Keyed, like everything in this column that can come and go above
+        // it: a note appearing must not remount the switches mid-morph.
         Padding(
+          key: const ValueKey('rail'),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             children: [
@@ -2129,6 +2203,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         // every chat app keeps the two.
         if (widget.allowCaptions)
           Padding(
+            key: const ValueKey('caption'),
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -2186,17 +2261,6 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         ),
       ),
     );
-  }
-
-  /// Flips HD and writes the choice back to the sticky preference.
-  ///
-  /// Not awaited: the write is a secure-storage round trip and the toggle must
-  /// feel instant. Local state is the source of truth for the send that
-  /// follows, so a slow or failed write costs the stickiness, never the photo.
-  void _toggleHd() {
-    HapticFeedback.selectionClick();
-    setState(() => _hd = !_hd);
-    unawaited(SettingsStore.instance.setPhotoHd(_hd));
   }
 
   /// A one-line note above the rail ("Sends in full resolution", "Opens

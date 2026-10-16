@@ -3038,12 +3038,16 @@ class ChatRepository extends ChangeNotifier {
     /// sender would watch their own picture sit in the transcript until the ack
     /// arrived and replaced it with a sealed tile.
     bool viewOnce = false,
+
+    /// Sent as a spoiler; see [ChatMessage.mediaSpoiler].
+    bool mediaSpoiler = false,
   }) async {
     return _send(
       roomId: roomId,
       content: caption ?? '',
       type: type,
       mediaStorageId: storageId,
+      mediaSpoiler: mediaSpoiler,
       // The server drops these for an armed send — the sealed tile is a fixed
       // size and the real ratio is a leak — so don't let the optimistic bubble
       // claim otherwise either.
@@ -3600,6 +3604,7 @@ class ChatRepository extends ChangeNotifier {
     String? replyToId,
     int? replyAlbumCount,
     bool viewOnce = false,
+    bool mediaSpoiler = false,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
     List<FormattingEntity> formatting = const [],
@@ -3609,6 +3614,7 @@ class ChatRepository extends ChangeNotifier {
     ExpressionItem? expression,
   }) async {
     final optimistic = _buildOptimistic(
+      mediaSpoiler: mediaSpoiler,
       roomId: roomId,
       content: content,
       type: type,
@@ -3669,6 +3675,11 @@ class ChatRepository extends ChangeNotifier {
     /// The album a photo or video is sent in. See [ChatMessage.albumId].
     String? albumId,
     bool viewOnce = false,
+
+    /// Sent as a spoiler. On the bubble, so the sender's own copy is dusted
+    /// from the first frame, and so [_postMessage] (and both sweepers, which
+    /// re-post from the bubble alone) send it again on a retry.
+    bool mediaSpoiler = false,
     MessageStatus status = MessageStatus.pending,
     PendingUpload? upload,
     List<MessageMention> mentions = const [],
@@ -3728,6 +3739,8 @@ class ChatRepository extends ChangeNotifier {
           stickerStorageId: parent.stickerStorageId,
           stickerFormat: parent.stickerFormat,
           albumCount: replyAlbumCount,
+          // The quote of a spoiler stays blurred, as the server's will.
+          mediaSpoiler: parent.mediaSpoiler,
         );
         optimisticRootId = parent.threadKey;
       }
@@ -3754,6 +3767,9 @@ class ChatRepository extends ChangeNotifier {
       replyToPreview: optimisticPreview,
       rootId: optimisticPreview != null ? optimisticRootId : null,
       viewOnce: viewOnce,
+      // Only where there is a picture to hide, as the server keeps it.
+      mediaSpoiler: mediaSpoiler &&
+          (type == MessageType.image || type == MessageType.video),
       upload: upload,
       albumId: albumId,
       // Carried on the pending bubble so the sender's own mention is
@@ -3824,6 +3840,8 @@ class ChatRepository extends ChangeNotifier {
         // the socket was frozen comes back as an ordinary, permanent one — the
         // flag dropped on the retry rather than on the send the user made.
         viewOnce: optimistic.viewOnce,
+        // Likewise: a retry must not undress a spoiler.
+        mediaSpoiler: optimistic.mediaSpoiler,
         // Read off the message for exactly the same reason: a retry that
         // dropped these would deliver the text "@bob" to a Bob who is never
         // told about it. Storing them on the bubble is what gets both reconnect
@@ -3974,6 +3992,9 @@ class ChatRepository extends ChangeNotifier {
     /// send. See [ChatMessage.albumId].
     String? albumId,
     bool viewOnce = false,
+
+    /// Sent as a spoiler; see [ChatMessage.mediaSpoiler].
+    bool mediaSpoiler = false,
   }) async {
     // Play-once voice and video notes keep their length: it gives nothing
     // away, and the sealed bubble says it. A photo's or video's armed fields
@@ -4017,6 +4038,7 @@ class ChatRepository extends ChangeNotifier {
       replyAlbumCount: replyAlbumCount,
       albumId: albumId,
       viewOnce: viewOnce,
+      mediaSpoiler: mediaSpoiler,
       status: MessageStatus.uploading,
       upload: upload,
     );
@@ -4048,6 +4070,7 @@ class ChatRepository extends ChangeNotifier {
               replyToId: replyToId,
               albumId: albumId,
               viewOnce: viewOnce,
+              mediaSpoiler: mediaSpoiler,
               status: MessageStatus.error,
             )!,
           );
@@ -4808,6 +4831,7 @@ class ChatRepository extends ChangeNotifier {
     List<({CroppedImage image, String? caption})> photos, {
     required int sendAt,
     bool viewOnce = false,
+    bool mediaSpoiler = false,
     String? replyToId,
   }) async {
     final id = _userId;
@@ -4830,6 +4854,7 @@ class ChatRepository extends ChangeNotifier {
           mediaWidth: photo.image.width.toDouble(),
           mediaHeight: photo.image.height.toDouble(),
           viewOnce: viewOnce,
+          mediaSpoiler: mediaSpoiler,
           clientId: 'sch_${stamp}_$i',
         );
       }

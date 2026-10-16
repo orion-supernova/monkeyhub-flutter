@@ -14,6 +14,7 @@ import '../data/spoiler_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
 import 'dust/dust_kit.dart';
+import 'dust/spoiler_dust.dart';
 import 'paragraph_geometry.dart';
 
 /// The dust veil over a message's spoiler text, and everything that happens
@@ -1159,30 +1160,17 @@ class _DustField {
     colors = Int32List(total);
     points = Float32List(total * 2);
 
-    // The smallest grain that still registers. On a 1x or 2x screen a
-    // sub-1.2px dot bilinear-filters into nothing.
-    final floor = dpr <= 2 ? 1.1 : 0.75;
+    // The smallest grain that still registers.
+    final floor = SpoilerGrain.floorFor(dpr);
     var i = 0;
     for (var ri = 0; ri < rects.length; ri++) {
       for (var j = 0; j < perRect[ri]; j++, i++) {
         rectOf[i] = ri;
         rnd[i] = _rand.nextDouble();
-        // Three grains: fine dust carries the mass — many, small and dim, so
-        // together they read as haze — a few larger motes carry the depth,
-        // and a handful of sparkles carry the light.
-        final t = _rand.nextDouble();
-        if (t < 0.74) {
-          size[i] = 0.7 + _rand.nextDouble() * 0.45;
-          peak[i] = 0.22 + _rand.nextDouble() * 0.3;
-        } else if (t < 0.96) {
-          size[i] = 1.1 + _rand.nextDouble() * 0.5;
-          peak[i] = 0.45 + _rand.nextDouble() * 0.3;
-        } else {
-          size[i] = 1.7 + _rand.nextDouble() * 0.6;
-          peak[i] = 0.85 + _rand.nextDouble() * 0.15;
-          sparkle[i] = 1;
-        }
-        if (size[i] < floor) size[i] = floor;
+        // The spoiler grain, shared with the dust over hidden media (see
+        // [SpoilerGrain]): one recipe, so a spoiler is the same stuff
+        // wherever it is.
+        if (SpoilerGrain.pick(_rand, floor, size, peak, i)) sparkle[i] = 1;
         _spawn(i, fresh: false);
       }
     }
@@ -1246,10 +1234,10 @@ class _DustField {
   /// New heading, speed and life for a mote already positioned.
   void _relaunch(int i, {required bool fresh}) {
     final heading = _rand.nextDouble();
-    final speed = 3 + _rand.nextDouble() * 9;
+    final speed = SpoilerGrain.speed(_rand);
     vx[i] = DustTrig.sin(heading + 0.25) * speed;
     vy[i] = DustTrig.sin(heading) * speed;
-    life[i] = 0.9 + _rand.nextDouble() * 1.5;
+    life[i] = SpoilerGrain.life(_rand);
     // A field seeded mid-life is steady from its first frame, rather than
     // every mote being born together and dying together.
     age[i] = fresh ? 0 : _rand.nextDouble() * life[i];
@@ -1381,13 +1369,9 @@ class _DustField {
       var px = x[i];
       var py = y[i];
 
-      // The current: the curl of a slowly turning scalar field, so it is
-      // divergence-free — motes are bent, never herded — and zero-mean, so
-      // there is no direction to the field for the eye to catch.
-      final u = px / 90 + time / 16;
-      final v = py / 40 - time / 21;
-      final flowX = -3.0 * DustTrig.sin(u) * DustTrig.sin(v);
-      final flowY = -1.3 * DustTrig.sin(u + 0.25) * DustTrig.sin(v + 0.25);
+      // The current (see [SpoilerGrain.flowX]).
+      final flowX = SpoilerGrain.flowX(px, py, time);
+      final flowY = SpoilerGrain.flowY(px, py, time);
 
       var ax = 0.0;
       var ay = 0.0;
@@ -1482,13 +1466,8 @@ class _DustField {
 
       // Alpha: a fade in over the first quarter of a life, a fade out over
       // the last third, and a twinkle on the sparkles.
-      final uLife = age[i] / life[i];
-      var a = peak[i];
-      if (uLife < 0.25) a *= _smooth(uLife / 0.25);
-      if (uLife > 0.7) a *= 1 - _smooth((uLife - 0.7) / 0.3);
-      if (sparkle[i] == 1) {
-        a *= 0.55 + 0.45 * DustTrig.sin(time * 1.4 + rnd[i] * 7);
-      }
+      var a = peak[i] * SpoilerGrain.envelope(age[i] / life[i]);
+      if (sparkle[i] == 1) a *= SpoilerGrain.twinkle(time, rnd[i]);
       // A wiped cell is a window: no dust over words the reader has already
       // uncovered. A mote the heal has blown in is over covered words by
       // construction, so it is exempt; the rest keep their window.
@@ -1513,11 +1492,6 @@ class _DustField {
       k++;
     }
     alive = k;
-  }
-
-  static double _smooth(double t) {
-    final c = t.clamp(0.0, 1.0);
-    return c * c * (3 - 2 * c);
   }
 }
 

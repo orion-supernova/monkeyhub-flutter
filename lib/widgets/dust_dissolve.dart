@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart' show Material, MaterialType;
+import 'package:flutter/material.dart' show Material, MaterialType, Theme;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -252,6 +252,7 @@ class _DustDissolveState extends State<DustDissolve>
       seed: widget.seed,
       seconds: widget.duration.inMicroseconds / 1e6,
       particles: widget.particles.clamp(64, DustDissolve.maxParticles),
+      liftDark: Theme.of(context).brightness == Brightness.dark,
     );
     setState(() {
       _field = field;
@@ -415,6 +416,7 @@ class _DustField {
     required this.hotDy,
     required this.sourceWidth,
     required this.sourceHeight,
+    this.liftDark = false,
     required this.pixelRatio,
     required Size size,
     required Path? outline,
@@ -507,6 +509,7 @@ class _DustField {
     fy = Float32List(n);
     released = Uint8List(n);
     dead = Uint8List(n);
+    lift = Uint8List(n);
     transforms = Float32List(n * 4);
     spriteRects = Float32List(n * 4);
     colors = Int32List(n);
@@ -650,11 +653,13 @@ class _DustField {
     }
   }
 
-  /// Hot: lifted toward a warm white, as a grain catching.
+  /// Hot: brighter, and with its blacks raised to a soft cool grey, so one
+  /// copy serves both a grain catching (a flicker of it as it lets go) and a
+  /// dark grain that must still read on a dark ground (all of it, once loose).
   static const List<double> _hot = [
-    1.15, 0, 0, 0, 40, //
-    0, 1.12, 0, 0, 30, //
-    0, 0, 1.08, 0, 20, //
+    1.1, 0, 0, 0, 60, //
+    0, 1.1, 0, 0, 57, //
+    0, 0, 1.1, 0, 68, //
     0, 0, 0, 1, 0,
   ];
 
@@ -664,6 +669,10 @@ class _DustField {
   final ui.Image image;
   final double hotDx, hotDy;
   final int sourceWidth, sourceHeight;
+
+  /// On a dark ground, dust from dark pixels would vanish into it: such
+  /// grains are drawn from the lifted copy once they let go (see [lift]).
+  final bool liftDark;
   final double pixelRatio;
 
   /// The run's length, in seconds.
@@ -690,6 +699,11 @@ class _DustField {
   /// Where it let go (canvas), and how far the wind has carried it since.
   late final Float32List x0, y0, fx, fy;
   late final Uint8List released, dead;
+
+  /// Grains from dark pixels (under about a fifth of full luminance), found
+  /// in the same readback as the clear ones when [liftDark]. Bright and
+  /// coloured grains are left exactly as they are.
+  late final Uint8List lift;
 
   late final Float32List transforms, spriteRects;
   late final Int32List colors;
@@ -735,7 +749,21 @@ class _DustField {
         final py = (top + sp * (k < 2 ? 0.3 : 0.7)).toInt().clamp(0, ih - 1);
         if (data.getUint8((py * iw + px) * 4 + 3) > 6) keep = true;
       }
-      if (!keep) dead[i] = 1;
+      if (!keep) {
+        dead[i] = 1;
+        continue;
+      }
+      if (!liftDark) continue;
+      // Its middle's luminance, alpha taken out.
+      final cx = (hx[i] * pixelRatio).toInt().clamp(0, iw - 1);
+      final cy = (hy[i] * pixelRatio).toInt().clamp(0, ih - 1);
+      final o = (cy * iw + cx) * 4;
+      final al = data.getUint8(o + 3);
+      if (al < 24) continue;
+      final y = 0.2126 * data.getUint8(o) +
+          0.7152 * data.getUint8(o + 1) +
+          0.0722 * data.getUint8(o + 2);
+      if (y < 0.2 * al) lift[i] = 1;
     }
   }
 
@@ -837,7 +865,8 @@ class _DustField {
         // a quarter second; the odd ember later on.
         if (hot) {
           final h = dustHash(i + 7919, frame);
-          lit = age < 0.15 ? h < 0.35 * (1 - age / 0.15) : h < 0.012 * a;
+          lit = lift[i] != 0 ||
+              (age < 0.15 ? h < 0.35 * (1 - age / 0.15) : h < 0.012 * a);
         }
       }
       final sc = size / sp;

@@ -157,7 +157,8 @@ class _MomentComposerState extends State<_MomentComposer> {
             // offers no "add from library".
             EditorAddFromLibrary() => const ReviewRetake<EditorSend>(),
             final EditorSend send => ReviewDone(send),
-            null => const ReviewDone<EditorSend>(null),
+            // Only the chat gallery's preview keeps; never popped here.
+            EditorKeep() || null => const ReviewDone<EditorSend>(null),
           };
         },
       );

@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "यह नाम या विवरण बहुत लंबा है। नाम 100 और विवरण 500 अक्षरों से कम रखें।",
   "limitNotYourFile": "यह फ़ाइल इस्तेमाल नहीं की जा सकती। इसे फिर से चुनें और दोबारा कोशिश करें।",
   "limitDeviceLoginBusy": "साइन-इन कोड अभी व्यस्त हैं। एक मिनट बाद फिर से कोशिश करें।",
-  "limitRequestMessages": "जब तक वे आपका अनुरोध स्वीकार नहीं करते, आप और नहीं भेज सकते।"
+  "limitRequestMessages": "जब तक वे आपका अनुरोध स्वीकार नहीं करते, आप और नहीं भेज सकते।",
+  "mediaSendViewOnceTip": "वे इसे केवल एक बार खोल सकेंगे",
+  "mediaSendSpoilerTip": "टैप करने तक धूल के नीचे छिपा रहेगा",
+  "mediaSendSpoilerNote": "टैप करने तक छिपा",
+  "mediaSendSpoilerOnSemanticLabel": "स्पॉइलर: चालू",
+  "mediaSendSpoilerOffSemanticLabel": "स्पॉइलर: बंद",
+  "mediaSpoilerRevealSemanticLabel": "स्पॉइलर। दिखाने के लिए टैप करें"
 }

@@ -13,9 +13,11 @@ import 'package:monkeyhub/media/view_once_media.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/models/message_preview.dart';
+import 'package:monkeyhub/models/pending_upload.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/audio_message.dart';
+import 'package:monkeyhub/widgets/dust/spoiler_dust.dart';
 import 'package:monkeyhub/widgets/dust_dissolve.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/remote_image.dart';
@@ -210,6 +212,58 @@ void main() {
       await SettingsStore.instance.setVideoNoteAutoAdvance(true);
     });
     tearDown(() => ViewOnceMedia.debugStageOverride = null);
+
+  testWidgets('a play-once send: the sent circle carries on from the upload', (
+    tester,
+  ) async {
+    final im = img.Image(width: 16, height: 16);
+    img.fill(im, color: img.ColorRgb8(200, 120, 90));
+    final micro = Uint8List.fromList(img.encodePng(im));
+    final upload = PendingUpload(
+      bytes: Uint8List(4),
+      contentType: 'video/mp4',
+      posterBytes: micro,
+    );
+    addTearDown(upload.progress.dispose);
+    ChatMessage row({required bool sent}) => ChatMessage(
+      id: sent ? 'srv1' : 'local1',
+      clientId: sent ? 'local1' : null,
+      roomId: 'r',
+      senderId: 'alice',
+      senderName: 'alice',
+      content: '',
+      createdAt: DateTime(2026, 3, 1, 12),
+      type: MessageType.videoNote,
+      status: sent ? MessageStatus.sent : MessageStatus.uploading,
+      mediaDurationMs: 9000,
+      viewOnce: true,
+      posterStorageId: sent ? 'p1' : null,
+      upload: sent ? null : upload,
+    );
+
+    await show(tester, bubble(row(sent: false), currentUserId: 'alice'));
+    // Sealed from the first frame: the stand-in blurred, the dust over it.
+    expect(find.byType(OutboundVideoNote), findsOneWidget);
+    expect(find.byType(ImageFiltered), findsOneWidget);
+    final before = tester.widget<SpoilerDust>(find.byType(SpoilerDust));
+    final size = tester.getSize(find.byType(OutboundVideoNote));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+
+    await tester.pumpWidget(host(bubble(row(sent: true), currentUserId: 'alice')));
+    // The very first frame of the sent circle: same size, same pixels (no
+    // fetch, no fallback field), and the same field of dust, carried on
+    // rather than started over.
+    expect(find.byType(ViewOnceVideoNote), findsOneWidget);
+    expect(tester.getSize(find.byType(ViewOnceVideoNote)), size);
+    expect(find.byType(ImageFiltered), findsOneWidget);
+    final after = tester.widget<SpoilerDust>(find.byType(SpoilerDust));
+    expect(after.seed, before.seed);
+    expect(after.active, isTrue);
+    expect(SpoilerDust.wasShowing(after.seed), isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
 
     ChatMessage vnote({
       bool opened = false,

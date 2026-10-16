@@ -99,8 +99,19 @@ abstract final class SpoilerGrain {
 /// is a [TickerMode]-aware one (a covering route or an inactive tab stops it)
 /// and repaints at most 60 times a second, whatever the display's rate.
 ///
+/// **One clock.** Every field reads the frame clock, not a clock of its own,
+/// so two fields with the same [seed] show the same grains at the same
+/// instant. A widget that is swapped for another mid-flight (an upload's
+/// circle handing over to the sent one) therefore carries on grain for grain,
+/// and one that comes up where a field with its seed was showing a moment ago
+/// skips its fade-in ([wasShowing]).
+///
+/// **In and out.** A field fades in over [fade] when it first appears (or
+/// when [active] turns on) and out when [active] turns off; once out, its
+/// ticker stops and it paints nothing.
+///
 /// **Reduced motion** ([MediaQuery.disableAnimationsOf]): no ticker, one
-/// still speckle.
+/// still speckle, no fades.
 class SpoilerDust extends StatefulWidget {
   const SpoilerDust({
     super.key,
@@ -110,6 +121,8 @@ class SpoilerDust extends StatefulWidget {
     this.density = defaultDensity,
     this.maxGrains = defaultMaxGrains,
     this.brightness = 1,
+    this.active = true,
+    this.fade = defaultFade,
   });
 
   /// The grains' ink. Its alpha is ignored; each grain's own fade owns it.
@@ -120,7 +133,8 @@ class SpoilerDust extends StatefulWidget {
   final bool oval;
 
   /// Picks where in the shared table this field reads, so two fields side
-  /// by side do not move in step.
+  /// by side do not move in step, and one field rebuilt as another (same
+  /// seed) does not jump.
   final int seed;
 
   /// Grains per square logical pixel.
@@ -133,11 +147,41 @@ class SpoilerDust extends StatefulWidget {
   /// field wants to be a little brighter than over a line of text.
   final double brightness;
 
+  /// False fades the field out (and then stops it); true fades it in.
+  final bool active;
+
+  /// How long a fade in or out takes.
+  final Duration fade;
+
   /// About one grain per 8pt²: a sealed 200pt circle carries ~3000, dense
   /// enough to read as a haze with sparkles in it, not a scatter of dots.
   static const double defaultDensity = 1 / 8;
 
   static const int defaultMaxGrains = 3200;
+
+  static const Duration defaultFade = Duration(milliseconds: 280);
+
+  /// Seed → the last frame time (seconds) a field with it was on screen.
+  static final Map<int, double> _seen = {};
+
+  /// A field with [seed] was on screen within the last half second: a new
+  /// one with the same seed is that field carried on, not a new arrival.
+  static bool wasShowing(int seed) {
+    final last = _seen[seed];
+    return last != null && _clock() - last < 0.5;
+  }
+
+  /// The frame clock, seconds. Shared by every field. Between frames (when
+  /// the binding has no frame time to give) it is the last frame's.
+  static double _clock() {
+    final binding = SchedulerBinding.instance;
+    if (binding.schedulerPhase != SchedulerPhase.idle) {
+      _lastFrame = binding.currentFrameTimeStamp.inMicroseconds / 1e6;
+    }
+    return _lastFrame;
+  }
+
+  static double _lastFrame = 0;
 
   @override
   State<SpoilerDust> createState() => _SpoilerDustState();
@@ -148,30 +192,75 @@ class _SpoilerDustState extends State<SpoilerDust>
   Ticker? _ticker;
   final ValueNotifier<double> _time = ValueNotifier(0);
   final _SpoilerBuffers _buffers = _SpoilerBuffers();
-  Duration _lastPaint = Duration.zero;
+  double _lastPaint = -1;
+  double _lastTick = -1;
+  bool _calm = false;
 
-  /// Where a still field (reduced motion) is frozen: well into every
-  /// grain's first life, so the speckle is as dense as the moving one.
+  /// Where a still field (reduced motion) is frozen.
   static const double _stillAt = 1.7;
+
+  @override
+  void initState() {
+    super.initState();
+    // Carried on from a field with this seed that was just showing: from
+    // where it was (then in or out as [active] says), not from nothing.
+    _buffers.level = SpoilerDust.wasShowing(widget.seed) ? 1 : 0;
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    _calm = MediaQuery.disableAnimationsOf(context);
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(covariant SpoilerDust old) {
+    super.didUpdateWidget(old);
+    if (old.active != widget.active || old.seed != widget.seed) _sync();
+  }
+
+  void _sync() {
+    if (_calm) {
       _ticker?.stop();
+      _buffers.level = widget.active ? 1 : 0;
       _time.value = _stillAt;
-    } else {
-      final t = _ticker ??= createTicker(_onTick);
-      if (!t.isActive) t.start();
+      return;
+    }
+    final wanted = widget.active || _buffers.level > 0;
+    final t = _ticker ??= createTicker(_onTick);
+    if (wanted && !t.isActive) {
+      _lastTick = -1;
+      t.start();
+    } else if (!wanted && t.isActive) {
+      t.stop();
     }
   }
 
-  void _onTick(Duration elapsed) {
+  void _onTick(Duration _) {
+    final now = SpoilerDust._clock();
+    final dt = _lastTick < 0 ? 0.0 : (now - _lastTick).clamp(0.0, 0.1);
+    _lastTick = now;
+    final step = widget.fade.inMicroseconds <= 0
+        ? 1.0
+        : dt * 1e6 / widget.fade.inMicroseconds;
+    var level = _buffers.level;
+    level = widget.active
+        ? math.min(1.0, level + step)
+        : math.max(0.0, level - step);
+    _buffers.level = level;
+    if (level > 0) SpoilerDust._seen[widget.seed] = now;
+    if (SpoilerDust._seen.length > 256) SpoilerDust._seen.clear();
+    if (level <= 0 && !widget.active) {
+      _ticker?.stop();
+      _time.value = now;
+      return;
+    }
     // Sixty a second is all the drift needs; a 120Hz display would double
     // the particle math for nothing the eye can see at these speeds.
-    if (elapsed - _lastPaint < const Duration(microseconds: 15500)) return;
-    _lastPaint = elapsed;
-    _time.value = _stillAt + elapsed.inMicroseconds / 1e6;
+    if (now - _lastPaint < 0.0155) return;
+    _lastPaint = now;
+    _time.value = now;
   }
 
   @override
@@ -237,6 +326,9 @@ class _SpoilerBuffers {
   int capacity = 0;
   double spritePx = 0;
 
+  /// The field's fade, 0..1.
+  double level = 0;
+
   void ensure(int count, double px) {
     if (count > capacity) {
       capacity = count;
@@ -285,6 +377,8 @@ class _SpoilerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
+    final level = dustSmooth(buffers.level);
+    if (level <= 0) return;
     final sprite = DustSprite.forDpr(dpr);
     if (sprite == null) return;
     _SpoilerTable.ensure(SpoilerGrain.floorFor(dpr));
@@ -309,6 +403,7 @@ class _SpoilerPainter extends CustomPainter {
       final age = t - cycle * life;
       var a = _SpoilerTable.peak[j] * brightness;
       if (a > 1) a = 1;
+      a *= level;
       a *= SpoilerGrain.envelope(age / life);
       if (_SpoilerTable.sparkle[j] == 1) {
         a *= SpoilerGrain.twinkle(now, _SpoilerTable.rnd[j]);

@@ -10,8 +10,9 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'media_flight.dart';
-import 'photo_chrome.dart' show MediaDurationBadge;
 import 'video_length_badge.dart';
+import 'dust/spoiler_dust.dart' show SpoilerDust;
+import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'selection_check.dart';
 import 'steady_hero.dart';
@@ -84,6 +85,15 @@ class MediaGridTile extends StatelessWidget {
       message.type == MessageType.video ||
       message.type == MessageType.videoNote;
 
+  Widget _picture(String imageId) => RemoteImage(
+        storageId: imageId,
+        api: api,
+        fit: BoxFit.cover,
+        // Square, as Photos draws it: the 2pt gaps are the grid's only lines.
+        borderRadius: BorderRadius.zero,
+        decodeWidth: decodeWidth,
+      );
+
   @override
   Widget build(BuildContext context) {
     // Files this tile's media under its chat for Data and Storage: a video
@@ -143,17 +153,19 @@ class MediaGridTile extends StatelessWidget {
                         decodeWidth: decodeWidth,
                       ),
                     ),
-              child: imageId != null
-                  ? RemoteImage(
-                      storageId: imageId,
-                      api: api,
-                      fit: BoxFit.cover,
-                      // Square, as Photos draws it: the 2pt gaps are the
-                      // grid's only lines.
-                      borderRadius: BorderRadius.zero,
-                      decodeWidth: decodeWidth,
+              child: imageId == null
+                  ? _GlyphTile(theme: theme, isVideo: _isVideo)
+                  : message.mediaSpoiler
+                  // Shared media keeps a spoiler hidden too. The tap still
+                  // opens it, as a choice to look, and the viewer shows it.
+                  ? MediaSpoilerCover(
+                      interactive: false,
+                      sigma: 10,
+                      dustDensity: SpoilerDust.defaultDensity / 3,
+                      revealKey: message.id,
+                      child: _picture(imageId),
                     )
-                  : _GlyphTile(theme: theme, isVideo: _isVideo),
+                  : _picture(imageId),
             ),
 
             // Not while choosing: the check takes the same corner, and a

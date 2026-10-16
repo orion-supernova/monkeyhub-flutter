@@ -60,6 +60,7 @@ class _FakeApi extends Fake implements ChatApi {
     String? mediaStorageId,
     double? mediaWidth,
     double? mediaHeight,
+    bool mediaSpoiler = false,
     String? fileName,
     int? fileSize,
     String? mimeType,

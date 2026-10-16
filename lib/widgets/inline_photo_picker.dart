@@ -14,10 +14,14 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/file_meta.dart' show formatFileSize, kMaxFileUploadBytes;
 import '../media/image_raster.dart' show CroppedImage;
+import '../media/media_send_options.dart';
 import '../media/photo_picking.dart' show kMaxPhotoSelection;
 import '../theme/theme_scope.dart';
 import 'app_toast.dart';
 import 'glass_buttons.dart';
+import 'capture_glyphs.dart' show ViewOnceGlyph;
+import 'dust/spoiler_dust.dart' show SpoilerDust;
+import 'media_spoiler.dart';
 import 'photo_chrome.dart' show MediaDurationBadge;
 import 'spring_press.dart';
 
@@ -28,6 +32,10 @@ class PickedMedia {
 
   final AssetEntity asset;
   CroppedImage? edited;
+
+  /// What was written under this photo in its preview. A captioned photo
+  /// goes out as a bubble of its own, as the camera's does.
+  String caption = '';
 
   bool get isVideo => asset.type == AssetType.video;
 }
@@ -67,7 +75,15 @@ abstract final class AssetSizes {
 /// picked, in order. Shared by the panel (the grid that picks) and the strip
 /// over the composer (the picks, to edit, remove and send).
 class InlinePickerController extends ChangeNotifier {
-  InlinePickerController({this.max = kMaxPhotoSelection});
+  InlinePickerController({this.max = kMaxPhotoSelection, MediaSendOptions? options})
+      : options = options ?? MediaSendOptions() {
+    this.options.addListener(notifyListeners);
+  }
+
+  /// The send's switches (view once, spoiler, HD): the same model, and the
+  /// same instance, the preview of a pick shows, so the strip sends with
+  /// whatever was flipped there. Reset once the picks are sent.
+  final MediaSendOptions options;
 
   /// The most one send may carry: the album cap.
   final int max;
@@ -102,6 +118,14 @@ class InlinePickerController extends ChangeNotifier {
 
   void markEdited(PickedMedia m, CroppedImage image) {
     m.edited = image;
+    notifyListeners();
+  }
+
+  /// What the preview left on [m]: its edit (null keeps the picture as it
+  /// was) and its caption.
+  void keep(PickedMedia m, {CroppedImage? image, required String caption}) {
+    if (image != null) m.edited = image;
+    m.caption = caption;
     notifyListeners();
   }
 
@@ -164,6 +188,7 @@ class InlinePickerController extends ChangeNotifier {
 
   @override
   void dispose() {
+    options.removeListener(notifyListeners);
     sheet.dispose();
     super.dispose();
   }
@@ -1208,6 +1233,7 @@ class _PickedMediaStripState extends State<PickedMediaStrip> {
                 itemBuilder: (_, i) => _StripTile(
                   key: ValueKey(picks[i].asset.id),
                   pick: picks[i],
+                  options: widget.controller.options,
                   opening: _opening == picks[i].asset.id,
                   onTap: () => _open(picks[i]),
                   onRemove: () {
@@ -1225,12 +1251,18 @@ class _StripTile extends StatelessWidget {
   const _StripTile({
     super.key,
     required this.pick,
+    required this.options,
     required this.opening,
     required this.onTap,
     required this.onRemove,
   });
 
   final PickedMedia pick;
+
+  /// The send's switches, worn by the waiting picks so an armed one is
+  /// never a surprise: dust over every tile for a spoiler, the flooded "1"
+  /// for view once.
+  final MediaSendOptions options;
   final bool opening;
   final VoidCallback onTap;
   final VoidCallback onRemove;
@@ -1256,10 +1288,31 @@ class _StripTile extends StatelessWidget {
               scale: 0.95,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image(image: image, fit: BoxFit.cover),
+                child: options.spoiler
+                    ? MediaSpoilerCover(
+                        interactive: false,
+                        sigma: 8,
+                        dustDensity: SpoilerDust.defaultDensity / 2,
+                        revealKey: 'pick:${pick.asset.id}',
+                        child: Image(image: image, fit: BoxFit.cover),
+                      )
+                    : Image(image: image, fit: BoxFit.cover),
               ),
             ),
           ),
+          if (options.viewOnce && !pick.isVideo)
+            const Positioned(
+              left: 5,
+              bottom: 5,
+              child: IgnorePointer(
+                child: ViewOnceGlyph(
+                  color: Colors.white,
+                  knockout: Color(0xFF1C1C1E),
+                  on: 1,
+                  size: 20,
+                ),
+              ),
+            ),
           if (pick.isVideo && !opening)
             const Center(
               child: IgnorePointer(

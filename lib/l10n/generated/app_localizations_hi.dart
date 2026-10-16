@@ -13972,4 +13972,23 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get limitRequestMessages =>
       'जब तक वे आपका अनुरोध स्वीकार नहीं करते, आप और नहीं भेज सकते।';
+
+  @override
+  String get mediaSendViewOnceTip => 'वे इसे केवल एक बार खोल सकेंगे';
+
+  @override
+  String get mediaSendSpoilerTip => 'टैप करने तक धूल के नीचे छिपा रहेगा';
+
+  @override
+  String get mediaSendSpoilerNote => 'टैप करने तक छिपा';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'स्पॉइलर: चालू';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'स्पॉइलर: बंद';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel =>
+      'स्पॉइलर। दिखाने के लिए टैप करें';
 }

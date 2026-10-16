@@ -3207,6 +3207,7 @@ class _RoomScreenState extends State<RoomScreen>
         canRetake: true,
         overCamera: true,
         allowCaptions: true,
+        allowSpoiler: true,
         maxPhotos: kMaxPhotoSelection,
         galleryOverCamera: true,
         allowSchedule: true,
@@ -3218,7 +3219,8 @@ class _RoomScreenState extends State<RoomScreen>
           gallery: true,
         ),
         final EditorSend send => ReviewDone(send),
-        null => const ReviewDone<EditorSend>(null),
+        // Only the gallery's preview keeps; never popped over the camera.
+        EditorKeep() || null => const ReviewDone<EditorSend>(null),
       };
     }
 
@@ -3345,6 +3347,7 @@ class _RoomScreenState extends State<RoomScreen>
       context,
       draft: draft,
       allowCaptions: true,
+      allowSpoiler: true,
       maxPhotos: kMaxPhotoSelection,
       pickMore: _pickMorePhotos,
       allowSchedule: true,
@@ -3805,6 +3808,7 @@ class _RoomScreenState extends State<RoomScreen>
       _sendPhoto(
         photos[i].image,
         viewOnce: outcome.viewOnce,
+        spoiler: outcome.spoiler,
         caption: photos[i].caption,
         albumId: albumId,
         replyTo: last ? replyTarget : null,
@@ -3846,6 +3850,7 @@ class _RoomScreenState extends State<RoomScreen>
       // device's timezone. See `SchedulePreset`.
       sendAt: at.millisecondsSinceEpoch,
       viewOnce: outcome.viewOnce,
+      mediaSpoiler: outcome.spoiler,
       replyToId: replyTarget?.id,
     );
     if (code == null || !mounted) return;
@@ -3862,6 +3867,7 @@ class _RoomScreenState extends State<RoomScreen>
   void _sendPhoto(
     CroppedImage image, {
     required bool viewOnce,
+    bool spoiler = false,
     String? caption,
     String? albumId,
     ChatMessage? replyTo,
@@ -3873,6 +3879,7 @@ class _RoomScreenState extends State<RoomScreen>
       contentType: image.contentType,
       pixelSize: Size(image.width.toDouble(), image.height.toDouble()),
       viewOnce: viewOnce,
+      mediaSpoiler: spoiler,
       caption: caption,
       albumId: albumId,
       replyTo: replyTo,
@@ -4267,23 +4274,90 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
-  /// A picked photo, into the editor and back: crop, draw, rotate. No
-  /// caption (a captioned photo stands apart from its album) and no
-  /// view-once (that is a property of a send, not of one picture in it).
+  /// A picked photo, in THE photo preview: the camera's composer, with
+  /// every switch and tool the camera's own shot gets (draw, crop, rotate,
+  /// caption, view once, spoiler, HD, hold to schedule) and Send. The
+  /// switches are the picker's own [InlinePickerController.options], so
+  /// what is flipped here is what the strip sends with, and Send sends the
+  /// whole selection, as the composer's arrow would. The × goes back to the
+  /// strip keeping the edit and the caption. No "add more": the picker under
+  /// the strip is where more come from.
   Future<void> _editPick(PickedMedia pick) async {
     final bytes = pick.edited?.bytes ?? await GalleryTray.loadBytes(pick.asset);
     if (bytes == null || !mounted) return;
     final outcome = await CameraEditorScreen.open(
       context,
       source: bytes,
-      allowCaptions: false,
-      allowViewOnce: false,
+      allowCaptions: true,
+      allowSpoiler: true,
       maxPhotos: 1,
-      confirmLabel: AppLocalizations.of(context).cameraEditorScreenCropDoneButton,
+      options: _picker.options,
+      closeKeeps: true,
+      initialCaption: pick.caption,
+      // Scheduling queues photos only; a selection with a clip in it is
+      // sent now or not at all.
+      allowSchedule: !_picker.picks.any((p) => p.isVideo),
+      scheduleRefusal: _photoScheduleRefusal(),
     );
-    if (outcome is EditorSend && outcome.photos.isNotEmpty) {
-      _picker.markEdited(pick, outcome.photos.first.image);
+    if (!mounted || !_picker.picks.contains(pick)) return;
+    switch (outcome) {
+      case EditorKeep(:final image, :final caption):
+        _picker.keep(pick, image: image, caption: caption);
+      case EditorSend(:final photos, :final scheduleAt):
+        if (photos.isEmpty) return;
+        _picker.keep(
+          pick,
+          image: photos.first.image,
+          caption: photos.first.caption ?? '',
+        );
+        if (scheduleAt != null) {
+          await _schedulePicks(scheduleAt);
+        } else {
+          await _sendPicks(_composer.text.trim());
+        }
+      default:
+        break;
     }
+  }
+
+  /// The picks, queued for [at] from their preview's held arrow. Photos
+  /// only (the preview offers the hold only then), each as it was left,
+  /// with the same switches a send now takes.
+  Future<void> _schedulePicks(DateTime at) async {
+    final options = _picker.options;
+    final hd = options.hd;
+    final photos = <EditorPhoto>[];
+    var dropped = 0;
+    _setMediaBusy(true);
+    try {
+      for (final pick in _picker.picks) {
+        final r = await _ReadyPick.from(pick, hd: hd);
+        final photo = r?.photo;
+        if (photo == null) {
+          dropped++;
+          continue;
+        }
+        final caption = pick.caption.trim();
+        photos.add(EditorPhoto(
+          image: photo,
+          caption: options.viewOnce || caption.isEmpty ? null : caption,
+        ));
+      }
+    } finally {
+      if (mounted) _setMediaBusy(false);
+    }
+    if (!mounted || photos.isEmpty) return;
+    final send = EditorSend(
+      photos: photos,
+      viewOnce: options.viewOnce,
+      spoiler: options.spoiler,
+      dropped: dropped,
+      scheduleAt: at,
+    );
+    _picker.take();
+    _picker.close();
+    options.reset();
+    await _schedulePhotos(send, at);
   }
 
   /// Sends the picks, in pick order, as one album, then the comment (if
@@ -4344,10 +4418,17 @@ class _RoomScreenState extends State<RoomScreen>
     final replyTarget = _replyingTo;
     final replyAlbum = _replyAlbum;
     if (replyTarget != null) setState(() => _replyingTo = null);
-    final hd = SettingsStore.instance.photoHd;
+    // The switches as they stand now, then back off for the next send.
+    final options = _picker.options;
+    final hd = options.hd;
+    final viewOnce = options.viewOnce;
+    final spoiler = options.spoiler;
+    options.reset();
     final shrinking = taken.any(big.contains);
 
     final ready = <_ReadyPick>[];
+    // Each ready item's pick, for what its preview left on it (a caption).
+    final readyFrom = <PickedMedia>[];
     var dropped = 0;
     var tooLong = 0;
     // A read is quick and gets the scrim; a compression can take a while and
@@ -4363,6 +4444,7 @@ class _RoomScreenState extends State<RoomScreen>
         switch (r) {
           case _ReadyPick():
             ready.add(r);
+            readyFrom.add(pick);
           case null when pick.isVideo && big.contains(pick):
             tooLong++;
           case null:
@@ -4380,11 +4462,18 @@ class _RoomScreenState extends State<RoomScreen>
       final reply = last ? replyTarget : null;
       final replyCount = last ? replyAlbum : null;
       final photo = r.photo;
+      // View once is a photo's: there is no sealed bubble for a clip, so a
+      // video in the same send goes as itself (the strip only marks photos).
+      final caption = readyFrom[i].caption.trim();
+      final photoCaption =
+          photo == null || viewOnce || caption.isEmpty ? null : caption;
       if (mounted) {
         if (photo != null) {
           _sendPhoto(
             photo,
-            viewOnce: false,
+            viewOnce: viewOnce,
+            spoiler: spoiler,
+            caption: photoCaption,
             albumId: albumId,
             replyTo: reply,
             replyToAlbumCount: replyCount,
@@ -4396,6 +4485,7 @@ class _RoomScreenState extends State<RoomScreen>
             contentType: r.contentType!,
             posterBytes: r.poster,
             mediaDurationMs: r.durationMs,
+            mediaSpoiler: spoiler,
             albumId: albumId,
             replyTo: reply,
             replyToAlbumCount: replyCount,
@@ -4413,6 +4503,9 @@ class _RoomScreenState extends State<RoomScreen>
           mediaHeight: photo?.height.toDouble(),
           posterBytes: r.poster,
           mediaDurationMs: r.durationMs,
+          viewOnce: photo != null && viewOnce,
+          mediaSpoiler: spoiler,
+          caption: photoCaption,
           albumId: albumId,
           replyToId: reply?.id,
           replyAlbumCount: replyCount,
@@ -5032,6 +5125,9 @@ class _RoomScreenState extends State<RoomScreen>
     /// the file is deleted from the server.
     bool viewOnce = false,
 
+    /// Sent as a spoiler: under dust for everyone until tapped.
+    bool mediaSpoiler = false,
+
     /// What the sender wrote under a photo in the composer.
     String? caption,
 
@@ -5073,6 +5169,7 @@ class _RoomScreenState extends State<RoomScreen>
       replyAlbumCount: replyAlbum,
       albumId: albumId,
       viewOnce: viewOnce,
+      mediaSpoiler: mediaSpoiler,
       caption: caption,
     );
     _scrollToBottom();

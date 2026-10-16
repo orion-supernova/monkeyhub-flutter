@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "이름이나 설명이 너무 길어요. 이름은 100자, 설명은 500자 미만으로 해 주세요.",
   "limitNotYourFile": "이 파일은 사용할 수 없어요. 다시 선택한 뒤 재시도해 주세요.",
   "limitDeviceLoginBusy": "지금은 로그인 코드를 발급할 수 없어요. 1분 후 다시 시도해 주세요.",
-  "limitRequestMessages": "상대가 요청을 수락할 때까지 더 보낼 수 없어요."
+  "limitRequestMessages": "상대가 요청을 수락할 때까지 더 보낼 수 없어요.",
+  "mediaSendViewOnceTip": "상대방은 한 번만 열 수 있어요",
+  "mediaSendSpoilerTip": "탭할 때까지 먼지 아래 숨겨져요",
+  "mediaSendSpoilerNote": "탭하면 보여요",
+  "mediaSendSpoilerOnSemanticLabel": "스포일러: 켬",
+  "mediaSendSpoilerOffSemanticLabel": "스포일러: 끔",
+  "mediaSpoilerRevealSemanticLabel": "스포일러. 탭해서 보기"
 }

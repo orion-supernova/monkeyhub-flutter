@@ -14192,4 +14192,24 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get limitRequestMessages =>
       'Vous ne pouvez plus rien envoyer tant que votre demande n\'est pas acceptée.';
+
+  @override
+  String get mediaSendViewOnceTip => 'Ne pourra l\'ouvrir qu\'une fois';
+
+  @override
+  String get mediaSendSpoilerTip =>
+      'Cachée sous la poussière jusqu\'au toucher';
+
+  @override
+  String get mediaSendSpoilerNote => 'Cachée jusqu\'au toucher';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'Spoiler : activé';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'Spoiler : désactivé';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel =>
+      'Spoiler. Touchez pour afficher';
 }

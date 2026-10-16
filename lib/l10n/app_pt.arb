@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "Esse nome ou descrição é demasiado longo. Use menos de 100 caracteres no nome e menos de 500 na descrição.",
   "limitNotYourFile": "Não é possível usar esse ficheiro. Escolha-o novamente e tente outra vez.",
   "limitDeviceLoginBusy": "Os códigos de início de sessão estão ocupados neste momento. Tente novamente dentro de um minuto.",
-  "limitRequestMessages": "Não pode enviar mais até a pessoa aceitar o seu pedido."
+  "limitRequestMessages": "Não pode enviar mais até a pessoa aceitar o seu pedido.",
+  "mediaSendViewOnceTip": "Só poderá abrir uma vez",
+  "mediaSendSpoilerTip": "Escondida sob pó até tocarem",
+  "mediaSendSpoilerNote": "Escondida até tocarem",
+  "mediaSendSpoilerOnSemanticLabel": "Spoiler: ativado",
+  "mediaSendSpoilerOffSemanticLabel": "Spoiler: desativado",
+  "mediaSpoilerRevealSemanticLabel": "Spoiler. Toque para revelar"
 }

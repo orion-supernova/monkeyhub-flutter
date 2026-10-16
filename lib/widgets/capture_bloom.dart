@@ -10,6 +10,7 @@ import '../theme/spring.dart';
 import '../theme/theme_preference.dart' show AppThemeBrightness;
 import 'capture_glyphs.dart';
 import 'glass_buttons.dart' show chromeDiscFill;
+import 'glyph_tip.dart';
 import 'liquid_glass.dart' show SpecularRim;
 
 /// How the bloom goes away once the recording is over.
@@ -318,7 +319,7 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
       }
     }
     if (_kickAt != null && _clock - _kickAt! > 0.24) _kickAt = null;
-    if (_tipAt != null && _clock - _tipAt! > 2.9) _tipAt = null;
+    if (_tipAt != null && _clock - _tipAt! > TipBubble.life) _tipAt = null;
 
     for (final s in [_scale, _fade, _dx, _dy, _level, _morph, _pill, _controls, _once]) {
       s.tick(dt);
@@ -608,61 +609,20 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
   /// flame ignites from a spark and keeps dancing, and the whole thing goes by
   /// itself after a few seconds.
   Widget _onceTip(AppTheme theme, double y, double age) {
-    const bg = Color(0xF0101012);
-    final pop = Curves.easeOutBack.transform((age / 0.34).clamp(0.0, 1.0));
-    final outT = Curves.easeIn.transform(((age - 2.5) / 0.3).clamp(0.0, 1.0));
-    final ignite = ((age - 0.08) / 0.5).clamp(0.0, 1.0);
     final right = CaptureBloom.boxSize.width - (CaptureBloom.center.dx - 20 - 12);
     return Positioned(
       right: right,
       top: y - 26,
       height: 52,
-      child: IgnorePointer(
-        child: Opacity(
-          opacity: (1 - outT) * (pop.clamp(0.0, 1.0)),
-          child: Transform.scale(
-            // Grows out of the button it belongs to.
-            alignment: Alignment.centerRight,
-            scale: (0.55 + 0.45 * pop) * (1 - 0.15 * outT),
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                color: bg,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                shadows: const [BoxShadow(color: Color(0x66000000), blurRadius: 16, offset: Offset(0, 4))],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FlameGlyph(
-                      color: Colors.white,
-                      core: bg,
-                      flicker: _clock / 0.7,
-                      ignite: ignite,
-                      size: 30,
-                    ),
-                    const SizedBox(width: 10),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 210),
-                      child: Text(
-                        widget.viewOnceHint,
-                        maxLines: 2,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          height: 1.2,
-                          letterSpacing: -0.2,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+      child: TipBubble(
+        age: age,
+        text: widget.viewOnceHint,
+        glyph: FlameGlyph(
+          color: Colors.white,
+          core: TipBubble.background,
+          flicker: _clock / 0.7,
+          ignite: TipBubble.igniteOf(age),
+          size: 30,
         ),
       ),
     );

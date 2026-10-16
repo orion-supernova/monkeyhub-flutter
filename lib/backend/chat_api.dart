@@ -1256,6 +1256,10 @@ class ChatApi {
     /// Burn-after-reading. The server drops [mediaWidth]/[mediaHeight] for one
     /// of these and never hands the storage id back out again.
     bool viewOnce = false,
+
+    /// Sent as a spoiler: everyone sees it blurred under dust until they tap.
+    /// The server keeps it only on an image or video with a blob.
+    bool mediaSpoiler = false,
     /// Idempotency key — the optimistic message's local id, reused verbatim on
     /// every retry of that message. The server returns the row it already wrote
     /// rather than writing a second one.
@@ -1312,6 +1316,9 @@ class ChatApi {
       if (replyToAlbum && replyToId != null) 'replyAlbumCount': ?replyAlbumCount,
       'albumId': ?albumId,
       if (viewOnce) 'viewOnce': true,
+      // Only ever `true`, never `false`: an ordinary send stays the shape a
+      // server from before spoilers accepts.
+      if (mediaSpoiler) 'mediaSpoiler': true,
       // Omitted rather than sent empty, matching `viewOnce` above — the common
       // message mentions nobody and shouldn't widen the wire to say so.
       if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
@@ -1754,6 +1761,7 @@ class ChatApi {
     double? mediaWidth,
     double? mediaHeight,
     bool viewOnce = false,
+    bool mediaSpoiler = false,
   }) async {
     final res = await _cv.mutation('scheduledMessages:schedule', {
       if (mediaStorageId != null) ...{
@@ -1762,6 +1770,7 @@ class ChatApi {
         'mediaWidth': ?mediaWidth,
         'mediaHeight': ?mediaHeight,
         if (viewOnce) 'viewOnce': true,
+        if (mediaSpoiler) 'mediaSpoiler': true,
       },
       'roomId': roomId,
       'userId': userId,

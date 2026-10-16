@@ -1074,6 +1074,9 @@ export default defineSchema({
         // photos: how many items it held. The parent is then the album's
         // first message, and the tether reads "4 items" with a stack.
         albumCount: v.optional(v.number()),
+        // The parent was a spoiler photo or video (`messages.mediaSpoiler`),
+        // so the tether's thumbnail is drawn blurred. Absent otherwise.
+        mediaSpoiler: v.optional(v.boolean()),
       })
     ),
     // The album this message was sent in: one id shared by every photo and
@@ -1189,6 +1192,25 @@ export default defineSchema({
     // a flag that is *removed* on burn takes those rows out of the bucket
     // altogether, because `eq(true)` never matches an absent field.
     viewOnceLive: v.optional(v.boolean()),
+
+    // ── Media spoiler ───────────────────────────────────────────────────────
+    //
+    // A photo or video sent "as a spoiler", as Telegram does: recipients see
+    // it blurred under spoiler dust until they tap. The media equivalent of a
+    // `spoiler` formatting run, and like that one it is a promise about
+    // presentation, not about access — the blob, its size and its storage id
+    // all travel exactly as for any other photo. Nothing is withheld on the
+    // read path, which is the line between this and `viewOnce` above: a
+    // spoiler hides the picture until a tap, view-once hides it after one.
+    // Both may be set; the view-once rules then govern everything they cover.
+    //
+    // Written only as `true`, and only on an `image` or `video` that has a
+    // blob (`messages:send` drops it for every other kind), so the field
+    // stays sparse and an older client that never heard of it just shows the
+    // photo. Carried by forwarding and by `replyToPreview.mediaSpoiler`, so a
+    // quote of a spoiler photo can blur its thumbnail too. No index: nothing
+    // queries by it.
+    mediaSpoiler: v.optional(v.boolean()),
 
     // Idempotency key, minted by the sender before the first attempt and reused
     // verbatim on every retry of that same message. `messages:send` returns the
@@ -1426,6 +1448,9 @@ export default defineSchema({
     mediaWidth: v.optional(v.number()),
     mediaHeight: v.optional(v.number()),
     viewOnce: v.optional(v.boolean()),
+    // Sent "as a spoiler" — see `messages.mediaSpoiler`. Carried into the
+    // released message; only ever written as `true`.
+    mediaSpoiler: v.optional(v.boolean()),
     // Idempotency key, minted at schedule time and carried into the insert.
     // Required rather than optional: a release job that runs twice — the
     // deployment restarted between the insert and the commit — must find its

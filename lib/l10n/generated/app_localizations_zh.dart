@@ -13233,4 +13233,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get limitRequestMessages => '在对方接受你的请求前，你无法再发送消息。';
+
+  @override
+  String get mediaSendViewOnceTip => '对方只能打开一次';
+
+  @override
+  String get mediaSendSpoilerTip => '被尘埃遮住，点一下才显示';
+
+  @override
+  String get mediaSendSpoilerNote => '点一下才显示';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => '剧透：开';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => '剧透：关';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => '剧透。点按显示';
 }

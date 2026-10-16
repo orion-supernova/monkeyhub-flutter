@@ -1108,6 +1108,10 @@ export const send = mutation({
     // Burn-after-reading. Armed by the sender in the pre-send editor; see the
     // schema comment on `messages.viewOnce`.
     viewOnce: v.optional(v.boolean()),
+    // Sent "as a spoiler": recipients see the picture blurred until they tap.
+    // Kept only on an `image` or `video` with a blob; see the schema comment
+    // on `messages.mediaSpoiler`.
+    mediaSpoiler: v.optional(v.boolean()),
     // Idempotency key. Optional so older clients keep working — they just get
     // the old at-least-once behaviour. See the schema comment on
     // `messages.clientId`.
@@ -1211,7 +1215,7 @@ export const send = mutation({
  * the insert, the `scheduler` calls and the room patch all commit in the same
  * transaction as whoever called this.
  */
-export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount, gameMove, quiet }: any) {
+export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, mediaSpoiler, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount, gameMove, quiet }: any) {
   if (typeof content === "string" && content.length > MAX_CONTENT_CHARS) {
     throw new Error(ERR_TOO_LONG);
   }
@@ -1332,6 +1336,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     stickerStorageId?: any;
     stickerFormat?: string;
     albumCount?: number;
+    mediaSpoiler?: boolean;
   } | undefined;
   let resolvedReplyToId: any | undefined;
   // Thread root, derived from the *resolved* parent. Computing it from the
@@ -1372,6 +1377,9 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
         mediaUrl: parent.mediaPreviewUrl ?? parent.mediaUrl,
         stickerStorageId: parent.stickerStorageId,
         stickerFormat: parent.stickerFormat,
+        // A quote of a spoiler photo is a thumbnail of it, so it is drawn
+        // under the same blur. Copied as `true` or not at all.
+        ...(parent.mediaSpoiler === true ? { mediaSpoiler: true } : {}),
       };
       // A reply to the whole album: counted here, once, so the tether can
       // say "4 items" forever after, however the album later changes.
@@ -1594,6 +1602,15 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       : {}),
     ...expressionFields,
     ...viewOnceFields,
+    // Media spoiler: written only as `true`, and only where there is a
+    // picture to hide — an image or video that actually has a blob. A flag on
+    // a text, voice message or video note would be a promise no bubble keeps.
+    // Independent of `armed`: both may be set, and view-once wins on read.
+    ...(mediaSpoiler === true &&
+    (msgType === "image" || msgType === "video") &&
+    mediaStorageId !== undefined
+      ? { mediaSpoiler: true }
+      : {}),
     ...locationFields,
     ...liveFields,
     ...(replyToPreview
@@ -2512,6 +2529,9 @@ export const forwardToRoom = mutation({
         stickerId: msg.stickerId,
         stickerStorageId: msg.stickerStorageId,
         stickerFormat: msg.stickerFormat,
+        // A spoiler photo forwards as a spoiler: the sender hid it, and
+        // forwarding is not a reason to un-hide it in somebody else's room.
+        ...(msg.mediaSpoiler === true ? { mediaSpoiler: true } : {}),
         senderName: resolvedSenderName,
         expiresAt,
         ...(clientId !== undefined ? { clientId } : {}),

@@ -21,6 +21,7 @@ class ReplyPreview {
     this.stickerStorageId,
     this.stickerFormat,
     this.albumCount,
+    this.mediaSpoiler = false,
   });
 
   final String senderId;
@@ -39,6 +40,11 @@ class ReplyPreview {
   /// Set when the reply is to a whole album: how many items it held. The
   /// parent is the album's first message, and the quote draws a stack.
   final int? albumCount;
+
+  /// The parent was sent as a spoiler (see [ChatMessage.mediaSpoiler]), so
+  /// the quote's thumbnail is drawn blurred: quoting a spoiler must not be
+  /// the way to see it.
+  final bool mediaSpoiler;
 
   bool get isDeleted => contentPreview == '__DELETED__';
 
@@ -61,6 +67,7 @@ class ReplyPreview {
             ? null
             : ExpressionItem.parseFormat(j['stickerFormat']),
         albumCount: (j['albumCount'] as num?)?.toInt(),
+        mediaSpoiler: j['mediaSpoiler'] == true,
       );
 
   Map<String, dynamic> toJson() => {
@@ -73,6 +80,7 @@ class ReplyPreview {
         if (stickerStorageId != null) 'stickerStorageId': stickerStorageId,
         if (stickerFormat != null) 'stickerFormat': stickerFormat!.name,
         if (albumCount != null) 'albumCount': albumCount,
+        if (mediaSpoiler) 'mediaSpoiler': true,
       };
 }
 
@@ -132,6 +140,7 @@ class ChatMessage {
     this.viewOnceOpened = false,
     this.viewOnceBurnedAt,
     this.viewOnceSelf = false,
+    this.mediaSpoiler = false,
     this.upload,
     this.clientId,
     this.albumId,
@@ -325,6 +334,13 @@ class ChatMessage {
   /// spent, and the server answers anyone else's open of their own send with
   /// `gone`.
   final bool viewOnceSelf;
+
+  /// Sent "as a spoiler": the photo or video reaches everyone, sender
+  /// included, blurred under spoiler dust until a tap reveals it. A property
+  /// of how it is SHOWN, never of who may see it: the storage id and every
+  /// read path are untouched. With [viewOnce] the seal wins, and this only
+  /// decides how the one look is dressed.
+  final bool mediaSpoiler;
 
   /// Whether [isMine] makes this copy the sender's spent one. False in Saved
   /// Messages ([viewOnceSelf]), where the sender gets the one look a
@@ -540,6 +556,7 @@ class ChatMessage {
               (j['viewOnceBurnedAt'] as num).toInt())
           : null,
       viewOnceSelf: (j['viewOnceSelf'] ?? false) as bool,
+      mediaSpoiler: j['mediaSpoiler'] == true,
       clientId: j['clientId'] as String?,
       albumId: j['albumId'] as String?,
       mentions: (j['mentions'] as List?)
@@ -633,6 +650,8 @@ class ChatMessage {
         if (viewOnceBurnedAt != null)
           'viewOnceBurnedAt': viewOnceBurnedAt!.millisecondsSinceEpoch,
         if (viewOnceSelf) 'viewOnceSelf': true,
+        // A cold boot must not hand a spoiler back unblurred.
+        if (mediaSpoiler) 'mediaSpoiler': true,
         // A location bubble IS its coordinates — there is no thumbnail and no
         // text underneath — so dropping these from the cache would give a cold
         // boot a row of empty map cards, the same failure the `fileName`
@@ -717,6 +736,8 @@ class ChatMessage {
         viewOnceOpened: viewOnceOpened ?? this.viewOnceOpened,
         viewOnceBurnedAt: viewOnceBurnedAt,
         viewOnceSelf: viewOnceSelf,
+        // Carried, or a reaction on a spoiler photo would undress it.
+        mediaSpoiler: mediaSpoiler,
         // Carried, not droppable. A copyWith that quietly lost the bytes of an
         // in-flight send would leave a bubble that can neither paint its picture
         // nor be retried, and nothing about the call site would hint at it.

@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "Bu ad veya açıklama çok uzun. Adlar 100, açıklamalar 500 karakterden kısa olmalı.",
   "limitNotYourFile": "Bu dosya kullanılamıyor. Tekrar seçip yeniden dene.",
   "limitDeviceLoginBusy": "Giriş kodları şu an yoğun. Bir dakika sonra tekrar dene.",
-  "limitRequestMessages": "İsteğini kabul edene kadar daha fazla gönderemezsin."
+  "limitRequestMessages": "İsteğini kabul edene kadar daha fazla gönderemezsin.",
+  "mediaSendViewOnceTip": "Yalnızca bir kez açabilir",
+  "mediaSendSpoilerTip": "Dokunana kadar tozun altında gizli",
+  "mediaSendSpoilerNote": "Dokununca görünür",
+  "mediaSendSpoilerOnSemanticLabel": "Spoiler: açık",
+  "mediaSendSpoilerOffSemanticLabel": "Spoiler: kapalı",
+  "mediaSpoilerRevealSemanticLabel": "Spoiler. Göstermek için dokun"
 }

@@ -32,6 +32,7 @@ import '../widgets/forward_target_sheet.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/media_grid_tile.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
+import '../widgets/media_spoiler.dart';
 import '../widgets/remote_image.dart';
 import 'fullscreen_video_viewer.dart';
 import 'media_pager_screen.dart';
@@ -1407,11 +1408,22 @@ class _SavedRow extends StatelessWidget {
               child: SizedBox(
                 width: 40,
                 height: 40,
-                child: RemoteImage(
-                  storageId: m.mediaStorageId!,
-                  api: api,
-                  fit: BoxFit.cover,
-                ),
+                child: m.mediaSpoiler
+                    ? MediaSpoilerCover(
+                        interactive: false,
+                        dust: false,
+                        sigma: 6,
+                        child: RemoteImage(
+                          storageId: m.mediaStorageId!,
+                          api: api,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : RemoteImage(
+                        storageId: m.mediaStorageId!,
+                        api: api,
+                        fit: BoxFit.cover,
+                      ),
               ),
             )
           : Container(

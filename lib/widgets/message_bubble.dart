@@ -49,6 +49,7 @@ import 'photo_chrome.dart';
 import 'photo_deck.dart';
 import 'photo_mosaic.dart';
 import 'reaction_bubble.dart';
+import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'room_gallery_scope.dart';
 import 'steady_hero.dart';
@@ -1883,7 +1884,10 @@ Widget buildMessageContent({
           // loading state forever. A placeholder at the tile's own size holds the
           // geometry the finished video will take, so the transcript doesn't jump
           // when the upload lands.
-          child: videoUpload != null
+          child: _spoilerOr(
+            message,
+            interactive: videoUpload == null,
+            child: videoUpload != null
               ? _OutboundVideoTile(
                   theme: theme,
                   upload: videoUpload,
@@ -1916,6 +1920,7 @@ Widget buildMessageContent({
                                 ?.call(message),
                           ),
                 ),
+          ),
         ),
         stamp: hasCaption ? null : stampFor(StampTone.onMedia),
       );
@@ -2032,6 +2037,8 @@ Widget buildMessageContent({
             posterBytes: noteUpload.posterBytes,
             onRetry: onRetrySend,
             onDiscard: onDiscardSend,
+            viewOnce: message.viewOnce,
+            seedKey: message.clientId ?? message.id,
           ),
         );
       }
@@ -2049,6 +2056,8 @@ Widget buildMessageContent({
           selfChat: message.viewOnceSelf,
           diameter: noteSize,
           onOpen: onOpenViewOnce,
+          // The send's own id, which its upload's circle was seeded by too.
+          seedKey: message.clientId ?? message.id,
         );
       }
       return VideoNoteMessage(
@@ -2521,6 +2530,7 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
         await ViewOnceViewer.open(
           context,
           bytes: bytes,
+          spoiler: widget.message.mediaSpoiler,
           onBurn: () {
             if (mounted) {
               setState(() {
@@ -2738,6 +2748,23 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
       ),
     );
   }
+}
+
+/// [child] under its spoiler cover when [message] was sent as one, and
+/// untouched (no wrapper at all) when it was not.
+Widget _spoilerOr(
+  ChatMessage message, {
+  required Widget child,
+  bool interactive = true,
+  BorderRadius radius = BorderRadius.zero,
+}) {
+  if (!message.mediaSpoiler) return child;
+  return MediaSpoilerCover(
+    revealKey: message.id,
+    interactive: interactive,
+    borderRadius: radius,
+    child: child,
+  );
 }
 
 class _ImageTile extends StatefulWidget {
@@ -3011,6 +3038,13 @@ class _ImageTileState extends State<_ImageTile> {
         onAspectRatio: _aspect == null ? _onAspect : null,
       ),
     );
+    // A spoiler's first tap is the cover's: it reveals in place, and only the
+    // next opens the viewer, which shows the picture as it is.
+    final covered = _spoilerOr(
+      widget.message,
+      radius: widget.radius,
+      child: remote,
+    );
     return GestureDetector(
       onTap: _openViewer,
       child: StampedMedia(
@@ -3032,9 +3066,9 @@ class _ImageTileState extends State<_ImageTile> {
                   ),
                   radius: widget.radius,
                 ),
-                child: remote,
+                child: covered,
               )
-            : remote,
+            : covered,
         stamp: _viewing ? null : widget.stamp,
       ),
     );
@@ -3101,7 +3135,10 @@ class _UploadingImageTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.memory(
+            _spoilerOr(
+              message,
+              interactive: false,
+              child: Image.memory(
               upload.bytes,
               fit: BoxFit.cover,
               cacheWidth: decode.width,
@@ -3119,6 +3156,7 @@ class _UploadingImageTile extends StatelessWidget {
                   child: Icon(CupertinoIcons.photo, color: theme.inkMuted),
                 ),
               ),
+            ),
             ),
             ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
             Center(

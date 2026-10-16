@@ -13396,4 +13396,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get limitRequestMessages => '상대가 요청을 수락할 때까지 더 보낼 수 없어요.';
+
+  @override
+  String get mediaSendViewOnceTip => '상대방은 한 번만 열 수 있어요';
+
+  @override
+  String get mediaSendSpoilerTip => '탭할 때까지 먼지 아래 숨겨져요';
+
+  @override
+  String get mediaSendSpoilerNote => '탭하면 보여요';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => '스포일러: 켬';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => '스포일러: 끔';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => '스포일러. 탭해서 보기';
 }

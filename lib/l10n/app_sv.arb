@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "Namnet eller beskrivningen är för lång. Håll namn under 100 tecken och beskrivningar under 500.",
   "limitNotYourFile": "Filen kan inte användas. Välj den igen och försök på nytt.",
   "limitDeviceLoginBusy": "Inloggningskoderna är upptagna just nu. Försök igen om en minut.",
-  "limitRequestMessages": "Du kan inte skicka mer förrän de godkänner din förfrågan."
+  "limitRequestMessages": "Du kan inte skicka mer förrän de godkänner din förfrågan.",
+  "mediaSendViewOnceTip": "De kan bara öppna den en gång",
+  "mediaSendSpoilerTip": "Gömd under damm tills de trycker",
+  "mediaSendSpoilerNote": "Gömd tills de trycker",
+  "mediaSendSpoilerOnSemanticLabel": "Spoiler: på",
+  "mediaSendSpoilerOffSemanticLabel": "Spoiler: av",
+  "mediaSpoilerRevealSemanticLabel": "Spoiler. Tryck för att visa"
 }

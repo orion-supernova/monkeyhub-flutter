@@ -14170,4 +14170,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get limitRequestMessages => 'لا يمكنك إرسال المزيد حتى يقبل طلبك.';
+
+  @override
+  String get mediaSendViewOnceTip => 'يمكنه فتحها مرة واحدة فقط';
+
+  @override
+  String get mediaSendSpoilerTip => 'مخفية تحت الغبار حتى يلمسها';
+
+  @override
+  String get mediaSendSpoilerNote => 'مخفية حتى اللمس';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'سبويلر: مفعّل';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'سبويلر: معطّل';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => 'سبويلر. المس للإظهار';
 }

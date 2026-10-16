@@ -58,6 +58,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kDataPrefs = 'mh.dataStorage.v1';
   static const _kShowNetworkStats = 'mh.showNetworkStats';
   static const _kPhotoHd = 'mh.photoHd';
+  static const _kTipsSeen = 'mh.tipsSeen';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
   // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
   // 'mh.micPermissionPrompted' were retired with the Android onboarding
@@ -97,7 +98,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kCaptureProtection, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd, _kTipsSeen,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel,
@@ -164,6 +165,7 @@ class SettingsStore extends ChangeNotifier {
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   String? _recoveryPromptDismissedFor;
   Set<String> _composerModeHintSeenRoomIds = {};
+  Set<String> _tipsSeen = {};
   Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
   GlassEngine _glassEngine = GlassEngine.native;
@@ -375,6 +377,10 @@ class SettingsStore extends ChangeNotifier {
   /// is opened, but a room the user has never opened before has taught them
   /// nothing yet either, hint or no hint elsewhere.
   bool shouldShowComposerModeHint(String roomId) => !_composerModeHintSeenRoomIds.contains(roomId);
+
+  /// Whether the one-time tip [id] has been shown (a toggle's "what this
+  /// does" bubble, the first time it is turned on).
+  bool tipSeen(String id) => _tipsSeen.contains(id);
 
   /// The diagnostics categories left out of the viewer's **All**, by name.
   /// Null until somebody first changes them, so the viewer can tell "never
@@ -663,6 +669,7 @@ class SettingsStore extends ChangeNotifier {
     _photoHd = phd == 'true'; // default false — compressed
     _videoQualityTier = VideoQualityTierWire.parse(s[_kVideoQualityTier]);
     _recoveryPromptDismissedFor = s[_kRecoveryPromptDismissed];
+    _tipsSeen = _decodeStringSet(s[_kTipsSeen]);
     _composerModeHintSeenRoomIds = _decodeStringSet(
       s[_kComposerModeHintSeenRoomIds],
     );
@@ -1119,6 +1126,14 @@ class SettingsStore extends ChangeNotifier {
 
   /// Records that [roomId]'s composer just played the mode-switch hint, so
   /// [shouldShowComposerModeHint] stays false for that room from now on.
+  Future<void> markTipSeen(String id) async {
+    if (!_tipsSeen.add(id)) return;
+    await _storage.write(
+      key: _kTipsSeen,
+      value: jsonEncode(_tipsSeen.toList()),
+    );
+  }
+
   Future<void> markComposerModeHintShown(String roomId) async {
     if (!_composerModeHintSeenRoomIds.add(roomId)) return;
     await _storage.write(

@@ -3862,5 +3862,11 @@
   "limitRoomTextTooLong": "Ce nom ou cette description est trop long. Les noms doivent faire moins de 100 caractères et les descriptions moins de 500.",
   "limitNotYourFile": "Ce fichier ne peut pas être utilisé. Sélectionnez-le à nouveau et réessayez.",
   "limitDeviceLoginBusy": "Les codes de connexion sont saturés pour le moment. Réessayez dans une minute.",
-  "limitRequestMessages": "Vous ne pouvez plus rien envoyer tant que votre demande n'est pas acceptée."
+  "limitRequestMessages": "Vous ne pouvez plus rien envoyer tant que votre demande n'est pas acceptée.",
+  "mediaSendViewOnceTip": "Ne pourra l'ouvrir qu'une fois",
+  "mediaSendSpoilerTip": "Cachée sous la poussière jusqu'au toucher",
+  "mediaSendSpoilerNote": "Cachée jusqu'au toucher",
+  "mediaSendSpoilerOnSemanticLabel": "Spoiler : activé",
+  "mediaSendSpoilerOffSemanticLabel": "Spoiler : désactivé",
+  "mediaSpoilerRevealSemanticLabel": "Spoiler. Touchez pour afficher"
 }

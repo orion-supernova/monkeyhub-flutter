@@ -16735,5 +16735,29 @@
   "limitRequestMessages": "You can't send more until they accept your request.",
   "@limitRequestMessages": {
     "description": "Toast when the user has sent the maximum number of messages on a pending message request (TOO_MANY_MESSAGES) and must wait for the other person to accept."
+  },
+  "mediaSendViewOnceTip": "They can open it only once",
+  "@mediaSendViewOnceTip": {
+    "description": "Tooltip that pops up the first time the sender arms view-once in the photo send preview. The recipient can open the photo a single time."
+  },
+  "mediaSendSpoilerTip": "Hidden under dust until they tap",
+  "@mediaSendSpoilerTip": {
+    "description": "Tooltip that pops up the first time the sender arms the spoiler toggle in the photo send preview. A spoiler photo reaches recipients blurred under animated dust until they tap it."
+  },
+  "mediaSendSpoilerNote": "Hidden until tapped",
+  "@mediaSendSpoilerNote": {
+    "description": "Short note shown above the photo send preview's controls while the spoiler toggle is on."
+  },
+  "mediaSendSpoilerOnSemanticLabel": "Spoiler: on",
+  "@mediaSendSpoilerOnSemanticLabel": {
+    "description": "Accessibility label of the spoiler toggle in the photo send preview, when on. Match the style of \"HD: on\"."
+  },
+  "mediaSendSpoilerOffSemanticLabel": "Spoiler: off",
+  "@mediaSendSpoilerOffSemanticLabel": {
+    "description": "Accessibility label of the spoiler toggle in the photo send preview, when off. Match the style of \"HD: off\"."
+  },
+  "mediaSpoilerRevealSemanticLabel": "Spoiler. Tap to reveal",
+  "@mediaSpoilerRevealSemanticLabel": {
+    "description": "Accessibility label on a photo or video in a chat that was sent as a spoiler and is still covered by dust. Activating it reveals the picture."
   }
 }

@@ -14028,4 +14028,22 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get limitRequestMessages =>
       'Du kan inte skicka mer förrän de godkänner din förfrågan.';
+
+  @override
+  String get mediaSendViewOnceTip => 'De kan bara öppna den en gång';
+
+  @override
+  String get mediaSendSpoilerTip => 'Gömd under damm tills de trycker';
+
+  @override
+  String get mediaSendSpoilerNote => 'Gömd tills de trycker';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'Spoiler: på';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'Spoiler: av';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Tryck för att visa';
 }

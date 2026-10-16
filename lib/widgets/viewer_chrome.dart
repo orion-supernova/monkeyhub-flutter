@@ -31,9 +31,17 @@ class ViewerTopBar extends StatefulWidget {
     this.center,
     this.actions = const [],
     this.still = false,
+    this.band = true,
   });
 
   final VoidCallback onClose;
+
+  /// The solid bar behind the chrome. False lays a soft scrim over the
+  /// picture instead, which reaches a little below the buttons and fades to
+  /// nothing: for a viewer whose picture has nowhere else to be (the
+  /// view-once photo, shown once, whole), where a solid band would sit on
+  /// top of a portrait shot's top edge.
+  final bool band;
 
   /// Screen-reader label for the close. Defaults to the platform's "Close".
   final String? closeLabel;
@@ -157,7 +165,30 @@ class _ViewerTopBarState extends State<ViewerTopBar> {
     return _ViewerStill(
       still: still,
       child: Stack(
+        clipBehavior: widget.band ? Clip.hardEdge : Clip.none,
         children: [
+          if (!widget.band)
+            // Over the picture, not above it: the same wash the editor's
+            // chrome wears, a step further down so white glass and text stay
+            // legible over a bright sky. Never blurred, for the band's reason.
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: -48,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xB3000000), Color(0x00000000)],
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
           // A real bar, not a scrim: the ×, who sent it and Show in chat read
           // as one navigation bar over the black void. Solid, never blurred —
           // this chrome fades on every tap, and a fading blur is the one

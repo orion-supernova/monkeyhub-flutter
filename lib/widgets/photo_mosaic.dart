@@ -17,6 +17,7 @@ import 'secondary_click_recognizer.dart';
 import 'highlight_pulse.dart';
 import 'media_flight.dart';
 import 'reaction_bubble.dart';
+import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
 
@@ -552,7 +553,17 @@ class MosaicTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            picture,
+            // A spoiler is per item, as it is on the wire: each card of an
+            // album sent hidden opens on its own tap, and the first tap on
+            // one opens it rather than the viewer.
+            if (message.mediaSpoiler)
+              MediaSpoilerCover(
+                revealKey: message.id,
+                sigma: 16,
+                child: picture,
+              )
+            else
+              picture,
             // Not while it is still going up: the upload's arc owns the
             // middle of the card until there is something to play.
             if (video && upload == null) const _PlayDisc(),

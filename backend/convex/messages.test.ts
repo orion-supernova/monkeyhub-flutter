@@ -341,3 +341,269 @@ describe("the room card names its last sender", () => {
     expect(room?.lastMessageSenderId).toBe(me.userId);
   });
 });
+
+/**
+ * Media spoilers: a photo or video sent "as a spoiler" is blurred for its
+ * recipients until tapped. The server's whole job is to keep the flag — on the
+ * right kinds only — and to carry it everywhere the picture goes: every read,
+ * the quote of a reply, a forward, the scheduled path.
+ */
+describe("media spoilers", () => {
+  async function signUp(t: ReturnType<typeof convexTest>, username: string) {
+    return await t.mutation(api.auth.signup, {
+      username,
+      name: username,
+      passwordHash: `hash-${username}`,
+      recoveryKeyHash: `recovery-${username}`,
+      deviceId: `device-${username}`,
+    });
+  }
+
+  const store = (t: ReturnType<typeof convexTest>, type = "image/jpeg") =>
+    t.run((ctx) => ctx.storage.store(new Blob([new Uint8Array(64)], { type })));
+
+  async function pair(t: ReturnType<typeof convexTest>) {
+    const me = await signUp(t, "sender");
+    const peer = await signUp(t, "peer");
+    const roomId = await t.mutation(api.rooms.create, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      name: "room",
+      isPrivate: false,
+    });
+    await t.mutation(api.rooms.join, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      roomId,
+    } as any);
+    return { me, peer, roomId };
+  }
+
+  async function send(
+    t: ReturnType<typeof convexTest>,
+    who: { token: string; userId: string },
+    roomId: any,
+    extra: Record<string, unknown>
+  ) {
+    return (await t.mutation(api.messages.send, {
+      sessionToken: who.token,
+      userId: who.userId as any,
+      roomId,
+      content: "",
+      ...extra,
+    } as any)) as Id<"messages">;
+  }
+
+  const row = (t: ReturnType<typeof convexTest>, id: any) =>
+    t.run((ctx) => ctx.db.get(id as Id<"messages">));
+
+  test("a spoiler photo is stored and comes back on every read", async () => {
+    const t = convexTest(schema);
+    const { me, peer, roomId } = await pair(t);
+    const id = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+      mediaWidth: 800,
+      mediaHeight: 600,
+      mediaSpoiler: true,
+    });
+    expect((await row(t, id))?.mediaSpoiler).toBe(true);
+
+    const listed: any[] = await t.query(api.messages.list, {
+      sessionToken: peer.token,
+      roomId,
+      viewerUserId: peer.userId as any,
+    } as any);
+    const mine = listed.find((m) => m._id === id);
+    expect(mine.mediaSpoiler).toBe(true);
+    // A spoiler hides presentation, not access: the blob still travels.
+    expect(mine.mediaStorageId).toBeDefined();
+
+    await t.mutation(api.pins.pin, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      messageId: id,
+    } as any);
+    const pins: any[] = await t.query(api.pins.listForRoom, {
+      sessionToken: peer.token,
+      roomId,
+      viewerUserId: peer.userId as any,
+    } as any);
+    expect(pins[0].message.mediaSpoiler).toBe(true);
+
+    await t.mutation(api.bookmarks.save, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      messageId: id,
+    } as any);
+    const saved: any[] = await t.query(api.bookmarks.listForRoom, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      roomId,
+    } as any);
+    expect(saved[0].message.mediaSpoiler).toBe(true);
+
+    const gallery: any = await t.query(api.roomContent.listBucket, {
+      sessionToken: peer.token,
+      userId: peer.userId as any,
+      roomId,
+      bucket: "media",
+    } as any);
+    expect(gallery.items[0].mediaSpoiler).toBe(true);
+
+    // The card and the push name the kind and nothing more.
+    const room = await t.run((ctx) => ctx.db.get(roomId as Id<"rooms">));
+    expect(room?.lastMessage).toBe("[image]");
+  });
+
+  test("a spoiler video keeps the flag", async () => {
+    const t = convexTest(schema);
+    const { me, roomId } = await pair(t);
+    const id = await send(t, me, roomId, {
+      type: "video",
+      mediaStorageId: await store(t, "video/mp4"),
+      mediaSpoiler: true,
+    });
+    expect((await row(t, id))?.mediaSpoiler).toBe(true);
+  });
+
+  test("ignored on anything that is not a photo or video with a blob", async () => {
+    const t = convexTest(schema);
+    const { me, roomId } = await pair(t);
+    const text = await send(t, me, roomId, {
+      content: "hello",
+      mediaSpoiler: true,
+    });
+    const voice = await send(t, me, roomId, {
+      type: "audio",
+      mediaStorageId: await store(t, "audio/mp4"),
+      mediaSpoiler: true,
+    });
+    const note = await send(t, me, roomId, {
+      type: "videoNote",
+      mediaStorageId: await store(t, "video/mp4"),
+      mediaSpoiler: true,
+    });
+    // An image whose upload never landed has no picture to hide.
+    const blobless = await send(t, me, roomId, {
+      type: "image",
+      mediaSpoiler: true,
+    });
+    const notAsked = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+    });
+    for (const id of [text, voice, note, blobless, notAsked]) {
+      expect((await row(t, id))?.mediaSpoiler).toBeUndefined();
+    }
+  });
+
+  test("view-once and spoiler can both be set; view-once still strips", async () => {
+    const t = convexTest(schema);
+    const { me, peer, roomId } = await pair(t);
+    const id = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+      viewOnce: true,
+      mediaSpoiler: true,
+    });
+    const stored = await row(t, id);
+    expect(stored?.viewOnce).toBe(true);
+    expect(stored?.mediaSpoiler).toBe(true);
+    const listed: any[] = await t.query(api.messages.list, {
+      sessionToken: peer.token,
+      roomId,
+      viewerUserId: peer.userId as any,
+    } as any);
+    const m = listed.find((x) => x._id === id);
+    expect(m.mediaStorageId).toBeUndefined();
+    expect(m.mediaSpoiler).toBe(true);
+  });
+
+  test("a reply quote knows its parent is a spoiler", async () => {
+    const t = convexTest(schema);
+    const { me, peer, roomId } = await pair(t);
+    const parent = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+      mediaSpoiler: true,
+    });
+    const plainParent = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+    });
+    const reply = await send(t, peer, roomId, {
+      content: "wow",
+      replyToId: parent,
+    });
+    const plainReply = await send(t, peer, roomId, {
+      content: "nice",
+      replyToId: plainParent,
+    });
+    const quoted = await row(t, reply);
+    expect(quoted?.replyToPreview?.mediaSpoiler).toBe(true);
+    expect(quoted?.replyToPreview?.mediaStorageId).toBeDefined();
+    expect((await row(t, plainReply))?.replyToPreview?.mediaSpoiler).toBeUndefined();
+  });
+
+  test("forwarding a spoiler photo keeps the flag", async () => {
+    const t = convexTest(schema);
+    const { me, roomId } = await pair(t);
+    const target = await t.mutation(api.rooms.create, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      name: "elsewhere",
+      isPrivate: false,
+    });
+    const spoiler = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+      mediaSpoiler: true,
+    });
+    const plain = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+    });
+    await t.mutation(api.messages.forwardToRoom, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      sourceRoomId: roomId,
+      targetRoomId: target,
+      messageIds: [spoiler, plain],
+      clientIds: ["fwd-1", "fwd-2"],
+    } as any);
+    const copies = await t.run((ctx) =>
+      ctx.db
+        .query("messages")
+        .withIndex("by_room_time", (q) => q.eq("roomId", target as any))
+        .collect()
+    );
+    const images = copies.filter((m) => m.type === "image");
+    expect(images).toHaveLength(2);
+    expect(images.find((m) => m.clientId === "fwd-1")?.mediaSpoiler).toBe(true);
+    expect(images.find((m) => m.clientId === "fwd-2")?.mediaSpoiler).toBeUndefined();
+  });
+
+  test("a spoiler photo is not push-seeded, so no stub shows it unblurred", async () => {
+    const t = convexTest(schema);
+    const { me, roomId } = await pair(t);
+    const spoiler = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+      mediaSpoiler: true,
+    });
+    const plain = await send(t, me, roomId, {
+      type: "image",
+      mediaStorageId: await store(t),
+    });
+    const ctxFor = (messageId: any) =>
+      t.query(internal.rooms.getMemberIds, {
+        roomId,
+        excludeUserId: me.userId as any,
+        messageId,
+        resolvePushContext: true,
+      } as any);
+    expect(((await ctxFor(spoiler)) as any).plain).toBe(false);
+    expect(((await ctxFor(plain)) as any).plain).toBe(true);
+  });
+});

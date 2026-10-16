@@ -14134,6 +14134,24 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get limitRequestMessages =>
       'Não pode enviar mais até a pessoa aceitar o seu pedido.';
+
+  @override
+  String get mediaSendViewOnceTip => 'Só poderá abrir uma vez';
+
+  @override
+  String get mediaSendSpoilerTip => 'Escondida sob pó até tocarem';
+
+  @override
+  String get mediaSendSpoilerNote => 'Escondida até tocarem';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'Spoiler: ativado';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'Spoiler: desativado';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Toque para revelar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -28249,4 +28267,22 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get limitRequestMessages =>
       'Você não pode enviar mais até a pessoa aceitar seu pedido.';
+
+  @override
+  String get mediaSendViewOnceTip => 'Só vai poder abrir uma vez';
+
+  @override
+  String get mediaSendSpoilerTip => 'Escondida sob poeira até tocarem';
+
+  @override
+  String get mediaSendSpoilerNote => 'Escondida até tocarem';
+
+  @override
+  String get mediaSendSpoilerOnSemanticLabel => 'Spoiler: ativado';
+
+  @override
+  String get mediaSendSpoilerOffSemanticLabel => 'Spoiler: desativado';
+
+  @override
+  String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Toque para revelar';
 }

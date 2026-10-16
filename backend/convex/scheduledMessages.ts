@@ -171,6 +171,7 @@ function sendArgsFor(row: any) {
     mediaWidth: row.mediaWidth,
     mediaHeight: row.mediaHeight,
     viewOnce: row.viewOnce,
+    mediaSpoiler: row.mediaSpoiler,
     replyToId: row.replyToId,
     mentionedUserIds: row.mentionedUserIds,
     mentionsEveryone: row.mentionsEveryone,
@@ -228,6 +229,8 @@ export const schedule = mutation({
     mediaWidth: v.optional(v.number()),
     mediaHeight: v.optional(v.number()),
     viewOnce: v.optional(v.boolean()),
+    // Send the photo "as a spoiler"; see `messages.mediaSpoiler`.
+    mediaSpoiler: v.optional(v.boolean()),
     // Minted by the client so a retried `schedule` cannot stage the same
     // message twice, and carried all the way into the eventual insert.
     clientId: v.string(),
@@ -249,6 +252,7 @@ export const schedule = mutation({
       mediaWidth,
       mediaHeight,
       viewOnce,
+      mediaSpoiler,
       clientId,
     }
   ) => {
@@ -335,6 +339,9 @@ export const schedule = mutation({
       mediaWidth,
       mediaHeight,
       viewOnce: viewOnce === true ? true : undefined,
+      // Only on a photo; `sendCore` re-checks at release anyway.
+      mediaSpoiler:
+        mediaSpoiler === true && mediaStorageId !== undefined ? true : undefined,
       clientId,
     });
 

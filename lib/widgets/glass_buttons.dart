@@ -499,14 +499,20 @@ class GlassGroupItem {
   const GlassGroupItem({
     this.icon,
     this.text,
+    this.glyph,
     required this.semanticLabel,
     required this.onTap,
     this.active = false,
     this.color,
-  }) : assert(icon != null || text != null);
+  }) : assert(icon != null || text != null || glyph != null);
 
   final IconData? icon;
   final String? text;
+
+  /// A drawn glyph that carries its own state (a toggle that morphs rather
+  /// than lighting up), in place of [icon] or [text]. Sized and inked by the
+  /// caller; the slot gives it no accent fill, so leave [active] off.
+  final Widget? glyph;
 
   /// Carries the on/off state too ("HD: on"), so the slot needs no toggled
   /// semantics of its own.
@@ -580,7 +586,8 @@ class GlassButtonGroup extends StatelessWidget {
     } else {
       ink = item.color ?? (media ? MediaGlass.ink : theme.ink);
     }
-    final glyph = item.icon != null
+    final glyph = item.glyph ??
+        (item.icon != null
         ? Icon(item.icon, size: 19, color: ink)
         : Text(
             item.text!,
@@ -592,7 +599,7 @@ class GlassButtonGroup extends StatelessWidget {
               letterSpacing: 0.2,
               decoration: TextDecoration.none,
             ),
-          );
+          ));
     // The label carries the state too ("HD: on"), which is just what a hover
     // should say about a glyph.
     return HoverHint(
