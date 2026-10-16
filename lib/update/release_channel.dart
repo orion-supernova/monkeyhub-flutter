@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// How this copy of the app was distributed — which decides both *what* counts
@@ -71,6 +72,18 @@ Future<ReleaseChannel> resolveChannel() async {
   if (kDebugMode) return ReleaseChannel.unknown;
 
   final defined = ReleaseChannel.parse(_definedChannel);
+  // The one define that is right for only half a build's life: the binary
+  // deploy.sh stamps `macos-testflight` is the same one the Mac App Store sells
+  // after approval. StoreKit tells the two apart at runtime; without that a
+  // store install would read the TestFlight row and be told about versions
+  // the store doesn't have yet.
+  if (defined == ReleaseChannel.macosTestflight &&
+      !kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.macOS) {
+    return await _macInstallerEnvironment() == 'production'
+        ? ReleaseChannel.macosAppstore
+        : ReleaseChannel.macosTestflight;
+  }
   if (defined != null) return defined;
 
   if (kIsWeb) return ReleaseChannel.web;
@@ -118,5 +131,17 @@ Future<ReleaseChannel> resolveChannel() async {
       return ReleaseChannel.linux;
     case TargetPlatform.fuchsia:
       return ReleaseChannel.unknown;
+  }
+}
+
+/// 'production' (Mac App Store), 'sandbox' (TestFlight), 'xcode', or null when
+/// StoreKit can't say (macOS 12, no transaction). See
+/// `macos/Runner/InstallerEnvironment.swift`.
+Future<String?> _macInstallerEnvironment() async {
+  try {
+    return await const MethodChannel('monkeyhub/installer')
+        .invokeMethod<String>('environment');
+  } catch (_) {
+    return null;
   }
 }

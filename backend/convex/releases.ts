@@ -1,4 +1,5 @@
-import { internalMutation } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { publicQuery, query } from "./functions";
 import { v } from "convex/values";
 
@@ -77,5 +78,102 @@ export const publish = internalMutation({
     }
     await ctx.db.insert("appReleases", patch);
     return { channel: args.channel, version: args.version, created: true };
+  },
+});
+
+// ── App Store rows, kept in step with what Apple actually sells ─────────────
+//
+// `ios-appstore` and `macos-appstore` used to be published by hand after each
+// approval, which meant store users were never told about an update whenever
+// someone forgot. An upload is not a release (it may sit in review for days,
+// or be rejected), so deploy.sh can't publish these; only Apple knows when a
+// version is live. Its public lookup API says so with no credentials, so this
+// asks it hourly and moves each row the moment the store has a newer version.
+
+/** The App Store Connect app id, shared by the iOS and macOS listings. */
+const APPLE_APP_ID = "6739744338";
+/** The storefront asked. MonkeyHub ships the same version everywhere. */
+const LOOKUP_COUNTRY = "us";
+
+const STORE_CHANNELS = [
+  {
+    channel: "ios-appstore",
+    entity: "software",
+    kind: "software",
+    updateUrl: `itms-apps://apps.apple.com/app/id${APPLE_APP_ID}`,
+  },
+  {
+    channel: "macos-appstore",
+    entity: "macSoftware",
+    kind: "mac-software",
+    updateUrl: `macappstore://apps.apple.com/app/id${APPLE_APP_ID}`,
+  },
+] as const;
+
+/** Numeric dotted-version compare; missing parts count as 0. */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = b.split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d < 0 ? -1 : 1;
+  }
+  return 0;
+}
+
+export const currentVersion = internalQuery({
+  args: { channel: v.string() },
+  handler: async (ctx, { channel }) => {
+    const row = await ctx.db
+      .query("appReleases")
+      .withIndex("by_channel", (q) => q.eq("channel", channel))
+      .unique();
+    return row?.version ?? null;
+  },
+});
+
+/** Hourly from crons.ts. Publishes only forward, and only what Apple sells. */
+export const syncAppStoreReleases = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const out: Record<string, string> = {};
+    for (const s of STORE_CHANNELS) {
+      try {
+        const res = await fetch(
+          `https://itunes.apple.com/lookup?id=${APPLE_APP_ID}` +
+            `&country=${LOOKUP_COUNTRY}&entity=${s.entity}`,
+        );
+        if (!res.ok) {
+          out[s.channel] = `lookup HTTP ${res.status}`;
+          continue;
+        }
+        const body: any = await res.json();
+        const hit = (body.results ?? []).find(
+          (r: any) => r.kind === s.kind && typeof r.version === "string",
+        );
+        if (!hit) {
+          out[s.channel] = "not on sale";
+          continue;
+        }
+        const current: string | null = await ctx.runQuery(
+          internal.releases.currentVersion,
+          { channel: s.channel },
+        );
+        if (current && compareVersions(hit.version, current) <= 0) {
+          out[s.channel] = `unchanged ${current}`;
+          continue;
+        }
+        await ctx.runMutation(internal.releases.publish, {
+          channel: s.channel,
+          version: hit.version,
+          updateUrl: s.updateUrl,
+        });
+        out[s.channel] = `published ${hit.version}`;
+      } catch (e) {
+        out[s.channel] = `error ${e}`;
+      }
+    }
+    console.log(`releases.syncAppStoreReleases: ${JSON.stringify(out)}`);
+    return out;
   },
 });

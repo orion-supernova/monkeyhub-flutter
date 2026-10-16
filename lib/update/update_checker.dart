@@ -8,6 +8,7 @@ import '../backend/release_api.dart';
 import '../main.dart' show rootNavigatorKey;
 import '../models/app_release.dart';
 import '../widgets/update_sheet.dart';
+import 'play_update.dart';
 import 'release_channel.dart';
 import 'update_availability.dart';
 import 'update_watch_action.dart';
@@ -109,6 +110,11 @@ class UpdateChecker {
       if (compareVersions(current, release.version) >= 0) {
         return UpdateCheckOutcome.upToDate;
       }
+      // Play decides for Play installs: the row says what was uploaded, not
+      // what this install's track can get. See play_update.dart.
+      if (channel == ReleaseChannel.androidPlay && !await playHasUpdate()) {
+        return UpdateCheckOutcome.upToDate;
+      }
 
       final min = release.minSupported;
       final mandatory = min != null &&
@@ -188,13 +194,22 @@ class UpdateChecker {
       _watchSub = await _api.subscribeLatestRelease(
         channel: channel.wire,
         onError: (e) => debugPrint('UPDATE WATCH error: $e'),
-        onRelease: (release) {
+        onRelease: (release) async {
+          final isFirst = firstDelivery;
+          firstDelivery = false;
+          // Same gate as [checkNow]: a Play install only hears about a
+          // release its own track can actually install.
+          if (channel == ReleaseChannel.androidPlay &&
+              release != null &&
+              !await playHasUpdate()) {
+            UpdateAvailability.instance.clear();
+            return;
+          }
           final decision = decideWatchAction(
             release: release,
             currentVersion: current,
-            isFirstDelivery: firstDelivery,
+            isFirstDelivery: isFirst,
           );
-          firstDelivery = false;
 
           switch (decision.action) {
             case UpdateWatchAction.ignore:

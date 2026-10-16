@@ -1,8 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'play_update.dart';
 import 'release_channel.dart';
 import 'web_reload.dart';
+
+/// MonkeyHub's App Store Connect app id, shared by the iOS and macOS listings
+/// (and by TestFlight). Mirrored server-side in `releases.APPLE_APP_ID`.
+const kAppleAppId = '6739744338';
 
 /// The hosted download page. Two audiences share it: the retired Android APK,
 /// which is sent here to be told how to move to Play, and the DMG or
@@ -39,6 +44,10 @@ Future<void> openUpdateDestination(
     return;
   }
 
+  // Play updates in place: no store hop, and mandatory updates can't be
+  // dodged by backing out of the listing.
+  if (channel == ReleaseChannel.androidPlay && await startPlayUpdate()) return;
+
   final candidates = <String>[
     if (updateUrl != null && updateUrl.trim().isNotEmpty) updateUrl.trim(),
     ..._defaultsFor(channel),
@@ -55,17 +64,19 @@ List<String> _defaultsFor(ReleaseChannel channel) {
   switch (channel) {
     case ReleaseChannel.iosTestflight:
     case ReleaseChannel.macosTestflight:
-      // A per-app TestFlight deep link needs the numeric Apple ID, which only
-      // exists in App Store Connect — so it has to arrive via updateUrl
-      // (itms-beta://testflight.apple.com/v1/app/<appleId>). Bare `itms-beta://`
-      // at least opens TestFlight, where the update is one tap away. Same
-      // scheme on macOS, which has had a native TestFlight app since Big Sur.
-      return const ['itms-beta://', 'https://testflight.apple.com/'];
+      // Straight to this app in TestFlight; bare `itms-beta://` if the deep
+      // link is refused. Same scheme on macOS, which has had a native
+      // TestFlight app since Big Sur.
+      return const [
+        'itms-beta://testflight.apple.com/v1/app/$kAppleAppId',
+        'itms-beta://',
+        'https://testflight.apple.com/',
+      ];
     case ReleaseChannel.iosAppstore:
-      // Same story: itms-apps://apps.apple.com/app/id<appleId> needs an ID we
-      // don't have until the listing exists. Nothing useful to guess, so fall
-      // through to the download page rather than opening a blank App Store.
-      return const [kDownloadPageUrl];
+      return const [
+        'itms-apps://apps.apple.com/app/id$kAppleAppId',
+        'https://apps.apple.com/app/id$kAppleAppId',
+      ];
     case ReleaseChannel.androidPlay:
       // market:// opens the Play app directly on our listing; the https form
       // covers a device without Play (or with it disabled).
@@ -81,9 +92,10 @@ List<String> _defaultsFor(ReleaseChannel channel) {
       // correct without the client knowing this release's filename.
       return const [kDownloadPageUrl];
     case ReleaseChannel.macosAppstore:
-      // Same missing-Apple-ID problem as iosAppstore; macappstore:// at least
-      // opens the Mac App Store, and the DMG page is a working last resort.
-      return const ['macappstore://apps.apple.com/', kDownloadPageUrl];
+      return const [
+        'macappstore://apps.apple.com/app/id$kAppleAppId',
+        'https://apps.apple.com/app/id$kAppleAppId',
+      ];
     case ReleaseChannel.web:
     case ReleaseChannel.unknown:
       return const [];

@@ -300,6 +300,12 @@ dependencies:
   # Pinned exactly: the fixture replay holds it to chess.js 1.4.0's answers.
   chess: 0.8.1
 
+  # Google Play In-App Updates: asks Play whether THIS install's track
+  # (internal testing or production) has a newer build, and runs Play's own
+  # updater. The server's android-play row can't answer that: it moves on every
+  # internal upload. See lib/update/play_update.dart.
+  in_app_update: 5.0.0
+
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the
   # newer platform-interface contract; pin to the fixed line.

@@ -177,6 +177,11 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       with: flutterViewController.engine.binaryMessenger
     )
 
+    // monkeyhub/installer — Mac App Store vs TestFlight, for the update check.
+    InstallerEnvironment.register(
+      with: flutterViewController.engine.binaryMessenger
+    )
+
     // monkeyhub/drop — desktop drag-and-drop. Constructed here (it owns its
     // own channel) and reached by the four forwarding methods below.
     dropDestination = DropDestination(
