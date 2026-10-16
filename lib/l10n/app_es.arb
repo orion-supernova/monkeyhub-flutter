@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "toca para enviar",
   "composerCaptureSendingLabel": "enviando…",
   "composerCaptureTimeLeft": "quedan {seconds} s",
+  "composerCaptureLockedCancel": "Cancelar",
   "composerCaptureCancelLabel": "descartar grabación",
   "composerCaptureSendLabel": "enviar grabación",
   "composerCaptureLockLabel": "desliza hacia arriba para bloquear la grabación",

@@ -6058,6 +6058,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => '取消';
+
+  @override
   String get composerCaptureCancelLabel => '丢弃录制';
 
   @override

@@ -6470,6 +6470,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => 'Cancelar';
+
+  @override
   String get composerCaptureCancelLabel => 'descartar gravação';
 
   @override
@@ -20512,6 +20515,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String composerCaptureTimeLeft(int seconds) {
     return 'restam $seconds s';
   }
+
+  @override
+  String get composerCaptureLockedCancel => 'Cancelar';
 
   @override
   String get composerCaptureCancelLabel => 'descartar gravação';

@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "タップで送信",
   "composerCaptureSendingLabel": "送信中…",
   "composerCaptureTimeLeft": "残り{seconds}秒",
+  "composerCaptureLockedCancel": "キャンセル",
   "composerCaptureCancelLabel": "録音を破棄",
   "composerCaptureSendLabel": "録音を送信",
   "composerCaptureLockLabel": "上にスライドして録音をロック",

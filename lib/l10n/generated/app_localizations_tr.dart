@@ -6366,6 +6366,9 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => 'İptal';
+
+  @override
   String get composerCaptureCancelLabel => 'kaydı sil';
 
   @override

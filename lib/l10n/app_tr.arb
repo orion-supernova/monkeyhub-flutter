@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "göndermek için dokunun",
   "composerCaptureSendingLabel": "gönderiliyor…",
   "composerCaptureTimeLeft": "{seconds} sn kaldı",
+  "composerCaptureLockedCancel": "İptal",
   "composerCaptureCancelLabel": "kaydı sil",
   "composerCaptureSendLabel": "kaydı gönder",
   "composerCaptureLockLabel": "kaydı kilitlemek için yukarı kaydırın",

@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "भेजने के लिए टैप करें",
   "composerCaptureSendingLabel": "भेजा जा रहा है…",
   "composerCaptureTimeLeft": "{seconds} सेकंड बाकी",
+  "composerCaptureLockedCancel": "रद्द करें",
   "composerCaptureCancelLabel": "रिकॉर्डिंग हटाएँ",
   "composerCaptureSendLabel": "रिकॉर्डिंग भेजें",
   "composerCaptureLockLabel": "रिकॉर्डिंग लॉक करने के लिए ऊपर स्लाइड करें",

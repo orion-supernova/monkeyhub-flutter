@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "点按发送",
   "composerCaptureSendingLabel": "发送中…",
   "composerCaptureTimeLeft": "剩余 {seconds} 秒",
+  "composerCaptureLockedCancel": "取消",
   "composerCaptureCancelLabel": "丢弃录制",
   "composerCaptureSendLabel": "发送录制",
   "composerCaptureLockLabel": "向上滑动锁定录制",

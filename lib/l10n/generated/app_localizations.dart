@@ -10877,6 +10877,12 @@ abstract class AppLocalizations {
   /// **'{seconds}s left'**
   String composerCaptureTimeLeft(int seconds);
 
+  /// Text button in the middle of a locked recording's strip that throws the recording away (the disc beside it sends). Short, like iOS's Cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get composerCaptureLockedCancel;
+
   /// Semantic label of the trash button in the recording strip, which aborts the recording and deletes it.
   ///
   /// In en, this message translates to:

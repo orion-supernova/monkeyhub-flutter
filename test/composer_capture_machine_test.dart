@@ -214,29 +214,36 @@ void main() {
       return m;
     }
 
-    test('starting a recording buzzes', () {
+    // The widget buzzes when the hold is accepted, before the recorder opens:
+    // the bloom answers the finger, not the microphone. A second buzz here,
+    // once bytes flow, would read as a stutter.
+    test('the recorder going live does not buzz again', () {
       final m = build();
       m.markRecording();
       expect(m.stage, CaptureStage.holding);
-      expect(haptics, hasLength(1));
+      expect(haptics, isEmpty);
     });
 
-    test('sliding up past the threshold locks, and buzzes once', () {
+    test('sliding up ticks halfway, locks with a knock, and goes quiet', () {
       final m = recording();
       m.updateHold(const Offset(0, -kLockDragThreshold / 2), TextDirection.ltr);
       expect(m.stage, CaptureStage.holding);
       expect(m.lockProgress, closeTo(0.5, 0.01));
-      expect(haptics, isEmpty);
+      expect(haptics, hasLength(1), reason: 'halfway: the padlock is closing');
+
+      // Hovering around halfway does not tick again until it is re-crossed.
+      m.updateHold(const Offset(0, -kLockDragThreshold * 0.6), TextDirection.ltr);
+      expect(haptics, hasLength(1));
 
       final locked =
           m.updateHold(const Offset(0, -kLockDragThreshold), TextDirection.ltr);
       expect(locked, isTrue);
       expect(m.stage, CaptureStage.locked);
-      expect(haptics, hasLength(1));
+      expect(haptics, hasLength(2));
 
       // Already locked: further movement must not buzz again.
       m.updateHold(const Offset(0, -200), TextDirection.ltr);
-      expect(haptics, hasLength(1));
+      expect(haptics, hasLength(2));
     });
 
     test('a locked recording survives the finger coming up', () {

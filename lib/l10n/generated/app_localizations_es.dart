@@ -6459,6 +6459,9 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => 'Cancelar';
+
+  @override
   String get composerCaptureCancelLabel => 'descartar grabación';
 
   @override

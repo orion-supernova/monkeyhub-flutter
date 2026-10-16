@@ -6472,6 +6472,9 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => 'إلغاء';
+
+  @override
   String get composerCaptureCancelLabel => 'تجاهل التسجيل';
 
   @override

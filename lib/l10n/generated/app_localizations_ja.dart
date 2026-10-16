@@ -6133,6 +6133,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => 'キャンセル';
+
+  @override
   String get composerCaptureCancelLabel => '録音を破棄';
 
   @override

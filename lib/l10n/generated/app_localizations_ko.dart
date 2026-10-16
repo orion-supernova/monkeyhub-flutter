@@ -6153,6 +6153,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => '취소';
+
+  @override
   String get composerCaptureCancelLabel => '녹음 삭제';
 
   @override

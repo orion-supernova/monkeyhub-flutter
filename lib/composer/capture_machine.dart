@@ -311,9 +311,15 @@ class ComposerCaptureMachine extends ChangeNotifier {
     _cancelProgress = 0;
     _outside = false;
     _cancelArmed = false;
-    HapticFeedback.mediumImpact();
+    _lockHalfway = false;
+    // No buzz here: the widget plays it when the hold is accepted, before the
+    // recorder opens, so it lands on the finger and not on the microphone.
     notifyListeners();
   }
+
+  /// Whether the slide up has passed halfway, so the tick there plays once
+  /// per crossing.
+  bool _lockHalfway = false;
 
   /// Feeds the hold a movement, in the control's local coordinates, measured
   /// from where the finger went down. Returns true when this movement latched
@@ -341,12 +347,18 @@ class ComposerCaptureMachine extends ChangeNotifier {
       // of them should be reachable by a slide the user cannot see the end of.
       if (!_cancelArmed) {
         _cancelArmed = true;
-        HapticFeedback.heavyImpact();
+        // Medium: the heavy knock belongs to the release that commits it.
+        HapticFeedback.mediumImpact();
       }
       notifyListeners();
       return false;
     }
     _cancelArmed = false;
+    // Halfway to the lock, a tick: the padlock is visibly closing and the
+    // finger feels it. Only on the way up, and not on the move that latches.
+    final halfway = _lockProgress >= 0.5;
+    if (halfway && !_lockHalfway && _lockProgress < 1) HapticFeedback.selectionClick();
+    _lockHalfway = halfway;
     if (_lockProgress >= 1) {
       _stage = CaptureStage.locked;
       _lockProgress = 1;

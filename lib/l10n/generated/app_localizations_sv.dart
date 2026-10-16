@@ -6421,6 +6421,9 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => 'Avbryt';
+
+  @override
   String get composerCaptureCancelLabel => 'kasta inspelningen';
 
   @override

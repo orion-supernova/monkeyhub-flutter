@@ -6401,6 +6401,9 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureLockedCancel => 'रद्द करें';
+
+  @override
   String get composerCaptureCancelLabel => 'रिकॉर्डिंग हटाएँ';
 
   @override

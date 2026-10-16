@@ -7306,6 +7306,10 @@
       }
     }
   },
+  "composerCaptureLockedCancel": "Cancel",
+  "@composerCaptureLockedCancel": {
+    "description": "Text button in the middle of a locked recording's strip that throws the recording away (the disc beside it sends). Short, like iOS's Cancel."
+  },
   "composerCaptureCancelLabel": "discard recording",
   "@composerCaptureCancelLabel": {
     "description": "Semantic label of the trash button in the recording strip, which aborts the recording and deletes it."

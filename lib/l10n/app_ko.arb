@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "탭하여 전송",
   "composerCaptureSendingLabel": "보내는 중…",
   "composerCaptureTimeLeft": "{seconds}초 남음",
+  "composerCaptureLockedCancel": "취소",
   "composerCaptureCancelLabel": "녹음 삭제",
   "composerCaptureSendLabel": "녹음 보내기",
   "composerCaptureLockLabel": "위로 밀어 녹음 고정",

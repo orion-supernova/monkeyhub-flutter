@@ -12,14 +12,17 @@ import 'package:flutter/services.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_permissions.dart';
 import '../composer/capture_recorder.dart';
+import '../composer/recording_haptics.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../l10n/text_case.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
+import 'capture_bloom.dart';
+import 'capture_glyphs.dart';
 import 'destructive_sheet.dart';
 import 'glass_buttons.dart';
 import 'glass_reveal.dart' show GlassStill;
@@ -186,6 +189,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   Timer? _ticker;
   DateTime? _startedAt;
+
+  /// The voice's loudness, 0..1, while a voice note records: what the bloom
+  /// behind the button breathes with. Raw, every 120 ms; the bloom smooths
+  /// it. Stays 0 for a video note, which has no meter.
+  final _level = ValueNotifier<double>(0);
+  StreamSubscription<double>? _levelSub;
   Duration _elapsed = Duration.zero;
 
   Timer? _tooltipTimer;
@@ -243,6 +252,34 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       // Landed: the inline preview takes the picture back from the overlay.
       if (status == AnimationStatus.dismissed && mounted) setState(() {});
     });
+
+  /// A thrown-away recording being swept into the trash: the strip stays up
+  /// for this, the dot and the frozen clock fly into the bin, and the lid
+  /// shuts on them. The composer's row comes back when it ends.
+  late final AnimationController _discard = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 640),
+  )..addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) setState(() {});
+    });
+
+  /// The hold was accepted and the recorder is still opening: the bloom is
+  /// already up (it answers the finger, not the microphone) and the strip
+  /// shows 0:00,00 until bytes flow.
+  bool _arming = false;
+
+  /// How the bloom leaves when this recording ends.
+  CaptureBloomExit _bloomExit = CaptureBloomExit.send;
+
+  /// Where the bloom sits: the mode button's centre in the overlay, kept
+  /// from the last frame it was laid out.
+  Offset? _bloomAnchor;
+
+  /// The clock as it read when the recording was thrown away, for the sweep.
+  Duration _discardedAt = Duration.zero;
+
+  /// The lid shutting is felt, once per sweep.
+  bool _gulped = false;
 
   /// Decelerates into both ends, as a received note's focus does.
   late final CurvedAnimation _liftCurve = CurvedAnimation(
@@ -405,6 +442,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     _entranceBumpController.dispose();
     _liftCurve.dispose();
     _lift.dispose();
+    _discard.dispose();
+    unawaited(_levelSub?.cancel());
+    _level.dispose();
     _machine.dispose();
     super.dispose();
   }
@@ -536,6 +576,13 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     if (mode == ComposerInputMode.camera) return;
     _busy = true;
     _rememberSlot();
+    // The bloom answers the finger now; the recorder catches up. Felt now
+    // too: before the microphone opens, iOS plays it unconditionally.
+    setState(() {
+      _arming = true;
+      _bloomExit = CaptureBloomExit.send;
+    });
+    HapticFeedback.mediumImpact();
     try {
       final CaptureRecorder recorder;
       final injected = capture.recorderFactory?.call(mode);
@@ -565,6 +612,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         }
         return;
       }
+      // Before the start haptic below, which iOS would otherwise swallow now
+      // that the microphone is live.
+      await allowHapticsWhileRecording();
       if (!mounted) {
         // Cleared first: `dispose` cancels whatever [_recorder] holds, and a
         // second cancel on a recorder already torn down here is a platform call
@@ -585,8 +635,14 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
             : AppLocalizations.of(context).composerCaptureRecordingAnnouncement,
       );
       _startTicker();
+      _levelSub = recorder.levels?.listen((v) => _level.value = v);
     } finally {
       _busy = false;
+      if (_arming && mounted) {
+        // Started (the machine has it now) or failed (the bloom collapses).
+        if (!_machine.isRecording) _bloomExit = CaptureBloomExit.discard;
+        setState(() => _arming = false);
+      }
     }
   }
 
@@ -614,6 +670,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     _ticker?.cancel();
     _ticker = null;
     _startedAt = null;
+    unawaited(_levelSub?.cancel());
+    _levelSub = null;
+    _level.value = 0;
   }
 
   /// Stop, read the bytes, hand them to the host.
@@ -623,6 +682,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     if (capture == null || recorder == null || _busy) return;
     _busy = true;
     HapticFeedback.mediumImpact();
+    _bloomExit = CaptureBloomExit.send;
     final mode = _machine.mode;
     _machine.markFinishing();
     _stopTicker();
@@ -669,6 +729,17 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// message — used when the widget itself is going away.
   Future<void> _abort({CaptureFailureKind? kind, bool silent = false}) async {
     final recorder = _recorder;
+    final startedAt = _startedAt;
+    _bloomExit = CaptureBloomExit.discard;
+    // Thrown away from the strip the user is looking at: sweep it into the
+    // bin rather than snapping the row back.
+    // `startedAt`, not the machine: a release that cancels has already put the
+    // machine back to idle by the time this runs.
+    if (!silent && mounted && startedAt != null && !MotionScope.of(context).calm) {
+      _discardedAt = DateTime.now().difference(startedAt);
+      _gulped = false;
+      _discard.forward(from: 0);
+    }
     _stopTicker();
     _recorder = null;
     if (silent) {
@@ -687,15 +758,26 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       if (!identical(recorder, _video)) {
         await recorder.dispose();
       } else if (recorder is VideoNoteCaptureRecorder) {
-        // A canceled video note must not keep holding the camera+microphone
-        // (the OS mic indicator stays lit) just because the button is still
-        // on video mode. Release the session — the recorder object survives,
-        // and the next hold-to-record re-warms it through start(); the cost
-        // is that warm-up latency, not a leak.
+        // The session a cancelled recording ran on is released, not reused:
+        // the recorder object survives and warms a fresh one below.
         try {
           await recorder.release();
         } catch (e) {
           debugPrint('capture release after cancel failed: $e');
+        }
+        // A fresh session straight back, while the button is still on video
+        // notes and the app is in front: without it the idle preview stays
+        // gone until the next recording. The session the cancelled recording
+        // ran on is never reused.
+        if (mounted &&
+            identical(_video, recorder) &&
+            _machine.mode == ComposerInputMode.videoNote &&
+            WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+          try {
+            await recorder.warm();
+          } catch (e) {
+            debugPrint('capture re-warm after cancel failed: $e');
+          }
         }
         if (mounted) setState(() {});
       }
@@ -858,10 +940,18 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           if (!mounted) return;
           _rememberSlot();
           _syncLift();
+          _rememberBloomAnchor();
         });
         return OverlayPortal(
           controller: _bigPreview,
-          overlayChildBuilder: _bigPreviewLayer,
+          overlayChildBuilder: (context) => Positioned.fill(
+            child: Stack(
+              children: [
+                _bigPreviewLayer(context),
+                _bloomLayer(context),
+              ],
+            ),
+          ),
           child: KeyedSubtree(key: _composerKey, child: _body(context)),
         );
       },
@@ -893,8 +983,21 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   void _rememberSlot() => _slotRect = _slotNow() ?? _slotRect;
 
+  /// The mode button's centre in the overlay, read after layout (mid-build
+  /// the button may be waiting for its own), and a rebuild only when it has
+  /// actually moved: the keyboard, a rotation, the strip replacing the row.
+  void _rememberBloomAnchor() {
+    final overlayBox = Overlay.maybeOf(context)?.context.findRenderObject();
+    final button = _modeButtonKey.currentContext?.findRenderObject();
+    if (overlayBox is! RenderBox || button is! RenderBox || !button.attached || !button.hasSize) return;
+    final at = overlayBox.globalToLocal(button.localToGlobal(button.size.center(Offset.zero)));
+    final was = _bloomAnchor;
+    if (was != null && (was - at).distance < 0.5) return;
+    setState(() => _bloomAnchor = at);
+  }
+
   Widget _body(BuildContext context) {
-    if (_machine.isRecording || _machine.stage == CaptureStage.finishing) {
+    if (_arming || _machine.isRecording || _machine.stage == CaptureStage.finishing || _discard.isAnimating) {
       return _recordingBody(context);
     }
     final row = widget.builder(context, _keyedModeButton(context));
@@ -1215,7 +1318,83 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   /// Just the strip: a video note's picture is in the big preview over the
   /// chat (see [_bigPreviewLayer]), not squeezed into the composer.
-  Widget _recordingBody(BuildContext context) => _strip(ThemeScope.of(context));
+  Widget _recordingBody(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    if (!_arming && !_machine.isRecording && _machine.stage != CaptureStage.finishing && _discard.isAnimating) {
+      return AnimatedBuilder(animation: _discard, builder: (context, _) => _discardStrip(theme));
+    }
+    return _strip(theme);
+  }
+
+  /// The strip while a thrown-away recording is swept into the bin. The lid
+  /// is already open (the slide or the tap opened it); the dot and the clock
+  /// fall in, the lid shuts on them with a small overshoot, the bin squashes,
+  /// and the row comes back. The mode button stays exactly where it was: it
+  /// is the same button the row will hand back.
+  Widget _discardStrip(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    final d = _discard.value;
+    final sweep = Curves.easeInCubic.transform((d / 0.5).clamp(0.0, 1.0));
+    // The glyph's own one-shot: the lid slams, bounces, the can squashes.
+    final gulp = ((d - 0.48) / 0.4).clamp(0.0, 1.0);
+    if (d >= 0.55 && !_gulped) {
+      _gulped = true;
+      HapticFeedback.lightImpact();
+    }
+    final fade = 1 - ((d - 0.85) / 0.15).clamp(0.0, 1.0);
+    final clockStyle = theme.body.copyWith(color: theme.ink, fontFeatures: const [FontFeature.tabularFigures()]);
+    final hundredths = (_discardedAt.inMilliseconds ~/ 10) % 100;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: widget.style == ComposerCaptureStyle.classic ? 0 : 4, vertical: 2),
+      child: Row(
+        children: [
+          Opacity(
+            opacity: fade,
+            child: _stripTrashButton(
+              theme,
+              label: l10n.composerCaptureCancelLabel,
+              cancelProgress: 1,
+              wouldCancel: false,
+              gulp: gulp,
+              onTap: null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Falls toward the bin's mouth: left, shrinking, gone by the time
+          // the lid shuts.
+          Opacity(
+            opacity: (1 - sweep).clamp(0.0, 1.0),
+            child: Transform.translate(
+              offset: Offset(-sweep * (_buttonDiameter * 0.5 + 22), -math.sin(math.pi * sweep) * 10),
+              child: Transform.scale(
+                scale: 1 - sweep * 0.75,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(color: theme.danger, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      '${formatClockDuration(_discardedAt)}${recordingDecimalSeparator(Localizations.localeOf(context))}'
+                      '${hundredths.toString().padLeft(2, '0')}',
+                      style: clockStyle,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          _keyedModeButton(context),
+        ],
+      ),
+    );
+  }
 
   /// Horizontal gap between the preview's right edge and the composer's right
   /// edge, so the circle lines up with the mode button that owns it instead of
@@ -1287,6 +1466,41 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
               ),
             )
           : ColoredBox(color: theme.surfaceSunken),
+    );
+  }
+
+  /// The bloom over the mode button: the disc, its halo and the lock pill
+  /// (see [CaptureBloom]). Always mounted while capture is wired, painting
+  /// nothing at rest, so its springs carry straight through a recording's
+  /// end into the exit.
+  Widget _bloomLayer(BuildContext context) {
+    final mode = _machine.mode;
+    if (mode == ComposerInputMode.camera && !_machine.isRecording) return const SizedBox.shrink();
+    final anchor = _bloomAnchor;
+    if (anchor == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final active = _arming || _machine.isRecording;
+    return Positioned(
+      left: anchor.dx - CaptureBloom.center.dx,
+      top: anchor.dy - CaptureBloom.center.dy,
+      width: CaptureBloom.boxSize.width,
+      height: CaptureBloom.boxSize.height,
+      child: Material(
+        type: MaterialType.transparency,
+        child: CaptureBloom(
+          theme: ThemeScope.of(context),
+          active: active,
+          locked: _machine.stage == CaptureStage.locked,
+          lockProgress: _machine.lockProgress,
+          cancelProgress: _machine.cancelProgress,
+          video: mode == ComposerInputMode.videoNote,
+          level: mode == ComposerInputMode.voice ? _level : null,
+          exit: _bloomExit,
+          onSend: _machine.stage == CaptureStage.locked ? () => unawaited(_finish()) : null,
+          sendLabel: l10n.composerCaptureSendLabel,
+          lockLabel: l10n.composerCaptureLockLabel,
+        ),
+      ),
     );
   }
 
@@ -1551,69 +1765,97 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         ? l10n.composerCaptureReleaseToCancelHint
         : l10n.composerCaptureSlideToCancelHint;
 
+    final cancel = _machine.cancelProgress.clamp(0.0, 1.0);
+    // The bin is only there while a slide is heading for it: it grows in over
+    // the first stretch of the slide and its lid opens over the rest.
+    final binIn = locked || finishing ? 0.0 : ((cancel - 0.1) / 0.3).clamp(0.0, 1.0);
+    final textStyle = theme.body.copyWith(fontSize: 16, fontWeight: FontWeight.w400);
+    final clockStyle = textStyle.copyWith(color: theme.ink, fontFeatures: const [FontFeature.tabularFigures()]);
+
+    final Widget middle;
+    if (locked && !counting) {
+      // Locked, the disc is the send button; this is the way out.
+      middle = _CancelTextButton(
+        label: l10n.composerCaptureLockedCancel,
+        style: textStyle.copyWith(fontSize: 17, color: theme.accent),
+        onTap: () => unawaited(_abort()),
+      );
+    } else if (_machine.stage == CaptureStage.holding && !finishing && !counting) {
+      middle = _SlidingCancelHint(
+        hint: sentenceCaseOf(context, hint),
+        cancelProgress: cancel,
+        style: textStyle.copyWith(color: theme.inkSoft),
+        chevronColor: theme.inkSoft,
+      );
+    } else {
+      middle = Text(
+        sentenceCaseOf(context, hint),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: textStyle.copyWith(color: counting ? theme.danger : theme.inkMuted),
+      );
+    }
+
     final row = Row(
       children: [
-        _stripTrashButton(
-          theme,
-          label: l10n.composerCaptureCancelLabel,
-          cancelProgress: _machine.cancelProgress,
-          wouldCancel: _machine.wouldCancel,
-          onTap: finishing ? null : () => unawaited(_abort()),
+        SizedBox.square(
+          dimension: _buttonDiameter,
+          child: binIn <= 0
+              ? null
+              : Opacity(
+                  opacity: binIn,
+                  child: Transform.scale(
+                    scale: 0.6 + 0.4 * binIn + (_machine.wouldCancel ? 0.08 : 0),
+                    child: _stripTrashButton(
+                      theme,
+                      label: l10n.composerCaptureCancelLabel,
+                      cancelProgress: ((cancel - 0.4) / 0.6).clamp(0.0, 1.0),
+                      wouldCancel: _machine.wouldCancel,
+                      onTap: null,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(width: 12),
         _RecordingPulse(color: theme.danger),
         const SizedBox(width: 10),
-        Text(
-          formatClockDuration(_elapsed),
-          style: theme.body.copyWith(color: theme.ink, fontFeatures: const [FontFeature.tabularFigures()]),
+        _SlideIn(
+          dx: 22,
+          duration: const Duration(milliseconds: 220),
+          // Until the recorder is live (the bloom fires on the gesture) the
+          // clock sits at zero, as Telegram's does.
+          child: _startedAt == null
+              ? Text('0:00${recordingDecimalSeparator(Localizations.localeOf(context))}00', style: clockStyle)
+              : _RecordingClock(startedAt: _startedAt!, style: clockStyle),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _machine.stage == CaptureStage.holding && !finishing
-              ? _SlidingCancelHint(
-                  hint: hint,
-                  cancelProgress: _machine.cancelProgress,
-                  wouldCancel: _machine.wouldCancel,
-                  counting: counting,
-                  theme: theme,
-                )
-              : Text(
-                  hint,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: theme.monoTiny.copyWith(color: _machine.wouldCancel || counting ? theme.danger : theme.inkMuted),
-                ),
-        ),
-        const SizedBox(width: 12),
-        if (locked || finishing)
-          _stripButton(
-            theme,
-            icon: Icons.north_east,
-            label: l10n.composerCaptureSendLabel,
-            tint: theme.accent,
-            filled: true,
-            onTap: finishing ? null : () => unawaited(_finish()),
-          )
-        else
-          // The button the finger is still on, reparented here rather than
-          // rebuilt — see [_modeButtonKey]. The lock affordance stacks directly
-          // above it in the lane the finger travels up.
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Positioned(
-                bottom: _buttonDiameter + 8,
-                child: _LockAffordance(
-                  progress: _machine.lockProgress,
-                  theme: theme,
-                  label: l10n.composerCaptureLockLabel,
+          child: _SlideIn(
+            dx: 32,
+            delay: const Duration(milliseconds: 40),
+            duration: const Duration(milliseconds: 300),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween(begin: const Offset(0.08, 0), end: Offset.zero).animate(animation),
+                  child: child,
                 ),
               ),
-              _keyedModeButton(context),
-            ],
+              child: KeyedSubtree(key: ValueKey(locked && !counting), child: middle),
+            ),
           ),
+        ),
+        const SizedBox(width: 12),
+        // The button the finger is still on, reparented here rather than
+        // rebuilt (see [_modeButtonKey]), and hidden: the bloom disc sits on
+        // it and is what the user sees and, once locked, taps. Its gestures
+        // still own the hold.
+        Opacity(opacity: 0, child: _keyedModeButton(context)),
       ],
     );
 
@@ -1634,10 +1876,13 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     required double cancelProgress,
     required bool wouldCancel,
     required VoidCallback? onTap,
+    double gulp = 0,
   }) {
     final diameter = _buttonDiameter;
-    final color = wouldCancel ? theme.danger : theme.danger.withValues(alpha: 0.85);
+    final color = theme.danger;
 
+    // Chrome, never a red fill: the bin's open lid is the warning, and a
+    // colour flood on top of it read as an error state, not a gesture.
     return FocusableTap(
       onTap: onTap,
       semanticLabel: label,
@@ -1649,14 +1894,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           width: diameter,
           height: diameter,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: wouldCancel ? theme.danger.withValues(alpha: 0.15) : theme.surfaceRaised,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: wouldCancel ? theme.danger : theme.danger.withValues(alpha: 0.5),
-              width: wouldCancel ? 1.5 : 1.0,
-            ),
-          ),
+          decoration: BoxDecoration(color: chromeDiscFill(theme), shape: BoxShape.circle),
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -1665,11 +1903,11 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                 child: Icon(Icons.delete_outline, size: 18, color: color),
               ),
               IgnorePointer(
-                child: _AnimatedTrashCan(
-                  cancelProgress: cancelProgress,
-                  wouldCancel: wouldCancel,
+                child: TrashGlyph(
+                  open: wouldCancel ? 1 : cancelProgress.clamp(0.0, 1.0),
+                  gulp: gulp,
                   color: color,
-                  size: 20,
+                  size: 22,
                 ),
               ),
             ],
@@ -1678,42 +1916,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       ),
     );
   }
-
-  Widget _stripButton(
-    AppTheme theme, {
-    required IconData icon,
-    required String label,
-    required Color tint,
-    required VoidCallback? onTap,
-    bool filled = false,
-  }) {
-    final diameter = _buttonDiameter;
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          width: diameter,
-          height: diameter,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: filled ? tint : theme.surfaceRaised,
-            shape: BoxShape.circle,
-            border: Border.all(color: filled ? tint : tint.withValues(alpha: 0.5)),
-          ),
-          child: Icon(icon, size: 18, color: filled ? theme.accentInk : tint),
-        ),
-      ),
-    );
-  }
 }
 
-/// The dot that says "live". A separate widget so its ticker rebuilds one
-/// 10pt circle rather than the whole strip, which is redrawn from a 100 ms
-/// timer already.
+/// The dot that says "live", on Telegram's rhythm: a 1 s cycle that holds
+/// on for 450 ms, fades out over 200, stays off 150 and fades back over 200.
+/// A blink, not a breathing fade, which is what reads as a camera's tally
+/// light. A separate widget so its ticker rebuilds one 10pt circle.
 class _RecordingPulse extends StatefulWidget {
   const _RecordingPulse({required this.color});
   final Color color;
@@ -1723,8 +1931,8 @@ class _RecordingPulse extends StatefulWidget {
 }
 
 class _RecordingPulseState extends State<_RecordingPulse> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-    ..repeat(reverse: true);
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))
+    ..repeat();
 
   @override
   void dispose() {
@@ -1732,10 +1940,19 @@ class _RecordingPulseState extends State<_RecordingPulse> with SingleTickerProvi
     super.dispose();
   }
 
+  static double _blink(double t) {
+    final ms = t * 1000;
+    if (ms < 450) return 1;
+    if (ms < 650) return 1 - (ms - 450) / 200;
+    if (ms < 800) return 0;
+    return (ms - 800) / 200;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.35, end: 1).animate(_c),
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) => Opacity(opacity: _blink(_c.value), child: child),
       child: Container(
         width: 10,
         height: 10,
@@ -1745,62 +1962,71 @@ class _RecordingPulseState extends State<_RecordingPulse> with SingleTickerProvi
   }
 }
 
-/// The chevron-and-padlock that fills as the finger travels up, positioned
-/// directly above the recording button.
-class _LockAffordance extends StatelessWidget {
-  const _LockAffordance({required this.progress, required this.theme, required this.label});
+/// Slides its child in from [dx] to the right and fades it in, once, when it
+/// first appears: the strip's clock and hint arriving as the bloom lands.
+class _SlideIn extends StatelessWidget {
+  const _SlideIn({required this.dx, required this.duration, required this.child, this.delay = Duration.zero});
 
-  final double progress;
-  final AppTheme theme;
-  final String label;
+  final double dx;
+  final Duration duration;
+  final Duration delay;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final t = progress.clamp(0.0, 1.0);
-    // Rubbery spring upward motion as finger travels up toward lock
-    final dy = -math.sin(t * math.pi / 2.0) * 14.0;
-    final scale = 1.0 + t * 0.14;
-    final isLocked = t >= 1.0;
+    final motion = MotionScope.of(context);
+    final total = duration + delay;
+    final lead = total.inMicroseconds == 0 ? 0.0 : delay.inMicroseconds / total.inMicroseconds;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: motion.d(total),
+      builder: (context, v, child) {
+        final t = Curves.easeOutCubic.transform(lead >= 1 ? 1 : ((v - lead) / (1 - lead)).clamp(0.0, 1.0));
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(offset: Offset(dx * (1 - t), 0), child: child),
+        );
+      },
+      child: child,
+    );
+  }
+}
 
-    return Semantics(
-      label: label,
-      value: '${(t * 100).round()}%',
-      child: Transform.translate(
-        offset: Offset(0, dy),
-        child: Transform.scale(
-          scale: scale,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-            decoration: BoxDecoration(
-              color: isLocked ? quietFill(theme) : theme.surfaceRaised.withValues(alpha: 0.90),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: Color.lerp(theme.divider, theme.accent, t)!,
-                width: 1.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Opacity(
-                  opacity: (1.0 - t * 0.7).clamp(0.2, 1.0),
-                  child: Icon(Icons.keyboard_arrow_up, size: 14, color: Color.lerp(theme.inkMuted, theme.accent, t)),
-                ),
-                const SizedBox(height: 2),
-                Icon(
-                  isLocked ? Icons.lock : Icons.lock_outline,
-                  size: 16,
-                  color: Color.lerp(theme.inkMuted, theme.accent, t),
-                ),
-              ],
-            ),
+/// The locked strip's way out: a plain accent "Cancel", as Telegram's. A
+/// bare GestureDetector plus [FocusableTap]; pressed, it dims.
+class _CancelTextButton extends StatefulWidget {
+  const _CancelTextButton({required this.label, required this.style, required this.onTap});
+
+  final String label;
+  final TextStyle style;
+  final VoidCallback onTap;
+
+  @override
+  State<_CancelTextButton> createState() => _CancelTextButtonState();
+}
+
+class _CancelTextButtonState extends State<_CancelTextButton> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableTap(
+      onTap: widget.onTap,
+      semanticLabel: widget.label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _down = true),
+        onTapCancel: () => setState(() => _down = false),
+        onTapUp: (_) => setState(() => _down = false),
+        onTap: widget.onTap,
+        // Height factor 1: a bare Center in the strip's row would take every
+        // pixel of height it is offered and blow the strip up to the screen.
+        child: Center(
+          heightFactor: 1,
+          child: AnimatedOpacity(
+            opacity: _down ? 0.5 : 1,
+            duration: const Duration(milliseconds: 90),
+            child: Text(widget.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: widget.style),
           ),
         ),
       ),
@@ -1808,204 +2034,101 @@ class _LockAffordance extends StatelessWidget {
   }
 }
 
-/// An animated garbage/trash icon that opens its mouth/lid as [cancelProgress] increases
-/// or when [wouldCancel] is active.
-class _AnimatedTrashCan extends StatelessWidget {
-  const _AnimatedTrashCan({
-    required this.cancelProgress,
-    required this.wouldCancel,
-    required this.color,
-    this.size = 20.0,
-  });
-
-  final double cancelProgress;
-  final bool wouldCancel;
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = cancelProgress.clamp(0.0, 1.0);
-    final openFactor = wouldCancel ? 1.0 : t;
-    // Rotate lid open counter-clockwise up to ~45 degrees (math.pi / 4)
-    final lidAngle = -openFactor * (math.pi / 4.0);
-    final lidLift = openFactor * 2.5;
-    final scale = 1.0 + openFactor * 0.15;
-
-    return Transform.scale(
-      scale: scale,
-      child: CustomPaint(
-        size: Size(size, size),
-        painter: _TrashCanPainter(
-          color: color,
-          lidAngle: lidAngle,
-          lidLift: lidLift,
-          openFactor: openFactor,
-        ),
-      ),
-    );
-  }
-}
-
-class _TrashCanPainter extends CustomPainter {
-  const _TrashCanPainter({
-    required this.color,
-    required this.lidAngle,
-    required this.lidLift,
-    required this.openFactor,
-  });
-
-  final Color color;
-  final double lidAngle;
-  final double lidLift;
-  final double openFactor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final w = size.width;
-    final h = size.height;
-
-    final binTopY = h * 0.38;
-    final binBottomY = h * 0.88;
-    final binLeftX = w * 0.26;
-    final binRightX = w * 0.74;
-    final binBottomLeftX = w * 0.32;
-    final binBottomRightX = w * 0.68;
-
-    final binPath = Path()
-      ..moveTo(binLeftX, binTopY)
-      ..lineTo(binBottomLeftX, binBottomY)
-      ..arcToPoint(Offset(binBottomRightX, binBottomY), radius: const Radius.circular(2.0))
-      ..lineTo(binRightX, binTopY);
-
-    canvas.drawPath(binPath, paint);
-
-    if (w >= 18) {
-      final linePaint = Paint()
-        ..color = color.withValues(alpha: 0.65)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..strokeCap = StrokeCap.round;
-
-      final midYTop = binTopY + 2.5;
-      final midYBottom = binBottomY - 2.0;
-      canvas.drawLine(Offset(w * 0.42, midYTop), Offset(w * 0.44, midYBottom), linePaint);
-      canvas.drawLine(Offset(w * 0.58, midYTop), Offset(w * 0.56, midYBottom), linePaint);
-    }
-
-    final pivotX = w * 0.74;
-    final pivotY = binTopY;
-
-    canvas.save();
-    canvas.translate(0, -lidLift);
-    canvas.translate(pivotX, pivotY);
-    canvas.rotate(lidAngle);
-    canvas.translate(-pivotX, -pivotY);
-
-    final lidLeftX = w * 0.18;
-    final lidRightX = w * 0.82;
-    final lidY = binTopY - 1.0;
-
-    canvas.drawLine(Offset(lidLeftX, lidY), Offset(lidRightX, lidY), paint);
-
-    final handleLeftX = w * 0.40;
-    final handleRightX = w * 0.60;
-    final handleTopY = lidY - 3.0;
-
-    final handlePath = Path()
-      ..moveTo(handleLeftX, lidY)
-      ..lineTo(handleLeftX, handleTopY)
-      ..lineTo(handleRightX, handleTopY)
-      ..lineTo(handleRightX, lidY);
-
-    canvas.drawPath(handlePath, paint);
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_TrashCanPainter old) =>
-      old.color != color ||
-      old.lidAngle != lidAngle ||
-      old.lidLift != lidLift ||
-      old.openFactor != openFactor;
-}
-
-/// Animated sliding cancel hint cue with chevrons.
+/// "‹ Slide to cancel". The chevron alone nudges toward the bin while the
+/// finger has not moved (a 1.4 s nudge, then a rest); once it moves, the
+/// hint follows at 0.6 of its travel and fades out well before the line, as
+/// Telegram's does: by then the bin and its open lid are the message.
 class _SlidingCancelHint extends StatefulWidget {
   const _SlidingCancelHint({
     required this.hint,
     required this.cancelProgress,
-    required this.wouldCancel,
-    required this.counting,
-    required this.theme,
+    required this.style,
+    required this.chevronColor,
   });
 
   final String hint;
   final double cancelProgress;
-  final bool wouldCancel;
-  final bool counting;
-  final AppTheme theme;
+  final TextStyle style;
+  final Color chevronColor;
 
   @override
   State<_SlidingCancelHint> createState() => _SlidingCancelHintState();
 }
 
 class _SlidingCancelHintState extends State<_SlidingCancelHint> with SingleTickerProviderStateMixin {
-  late final AnimationController _anim = AnimationController(
+  late final AnimationController _nudge = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  )..repeat();
+    duration: const Duration(milliseconds: 1800),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_SlidingCancelHint old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  /// The nudge only while the finger is still: a loop that keeps going under
+  /// a moving finger fights it.
+  void _sync() {
+    final idle = widget.cancelProgress < 0.05 && !MediaQuery.disableAnimationsOf(context);
+    if (idle && !_nudge.isAnimating) {
+      _nudge.repeat();
+    } else if (!idle && _nudge.isAnimating) {
+      _nudge
+        ..stop()
+        ..value = 0;
+    }
+  }
 
   @override
   void dispose() {
-    _anim.dispose();
+    _nudge.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = widget.theme;
-    final color = widget.wouldCancel || widget.counting ? theme.danger : theme.inkMuted;
-
-    final rubberDx = -math.pow(widget.cancelProgress.clamp(0.0, 1.0), 0.8) * 36.0;
-
-    return AnimatedBuilder(
-      animation: _anim,
-      builder: (context, child) {
-        final slideDx = -((1.0 - _anim.value) * 6.0);
-
-        return Transform.translate(
-          offset: Offset(rubberDx, 0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Transform.translate(
-                offset: Offset(slideDx, 0),
-                child: Icon(Icons.chevron_left, size: 16, color: color),
+    final c = widget.cancelProgress;
+    final away = c * kCancelDragThreshold;
+    final fadeT = ((c - 0.15) / 0.3).clamp(0.0, 1.0);
+    final opacity = 1 - fadeT * fadeT * (3 - 2 * fadeT);
+    return Opacity(
+      opacity: opacity,
+      child: Transform.translate(
+        offset: Offset(-0.6 * away, 0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _nudge,
+              builder: (context, child) {
+                // 1.4 s out and back, then 400 ms of rest.
+                final t = (_nudge.value * 1800 / 1400).clamp(0.0, 1.0);
+                final dx = -4 * math.sin(math.pi * t);
+                return Transform.translate(offset: Offset(dx, 0), child: child);
+              },
+              child: ChevronGlyph(direction: AxisDirection.left, size: 14, color: widget.chevronColor),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                widget.hint,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: widget.style,
               ),
-              const SizedBox(width: 2),
-              Flexible(
-                child: Text(
-                  widget.hint,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: theme.monoTiny.copyWith(color: color),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -2094,6 +2217,50 @@ class _LiveRingState extends State<_LiveRing> with SingleTickerProviderStateMixi
     );
   }
 }
+
+/// The strip's clock, to the hundredth: "0:03,86". Hundredths are what make
+/// a recording look alive the instant it starts, where whole seconds sit on
+/// "0:00" for the first second and read as nothing happening. Its own ticker,
+/// like [_LiveRing], so a frame repaints one line of text.
+class _RecordingClock extends StatefulWidget {
+  const _RecordingClock({required this.startedAt, required this.style});
+
+  final DateTime startedAt;
+  final TextStyle style;
+
+  @override
+  State<_RecordingClock> createState() => _RecordingClockState();
+}
+
+class _RecordingClockState extends State<_RecordingClock> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker = createTicker((_) => setState(() {}))..start();
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final elapsed = DateTime.now().difference(widget.startedAt);
+    final hundredths = (elapsed.inMilliseconds ~/ 10) % 100;
+    return Text(
+      '${formatClockDuration(elapsed)}${recordingDecimalSeparator(Localizations.localeOf(context))}'
+      '${hundredths.toString().padLeft(2, '0')}',
+      style: widget.style,
+    );
+  }
+}
+
+/// The decimal mark the recording clock uses for [locale]: a comma where the
+/// language writes one ("0:03,86"), a point elsewhere. Our languages only;
+/// Arabic keeps Latin digits in this clock, so a Latin comma.
+@visibleForTesting
+String recordingDecimalSeparator(Locale locale) => switch (locale.languageCode) {
+  'en' || 'ja' || 'ko' || 'zh' || 'hi' => '.',
+  _ => ',',
+};
 
 /// The shutter-style record button under a staged video note: a red disc in
 /// a white ring, the button every camera app uses for "start". A bare

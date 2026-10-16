@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "اضغط للإرسال",
   "composerCaptureSendingLabel": "جارٍ الإرسال…",
   "composerCaptureTimeLeft": "بقيت {seconds} ثانية",
+  "composerCaptureLockedCancel": "إلغاء",
   "composerCaptureCancelLabel": "تجاهل التسجيل",
   "composerCaptureSendLabel": "إرسال التسجيل",
   "composerCaptureLockLabel": "اسحب لأعلى لتثبيت التسجيل",

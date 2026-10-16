@@ -1376,6 +1376,14 @@ import WebRTC
   // Registers the app's custom method channels on the pre-warmed engine.
   // Called from didFinishLaunchingWithOptions right after
   // GeneratedPluginRegistrant (which registers the third-party plugins).
+  private func allowHapticsWhileRecording() {
+    do {
+      try AVAudioSession.sharedInstance().setAllowHapticsAndSystemSoundsDuringRecording(true)
+    } catch {
+      NSLog("[haptics] allowHapticsAndSystemSoundsDuringRecording failed: \(error)")
+    }
+  }
+
   private func registerAppChannels(on engine: FlutterEngine) {
     // monkeyhub/phone_call — any call ringing or live on this phone, ours or
     // the carrier's. A daily game's clock stops on it.
@@ -1386,6 +1394,27 @@ import WebRTC
           binaryMessenger: registrar.messenger()
         )
       )
+    }
+
+    // monkeyhub/haptics — iOS mutes the Taptic Engine while the microphone
+    // records unless the session opts in, so every haptic of a voice or video
+    // note (lock, slide-to-cancel, send) went silent. Opted in at launch, and
+    // again by Dart once a recorder has started: the record and camera plugins
+    // reconfigure the shared session when they start.
+    allowHapticsWhileRecording()
+    if let hapticsRegistrar = engine.registrar(forPlugin: "MonkeyHubHapticsPlugin") {
+      FlutterMethodChannel(
+        name: "monkeyhub/haptics",
+        binaryMessenger: hapticsRegistrar.messenger()
+      ).setMethodCallHandler { [weak self] call, result in
+        switch call.method {
+        case "allowDuringRecording":
+          self?.allowHapticsWhileRecording()
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
     }
 
     // monkeyhub/capture — screen-capture/mirroring observation.

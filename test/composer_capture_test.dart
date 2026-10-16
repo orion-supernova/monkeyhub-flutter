@@ -205,7 +205,7 @@ void main() {
         // recording is live, which is also what keeps the drag out of the
         // field's gesture arena.
         expect(find.byType(TextField), findsNothing);
-        expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+        expect(find.text('Slide to cancel'), findsOneWidget);
 
         // Never pumpAndSettle while anything here is live: the recording strip
         // pulses on a repeating controller and the elapsed readout runs off a
@@ -217,6 +217,9 @@ void main() {
             reason: 'a release the gesture recognizer never saw is how this '
                 'shipped broken once — the button is reparented into the strip '
                 'under a GlobalKey precisely so onLongPressEnd still arrives');
+        // Thrown away: swept into the bin first.
+        await tester.pump(const Duration(milliseconds: 700));
+        await tester.pump();
         expect(find.byType(TextField), findsOneWidget,
             reason: 'a release before the minimum duration discards and the '
                 'composer comes back');
@@ -242,7 +245,9 @@ void main() {
         await gesture.moveBy(const Offset(0, -kLockDragThreshold - 8));
         await tester.pump();
         expect(haptics, hasLength(1), reason: 'the lock must be felt');
-        expect(find.byIcon(Icons.north_east), findsWidgets);
+        await _frames(tester);
+        // Locked: the bloom disc is the send button.
+        expect(find.bySemanticsLabel(AppLocalizationsEn().composerCaptureSendLabel), findsOneWidget);
 
         await gesture.up();
         await _frames(tester);
@@ -251,7 +256,7 @@ void main() {
         expect(recorder.stopped, isFalse);
         expect(recorder.cancelled, isFalse);
 
-        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.tap(find.text(AppLocalizationsEn().composerCaptureLockedCancel));
         await _frames(tester);
         expect(recorder.cancelled, isTrue);
       });
@@ -278,17 +283,21 @@ void main() {
         await tester.pump();
         await gesture.up();
         await tester.pump();
+        await _frames(tester);
         haptics.clear();
 
-        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.tap(find.text(AppLocalizationsEn().composerCaptureLockedCancel));
         await _frames(tester);
 
         expect(recorder.cancelled, isTrue);
         expect(recorder.stopped, isFalse);
         expect(captured, isEmpty, reason: 'a discard must never reach the send path');
         expect(haptics, isNotEmpty, reason: 'a discard must be felt');
+        // The strip stays up while the recording is swept into the bin.
+        await tester.pump(const Duration(milliseconds: 700));
+        await tester.pump();
         expect(find.byType(TextField), findsOneWidget,
-            reason: 'the composer must come back');
+            reason: 'the composer must come back once the bin has shut');
       });
 
       testWidgets('a locked recording sends through its own button',
@@ -316,8 +325,9 @@ void main() {
 
         // Unambiguous: the strip replaces the whole row while recording, so
         // the composer's own send button is not in the tree to collide with.
-        expect(find.byIcon(Icons.north_east), findsOneWidget);
-        await tester.tap(find.byIcon(Icons.north_east));
+        final send = find.bySemanticsLabel(AppLocalizationsEn().composerCaptureSendLabel);
+        expect(send, findsOneWidget);
+        await tester.tap(send);
         await _frames(tester);
 
         expect(recorder.stopped, isTrue);
@@ -343,9 +353,11 @@ void main() {
         // Requested AND started, hands-free: nobody taps "voice message" in a
         // sheet to be shown a button they then have to hold.
         expect(recorder.started, isTrue);
-        expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+        await _frames(tester);
+        final cancel = find.text(AppLocalizationsEn().composerCaptureLockedCancel);
+        expect(cancel, findsOneWidget);
 
-        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.tap(cancel);
         await _frames(tester);
       });
 
@@ -378,7 +390,7 @@ void main() {
         expect(find.text('0:00'), findsWidgets);
         expect(record, findsNothing);
 
-        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.tap(find.text(l10n.composerCaptureLockedCancel));
         await _frames(tester);
         expect(recorder.cancelled, isTrue);
       });

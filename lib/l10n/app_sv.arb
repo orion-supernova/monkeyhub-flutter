@@ -1788,6 +1788,7 @@
   "composerCaptureTapToSendHint": "tryck för att skicka",
   "composerCaptureSendingLabel": "skickar…",
   "composerCaptureTimeLeft": "{seconds} s kvar",
+  "composerCaptureLockedCancel": "Avbryt",
   "composerCaptureCancelLabel": "kasta inspelningen",
   "composerCaptureSendLabel": "skicka inspelningen",
   "composerCaptureLockLabel": "dra uppåt för att låsa inspelningen",
