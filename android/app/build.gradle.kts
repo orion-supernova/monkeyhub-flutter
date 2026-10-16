@@ -113,6 +113,39 @@ flutter {
     source = "../.."
 }
 
+// Release builds leave dev-dependency plugins (integration_test) out of the
+// compile, so the plugin registrant must not name them. `flutter build` writes
+// a release registrant, but VS Code's Dart extension re-runs `pub get` when
+// deploy.sh bumps pubspec.yaml or `flutter clean` drops .dart_tool, and that
+// rewrites the registrant in debug form mid-build: "package
+// dev.flutter.plugins.integration_test does not exist", hours into a bundle.
+// Drop any dev-dependency plugin's block right before the release compile.
+val stripDevPluginsFromRegistrant by tasks.registering {
+    doLast {
+        val registrant = file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
+        val deps = file("../../.flutter-plugins-dependencies")
+        if (!registrant.exists() || !deps.exists()) return@doLast
+        @Suppress("UNCHECKED_CAST")
+        val plugins = (groovy.json.JsonSlurper().parse(deps) as Map<String, Any?>)["plugins"]
+            as Map<String, List<Map<String, Any?>>>
+        val devNames = plugins["android"].orEmpty()
+            .filter { it["dev_dependency"] == true }
+            .map { it["name"] as String }
+        val before = registrant.readText()
+        val after = devNames.fold(before) { text, name ->
+            text.replace(
+                Regex("    try \\{\\n[^\\n]*\\n    \\} catch \\(Exception e\\) \\{\\n" +
+                    "[^\\n]*plugin ${Regex.escape(name)}, [^\\n]*\\n    \\}\\n"),
+                "",
+            )
+        }
+        if (after != before) registrant.writeText(after)
+    }
+}
+tasks.matching {
+    it.name == "compileReleaseJavaWithJavac" || it.name == "compileReleaseKotlin"
+}.configureEach { dependsOn(stripDevPluginsFromRegistrant) }
+
 dependencies {
     // FCM. Every push this app receives arrives through CallFcmService — call
     // wake-ups and ordinary notifications alike — as a data-only message we

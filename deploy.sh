@@ -3023,7 +3023,12 @@ fi
 # without an early abort). The EXIT trap uses this, together with
 # SHIPPED_SOMETHING, to decide whether to revert pubspec.yaml.
 DEPLOY_COMPLETE=$([ "$ANY_STEP_FAILED" = false ] && echo true || echo false)
-if [ "$RUN_GIT" = true ] && [ "$SKIP_VERSION_BUMP" = false ]; then
+# A run where nothing shipped gets its bump reverted by the EXIT trap, so
+# committing it first would push a version that exists nowhere and leave the
+# tree disagreeing with HEAD.
+if [ "$DEPLOY_COMPLETE" = false ] && [ "$SHIPPED_SOMETHING" = false ]; then
+    echo "⏭️  Skipping git commit/push — nothing shipped, the bump is reverted"
+elif [ "$RUN_GIT" = true ] && [ "$SKIP_VERSION_BUMP" = false ]; then
     echo "🔄 Git commit + push..."
     if [ -n "$(git status --porcelain pubspec.yaml)" ]; then
         git add pubspec.yaml
