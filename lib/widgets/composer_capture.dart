@@ -274,6 +274,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// A finger is on the record button (a hold, before or after it locked).
   bool _fingerDown = false;
 
+  /// The small preview was put away with its X. Still on video notes; a tap
+  /// brings it back.
+  bool _idlePreviewHidden = false;
+
   /// This recording goes as play-once. Per recording: each one starts off.
   bool _viewOnce = false;
 
@@ -526,7 +530,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     if (state == AppLifecycleState.inactive || backgrounded) {
       unawaited(_releasePreview());
     } else if (state == AppLifecycleState.resumed) {
-      if (_machine.mode == ComposerInputMode.videoNote) {
+      // Not while the small preview is put away: it stays away, camera off.
+      if (_machine.mode == ComposerInputMode.videoNote && !_idlePreviewHidden) {
         unawaited(_warmPreview());
       }
     }
@@ -540,7 +545,19 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   Future<void> _warmPreview() async {
     // A test-supplied recorder has no session to warm, and warming one would
     // reach for a camera that is not there.
-    if (!mounted || _video != null || widget.capture?.recorderFactory != null) {
+    if (!mounted || widget.capture?.recorderFactory != null) return;
+    // A recorder whose session was released (the preview put away, the app
+    // backgrounded, a cancelled take) opens a fresh one; returning early here
+    // left a dead circle.
+    final existing = _video;
+    if (existing != null) {
+      if (existing.controller != null) return;
+      try {
+        await existing.warm();
+      } catch (e) {
+        debugPrint('capture re-warm failed: $e');
+      }
+      if (mounted) setState(() {});
       return;
     }
     final recorder = VideoNoteCaptureRecorder()..onSessionLost = _onSessionLost;
@@ -588,6 +605,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   void _onModeChanged() {
+    // Arriving on video notes always shows the small preview again.
+    _idlePreviewHidden = false;
     _modeBumpController.forward(from: 0.0);
     _triggerTooltip();
     if (_machine.mode != ComposerInputMode.videoNote) _unstage();
@@ -973,8 +992,14 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         // The same accessible story, one step later: a tap stages the big
         // preview, and its record button (a plain button again) starts the
         // hands-free recording. A second tap on this button puts it away.
+        // With the small preview put away, the first tap only brings it
+        // back; the next one opens the big preview from it.
         if (_staged) {
           _unstage();
+        } else if (_idlePreviewHidden) {
+          HapticFeedback.selectionClick();
+          setState(() => _idlePreviewHidden = false);
+          unawaited(_warmPreview());
         } else {
           _stage();
         }
@@ -1163,7 +1188,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     // nothing on screen is battery, heat and a recording indicator the user
     // cannot account for. Either show the preview or let the camera go;
     // this shows it.
-    if (_machine.mode != ComposerInputMode.videoNote || _video?.controller == null || _wantsBig) {
+    if (_machine.mode != ComposerInputMode.videoNote || _video?.controller == null || _wantsBig || (_idlePreviewHidden && _lift.value == 0)) {
       return row;
     }
     // Still flying home: the slot holds its place, empty, for the circle
@@ -1628,10 +1653,11 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// mode. [_onModeChanged] drops the camera with it.
   void _closeIdlePreview() {
     HapticFeedback.selectionClick();
-    final back = _machine.modes.firstWhere((m) => m != ComposerInputMode.videoNote, orElse: () => _machine.mode);
-    if (back == _machine.mode) return;
-    _machine.selectMode(back, haptic: false);
-    _onModeChanged();
+    // Stays on video notes (switching mode under the user was confusing);
+    // only the viewfinder goes, and the camera with it. A tap on the button
+    // brings it back, and holding still records.
+    setState(() => _idlePreviewHidden = true);
+    unawaited(_releasePreview());
   }
 
   /// The live camera, cropped to a circle. Sized by its parent: the small
