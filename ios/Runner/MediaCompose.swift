@@ -42,11 +42,13 @@ final class MediaCompose: NSObject {
             // A Dart null arrives as NSNull, which the casts turn into nil.
             let startMs = (args["startMs"] as? NSNumber)?.int64Value
             let endMs = (args["endMs"] as? NSNumber)?.int64Value
+            let timelineMs = (args["timelineMs"] as? NSNumber)?.int64Value
             let video = (args["video"] as? Bool) ?? false
             // Off the main thread: loading tracks synchronously reads the files.
             DispatchQueue.global(qos: .userInitiated).async {
                 MediaCompose.compose(paths: paths, outPath: outPath, startMs: startMs,
-                                     endMs: endMs, video: video) { durationMs, message in
+                                     endMs: endMs, timelineMs: timelineMs,
+                                     video: video) { durationMs, message in
                     DispatchQueue.main.async {
                         if let ms = durationMs {
                             result(["durationMs": NSNumber(value: ms)])
@@ -68,7 +70,7 @@ final class MediaCompose: NSObject {
     }
 
     private static func compose(paths: [String], outPath: String, startMs: Int64?,
-                                endMs: Int64?, video: Bool,
+                                endMs: Int64?, timelineMs: Int64?, video: Bool,
                                 done: @escaping (Int64?, String?) -> Void) {
         let composition = AVMutableComposition()
         let audioTrack = composition.addMutableTrack(
@@ -126,6 +128,16 @@ final class MediaCompose: NSObject {
 
         var start = CMTime(value: startMs ?? 0, timescale: 1000)
         var end = endMs.map { CMTime(value: $0, timescale: 1000) } ?? cursor
+        // The cut was placed on the review strip's timeline, the parts' wall
+        // clock, which runs longer than the media (a recorder takes a beat to
+        // start writing). Carried over as a share of it onto what was really
+        // recorded, so a cut near the end cannot land past the last sample.
+        if let timeline = timelineMs, timeline > 0 {
+            let real = CMTimeGetSeconds(cursor)
+            let scale = real / (Double(timeline) / 1000)
+            if let s = startMs { start = CMTime(seconds: Double(s) / 1000 * scale, preferredTimescale: 600) }
+            if let e = endMs { end = CMTime(seconds: Double(e) / 1000 * scale, preferredTimescale: 600) }
+        }
         start = max(.zero, min(start, cursor))
         end = min(end, cursor)
         guard end > start else {

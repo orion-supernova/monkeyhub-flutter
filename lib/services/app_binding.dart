@@ -39,8 +39,20 @@ class AppBinding extends WidgetsFlutterBinding {
   AppBinding._();
 
   static WidgetsBinding ensureInitialized() {
-    if (_instance == null) AppBinding._();
+    // An on-device integration test installs its own binding before the
+    // app's `main` runs; there is only ever one, so take that one. In the
+    // app nothing has made one yet and this is always ours.
+    if (_instance == null && !_bindingExists()) AppBinding._();
     return WidgetsBinding.instance;
+  }
+
+  static bool _bindingExists() {
+    try {
+      WidgetsBinding.instance;
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   static AppBinding? _instance;

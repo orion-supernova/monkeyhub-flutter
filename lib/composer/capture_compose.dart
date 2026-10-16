@@ -146,6 +146,9 @@ Future<CaptureOutcome> composeCapture({
         'outPath': outPath,
         'startMs': plan.startMs,
         'endMs': plan.endMs,
+        // The timeline the cut was placed on; native maps the cut onto the
+        // real media length as a share of it.
+        'timelineMs': totalDuration(segments).inMilliseconds,
         'video': video,
       });
     } on MissingPluginException {

@@ -70,8 +70,9 @@ object MediaCompose {
                 }
                 val paths = call.argument<List<String>>("paths")
                 val out = call.argument<String>("outPath")
-                val startMs = call.argument<Number>("startMs")?.toLong()
-                val endMs = call.argument<Number>("endMs")?.toLong()
+                val rawStartMs = call.argument<Number>("startMs")?.toLong()
+                val rawEndMs = call.argument<Number>("endMs")?.toLong()
+                val timelineMs = call.argument<Number>("timelineMs")?.toLong()
                 val video = call.argument<Boolean>("video") ?: false
                 if (paths.isNullOrEmpty() || out == null) {
                     result.error("compose_failed", "paths and outPath are required", null)
@@ -91,6 +92,16 @@ object MediaCompose {
                 // which this handler is on; the muxer path is plain blocking
                 // I/O and goes to a worker.
                 Thread {
+                    // The cut was placed on the review strip's timeline, the
+                    // parts' wall clock, which runs longer than the media (a
+                    // recorder takes a beat to start writing). Carried over as
+                    // a share of it onto what was really recorded, so a cut
+                    // near the end cannot land past the last sample.
+                    val real = paths.sumOf { durationMsOf(it) }
+                    val scale = if (timelineMs != null && timelineMs > 0 && real > 0)
+                        real.toDouble() / timelineMs else 1.0
+                    val startMs = rawStartMs?.let { (it * scale).toLong() }
+                    val endMs = rawEndMs?.let { (it * scale).toLong() }
                     val mixed = video && !uniform(paths)
                     if (mixed) {
                         main.post { transcode(app, paths, out, startMs, endMs, reply) }
