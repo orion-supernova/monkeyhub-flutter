@@ -1587,9 +1587,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           ),
         ),
         // Closes the preview: back to the composer's first mode, which lets
-        // the camera go. Small, on the rim, out of the way of the face.
+        // the camera go. Small, on the lower rim: the top one belongs to the
+        // "Preview" badge, which the X ran into up there.
         Positioned(
-          top: 2,
+          bottom: 2,
           right: 2,
           child: ChromeDisc(
             size: 26,
