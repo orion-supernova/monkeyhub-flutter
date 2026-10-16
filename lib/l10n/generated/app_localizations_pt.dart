@@ -92,6 +92,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Isto elimina as mensagens para todos nesta conversa. Não é possível desfazer esta ação.';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'Isto elimina a mensagem para todos nesta conversa. Não é possível desfazer esta ação.';
+
+  @override
   String get roomScreenDeleteConfirmButton => 'Eliminar para todos';
 
   @override
@@ -14218,6 +14222,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get roomScreenDeleteConfirmBody =>
       'Isso remove as mensagens para todos nessa conversa. Não é possível desfazer.';
+
+  @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'Isso remove a mensagem para todos nessa conversa. Não é possível desfazer.';
 
   @override
   String get roomScreenDeleteConfirmButton => 'Apagar para todos';

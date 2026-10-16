@@ -92,6 +92,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ça les supprime pour tout le monde dans cette conversation. C’est irréversible.';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'Ça le supprime pour tout le monde dans cette conversation. C’est irréversible.';
+
+  @override
   String get roomScreenDeleteConfirmButton => 'Supprimer pour tout le monde';
 
   @override

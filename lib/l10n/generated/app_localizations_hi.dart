@@ -91,6 +91,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'ये मैसेज इस चैट में सबके लिए हट जाएंगे। इसे वापस नहीं लिया जा सकता।';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'यह मैसेज इस चैट में सबके लिए हट जाएगा। इसे वापस नहीं लिया जा सकता।';
+
+  @override
   String get roomScreenDeleteConfirmButton => 'सबके लिए डिलीट करें';
 
   @override

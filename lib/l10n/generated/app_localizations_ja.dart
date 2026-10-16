@@ -88,6 +88,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomScreenDeleteConfirmBody => 'このチャットにいる全員から削除されます。元に戻すことはできません。';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'このチャットにいる全員から削除されます。元に戻すことはできません。';
+
+  @override
   String get roomScreenDeleteConfirmButton => '全員に対して削除';
 
   @override

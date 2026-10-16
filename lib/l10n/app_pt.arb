@@ -33,6 +33,7 @@
   "roomScreenMaxSelectionSnack": "No máximo {max} de cada vez",
   "roomScreenDeleteMessageHeadline": "{count, plural, one{Eliminar mensagem} other{Eliminar {count} mensagens}}",
   "roomScreenDeleteConfirmBody": "Isto elimina as mensagens para todos nesta conversa. Não é possível desfazer esta ação.",
+  "roomScreenDeleteConfirmBodyOne": "Isto elimina a mensagem para todos nesta conversa. Não é possível desfazer esta ação.",
   "roomScreenDeleteConfirmButton": "Eliminar para todos",
   "roomScreenJumpFailedSnack": "Não foi possível saltar para essa mensagem",
   "roomScreenUnreadDivider": "Mensagens não lidas",

@@ -23,6 +23,7 @@
   "roomScreenMaxSelectionSnack": "بحد أقصى {max} في المرة الواحدة",
   "roomScreenDeleteMessageHeadline": "{count, plural, zero{حذف {count} رسالة} one{حذف الرسالة} two{حذف رسالتين} few{حذف {count} رسائل} many{حذف {count} رسالة} other{حذف {count} رسالة}}",
   "roomScreenDeleteConfirmBody": "سيؤدي هذا إلى حذفها لدى الجميع في هذه المحادثة. لا يمكن التراجع عن هذا الإجراء.",
+  "roomScreenDeleteConfirmBodyOne": "سيؤدي هذا إلى حذفها لدى الجميع في هذه المحادثة. لا يمكن التراجع عن هذا الإجراء.",
   "roomScreenDeleteConfirmButton": "حذف للجميع",
   "roomScreenJumpFailedSnack": "تعذّر الانتقال إلى تلك الرسالة",
   "roomScreenUnreadDivider": "رسائل غير مقروءة",

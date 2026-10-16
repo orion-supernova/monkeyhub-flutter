@@ -23,6 +23,7 @@
   "roomScreenMaxSelectionSnack": "एक बार में {max} तक",
   "roomScreenDeleteMessageHeadline": "{count, plural, one{मैसेज डिलीट करें} other{{count} मैसेज डिलीट करें}}",
   "roomScreenDeleteConfirmBody": "ये मैसेज इस चैट में सबके लिए हट जाएंगे। इसे वापस नहीं लिया जा सकता।",
+  "roomScreenDeleteConfirmBodyOne": "यह मैसेज इस चैट में सबके लिए हट जाएगा। इसे वापस नहीं लिया जा सकता।",
   "roomScreenDeleteConfirmButton": "सबके लिए डिलीट करें",
   "roomScreenJumpFailedSnack": "उस मैसेज तक नहीं पहुंच पाए",
   "roomScreenUnreadDivider": "अपठित मैसेज",

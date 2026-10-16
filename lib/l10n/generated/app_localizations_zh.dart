@@ -87,6 +87,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomScreenDeleteConfirmBody => '这会把消息从聊天里所有人那删除，且无法撤销。';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne => '这会把这条消息从聊天里所有人那删除，且无法撤销。';
+
+  @override
   String get roomScreenDeleteConfirmButton => '为所有人删除';
 
   @override

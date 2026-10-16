@@ -89,6 +89,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu, mesajları sohbetteki herkes için kaldırır. Geri alınamaz.';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'Bu, mesajı sohbetteki herkes için kaldırır. Geri alınamaz.';
+
+  @override
   String get roomScreenDeleteConfirmButton => 'Herkes için sil';
 
   @override

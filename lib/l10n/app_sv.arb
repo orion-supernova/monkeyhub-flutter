@@ -33,6 +33,7 @@
   "roomScreenMaxSelectionSnack": "Högst {max} åt gången",
   "roomScreenDeleteMessageHeadline": "{count, plural, one{Ta bort meddelande} other{Ta bort {count} meddelanden}}",
   "roomScreenDeleteConfirmBody": "Detta tar bort dem för alla i den här chatten. Det går inte att ångra.",
+  "roomScreenDeleteConfirmBodyOne": "Detta tar bort det för alla i den här chatten. Det går inte att ångra.",
   "roomScreenDeleteConfirmButton": "Ta bort för alla",
   "roomScreenJumpFailedSnack": "Kunde inte hoppa till det meddelandet",
   "roomScreenUnreadDivider": "Olästa meddelanden",

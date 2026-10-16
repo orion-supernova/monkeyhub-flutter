@@ -92,6 +92,10 @@
   "@roomScreenDeleteConfirmBody": {
     "description": "Body copy of the confirm-sheet warning before a bulk delete-for-everyone."
   },
+  "roomScreenDeleteConfirmBodyOne": "This removes it for everyone in this chat. It cannot be undone.",
+  "@roomScreenDeleteConfirmBodyOne": {
+    "description": "Body of the confirm sheet when deleting a single message: it is removed for everyone and cannot be undone."
+  },
   "roomScreenDeleteConfirmButton": "Delete for everyone",
   "@roomScreenDeleteConfirmButton": {
     "description": "All-caps destructive confirm button label on the bulk-delete confirm sheet."

@@ -23,6 +23,7 @@
   "roomScreenMaxSelectionSnack": "一次最多选择 {max} 条",
   "roomScreenDeleteMessageHeadline": "{count, plural, other{删除 {count} 条消息}}",
   "roomScreenDeleteConfirmBody": "这会把消息从聊天里所有人那删除，且无法撤销。",
+  "roomScreenDeleteConfirmBodyOne": "这会把这条消息从聊天里所有人那删除，且无法撤销。",
   "roomScreenDeleteConfirmButton": "为所有人删除",
   "roomScreenJumpFailedSnack": "无法跳转到该消息",
   "roomScreenUnreadDivider": "未读消息",

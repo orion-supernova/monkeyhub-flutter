@@ -41,6 +41,7 @@ import 'expressions/expression_sheet.dart';
 import 'chat_pane.dart';
 import 'composer_capture.dart';
 import 'composer_reply_card.dart';
+import 'destructive_sheet.dart' show showConfirmSheet;
 import 'glass_buttons.dart';
 import 'glass_pill.dart';
 import 'glass_reveal.dart';
@@ -1107,6 +1108,15 @@ class _ThreadSheetState extends State<_ThreadSheet>
         await widget.repo.unsaveMessage(widget.roomId, m.id);
         break;
       case MessageAction.delete:
+        // Asks first, as the room does: permanent, and for everyone.
+        final l10n = AppLocalizations.of(context);
+        final confirmed = await showConfirmSheet(
+          context,
+          headline: l10n.roomScreenDeleteMessageHeadline(1),
+          body: l10n.roomScreenDeleteConfirmBodyOne,
+          confirmLabel: l10n.roomScreenDeleteConfirmButton,
+        );
+        if (!confirmed || !mounted) break;
         _deletions.begin([m]);
         try {
           await widget.repo.deleteMessage(m.id);

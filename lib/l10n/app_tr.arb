@@ -23,6 +23,7 @@
   "roomScreenMaxSelectionSnack": "Bir seferde en fazla {max} tane",
   "roomScreenDeleteMessageHeadline": "{count, plural, other{{count} mesajı sil}}",
   "roomScreenDeleteConfirmBody": "Bu, mesajları sohbetteki herkes için kaldırır. Geri alınamaz.",
+  "roomScreenDeleteConfirmBodyOne": "Bu, mesajı sohbetteki herkes için kaldırır. Geri alınamaz.",
   "roomScreenDeleteConfirmButton": "Herkes için sil",
   "roomScreenJumpFailedSnack": "O mesaja gidilemedi",
   "roomScreenUnreadDivider": "Okunmamış mesajlar",

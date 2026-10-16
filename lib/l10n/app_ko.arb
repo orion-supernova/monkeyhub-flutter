@@ -23,6 +23,7 @@
   "roomScreenMaxSelectionSnack": "한 번에 최대 {max}개까지",
   "roomScreenDeleteMessageHeadline": "{count, plural, one{메시지 {count}개 삭제} other{메시지 {count}개 삭제}}",
   "roomScreenDeleteConfirmBody": "이 채팅에 있는 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.",
+  "roomScreenDeleteConfirmBodyOne": "이 채팅에 있는 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.",
   "roomScreenDeleteConfirmButton": "모두에게서 삭제",
   "roomScreenJumpFailedSnack": "그 메시지로 이동할 수 없어요",
   "roomScreenUnreadDivider": "읽지 않은 메시지",

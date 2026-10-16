@@ -94,6 +94,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'سيؤدي هذا إلى حذفها لدى الجميع في هذه المحادثة. لا يمكن التراجع عن هذا الإجراء.';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'سيؤدي هذا إلى حذفها لدى الجميع في هذه المحادثة. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
   String get roomScreenDeleteConfirmButton => 'حذف للجميع';
 
   @override

@@ -33,6 +33,7 @@
   "roomScreenMaxSelectionSnack": "Jusqu’à {max} à la fois",
   "roomScreenDeleteMessageHeadline": "{count, plural, one{Supprimer le message} other{Supprimer {count} messages}}",
   "roomScreenDeleteConfirmBody": "Ça les supprime pour tout le monde dans cette conversation. C’est irréversible.",
+  "roomScreenDeleteConfirmBodyOne": "Ça le supprime pour tout le monde dans cette conversation. C’est irréversible.",
   "roomScreenDeleteConfirmButton": "Supprimer pour tout le monde",
   "roomScreenJumpFailedSnack": "Impossible d’aller à ce message",
   "roomScreenUnreadDivider": "Messages non lus",

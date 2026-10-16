@@ -23,6 +23,7 @@
   "roomScreenMaxSelectionSnack": "一度に選べるのは{max}件までです",
   "roomScreenDeleteMessageHeadline": "{count, plural, other{{count}件のメッセージを削除}}",
   "roomScreenDeleteConfirmBody": "このチャットにいる全員から削除されます。元に戻すことはできません。",
+  "roomScreenDeleteConfirmBodyOne": "このチャットにいる全員から削除されます。元に戻すことはできません。",
   "roomScreenDeleteConfirmButton": "全員に対して削除",
   "roomScreenJumpFailedSnack": "そのメッセージに移動できませんでした",
   "roomScreenUnreadDivider": "未読メッセージ",

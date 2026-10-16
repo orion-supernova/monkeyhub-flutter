@@ -255,6 +255,12 @@ abstract class AppLocalizations {
   /// **'This removes them for everyone in this chat. It cannot be undone.'**
   String get roomScreenDeleteConfirmBody;
 
+  /// Body of the confirm sheet when deleting a single message: it is removed for everyone and cannot be undone.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes it for everyone in this chat. It cannot be undone.'**
+  String get roomScreenDeleteConfirmBodyOne;
+
   /// All-caps destructive confirm button label on the bulk-delete confirm sheet.
   ///
   /// In en, this message translates to:

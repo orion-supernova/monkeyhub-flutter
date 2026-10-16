@@ -1908,6 +1908,7 @@ class _RoomScreenState extends State<RoomScreen>
       case MessageAction.forward:
         await _forwardMessages(album);
       case MessageAction.delete:
+        if (!await _confirmDelete(album.length) || !mounted) return;
         _deletions.begin(album);
         for (final m in album) {
           try {
@@ -5078,6 +5079,18 @@ class _RoomScreenState extends State<RoomScreen>
     _touchShareTarget();
   }
 
+  /// Deletes are permanent and for everyone, so every path asks first: the
+  /// same sheet multi-select uses, worded for one message or several.
+  Future<bool> _confirmDelete(int count) {
+    final l10n = AppLocalizations.of(context);
+    return showConfirmSheet(
+      context,
+      headline: l10n.roomScreenDeleteMessageHeadline(count),
+      body: count == 1 ? l10n.roomScreenDeleteConfirmBodyOne : l10n.roomScreenDeleteConfirmBody,
+      confirmLabel: l10n.roomScreenDeleteConfirmButton,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -6551,6 +6564,7 @@ class _RoomScreenState extends State<RoomScreen>
                       await widget.repo.unsaveMessage(room.id, target.id);
                       break;
                     case MessageAction.delete:
+                      if (!await _confirmDelete(1) || !context.mounted) break;
                       _deletions.begin([target]);
                       try {
                         await widget.repo.deleteMessage(target.id);

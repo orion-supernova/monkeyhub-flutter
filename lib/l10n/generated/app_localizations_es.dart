@@ -92,6 +92,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esto los eliminará para todos en este chat. No se puede deshacer.';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'Esto lo eliminará para todos en este chat. No se puede deshacer.';
+
+  @override
   String get roomScreenDeleteConfirmButton => 'Eliminar para todos';
 
   @override

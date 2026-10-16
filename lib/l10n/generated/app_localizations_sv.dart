@@ -91,6 +91,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'Detta tar bort dem för alla i den här chatten. Det går inte att ångra.';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      'Detta tar bort det för alla i den här chatten. Det går inte att ångra.';
+
+  @override
   String get roomScreenDeleteConfirmButton => 'Ta bort för alla';
 
   @override

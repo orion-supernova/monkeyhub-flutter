@@ -89,6 +89,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 채팅에 있는 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.';
 
   @override
+  String get roomScreenDeleteConfirmBodyOne =>
+      '이 채팅에 있는 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.';
+
+  @override
   String get roomScreenDeleteConfirmButton => '모두에게서 삭제';
 
   @override
