@@ -32,6 +32,7 @@ import 'glass_reveal.dart' show GlassStill;
 import 'liquid_glass.dart' show GlassTone, MediaGlass;
 import 'photo_chrome.dart';
 import 'capture_shield.dart';
+import 'dust/spoiler_dust.dart';
 import 'dust_dissolve.dart';
 import 'remote_image.dart';
 import 'view_once_seal.dart';
@@ -908,16 +909,7 @@ class ViewOnceVideoNote extends StatefulWidget {
   State<ViewOnceVideoNote> createState() => _ViewOnceVideoNoteState();
 }
 
-class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
-    with SingleTickerProviderStateMixin {
-  /// Drives the dust. Runs only while the circle is sealed and on screen
-  /// ([TickerMode] stops it under a covering route), and never under reduced
-  /// motion, where the specks hold still.
-  late final AnimationController _twinkle = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 12),
-  );
-
+class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote> {
   Uint8List? _poster;
   /// [VideoNoteMessage]'s ceiling, for the same stalled-source failure.
   static const _loadTimeout = Duration(seconds: 45);
@@ -973,7 +965,6 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
   @override
   void dispose() {
     _VideoNoteStage.showing.removeListener(_onStage);
-    _twinkle.dispose();
     _gen++;
     _release();
     super.dispose();
@@ -1005,16 +996,6 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
       return null;
     }
     return res.bodyBytes;
-  }
-
-  /// Twinkles only while there is a seal to twinkle over and motion is wanted.
-  void _syncTwinkle(bool sealed) {
-    final run = sealed && !MediaQuery.disableAnimationsOf(context);
-    if (run && !_twinkle.isAnimating) {
-      _twinkle.repeat();
-    } else if (!run && _twinkle.isAnimating) {
-      _twinkle.stop();
-    }
   }
 
   void _onStage() {
@@ -1179,7 +1160,6 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
     final size = widget.diameter;
     final spent = _spent && !_busy;
     final total = _total;
-    _syncTwinkle(!spent);
 
     if (spent) return _spentDisc(theme, l10n, size, total);
 
@@ -1230,15 +1210,12 @@ class _ViewOnceVideoNoteState extends State<ViewOnceVideoNote>
           // A touch of dark so the white specks and the button read over a
           // bright frame.
           const ClipOval(child: ColoredBox(color: Color(0x33000000))),
-          ClipOval(
-            child: RepaintBoundary(
-              child: CustomPaint(
-                painter: _NoteDustPainter(
-                  seed: widget.messageId.hashCode,
-                  clock: _twinkle,
-                ),
-              ),
-            ),
+          // Telegram's spoiler over it: the shared field, kept to the
+          // circle without a clip, built only while the note is sealed.
+          SpoilerDust(
+            oval: true,
+            seed: widget.messageId.hashCode,
+            brightness: 1.35,
           ),
           Center(
             child: SizedBox(
@@ -1431,83 +1408,6 @@ abstract final class _MicroPosters {
       }
     }();
   }
-}
-
-/// The dust over a sealed note: a fixed, seeded set of tiny white specks that
-/// twinkle and drift a pixel or two — Telegram's spoiler particles.
-///
-/// Repaints off [clock] alone, inside its own [RepaintBoundary], so a frame of
-/// twinkle never rebuilds a widget. One `drawCircle` per speck, about 120.
-class _NoteDustPainter extends CustomPainter {
-  _NoteDustPainter({required this.seed, required this.clock})
-      : super(repaint: clock);
-
-  final int seed;
-  final Animation<double> clock;
-
-  static const _count = 120;
-  static final Map<int, List<_Speck>> _cache = {};
-
-  List<_Speck> _specks() => _cache.putIfAbsent(seed, () {
-        if (_cache.length > 64) _cache.clear();
-        final r = math.Random(seed);
-        return [
-          for (var i = 0; i < _count; i++)
-            _Speck(
-              // Uniform over the disc, not the square: sqrt for the radius.
-              angle: r.nextDouble() * math.pi * 2,
-              reach: math.sqrt(r.nextDouble()) * 0.97,
-              radius: 0.5 + r.nextDouble() * 0.6,
-              alpha: 0.35 + r.nextDouble() * 0.6,
-              phase: r.nextDouble() * math.pi * 2,
-              // Whole cycles per loop of the clock, so the loop has no seam.
-              speed: (1 + r.nextInt(4)).toDouble(),
-            ),
-        ];
-      });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final t = clock.value * math.pi * 2;
-    final c = size.center(Offset.zero);
-    final half = size.shortestSide / 2;
-    final paint = Paint()..isAntiAlias = true;
-    for (final s in _specks()) {
-      final wave = 0.5 + 0.5 * math.sin(s.phase + t * s.speed);
-      paint.color = Color.fromRGBO(255, 255, 255, s.alpha * (0.2 + 0.8 * wave));
-      final drift = Offset(
-        math.cos(s.phase + t) * 1.6,
-        math.sin(s.phase + t * 2) * 1.2,
-      );
-      final at = c +
-          Offset(math.cos(s.angle), math.sin(s.angle)) * (s.reach * half) +
-          drift;
-      canvas.drawCircle(at, s.radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_NoteDustPainter old) =>
-      old.seed != seed || old.clock != clock;
-}
-
-@immutable
-class _Speck {
-  const _Speck({
-    required this.angle,
-    required this.reach,
-    required this.radius,
-    required this.alpha,
-    required this.phase,
-    required this.speed,
-  });
-
-  final double angle;
-  final double reach;
-  final double radius;
-  final double alpha;
-  final double phase;
-  final double speed;
 }
 
 /// A playback that deletes its staged copy when it is released, so the copy
