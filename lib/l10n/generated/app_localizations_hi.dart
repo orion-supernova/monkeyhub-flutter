@@ -13988,4 +13988,91 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => 'अभी नहीं';
+
+  @override
+  String get voiceTranscriptShow => 'ट्रांसक्रिप्ट दिखाएं';
+
+  @override
+  String get voiceTranscriptHide => 'ट्रांसक्रिप्ट छिपाएं';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return 'ट्रांसक्रिप्ट आपके फ़ोन पर ही बनते हैं। स्पीच मॉडल एक बार का $size डाउनलोड है।';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return '$size डाउनलोड करें';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return 'स्पीच मॉडल डाउनलोड हो रहा है · $total में से $received';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote =>
+      'सिर्फ़ एक बार। इसके बाद ट्रांसक्रिप्ट ऑफ़लाइन चलेंगे।';
+
+  @override
+  String get voiceTranscriptCancel => 'रद्द करें';
+
+  @override
+  String get voiceTranscriptWorking => 'ट्रांसक्राइब हो रहा है…';
+
+  @override
+  String get voiceTranscriptFailedNetwork => 'स्पीच मॉडल डाउनलोड नहीं हो सका।';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return 'पर्याप्त जगह नहीं है। स्पीच मॉडल को $size चाहिए।';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio => 'यह वॉइस मैसेज पढ़ा नहीं जा सका।';
+
+  @override
+  String get voiceTranscriptFailed => 'यह वॉइस मैसेज ट्रांसक्राइब नहीं हो सका।';
+
+  @override
+  String get voiceTranscriptRetry => 'फिर से कोशिश करें';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'इस वॉइस मैसेज में कोई बोली नहीं है।';
+
+  @override
+  String get voiceTranscriptOnDevice => 'इसी डिवाइस पर ट्रांसक्राइब किया गया';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · इसी डिवाइस पर';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'कॉपी करें';
+
+  @override
+  String get voiceTranscriptCopied => 'ट्रांसक्रिप्ट कॉपी हो गया';
+
+  @override
+  String get storageKindSpeechModel => 'वॉइस ट्रांसक्रिप्ट';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Apple स्पीच रिकग्निशन';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · Apple स्पीच रिकग्निशन';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'बेहतर ट्रांसक्रिप्ट';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return 'भाषा या शब्द गलत हैं? MonkeyHub का स्पीच मॉडल खुद पहचानता है कि कौन सी भाषा बोली गई और लगभग 100 भाषाएँ जानता है। एक बार का $size डाउनलोड, फिर ऑफ़लाइन चलता है।';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => 'अभी नहीं';
 }

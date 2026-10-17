@@ -1843,6 +1843,8 @@ Widget buildMessageContent({
               storageId: message.mediaStorageId,
               isMine: isMine,
               seedKey: voiceBarsSeedKey(message),
+              roomId: message.roomId,
+              senderId: message.senderId,
             );
       final audioStamp = stampFor(bubbleTone);
       final audioBubble = Container(

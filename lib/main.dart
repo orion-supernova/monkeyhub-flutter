@@ -1,5 +1,10 @@
 import 'package:flutter/foundation.dart'
-    show kIsWeb, LicenseEntryWithLineBreaks, LicenseRegistry;
+    show
+        defaultTargetPlatform,
+        kIsWeb,
+        LicenseEntryWithLineBreaks,
+        LicenseRegistry,
+        TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show BrowserContextMenu, SystemChrome, SystemUiMode;
@@ -21,6 +26,9 @@ import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
 import 'services/app_binding.dart';
+import 'transcripts/apple_builtin_speech.dart';
+import 'transcripts/voice_transcriber.dart';
+import 'transcripts/whisper_engine.dart';
 import 'screens/navigation/native_tab_bar.dart' show NativeChrome;
 
 /// Root navigator key — exposed so non-widget code (push handlers, native
@@ -151,6 +159,20 @@ Future<void> main() async {
 
   // Wi-Fi or cellular, for auto-download, data usage and the calls data saver.
   NetworkKindMonitor.instance.start();
+
+  // On-device voice transcripts. Nothing loads here: the engine is a handle,
+  // the model is downloaded on the first "Show transcript" tap.
+  // Apple's own recognizer goes first where it already has the language.
+  final speech = createWhisperEngine();
+  if (speech != null) {
+    final apple = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS);
+    VoiceTranscriber.install(
+      speech,
+      builtIn: apple ? AppleBuiltInSpeech() : null,
+    );
+  }
 
   if (kIsWeb) {
     await BrowserContextMenu.disableContextMenu();

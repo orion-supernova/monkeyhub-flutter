@@ -1,0 +1,26 @@
+name: apple_speech
+description: On-device voice message transcription with Apple's built-in recognizer (SpeechAnalyzer, iOS/macOS 26+). Local MonkeyHub plugin.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.7.0 <4.0.0'
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: AppleSpeechPlugin
+        sharedDarwinSource: true
+      macos:
+        pluginClass: AppleSpeechPlugin
+        sharedDarwinSource: true

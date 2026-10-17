@@ -14151,6 +14151,96 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => 'Agora não';
+
+  @override
+  String get voiceTranscriptShow => 'Mostrar transcrição';
+
+  @override
+  String get voiceTranscriptHide => 'Ocultar transcrição';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return 'As transcrições são feitas no teu telemóvel. O modelo de voz é uma transferência única de $size.';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return 'Transferir $size';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return 'A transferir o modelo de voz · $received de $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote =>
+      'Só uma vez. Depois, as transcrições funcionam offline.';
+
+  @override
+  String get voiceTranscriptCancel => 'Cancelar';
+
+  @override
+  String get voiceTranscriptWorking => 'A transcrever…';
+
+  @override
+  String get voiceTranscriptFailedNetwork =>
+      'Não foi possível transferir o modelo de voz.';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return 'Espaço insuficiente. O modelo de voz precisa de $size.';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio =>
+      'Não foi possível ler esta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptFailed =>
+      'Não foi possível transcrever esta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptRetry => 'Tentar novamente';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'Não há fala nesta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptOnDevice => 'Transcrito neste dispositivo';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · neste dispositivo';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'Copiar';
+
+  @override
+  String get voiceTranscriptCopied => 'Transcrição copiada';
+
+  @override
+  String get storageKindSpeechModel => 'Transcrições de voz';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Reconhecimento de voz da Apple';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · reconhecimento de voz da Apple';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'Transcrições melhores';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return 'Idioma ou palavras errados? O modelo de voz do MonkeyHub reconhece sozinho o idioma falado e conhece quase 100. Transferência única de $size, depois funciona offline.';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => 'Agora não';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -28282,4 +28372,94 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get captureNoticeNotNow => 'Agora não';
+
+  @override
+  String get voiceTranscriptShow => 'Mostrar transcrição';
+
+  @override
+  String get voiceTranscriptHide => 'Ocultar transcrição';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return 'As transcrições são feitas no seu celular. O modelo de voz é um download único de $size.';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return 'Baixar $size';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return 'Baixando o modelo de voz · $received de $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote =>
+      'Só uma vez. Depois, as transcrições funcionam offline.';
+
+  @override
+  String get voiceTranscriptCancel => 'Cancelar';
+
+  @override
+  String get voiceTranscriptWorking => 'Transcrevendo…';
+
+  @override
+  String get voiceTranscriptFailedNetwork =>
+      'Não foi possível baixar o modelo de voz.';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return 'Espaço insuficiente. O modelo de voz precisa de $size.';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio =>
+      'Não foi possível ler esta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptFailed =>
+      'Não foi possível transcrever esta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptRetry => 'Tentar de novo';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'Não há fala nesta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptOnDevice => 'Transcrito neste dispositivo';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · neste dispositivo';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'Copiar';
+
+  @override
+  String get voiceTranscriptCopied => 'Transcrição copiada';
+
+  @override
+  String get storageKindSpeechModel => 'Transcrições de voz';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Reconhecimento de voz da Apple';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · reconhecimento de voz da Apple';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'Transcrições melhores';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return 'Idioma ou palavras errados? O modelo de voz do MonkeyHub reconhece sozinho o idioma falado e conhece quase 100. Download único de $size, depois funciona offline.';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => 'Agora não';
 }

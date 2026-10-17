@@ -281,6 +281,16 @@ dependencies:
   flutter_gemma: ^1.6.5
   flutter_gemma_litertlm: ^1.5.3
 
+  # On-device voice-message transcription (whisper.cpp over FFI). Vendored,
+  # see the override below.
+  whisper_ggml: ^2.8.1
+
+  # Apple's built-in on-device recognizer (SpeechAnalyzer, iOS/macOS 26+):
+  # transcribes voice messages with no model download of ours. Local plugin;
+  # reports unavailable on other platforms and older OSes.
+  apple_speech:
+    path: third_party/apple_speech
+
   # Physical RAM, and nothing else. Sebastian's shelf is ordered best-first and
   # the device takes the best row it can carry (see `DeviceCapability`): a 1.5B
   # model translates markedly better than a 0.5B one and wants roughly four
@@ -356,6 +366,23 @@ dependency_overrides:
   # block. See third_party/flutter_webrtc/PATCHES.md.
   flutter_webrtc:
     path: third_party/flutter_webrtc
+
+  # whisper_ggml 2.8.1 (whisper.cpp v1.9.1) with ten patches, each marked
+  # `MONKEYHUB PATCH n` in-source. See third_party/whisper_ggml/PATCHES.md.
+  #
+  # Upstream converts audio with ffmpeg_kit, which adds tens of MB of ffmpeg
+  # to every build and has no Windows/Linux implementation. Here it is gone:
+  # voice notes (AAC .m4a) are decoded by the OS (AudioToolbox, MediaCodec,
+  # Media Foundation; gst-launch/ffmpeg on Linux) into a 16 kHz WAV through
+  # `decodeToWav16k`. Also added: `WhisperController.transcribe(modelPath:)`
+  # for our own model directory, the detected language on the response,
+  # cancellation, a single native tree for every platform (the Apple copy
+  # rejected lang "auto"), auto-language transcription that no longer
+  # encodes the first 30 s window twice, and Metal on iOS/macOS (A14 / M1+,
+  # CPU while backgrounded via setWhisperGpuAllowed). When bumping, re-apply
+  # the patches — pub would otherwise silently bring ffmpeg back.
+  whisper_ggml:
+    path: third_party/whisper_ggml
 
 dev_dependencies:
   url_launcher_platform_interface: ^2.3.2

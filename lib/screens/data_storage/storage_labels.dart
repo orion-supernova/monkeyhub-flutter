@@ -38,6 +38,7 @@ TileTone storageTone(StorageKind k) => switch (k) {
       StorageKind.stickers => TileTone.orange,
       StorageKind.chatHistory => TileTone.indigo,
       StorageKind.companions => TileTone.red,
+      StorageKind.speechModel => TileTone.accent,
       StorageKind.other => TileTone.gray,
     };
 
@@ -53,6 +54,7 @@ String storageLabel(AppLocalizations l10n, StorageKind k) => switch (k) {
       StorageKind.stickers => l10n.storageKindStickers,
       StorageKind.chatHistory => l10n.storageKindChatHistory,
       StorageKind.companions => l10n.storageKindCompanions,
+      StorageKind.speechModel => l10n.storageKindSpeechModel,
       StorageKind.other => l10n.storageKindOther,
     };
 

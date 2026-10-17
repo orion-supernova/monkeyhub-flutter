@@ -6,6 +6,7 @@ import FlutterMacOS
 import Foundation
 
 import app_links
+import apple_speech
 import audio_session
 import connectivity_plus
 import device_info_plus
@@ -33,6 +34,7 @@ import webview_flutter_wkwebview
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AppLinksMacosPlugin.register(with: registry.registrar(forPlugin: "AppLinksMacosPlugin"))
+  AppleSpeechPlugin.register(with: registry.registrar(forPlugin: "AppleSpeechPlugin"))
   AudioSessionPlugin.register(with: registry.registrar(forPlugin: "AudioSessionPlugin"))
   ConnectivityPlusPlugin.register(with: registry.registrar(forPlugin: "ConnectivityPlusPlugin"))
   DeviceInfoPlusMacosPlugin.register(with: registry.registrar(forPlugin: "DeviceInfoPlusMacosPlugin"))

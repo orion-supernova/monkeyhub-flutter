@@ -27,6 +27,13 @@ enum StorageKind {
   /// manage it.
   companions,
 
+  /// The on-device speech model behind voice transcripts, and the transcripts
+  /// it made. Clearable, unlike [companions]: it was never chosen from a
+  /// shelf, it comes back by itself the next time someone taps "Show
+  /// transcript", and a 181 MB file a reader cannot find a way to delete is
+  /// the thing this screen exists to prevent.
+  speechModel,
+
   /// Avatars, link previews, room covers: anything the app fetched that no
   /// message owns.
   other;
@@ -37,7 +44,7 @@ enum StorageKind {
   /// Whether this kind belongs to a message and so to a chat. The per chat
   /// breakdown only counts these.
   bool get isMessageMedia => switch (this) {
-        chatHistory || companions || other => false,
+        chatHistory || companions || speechModel || other => false,
         _ => true,
       };
 

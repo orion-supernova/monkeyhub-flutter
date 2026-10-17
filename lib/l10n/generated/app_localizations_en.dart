@@ -14009,4 +14009,93 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => 'Not now';
+
+  @override
+  String get voiceTranscriptShow => 'Show transcript';
+
+  @override
+  String get voiceTranscriptHide => 'Hide transcript';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return 'Transcripts are made on your phone. The speech model is a one-time $size download.';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return 'Download $size';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return 'Getting the speech model · $received of $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote =>
+      'Only once. After this, transcripts work offline.';
+
+  @override
+  String get voiceTranscriptCancel => 'Cancel';
+
+  @override
+  String get voiceTranscriptWorking => 'Transcribing…';
+
+  @override
+  String get voiceTranscriptFailedNetwork =>
+      'Couldn\'t download the speech model.';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return 'Not enough free space. The speech model needs $size.';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio => 'Couldn\'t read this voice message.';
+
+  @override
+  String get voiceTranscriptFailed =>
+      'Couldn\'t transcribe this voice message.';
+
+  @override
+  String get voiceTranscriptRetry => 'Try again';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'No speech in this voice message.';
+
+  @override
+  String get voiceTranscriptOnDevice => 'Transcribed on this device';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · on this device';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'Copy';
+
+  @override
+  String get voiceTranscriptCopied => 'Transcript copied';
+
+  @override
+  String get storageKindSpeechModel => 'Voice transcripts';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Apple speech recognition';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · Apple speech recognition';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'Better transcripts';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return 'Wrong language or words? MonkeyHub\'s speech model hears which language is spoken and knows almost 100 of them. One-time $size download, then it works offline.';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => 'Not now';
 }

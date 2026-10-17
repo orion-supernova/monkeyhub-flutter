@@ -14187,4 +14187,91 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => 'ليس الآن';
+
+  @override
+  String get voiceTranscriptShow => 'عرض النص';
+
+  @override
+  String get voiceTranscriptHide => 'إخفاء النص';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return 'تُنشأ النصوص على هاتفك. نموذج الكلام تنزيل لمرة واحدة بحجم $size.';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return 'تنزيل $size';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return 'جارٍ تنزيل نموذج الكلام · $received من $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote =>
+      'مرة واحدة فقط. بعدها تعمل النصوص دون اتصال.';
+
+  @override
+  String get voiceTranscriptCancel => 'إلغاء';
+
+  @override
+  String get voiceTranscriptWorking => 'جارٍ التحويل إلى نص…';
+
+  @override
+  String get voiceTranscriptFailedNetwork => 'تعذّر تنزيل نموذج الكلام.';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return 'لا توجد مساحة كافية. يحتاج نموذج الكلام إلى $size.';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio => 'تعذّرت قراءة هذه الرسالة الصوتية.';
+
+  @override
+  String get voiceTranscriptFailed => 'تعذّر تحويل هذه الرسالة الصوتية إلى نص.';
+
+  @override
+  String get voiceTranscriptRetry => 'إعادة المحاولة';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'لا يوجد كلام في هذه الرسالة الصوتية.';
+
+  @override
+  String get voiceTranscriptOnDevice => 'حُوِّل إلى نص على هذا الجهاز';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · على هذا الجهاز';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'نسخ';
+
+  @override
+  String get voiceTranscriptCopied => 'تم نسخ النص';
+
+  @override
+  String get storageKindSpeechModel => 'نصوص الرسائل الصوتية';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'التعرّف على الكلام من Apple';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · التعرّف على الكلام من Apple';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'نصوص أفضل';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return 'اللغة أو الكلمات خاطئة؟ نموذج الكلام في MonkeyHub يتعرّف على اللغة المنطوقة بنفسه ويعرف قرابة 100 لغة. تنزيل لمرة واحدة بحجم $size، ثم يعمل دون اتصال.';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => 'ليس الآن';
 }

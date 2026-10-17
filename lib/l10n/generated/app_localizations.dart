@@ -23376,6 +23376,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not now'**
   String get captureNoticeNotNow;
+
+  /// Accessibility label of the small button beside a voice message's waveform that opens its on-device transcript.
+  ///
+  /// In en, this message translates to:
+  /// **'Show transcript'**
+  String get voiceTranscriptShow;
+
+  /// Accessibility label of the same button once the transcript is open; tapping folds it away.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide transcript'**
+  String get voiceTranscriptHide;
+
+  /// Shown under a voice message when the reader asked for a transcript on mobile data and the speech model is not downloaded yet. {size} is like '181 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcripts are made on your phone. The speech model is a one-time {size} download.'**
+  String voiceTranscriptCellularPrompt(String size);
+
+  /// Link under the mobile-data prompt that starts the speech model download. {size} is like '181 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Download {size}'**
+  String voiceTranscriptDownloadAction(String size);
+
+  /// Progress line under a voice message while the speech model downloads. {received} and {total} are like '42 MB' and '181 MB': megabytes of the model downloaded so far, of its full size.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting the speech model · {received} of {total}'**
+  String voiceTranscriptDownloading(String received, String total);
+
+  /// Small note under the download progress: the model is downloaded once, then transcription works without internet.
+  ///
+  /// In en, this message translates to:
+  /// **'Only once. After this, transcripts work offline.'**
+  String get voiceTranscriptOneTimeNote;
+
+  /// Link that stops the speech model download.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get voiceTranscriptCancel;
+
+  /// Shown under a voice message while the on-device model turns it into text.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing…'**
+  String get voiceTranscriptWorking;
+
+  /// The speech model download failed because of the network.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download the speech model.'**
+  String get voiceTranscriptFailedNetwork;
+
+  /// The speech model download failed because the device is out of space. {size} is the model's size, like '181 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space. The speech model needs {size}.'**
+  String voiceTranscriptFailedStorage(String size);
+
+  /// The voice message's audio could not be loaded or decoded for transcription.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read this voice message.'**
+  String get voiceTranscriptFailedAudio;
+
+  /// The on-device speech model failed to transcribe the voice message.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t transcribe this voice message.'**
+  String get voiceTranscriptFailed;
+
+  /// Link after a failed transcript that tries again.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get voiceTranscriptRetry;
+
+  /// The model ran but heard no words in the voice message (silence, music, noise).
+  ///
+  /// In en, this message translates to:
+  /// **'No speech in this voice message.'**
+  String get voiceTranscriptNoSpeech;
+
+  /// Credit line under a finished transcript when the language could not be detected; says it was made on the device, nothing was sent anywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribed on this device'**
+  String get voiceTranscriptOnDevice;
+
+  /// Credit line under a finished transcript. {language} is the detected spoken language written in itself, e.g. 'Türkçe'; the rest says it was transcribed on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'{language} · on this device'**
+  String voiceTranscriptLanguageOnDevice(String language);
+
+  /// Link under a finished transcript that copies its text.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get voiceTranscriptCopy;
+
+  /// Toast after copying a voice message transcript.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript copied'**
+  String get voiceTranscriptCopied;
+
+  /// Row in the storage breakdown for the on-device speech model that makes voice message transcripts, plus the saved transcripts.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice transcripts'**
+  String get storageKindSpeechModel;
+
+  /// Credit line under a transcript made by Apple's built-in speech recognition, when the language is unknown. 'Apple' is the company name; keep it.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple speech recognition'**
+  String get voiceTranscriptBuiltInCredit;
+
+  /// Credit line under a transcript made by Apple's built-in speech recognition. {language} is the language it listened for, written in itself, e.g. 'Türkçe'. Naming it lets the reader spot a wrong guess. Keep 'Apple'.
+  ///
+  /// In en, this message translates to:
+  /// **'{language} · Apple speech recognition'**
+  String voiceTranscriptBuiltInLanguageCredit(String language);
+
+  /// Link under a built-in transcript that opens the offer to download MonkeyHub's own, better speech model.
+  ///
+  /// In en, this message translates to:
+  /// **'Better transcripts'**
+  String get voiceTranscriptUpgradeLink;
+
+  /// Offer shown after tapping 'Better transcripts'. MonkeyHub's own speech model picks the spoken language by itself (the built-in one has to guess it) and knows almost 100 languages. {size} is like '181 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong language or words? MonkeyHub\'s speech model hears which language is spoken and knows almost 100 of them. One-time {size} download, then it works offline.'**
+  String voiceTranscriptUpgradeOffer(String size);
+
+  /// Link that closes the offer to download the better speech model.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get voiceTranscriptNotNow;
 }
 
 class _AppLocalizationsDelegate

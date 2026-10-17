@@ -41,6 +41,7 @@ import 'ordered_send_queue.dart';
 import 'pending_reconcile.dart';
 import 'room_filter.dart';
 import 'settings_store.dart';
+import '../transcripts/language_hint.dart';
 
 /// Server refusals a send can hit that a retry can't fix right away. See
 /// `backend/convex/rateLimit.ts`, `files.ts` and `messages.ts`.
@@ -131,7 +132,17 @@ class ChatRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  ChatRepository({required this.api, required this.cv});
+  ChatRepository({required this.api, required this.cv}) {
+    // What a voice note's sender writes is the best evidence of what they
+    // speak — see [VoiceLanguageHints]. Text the reader already has loaded;
+    // nothing is fetched for it.
+    VoiceLanguageHints.textIn = (roomId, {senderId}) => [
+          for (final m in messagesFor(roomId))
+            if (m.type == MessageType.text &&
+                (senderId == null || m.senderId == senderId))
+              m.content,
+        ];
+  }
 
   final ChatApi api;
   final ConvexBackend cv;

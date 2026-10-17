@@ -14042,4 +14042,94 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => 'Inte nu';
+
+  @override
+  String get voiceTranscriptShow => 'Visa transkription';
+
+  @override
+  String get voiceTranscriptHide => 'Dölj transkription';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return 'Transkriptioner görs på din telefon. Talmodellen är en engångsnedladdning på $size.';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return 'Ladda ned $size';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return 'Hämtar talmodellen · $received av $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote =>
+      'Bara en gång. Sedan fungerar transkriptioner offline.';
+
+  @override
+  String get voiceTranscriptCancel => 'Avbryt';
+
+  @override
+  String get voiceTranscriptWorking => 'Transkriberar…';
+
+  @override
+  String get voiceTranscriptFailedNetwork =>
+      'Det gick inte att ladda ned talmodellen.';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return 'Inte tillräckligt med ledigt utrymme. Talmodellen behöver $size.';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio =>
+      'Det gick inte att läsa det här röstmeddelandet.';
+
+  @override
+  String get voiceTranscriptFailed =>
+      'Det gick inte att transkribera det här röstmeddelandet.';
+
+  @override
+  String get voiceTranscriptRetry => 'Försök igen';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'Inget tal i det här röstmeddelandet.';
+
+  @override
+  String get voiceTranscriptOnDevice => 'Transkriberat på den här enheten';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · på den här enheten';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'Kopiera';
+
+  @override
+  String get voiceTranscriptCopied => 'Transkription kopierad';
+
+  @override
+  String get storageKindSpeechModel => 'Rösttranskriptioner';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Apples taligenkänning';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · Apples taligenkänning';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'Bättre transkriptioner';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return 'Fel språk eller ord? MonkeyHubs talmodell hör själv vilket språk som talas och kan nästan 100 språk. Engångsnedladdning på $size, sedan fungerar den offline.';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => 'Inte nu';
 }

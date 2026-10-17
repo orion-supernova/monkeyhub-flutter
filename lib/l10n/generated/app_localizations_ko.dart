@@ -13415,4 +13415,90 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => '나중에';
+
+  @override
+  String get voiceTranscriptShow => '텍스트로 보기';
+
+  @override
+  String get voiceTranscriptHide => '텍스트 숨기기';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return '텍스트 변환은 휴대폰에서 이루어집니다. 음성 모델은 한 번만 내려받으면 됩니다($size).';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return '$size 내려받기';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return '음성 모델 내려받는 중 · $received / $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote => '한 번만 받으면 됩니다. 이후에는 오프라인으로 변환됩니다.';
+
+  @override
+  String get voiceTranscriptCancel => '취소';
+
+  @override
+  String get voiceTranscriptWorking => '텍스트로 변환 중…';
+
+  @override
+  String get voiceTranscriptFailedNetwork => '음성 모델을 내려받지 못했습니다.';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return '저장 공간이 부족합니다. 음성 모델에 $size가 필요합니다.';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio => '이 음성 메시지를 읽을 수 없습니다.';
+
+  @override
+  String get voiceTranscriptFailed => '이 음성 메시지를 텍스트로 변환하지 못했습니다.';
+
+  @override
+  String get voiceTranscriptRetry => '다시 시도';
+
+  @override
+  String get voiceTranscriptNoSpeech => '이 음성 메시지에는 말소리가 없습니다.';
+
+  @override
+  String get voiceTranscriptOnDevice => '이 기기에서 변환됨';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · 이 기기에서';
+  }
+
+  @override
+  String get voiceTranscriptCopy => '복사';
+
+  @override
+  String get voiceTranscriptCopied => '텍스트를 복사했습니다';
+
+  @override
+  String get storageKindSpeechModel => '음성 메시지 텍스트';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Apple 음성 인식';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · Apple 음성 인식';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => '더 정확한 텍스트';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return '언어나 단어가 틀렸나요? MonkeyHub 음성 모델은 어떤 언어인지 스스로 알아듣고 100개 가까운 언어를 지원합니다. 한 번만 내려받으면($size) 이후 오프라인으로 작동합니다.';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => '나중에';
 }

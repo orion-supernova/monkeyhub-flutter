@@ -19,9 +19,12 @@ import '../screens/room_items.dart' show formatClockDuration;
 import '../screens/voice_recorder_screen.dart' show voiceNoteContentType;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../transcripts/language_hint.dart';
+import '../transcripts/voice_transcriber.dart';
 import 'dust_dissolve.dart';
 import 'spring_press.dart';
 import 'view_once_seal.dart';
+import 'voice_transcript.dart';
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoIcons;
 
 /// How the bubble is currently rendering.
@@ -101,10 +104,18 @@ class AudioMessage extends StatefulWidget {
     required this.storageId,
     required this.isMine,
     this.seedKey,
+    this.roomId,
+    this.senderId,
   });
   final ChatApi api;
   final String? storageId;
   final bool isMine;
+
+  /// Where the note was sent and by whom — only to guess its language from
+  /// what the sender writes, for the built-in recognizer that must be told
+  /// (see [VoiceLanguageHints]).
+  final String? roomId;
+  final String? senderId;
 
   /// What shapes the waveform: the same key the note's uploading row used
   /// (see `voiceBarsSeed`), so the bars do not change shape the moment the
@@ -331,6 +342,11 @@ class _AudioMessageState extends State<AudioMessage> {
     }
 
     final ready = _phase == _Phase.ready;
+    // Null where the platform cannot transcribe (web) — no button rather than
+    // one that can only fail. A map lookup otherwise.
+    final transcript = VoiceTranscriber.instance.supported
+        ? VoiceTranscriber.instance.handleFor(widget.storageId!)
+        : null;
     return StreamBuilder<PlayerState>(
       stream: _player.playerStateStream,
       builder: (context, snap) {
@@ -352,7 +368,7 @@ class _AudioMessageState extends State<AudioMessage> {
             );
             final playing = display.playing;
             final progress = display.progress;
-            return Row(
+            final row = Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _disc(
@@ -422,12 +438,63 @@ class _AudioMessageState extends State<AudioMessage> {
                     ],
                   ),
                 ),
+                if (transcript != null) ...[
+                  const SizedBox(width: 2),
+                  TranscriptButton(
+                    handle: transcript,
+                    isMine: widget.isMine,
+                    onTap: _toggleTranscript,
+                  ),
+                ],
+              ],
+            );
+            if (transcript == null) return row;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                row,
+                TranscriptSlab(
+                  handle: transcript,
+                  isMine: widget.isMine,
+                  position: display.elapsed,
+                  // Mid-play: playing, or paused partway. Not at rest and not
+                  // finished, where the whole transcript reads at full ink.
+                  following: !completed &&
+                      (playing || display.elapsed > Duration.zero),
+                  onSeek: (at) {
+                    if (!ready) return;
+                    _player.seek(at);
+                    if (!playing) _player.play();
+                  },
+                ),
               ],
             );
           },
         );
       },
     );
+  }
+
+  /// Opens or folds the transcript. The first open is also what fetches the
+  /// speech model and runs it — see [VoiceTranscriber.toggle].
+  void _toggleTranscript() {
+    final id = widget.storageId;
+    if (id == null) return;
+    final guess = VoiceLanguageHints.guess(
+      roomId: widget.roomId,
+      senderId: widget.senderId,
+    );
+    unawaited(VoiceTranscriber.instance.toggle(
+      id,
+      languages: [?guess, Localizations.localeOf(context).toLanguageTag()],
+      // The same local copy playback uses, so a note already listened to is
+      // transcribed without another download.
+      () => AudioFileCache.instance.resolve(
+        id,
+        () => FileUrlCache.instance.resolve(id, () => widget.api.getFileUrl(id)),
+      ),
+    ));
   }
 }
 

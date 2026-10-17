@@ -30,6 +30,7 @@ enum UsageKind {
         StorageKind.stickers => stickers,
         StorageKind.chatHistory ||
         StorageKind.companions ||
+        StorageKind.speechModel ||
         StorageKind.other =>
           other,
       };

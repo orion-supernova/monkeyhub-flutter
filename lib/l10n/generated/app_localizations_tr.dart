@@ -13948,4 +13948,91 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => 'Şimdi değil';
+
+  @override
+  String get voiceTranscriptShow => 'Metni göster';
+
+  @override
+  String get voiceTranscriptHide => 'Metni gizle';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return 'Metinler telefonunda oluşturulur. Konuşma modeli tek seferlik $size indirmedir.';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return '$size indir';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return 'Konuşma modeli indiriliyor · $received / $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote =>
+      'Yalnızca bir kez. Sonrasında metinler internetsiz çalışır.';
+
+  @override
+  String get voiceTranscriptCancel => 'Vazgeç';
+
+  @override
+  String get voiceTranscriptWorking => 'Metne dönüştürülüyor…';
+
+  @override
+  String get voiceTranscriptFailedNetwork => 'Konuşma modeli indirilemedi.';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return 'Yeterli boş alan yok. Konuşma modeli $size gerektiriyor.';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio => 'Bu sesli mesaj okunamadı.';
+
+  @override
+  String get voiceTranscriptFailed => 'Bu sesli mesaj metne dönüştürülemedi.';
+
+  @override
+  String get voiceTranscriptRetry => 'Tekrar dene';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'Bu sesli mesajda konuşma yok.';
+
+  @override
+  String get voiceTranscriptOnDevice => 'Bu cihazda metne dönüştürüldü';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · bu cihazda';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'Kopyala';
+
+  @override
+  String get voiceTranscriptCopied => 'Metin kopyalandı';
+
+  @override
+  String get storageKindSpeechModel => 'Sesli mesaj metinleri';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Apple konuşma tanıma';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · Apple konuşma tanıma';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'Daha iyi metinler';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return 'Dil ya da kelimeler mi yanlış? MonkeyHub\'ın konuşma modeli hangi dilin konuşulduğunu kendisi anlar ve 100\'e yakın dil bilir. Tek seferlik $size indirme, sonrası internetsiz.';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => 'Şimdi değil';
 }

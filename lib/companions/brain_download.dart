@@ -99,16 +99,68 @@ class DownloadException implements Exception {
   String toString() => 'DownloadException($failure${detail == null ? '' : ': $detail'})';
 }
 
-/// One brain's download, start to finish, across as many sessions as it takes.
+/// Everything a [BrainDownload] needs to know about one file: where it comes
+/// from, exactly what it must turn out to be, and where it lands.
+///
+/// A brain is one of these; so is the speech model behind voice transcripts
+/// (see `TranscriptModel`). The download machinery never cared which — it only
+/// ever read the URL, the measured length, the pinned digest and three paths —
+/// so this is that, named, rather than a second downloader.
+///
+/// The partial and its resume note are siblings of [file] (`.part`,
+/// `.resume`), the same layout [BrainStore] has always used.
+@immutable
+class DownloadTarget {
+  const DownloadTarget({
+    required this.url,
+    required this.sizeBytes,
+    required this.sha256,
+    required this.file,
+  });
+
+  /// A brain, at the path [BrainStore] gives it.
+  factory DownloadTarget.brain(BrainSpec spec) => DownloadTarget(
+        url: spec.url,
+        sizeBytes: spec.sizeBytes,
+        sha256: spec.sha256,
+        file: () => BrainStore.instance.brainFile(spec),
+      );
+
+  final String url;
+
+  /// Exact content-length — see [BrainSpec.sizeBytes] for why exact.
+  final int sizeBytes;
+
+  /// Lower-case hex SHA-256 of the finished file — see [BrainSpec.sha256].
+  final String sha256;
+
+  /// The installed file. Existing at the right length IS the install.
+  final Future<File> Function() file;
+
+  Future<File> partFile() async => File('${(await file()).path}.part');
+  Future<File> resumeFile() async => File('${(await file()).path}.resume');
+
+  Future<void> clearResume() async {
+    try {
+      final f = await resumeFile();
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
+  }
+}
+
+/// One file's download, start to finish, across as many sessions as it takes.
 ///
 /// Not a singleton and not long-lived: [BrainManager] makes one per attempt.
 /// Everything that must survive an attempt — the partial bytes, the ETag —
 /// lives on disk, which is what lets a download resume after the app was
 /// killed rather than merely after a pause.
 class BrainDownload {
-  BrainDownload(this.spec);
+  BrainDownload(BrainSpec spec) : target = DownloadTarget.brain(spec);
 
-  final BrainSpec spec;
+  /// Any pinned file, not just a brain.
+  BrainDownload.target(this.target);
+
+  final DownloadTarget target;
 
   /// How long to wait for the response headers. The BODY is deliberately not
   /// on a deadline — it is hundreds of megabytes and a slow connection is not
@@ -174,13 +226,13 @@ class BrainDownload {
   }
 
   Future<void> _run(StreamController<DownloadProgress> out) async {
-    final part = await BrainStore.instance.partFile(spec);
-    final target = await BrainStore.instance.brainFile(spec);
+    final part = await target.partFile();
+    final dest = await target.file();
     try {
       await part.parent.create(recursive: true);
 
       var received = await part.exists() ? await part.length() : 0;
-      var resume = await _Resume.load(spec);
+      var resume = await _Resume.load(target);
 
       // A partial with no note beside it cannot be validated on resume, so it
       // is not a partial — it is an unknown file of the right name. Discarded
@@ -192,15 +244,15 @@ class BrainDownload {
       }
       // Longer than the file is supposed to be: a previous run wrote past the
       // end, or the catalog changed under an old partial.
-      if (received > spec.sizeBytes) {
+      if (received > target.sizeBytes) {
         await _discard(part);
         received = 0;
         resume = null;
       }
       // Already complete but never promoted — the app died between the last
       // byte and the rename. Skip straight to verification.
-      if (received == spec.sizeBytes) {
-        await _finish(part, target, out);
+      if (received == target.sizeBytes) {
+        await _finish(part, dest, out);
         return;
       }
 
@@ -210,7 +262,7 @@ class BrainDownload {
         ..idleTimeout = const Duration(seconds: 30);
 
       final request = await client
-          .getUrl(Uri.parse(spec.url))
+          .getUrl(Uri.parse(target.url))
           .timeout(_headerTimeout);
       if (received > 0) {
         request.headers.set(HttpHeaders.rangeHeader, 'bytes=$received-');
@@ -253,9 +305,9 @@ class BrainDownload {
       // a partial that can still be validated on the next attempt.
       await _Resume(
         etag: response.headers.value(HttpHeaders.etagHeader),
-        totalBytes: spec.sizeBytes,
-        url: spec.url,
-      ).save(spec);
+        totalBytes: target.sizeBytes,
+        url: target.url,
+      ).save(target);
 
       final sink = _sink = part.openWrite(mode: FileMode.append);
       final done = _done = Completer<void>();
@@ -266,7 +318,7 @@ class BrainDownload {
           sink.add(chunk);
           written += chunk.length;
           if (!out.isClosed) {
-            out.add(DownloadProgress(received: written, total: spec.sizeBytes));
+            out.add(DownloadProgress(received: written, total: target.sizeBytes));
           }
         },
         onError: (Object e, StackTrace st) {
@@ -300,7 +352,7 @@ class BrainDownload {
       }
       if (_pauseRequested) throw const DownloadPaused();
 
-      await _finish(part, target, out);
+      await _finish(part, dest, out);
     } on DownloadCancelled {
       out.addError(const DownloadCancelled());
     } on DownloadPaused {
@@ -339,11 +391,11 @@ class BrainDownload {
     if (start != expectedStart) {
       return 'resumed at $start, expected $expectedStart';
     }
-    if (total != spec.sizeBytes) {
+    if (total != target.sizeBytes) {
       // The remote file is not the one this build was written against. Not a
       // transport problem, so retrying the same request cannot help — the
       // partial is discarded by the caller and the next attempt starts clean.
-      return 'remote length $total, catalog says ${spec.sizeBytes}';
+      return 'remote length $total, catalog says ${target.sizeBytes}';
     }
     return null;
   }
@@ -355,20 +407,20 @@ class BrainDownload {
   /// "installed". Nothing else in the subsystem has to know about partials.
   Future<void> _finish(
     File part,
-    File target,
+    File dest,
     StreamController<DownloadProgress> out,
   ) async {
     final length = await part.length();
-    if (length != spec.sizeBytes) {
+    if (length != target.sizeBytes) {
       await _discard(part);
       throw DownloadException(
         DownloadFailure.integrity,
-        'finished at $length, expected ${spec.sizeBytes}',
+        'finished at $length, expected ${target.sizeBytes}',
       );
     }
 
     final digest = await _sha256Of(part);
-    if (digest != spec.sha256) {
+    if (digest != target.sha256) {
       // The only check that catches a resume which was byte-SHIFTED rather
       // than truncated: right length, wrong contents. Costly (one full read)
       // and worth it — the alternative is handing corrupt weights to an
@@ -376,16 +428,16 @@ class BrainDownload {
       await _discard(part);
       throw DownloadException(
         DownloadFailure.integrity,
-        'digest $digest, expected ${spec.sha256}',
+        'digest $digest, expected ${target.sha256}',
       );
     }
 
-    if (await target.exists()) await target.delete();
-    await part.rename(target.path);
-    await BrainStore.instance.clearResume(spec);
+    if (await dest.exists()) await dest.delete();
+    await part.rename(dest.path);
+    await target.clearResume();
     if (!out.isClosed) {
       out.add(
-        DownloadProgress(received: spec.sizeBytes, total: spec.sizeBytes),
+        DownloadProgress(received: target.sizeBytes, total: target.sizeBytes),
       );
     }
   }
@@ -403,7 +455,7 @@ class BrainDownload {
     try {
       if (await part.exists()) await part.delete();
     } catch (_) {}
-    await BrainStore.instance.clearResume(spec);
+    await target.clearResume();
   }
 
   DownloadFailure _classify(Object error) {
@@ -454,9 +506,9 @@ class _Resume {
 
   final String url;
 
-  Future<void> save(BrainSpec spec) async {
+  Future<void> save(DownloadTarget target) async {
     try {
-      final f = await BrainStore.instance.resumeFile(spec);
+      final f = await target.resumeFile();
       await f.parent.create(recursive: true);
       await f.writeAsString(
         jsonEncode({'etag': etag, 'total': totalBytes, 'url': url}),
@@ -468,9 +520,9 @@ class _Resume {
     }
   }
 
-  static Future<_Resume?> load(BrainSpec spec) async {
+  static Future<_Resume?> load(DownloadTarget target) async {
     try {
-      final f = await BrainStore.instance.resumeFile(spec);
+      final f = await target.resumeFile();
       if (!await f.exists()) return null;
       final raw = jsonDecode(await f.readAsString());
       if (raw is! Map) return null;
@@ -481,7 +533,7 @@ class _Resume {
       // partial that can never be completed. Refusing it here is what turns
       // that into one wasted restart instead of a download that fails at the
       // digest every time.
-      if (total != spec.sizeBytes || url != spec.url) return null;
+      if (total != target.sizeBytes || url != target.url) return null;
       final etag = raw['etag'];
       return _Resume(
         etag: etag is String ? etag : null,

@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../companions/brain_manager.dart';
 import '../../data/settings_store.dart';
+import '../../transcripts/voice_transcriber.dart';
 import '../../widgets/expressions/expression_media.dart' show KlipyCacheManager;
 import '../audio_file_cache.dart';
 import '../document_file_cache.dart';
@@ -24,7 +25,7 @@ import 'storage_kinds.dart';
 enum _Store { image, video, audio, document, loose }
 
 /// The folders a scan measures.
-enum _Dir { image, video, audio, document, klipy, legacy, chats }
+enum _Dir { image, video, audio, document, klipy, legacy, chats, transcripts }
 
 /// One file, as the scan isolate reports it.
 typedef _FileStat = ({String name, String path, int size, int modified});
@@ -282,6 +283,7 @@ class StorageService extends ChangeNotifier {
       final tmp = (await getTemporaryDirectory()).path;
       final cache = (await getApplicationCacheDirectory()).path;
       final docs = (await getApplicationDocumentsDirectory()).path;
+      final support = (await getApplicationSupportDirectory()).path;
       final dirs = {
         _Dir.image: '$tmp/${MediaImageCache.storeKey}',
         _Dir.video: '$cache/${VideoFileCache.dirName}',
@@ -290,6 +292,7 @@ class StorageService extends ChangeNotifier {
         _Dir.klipy: '$tmp/klipyMedia',
         _Dir.legacy: '$tmp/${DefaultCacheManager.key}',
         _Dir.chats: '$docs/cache',
+        _Dir.transcripts: '$support/transcripts',
       };
       // Every list and stat on a background isolate: a cache of thousands of
       // files is thousands of syscalls, and the screen asking for them is
@@ -383,6 +386,12 @@ class StorageService extends ChangeNotifier {
         add(StorageKind.chatHistory, f.size);
       }
       add(StorageKind.companions, await _companionBytes());
+      // The speech model, any partial of it, and the transcripts it made: one
+      // row, each file listed so the category screen can show what is there.
+      for (final f in stats[_Dir.transcripts]!) {
+        items.add(loose(f, StorageKind.speechModel));
+        add(StorageKind.speechModel, f.size);
+      }
 
       final byRoom = <String, RoomUsage>{};
       for (final i in items) {
@@ -486,6 +495,11 @@ class StorageService extends ChangeNotifier {
       if (kinds.contains(StorageKind.other)) {
         freed += await _wipeUntrackedImages();
         freed += await _wipe(DefaultCacheManager(), DefaultCacheManager.key);
+      }
+      if (kinds.contains(StorageKind.speechModel)) {
+        // The files are gone already; this lets go of the loaded engine and
+        // the in-memory transcripts, so nothing writes them back.
+        await VoiceTranscriber.instance.forgetAll();
       }
     }
     await scan();

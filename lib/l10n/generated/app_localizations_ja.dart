@@ -13382,4 +13382,90 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => '今はしない';
+
+  @override
+  String get voiceTranscriptShow => '文字起こしを表示';
+
+  @override
+  String get voiceTranscriptHide => '文字起こしを隠す';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return '文字起こしはこの端末上で行われます。音声モデルのダウンロードは初回のみ（$size）です。';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return '$sizeをダウンロード';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return '音声モデルをダウンロード中 · $received / $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote => '初回のみです。以降はオフラインで文字起こしできます。';
+
+  @override
+  String get voiceTranscriptCancel => 'キャンセル';
+
+  @override
+  String get voiceTranscriptWorking => '文字起こし中…';
+
+  @override
+  String get voiceTranscriptFailedNetwork => '音声モデルをダウンロードできませんでした。';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return '空き容量が足りません。音声モデルには$size必要です。';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio => 'このボイスメッセージを読み込めませんでした。';
+
+  @override
+  String get voiceTranscriptFailed => 'このボイスメッセージを文字起こしできませんでした。';
+
+  @override
+  String get voiceTranscriptRetry => '再試行';
+
+  @override
+  String get voiceTranscriptNoSpeech => 'このボイスメッセージには音声がありません。';
+
+  @override
+  String get voiceTranscriptOnDevice => 'この端末で文字起こし';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · この端末で';
+  }
+
+  @override
+  String get voiceTranscriptCopy => 'コピー';
+
+  @override
+  String get voiceTranscriptCopied => '文字起こしをコピーしました';
+
+  @override
+  String get storageKindSpeechModel => 'ボイスの文字起こし';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Appleの音声認識';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · Appleの音声認識';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => 'より正確な文字起こし';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return '言語や言葉が違いますか？MonkeyHubの音声モデルは話されている言語を自動で聞き分け、100近くの言語に対応しています。ダウンロードは初回のみ（$size）、その後はオフラインで使えます。';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => '今はしない';
 }

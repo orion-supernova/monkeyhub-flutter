@@ -13256,4 +13256,90 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get captureNoticeNotNow => '暂不';
+
+  @override
+  String get voiceTranscriptShow => '显示转写文字';
+
+  @override
+  String get voiceTranscriptHide => '隐藏转写文字';
+
+  @override
+  String voiceTranscriptCellularPrompt(String size) {
+    return '转写在你的手机上完成。语音模型只需下载一次（$size）。';
+  }
+
+  @override
+  String voiceTranscriptDownloadAction(String size) {
+    return '下载 $size';
+  }
+
+  @override
+  String voiceTranscriptDownloading(String received, String total) {
+    return '正在下载语音模型 · $received / $total';
+  }
+
+  @override
+  String get voiceTranscriptOneTimeNote => '只需一次。之后转写可离线使用。';
+
+  @override
+  String get voiceTranscriptCancel => '取消';
+
+  @override
+  String get voiceTranscriptWorking => '正在转写…';
+
+  @override
+  String get voiceTranscriptFailedNetwork => '无法下载语音模型。';
+
+  @override
+  String voiceTranscriptFailedStorage(String size) {
+    return '可用空间不足。语音模型需要 $size。';
+  }
+
+  @override
+  String get voiceTranscriptFailedAudio => '无法读取这条语音消息。';
+
+  @override
+  String get voiceTranscriptFailed => '无法转写这条语音消息。';
+
+  @override
+  String get voiceTranscriptRetry => '重试';
+
+  @override
+  String get voiceTranscriptNoSpeech => '这条语音消息里没有说话内容。';
+
+  @override
+  String get voiceTranscriptOnDevice => '在此设备上转写';
+
+  @override
+  String voiceTranscriptLanguageOnDevice(String language) {
+    return '$language · 在此设备上';
+  }
+
+  @override
+  String get voiceTranscriptCopy => '复制';
+
+  @override
+  String get voiceTranscriptCopied => '已复制转写文字';
+
+  @override
+  String get storageKindSpeechModel => '语音转写';
+
+  @override
+  String get voiceTranscriptBuiltInCredit => 'Apple 语音识别';
+
+  @override
+  String voiceTranscriptBuiltInLanguageCredit(String language) {
+    return '$language · Apple 语音识别';
+  }
+
+  @override
+  String get voiceTranscriptUpgradeLink => '更好的转写';
+
+  @override
+  String voiceTranscriptUpgradeOffer(String size) {
+    return '语言或文字不对？MonkeyHub 语音模型能自己听出说的是哪种语言，支持近 100 种语言。只需下载一次（$size），之后可离线使用。';
+  }
+
+  @override
+  String get voiceTranscriptNotNow => '暂不';
 }
