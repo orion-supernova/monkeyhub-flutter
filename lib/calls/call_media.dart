@@ -570,6 +570,7 @@ class CallAudioRoute {
     required this.reason,
     this.echo = false,
     this.portName,
+    this.input,
     this.routes = const [],
   });
 
@@ -585,6 +586,7 @@ class CallAudioRoute {
       ),
       echo: m['echo'] == true,
       portName: m['portName']?.toString(),
+      input: m['input']?.toString(),
       routes: [
         for (final r in (m['routes'] as List?) ?? const [])
           if (r is Map) r,
@@ -610,6 +612,10 @@ class CallAudioRoute {
   /// The output's own name ("Murat's AirPods Pro", "Headphones"), when the
   /// native side sends one. Display only; the policy never reads it.
   final String? portName;
+
+  /// Where the voice is picked up: `builtIn`, `headset`, `bluetooth`,
+  /// `car`, `other` or `none`. Null from an older native build.
+  final String? input;
 
   /// Every route the user could pick right now, raw from the native side
   /// (`kind`, `uid`, `name`, `selected`), parsed by `CallAudioDevices`.

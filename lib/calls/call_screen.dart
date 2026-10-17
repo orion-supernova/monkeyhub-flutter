@@ -142,9 +142,8 @@ class _CallScreenState extends State<CallScreen>
     // that sixth control wrapped it onto a second row, so the whole tray
     // and the face above it jumped as the screen came up. Every call.
     final share = ScreenShare.knownSupported;
-    if (share != null) {
-      _shareSupported = share;
-    } else {
+    _shareSupported = ScreenShare.likelySupported;
+    if (share == null) {
       unawaited(ScreenShare.supported().then((ok) {
         if (!mounted) return;
         // Still sliding: the button lands once the screen stands still.
@@ -563,7 +562,17 @@ class _CallScreenState extends State<CallScreen>
     return [
       CallTrayAction(
         icon: s.localMuted ? CallGlyphs.micOff : CallGlyphs.mic,
-        active: s.localMuted,
+        // Lit while live; a headset badge while a headset's mic hears you.
+        glyph: CallTrayGlyph.mic(
+          on: !s.localMuted,
+          headset: isMobileCallPlatform &&
+              CallAudioDevices.instance.micOnHeadset,
+          route: callHeadsetGlyphRoute(
+            CallAudioDevices.instance.output,
+            CallAudioDevices.instance.outputName,
+          ),
+        ),
+        active: !s.localMuted,
         onTap: widget.service.toggleMute,
         label: s.localMuted
             ? l10n.callScreenControlUnmute
@@ -572,7 +581,8 @@ class _CallScreenState extends State<CallScreen>
       CallTrayAction(
         // The wish while it is carried out, else the camera's real state.
         icon: svc.cameraButtonOn ? CallGlyphs.camera : CallGlyphs.cameraOff,
-        active: !svc.cameraButtonOn,
+        glyph: CallTrayGlyph.camera(on: svc.cameraButtonOn),
+        active: svc.cameraButtonOn,
         onTap: () => unawaited(widget.service.toggleVideo()),
         label: svc.cameraButtonOn
             ? l10n.callScreenControlCamOff
@@ -594,6 +604,7 @@ class _CallScreenState extends State<CallScreen>
       if (_shareSupported)
         CallTrayAction(
           icon: ownScreen ? CallGlyphs.stopShare : CallGlyphs.share,
+          glyph: CallTrayGlyph.share(on: ownScreen),
           active: ownScreen,
           // Disabled while the peer holds the stage, and while our own
           // share is being set up (the picker, the countdown) — a second
@@ -616,11 +627,13 @@ class _CallScreenState extends State<CallScreen>
       if (svc.localCamActive && isMobileCallPlatform)
         CallTrayAction(
           icon: CallGlyphs.flip,
+          glyph: const CallTrayGlyph(CallGlyphKind.flip),
           onTap: widget.service.switchCamera,
           label: l10n.callScreenControlFlip,
         ),
       CallTrayAction(
         icon: CallGlyphs.more,
+        glyph: const CallTrayGlyph(CallGlyphKind.more),
         onTap: () => showAdaptiveSheet(
           context,
           builder: (_) => CallOptionsSheet(
@@ -632,6 +645,7 @@ class _CallScreenState extends State<CallScreen>
       ),
       CallTrayAction(
         icon: CallGlyphs.hide,
+        glyph: const CallTrayGlyph(CallGlyphKind.hide),
         onTap: _hide,
         label: l10n.callScreenControlMinimize,
       ),
@@ -652,6 +666,9 @@ class _CallScreenState extends State<CallScreen>
       );
     }
     final svc = widget.service;
+    // The self-view mirrors the front camera only (see
+    // [CallService.localCamFacingBack]).
+    final selfMirror = !svc.localCamFacingBack;
     final remoteVisible = _remoteVisible(s);
     final remoteScreenVisible = _remoteScreenVisible(s);
     final ownScreen = svc.localScreenSharing;
@@ -737,14 +754,14 @@ class _CallScreenState extends State<CallScreen>
                   RTCVideoView(
                     key: const ValueKey('feed'),
                     _pipIsLocal ? _localRenderer : _remoteRenderer,
-                    mirror: _pipIsLocal,
+                    mirror: _pipIsLocal && selfMirror,
                     objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                   )
                 else if (localFullscreen) ...[
                   RTCVideoView(
                     key: const ValueKey('feed'),
                     _localRenderer,
-                    mirror: true,
+                    mirror: selfMirror,
                     objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                   ),
                   // Soft darkening so the overlaid name/status/controls read
@@ -845,7 +862,7 @@ class _CallScreenState extends State<CallScreen>
                               _pipIsLocal && !stage
                                   ? _remoteRenderer
                                   : _localRenderer,
-                              mirror: !_pipIsLocal || stage,
+                              mirror: (!_pipIsLocal || stage) && selfMirror,
                               objectFit: RTCVideoViewObjectFit
                                   .RTCVideoViewObjectFitCover,
                             ),
@@ -877,7 +894,7 @@ class _CallScreenState extends State<CallScreen>
                             color: Colors.black,
                             child: RTCVideoView(
                               _pipIsLocal ? _remoteRenderer : _localRenderer,
-                              mirror: !_pipIsLocal,
+                              mirror: !_pipIsLocal && selfMirror,
                               objectFit:
                                   RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                             ),

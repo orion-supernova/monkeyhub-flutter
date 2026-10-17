@@ -51,15 +51,16 @@ void main() {
   });
 
   group('callAudioButtonLook', () {
-    test('each real route has its own glyph; only the speaker is lit', () {
+    test('each real route has its own glyph; only the earpiece is unlit',
+        () {
       final cases = {
         CallAudioOutputKind.speaker: (CallGlyphs.speakerOn, true),
         CallAudioOutputKind.earpiece: (CallGlyphs.speakerOff, false),
-        CallAudioOutputKind.bluetooth: (CallGlyphs.routeBluetooth, false),
-        CallAudioOutputKind.headphones: (CallGlyphs.routeWired, false),
-        CallAudioOutputKind.car: (CallGlyphs.routeCar, false),
-        CallAudioOutputKind.airplay: (CallGlyphs.routeAirPlay, false),
-        CallAudioOutputKind.other: (CallGlyphs.routeOther, false),
+        CallAudioOutputKind.bluetooth: (CallGlyphs.routeBluetooth, true),
+        CallAudioOutputKind.headphones: (CallGlyphs.routeWired, true),
+        CallAudioOutputKind.car: (CallGlyphs.routeCar, true),
+        CallAudioOutputKind.airplay: (CallGlyphs.routeAirPlay, true),
+        CallAudioOutputKind.other: (CallGlyphs.routeOther, true),
       };
       cases.forEach((kind, want) {
         // The real route wins over the flag, whichever way the flag reads.
@@ -69,6 +70,35 @@ void main() {
           expect(look.active, want.$2, reason: '$kind flag=$flag');
         }
       });
+    });
+
+    test('AirPods draw as AirPods; any other headset as headphones', () {
+      expect(
+        callAudioButtonLook(
+          output: CallAudioOutputKind.bluetooth,
+          speakerOn: false,
+          name: "Murat's AirPods Pro",
+        ).glyph,
+        const CallTrayGlyph.audio(CallAudioGlyphRoute.airpods),
+      );
+      expect(
+        callAudioButtonLook(
+          output: CallAudioOutputKind.bluetooth,
+          speakerOn: false,
+          name: 'Galaxy Buds2',
+        ).glyph,
+        const CallTrayGlyph.audio(CallAudioGlyphRoute.headphones),
+      );
+    });
+
+    test('a headset mic is where the voice comes from on iOS, else the '
+        'output stands for it', () {
+      expect(callMicOnHeadset('bluetooth'), isTrue);
+      expect(callMicOnHeadset('headset'), isTrue);
+      expect(callMicOnHeadset('builtIn'), isFalse);
+      expect(callMicFollowsOutput(CallAudioOutputKind.bluetooth), isTrue);
+      expect(callMicFollowsOutput(CallAudioOutputKind.airplay), isFalse);
+      expect(callMicFollowsOutput(CallAudioOutputKind.speaker), isFalse);
     });
 
     test('Bluetooth and wired headsets read apart', () {

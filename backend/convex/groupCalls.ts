@@ -87,12 +87,37 @@ async function purgeGroupSignals(ctx: any, groupCallId: any) {
   for (const r of rows) await ctx.db.delete(r._id);
 }
 
+/// Mirrors the joined participants onto the call row (`joinedUserIds`),
+/// patching only when the set changed. Run after anything that changes who
+/// is joined; [joined] saves the read when the caller just made it.
+async function syncJoined(ctx: any, groupCallId: any, joined?: any[]) {
+  const rows = joined ?? (await joinedParticipants(ctx, groupCallId));
+  const call = await ctx.db.get(groupCallId);
+  if (!call) return;
+  const ids = rows.map((r: any) => r.userId);
+  const prev = (call.joinedUserIds ?? []).map((id: any) => id.toString());
+  if (
+    prev.length === ids.length &&
+    ids.every((id: any, i: number) => id.toString() === prev[i])
+  ) {
+    return;
+  }
+  await ctx.db.patch(groupCallId, { joinedUserIds: ids });
+}
+
 async function endCallIfEmpty(ctx: any, groupCallId: any) {
   const joined = await joinedParticipants(ctx, groupCallId);
-  if (joined.length > 0) return false;
+  if (joined.length > 0) {
+    await syncJoined(ctx, groupCallId, joined);
+    return false;
+  }
   const call = await ctx.db.get(groupCallId);
   if (!call || call.status !== "active") return true;
-  await ctx.db.patch(groupCallId, { status: "ended", endedAt: Date.now() });
+  await ctx.db.patch(groupCallId, {
+    status: "ended",
+    endedAt: Date.now(),
+    joinedUserIds: [],
+  });
   await purgeGroupSignals(ctx, groupCallId);
   // Anyone whose phone is still ringing for a call that no longer exists.
   // Their realtime subscription drops the invite on its own, but a KILLED
@@ -282,6 +307,7 @@ export const start = mutation({
       type,
       status: "active",
       startedAt: now,
+      joinedUserIds: [userId],
     });
     await ctx.db.insert("groupCallParticipants", {
       groupCallId,
@@ -460,6 +486,7 @@ export const join = mutation({
         lastSeenAt: now,
       });
     }
+    await syncJoined(ctx, groupCallId);
     // Answered here, so stop the other phones in this person's pocket. Their
     // own subscriptions would drop the invite anyway; a killed one's card
     // would not, and would go on ringing for a call its owner is already in.
@@ -644,6 +671,40 @@ export const activeForRoom = query({
       startedBy: call.startedBy,
       participants,
     };
+  },
+});
+
+// The live group calls in the rooms [userId] is in: the chat list's "a call
+// is going on here" rows, every room in one subscription. Reads the active
+// call rows (who is in each is kept on the row, see `syncJoined`) and the
+// viewer's own membership row per call, nothing a heartbeat touches.
+export const liveInMyRooms = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const active = await ctx.db
+      .query("groupCalls")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .take(100);
+    const out = [];
+    for (const call of active) {
+      const joined = call.joinedUserIds ?? [];
+      if (joined.length === 0) continue;
+      const member = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q) =>
+          q.eq("roomId", call.roomId).eq("userId", userId),
+        )
+        .first();
+      if (!member) continue;
+      out.push({
+        roomId: call.roomId,
+        groupCallId: call._id,
+        type: call.type,
+        startedAt: call.startedAt,
+        joinedUserIds: joined,
+      });
+    }
+    return out;
   },
 });
 

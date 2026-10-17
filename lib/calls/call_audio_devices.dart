@@ -7,7 +7,8 @@ import 'package:flutter/widgets.dart' show IconData;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import 'call_media.dart';
-import 'widgets/call_chrome.dart' show CallGlyphs;
+import 'widgets/call_chrome.dart'
+    show CallAudioGlyphRoute, CallGlyphs, CallTrayGlyph;
 
 /// Where a call's sound goes, and the picker that moves it.
 ///
@@ -126,29 +127,56 @@ bool callAudioNeedsPicker(Iterable<CallAudioRouteOption> routes) =>
 /// while unknown: an older native build, Android before its first report),
 /// falling back to the call's [speakerOn] flag.
 ///
-/// Lit only on the loudspeaker, as it always was, so the lit state still
-/// means one thing. A headset shows its own glyph, unlit.
-({IconData icon, bool active}) callAudioButtonLook({
+/// Lit whenever the sound is somewhere you chose over the earpiece: the
+/// loudspeaker, or a headset (which also shows its own glyph). Only the
+/// phone at your ear reads unlit, so the lit state means "the sound is
+/// out", the way the lit mic means it is live. [glyph] is the drawn one
+/// (speaker waves, headphones); the car, AirPlay and anything else keep
+/// their icon.
+({IconData icon, bool active, CallTrayGlyph? glyph}) callAudioButtonLook({
   required CallAudioOutputKind? output,
   required bool speakerOn,
+  String? name,
 }) {
+  const speaker = CallTrayGlyph.audio(CallAudioGlyphRoute.speaker);
+  const earpiece = CallTrayGlyph.audio(CallAudioGlyphRoute.receiver);
   return switch (output) {
-    CallAudioOutputKind.speaker => (icon: CallGlyphs.speakerOn, active: true),
+    CallAudioOutputKind.speaker =>
+      (icon: CallGlyphs.speakerOn, active: true, glyph: speaker),
     CallAudioOutputKind.earpiece =>
-      (icon: CallGlyphs.speakerOff, active: false),
-    CallAudioOutputKind.bluetooth =>
-      (icon: CallGlyphs.routeBluetooth, active: false),
-    CallAudioOutputKind.headphones =>
-      (icon: CallGlyphs.routeWired, active: false),
-    CallAudioOutputKind.car => (icon: CallGlyphs.routeCar, active: false),
+      (icon: CallGlyphs.speakerOff, active: false, glyph: earpiece),
+    CallAudioOutputKind.bluetooth => (
+        icon: CallGlyphs.routeBluetooth,
+        active: true,
+        glyph: CallTrayGlyph.audio(callHeadsetGlyphRoute(output, name)),
+      ),
+    CallAudioOutputKind.headphones => (
+        icon: CallGlyphs.routeWired,
+        active: true,
+        glyph: const CallTrayGlyph.audio(CallAudioGlyphRoute.headphones),
+      ),
+    CallAudioOutputKind.car =>
+      (icon: CallGlyphs.routeCar, active: true, glyph: null),
     CallAudioOutputKind.airplay =>
-      (icon: CallGlyphs.routeAirPlay, active: false),
-    CallAudioOutputKind.other => (icon: CallGlyphs.routeOther, active: false),
+      (icon: CallGlyphs.routeAirPlay, active: true, glyph: null),
+    CallAudioOutputKind.other =>
+      (icon: CallGlyphs.routeOther, active: true, glyph: null),
     null => speakerOn
-        ? (icon: CallGlyphs.speakerOn, active: true)
-        : (icon: CallGlyphs.speakerOff, active: false),
+        ? (icon: CallGlyphs.speakerOn, active: true, glyph: speaker)
+        : (icon: CallGlyphs.speakerOff, active: false, glyph: earpiece),
   };
 }
+
+/// Which headset a drawn glyph shows: AirPods for a Bluetooth set whose
+/// name says so ("Murat's AirPods Pro"), headphones for any other.
+CallAudioGlyphRoute callHeadsetGlyphRoute(
+  CallAudioOutputKind? output,
+  String? name,
+) =>
+    output == CallAudioOutputKind.bluetooth &&
+            (name ?? '').toLowerCase().contains('airpods')
+        ? CallAudioGlyphRoute.airpods
+        : CallAudioGlyphRoute.headphones;
 
 /// The glyph for a row of the route sheet: the earpiece row is the phone
 /// itself there, not the quiet speaker the button shows for it.
@@ -160,6 +188,21 @@ IconData callAudioRouteGlyph(CallAudioOutputKind kind) => switch (kind) {
       CallAudioOutputKind.car => CallGlyphs.routeCar,
       CallAudioOutputKind.airplay => CallGlyphs.routeAirPlay,
       CallAudioOutputKind.other => CallGlyphs.routeOther,
+    };
+
+/// iOS's live input name ([CallAudioRoute.input]) is a headset's mic.
+bool callMicOnHeadset(String? input) => switch (input) {
+      'headset' || 'bluetooth' || 'car' => true,
+      _ => false,
+    };
+
+/// Without an input report: the outputs whose own mic a call uses.
+bool callMicFollowsOutput(CallAudioOutputKind? output) => switch (output) {
+      CallAudioOutputKind.bluetooth ||
+      CallAudioOutputKind.headphones ||
+      CallAudioOutputKind.car =>
+        true,
+      _ => false,
     };
 
 /// Android: the route list from AudioSwitch's devices (flutter_webrtc's
@@ -295,6 +338,14 @@ class CallAudioDevices extends ChangeNotifier {
   String? get outputName => _outputName;
   String? _outputName;
 
+  /// The call's voice is picked up by a headset's mic (AirPods, a wired
+  /// set, the car), not the phone's: the mic button wears a headset badge.
+  /// iOS says which input is live; Android's AudioSwitch moves the mic with
+  /// a Bluetooth or wired output, so the output stands for it there.
+  bool get micOnHeadset =>
+      _input != null ? callMicOnHeadset(_input) : callMicFollowsOutput(_output);
+  String? _input;
+
   /// What the route sheet lists. Empty: no sheet, the button toggles.
   List<CallAudioRouteOption> get routes => _routes;
   List<CallAudioRouteOption> _routes = const [];
@@ -365,6 +416,7 @@ class CallAudioDevices extends ChangeNotifier {
     // The phone route is the call's; the next call reports its own.
     _output = null;
     _outputName = null;
+    _input = null;
     _routes = const [];
     _sinks.clear();
     _bump();
@@ -417,6 +469,7 @@ class CallAudioDevices extends ChangeNotifier {
     _applyIosSnapshot(
       output: snap['output']?.toString(),
       portName: snap['portName']?.toString(),
+      input: snap['input']?.toString(),
       routes: [
         for (final r in (snap['routes'] as List?) ?? const [])
           if (r is Map) r,
@@ -427,12 +480,14 @@ class CallAudioDevices extends ChangeNotifier {
   void _onIosRoute(CallAudioRoute route) => _applyIosSnapshot(
         output: route.output,
         portName: route.portName,
+        input: route.input,
         routes: route.routes,
       );
 
   void _applyIosSnapshot({
     required String? output,
     required String? portName,
+    required String? input,
     required List<Map<Object?, Object?>> routes,
   }) {
     final kind = callAudioOutputKindFrom(output);
@@ -441,11 +496,13 @@ class CallAudioDevices extends ChangeNotifier {
     ];
     if (kind == _output &&
         portName == _outputName &&
+        input == _input &&
         listEquals(parsed, _routes)) {
       return;
     }
     _output = kind;
     _outputName = portName;
+    _input = input;
     _routes = parsed;
     _bump();
   }
@@ -514,6 +571,8 @@ class CallAudioDevices extends ChangeNotifier {
     ];
     _output = route.kind;
     _outputName = route.isHeadset ? route.name : null;
+    // The mic follows the pick until the platform says otherwise.
+    _input = null;
     _bump();
     if (_ios) {
       await setSpeaker(toSpeaker);

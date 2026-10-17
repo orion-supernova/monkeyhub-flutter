@@ -610,3 +610,49 @@ describe("signals are addressed to a device", () => {
       expect(legacy.map((s) => s.kind)).toEqual(["state", "ice-batch"]);
     });
 });
+
+describe("the chat list sees live calls in my rooms", () => {
+  test("who is in the call follows joins and leaves, and an ended call drops out", async () => {
+    const t = convexTest(schema);
+    const { starter, alice, roomId } = await roomOfThree(t);
+    const outsider = await signUp(t, "outsider");
+    const live = (who: { token: string; userId: string }) =>
+      t.query(api.groupCalls.liveInMyRooms, {
+        sessionToken: who.token,
+        userId: who.userId as any,
+      }) as Promise<any[]>;
+
+    expect(await live(alice)).toEqual([]);
+    const groupCallId = await startCall(t, starter, roomId);
+    let rows = await live(alice);
+    expect(rows.length).toBe(1);
+    expect(rows[0]).toMatchObject({ roomId, groupCallId, type: "audio" });
+    expect(rows[0].joinedUserIds).toEqual([starter.userId]);
+    // Not a member: never sees the room's call.
+    expect(await live(outsider)).toEqual([]);
+
+    await t.mutation(api.groupCalls.join, {
+      sessionToken: alice.token,
+      userId: alice.userId as any,
+      groupCallId,
+      deviceId: "device-alice",
+    });
+    rows = await live(alice);
+    expect(rows[0].joinedUserIds).toEqual([starter.userId, alice.userId]);
+
+    await t.mutation(api.groupCalls.leave, {
+      sessionToken: starter.token,
+      userId: starter.userId as any,
+      groupCallId,
+    });
+    rows = await live(alice);
+    expect(rows[0].joinedUserIds).toEqual([alice.userId]);
+
+    await t.mutation(api.groupCalls.leave, {
+      sessionToken: alice.token,
+      userId: alice.userId as any,
+      groupCallId,
+    });
+    expect(await live(alice)).toEqual([]);
+  });
+});

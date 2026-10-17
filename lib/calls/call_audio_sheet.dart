@@ -45,7 +45,11 @@ CallTrayAction callAudioTrayAction(
     );
   }
   final output = devices.output;
-  final look = callAudioButtonLook(output: output, speakerOn: speakerOn);
+  final look = callAudioButtonLook(
+    output: output,
+    speakerOn: speakerOn,
+    name: devices.outputName,
+  );
   final picker = devices.needsPicker;
   final headset = isHeadsetOutput(output);
   final routeLabel = headset
@@ -54,6 +58,7 @@ CallTrayAction callAudioTrayAction(
   return CallTrayAction(
     key: key,
     icon: look.icon,
+    glyph: look.glyph,
     active: look.active,
     // On a headset the button names it; with a choice to make and the
     // sound on the phone it is "Audio", since a tap no longer just toggles.

@@ -31,6 +31,7 @@ import 'group_call_service.dart';
 import 'screen_share.dart';
 import 'share_picker_sheet.dart';
 import 'widgets/call_chrome.dart';
+import 'widgets/call_tile_layout.dart';
 import '../widgets/desktop_scroll.dart';
 
 /// Full-screen UI for an active mesh group call.
@@ -83,7 +84,16 @@ class _GroupCallScreenState extends State<GroupCallScreen>
   bool _controlsVisible = true;
   int? _lastBuiltKey;
   bool _shareSupported = false;
-  ChatUser? _me;
+  /// Your own profile, for your face. Kept across call screens: fetched
+  /// fresh on every open, the first frames showed a monogram that turned
+  /// into your photo a moment later.
+  late ChatUser? _me = _meCache[svc.userId];
+  static final Map<String?, ChatUser> _meCache = {};
+
+  /// The room's name, kept once known: leaving clears the service's a
+  /// frame before this screen goes, and the header flashed the generic
+  /// "Group voice call" on the way out.
+  String? _roomName;
 
   final AudioLevelMonitor _levels = AudioLevelMonitor();
 
@@ -138,9 +148,8 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     // Known on the first frame wherever it can be, as on the 1:1 screen: a
     // share button that arrived mid-slide regrew the tray under it.
     final share = ScreenShare.knownSupported;
-    if (share != null) {
-      _shareSupported = share;
-    } else {
+    _shareSupported = ScreenShare.likelySupported;
+    if (share == null) {
       unawaited(ScreenShare.supported().then((ok) {
         if (!mounted) return;
         // Still sliding: the button lands once the screen stands still.
@@ -258,7 +267,9 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     if (api == null || id == null) return;
     try {
       final me = await api.getProfile(id);
-      if (mounted && me != null) setState(() => _me = me);
+      if (me == null) return;
+      _meCache[id] = me;
+      if (mounted) setState(() => _me = me);
     } catch (_) {}
   }
 
@@ -556,6 +567,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     final layout = _layoutFor();
     final peers = svc.peers.values.toList(growable: false);
     final anyReconnecting = peers.any((p) => p.reconnecting);
+    _roomName = svc.roomName ?? _roomName;
     // In the voice layout the chrome is the screen; only over video does a
     // tap put it away.
     final chromeVisible = layout == _Layout.voice || _controlsVisible;
@@ -653,7 +665,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    svc.roomName ??
+                                    _roomName ??
                                         (svc.hasAnyVideo
                                             ? l10n.groupCallScreenTitleVideo
                                             : l10n.groupCallScreenTitleVoice),
@@ -773,7 +785,17 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     return [
       CallTrayAction(
         icon: svc.localMuted ? CallGlyphs.micOff : CallGlyphs.mic,
-        active: svc.localMuted,
+        // Lit while live; a headset badge while a headset's mic hears you.
+        glyph: CallTrayGlyph.mic(
+          on: !svc.localMuted,
+          headset: isMobileCallPlatform &&
+              CallAudioDevices.instance.micOnHeadset,
+          route: callHeadsetGlyphRoute(
+            CallAudioDevices.instance.output,
+            CallAudioDevices.instance.outputName,
+          ),
+        ),
+        active: !svc.localMuted,
         onTap: svc.toggleMute,
         label: svc.localMuted
             ? l10n.groupCallScreenUnmuteLabel
@@ -782,7 +804,8 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       CallTrayAction(
         // The wish while it is carried out, else the camera's real state.
         icon: svc.cameraButtonOn ? CallGlyphs.camera : CallGlyphs.cameraOff,
-        active: !svc.cameraButtonOn,
+        glyph: CallTrayGlyph.camera(on: svc.cameraButtonOn),
+        active: svc.cameraButtonOn,
         onTap: () => unawaited(svc.toggleVideo()),
         label: svc.cameraButtonOn
             ? l10n.groupCallScreenCamOffLabel
@@ -806,6 +829,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       if (_shareSupported)
         CallTrayAction(
           icon: sharing ? CallGlyphs.stopShare : CallGlyphs.share,
+          glyph: CallTrayGlyph.share(on: sharing),
           active: sharing,
           // Disabled while someone else holds the stage, and while our own
           // share is being set up (the picker, the countdown) — a second
@@ -828,6 +852,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       if (svc.localCamActive && isMobileCallPlatform)
         CallTrayAction(
           icon: CallGlyphs.flip,
+          glyph: const CallTrayGlyph(CallGlyphKind.flip),
           onTap: () => unawaited(svc.switchCamera()),
           label: l10n.groupCallScreenFlipLabel,
         ),
@@ -835,6 +860,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       // stats readout and, with a camera on, the quality tier.
       CallTrayAction(
         icon: CallGlyphs.more,
+        glyph: const CallTrayGlyph(CallGlyphKind.more),
         onTap: () => showAdaptiveSheet(
           context,
           builder: (_) => CallOptionsSheet(
@@ -846,6 +872,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       ),
       CallTrayAction(
         icon: CallGlyphs.hide,
+        glyph: const CallTrayGlyph(CallGlyphKind.hide),
         onTap: _hide,
         label: l10n.groupCallScreenMinimizeLabel,
       ),
@@ -1101,7 +1128,20 @@ class _VoiceStage extends StatelessWidget {
 // Grid
 // ---------------------------------------------------------------------------
 
-class _VideoGrid extends StatelessWidget {
+/// Somebody's camera is on. Laid out by how many are here, not as a
+/// one-size grid of cards:
+///
+///  * **Two of you**: a 1:1 call. The other person fills the screen and
+///    your own camera floats in a corner you can drag it to; a tap on it
+///    swaps the two.
+///  * **Three**: the other two share the screen, stacked (side by side on a
+///    wide window), your camera floating over them.
+///  * **Four and more**: everyone in [CallTileLayout]'s balanced tiles, you
+///    last, every tile filled.
+///
+/// With your camera off you are not a tile in the first two: a corner
+/// showing your own initials says nothing the tray does not.
+class _VideoGrid extends StatefulWidget {
   const _VideoGrid({
     super.key,
     required this.service,
@@ -1124,92 +1164,188 @@ class _VideoGrid extends StatelessWidget {
   final RTCVideoRenderer? localRenderer;
   final AppTheme theme;
 
-  /// What the tray covers at the bottom; the grid scrolls clear of it.
+  /// What the tray covers at the bottom; the tiles stay clear of it.
   final double bottomInset;
 
   /// Live link stats in each tile's corner — see `_GroupCallScreenState._stats`.
   final Widget? Function(String userId) statsFor;
   final Widget? localStats;
 
+  /// Up to this many on the call, you float instead of taking a tile.
+  static const floatSelfUpTo = 3;
+
   @override
-  Widget build(BuildContext context) {
+  State<_VideoGrid> createState() => _VideoGridState();
+}
+
+class _VideoGridState extends State<_VideoGrid> {
+  /// Two of you: your camera full-screen and the other person in the
+  /// corner, after a tap on the corner.
+  bool _swapped = false;
+
+  GroupCallService get service => widget.service;
+
+  Widget _selfTile({bool bleed = false, double footer = 0, bool tag = true}) {
     final l10n = AppLocalizations.of(context);
-    final peers = service.peers.values.toList(growable: false);
-    final tileCount = peers.length + 1;
-    final baselineColumns = tileCount <= 1
-        ? 1
-        : tileCount <= 4
-            ? 2
-            : 3;
-    final columns = (MediaQuery.sizeOf(context).width / 220).floor().clamp(
-          baselineColumns,
-          tileCount,
-        );
-    final showLocal =
-        service.localCamActive && localRenderer != null;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(10, 76, 10, bottomInset + 16),
-        child: GridView.count(
-          crossAxisCount: columns,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 3 / 4,
-          children: [
-            _Tile(
-              label: l10n.groupCallScreenYouLabel,
-              muted: service.localMuted,
-              level: levels.levelOf(AudioLevelMonitor.me),
-              accent: theme.accent,
-              user: me,
-              api: api,
-              stats: localStats,
-              video: showLocal
-                  ? RTCVideoView(
-                      localRenderer!,
-                      mirror: true,
-                      objectFit:
-                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    )
-                  : null,
-            ),
-            for (final peer in peers)
-              _Tile(
-                label: peer.name,
-                muted: peer.mediaState.audioMuted,
-                dimmed: !peer.connected || peer.reconnecting,
-                level: levels.levelOf(peer.userId),
-                accent: theme.accent,
-                user: ChatUser(
-                  id: peer.userId,
-                  username: '',
-                  name: peer.name,
-                  avatarStorageId: peer.avatarStorageId,
-                ),
-                api: api,
-                stats: statsFor(peer.userId),
-                video: (!peer.mediaState.videoOff &&
-                        peer.remoteStream != null &&
-                        peer.remoteStream!.getVideoTracks().isNotEmpty &&
-                        renderers[peer.userId] != null)
-                    ? RTCVideoView(
-                        renderers[peer.userId]!,
-                        objectFit:
-                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      )
-                    : null,
-              ),
-          ],
-        ),
-      ),
+    final showLocal = service.localCamActive && widget.localRenderer != null;
+    return _Tile(
+      key: const ValueKey('tile-me'),
+      label: l10n.groupCallScreenYouLabel,
+      muted: service.localMuted,
+      level: widget.levels.levelOf(AudioLevelMonitor.me),
+      accent: widget.theme.accent,
+      user: widget.me,
+      api: widget.api,
+      stats: widget.localStats,
+      bleed: bleed,
+      footer: footer,
+      tag: tag,
+      video: showLocal
+          ? RTCVideoView(
+              widget.localRenderer!,
+              mirror: !service.localCamFacingBack,
+              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+            )
+          : null,
     );
   }
+
+  Widget _peerTile(
+    GroupPeer peer, {
+    bool bleed = false,
+    double footer = 0,
+    bool tag = true,
+  }) {
+    final renderer = widget.renderers[peer.userId];
+    return _Tile(
+      key: ValueKey('tile-${peer.userId}'),
+      label: peer.name,
+      muted: peer.mediaState.audioMuted,
+      dimmed: !peer.connected || peer.reconnecting,
+      level: widget.levels.levelOf(peer.userId),
+      accent: widget.theme.accent,
+      user: ChatUser(
+        id: peer.userId,
+        username: '',
+        name: peer.name,
+        avatarStorageId: peer.avatarStorageId,
+      ),
+      api: widget.api,
+      stats: widget.statsFor(peer.userId),
+      bleed: bleed,
+      footer: footer,
+      tag: tag,
+      video: (!peer.mediaState.videoOff &&
+              peer.remoteStream != null &&
+              peer.remoteStream!.getVideoTracks().isNotEmpty &&
+              renderer != null)
+          ? RTCVideoView(
+              renderer,
+              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+            )
+          : null,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final peers = service.peers.values.toList(growable: false);
+    final pad = MediaQuery.paddingOf(context);
+    final camOn = service.localCamActive && widget.localRenderer != null;
+    final total = peers.length + 1;
+    final float = peers.isNotEmpty && total <= _VideoGrid.floatSelfUpTo;
+    if (!float || !camOn) _swapped = false;
+
+    // The corner tile, for the layouts where you float.
+    Widget pip(Widget child) => Positioned.fill(
+          key: const ValueKey('pip'),
+          child: DraggablePip(
+            // Under the header (title, count chip), above the tray.
+            top: pad.top + 76,
+            bottom: widget.bottomInset + pad.bottom,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: peers.length == 1
+                  ? () => setState(() => _swapped = !_swapped)
+                  : null,
+              child: child,
+            ),
+          ),
+        );
+
+    if (float && peers.length == 1) {
+      // A 1:1 call in a group room: one picture, full bleed, like the 1:1
+      // screen. Its name tag sits above the tray.
+      final footer = widget.bottomInset + pad.bottom;
+      final big = _swapped
+          ? _selfTile(bleed: true, footer: footer)
+          : _peerTile(peers.first, bleed: true, footer: footer);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(key: const ValueKey('big'), child: big),
+          // The header reads over any picture.
+          const _TopScrim(key: ValueKey('scrim')),
+          if (camOn)
+            pip(_swapped
+                ? _peerTile(peers.first, bleed: true, tag: false)
+                : _selfTile(bleed: true, tag: false)),
+        ],
+      );
+    }
+
+    final tiles = [
+      for (final p in peers) _peerTile(p),
+      if (!float || !camOn) _selfTile(),
+    ];
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        SafeArea(
+          key: const ValueKey('tiles'),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(8, 76, 8, widget.bottomInset + 12),
+            child: CallTileLayout(children: tiles),
+          ),
+        ),
+        if (float && camOn) pip(_selfTile(bleed: true, tag: false)),
+      ],
+    );
+  }
+}
+
+/// The dark fade under the header over a full-bleed picture.
+class _TopScrim extends StatelessWidget {
+  const _TopScrim({super.key});
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 200,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.55),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 /// One grid tile: the video, or the person when there is none; the name
 /// and mic state in the corner; a border that lights when they talk.
 class _Tile extends StatelessWidget {
   const _Tile({
+    super.key,
     required this.label,
     required this.level,
     required this.accent,
@@ -1219,6 +1355,9 @@ class _Tile extends StatelessWidget {
     this.stats,
     this.muted = false,
     this.dimmed = false,
+    this.bleed = false,
+    this.footer = 0,
+    this.tag = true,
   });
 
   final String label;
@@ -1232,6 +1371,17 @@ class _Tile extends StatelessWidget {
   final Widget? stats;
   final bool muted;
   final bool dimmed;
+
+  /// Square-cornered and borderless: the full-screen picture, or the corner
+  /// tile (whose own frame [DraggablePip] draws).
+  final bool bleed;
+
+  /// What covers the tile's bottom edge (the tray, over a full-bleed one),
+  /// so the name tag sits above it.
+  final double footer;
+
+  /// The name tag; off in the small corner tile.
+  final bool tag;
 
   @override
   Widget build(BuildContext context) {
@@ -1247,7 +1397,8 @@ class _Tile extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, c) {
                   final size =
-                      (math.min(c.maxWidth, c.maxHeight) * 0.42).clamp(48.0, 96.0);
+                      (math.min(c.maxWidth, c.maxHeight) * 0.42)
+                          .clamp(48.0, bleed ? 140.0 : 96.0);
                   return SpeakingRing(
                     level: level,
                     accent: accent,
@@ -1265,50 +1416,52 @@ class _Tile extends StatelessWidget {
               ),
             ),
           if (dimmed) Container(color: Colors.black.withValues(alpha: 0.45)),
-          Positioned(
-            left: 8,
-            right: 8,
-            bottom: 8,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (stats != null) ...[stats!, const SizedBox(height: 2)],
-                Row(
-                  children: [
-                    if (muted) ...[
-                      const Icon(
-                        CallGlyphs.micOff,
-                        size: 13,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    Expanded(
-                      child: Text(
-                        label,
-                        // The call caption face, like every other name over a
-                        // call — not a raw 11pt style of its own.
-                        style: callCaptionStyle(ThemeScope.of(context))
-                            .copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          shadows: const [
-                            Shadow(blurRadius: 6, color: Colors.black87),
-                          ],
+          if (tag)
+            Positioned(
+              left: bleed ? 20 : 8,
+              right: bleed ? 20 : 8,
+              bottom: 8 + footer,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (stats != null) ...[stats!, const SizedBox(height: 2)],
+                  Row(
+                    children: [
+                      if (muted) ...[
+                        const Icon(
+                          CallGlyphs.micOff,
+                          size: 13,
+                          color: Colors.white70,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Text(
+                          label,
+                          // The call caption face, like every other name over a
+                          // call — not a raw 11pt style of its own.
+                          style: callCaptionStyle(ThemeScope.of(context))
+                              .copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            shadows: const [
+                              Shadow(blurRadius: 6, color: Colors.black87),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
       builder: (context, l, child) {
+        if (bleed) return child!;
         final on = video != null && l > 0.04;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 140),
@@ -1456,7 +1609,7 @@ class _ShareStage extends StatelessWidget {
                     video: service.localCamActive && localRenderer != null
                         ? RTCVideoView(
                             localRenderer!,
-                            mirror: true,
+                            mirror: !service.localCamFacingBack,
                             objectFit:
                                 RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                           )

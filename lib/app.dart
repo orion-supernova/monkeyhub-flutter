@@ -22,6 +22,8 @@ import 'backend/server_switch.dart';
 import 'calls/active_call_pill.dart';
 import 'calls/draw/screen_share_overlay.dart';
 import 'calls/in_call_pill.dart';
+import 'calls/live_calls_store.dart';
+import 'calls/screen_share.dart';
 import 'calls/call_media.dart' show logCallAudioState;
 import 'calls/call_models.dart';
 import 'calls/call_screen.dart';
@@ -1617,6 +1619,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         deviceId: deviceId,
       );
       _groupCallService.attach(userId: s.userId, deviceId: deviceId);
+      // Asked now, so a call screen knows whether it has a share button
+      // on its first frame (see ScreenShare.likelySupported).
+      unawaited(ScreenShare.supported());
       // The audio-session deactivation belt must know about group calls —
       // they raise no CallKit card, so the native no-op-while-a-card-is-
       // alive guard can't see them. Without this, canceling a 1:1 ring
@@ -1718,6 +1723,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           return _repo.userById(userId);
         };
         unawaited(MatchesStore.instance.attach(s.userId));
+        // The chat list's "call going on here" rows.
+        unawaited(LiveCallsStore.instance.attach(_groupCallApi, s.userId));
         ChallengesStore.instance.repo = _repo;
         unawaited(FeedStore.instance.attach(_feedApi, s.userId));
         // Sticker packs, recents/favourites and the KLIPY config, ready before
@@ -1836,6 +1843,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         RecordsStore.instance.clear();
         // Chat games name people too.
         MatchesStore.instance.detach();
+        LiveCallsStore.instance.detach();
         ChallengesStore.instance.clear();
         // And for the share-sheet suggestions, which name people and live
         // OUTSIDE the app — in the system's shortcut store and in Siri's

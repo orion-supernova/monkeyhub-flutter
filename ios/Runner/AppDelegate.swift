@@ -1541,6 +1541,12 @@ import WebRTC
       shareChannel.setMethodCallHandler { call, result in
         switch call.method {
         case "isSupported":
+          #if targetEnvironment(simulator)
+          // The Simulator never presents the broadcast picker: a Share
+          // button there sat on "Starting…" until the start wait ran out.
+          result(false)
+          return
+          #endif
           guard let ext = Bundle.main.object(forInfoDictionaryKey: "RTCScreenSharingExtension") as? String,
                 !ext.isEmpty,
                 let plugins = Bundle.main.builtInPlugInsURL,
@@ -2887,8 +2893,23 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
       "headset": headsetConnected(session),
       "output": outputName(outputs.first),
       "portName": session.currentRoute.outputs.first?.portName ?? "",
+      "input": inputName(session.currentRoute.inputs.first?.portType),
       "routes": routes(session),
     ]
+  }
+
+  /// Where the call's voice is picked up: `builtIn` (the phone's own mic),
+  /// `headset` (a wired set's, USB), `bluetooth`, `car`, or `none`. The mic
+  /// button wears a headset badge when it is anything but the phone.
+  private static func inputName(_ port: AVAudioSession.Port?) -> String {
+    guard let port = port else { return "none" }
+    switch port {
+    case .builtInMic: return "builtIn"
+    case .headsetMic, .usbAudio: return "headset"
+    case .bluetoothHFP, .bluetoothLE: return "bluetooth"
+    case .carAudio: return "car"
+    default: return "other"
+    }
   }
 
   /// The phone's own name for its earpiece route ("iPhone"); nil on a

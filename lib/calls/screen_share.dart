@@ -167,6 +167,13 @@ class ScreenShare {
     return false;
   }
 
+  /// What a screen lays its first frame out by: [knownSupported], or, on
+  /// an iOS that has not been asked yet, yes (the app ships the broadcast
+  /// extension). Guessing yes and very rarely taking the button away beats
+  /// guessing no and growing a sixth control into the tray as it slides
+  /// up, which wrapped it onto a second row and jumped everything above.
+  static bool get likelySupported => knownSupported ?? true;
+
   /// Desktop only: what can be shared. Empty elsewhere.
   static Future<List<ScreenShareSource>> sources() async {
     if (kIsWeb || !(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {

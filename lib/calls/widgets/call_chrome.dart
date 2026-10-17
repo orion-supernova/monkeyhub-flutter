@@ -21,7 +21,11 @@ import '../../widgets/fit_label.dart';
 import '../../widgets/route_landing.dart';
 import '../../widgets/user_avatar.dart';
 import '../call_stats_monitor.dart';
+import 'call_tray_glyphs.dart';
 import '../../widgets/spring_press.dart';
+
+export 'call_tray_glyphs.dart'
+    show CallAudioGlyphRoute, CallGlyphKind, CallTrayGlyph;
 
 /// The chrome both call screens are built from.
 ///
@@ -227,11 +231,20 @@ class CallTrayAction {
     this.enabled = true,
     this.key,
     this.semanticLabel,
+    this.glyph,
   });
 
+  /// The icon-font glyph: for the controls without a drawn one, and the
+  /// fallback while disabled.
   final IconData icon;
+
+  /// The drawn, animated glyph ([AnimatedCallGlyph]) where there is one.
+  final CallTrayGlyph? glyph;
   final String label;
   final VoidCallback onTap;
+
+  /// The lit white fill: the control's thing is on (the mic is live, the
+  /// camera is on, the sound is on the speaker or a headset).
   final bool active;
   final bool enabled;
 
@@ -481,6 +494,7 @@ class CallTray extends StatelessWidget {
                               child: CallControlButton(
                                 key: a.key,
                                 icon: a.icon,
+                                glyph: a.glyph,
                                 label: a.label,
                                 semanticLabel: a.semanticLabel,
                                 onTap: a.onTap,
@@ -1778,12 +1792,13 @@ class AudioBackdrop extends StatelessWidget {
   }
 }
 
-class CallControlButton extends StatelessWidget {
+class CallControlButton extends StatefulWidget {
   const CallControlButton({
     super.key,
     required this.icon,
     required this.onTap,
     required this.label,
+    this.glyph,
     this.active = false,
     this.background,
     this.iconColor,
@@ -1796,6 +1811,9 @@ class CallControlButton extends StatelessWidget {
   });
 
   final IconData icon;
+
+  /// Drawn in place of [icon] while enabled, when set.
+  final CallTrayGlyph? glyph;
   final VoidCallback onTap;
   final String label;
 
@@ -1819,19 +1837,43 @@ class CallControlButton extends StatelessWidget {
   /// A quieter surface for a control on the tray's second row.
   final bool subdued;
 
+  /// The platform face (SF on iOS) at 13, the meta step of the type scale
+  /// — no explicit family, whose line metrics would outgrow the slot the
+  /// tray measures for ([CallTray.labelBlock]).
+  static const _labelStyle = labelStyleBase;
+
+  /// Public so [CallTray] can measure with exactly what is drawn.
+  static const labelStyleBase = TextStyle(
+    color: Color(0xD9FFFFFF),
+    fontSize: 13,
+    height: 1.2,
+    decoration: TextDecoration.none,
+  );
+
+  @override
+  State<CallControlButton> createState() => _CallControlButtonState();
+}
+
+class _CallControlButtonState extends State<CallControlButton> {
+  /// Every tap, for the drawn glyphs that move on one (flip, more, hide).
+  int _taps = 0;
+
   /// The hero ends the call and lands like it; the tray's toggles tick like
   /// switches. A disabled control never gets here — it builds no tap target.
   void _tap() {
-    if (large) {
+    if (widget.large) {
       HapticFeedback.heavyImpact();
     } else {
       HapticFeedback.selectionClick();
     }
-    onTap();
+    setState(() => _taps++);
+    widget.onTap();
   }
 
   @override
   Widget build(BuildContext context) {
+    final w = widget;
+    final large = w.large;
     // Sized from whatever width the Row's Expanded slot actually gives us —
     // never exceeding today's diameter, never shrinking below a usable
     // floor — so a narrow phone or a large accessibility text scale can
@@ -1841,8 +1883,8 @@ class CallControlButton extends StatelessWidget {
         // The end-call button (large: true) now sits alone on its own row
         // (see the control-bar layout in call_screen's build()), so it gets
         // a bigger ceiling/floor than the toolbar row's shared-width toggles.
-        final maxDiameter = diameter ?? (large ? 72.0 : 56.0);
-        final minDiameter = diameter ?? (large ? 56.0 : 40.0);
+        final maxDiameter = w.diameter ?? (large ? 72.0 : 56.0);
+        final minDiameter = w.diameter ?? (large ? 56.0 : 40.0);
         final size = constraints.maxWidth.isFinite
             ? constraints.maxWidth.clamp(minDiameter, maxDiameter).toDouble()
             : maxDiameter;
@@ -1850,7 +1892,7 @@ class CallControlButton extends StatelessWidget {
         final labelScaler = MediaQuery.textScalerOf(
           context,
         ).clamp(maxScaleFactor: 1.3);
-        if (!enabled) {
+        if (!w.enabled) {
           // Unavailable control (e.g. flip while the camera is off):
           // dimmed and non-tappable.
           return Column(
@@ -1863,36 +1905,50 @@ class CallControlButton extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.white.withValues(alpha: 0.30),
-                  size: iconSize,
-                ),
+                // The drawn glyph when there is one, dimmed: an icon-font
+                // stand-in here was a different picture of the same
+                // control (Share's "Starting…" swapped its screen for two
+                // rectangles).
+                child: w.glyph == null
+                    ? Icon(
+                        w.icon,
+                        color: Colors.white.withValues(alpha: 0.30),
+                        size: iconSize,
+                      )
+                    : Center(
+                        child: AnimatedCallGlyph(
+                          glyph: w.glyph!,
+                          size: iconSize * 1.12,
+                          ink: Colors.white.withValues(alpha: 0.30),
+                          litInk: Colors.white.withValues(alpha: 0.30),
+                        ),
+                      ),
               ),
               const SizedBox(height: 6),
               _label(
                 context,
                 labelScaler,
-                _labelStyle.copyWith(
+                CallControlButton._labelStyle.copyWith(
                   color: Colors.white.withValues(alpha: 0.30),
-                  fontSize: labelSize,
+                  fontSize: w.labelSize,
                 ),
               ),
             ],
           );
         }
         final bg =
-            background ??
-            (active
+            w.background ??
+            (w.active
                 ? Colors.white.withValues(alpha: 0.95)
-                : Colors.white.withValues(alpha: subdued ? 0.12 : 0.18));
-        final fg = iconColor ?? (active ? Colors.black : Colors.white);
+                : Colors.white.withValues(alpha: w.subdued ? 0.12 : 0.18));
+        final fg = w.iconColor ?? (w.active ? Colors.black : Colors.white);
+        final glyph = w.glyph;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             FocusableTap(
               onTap: _tap,
-              semanticLabel: semanticLabel ?? label,
+              semanticLabel: w.semanticLabel ?? w.label,
               shape: FocusRingShape.circle,
               // FocusableTap adds keyboard focus/activation only — the
               // child GestureDetector is what makes this tappable.
@@ -1909,8 +1965,9 @@ class CallControlButton extends StatelessWidget {
                     height: size,
                     child: AnimatedContainer(
                     // A toggle flipping on fills white over a beat rather
-                    // than snapping, the FaceTime mute button.
-                    duration: const Duration(milliseconds: 180),
+                    // than snapping, and a drawn glyph's ink crosses over
+                    // to dark on the same beat.
+                    duration: AnimatedCallGlyph.fillDuration,
                     curve: Curves.easeOut,
                     decoration: BoxDecoration(
                       color: bg,
@@ -1929,7 +1986,20 @@ class CallControlButton extends StatelessWidget {
                             ]
                           : null,
                     ),
-                    child: Icon(icon, color: fg, size: iconSize),
+                    child: glyph == null
+                        ? Icon(w.icon, color: fg, size: iconSize)
+                        : Center(
+                            child: AnimatedCallGlyph(
+                              glyph: glyph,
+                              // The grid keeps ~2 units of air; a touch
+                              // larger than the icon reads at its size.
+                              size: iconSize * 1.12,
+                              ink: w.iconColor ?? Colors.white,
+                              litInk: w.iconColor ?? Colors.black,
+                              lit: w.active,
+                              taps: _taps,
+                            ),
+                          ),
                   ),
                   ),
                 ),
@@ -1939,7 +2009,7 @@ class CallControlButton extends StatelessWidget {
             _label(
               context,
               labelScaler,
-              _labelStyle.copyWith(fontSize: labelSize),
+              CallControlButton._labelStyle.copyWith(fontSize: w.labelSize),
             ),
           ],
         );
@@ -1955,25 +2025,12 @@ class CallControlButton extends StatelessWidget {
       MediaQuery(
         data: MediaQuery.of(context).copyWith(textScaler: scaler),
         child: FitLabel(
-          sentenceCaseOf(context, label),
+          sentenceCaseOf(context, widget.label),
           maxLines: 1,
           minFontSize: 10,
           style: style,
         ),
       );
-
-  /// The platform face (SF on iOS) at 13, the meta step of the type scale
-  /// — no explicit family, whose line metrics would outgrow the slot the
-  /// tray measures for ([CallTray.labelBlock]).
-  static const _labelStyle = labelStyleBase;
-
-  /// Public so [CallTray] can measure with exactly what is drawn.
-  static const labelStyleBase = TextStyle(
-    color: Color(0xD9FFFFFF),
-    fontSize: 13,
-    height: 1.2,
-    decoration: TextDecoration.none,
-  );
 }
 
 

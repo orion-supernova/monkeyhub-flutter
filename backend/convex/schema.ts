@@ -2514,6 +2514,12 @@ export default defineSchema({
     // grace-delayed `group_taken` push skips them (see `dismissRingers`),
     // exactly as `calls.dismissedDeviceIds` does for a 1:1 call.
     dismissedDeviceIds: v.optional(v.array(v.string())),
+    // Who is in the call right now, kept here by `syncJoined` on every
+    // join, leave and reap (never on a heartbeat), so the chat list's
+    // `liveInMyRooms` reads one row per call instead of the participant
+    // rows a heartbeat patches every 15s per person. Unset on rows from
+    // before it existed: those read as nobody, until their next join/leave.
+    joinedUserIds: v.optional(v.array(v.id("users"))),
   })
     .index("by_room_status", ["roomId", "status"])
     .index("by_status", ["status", "startedAt"]),

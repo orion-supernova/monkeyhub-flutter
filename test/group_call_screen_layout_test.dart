@@ -281,7 +281,7 @@ void main() {
     expect(find.byType(ParticipantOrb), findsNWidgets(4));
     expect(find.text('You'), findsOneWidget);
     expect(find.text('Ringing…'), findsOneWidget);
-    expect(find.byType(GridView), findsNothing);
+    expect(find.byKey(const ValueKey('grid')), findsNothing);
     expect(find.byType(RTCVideoView), findsNothing);
     // The camera is offered in a voice call — that is how it becomes a video
     // call — and every control is genuinely tappable (FocusableTap adds no
@@ -390,7 +390,7 @@ void main() {
     final (svc, _, _) = await _call(tester);
     await tester.pumpWidget(_host(svc));
     await _settle(tester);
-    expect(find.byType(GridView), findsNothing);
+    expect(find.byKey(const ValueKey('grid')), findsNothing);
 
     await tester.runAsync(() async {
       await svc.toggleVideo();
@@ -398,7 +398,7 @@ void main() {
     });
     await _settle(tester);
     expect(svc.hasAnyVideo, isTrue);
-    expect(find.byType(GridView), findsOneWidget);
+    expect(find.byKey(const ValueKey('grid')), findsOneWidget);
     expect(find.byType(ParticipantOrb), findsNothing);
     expect(find.text('Camera off'), findsOneWidget);
 
@@ -408,7 +408,7 @@ void main() {
     });
     await _settle(tester);
     expect(svc.hasAnyVideo, isFalse);
-    expect(find.byType(GridView), findsNothing);
+    expect(find.byKey(const ValueKey('grid')), findsNothing);
     expect(find.byType(ParticipantOrb), findsNWidgets(4));
 
     await tester.pumpWidget(const SizedBox());
@@ -444,7 +444,7 @@ void main() {
       await _pump();
     });
     await _settle(tester);
-    expect(find.byType(GridView), findsOneWidget);
+    expect(find.byKey(const ValueKey('grid')), findsOneWidget);
     expect(find.byType(RTCVideoView), findsOneWidget);
 
     final screen = FakeMediaStream(
@@ -468,7 +468,7 @@ void main() {
     });
     await _settle(tester);
     expect(find.byType(ShareSurface), findsOneWidget);
-    expect(find.byType(GridView), findsNothing);
+    expect(find.byKey(const ValueKey('grid')), findsNothing);
     expect(find.text('Bea is sharing their screen'), findsOneWidget);
     // The pen appears with the stage.
     expect(find.text('Draw'), findsOneWidget);

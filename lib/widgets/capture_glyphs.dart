@@ -19,16 +19,21 @@ double captureGlyphStroke(double size) =>
     2.05 * math.pow(size / 20, 0.8).toDouble();
 
 /// A 0..1 window of [t]: 0 before [from], 1 after [to], linear between.
-double _span(double t, double from, double to) =>
+double glyphSpan(double t, double from, double to) =>
     ((t - from) / (to - from)).clamp(0.0, 1.0);
 
 /// The shared frame: scales the canvas to the 24-unit grid, centers it in a
 /// non-square box, and hands [draw] a line paint at the shared weight and a
 /// fill paint in the same ink.
-abstract class _GridPainter extends CustomPainter {
-  const _GridPainter(this.color);
+abstract class GlyphGridPainter extends CustomPainter {
+  const GlyphGridPainter(this.color, {super.repaint});
 
   final Color color;
+
+  /// The ink both paints start in. [color] unless a painter animates it
+  /// itself (a call control lerping dark onto its lit fill), reading it per
+  /// paint so a tick never rebuilds the widget.
+  Color get ink => color;
 
   void draw(Canvas canvas, Paint line, Paint fill);
 
@@ -41,12 +46,12 @@ abstract class _GridPainter extends CustomPainter {
     canvas.translate((size.width - side) / 2, (size.height - side) / 2);
     canvas.scale(s);
     final line = Paint()
-      ..color = color
+      ..color = ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = captureGlyphStroke(side) / s
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    final fill = Paint()..color = color;
+    final fill = Paint()..color = ink;
     draw(canvas, line, fill);
     canvas.restore();
   }
@@ -91,7 +96,7 @@ class PadlockGlyph extends StatelessWidget {
       );
 }
 
-class _PadlockPainter extends _GridPainter {
+class _PadlockPainter extends GlyphGridPainter {
   const _PadlockPainter({required Color color, required this.closed})
       : super(color);
 
@@ -123,7 +128,7 @@ class _PadlockPainter extends _GridPainter {
 
     // The keyhole grows in as the shackle seats: a line that lengthens and
     // thickens from nothing, so it never pops.
-    final k = _span(c, 0.6, 1);
+    final k = glyphSpan(c, 0.6, 1);
     if (k > 0) {
       canvas.drawLine(
         Offset(12, 16.5 - 0.9 * k),
@@ -169,7 +174,7 @@ class TrashGlyph extends StatelessWidget {
       );
 }
 
-class _TrashPainter extends _GridPainter {
+class _TrashPainter extends GlyphGridPainter {
   const _TrashPainter({
     required Color color,
     required this.open,
@@ -184,8 +189,8 @@ class _TrashPainter extends _GridPainter {
     // The swallow: the lid slams in the first third (accelerating, it's
     // falling), then the can squashes and stretches back in a decaying
     // wobble, and the lid bounces once off the rim.
-    final slam = Curves.easeIn.transform(_span(gulp, 0, 0.3));
-    final u = _span(gulp, 0.3, 1);
+    final slam = Curves.easeIn.transform(glyphSpan(gulp, 0, 0.3));
+    final u = glyphSpan(gulp, 0.3, 1);
     final wobble =
         gulp > 0.3 ? math.sin(2 * math.pi * u) * math.pow(1 - u, 1.6) : 0.0;
     final bounce =
@@ -276,7 +281,7 @@ class MicGlyph extends StatelessWidget {
       );
 }
 
-class _MicPainter extends _GridPainter {
+class _MicPainter extends GlyphGridPainter {
   const _MicPainter({required Color color, required this.level}) : super(color);
 
   final double level;
@@ -341,7 +346,7 @@ class VideoNoteGlyph extends StatelessWidget {
       );
 }
 
-class _VideoNotePainter extends _GridPainter {
+class _VideoNotePainter extends GlyphGridPainter {
   const _VideoNotePainter({required Color color, required this.filled})
       : super(color);
 
@@ -394,7 +399,7 @@ class SendArrowGlyph extends StatelessWidget {
       );
 }
 
-class _SendArrowPainter extends _GridPainter {
+class _SendArrowPainter extends GlyphGridPainter {
   const _SendArrowPainter({required Color color, required this.t})
       : super(color);
 
@@ -408,10 +413,10 @@ class _SendArrowPainter extends _GridPainter {
     final top = lerpDouble(
       floor,
       tip,
-      Curves.easeOutCubic.transform(_span(t, 0, 0.6)),
+      Curves.easeOutCubic.transform(glyphSpan(t, 0, 0.6)),
     )!;
     canvas.drawLine(Offset(12, floor), Offset(12, top), line);
-    _arrowHead(canvas, line, Offset(12, top), _span(t, 0.3, 1), floor - top);
+    _arrowHead(canvas, line, Offset(12, top), glyphSpan(t, 0.3, 1), floor - top);
   }
 
   @override
@@ -462,7 +467,7 @@ class MicSendMorphGlyph extends StatelessWidget {
       );
 }
 
-class _MicSendMorphPainter extends _GridPainter {
+class _MicSendMorphPainter extends GlyphGridPainter {
   const _MicSendMorphPainter({
     required Color color,
     required this.t,
@@ -476,7 +481,7 @@ class _MicSendMorphPainter extends _GridPainter {
   void draw(Canvas canvas, Paint line, Paint fill) {
     // The capsule thins into the shaft, reaching from the arrow's tip down
     // to the floor.
-    final e = Curves.easeInOutCubic.transform(_span(t, 0, 0.5));
+    final e = Curves.easeInOutCubic.transform(glyphSpan(t, 0, 0.5));
     final half = 3.5 * (1 - e);
     final capsule = RRect.fromLTRBR(
       12 - half,
@@ -490,7 +495,7 @@ class _MicSendMorphPainter extends _GridPainter {
 
     // The yoke shrinks into the stem as a cup, keeping its U: folding its
     // arms down instead makes a V under the stem, a down arrow.
-    final y = Curves.easeOutCubic.transform(_span(t, 0, 0.3));
+    final y = Curves.easeOutCubic.transform(glyphSpan(t, 0, 0.3));
     if (y < 1) {
       final r = 6.5 * (1 - y);
       canvas.drawArc(
@@ -507,7 +512,7 @@ class _MicSendMorphPainter extends _GridPainter {
       canvas.drawLine(Offset(12, stemTop), Offset(12, stemBottom), line);
     }
     // The head opens early, so the glyph reads as up from the first frames.
-    _arrowHead(canvas, line, Offset(12, capsule.top), _span(t, 0.12, 0.9), 7.4);
+    _arrowHead(canvas, line, Offset(12, capsule.top), glyphSpan(t, 0.12, 0.9), 7.4);
   }
 
   @override
@@ -530,7 +535,7 @@ class PauseGlyph extends StatelessWidget {
       _Glyph(size: size, painter: _PausePainter(color));
 }
 
-class _PausePainter extends _GridPainter {
+class _PausePainter extends GlyphGridPainter {
   const _PausePainter(super.color);
 
   @override
@@ -556,7 +561,7 @@ class StopGlyph extends StatelessWidget {
       _Glyph(size: size, painter: _StopPainter(color));
 }
 
-class _StopPainter extends _GridPainter {
+class _StopPainter extends GlyphGridPainter {
   const _StopPainter(super.color);
 
   @override
@@ -597,7 +602,7 @@ class FlipCameraGlyph extends StatelessWidget {
       );
 }
 
-class _FlipCameraPainter extends _GridPainter {
+class _FlipCameraPainter extends GlyphGridPainter {
   const _FlipCameraPainter({required Color color, required this.spin})
       : super(color);
 
@@ -695,7 +700,7 @@ class ChevronGlyph extends StatelessWidget {
       );
 }
 
-class _ChevronPainter extends _GridPainter {
+class _ChevronPainter extends GlyphGridPainter {
   const _ChevronPainter({required Color color, required this.direction})
       : super(color);
 
@@ -754,7 +759,7 @@ class ViewOnceGlyph extends StatelessWidget {
       _Glyph(size: size, painter: _ViewOncePainter(color, knockout, on));
 }
 
-class _ViewOncePainter extends _GridPainter {
+class _ViewOncePainter extends GlyphGridPainter {
   const _ViewOncePainter(super.color, this.knockout, this.on);
 
   final Color knockout;
@@ -825,7 +830,7 @@ class FlameGlyph extends StatelessWidget {
       _Glyph(size: size, painter: _FlamePainter(color, core, flicker, ignite));
 }
 
-class _FlamePainter extends _GridPainter {
+class _FlamePainter extends GlyphGridPainter {
   const _FlamePainter(super.color, this.core, this.flicker, this.ignite);
 
   final Color? core;
@@ -916,7 +921,7 @@ class SpoilerGlyph extends StatelessWidget {
       _Glyph(size: size, painter: _SpoilerPainter(color, on, burst));
 }
 
-class _SpoilerPainter extends _GridPainter {
+class _SpoilerPainter extends GlyphGridPainter {
   const _SpoilerPainter(super.color, this.on, this.burst);
 
   final double on;
@@ -947,10 +952,10 @@ class _SpoilerPainter extends _GridPainter {
       line,
     );
     // The pupil, gone by the time the lid meets it.
-    final pupil = 3.3 * (1 - _span(t, 0, 0.6));
+    final pupil = 3.3 * (1 - glyphSpan(t, 0, 0.6));
     if (pupil > 0.05) canvas.drawCircle(Offset(12, mid), pupil, line);
     // Lashes, under the shut lid: points on the lid's own curve, dropping.
-    final lash = _span(t, 0.55, 1);
+    final lash = glyphSpan(t, 0.55, 1);
     if (lash > 0) {
       final lashPaint = Paint()
         ..color = color
@@ -971,7 +976,7 @@ class _SpoilerPainter extends _GridPainter {
       }
     }
     // The dust: it rises with the lid and puffs out on the kick.
-    final dust = Curves.easeOutBack.transform(_span(t, 0.3, 1));
+    final dust = Curves.easeOutBack.transform(glyphSpan(t, 0.3, 1));
     if (dust <= 0) return;
     final puff = burst <= 0
         ? 0.0
@@ -1028,7 +1033,7 @@ class HdGlyph extends StatelessWidget {
       _Glyph(size: size, painter: _HdPainter(color, on, kick));
 }
 
-class _HdPainter extends _GridPainter {
+class _HdPainter extends GlyphGridPainter {
   const _HdPainter(super.color, this.on, this.kick);
 
   final double on;
@@ -1101,7 +1106,7 @@ class PenGlyph extends StatelessWidget {
       _Glyph(size: size, painter: _PenPainter(color, on));
 }
 
-class _PenPainter extends _GridPainter {
+class _PenPainter extends GlyphGridPainter {
   const _PenPainter(super.color, this.on);
 
   final double on;

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../calls/live_calls_store.dart';
 import '../data/matches_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
@@ -11,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'live_call_row.dart';
 import 'remote_image.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
@@ -124,30 +126,35 @@ class _ChatListRowState extends State<ChatListRow>
                   padding: EdgeInsets.symmetric(
                     vertical: density.chatRowPadding,
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _avatar(theme, density),
-                      SizedBox(width: density.chatRowGap),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _titleLine(
-                              context,
-                              theme,
-                              density,
-                              title,
-                              stamp,
-                              unread,
-                            ),
-                            SizedBox(height: density.chatRowLineGap),
-                            _previewLine(context, theme, density),
-                          ],
+                  // Only this listens for calls: one going on in the room
+                  // turns the face and the preview line live.
+                  child: ListenableBuilder(
+                    listenable: LiveCallsStore.instance,
+                    builder: (context, _) => Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _avatar(theme, density),
+                        SizedBox(width: density.chatRowGap),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _titleLine(
+                                context,
+                                theme,
+                                density,
+                                title,
+                                stamp,
+                                unread,
+                              ),
+                              SizedBox(height: density.chatRowLineGap),
+                              _previewLine(context, theme, density),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 if (widget.showDivider)
@@ -175,11 +182,15 @@ class _ChatListRowState extends State<ChatListRow>
   Color _hairline(AppTheme theme) =>
       Color.alphaBlend(theme.ink.withValues(alpha: 0.05), theme.divider);
 
-  Widget _avatar(AppTheme theme, Density density) => ChatRoomAvatar(
-        room: widget.room,
-        dmUser: widget.dmUser,
-        api: widget.api,
+  Widget _avatar(AppTheme theme, Density density) => LiveCallHalo(
+        call: LiveCallsStore.instance.forRoom(widget.room.id),
         size: density.chatRowAvatar,
+        child: ChatRoomAvatar(
+          room: widget.room,
+          dmUser: widget.dmUser,
+          api: widget.api,
+          size: density.chatRowAvatar,
+        ),
       );
 
   Widget _titleLine(
@@ -245,8 +256,16 @@ class _ChatListRowState extends State<ChatListRow>
 
   Widget _previewLine(BuildContext context, AppTheme theme, Density density) {
     final room = widget.room;
+    final call = LiveCallsStore.instance.forRoom(room.id);
     final Widget text;
-    if (widget.typists.isNotEmpty) {
+    if (call != null) {
+      // A call going on outranks what was last said, and typing.
+      text = LiveCallLine(
+        call: call,
+        theme: theme,
+        fontSize: density.chatRowPreviewSize,
+      );
+    } else if (widget.typists.isNotEmpty) {
       text = TypingLine(typists: widget.typists);
     } else {
       final subtitle = roomSubtitle(context, room);
@@ -270,7 +289,9 @@ class _ChatListRowState extends State<ChatListRow>
         const SizedBox(width: 10),
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: _trailing(theme),
+          child: LiveCallJoinPill.wants(call)
+              ? LiveCallJoinPill(call: call!)
+              : _trailing(theme),
         ),
       ],
     );

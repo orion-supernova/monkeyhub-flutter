@@ -180,6 +180,27 @@ class GroupCallApi {
     );
   }
 
+  /// Live calls in every room [userId] is in — the chat list's live rows.
+  /// Each row: `roomId`, `groupCallId`, `type`, `startedAt`,
+  /// `joinedUserIds`.
+  Future<Subscription> subscribeLiveInMyRooms({
+    required String userId,
+    required void Function(List<Map<String, dynamic>> calls) onCalls,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'groupCalls:liveInMyRooms',
+      {'userId': userId},
+      onData: (raw) {
+        onCalls([
+          for (final r in (raw as List?) ?? const [])
+            if (r is Map) r.cast<String, dynamic>(),
+        ]);
+      },
+      onError: onError,
+    );
+  }
+
   /// Live "is there a call in this room?" — drives the in-room banner.
   Future<Subscription> subscribeActiveForRoom({
     required String roomId,

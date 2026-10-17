@@ -1424,6 +1424,12 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   /// brings back the camera the user flipped to.
   bool _camFacingBack = false;
 
+  /// The back camera is the one going out. The self-view mirrors only the
+  /// front one: a mirror is what a selfie looks like, but the world behind
+  /// the phone mirrored reads as wrong (signs backwards), and the peer
+  /// always gets it unmirrored.
+  bool get localCamFacingBack => _camFacingBack;
+
   @visibleForTesting
   Duration cameraWatchInterval = const Duration(seconds: 2);
   @visibleForTesting
@@ -1967,6 +1973,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
           final front =
               await switchCameraFn(t).timeout(const Duration(seconds: 3));
           _camFacingBack = !front;
+          notifyListeners();
         } catch (e) {
           debugPrint('switchCamera failed: $e');
         }
