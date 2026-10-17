@@ -198,6 +198,47 @@ String? presenceStatusFor(AppLifecycleState state) => switch (state) {
 String presenceStatusOnAttach(AppLifecycleState? state) =>
     state == AppLifecycleState.resumed ? 'online' : 'away';
 
+/// Runs [write] until it completes, retrying failures, for at most [budget].
+/// Returns whether it was acknowledged.
+///
+/// This is how a backgrounding gets its `away` out. iOS keeps the process
+/// awake only for the few seconds AppDelegate's `presence-away` background
+/// task buys, and the socket is at its least reliable right then: the radio
+/// may be dropping, and a mutation that is merely queued when the app
+/// suspends never leaves. One fire-and-forget attempt is what used to leave a
+/// locked phone reading `online` for minutes. Stops early once [stillWanted]
+/// says the answer no longer matters (the app came back to the foreground and
+/// wrote `online` itself).
+///
+/// Re-sending is safe: `users:updateStatus` drops a repeat of the stored
+/// value. Kept top-level and pure so it can be tested under fake time; see
+/// test/presence_lifecycle_test.dart.
+Future<bool> deliverPresenceWithin(
+  Future<void> Function() write, {
+  required Duration budget,
+  Duration attemptTimeout = const Duration(seconds: 2),
+  Duration retryDelay = const Duration(milliseconds: 500),
+  bool Function()? stillWanted,
+}) async {
+  var expired = false;
+  final deadline = Timer(budget, () => expired = true);
+  try {
+    while (!expired && (stillWanted?.call() ?? true)) {
+      try {
+        await write().timeout(attemptTimeout);
+        return true;
+      } catch (_) {
+        // Retried below while the budget lasts.
+      }
+      if (expired) break;
+      await Future<void>.delayed(retryDelay);
+    }
+    return false;
+  } finally {
+    deadline.cancel();
+  }
+}
+
 class MonkeyHubApp extends StatefulWidget {
   const MonkeyHubApp({super.key});
   @override
@@ -318,6 +359,28 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // means "unknown" — on sign-out, or after a failed write — and always sends.
   String? _lastSentStatus;
 
+  // The status the server last ACKNOWLEDGED, as opposed to the one merely
+  // handed over above. Null while a write is in flight or after a failure.
+  // [_holdAwayInBackground] reads it to skip a backgrounding whose `away`
+  // already landed.
+  String? _ackedStatus;
+
+  /// Every presence write goes through here, so [_lastSentStatus] and
+  /// [_ackedStatus] stay honest. Rethrows, so a caller can retry.
+  Future<void> _sendStatus(String userId, String status) async {
+    _lastSentStatus = status;
+    _ackedStatus = null;
+    try {
+      await _api.updateStatus(userId: userId, status: status);
+      if (_lastSentStatus == status) _ackedStatus = status;
+    } catch (_) {
+      // Unknown server state now, so don't let the dedupe guard in
+      // didChangeAppLifecycleState suppress the next attempt at the same value.
+      _lastSentStatus = null;
+      rethrow;
+    }
+  }
+
   // Alert sounds and the web Notification permission both require a user
   // gesture to activate (browser autoplay policy / Notification.requestPermission
   // being ignored outside a gesture). Prime once, on the first pointer down.
@@ -354,14 +417,35 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   Future<void> _awayOnTerminate() async {
     final session = _auth.session;
     if (session == null || _lastSentStatus == 'away') return;
-    _lastSentStatus = 'away';
     try {
-      await _api
-          .updateStatus(userId: session.userId, status: 'away')
-          .timeout(const Duration(milliseconds: 1200));
-    } catch (_) {
-      _lastSentStatus = null;
-    }
+      await _sendStatus(
+        session.userId,
+        'away',
+      ).timeout(const Duration(milliseconds: 1200));
+    } catch (_) {}
+  }
+
+  /// iOS backgrounded the app and is holding it awake until this returns
+  /// (AppDelegate's `_holdPresenceAway`). The `away` from
+  /// [didChangeAppLifecycleState] may already be in flight, or not sent yet
+  /// (the notification can beat the lifecycle event); either way, nothing is
+  /// done until the server has acknowledged `away`. A lock used to suspend
+  /// the app with that write still queued, and the person read as online with
+  /// the phone locked until the staleness sweep caught up, minutes later.
+  Future<void> _holdAwayInBackground() async {
+    final session = _auth.session;
+    if (session == null || _ackedStatus == 'away') return;
+    final ok = await deliverPresenceWithin(
+      () => _sendStatus(session.userId, 'away'),
+      // Inside AppDelegate's 8s cap, with an attempt's timeout to spare.
+      budget: const Duration(seconds: 5),
+      // Back in the foreground: `resumed` writes `online` on its own, and an
+      // `away` retried after it would undo that.
+      stillWanted: () =>
+          _auth.session?.userId == session.userId &&
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed,
+    );
+    DiagLog.lifecycle('background hold → away ${ok ? 'acked' : 'not acked'}');
   }
 
   // Presence keepalive. Stamps `lastSeen` every 30s while signed in so the
@@ -429,6 +513,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _presenceHeartbeat = null;
     // Next session starts with no assumption about the stored status.
     _lastSentStatus = null;
+    _ackedStatus = null;
   }
 
   // ───────── connection healing ─────────
@@ -486,6 +571,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     WidgetsBinding.instance.addObserver(this);
     _presenceChannel.setMethodCallHandler((call) async {
       if (call.method == 'willTerminate') await _awayOnTerminate();
+      if (call.method == 'didEnterBackground') await _holdAwayInBackground();
       return true;
     });
     _auth.addListener(_onAuthChange);
@@ -1271,13 +1357,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // That is why [presenceStatusFor] refusing to react to `inactive` matters
     // so much more than the guard does.
     if (next != _lastSentStatus) {
-      _lastSentStatus = next;
-      // Fire-and-forget — network may be unavailable; status reconciles next foreground.
-      _api.updateStatus(userId: session.userId, status: next).catchError((_) {
-        // Unknown server state now, so don't let the guard above suppress the
-        // next attempt at the same value.
-        _lastSentStatus = null;
-      });
+      // Fire-and-forget — network may be unavailable; status reconciles next
+      // foreground. On iOS a backgrounding's `away` is also seen through by
+      // [_holdAwayInBackground], which retries until it is acknowledged.
+      unawaited(_sendStatus(session.userId, next).catchError((_) {}));
     }
     if (state == AppLifecycleState.resumed) {
       // Immediately, and deliberately NOT behind the 500 ms stagger below: a
@@ -1698,12 +1781,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         DiagLog.lifecycle(
           'attach ${lifecycle ?? 'unknown'} → presence=$attachStatus',
         );
-        _lastSentStatus = attachStatus;
-        _api.updateStatus(userId: s.userId, status: attachStatus).catchError((
-          _,
-        ) {
-          _lastSentStatus = null;
-        });
+        unawaited(_sendStatus(s.userId, attachStatus).catchError((_) {}));
         // The family service is bound too: a guardian's pending approvals are
         // part of the app-icon number the backend now stamps into every push,
         // and a client that re-asserted without them would wipe it on resume.

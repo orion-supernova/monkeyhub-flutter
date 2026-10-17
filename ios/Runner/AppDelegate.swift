@@ -59,9 +59,13 @@ import WebRTC
   // The fallback cards the user answered: the call itself now, never a
   // "ringing card" for `endRingingCards` / `hasRingingCard` to end.
   private var fallbackAnswered: Set<UUID> = []
-  // monkeyhub/presence: lets `applicationWillTerminate` get the person's
-  // `away` out before the process goes. See there.
+  // monkeyhub/presence: lets `applicationWillTerminate` and a backgrounding
+  // get the person's `away` out before the process stops. See there and
+  // `_holdPresenceAway`.
   private var presenceChannel: FlutterMethodChannel?
+  // The background-time grant `_holdPresenceAway` holds open while Dart's
+  // `away` write is in flight. `.invalid` when none is.
+  private var presenceHold: UIBackgroundTaskIdentifier = .invalid
   // voip-channel calls that fired before Dart was listening (cold
   // background launch). Dart drains them via `takePendingEvents` once its
   // handler is installed, so a fallback-card answer/decline isn't lost.
@@ -196,6 +200,16 @@ import WebRTC
       self,
       selector: #selector(_capturedDidChange),
       name: UIScreen.capturedDidChangeNotification,
+      object: nil
+    )
+
+    // The notification, not `applicationDidEnterBackground`, for the same
+    // reason as `didBecomeActiveNotification` below: under the UIScene
+    // lifecycle the delegate callback is never called.
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(_holdPresenceAway),
+      name: UIApplication.didEnterBackgroundNotification,
       object: nil
     )
 
@@ -1268,6 +1282,42 @@ import WebRTC
     } else {
       pendingNotifEvents.append((method: method, args: args))
     }
+  }
+
+  /// Keeps the process awake until Dart's `away` write is acknowledged.
+  ///
+  /// Locking the phone backgrounds the app and iOS suspends it moments later.
+  /// Dart's `away` went out fire-and-forget from the lifecycle change, and on
+  /// a lock it routinely did not make it: the socket froze with the mutation
+  /// still queued, the stored status stayed `online`, and the person read as
+  /// online until the staleness sweep caught up, up to about four minutes
+  /// with the phone locked on a charger. A background task is what buys the
+  /// round-trip; Dart answers `didEnterBackground` once the server has acked
+  /// (or its own deadline passes), and that reply ends the task.
+  ///
+  /// Started here, synchronously in the notification, rather than asked for
+  /// by Dart: by the time a channel call from Dart arrived the suspension it
+  /// exists to postpone may already be under way. The 8s cap is a backstop
+  /// for a reply that never comes; Dart gives up well before it.
+  @objc private func _holdPresenceAway() {
+    guard let channel = presenceChannel else { return }
+    endPresenceHold()
+    presenceHold = UIApplication.shared.beginBackgroundTask(withName: "presence-away") {
+      [weak self] in self?.endPresenceHold()
+    }
+    let hold = presenceHold
+    channel.invokeMethod("didEnterBackground", arguments: nil) { [weak self] _ in
+      if self?.presenceHold == hold { self?.endPresenceHold() }
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+      if self?.presenceHold == hold { self?.endPresenceHold() }
+    }
+  }
+
+  private func endPresenceHold() {
+    guard presenceHold != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(presenceHold)
+    presenceHold = .invalid
   }
 
   /// Collects whatever the Share Extension has staged and hands it to Dart.

@@ -1,8 +1,11 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/app.dart'
-    show presenceStatusFor, presenceStatusOnAttach;
+    show deliverPresenceWithin, presenceStatusFor, presenceStatusOnAttach;
 
 /// Guards the two states that must NOT write presence.
 ///
@@ -122,6 +125,92 @@ void main() {
         );
       }
       expect(presenceStatusOnAttach(null), isNotNull);
+    });
+  });
+
+  // The backgrounding `away`: iOS holds the app awake for a few seconds and
+  // this is what spends them. One fire-and-forget attempt used to leave a
+  // locked phone reading `online` for minutes.
+  group('deliverPresenceWithin', () {
+    test('acknowledged on the first try writes once', () {
+      fakeAsync((async) {
+        var calls = 0;
+        bool? ok;
+        deliverPresenceWithin(() async {
+          calls++;
+        }, budget: const Duration(seconds: 5)).then((v) => ok = v);
+        async.flushMicrotasks();
+        expect(ok, isTrue);
+        expect(calls, 1);
+      });
+    });
+
+    test('a failed write is retried until it lands', () {
+      fakeAsync((async) {
+        var calls = 0;
+        bool? ok;
+        deliverPresenceWithin(() async {
+          calls++;
+          if (calls < 3) throw StateError('socket down');
+        }, budget: const Duration(seconds: 5)).then((v) => ok = v);
+        async.elapse(const Duration(seconds: 2));
+        expect(ok, isTrue);
+        expect(calls, 3);
+      });
+    });
+
+    test('a write that hangs times out and is retried', () {
+      fakeAsync((async) {
+        var calls = 0;
+        bool? ok;
+        deliverPresenceWithin(() {
+          calls++;
+          // The queued-but-never-sent mutation: no error, no answer.
+          return calls == 1 ? Completer<void>().future : Future<void>.value();
+        }, budget: const Duration(seconds: 5)).then((v) => ok = v);
+        async.elapse(const Duration(seconds: 3));
+        expect(ok, isTrue);
+        expect(calls, 2);
+      });
+    });
+
+    test('gives up once the budget is spent', () {
+      fakeAsync((async) {
+        var calls = 0;
+        bool? ok;
+        deliverPresenceWithin(() async {
+          calls++;
+          throw StateError('socket down');
+        }, budget: const Duration(seconds: 2)).then((v) => ok = v);
+        async.elapse(const Duration(seconds: 10));
+        expect(ok, isFalse);
+        // 0s, 0.5s, 1s, 1.5s; the deadline lands during the fourth wait.
+        expect(calls, 4);
+        expect(async.pendingTimers, isEmpty);
+      });
+    });
+
+    test('stops retrying once the answer no longer matters', () {
+      // Back in the foreground: `resumed` wrote `online`, and an `away`
+      // retried after it would undo that.
+      fakeAsync((async) {
+        var calls = 0;
+        var wanted = true;
+        bool? ok;
+        deliverPresenceWithin(
+          () async {
+            calls++;
+            throw StateError('socket down');
+          },
+          budget: const Duration(seconds: 5),
+          stillWanted: () => wanted,
+        ).then((v) => ok = v);
+        async.flushMicrotasks();
+        wanted = false;
+        async.elapse(const Duration(seconds: 5));
+        expect(ok, isFalse);
+        expect(calls, 1);
+      });
     });
   });
 }
