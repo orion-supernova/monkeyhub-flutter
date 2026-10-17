@@ -4400,25 +4400,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => '作成日';
 
   @override
-  String get countBadgeCaptureProtectionLabel => '画面キャプチャ保護';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'スクリーンショットや画面録画は、システム上では真っ黒に表示されます。';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      '画面録画やミラーリング中は、アプリにプライバシーシールドがかかります。';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'エフェメラルルーム以外では、スクリーンショットや録画は通常どおり利用できます。';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'エフェメラルルーム（秘密の部屋）では、この設定は常に強制的にオンになります。';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'パスワードを表示';
 
   @override
@@ -9729,21 +9710,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => '画面キャプチャ保護';
-
-  @override
-  String get acctCaptureOnIos => '録画やミラーリング時はプライバシー画面が表示されます。';
-
-  @override
-  String get acctCaptureOnAndroid => 'スクリーンショットや録画は黒く表示されます。';
-
-  @override
-  String get acctCaptureOff => 'スクリーンショットや録画は通常どおり使えます。';
-
-  @override
-  String get acctCaptureFooter => '消えるメッセージのルームでは常にオンになります。';
-
-  @override
   String get acctActionPending => '保留中';
 
   @override
@@ -10330,9 +10296,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSearchKwRecovery => '復元フレーズ, パスワード, バックアップ';
-
-  @override
-  String get settingsSearchKwCapture => 'スクリーンショット, 画面収録, プライバシー';
 
   @override
   String get settingsSearchKwFamily => '家族, 子ども, 保護者, 承認';
@@ -13387,4 +13350,36 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => 'スポイラー。タップして表示';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'キャプチャ可能';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'アプリでは禁止';
+
+  @override
+  String get captureNoticeRoomTitle => 'ここではスクリーンショットを防げません';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'このデバイスではスクリーンショットや画面収録を防げないため、このルームの内容はここで保存できてしまいます。iPhone、Android、Mac、Windows版のMonkeyHubアプリなら防げます。';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'ここでは保存できてしまいます';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'このデバイスではスクリーンショットを防げないため、ここで開いた内容は保存できてしまいます。iPhone、Android、Mac、Windows版のMonkeyHubアプリなら保存できません。どこで開いても、見られるのは1回だけです。';
+
+  @override
+  String get captureNoticeGetApp => 'アプリを入手';
+
+  @override
+  String get captureNoticeGotIt => 'OK';
+
+  @override
+  String get captureNoticeOpenAnyway => 'このまま開く';
+
+  @override
+  String get captureNoticeNotNow => '今はしない';
 }

@@ -4576,25 +4576,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => 'बनाया गया';
 
   @override
-  String get countBadgeCaptureProtectionLabel => 'स्क्रीन कैप्चर सुरक्षा';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'सिस्टम को स्क्रीनशॉट + स्क्रीन रिकॉर्डिंग में सब कुछ काला दिखता है।';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'स्क्रीन रिकॉर्डिंग + मिररिंग करने पर ऐप पर एक प्राइवेसी शील्ड आ जाती है।';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'अस्थायी रूम्स के बाहर स्क्रीनशॉट और रिकॉर्डिंग सामान्य रूप से काम करती हैं।';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'अस्थायी (चैंबर ऑफ़ सीक्रेट्स) रूम्स में यह हमेशा जबरन ऑन रहता है।';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'पासवर्ड दिखाएं';
 
   @override
@@ -10164,24 +10145,6 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => 'स्क्रीन कैप्चर सुरक्षा';
-
-  @override
-  String get acctCaptureOnIos =>
-      'रिकॉर्डिंग और मिररिंग में प्राइवेसी शील्ड दिखती है।';
-
-  @override
-  String get acctCaptureOnAndroid => 'स्क्रीनशॉट और रिकॉर्डिंग काले दिखते हैं।';
-
-  @override
-  String get acctCaptureOff =>
-      'स्क्रीनशॉट और रिकॉर्डिंग सामान्य रूप से काम करते हैं।';
-
-  @override
-  String get acctCaptureFooter =>
-      'गायब होने वाले संदेशों वाले रूम में यह हमेशा चालू रहता है।';
-
-  @override
   String get acctActionPending => 'लंबित';
 
   @override
@@ -10782,10 +10745,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get settingsSearchKwRecovery => 'रिकवरी फ़्रेज़, पासवर्ड, बैकअप';
-
-  @override
-  String get settingsSearchKwCapture =>
-      'स्क्रीनशॉट, स्क्रीन रिकॉर्डिंग, प्राइवेसी';
 
   @override
   String get settingsSearchKwFamily => 'परिवार, बच्चा, माता-पिता, मंज़ूरी';
@@ -13997,4 +13956,36 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get mediaSpoilerRevealSemanticLabel =>
       'स्पॉइलर। दिखाने के लिए टैप करें';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'कैप्चर संभव';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'हमारे ऐप्स में ब्लॉक';
+
+  @override
+  String get captureNoticeRoomTitle => 'यहाँ स्क्रीनशॉट ब्लॉक नहीं होते';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'यह डिवाइस स्क्रीनशॉट या स्क्रीन रिकॉर्डिंग नहीं रोक सकता, इसलिए इस रूम की कोई भी चीज़ यहाँ कैप्चर हो सकती है। iPhone, Android, Mac और Windows के लिए MonkeyHub ऐप इन्हें ब्लॉक करता है।';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'यह यहाँ कैप्चर हो सकता है';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'यह डिवाइस स्क्रीनशॉट ब्लॉक नहीं कर सकता, इसलिए आप यहाँ जो खोलेंगे वह सेव हो सकता है। iPhone, Android, Mac या Windows के लिए MonkeyHub ऐप में ऐसा नहीं हो सकता। आप इसे कहीं भी खोलें, देखने का मौका एक ही बार मिलेगा।';
+
+  @override
+  String get captureNoticeGetApp => 'ऐप पाएँ';
+
+  @override
+  String get captureNoticeGotIt => 'समझ गया';
+
+  @override
+  String get captureNoticeOpenAnyway => 'फिर भी खोलें';
+
+  @override
+  String get captureNoticeNotNow => 'अभी नहीं';
 }

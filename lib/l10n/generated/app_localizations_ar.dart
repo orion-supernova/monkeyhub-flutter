@@ -4660,25 +4660,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => 'تاريخ الإنشاء';
 
   @override
-  String get countBadgeCaptureProtectionLabel => 'حماية من التقاط الشاشة';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'تظهر لقطات الشاشة وتسجيلات الشاشة سوداء بالنسبة للنظام.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'عند تسجيل الشاشة أو نسخها، يظهر درع خصوصية فوق التطبيق.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'تعمل لقطات الشاشة والتسجيلات بشكل طبيعي خارج الغرف المؤقتة.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'تُفعّل الغرف المؤقتة (حجرة الأسرار) هذا دائمًا، بصرف النظر عن الإعداد.';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'إظهار كلمة المرور';
 
   @override
@@ -10318,23 +10299,6 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => 'حماية من تصوير الشاشة';
-
-  @override
-  String get acctCaptureOnIos =>
-      'يظهر درع الخصوصية عند التسجيل أو النسخ المتطابق.';
-
-  @override
-  String get acctCaptureOnAndroid => 'تظهر لقطات الشاشة والتسجيلات سوداء.';
-
-  @override
-  String get acctCaptureOff => 'تعمل لقطات الشاشة والتسجيلات بشكل طبيعي.';
-
-  @override
-  String get acctCaptureFooter =>
-      'الغرف ذات الرسائل المختفية تفعّل هذا دائمًا.';
-
-  @override
   String get acctActionPending => 'قيد الانتظار';
 
   @override
@@ -10941,9 +10905,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get settingsSearchKwRecovery =>
       'عبارة الاسترداد، كلمة المرور، نسخ احتياطي';
-
-  @override
-  String get settingsSearchKwCapture => 'لقطة شاشة، تسجيل الشاشة، خصوصية';
 
   @override
   String get settingsSearchKwFamily => 'عائلة، طفل، والد، موافقات';
@@ -14194,4 +14155,36 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => 'سبويلر. المس للإظهار';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'الالتقاط ممكن';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'محظور في تطبيقاتنا';
+
+  @override
+  String get captureNoticeRoomTitle => 'لقطات الشاشة غير محظورة هنا';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'لا يستطيع هذا الجهاز منع لقطات الشاشة أو تسجيلها، لذا يمكن التقاط أي شيء في هذه الغرفة هنا. تطبيق MonkeyHub على iPhone وAndroid وMac وWindows يمنعها.';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'يمكن التقاط هذا هنا';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'لا يستطيع هذا الجهاز منع لقطات الشاشة، لذا يمكن حفظ ما تفتحه هنا. أما في تطبيق MonkeyHub على iPhone أو Android أو Mac أو Windows فلا يمكن ذلك. لديك مشاهدة واحدة فقط أينما فتحته.';
+
+  @override
+  String get captureNoticeGetApp => 'احصل على التطبيق';
+
+  @override
+  String get captureNoticeGotIt => 'حسنًا';
+
+  @override
+  String get captureNoticeOpenAnyway => 'افتح على أي حال';
+
+  @override
+  String get captureNoticeNotNow => 'ليس الآن';
 }

@@ -7721,36 +7721,6 @@ abstract class AppLocalizations {
   /// **'Created'**
   String get roomInfoSheetCreatedLabel;
 
-  /// All-caps section label above the capture-protection toggle row in settings (lib/widgets/capture_protection_toggle.dart).
-  ///
-  /// In en, this message translates to:
-  /// **'SCREEN CAPTURE PROTECTION'**
-  String get countBadgeCaptureProtectionLabel;
-
-  /// Explanatory body text shown when capture protection is ON, on Android, under the SCREEN CAPTURE PROTECTION label.
-  ///
-  /// In en, this message translates to:
-  /// **'screenshots + screen recording show as black to the system.'**
-  String get countBadgeCaptureProtectionOnAndroidBody;
-
-  /// Explanatory body text shown when capture protection is ON, on iOS/other platforms, under the SCREEN CAPTURE PROTECTION label.
-  ///
-  /// In en, this message translates to:
-  /// **'screen recording + mirroring drops a privacy shield over the app.'**
-  String get countBadgeCaptureProtectionOnIosBody;
-
-  /// Explanatory body text shown when capture protection is OFF, under the SCREEN CAPTURE PROTECTION label.
-  ///
-  /// In en, this message translates to:
-  /// **'screenshots and recordings work normally outside ephemeral rooms.'**
-  String get countBadgeCaptureProtectionOffBody;
-
-  /// Accent-colored note under the capture-protection toggle explaining ephemeral rooms always force protection on.
-  ///
-  /// In en, this message translates to:
-  /// **'ephemeral (chamber of secrets) rooms always force this on regardless.'**
-  String get countBadgeCaptureProtectionForcedNote;
-
   /// IconButton tooltip on the eye icon in PasswordField when the password is currently hidden (tap reveals it).
   ///
   /// In en, this message translates to:
@@ -17119,36 +17089,6 @@ abstract class AppLocalizations {
   /// **'Use {name}'**
   String themePageUse(String name);
 
-  /// Switch title on your profile: blocks screenshots / screen recording of the app.
-  ///
-  /// In en, this message translates to:
-  /// **'Screen capture protection'**
-  String get acctCaptureTitle;
-
-  /// Subtitle under the capture-protection switch while on, on iPhone/iPad.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording and mirroring show a privacy shield.'**
-  String get acctCaptureOnIos;
-
-  /// Subtitle under the capture-protection switch while on, on Android.
-  ///
-  /// In en, this message translates to:
-  /// **'Screenshots and recordings come out black.'**
-  String get acctCaptureOnAndroid;
-
-  /// Subtitle under the capture-protection switch while off.
-  ///
-  /// In en, this message translates to:
-  /// **'Screenshots and recordings work normally.'**
-  String get acctCaptureOff;
-
-  /// Footer under the capture-protection switch.
-  ///
-  /// In en, this message translates to:
-  /// **'Rooms with disappearing messages always turn this on.'**
-  String get acctCaptureFooter;
-
   /// Short disabled tile on someone's profile while a friend request waits for a guardian's approval. Max ~10 characters.
   ///
   /// In en, this message translates to:
@@ -18270,12 +18210,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'recovery phrase, password, backup, forgot'**
   String get settingsSearchKwRecovery;
-
-  /// Comma-separated search keywords (synonyms people might type) for the Capture entry in Settings search. Not shown on screen; keep short.
-  ///
-  /// In en, this message translates to:
-  /// **'screenshot, screen recording, capture, privacy'**
-  String get settingsSearchKwCapture;
 
   /// Comma-separated search keywords (synonyms people might type) for the Family entry in Settings search. Not shown on screen; keep short.
   ///
@@ -23382,6 +23316,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spoiler. Tap to reveal'**
   String get mediaSpoilerRevealSemanticLabel;
+
+  /// Title of the ephemeral-room welcome card that replaces 'No Capture' on the web and Linux, where the app cannot block screenshots. Title Case like 'No Capture'. Short: it sits in a half-width card.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture Possible'**
+  String get roomScreenCaptureOpenTitle;
+
+  /// Subtitle of that card: the MonkeyHub apps (iPhone, Android, Mac, Windows) are where screenshots are blocked. Title Case like 'Screenshots Restricted'. Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked in Our Apps'**
+  String get roomScreenCaptureOpenSubtitle;
+
+  /// Title of the alert shown once when an ephemeral (disappearing-messages) room is opened in the browser or on Linux, where the app cannot block screenshots.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots aren\'t blocked here'**
+  String get captureNoticeRoomTitle;
+
+  /// Body of that alert. Says honestly that this device can't block capture and points to the apps that can. Keep the platform names as product names.
+  ///
+  /// In en, this message translates to:
+  /// **'This device can\'t stop screenshots or screen recordings, so anything in this room can be captured here. The MonkeyHub app for iPhone, Android, Mac and Windows blocks them.'**
+  String get captureNoticeRoomBody;
+
+  /// Title of the alert shown before a view-once photo, voice or video note opens in the browser or on Linux, where it can be screenshotted.
+  ///
+  /// In en, this message translates to:
+  /// **'This can be captured here'**
+  String get captureNoticeViewOnceTitle;
+
+  /// Body of that alert. The reader gets one view no matter where it is opened, so they can choose to open it in an app that blocks capture instead.
+  ///
+  /// In en, this message translates to:
+  /// **'This device can\'t block screenshots, so whatever you open here can be saved. In the MonkeyHub app for iPhone, Android, Mac or Windows it can\'t. You get one view wherever you open it.'**
+  String get captureNoticeViewOnceBody;
+
+  /// Button: opens the MonkeyHub download page.
+  ///
+  /// In en, this message translates to:
+  /// **'Get the app'**
+  String get captureNoticeGetApp;
+
+  /// Button dismissing the ephemeral-room capture alert.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get captureNoticeGotIt;
+
+  /// Button: open the view-once message here despite the warning (spends the one view).
+  ///
+  /// In en, this message translates to:
+  /// **'Open anyway'**
+  String get captureNoticeOpenAnyway;
+
+  /// Button: don't open the view-once message now (the view is not spent).
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get captureNoticeNotNow;
 }
 
 class _AppLocalizationsDelegate

@@ -79,6 +79,28 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       }
     }
 
+    // monkeyhub/capture — screen-capture protection (CaptureProtection in
+    // lib/privacy/capture_protection.dart). `.none` keeps the window out of
+    // screencapture, ⌘⇧3/4/5 and CGWindowList-based recorders. Recorders built
+    // on ScreenCaptureKit have not always honoured it, so this is the best
+    // macOS offers rather than a guarantee.
+    let captureChannel = FlutterMethodChannel(
+      name: "monkeyhub/capture",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    captureChannel.setMethodCallHandler { [weak self] call, result in
+      switch call.method {
+      case "setEnabled":
+        let enabled = ((call.arguments as? [String: Any])?["enabled"] as? Bool) ?? false
+        self?.sharingType = enabled ? .none : .readOnly
+        result(nil)
+      case "isCaptured":
+        result(false)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     // monkeyhub/haptics — Flutter's HapticFeedback, played on the Force Touch
     // trackpad. Dart never calls this by name: AppBinding (lib/services/
     // app_binding.dart) reroutes `HapticFeedback.vibrate` here, so every

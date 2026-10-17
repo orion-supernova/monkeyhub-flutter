@@ -12,18 +12,21 @@ import 'package:flutter/widgets.dart' show WidgetsBinding;
 /// window — Android then blocks screenshots and screen-recording at the OS
 /// level (no overlay needed; the app simply renders as black to capturers).
 ///
-/// On iOS there's no equivalent FLAG_SECURE. We listen to UIScreen.isCaptured
-/// changes and surface them as [isBeingCaptured] so a Flutter overlay can
-/// hide content while a recording or AirPlay mirror is active.
+/// On iOS there's no FLAG_SECURE: the window is drawn inside a secure text
+/// field's canvas, which the system leaves out of screenshots, recordings
+/// and mirroring (CaptureGuard, ios/Runner/SceneDelegate.swift). We also
+/// listen to UIScreen.isCaptured and surface it as [isBeingCaptured], so a
+/// Flutter overlay still hides content during a recording if that guard
+/// could not install.
 ///
-/// Two ways protection becomes active:
-///   1. **User preference** — global toggle in Settings → PRIVACY.
-///   2. **Scoped overrides** — e.g. ephemeral-room screens push a scope on
-///      entry and pop on exit. While ANY scope is open, protection is on
-///      regardless of the user preference. Scopes guarantee that the very
-///      thing ephemeral rooms exist to prevent (someone screenshotting a
-///      vanishing message) can't bypass protection just because the user
-///      forgot to toggle the setting.
+/// macOS sets `NSWindow.sharingType = .none`; Windows sets
+/// `WDA_EXCLUDEFROMCAPTURE` display affinity.
+///
+/// There is no preference. Protection is on exactly while a **scope** is
+/// open: an ephemeral room, a view-once photo, a playing voice or video note
+/// pushes one on entry and pops it on exit. Outside those, screenshots work
+/// normally; inside them there is nothing to switch off, because blocking the
+/// capture is the whole point of a vanishing message.
 class CaptureProtection extends ChangeNotifier {
   CaptureProtection._();
   static final CaptureProtection instance = CaptureProtection._();
@@ -31,13 +34,10 @@ class CaptureProtection extends ChangeNotifier {
   static const _methods = MethodChannel('monkeyhub/capture');
   static const _events = EventChannel('monkeyhub/capture/events');
 
-  bool _userEnabled = false;
   int _scopeCount = 0;
   bool _isBeingCaptured = false;
   bool _appliedNative = false;
   StreamSubscription? _sub;
-
-  bool get userEnabled => _userEnabled;
 
   /// Protection is lifted while this device is SHARING its screen — the
   /// flag blanks our own outgoing capture as thoroughly as anyone else's.
@@ -49,7 +49,7 @@ class CaptureProtection extends ChangeNotifier {
   bool get suspended => _suspended;
 
   /// True when protection is currently active for any reason.
-  bool get active => (_userEnabled || _scopeCount > 0) && !_suspended;
+  bool get active => _scopeCount > 0 && !_suspended;
 
   /// Whether a scope — an ephemeral room on screen — is what makes
   /// protection active right now. The share flow warns about this one.
@@ -75,8 +75,22 @@ class CaptureProtection extends ChangeNotifier {
 
   // kIsWeb is const, so on web the `&&` short-circuits before Platform.*
   // (dart:io) — which throws on web. Neutralizes the whole capture path
-  // (ensureListening / setUserEnabled / push/popScope all gate on _supported).
-  bool get _supported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  // (ensureListening / push/popScope all gate on _supported).
+  bool get _supported => platformProtects;
+
+  /// Whether this platform can block screen capture at all.
+  ///
+  /// Linux has no mechanism (any X11 client can read the screen, and
+  /// Wayland's capture portal has no exclusion hint), and a browser cannot
+  /// stop a screenshot. Both say so instead of pretending; see CaptureNotice.
+  static bool get platformProtects =>
+      debugPlatformProtectsOverride ??
+      (!kIsWeb &&
+          (Platform.isIOS || Platform.isAndroid || Platform.isMacOS || Platform.isWindows));
+
+  /// Tests run on a desktop host; this lets one stand in for the browser.
+  @visibleForTesting
+  static bool? debugPlatformProtectsOverride;
 
   /// Subscribe to native capture events. Safe to call multiple times.
   Future<void> ensureListening() async {
@@ -93,18 +107,8 @@ class CaptureProtection extends ChangeNotifier {
     );
   }
 
-  /// User toggled the global preference. Persisted by SettingsStore; this
-  /// only updates the in-memory state + native flag.
-  Future<void> setUserEnabled(bool v) async {
-    if (_userEnabled == v) return;
-    _userEnabled = v;
-    _notifyDeferred();
-    await _reconcileNative();
-  }
-
-  /// Open a scope that forces protection ON regardless of the user
-  /// preference. Returns a token-free counter — every push must be matched
-  /// by a pop. Safe to nest.
+  /// Open a scope that turns protection ON. A token-free counter — every
+  /// push must be matched by a pop. Safe to nest.
   Future<void> pushScope() async {
     _scopeCount++;
     _notifyDeferred();

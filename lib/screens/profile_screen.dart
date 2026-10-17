@@ -33,7 +33,6 @@ import '../widgets/account_kit.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/block_choice_sheet.dart';
-import '../widgets/capture_protection_toggle.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/ios_kit.dart';
 import '../widgets/labeled_field.dart';
@@ -1569,11 +1568,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
-        ),
-      if (canPrivacy)
-        GroupedSection(
-          footer: l10n.acctCaptureFooter,
-          children: const [CaptureProtectionToggle()],
         ),
       if (canAccount)
         GroupedSection(

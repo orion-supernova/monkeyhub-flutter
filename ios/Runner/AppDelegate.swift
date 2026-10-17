@@ -1510,9 +1510,12 @@ import WebRTC
         case "isCaptured":
           result(UIScreen.main.isCaptured)
         case "setEnabled":
-          // iOS has no FLAG_SECURE equivalent — the Dart layer renders the
-          // protection overlay using the event channel below. This method
-          // is a no-op on iOS but kept for API symmetry with Android.
+          // The secure-field layer (CaptureGuard in SceneDelegate.swift)
+          // blanks the window in screenshots, recordings and mirroring. The
+          // event channel below still drives the recording overlay, for an
+          // iOS where the guard could not install.
+          let enabled = ((call.arguments as? [String: Any])?["enabled"] as? Bool) ?? false
+          CaptureGuard.shared.setEnabled(enabled)
           result(nil)
         default:
           result(FlutterMethodNotImplemented)

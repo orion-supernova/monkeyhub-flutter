@@ -5087,26 +5087,6 @@
   "@roomInfoSheetCreatedLabel": {
     "description": "Label on the room info sheet line whose body is the date the room was created. Rendered in caps."
   },
-  "countBadgeCaptureProtectionLabel": "SCREEN CAPTURE PROTECTION",
-  "@countBadgeCaptureProtectionLabel": {
-    "description": "All-caps section label above the capture-protection toggle row in settings (lib/widgets/capture_protection_toggle.dart)."
-  },
-  "countBadgeCaptureProtectionOnAndroidBody": "screenshots + screen recording show as black to the system.",
-  "@countBadgeCaptureProtectionOnAndroidBody": {
-    "description": "Explanatory body text shown when capture protection is ON, on Android, under the SCREEN CAPTURE PROTECTION label."
-  },
-  "countBadgeCaptureProtectionOnIosBody": "screen recording + mirroring drops a privacy shield over the app.",
-  "@countBadgeCaptureProtectionOnIosBody": {
-    "description": "Explanatory body text shown when capture protection is ON, on iOS/other platforms, under the SCREEN CAPTURE PROTECTION label."
-  },
-  "countBadgeCaptureProtectionOffBody": "screenshots and recordings work normally outside ephemeral rooms.",
-  "@countBadgeCaptureProtectionOffBody": {
-    "description": "Explanatory body text shown when capture protection is OFF, under the SCREEN CAPTURE PROTECTION label."
-  },
-  "countBadgeCaptureProtectionForcedNote": "ephemeral (chamber of secrets) rooms always force this on regardless.",
-  "@countBadgeCaptureProtectionForcedNote": {
-    "description": "Accent-colored note under the capture-protection toggle explaining ephemeral rooms always force protection on."
-  },
   "countBadgeShowPasswordTooltip": "show password",
   "@countBadgeShowPasswordTooltip": {
     "description": "IconButton tooltip on the eye icon in PasswordField when the password is currently hidden (tap reveals it)."
@@ -11755,26 +11735,6 @@
       }
     }
   },
-  "acctCaptureTitle": "Screen capture protection",
-  "@acctCaptureTitle": {
-    "description": "Switch title on your profile: blocks screenshots / screen recording of the app."
-  },
-  "acctCaptureOnIos": "Recording and mirroring show a privacy shield.",
-  "@acctCaptureOnIos": {
-    "description": "Subtitle under the capture-protection switch while on, on iPhone/iPad."
-  },
-  "acctCaptureOnAndroid": "Screenshots and recordings come out black.",
-  "@acctCaptureOnAndroid": {
-    "description": "Subtitle under the capture-protection switch while on, on Android."
-  },
-  "acctCaptureOff": "Screenshots and recordings work normally.",
-  "@acctCaptureOff": {
-    "description": "Subtitle under the capture-protection switch while off."
-  },
-  "acctCaptureFooter": "Rooms with disappearing messages always turn this on.",
-  "@acctCaptureFooter": {
-    "description": "Footer under the capture-protection switch."
-  },
   "acctActionPending": "Pending",
   "@acctActionPending": {
     "description": "Short disabled tile on someone's profile while a friend request waits for a guardian's approval. Max ~10 characters."
@@ -12562,10 +12522,6 @@
   "settingsSearchKwRecovery": "recovery phrase, password, backup, forgot",
   "@settingsSearchKwRecovery": {
     "description": "Comma-separated search keywords (synonyms people might type) for the Recovery entry in Settings search. Not shown on screen; keep short."
-  },
-  "settingsSearchKwCapture": "screenshot, screen recording, capture, privacy",
-  "@settingsSearchKwCapture": {
-    "description": "Comma-separated search keywords (synonyms people might type) for the Capture entry in Settings search. Not shown on screen; keep short."
   },
   "settingsSearchKwFamily": "family, child, parent, approvals, grown-ups",
   "@settingsSearchKwFamily": {
@@ -16767,5 +16723,45 @@
   "mediaSpoilerRevealSemanticLabel": "Spoiler. Tap to reveal",
   "@mediaSpoilerRevealSemanticLabel": {
     "description": "Accessibility label on a photo or video in a chat that was sent as a spoiler and is still covered by dust. Activating it reveals the picture."
+  },
+  "roomScreenCaptureOpenTitle": "Capture Possible",
+  "@roomScreenCaptureOpenTitle": {
+    "description": "Title of the ephemeral-room welcome card that replaces 'No Capture' on the web and Linux, where the app cannot block screenshots. Title Case like 'No Capture'. Short: it sits in a half-width card."
+  },
+  "roomScreenCaptureOpenSubtitle": "Blocked in Our Apps",
+  "@roomScreenCaptureOpenSubtitle": {
+    "description": "Subtitle of that card: the MonkeyHub apps (iPhone, Android, Mac, Windows) are where screenshots are blocked. Title Case like 'Screenshots Restricted'. Short."
+  },
+  "captureNoticeRoomTitle": "Screenshots aren't blocked here",
+  "@captureNoticeRoomTitle": {
+    "description": "Title of the alert shown once when an ephemeral (disappearing-messages) room is opened in the browser or on Linux, where the app cannot block screenshots."
+  },
+  "captureNoticeRoomBody": "This device can't stop screenshots or screen recordings, so anything in this room can be captured here. The MonkeyHub app for iPhone, Android, Mac and Windows blocks them.",
+  "@captureNoticeRoomBody": {
+    "description": "Body of that alert. Says honestly that this device can't block capture and points to the apps that can. Keep the platform names as product names."
+  },
+  "captureNoticeViewOnceTitle": "This can be captured here",
+  "@captureNoticeViewOnceTitle": {
+    "description": "Title of the alert shown before a view-once photo, voice or video note opens in the browser or on Linux, where it can be screenshotted."
+  },
+  "captureNoticeViewOnceBody": "This device can't block screenshots, so whatever you open here can be saved. In the MonkeyHub app for iPhone, Android, Mac or Windows it can't. You get one view wherever you open it.",
+  "@captureNoticeViewOnceBody": {
+    "description": "Body of that alert. The reader gets one view no matter where it is opened, so they can choose to open it in an app that blocks capture instead."
+  },
+  "captureNoticeGetApp": "Get the app",
+  "@captureNoticeGetApp": {
+    "description": "Button: opens the MonkeyHub download page."
+  },
+  "captureNoticeGotIt": "Got it",
+  "@captureNoticeGotIt": {
+    "description": "Button dismissing the ephemeral-room capture alert."
+  },
+  "captureNoticeOpenAnyway": "Open anyway",
+  "@captureNoticeOpenAnyway": {
+    "description": "Button: open the view-once message here despite the warning (spends the one view)."
+  },
+  "captureNoticeNotNow": "Not now",
+  "@captureNoticeNotNow": {
+    "description": "Button: don't open the view-once message now (the view is not spent)."
   }
 }

@@ -4532,25 +4532,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => 'Oluşturuldu';
 
   @override
-  String get countBadgeCaptureProtectionLabel => 'EKRAN YAKALAMA KORUMASI';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'ekran görüntüleri ve ekran kaydı sistem tarafından siyah gösterilir.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'ekran kaydı ve yansıtma, uygulamanın üzerine bir gizlilik kalkanı indirir.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'geçici (kaybolan) odalar dışında ekran görüntüsü ve kayıt normal şekilde çalışır.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'geçici (sırlar odası) odalarında bu, ne olursa olsun her zaman açıktır.';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'şifreyi göster';
 
   @override
@@ -10117,24 +10098,6 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => 'Ekran kaydı koruması';
-
-  @override
-  String get acctCaptureOnIos =>
-      'Kayıt ve yansıtmada gizlilik perdesi görünür.';
-
-  @override
-  String get acctCaptureOnAndroid =>
-      'Ekran görüntüleri ve kayıtlar siyah çıkar.';
-
-  @override
-  String get acctCaptureOff => 'Ekran görüntüleri ve kayıtlar normal çalışır.';
-
-  @override
-  String get acctCaptureFooter =>
-      'Kaybolan mesajlı odalarda bu her zaman açıktır.';
-
-  @override
   String get acctActionPending => 'Bekliyor';
 
   @override
@@ -10747,10 +10710,6 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get settingsSearchKwRecovery =>
       'kurtarma ifadesi, şifre, yedek, unuttum';
-
-  @override
-  String get settingsSearchKwCapture =>
-      'ekran görüntüsü, ekran kaydı, gizlilik';
 
   @override
   String get settingsSearchKwFamily => 'aile, çocuk, ebeveyn, onay';
@@ -13957,4 +13916,36 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Göstermek için dokun';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'Yakalanabilir';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'Uygulamalarımızda Engelli';
+
+  @override
+  String get captureNoticeRoomTitle => 'Ekran görüntüleri burada engellenmiyor';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'Bu cihaz ekran görüntüsünü ve ekran kaydını engelleyemiyor, yani bu odadaki her şey burada kaydedilebilir. iPhone, Android, Mac ve Windows için MonkeyHub uygulaması bunları engeller.';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'Bu burada kaydedilebilir';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'Bu cihaz ekran görüntüsünü engelleyemiyor, yani burada açtığın şey kaydedilebilir. iPhone, Android, Mac veya Windows için MonkeyHub uygulamasında kaydedilemez. Nerede açarsan aç, tek bir görüntüleme hakkın var.';
+
+  @override
+  String get captureNoticeGetApp => 'Uygulamayı indir';
+
+  @override
+  String get captureNoticeGotIt => 'Anladım';
+
+  @override
+  String get captureNoticeOpenAnyway => 'Yine de aç';
+
+  @override
+  String get captureNoticeNotNow => 'Şimdi değil';
 }

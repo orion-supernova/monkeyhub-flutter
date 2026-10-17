@@ -13,17 +13,19 @@ import 'fakes/fake_webrtc.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('capture protection is lifted for the share and restored after', () {
+  test('capture protection is lifted for the share and restored after',
+      () async {
     final cp = CaptureProtection.instance;
-    cp.setUserEnabled(true);
+    expect(cp.active, isFalse, reason: 'no scope, no protection');
+    await cp.pushScope();
     expect(cp.active, isTrue);
     cp.suspend();
     expect(cp.active, isFalse);
     expect(cp.suspended, isTrue);
-    expect(cp.userEnabled, isTrue, reason: 'the preference is untouched');
     cp.resume();
     expect(cp.active, isTrue);
-    cp.setUserEnabled(false);
+    await cp.popScope();
+    expect(cp.active, isFalse);
   });
 
   test('a scope still counts as protection, and as a warning', () async {
@@ -62,7 +64,7 @@ void main() {
       return null;
     };
     final cp = CaptureProtection.instance;
-    cp.setUserEnabled(true);
+    await cp.pushScope();
     await ScreenShare.prepare(
       notificationTitle: 't',
       notificationBody: 'b',
@@ -73,6 +75,6 @@ void main() {
     expect(cp.active, isTrue);
     // Off Android nothing is asked of the platform for the share itself.
     expect(calls.where((c) => c == 'start' || c == 'stop'), isEmpty);
-    cp.setUserEnabled(false);
+    await cp.popScope();
   });
 }

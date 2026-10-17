@@ -4587,25 +4587,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => 'Skapad';
 
   @override
-  String get countBadgeCaptureProtectionLabel => 'SKÄRMSKYDD';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'skärmdumpar och skärminspelning visas svarta för systemet.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'skärminspelning och skärmspegling lägger en integritetsskärm över appen.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'skärmdumpar och inspelningar fungerar som vanligt utanför flyktiga rum.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'flyktiga rum (hemligheternas kammare) har alltid detta påslaget, oavsett.';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'visa lösenord';
 
   @override
@@ -10192,25 +10173,6 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => 'Skydd mot skärminspelning';
-
-  @override
-  String get acctCaptureOnIos =>
-      'Inspelning och skärmdelning visar ett integritetsskydd.';
-
-  @override
-  String get acctCaptureOnAndroid =>
-      'Skärmbilder och inspelningar blir svarta.';
-
-  @override
-  String get acctCaptureOff =>
-      'Skärmbilder och inspelningar fungerar som vanligt.';
-
-  @override
-  String get acctCaptureFooter =>
-      'Rum med försvinnande meddelanden slår alltid på detta.';
-
-  @override
   String get acctActionPending => 'Väntar';
 
   @override
@@ -10813,10 +10775,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get settingsSearchKwRecovery =>
       'återställningsfras, lösenord, säkerhetskopia';
-
-  @override
-  String get settingsSearchKwCapture =>
-      'skärmdump, skärminspelning, integritet';
 
   @override
   String get settingsSearchKwFamily => 'familj, barn, förälder, godkännanden';
@@ -14052,4 +14010,36 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Tryck för att visa';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'Kan fångas';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'Blockeras i våra appar';
+
+  @override
+  String get captureNoticeRoomTitle => 'Skärmdumpar blockeras inte här';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'Den här enheten kan inte stoppa skärmdumpar eller skärminspelningar, så allt i det här rummet kan fångas här. MonkeyHub-appen för iPhone, Android, Mac och Windows blockerar dem.';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'Det här kan fångas här';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'Den här enheten kan inte blockera skärmdumpar, så det du öppnar här kan sparas. I MonkeyHub-appen för iPhone, Android, Mac eller Windows går det inte. Du får en enda visning, var du än öppnar den.';
+
+  @override
+  String get captureNoticeGetApp => 'Hämta appen';
+
+  @override
+  String get captureNoticeGotIt => 'Uppfattat';
+
+  @override
+  String get captureNoticeOpenAnyway => 'Öppna ändå';
+
+  @override
+  String get captureNoticeNotNow => 'Inte nu';
 }

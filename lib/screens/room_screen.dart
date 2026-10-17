@@ -59,6 +59,7 @@ import '../widgets/inline_photo_picker.dart';
 import '../media/photo_picking.dart';
 import '../media/view_once_fetch.dart';
 import '../media/view_once_media.dart';
+import '../privacy/capture_notice.dart';
 import '../privacy/capture_protection.dart';
 import '../services/live_location_permission.dart';
 import '../services/live_location_platform.dart';
@@ -768,6 +769,13 @@ class _RoomScreenState extends State<RoomScreen>
     // CaptureProtection defers its listener notification internally, so
     // calling this from initState / _onRepoChange / dispose is safe.
     CaptureProtection.instance.pushScope();
+    // Where the scope can't actually block anything, say so instead. After
+    // the frame: this runs from initState, too early for a dialog.
+    if (!CaptureProtection.platformProtects) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(CaptureNotice.warnRoomOnce(context, room.id));
+      });
+    }
   }
 
   /// Whether [m] must keep its own row — never folded into a chip.
@@ -4133,6 +4141,7 @@ class _RoomScreenState extends State<RoomScreen>
   Future<Uint8List?> _openViewOnce(ChatMessage m) async {
     final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
+    if (!await CaptureNotice.confirmViewOnce(context)) return null;
     final res = await fetchViewOnce(
       repo: widget.repo,
       roomId: widget.roomId,
@@ -7951,11 +7960,19 @@ class _SecretSpaceWelcome extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _PrivateFeatureCard(
-                            icon: CupertinoIcons.hand_raised_fill,
-                            title: AppLocalizations.of(context).roomScreenNoCaptureTitle,
-                            subtitle: AppLocalizations.of(context).roomScreenNoCaptureSubtitle,
-                          ),
+                          // Only where the platform can block capture; the
+                          // browser and Linux say plainly that it can't.
+                          child: CaptureProtection.platformProtects
+                              ? _PrivateFeatureCard(
+                                  icon: CupertinoIcons.hand_raised_fill,
+                                  title: AppLocalizations.of(context).roomScreenNoCaptureTitle,
+                                  subtitle: AppLocalizations.of(context).roomScreenNoCaptureSubtitle,
+                                )
+                              : _PrivateFeatureCard(
+                                  icon: CupertinoIcons.eye,
+                                  title: AppLocalizations.of(context).roomScreenCaptureOpenTitle,
+                                  subtitle: AppLocalizations.of(context).roomScreenCaptureOpenSubtitle,
+                                ),
                         ),
                       ],
                     ),

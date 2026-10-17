@@ -4410,25 +4410,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => '생성일';
 
   @override
-  String get countBadgeCaptureProtectionLabel => '화면 캡처 보호';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      '스크린샷과 화면 녹화가 시스템에는 검은 화면으로 나와요.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      '화면 녹화나 미러링을 하면 앱 위에 프라이버시 보호막이 표시돼요.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      '휘발성 방이 아니면 스크린샷과 화면 녹화가 평소처럼 동작해요.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      '휘발성 방(일명 \'비밀의 방\')은 이 설정과 상관없이 항상 켜져 있어요.';
-
-  @override
   String get countBadgeShowPasswordTooltip => '비밀번호 표시';
 
   @override
@@ -9753,21 +9734,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => '화면 캡처 보호';
-
-  @override
-  String get acctCaptureOnIos => '녹화나 미러링 시 개인정보 보호 화면이 표시돼요.';
-
-  @override
-  String get acctCaptureOnAndroid => '스크린샷과 녹화가 검게 나와요.';
-
-  @override
-  String get acctCaptureOff => '스크린샷과 녹화가 평소처럼 작동해요.';
-
-  @override
-  String get acctCaptureFooter => '사라지는 메시지 방에서는 항상 켜져요.';
-
-  @override
   String get acctActionPending => '대기 중';
 
   @override
@@ -10354,9 +10320,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsSearchKwRecovery => '복구 문구, 비밀번호, 백업';
-
-  @override
-  String get settingsSearchKwCapture => '스크린샷, 화면 녹화, 개인정보';
 
   @override
   String get settingsSearchKwFamily => '가족, 자녀, 부모, 승인';
@@ -13420,4 +13383,36 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => '스포일러. 탭해서 보기';
+
+  @override
+  String get roomScreenCaptureOpenTitle => '캡처 가능';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => '앱에서는 차단';
+
+  @override
+  String get captureNoticeRoomTitle => '여기서는 스크린샷이 차단되지 않아요';
+
+  @override
+  String get captureNoticeRoomBody =>
+      '이 기기는 스크린샷과 화면 녹화를 막을 수 없어서, 이 방의 모든 내용이 여기서 캡처될 수 있어요. iPhone, Android, Mac, Windows용 MonkeyHub 앱에서는 차단돼요.';
+
+  @override
+  String get captureNoticeViewOnceTitle => '여기서는 캡처될 수 있어요';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      '이 기기는 스크린샷을 막을 수 없어서, 여기서 연 내용은 저장될 수 있어요. iPhone, Android, Mac, Windows용 MonkeyHub 앱에서는 저장할 수 없어요. 어디서 열든 한 번만 볼 수 있어요.';
+
+  @override
+  String get captureNoticeGetApp => '앱 받기';
+
+  @override
+  String get captureNoticeGotIt => '확인';
+
+  @override
+  String get captureNoticeOpenAnyway => '그래도 열기';
+
+  @override
+  String get captureNoticeNotNow => '나중에';
 }

@@ -42,6 +42,9 @@ class _UrlApi extends Fake implements ChatApi {
 
 void main() {
   const channel = MethodChannel('monkeyhub/video');
+  // Answered so a scope's native flag call resolves on a desktop test host,
+  // where capture protection is now a supported platform.
+  const capture = MethodChannel('monkeyhub/capture');
   const viewport = Size(400, 800);
 
   late Directory cacheDir;
@@ -54,6 +57,8 @@ void main() {
       presented.add(call);
       return true;
     });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(capture, (call) async => null);
     // The test VM is neither iOS nor Android, so without this every case here
     // would take the unsupported branch and pin nothing.
     NativeVideoPlayer.debugSupportedOverride = true;
@@ -71,7 +76,11 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
     NativeVideoPlayer.debugSupportedOverride = null;
-    await CaptureProtection.instance.setUserEnabled(false);
+    while (CaptureProtection.instance.scopeActive) {
+      await CaptureProtection.instance.popScope();
+    }
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(capture, null);
     VideoFileCache.instance
       ..debugReset()
       ..debugDir = null;
@@ -137,7 +146,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await CaptureProtection.instance.setUserEnabled(true);
+    await CaptureProtection.instance.pushScope();
     seedCached('guarded_1');
     await openViewer(tester, storageId: 'guarded_1');
 

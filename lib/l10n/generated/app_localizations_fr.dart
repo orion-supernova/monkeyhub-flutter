@@ -4641,25 +4641,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => 'Créé le';
 
   @override
-  String get countBadgeCaptureProtectionLabel => 'PROTECTION CAPTURE D\'ÉCRAN';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'les captures d\'écran et enregistrements d\'écran s\'affichent en noir pour le système.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'l\'enregistrement d\'écran et la recopie d\'écran font apparaître un bouclier de confidentialité sur l\'appli.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'hors des salons éphémères, les captures d\'écran et enregistrements fonctionnent normalement.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'les salons éphémères (la chambre des secrets) l\'activent toujours, quoi qu\'il arrive.';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'afficher le mot de passe';
 
   @override
@@ -10312,25 +10293,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => 'Protection contre les captures';
-
-  @override
-  String get acctCaptureOnIos =>
-      'L’enregistrement et la recopie affichent un écran de confidentialité.';
-
-  @override
-  String get acctCaptureOnAndroid =>
-      'Les captures et enregistrements apparaissent noirs.';
-
-  @override
-  String get acctCaptureOff =>
-      'Les captures et enregistrements fonctionnent normalement.';
-
-  @override
-  String get acctCaptureFooter =>
-      'Les salons à messages éphémères l’activent toujours.';
-
-  @override
   String get acctActionPending => 'En attente';
 
   @override
@@ -10944,10 +10906,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsSearchKwRecovery =>
       'phrase de récupération, mot de passe, sauvegarde';
-
-  @override
-  String get settingsSearchKwCapture =>
-      'capture d’écran, enregistrement, confidentialité';
 
   @override
   String get settingsSearchKwFamily => 'famille, enfant, parent, approbations';
@@ -14218,4 +14176,36 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get mediaSpoilerRevealSemanticLabel =>
       'Spoiler. Touchez pour afficher';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'Capture possible';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'Bloquées dans nos applis';
+
+  @override
+  String get captureNoticeRoomTitle => 'Les captures ne sont pas bloquées ici';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'Cet appareil ne peut pas empêcher les captures ni les enregistrements d\'écran : tout ce qui se trouve dans ce salon peut être capturé ici. L\'appli MonkeyHub pour iPhone, Android, Mac et Windows les bloque.';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'Ceci peut être capturé ici';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'Cet appareil ne peut pas bloquer les captures d\'écran : ce que vous ouvrez ici peut être enregistré. Dans l\'appli MonkeyHub pour iPhone, Android, Mac ou Windows, c\'est impossible. Vous n\'avez qu\'une seule vue, où que vous l\'ouvriez.';
+
+  @override
+  String get captureNoticeGetApp => 'Obtenir l\'appli';
+
+  @override
+  String get captureNoticeGotIt => 'Compris';
+
+  @override
+  String get captureNoticeOpenAnyway => 'Ouvrir quand même';
+
+  @override
+  String get captureNoticeNotNow => 'Pas maintenant';
 }

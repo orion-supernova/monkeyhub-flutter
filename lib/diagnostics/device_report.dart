@@ -21,8 +21,6 @@ import '../update/release_channel.dart';
 ///    an adaptive-refresh handoff is a plausible cause of a visible strobe.
 ///  * **animation scales** — a user or an OEM battery mode can set these to 0,
 ///    which changes how every transition in the app behaves.
-///  * **captureProtection** — when on, the app sets FLAG_SECURE, and changing
-///    window flags on Android forces a surface reconfigure.
 ///  * **power save** — Samsung's power manager throttles aggressively and is a
 ///    standing suspect in anything that only reproduces on one Galaxy.
 ///  * **theme id** — several themes render shader-backed background layers.
@@ -135,7 +133,6 @@ class DeviceReport {
       out['navStyle'] = s.navStyle.name;
       out['chatStyle'] = s.chatStyle.name;
       out['roomLayout'] = s.roomLayout.name;
-      out['captureProtection'] = s.captureProtection;
       out['localeOverride'] = s.localeCode;
     } catch (_) {}
 
@@ -336,7 +333,7 @@ class DeviceReport {
     );
     b.writeln(
       'settings    theme=${v('theme')} nav=${v('navStyle')}'
-      ' chat=${v('chatStyle')} captureProtection=${v('captureProtection')}',
+      ' chat=${v('chatStyle')}',
     );
     b.writeln(
       'language    app ${appLocaleTag ?? '—'}'

@@ -1205,12 +1205,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// preferences are actually readable. Free on every resume but the one after
   /// a locked launch — see [SettingsStore.retryIfUnread].
   Future<void> _retrySettings() async {
-    if (!await SettingsStore.instance.retryIfUnread()) return;
     // The theme re-resolves through [_syncTheme], which the retry's own
-    // notification already reached; capture protection has no listener.
-    await CaptureProtection.instance.setUserEnabled(
-      SettingsStore.instance.captureProtection,
-    );
+    // notification already reaches; nothing else is copied out at launch.
+    await SettingsStore.instance.retryIfUnread();
   }
 
   /// Puts the theme the preferences call for on screen, if it is not already.
@@ -1456,11 +1453,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // SettingsStore was preloaded in main.dart and the theme controller was
     // seeded with the right starting theme synchronously (`_initialTheme()`
     // below). Nothing left to reconcile here.
-    // Apply screen-capture protection setting on boot: Android enables
-    // FLAG_SECURE immediately; iOS just primes the event stream.
-    await CaptureProtection.instance.setUserEnabled(
-      SettingsStore.instance.captureProtection,
-    );
+    // Capture protection has no preference: it is on exactly while an
+    // ephemeral room (or a view-once photo) is on screen. Boot only primes
+    // the iOS capture-state stream.
     await CaptureProtection.instance.ensureListening();
 
     // Before anything touches the client: is there a server at all? A build

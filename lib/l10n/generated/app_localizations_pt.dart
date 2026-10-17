@@ -4615,25 +4615,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => 'Criada em';
 
   @override
-  String get countBadgeCaptureProtectionLabel => 'PROTEÇÃO DE CAPTURA DE ECRÃ';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'as capturas de ecrã e a gravação de ecrã aparecem a preto para o sistema.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'a gravação de ecrã e o espelhamento cobrem a app com um escudo de privacidade.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'as capturas de ecrã e as gravações funcionam normalmente fora de salas efémeras.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'as salas efémeras (a câmara dos segredos) forçam sempre isto, aconteça o que acontecer.';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'mostrar palavra-passe';
 
   @override
@@ -10266,23 +10247,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => 'Proteção contra captura de ecrã';
-
-  @override
-  String get acctCaptureOnIos =>
-      'Gravações e espelhamento mostram uma proteção de privacidade.';
-
-  @override
-  String get acctCaptureOnAndroid => 'Capturas e gravações ficam pretas.';
-
-  @override
-  String get acctCaptureOff => 'Capturas e gravações funcionam normalmente.';
-
-  @override
-  String get acctCaptureFooter =>
-      'Salas com mensagens temporárias ativam isto sempre.';
-
-  @override
   String get acctActionPending => 'Pendente';
 
   @override
@@ -10895,10 +10859,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsSearchKwRecovery =>
       'frase de recuperação, palavra-passe, cópia';
-
-  @override
-  String get settingsSearchKwCapture =>
-      'captura de ecrã, gravação, privacidade';
 
   @override
   String get settingsSearchKwFamily => 'família, criança, pais, aprovações';
@@ -14158,6 +14118,39 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Toque para revelar';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'Captura Possível';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'Bloqueadas nas Nossas Apps';
+
+  @override
+  String get captureNoticeRoomTitle =>
+      'As capturas de ecrã não são bloqueadas aqui';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'Este dispositivo não consegue impedir capturas nem gravações de ecrã, por isso tudo nesta sala pode ser capturado aqui. A app MonkeyHub para iPhone, Android, Mac e Windows bloqueia-as.';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'Isto pode ser capturado aqui';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'Este dispositivo não consegue bloquear capturas de ecrã, por isso o que abrir aqui pode ser guardado. Na app MonkeyHub para iPhone, Android, Mac ou Windows, não pode. Só tem uma visualização, onde quer que a abra.';
+
+  @override
+  String get captureNoticeGetApp => 'Obter a app';
+
+  @override
+  String get captureNoticeGotIt => 'Entendido';
+
+  @override
+  String get captureNoticeOpenAnyway => 'Abrir mesmo assim';
+
+  @override
+  String get captureNoticeNotNow => 'Agora não';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -18765,26 +18758,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomInfoSheetCreatedLabel => 'Criada em';
-
-  @override
-  String get countBadgeCaptureProtectionLabel =>
-      'PROTEÇÃO CONTRA CAPTURA DE TELA';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'capturas de tela e gravações de tela aparecem pretas para o sistema.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'gravação de tela e espelhamento cobrem o app com um escudo de privacidade.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'capturas de tela e gravações funcionam normalmente fora de salas efêmeras.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'salas efêmeras (a câmara secreta) sempre ativam isso à força, não importa o quê.';
 
   @override
   String get countBadgeShowPasswordTooltip => 'mostrar senha';
@@ -24415,23 +24388,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get acctCaptureTitle => 'Proteção contra captura de tela';
-
-  @override
-  String get acctCaptureOnIos =>
-      'Gravações e espelhamento mostram uma proteção de privacidade.';
-
-  @override
-  String get acctCaptureOnAndroid => 'Capturas e gravações ficam pretas.';
-
-  @override
-  String get acctCaptureOff => 'Capturas e gravações funcionam normalmente.';
-
-  @override
-  String get acctCaptureFooter =>
-      'Salas com mensagens temporárias sempre ativam isso.';
-
-  @override
   String get acctActionPending => 'Pendente';
 
   @override
@@ -25041,10 +24997,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsSearchKwRecovery => 'frase de recuperação, senha, backup';
-
-  @override
-  String get settingsSearchKwCapture =>
-      'captura de tela, gravação, privacidade';
 
   @override
   String get settingsSearchKwFamily => 'família, criança, pais, aprovações';
@@ -28297,4 +28249,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Toque para revelar';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'Captura Possível';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'Bloqueadas nos Nossos Apps';
+
+  @override
+  String get captureNoticeRoomTitle =>
+      'Capturas de tela não são bloqueadas aqui';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'Este dispositivo não consegue impedir capturas nem gravações de tela, então tudo nesta sala pode ser capturado aqui. O app MonkeyHub para iPhone, Android, Mac e Windows bloqueia isso.';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'Isto pode ser capturado aqui';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'Este dispositivo não consegue bloquear capturas de tela, então o que você abrir aqui pode ser salvo. No app MonkeyHub para iPhone, Android, Mac ou Windows, não pode. Você tem uma só visualização, onde quer que abra.';
+
+  @override
+  String get captureNoticeGetApp => 'Baixar o app';
+
+  @override
+  String get captureNoticeGotIt => 'Entendi';
+
+  @override
+  String get captureNoticeOpenAnyway => 'Abrir mesmo assim';
+
+  @override
+  String get captureNoticeNotNow => 'Agora não';
 }

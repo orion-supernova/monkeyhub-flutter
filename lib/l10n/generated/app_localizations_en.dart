@@ -4549,25 +4549,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => 'Created';
 
   @override
-  String get countBadgeCaptureProtectionLabel => 'SCREEN CAPTURE PROTECTION';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody =>
-      'screenshots + screen recording show as black to the system.';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody =>
-      'screen recording + mirroring drops a privacy shield over the app.';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody =>
-      'screenshots and recordings work normally outside ephemeral rooms.';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote =>
-      'ephemeral (chamber of secrets) rooms always force this on regardless.';
-
-  @override
   String get countBadgeShowPasswordTooltip => 'show password';
 
   @override
@@ -10151,24 +10132,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => 'Screen capture protection';
-
-  @override
-  String get acctCaptureOnIos =>
-      'Recording and mirroring show a privacy shield.';
-
-  @override
-  String get acctCaptureOnAndroid =>
-      'Screenshots and recordings come out black.';
-
-  @override
-  String get acctCaptureOff => 'Screenshots and recordings work normally.';
-
-  @override
-  String get acctCaptureFooter =>
-      'Rooms with disappearing messages always turn this on.';
-
-  @override
   String get acctActionPending => 'Pending';
 
   @override
@@ -10786,10 +10749,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSearchKwRecovery =>
       'recovery phrase, password, backup, forgot';
-
-  @override
-  String get settingsSearchKwCapture =>
-      'screenshot, screen recording, capture, privacy';
 
   @override
   String get settingsSearchKwFamily =>
@@ -14018,4 +13977,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Tap to reveal';
+
+  @override
+  String get roomScreenCaptureOpenTitle => 'Capture Possible';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => 'Blocked in Our Apps';
+
+  @override
+  String get captureNoticeRoomTitle => 'Screenshots aren\'t blocked here';
+
+  @override
+  String get captureNoticeRoomBody =>
+      'This device can\'t stop screenshots or screen recordings, so anything in this room can be captured here. The MonkeyHub app for iPhone, Android, Mac and Windows blocks them.';
+
+  @override
+  String get captureNoticeViewOnceTitle => 'This can be captured here';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      'This device can\'t block screenshots, so whatever you open here can be saved. In the MonkeyHub app for iPhone, Android, Mac or Windows it can\'t. You get one view wherever you open it.';
+
+  @override
+  String get captureNoticeGetApp => 'Get the app';
+
+  @override
+  String get captureNoticeGotIt => 'Got it';
+
+  @override
+  String get captureNoticeOpenAnyway => 'Open anyway';
+
+  @override
+  String get captureNoticeNotNow => 'Not now';
 }

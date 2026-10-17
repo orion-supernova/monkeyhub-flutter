@@ -22,6 +22,11 @@ using std::min;
 
 #include "flutter/generated_plugin_registrant.h"
 
+// Windows 10 2004 SDK value; older SDK headers lack the name.
+#ifndef WDA_EXCLUDEFROMCAPTURE
+#define WDA_EXCLUDEFROMCAPTURE 0x00000011
+#endif
+
 namespace {
 
 // Kept alive for the process lifetime (single top-level window).
@@ -29,6 +34,8 @@ ITaskbarList3* g_taskbar = nullptr;
 ULONG_PTR g_gdiplus_token = 0;
 std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
     g_badge_channel;
+std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
+    g_capture_channel;
 
 // Render a red count bubble as an HICON for the taskbar overlay. Caller owns
 // the returned icon and must DestroyIcon it.
@@ -140,6 +147,48 @@ bool FlutterWindow::OnCreate() {
         result->Success();
       });
 
+  // monkeyhub/capture — screen-capture protection (CaptureProtection in
+  // lib/privacy/capture_protection.dart). WDA_EXCLUDEFROMCAPTURE removes the
+  // window from every capture path that goes through the compositor:
+  // PrintScreen, Snipping Tool, Game Bar, OBS, Teams/Zoom shares. Windows 10
+  // 2004+; on older builds the call fails, so fall back to WDA_MONITOR,
+  // which at least turns the window black in a capture.
+  HWND capture_hwnd = GetHandle();
+  g_capture_channel =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "monkeyhub/capture",
+          &flutter::StandardMethodCodec::GetInstance());
+  g_capture_channel->SetMethodCallHandler(
+      [capture_hwnd](
+          const flutter::MethodCall<flutter::EncodableValue>& call,
+          std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+              result) {
+        if (call.method_name() == "isCaptured") {
+          result->Success(flutter::EncodableValue(false));
+          return;
+        }
+        if (call.method_name() != "setEnabled") {
+          result->NotImplemented();
+          return;
+        }
+        bool enabled = false;
+        const auto* args =
+            std::get_if<flutter::EncodableMap>(call.arguments());
+        if (args != nullptr) {
+          auto it = args->find(flutter::EncodableValue("enabled"));
+          if (it != args->end()) {
+            if (const auto* v = std::get_if<bool>(&it->second)) enabled = *v;
+          }
+        }
+        if (!enabled) {
+          SetWindowDisplayAffinity(capture_hwnd, WDA_NONE);
+        } else if (!SetWindowDisplayAffinity(capture_hwnd,
+                                             WDA_EXCLUDEFROMCAPTURE)) {
+          SetWindowDisplayAffinity(capture_hwnd, WDA_MONITOR);
+        }
+        result->Success();
+      });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -154,6 +203,7 @@ bool FlutterWindow::OnCreate() {
 
 void FlutterWindow::OnDestroy() {
   g_badge_channel = nullptr;
+  g_capture_channel = nullptr;
   if (g_taskbar != nullptr) {
     g_taskbar->Release();
     g_taskbar = nullptr;

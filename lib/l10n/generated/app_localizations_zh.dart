@@ -4345,21 +4345,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoSheetCreatedLabel => '创建于';
 
   @override
-  String get countBadgeCaptureProtectionLabel => '截屏录屏保护';
-
-  @override
-  String get countBadgeCaptureProtectionOnAndroidBody => '截图和录屏在系统中会显示为黑屏。';
-
-  @override
-  String get countBadgeCaptureProtectionOnIosBody => '录屏或投屏时，应用会被覆盖一层隐私保护层。';
-
-  @override
-  String get countBadgeCaptureProtectionOffBody => '在限时房间之外，截图和录屏可以正常使用。';
-
-  @override
-  String get countBadgeCaptureProtectionForcedNote => '限时房间（密室）始终会强制开启此功能。';
-
-  @override
   String get countBadgeShowPasswordTooltip => '显示密码';
 
   @override
@@ -9621,21 +9606,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get acctCaptureTitle => '防截屏保护';
-
-  @override
-  String get acctCaptureOnIos => '录屏和镜像时会显示隐私遮罩。';
-
-  @override
-  String get acctCaptureOnAndroid => '截图和录屏会显示为黑屏。';
-
-  @override
-  String get acctCaptureOff => '截图和录屏正常可用。';
-
-  @override
-  String get acctCaptureFooter => '阅后即焚房间始终开启此功能。';
-
-  @override
   String get acctActionPending => '待审核';
 
   @override
@@ -10221,9 +10191,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsSearchKwRecovery => '恢复短语, 密码, 备份';
-
-  @override
-  String get settingsSearchKwCapture => '截图, 录屏, 隐私';
 
   @override
   String get settingsSearchKwFamily => '家庭, 孩子, 家长, 审批';
@@ -13257,4 +13224,36 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mediaSpoilerRevealSemanticLabel => '剧透。点按显示';
+
+  @override
+  String get roomScreenCaptureOpenTitle => '可被截屏';
+
+  @override
+  String get roomScreenCaptureOpenSubtitle => '应用内已禁止';
+
+  @override
+  String get captureNoticeRoomTitle => '此处无法阻止截屏';
+
+  @override
+  String get captureNoticeRoomBody =>
+      '此设备无法阻止截屏或录屏，因此这个房间里的任何内容都可能在这里被截取。适用于 iPhone、Android、Mac 和 Windows 的 MonkeyHub 应用可以阻止。';
+
+  @override
+  String get captureNoticeViewOnceTitle => '在这里可能被截取';
+
+  @override
+  String get captureNoticeViewOnceBody =>
+      '此设备无法阻止截屏，因此你在这里打开的内容可能被保存。在适用于 iPhone、Android、Mac 或 Windows 的 MonkeyHub 应用中则无法保存。无论在哪里打开，你都只能查看一次。';
+
+  @override
+  String get captureNoticeGetApp => '获取应用';
+
+  @override
+  String get captureNoticeGotIt => '知道了';
+
+  @override
+  String get captureNoticeOpenAnyway => '仍然打开';
+
+  @override
+  String get captureNoticeNotNow => '暂不';
 }

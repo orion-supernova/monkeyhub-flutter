@@ -37,7 +37,6 @@ class SettingsStore extends ChangeNotifier {
   static const _kPushEnabled = 'mh.pushEnabled';
   static const _kGameReminders = 'mh.gameReminders';
   static const _kFriendActivity = 'mh.friendActivity';
-  static const _kCaptureProtection = 'mh.captureProtection';
   static const _kChatStyle = 'mh.chatStyle';
   static const _kReplyStyle = 'mh.replyStyle';
   static const _kBubbleStyle = 'mh.bubbleStyle';
@@ -96,7 +95,7 @@ class SettingsStore extends ChangeNotifier {
   static const keys = {
     _kTheme, _kThemeMode, _kThemeLight, _kThemeDark, _kThemeOnboarded,
     _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
-    _kFriendActivity, _kCaptureProtection, _kChatStyle, _kReplyStyle,
+    _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd, _kTipsSeen,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
@@ -138,7 +137,6 @@ class SettingsStore extends ChangeNotifier {
   // nobody opens. Mirrored on this device's backend row
   // (userDevices.friendActivityEnabled), which is where the sender reads it.
   bool _friendActivity = true;
-  bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
   ReplyStyle _replyStyle = ReplyStyle.quote;
   BubbleStyle _bubbleStyle = BubbleStyle.tailed;
@@ -265,7 +263,6 @@ class SettingsStore extends ChangeNotifier {
   bool get pushEnabled => _pushEnabled;
   bool get gameReminders => _gameReminders;
   bool get friendActivity => _friendActivity;
-  bool get captureProtection => _captureProtection;
   ChatStyle get chatStyle => _chatStyle;
   ReplyStyle get replyStyle => _replyStyle;
 
@@ -588,8 +585,6 @@ class SettingsStore extends ChangeNotifier {
     _gameReminders = nudge != 'false'; // default true
     final social = s[_kFriendActivity];
     _friendActivity = social != 'false'; // default true
-    final cap = s[_kCaptureProtection];
-    _captureProtection = cap == 'true'; // default false
     final cs = s[_kChatStyle];
     // 'liquid' was the legacy name for compact — preserve the choice for
     // anyone who had selected it before the rename.
@@ -885,13 +880,6 @@ class SettingsStore extends ChangeNotifier {
     _friendActivity = v;
     notifyListeners();
     await _storage.write(key: _kFriendActivity, value: v ? 'true' : 'false');
-  }
-
-  Future<void> setCaptureProtection(bool v) async {
-    if (_captureProtection == v) return;
-    _captureProtection = v;
-    notifyListeners();
-    await _storage.write(key: _kCaptureProtection, value: v ? 'true' : 'false');
   }
 
   /// Pass null to go back to following the system language.
