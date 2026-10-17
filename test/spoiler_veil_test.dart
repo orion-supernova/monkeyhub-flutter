@@ -276,6 +276,37 @@ void main() {
     expect(SpoilerStore.instance.isRevealed(messageId), isFalse);
   });
 
+  testWidgets('a held finger keeps dust boiling off the wipe, then lets go',
+      (tester) async {
+    await tester.pumpWidget(host(calm: false));
+    await settleVeil(tester);
+
+    final rect = tester.getRect(find.byType(SpoilerVeil));
+    final g = await tester.startGesture(rect.center);
+    for (var i = 1; i <= 4; i++) {
+      await g.moveTo(rect.center + Offset(i * 5.0, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    // Held still: the boil keeps coming for as long as the finger is down.
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    final boil = veiledText(tester).model.boil;
+    expect(boil, isNotNull);
+    expect(boil!.alive, greaterThan(100));
+    await g.up();
+
+    // Healed and settled: the boil is gone and the veil is back to its one
+    // ticker.
+    await tester.pump(pastHold);
+    await tester.pump(pastAnimation);
+    for (var i = 0; i < 160; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(veiledText(tester).model.boil, isNull);
+    expect(tester.binding.transientCallbackCount, 1);
+  });
+
   testWidgets('a partial wipe heals back to dust', (tester) async {
     await tester.pumpWidget(host(calm: false));
     await settleVeil(tester);

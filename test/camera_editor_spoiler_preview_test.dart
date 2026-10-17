@@ -12,6 +12,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/dust/spoiler_dust.dart';
 import 'package:monkeyhub/widgets/media_send_switches.dart';
+import 'package:monkeyhub/widgets/still_blur.dart';
 
 /// Spoiler is seen in the editor, not just switched: the stage goes under
 /// the chat's blur and dust, and the veil lifts while the pen is out.
@@ -95,11 +96,11 @@ void main() {
     File('$dir/$name.png').writeAsBytesSync(bytes!.buffer.asUint8List());
   }
 
-  ImageFiltered stageBlur(WidgetTester tester) => tester.widget<ImageFiltered>(
+  StillBlur stageBlur(WidgetTester tester) => tester.widget<StillBlur>(
         find
             .ancestor(
               of: find.byKey(cameraEditorStageImageKey),
-              matching: find.byType(ImageFiltered),
+              matching: find.byType(StillBlur),
             )
             .first,
       );

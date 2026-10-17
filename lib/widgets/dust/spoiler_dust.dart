@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../theme/perf_tier.dart';
 import 'dust_kit.dart';
 
 /// Telegram's spoiler grain: what one mote of a spoiler is.
@@ -267,8 +268,10 @@ class _SpoilerDustState extends State<SpoilerDust>
       return;
     }
     // Sixty a second is all the drift needs; a 120Hz display would double
-    // the particle math for nothing the eye can see at these speeds.
-    if (now - _lastPaint < 0.0155) return;
+    // the particle math for nothing the eye can see at these speeds. On a
+    // low-tier phone, thirty: the drift is slow enough that it still reads
+    // as drift, at half the work of every sealed picture on screen.
+    if (now - _lastPaint < (Perf.low ? 0.033 : 0.0155)) return;
     _lastPaint = now;
     _time.value = now;
   }
@@ -401,7 +404,9 @@ class _SpoilerPainter extends CustomPainter {
     _SpoilerTable.ensure(SpoilerGrain.floorFor(dpr));
     final w = size.width, h = size.height;
     final area = oval ? w * h * math.pi / 4 : w * h;
-    final count = math.min(maxGrains, (area * density).round());
+    // Fewer grains on a low-tier phone (see [Perf.particles]); the same
+    // haze at arm's length.
+    final count = Perf.particles(math.min(maxGrains, (area * density).round()));
     if (count <= 0) return;
     final spritePx = DustSprite.pxFor(dpr).toDouble();
     final b = buffers..ensure(count, spritePx);
@@ -444,16 +449,29 @@ class _SpoilerPainter extends CustomPainter {
       x += (_SpoilerTable.dirX[j] + SpoilerGrain.flowX(x, y, now)) * age;
       y += (_SpoilerTable.dirY[j] + SpoilerGrain.flowY(x, y, now)) * age;
       if (touch != null) {
-        // Thrown outward from the fingertip, hardest at its centre, so the
-        // grains pile into a soft rim around it rather than vanishing.
+        // Thrown away from the fingertip, each grain by its own reach, its
+        // own strength and its own slant off the radius, all wandering in
+        // time. A shared radius and a straight-out push cleared a clean disc
+        // that followed the finger about: the fingertip's shape, drawn as a
+        // void. This way the dust thins and swirls there, never empties.
+        final rj = _SpoilerTable.rnd[j];
+        final rr = reach * (0.55 + 0.8 * rj);
         final dx = x - touch.dx, dy = y - touch.dy;
         final d2 = dx * dx + dy * dy;
-        if (d2 < reach * reach && d2 > 0.01) {
+        if (d2 < rr * rr && d2 > 0.01) {
           final d = math.sqrt(d2);
-          final f = 1 - d / reach;
-          final push = f * f * reach * 0.7;
-          x += dx / d * push;
-          y += dy / d * push;
+          final f = 1 - d / rr;
+          final strength = 0.3 + 0.7 * ((rj * 7.31) % 1.0);
+          final push = f * f * rr * 0.6 * strength;
+          var ex = dx / d + DustTrig.sin(rj * 0.9 + 0.25 + now * 0.11) * 0.8;
+          var ey = dy / d + DustTrig.sin(rj * 0.9 + now * 0.13) * 0.8;
+          final el = math.sqrt(ex * ex + ey * ey);
+          if (el > 0.001) {
+            ex /= el;
+            ey /= el;
+          }
+          x += ex * push;
+          y += ey * push;
         }
       }
       // Grains never leave the shape: past the edge they are not drawn.

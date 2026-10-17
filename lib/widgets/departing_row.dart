@@ -81,7 +81,7 @@ class DepartingRow extends StatefulWidget {
 
   /// Grains per bubble, at most. A wide bubble gets bigger grains rather
   /// than more of them.
-  static const int maxTiles = 5000;
+  static const int maxTiles = MessageDepartures.maxTiles;
 
   @override
   State<DepartingRow> createState() => _DepartingRowState();
@@ -249,7 +249,10 @@ class _TileField {
     // Bigger grains on a bigger bubble, never more than the cap: a whole
     // paragraph coming apart should cost what a one-liner does. Never under
     // two pixels, which the eye could not separate anyway.
-    tile = math.max(2.0, math.sqrt(w * h / DepartingRow.maxTiles));
+    tile = math.max(
+      2.0,
+      math.sqrt(w * h / math.min(capture.tiles, DepartingRow.maxTiles)),
+    );
     final cols = (w / tile).ceil();
     final rows = (h / tile).ceil();
     final pr = capture.pixelRatio;
@@ -463,7 +466,10 @@ class _TileField {
       alpha[i] = 1;
     }
 
-    if (liftDark) {
+    // The lifted copy doubles the capture; past [_liftMaxPixels] (a tall
+    // bubble, a big photo) the motes keep the capture's own ink instead of
+    // asking a small phone for a texture that size.
+    if (liftDark && image.width * image.height <= _liftMaxPixels) {
       final hot = _lift(image);
       if (hot != null) {
         lifted = hot;
@@ -570,6 +576,8 @@ class _TileField {
   double _axisX(double level, double t) =>
       drain.dx +
       (2 + 15 * level * level) * DustTrig.sin(level * 0.8 - t * 0.45 + _rope);
+
+  static const int _liftMaxPixels = 1600000;
 
   /// Lets go of the lifted copy.
   void dispose() {

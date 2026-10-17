@@ -23,6 +23,7 @@ import '../widgets/send_button.dart';
 import '../widgets/photo_chrome.dart';
 import '../widgets/schedule_message_sheet.dart';
 import '../widgets/spring_press.dart';
+import '../widgets/still_blur.dart';
 import 'review_route.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
@@ -2488,13 +2489,11 @@ class _SpoilerPreviewState extends State<_SpoilerPreview>
     return Stack(
       fit: StackFit.expand,
       children: [
-        ImageFiltered(
+        // A still, blurred once at rest rather than every frame the dust
+        // over it moves (see [StillBlur]).
+        StillBlur(
           enabled: rest,
-          imageFilter: ui.ImageFilter.blur(
-            sigmaX: _SpoilerPreview._sigma,
-            sigmaY: _SpoilerPreview._sigma,
-            tileMode: TileMode.mirror,
-          ),
+          sigma: _SpoilerPreview._sigma,
           child: widget.builder(true),
         ),
         if (shown)

@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart'
 import 'dart:async';
 import 'dart:io' show File;
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -36,6 +35,7 @@ import 'dust/spoiler_dust.dart';
 import 'dust_dissolve.dart';
 import 'remote_image.dart';
 import 'send_flight.dart';
+import 'still_blur.dart';
 import 'view_once_seal.dart';
 
 /// How the circular bubble is currently rendering.
@@ -1436,21 +1436,16 @@ class _OnceFace extends StatelessWidget {
               : ClipOval(
                   key: ValueKey(identityHashCode(bytes)),
                   // Sixteen pixels drawn up to the circle is already mush;
-                  // the blur takes the last of the edges off it. Static, so
-                  // the boundary rasterises it once.
-                  child: RepaintBoundary(
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(
-                        sigmaX: 20,
-                        sigmaY: 20,
-                        tileMode: TileMode.mirror,
-                      ),
-                      child: Image.memory(
-                        bytes,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.medium,
-                        gaplessPlayback: true,
-                      ),
+                  // the blur takes the last of the edges off it. A still,
+                  // blurred once: a live blur is redone every frame the dust
+                  // over it moves.
+                  child: StillBlur(
+                    sigma: 20,
+                    child: Image.memory(
+                      bytes,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
+                      gaplessPlayback: true,
                     ),
                   ),
                 ),

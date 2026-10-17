@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import '../theme/perf_tier.dart';
 import 'dust/dust_kit.dart';
 
 /// Telegram's disintegration: the child turns to dust and blows away.
@@ -229,7 +230,10 @@ class _DustDissolveState extends State<DustDissolve>
     }
     final size = boundary.size;
     final dpr = View.maybeOf(context)?.devicePixelRatio ?? 2.0;
-    final pixelRatio = math.min(dpr, 3.0);
+    // At most 3×, 2× on a small phone: a grain is a couple of logical
+    // pixels, and the capture, its hot copy and the readback are each this
+    // big, all at once.
+    final pixelRatio = Perf.captureRatio(dpr);
     ui.Image image;
     try {
       image = boundary.toImageSync(pixelRatio: pixelRatio);
@@ -251,7 +255,7 @@ class _DustDissolveState extends State<DustDissolve>
       sweep: widget.sweep,
       seed: widget.seed,
       seconds: widget.duration.inMicroseconds / 1e6,
-      particles: widget.particles.clamp(64, DustDissolve.maxParticles),
+      particles: Perf.particles(widget.particles).clamp(64, DustDissolve.maxParticles),
       liftDark: Theme.of(context).brightness == Brightness.dark,
     );
     setState(() {

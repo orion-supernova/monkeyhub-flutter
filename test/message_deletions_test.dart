@@ -174,6 +174,41 @@ void main() {
       expect(find.text('m0'), findsOneWidget);
     });
 
+    testWidgets('a held send is one row while its local copy is listed', (
+      tester,
+    ) async {
+      // The server's copy is deleted and held for its dust, while the list is
+      // (again) drawing the optimistic tmp_ row that names it as serverId. The
+      // arrivals ledger keys both as the tmp_ row: splicing the held copy back
+      // as well would put two rows on one key.
+      final sent = ChatMessage(
+        id: 'srv_1',
+        roomId: 'r',
+        senderId: 'me',
+        senderName: 'me',
+        content: 'sent',
+        createdAt: DateTime(2026, 3, 1, 11, 59),
+        clientId: 'tmp_1',
+      );
+      source = [sent, ...source];
+      await tester.pumpWidget(list());
+      expect(deletions.begin([sent]), 1);
+      final local = ChatMessage(
+        id: 'tmp_1',
+        roomId: 'r',
+        senderId: 'me',
+        senderName: 'me',
+        content: 'sent',
+        createdAt: sent.createdAt,
+      )..serverId = 'srv_1';
+      final shown = deletions.withHeld([
+        local,
+        for (final m in source)
+          if (m.id != 'srv_1') m,
+      ]);
+      expect(shown.where((m) => m.identities.contains('srv_1')).length, 1);
+    });
+
     testWidgets('an ephemeral row is never taken', (tester) async {
       source = [msg('e', 0, expiresAt: DateTime(2030)), ...source];
       await tester.pumpWidget(list());

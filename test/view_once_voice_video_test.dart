@@ -23,6 +23,7 @@ import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/remote_image.dart';
 import 'package:monkeyhub/widgets/video_note_message.dart';
 import 'package:monkeyhub/widgets/view_once_seal.dart';
+import 'package:monkeyhub/widgets/still_blur.dart';
 
 /// Play-once voice messages and video notes: the sealed bubbles, the one
 /// watch, and the invariant they share with view-once photos.
@@ -244,7 +245,7 @@ void main() {
     await show(tester, bubble(row(sent: false), currentUserId: 'alice'));
     // Sealed from the first frame: the stand-in blurred, the dust over it.
     expect(find.byType(OutboundVideoNote), findsOneWidget);
-    expect(find.byType(ImageFiltered), findsOneWidget);
+    expect(find.byType(StillBlur), findsOneWidget);
     final before = tester.widget<SpoilerDust>(find.byType(SpoilerDust));
     final size = tester.getSize(find.byType(OutboundVideoNote));
     for (var i = 0; i < 20; i++) {
@@ -257,7 +258,7 @@ void main() {
     // rather than started over.
     expect(find.byType(ViewOnceVideoNote), findsOneWidget);
     expect(tester.getSize(find.byType(ViewOnceVideoNote)), size);
-    expect(find.byType(ImageFiltered), findsOneWidget);
+    expect(find.byType(StillBlur), findsOneWidget);
     final after = tester.widget<SpoilerDust>(find.byType(SpoilerDust));
     expect(after.seed, before.seed);
     expect(after.active, isTrue);

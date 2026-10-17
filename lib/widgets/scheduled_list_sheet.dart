@@ -26,6 +26,8 @@ import 'schedule_glyphs.dart';
 import 'schedule_message_sheet.dart';
 import 'ios_kit.dart';
 import 'sheet_kit.dart';
+import 'linkified_text.dart';
+import '../services/link_opener.dart';
 import '../l10n/text_case.dart';
 
 /// Turns one of the repository's schedule error codes into a sentence.
@@ -759,11 +761,10 @@ class _ScheduledRowState extends State<_ScheduledRow>
             if (m.isPhoto)
               _PhotoLine(message: m, api: widget.repo.api)
             else
-              Text(
-                m.content,
+              ScheduledRichText(
+                message: m,
                 style: groupedTitleStyle(theme),
                 maxLines: 3,
-                overflow: TextOverflow.ellipsis,
               ),
             if (failed) ...[
               const SizedBox(height: 6),
@@ -773,11 +774,19 @@ class _ScheduledRowState extends State<_ScheduledRow>
               ),
             ],
             const SizedBox(height: 6),
-            Wrap(
-              spacing: 4,
+            // Four even slots, a drawn glyph over each word: each glyph plays
+            // its own one-off kick as it is pressed.
+            Row(
               children: [
                 _RowAction(
                   label: failed ? l10n.scheduledListRetry : l10n.scheduledListSendNow,
+                  glyph: (color, kick) => ScheduleActionGlyph(
+                    mark: failed
+                        ? ScheduleActionMark.retry
+                        : ScheduleActionMark.sendNow,
+                    color: color,
+                    kickKey: kick,
+                  ),
                   onTap: _busy
                       ? null
                       : () {
@@ -787,15 +796,32 @@ class _ScheduledRowState extends State<_ScheduledRow>
                 ),
                 _RowAction(
                   label: l10n.scheduledListChangeTime,
+                  // The row's own time on the face: the press spins the
+                  // minute hand once round to it.
+                  glyph: (color, kick) => ScheduleClockGlyph(
+                    time: m.sendAt,
+                    color: color,
+                    kickKey: kick,
+                  ),
                   onTap: _busy ? null : _changeTime,
                 ),
                 _RowAction(
                   label: l10n.scheduledListEdit,
+                  glyph: (color, kick) => ScheduleActionGlyph(
+                    mark: ScheduleActionMark.edit,
+                    color: color,
+                    kickKey: kick,
+                  ),
                   onTap: _busy ? null : _editText,
                 ),
                 _RowAction(
                   label: l10n.scheduledListDelete,
                   danger: true,
+                  glyph: (color, kick) => ScheduleActionGlyph(
+                    mark: ScheduleActionMark.delete,
+                    color: color,
+                    kickKey: kick,
+                  ),
                   // Through `_run` like its three siblings. On its own it had
                   // no `_busy` guard, so a double-tap fired two cancels, and no
                   // error path at all. `cancelScheduledMessage` swallows its
@@ -827,26 +853,132 @@ class _ScheduledRowState extends State<_ScheduledRow>
   }
 }
 
-/// One word under a queued message: the shared tertiary text action at 15,
-/// so four of them sit on one line on a phone.
-class _RowAction extends StatelessWidget {
+/// A queued message's words as the chat will show them: its bold, italic,
+/// strikes, code, links, mentions and spoilers, through the bubble's own
+/// [LinkifiedText], capped to a preview's few lines. Links open as they do
+/// in the chat; a spoiler peeks under the finger and seals again.
+class ScheduledRichText extends StatelessWidget {
+  const ScheduledRichText({
+    super.key,
+    required this.message,
+    required this.style,
+    required this.maxLines,
+  });
+
+  final ScheduledMessage message;
+  final TextStyle style;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final linkStyle = style.copyWith(
+      color: theme.accent,
+      decoration: TextDecoration.underline,
+      decorationColor: theme.accent.withValues(alpha: 0.7),
+    );
+    // As on an incoming bubble: weight carries a mention, colour is the
+    // accent, and no underline, which stays the link's own signature.
+    final mentionStyle = style.copyWith(
+      color: theme.accent,
+      fontWeight: FontWeight.w600,
+    );
+    return LinkifiedText(
+      text: message.content,
+      trimRight: true,
+      style: style,
+      linkStyle: linkStyle,
+      onLinkTap: (url) => LinkOpener.open(context, url),
+      mentionHandles: {
+        for (final mention in message.mentions)
+          mention.userId: mention.username,
+      },
+      mentionsEveryone: message.mentionsEveryone,
+      mentionStyle: mentionStyle,
+      selfMentionStyle: mentionStyle,
+      formatting: message.formatting,
+      codeStyle: theme.codeStyle(style),
+      codeBackground: theme.codeBackground(isMine: false),
+      codeBorder: theme.codeBorder(isMine: false),
+      // Its own key, apart from the message it becomes: peeking here must
+      // not open the sent copy's spoiler in the chat.
+      spoilerContextId: 'scheduled:${message.id}',
+      spoilerDust: theme.spoilerDust(isMine: false),
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// One action under a queued message: a drawn glyph over its word, sharing
+/// the row's width evenly with its siblings. Pressing it plays the glyph's
+/// kick (Reduce Motion: none) before the action runs.
+class _RowAction extends StatefulWidget {
   const _RowAction({
     required this.label,
+    required this.glyph,
     required this.onTap,
     this.danger = false,
   });
 
   final String label;
+
+  /// The glyph in [color]; a change of the kick object plays its kick.
+  final Widget Function(Color color, Object kick) glyph;
   final VoidCallback? onTap;
   final bool danger;
 
   @override
-  Widget build(BuildContext context) => TextLinkButton(
-        label: label,
-        onTap: onTap,
-        destructive: danger,
-        fontSize: 15,
-      );
+  State<_RowAction> createState() => _RowActionState();
+}
+
+class _RowActionState extends State<_RowAction> {
+  int _presses = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final onTap = widget.onTap;
+    final color = onTap == null
+        ? theme.inkMuted.withValues(alpha: 0.6)
+        : widget.danger
+            ? theme.danger
+            : theme.accent;
+    final text = sentenceCaseOf(context, widget.label);
+    return Expanded(
+      child: SpringPress(
+        onTap: onTap == null
+            ? null
+            : () {
+                setState(() => _presses++);
+                onTap();
+              },
+        scale: PressSpec.scaleSmall,
+        semanticLabel: text,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                widget.glyph(color, _presses),
+                const SizedBox(height: 3),
+                Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.body.copyWith(fontSize: 12.5, color: color),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Rewrites a queued message's words. Returns the new text, or null on cancel.
@@ -975,14 +1107,18 @@ class _PhotoLine extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            caption.isEmpty ? l10n.attachmentMenuPhotoLabel : caption,
-            style: caption.isEmpty
-                ? groupedSubtitleStyle(theme)
-                : groupedTitleStyle(theme),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: caption.isEmpty
+              ? Text(
+                  l10n.attachmentMenuPhotoLabel,
+                  style: groupedSubtitleStyle(theme),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : ScheduledRichText(
+                  message: message,
+                  style: groupedTitleStyle(theme),
+                  maxLines: 2,
+                ),
         ),
         // The composer's own circled "1", flooded: this one is view once.
         if (message.viewOnce) ...[

@@ -2,22 +2,44 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'dart:ui' show ImageFilter, PathOperation;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../data/spoiler_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'dust/dust_kit.dart';
+import 'dust/rub_field.dart';
 import 'dust/spoiler_dust.dart';
 import 'spoiler_veil.dart' show kSpoilerHeal, kSpoilerHoldBaseMs;
+import 'still_blur.dart';
 
 /// How long the wavefront takes to open a spoiler picture. A little longer
 /// than a line of text's (`kSpoilerRevealIn`), for a disc that has a whole
 /// photograph to cross.
 const Duration kMediaSpoilerReveal = Duration(milliseconds: 560);
+
+/// Grains per square point over a sealed picture: a shade denser than the
+/// ambient fields elsewhere ([SpoilerDust.defaultDensity]), so a whole photo
+/// reads as the same haze a line of hidden text does rather than a scatter.
+const double kMediaSpoilerDensity = 1 / 6;
+
+/// How long a picture stays open after a full reveal before the dust blows
+/// back over it. Longer than a line of text's glimpse (1.4 to 2 s, by length):
+/// a picture is looked at, not read in one go.
+const Duration kMediaSpoilerHold = Duration(milliseconds: 4500);
+
+/// The re-cover after a full reveal: the partial heal's wind front, over the
+/// whole picture, so a little slower than a thumb-wide hole's.
+const Duration kMediaSpoilerRecover = Duration(milliseconds: 1000);
+
+/// The most grains one picture carries. A tall photo is 80k pt²; the field's
+/// usual cap (a video note's) left it at one grain per 25pt², which on the
+/// device read as sparse specks over a blur.
+const int kMediaSpoilerMaxGrains = 7000;
 
 /// A photo or video sent as a spoiler, and its reveal.
 ///
@@ -28,10 +50,13 @@ const Duration kMediaSpoilerReveal = Duration(milliseconds: 560);
 /// the touch point, the sharp picture inside an expanding disc while the dust
 /// ahead of its edge is blown clear and the rest of it settles out.
 ///
-/// Unlike a line of text it stays open: a picture is looked at, not glimpsed.
-/// Open for the visit, remembered in [SpoilerStore] (under its own key, so a
-/// spoiler caption on the same message keeps its own veil) and sealed again
-/// once the room is left, as text spoilers are.
+/// Like a line of text it does not stay open: after [kMediaSpoilerHold] the
+/// dust blows back over it on a wind front, the blur returning behind it,
+/// the same re-cover as a partial rub's. While it is open it is remembered
+/// in [SpoilerStore] (under its own key, so a spoiler caption on the same
+/// message keeps its own veil), so a row scrolled away and back is still
+/// open and its hold starts again. With no [revealKey] (the fullscreen
+/// viewer) it stays open for as long as it is showing.
 ///
 /// While sealed the cover takes the tap, so the first tap reveals and only
 /// the next opens the viewer; a long press still reaches the bubble. With
@@ -50,7 +75,7 @@ class MediaSpoilerCover extends StatefulWidget {
     this.interactive = true,
     this.borderRadius = BorderRadius.zero,
     this.sigma = 20,
-    this.dustDensity = SpoilerDust.defaultDensity,
+    this.dustDensity = kMediaSpoilerDensity,
     this.dust = true,
     this.onRevealed,
   });
@@ -107,17 +132,38 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
   /// Bumped whenever the holes change, so the masks repaint without a build.
   final ValueNotifier<int> _rubRevision = ValueNotifier(0);
 
+  /// The text spoiler's living part, over a picture: dust boiling off the
+  /// rim of the rub for as long as the finger is down, and the dust that
+  /// blows back in when it heals. Made with the rub, stepped only while it
+  /// has something to move.
+  RubField? _field;
+  Ticker? _fieldTicker;
+  Duration? _lastFieldTick;
+  double _fieldTime = 0;
+  final ValueNotifier<int> _fieldFrame = ValueNotifier(0);
+
   /// The fingertip while it rubs: the dust's draught.
   final ValueNotifier<Offset?> _touch = ValueNotifier(null);
 
   Offset? _lastRub;
   Timer? _healTimer;
+
+  /// Arms the re-cover after a full reveal.
+  Timer? _recoverTimer;
   bool _calm = false;
 
   bool get _stored {
     final key = widget.revealKey;
     return key != null &&
         SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey(key));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Mounting onto a picture left open (a row recycled while it showed):
+    // pick it up, and start its hold again so it can never stay open.
+    if (_open) _scheduleRecover();
   }
 
   @override
@@ -128,16 +174,71 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
       _origin = null;
       _open = _stored;
       _dropRub();
+      _recoverTimer?.cancel();
+      if (_open) _scheduleRecover();
     }
   }
+
+  /// After the hold, the dust comes back over the whole picture.
+  void _scheduleRecover() {
+    _recoverTimer?.cancel();
+    if (widget.revealKey == null) return;
+    _recoverTimer = Timer(kMediaSpoilerHold, _recover);
+  }
+
+  void _recover() {
+    if (!mounted || !_open) return;
+    final key = widget.revealKey;
+    if (key != null) {
+      SpoilerStore.instance.conceal(MediaSpoilerCover.storeKey(key));
+    }
+    final box = context.findRenderObject() as RenderBox?;
+    if (_calm || box == null || !box.hasSize || !widget.dust) {
+      setState(() => _open = false);
+      return;
+    }
+    // The whole picture as one open hole, healed shut the way a rub's is:
+    // a wind picks a side, the blur and the dust return behind its front,
+    // and the grains blow in on it.
+    final size = box.size;
+    final rub = _RubMask(size)..openAll();
+    final rand = math.Random(_fieldTime.hashCode ^ size.hashCode ^ 0x5EA1);
+    setState(() {
+      _open = false;
+      _origin = null;
+      _wave.reset();
+      _rub?.dispose();
+      _rub = rub;
+      _field ??= _newField(size);
+    });
+    rub.beginHeal(rand);
+    _field!.prepareHeal(rub, rand, density: kMediaSpoilerDensity);
+    _heal.duration = kMediaSpoilerRecover;
+    _ensureField();
+    _heal.forward(from: 0);
+  }
+
+  RubField _newField(Size size) => RubField(
+        Offset.zero & size,
+        MediaQuery.devicePixelRatioOf(context),
+        // Off the hole's own ragged edge, spread across the noise's swing,
+        // not on a ring round the fingertip: a ring is the finger's shape,
+        // and a fast stroke dragged it about as a circle.
+        rimMin: 0.45,
+        rimSpan: 1.1,
+        discShare: 0.9,
+      );
 
   @override
   void dispose() {
     _healTimer?.cancel();
+    _recoverTimer?.cancel();
+    _fieldTicker?.dispose();
     _wave.dispose();
     _heal.dispose();
     _rub?.dispose();
     _rubRevision.dispose();
+    _fieldFrame.dispose();
     _touch.dispose();
     super.dispose();
   }
@@ -148,12 +249,27 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
         _open = true;
         _dropRub();
       });
+      _scheduleRecover();
     }
   }
 
   void _onHeal(AnimationStatus s) {
     if (s != AnimationStatus.completed || !mounted) return;
-    setState(_dropRub);
+    // The holes are shut. The field outlives them: the grains the heal blew
+    // in are still settling and fade on their own lives, as the text's do,
+    // rather than all vanishing on the last frame of the front.
+    final field = _field;
+    final rub = _rub;
+    if (field != null && rub != null) field.endHeal();
+    setState(() {
+      _healTimer?.cancel();
+      _heal
+        ..value = 0
+        ..duration = kSpoilerHeal;
+      _rub?.dispose();
+      _rub = null;
+      _lastRub = null;
+    });
   }
 
   void _dropRub() {
@@ -161,8 +277,60 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     _heal.value = 0;
     _rub?.dispose();
     _rub = null;
+    _field = null;
+    _fieldTicker?.stop();
+    _lastFieldTick = null;
     _lastRub = null;
     _touch.value = null;
+  }
+
+  // ---------------------------------------------------------------- field
+
+  void _ensureField() {
+    if (_calm || _field == null || !mounted) return;
+    final t = _fieldTicker ??= createTicker(_onFieldTick);
+    if (!t.isActive) {
+      _lastFieldTick = null;
+      t.start();
+    }
+  }
+
+  void _onFieldTick(Duration elapsed) {
+    final field = _field;
+    final rub = _rub;
+    if (field == null) {
+      _fieldTicker?.stop();
+      return;
+    }
+    final dt = dustFrameDt(_lastFieldTick, elapsed);
+    _lastFieldTick = elapsed;
+    _fieldTime += dt;
+    // Dust boils off only while a finger is on it and the picture is still
+    // being rubbed, not once the wavefront has taken over.
+    final emitting =
+        rub != null && !_wave.isAnimating && !_open ? _touch.value : null;
+    // A held finger keeps opening the hole from where it pressed, as the
+    // text's wavefront opens from a tap.
+    if (emitting != null && !rub!.healing && rub.grow(dt, emitting)) {
+      _rubRevision.value++;
+      if (rub.clearedFraction >= _RubMask.enough) _reveal(emitting);
+    }
+    field.step(
+      dt,
+      time: _fieldTime,
+      touch: _touch.value,
+      emitFrom: emitting,
+      rub: rub,
+      heal: _heal.isAnimating ? _heal.value : (_heal.value > 0 ? 1 : 0),
+    );
+    _fieldFrame.value++;
+    if (emitting == null && !_heal.isAnimating && !field.busy) {
+      _fieldTicker?.stop();
+      _lastFieldTick = null;
+      // Healed and settled: nothing left to move, so nothing left to hold.
+      // The next rub makes a fresh field.
+      if (_rub == null) setState(() => _field = null);
+    }
   }
 
   void _reveal(Offset at) {
@@ -180,6 +348,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
         _open = true;
         _dropRub();
       });
+      _scheduleRecover();
       return;
     }
     setState(() => _origin = at);
@@ -202,11 +371,20 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     if (fresh) {
       // The first touch of the dust: a tick, as a fingertip finds grit.
       HapticFeedback.selectionClick();
-      setState(() => _rub = _RubMask(size));
+      setState(() {
+        _rub = _RubMask(size);
+        _field ??= _newField(size);
+      });
+    } else if (_rub!.healing) {
+      // Caught mid-heal: the dust already blown back stays where it landed,
+      // the rest of the hole is the finger's again.
+      _rub!.endHeal();
+      _field?.endHeal();
     }
     _rub!.lift();
     _lastRub = null;
     _rubAt(at);
+    _ensureField();
   }
 
   void _rubAt(Offset point) {
@@ -238,8 +416,18 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     // the dust settles back over them.
     _healTimer?.cancel();
     _healTimer = Timer(const Duration(milliseconds: kSpoilerHoldBaseMs), () {
-      if (!mounted || _rub == null || _open || _wave.isAnimating) return;
-      _heal.forward(from: 0);
+      final rub = _rub;
+      if (!mounted || rub == null || _open || _wave.isAnimating) return;
+      // The text spoiler's heal: a wind picks a side, the hole closes behind
+      // a soft front crossing it, and the dust that was blown away arrives
+      // on that front, each grain as the front reaches where it settles.
+      final rand = math.Random(_fieldTime.hashCode ^ rub.hashCode);
+      rub.beginHeal(rand);
+      _field?.prepareHeal(rub, rand, density: kMediaSpoilerDensity);
+      _ensureField();
+      _heal
+        ..duration = kSpoilerHeal
+        ..forward(from: 0);
     });
   }
 
@@ -259,16 +447,14 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
       // Sealed, the picture's own taps (a video's play) wait for the reveal.
       child: IgnorePointer(
         ignoring: sealed,
-        child: ImageFiltered(
-        enabled: sealed,
-        imageFilter: ImageFilter.blur(
-          sigmaX: widget.sigma,
-          sigmaY: widget.sigma,
-          // Mirrored at the edges, so the blur does not fade to a dark rim.
-          tileMode: TileMode.mirror,
+        // Blurred once into a still, not every frame the dust moves over it
+        // (see [StillBlur]). Mirrored at the edges, so the blur does not fade
+        // to a dark rim.
+        child: StillBlur(
+          enabled: sealed,
+          sigma: widget.sigma,
+          child: widget.child,
         ),
-        child: widget.child,
-      ),
       ),
     );
     final seed = (widget.revealKey ?? '').hashCode & 0x7fffffff;
@@ -349,7 +535,8 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
                         child: SpoilerDust(
                           seed: seed,
                           density: widget.dustDensity,
-                          brightness: 1.25,
+                          maxGrains: kMediaSpoilerMaxGrains,
+                          brightness: 1.35,
                           active: !revealing,
                           fade: kMediaSpoilerReveal,
                           draught: widget.interactive ? _touch : null,
@@ -357,6 +544,21 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
                       ),
                     ),
                   ),
+                  if (widget.dust && _field != null)
+                    // Over the holes, not cut by them: the rim's dust streams
+                    // out across the edge, which is what makes the edge.
+                    IgnorePointer(
+                      key: const ValueKey('rubField'),
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          painter: RubFieldPainter(
+                            field: _field!,
+                            repaint: _fieldFrame,
+                            dpr: MediaQuery.devicePixelRatioOf(context),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -451,23 +653,65 @@ class _RubRecognizer extends HorizontalDragGestureRecognizer {
       _dx.abs() > slop && _dx.abs() > 1.2 * _dy.abs();
 }
 
-/// The holes a finger has rubbed in the dust: a heap of jittered discs along
-/// its path, flecked with satellites, so the rim crumbles instead of ruling,
-/// as the text spoiler's wipe does. A brush a little wider than the text's,
-/// for a picture rather than a word.
-class _RubMask {
-  _RubMask(this.size)
-      : cols = math.max(1, (size.width / cell).ceil()),
-        rows = math.max(1, (size.height / cell).ceil()) {
-    values = Float32List(cols * rows);
+/// The holes a finger opens in the dust over a picture.
+///
+/// Not a brush. A heap of soft discs along the finger's path reads as an
+/// eraser dragged through paint, whatever dust is boiling over its rim. This
+/// is a field instead, the text spoiler's wavefront in small: every touch
+/// point is a seed whose reach grows for as long as the finger stays near it
+/// (so a held finger keeps opening, from where it pressed), and the edge is
+/// wherever that reach beats a noise threshold. The noise has a soft octave
+/// and a grain-sized one, so the boundary wanders and then crumbles grain by
+/// grain rather than following the stroke's tube. A heal runs the same field
+/// in reverse behind the heal's wind front, so the hole fills back in the
+/// same grain-sized steps.
+///
+/// The reach lives on a coarse grid; [image] reads it per mask pixel and
+/// opens each pixel's grain once the reach passes that grain's own need, so
+/// the edge is a band of grains, some open, some not. One `drawRawPoints`,
+/// cached until the reach or the heal moves.
+class _RubMask implements RubHole {
+  _RubMask(this.size) {
+    // A vertex every few points, coarser only on a very large cover.
+    _gap = math.max(_minGap, math.sqrt(size.width * size.height / _maxVerts));
+    cols = (size.width / _gap).ceil() + 1;
+    rows = (size.height / _gap).ceil() + 1;
+    final n = cols * rows;
+    _reach = Float32List(n)..fillRange(0, n, -1000);
+    _noise = Float32List(n);
+    final rand = math.Random(0x5EED);
+    final lattice = Float32List(_lat * _lat);
+    for (var i = 0; i < lattice.length; i++) {
+      lattice[i] = rand.nextDouble();
+    }
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        final x = c * _gap, y = r * _gap;
+        // Two octaves of value noise and a grain of white noise on top: the
+        // soft octave bends the edge, the fine one and the grit crumble it.
+        final soft = _valueNoise(lattice, x / 15, y / 15);
+        final fine = _valueNoise(lattice, x / 5.5 + 17.3, y / 5.5 + 5.1);
+        final grit = rand.nextDouble();
+        _noise[r * cols + c] = soft * 0.5 + fine * 0.3 + grit * 0.2;
+      }
+    }
   }
 
   final Size size;
-  final int cols;
-  final int rows;
-  late final Float32List values;
+  late final double _gap;
+  late final int cols;
+  late final int rows;
 
-  static const double cell = 10;
+  /// How far inside the nearest seed's reach each vertex is, pt; negative
+  /// is outside.
+  late final Float32List _reach;
+  late final Float32List _noise;
+
+  static const double _minGap = 3.5;
+  static const double _maxVerts = 16000;
+  static const int _lat = 64;
+
+  /// The brush: what a seed grows to, give or take.
   static const double brush = 26;
 
   /// Interpolation step between move events.
@@ -476,68 +720,188 @@ class _RubMask {
   /// Rubbed this clear, the rest of the picture opens on its own.
   static const double enough = 0.62;
 
-  static const double _spacing = 4.5;
-  static const int _satelliteBudget = 260;
+  /// A new seed every this many points of travel.
+  static const double _spacing = 7;
+
+  /// A seed's reach the moment it is pressed, and how quickly it grows to
+  /// its own full reach (an exponential approach, s).
+  static const double _seedStart = 8;
+  static const double _growTau = 0.42;
+
+  /// How far the noise moves the edge, pt.
+  static const double _wander = 16;
+
+  /// A seed keeps growing while the finger is within its reach and this.
+  static const double _nearby = 18;
 
   final math.Random _rand = math.Random(0x5EED);
-  final List<double> _cx = [], _cy = [], _cr = [], _rate = [];
+  final List<double> _cx = [], _cy = [], _cr = [], _max = [], _age = [];
   Offset? _last;
+
+  /// A heal in progress: its wind (a unit vector) and the range along it
+  /// that the front sweeps, the hole's own, padded so it starts fully open
+  /// and ends fully shut.
+  @override
+  bool healing = false;
+  @override
+  Offset healWind = const Offset(1, 0);
+  @override
+  double healPMin = 0;
+  double healPMax = 0;
+
+  /// Width of the healing front's band. The text's is 50; a picture's
+  /// holes are a thumb or two wide, so a little wider.
+  static const double healBand = 64;
+  static const double healPad = healBand + 6;
+  @override
+  double get healSpan => healPMax - healPMin + 2 * healPad;
+
+  /// The front's position along [healWind] at [t] in 0..1.
+  double healFrontAt(double t) => (healPMin - healPad) + t * healSpan;
+
+  @override
+  int get discs => _cx.length;
+  @override
+  double discX(int j) => _cx[j];
+  @override
+  double discY(int j) => _cy[j];
+  @override
+  double discR(int j) => _cr[j];
+  @override
+  double get rimRadius => brush;
+  @override
+  double get healPadding => healPad;
+
+  static double _valueNoise(Float32List lat, double x, double y) {
+    final xi = x.floor(), yi = y.floor();
+    final fx = x - xi, fy = y - yi;
+    final sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    double at(int i, int j) => lat[(j & (_lat - 1)) * _lat + (i & (_lat - 1))];
+    final a = at(xi, yi), b = at(xi + 1, yi);
+    final c = at(xi, yi + 1), d = at(xi + 1, yi + 1);
+    return (a + (b - a) * sx) + ((c + (d - c) * sx) - (a + (b - a) * sx)) * sy;
+  }
+
+  /// Picks the heal's wind, mostly sideways with a tilt, as the text's does.
+  void beginHeal(math.Random rand) {
+    final tilt = (rand.nextDouble() - 0.5) * (math.pi / 3);
+    final sign = rand.nextBool() ? 1.0 : -1.0;
+    healWind = Offset(math.cos(tilt) * sign, math.sin(tilt));
+    var lo = double.infinity;
+    var hi = double.negativeInfinity;
+    for (var j = 0; j < _cx.length; j++) {
+      final p = _cx[j] * healWind.dx + _cy[j] * healWind.dy;
+      final r = _cr[j] + _wander;
+      lo = math.min(lo, p - r);
+      hi = math.max(hi, p + r);
+    }
+    healPMin = lo.isFinite ? lo : 0;
+    healPMax = hi.isFinite ? hi : 0;
+    healing = true;
+    _revision++;
+  }
+
+  void endHeal() {
+    if (!healing) return;
+    healing = false;
+    _revision++;
+  }
+
+  /// Openness at vertex [i], 0..1, before any heal.
+  double _openAt(int i) {
+    final o = _reach[i] + _wander * (_noise[i] - 0.5);
+    return (o / _crumble + 0.5).clamp(0.0, 1.0);
+  }
+
+  /// How open the hole is at ([x], [y]), 0..1.
+  @override
+  double clearedAt(double x, double y) {
+    final c = (x / _gap).round();
+    final r = (y / _gap).round();
+    if (c < 0 || c >= cols || r < 0 || r >= rows) return 0;
+    return _openAt(r * cols + c);
+  }
 
   void lift() => _last = null;
 
-  void stamp(Offset point) {
-    final last = _last;
-    final travelled = last == null ? double.infinity : (point - last).distance;
-    if (travelled >= _spacing) {
-      // A slow finger presses wider than a fast one.
-      final speed = travelled.isFinite ? travelled : 0.0;
-      final r = brush *
-          (1.18 - speed / 70).clamp(0.78, 1.18) *
-          (0.86 + _rand.nextDouble() * 0.3);
-      _add(point, r);
-      if (_cx.length < _satelliteBudget) {
-        for (var s = 0; s < 3; s++) {
-          final a = _rand.nextDouble() * 2 * math.pi;
-          final d = r * (0.6 + _rand.nextDouble() * 0.5);
-          _add(
-            point + Offset(math.cos(a) * d, math.sin(a) * d * 0.8),
-            r * (0.14 + _rand.nextDouble() * 0.22),
-          );
-        }
-      }
-      _last = point;
-    }
-    final minX = ((point.dx - brush) / cell).floor();
-    final maxX = ((point.dx + brush) / cell).ceil();
-    final minY = ((point.dy - brush) / cell).floor();
-    final maxY = ((point.dy + brush) / cell).ceil();
-    for (var y = math.max(0, minY); y <= math.min(rows - 1, maxY); y++) {
-      for (var x = math.max(0, minX); x <= math.min(cols - 1, maxX); x++) {
-        final d = (Offset((x + 0.5) * cell, (y + 0.5) * cell) - point).distance;
-        if (d > brush) continue;
-        final fall = 1 - d / brush;
-        final i = y * cols + x;
-        values[i] = math.min(1, values[i] + fall * fall * 1.6);
+  /// The whole picture open, as after a full reveal: the reach filled in
+  /// everywhere, and seeds laid over it on a grid so a heal knows the
+  /// hole's extent and where its grains belong.
+  void openAll() {
+    _reach.fillRange(0, _reach.length, brush * 1.4);
+    const step = brush * 1.5;
+    for (var y = step / 2; y < size.height + step / 2; y += step) {
+      for (var x = step / 2; x < size.width + step / 2; x += step) {
+        _cx.add(x);
+        _cy.add(y);
+        _cr.add(brush * 1.1);
+        _max.add(brush * 1.1);
+        _age.add(0);
       }
     }
     _revision++;
   }
 
-  void _add(Offset c, double r) {
-    _cx.add(c.dx);
-    _cy.add(c.dy);
-    _cr.add(r);
-    // Each disc closes at its own pace when the dust settles back: small
-    // flecks first, so the hole crumbles shut rather than shrinking.
-    _rate.add(0.75 + _rand.nextDouble() * 0.6 + (r < brush * 0.4 ? 0.5 : 0));
+  /// A touch at [point]: a new seed if the finger has travelled far enough
+  /// from the last one.
+  void stamp(Offset point) {
+    final last = _last;
+    if (last != null && (point - last).distance < _spacing) return;
+    _cx.add(point.dx);
+    _cy.add(point.dy);
+    _cr.add(_seedStart);
+    _max.add(brush * (0.92 + _rand.nextDouble() * 0.42));
+    _age.add(0);
+    _last = point;
+    _raster(_cx.length - 1);
+    _revision++;
+  }
+
+  /// Grows the seeds near the finger at [touch] by [dt]. True if anything
+  /// grew.
+  bool grow(double dt, Offset touch) {
+    var grew = false;
+    for (var j = 0; j < _cx.length; j++) {
+      if (_cr[j] >= _max[j] - 0.05) continue;
+      final dx = _cx[j] - touch.dx, dy = _cy[j] - touch.dy;
+      final reach = _cr[j] + _nearby;
+      if (dx * dx + dy * dy > reach * reach) continue;
+      _age[j] += dt;
+      _cr[j] = _seedStart +
+          (_max[j] - _seedStart) * (1 - math.exp(-_age[j] / _growTau));
+      _raster(j);
+      grew = true;
+    }
+    if (grew) _revision++;
+    return grew;
+  }
+
+  /// Lays seed [j]'s reach into the field. Reach only ever grows, so the
+  /// field keeps its maximum.
+  void _raster(int j) {
+    final cx = _cx[j], cy = _cy[j], cr = _cr[j];
+    final out = cr + _wander;
+    final c0 = math.max(0, ((cx - out) / _gap).floor());
+    final c1 = math.min(cols - 1, ((cx + out) / _gap).ceil());
+    final r0 = math.max(0, ((cy - out) / _gap).floor());
+    final r1 = math.min(rows - 1, ((cy + out) / _gap).ceil());
+    for (var r = r0; r <= r1; r++) {
+      final dy = r * _gap - cy;
+      for (var c = c0; c <= c1; c++) {
+        final dx = c * _gap - cx;
+        final v = cr - math.sqrt(dx * dx + dy * dy);
+        final i = r * cols + c;
+        if (v > _reach[i]) _reach[i] = v;
+      }
+    }
   }
 
   double get clearedFraction {
-    var cleared = 0.0;
-    for (final v in values) {
-      cleared += math.min(1, v);
+    var open = 0.0;
+    for (var i = 0; i < _reach.length; i++) {
+      if (_reach[i] > -_wander) open += _openAt(i);
     }
-    return cleared / values.length;
+    return open / _reach.length;
   }
 
   int _revision = 0;
@@ -545,9 +909,40 @@ class _RubMask {
   double _imageHeal = -1;
   ui.Image? _image;
 
-  /// Rasterised at half size: the rim is feathered anyway, and a mask a
-  /// quarter of the pixels is a quarter of the upload.
+  /// Rasterised at half size: a quarter of the pixels, and each mask pixel
+  /// is one grain of the dissolve, two points across.
   static const double _scale = 0.5;
+
+  /// Over this many points the edge goes from every grain shut to every
+  /// grain open: the width of the crumbling.
+  static const double _crumble = 7;
+
+  late final int _pw = math.max(1, (size.width * _scale).ceil());
+  late final int _ph = math.max(1, (size.height * _scale).ceil());
+
+  /// Each mask pixel's grain: the openness it needs before it opens. Fixed,
+  /// so a grain that opened stays open as the edge moves on, and a heal
+  /// shuts them again in the reverse order.
+  late final Uint8List _grain = () {
+    final g = Uint8List(_pw * _ph);
+    final rand = math.Random(0xC0FFEE);
+    for (var i = 0; i < g.length; i++) {
+      g[i] = 1 + rand.nextInt(254);
+    }
+    return g;
+  }();
+
+  /// The open grains' centres, refilled per rebuild; never reallocated.
+  late final Float32List _points = Float32List(_pw * _ph * 2);
+
+  static final Paint _featherPaint = Paint()
+    ..imageFilter = ui.ImageFilter.blur(sigmaX: 0.9, sigmaY: 0.9);
+
+  static final Paint _grainPaint = Paint()
+    ..color = const Color(0xFFFFFFFF)
+    ..strokeWidth = 1
+    ..strokeCap = StrokeCap.square
+    ..isAntiAlias = false;
 
   /// The holes as an alpha mask, [heal] of the way closed; cached until
   /// either changes.
@@ -556,24 +951,71 @@ class _RubMask {
     if (cached != null && _imageRevision == _revision && _imageHeal == heal) {
       return cached;
     }
+    final w = healWind;
+    final front = healFrontAt(heal);
+    // Deep enough to shut the widest seed through the noise's whole swing.
+    const depth = brush * 1.4 + _wander + _crumble;
+    final inv = 1 / (_scale * _gap);
+    var n = 0;
+    for (var py = 0; py < _ph; py++) {
+      final y = (py + 0.5) / _scale;
+      final gy = (py + 0.5) * inv;
+      final r0 = math.min(rows - 2, gy.floor());
+      final fy = gy - r0;
+      for (var px = 0; px < _pw; px++) {
+        final gx = (px + 0.5) * inv;
+        final c0 = math.min(cols - 2, gx.floor());
+        final i00 = r0 * cols + c0;
+        // Nowhere near a seed: the common case, and the cheap one.
+        final a00 = _reach[i00], a01 = _reach[i00 + 1];
+        final a10 = _reach[i00 + cols], a11 = _reach[i00 + cols + 1];
+        if (a00 <= -_wander &&
+            a01 <= -_wander &&
+            a10 <= -_wander &&
+            a11 <= -_wander) {
+          continue;
+        }
+        final fx = gx - c0;
+        double lerp(double a, double b, double c, double d) {
+          final top = a + (b - a) * fx;
+          return top + ((c + (d - c) * fx) - top) * fy;
+        }
+
+        var o = lerp(a00, a01, a10, a11) +
+            _wander *
+                (lerp(_noise[i00], _noise[i00 + 1], _noise[i00 + cols],
+                        _noise[i00 + cols + 1]) -
+                    0.5);
+        if (healing) {
+          // Upwind of the front the reach is taken back, the full depth past
+          // its band: the same grains shut, in the reverse order.
+          final p = (px + 0.5) / _scale * w.dx + y * w.dy;
+          final shut = ((front - p) / healBand).clamp(0.0, 1.0);
+          o -= depth * shut;
+        }
+        // Openness across the crumbling band, against this grain's need.
+        final open = (o / _crumble + 0.5) * 255;
+        if (open <= _grain[py * _pw + px]) continue;
+        _points[n++] = px + 0.5;
+        _points[n++] = py + 0.5;
+      }
+    }
     final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder)..scale(_scale);
-    final paint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    for (var j = 0; j < _cx.length; j++) {
-      final close = heal <= 0
-          ? 0.0
-          : Curves.easeInOutCubic.transform((heal * _rate[j]).clamp(0.0, 1.0));
-      final r = _cr[j] * (1 - close);
-      if (r < 0.5) continue;
-      canvas.drawCircle(Offset(_cx[j], _cy[j]), r, paint);
+    final canvas = Canvas(recorder);
+    if (n > 0) {
+      // A feather of a grain's width, so the edge is ragged by the noise and
+      // soft at the grain, never a staircase of mask pixels.
+      canvas
+        ..saveLayer(null, _featherPaint)
+        ..drawRawPoints(
+          ui.PointMode.points,
+          Float32List.sublistView(_points, 0, n),
+          _grainPaint,
+        )
+        ..restore();
     }
     final picture = recorder.endRecording();
-    final image = picture.toImageSync(
-      math.max(1, (size.width * _scale).ceil()),
-      math.max(1, (size.height * _scale).ceil()),
-    );
+    final image = picture.toImageSync(_pw, _ph);
     picture.dispose();
     _image?.dispose();
     _image = image;
@@ -675,7 +1117,15 @@ class _RenderHoles extends RenderProxyBox {
       );
     final shaderLayer = (layer as ShaderMaskLayer?) ?? ShaderMaskLayer();
     shaderLayer
-      ..shader = ImageShader(image, TileMode.decal, TileMode.decal, m.storage)
+      // Sampled smoothly: the mask is half size, and a nearest-pixel read
+      // of it is what drew blocks along the rim.
+      ..shader = ImageShader(
+        image,
+        TileMode.decal,
+        TileMode.decal,
+        m.storage,
+        filterQuality: FilterQuality.low,
+      )
       ..maskRect = offset & size
       ..blendMode = keep ? BlendMode.dstIn : BlendMode.dstOut;
     layer = shaderLayer;

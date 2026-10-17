@@ -46,6 +46,8 @@ class LinkifiedText extends StatefulWidget {
     this.onLinkEntityTap,
     this.spoilerContextId,
     this.spoilerDust,
+    this.maxLines,
+    this.overflow,
   });
 
   /// The ORIGINAL message content. Never pre-stripped or pre-trimmed by the
@@ -154,6 +156,11 @@ class LinkifiedText extends StatefulWidget {
   /// hides the glyphs themselves and paints nothing over the bubble.
   final Color? spoilerDust;
 
+  /// A preview's line cap, handed to the paragraph as is. Null (every
+  /// bubble) lets the text run as long as it is.
+  final int? maxLines;
+  final TextOverflow? overflow;
+
   @override
   State<LinkifiedText> createState() => _LinkifiedTextState();
 }
@@ -200,12 +207,23 @@ class _LinkifiedTextState extends State<LinkifiedText> {
 
     if (fold.plain) {
       final trailing = widget.trailing;
-      if (trailing == null) return Text(fold.displayText, style: widget.style);
-      return Text.rich(TextSpan(
-        text: fold.displayText,
-        children: [trailing],
-        style: widget.style,
-      ));
+      if (trailing == null) {
+        return Text(
+          fold.displayText,
+          style: widget.style,
+          maxLines: widget.maxLines,
+          overflow: widget.overflow,
+        );
+      }
+      return Text.rich(
+        TextSpan(
+          text: fold.displayText,
+          children: [trailing],
+          style: widget.style,
+        ),
+        maxLines: widget.maxLines,
+        overflow: widget.overflow,
+      );
     }
 
     // One recognizer per OWNER, not per run — a link split in half by a bold
@@ -282,6 +300,8 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     final paragraph = Text.rich(
       TextSpan(children: spans, style: widget.style),
       key: veiled || chipped ? _paragraphKey : null,
+      maxLines: widget.maxLines,
+      overflow: widget.overflow,
     );
     if (!veiled && !chipped) return paragraph;
 

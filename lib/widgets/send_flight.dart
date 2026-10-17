@@ -1,6 +1,16 @@
 import 'package:flutter/widgets.dart';
 
-/// A sent video note's circle flying down into the bubble it becomes.
+/// What is flying: a ticket is only ever claimed by a landing of its kind,
+/// so a voice note sent while a video note is still uploading can never land
+/// on the circle.
+enum SendFlightKind { videoNote, voice }
+
+/// The pieces of a landing bubble a flight lands its own pieces on, marked
+/// with [SendFlightMark]: a voice bubble's play disc, waveform and meta line.
+enum SendFlightPart { disc, wave, label }
+
+/// A sent note flying down into the bubble it becomes: a video note's
+/// circle, or a voice note's strip or disc (see `composer_capture.dart`).
 ///
 /// The composer draws the flight with the very circle the sender was looking
 /// at (see `composer_capture.dart`); what it needs from the transcript is
@@ -26,15 +36,17 @@ class SendFlight {
 
   /// Opens a ticket for the send about to be handed over, closing any
   /// earlier one (its circle has given up on it already).
-  static SendFlightTicket open() {
+  static SendFlightTicket open([SendFlightKind kind = SendFlightKind.videoNote]) {
     _open?.close();
-    return _open = SendFlightTicket._();
+    return _open = SendFlightTicket._(kind);
   }
 }
 
 /// One send's flight: who it lands on, and how much of the landing shows.
 class SendFlightTicket extends ChangeNotifier {
-  SendFlightTicket._();
+  SendFlightTicket._(this.kind);
+
+  final SendFlightKind kind;
 
   _SendFlightLandingState? _landing;
   Rect? _lastRect;
@@ -50,8 +62,35 @@ class SendFlightTicket extends ChangeNotifier {
   /// Whether the flight is over (landed, or given up).
   bool get closed => _closed;
 
+  /// The landing bubble's own fill, when it said, for the flight to arrive
+  /// in.
+  Color? get color => _landing?.widget.color ?? _lastColor;
+  Color? _lastColor;
+
+  /// The landing's waveform bar heights, 0..1, when it has one, for the
+  /// flying bars to become.
+  List<double>? get bars => _landing?.widget.bars ?? _lastBars;
+  List<double>? _lastBars;
+
+  final _lastParts = <SendFlightPart, Rect>{};
+
+  /// One of the landing's marked pieces, in [space]'s coordinates, read fresh
+  /// like [rectIn].
+  Rect? partIn(SendFlightPart part, RenderBox space) {
+    final mark = _landing?._parts[part];
+    if (mark != null && mark.mounted) {
+      final box = mark.context.findRenderObject();
+      if (box is RenderBox && box.attached && box.hasSize) {
+        _lastParts[part] = space.globalToLocal(box.localToGlobal(Offset.zero)) & box.size;
+      }
+    }
+    return _lastParts[part];
+  }
+
   void _claim(_SendFlightLandingState landing) {
-    if (_closed || claimed) return;
+    if (_closed || claimed || landing.widget.kind != kind) return;
+    _lastColor = landing.widget.color;
+    _lastBars = landing.widget.bars;
     _landing = landing;
     notifyListeners();
   }
@@ -90,10 +129,25 @@ class SendFlightTicket extends ChangeNotifier {
 
 }
 
-/// Where a sent video note's circle lands: wraps the new outgoing circle.
-/// Hidden while the circle flies to it, then revealed as it lands.
+/// Where a sent note lands: wraps the new outgoing circle, or the new
+/// outgoing voice bubble. Hidden while the note flies to it, then revealed
+/// as it lands.
 class SendFlightLanding extends StatefulWidget {
-  const SendFlightLanding({super.key, required this.child});
+  const SendFlightLanding({
+    super.key,
+    this.kind = SendFlightKind.videoNote,
+    this.color,
+    this.bars,
+    required this.child,
+  });
+
+  final SendFlightKind kind;
+
+  /// A voice bubble's waveform heights (see [SendFlightTicket.bars]).
+  final List<double>? bars;
+
+  /// The bubble's fill, for a flight that takes on its colour as it lands.
+  final Color? color;
 
   final Widget child;
 
@@ -103,12 +157,13 @@ class SendFlightLanding extends StatefulWidget {
 
 class _SendFlightLandingState extends State<SendFlightLanding> {
   SendFlightTicket? _ticket;
+  final _parts = <SendFlightPart, _SendFlightMarkState>{};
 
   @override
   void initState() {
     super.initState();
     final ticket = SendFlight.current;
-    if (ticket != null && !ticket.claimed && !ticket.closed) {
+    if (ticket != null && !ticket.claimed && !ticket.closed && ticket.kind == widget.kind) {
       _ticket = ticket;
       ticket._claim(this);
     }
@@ -130,4 +185,38 @@ class _SendFlightLandingState extends State<SendFlightLanding> {
       child: widget.child,
     );
   }
+}
+
+/// Marks one piece of a landing bubble (see [SendFlightPart]) so a flight can
+/// put its own copy exactly on it. Free outside a landing: it finds none and
+/// does nothing.
+class SendFlightMark extends StatefulWidget {
+  const SendFlightMark({super.key, required this.part, required this.child});
+
+  final SendFlightPart part;
+  final Widget child;
+
+  @override
+  State<SendFlightMark> createState() => _SendFlightMarkState();
+}
+
+class _SendFlightMarkState extends State<SendFlightMark> {
+  _SendFlightLandingState? _landing;
+
+  @override
+  void initState() {
+    super.initState();
+    _landing = context.findAncestorStateOfType<_SendFlightLandingState>();
+    _landing?._parts[widget.part] = this;
+  }
+
+  @override
+  void dispose() {
+    final landing = _landing;
+    if (landing != null && identical(landing._parts[widget.part], this)) landing._parts.remove(widget.part);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

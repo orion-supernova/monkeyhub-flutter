@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../models/chat_message.dart';
+import '../theme/perf_tier.dart';
 
 /// Everything a departing row needs to blow itself apart after the message
 /// it drew is gone: the message, its raster, and where the bubble sat in the
@@ -20,6 +21,7 @@ class DepartureCapture {
     required this.bubbleInRow,
     required this.rowSize,
     required this.outline,
+    this.tiles = MessageDepartures.maxTiles,
   });
 
   final ChatMessage message;
@@ -44,6 +46,10 @@ class DepartureCapture {
   /// The bubble's outline in its own coordinates — tail, corners and all —
   /// so only tiles that were actually bubble take flight.
   final Path outline;
+
+  /// The most grains this one may cut the bubble into: its share of
+  /// [MessageDepartures.budget] with whatever else is leaving right now.
+  final int tiles;
 }
 
 /// Which transcript rows are *leaving* — and are therefore worth animating
@@ -77,6 +83,23 @@ class DepartureCapture {
 class MessageDepartures {
   MessageDepartures({required this.onChanged});
 
+  /// Grains per bubble, at most (see `DepartingRow`).
+  static const int maxTiles = 5000;
+
+  /// Grains shared by every bubble leaving at once. A burst of messages sent
+  /// together expires together; each takes what is left, never under
+  /// [_minTiles], so ten at once cost about what two do.
+  static const int budget = 12000;
+  static const int _minTiles = 900;
+
+  int get _tilesInFlight {
+    var n = 0;
+    for (final d in _active.values) {
+      n += d.tiles;
+    }
+    return n;
+  }
+
   /// Called when a departure begins or ends, so the owner can rebuild with
   /// or without the ghost. Never called synchronously from a request.
   final VoidCallback onChanged;
@@ -98,8 +121,29 @@ class MessageDepartures {
   bool _disposed = false;
 
   /// The key on the bubble's own repaint boundary — what gets rastered.
-  GlobalKey anchorKeyFor(String rowKey) =>
-      _anchors.putIfAbsent(rowKey, () => GlobalKey(debugLabel: 'depart:$rowKey'));
+  GlobalKey anchorKeyFor(String rowKey) {
+    if (_anchors.length > _pruneAt && !_pruneScheduled) {
+      // A row that expired off screen never departs, so nothing ends it: its
+      // keys would stay for the session. Swept after the frame, when every
+      // row being built has mounted; an off-screen row gets fresh ones when
+      // it is next built.
+      _pruneScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _prune());
+    }
+    return _anchors.putIfAbsent(rowKey, () => GlobalKey(debugLabel: 'depart:$rowKey'));
+  }
+
+  int _pruneAt = 256;
+  bool _pruneScheduled = false;
+
+  void _prune() {
+    _pruneScheduled = false;
+    if (_disposed) return;
+    bool live(String k) => _active.containsKey(k) || _pending.contains(k);
+    _anchors.removeWhere((k, key) => key.currentContext == null && !live(k));
+    _rowBoxes.removeWhere((k, key) => key.currentContext == null && !live(k));
+    _pruneAt = math.max(256, _anchors.length * 2);
+  }
 
   /// The key on the row that draws [rowKey], so a capture can measure how
   /// tall the row was and where the bubble sat in it.
@@ -192,9 +236,13 @@ class MessageDepartures {
     final base = _gone.isEmpty
         ? timeline
         : [for (final m in timeline) if (!_gone.contains(m.id)) m];
+    // Matched on every id the message has: a send confirmed mid-exit is in
+    // the list under its server id, and splicing the ghost back as well would
+    // put two rows on one key.
+    final known = {for (final m in timeline) ...m.identities};
     final ghosts = [
       for (final d in _active.values)
-        if (!present.contains(d.message.id)) d.message,
+        if (!d.message.identities.any(known.contains)) d.message,
     ];
     List<ChatMessage> merged;
     if (ghosts.isEmpty) {
@@ -279,7 +327,7 @@ class MessageDepartures {
 
     final view = _anchors[rowKey]?.currentContext.let(View.maybeOf);
     final dpr = view?.devicePixelRatio ?? 2.0;
-    final pixelRatio = math.min(dpr, 2.0);
+    final pixelRatio = Perf.captureRatio(dpr, max: 2);
     ui.Image? image;
     try {
       image = boundary.toImageSync(pixelRatio: pixelRatio);
@@ -297,6 +345,10 @@ class MessageDepartures {
       bubbleInRow: bubbleInRow,
       rowSize: rowSize,
       outline: outline.getOuterPath(Offset.zero & bubbleSize),
+      tiles: (Perf.particles(budget) - _tilesInFlight).clamp(
+        Perf.particles(_minTiles),
+        Perf.particles(maxTiles),
+      ),
     );
     _version++;
     return true;

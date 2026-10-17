@@ -20,6 +20,17 @@ enum CaptureBloomExit {
 
   /// Collapses to nothing: the note was thrown away.
   discard,
+
+  /// Gone at once: the composer has taken the disc over and is flying it
+  /// into the note's bubble (see [CaptureBloomProbe]).
+  flight,
+}
+
+/// Where the disc is, written every frame the bloom paints it: in the
+/// bloom's own box ([CaptureBloom.boxSize]), so the host can take the disc
+/// over from exactly where it was.
+class CaptureBloomProbe {
+  Rect? disc;
 }
 
 /// The disc a held record button blooms into, Telegram's way: a 96pt solid
@@ -66,9 +77,13 @@ class CaptureBloom extends StatefulWidget {
     this.onPause,
     this.pauseLabel = '',
     this.resumeLabel = '',
+    this.probe,
   });
 
   final AppTheme theme;
+
+  /// Told where the disc is; see [CaptureBloomProbe].
+  final CaptureBloomProbe? probe;
   final bool active;
   final bool locked;
 
@@ -247,7 +262,14 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
     _pill.retarget(0, response: 0.16, ratio: 1);
     _controls.retarget(0, response: 0.16, ratio: 1);
     _tipAt = null;
-    if (widget.exit == CaptureBloomExit.send) {
+    if (widget.exit == CaptureBloomExit.flight) {
+      // The composer draws it from here on: no second disc shrinking under
+      // the one in flight.
+      _scale.snap(0);
+      _fade.snap(0);
+      _pill.snap(0);
+      _controls.snap(0);
+    } else if (widget.exit == CaptureBloomExit.send) {
       _kickAt = _clock;
       _scale.retarget(44 / CaptureBloom.disc, response: 0.3, ratio: 0.82);
       _fade.retarget(0, response: 0.32, ratio: 1);
@@ -350,6 +372,7 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
     final c = CaptureBloom.center + Offset(_dx.value, _dy.value);
     final fade = _fade.value.clamp(0.0, 1.0);
     final halo = _haloLevel;
+    widget.probe?.disc = Rect.fromCenter(center: c, width: d, height: d);
     // Paused, nothing is listening: the blobs go.
     final haloAlpha = widget.paused ? 0.0 : (1 - cancel) * fade * scale.clamp(0.0, 1.0);
 

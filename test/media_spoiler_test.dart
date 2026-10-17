@@ -17,6 +17,7 @@ import 'package:monkeyhub/widgets/dust/spoiler_dust.dart';
 import 'package:monkeyhub/widgets/media_send_switches.dart';
 import 'package:monkeyhub/widgets/media_spoiler.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
+import 'package:monkeyhub/widgets/still_blur.dart';
 
 /// Photo spoilers end to end on the client: the wire field, the shared send
 /// preview that arms it (from both the camera and the gallery), and the dust
@@ -197,9 +198,9 @@ void main() {
         ));
 
     bool blurred(WidgetTester tester) => tester
-        .widget<ImageFiltered>(find.descendant(
+        .widget<StillBlur>(find.descendant(
           of: find.byType(MediaSpoilerCover),
-          matching: find.byType(ImageFiltered),
+          matching: find.byType(StillBlur),
         ))
         .enabled;
 
@@ -223,6 +224,56 @@ void main() {
         SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
         isTrue,
       );
+    });
+
+    testWidgets('a tapped picture covers over again after its hold', (
+      tester,
+    ) async {
+      var opened = 0;
+      await tester.pumpWidget(app(Center(
+        child: MediaSpoilerCover(
+          revealKey: 'm1',
+          child: GestureDetector(
+            onTap: () => opened++,
+            child: const SizedBox(
+              width: 200,
+              height: 150,
+              child: ColoredBox(color: Colors.orange),
+            ),
+          ),
+        ),
+      )));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byType(MediaSpoilerCover));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(kMediaSpoilerReveal + const Duration(milliseconds: 50));
+      await tester.pump();
+      expect(blurred(tester), isFalse);
+      // Open for the hold: a tap now is the picture's (the viewer's).
+      await tester.tap(find.byType(MediaSpoilerCover));
+      expect(opened, 1);
+      // Past the hold: the dust blows back over it, the blur returns, and the
+      // reveal is forgotten.
+      await tester.pump(kMediaSpoilerHold);
+      await tester.pump();
+      expect(blurred(tester), isTrue);
+      expect(find.byType(SpoilerDust), findsOneWidget);
+      expect(
+        SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
+        isFalse,
+      );
+      for (var i = 0; i < 160; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      // Sealed again: the next tap reveals rather than opens.
+      await tester.tap(find.byType(MediaSpoilerCover));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(opened, 1);
+      await tester.pump(kMediaSpoilerReveal);
+      await tester.pump(kMediaSpoilerHold);
+      for (var i = 0; i < 160; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
     });
 
     testWidgets('a short rub shows only what it touched, then heals', (
@@ -254,6 +305,40 @@ void main() {
         SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
         isFalse,
       );
+    });
+
+    testWidgets('a held finger keeps the dust boiling off the rim', (
+      tester,
+    ) async {
+      await tester.pumpWidget(cover());
+      await tester.pump(const Duration(milliseconds: 100));
+      final at = tester.getTopLeft(find.byType(MediaSpoilerCover));
+      final g = await tester.startGesture(at + const Offset(60, 75));
+      for (var i = 1; i <= 4; i++) {
+        await g.moveTo(at + Offset(60.0 + i * 4, 75));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      // Still, but down: the rim's own dust is up and stays up.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(find.byKey(const ValueKey('rubField')), findsOneWidget);
+      await g.up();
+      // Through the glimpse and the heal: shut again, nothing remembered.
+      for (var i = 0; i < 200; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(blurred(tester), isTrue);
+      expect(
+        SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
+        isFalse,
+      );
+      // And once the last blown-in grain has settled, the field lets go of
+      // its buffers: a sealed picture at rest holds nothing extra.
+      for (var i = 0; i < 160; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(find.byKey(const ValueKey('rubField')), findsNothing);
     });
 
     testWidgets('rubbing most of it away opens the rest', (tester) async {

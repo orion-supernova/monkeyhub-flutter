@@ -100,10 +100,16 @@ class AudioMessage extends StatefulWidget {
     required this.api,
     required this.storageId,
     required this.isMine,
+    this.seedKey,
   });
   final ChatApi api;
   final String? storageId;
   final bool isMine;
+
+  /// What shapes the waveform: the same key the note's uploading row used
+  /// (see `voiceBarsSeed`), so the bars do not change shape the moment the
+  /// upload finishes. [storageId] when there is none.
+  final String? seedKey;
 
   @override
   State<AudioMessage> createState() => _AudioMessageState();
@@ -397,7 +403,7 @@ class _AudioMessageState extends State<AudioMessage> {
                         width: double.infinity,
                         child: CustomPaint(
                           painter: _WaveformPainter(
-                            seed: (widget.storageId ?? '').hashCode,
+                            seed: (widget.seedKey ?? widget.storageId ?? '').hashCode,
                             progress: progress,
                             played: ink,
                             unplayed: ink.withValues(alpha: 0.32),
@@ -938,6 +944,35 @@ class _ViewOnceAudioMessageState extends State<ViewOnceAudioMessage>
   }
 }
 
+/// How many bars every voice bubble's waveform has.
+const int kVoiceWaveformBars = 30;
+
+/// A voice bubble's bar heights for [seed], 0..1: what [VoiceWaveform] draws,
+/// for a sent note's flight to land its bars on (see `send_flight.dart`).
+List<double> voiceWaveformHeights(int seed) => _WaveformPainter.heightsFor(seed);
+
+/// The waveform of a voice bubble, for one that is not an [AudioMessage]
+/// yet (still uploading), so it already has the finished bubble's anatomy.
+class VoiceWaveform extends StatelessWidget {
+  const VoiceWaveform({
+    super.key,
+    required this.seed,
+    required this.played,
+    required this.unplayed,
+    this.progress = 0,
+  });
+
+  final int seed;
+  final double progress;
+  final Color played;
+  final Color unplayed;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        painter: _WaveformPainter(seed: seed, progress: progress, played: played, unplayed: unplayed),
+      );
+}
+
 /// The bars of a voice note. Heights come from a seeded generator — a real
 /// amplitude envelope would need the audio decoded before it is played — so
 /// the shape is stable per recording and reads as speech: mostly mid-height
@@ -955,10 +990,12 @@ class _WaveformPainter extends CustomPainter {
   final Color played;
   final Color unplayed;
 
-  static const _bars = 30;
+  static const _bars = kVoiceWaveformBars;
   static final _cache = <int, List<double>>{};
 
-  List<double> _heights() => _cache.putIfAbsent(seed, () {
+  List<double> _heights() => heightsFor(seed);
+
+  static List<double> heightsFor(int seed) => _cache.putIfAbsent(seed, () {
         final r = math.Random(seed);
         return [
           for (var i = 0; i < _bars; i++)

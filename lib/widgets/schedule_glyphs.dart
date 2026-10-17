@@ -3,7 +3,7 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/widgets.dart';
 
-import 'capture_glyphs.dart' show captureGlyphStroke;
+import 'capture_glyphs.dart' show TrashGlyph, captureGlyphStroke;
 
 // Drawn line glyphs for scheduling a message: the scheduler sheet's quick
 // choices, its running sentence, and the queued list.
@@ -639,4 +639,240 @@ class _CheckPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CheckPainter old) => old.color != color;
+}
+
+// ---------------------------------------------------------------------------
+// Row actions
+
+/// What a queued row's action button draws.
+enum ScheduleActionMark {
+  /// Send it now: the arrow launches out of the top and a fresh one rises
+  /// back into place from below.
+  sendNow,
+
+  /// Try a failed send again: the circling arrow goes once around.
+  retry,
+
+  /// Rewrite the words: the pen scribbles a quick line and lifts back.
+  edit,
+
+  /// Take it out of the queue: the lid flips open and slams shut.
+  delete,
+}
+
+/// A row action's glyph. [kickKey] changing plays the mark's one-off kick;
+/// the glyph is still otherwise. Change time has no mark here: it is the
+/// [ScheduleClockGlyph], spun with its own kickKey.
+class ScheduleActionGlyph extends StatefulWidget {
+  const ScheduleActionGlyph({
+    super.key,
+    required this.mark,
+    required this.color,
+    this.kickKey,
+    this.size = 20,
+  });
+
+  final ScheduleActionMark mark;
+  final Color color;
+  final Object? kickKey;
+  final double size;
+
+  @override
+  State<ScheduleActionGlyph> createState() => _ScheduleActionGlyphState();
+}
+
+class _ScheduleActionGlyphState extends State<ScheduleActionGlyph>
+    with TickerProviderStateMixin, _Kick {
+  @override
+  Duration get kickDuration => switch (widget.mark) {
+        ScheduleActionMark.sendNow => const Duration(milliseconds: 560),
+        ScheduleActionMark.retry => const Duration(milliseconds: 620),
+        ScheduleActionMark.edit => const Duration(milliseconds: 600),
+        ScheduleActionMark.delete => const Duration(milliseconds: 700),
+      };
+
+  @override
+  void didUpdateWidget(ScheduleActionGlyph old) {
+    super.didUpdateWidget(old);
+    if (old.kickKey != widget.kickKey) fire();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.mark == ScheduleActionMark.delete) {
+      // The capture trash, driven here: open over the first stretch, then
+      // the gulp slams it shut and wobbles the can.
+      return RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: kick,
+          builder: (context, _) {
+            final k = kick.value;
+            final rest = k <= 0 || k >= 1;
+            return TrashGlyph(
+              color: widget.color,
+              size: widget.size,
+              open: rest ? 0 : Curves.easeOut.transform(_span(k, 0, 0.38)),
+              gulp: rest ? 0 : _span(k, 0.38, 1),
+            );
+          },
+        ),
+      );
+    }
+    return _paint(
+      widget.size,
+      _ActionPainter(widget.mark, widget.color, kick),
+    );
+  }
+}
+
+class _ActionPainter extends CustomPainter {
+  _ActionPainter(this.mark, this.color, this.kick) : super(repaint: kick);
+
+  final ScheduleActionMark mark;
+  final Color color;
+  final Animation<double> kick;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final k = kick.value;
+    final t = k >= 1 ? 0.0 : k;
+    _onGrid(canvas, size, color, (line, fill) {
+      switch (mark) {
+        case ScheduleActionMark.sendNow:
+          _sendNow(canvas, line, t);
+        case ScheduleActionMark.retry:
+          _retry(canvas, line, t);
+        case ScheduleActionMark.edit:
+          _edit(canvas, line, t);
+        case ScheduleActionMark.delete:
+          break;
+      }
+    });
+  }
+
+  /// An upright arrow. The kick throws it out of the top (accelerating,
+  /// stretching a little) and a fresh one rises in from below and settles
+  /// with an overshoot, so the button reads as "gone, and ready again".
+  void _sendNow(Canvas canvas, Paint line, double t) {
+    void arrow(double dy, double stretch, double alpha) {
+      if (alpha <= 0) return;
+      final p = Paint()
+        ..color = line.color.withValues(alpha: line.color.a * alpha)
+        ..style = line.style
+        ..strokeWidth = line.strokeWidth
+        ..strokeCap = line.strokeCap
+        ..strokeJoin = line.strokeJoin;
+      canvas.drawLine(Offset(12, 19.5 + dy), Offset(12, 5 + dy - stretch), p);
+      canvas.drawPath(
+        Path()
+          ..moveTo(6.4, 10.6 + dy - stretch)
+          ..lineTo(12, 5 + dy - stretch)
+          ..lineTo(17.6, 10.6 + dy - stretch),
+        p,
+      );
+    }
+
+    canvas.save();
+    canvas.clipRect(const Rect.fromLTWH(-2, -1, 28, 25.5));
+    if (t == 0) {
+      arrow(0, 0, 1);
+    } else {
+      final out = Curves.easeIn.transform(_span(t, 0, 0.42));
+      arrow(-22 * out, 2.2 * _bump(_span(t, 0, 0.42)), 1 - out);
+      final back = _span(t, 0.36, 1);
+      if (back > 0) {
+        arrow(18 * (1 - Curves.easeOutBack.transform(back)), 0, 1);
+      }
+    }
+    canvas.restore();
+  }
+
+  /// A circling arrow, open at the top right. The kick spins it once around,
+  /// overshooting a touch and settling back.
+  void _retry(Canvas canvas, Paint line, double t) {
+    final turn = t == 0 ? 0.0 : Curves.easeOutBack.transform(t);
+    canvas.save();
+    canvas.translate(12, 12);
+    canvas.rotate(2 * math.pi * turn);
+    canvas.translate(-12, -12);
+    const r = 7.2;
+    const start = -math.pi / 2 + 0.55;
+    const sweep = 2 * math.pi - 1.1;
+    canvas.drawArc(
+      Rect.fromCircle(center: const Offset(12, 12), radius: r),
+      start,
+      sweep,
+      false,
+      line,
+    );
+    // The head at the arc's end, pointing along it (clockwise).
+    const end = start + sweep;
+    final tip = Offset(12 + r * math.cos(end), 12 + r * math.sin(end));
+    final along = Offset(-math.sin(end), math.cos(end));
+    final out = Offset(math.cos(end), math.sin(end));
+    canvas.drawPath(
+      Path()
+        ..moveTo(tip.dx - along.dx * 3.6 + out.dx * 3.2,
+            tip.dy - along.dy * 3.6 + out.dy * 3.2)
+        ..lineTo(tip.dx + along.dx * 0.6, tip.dy + along.dy * 0.6)
+        ..lineTo(tip.dx - along.dx * 3.6 - out.dx * 3.2,
+            tip.dy - along.dy * 3.6 - out.dy * 3.2),
+      line,
+    );
+    canvas.restore();
+  }
+
+  /// A pen at a slant over a short ruled line. The kick dips the nib and
+  /// scribbles a quick wave across the line, then lifts back to rest while
+  /// the scribble fades.
+  void _edit(Canvas canvas, Paint line, double t) {
+    final run = Curves.easeInOut.transform(_span(t, 0.08, 0.72));
+    final back = Curves.easeOutBack.transform(_span(t, 0.62, 1));
+    final travel = t == 0 ? 0.0 : 9 * run * (1 - back);
+    final dip = t == 0 ? 0.0 : 1.4 * _bump(_span(t, 0, 0.2));
+    final wiggle =
+        t == 0 ? 0.0 : 1.1 * math.sin(run * 6 * math.pi) * (1 - back);
+    final tip = Offset(5.2 + travel, 18.2 + dip + wiggle);
+
+    // The scribble: a sine run from the start to wherever the nib is,
+    // fading once the pen lifts.
+    final fade = 1 - _span(t, 0.7, 1);
+    if (t > 0 && travel > 0.2 && fade > 0) {
+      final p = Paint()
+        ..color = line.color.withValues(alpha: line.color.a * 0.75 * fade)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = line.strokeWidth * 0.8
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      final path = Path()..moveTo(5.2, 20.4);
+      for (var x = 5.2; x <= tip.dx; x += 0.5) {
+        path.lineTo(x, 20.4 + 1.1 * math.sin((x - 5.2) * 1.4));
+      }
+      canvas.drawPath(path, p);
+    }
+
+    // The pen, its nib at [tip], leaning 45 degrees up to the right.
+    canvas.save();
+    canvas.translate(tip.dx, tip.dy);
+    canvas.rotate(-math.pi / 4);
+    // In pen space the nib is the origin and the barrel runs along +x.
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, 0)
+        ..lineTo(3.4, -1.9)
+        ..lineTo(15.2, -1.9)
+        ..arcToPoint(const Offset(15.2, 1.9),
+            radius: const Radius.circular(1.9))
+        ..lineTo(3.4, 1.9)
+        ..close(),
+      line,
+    );
+    // The collar where the nib meets the barrel.
+    canvas.drawLine(const Offset(3.4, -1.9), const Offset(3.4, 1.9), line);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_ActionPainter old) =>
+      old.color != color || old.mark != mark;
 }

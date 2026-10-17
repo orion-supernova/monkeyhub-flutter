@@ -14,6 +14,7 @@ import '../data/spoiler_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
 import 'dust/dust_kit.dart';
+import 'dust/rub_field.dart';
 import 'dust/spoiler_dust.dart';
 import 'paragraph_geometry.dart';
 
@@ -208,8 +209,70 @@ class _SpoilerVeilState extends State<SpoilerVeil>
     final dt = dustFrameDt(last, elapsed);
     _model.time += dt;
     _model._field?.step(_model, dt);
+    _stepBoil(dt);
     _frame.value++;
+    // Open again: the words are readable and the ticker only stayed up for
+    // the last of the boiled dust to blow away.
+    if (_open && _model.boil == null) _stopTicker();
   }
+
+  /// The dust boiling off the wipe under a held finger (see [RubField]):
+  /// made by the first wipe, stepped while it has anything to move, and
+  /// dropped the moment it has nothing.
+  void _stepBoil(double dt) {
+    final boil = _model.boil;
+    if (boil == null) return;
+    final mask = _model._mask;
+    final hole = mask != null && !mask.clean ? _model.hole : null;
+    // Only while the finger is on dust that is still being wiped, not once
+    // the whole veil has gone up on the wavefront.
+    final emitting = hole != null && _reveal.value <= 0 ? _model.touch : null;
+    boil
+      ..inkRgb = _model.inkRgb
+      ..step(
+        dt,
+        time: _model.time,
+        touch: _model.touch,
+        emitFrom: emitting,
+        rub: hole,
+        heal: _model.heal,
+      );
+    if (emitting == null && !boil.busy && !_model.healing) _model.boil = null;
+  }
+
+  /// A field for the boil, over the veil and a margin round it, inside the
+  /// paragraph's own box.
+  void _ensureBoil() {
+    if (_calm || _model.boil != null || _model.rects.isEmpty) return;
+    final area = _model.bounds
+        .inflate(_boilReach)
+        .intersect(_model.box.inflate(_boilOverhang));
+    if (area.isEmpty) return;
+    // The picture's rate (the text's dust is denser than a picture's, so the
+    // boil needs all of it to read over it), less for a spoiler too short to
+    // carry a picture's cloud: a word still boils plainly, it is just not
+    // buried.
+    var area2 = 0.0;
+    for (final r in _model.rects) {
+      area2 += r.width * r.height;
+    }
+    final scale = math.sqrt(area2 / _boilFullArea).clamp(0.4, 1.0);
+    _model.boil = RubField(
+      area,
+      _model.dpr,
+      emitRate: RubField.defaultEmitRate * scale,
+      inkRgb: _model.inkRgb,
+      edgeFade: 10,
+    );
+  }
+
+  /// How far round the veiled words the boiled dust may travel, and how far
+  /// past the paragraph's box (into the bubble's padding).
+  static const double _boilReach = 34;
+  static const double _boilOverhang = 10;
+
+  /// Veil area, in px², from which a spoiler boils at the full rate.
+  static const double _boilFullArea = 4000;
 
   // ----------------------------------------------------------- transitions
 
@@ -223,8 +286,9 @@ class _SpoilerVeilState extends State<SpoilerVeil>
       _model._mask?.reset();
       _heal.value = 0;
       _maskRevision.value++;
-      // Nothing to animate while the words are simply readable.
-      _stopTicker();
+      // Nothing to animate while the words are simply readable, once the
+      // last of the boiled dust has blown away.
+      if (_model.boil == null) _stopTicker();
       _scheduleHeal();
     } else if (status == AnimationStatus.dismissed) {
       _model.endGather();
@@ -394,6 +458,7 @@ class _SpoilerVeilState extends State<SpoilerVeil>
                       _healTimer?.cancel();
                       _model._mask?.lift();
                       _model.touch = d.localPosition;
+                      _ensureBoil();
                       _ensureTicker();
                       _wipeAt(d.localPosition);
                     };
@@ -664,6 +729,7 @@ class RenderVeiledText extends RenderProxyBox {
     _measuredParagraph = p;
     _measuredSize = p.textSize;
     _measuredText = p.text;
+    _model.box = Offset.zero & size;
     _model.adopt([for (final g in groups) ...g]);
   }
 
@@ -891,6 +957,16 @@ class VeilModel {
   _DustField? _field;
   Float32List? _stipple;
 
+  /// The dust boiling off a wipe, while there is any (see [RubField]).
+  RubField? boil;
+
+  /// The veiled text's own box, which the boil stays inside (give or take
+  /// the bubble's padding).
+  Rect box = Rect.zero;
+
+  /// The wipe, as the boil reads it.
+  late final RubHole hole = _VeilHole(this);
+
   bool calm = false;
   double dpr = 3;
   int inkRgb = 0xFFFFFF;
@@ -976,6 +1052,7 @@ class VeilModel {
     bounds = b;
     _mask = flat.isEmpty ? null : _WipeMask.covering(flat);
     _stipple = null;
+    boil = null;
     lineJitter = List<double>.filled(flat.length, 0);
     _rebuildField();
     geometry.value++;
@@ -984,6 +1061,7 @@ class VeilModel {
   void setCalm(bool value) {
     if (value == calm) return;
     calm = value;
+    boil = null;
     _rebuildField();
     geometry.value++;
   }
@@ -1510,7 +1588,12 @@ class _DustPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final m = model;
-    if (m.rects.isEmpty || m.open) return;
+    if (m.rects.isEmpty) return;
+    if (m.open) {
+      // Readable again; only the last of the boil is still in the air.
+      m.boil?.paint(canvas);
+      return;
+    }
 
     if (m.calm) {
       canvas.drawRawPoints(
@@ -1525,8 +1608,12 @@ class _DustPainter extends CustomPainter {
     }
 
     final field = m._field;
-    if (field == null || field.alive == 0) return;
+    if (field == null) return;
     final n = field.alive;
+    if (n == 0) {
+      m.boil?.paint(canvas);
+      return;
+    }
 
     DustAtlas.draw(
       canvas,
@@ -1538,6 +1625,9 @@ class _DustPainter extends CustomPainter {
       points: field.points,
       fallbackInk: ink.withValues(alpha: 0.6),
     );
+    // Over the field: the boil streams out across the wipe's rim, which is
+    // what makes the rim.
+    m.boil?.paint(canvas);
   }
 
   @override
@@ -1548,6 +1638,37 @@ class _DustPainter extends CustomPainter {
   /// painter here would swallow taps on every link in the paragraph.
   @override
   bool hitTest(Offset position) => false;
+}
+
+/// The wipe as [RubField] reads it: the mask's discs and clearance, and the
+/// model's heal.
+class _VeilHole implements RubHole {
+  _VeilHole(this.m);
+
+  final VeilModel m;
+
+  @override
+  int get discs => m._mask?._cx.length ?? 0;
+  @override
+  double discX(int j) => m._mask!._cx[j];
+  @override
+  double discY(int j) => m._mask!._cy[j];
+  @override
+  double discR(int j) => m._mask!._cr[j];
+  @override
+  double get rimRadius => _WipeMask.brush;
+  @override
+  double clearedAt(double x, double y) => m._mask?.clearedAt(x, y) ?? 0;
+  @override
+  bool get healing => m.healing;
+  @override
+  Offset get healWind => m.healWind;
+  @override
+  double get healPMin => m._healPMin;
+  @override
+  double get healPadding => VeilModel.healPad;
+  @override
+  double get healSpan => m._healSpan;
 }
 
 // ---------------------------------------------------------------------------

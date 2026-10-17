@@ -92,6 +92,34 @@ class MessageDeletions {
       _headOf[id] = head;
     }
     _headOf[head] = head;
+    if (_rowBoxes.length > _pruneAt && !_pruneScheduled) {
+      // A long session scrolls past thousands of rows, and each one left an
+      // entry here. Swept after the frame, when every row being built has
+      // mounted: a box with no element by then is off screen, and is put
+      // back by its own build the next time it is.
+      _pruneScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _prune());
+    }
+  }
+
+  int _pruneAt = 512;
+  bool _pruneScheduled = false;
+
+  void _prune() {
+    _pruneScheduled = false;
+    if (_disposed) return;
+    final stale = [
+      for (final e in _rowBoxes.entries)
+        if (e.value.currentContext == null && !_active.containsKey(e.key)) e.key,
+    ];
+    for (final head in stale) {
+      _rowBoxes.remove(head);
+      for (final id in _members.remove(head) ?? const <String>[]) {
+        if (_headOf[id] == head) _headOf.remove(id);
+      }
+      if (_headOf[head] == head) _headOf.remove(head);
+    }
+    _pruneAt = _rowBoxes.length * 2 < 512 ? 512 : _rowBoxes.length * 2;
   }
 
   /// The row headed by [head] is dissolving: when, and with how much.
@@ -195,10 +223,14 @@ class MessageDeletions {
     final base = _gone.isEmpty
         ? timeline
         : [for (final m in timeline) if (!_gone.contains(m.id)) m];
+    // A held row is only spliced back if the list has no copy of it under ANY
+    // of its ids: mid-send the optimistic row and the server's echo are one
+    // message with two ids, and both would claim the same row key.
+    final known = {for (final m in timeline) ...m.identities};
     final missing = [
       for (final list in _held.values)
         for (final m in list)
-          if (!present.contains(m.id)) m,
+          if (!m.identities.any(known.contains)) m,
     ];
     List<ChatMessage> merged;
     if (missing.isEmpty) {

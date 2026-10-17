@@ -255,6 +255,14 @@ class ChatMessage {
   /// back, which is the case where the ack is the thing that got lost.
   final String? clientId;
 
+  /// Every id this message is known by: its own, and the optimistic or server
+  /// id it pairs with mid-send. Two rows sharing any of these are one message.
+  Iterable<String> get identities sync* {
+    yield id;
+    if (clientId != null) yield clientId!;
+    if (serverId != null) yield serverId!;
+  }
+
   /// The album this photo or video was sent in: one id shared by every item
   /// of one send. The transcript stacks an album by it exactly. Null on
   /// anything sent alone, and on albums from before it existed, which fall

@@ -61,6 +61,7 @@ import 'message_departures.dart';
 import 'message_hover_actions.dart';
 import 'video_message.dart';
 import 'secondary_click_recognizer.dart';
+import 'send_flight.dart';
 import 'video_note_message.dart';
 import 'view_once_seal.dart';
 import 'expressions/expression_bubble.dart';
@@ -1831,6 +1832,7 @@ Widget buildMessageContent({
           ? _OutboundAudioRow(
               theme: theme,
               upload: audioUpload,
+              seedKey: voiceBarsSeedKey(message),
               isMine: isMine,
               failed: message.status == MessageStatus.error,
               onRetry: onRetrySend,
@@ -1840,9 +1842,10 @@ Widget buildMessageContent({
               api: api,
               storageId: message.mediaStorageId,
               isMine: isMine,
+              seedKey: voiceBarsSeedKey(message),
             );
       final audioStamp = stampFor(bubbleTone);
-      return Container(
+      final audioBubble = Container(
         padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
         decoration: deco,
         child: audioStamp == null
@@ -1869,6 +1872,15 @@ Widget buildMessageContent({
                   ),
                 ],
               ),
+      );
+      // A voice note just recorded is where the composer's strip lands; it
+      // stays hidden until the strip is on it (see `send_flight.dart`).
+      if (audioUpload == null || !isMine) return audioBubble;
+      return SendFlightLanding(
+        kind: SendFlightKind.voice,
+        color: deco is ShapeDecoration ? deco.color ?? deco.gradient?.colors.first : null,
+        bars: voiceWaveformHeights((voiceBarsSeedKey(message) ?? '').hashCode),
+        child: audioBubble,
       );
     case MessageType.video:
       final videoUpload = message.upload;
@@ -3183,10 +3195,24 @@ class _UploadingImageTile extends StatelessWidget {
 /// The finished player is a 34pt round play button, a waveform and a duration.
 /// This is the button's ring where the button will be, and the word in place of
 /// the duration — so nothing moves when the real player replaces it.
+/// What shapes a voice note's waveform, kept the same from the moment it is
+/// recorded to long after it is sent, so its bars never change shape.
+///
+/// The live row echoes the optimistic bubble's local id as its `clientId`
+/// (see `ChatRepository`), and the optimistic bubble *is* that id, before
+/// the ack and after it (reconciled, it keeps its id and gains a
+/// `serverId`): so `clientId ?? id` names one note all the way through, as
+/// a video note's face is seeded. A note from before client ids has neither
+/// and keeps the storage id it was always drawn from.
+String? voiceBarsSeedKey(ChatMessage message) =>
+    message.clientId ??
+    (message.upload != null || message.serverId != null ? message.id : message.mediaStorageId);
+
 class _OutboundAudioRow extends StatelessWidget {
   const _OutboundAudioRow({
     required this.theme,
     required this.upload,
+    required this.seedKey,
     required this.isMine,
     required this.failed,
     this.onRetry,
@@ -3195,6 +3221,9 @@ class _OutboundAudioRow extends StatelessWidget {
 
   final AppTheme theme;
   final PendingUpload upload;
+
+  /// See [voiceBarsSeedKey].
+  final String? seedKey;
   final bool isMine;
   final bool failed;
   final Future<void> Function()? onRetry;
@@ -3211,6 +3240,68 @@ class _OutboundAudioRow extends StatelessWidget {
       onRetry: onRetry,
       onDiscard: onDiscard,
     );
+    if (!failed) {
+      // The finished player's anatomy already (see `AudioMessage`): the disc,
+      // here holding the ring, the waveform and the meta line under it. So a
+      // sent note's flight lands its bars on these very bars, and the player
+      // that replaces this row does not move anything.
+      final meta = theme.body.copyWith(
+        fontSize: 13,
+        height: 1.2,
+        color: ink.withValues(alpha: 0.8),
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SendFlightMark(
+            part: SendFlightPart.disc,
+            child: Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isMine ? ink.withValues(alpha: 0.2) : theme.accent,
+                shape: BoxShape.circle,
+              ),
+              child: indicator,
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 120,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SendFlightMark(
+                  part: SendFlightPart.wave,
+                  child: SizedBox(
+                    height: 20,
+                    width: double.infinity,
+                    child: VoiceWaveform(
+                      seed: (seedKey ?? '').hashCode,
+                      played: ink,
+                      unplayed: ink.withValues(alpha: 0.32),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SendFlightMark(
+                  part: SendFlightPart.label,
+                  child: Text(
+                    AppLocalizations.of(context).messageBubbleAttachmentStatusSending,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: meta,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

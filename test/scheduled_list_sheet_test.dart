@@ -5,10 +5,13 @@ import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
+import 'package:monkeyhub/models/message_formatting.dart';
 import 'package:monkeyhub/models/scheduled_message.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/schedule_glyphs.dart';
 import 'package:monkeyhub/widgets/scheduled_list_sheet.dart';
+import 'package:monkeyhub/widgets/spoiler_veil.dart';
 
 /// The list of messages waiting to send, and the four things you can do to one.
 ///
@@ -85,6 +88,63 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('a queued message keeps its formatting', (tester) async {
+    // "bold secret plain": bold over the first word, a spoiler over the
+    // second. The list used to draw the raw string and lose both. Opened by
+    // hand: spoiler dust drifts for as long as it is on screen, so nothing
+    // here ever settles.
+    phone(tester);
+    await tester.pumpWidget(host([
+      ScheduledMessage(
+        id: 'f1',
+        roomId: 'r',
+        content: 'bold secret plain',
+        sendAt: DateTime.now().add(const Duration(hours: 5)),
+        createdAt: DateTime.now(),
+        pending: true,
+        formatting: const [
+          FormattingEntity(start: 0, end: 4, type: FormattingType.bold),
+          FormattingEntity(start: 5, end: 11, type: FormattingType.spoiler),
+        ],
+      ),
+    ]));
+    await tester.tap(find.text('open'));
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    final rich = find.byType(ScheduledRichText);
+    expect(rich, findsOneWidget);
+    final paragraph = tester.widget<RichText>(
+      find.descendant(of: rich, matching: find.byType(RichText)),
+    );
+    final bold = <String>[];
+    paragraph.text.visitChildren((span) {
+      if (span is TextSpan &&
+          span.style?.fontWeight == FontWeight.bold &&
+          span.text != null) {
+        bold.add(span.text!);
+      }
+      return true;
+    });
+    expect(bold, contains('bold'));
+    expect(
+      find.descendant(of: rich, matching: find.byType(SpoilerVeil)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('each action wears a drawn glyph that kicks on press', (
+    tester,
+  ) async {
+    await open(tester, [msg('s1', 'reminder')]);
+    expect(find.byType(ScheduleActionGlyph), findsNWidgets(3));
+    expect(find.byType(ScheduleClockGlyph), findsNWidgets(2));
+    // The edit press opens its sheet; the kick under it must finish, or a
+    // settle would hang.
+    await tester.tap(find.text(en.scheduledListEdit));
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('says nothing is waiting when nothing is', (tester) async {
     await open(tester, const []);

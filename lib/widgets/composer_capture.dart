@@ -25,6 +25,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'capture_bloom.dart';
 import 'capture_glyphs.dart';
+import 'audio_message.dart' show kVoiceWaveformBars;
 import 'capture_review.dart';
 import 'destructive_sheet.dart';
 import 'glass_buttons.dart';
@@ -352,6 +353,42 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       }
     });
 
+  /// A sent voice note on its way into its bubble: the review strip it was
+  /// paused on, or the send disc, drawn by [_voiceFlightLayer] until the
+  /// bubble takes over. Null while nothing is flying.
+  _VoiceFlightFrom? _voiceFrom;
+
+  /// The voice note's ticket (see `send_flight.dart`), open from the hand-over
+  /// until it lands or gives up.
+  SendFlightTicket? _voiceFlight;
+  Timer? _voiceFlightWait;
+
+  /// Where the bloom's disc is, so a send can take it over from there.
+  final _bloomProbe = CaptureBloomProbe();
+
+  /// The paused review strip, measured as it is sent.
+  final _reviewStripKey = GlobalKey();
+
+  /// 0 where it was sent from, 1 on the bubble: into place by 0.8, then the
+  /// bubble fades in under it. Giving up, the same tick shrinks it away.
+  late final AnimationController _voiceFlightAnim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 600),
+  )
+    ..addListener(() {
+      final from = _voiceFrom;
+      if (from == null || from.givingUp) return;
+      // Under the flying note, which is still opaque: two same-coloured
+      // layers crossfading would let the chat show through mid-way.
+      _voiceFlight?.reveal.value =
+          ((_voiceFlightAnim.value - 0.72) / (_VoiceFlightPainter.handOver - 0.72)).clamp(0.0, 1.0);
+    })
+    ..addStatusListener((status) {
+      if (status != AnimationStatus.completed || !mounted) return;
+      if (!(_voiceFrom?.givingUp ?? true)) HapticFeedback.lightImpact();
+      _endVoiceFlight();
+    });
+
   /// Decelerates into both ends, as a received note's focus does.
   late final CurvedAnimation _liftCurve = CurvedAnimation(
     parent: _lift,
@@ -519,6 +556,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     _flightWait?.cancel();
     _flight?.close();
     _flightAnim.dispose();
+    _voiceFlightWait?.cancel();
+    _voiceFlight?.close();
+    _voiceFlightAnim.dispose();
     _discard.dispose();
     _screenFlash = false;
     unawaited(_levelSub?.cancel());
@@ -667,6 +707,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     if (capture == null || _busy || _machine.isRecording) return;
     final mode = _machine.mode;
     if (mode == ComposerInputMode.camera) return;
+    // A new note before the last one has landed: it lands now.
+    if (_voiceFrom != null) _endVoiceFlight();
     _busy = true;
     _rememberSlot();
     // The bloom answers the finger now; the recorder catches up. Felt now
@@ -749,7 +791,15 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       final started = _startedAt;
       if (!mounted || started == null) return;
       final elapsed = DateTime.now().difference(started);
-      setState(() => _elapsed = elapsed);
+      // Everything built from it is whole seconds (the countdown, the
+      // spoken label); the hundredths and the ring have tickers of their
+      // own. So the composer rebuilds once a second, not ten times, and the
+      // value itself still moves every tick for the hold's own checks.
+      if (elapsed.inSeconds == _elapsed.inSeconds) {
+        _elapsed = elapsed;
+      } else {
+        setState(() => _elapsed = elapsed);
+      }
       final max = _maxDuration;
       if (max != null && elapsed >= max) {
         // The ceiling sends rather than discards, and the countdown in the last
@@ -778,6 +828,18 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     HapticFeedback.mediumImpact();
     _bloomExit = CaptureBloomExit.send;
     final mode = _machine.mode;
+    final voiceFlies = mode == ComposerInputMode.voice && mounted && !MotionScope.of(context).calm;
+    // Sent from the disc (no review strip): the composer takes the disc over
+    // where it is, before the bloom lets it go, and holds it there until the
+    // bubble shows.
+    if (voiceFlies && !(_paused && _review != null)) {
+      final disc = _discInOverlay();
+      if (disc != null) {
+        _endVoiceFlight();
+        _bloomExit = CaptureBloomExit.flight;
+        _voiceFrom = _VoiceFlightFrom.disc(disc);
+      }
+    }
     _machine.markFinishing();
     _stopTicker();
     try {
@@ -796,6 +858,22 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       if (mode == ComposerInputMode.videoNote && mounted && !MotionScope.of(context).calm && _lift.value > 0) {
         _beginFlight();
       }
+      if (voiceFlies && mounted) {
+        // Sent from the review: the strip itself flies, carrying the bars
+        // that are being sent.
+        if (_voiceFrom == null && _paused && review != null) {
+          final strip = _rectInOverlay(_reviewStripKey);
+          if (strip != null) {
+            _endVoiceFlight();
+            _voiceFrom = _VoiceFlightFrom.strip(
+              strip,
+              bars: _windowBars(review),
+              clock: formatClockDuration(review.trimmedLength),
+            );
+          }
+        }
+        if (_voiceFrom != null) _beginVoiceFlight();
+      }
       capture.onCaptured(mode, outcome.withViewOnce(_viewOnce));
       // Sent: the viewfinder does not come back on its own. Flying the circle
       // back into a live preview read as still recording; it shrinks away
@@ -813,6 +891,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         capture.onProblem(f);
       }
     } finally {
+      // Taken over but never handed over (too short, or it failed): it
+      // shrinks away where it is.
+      if (_voiceFrom != null && _voiceFlight == null && !(_voiceFrom!.givingUp)) _abandonVoiceFlight();
       _busy = false;
       _recorder = null;
       _endReview();
@@ -1174,6 +1255,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
               children: [
                 _bigPreviewLayer(context),
                 _bloomLayer(context),
+                _voiceFlightLayer(context),
               ],
             ),
           ),
@@ -1263,6 +1345,137 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     final w = from.width + (to.width - from.width) * size;
     final h = from.height + (to.height - from.height) * size;
     return Rect.fromCenter(center: center, width: w, height: h);
+  }
+
+  /// The bloom's disc in the overlay, from where it was last painted.
+  Rect? _discInOverlay() {
+    final disc = _bloomProbe.disc;
+    final anchor = _bloomAnchor;
+    if (disc == null || anchor == null) return null;
+    return disc.shift(anchor - CaptureBloom.center);
+  }
+
+  Rect? _rectInOverlay(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject();
+    final overlay = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    if (overlay is! RenderBox || !overlay.hasSize) return null;
+    return overlay.globalToLocal(box.localToGlobal(Offset.zero)) & box.size;
+  }
+
+  /// The bars inside the trim window: what is actually being sent.
+  static List<double> _windowBars(CaptureReviewController review) {
+    final bars = review.bars;
+    if (bars.isEmpty) return const [];
+    final a = (review.start * bars.length).floor().clamp(0, bars.length - 1);
+    final b = (review.end * bars.length).ceil().clamp(a + 1, bars.length);
+    return bars.sublist(a, b);
+  }
+
+  void _beginVoiceFlight() {
+    _voiceFlightWait?.cancel();
+    final ticket = _voiceFlight = SendFlight.open(SendFlightKind.voice);
+    _voiceFlightAnim.value = 0;
+    ticket.addListener(_onVoiceFlightClaimed);
+    _voiceFlightWait = Timer(const Duration(milliseconds: 450), () {
+      if (identical(_voiceFlight, ticket) && !ticket.claimed) _abandonVoiceFlight();
+    });
+    setState(() {});
+  }
+
+  void _onVoiceFlightClaimed() {
+    final ticket = _voiceFlight;
+    if (ticket == null || !ticket.claimed || ticket.closed || _voiceFlightAnim.isAnimating) return;
+    _voiceFlightWait?.cancel();
+    // From the frame after the bubble's first layout, as the circle's does.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !identical(_voiceFlight, ticket) || ticket.closed) return;
+      _voiceFlightAnim
+        ..duration = MotionScope.of(context).d(const Duration(milliseconds: 600))
+        ..forward(from: 0);
+    });
+  }
+
+  /// No bubble came (the list was far up in history, or the send never
+  /// happened): what was taken over shrinks away where it is, as the disc
+  /// always did.
+  void _abandonVoiceFlight() {
+    final from = _voiceFrom;
+    if (from == null) return;
+    _voiceFlightWait?.cancel();
+    _voiceFlightWait = null;
+    final ticket = _voiceFlight;
+    _voiceFlight = null;
+    ticket?.removeListener(_onVoiceFlightClaimed);
+    ticket?.close();
+    if (!mounted) {
+      _voiceFrom = null;
+      return;
+    }
+    from.givingUp = true;
+    _voiceFlightAnim
+      ..duration = const Duration(milliseconds: 280)
+      ..forward(from: 0);
+    setState(() {});
+  }
+
+  /// Landed, given up, or overtaken by the next note: the bubble shows in
+  /// full and nothing is drawn over it.
+  void _endVoiceFlight() {
+    _voiceFlightWait?.cancel();
+    _voiceFlightWait = null;
+    final ticket = _voiceFlight;
+    _voiceFlight = null;
+    ticket?.removeListener(_onVoiceFlightClaimed);
+    ticket?.close();
+    if (_voiceFrom == null) return;
+    _voiceFrom = null;
+    _voiceFlightAnim.stop();
+    _voiceFlightAnim.value = 0;
+    if (mounted) setState(() {});
+  }
+
+  /// The voice note in the air (see [_VoiceFlightPainter]). Painted in the
+  /// overlay, over the chat, re-aimed every frame at its bubble.
+  Widget _voiceFlightLayer(BuildContext context) {
+    if (_voiceFrom == null) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _voiceFlightAnim,
+            builder: (context, _) {
+              final from = _voiceFrom;
+              final overlayBox = Overlay.of(context).context.findRenderObject();
+              if (from == null || overlayBox is! RenderBox || !overlayBox.hasSize) return const SizedBox.shrink();
+              final theme = ThemeScope.of(context);
+              final ticket = _voiceFlight;
+              final anchor = _bloomAnchor;
+              return CustomPaint(
+                size: Size.infinite,
+                painter: _VoiceFlightPainter(
+                  from: from,
+                  landing: from.givingUp ? null : ticket?.rectIn(overlayBox),
+                  landingFill: ticket?.color,
+                  landingBars: ticket?.bars,
+                  landingDisc: ticket?.partIn(SendFlightPart.disc, overlayBox),
+                  landingWave: ticket?.partIn(SendFlightPart.wave, overlayBox),
+                  home: anchor == null ? null : Rect.fromCenter(center: anchor, width: _buttonDiameter, height: _buttonDiameter),
+                  t: _voiceFlightAnim.value,
+                  accent: theme.accent,
+                  accentInk: theme.accentInk,
+                  clockStyle: theme.body.copyWith(
+                    fontSize: 14,
+                    color: theme.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   /// The small preview's rect in the overlay, or null while it is not laid
@@ -1843,6 +2056,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           resumeLabel: l10n.composerCaptureResumeLabel,
           paused: _paused,
           onPause: _machine.stage == CaptureStage.locked && captureComposeSupported ? () => unawaited(_togglePause()) : null,
+          probe: _bloomProbe,
         ),
       ),
     );
@@ -2245,6 +2459,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                   dx: 16,
                   duration: const Duration(milliseconds: 220),
                   child: CaptureReviewStrip(
+                    key: _reviewStripKey,
                     controller: review,
                     theme: theme,
                     playLabel: l10n.composerCaptureReviewPlayLabel,
@@ -2375,6 +2590,349 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       ),
     );
   }
+}
+
+/// The voice flight's painter on its own, for a test to draw frames of the
+/// strip or the disc morphing into a bubble without a recorder that can
+/// pause (pause runs only on a phone).
+@visibleForTesting
+CustomPainter debugVoiceFlightPainter({
+  required Rect from,
+  required bool disc,
+  List<double> bars = const [],
+  String? clock,
+  Rect? landing,
+  Color? landingFill,
+  List<double>? landingBars,
+  Rect? landingDisc,
+  Rect? landingWave,
+  required double t,
+  required Color accent,
+  required Color accentInk,
+  required TextStyle clockStyle,
+}) =>
+    _VoiceFlightPainter(
+      from: disc ? _VoiceFlightFrom.disc(from) : _VoiceFlightFrom.strip(from, bars: bars, clock: clock),
+      landing: landing,
+      landingFill: landingFill,
+      landingBars: landingBars,
+      landingDisc: landingDisc,
+      landingWave: landingWave,
+      home: null,
+      t: t,
+      accent: accent,
+      accentInk: accentInk,
+      clockStyle: clockStyle,
+    );
+
+/// Where a sent voice note took off from: the paused review strip (with the
+/// bars being sent and its length), or the bloom's send disc.
+class _VoiceFlightFrom {
+  _VoiceFlightFrom.strip(this.rect, {required this.bars, required this.clock}) : disc = false;
+  _VoiceFlightFrom.disc(this.rect)
+      : disc = true,
+        bars = const [],
+        clock = null;
+
+  final Rect rect;
+  final bool disc;
+  final List<double> bars;
+  final String? clock;
+
+  /// No bubble came: it shrinks away instead of landing.
+  bool givingUp = false;
+}
+
+double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+/// A voice note flying into its bubble, in one paint.
+///
+/// From the review strip, the strip *is* the bubble-to-be: a pale stadium
+/// with a play disc and bars, already the bubble's anatomy. It swoops onto
+/// the bubble (across first, then down, as the video circle does), its pale
+/// fill deepening to the bubble's and its corners easing to the bubble's. The
+/// play disc glides onto the bubble's disc, and the bars, re-sampled into
+/// the bubble's own thirty, travel and re-space onto the bubble's bars: the
+/// same places, heights and colour by the time it lands, so the hand-over
+/// shows nothing but the bubble's own words and ring arriving.
+///
+/// From the disc, there is no strip to carry: the disc flies to the
+/// bubble's near end, shrinking to its height, and the bubble unrolls out of
+/// it toward the far end, its bars coming with it. Never a circle stretched
+/// into a pill: the disc arrives round, then the pill grows from it.
+///
+/// Either way it is in place by 0.8. The real bubble fades in under it
+/// ([SendFlightTicket.reveal]) while it is still opaque, and only then does it
+/// go, so the note is never shown twice and never dims mid-handover.
+class _VoiceFlightPainter extends CustomPainter {
+  _VoiceFlightPainter({
+    required this.from,
+    required this.landing,
+    required this.landingFill,
+    this.landingBars,
+    this.landingDisc,
+    this.landingWave,
+    required this.home,
+    required this.t,
+    required this.accent,
+    required this.accentInk,
+    required this.clockStyle,
+  });
+
+  final _VoiceFlightFrom from;
+  final Rect? landing;
+  final Color? landingFill;
+
+  /// The bubble's waveform heights and where its disc and waveform are (see
+  /// `SendFlightMark`); laid out as `AudioMessage` lays them when missing.
+  final List<double>? landingBars;
+  final Rect? landingDisc;
+  final Rect? landingWave;
+
+  /// The mode button, where a disc that gives up shrinks back to.
+  final Rect? home;
+  final double t;
+  final Color accent;
+  final Color accentInk;
+  final TextStyle clockStyle;
+
+  static const _ease = Curves.easeInOutCubic;
+
+  /// When the flying note starts going, the bubble fully in under it.
+  static const handOver = 0.86;
+
+  /// The across-then-down arc of the video circle's flight.
+  static Rect _arc(Rect from, Rect to, double f) {
+    final across = Curves.easeOutCubic.transform(f);
+    final down = Curves.easeInOutCubic.transform(f);
+    final size = Curves.easeInOutCubic.transform(f);
+    return Rect.fromCenter(
+      center: Offset(_lerp(from.center.dx, to.center.dx, across), _lerp(from.center.dy, to.center.dy, down)),
+      width: _lerp(from.width, to.width, size),
+      height: _lerp(from.height, to.height, size),
+    );
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final to = landing;
+    final fade = to == null && from.givingUp
+        ? 1 - Curves.easeIn.transform(t)
+        : 1 - ((t - handOver) / (1 - handOver)).clamp(0.0, 1.0);
+    if (fade <= 0) return;
+    if (from.disc) {
+      _paintDisc(canvas, to, fade);
+    } else {
+      _paintStrip(canvas, to, fade);
+    }
+  }
+
+  /// The strip's 32pt disc.
+  static Rect _stripDisc(Rect r) => Rect.fromLTWH(r.left + 4, r.center.dy - 16, 32, 32);
+
+  /// The strip's track: right of its disc, left of its clock.
+  static Rect _stripTrack(Rect r) =>
+      Rect.fromLTRB(r.left + 44, r.center.dy - 16, math.max(r.left + 50, r.right - 66), r.center.dy + 16);
+
+  /// The bubble's disc and waveform, from the marks or as `AudioMessage`
+  /// lays them out.
+  Rect _bubbleDisc(Rect to) => landingDisc ?? Rect.fromLTWH(to.left + 10, to.center.dy - 17, 34, 34);
+  Rect _bubbleWave(Rect to) => landingWave ?? Rect.fromLTWH(to.left + 54, to.center.dy - 16, 120, 20);
+
+  /// The bar heights the flight ends on: the bubble's, or the recording's
+  /// own re-sampled to the bubble's count.
+  List<double> _target() {
+    final own = landingBars;
+    if (own != null && own.isNotEmpty) return own;
+    final src = from.bars;
+    if (src.isEmpty) return List.filled(kVoiceWaveformBars, 0.3);
+    return [
+      for (var i = 0; i < kVoiceWaveformBars; i++)
+        src[math.min(src.length - 1, ((i + 0.5) / kVoiceWaveformBars * src.length).floor())],
+    ];
+  }
+
+  void _paintStrip(Canvas canvas, Rect? to, double fade) {
+    final s = from.rect;
+    final pale = accent.withValues(alpha: 0.16);
+    if (to == null) {
+      // Waiting for the bubble, or giving up on it: in place, settling
+      // slightly as it goes.
+      final k = from.givingUp ? t : 0.0;
+      final body = Rect.fromCenter(center: s.center, width: s.width * (1 - 0.04 * k), height: s.height * (1 - 0.04 * k));
+      _body(canvas, body, body.height / 2, pale, fade);
+      _discAt(canvas, _stripDisc(s), accent, fade);
+      _stripBars(canvas, _stripTrack(s), fade);
+      _clock(canvas, body, fade);
+      return;
+    }
+    final p = (t / 0.8).clamp(0.0, 1.0);
+    final e = _ease.transform(p);
+    final body = _arc(s, to, p);
+    final radius = math.min(_lerp(s.height / 2, math.min(to.height / 2, 20), e), body.height / 2);
+    _body(canvas, body, radius, Color.lerp(pale, landingFill ?? accent, e)!, fade);
+
+    // The disc and the bars keep their places relative to the body as it
+    // moves, easing from the strip's layout into the bubble's.
+    Rect rel(Rect inner, Rect outer) => inner.shift(-outer.topLeft);
+    Rect carried(Rect a, Rect b) => Rect.lerp(rel(a, s), rel(b, to), e)!.shift(body.topLeft);
+    final disc = carried(_stripDisc(s), _bubbleDisc(to));
+    _discAt(canvas, disc, Color.lerp(accent, accentInk.withValues(alpha: 0.2), e)!, fade);
+
+    // The strip's own bars give way, over the first stretch, to the
+    // bubble's thirty, which then travel onto the bubble's.
+    final handoff = (e / 0.25).clamp(0.0, 1.0);
+    final track = carried(_stripTrack(s), _bubbleWave(to));
+    if (handoff < 1) _stripBars(canvas, track, fade * (1 - handoff));
+    _bubbleBars(canvas, track, e, fade * handoff);
+    _clock(canvas, body, fade * (1 - e / 0.18).clamp(0.0, 1.0));
+  }
+
+  void _body(Canvas canvas, Rect body, double radius, Color fill, double fade) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(body, Radius.circular(radius)),
+      Paint()..color = fill.withValues(alpha: fill.a * fade),
+    );
+  }
+
+  /// The play disc with its triangle: the strip's, becoming the bubble's.
+  void _discAt(Canvas canvas, Rect d, Color fill, double fade) {
+    canvas.drawOval(d, Paint()..color = fill.withValues(alpha: fill.a * fade));
+    final c = d.center;
+    final k = d.width / 32;
+    canvas.drawPath(
+      Path()
+        ..moveTo(c.dx - 4 * k, c.dy - 6 * k)
+        ..lineTo(c.dx + 6 * k, c.dy)
+        ..lineTo(c.dx - 4 * k, c.dy + 6 * k)
+        ..close(),
+      Paint()..color = accentInk.withValues(alpha: fade),
+    );
+  }
+
+  /// The strip's bars as the review drew them (see `capture_review.dart`).
+  void _stripBars(Canvas canvas, Rect track, double alpha) {
+    final bars = from.bars;
+    if (bars.isEmpty || alpha <= 0) return;
+    const gap = 2.0;
+    final w = track.width - 20;
+    if (w <= 4) return;
+    final n = math.max(1, ((w + gap) / (2.5 + gap)).floor());
+    final barW = (w - gap * (n - 1)) / n;
+    final paint = Paint()..color = accent.withValues(alpha: 0.55 * alpha);
+    for (var i = 0; i < n; i++) {
+      final v = bars[math.min(bars.length - 1, ((i + 0.5) / n * bars.length).floor())];
+      final h = 4 + (track.height - 12) * v;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(track.left + 10 + i * (barW + gap), track.center.dy - h / 2, barW, h),
+          Radius.circular(barW / 2),
+        ),
+        paint,
+      );
+    }
+  }
+
+  /// The bubble's thirty bars, drawn exactly as its waveform draws them,
+  /// heights easing from the recording's to the bubble's and the colour from
+  /// the strip's to the bubble's unplayed ink.
+  void _bubbleBars(Canvas canvas, Rect wave, double e, double alpha) {
+    if (alpha <= 0 || wave.width <= 4) return;
+    final target = _target();
+    final src = from.bars;
+    final n = target.length;
+    final step = wave.width / n;
+    final barW = math.max(1.5, step * 0.55);
+    final ink = Color.lerp(accent.withValues(alpha: 0.55), accentInk.withValues(alpha: 0.32), e)!;
+    final paint = Paint()
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barW
+      ..color = ink.withValues(alpha: ink.a * alpha);
+    for (var i = 0; i < n; i++) {
+      final mine = src.isEmpty ? target[i] : src[math.min(src.length - 1, ((i + 0.5) / n * src.length).floor())];
+      final v = _lerp(mine, target[i], e);
+      final x = wave.left + step * i + step / 2;
+      final bh = math.max(barW, v * wave.height);
+      canvas.drawLine(
+        Offset(x, wave.center.dy - bh / 2 + barW / 2),
+        Offset(x, wave.center.dy + bh / 2 - barW / 2),
+        paint,
+      );
+    }
+  }
+
+  /// The strip's clock, going first: the bubble has its own line.
+  void _clock(Canvas canvas, Rect body, double alpha) {
+    final clock = from.clock;
+    if (clock == null || alpha <= 0) return;
+    final tp = TextPainter(
+      text: TextSpan(
+        text: clock,
+        style: clockStyle.copyWith(color: clockStyle.color?.withValues(alpha: (clockStyle.color?.a ?? 1) * alpha)),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    tp.paint(canvas, Offset(body.right - 12 - tp.width, body.center.dy - tp.height / 2));
+    tp.dispose();
+  }
+
+  void _paintDisc(Canvas canvas, Rect? to, double fade) {
+    final d = from.rect;
+    if (to == null) {
+      // Waiting: where the bloom let go of it. Giving up: back onto the
+      // button and out, as the disc always went.
+      final back = home ?? d;
+      final r = from.givingUp ? Rect.lerp(d, back, Curves.easeOutCubic.transform(t))! : d;
+      _body(canvas, r, r.height / 2, accent, fade);
+      _arrow(canvas, r, fade);
+      return;
+    }
+    // Round all the way to the bubble's near end, at the bubble's height...
+    final a = (t / 0.5).clamp(0.0, 1.0);
+    final h = to.height;
+    final end = Rect.fromLTWH(to.right - h, to.top, h, h);
+    final round = _arc(d, end, a);
+    // ...then the bubble unrolls out of it to its far end, its disc and
+    // bars uncovered as it goes.
+    final b = Curves.easeOutCubic.transform(((t - 0.38) / 0.42).clamp(0.0, 1.0));
+    final body = Rect.fromLTRB(_lerp(round.left, to.left, b), round.top, round.right, round.bottom);
+    final radius = math.min(_lerp(round.height / 2, math.min(to.height / 2, 20), b), body.height / 2);
+    _body(canvas, body, radius, Color.lerp(accent, landingFill ?? accent, _ease.transform(a))!, fade);
+    if (b > 0) {
+      canvas.save();
+      canvas.clipRRect(RRect.fromRectAndRadius(body, Radius.circular(radius)));
+      final inside = fade * b;
+      _discAt(canvas, _bubbleDisc(to), accentInk.withValues(alpha: 0.2), inside);
+      _bubbleBars(canvas, _bubbleWave(to), 1, inside);
+      canvas.restore();
+    }
+    _arrow(canvas, round, fade * (1 - a / 0.5).clamp(0.0, 1.0));
+  }
+
+  /// The send arrow the disc carried, going as it flies.
+  void _arrow(Canvas canvas, Rect g, double a) {
+    if (a <= 0) return;
+    final c = g.center;
+    final k = g.height * 0.15;
+    final stroke = Paint()
+      ..color = accentInk.withValues(alpha: a)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.6, g.height * 0.045)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawLine(Offset(c.dx, c.dy + k * 1.3), Offset(c.dx, c.dy - k * 1.3), stroke);
+    canvas.drawPath(
+      Path()
+        ..moveTo(c.dx - k, c.dy - k * 0.3)
+        ..lineTo(c.dx, c.dy - k * 1.3)
+        ..lineTo(c.dx + k, c.dy - k * 0.3),
+      stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_VoiceFlightPainter old) => true;
 }
 
 /// The dot that says "live", on Telegram's rhythm: a 1 s cycle that holds
