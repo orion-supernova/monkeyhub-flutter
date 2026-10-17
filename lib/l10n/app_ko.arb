@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "시간 바꾸기",
   "scheduledListEdit": "내용 고치기",
   "scheduledListDelete": "삭제",
+  "scheduledListDeleteHeadline": "예약 메시지 삭제",
+  "scheduledListDeleteBody": "이 메시지는 보내지지 않아요.",
   "scheduledListSending": "보내는 중…",
   "scheduledListFailedTitle": "보내지 못했어요",
   "scheduledListRetry": "다시 시도",

@@ -6674,6 +6674,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get scheduledListDelete => 'Sil';
 
   @override
+  String get scheduledListDeleteHeadline => 'Zamanlanmış mesajı sil';
+
+  @override
+  String get scheduledListDeleteBody => 'Gönderilmeyecek.';
+
+  @override
   String get scheduledListSending => 'Gönderiliyor…';
 
   @override

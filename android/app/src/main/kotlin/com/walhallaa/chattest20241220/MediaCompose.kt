@@ -41,10 +41,11 @@ import java.nio.ByteBuffer
  * samples and one MediaMuxer writes them back to back, each segment's
  * timestamps offset by the length of everything before it. A trim drops the
  * samples outside the range. Audio cuts land on an AAC frame (~23 ms). Video
- * cannot start on anything but a keyframe without re-encoding, so the cut
- * moves back to the sync frame at or before `startMs` — CameraX's encoder
- * puts one about every second, so a video trim can start up to ~1 s early.
- * The audio is cut at that same point, so sync holds. The end is exact.
+ * cannot start on anything but a keyframe without re-encoding, and CameraX's
+ * encoder puts one only about every second, so a video trim whose start is
+ * more than a frame past its keyframe is re-encoded (below) to start exactly
+ * where it was asked to. A start on a keyframe, or no start cut at all, stays
+ * passthrough. The end is always exact.
  *
  * Passthrough needs every segment to share one codec config, size and
  * rotation, because an MP4 track has one of each. A flip while paused breaks
@@ -52,7 +53,8 @@ import java.nio.ByteBuffer
  * writes a different rotation hint for each. Those go through Media3
  * Transformer instead, which decodes each segment upright and re-encodes all
  * of them at the first segment's displayed size (crop-to-fill). Slower, and
- * only when it has to be. A muxer failure on video also falls back to it.
+ * only when it has to be: that, a start between keyframes, and a muxer
+ * failure on video are the only ways in.
  *
  * Same contract as `ios/Runner/MediaCompose.swift`.
  */
@@ -103,7 +105,10 @@ object MediaCompose {
                     val startMs = rawStartMs?.let { (it * scale).toLong() }
                     val endMs = rawEndMs?.let { (it * scale).toLong() }
                     val mixed = video && !uniform(paths)
-                    if (mixed) {
+                    // Passthrough can only start a video on a keyframe; a cut
+                    // between two goes through the encoder so it lands on the
+                    // frame the user picked, not up to a second before it.
+                    if (mixed || (video && offKeyframe(paths, startMs))) {
                         main.post { transcode(app, paths, out, startMs, endMs, reply) }
                         return@Thread
                     }
@@ -326,6 +331,38 @@ object MediaCompose {
         return ms
     }
 
+    /** How far a cut may sit past its keyframe and still count as on it: about a frame. */
+    private const val KEYFRAME_SLACK_US = 40_000L
+
+    /** True when a passthrough would have to start [startMs] early to reach a keyframe. */
+    private fun offKeyframe(paths: List<String>, startMs: Long?): Boolean {
+        if (startMs == null || startMs <= 0) return false
+        val spans = LongArray(paths.size)
+        for ((i, path) in paths.withIndex()) {
+            val ex = MediaExtractor()
+            try {
+                ex.setDataSource(path)
+                val t = trackOf(ex, "video/")
+                val f = if (t >= 0) ex.getTrackFormat(t) else null
+                spans[i] = if (f != null && f.containsKey(MediaFormat.KEY_DURATION)) {
+                    f.getLong(MediaFormat.KEY_DURATION)
+                } else {
+                    durationMsOf(path) * 1000
+                }
+            } catch (e: Exception) {
+                spans[i] = durationMsOf(path) * 1000
+            } finally {
+                ex.release()
+            }
+        }
+        val cutUs = minOf(startMs * 1000, spans.sum())
+        return try {
+            cutUs - syncAtOrBefore(paths, spans, cutUs) > KEYFRAME_SLACK_US
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     /** The joined-timeline time of the video sync frame at or before [atUs]. */
     private fun syncAtOrBefore(paths: List<String>, spans: LongArray, atUs: Long): Long {
         var offset = 0L
@@ -349,7 +386,7 @@ object MediaCompose {
         return atUs
     }
 
-    // ---- re-encode (mixed lenses) -----------------------------------------
+    // ---- re-encode (mixed lenses, cuts between keyframes) -----------------
 
     /** Runs on the main looper, which Transformer needs; the encode itself is off it. */
     private fun transcode(

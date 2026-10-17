@@ -116,6 +116,7 @@ class ScheduledMessage {
     this.mediaWidth,
     this.mediaHeight,
     this.viewOnce = false,
+    this.mediaSpoiler = false,
   });
 
   final String id;
@@ -158,6 +159,10 @@ class ScheduledMessage {
 
   /// Armed with the circled "1" when it was scheduled.
   final bool viewOnce;
+
+  /// Sent "as a spoiler": the photo goes out under the dust, and the list
+  /// shows it the same way the chat will.
+  final bool mediaSpoiler;
 
   bool get isPhoto => mediaStorageId != null;
 
@@ -208,6 +213,7 @@ class ScheduledMessage {
         mediaWidth: mediaWidth,
         mediaHeight: mediaHeight,
         viewOnce: viewOnce,
+        mediaSpoiler: mediaSpoiler,
       );
 
   /// Reads a row from `scheduledMessages:listForRoom`, or from the same shape
@@ -248,6 +254,7 @@ class ScheduledMessage {
       mediaWidth: (j['mediaWidth'] as num?)?.toDouble(),
       mediaHeight: (j['mediaHeight'] as num?)?.toDouble(),
       viewOnce: (j['viewOnce'] ?? false) as bool,
+      mediaSpoiler: (j['mediaSpoiler'] ?? false) as bool,
     );
   }
 
@@ -275,6 +282,7 @@ class ScheduledMessage {
         if (mediaWidth != null) 'mediaWidth': mediaWidth,
         if (mediaHeight != null) 'mediaHeight': mediaHeight,
         if (viewOnce) 'viewOnce': true,
+        if (mediaSpoiler) 'mediaSpoiler': true,
       };
 
   @override
@@ -295,6 +303,7 @@ class ScheduledMessage {
           other.mediaWidth == mediaWidth &&
           other.mediaHeight == mediaHeight &&
           other.viewOnce == viewOnce &&
+          other.mediaSpoiler == mediaSpoiler &&
           listEquals(other.formatting, formatting) &&
           listEquals(
             [for (final m in other.mentions) m.userId],
@@ -313,7 +322,13 @@ class ScheduledMessage {
         mentionsEveryone,
         failedReason,
         failedAt,
-        Object.hash(mediaStorageId, mediaWidth, mediaHeight, viewOnce),
+        Object.hash(
+          mediaStorageId,
+          mediaWidth,
+          mediaHeight,
+          viewOnce,
+          mediaSpoiler,
+        ),
         Object.hashAll(formatting),
         Object.hashAll([for (final m in mentions) m.userId]),
       );

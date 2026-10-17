@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "Ändra tid",
   "scheduledListEdit": "Ändra texten",
   "scheduledListDelete": "Ta bort",
+  "scheduledListDeleteHeadline": "Radera schemalagt meddelande",
+  "scheduledListDeleteBody": "Det kommer inte att skickas.",
   "scheduledListSending": "Skickar…",
   "scheduledListFailedTitle": "Kunde inte skickas",
   "scheduledListRetry": "Försök igen",

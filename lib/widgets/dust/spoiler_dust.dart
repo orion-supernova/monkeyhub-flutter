@@ -123,6 +123,7 @@ class SpoilerDust extends StatefulWidget {
     this.brightness = 1,
     this.active = true,
     this.fade = defaultFade,
+    this.draught,
   });
 
   /// The grains' ink. Its alpha is ignored; each grain's own fade owns it.
@@ -152,6 +153,15 @@ class SpoilerDust extends StatefulWidget {
 
   /// How long a fade in or out takes.
   final Duration fade;
+
+  /// A fingertip on the field, in its own box, or null: the grains near it
+  /// are thrown aside, as the text spoiler's are, and settle back where they
+  /// were when it lifts. Null (every field that is only looked at) leaves the
+  /// field exactly as it is without one.
+  final ValueListenable<Offset?>? draught;
+
+  /// How far a fingertip's draught reaches, logical px.
+  static const double draughtRadius = 46;
 
   /// About one grain per 8pt²: a sealed 200pt circle carries ~3000, dense
   /// enough to read as a haze with sparkles in it, not a scatter of dots.
@@ -283,6 +293,7 @@ class _SpoilerDustState extends State<SpoilerDust>
             maxGrains: widget.maxGrains,
             brightness: widget.brightness,
             dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 2,
+            draught: widget.draught,
           ),
           child: const SizedBox.expand(),
         ),
@@ -362,7 +373,10 @@ class _SpoilerPainter extends CustomPainter {
     required this.maxGrains,
     required this.brightness,
     required this.dpr,
-  }) : super(repaint: time);
+    this.draught,
+  }) : super(
+          repaint: draught == null ? time : Listenable.merge([time, draught]),
+        );
 
   final ValueListenable<double> time;
   final _SpoilerBuffers buffers;
@@ -373,10 +387,13 @@ class _SpoilerPainter extends CustomPainter {
   final int maxGrains;
   final double brightness;
   final double dpr;
+  final ValueListenable<Offset?>? draught;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
+    final touch = draught?.value;
+    const reach = SpoilerDust.draughtRadius;
     final level = dustSmooth(buffers.level);
     if (level <= 0) return;
     final sprite = DustSprite.forDpr(dpr);
@@ -426,6 +443,19 @@ class _SpoilerPainter extends CustomPainter {
       // began: over a life of a second or two it barely changes).
       x += (_SpoilerTable.dirX[j] + SpoilerGrain.flowX(x, y, now)) * age;
       y += (_SpoilerTable.dirY[j] + SpoilerGrain.flowY(x, y, now)) * age;
+      if (touch != null) {
+        // Thrown outward from the fingertip, hardest at its centre, so the
+        // grains pile into a soft rim around it rather than vanishing.
+        final dx = x - touch.dx, dy = y - touch.dy;
+        final d2 = dx * dx + dy * dy;
+        if (d2 < reach * reach && d2 > 0.01) {
+          final d = math.sqrt(d2);
+          final f = 1 - d / reach;
+          final push = f * f * reach * 0.7;
+          x += dx / d * push;
+          y += dy / d * push;
+        }
+      }
       // Grains never leave the shape: past the edge they are not drawn.
       if (oval) {
         final dx = (x - hw) / hw, dy = (y - hh) / hh;
@@ -462,6 +492,7 @@ class _SpoilerPainter extends CustomPainter {
       old.maxGrains != maxGrains ||
       old.brightness != brightness ||
       old.dpr != dpr ||
+      old.draught != draught ||
       !identical(old.buffers, buffers) ||
       old.time != time;
 

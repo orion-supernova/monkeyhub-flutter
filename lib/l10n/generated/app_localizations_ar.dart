@@ -6787,6 +6787,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get scheduledListDelete => 'حذف';
 
   @override
+  String get scheduledListDeleteHeadline => 'حذف الرسالة المجدولة';
+
+  @override
+  String get scheduledListDeleteBody => 'لن يتم إرسالها.';
+
+  @override
   String get scheduledListSending => 'جارٍ الإرسال…';
 
   @override

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,6 +8,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
+import 'schedule_glyphs.dart';
 import 'schedule_time_picker.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
@@ -235,14 +235,21 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
         SchedulePreset.inAWeek => l10n.schedulePresetInAWeek,
       };
 
-  static (IconData, TileTone) _presetGlyph(SchedulePreset p) => switch (p) {
-        SchedulePreset.inAnHour => (CupertinoIcons.clock_fill, TileTone.blue),
-        SchedulePreset.inEightHours => (CupertinoIcons.moon_fill, TileTone.indigo),
+  /// Each quick choice's drawn mark and tile. Drawn, not font icons, so
+  /// choosing one plays it: the clock's hand goes around, the moon rocks,
+  /// the sun rises again, the calendar page flips.
+  static (SchedulePresetMark, TileTone) _presetGlyph(SchedulePreset p) =>
+      switch (p) {
+        SchedulePreset.inAnHour => (SchedulePresetMark.clock, TileTone.blue),
+        SchedulePreset.inEightHours => (
+          SchedulePresetMark.moon,
+          TileTone.indigo,
+        ),
         SchedulePreset.tomorrowMorning => (
-          CupertinoIcons.sunrise_fill,
+          SchedulePresetMark.sunrise,
           TileTone.orange,
         ),
-        SchedulePreset.inAWeek => (CupertinoIcons.calendar, TileTone.red),
+        SchedulePreset.inAWeek => (SchedulePresetMark.calendar, TileTone.red),
       };
 
   @override
@@ -291,7 +298,8 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                 SheetGroup(
                   children: [
                     GroupedRow(
-                      icon: CupertinoIcons.tray_full_fill,
+                      glyph: (ink, size) =>
+                          ScheduleTrayGlyph(color: ink, size: size),
                       tone: TileTone.gray,
                       title: l10n.scheduleSheetQueuedRow(widget.queuedCount),
                       onTap: () => Navigator.of(context)
@@ -332,6 +340,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
               _Summary(
                 theme: theme,
                 motion: motion,
+                at: _resolved,
                 // Raised here, not in the ARB: the "when" phrase is a mid-
                 // sentence fragment ("today at 9:00"), and in Turkish it
                 // opens the sentence ("bugün saat 9:00'da gönderilecek").
@@ -372,7 +381,14 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       children: [
         for (final p in SchedulePreset.values)
           GroupedRow(
-            icon: _presetGlyph(p).$1,
+            glyph: (ink, size) => SchedulePresetGlyph(
+              mark: _presetGlyph(p).$1,
+              color: ink,
+              size: size,
+              // The tile's clock reads the time this choice lands on.
+              time: p.resolve(_openedAt),
+              picked: !_picking && _preset == p,
+            ),
             tone: _presetGlyph(p).$2,
             title: _presetLabel(l10n, p),
             value: _clockOf(context, p.resolve(_openedAt)),
@@ -381,7 +397,11 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
             onTap: () => _pick(p),
           ),
         GroupedRow(
-          icon: CupertinoIcons.calendar_badge_plus,
+          glyph: (ink, size) => SchedulePresetGlyph(
+            mark: SchedulePresetMark.calendarPlus,
+            color: ink,
+            size: size,
+          ),
           tone: TileTone.gray,
           title: l10n.scheduleSheetCustomChip,
           onTap: _openPicker,
@@ -451,12 +471,16 @@ class _Summary extends StatelessWidget {
   const _Summary({
     required this.theme,
     required this.motion,
+    required this.at,
     required this.sentence,
     required this.warning,
   });
 
   final AppTheme theme;
   final MotionScope motion;
+
+  /// The instant [sentence] names: the clock beside it sweeps there.
+  final DateTime at;
   final String sentence;
   final String? warning;
 
@@ -473,30 +497,45 @@ class _Summary extends StatelessWidget {
           // on the text, which is what makes the switcher fire at all.
           // ClipRect and a non-overshooting curve, both load-bearing: the
           // outgoing line would otherwise paint outside its box.
-          ClipRect(
-            child: AnimatedSwitcher(
-              duration: motion.d(theme.motionFast),
-              switchInCurve: motion.c(theme.motionEntrance),
-              switchOutCurve: motion.c(Curves.easeInCubic),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.6),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
+          Row(
+            children: [
+              // A clock whose hands sweep to every new choice, so the time
+              // is seen to move, not only read.
+              ScheduleClockGlyph(
+                time: at,
+                alert: bad,
+                color: bad ? theme.danger : theme.inkSoft,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ClipRect(
+                  child: AnimatedSwitcher(
+                    duration: motion.d(theme.motionFast),
+                    switchInCurve: motion.c(theme.motionEntrance),
+                    switchOutCurve: motion.c(Curves.easeInCubic),
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.6),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: Text(
+                      sentence,
+                      key: ValueKey(sentence),
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 15,
+                        color: bad ? theme.inkMuted : theme.inkSoft,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              child: Text(
-                sentence,
-                key: ValueKey(sentence),
-                style: theme.bodySoft.copyWith(
-                  fontSize: 15,
-                  color: bad ? theme.inkMuted : theme.inkSoft,
-                ),
-              ),
-            ),
+            ],
           ),
           if (bad) ...[
             const SizedBox(height: 4),
@@ -514,8 +553,9 @@ class _Summary extends StatelessWidget {
   }
 }
 
-/// The check that springs onto the chosen quick choice. Its width is kept
-/// when hidden so the clock beside it never shifts as the choice moves.
+/// The check that draws itself onto the chosen quick choice (and undraws off
+/// the one it leaves). Its width is kept when hidden so the clock beside it
+/// never shifts as the choice moves.
 class _Check extends StatelessWidget {
   const _Check({required this.selected});
   final bool selected;
@@ -523,15 +563,9 @@ class _Check extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final motion = MotionScope.of(context);
     return SizedBox(
       width: 20,
-      child: AnimatedScale(
-        scale: selected ? 1 : 0,
-        duration: motion.d(const Duration(milliseconds: 380)),
-        curve: selected ? Curves.elasticOut : Curves.easeIn,
-        child: Icon(CupertinoIcons.checkmark_alt, size: 20, color: theme.accent),
-      ),
+      child: ScheduleCheckGlyph(on: selected, color: theme.accent),
     );
   }
 }

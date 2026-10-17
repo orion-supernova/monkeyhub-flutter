@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "समय बदलें",
   "scheduledListEdit": "लिखा हुआ बदलें",
   "scheduledListDelete": "हटाएँ",
+  "scheduledListDeleteHeadline": "शेड्यूल किया गया संदेश हटाएँ",
+  "scheduledListDeleteBody": "यह भेजा नहीं जाएगा।",
   "scheduledListSending": "भेजा जा रहा है…",
   "scheduledListFailedTitle": "भेजा नहीं जा सका",
   "scheduledListRetry": "फिर कोशिश करें",

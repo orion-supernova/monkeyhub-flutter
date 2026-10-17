@@ -6730,6 +6730,12 @@ class AppLocalizationsSv extends AppLocalizations {
   String get scheduledListDelete => 'Ta bort';
 
   @override
+  String get scheduledListDeleteHeadline => 'Radera schemalagt meddelande';
+
+  @override
+  String get scheduledListDeleteBody => 'Det kommer inte att skickas.';
+
+  @override
   String get scheduledListSending => 'Skickar…';
 
   @override

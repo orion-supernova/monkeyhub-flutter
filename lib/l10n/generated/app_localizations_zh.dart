@@ -6346,6 +6346,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scheduledListDelete => '删除';
 
   @override
+  String get scheduledListDeleteHeadline => '删除定时消息';
+
+  @override
+  String get scheduledListDeleteBody => '这条消息将不会发送。';
+
+  @override
   String get scheduledListSending => '正在发送…';
 
   @override

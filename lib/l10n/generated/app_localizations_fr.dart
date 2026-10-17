@@ -6809,6 +6809,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get scheduledListDelete => 'Supprimer';
 
   @override
+  String get scheduledListDeleteHeadline => 'Supprimer le message programmé';
+
+  @override
+  String get scheduledListDeleteBody => 'Il ne sera pas envoyé.';
+
+  @override
   String get scheduledListSending => 'Envoi…';
 
   @override

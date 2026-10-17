@@ -6711,6 +6711,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get scheduledListDelete => 'हटाएँ';
 
   @override
+  String get scheduledListDeleteHeadline => 'शेड्यूल किया गया संदेश हटाएँ';
+
+  @override
+  String get scheduledListDeleteBody => 'यह भेजा नहीं जाएगा।';
+
+  @override
   String get scheduledListSending => 'भेजा जा रहा है…';
 
   @override

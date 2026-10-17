@@ -225,6 +225,59 @@ void main() {
       );
     });
 
+    testWidgets('a short rub shows only what it touched, then heals', (
+      tester,
+    ) async {
+      await tester.pumpWidget(cover());
+      await tester.pump(const Duration(milliseconds: 100));
+      final at = tester.getTopLeft(find.byType(MediaSpoilerCover));
+      final g = await tester.startGesture(at + const Offset(20, 75));
+      for (var i = 1; i <= 8; i++) {
+        await g.moveTo(at + Offset(20.0 + i * 6, 75));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await g.up();
+      await tester.pump(const Duration(milliseconds: 16));
+      // A partial reveal: still sealed, nothing remembered.
+      expect(blurred(tester), isTrue);
+      expect(find.byType(SpoilerDust), findsOneWidget);
+      expect(
+        SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
+        isFalse,
+      );
+      // The dust settles back over the holes after the glimpse.
+      for (var i = 0; i < 160; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(blurred(tester), isTrue);
+      expect(
+        SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
+        isFalse,
+      );
+    });
+
+    testWidgets('rubbing most of it away opens the rest', (tester) async {
+      await tester.pumpWidget(cover());
+      await tester.pump(const Duration(milliseconds: 100));
+      final at = tester.getTopLeft(find.byType(MediaSpoilerCover));
+      final g = await tester.startGesture(at + const Offset(5, 5));
+      for (var row = 0; row < 6; row++) {
+        for (var i = 0; i <= 14; i++) {
+          final x = row.isEven ? 5.0 + i * 14 : 195.0 - i * 14;
+          await g.moveTo(at + Offset(x, 5.0 + row * 28));
+          await tester.pump(const Duration(milliseconds: 8));
+        }
+      }
+      await g.up();
+      await tester.pump(kMediaSpoilerReveal + const Duration(milliseconds: 50));
+      await tester.pump();
+      expect(blurred(tester), isFalse);
+      expect(
+        SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
+        isTrue,
+      );
+    });
+
     testWidgets('a thumbnail never opens', (tester) async {
       await tester.pumpWidget(cover(interactive: false));
       await tester.tap(find.byType(MediaSpoilerCover), warnIfMissed: false);

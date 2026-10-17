@@ -6445,6 +6445,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scheduledListDelete => '삭제';
 
   @override
+  String get scheduledListDeleteHeadline => '예약 메시지 삭제';
+
+  @override
+  String get scheduledListDeleteBody => '이 메시지는 보내지지 않아요.';
+
+  @override
   String get scheduledListSending => '보내는 중…';
 
   @override

@@ -187,6 +187,21 @@ void main() {
       expect(make().isPhoto, isFalse);
     });
 
+    test('a spoiler photo keeps its spoiler, so the list can cover it', () {
+      final m = ScheduledMessage.fromJson({
+        '_id': 'sm3',
+        'roomId': 'r1',
+        'content': '',
+        'sendAt': DateTime(2026, 8, 12, 18).millisecondsSinceEpoch,
+        'createdAt': DateTime(2026, 8, 12, 9).millisecondsSinceEpoch,
+        'mediaStorageId': 'kg2abc',
+        'mediaSpoiler': true,
+      });
+      expect(m.mediaSpoiler, isTrue);
+      expect(ScheduledMessage.fromJson(m.toJson()), m);
+      expect(make().toJson().containsKey('mediaSpoiler'), isFalse);
+    });
+
     test('a row with no `pending` key reads as pending', () {
       // Absent means true on the wire — the backend only ever writes the field
       // when it is unsetting it, so a row that has never failed simply has no

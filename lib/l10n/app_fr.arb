@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "Changer l’heure",
   "scheduledListEdit": "Modifier le texte",
   "scheduledListDelete": "Supprimer",
+  "scheduledListDeleteHeadline": "Supprimer le message programmé",
+  "scheduledListDeleteBody": "Il ne sera pas envoyé.",
   "scheduledListSending": "Envoi…",
   "scheduledListFailedTitle": "Envoi impossible",
   "scheduledListRetry": "Réessayer",

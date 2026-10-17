@@ -28,6 +28,8 @@ import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
 import '../widgets/glass_reveal.dart' show GlassStill;
 import '../widgets/media_send_switches.dart';
+import '../widgets/media_spoiler.dart' show kMediaSpoilerReveal;
+import '../widgets/dust/spoiler_dust.dart';
 import '../widgets/desktop_scroll.dart';
 
 /// Post-capture composer: draw on a photo, frame it, caption it, send it — or
@@ -582,6 +584,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   bool get _hd => _options.hd;
 
   _EditorStroke? _current;
+
+  /// The stage's spoiler preview. See [_SpoilerPreview].
+  final GlobalKey _veilKey = GlobalKey();
 
   Color _color = _palette.first;
   double _width = 0.010;
@@ -1869,12 +1874,27 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
             Positioned.fill(
               child: ClipRect(
                 clipper: _StageClip(stage),
-                child: Stack(
+                // What the recipient will see: with Spoiler on the photo
+                // sits under the same blur and dust as in the chat. Lifted
+                // while the pen is out or the frame is being cropped, so the
+                // work is done on the real picture.
+                child: _SpoilerPreview(
+                  // Carried across the zoom wrapper's swap (picking up the
+                  // pen rebuilds the stage under a different parent), so a
+                  // veil mid-flight keeps flying instead of snapping.
+                  key: _veilKey,
+                  veiled: widget.allowSpoiler &&
+                      _options.spoiler &&
+                      !_penArmed &&
+                      _tool != _Tool.crop,
+                  center: stage.center,
+                  seed: _page.hashCode & 0x7fffffff,
+                  builder: (keyed) => Stack(
                   children: [
                     Positioned.fromRect(
                       rect: imageRect,
                       child: RawImage(
-                        key: cameraEditorStageImageKey,
+                        key: keyed ? cameraEditorStageImageKey : null,
                         image: img,
                         fit: BoxFit.fill,
                         filterQuality: FilterQuality.medium,
@@ -1911,6 +1931,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
             ),
@@ -2389,6 +2410,224 @@ Widget _asTurned(_EditorPage page, Widget image) {
 /// neighbour that slides in under a swipe, and the stand-in while the photo
 /// swiped to decodes for real. Decoded at the screen's width, not the
 /// stage's 2048, so a swipe costs a screenful of pixels.
+/// The editor's spoiler preview: the stage under the blur, shade and dust
+/// the chat will draw, so Spoiler is seen, not just switched.
+///
+/// It goes on and comes off the way a recipient opens one: a disc from the
+/// middle of the picture. Turning it on, the veil swells out from the centre
+/// with a bright rim riding its edge; turning it off (or picking up the pen)
+/// a hole opens from the centre and pushes it out past the corners, which is
+/// the tap-to-reveal the other side will see, rehearsed.
+///
+/// The blur itself never animates: at rest it is one [ImageFiltered] over the
+/// real stage; in flight a still blurred copy is clipped by the moving disc
+/// over the sharp one. [builder] is asked for that copy with `keyed` false,
+/// so the stage image's key stays on the one real picture.
+class _SpoilerPreview extends StatefulWidget {
+  const _SpoilerPreview({
+    super.key,
+    required this.veiled,
+    required this.center,
+    required this.seed,
+    required this.builder,
+  });
+
+  final bool veiled;
+
+  /// Where the disc grows from: the picture's centre, in this box.
+  final Offset center;
+  final int seed;
+  final Widget Function(bool keyed) builder;
+
+  /// A touch heavier than the bubble's 20: the same blur reads weaker on a
+  /// full screen than on a 260pt bubble.
+  static const double _sigma = 28;
+
+  @override
+  State<_SpoilerPreview> createState() => _SpoilerPreviewState();
+}
+
+class _SpoilerPreviewState extends State<_SpoilerPreview>
+    with SingleTickerProviderStateMixin {
+  /// 1 veiled, 0 sharp.
+  late final AnimationController _t = AnimationController(
+    vsync: this,
+    duration: kMediaSpoilerReveal,
+    value: widget.veiled ? 1 : 0,
+  )..addStatusListener((_) {
+      if (mounted) setState(() {});
+    });
+
+  @override
+  void didUpdateWidget(_SpoilerPreview old) {
+    super.didUpdateWidget(old);
+    if (old.veiled == widget.veiled) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _t.value = widget.veiled ? 1 : 0;
+    } else if (widget.veiled) {
+      _t.forward();
+    } else {
+      _t.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final moving = _t.isAnimating;
+    final rest = !moving && _t.value == 1;
+    final shown = moving || rest;
+    // Covering: the veil is the inside of a growing disc. Lifting: it is the
+    // outside of one, a hole opening from the centre.
+    final covering = _t.status == AnimationStatus.forward;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ImageFiltered(
+          enabled: rest,
+          imageFilter: ui.ImageFilter.blur(
+            sigmaX: _SpoilerPreview._sigma,
+            sigmaY: _SpoilerPreview._sigma,
+            tileMode: TileMode.mirror,
+          ),
+          child: widget.builder(true),
+        ),
+        if (shown)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _t,
+                builder: (context, veil) => moving
+                    ? ClipPath(
+                        clipper: _VeilDiscClipper(
+                          widget.center,
+                          covering ? _t.value : 1 - _t.value,
+                          outside: !covering,
+                        ),
+                        child: veil,
+                      )
+                    : veil!,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (moving)
+                      ImageFiltered(
+                        key: const ValueKey('copy'),
+                        imageFilter: ui.ImageFilter.blur(
+                          sigmaX: _SpoilerPreview._sigma,
+                          sigmaY: _SpoilerPreview._sigma,
+                          tileMode: TileMode.mirror,
+                        ),
+                        child: widget.builder(false),
+                      ),
+                    const ColoredBox(
+                      key: ValueKey('shade'),
+                      color: Color(0x2E000000),
+                    ),
+                    SpoilerDust(
+                      key: const ValueKey('dust'),
+                      seed: widget.seed,
+                      brightness: 1.25,
+                      active: widget.veiled,
+                      fade: kMediaSpoilerReveal,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        if (moving)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _VeilRimPainter(
+                  widget.center,
+                  _t,
+                  covering: covering,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The disc [_SpoilerPreview] moves: from nothing at [center] to past the
+/// box's far corner, eased out so it bursts and slows into the edges. With
+/// [outside], everything but the disc.
+class _VeilDiscClipper extends CustomClipper<Path> {
+  _VeilDiscClipper(this.center, this.t, {this.outside = false});
+
+  final Offset center;
+  final double t;
+  final bool outside;
+
+  @override
+  Path getClip(Size size) {
+    final disc = Path()
+      ..addOval(
+        Rect.fromCircle(center: center, radius: _veilRadius(center, size, t)),
+      );
+    if (!outside) return disc;
+    return Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Offset.zero & size),
+      disc,
+    );
+  }
+
+  @override
+  bool shouldReclip(_VeilDiscClipper old) =>
+      old.center != center || old.t != t || old.outside != outside;
+}
+
+double _veilRadius(Offset o, Size size, double t) {
+  final far = [
+    o,
+    Offset(size.width - o.dx, o.dy),
+    Offset(o.dx, size.height - o.dy),
+    Offset(size.width - o.dx, size.height - o.dy),
+  ].map((p) => p.distance).reduce(math.max);
+  return far * Curves.easeOutCubic.transform(t.clamp(0.0, 1.0)) + 1;
+}
+
+/// The soft bright rim riding the disc's edge, fading as it reaches the
+/// corners: the chat's reveal wavefront, here in both directions.
+class _VeilRimPainter extends CustomPainter {
+  _VeilRimPainter(this.center, this.t, {required this.covering})
+      : super(repaint: t);
+
+  final Offset center;
+  final Animation<double> t;
+  final bool covering;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = covering ? t.value : 1 - t.value;
+    final fade = 1 - Curves.easeIn.transform(p);
+    if (fade <= 0) return;
+    canvas.drawCircle(
+      center,
+      _veilRadius(center, size, p),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 14
+        ..color = Color.fromRGBO(255, 255, 255, 0.32 * fade)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_VeilRimPainter old) =>
+      old.center != center || old.t != t || old.covering != covering;
+}
+
 class _PagePreview extends StatelessWidget {
   const _PagePreview({required this.page});
   final _EditorPage page;

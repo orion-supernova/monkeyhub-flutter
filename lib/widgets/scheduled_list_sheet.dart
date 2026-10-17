@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,7 +16,13 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'app_toast.dart';
+import 'capture_glyphs.dart' show ViewOnceGlyph;
+import 'destructive_sheet.dart';
+import 'dust/spoiler_dust.dart';
+import 'dust_dissolve.dart';
+import 'media_spoiler.dart';
 import 'remote_image.dart';
+import 'schedule_glyphs.dart';
 import 'schedule_message_sheet.dart';
 import 'ios_kit.dart';
 import 'sheet_kit.dart';
@@ -114,17 +121,20 @@ class _ScheduledListSheetState extends State<_ScheduledListSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SheetHandle(),
-            // The shared bar, pinned above the scroll. The page turn swaps
-            // its leading × for a back chevron of the same size, so the
-            // header holds still while the view under it changes.
+            // The shared bar, pinned above the scroll. The page turn turns
+            // its leading × into a back chevron in place, so the header
+            // holds still while the view under it changes.
             SheetBar(
               title: sentenceCaseOf(
                 context,
                 _choosing ? l10n.scheduledListShowAs : l10n.scheduledListTitle,
               ),
-              leading: _choosing
-                  ? _BackButton(onTap: () => setState(() => _choosing = false))
-                  : const SheetCloseButton(),
+              leading: SheetBackCloseButton(
+                back: _choosing,
+                onTap: _choosing
+                    ? () => setState(() => _choosing = false)
+                    : null,
+              ),
             ),
             Flexible(
               child: SingleChildScrollView(
@@ -235,7 +245,8 @@ class _ShowAsRow extends StatelessWidget {
         return SheetGroup(
           children: [
             GroupedRow(
-              icon: CupertinoIcons.slider_horizontal_3,
+              glyph: (ink, size) =>
+                  ScheduleSlidersGlyph(color: ink, size: size),
               tone: TileTone.gray,
               title: l10n.scheduledListShowAsRow,
               value: _indicatorLabel(l10n, current),
@@ -306,34 +317,6 @@ class _IndicatorView extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-/// The page turn's way back, in the bar's leading slot: the
-/// [SheetCloseButton]'s disc and size with a chevron, so the bar's geometry
-/// is identical in both views.
-class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: AppLocalizations.of(context).scheduledBack,
-      child: Container(
-        width: kSheetButtonSize,
-        height: kSheetButtonSize,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: theme.ink.withValues(alpha: 0.08),
-        ),
-        child: Icon(CupertinoIcons.chevron_back, size: 19, color: theme.ink),
-      ),
     );
   }
 }
@@ -546,10 +529,84 @@ class _ScheduledRow extends StatefulWidget {
   State<_ScheduledRow> createState() => _ScheduledRowState();
 }
 
-class _ScheduledRowState extends State<_ScheduledRow> {
+class _ScheduledRowState extends State<_ScheduledRow>
+    with SingleTickerProviderStateMixin {
   /// Set while a mutation for this row is in flight, so a double tap cannot
   /// send the same message twice while the first call is still on the wire.
   bool _busy = false;
+
+  /// Deleting: the row turns to dust, the way a deleted message does in the
+  /// chat, and closes up under the cloud.
+  bool _burning = false;
+
+  /// Whether the cancel has gone to the server. It goes once the dust has
+  /// settled, not before: the subscription drops the row the moment the
+  /// server agrees, and a row unmounted mid-burn takes its dust with it.
+  bool _cancelSent = false;
+
+  Timer? _closeTimer;
+  Timer? _giveBackTimer;
+
+  /// The row's height, closing as the dust lifts.
+  late final AnimationController _collapse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+    value: 1,
+  );
+
+  @override
+  void dispose() {
+    // The sheet closed mid-burn: the user still said delete.
+    if (_burning && !_cancelSent) {
+      widget.repo.cancelScheduledMessage(widget.message.id);
+    }
+    _closeTimer?.cancel();
+    _giveBackTimer?.cancel();
+    _collapse.dispose();
+    super.dispose();
+  }
+
+  Future<void> _delete() async {
+    if (_busy || _burning) return;
+    final l10n = AppLocalizations.of(context);
+    final ok = await showConfirmSheet(
+      context,
+      headline: l10n.scheduledListDeleteHeadline,
+      body: l10n.scheduledListDeleteBody,
+      confirmLabel: l10n.scheduledListDelete,
+    );
+    if (!ok || !mounted) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _burning = true);
+    // Closes up once the front has crossed, under the dust still in the
+    // air, as a deleted message does.
+    _closeTimer = Timer(
+      MediaQuery.disableAnimationsOf(context)
+          ? DustDissolve.calmDuration
+          : DustDissolve.waveDuration,
+      () {
+        if (mounted) _collapse.reverse();
+      },
+    );
+  }
+
+  Future<void> _afterBurn() async {
+    if (!mounted || _cancelSent) return;
+    _cancelSent = true;
+    await widget.repo.cancelScheduledMessage(widget.message.id);
+    // The subscription normally drops this row a moment from now. If it is
+    // still here a while later the cancel did not take (the repository
+    // swallows the failure), so the message comes back rather than staying
+    // queued behind an invisible row.
+    _giveBackTimer = Timer(const Duration(seconds: 4), () {
+      if (!mounted) return;
+      setState(() {
+        _burning = false;
+        _cancelSent = false;
+      });
+      _collapse.forward();
+    });
+  }
 
   Future<void> _run(Future<String?> Function() action) async {
     if (_busy) return;
@@ -615,7 +672,34 @@ class _ScheduledRowState extends State<_ScheduledRow> {
     final l10n = AppLocalizations.of(context);
     final m = widget.message;
     final failed = m.hasFailed;
+    final radius = groupedRadius(theme);
 
+    return SizeTransition(
+      sizeFactor: CurvedAnimation(
+        parent: _collapse,
+        curve: Curves.easeInOutCubic,
+      ),
+      alignment: Alignment.topCenter,
+      child: DustDissolve(
+        active: _burning,
+        onDone: _afterBurn,
+        seed: m.id.hashCode,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        child: _card(context, theme, motion, l10n, m, failed),
+      ),
+    );
+  }
+
+  Widget _card(
+    BuildContext context,
+    AppTheme theme,
+    MotionScope motion,
+    AppLocalizations l10n,
+    ScheduledMessage m,
+    bool failed,
+  ) {
     return AnimatedOpacity(
       opacity: _busy ? 0.5 : 1,
       duration: motion.d(theme.motionFast),
@@ -646,12 +730,15 @@ class _ScheduledRowState extends State<_ScheduledRow> {
                           2,
                     ),
                   ),
-                  child: Icon(
-                    failed
-                        ? CupertinoIcons.exclamationmark_circle_fill
-                        : CupertinoIcons.clock,
-                    size: 15,
+                  // A clock showing the very time it goes out. A failed send
+                  // folds its hands into a "!"; an overdue one, going out
+                  // now, spins its minute hand once.
+                  child: ScheduleClockGlyph(
+                    time: m.sendAt,
+                    alert: failed,
+                    kickKey: m.isOverdueAt(DateTime.now()),
                     color: failed ? theme.danger : theme.accent,
+                    size: 15,
                   ),
                 ),
                 const SizedBox(width: 7),
@@ -714,15 +801,9 @@ class _ScheduledRowState extends State<_ScheduledRow> {
                   // error path at all. `cancelScheduledMessage` swallows its
                   // own failures and returns null, so this surfaces nothing in
                   // the ordinary case — it is the re-entry guard that matters.
-                  onTap: _busy
-                      ? null
-                      : () {
-                          HapticFeedback.mediumImpact();
-                          _run(() async {
-                            await widget.repo.cancelScheduledMessage(m.id);
-                            return null;
-                          });
-                        },
+                  // Asked first, like every delete, then the row goes to dust
+                  // and only then to the server; see [_burning].
+                  onTap: _busy || _burning ? null : _delete,
                 ),
               ],
             ),
@@ -870,18 +951,27 @@ class _PhotoLine extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final caption = message.content;
+    final picture = RemoteImage(
+      storageId: message.mediaStorageId!,
+      api: api,
+      fit: BoxFit.cover,
+      borderRadius: BorderRadius.circular(10),
+      decodeWidth: (52 * MediaQuery.devicePixelRatioOf(context)).round(),
+    );
     return Row(
       children: [
         SizedBox.square(
           dimension: 52,
-          child: RemoteImage(
-            storageId: message.mediaStorageId!,
-            api: api,
-            fit: BoxFit.cover,
-            borderRadius: BorderRadius.circular(10),
-            decodeWidth:
-                (52 * MediaQuery.devicePixelRatioOf(context)).round(),
-          ),
+          // A spoiler goes out under the dust, so it waits under it too: the
+          // chat's own cover, a tap to peek, sealed again next time.
+          child: message.mediaSpoiler
+              ? MediaSpoilerCover(
+                  sigma: 10,
+                  dustDensity: SpoilerDust.defaultDensity / 2,
+                  borderRadius: BorderRadius.circular(10),
+                  child: picture,
+                )
+              : picture,
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -894,9 +984,15 @@ class _PhotoLine extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        // The composer's own circled "1", flooded: this one is view once.
         if (message.viewOnce) ...[
           const SizedBox(width: 8),
-          Icon(CupertinoIcons.flame_fill, size: 16, color: theme.accent),
+          ViewOnceGlyph(
+            color: theme.accent,
+            knockout: sheetGroupFill(theme),
+            on: 1,
+            size: 18,
+          ),
         ],
       ],
     );

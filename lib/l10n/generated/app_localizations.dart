@@ -11399,6 +11399,18 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get scheduledListDelete;
 
+  /// Title of the confirmation before deleting a message that is waiting to be sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete scheduled message'**
+  String get scheduledListDeleteHeadline;
+
+  /// Under the title of that confirmation: deleting means the message never goes out.
+  ///
+  /// In en, this message translates to:
+  /// **'It won’t be sent.'**
+  String get scheduledListDeleteBody;
+
   /// Shown in place of the countdown on a message whose send time has just passed, while it is going out.
   ///
   /// In en, this message translates to:

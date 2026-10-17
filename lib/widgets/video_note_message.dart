@@ -35,6 +35,7 @@ import 'capture_shield.dart';
 import 'dust/spoiler_dust.dart';
 import 'dust_dissolve.dart';
 import 'remote_image.dart';
+import 'send_flight.dart';
 import 'view_once_seal.dart';
 
 /// How the circular bubble is currently rendering.
@@ -2881,6 +2882,14 @@ class OutboundVideoNote extends StatelessWidget {
     if (viewOnce && key != null && poster != null) {
       _MicroPosters.rememberKey(key, poster);
     }
+    // A note just recorded is where the composer's circle lands; it stays
+    // hidden until the circle is on it (see `send_flight.dart`).
+    return SendFlightLanding(
+      child: _frame(context, l10n, poster, key),
+    );
+  }
+
+  Widget _frame(BuildContext context, AppLocalizations l10n, Uint8List? poster, String? key) {
     return SizedBox(
       width: diameter,
       height: diameter,

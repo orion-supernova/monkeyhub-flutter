@@ -6427,6 +6427,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get scheduledListDelete => '削除';
 
   @override
+  String get scheduledListDeleteHeadline => '予約メッセージを削除';
+
+  @override
+  String get scheduledListDeleteBody => 'このメッセージは送信されません。';
+
+  @override
   String get scheduledListSending => '送信中…';
 
   @override

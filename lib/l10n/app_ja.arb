@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "時刻を変える",
   "scheduledListEdit": "本文を編集",
   "scheduledListDelete": "削除",
+  "scheduledListDeleteHeadline": "予約メッセージを削除",
+  "scheduledListDeleteBody": "このメッセージは送信されません。",
   "scheduledListSending": "送信中…",
   "scheduledListFailedTitle": "送信できませんでした",
   "scheduledListRetry": "もう一度試す",

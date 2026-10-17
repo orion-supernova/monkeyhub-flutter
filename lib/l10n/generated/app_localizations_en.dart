@@ -6688,6 +6688,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduledListDelete => 'Delete';
 
   @override
+  String get scheduledListDeleteHeadline => 'Delete scheduled message';
+
+  @override
+  String get scheduledListDeleteBody => 'It won’t be sent.';
+
+  @override
   String get scheduledListSending => 'Sending…';
 
   @override

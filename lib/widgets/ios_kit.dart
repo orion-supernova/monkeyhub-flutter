@@ -442,16 +442,22 @@ Color streakColor(AppTheme theme) => tileColor(theme, TileTone.orange);
 class ToneTile extends StatelessWidget {
   const ToneTile({
     super.key,
-    required this.icon,
+    this.icon,
     required this.tone,
     this.size = 30,
     this.destructive = false,
-  });
+    this.glyph,
+  }) : assert(icon != null || glyph != null);
 
-  final IconData icon;
+  final IconData? icon;
   final TileTone tone;
   final double size;
   final bool destructive;
+
+  /// A drawn glyph in place of [icon], handed the tile's ink and glyph size:
+  /// for a mark that animates (a clock whose hands move) rather than a font
+  /// icon that can only be swapped.
+  final TileGlyphBuilder? glyph;
 
   @override
   Widget build(BuildContext context) {
@@ -464,16 +470,21 @@ class ToneTile extends StatelessWidget {
         color: destructive ? theme.danger : tileColor(theme, tone),
         borderRadius: BorderRadius.circular(size * 0.25),
       ),
-      child: Icon(
-        icon,
-        size: size * 0.6,
-        color: tone == TileTone.accent && !destructive
-            ? theme.accentInk
-            : Colors.white,
+      child: Builder(
+        builder: (context) {
+          final ink = tone == TileTone.accent && !destructive
+              ? theme.accentInk
+              : Colors.white;
+          return glyph?.call(ink, size * 0.66) ??
+              Icon(icon, size: size * 0.6, color: ink);
+        },
       ),
     );
   }
 }
+
+/// Draws a [ToneTile]'s glyph in [ink] at [size].
+typedef TileGlyphBuilder = Widget Function(Color ink, double size);
 
 Color tileColor(AppTheme theme, TileTone tone) => switch (tone) {
       TileTone.blue => const Color(0xFF0A84FF),
@@ -514,6 +525,7 @@ class GroupedRow extends StatefulWidget {
     this.destructive = false,
     this.badge = 0,
     this.titleTrailing,
+    this.glyph,
   });
 
   /// A switch row. The whole row toggles, not just the switch.
@@ -590,6 +602,9 @@ class GroupedRow extends StatefulWidget {
   /// annotates the option rather than crowding the row's trailing edge.
   final Widget? titleTrailing;
 
+  /// A drawn glyph on the tile in place of [icon]; see [ToneTile.glyph].
+  final TileGlyphBuilder? glyph;
+
   @override
   State<GroupedRow> createState() => _GroupedRowState();
 }
@@ -627,9 +642,10 @@ class _GroupedRowState extends State<GroupedRow>
         ),
         child: Row(
           children: [
-            if (w.icon != null) ...[
+            if (w.icon != null || w.glyph != null) ...[
               ToneTile(
-                icon: w.icon!,
+                icon: w.icon,
+                glyph: w.glyph,
                 tone: w.tone,
                 destructive: w.destructive,
                 size: density.groupedTile,

@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "修改时间",
   "scheduledListEdit": "修改内容",
   "scheduledListDelete": "删除",
+  "scheduledListDeleteHeadline": "删除定时消息",
+  "scheduledListDeleteBody": "这条消息将不会发送。",
   "scheduledListSending": "正在发送…",
   "scheduledListFailedTitle": "没能发出去",
   "scheduledListRetry": "重试",

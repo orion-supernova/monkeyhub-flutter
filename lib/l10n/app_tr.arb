@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "Saati değiştir",
   "scheduledListEdit": "Metni düzenle",
   "scheduledListDelete": "Sil",
+  "scheduledListDeleteHeadline": "Zamanlanmış mesajı sil",
+  "scheduledListDeleteBody": "Gönderilmeyecek.",
   "scheduledListSending": "Gönderiliyor…",
   "scheduledListFailedTitle": "Gönderilemedi",
   "scheduledListRetry": "Tekrar dene",

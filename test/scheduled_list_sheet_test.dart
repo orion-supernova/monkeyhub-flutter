@@ -172,6 +172,15 @@ void main() {
 
     await tester.tap(find.text(en.scheduledListDelete));
     await tester.pumpAndSettle();
+    // Asked first, like every delete: nothing has gone yet.
+    expect(find.text(en.scheduledListDeleteHeadline), findsOneWidget);
+    expect(repo.cancelled, isEmpty);
+
+    await tester.tap(find.text(en.scheduledListDelete).last);
+    await tester.pump();
+    // The row is dust before it is gone: the cancel waits for it to settle.
+    expect(repo.cancelled, isEmpty);
+    await tester.pumpAndSettle();
 
     expect(repo.cancelled, ['s1']);
   });
@@ -239,7 +248,7 @@ void main() {
 
       // Back — the bar's chevron, the one way back — returns to the list
       // rather than closing the sheet.
-      await tester.tap(find.bySemanticsLabel(en.scheduledBack));
+      await tester.tap(find.bySemanticsLabel('Back'));
       await tester.pumpAndSettle();
       // The title reads in sentence case; the string is stored in capitals.
       expect(

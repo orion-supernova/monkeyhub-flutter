@@ -188,6 +188,10 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   /// It comes back as the photo returns to fit.
   bool _zoomed = false;
 
+  /// A tap on the picture hides the chrome and the next brings it back, as
+  /// in Photos and the gallery pager.
+  bool _chrome = true;
+
   /// ⌘= ⌘− ⌘0 on a desk. See [PhotoZoomController].
   final PhotoZoomController _zoom = PhotoZoomController();
 
@@ -256,8 +260,9 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
                     // The chrome gets out of the way as the picture leaves.
                     opacity: (1 - t * 2).clamp(0.0, 1.0),
                     child: ViewerTopBar(
-                      // Fading with the drag, so no blur under the × for it.
-                      still: t > 0,
+                      // Fading with the drag or the tap, so no blur under
+                      // the × for it.
+                      still: t > 0 || _away,
                       onClose: () => Navigator.of(context).maybePop(),
                     ),
                   ),
@@ -290,6 +295,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
         child: PhotoDismissArea(
           drag: _drag,
           onDismiss: () => Navigator.of(context).maybePop(),
+          onTap: () => setState(() => _chrome = !_chrome),
           onZoomChanged: (z) => setState(() => _zoomed = z),
           zoom: _zoom,
           onBackdropClick:
@@ -315,14 +321,17 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
 
   /// Chrome that steps aside while the photo is zoomed. Not on a desk,
   /// where the × is how a mouse gets back out of a zoomed picture.
+  /// And steps aside when a tap has hidden it.
   Widget _zoomAside(Widget chrome) => IgnorePointer(
-        ignoring: _zoomed && !isWebOrDesktop,
+        ignoring: _away,
         child: AnimatedOpacity(
-          opacity: _zoomed && !isWebOrDesktop ? 0 : 1,
+          opacity: _away ? 0 : 1,
           duration: const Duration(milliseconds: 180),
           child: chrome,
         ),
       );
+
+  bool get _away => !_chrome || (_zoomed && !isWebOrDesktop);
 
   bool _busy = false;
 

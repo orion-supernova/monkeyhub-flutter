@@ -1875,6 +1875,8 @@
   "scheduledListChangeTime": "تغيير الوقت",
   "scheduledListEdit": "تعديل النص",
   "scheduledListDelete": "حذف",
+  "scheduledListDeleteHeadline": "حذف الرسالة المجدولة",
+  "scheduledListDeleteBody": "لن يتم إرسالها.",
   "scheduledListSending": "جارٍ الإرسال…",
   "scheduledListFailedTitle": "تعذّر الإرسال",
   "scheduledListRetry": "إعادة المحاولة",

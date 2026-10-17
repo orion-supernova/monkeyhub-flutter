@@ -30,6 +30,7 @@ import 'destructive_sheet.dart';
 import 'glass_buttons.dart';
 import 'glass_reveal.dart' show GlassStill;
 import 'liquid_glass.dart';
+import 'send_flight.dart';
 
 /// Which composer this capture control is drawn inside.
 ///
@@ -324,6 +325,33 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// The lid shutting is felt, once per sweep.
   bool _gulped = false;
 
+  /// A sent video note's circle on its way down into its bubble (see
+  /// `send_flight.dart`). Open from the hand-over until it lands; while it is,
+  /// the lift holds at 1 so the camera and the circle stay up.
+  SendFlightTicket? _flight;
+
+  /// Gives up on a landing that never shows (the list was far up in history,
+  /// the room went away): the circle shrinks where it is, as before.
+  Timer? _flightWait;
+
+  /// 0 the big circle where it recorded, 1 on the bubble. A tick under half
+  /// a second: long enough to follow, short enough that the chat is yours.
+  late final AnimationController _flightAnim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 480),
+  )
+    ..addListener(() {
+      // The bubble fades in under the last stretch as the circle fades out
+      // over it: one picture handing over to the other, never two.
+      _flight?.reveal.value = ((_flightAnim.value - 0.7) / 0.3).clamp(0.0, 1.0);
+    })
+    ..addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        HapticFeedback.lightImpact();
+        _endFlight();
+      }
+    });
+
   /// Decelerates into both ends, as a received note's focus does.
   late final CurvedAnimation _liftCurve = CurvedAnimation(
     parent: _lift,
@@ -488,6 +516,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     _entranceBumpController.dispose();
     _liftCurve.dispose();
     _lift.dispose();
+    _flightWait?.cancel();
+    _flight?.close();
+    _flightAnim.dispose();
     _discard.dispose();
     _screenFlash = false;
     unawaited(_levelSub?.cancel());
@@ -759,6 +790,11 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         // check the floor at. Silent: a note this short was a mis-tap.
         _machine.markIdle();
         return;
+      }
+      // Opened before the hand-over, so the bubble the host builds for it,
+      // a frame or two from now, is the one that claims the circle.
+      if (mode == ComposerInputMode.videoNote && mounted && !MotionScope.of(context).calm && _lift.value > 0) {
+        _beginFlight();
       }
       capture.onCaptured(mode, outcome.withViewOnce(_viewOnce));
       // Sent: the viewfinder does not come back on its own. Flying the circle
@@ -1153,11 +1189,80 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       (_staged || _machine.isRecording || _machine.stage == CaptureStage.finishing);
 
   void _syncLift() {
+    final flight = _flight;
+    if (flight != null) {
+      // The circle is flying to its bubble; it lands on its own. A new
+      // recording before it has lands it at once.
+      if (!_wantsBig) return;
+      _flightAnim.stop();
+      _endFlight();
+    }
     if (_wantsBig) {
       if (_lift.status != AnimationStatus.forward && _lift.value < 1) _lift.forward();
     } else if (_lift.status != AnimationStatus.reverse && _lift.value > 0) {
       _lift.reverse();
     }
+  }
+
+  void _beginFlight() {
+    _flightWait?.cancel();
+    final ticket = _flight = SendFlight.open();
+    _flightAnim.value = 0;
+    ticket.addListener(_onFlightClaimed);
+    _flightWait = Timer(const Duration(milliseconds: 450), () {
+      if (identical(_flight, ticket) && !ticket.claimed) _endFlight();
+    });
+  }
+
+  void _onFlightClaimed() {
+    final ticket = _flight;
+    if (ticket == null || !ticket.claimed || ticket.closed || _flightAnim.isAnimating) return;
+    _flightWait?.cancel();
+    // From the frame after the bubble's first layout, so there is a rect to
+    // aim at; re-aimed every frame after that, as the list settles.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !identical(_flight, ticket) || ticket.closed) return;
+      _flightAnim
+        ..duration = MotionScope.of(context).d(const Duration(milliseconds: 480))
+        ..forward(from: 0);
+    });
+  }
+
+  /// Landed (the bubble is fully shown) or given up (it shrinks in place).
+  void _endFlight() {
+    final ticket = _flight;
+    if (ticket == null) return;
+    _flightWait?.cancel();
+    _flightWait = null;
+    ticket.removeListener(_onFlightClaimed);
+    final landed = _flightAnim.value > 0;
+    ticket.close();
+    _flight = null;
+    if (!mounted) return;
+    if (landed) {
+      // Already on the bubble: no flight home. Snapping the lift down takes
+      // the camera away, as a finished lift does.
+      _flightAnim.value = 0;
+      _lift.value = 0;
+    } else {
+      _syncLift();
+    }
+    setState(() {});
+  }
+
+  /// The arc down into the bubble: across first, then down, so it swoops in
+  /// rather than sliding along a ruler.
+  static Rect _flightRect(Rect from, Rect to, double f) {
+    final across = Curves.easeOutCubic.transform(f);
+    final down = Curves.easeInOutCubic.transform(f);
+    final size = Curves.easeInOutCubic.transform(f);
+    final center = Offset(
+      from.center.dx + (to.center.dx - from.center.dx) * across,
+      from.center.dy + (to.center.dy - from.center.dy) * down,
+    );
+    final w = from.width + (to.width - from.width) * size;
+    final h = from.height + (to.height - from.height) * size;
+    return Rect.fromCenter(center: center, width: w, height: h);
   }
 
   /// The small preview's rect in the overlay, or null while it is not laid
@@ -1760,7 +1865,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         child: Material(
           type: MaterialType.transparency,
           child: AnimatedBuilder(
-            animation: _liftCurve,
+            animation: Listenable.merge([_liftCurve, _flightAnim]),
             builder: (context, _) => _bigPreviewFrame(context),
           ),
         ),
@@ -1769,7 +1874,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   Widget _bigPreviewFrame(BuildContext context) {
     final t = _liftCurve.value;
     final up = _wantsBig;
-    if (t == 0 && !up) return const SizedBox.shrink();
+    final flight = _flight;
+    if (t == 0 && !up && flight == null) return const SizedBox.shrink();
     final recording = _machine.isRecording || _machine.stage == CaptureStage.finishing;
     final overlayBox = Overlay.of(context).context.findRenderObject();
     final composerBox = _composerKey.currentContext?.findRenderObject();
@@ -1812,10 +1918,19 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                 height: diameter * (0.7 + 0.3 * t),
               )
             : Rect.lerp(source, target, t)!;
+        // Sent: from where it recorded down onto its bubble, re-aimed every
+        // frame (the bubble rises out of the composer and the list settles
+        // under it). Waiting for the bubble, it holds where it is.
+        final f = _flightAnim.value;
+        final landing = flight?.rectIn(overlayBox);
+        final flying = flight != null;
+        final shown = flying && landing != null && f > 0 ? _flightRect(target, landing, f) : circle;
+        final dim = flying ? t * (1 - Curves.easeOutCubic.transform(f)) : t;
         final controlsOpacity = ((t - 0.5) / 0.5).clamp(0.0, 1.0);
 
         final video = _video;
-        final showCameraControls = video != null && video.controller != null && !_paused && _machine.mode == ComposerInputMode.videoNote;
+        final showCameraControls =
+            !flying && video != null && video.controller != null && !_paused && _machine.mode == ComposerInputMode.videoNote;
         return IgnorePointer(
           // Flying home: nothing here is a target any more.
           ignoring: !up,
@@ -1827,7 +1942,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                 top: 0,
                 height: composerTop,
                 child: Opacity(
-                  opacity: t,
+                  opacity: dim,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     // Staged, a tap outside puts the preview away. Recording,
@@ -1873,10 +1988,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                 ),
               ],
               Positioned.fromRect(
-                rect: circle,
+                rect: shown,
                 child: Opacity(
-                  opacity: source == null ? t : 1,
-                  child: _bigCircle(theme, l10n, recording: recording, lift: t),
+                  opacity: flying ? 1 - (flight.reveal.value) : (source == null ? t : 1),
+                  // In flight it is neither a preview nor recording: no
+                  // badge, no ring, only the picture.
+                  child: _bigCircle(theme, l10n, recording: recording || flying, lift: t),
                 ),
               ),
               // Flip and flash, above the strip's leading end, as Telegram's.

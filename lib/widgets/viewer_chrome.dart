@@ -31,16 +31,16 @@ class ViewerTopBar extends StatefulWidget {
     this.center,
     this.actions = const [],
     this.still = false,
-    this.band = true,
+    this.band = false,
   });
 
   final VoidCallback onClose;
 
-  /// The solid bar behind the chrome. False lays a soft scrim over the
-  /// picture instead, which reaches a little below the buttons and fades to
-  /// nothing: for a viewer whose picture has nowhere else to be (the
-  /// view-once photo, shown once, whole), where a solid band would sit on
-  /// top of a portrait shot's top edge.
+  /// A solid bar behind the chrome. Off by default: every viewer lays a soft
+  /// scrim over the picture instead, which reaches a little below the
+  /// buttons and fades to nothing, so a portrait shot's top edge is never
+  /// cut off by a band and the chrome reads as floating over the photo, the
+  /// way Photos and Telegram draw it.
   final bool band;
 
   /// Screen-reader label for the close. Defaults to the platform's "Close".
@@ -225,8 +225,8 @@ class _ViewerTopBarState extends State<ViewerTopBar> {
                   Align(
                     alignment: Alignment.centerLeft,
                     // The shared media ×, 17pt glyph like every close.
-                    // Always the blur-free disc: the bar behind it is solid,
-                    // so live glass bought nothing — and swapping glass for
+                    // Always the blur-free disc: the chrome fades on every
+                    // tap, so live glass bought nothing — and swapping glass for
                     // the still disc whenever the route moved made the ×
                     // visibly flicker on every open and dismiss.
                     child: ViewerChromeButton(

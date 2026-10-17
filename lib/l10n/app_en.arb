@@ -7710,6 +7710,14 @@
   "@scheduledListDelete": {
     "description": "Action on a waiting message: drop it without ever sending it."
   },
+  "scheduledListDeleteHeadline": "Delete scheduled message",
+  "@scheduledListDeleteHeadline": {
+    "description": "Title of the confirmation before deleting a message that is waiting to be sent."
+  },
+  "scheduledListDeleteBody": "It won’t be sent.",
+  "@scheduledListDeleteBody": {
+    "description": "Under the title of that confirmation: deleting means the message never goes out."
+  },
   "scheduledListSending": "Sending…",
   "@scheduledListSending": {
     "description": "Shown in place of the countdown on a message whose send time has just passed, while it is going out."

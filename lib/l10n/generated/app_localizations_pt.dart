@@ -6780,6 +6780,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get scheduledListDelete => 'Eliminar';
 
   @override
+  String get scheduledListDeleteHeadline => 'Eliminar mensagem agendada';
+
+  @override
+  String get scheduledListDeleteBody => 'Não será enviada.';
+
+  @override
   String get scheduledListSending => 'A enviar…';
 
   @override
@@ -20925,6 +20931,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get scheduledListDelete => 'Excluir';
+
+  @override
+  String get scheduledListDeleteHeadline => 'Excluir mensagem agendada';
+
+  @override
+  String get scheduledListDeleteBody => 'Ela não será enviada.';
 
   @override
   String get scheduledListSending => 'Enviando…';
