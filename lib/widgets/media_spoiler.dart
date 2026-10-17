@@ -14,7 +14,14 @@ import '../l10n/generated/app_localizations.dart';
 import 'dust/dust_kit.dart';
 import 'dust/rub_field.dart';
 import 'dust/spoiler_dust.dart';
-import 'spoiler_veil.dart' show kSpoilerHeal, kSpoilerHoldBaseMs;
+import 'spoiler_veil.dart'
+    show
+        VeilModel,
+        kSpoilerGather,
+        kSpoilerHeal,
+        kSpoilerHoldBaseMs,
+        kSpoilerHoldMaxMs,
+        kSpoilerRevealIn;
 import 'still_blur.dart';
 
 /// How long the wavefront takes to open a spoiler picture. A little longer
@@ -27,14 +34,10 @@ const Duration kMediaSpoilerReveal = Duration(milliseconds: 560);
 /// reads as the same haze a line of hidden text does rather than a scatter.
 const double kMediaSpoilerDensity = 1 / 6;
 
-/// How long a picture stays open after a full reveal before the dust blows
-/// back over it. Longer than a line of text's glimpse (1.4 to 2 s, by length):
-/// a picture is looked at, not read in one go.
-const Duration kMediaSpoilerHold = Duration(milliseconds: 4500);
-
-/// The re-cover after a full reveal: the partial heal's wind front, over the
-/// whole picture, so a little slower than a thumb-wide hole's.
-const Duration kMediaSpoilerRecover = Duration(milliseconds: 1000);
+/// How long a picture stays open after a full reveal before the dust comes
+/// back over it: the text spoiler's hold, which grows with what it hides up
+/// to [kSpoilerHoldMaxMs]. Any picture hides more than that line's worth.
+const Duration kMediaSpoilerHold = Duration(milliseconds: kSpoilerHoldMaxMs);
 
 /// The most grains one picture carries. A tall photo is 80k pt²; the field's
 /// usual cap (a video note's) left it at one grain per 25pt², which on the
@@ -51,8 +54,8 @@ const int kMediaSpoilerMaxGrains = 7000;
 /// ahead of its edge is blown clear and the rest of it settles out.
 ///
 /// Like a line of text it does not stay open: after [kMediaSpoilerHold] the
-/// dust blows back over it on a wind front, the blur returning behind it,
-/// the same re-cover as a partial rub's. While it is open it is remembered
+/// dust gathers back over it exactly as a line of text's does, arriving on a
+/// wind front with the blur returning behind it. While it is open it is remembered
 /// in [SpoilerStore] (under its own key, so a spoiler caption on the same
 /// message keeps its own veil), so a row scrolled away and back is still
 /// open and its hold starts again. With no [revealKey] (the fullscreen
@@ -111,10 +114,25 @@ class MediaSpoilerCover extends StatefulWidget {
 
 class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     with TickerProviderStateMixin {
+  /// The tap's reveal: the text spoiler's wavefront, at its pace.
   late final AnimationController _wave = AnimationController(
     vsync: this,
-    duration: kMediaSpoilerReveal,
+    duration: kSpoilerRevealIn,
   )..addStatusListener(_onWave);
+
+  /// The cover coming back after a full reveal: the text spoiler's gather.
+  late final AnimationController _gather = AnimationController(
+    vsync: this,
+    duration: kSpoilerGather,
+  )..addStatusListener(_onGather);
+  bool _gathering = false;
+  Offset _wind = const Offset(1, 0);
+  double _pMin = 0;
+  double _pMax = 0;
+
+  /// The wavefront's radius last tick, so its sweep can throw what it
+  /// passed over.
+  double _swept = 0;
 
   /// Crumbles a partial rub shut, as a text spoiler's wipe does.
   late final AnimationController _heal = AnimationController(
@@ -188,34 +206,104 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
 
   void _recover() {
     if (!mounted || !_open) return;
-    final key = widget.revealKey;
-    if (key != null) {
-      SpoilerStore.instance.conceal(MediaSpoilerCover.storeKey(key));
-    }
     final box = context.findRenderObject() as RenderBox?;
     if (_calm || box == null || !box.hasSize || !widget.dust) {
+      _conceal();
       setState(() => _open = false);
       return;
     }
-    // The whole picture as one open hole, healed shut the way a rub's is:
-    // a wind picks a side, the blur and the dust return behind its front,
-    // and the grains blow in on it.
+    // The text spoiler's gather, over a picture: a wind, mostly sideways
+    // with a tilt, and a front crossing the whole picture behind which the
+    // blur is back; the dust arrives on it from upwind, each grain just
+    // before the front reaches where it settles.
     final size = box.size;
-    final rub = _RubMask(size)..openAll();
     final rand = math.Random(_fieldTime.hashCode ^ size.hashCode ^ 0x5EA1);
+    final tilt = (rand.nextDouble() - 0.5) * (math.pi / 3);
+    final sign = rand.nextBool() ? 1.0 : -1.0;
+    _wind = Offset(math.cos(tilt) * sign, math.sin(tilt));
+    var lo = double.infinity, hi = double.negativeInfinity;
+    for (final c in [
+      Offset.zero,
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      Offset(size.width, size.height),
+    ]) {
+      final p = c.dx * _wind.dx + c.dy * _wind.dy;
+      lo = math.min(lo, p);
+      hi = math.max(hi, p);
+    }
+    _pMin = lo;
+    _pMax = hi;
+    // The arriving dust at about half the cover's own density, the rest of
+    // it coming in under the front; a field of its own, sized for it.
+    final n = math.min(
+      5000,
+      (size.width * size.height * kMediaSpoilerDensity * 0.5).round(),
+    );
+    final field = RubField(
+      Offset.zero & size,
+      MediaQuery.devicePixelRatioOf(context),
+      grains: n + 64,
+    );
+    field.prepareGather(
+      rand,
+      wind: _wind,
+      pMin: _pMin,
+      pad: _gatherPad,
+      span: _gatherSpan,
+      n: field.capacity - 64,
+    );
     setState(() {
       _open = false;
       _origin = null;
       _wave.reset();
       _rub?.dispose();
-      _rub = rub;
-      _field ??= _newField(size);
+      _rub = null;
+      _field = field;
+      _gathering = true;
     });
-    rub.beginHeal(rand);
-    _field!.prepareHeal(rub, rand, density: kMediaSpoilerDensity);
-    _heal.duration = kMediaSpoilerRecover;
     _ensureField();
-    _heal.forward(from: 0);
+    _gather.forward(from: 0);
+  }
+
+  static const double _gatherPad = VeilModel.frontBand + VeilModel.frontJitter;
+  double get _gatherSpan => _pMax - _pMin + 2 * _gatherPad;
+
+  /// The gather's front along [_wind] at [t] in 0..1, as the text's.
+  double _gatherFront(double t) => (_pMin - _gatherPad) + t * _gatherSpan;
+
+  void _onGather(AnimationStatus s) {
+    if (s != AnimationStatus.completed || !mounted) return;
+    _field?.endHeal();
+    _conceal();
+    setState(() {
+      _gathering = false;
+      _gather.value = 0;
+    });
+  }
+
+  void _conceal() {
+    final key = widget.revealKey;
+    if (key != null) {
+      SpoilerStore.instance.conceal(MediaSpoilerCover.storeKey(key));
+    }
+  }
+
+  /// The wavefront's radius at [t]: the text's, eased out to past the far
+  /// corner.
+  double _waveRadius(double t, Size size) {
+    final o = _origin;
+    if (o == null || t <= 0) return 0;
+    var far = 0.0;
+    for (final c in [
+      Offset.zero,
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      Offset(size.width, size.height),
+    ]) {
+      far = math.max(far, (c - o).distance);
+    }
+    return Curves.easeOutCubic.transform(t) * (far + VeilModel.waveOvershoot);
   }
 
   RubField _newField(Size size) => RubField(
@@ -235,6 +323,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     _recoverTimer?.cancel();
     _fieldTicker?.dispose();
     _wave.dispose();
+    _gather.dispose();
     _heal.dispose();
     _rub?.dispose();
     _rubRevision.dispose();
@@ -315,16 +404,36 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
       _rubRevision.value++;
       if (rub.clearedFraction >= _RubMask.enough) _reveal(emitting);
     }
+    // The wavefront throws the dust it sweeps over, as the text's does.
+    if (_wave.isAnimating && _origin != null) {
+      final box = context.findRenderObject() as RenderBox?;
+      if (box != null && box.hasSize) {
+        final r = _waveRadius(_wave.value, box.size);
+        final from = math.max(_swept, r * VeilModel.waveRim);
+        if (r > from) {
+          final ring = math.pi * (r * r - from * from);
+          final n = (ring * kMediaSpoilerDensity * 0.6).round().clamp(0, 600);
+          field.burst(_origin!, from, r + 20, n);
+        }
+        _swept = r;
+      }
+    }
     field.step(
       dt,
       time: _fieldTime,
       touch: _touch.value,
       emitFrom: emitting,
-      rub: rub,
-      heal: _heal.isAnimating ? _heal.value : (_heal.value > 0 ? 1 : 0),
+      rub: _gathering ? _gatherHole : rub,
+      heal: _gathering
+          ? _gather.value
+          : (_heal.isAnimating ? _heal.value : (_heal.value > 0 ? 1 : 0)),
     );
     _fieldFrame.value++;
-    if (emitting == null && !_heal.isAnimating && !field.busy) {
+    if (emitting == null &&
+        !_heal.isAnimating &&
+        !_wave.isAnimating &&
+        !_gather.isAnimating &&
+        !field.busy) {
       _fieldTicker?.stop();
       _lastFieldTick = null;
       // Healed and settled: nothing left to move, so nothing left to hold.
@@ -334,7 +443,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
   }
 
   void _reveal(Offset at) {
-    if (_open || _wave.isAnimating) return;
+    if (_open || _wave.isAnimating || _gathering) return;
     _healTimer?.cancel();
     if (_heal.isAnimating) _heal.stop();
     HapticFeedback.lightImpact();
@@ -351,14 +460,25 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
       _scheduleRecover();
       return;
     }
-    setState(() => _origin = at);
+    final box = context.findRenderObject() as RenderBox?;
+    setState(() {
+      _origin = at;
+      if (box != null && box.hasSize && widget.dust) {
+        _field ??= _newField(box.size);
+      }
+    });
+    _swept = 0;
+    _ensureField();
     _wave.forward(from: 0);
   }
+
+  /// The gather's front, as the field reads it to time each grain's arrival.
+  late final RubHole _gatherHole = _GatherHole(this);
 
   // ------------------------------------------------------------------ rub
 
   void _rubStart(Offset at, Size size) {
-    if (_open || _wave.isAnimating) return;
+    if (_open || _wave.isAnimating || _gathering) return;
     _healTimer?.cancel();
     // A stroke onto healing holes takes them over rather than fighting the
     // fade.
@@ -431,11 +551,37 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     });
   }
 
+  /// The text spoiler's two fronts as a mask over [b]: opaque where the
+  /// sharp picture shows ([keep]) or where the dust does (![keep]).
+  ///
+  /// Opening: a disc from the tap, clear to [VeilModel.waveRim] of its
+  /// radius and soft beyond it. Gathering: covered upwind of the front,
+  /// clear downwind, a [VeilModel.frontBand] between.
+  Shader _frontShader(Rect b, {required bool keep}) {
+    const on = Color(0xFFFFFFFF), off = Color(0x00FFFFFF);
+    if (_gathering) {
+      final f = _gatherFront(_gather.value);
+      return ui.Gradient.linear(
+        _wind * (f - VeilModel.frontBand),
+        _wind * f,
+        keep ? const [off, on] : const [on, off],
+      );
+    }
+    final r = math.max(0.01, _waveRadius(_wave.value, b.size));
+    return ui.Gradient.radial(
+      _origin ?? b.center,
+      r,
+      keep ? const [on, on, off] : const [off, off, on],
+      const [0, VeilModel.waveRim, 1],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _calm = MediaQuery.disableAnimationsOf(context);
     final sealed = widget.sealed && !_open;
     final revealing = sealed && _origin != null;
+    final gathering = sealed && _gathering;
     final rub = sealed ? _rub : null;
     final holes = Listenable.merge([_rubRevision, _heal]);
     // One tree whether sealed, opening or open, so the picture is never
@@ -487,26 +633,19 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
                         child: widget.child,
                       ),
                     ),
-                  if (revealing)
-                    // The sharp picture, inside the growing disc.
+                  if (revealing || gathering)
+                    // The sharp picture: inside the text's soft-rimmed disc
+                    // as it opens, and downwind of its front as it gathers.
                     IgnorePointer(
                       key: const ValueKey('disc'),
                       child: AnimatedBuilder(
-                        animation: _wave,
-                        builder: (context, child) => ClipPath(
-                          clipper: _DiscClipper(_origin!, _wave.value),
+                        animation: Listenable.merge([_wave, _gather]),
+                        builder: (context, child) => ShaderMask(
+                          blendMode: BlendMode.dstIn,
+                          shaderCallback: (b) => _frontShader(b, keep: true),
                           child: child,
                         ),
                         child: widget.child,
-                      ),
-                    ),
-                  if (revealing)
-                    // The wavefront itself: a soft bright rim riding the
-                    // disc's edge, fading as it reaches the corners.
-                    IgnorePointer(
-                      key: const ValueKey('rim'),
-                      child: CustomPaint(
-                        painter: _WavefrontPainter(_origin!, _wave),
                       ),
                     ),
                   if (widget.dust)
@@ -521,14 +660,12 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
                       repaint: holes,
                       keep: false,
                       child: AnimatedBuilder(
-                        animation: _wave,
-                        builder: (context, dust) => revealing
-                            ? ClipPath(
-                                clipper: _DiscClipper(
-                                  _origin!,
-                                  _wave.value,
-                                  outside: true,
-                                ),
+                        animation: Listenable.merge([_wave, _gather]),
+                        builder: (context, dust) => revealing || gathering
+                            ? ShaderMask(
+                                blendMode: BlendMode.dstIn,
+                                shaderCallback: (b) =>
+                                    _frontShader(b, keep: false),
                                 child: dust,
                               )
                             : dust!,
@@ -537,8 +674,10 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
                           density: widget.dustDensity,
                           maxGrains: kMediaSpoilerMaxGrains,
                           brightness: 1.35,
-                          active: !revealing,
-                          fade: kMediaSpoilerReveal,
+                          // The front does the hiding, as the text's does:
+                          // the dust is all there until it passes, and back
+                          // at once behind a gather.
+                          fade: gathering ? Duration.zero : kMediaSpoilerReveal,
                           draught: widget.interactive ? _touch : null,
                         ),
                       ),
@@ -651,6 +790,37 @@ class _RubRecognizer extends HorizontalDragGestureRecognizer {
     double? deviceTouchSlop,
   ) =>
       _dx.abs() > slop && _dx.abs() > 1.2 * _dy.abs();
+}
+
+/// The gather as [RubField] reads it: always healing, on its wind and
+/// across its range, with no hole to thin the dust over.
+class _GatherHole implements RubHole {
+  _GatherHole(this.s);
+
+  final _MediaSpoilerCoverState s;
+
+  @override
+  int get discs => 0;
+  @override
+  double discX(int j) => 0;
+  @override
+  double discY(int j) => 0;
+  @override
+  double discR(int j) => 0;
+  @override
+  double get rimRadius => 0;
+  @override
+  double clearedAt(double x, double y) => 0;
+  @override
+  bool get healing => true;
+  @override
+  Offset get healWind => s._wind;
+  @override
+  double get healPMin => s._pMin;
+  @override
+  double get healPadding => _MediaSpoilerCoverState._gatherPad;
+  @override
+  double get healSpan => s._gatherSpan;
 }
 
 /// The holes a finger opens in the dust over a picture.
@@ -823,24 +993,6 @@ class _RubMask implements RubHole {
   }
 
   void lift() => _last = null;
-
-  /// The whole picture open, as after a full reveal: the reach filled in
-  /// everywhere, and seeds laid over it on a grid so a heal knows the
-  /// hole's extent and where its grains belong.
-  void openAll() {
-    _reach.fillRange(0, _reach.length, brush * 1.4);
-    const step = brush * 1.5;
-    for (var y = step / 2; y < size.height + step / 2; y += step) {
-      for (var x = step / 2; x < size.width + step / 2; x += step) {
-        _cx.add(x);
-        _cy.add(y);
-        _cr.add(brush * 1.1);
-        _max.add(brush * 1.1);
-        _age.add(0);
-      }
-    }
-    _revision++;
-  }
 
   /// A touch at [point]: a new seed if the finger has travelled far enough
   /// from the last one.
@@ -1131,70 +1283,4 @@ class _RenderHoles extends RenderProxyBox {
     layer = shaderLayer;
     context.pushLayer(shaderLayer, super.paint, offset);
   }
-}
-
-/// The wavefront's disc at [center], [t] of the way open: from nothing to
-/// past the box's far corner, eased out so it bursts open and slows as it
-/// reaches the edges. With [outside], everything but the disc.
-class _DiscClipper extends CustomClipper<Path> {
-  _DiscClipper(this.center, this.t, {this.outside = false});
-
-  final Offset center;
-  final double t;
-  final bool outside;
-
-  @override
-  Path getClip(Size size) {
-    final radius = _waveRadius(center, size, t);
-    final disc = Path()
-      ..addOval(Rect.fromCircle(center: center, radius: radius));
-    if (!outside) return disc;
-    return Path.combine(
-      PathOperation.difference,
-      Path()..addRect(Offset.zero & size),
-      disc,
-    );
-  }
-
-  @override
-  bool shouldReclip(_DiscClipper old) =>
-      old.center != center || old.t != t || old.outside != outside;
-}
-
-/// How far the wavefront from [o] has got across [size] at [t].
-double _waveRadius(Offset o, Size size, double t) {
-  final far = [
-    o,
-    Offset(size.width - o.dx, o.dy),
-    Offset(o.dx, size.height - o.dy),
-    Offset(size.width - o.dx, size.height - o.dy),
-  ].map((p) => p.distance).reduce(math.max);
-  return far * Curves.easeOutCubic.transform(t.clamp(0.0, 1.0)) + 1;
-}
-
-class _WavefrontPainter extends CustomPainter {
-  _WavefrontPainter(this.origin, this.wave) : super(repaint: wave);
-
-  final Offset origin;
-  final Animation<double> wave;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final t = wave.value;
-    final fade = 1 - Curves.easeIn.transform(t);
-    if (fade <= 0) return;
-    canvas.drawCircle(
-      origin,
-      _waveRadius(origin, size, t),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 14
-        ..color = Color.fromRGBO(255, 255, 255, 0.32 * fade)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_WavefrontPainter old) =>
-      old.origin != origin || old.wave != wave;
 }

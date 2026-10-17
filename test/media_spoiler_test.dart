@@ -214,8 +214,14 @@ void main() {
 
       await tester.tap(find.byType(MediaSpoilerCover));
       await tester.pump(const Duration(milliseconds: 200));
-      // Mid-wave: the sharp picture is clipped in over the still blur.
-      expect(find.byType(ClipPath), findsWidgets);
+      // Mid-wave: the sharp picture is masked in over the still blur.
+      expect(
+        find.descendant(
+          of: find.byType(MediaSpoilerCover),
+          matching: find.byType(ShaderMask),
+        ),
+        findsWidgets,
+      );
       await tester.pump(kMediaSpoilerReveal + const Duration(milliseconds: 50));
       await tester.pump();
       expect(blurred(tester), isFalse);
@@ -252,19 +258,20 @@ void main() {
       // Open for the hold: a tap now is the picture's (the viewer's).
       await tester.tap(find.byType(MediaSpoilerCover));
       expect(opened, 1);
-      // Past the hold: the dust blows back over it, the blur returns, and the
-      // reveal is forgotten.
+      // Past the hold: the dust gathers back over it as a line of text's
+      // does, the blur returning behind its front.
       await tester.pump(kMediaSpoilerHold);
       await tester.pump();
       expect(blurred(tester), isTrue);
       expect(find.byType(SpoilerDust), findsOneWidget);
+      for (var i = 0; i < 160; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      // Gathered: the reveal is forgotten.
       expect(
         SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey('m1')),
         isFalse,
       );
-      for (var i = 0; i < 160; i++) {
-        await tester.pump(const Duration(milliseconds: 16));
-      }
       // Sealed again: the next tap reveals rather than opens.
       await tester.tap(find.byType(MediaSpoilerCover));
       await tester.pump(const Duration(milliseconds: 200));

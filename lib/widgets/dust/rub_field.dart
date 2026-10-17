@@ -63,7 +63,8 @@ class RubField {
     this.rimMin = 0.72,
     this.rimSpan = 0.5,
     this.discShare = 0.4,
-  })  : capacity = capacityFor(dpr),
+    int? grains,
+  })  : capacity = grains != null ? Perf.particles(grains) : capacityFor(dpr),
         // Scaled with the capacity, so a low-tier phone's field is as full,
         // just of fewer grains.
         emitRate = Perf.particles(emitRate.round()).toDouble() {
@@ -279,6 +280,68 @@ class RubField {
       stagger[i] =
           (whenFrontPasses - 0.05 - rand.nextDouble() * 0.1).clamp(0.0, 0.97);
       upwind[i] = 16 + rand.nextDouble() * 30;
+      state[i] = 2;
+    }
+  }
+
+  /// The dust a reveal's wavefront sweeps up between radii [from] and [to]
+  /// around [center], [n] grains of it: thrown outward off the front and
+  /// gone in a fraction of a second, as the text field's motes ahead of its
+  /// front are.
+  void burst(Offset center, double from, double to, int n) {
+    final bounds = area;
+    for (var k = 0; k < n; k++) {
+      final i = _free();
+      if (i < 0) return;
+      final a = _rand.nextDouble();
+      final ex = DustTrig.cos(a), ey = DustTrig.sin(a);
+      final r = from + (to - from) * _rand.nextDouble();
+      final px = center.dx + ex * r, py = center.dy + ey * r;
+      if (px < bounds.left ||
+          py < bounds.top ||
+          px > bounds.right ||
+          py > bounds.bottom) {
+        continue;
+      }
+      x[i] = px;
+      y[i] = py;
+      _launch(i, minLife: 0.12, spanLife: 0.18);
+      _boiled[i] = 0;
+      // Outward, knocked off the line by a slant of its own: the text
+      // field's 1400 out and 600 across, as a kick.
+      final v = 120 + _rand.nextDouble() * 200;
+      final slant = (_rand.nextDouble() - 0.5) * 0.9;
+      kx[i] = (ex - ey * slant) * v;
+      ky[i] = (ey + ex * slant) * v;
+    }
+  }
+
+  /// Sets [n] grains up to arrive over the whole [area] on a wind front, as
+  /// the text field's gather does: each with a home, a moment keyed to when
+  /// the front ([wind], sweeping from [pMin] − [pad] across [span]) reaches
+  /// it, a little before, and a run-up from upwind.
+  void prepareGather(
+    math.Random rand, {
+    required Offset wind,
+    required double pMin,
+    required double pad,
+    required double span,
+    required int n,
+  }) {
+    _healWind = wind;
+    final bounds = area;
+    for (var k = 0; k < n; k++) {
+      final i = _free();
+      if (i < 0) break;
+      final hx = bounds.left + rand.nextDouble() * bounds.width;
+      final hy = bounds.top + rand.nextDouble() * bounds.height;
+      homeX[i] = hx;
+      homeY[i] = hy;
+      final p = hx * wind.dx + hy * wind.dy;
+      final whenFrontPasses = (p - (pMin - pad)) / span;
+      stagger[i] =
+          (whenFrontPasses - 0.06 - rand.nextDouble() * 0.12).clamp(0.0, 0.97);
+      upwind[i] = 25 + rand.nextDouble() * 40;
       state[i] = 2;
     }
   }
