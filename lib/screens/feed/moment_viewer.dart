@@ -317,6 +317,17 @@ class _ReactionBook {
   final String userId;
   final VoidCallback onChanged;
 
+  /// Extra listeners on every change: an open who-reacted sheet, which has
+  /// to follow the reaction you add or take back from inside it.
+  final _watchers = <VoidCallback>{};
+
+  void _changed() {
+    onChanged();
+    for (final w in [..._watchers]) {
+      w();
+    }
+  }
+
   /// Says "you've reached the reaction limit" — before sending when the
   /// local state already shows the cap, and after a server refusal when it
   /// did not (another device of theirs got there first).
@@ -331,7 +342,7 @@ class _ReactionBook {
   void noteComments(Moment m, int count) {
     if (_commentCounts[m.id] == count) return;
     _commentCounts[m.id] = count;
-    onChanged();
+    _changed();
   }
 
   final _byMoment = <String, _Reactions>{};
@@ -380,7 +391,7 @@ class _ReactionBook {
       return;
     }
     _apply(r, emoji, !had);
-    onChanged();
+    _changed();
     // Haptic on the commitment, not on the animation — the house rule.
     HapticFeedback.selectionClick();
     try {
@@ -394,7 +405,7 @@ class _ReactionBook {
       // not exist on the server — the next board payload would silently
       // contradict it and the count would appear to flicker on its own.
       _apply(r, emoji, had);
-      onChanged();
+      _changed();
       if (e.toString().contains(kReactionLimitError)) onLimit();
     }
   }
@@ -415,6 +426,42 @@ Future<void> _reactWithAny(
   // grid is where one is taken back, and says so with `remove`.
   if (pick.remove != book.of(m).mine.contains(pick.emoji)) return;
   await book.toggle(m, pick.emoji);
+}
+
+/// Who reacted to [m], as a list; [emoji] narrows it to one reaction. The
+/// sheet follows [book] while it is open and carries the add / take-back
+/// control, since a tap on a reaction chip opens it rather than toggling.
+Future<void> _showReactorsFor(
+  BuildContext context,
+  _ReactionBook book,
+  _Faces faces,
+  Moment m, {
+  required ChatApi api,
+  required String userId,
+  String? emoji,
+  void Function(ChatUser user)? onOpenProfile,
+}) async {
+  final reactors = faces.fill(book.of(m).reactors);
+  if (reactors.isEmpty) return;
+  HapticFeedback.mediumImpact();
+  final live = ValueNotifier(reactors);
+  void sync() => live.value = faces.fill(book.of(m).reactors);
+  book._watchers.add(sync);
+  try {
+    await showMomentReactions(
+      context,
+      reactors: reactors,
+      live: live,
+      api: api,
+      viewerId: userId,
+      initialEmoji: emoji,
+      onOpenProfile: onOpenProfile,
+      onToggle: (e) => book.toggle(m, e),
+    );
+  } finally {
+    book._watchers.remove(sync);
+    live.dispose();
+  }
 }
 
 /// Opens [m]'s comments over whichever viewer surface is up, keeping the
@@ -1610,19 +1657,16 @@ class _MomentStageState extends State<_MomentStage>
   }
 
   /// Who reacted, as a list; [emoji] narrows it to one reaction.
-  void _showReactors(Moment m, [String? emoji]) {
-    final reactors = widget.faces.fill(_book.of(m).reactors);
-    if (reactors.isEmpty) return;
-    HapticFeedback.mediumImpact();
-    showMomentReactions(
-      context,
-      reactors: reactors,
-      api: widget.api,
-      viewerId: widget.userId,
-      initialEmoji: emoji,
-      onOpenProfile: widget.onOpenProfile,
-    );
-  }
+  void _showReactors(Moment m, [String? emoji]) => _showReactorsFor(
+        context,
+        _book,
+        widget.faces,
+        m,
+        api: widget.api,
+        userId: widget.userId,
+        emoji: emoji,
+        onOpenProfile: widget.onOpenProfile,
+      );
 }
 
 /// One photograph, filling the screen: tap zones, hold, pinch, drag away.
@@ -3109,19 +3153,16 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
   double _progress(double drag, Size screen) =>
       (drag.abs() / (screen.height * _fadeSpan)).clamp(0.0, 1.0);
 
-  void _showReactors(String emoji) {
-    final reactors = widget.faces.fill(_book.of(widget.moment).reactors);
-    if (reactors.isEmpty) return;
-    HapticFeedback.mediumImpact();
-    showMomentReactions(
-      context,
-      reactors: reactors,
-      api: widget.api,
-      viewerId: widget.userId,
-      initialEmoji: emoji,
-      onOpenProfile: widget.onOpenProfile,
-    );
-  }
+  void _showReactors(String emoji) => _showReactorsFor(
+        context,
+        _book,
+        widget.faces,
+        widget.moment,
+        api: widget.api,
+        userId: widget.userId,
+        emoji: emoji,
+        onOpenProfile: widget.onOpenProfile,
+      );
 
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context);

@@ -297,29 +297,32 @@ class _MomentReactionsSheet extends StatefulWidget {
   State<_MomentReactionsSheet> createState() => _MomentReactionsSheetState();
 }
 
-class _MomentReactionsSheetState extends State<_MomentReactionsSheet> {
+class _MomentReactionsSheetState extends State<_MomentReactionsSheet>
+    with ClosesWhenEmptied<_MomentReactionsSheet> {
   late String? _filter = widget.initialEmoji;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final all = groupReactors(widget.reactors);
+    final reactors = heldUnlessEmptied(widget.reactors);
+    final all = groupReactors(reactors);
     // Each emoji with how many people left it, most used first.
     final tally = <String, int>{};
-    for (final r in widget.reactors) {
+    for (final r in reactors) {
       tally[r.emoji] = (tally[r.emoji] ?? 0) + 1;
     }
     final emojis = tally.keys.toList()
       ..sort((a, b) => tally[b]!.compareTo(tally[a]!));
-    // The filter outlives its emoji only as the toggle's target: once the
-    // last one is taken back the list widens to ALL, and the toggle stays on
-    // it so the take-back can be undone in place.
+    // Once the last one is taken back the list widens to ALL.
     final filter = tally.containsKey(_filter) ? _filter : null;
     final rows = filter == null
         ? all
         : [for (final g in all) if (g.emojis.contains(filter)) g];
-    final target = _filter ?? widget.initialEmoji;
+    // What the control adds or takes back: the filter you're looking at, or
+    // under ALL the chip you tapped. Only while someone still holds it.
+    final wanted = _filter ?? widget.initialEmoji;
+    final target = tally.containsKey(wanted) ? wanted : null;
     final onToggle = widget.onToggle;
 
     return SheetFrame(
@@ -395,15 +398,13 @@ class _MomentReactionsSheetState extends State<_MomentReactionsSheet> {
                 style: theme.bodySoft.copyWith(color: theme.inkMuted),
               ),
             ),
-          if (onToggle != null && target != null) ...[
-            const SizedBox(height: 12),
-            ReactToggle(
+          if (onToggle != null)
+            ReactToggleSlot(
               emoji: target,
-              mine: widget.reactors.any(
+              mine: reactors.any(
                   (r) => r.emoji == target && r.userId == widget.viewerId),
-              onTap: () => onToggle(target),
+              onTap: onToggle,
             ),
-          ],
         ],
       ),
     );

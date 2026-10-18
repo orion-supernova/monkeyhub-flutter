@@ -36,7 +36,25 @@ class _FakeChatApi extends Fake implements ChatApi {
   Future<String?> getFileUrl(String storageId) async => null;
 }
 
-class _FakeFeedApi extends Fake implements FeedApi {}
+class _FakeFeedApi extends Fake implements FeedApi {
+  final sent = <String>[];
+
+  @override
+  Future<void> react({
+    required String userId,
+    required String momentId,
+    required String emoji,
+  }) async =>
+      sent.add('+$emoji');
+
+  @override
+  Future<void> unreact({
+    required String userId,
+    required String momentId,
+    required String emoji,
+  }) async =>
+      sent.add('-$emoji');
+}
 
 Moment _moment({
   required String id,
@@ -64,7 +82,11 @@ Moment _moment({
 
 /// ThemeScope sits ABOVE MaterialApp because the viewer is a route on the app's
 /// own Navigator.
-Widget _host({required Moment moment, List<Moment> siblings = const []}) =>
+Widget _host({
+  required Moment moment,
+  List<Moment> siblings = const [],
+  _FakeFeedApi? feedApi,
+}) =>
     ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: MaterialApp(
@@ -78,7 +100,7 @@ Widget _host({required Moment moment, List<Moment> siblings = const []}) =>
                   context,
                   moment: moment,
                   api: _FakeChatApi(),
-                  feedApi: _FakeFeedApi(),
+                  feedApi: feedApi ?? _FakeFeedApi(),
                   userId: 'u1',
                   siblings: siblings,
                 ),
@@ -200,5 +222,35 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.byIcon(CupertinoIcons.smiley), findsOneWidget);
+  });
+
+  testWidgets('a reaction lands, and is taken back from who reacted',
+      (tester) async {
+    // Every reaction change runs through one notifier that also feeds an
+    // open who-reacted sheet; it once called itself and overflowed the stack
+    // on the first tap.
+    final feed = _FakeFeedApi();
+    await tester.pumpWidget(_host(
+      moment: _moment(id: 'p1', caption: 'npc behaviour', tag: MomentTag.npc),
+      feedApi: feed,
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('🤖'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(feed.sent, ['+🤖']);
+
+    await tester.longPress(find.text('🤖'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove yours'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(feed.sent, ['+🤖', '-🤖']);
+    // It was the only reaction, so the sheet went with it; the card stays.
+    expect(find.text('Remove yours'), findsNothing);
+    expect(find.text('Add yours'), findsNothing);
+    expect(find.text('🤖'), findsOneWidget);
   });
 }

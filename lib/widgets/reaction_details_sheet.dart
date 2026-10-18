@@ -112,7 +112,8 @@ class ReactionDetailsSheet extends StatefulWidget {
   State<ReactionDetailsSheet> createState() => _ReactionDetailsSheetState();
 }
 
-class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
+class _ReactionDetailsSheetState extends State<ReactionDetailsSheet>
+    with ClosesWhenEmptied<ReactionDetailsSheet> {
   /// Selected filter; null means ALL.
   String? _emoji;
 
@@ -196,7 +197,7 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
 
   Widget _body(BuildContext context, AppTheme theme) {
     final l10n = AppLocalizations.of(context);
-    final reactions = _reactions;
+    final reactions = heldUnlessEmptied(_reactions);
     final groups = _groupsOf(reactions);
     // The filter survives everything except its own emoji being taken back by
     // the last person holding it.
@@ -209,9 +210,9 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     // What the control adds or takes back: the filter you're looking at, or
-    // under ALL the chip you tapped. Kept even once nobody holds it, so taking
-    // back the last one can be undone from the same place.
-    final target = selected ?? _emoji ?? widget.initialEmoji;
+    // under ALL the chip you tapped. Only while someone still holds it.
+    final wanted = _emoji ?? widget.initialEmoji;
+    final target = groups.any((g) => g.emoji == wanted) ? wanted : null;
     final mine = reactions.any(
         (r) => r.emoji == target && r.userId == widget.currentUserId);
     final onToggle = widget.onToggle;
@@ -323,14 +324,8 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
               ),
             ),
           ],
-          if (onToggle != null) ...[
-            const SizedBox(height: 12),
-            ReactToggle(
-              emoji: target,
-              mine: mine,
-              onTap: () => onToggle(target),
-            ),
-          ],
+          if (onToggle != null)
+            ReactToggleSlot(emoji: target, mine: mine, onTap: onToggle),
         ],
       ),
     );

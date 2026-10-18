@@ -230,8 +230,8 @@ void main() {
     expect(toggled, ['😂', '😂']);
   });
 
-  testWidgets('the toggle follows the filter, and survives taking back the '
-      'last one', (tester) async {
+  testWidgets('the toggle follows the filter, and folds away with its emoji',
+      (tester) async {
     final toggled = <String>[];
     await tester.pumpWidget(host(sheet(
       reactions: [reaction('ada', '😂', 0), reaction('me', '🔥', 1)],
@@ -246,16 +246,50 @@ void main() {
     await tester.tap(find.text('Remove yours'));
     expect(toggled, ['🔥']);
 
-    // Nobody holds it any more: the list falls back to ALL, but the control
-    // stays on 🔥 so the take-back can be undone in place.
+    // Nobody holds 🔥 any more: the list widens to ALL and the control goes,
+    // rather than inviting you to add an emoji the message no longer has.
     await tester.pumpWidget(host(sheet(
       reactions: [reaction('ada', '😂', 0)],
       initialEmoji: '😂',
       onToggle: (e) async => toggled.add(e),
     )));
     await tester.pumpAndSettle();
-    expect(find.text('Add yours'), findsOneWidget);
-    expect(find.text('🔥'), findsOneWidget);
+    expect(find.text('Ada'), findsOneWidget);
+    expect(find.text('Add yours'), findsNothing);
+    expect(find.text('Remove yours'), findsNothing);
+  });
+
+  testWidgets('losing the last reaction closes the sheet', (tester) async {
+    final live = ValueNotifier([reaction('me', '😂', 0)]);
+    addTearDown(live.dispose);
+    await tester.pumpWidget(host(Builder(
+      builder: (context) => TextButton(
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => Scaffold(
+            body: ValueListenableBuilder(
+              valueListenable: live,
+              builder: (_, now, _) => sheet(
+                reactions: now,
+                initialEmoji: '😂',
+                onToggle: (_) async {},
+              ),
+            ),
+          ),
+        )),
+        child: const Text('open'),
+      ),
+    )));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove yours'), findsOneWidget);
+
+    live.value = [];
+    await tester.pump();
+    // The sheet slides away with its last list, never "nothing here".
+    expect(find.text('Nothing here anymore'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.byType(ReactionDetailsSheet), findsNothing);
+    expect(find.text('open'), findsOneWidget);
   });
 
   testWidgets('no right to react, no toggle', (tester) async {

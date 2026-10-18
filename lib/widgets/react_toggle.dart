@@ -276,3 +276,81 @@ class _BurstPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BurstPainter old) => old.color != color;
 }
+
+/// Where a who-reacted sheet keeps its [ReactToggle]: under the list, and
+/// only while [emoji] is still on the message. Once the last person holding
+/// it takes it back the control folds away rather than inviting you to add
+/// an emoji nobody uses any more. One key for the toggle, so a filter change
+/// moves it to the new emoji instead of rebuilding it.
+class ReactToggleSlot extends StatelessWidget {
+  const ReactToggleSlot({
+    super.key,
+    required this.emoji,
+    required this.mine,
+    required this.onTap,
+  });
+
+  /// Null hides the control.
+  final String? emoji;
+  final bool mine;
+  final void Function(String emoji) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final e = emoji;
+    return AnimatedSize(
+      duration: motion.d(theme.motionMed),
+      curve: theme.motionCurve,
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: motion.d(theme.motionFast),
+        child: e == null
+            ? const SizedBox(key: ValueKey('none'), width: double.infinity)
+            : Padding(
+                key: const ValueKey('toggle'),
+                padding: const EdgeInsets.only(top: 12),
+                child: ReactToggle(
+                  emoji: e,
+                  mine: mine,
+                  onTap: () => onTap(e),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+/// The who-reacted sheets' rule for losing their last reaction while open:
+/// there is nothing left to show, so the sheet goes, and the chip vanishing
+/// in the conversation behind it says what happened. Until the route is
+/// gone it keeps drawing the last list it had, so the sheet slides away with
+/// its content rather than flashing "nothing here" on the way down.
+///
+/// A sheet OPENED on nothing (a stale chip) is not closed: it never had a
+/// list to lose, and says so with its empty state.
+mixin ClosesWhenEmptied<W extends StatefulWidget> on State<W> {
+  List<Object>? _held;
+  bool _closing = false;
+
+  /// What to draw for [now]: itself, or the last non-empty list once the
+  /// sheet is closing.
+  List<T> heldUnlessEmptied<T extends Object>(List<T> now) {
+    if (_closing) return _held!.cast<T>();
+    if (now.isNotEmpty) {
+      _held = now;
+      return now;
+    }
+    if (_held == null) return now;
+    _closing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Only this sheet: never a limit alert or anything else on top of it.
+      if (ModalRoute.of(context)?.isCurrent ?? false) {
+        Navigator.of(context).maybePop();
+      }
+    });
+    return _held!.cast<T>();
+  }
+}
