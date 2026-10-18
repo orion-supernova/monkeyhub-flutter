@@ -13,6 +13,9 @@ PODS:
     - PromisesObjC (~> 2.4)
     - PromisesSwift (~> 2.4)
     - RecaptchaInterop (~> 101.0)
+  - apple_speech (0.1.0):
+    - Flutter
+    - FlutterMacOS
   - audio_session (0.0.1):
     - Flutter
   - background_downloader (0.0.1):
@@ -139,9 +142,12 @@ PODS:
   - webview_flutter_wkwebview (0.0.1):
     - Flutter
     - FlutterMacOS
+  - whisper_ggml (1.0.1):
+    - Flutter
 
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
+  - apple_speech (from `.symlinks/plugins/apple_speech/darwin`)
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
   - background_downloader (from `.symlinks/plugins/background_downloader/ios`)
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
@@ -177,6 +183,7 @@ DEPENDENCIES:
   - video_player_avfoundation (from `.symlinks/plugins/video_player_avfoundation/darwin`)
   - video_thumbnail (from `.symlinks/plugins/video_thumbnail/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
+  - whisper_ggml (from `.symlinks/plugins/whisper_ggml/ios`)
 
 SPEC REPOS:
   trunk:
@@ -196,6 +203,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_links:
     :path: ".symlinks/plugins/app_links/ios"
+  apple_speech:
+    :path: ".symlinks/plugins/apple_speech/darwin"
   audio_session:
     :path: ".symlinks/plugins/audio_session/ios"
   background_downloader:
@@ -266,11 +275,14 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/video_thumbnail/ios"
   webview_flutter_wkwebview:
     :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
+  whisper_ggml:
+    :path: ".symlinks/plugins/whisper_ggml/ios"
 
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
   AppAuth: ef4da5a3fc2e10b90c09a0a94a9baeaedc0341d5
   AppCheckCore: e215d35177a9cf469927863e69c13e220df32a8b
+  apple_speech: 17523eacb7c7fb8cc73c90592ee4d9b74cb45b8a
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
   background_downloader: 50e91d979067b82081aba359d7d916b3ba5fadad
   camera_avfoundation: 968a9a5323c79a99c166ad9d7866bfd2047b5a9b
@@ -316,6 +328,7 @@ SPEC CHECKSUMS:
   video_thumbnail: b637e0ad5f588ca9945f6e2c927f73a69a661140
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
   webview_flutter_wkwebview: 8ebf4fded22593026f7dbff1fbff31ea98573c8d
+  whisper_ggml: 993605a6ae37d667e25580c03fb75a1e2dc9eace
 
 PODFILE CHECKSUM: f4c237c21106fc7819a3a76abb7d956ca99f2e2e
 
