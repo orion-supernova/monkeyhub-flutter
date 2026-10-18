@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
-import '../theme/theme_scope.dart';
+import 'capture_glyphs.dart' show TrashGlyph;
 import 'liquid_glass.dart';
 import 'spring_press.dart';
 import 'desktop_scroll.dart';
@@ -22,6 +23,8 @@ import 'desktop_scroll.dart';
 /// starts being a guess, and every swipe of the picture above makes the whole
 /// rail reflow sideways under the reader's thumb. Selection is a ring and a
 /// brightness instead — the same signal, spent on paint rather than layout.
+/// The tray adds a lift (the others sit back at 0.86 scale), again a paint
+/// transform, never a size, and its ring slides between tiles.
 ///
 /// Deliberately NOT built on media [LiquidGlass] like the rest of the photo
 /// chrome. A glass pane is a `BackdropFilter`, this rail slides and fades with
@@ -39,6 +42,7 @@ class MediaFilmstrip extends StatefulWidget {
     this.removeSemanticLabel,
     this.tileSemanticLabel,
     this.trailing,
+    this.tileKey,
   }) : viewer = false;
 
   /// The gallery's rail: small square tiles packed 2pt apart, the others
@@ -55,7 +59,8 @@ class MediaFilmstrip extends StatefulWidget {
   })  : viewer = true,
         onRemove = null,
         removeSemanticLabel = null,
-        trailing = null;
+        trailing = null,
+        tileKey = null;
 
   /// The gallery's look — see [MediaFilmstrip.viewer].
   final bool viewer;
@@ -87,6 +92,22 @@ class MediaFilmstrip extends StatefulWidget {
 
   /// Pinned after the last tile and scrolling with it — the tray's "add more".
   final Widget? trailing;
+
+  /// Who tile [i] is, so a tray that loses or gains a photo can move the
+  /// tiles that stayed instead of repainting new ones in their places. Null
+  /// identifies tiles by position.
+  final Object Function(int i)? tileKey;
+
+  /// The remove chip on the current tray tile.
+  static const removeChipKey = ValueKey('mediaFilmstrip.remove');
+
+  /// How long a removed tile takes to go into the bin before the tray hands
+  /// it to [onRemove].
+  static const removeDuration = Duration(milliseconds: 220);
+
+  /// Up to this many, the tray is built whole and animates (see
+  /// [_TrayStrip]); past it, lazily, as the gallery's rail is.
+  static const _eagerMax = 24;
 
   /// Side of one tile. Big enough to recognise a face in, small enough that
   /// eight of them fit across a phone.
@@ -199,7 +220,6 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     // One past the last tile when there is a trailing slot, so the arithmetic
     // below and the builder agree about how long the rail is.
     final slots = widget.count + (widget.trailing == null ? 0 : 1);
@@ -217,6 +237,19 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
           // three thumbnails under a centred photograph looks like the layout
           // ran out of things to do.
           final centred = contentWidth <= constraints.maxWidth;
+
+          if (!widget.viewer && widget.count <= MediaFilmstrip._eagerMax) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              child: HorizontalWheelScroll(
+                child: _TrayStrip(
+                  strip: widget,
+                  scroll: _scroll,
+                  viewport: constraints.maxWidth,
+                ),
+              ),
+            );
+          }
 
           return Padding(
             padding: EdgeInsets.symmetric(vertical: widget.viewer ? 6 : 11),
@@ -262,7 +295,7 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
                   }
                   return _Tile(
                     selected: i == widget.index,
-                    accent: theme.accent,
+                    calm: MediaQuery.disableAnimationsOf(context),
                     semanticLabel:
                         widget.tileSemanticLabel?.call(i + 1, widget.count),
                     onTap: () => widget.onTap(i),
@@ -286,97 +319,397 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
   }
 }
 
+/// The overshoot every tray motion shares: the ring sliding to a tile, a tile
+/// lifting as it becomes current. A spring's settle in a curve, so a quick
+/// second tap retargets from wherever the first one had got to.
+const Cubic _trayOvershoot = Cubic(0.28, 1.32, 0.42, 1);
+
+/// How far an unselected tray tile sits back: smaller and dimmer, a paint-only
+/// transform so the rail never reflows under a thumb (see [MediaFilmstrip]).
+const double _trayRestScale = 0.86;
+const double _trayRestOpacity = 0.55;
+
+/// The white ring's gap outside a tray tile, and its radius.
+const double _trayRingInset = 3;
+const double _trayTileRadius = 10;
+
+/// One tray tile: the picture, lifting into place as it becomes current and
+/// sitting back, smaller and dimmer, when it is not.
+///
+/// [ring] draws the selection ring on the tile itself, for the lazy rail; the
+/// animated tray draws one ring that SLIDES between tiles instead, the real
+/// thing moving rather than one ring fading out while another fades in.
 class _Tile extends StatelessWidget {
   const _Tile({
     required this.child,
     required this.selected,
-    required this.accent,
     required this.onTap,
     required this.onRemove,
     required this.removeSemanticLabel,
     required this.semanticLabel,
+    this.ring = true,
+    this.leaving = false,
+    this.calm = false,
   });
 
   final Widget child;
   final bool selected;
-  final Color accent;
   final VoidCallback onTap;
   final VoidCallback? onRemove;
   final String? removeSemanticLabel;
   final String? semanticLabel;
+  final bool ring;
+
+  /// Being swallowed by the bin: shrinks into its top-left corner, where the
+  /// remove chip sits, and fades.
+  final bool leaving;
+  final bool calm;
 
   @override
   Widget build(BuildContext context) {
-    // The ring is drawn OUTSIDE the clip, so it never eats a row of the
-    // thumbnail's own pixels — a 2pt border painted inside a 54pt tile is 4%
-    // of the picture gone, and on a strip of faces that is the difference
-    // between recognising someone and not.
-    final tile = AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOut,
-      width: MediaFilmstrip.tileSize,
-      height: MediaFilmstrip.tileSize,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: selected ? accent : const Color(0x1FFFFFFF),
-          width: selected ? 2 : 1,
+    const size = MediaFilmstrip.tileSize;
+    final face = TweenAnimationBuilder<double>(
+      tween: Tween(end: selected ? 1 : 0),
+      duration: calm ? Duration.zero : const Duration(milliseconds: 340),
+      curve: _trayOvershoot,
+      // The picture rasterises once; the lift is a compositor matrix.
+      child: RepaintBoundary(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(_trayTileRadius),
+          child: SizedBox.expand(child: child),
         ),
       ),
-      // A hair inside the ring so the two do not share pixels.
-      padding: const EdgeInsets.all(1.5),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(7),
-        child: AnimatedOpacity(
-          // Unselected tiles are present, not shouting. Dimming rather than
-          // greying keeps them recognisable as the photographs they are.
-          opacity: selected ? 1 : 0.45,
-          duration: const Duration(milliseconds: 150),
-          child: SizedBox.expand(child: child),
+      builder: (context, t, picture) => Transform.scale(
+        scale: _trayRestScale + (1 - _trayRestScale) * t,
+        child: Opacity(
+          opacity: (_trayRestOpacity + (1 - _trayRestOpacity) * t)
+              .clamp(0.0, 1.0),
+          child: picture,
         ),
       ),
     );
 
-    // The shared press: a small spring and a focus stop (it was a bare
-    // FocusableTap + GestureDetector, which never moved under a finger).
-    return SpringPress(
+    Widget tile = SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(child: face),
+          if (ring && selected)
+            const Positioned(
+              left: -_trayRingInset,
+              top: -_trayRingInset,
+              right: -_trayRingInset,
+              bottom: -_trayRingInset,
+              child: _TrayRing(),
+            ),
+        ],
+      ),
+    );
+
+    tile = SpringPress(
       onTap: onTap,
       semanticLabel: semanticLabel,
       scale: PressSpec.scaleSmall,
-      focusRadius: 9,
+      focusRadius: _trayTileRadius,
       haptic: false,
-      child: onRemove == null
-            ? tile
-            : Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  tile,
-                  // Its own tap target rather than a long-press on the
-                  // tile: removing a photo from a send is a one-tap decision
-                  // everywhere else people have met it, and a gesture with
-                  // no visible affordance is a feature only the person who
-                  // wrote it knows about. The shared overlay chip, centred
-                  // where the old private badge was, a few points over the
-                  // corner so it stays off the face in the thumbnail.
-                  Positioned(
-                    top: -10,
-                    right: -10,
-                    // Pops in on the tile that just became current, so the
-                    // eye follows it to the photo it belongs to.
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.6, end: 1),
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutBack,
-                      builder: (_, v, child) =>
-                          Transform.scale(scale: v, child: child),
-                      child: _RemoveBadge(
-                        onTap: onRemove!,
-                        semanticLabel: removeSemanticLabel ?? '',
-                      ),
-                    ),
-                  ),
-                ],
+      child: tile,
+    );
+
+    final remove = onRemove;
+    if (remove != null) {
+      tile = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          tile,
+          // Top-left, the house corner for anything that takes a thing away,
+          // and off the face in the middle of the thumbnail. Pops in on the
+          // tile that just became current, so the eye follows it there.
+          Positioned(
+            left: -13,
+            top: -13,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: calm ? 1 : 0.4, end: 1),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutBack,
+              builder: (_, v, child) => Transform.scale(scale: v, child: child),
+              child: _RemoveChip(
+                key: MediaFilmstrip.removeChipKey,
+                onTap: remove,
+                gulping: leaving,
+                calm: calm,
+                semanticLabel: removeSemanticLabel ?? '',
               ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // The swallow: into the corner the bin sits in, quicker than it came.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: leaving ? 1 : 0),
+      duration: calm ? Duration.zero : MediaFilmstrip.removeDuration,
+      curve: Curves.easeInCubic,
+      child: tile,
+      builder: (context, g, child) => g == 0
+          ? child!
+          : Transform.scale(
+              alignment: Alignment.topLeft,
+              scale: 1 - 0.8 * g,
+              child: Opacity(opacity: 1 - g, child: child),
+            ),
+    );
+  }
+}
+
+/// The tray's selection ring: white, outside the picture, so it costs the
+/// thumbnail none of its pixels and competes with no colour in it.
+class _TrayRing extends StatelessWidget {
+  const _TrayRing();
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius:
+                BorderRadius.circular(_trayTileRadius + _trayRingInset),
+            border: Border.all(color: const Color(0xFFFFFFFF), width: 2),
+          ),
+        ),
+      );
+}
+
+/// The photo tray proper: every tile placed by hand, so the strip can MOVE.
+///
+/// Small by construction (a send carries a handful of photos), so it is built
+/// eagerly and each tile keeps its State across a removal through its
+/// [MediaFilmstrip.tileKey]. That buys the motion a lazy list cannot have:
+///
+///  * one ring slides from tile to tile with a spring's overshoot;
+///  * a removed tile is swallowed by the bin chip in its corner, and the
+///    tiles after it close the gap by sliding, not by jumping;
+///  * a tile added from the camera or the library pops in.
+class _TrayStrip extends StatefulWidget {
+  const _TrayStrip({
+    required this.strip,
+    required this.scroll,
+    required this.viewport,
+  });
+
+  final MediaFilmstrip strip;
+  final ScrollController scroll;
+  final double viewport;
+
+  @override
+  State<_TrayStrip> createState() => _TrayStripState();
+}
+
+class _TrayStripState extends State<_TrayStrip>
+    with SingleTickerProviderStateMixin {
+  /// Times the swallow; a ticker rather than a timer, so it stops with the
+  /// screen and a test can pump through it.
+  late final AnimationController _swallow = AnimationController(
+    vsync: this,
+    duration: MediaFilmstrip.removeDuration,
+  );
+
+  @override
+  void dispose() {
+    _swallow.dispose();
+    super.dispose();
+  }
+
+  /// The tile on its way into the bin, by key, until [MediaFilmstrip.onRemove]
+  /// has taken it out of the count.
+  Object? _leaving;
+
+  /// Keys present in the last build, so a key that was not is a new tile.
+  Set<Object> _known = {};
+  bool _built = false;
+
+  Object _keyOf(int i) => widget.strip.tileKey?.call(i) ?? i;
+
+  void _remove(int i) {
+    if (_leaving != null) return;
+    final calm = MediaQuery.disableAnimationsOf(context);
+    if (calm) {
+      widget.strip.onRemove?.call(i);
+      return;
+    }
+    final key = _keyOf(i);
+    setState(() => _leaving = key);
+    _swallow.forward(from: 0).whenCompleteOrCancel(() {
+      if (!mounted) return;
+      final strip = widget.strip;
+      // Still where it was? Then it goes; a rail rebuilt under it in the
+      // meantime (a send started) keeps it.
+      final at = [for (var j = 0; j < strip.count; j++) _keyOf(j)].indexOf(key);
+      setState(() => _leaving = null);
+      if (at >= 0) strip.onRemove?.call(at);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strip = widget.strip;
+    final calm = MediaQuery.disableAnimationsOf(context);
+    const tile = MediaFilmstrip.tileSize;
+    final extent = strip._extent;
+    final slots = strip.count + (strip.trailing == null ? 0 : 1);
+    final content = slots * extent - strip._gapNow;
+    final centred = content <= widget.viewport;
+    final pad = centred ? (widget.viewport - content) / 2 : 14.0;
+    final width = centred ? widget.viewport : content + 28;
+    const move = Duration(milliseconds: 300);
+    final slide = calm ? Duration.zero : move;
+
+    final keys = [for (var i = 0; i < strip.count; i++) _keyOf(i)];
+    // New since the last build: these pop in, one after the other.
+    final fresh = _built ? keys.where((k) => !_known.contains(k)).toList() : const [];
+    _known = keys.toSet();
+    _built = true;
+
+    final index = strip.index;
+    final hasRing = index >= 0 && index < strip.count;
+
+    return SingleChildScrollView(
+      controller: widget.scroll,
+      scrollDirection: Axis.horizontal,
+      physics: centred
+          ? const NeverScrollableScrollPhysics()
+          : const BouncingScrollPhysics(),
+      clipBehavior: Clip.none,
+      child: SizedBox(
+        width: width,
+        height: tile,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            for (var i = 0; i < strip.count; i++)
+              AnimatedPositioned(
+                key: ValueKey<Object>(keys[i]),
+                duration: slide,
+                curve: Curves.easeOutCubic,
+                left: pad + i * extent,
+                top: 0,
+                width: tile,
+                height: tile,
+                child: _PopIn(
+                  delay: fresh.contains(keys[i])
+                      ? Duration(milliseconds: 45 * fresh.indexOf(keys[i]))
+                      : null,
+                  calm: calm,
+                  child: _Tile(
+                    selected: i == index,
+                    ring: false,
+                    leaving: _leaving == keys[i],
+                    calm: calm,
+                    semanticLabel:
+                        strip.tileSemanticLabel?.call(i + 1, strip.count),
+                    onTap: () => strip.onTap(i),
+                    onRemove: strip.onRemove == null || i != index
+                        ? null
+                        : () => _remove(i),
+                    removeSemanticLabel: strip.removeSemanticLabel,
+                    child: strip.thumbnailBuilder(context, i),
+                  ),
+                ),
+              ),
+            if (hasRing)
+              // Over the tiles, but never in the way of a tap.
+              AnimatedPositioned(
+                key: const ValueKey('ring'),
+                duration: calm ? Duration.zero : const Duration(milliseconds: 380),
+                curve: _trayOvershoot,
+                left: pad + index * extent - _trayRingInset,
+                top: -_trayRingInset,
+                width: tile + 2 * _trayRingInset,
+                height: tile + 2 * _trayRingInset,
+                child: AnimatedOpacity(
+                  opacity: _leaving == null ? 1 : 0,
+                  duration: const Duration(milliseconds: 120),
+                  child: const _TrayRing(),
+                ),
+              ),
+            if (strip.trailing != null)
+              AnimatedPositioned(
+                key: const ValueKey('trailing'),
+                duration: slide,
+                curve: Curves.easeOutCubic,
+                left: pad + strip.count * extent,
+                top: 0,
+                width: tile,
+                height: tile,
+                child: strip.trailing!,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A tile arriving: from small and clear to full size, overshooting once.
+class _PopIn extends StatefulWidget {
+  const _PopIn({required this.child, required this.delay, required this.calm});
+
+  final Widget child;
+
+  /// Null: already here when the rail was first built, no entrance.
+  final Duration? delay;
+  final bool calm;
+
+  @override
+  State<_PopIn> createState() => _PopInState();
+}
+
+class _PopInState extends State<_PopIn> with SingleTickerProviderStateMixin {
+  AnimationController? _in;
+
+  @override
+  void initState() {
+    super.initState();
+    final delay = widget.delay;
+    if (delay == null || widget.calm) return;
+    const travel = 420;
+    final wait = delay.inMilliseconds;
+    _start = wait / (wait + travel);
+    _in = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: wait + travel),
+    )..forward();
+  }
+
+  /// Where in [_in] the tile starts moving: the stagger, without a timer.
+  double _start = 0;
+
+  @override
+  void dispose() {
+    _in?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _in;
+    if (c == null) return widget.child;
+    return AnimatedBuilder(
+      animation: c,
+      child: widget.child,
+      builder: (context, child) {
+        final t = ((c.value - _start) / (1 - _start)).clamp(0.0, 1.0);
+        if (c.value >= 1) return child!;
+        final s = 0.35 + 0.65 * Curves.easeOutBack.transform(t);
+        return Transform.scale(
+          scale: s,
+          child: Opacity(
+            opacity: Curves.easeOut.transform((t * 2).clamp(0.0, 1.0)),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }
@@ -513,48 +846,91 @@ class MediaScrim extends StatelessWidget {
   }
 }
 
-/// The remove mark on the current tile: a red disc with a white trash glyph
-/// and a white ring — iOS's delete red, so it reads as "take this out" at a
-/// glance. The neutral dark × it replaced vanished into the black around
-/// the rail.
+/// The remove mark on the current tile: a small white disc with a drawn bin,
+/// over the tile's top-left corner.
 ///
-/// 26pt drawn inside a 40pt tap target, so it is easy to hit on purpose
+/// White on purpose. The dark × it once was vanished into the black round
+/// the rail, and the red disc after it shouted louder than the photo; white
+/// is the one ink that holds over both a photo and the black. The bin's lid
+/// lifts while a finger is on it and slams as the tile goes in.
+///
+/// 22pt drawn inside a 36pt tap target, so it is easy to hit on purpose
 /// without growing over the tiles beside it.
-class _RemoveBadge extends StatelessWidget {
-  const _RemoveBadge({required this.onTap, required this.semanticLabel});
+class _RemoveChip extends StatefulWidget {
+  const _RemoveChip({
+    super.key,
+    required this.onTap,
+    required this.semanticLabel,
+    required this.gulping,
+    required this.calm,
+  });
 
   final VoidCallback onTap;
   final String semanticLabel;
+  final bool gulping;
+  final bool calm;
+
+  @override
+  State<_RemoveChip> createState() => _RemoveChipState();
+}
+
+class _RemoveChipState extends State<_RemoveChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _gulp = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+
+  @override
+  void didUpdateWidget(_RemoveChip old) {
+    super.didUpdateWidget(old);
+    if (widget.gulping && !old.gulping && !widget.calm) _gulp.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _gulp.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final danger = ThemeScope.of(context).danger;
     return SpringPress(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
+      onTap: () {
+        // The removal is a decision, not a selection: its own firmer tick.
+        HapticFeedback.selectionClick();
+        widget.onTap();
+      },
+      semanticLabel: widget.semanticLabel,
       scale: PressSpec.scaleSmall,
       focusShape: FocusRingShape.circle,
-      focusRadius: 13,
-      // The removal plays its own impact; the press must not add a tick.
+      focusRadius: 11,
       haptic: false,
-      child: Padding(
+      builder: (context, pressed) => Padding(
         // The extra slop is the tap target, not paint.
-        padding: const EdgeInsets.all(2),
+        padding: const EdgeInsets.all(7),
         child: Container(
-          width: 26,
-          height: 26,
-          decoration: BoxDecoration(
-            color: danger,
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFFFFFFF), width: 1.5),
-            boxShadow: const [
-              BoxShadow(color: Color(0x66000000), blurRadius: 6),
-            ],
-          ),
-          child: const Icon(
-            CupertinoIcons.trash_fill,
-            size: 13,
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
             color: Color(0xFFFFFFFF),
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Color(0x59000000), blurRadius: 6)],
+          ),
+          alignment: Alignment.center,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(end: pressed || widget.gulping ? 1 : 0),
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+            builder: (context, open, _) => AnimatedBuilder(
+              animation: _gulp,
+              builder: (context, _) => TrashGlyph(
+                color: const Color(0xFF1C1C1E),
+                open: open,
+                gulp: _gulp.value,
+                size: 15,
+              ),
+            ),
           ),
         ),
       ),

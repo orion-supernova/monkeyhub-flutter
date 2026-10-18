@@ -278,10 +278,15 @@ class MediaNoteCapsule extends StatelessWidget {
     required this.text,
     this.icon,
     this.iconColor,
+    this.glyph,
   });
 
   final String text;
   final IconData? icon;
+
+  /// A drawn glyph in place of [icon], sized and inked by the caller (the
+  /// armed switch's own glyph, so the note and the switch read as one).
+  final Widget? glyph;
 
   /// Defaults to white; pass the accent to tie the note to an armed toggle.
   final Color? iconColor;
@@ -297,7 +302,10 @@ class MediaNoteCapsule extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[
+            if (glyph != null) ...[
+              glyph!,
+              const SizedBox(width: 6),
+            ] else if (icon != null) ...[
               Icon(icon, size: 13, color: iconColor ?? MediaGlass.ink),
               const SizedBox(width: 6),
             ],

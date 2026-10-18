@@ -8,6 +8,8 @@ import 'package:monkeyhub/screens/camera_editor_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/widgets/editor_glyphs.dart';
+import 'package:monkeyhub/widgets/media_filmstrip.dart';
 import 'package:monkeyhub/widgets/media_send_switches.dart';
 
 /// The editor's chrome contract.
@@ -30,6 +32,11 @@ import 'package:monkeyhub/widgets/media_send_switches.dart';
 /// One of the shared send switches, by kind: drawn glyphs, not icons.
 Finder _switch(SendSwitch kind) => find.byWidgetPredicate(
       (w) => w is SendSwitchGlyph && w.kind == kind,
+    );
+
+/// Undo or redo: drawn glyphs too, which kick as they act.
+Finder _undoGlyph({required bool redo}) => find.byWidgetPredicate(
+      (w) => w is UndoGlyph && w.redo == redo,
     );
 
 void main() {
@@ -146,7 +153,7 @@ void main() {
     expect(find.text('Use photo'), findsOneWidget);
 
     // Still a cropper, which is the entire reason the feed came here.
-    expect(find.byIcon(CupertinoIcons.crop), findsOneWidget);
+    expect(find.byType(CropGlyph), findsOneWidget);
   });
 
   testWidgets('feed mode unmounts the draw gesture, not just its button', (
@@ -164,7 +171,7 @@ void main() {
     // Undo only appears when there is a stroke to undo. Without the pen button
     // there is no way to arm the pen, so a swipe must stay inert — a hidden
     // button over a live gesture would still scribble on the photo.
-    expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
+    expect(_undoGlyph(redo: false), findsNothing);
   });
 
   testWidgets('crop is an icon at the top, not a labelled button in the rail', (
@@ -172,7 +179,7 @@ void main() {
   ) async {
     await settle(tester, host(photo));
 
-    expect(find.byIcon(CupertinoIcons.crop), findsOneWidget);
+    expect(find.byType(CropGlyph), findsOneWidget);
     expect(find.text('CROP'), findsNothing);
     expect(find.text('Use photo'), findsNothing);
     // The round arrow, not a labelled pill.
@@ -200,7 +207,7 @@ void main() {
 
     // Undo appears only when there is a stroke to undo, which makes it a
     // reliable witness for "did that gesture draw anything".
-    expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
+    expect(_undoGlyph(redo: false), findsNothing);
 
     await tester.drag(
       find.byKey(cameraEditorStageImageKey),
@@ -209,7 +216,7 @@ void main() {
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();
-    expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
+    expect(_undoGlyph(redo: false), findsNothing);
 
     await tester.tap(_switch(SendSwitch.pen));
     await tester.pumpAndSettle();
@@ -221,7 +228,7 @@ void main() {
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();
-    expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsOneWidget);
+    expect(_undoGlyph(redo: false), findsOneWidget);
   });
 
   testWidgets('undo and redo keep their places, so repeated undo stays undo', (
@@ -231,8 +238,8 @@ void main() {
     await tester.tap(_switch(SendSwitch.pen));
     await tester.pumpAndSettle();
 
-    final undo = find.byIcon(CupertinoIcons.arrow_uturn_left);
-    final redo = find.byIcon(CupertinoIcons.arrow_uturn_right);
+    final undo = _undoGlyph(redo: false);
+    final redo = _undoGlyph(redo: true);
     // Out with the pen: both slots, before anything is drawn.
     expect(undo, findsOneWidget);
     expect(redo, findsOneWidget);
@@ -513,7 +520,11 @@ void main() {
         host(photo, draft: draft, allowCaptions: true, maxPhotos: 10),
       );
       await tester.tap(find.bySemanticsLabel('Remove this photo').first);
+      // The tile goes into the bin before the draft lets it go.
       await tester.pump();
+      expect(draft.length, 3);
+      await tester.pump(MediaFilmstrip.removeDuration);
+      await tester.pump(const Duration(milliseconds: 16));
       expect(draft.length, 2);
       expect(find.bySemanticsLabel('Item 2 of 2'), findsOneWidget);
     });

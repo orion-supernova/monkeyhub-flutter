@@ -32,6 +32,11 @@ import '../widgets/media_send_switches.dart';
 import '../widgets/media_spoiler.dart' show kMediaSpoilerReveal;
 import '../widgets/dust/spoiler_dust.dart';
 import '../widgets/desktop_scroll.dart';
+import '../widgets/editor_glyphs.dart';
+import '../widgets/photo_send_flight.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
+import '../widgets/capture_glyphs.dart'
+    show HdGlyph, SpoilerGlyph, ViewOnceGlyph;
 
 /// Post-capture composer: draw on a photo, frame it, caption it, send it — or
 /// several of them at once.
@@ -573,6 +578,32 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
 
   bool _saving = false;
 
+  /// Bumped as each tool acts, for its glyph's kick (see [GlyphKick]).
+  int _rotateKicks = 0;
+  int _undoKicks = 0;
+  int _redoKicks = 0;
+
+  /// The stage's quarter turn after a rotate: the new, already-rotated
+  /// picture starts drawn a quarter back at the old picture's size and turns
+  /// into place, so the photo is seen to turn instead of snapping.
+  late final AnimationController _turn = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 460),
+  );
+
+  /// The stage's size just before the rotate, for [_turn]'s first frame.
+  Size? _turnFrom;
+
+  /// The stage rect from the last layout.
+  Rect? _lastStage;
+
+  /// The stage's own layer, for the still a send flies down into the chat.
+  final GlobalKey _shotKey = GlobalKey();
+
+  /// Set as the photo leaves in its send flight: the stage stops drawing, so
+  /// the picture is never on screen twice while this route goes.
+  bool _flown = false;
+
   /// Covers reading back an "add from library" pick — whole-file reads behind
   /// an OS sheet that has already slid away.
   bool _adding = false;
@@ -726,6 +757,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     _draft._detach();
     _zoomCtrl.dispose();
     _swipeCtrl.dispose();
+    _turn.dispose();
     _swipeDx.dispose();
     _zoom.dispose();
     _caption.dispose();
@@ -1059,6 +1091,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     final src = _display;
     if (src == null || _saving) return;
     HapticFeedback.selectionClick();
+    setState(() => _rotateKicks++);
     _resetZoom(animate: false);
     final page = _page;
     final generation = page.generation;
@@ -1069,6 +1102,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       return;
     }
 
+    // A turn still running is finished where it is; the next starts from
+    // the stage as it stands.
+    _turnFrom = _lastStage?.size;
     setState(() {
       page.display?.dispose();
       page.display = rotated;
@@ -1088,6 +1124,38 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       }
     });
     _committedRev.value++;
+    if (_turnFrom != null && !MediaQuery.disableAnimationsOf(context)) {
+      _turn.forward(from: 0);
+    }
+  }
+
+  /// [stage] as [_turn] has it: turning a quarter clockwise into place and
+  /// growing or shrinking from the old fit to the new one.
+  Widget _turning(Widget stage, Rect rect) {
+    return AnimatedBuilder(
+      animation: _turn,
+      // The picture rasterises once; every frame of the turn is a matrix.
+      child: RepaintBoundary(child: stage),
+      builder: (context, child) {
+        final from = _turnFrom;
+        final t = _turn.value;
+        if (from == null || !_turn.isAnimating || rect.isEmpty) return child!;
+        // A little past square and back: the frame settles, it doesn't stop.
+        final e = const Cubic(0.3, 1.18, 0.45, 1).transform(t);
+        final s0 = from.width / rect.height;
+        final scale = s0 + (1 - s0) * e;
+        final angle = -math.pi / 2 * (1 - e);
+        final c = rect.center;
+        return Transform(
+          transform: Matrix4.identity()
+            ..translateByDouble(c.dx, c.dy, 0, 1)
+            ..rotateZ(angle)
+            ..scaleByDouble(scale, scale, 1, 1)
+            ..translateByDouble(-c.dx, -c.dy, 0, 1),
+          child: child,
+        );
+      },
+    );
   }
 
   // ---------------------------------------------------------------- drawing
@@ -1164,6 +1232,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   void _undo() {
     if (_strokes.isEmpty || _saving) return;
     HapticFeedback.lightImpact();
+    _undoKicks++;
     _redo.add(_strokes.removeLast());
     _committedRev.value++;
     setState(() {});
@@ -1172,6 +1241,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   void _redoStroke() {
     if (_redo.isEmpty || _saving) return;
     HapticFeedback.lightImpact();
+    _redoKicks++;
     _strokes.add(_redo.removeLast());
     _committedRev.value++;
     setState(() {});
@@ -1221,8 +1291,50 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     await _save(scheduleAt: choice.at);
   }
 
+  /// Whether this send flies its picture into the chat: chat's own preview
+  /// (captions are chat's), one photo going now, and not view once, whose
+  /// bubble is sealed and has no picture to land on. A multi-photo send
+  /// lands as a stack and the inline picker's sends its whole selection, so
+  /// neither has one bubble that is this picture.
+  bool _fliesOnSend(DateTime? scheduleAt) =>
+      scheduleAt == null &&
+      widget.allowCaptions &&
+      !widget.closeKeeps &&
+      widget.confirmLabel == null &&
+      !_viewOnce &&
+      _draft.length == 1;
+
+  /// A still of the stage as it is on screen, for [PhotoSendFlight]: the
+  /// image, the part of it that is the picture, and where that sits.
+  ({ui.Image image, Rect src, Rect from})? _stageShot() {
+    final box = _shotKey.currentContext?.findRenderObject();
+    final stage = _lastStage;
+    if (box is! RenderRepaintBoundary || !box.attached || stage == null) {
+      return null;
+    }
+    try {
+      // Capped: the still shrinks to a bubble, and a 3x copy of a full
+      // screen is memory spent on pixels nobody sees.
+      final ratio = math.min(2.0, MediaQuery.devicePixelRatioOf(context));
+      final image = box.toImageSync(pixelRatio: ratio);
+      final src = Rect.fromLTRB(
+        stage.left * ratio,
+        stage.top * ratio,
+        stage.right * ratio,
+        stage.bottom * ratio,
+      );
+      final from = MatrixUtils.transformRect(box.getTransformTo(null), stage);
+      return (image: image, src: src, from: from);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _save({DateTime? scheduleAt}) async {
     if (_saving || _display == null) return;
+    // Before anything changes on screen: the still is what was being looked
+    // at when Send was tapped.
+    final shot = _fliesOnSend(scheduleAt) ? _stageShot() : null;
     _captionFocus.unfocus();
     final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
@@ -1237,7 +1349,10 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     var downgraded = 0;
     for (final page in List.of(_draft._pages)) {
       final (image, wasDowngraded) = await _exportPage(page);
-      if (!mounted) return;
+      if (!mounted) {
+        shot?.image.dispose();
+        return;
+      }
       if (wasDowngraded) downgraded++;
       if (image == null) {
         dropped++;
@@ -1252,6 +1367,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       );
     }
     if (out.isEmpty) {
+      shot?.image.dispose();
       toast.show(l10n.photoTrayLoadFailedSnack, tone: ToastTone.danger);
       setState(() => _saving = false);
       return;
@@ -1263,6 +1379,15 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         downgraded,
         formatFileSize(kMaxFileUploadBytes),
       ));
+    }
+    if (shot != null) {
+      PhotoSendFlight.launch(
+        context,
+        image: shot.image,
+        src: shot.src,
+        from: shot.from,
+      );
+      setState(() => _flown = true);
     }
     Navigator.of(context).pop(
       EditorSend(
@@ -1505,7 +1630,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
               padding: stagePad,
               duration: theme.motionMed,
               curve: Curves.easeOutCubic,
-              child: _swipeable(
+              child: _flown
+                  ? const SizedBox.expand()
+                  : _swipeable(
                 _zoomable(_stage(), interactive: interactive),
                 // Not gated on the decode, unlike zoom: the photo swiped to is
                 // drawn from its preview at once, and a quick second swipe
@@ -1600,10 +1727,16 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
               // reorder the send that is running.
               Positioned.fill(
                 child: AbsorbPointer(
-                  child: ColoredBox(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    child: const Center(child: PhotoSpinner()),
-                  ),
+                  // Only a library read gets the dim and the spinner. A send
+                  // says so on its own button, and a grey veil dropping over
+                  // the photo the instant Send is tapped read as an error,
+                  // not as "it's going".
+                  child: _adding
+                      ? ColoredBox(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          child: const Center(child: PhotoSpinner()),
+                        )
+                      : const SizedBox.expand(),
                 ),
               ),
           ],
@@ -1753,12 +1886,29 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     final history = [
       if (hasHistory) ...[
         GlassGroupItem(
-          icon: CupertinoIcons.arrow_uturn_left,
+          glyph: GlyphKick(
+            trigger: _undoKicks,
+            builder: (_, k) => UndoGlyph(
+              color: _saving || _strokes.isEmpty
+                  ? MediaGlass.inkDisabled
+                  : MediaGlass.ink,
+              kick: k,
+            ),
+          ),
           semanticLabel: l10n.cameraEditorScreenUndoSemanticLabel,
           onTap: _saving || _strokes.isEmpty ? null : _undo,
         ),
         GlassGroupItem(
-          icon: CupertinoIcons.arrow_uturn_right,
+          glyph: GlyphKick(
+            trigger: _redoKicks,
+            builder: (_, k) => UndoGlyph(
+              color: _saving || _redo.isEmpty
+                  ? MediaGlass.inkDisabled
+                  : MediaGlass.ink,
+              redo: true,
+              kick: k,
+            ),
+          ),
           semanticLabel: l10n.cameraEditorScreenRedoSemanticLabel,
           onTap: _saving || _redo.isEmpty ? null : _redoStroke,
         ),
@@ -1771,8 +1921,17 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
           semanticLabel: l10n.cameraEditorScreenResetCropSemanticLabel,
           onTap: _saving ? null : _resetCrop,
         ),
+      // Drawn, and turning the way the photo does: clockwise. The icon
+      // font's rotate_left promised the opposite of what a tap did.
       GlassGroupItem(
-        icon: CupertinoIcons.rotate_left,
+        glyph: GlyphKick(
+          trigger: _rotateKicks,
+          duration: const Duration(milliseconds: 520),
+          builder: (_, k) => RotateGlyph(
+            color: ready ? MediaGlass.ink : MediaGlass.inkDisabled,
+            kick: k,
+          ),
+        ),
         semanticLabel: l10n.cameraEditorScreenRotateSemanticLabel,
         onTap: ready ? _rotate90 : null,
       ),
@@ -1780,7 +1939,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       // can do to the frame itself.
       if (!cropping)
         GlassGroupItem(
-          icon: CupertinoIcons.crop,
+          glyph: CropGlyph(
+            color: ready ? MediaGlass.ink : MediaGlass.inkDisabled,
+          ),
           semanticLabel: l10n.cameraEditorScreenCropSemanticLabel,
           onTap: ready ? () => _selectTool(_Tool.crop) : null,
         ),
@@ -1865,15 +2026,18 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
           normToStage(const Offset(1, 1), viewport: viewport, stage: stage),
         );
         final strokeScale = stage.width / viewport.width;
+        _lastStage = stage;
 
-        return Stack(
+        return _turning(Stack(
           children: [
             // Positioned.fill, so the clip and the layers inside it are
             // handed tight box-sized constraints. Left as a loose child, the
             // inner Stack would have only positioned children and would have
             // to infer its size from the constraints it happened to get.
             Positioned.fill(
-              child: ClipRect(
+              child: RepaintBoundary(
+                key: _shotKey,
+                child: ClipRect(
                 clipper: _StageClip(stage),
                 // What the recipient will see: with Spoiler on the photo
                 // sits under the same blur and dust as in the chat. Lifted
@@ -1935,6 +2099,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
                 ),
                 ),
               ),
+              ),
             ),
             if (_tool == _Tool.crop) ..._cropLayers(stage, viewport),
             // Only while the pen is out. Mounted unconditionally, as it used
@@ -1951,7 +2116,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
                 ),
               ),
           ],
-        );
+        ), stage);
       },
     );
   }
@@ -2043,6 +2208,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       duration: theme.motionMed,
       curve: Curves.easeOutCubic,
       alignment: Alignment.bottomCenter,
+      // Unclipped: a note dropping in rides above the growing box, and a
+      // clip cut it in half for the length of the rise.
+      clipBehavior: Clip.none,
       child: cropping ? _cropRail(theme) : _drawRail(theme),
     );
   }
@@ -2168,19 +2336,12 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         // asking yet.
         // One note at most, the weightiest armed switch's: three stacked
         // capsules over a photo would be a form, not a reminder.
-        if (_viewOnce)
-          _note(
-            CupertinoIcons.flame_fill,
-            l10n.cameraEditorScreenViewOnceNote,
-            theme,
-          )
-        else if (widget.allowSpoiler && _options.spoiler)
-          _note(CupertinoIcons.eye_slash, l10n.mediaSendSpoilerNote, theme)
-        // Only when HD is armed. The compressed default needs no caption —
-        // it is what every photo has always looked like to the recipient, and
-        // narrating it would turn a good default into a decision.
-        else if (_hd)
-          _note(CupertinoIcons.sparkles, l10n.cameraEditorScreenHdNote, theme),
+        //
+        // Only when HD is armed, for HD. The compressed default needs no
+        // caption — it is what every photo has always looked like to the
+        // recipient, and narrating it would turn a good default into a
+        // decision.
+        _notes(theme, l10n),
         if (_penArmed)
           Padding(
             key: const ValueKey('pen'),
@@ -2199,6 +2360,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
               removeSemanticLabel: l10n.photoTrayRemoveSemanticLabel,
               tileSemanticLabel: (i, total) =>
                   l10n.photoChromeThumbnailSemanticLabel(i, total),
+              // The page itself: a removal slides the photos after it
+              // along instead of repainting them one place to the left.
+              tileKey: (i) => _draft._pages[i],
               thumbnailBuilder: (context, i) => _PageThumb(
                 page: _draft._pages[i],
               ),
@@ -2285,16 +2449,89 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     );
   }
 
-  /// A one-line note above the rail ("Sends in full resolution", "Opens
-  /// once") on the shared media capsule.
-  Widget _note(IconData icon, String text, AppTheme theme) => Padding(
+  /// The one note above the rail ("Sends in full resolution", "Opens
+  /// once"), on the shared media capsule, wearing the armed switch's own
+  /// glyph so the two read as one thing.
+  ///
+  /// A new note drops in from the rail and the old one sinks back into it,
+  /// and the glyph arms itself as it lands (the ring floods, the eye shuts,
+  /// the badge traces round HD). The capsule's glass goes flat for the
+  /// length of the move and frosts when it settles: a blur is never
+  /// animated (see [GlassStill]).
+  Widget _notes(AppTheme theme, AppLocalizations l10n) {
+    final SendSwitch? kind = _viewOnce
+        ? SendSwitch.viewOnce
+        : (widget.allowSpoiler && _options.spoiler)
+        ? SendSwitch.spoiler
+        : _hd
+        ? SendSwitch.hd
+        : null;
+    Widget? note;
+    if (kind != null) {
+      final text = switch (kind) {
+        SendSwitch.viewOnce => l10n.cameraEditorScreenViewOnceNote,
+        SendSwitch.spoiler => l10n.mediaSendSpoilerNote,
+        _ => l10n.cameraEditorScreenHdNote,
+      };
+      final ink = theme.accent;
+      note = Padding(
+        key: ValueKey(kind),
         padding: const EdgeInsets.only(bottom: 10),
         child: MediaNoteCapsule(
-          icon: icon,
-          iconColor: theme.accent,
+          glyph: TweenAnimationBuilder<double>(
+            tween: Tween(begin: MediaQuery.disableAnimationsOf(context) ? 1 : 0, end: 1),
+            duration: const Duration(milliseconds: 520),
+            curve: Curves.easeOutBack,
+            builder: (_, on, _) => RepaintBoundary(
+              child: switch (kind) {
+                SendSwitch.viewOnce => ViewOnceGlyph(
+                    color: ink,
+                    knockout: const Color(0xFF2C2C30),
+                    on: on,
+                    size: 16,
+                  ),
+                SendSwitch.spoiler =>
+                  SpoilerGlyph(color: ink, on: on, burst: on, size: 16),
+                _ => HdGlyph(color: ink, on: on, kick: on, size: 16),
+              },
+            ),
+          ),
           text: sentenceCaseOf(context, text),
         ),
       );
+    }
+    final calm = MediaQuery.disableAnimationsOf(context);
+    return AnimatedSwitcher(
+      duration: calm ? Duration.zero : const Duration(milliseconds: 320),
+      reverseDuration: calm ? Duration.zero : const Duration(milliseconds: 180),
+      switchInCurve: Curves.easeOutBack,
+      switchOutCurve: Curves.easeInCubic,
+      // Bottom-anchored, so a note leaving does not tug the rail.
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.bottomCenter,
+        children: [...previous, ?current],
+      ),
+      transitionBuilder: (child, a) => AnimatedBuilder(
+        animation: a,
+        child: child,
+        builder: (context, child) {
+          final t = a.value;
+          return GlassStill(
+            still: a.status != AnimationStatus.completed,
+            child: Transform.translate(
+              offset: Offset(0, 14 * (1 - t)),
+              child: Transform.scale(
+                scale: 0.82 + 0.18 * t,
+                alignment: Alignment.bottomCenter,
+                child: Opacity(opacity: t.clamp(0.0, 1.0), child: child),
+              ),
+            ),
+          );
+        },
+      ),
+      child: note,
+    );
+  }
 
   /// Colours and brush size — hidden until the pen is out, which is the point:
   /// the old screen showed the whole palette permanently, to a user who most of

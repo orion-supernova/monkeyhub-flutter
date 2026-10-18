@@ -1750,6 +1750,14 @@ Widget buildMessageContent({
           onRetrySend: onRetrySend,
           onDiscardSend: onDiscardSend,
         );
+        // A photo just sent from the preview is where its picture lands;
+        // hidden until it is on it (see `photo_send_flight.dart`).
+        if (isMine) {
+          imageTile = SendFlightLanding(
+            kind: SendFlightKind.photo,
+            child: imageTile,
+          );
+        }
       } else if (id != null) {
         imageTile = _ImageTile(
           message: message,

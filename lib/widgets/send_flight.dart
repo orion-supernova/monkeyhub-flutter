@@ -2,8 +2,9 @@ import 'package:flutter/widgets.dart';
 
 /// What is flying: a ticket is only ever claimed by a landing of its kind,
 /// so a voice note sent while a video note is still uploading can never land
-/// on the circle.
-enum SendFlightKind { videoNote, voice }
+/// on the circle. A photo is the photo preview's picture flying down into
+/// its new bubble (see `photo_send_flight.dart`).
+enum SendFlightKind { videoNote, voice, photo }
 
 /// The pieces of a landing bubble a flight lands its own pieces on, marked
 /// with [SendFlightMark]: a voice bubble's play disc, waveform and meta line.

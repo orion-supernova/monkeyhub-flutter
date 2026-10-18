@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -88,7 +87,7 @@ void main() {
         ),
       ),
     );
-    expect(find.byIcon(CupertinoIcons.trash_fill), findsNothing);
+    expect(find.byKey(MediaFilmstrip.removeChipKey), findsNothing);
 
     final removed = <int>[];
     await tester.pumpWidget(
@@ -105,9 +104,11 @@ void main() {
 
     // One badge, on the current tile only: the others are for switching to,
     // and a badge on each sat where the thumb lands when doing that.
-    final badges = find.byIcon(CupertinoIcons.trash_fill);
+    final badges = find.byKey(MediaFilmstrip.removeChipKey);
     expect(badges, findsOneWidget);
     await tester.tap(badges);
+    // The tile is swallowed by the bin first, then handed over.
+    await tester.pumpAndSettle();
     expect(removed, [0]);
 
     await tester.pumpWidget(
@@ -122,7 +123,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(CupertinoIcons.trash_fill));
+    await tester.tap(find.byKey(MediaFilmstrip.removeChipKey));
+    await tester.pumpAndSettle();
     expect(removed, [0, 2]);
   });
 
@@ -139,8 +141,11 @@ void main() {
         ),
       ),
     );
+    // A tray this small is built whole, so it can animate.
     expect(
-      tester.widget<ListView>(find.byType(ListView)).physics,
+      tester
+          .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
+          .physics,
       isA<NeverScrollableScrollPhysics>(),
       reason: 'three tiles under a centred photo should sit centred, not left',
     );
@@ -209,5 +214,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(scroll.offset, greaterThan(0));
     expect(find.text('30'), findsOneWidget);
+  });
+
+  testWidgets('a removed tray tile goes into the bin and the rest slide up',
+      (tester) async {
+    var count = 3;
+    final removed = <int>[];
+    late StateSetter set;
+    await tester.pumpWidget(
+      host(
+        StatefulBuilder(builder: (context, setState) {
+          set = setState;
+          return MediaFilmstrip(
+            count: count,
+            index: 0,
+            onTap: (_) {},
+            onRemove: (i) => set(() {
+              removed.add(i);
+              count--;
+            }),
+            // Identity, so the survivors keep their tiles.
+            tileKey: (i) => 'p${i + removed.length}',
+            thumbnailBuilder: (_, i) => swatch(i + removed.length),
+          );
+        }),
+      ),
+    );
+    final before = tester.getTopLeft(find.text('1')).dx;
+    await tester.tap(find.byKey(MediaFilmstrip.removeChipKey));
+    // Mid-swallow: not handed over yet.
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(removed, isEmpty);
+    // The swallow's clock starts on the frame after the tap.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(removed, [0]);
+    // Mid-slide: the survivor is on its way, neither where it was nor home.
+    await tester.pump(const Duration(milliseconds: 60));
+    final during = tester.getTopLeft(find.text('1')).dx;
+    await tester.pumpAndSettle();
+    final after = tester.getTopLeft(find.text('1')).dx;
+    expect(after, isNot(before));
+    expect(during, isNot(after));
   });
 }
