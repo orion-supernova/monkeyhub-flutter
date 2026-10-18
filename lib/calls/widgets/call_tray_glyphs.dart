@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
@@ -26,13 +27,14 @@ import '../../widgets/capture_glyphs.dart';
 //    after the other).
 //  * Share: the arrow launches out of the screen and a stop square pops
 //    into the cut; stopping drops the square and the arrow rises back.
-//  * Flip, More, Hide: a one-off move per tap (the arrows spin half a lap,
-//    the dots hop in turn, the chevron dips).
+//  * Flip, More, Hide, End: a one-off move per tap (the arrows spin half a
+//    lap, the dots hop in turn, the chevron dips, the handset is put down:
+//    it tips, drops and lands on its cradle).
 //
 // No idle loops: the tray is resting chrome. Reduce Motion snaps.
 
 /// Which drawn glyph a tray control shows.
-enum CallGlyphKind { mic, camera, audio, share, flip, more, hide }
+enum CallGlyphKind { mic, camera, audio, share, flip, more, hide, end }
 
 /// Where the sound goes, as the audio control (and the mic's badge) draws
 /// it.
@@ -90,7 +92,8 @@ class CallTrayGlyph {
   bool get kicksOnTap =>
       kind == CallGlyphKind.flip ||
       kind == CallGlyphKind.more ||
-      kind == CallGlyphKind.hide;
+      kind == CallGlyphKind.hide ||
+      kind == CallGlyphKind.end;
 
   @override
   bool operator ==(Object other) =>
@@ -273,6 +276,8 @@ class _CallGlyphPainter extends GlyphGridPainter {
         _more(canvas, fill);
       case CallGlyphKind.hide:
         _hide(canvas, line);
+      case CallGlyphKind.end:
+        _end(canvas, line, fill);
     }
     canvas.restore();
   }
@@ -761,10 +766,365 @@ class _CallGlyphPainter extends GlyphGridPainter {
     );
   }
 
+  // ── End ──────────────────────────────────────────────────────────────────
+
+  /// SF's `phone.down.fill`: the handset on its back, both ends down. A tap
+  /// puts it down: it tips, drops onto the cradle and rocks once.
+  void _end(Canvas canvas, Paint line, Paint fill) {
+    final k = kick.value;
+    final drop = _push(glyphSpan(k, 0, 0.55));
+    final rock = k <= 0 || k >= 1
+        ? 0.0
+        : math.sin(math.pi * 2 * glyphSpan(k, 0.4, 1)) *
+            (1 - glyphSpan(k, 0.4, 1));
+    canvas.save();
+    canvas.translate(12, 14);
+    canvas.rotate(0.32 * drop + 0.12 * rock);
+    canvas.translate(0, 2.4 * drop);
+    canvas.translate(-12, -14);
+    _handset(canvas, line, fill);
+    canvas.restore();
+  }
+
+  static void _handset(Canvas canvas, Paint line, Paint fill) {
+    // The grip: a thick arch whose ends turn down into the ear and mouth
+    // pieces, drawn as one band so the joins stay smooth.
+    final band = Paint()
+      ..color = fill.color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(
+      Path()
+        ..moveTo(4.6, 14.6)
+        ..cubicTo(6.4, 8.2, 17.6, 8.2, 19.4, 14.6),
+      band,
+    );
+    // The pieces: rounded pads under each end, tipped outward.
+    for (final side in const [-1.0, 1.0]) {
+      canvas.save();
+      canvas.translate(12 + side * 7.2, 15.4);
+      canvas.rotate(side * 0.38);
+      _solid(
+        canvas,
+        Path()
+          ..addRRect(
+            RRect.fromLTRBR(-3.0, -1.6, 3.0, 2.6, const Radius.circular(1.6)),
+          ),
+        line,
+        fill,
+      );
+      canvas.restore();
+    }
+  }
+
   @override
   bool shouldRepaint(_CallGlyphPainter old) =>
       old.from != from ||
       old.to != to ||
       old.ink0 != ink0 ||
       old.ink1 != ink1;
+}
+
+/// What a call's status chip says about the link.
+enum CallSignalKind {
+  /// Finding the way back (an ICE restart, a device switch): the arcs light
+  /// one after the other, outward, for as long as it lasts.
+  reconnecting,
+
+  /// Two bars of four.
+  weak,
+
+  /// One bar of four.
+  poor,
+}
+
+/// The status chip's drawn glyph. Reconnecting is in progress, so it loops
+/// (the one live state here); weak and poor arrive once, the lost bars
+/// draining out of the full set, and then stand still. Reduce Motion snaps.
+class CallSignalGlyph extends StatefulWidget {
+  const CallSignalGlyph({
+    super.key,
+    required this.kind,
+    required this.ink,
+    this.size = 16,
+  });
+
+  final CallSignalKind kind;
+  final Color ink;
+  final double size;
+
+  @override
+  State<CallSignalGlyph> createState() => _CallSignalGlyphState();
+}
+
+class _CallSignalGlyphState extends State<CallSignalGlyph>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _t = AnimationController(vsync: this);
+  bool _calm = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _calm = MediaQuery.disableAnimationsOf(context);
+    _sync(initial: true);
+  }
+
+  @override
+  void didUpdateWidget(CallSignalGlyph old) {
+    super.didUpdateWidget(old);
+    if (old.kind != widget.kind) _sync(initial: true);
+  }
+
+  void _sync({bool initial = false}) {
+    if (_calm) {
+      _t
+        ..stop()
+        ..value = 1;
+      return;
+    }
+    if (widget.kind == CallSignalKind.reconnecting) {
+      _t.duration = const Duration(milliseconds: 1300);
+      if (!_t.isAnimating) _t.repeat();
+    } else if (initial) {
+      _t.duration = const Duration(milliseconds: 700);
+      _t.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+        child: CustomPaint(
+          size: Size.square(widget.size),
+          painter: _SignalPainter(
+            kind: widget.kind,
+            ink: widget.ink,
+            t: _t,
+            calm: _calm,
+          ),
+        ),
+      );
+}
+
+class _SignalPainter extends GlyphGridPainter {
+  _SignalPainter({
+    required this.kind,
+    required Color ink,
+    required this.t,
+    required this.calm,
+  }) : super(ink, repaint: t);
+
+  final CallSignalKind kind;
+  final Animation<double> t;
+  final bool calm;
+
+  @override
+  void draw(Canvas canvas, Paint line, Paint fill) {
+    final v = t.value;
+    if (kind == CallSignalKind.reconnecting) {
+      // The dot and three arcs over it; a light travels outward through
+      // them, each arc brightening in turn and falling back.
+      const c = Offset(12, 19);
+      final dim = ink.withValues(alpha: ink.a * 0.32);
+      double glow(int i) {
+        if (calm) return 1;
+        final phase = (v - i * 0.18) % 1.0;
+        return math.max(0.0, math.cos(2 * math.pi * phase)) * 0.9;
+      }
+
+      fill.color = Color.lerp(dim, ink, glow(0))!;
+      canvas.drawCircle(c, 1.9, fill);
+      for (var i = 1; i <= 3; i++) {
+        final r = 4.6 * i;
+        line
+          ..color = Color.lerp(dim, ink, glow(i))!
+          ..strokeWidth = 2.2;
+        canvas.drawArc(
+          Rect.fromCircle(center: c, radius: r),
+          -math.pi / 2 - 0.72,
+          1.44,
+          false,
+          line,
+        );
+      }
+      return;
+    }
+    // Four bars rising left to right; the ones the link has lost drain out
+    // of the full set, the last first.
+    final lit = kind == CallSignalKind.weak ? 2 : 1;
+    final dim = ink.withValues(alpha: ink.a * 0.28);
+    for (var i = 0; i < 4; i++) {
+      final h = 4.0 + i * 4.4;
+      final x = 3.4 + i * 5.2;
+      double on;
+      if (i < lit) {
+        on = 1;
+      } else {
+        final start = (3 - i) * 0.16;
+        on = 1 - Curves.easeInCubic.transform(glyphSpan(v, start, start + 0.5));
+      }
+      fill.color = Color.lerp(dim, ink, on)!;
+      canvas.drawRRect(
+        RRect.fromLTRBR(x, 20.5 - h, x + 3.4, 20.5, const Radius.circular(1.2)),
+        fill,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SignalPainter old) =>
+      old.kind != kind || old.color != color || old.calm != calm;
+}
+
+/// The other person's mute, as a mic glyph that says it in motion: it
+/// arrives whole and the slash draws through it; on unmute the slash pulls
+/// out, the capsule hops, and the badge bows out. Used wherever a call says
+/// someone is muted, so every one of them moves the same way.
+class CallMuteBadge extends StatefulWidget {
+  const CallMuteBadge({
+    super.key,
+    required this.muted,
+    this.size = 16,
+    this.ink = const Color(0xE6FFFFFF),
+    this.gap = 0,
+    this.kind = CallGlyphKind.mic,
+    this.intro = false,
+  });
+
+  final bool muted;
+
+  /// The mic, or the camera for a camera that is off.
+  final CallGlyphKind kind;
+
+  /// Already [muted] when it first builds: play the arrival anyway (the
+  /// slash drawing through), for a badge whose appearing is the news.
+  final bool intro;
+  final double size;
+  final Color ink;
+
+  /// Space after the glyph while it shows; folded away with it.
+  final double gap;
+
+  @override
+  State<CallMuteBadge> createState() => _CallMuteBadgeState();
+}
+
+class _CallMuteBadgeState extends State<CallMuteBadge>
+    with SingleTickerProviderStateMixin {
+  /// 1 while shown.
+  late final AnimationController _show = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+    reverseDuration: const Duration(milliseconds: 240),
+    value: widget.muted ? 1 : 0,
+  );
+
+  /// What the glyph draws: starts live on the way in so the slash has
+  /// something to cross.
+  late bool _glyphOn = !widget.muted || widget.intro;
+  bool _calm = false;
+  Timer? _beat;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.intro && widget.muted) {
+      _show.value = 0;
+      _show.forward();
+      _beat = Timer(const Duration(milliseconds: 160), () {
+        if (mounted && widget.muted) setState(() => _glyphOn = false);
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _calm = MediaQuery.disableAnimationsOf(context);
+    if (_calm) {
+      _beat?.cancel();
+      _show.value = widget.muted ? 1 : 0;
+      _glyphOn = !widget.muted;
+    }
+  }
+
+  @override
+  void didUpdateWidget(CallMuteBadge old) {
+    super.didUpdateWidget(old);
+    if (old.muted == widget.muted) return;
+    _beat?.cancel();
+    if (_calm) {
+      _show.value = widget.muted ? 1 : 0;
+      _glyphOn = !widget.muted;
+      return;
+    }
+    if (widget.muted) {
+      _glyphOn = true;
+      _show.forward();
+      // The slash once it has landed.
+      _beat = Timer(const Duration(milliseconds: 120), () {
+        if (mounted && widget.muted) setState(() => _glyphOn = false);
+      });
+    } else {
+      _glyphOn = true;
+      // The hop plays, then it bows out.
+      _beat = Timer(const Duration(milliseconds: 520), () {
+        if (mounted && !widget.muted) _show.reverse();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _beat?.cancel();
+    _show.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _show,
+      builder: (context, child) {
+        final v = _show.value;
+        if (v <= 0.001) return const SizedBox.shrink();
+        final s = _show.status == AnimationStatus.reverse
+            ? v
+            : Curves.easeOutBack.transform(v);
+        return SizedBox(
+          width: (widget.size + widget.gap) * Curves.easeOut.transform(v),
+          height: widget.size,
+          child: OverflowBox(
+            alignment: Alignment.centerLeft,
+            maxWidth: widget.size + widget.gap,
+            child: Opacity(
+              opacity: v.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: 0.6 + 0.4 * s,
+                alignment: Alignment.center,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: EdgeInsetsDirectional.only(end: widget.gap),
+        child: AnimatedCallGlyph(
+          glyph: widget.kind == CallGlyphKind.camera
+              ? CallTrayGlyph.camera(on: _glyphOn)
+              : CallTrayGlyph.mic(on: _glyphOn),
+          size: widget.size,
+          ink: widget.ink,
+          litInk: widget.ink,
+        ),
+      ),
+    );
+  }
 }

@@ -181,6 +181,40 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
   });
 
+  testWidgets('their paused camera shows their face, never yours',
+      (tester) async {
+    // The bug: a peer whose phone paused their camera (backgrounded,
+    // locked) dropped the screen back to the viewer's own picture or the
+    // voice backdrop. A live video call keeps them on screen instead, and
+    // says why the picture is gone.
+    await tester.pumpWidget(host());
+    service.set(_session('vp', kind: CallMediaKind.video, isCaller: true)
+        .copyWith(
+      status: CallStatus.active,
+      connectedAt: DateTime(2026),
+      peerState: const PeerMediaState(videoOff: true, videoPaused: true),
+    ));
+    nav.currentState!.push(MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => CallScreen(service: service),
+    ));
+    await slide(tester);
+    expect(find.byType(PeerCameraOffCard), findsOneWidget);
+    expect(find.text('Camera paused'), findsOneWidget);
+
+    // Turned off on purpose: the same card, saying so.
+    service.set(service.fake!.copyWith(
+      peerState: const PeerMediaState(videoOff: true),
+    ));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Camera off'), findsOneWidget);
+    expect(find.byType(AudioBackdrop), findsNothing);
+
+    service.set(null);
+    await slide(tester);
+    await tester.pump(const Duration(seconds: 6));
+  });
+
   testWidgets('a video call makes no renderer while the screen slides up',
       (tester) async {
     await tester.pumpWidget(host());

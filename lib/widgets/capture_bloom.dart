@@ -387,7 +387,7 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
-                  painter: _BlobPainter(
+                  painter: VoiceBlobPainter(
                     center: c,
                     radius: d / 2,
                     level: halo,
@@ -665,8 +665,8 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
 /// Glass, not paint: a fill that is denser at the disc and thins toward the
 /// edge, and a faint light rim on the outer blob. One path each; no blur,
 /// no layers.
-class _BlobPainter extends CustomPainter {
-  const _BlobPainter({
+class VoiceBlobPainter extends CustomPainter {
+  const VoiceBlobPainter({
     required this.center,
     required this.radius,
     required this.level,
@@ -781,7 +781,7 @@ class _BlobPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BlobPainter old) =>
+  bool shouldRepaint(VoiceBlobPainter old) =>
       old.center != center ||
       old.radius != radius ||
       old.level != level ||

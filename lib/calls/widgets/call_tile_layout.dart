@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import '../../theme/motion.dart';
+
 /// Where [count] video tiles go in [area]: every tile filled, no empty
 /// slots, the way FaceTime and WhatsApp tile a group.
 ///
@@ -50,28 +52,69 @@ List<Rect> callTileRects(int count, Size area, {double gap = 8}) {
 }
 
 /// Lays [children] out at [callTileRects] for their count. Keyed children
-/// keep their state (and their video view) as the count changes and they
-/// move to new slots.
+/// keep their state (and their video view) as the count changes, and glide
+/// to their new slots rather than jumping: someone joining makes room, the
+/// others sliding and resizing around the newcomer, who pops in. Each tile
+/// starts its glide from wherever it is, so a second change mid-glide never
+/// jumps either. Calm motion snaps.
 class CallTileLayout extends StatelessWidget {
   const CallTileLayout({super.key, required this.children, this.gap = 8});
 
   final List<Widget> children;
   final double gap;
 
+  static const Duration glide = Duration(milliseconds: 420);
+
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, box) {
-          final rects = callTileRects(children.length, box.biggest, gap: gap);
-          return Stack(
-            children: [
-              for (var i = 0; i < rects.length; i++)
-                Positioned.fromRect(
-                  key: children[i].key,
-                  rect: rects[i],
+  Widget build(BuildContext context) {
+    final duration = MotionScope.of(context).d(glide);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final rects = callTileRects(children.length, box.biggest, gap: gap);
+        return Stack(
+          children: [
+            for (var i = 0; i < rects.length; i++)
+              AnimatedPositioned.fromRect(
+                key: children[i].key,
+                rect: rects[i],
+                duration: duration,
+                curve: Curves.easeOutCubic,
+                child: _Arrival(
+                  animate: duration > Duration.zero,
                   child: children[i],
                 ),
-            ],
-          );
-        },
-      );
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// A tile's entrance: in from a little smaller, fading up. Plays once, when
+/// the tile is first laid out; never again as it moves.
+class _Arrival extends StatelessWidget {
+  const _Arrival({required this.animate, required this.child});
+
+  final bool animate;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!animate) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+      child: child,
+      // One shape at every t, so the tile (and its video view) is never
+      // re-parented when the entrance ends.
+      builder: (context, t, child) {
+        return Opacity(
+          opacity: t,
+          child: Transform.scale(scale: 0.9 + 0.1 * t, child: child),
+        );
+      },
+    );
+  }
 }

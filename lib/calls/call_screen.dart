@@ -6,7 +6,6 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../privacy/capture_protection.dart';
@@ -29,7 +28,10 @@ import 'draw/draw_model.dart';
 import 'draw/overlay_permission_hint.dart';
 import 'screen_share.dart';
 import 'share_picker_sheet.dart';
+import 'widgets/call_auto_hide.dart';
 import 'widgets/call_chrome.dart';
+import 'widgets/call_pip_stage.dart';
+import 'widgets/call_video_fit.dart';
 
 /// Full-screen UI for the active call. Listens to [CallService] and pops
 /// itself once the session transitions to a terminal state.
@@ -51,7 +53,7 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen>
-    with RouteLanding<CallScreen> {
+    with RouteLanding<CallScreen>, CallChromeAutoHide<CallScreen> {
   final _localRenderer = CallScreen.rendererFactory();
   final _remoteRenderer = CallScreen.rendererFactory();
   final _remoteScreenRenderer = CallScreen.rendererFactory();
@@ -85,8 +87,9 @@ class _CallScreenState extends State<CallScreen>
   // longer true, so a later reconnect never resumes a stale swap.
   bool _pipIsLocal = false;
   // Whether the name/status overlay, status chip, and bottom control tray
-  // are shown. Tapping empty call-screen background toggles this.
-  bool _controlsVisible = true;
+  // are shown lives in [CallChromeAutoHide.controlsVisible]: a tap on the
+  // picture toggles it, and over video it goes by itself after a few
+  // quiet seconds.
   // Fingerprint of everything build() consumes — CallService notifies far
   // more often than this screen visually changes, and a rebuild here means
   // re-compositing two video views under a blur tray.
@@ -348,7 +351,7 @@ class _CallScreenState extends State<CallScreen>
       CallAudioDevices.instance.revision,
       _renderersReady,
       _pipIsLocal,
-      _controlsVisible,
+      controlsVisible,
       _shareSupported,
     ]);
   }
@@ -380,19 +383,14 @@ class _CallScreenState extends State<CallScreen>
     setState(() => _pipIsLocal = !_pipIsLocal);
   }
 
-  void _toggleControls() {
-    if (!mounted) return;
-    setState(() => _controlsVisible = !_controlsVisible);
-  }
-
   /// A flick down puts the chrome away and a flick up brings it back — the
   /// gesture people reach for on a full-screen picture, beside the tap.
   void _onVerticalSwipe(DragEndDetails d) {
     final v = d.primaryVelocity ?? 0;
     if (v.abs() < 300) return;
     final show = v < 0;
-    if (!mounted || show == _controlsVisible) return;
-    setState(() => _controlsVisible = show);
+    if (!mounted || show == controlsVisible) return;
+    setControlsVisible(show);
   }
 
   void _onChanged() {
@@ -441,6 +439,7 @@ class _CallScreenState extends State<CallScreen>
     // there.
     if (_renderersUsed && !_settingUp) _releaseRenderers();
     _levels.dispose();
+    disposeAutoHide();
     super.dispose();
   }
 
@@ -673,23 +672,37 @@ class _CallScreenState extends State<CallScreen>
     final remoteScreenVisible = _remoteScreenVisible(s);
     final ownScreen = svc.localScreenSharing;
     final stage = remoteScreenVisible || ownScreen;
-    // WhatsApp-style pre-answer/pre-connect view for video calls: your own
-    // camera fills the screen until the peer's video arrives (then the
-    // local view shrinks into the PiP tile).
-    final localFullscreen =
-        !stage &&
+    final localCam =
+        svc.localCamActive && svc.localStream != null && _renderersReady;
+    final active = s.status == CallStatus.active;
+    // Their camera is off (or their phone paused it: backgrounded, locked)
+    // on a live call where there is video to speak of: their face takes the
+    // full-screen slot and you stay in the corner. Your camera filling the
+    // screen read as the call having lost them.
+    final peerPaused = s.peerState.videoPaused;
+    final peerCard = !stage &&
         !remoteVisible &&
-        svc.localCamActive &&
-        svc.localStream != null &&
-        _renderersReady;
+        active &&
+        (localCam ||
+            peerPaused ||
+            s.mediaKind == CallMediaKind.video && s.peerState.videoOff);
+    // The two pictures, on one stage that moves them (see CallPipStage).
+    final feeds = !stage && (remoteVisible || localCam || peerCard);
+    // WhatsApp-style pre-answer/pre-connect view for video calls: your own
+    // camera fills the screen until the peer's video arrives, then shrinks
+    // into the corner tile.
+    final localFullscreen = feeds && !remoteVisible && !peerCard;
     // Anything on screen that is not the voice backdrop: the top overlay and
     // the tap-to-hide chrome apply.
-    final isVideo = stage || remoteVisible || localFullscreen;
+    final isVideo = stage || feeds;
+    // Over a live picture the chrome puts itself away after a few quiet
+    // seconds; anywhere else it stays.
+    syncAutoHide(active && (stage || remoteVisible || localCam));
     // Voice levels are polled only for what shows them: a connected voice
-    // call, with decorative motion allowed. Started after the frame, not
-    // from inside build.
-    final wantLevels = !isVideo &&
-        s.status == CallStatus.active &&
+    // call, or their face while their camera is off, with decorative motion
+    // allowed. Started after the frame, not from inside build.
+    final wantLevels = (!isVideo || peerCard) &&
+        active &&
         !MotionScope.of(context).calm;
     if (wantLevels != _levelsOn) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -697,6 +710,12 @@ class _CallScreenState extends State<CallScreen>
       });
     }
     final myInk = drawColorFor(svc.userId ?? 'me', theme);
+    final pad = MediaQuery.paddingOf(context);
+    // Over video the chip sits under the name, clear of the corner tile;
+    // over the voice backdrop it is centred.
+    final chipAlign = isVideo
+        ? const AlignmentDirectional(-1, 0)
+        : AlignmentDirectional.center;
     final l10n = AppLocalizations.of(context);
     final trayActions = _trayActions(
       l10n,
@@ -718,9 +737,10 @@ class _CallScreenState extends State<CallScreen>
         canPop: false,
         child: Scaffold(
           backgroundColor: Colors.black,
-          body: GestureDetector(
+          body: autoHideScope(
+           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: _toggleControls,
+            onTap: toggleControls,
             onVerticalDragEnd: _onVerticalSwipe,
             child: Stack(
               fit: StackFit.expand,
@@ -750,31 +770,50 @@ class _CallScreenState extends State<CallScreen>
                     // that put the caption in the middle of the picture.
                     topInset: MediaQuery.paddingOf(context).top + 76,
                   )
-                else if (remoteVisible)
-                  RTCVideoView(
-                    key: const ValueKey('feed'),
-                    _pipIsLocal ? _localRenderer : _remoteRenderer,
-                    mirror: _pipIsLocal && selfMirror,
-                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                // The full-bleed feed fills the screen unless the picture is
+                // the other shape (a laptop's landscape camera on a portrait
+                // phone), where filling would zoom far into it: see
+                // [callFeedFit].
+                else if (feeds)
+                  CallPipStage(
+                    key: const ValueKey('feeds'),
+                    // The full-bleed feed fills the screen unless the
+                    // picture is the other shape (a laptop's landscape
+                    // camera on a portrait phone), where filling would zoom
+                    // far into it: see [callFeedFit]. Each slot always
+                    // shows the same renderer and moves, never trades.
+                    main: remoteVisible
+                        ? CallFeedView(renderer: _remoteRenderer)
+                        : peerCard
+                            ? PeerCameraOffCard(
+                                user: _peerAsUser(s),
+                                api: widget.api,
+                                label: peerPaused
+                                    ? l10n.callScreenPeerCameraPaused
+                                    : l10n.callScreenPeerCameraOff,
+                                paused: peerPaused,
+                                voiceLevel: _levels.levelOf(_peerLevelId),
+                                topInset: pad.top + 72,
+                                bottomInset: trayInset + pad.bottom,
+                              )
+                            : null,
+                    pip: localCam
+                        ? CallFeedView(
+                            renderer: _localRenderer,
+                            mirror: selfMirror,
+                          )
+                        : null,
+                    swapped: _pipIsLocal,
+                    onPipTap: remoteVisible && localCam ? _swapPip : null,
+                    pipSemanticLabel: l10n.callScreenSwapPreviewSemanticLabel,
+                    // Clear of the name block and the tray while they show;
+                    // into the room they leave when they hide.
+                    top: pad.top + (controlsVisible ? 16 : 10),
+                    bottom: controlsVisible
+                        ? trayInset + pad.bottom
+                        : pad.bottom + 16,
                   )
-                else if (localFullscreen) ...[
-                  RTCVideoView(
-                    key: const ValueKey('feed'),
-                    _localRenderer,
-                    mirror: selfMirror,
-                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                  ),
-                  // Soft darkening so the overlaid name/status/controls read
-                  // over any camera image.
-                  IgnorePointer(
-                    key: const ValueKey('feed-dim'),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.25),
-                      ),
-                    ),
-                  ),
-                ] else
+                else
                   AudioBackdrop(
                     key: const ValueKey('voice'),
                     name: s.peerName,
@@ -791,8 +830,30 @@ class _CallScreenState extends State<CallScreen>
                     voiceLevel: _levels.levelOf(_peerLevelId),
                   ),
 
-                // Top scrim so the name/status stay legible over video.
-                if (remoteVisible || localFullscreen)
+                // Soft darkening over your own camera while it fills the
+                // screen before they answer, so the name, status and tray
+                // read over any picture. Fades as their picture lands.
+                if (feeds)
+                  Positioned.fill(
+                    key: const ValueKey('feed-dim'),
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        opacity: localFullscreen ? 1 : 0,
+                        duration: const Duration(milliseconds: 320),
+                        curve: Curves.easeOut,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.25),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Top scrim so the name/status stay legible over video. It
+                // goes with the chrome: a hidden chrome leaves the whole
+                // picture.
+                if (feeds)
                   Positioned(
                     key: const ValueKey('scrim'),
                     top: 0,
@@ -800,24 +861,27 @@ class _CallScreenState extends State<CallScreen>
                     right: 0,
                     height: 200,
                     child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.55),
-                              Colors.transparent,
-                            ],
+                      child: ControlsFade(
+                        visible: controlsVisible,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.55),
+                                Colors.transparent,
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
 
-                // Local PiP — only once the remote video is on screen (before
-                // that the local camera IS the fullscreen view). Tapping it
-                // swaps which feed is full-bleed vs. tiled.
+                // Over a shared screen: their camera and yours as small
+                // tiles beside the caption. Tapping yours swaps what the
+                // corner shows.
                 if (stage && remoteVisible)
                   Positioned(
                     key: const ValueKey('stage-peer'),
@@ -842,63 +906,17 @@ class _CallScreenState extends State<CallScreen>
                     key: const ValueKey('stage-self'),
                     top: MediaQuery.paddingOf(context).top + 16,
                     right: 16,
-                    child: FocusableTap(
-                      onTap: _swapPip,
-                      semanticLabel: AppLocalizations.of(
-                        context,
-                      ).callScreenSwapPreviewSemanticLabel,
-                      shape: FocusRingShape.rounded,
-                      radius: theme.radiusMd,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _swapPip,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(theme.radiusMd),
-                          child: Container(
-                            width: 100,
-                            height: 140,
-                            color: Colors.black,
-                            child: RTCVideoView(
-                              _pipIsLocal && !stage
-                                  ? _remoteRenderer
-                                  : _localRenderer,
-                              mirror: (!_pipIsLocal || stage) && selfMirror,
-                              objectFit: RTCVideoViewObjectFit
-                                  .RTCVideoViewObjectFitCover,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Outside a shared screen the self-view floats: drag it to any
-                // corner, FaceTime-style. A tap still swaps the feeds.
-                if (svc.localCamActive && remoteVisible && !stage)
-                  Positioned.fill(
-                    key: const ValueKey('self-view'),
-                    child: DraggablePip(
-                      top: MediaQuery.paddingOf(context).top + 16,
-                      bottom: trayInset + MediaQuery.paddingOf(context).bottom,
-                      child: FocusableTap(
-                        onTap: _swapPip,
-                        semanticLabel: AppLocalizations.of(
-                          context,
-                        ).callScreenSwapPreviewSemanticLabel,
-                        shape: FocusRingShape.rounded,
-                        radius: 18,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _swapPip,
-                          child: ColoredBox(
-                            color: Colors.black,
-                            child: RTCVideoView(
-                              _pipIsLocal ? _remoteRenderer : _localRenderer,
-                              mirror: !_pipIsLocal && selfMirror,
-                              objectFit:
-                                  RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                            ),
-                          ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(theme.radiusMd),
+                      child: Container(
+                        width: 100,
+                        height: 140,
+                        color: Colors.black,
+                        child: RTCVideoView(
+                          _localRenderer,
+                          mirror: selfMirror,
+                          objectFit:
+                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                         ),
                       ),
                     ),
@@ -913,7 +931,7 @@ class _CallScreenState extends State<CallScreen>
                     left: 24,
                     right: 132,
                     child: ControlsFade(
-                      visible: _controlsVisible,
+                      visible: controlsVisible,
                       slide: const Offset(0, -0.3),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -932,18 +950,17 @@ class _CallScreenState extends State<CallScreen>
                           const SizedBox(height: 4),
                           Row(
                             children: [
+                              // Their mute, said in motion: the slash
+                              // draws through the mic as it arrives.
+                              CallMuteBadge(
+                                muted: s.peerState.audioMuted,
+                                size: 17,
+                                gap: 8,
+                              ),
                               _statusWidget(
                                 s,
                                 callStatusStyle(theme),
                               ),
-                              if (s.peerState.audioMuted) ...[
-                                const SizedBox(width: 10),
-                                const Icon(
-                                  CallGlyphs.micOff,
-                                  size: 15,
-                                  color: Colors.white70,
-                                ),
-                              ],
                             ],
                           ),
                         ],
@@ -957,27 +974,33 @@ class _CallScreenState extends State<CallScreen>
                 Positioned(
                   key: const ValueKey('chip'),
                   top: MediaQuery.paddingOf(context).top + 80,
-                  left: 0,
+                  left: isVideo ? 18 : 0,
                   right: 0,
                   child: ControlsFade(
-                    visible: _controlsVisible,
+                    visible: controlsVisible,
                     // Its own layer: the stats panel redraws on every stats
                     // tick, and that should repaint a few numbers, not the
                     // screen (and the glass tray) they float over.
                     child: RepaintBoundary(
-                      child: s.status == CallStatus.switching
+                      child: CallChipSwitcher(
+                       child: s.status == CallStatus.switching
                           ? OverlayChip(
+                              key: const ValueKey('switching'),
+                              alignment: chipAlign,
                               label: AppLocalizations.of(
                                 context,
                               ).callScreenStatusSwitching,
                             )
                           : s.reconnecting
                           ? OverlayChip(
+                              key: const ValueKey('reconnecting'),
+                              alignment: chipAlign,
                               label: AppLocalizations.of(
                                 context,
                               ).callScreenStatusReconnecting,
                             )
                           : AnimatedBuilder(
+                              key: const ValueKey('quality'),
                               animation: SettingsStore.instance,
                               builder: (context, _) {
                                 final showStats =
@@ -994,24 +1017,34 @@ class _CallScreenState extends State<CallScreen>
                                     if (showStats) {
                                       return NetworkStatsPanel(snapshot: q);
                                     }
-                                    if (q.quality == CallQuality.good) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return OverlayChip(
-                                      label: q.quality == CallQuality.poor
-                                          ? AppLocalizations.of(
-                                              context,
-                                            ).callScreenPoorConnectionLabel
-                                          : AppLocalizations.of(
-                                              context,
-                                            ).callScreenWeakConnectionLabel,
-                                      spinner: false,
-                                      tint: const Color(0xFFFFB74D),
+                                    final poor = q.quality == CallQuality.poor;
+                                    return CallChipSwitcher(
+                                      child: q.quality == CallQuality.good
+                                          ? const SizedBox.shrink(
+                                              key: ValueKey('good'),
+                                            )
+                                          : OverlayChip(
+                                              key: ValueKey(q.quality),
+                                              label: poor
+                                                  ? AppLocalizations.of(
+                                                      context,
+                                                    ).callScreenPoorConnectionLabel
+                                                  : AppLocalizations.of(
+                                                      context,
+                                                    ).callScreenWeakConnectionLabel,
+                                              spinner: false,
+                                              alignment: chipAlign,
+                                              signal: poor
+                                                  ? CallSignalKind.poor
+                                                  : CallSignalKind.weak,
+                                              tint: const Color(0xFFFFB74D),
+                                            ),
                                     );
                                   },
                                 );
                               },
                             ),
+                      ),
                     ),
                   ),
                 ),
@@ -1027,7 +1060,7 @@ class _CallScreenState extends State<CallScreen>
                   right: 0,
                   bottom: 0,
                   child: ControlsFade(
-                    visible: _controlsVisible,
+                    visible: controlsVisible,
                     slide: const Offset(0, 0.3),
                     child: SafeArea(
                       top: false,
@@ -1053,6 +1086,7 @@ class _CallScreenState extends State<CallScreen>
                 ),
               ],
             ),
+           ),
           ),
         ),
       ),

@@ -30,7 +30,9 @@ import 'draw/overlay_permission_hint.dart';
 import 'group_call_service.dart';
 import 'screen_share.dart';
 import 'share_picker_sheet.dart';
+import 'widgets/call_auto_hide.dart';
 import 'widgets/call_chrome.dart';
+import 'widgets/call_pip_stage.dart';
 import 'widgets/call_tile_layout.dart';
 import '../widgets/desktop_scroll.dart';
 
@@ -72,7 +74,7 @@ class GroupCallScreen extends StatefulWidget {
 enum _Layout { voice, grid, stage }
 
 class _GroupCallScreenState extends State<GroupCallScreen>
-    with RouteLanding<GroupCallScreen> {
+    with RouteLanding<GroupCallScreen>, CallChromeAutoHide<GroupCallScreen> {
   /// Keyed by userId for a camera, `'$userId:screen'` for a screen.
   final Map<String, RTCVideoRenderer> _renderers = {};
   final Map<String, int> _boundTicks = {};
@@ -81,7 +83,6 @@ class _GroupCallScreenState extends State<GroupCallScreen>
   RTCVideoRenderer? _localScreenRenderer;
   int _boundLocalScreenTick = -1;
   bool _popScheduled = false;
-  bool _controlsVisible = true;
   int? _lastBuiltKey;
   bool _shareSupported = false;
   /// Your own profile, for your face. Kept across call screens: fetched
@@ -393,7 +394,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       CallAudioDevices.instance.revision,
       svc.hasAnyVideo,
       svc.drawArmed.value,
-      _controlsVisible,
+      controlsVisible,
       _shareSupported,
       _me?.id,
       _renderers.length,
@@ -470,15 +471,11 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     _localRenderer?.dispose();
     _localScreenRenderer?.srcObject = null;
     _localScreenRenderer?.dispose();
+    disposeAutoHide();
     super.dispose();
   }
 
   // -------------------------------------------------------------- actions
-
-  void _toggleControls() {
-    if (!mounted) return;
-    setState(() => _controlsVisible = !_controlsVisible);
-  }
 
   /// A flick down puts the chrome away and a flick up brings it back — the
   /// gesture people reach for on a full-screen picture, beside the tap.
@@ -486,8 +483,8 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     final v = d.primaryVelocity ?? 0;
     if (v.abs() < 300) return;
     final show = v < 0;
-    if (!mounted || show == _controlsVisible) return;
-    setState(() => _controlsVisible = show);
+    if (!mounted || show == controlsVisible) return;
+    setControlsVisible(show);
   }
 
   void _hide() {
@@ -570,7 +567,9 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     _roomName = svc.roomName ?? _roomName;
     // In the voice layout the chrome is the screen; only over video does a
     // tap put it away.
-    final chromeVisible = layout == _Layout.voice || _controlsVisible;
+    // Over video the chrome puts itself away after a few quiet seconds.
+    syncAutoHide(layout != _Layout.voice);
+    final chromeVisible = layout == _Layout.voice || controlsVisible;
     final trayActions = _trayActions(l10n, layout);
     // What the tray covers, so every stage keeps clear of it however many
     // rows it needs.
@@ -593,6 +592,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
         ),
       _Layout.grid => _VideoGrid(
           key: const ValueKey('grid'),
+          chromeVisible: controlsVisible,
           service: svc,
           api: widget.api,
           levels: _levels,
@@ -624,9 +624,10 @@ class _GroupCallScreenState extends State<GroupCallScreen>
         canPop: false,
         child: Scaffold(
           backgroundColor: Colors.black,
-          body: GestureDetector(
+          body: autoHideScope(
+           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: layout == _Layout.voice ? null : _toggleControls,
+            onTap: layout == _Layout.voice ? null : toggleControls,
             onVerticalDragEnd:
                 layout == _Layout.voice ? null : _onVerticalSwipe,
             child: Stack(
@@ -736,13 +737,21 @@ class _GroupCallScreenState extends State<GroupCallScreen>
                   ),
                 ),
 
-                if (anyReconnecting)
-                  Positioned(
-                    top: MediaQuery.paddingOf(context).top + 76,
-                    left: 0,
-                    right: 0,
-                    child: OverlayChip(label: l10n.groupCallScreenReconnecting),
+                Positioned(
+                  top: MediaQuery.paddingOf(context).top + 76,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: CallChipSwitcher(
+                      child: anyReconnecting
+                          ? OverlayChip(
+                              key: const ValueKey('reconnecting'),
+                              label: l10n.groupCallScreenReconnecting,
+                            )
+                          : const SizedBox.shrink(key: ValueKey('none')),
+                    ),
                   ),
+                ),
 
                 // The tray.
                 Positioned(
@@ -769,6 +778,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
                 ),
               ],
             ),
+           ),
           ),
         ),
       ),
@@ -1154,6 +1164,7 @@ class _VideoGrid extends StatefulWidget {
     required this.bottomInset,
     required this.statsFor,
     required this.localStats,
+    this.chromeVisible = true,
   });
 
   final GroupCallService service;
@@ -1163,6 +1174,10 @@ class _VideoGrid extends StatefulWidget {
   final Map<String, RTCVideoRenderer> renderers;
   final RTCVideoRenderer? localRenderer;
   final AppTheme theme;
+
+  /// The header and tray are up: the corner tile keeps clear of them, and
+  /// glides into the room they leave when they hide.
+  final bool chromeVisible;
 
   /// What the tray covers at the bottom; the tiles stay clear of it.
   final double bottomInset;
@@ -1232,6 +1247,9 @@ class _VideoGridState extends State<_VideoGrid> {
       ),
       api: widget.api,
       stats: widget.statsFor(peer.userId),
+      cameraNote: peer.mediaState.videoPaused
+          ? AppLocalizations.of(context).callScreenPeerCameraPaused
+          : null,
       bleed: bleed,
       footer: footer,
       tag: tag,
@@ -1256,40 +1274,44 @@ class _VideoGridState extends State<_VideoGrid> {
     final float = peers.isNotEmpty && total <= _VideoGrid.floatSelfUpTo;
     if (!float || !camOn) _swapped = false;
 
-    // The corner tile, for the layouts where you float.
-    Widget pip(Widget child) => Positioned.fill(
-          key: const ValueKey('pip'),
-          child: DraggablePip(
-            // Under the header (title, count chip), above the tray.
-            top: pad.top + 76,
-            bottom: widget.bottomInset + pad.bottom,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: peers.length == 1
-                  ? () => setState(() => _swapped = !_swapped)
-                  : null,
-              child: child,
-            ),
-          ),
-        );
+    // The corner tile's band: under the header, above the tray while they
+    // show; most of the screen while they are away.
+    final pipTop = pad.top + (widget.chromeVisible ? 76 : 10);
+    final pipBottom = widget.chromeVisible
+        ? widget.bottomInset + pad.bottom
+        : pad.bottom + 16;
 
     if (float && peers.length == 1) {
       // A 1:1 call in a group room: one picture, full bleed, like the 1:1
-      // screen. Its name tag sits above the tray.
+      // screen, on the same stage, so the swap is the same flight. The
+      // name tag sits above the tray on the full picture only.
       final footer = widget.bottomInset + pad.bottom;
-      final big = _swapped
-          ? _selfTile(bleed: true, footer: footer)
-          : _peerTile(peers.first, bleed: true, footer: footer);
       return Stack(
         fit: StackFit.expand,
         children: [
-          Positioned.fill(key: const ValueKey('big'), child: big),
+          Positioned.fill(
+            key: const ValueKey('stage'),
+            child: CallPipStage(
+              main: _peerTile(
+                peers.first,
+                bleed: true,
+                footer: footer,
+                tag: !_swapped,
+              ),
+              pip: camOn
+                  ? _selfTile(bleed: true, footer: footer, tag: _swapped)
+                  : null,
+              swapped: _swapped && camOn,
+              onPipTap: () => setState(() => _swapped = !_swapped),
+              pipSemanticLabel: AppLocalizations.of(
+                context,
+              ).callScreenSwapPreviewSemanticLabel,
+              top: pipTop,
+              bottom: pipBottom,
+            ),
+          ),
           // The header reads over any picture.
           const _TopScrim(key: ValueKey('scrim')),
-          if (camOn)
-            pip(_swapped
-                ? _peerTile(peers.first, bleed: true, tag: false)
-                : _selfTile(bleed: true, tag: false)),
         ],
       );
     }
@@ -1298,17 +1320,26 @@ class _VideoGridState extends State<_VideoGrid> {
       for (final p in peers) _peerTile(p),
       if (!float || !camOn) _selfTile(),
     ];
+    final grid = SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(8, 76, 8, widget.bottomInset + 12),
+        child: CallTileLayout(children: tiles),
+      ),
+    );
+    // The same stage as the two-person layout, in the same slot: going
+    // from two to three keeps your tile where you put it.
     return Stack(
       fit: StackFit.expand,
       children: [
-        SafeArea(
-          key: const ValueKey('tiles'),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(8, 76, 8, widget.bottomInset + 12),
-            child: CallTileLayout(children: tiles),
+        Positioned.fill(
+          key: const ValueKey('stage'),
+          child: CallPipStage(
+            main: grid,
+            pip: float && camOn ? _selfTile(bleed: true, tag: false) : null,
+            top: pipTop,
+            bottom: pipBottom,
           ),
         ),
-        if (float && camOn) pip(_selfTile(bleed: true, tag: false)),
       ],
     );
   }
@@ -1358,6 +1389,7 @@ class _Tile extends StatelessWidget {
     this.bleed = false,
     this.footer = 0,
     this.tag = true,
+    this.cameraNote,
   });
 
   final String label;
@@ -1373,7 +1405,7 @@ class _Tile extends StatelessWidget {
   final bool dimmed;
 
   /// Square-cornered and borderless: the full-screen picture, or the corner
-  /// tile (whose own frame [DraggablePip] draws).
+  /// tile (whose own frame [CallPipStage] draws).
   final bool bleed;
 
   /// What covers the tile's bottom edge (the tray, over a full-bleed one),
@@ -1382,6 +1414,11 @@ class _Tile extends StatelessWidget {
 
   /// The name tag; off in the small corner tile.
   final bool tag;
+
+  /// Under the face while there is no picture: "Camera paused" when their
+  /// phone paused it (backgrounded, locked), so the empty tile does not read
+  /// as them having left or turned it off.
+  final String? cameraNote;
 
   @override
   Widget build(BuildContext context) {
@@ -1399,7 +1436,7 @@ class _Tile extends StatelessWidget {
                   final size =
                       (math.min(c.maxWidth, c.maxHeight) * 0.42)
                           .clamp(48.0, bleed ? 140.0 : 96.0);
-                  return SpeakingRing(
+                  final face = SpeakingRing(
                     level: level,
                     accent: accent,
                     size: size,
@@ -1411,6 +1448,35 @@ class _Tile extends StatelessWidget {
                         showStatus: false,
                       ),
                     ),
+                  );
+                  final note = cameraNote;
+                  if (note == null || c.maxHeight < size + 40) return face;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      face,
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedCallGlyph(
+                            glyph: const CallTrayGlyph.camera(on: true),
+                            size: 14,
+                            ink: Colors.white60,
+                            litInk: Colors.white60,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              note,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: callCaptionStyle(ThemeScope.of(context)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   );
                 },
               ),
@@ -1428,14 +1494,7 @@ class _Tile extends StatelessWidget {
                   if (stats != null) ...[stats!, const SizedBox(height: 2)],
                   Row(
                     children: [
-                      if (muted) ...[
-                        const Icon(
-                          CallGlyphs.micOff,
-                          size: 13,
-                          color: Colors.white70,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
+                      CallMuteBadge(muted: muted, size: 15, gap: 4),
                       Expanded(
                         child: Text(
                           label,

@@ -2,11 +2,10 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/cupertino.dart'
-    show CupertinoActivityIndicator, CupertinoIcons;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart' show SpringDescription, SpringSimulation;
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart';
 
 import '../../backend/chat_api.dart';
@@ -17,6 +16,7 @@ import '../../models/chat_user.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/capture_bloom.dart' show VoiceBlobPainter;
 import '../../widgets/fit_label.dart';
 import '../../widgets/route_landing.dart';
 import '../../widgets/user_avatar.dart';
@@ -25,7 +25,14 @@ import 'call_tray_glyphs.dart';
 import '../../widgets/spring_press.dart';
 
 export 'call_tray_glyphs.dart'
-    show CallAudioGlyphRoute, CallGlyphKind, CallTrayGlyph;
+    show
+        AnimatedCallGlyph,
+        CallAudioGlyphRoute,
+        CallGlyphKind,
+        CallMuteBadge,
+        CallSignalGlyph,
+        CallSignalKind,
+        CallTrayGlyph;
 
 /// The chrome both call screens are built from.
 ///
@@ -520,6 +527,8 @@ class CallTray extends StatelessWidget {
             // unmistakably primary.
             CallControlButton(
               icon: endIcon,
+              // The handset is drawn, and is put down on the tap.
+              glyph: const CallTrayGlyph(CallGlyphKind.end),
               background: endColor,
               iconColor: Colors.white,
               large: true,
@@ -604,6 +613,34 @@ class _PulseRingsState extends State<PulseRings>
   AnimationController? _voice;
   ValueListenable<double>? _listening;
 
+  /// The aura's own clock: the blobs drift on it while the person is
+  /// talking. Runs only while there is a voice to show; silence stops it,
+  /// so a quiet call draws no frames.
+  Ticker? _clock;
+  final ValueNotifier<double> _time = ValueNotifier(0);
+  Duration _clockBase = Duration.zero;
+  double _timeBase = 0;
+
+  void _syncClock() {
+    final voice = _voice;
+    final want = voice != null && (voice.value > _auraFloor || voice.isAnimating);
+    if (want) {
+      _clock ??= createTicker((elapsed) {
+        _time.value = _timeBase + (elapsed - _clockBase).inMicroseconds / 1e6;
+        if (!(_voice?.isAnimating ?? false) && (_voice?.value ?? 0) <= _auraFloor) {
+          _syncClock();
+        }
+      });
+      if (!_clock!.isActive) {
+        _timeBase = _time.value;
+        _clockBase = Duration.zero;
+        _clock!.start();
+      }
+    } else if (_clock?.isActive ?? false) {
+      _clock!.stop();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -621,7 +658,8 @@ class _PulseRingsState extends State<PulseRings>
       _voice = null;
       return;
     }
-    _voice ??= AnimationController(vsync: this, value: 0);
+    _voice ??= AnimationController(vsync: this, value: 0)
+      ..addStatusListener((_) => _syncClock());
     level.addListener(_onLevel);
     _onLevel();
   }
@@ -634,11 +672,14 @@ class _PulseRingsState extends State<PulseRings>
     // turns the steps into one continuous swell while someone talks.
     final target = (level.value * 1.8).clamp(0.0, 1.0);
     if ((target - voice.value).abs() < 0.01 && !voice.isAnimating) return;
+    // Fast attack, slow release: a word lands at once and fades over the
+    // gap to the next poll, the way the recorder's blobs breathe.
     voice.animateTo(
       target,
-      duration: const Duration(milliseconds: 260),
+      duration: Duration(milliseconds: target > voice.value ? 200 : 520),
       curve: Curves.easeOut,
     );
+    _syncClock();
   }
 
   void _start() {
@@ -662,6 +703,8 @@ class _PulseRingsState extends State<PulseRings>
   @override
   void dispose() {
     _listening?.removeListener(_onLevel);
+    _clock?.dispose();
+    _time.dispose();
     _voice?.dispose();
     _pulse?.dispose();
     super.dispose();
@@ -698,14 +741,18 @@ class _PulseRingsState extends State<PulseRings>
               ),
             )
           else if (_voice != null)
+            // The voice as the recorder draws it: two glassy blobs around
+            // the face, swelling and drifting with the level. Painted in
+            // their own layer from two listenables, so a word repaints the
+            // aura and nothing else.
             Positioned.fill(
               child: RepaintBoundary(
                 child: CustomPaint(
-                  painter: _VoiceRingsPainter(
+                  painter: _VoiceAuraPainter(
                     swell: _voice!,
+                    time: _time,
                     color: widget.accent,
                     diameter: widget.diameter,
-                    reach: widget.reach,
                   ),
                 ),
               ),
@@ -754,44 +801,47 @@ class _PulseRingsPainter extends CustomPainter {
       old.reach != reach;
 }
 
-/// [PulseRings] in voice mode: the same two rings, held out by how loud the
-/// person is rather than drifting on a clock. Nothing is drawn at rest.
-class _VoiceRingsPainter extends CustomPainter {
-  _VoiceRingsPainter({
+/// Below this the aura is not drawn and its clock stops: a line's hiss is
+/// not a voice.
+const double _auraFloor = 0.04;
+
+/// [PulseRings] in voice mode: the recorder's voice blobs
+/// ([VoiceBlobPainter]) around the face, held out by how loud the person is.
+/// Nothing is drawn at rest.
+class _VoiceAuraPainter extends CustomPainter {
+  _VoiceAuraPainter({
     required this.swell,
+    required this.time,
     required this.color,
     required this.diameter,
-    required this.reach,
-  }) : super(repaint: swell);
+  }) : super(repaint: Listenable.merge([swell, time]));
 
   final Animation<double> swell;
+  final ValueListenable<double> time;
   final Color color;
   final double diameter;
-  final double reach;
 
   @override
   void paint(Canvas canvas, Size size) {
     final v = swell.value;
-    if (v <= 0.01) return;
-    final center = size.center(Offset.zero);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    // The inner ring leads, the outer one trails a little further out, so
-    // a loud word reads as one wave leaving the face.
-    for (final (out, alpha) in const [(0.30, 0.34), (0.62, 0.18)]) {
-      paint.color = color.withValues(alpha: color.a * alpha * v);
-      final radius = (diameter + v * out * reach) / 2 - 0.75;
-      canvas.drawCircle(center, radius, paint);
-    }
+    if (v <= _auraFloor) return;
+    VoiceBlobPainter(
+      center: size.center(Offset.zero),
+      radius: diameter / 2,
+      level: v,
+      time: time.value,
+      color: color,
+      // In with the first syllable, out as the voice falls away.
+      opacity: (v * 4).clamp(0.0, 1.0),
+    ).paint(canvas, size);
   }
 
   @override
-  bool shouldRepaint(_VoiceRingsPainter old) =>
+  bool shouldRepaint(_VoiceAuraPainter old) =>
       old.swell != swell ||
+      old.time != time ||
       old.color != color ||
-      old.diameter != diameter ||
-      old.reach != reach;
+      old.diameter != diameter;
 }
 
 /// The ring that says "talking": the avatar's own ring in the accent, and a
@@ -925,10 +975,7 @@ class ParticipantOrb extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (muted) ...[
-                const Icon(CallGlyphs.micOff, size: 13, color: Colors.white70),
-                const SizedBox(width: 4),
-              ],
+              CallMuteBadge(muted: muted, size: 14, gap: 4),
               Flexible(
                 child: Text(
                   label,
@@ -959,149 +1006,6 @@ class ParticipantOrb extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-/// The self-view tile of a 1:1 video call, FaceTime-style: drag it anywhere
-/// and on release it springs to the nearest corner, carrying the fling's
-/// velocity into the spring so a flick lands where it was thrown.
-///
-/// Fills its parent (lay it out with [Positioned.fill]) and places the tile
-/// inside, clear of [top] and [bottom] — the name block above and the tray
-/// below. A tap still reaches [child]'s own handler (the feed swap): pans
-/// and taps are separate gestures, and a tap moves nothing.
-class DraggablePip extends StatefulWidget {
-  const DraggablePip({
-    super.key,
-    required this.child,
-    required this.top,
-    required this.bottom,
-    this.size = const Size(100, 140),
-    this.margin = 16,
-  });
-
-  final Widget child;
-  final double top;
-  final double bottom;
-  final Size size;
-  final double margin;
-
-  @override
-  State<DraggablePip> createState() => _DraggablePipState();
-}
-
-class _DraggablePipState extends State<DraggablePip>
-    with SingleTickerProviderStateMixin {
-  /// Which corner the tile rests in: x and y each -1 or 1. Starts top-right,
-  /// where the tile has always been.
-  Offset _corner = const Offset(1, -1);
-
-  /// The tile's top-left while dragging or settling; null at rest.
-  Offset? _live;
-  Offset _from = Offset.zero;
-  Offset _to = Offset.zero;
-
-  late final AnimationController _settle = AnimationController.unbounded(
-    vsync: this,
-  )..addListener(() {
-      setState(() => _live = Offset.lerp(_from, _to, _settle.value));
-    });
-
-  @override
-  void dispose() {
-    _settle.dispose();
-    super.dispose();
-  }
-
-  Offset _cornerOrigin(Size area, Offset corner) {
-    final m = widget.margin;
-    final w = widget.size.width;
-    final h = widget.size.height;
-    final x = corner.dx < 0 ? m : area.width - w - m;
-    final y = corner.dy < 0 ? widget.top : area.height - h - widget.bottom;
-    return Offset(x, y);
-  }
-
-  void _onEnd(Size area, DragEndDetails d) {
-    final at = _live ?? _cornerOrigin(area, _corner);
-    final v = d.velocity.pixelsPerSecond;
-    // Project the fling a fifth of a second ahead and pick the corner it is
-    // heading for — a flick across the screen should cross the screen.
-    final projected = at + v * 0.2;
-    final centre = projected +
-        Offset(widget.size.width / 2, widget.size.height / 2);
-    final next = Offset(
-      centre.dx < area.width / 2 ? -1 : 1,
-      centre.dy < area.height / 2 ? -1 : 1,
-    );
-    _corner = next;
-    _from = at;
-    _to = _cornerOrigin(area, next);
-    final distance = (_to - _from).distance;
-    if (distance < 1 || MediaQuery.disableAnimationsOf(context)) {
-      setState(() => _live = null);
-      return;
-    }
-    // The spring runs 0→1 along the path; the fling's speed along that
-    // path becomes its starting velocity, in path-lengths per second.
-    final along = (_to - _from) / distance;
-    final speed = (v.dx * along.dx + v.dy * along.dy) / distance;
-    _settle
-        .animateWith(
-          SpringSimulation(
-            const SpringDescription(mass: 1, stiffness: 300, damping: 26),
-            0,
-            1,
-            speed,
-          ),
-        )
-        .then((_) {
-      if (mounted) setState(() => _live = null);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, box) {
-        final area = box.biggest;
-        final at = _live ?? _cornerOrigin(area, _corner);
-        return Stack(
-          children: [
-            Positioned(
-              left: at.dx,
-              top: at.dy,
-              width: widget.size.width,
-              height: widget.size.height,
-              child: GestureDetector(
-                onPanStart: (_) {
-                  _settle.stop();
-                  _live ??= _cornerOrigin(area, _corner);
-                },
-                onPanUpdate: (d) =>
-                    setState(() => _live = (_live ?? at) + d.delta),
-                onPanEnd: (d) => _onEnd(area, d),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        blurRadius: 18,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: widget.child,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -1772,14 +1676,7 @@ class AudioBackdrop extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (peerMuted) ...[
-                      const Icon(
-                        CallGlyphs.micOff,
-                        size: 15,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 8),
-                    ],
+                    CallMuteBadge(muted: peerMuted, size: 17, gap: 8),
                     status,
                   ],
                 ),
@@ -2034,6 +1931,167 @@ class _CallControlButtonState extends State<CallControlButton> {
 }
 
 
+/// Swaps one status chip for the next (reconnecting, a weak link, nothing)
+/// with a pop: in from a little smaller on a soft overshoot, out by
+/// shrinking and fading. Give each state's chip its own key.
+class CallChipSwitcher extends StatelessWidget {
+  const CallChipSwitcher({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final motion = MotionScope.of(context);
+    return AnimatedSwitcher(
+      duration: motion.d(const Duration(milliseconds: 340)),
+      reverseDuration: motion.d(const Duration(milliseconds: 200)),
+      switchInCurve: Curves.easeOutBack,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topCenter,
+        children: [...previous, ?current],
+      ),
+      transitionBuilder: (child, a) => FadeTransition(
+        // The switch-in curve overshoots past 1, which an Interval would
+        // reject: the fade reads it clamped.
+        opacity: a.drive(CurveTween(curve: const _EarlyFade())),
+        child: ScaleTransition(
+          scale: Tween(begin: 0.82, end: 1.0).animate(a),
+          alignment: Alignment.topCenter,
+          child: child,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Fully in by 60% of the way, and tolerant of an overshooting parent.
+class _EarlyFade extends Curve {
+  const _EarlyFade();
+
+  @override
+  double transform(double t) => (t / 0.6).clamp(0.0, 1.0);
+}
+
+/// The other person's side of a video call while their camera is off and
+/// yours is on: their face on the call's wash, breathing with their voice,
+/// and a quiet line saying the camera is off. It takes the full-screen
+/// slot their picture had (your own picture stays in the corner) instead
+/// of your camera filling the screen, which read as the call having lost
+/// them.
+class PeerCameraOffCard extends StatelessWidget {
+  const PeerCameraOffCard({
+    super.key,
+    required this.user,
+    required this.label,
+    this.api,
+    this.voiceLevel,
+    this.topInset = 0,
+    this.bottomInset = 0,
+    this.paused = false,
+  });
+
+  final ChatUser user;
+  final ChatApi? api;
+  final String label;
+
+  /// Their phone paused the camera (backgrounded, locked), not them: the
+  /// camera glyph stays whole, and the rings drift outward as they do while
+  /// a call waits, because the picture is expected back.
+  final bool paused;
+  final ValueListenable<double>? voiceLevel;
+  final double topInset;
+  final double bottomInset;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final calm = MotionScope.of(context).calm;
+    return CallBackdrop(
+      accent: theme.accent,
+      child: Padding(
+        padding: EdgeInsets.only(top: topInset, bottom: bottomInset),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // Shrinks with a short window; never past the recorder's disc.
+            final d = (math.min(box.maxWidth, box.maxHeight) * 0.34)
+                .clamp(72.0, 132.0);
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PulseRings(
+                    accent: theme.accent,
+                    diameter: d,
+                    reach: d,
+                    animate: paused && !calm,
+                    voiceLevel: calm ? null : voiceLevel,
+                    child: Container(
+                      width: d,
+                      height: d,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.accent.withValues(alpha: 0.32),
+                            blurRadius: 40,
+                          ),
+                        ],
+                      ),
+                      child: UserAvatar(
+                        user: user,
+                        api: api,
+                        size: d,
+                        showStatus: false,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Paused: the camera whole (it is still theirs to
+                      // come back to); off: the slash draws through it.
+                      if (paused)
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 8),
+                          child: AnimatedCallGlyph(
+                            glyph: const CallTrayGlyph.camera(on: true),
+                            size: 17,
+                            ink: Colors.white.withValues(alpha: 0.72),
+                            litInk: Colors.white.withValues(alpha: 0.72),
+                          ),
+                        )
+                      else
+                        CallMuteBadge(
+                          muted: true,
+                          kind: CallGlyphKind.camera,
+                          intro: true,
+                          size: 17,
+                          gap: 8,
+                          ink: Colors.white.withValues(alpha: 0.72),
+                        ),
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: callStatusStyle(theme).copyWith(fontSize: 15),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 /// Small centered pill shown over the call view during a transient state —
 /// device-switch renegotiation, ICE-restart recovery, or a degraded
 /// connection. Subtle by design; the call audio/video continues behind it.
@@ -2043,16 +2101,29 @@ class OverlayChip extends StatelessWidget {
     required this.label,
     this.spinner = true,
     this.tint,
+    this.signal,
+    this.alignment = Alignment.center,
   });
   final String label;
+
+  /// Where in its slot: centred, or under the name block on a video call,
+  /// where the centre runs into the corner tile.
+  final AlignmentGeometry alignment;
+
+  /// In progress (reconnecting, switching): the arcs light outward on a
+  /// loop. Off: a link warning, its bars.
   final bool spinner;
   final Color? tint;
+
+  /// The drawn glyph; by default the arcs while [spinner], else weak bars.
+  final CallSignalKind? signal;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final fg = tint ?? Colors.white;
-    return Center(
+    return Align(
+      alignment: alignment,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -2064,13 +2135,13 @@ class OverlayChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (spinner) ...[
-              CupertinoActivityIndicator(radius: 7, color: fg),
-              const SizedBox(width: 10),
-            ] else ...[
-              Icon(CupertinoIcons.wifi_exclamationmark, size: 15, color: fg),
-              const SizedBox(width: 8),
-            ],
+            CallSignalGlyph(
+              kind: signal ??
+                  (spinner ? CallSignalKind.reconnecting : CallSignalKind.weak),
+              ink: fg,
+              size: 17,
+            ),
+            const SizedBox(width: 8),
             Text(
               label,
               // The call caption face; no hard-coded family, which fell back
