@@ -57,8 +57,7 @@ import '../companions/companion.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show rootNavigatorKey;
 import '../screens/companions/companion_page.dart' show companionByteLabel;
-import '../screens/companions/marlowe_screen.dart';
-import '../screens/companions/sebastian_screen.dart';
+import '../screens/companions/companion_screens.dart';
 import '../theme/theme_scope.dart';
 import 'companion_strip.dart';
 
@@ -202,10 +201,7 @@ class CompanionDownloadBanner extends StatelessWidget {
   static void _open(Companion companion) {
     rootNavigatorKey.currentState?.push(
       MaterialPageRoute(
-        builder: (_) => switch (companion) {
-          Companion.sebastian => const SebastianScreen(),
-          Companion.marlowe => const MarloweScreen(),
-        },
+        builder: (_) => companionScreen(companion),
       ),
     );
   }

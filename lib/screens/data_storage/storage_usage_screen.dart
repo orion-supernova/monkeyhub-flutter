@@ -22,8 +22,7 @@ import '../../widgets/ios_kit.dart';
 import '../../widgets/pull_down_menu.dart';
 import '../../widgets/sheet_kit.dart';
 import '../../widgets/stepped_slider.dart';
-import '../companions/marlowe_screen.dart';
-import '../companions/sebastian_screen.dart';
+import '../companions/companion_screens.dart';
 import 'chat_storage_sheet.dart';
 import 'storage_category_screen.dart';
 import 'storage_labels.dart';
@@ -176,20 +175,20 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
       context: context,
       anchorKey: anchor,
       items: [
+        // Only the ones whose bytes this row counts. Bartleby's are in
+        // the voice transcripts row.
         for (final c in Companion.values)
-          PullDownItem(
-            value: c,
-            label: c.displayName,
-            icon: CupertinoIcons.chevron_forward,
-          ),
+          if (c.usesBrains)
+            PullDownItem(
+              value: c,
+              label: c.displayName,
+              icon: CupertinoIcons.chevron_forward,
+            ),
       ],
     );
     if (picked == null || !mounted) return;
     await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => switch (picked) {
-        Companion.sebastian => const SebastianScreen(),
-        Companion.marlowe => const MarloweScreen(),
-      },
+      builder: (_) => companionScreen(picked),
     ));
     // A brain removed there shrinks the total here.
     if (mounted) unawaited(_service.scan());

@@ -15,6 +15,8 @@ import '../../companions/brain_spec.dart';
 import '../../companions/companion.dart';
 import '../../companions/device_capability.dart';
 import '../../companions/sebastian.dart';
+import '../../transcripts/transcript_model.dart';
+import '../../transcripts/voice_transcriber.dart';
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
@@ -47,6 +49,60 @@ class CompanionPage extends StatelessWidget {
       );
 }
 
+/// The introduction at the top of every companion's screen: the mark, the
+/// longer pitch, and, for a companion that has one, a line in his own voice.
+///
+/// Shared so the three screens open the same way; it was a private widget on
+/// one screen and a copy of it inline on another.
+class CompanionPortrait extends StatelessWidget {
+  const CompanionPortrait({super.key, required this.companion, this.quote});
+
+  final Companion companion;
+
+  /// A personality line under the pitch, already in quotation marks.
+  final String? quote;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final line = quote;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CompanionMark(
+          companion: companion,
+          size: 48,
+          foreground: theme.accentInk,
+          background: theme.accent,
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                companion.blurb(l10n),
+                style: theme.body.copyWith(color: theme.inkSoft),
+              ),
+              if (line != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  line,
+                  style: groupedSubtitleStyle(theme).copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: theme.inkMuted,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// The human tier name for one of Marlowe's brains.
 ///
 /// Shared rather than private to the shelf, because the Companions hub now
@@ -75,14 +131,42 @@ String marloweTierName(AppLocalizations l10n, BrainSpec brain) =>
 /// Lives here rather than on a screen because the Settings section that lists
 /// the companions is now the place that prints it, and the number belongs to
 /// the group rather than to either resident.
-class CompanionStorageLine extends StatelessWidget {
+///
+/// Includes Bartleby's speech model and transcripts, which live outside the
+/// brain store: a total under a list that names him has to count him.
+class CompanionStorageLine extends StatefulWidget {
   const CompanionStorageLine({super.key});
+
+  @override
+  State<CompanionStorageLine> createState() => _CompanionStorageLineState();
+}
+
+class _CompanionStorageLineState extends State<CompanionStorageLine> {
+  int _speechBytes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    VoiceTranscriber.instance.modelInstalled.addListener(_loadSpeech);
+    _loadSpeech();
+  }
+
+  @override
+  void dispose() {
+    VoiceTranscriber.instance.modelInstalled.removeListener(_loadSpeech);
+    super.dispose();
+  }
+
+  Future<void> _loadSpeech() async {
+    final b = await TranscriptStore.instance.bytesUsed();
+    if (mounted && b != _speechBytes) setState(() => _speechBytes = b);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final bytes = BrainManager.instance.installedBytes;
+    final bytes = BrainManager.instance.installedBytes + _speechBytes;
     return Row(
       children: [
         Icon(CupertinoIcons.tray_full, size: 15, color: theme.inkMuted),
@@ -131,6 +215,9 @@ String companionByteLabel(int bytes) {
 /// number that moves, and a row that said "Off" while 300 MB were arriving
 /// would be describing the setting rather than the device.
 String companionStatusLine(Companion companion, AppLocalizations l10n) {
+  // Bartleby has no brain: his own download and his own platform test.
+  if (companion == Companion.bartleby) return _bartlebyStatus(l10n);
+
   // The short form, not [AppLocalizations.companionUnsupportedPlatform]: this
   // is a right-hand value column, and the long sentence belongs on the screen
   // that has room to explain.
@@ -159,8 +246,33 @@ String companionStatusLine(Companion companion, AppLocalizations l10n) {
   return switch (companion) {
     Companion.sebastian => _sebastianStatus(l10n),
     Companion.marlowe => _marloweStatus(l10n),
+    Companion.bartleby => _bartlebyStatus(l10n),
   };
 }
+
+/// Ordered like the others: blocked, then moving, then what he will use.
+///
+/// Callers that show this line listen to [VoiceTranscriber.download] and
+/// [VoiceTranscriber.modelInstalled]; see [bartlebyStatusListenable].
+String _bartlebyStatus(AppLocalizations l10n) {
+  final t = VoiceTranscriber.instance;
+  if (!t.supported) return l10n.settingsScreenCompanionsUnavailable;
+  final dl = t.download.value;
+  if (dl != null) {
+    return l10n.settingsScreenCompanionsDownloading((dl.fraction * 100).round());
+  }
+  if (t.modelInstalledNow ?? false) return l10n.bartlebyStatusEveryLanguage;
+  // Without the model he still works where the OS already knows the
+  // language. Only Apple platforms have that.
+  if (t.hasBuiltIn) return l10n.bartlebyStatusBuiltInOnly;
+  return l10n.companionStatusNoBrain;
+}
+
+/// What changes [companionStatusLine] for Bartleby.
+Listenable get bartlebyStatusListenable => Listenable.merge([
+      VoiceTranscriber.instance.download,
+      VoiceTranscriber.instance.modelInstalled,
+    ]);
 
 String _sebastianStatus(AppLocalizations l10n) {
   final s = Sebastian.instance;
@@ -409,7 +521,7 @@ class BrainRow extends StatelessWidget {
               if (state.status == BrainStatus.downloading ||
                   state.status == BrainStatus.paused) ...[
                 const SizedBox(height: 12),
-                _ProgressLine(theme: theme, fraction: state.fraction),
+                CompanionProgressLine(fraction: state.fraction),
               ],
               if (state.status == BrainStatus.paused) ...[
                 const SizedBox(height: 4),
@@ -582,14 +694,16 @@ class _InUseBadge extends StatelessWidget {
   }
 }
 
-class _ProgressLine extends StatelessWidget {
-  const _ProgressLine({required this.theme, required this.fraction});
+/// The thin accent bar under a row that is downloading. Shared by the brain
+/// rows and Bartleby's speech model row.
+class CompanionProgressLine extends StatelessWidget {
+  const CompanionProgressLine({super.key, required this.fraction});
 
-  final AppTheme theme;
   final double fraction;
 
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(2),
       child: Container(

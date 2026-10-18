@@ -179,6 +179,72 @@ void main() {
     expect(t.handleFor('n').phase, TranscriptPhase.idle);
   });
 
+  /// Bartleby's screen: the download started from Settings rather than from
+  /// a bubble.
+  group('installModel', () {
+    Future<void> settle(bool Function() done) async {
+      for (var i = 0; i < 100 && !done(); i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+
+    test('a yes on cellular counts for the bubbles, and a waiting one carries on', () async {
+      final engine = _FakeEngine();
+      final g = gatedDownload();
+      final t = VoiceTranscriber.forTest(engine, model: model, download: g.fn, onCellular: () => true);
+
+      await t.toggle('n1', audio);
+      final h = t.handleFor('n1');
+      expect(h.phase, TranscriptPhase.awaitingConsent);
+      expect(t.downloadNeedsCellularConsent, isTrue);
+
+      final result = t.installModel(cellularOk: true);
+      expect(t.downloadNeedsCellularConsent, isFalse);
+      g.release.complete();
+      expect(await result, isNull);
+      expect(t.modelInstalled.value, isTrue);
+      expect(await t.refreshModelInstalled(), isTrue);
+
+      await settle(() => h.phase == TranscriptPhase.done);
+      expect(h.phase, TranscriptPhase.done);
+      expect(engine.calls, ['/notes/a.m4a']);
+      expect(g.starts(), 1);
+    });
+
+    test('joins a download a bubble already started', () async {
+      final g = gatedDownload();
+      final t = VoiceTranscriber.forTest(_FakeEngine(), model: model, download: g.fn, onCellular: () => false);
+      final tap = t.toggle('n1', audio);
+      await settle(() => t.download.value != null);
+      final result = t.installModel();
+      g.release.complete();
+      expect(await result, isNull);
+      await tap;
+      expect(g.starts(), 1);
+      expect(t.handleFor('n1').phase, TranscriptPhase.done);
+    });
+
+    test('a full disk is reported as storage', () async {
+      Stream<DownloadProgress> full(DownloadTarget t) async* {
+        throw const DownloadException(DownloadFailure.storage);
+      }
+
+      final t = VoiceTranscriber.forTest(_FakeEngine(), model: model, download: full, onCellular: () => false);
+      expect(await t.installModel(), TranscriptFailure.storage);
+      expect(t.download.value, isNull);
+    });
+  });
+
+  test('builtInLanguages asks the OS what it already has, and is empty without one', () async {
+    final withApple = VoiceTranscriber.forTest(_FakeEngine(), builtIn: _FakeBuiltIn(), model: model);
+    expect(withApple.hasBuiltIn, isTrue);
+    expect(await withApple.builtInLanguages(['en', 'tr', 'de']), ['en-US', 'tr-TR']);
+
+    final without = VoiceTranscriber.forTest(_FakeEngine(), model: model);
+    expect(without.hasBuiltIn, isFalse);
+    expect(await without.builtInLanguages(['en']), isEmpty);
+  });
+
   group('built-in recognizer first', () {
     test('no model: the built-in one transcribes, told the hinted language first', () async {
       final dl = gatedDownload();

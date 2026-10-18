@@ -30,7 +30,6 @@ import '../../companions/brain_spec.dart';
 import '../../companions/companion.dart';
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../theme/theme_scope.dart';
 import '../../widgets/account_kit.dart' show SoftNote;
 import '../../widgets/destructive_sheet.dart';
 import '../../widgets/ios_kit.dart' show GroupedSection;
@@ -105,7 +104,6 @@ class _MarloweScreenState extends State<MarloweScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final active = _active;
 
@@ -115,24 +113,7 @@ class _MarloweScreenState extends State<MarloweScreen> {
       title: _companion.displayName,
       subtitle: _companion.tagline(l10n),
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CompanionMark(
-              companion: _companion,
-              size: 48,
-              foreground: theme.accentInk,
-              background: theme.accent,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                _companion.blurb(l10n),
-                style: theme.body.copyWith(color: theme.inkSoft),
-              ),
-            ),
-          ],
-        ),
+        const CompanionPortrait(companion: _companion),
         const SizedBox(height: 18),
         // Said once, plainly, at the top — not as a badge on every row and not
         // buried at the bottom where somebody would find it after downloading

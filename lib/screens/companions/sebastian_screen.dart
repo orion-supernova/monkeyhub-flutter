@@ -157,7 +157,7 @@ class _SebastianScreenState extends State<SebastianScreen> {
       title: _companion.displayName,
       subtitle: _companion.tagline(l10n),
       children: [
-        _Portrait(companion: _companion, theme: theme, l10n: l10n),
+        const CompanionPortrait(companion: _companion),
         const SizedBox(height: 24),
 
         if (!available)
@@ -216,41 +216,6 @@ class _SebastianScreenState extends State<SebastianScreen> {
           ),
           _CacheLine(theme: theme, l10n: l10n, onCleared: _onChange),
         ],
-      ],
-    );
-  }
-}
-
-/// The introduction: mark, name, and the longer pitch.
-class _Portrait extends StatelessWidget {
-  const _Portrait({
-    required this.companion,
-    required this.theme,
-    required this.l10n,
-  });
-
-  final Companion companion;
-  final AppTheme theme;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CompanionMark(
-          companion: companion,
-          size: 48,
-          foreground: theme.accentInk,
-          background: theme.accent,
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Text(
-            companion.blurb(l10n),
-            style: theme.body.copyWith(color: theme.inkSoft),
-          ),
-        ),
       ],
     );
   }

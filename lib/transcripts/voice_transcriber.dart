@@ -512,6 +512,72 @@ class VoiceTranscriber {
 
   Future<bool> isModelInstalled() => TranscriptStore.instance.isInstalled(_model);
 
+  /// Re-reads the disk into [modelInstalled], for the screens that show it.
+  Future<bool> refreshModelInstalled() async {
+    final on = await isModelInstalled();
+    modelInstalled.value = on;
+    return on;
+  }
+
+  /// What [modelInstalled] knows right now, without waiting. The first read
+  /// starts a check and answers null; listeners hear the real answer.
+  bool? get modelInstalledNow {
+    final v = modelInstalled.value;
+    if (v == null) unawaited(refreshModelInstalled());
+    return v;
+  }
+
+  /// Whether the OS has a recognizer this transcriber can try first.
+  bool get hasBuiltIn => _builtIn != null;
+
+  /// Of [candidates] (language codes or tags), the ones the OS recognizer
+  /// already has on the device, as its locale tags, best first. Empty where
+  /// there is no recognizer. Nothing is downloaded to answer this.
+  Future<List<String>> builtInLanguages(List<String> candidates) async {
+    final b = _builtIn;
+    if (b == null) return const [];
+    try {
+      return await b.readyLocales(candidates);
+    } catch (e) {
+      debugPrint('VoiceTranscriber: built-in languages unavailable: $e');
+      return const [];
+    }
+  }
+
+  /// Whether a download started now would run on cellular data and nobody has
+  /// said yes to that yet this launch.
+  bool get downloadNeedsCellularConsent => _onCellular() && !_cellularOk;
+
+  /// Downloads the model from Bartleby's screen rather than from a bubble.
+  ///
+  /// Joins a download a bubble already started instead of starting a second.
+  /// [cellularOk] is the reader's yes from that screen; it counts for the
+  /// bubbles too, so none of them asks again this launch. Returns null once
+  /// the model is on disk (or the download was cancelled), else why not.
+  Future<TranscriptFailure?> installModel({bool cellularOk = false}) async {
+    if (cellularOk) _cellularOk = true;
+    try {
+      await (_modelFuture ??= _downloadModel());
+      // A bubble left asking about cellular has its answer now: the model
+      // is here. Carry on with it rather than leave it asking.
+      for (final h in _handles.values) {
+        if (h.phase == TranscriptPhase.awaitingConsent) {
+          h._set(phase: TranscriptPhase.transcribing, clearProgress: true);
+          unawaited(_run(h));
+        }
+      }
+      return null;
+    } on DownloadCancelled {
+      return null;
+    } on DownloadException catch (e) {
+      return e.failure == DownloadFailure.storage
+          ? TranscriptFailure.storage
+          : TranscriptFailure.network;
+    } catch (_) {
+      return TranscriptFailure.network;
+    }
+  }
+
   /// Removes the model. Transcripts already made are kept.
   Future<int> removeModel() async {
     cancelDownload();

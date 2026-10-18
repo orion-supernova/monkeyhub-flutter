@@ -431,5 +431,7 @@ abstract final class BrainCatalog {
       switch (companion) {
         Companion.sebastian => sebastianBrains,
         Companion.marlowe => marloweBrains,
+        // His one download is the speech model, not a brain.
+        Companion.bartleby => const [],
       };
 }

@@ -9,8 +9,8 @@
 /// message stops being private the moment it leaves the handset.
 ///
 /// So the user never meets a model picker, a quantisation, or the words
-/// "LiteRT-LM". They meet Sebastian, who reads languages, and Marlowe, who will
-/// learn to do more. What each of them needs in order to think is
+/// "LiteRT-LM". They meet Sebastian, who reads languages, Bartleby, who
+/// writes down voice messages, and Marlowe, who will learn to do more. What each of them needs in order to think is
 /// [BrainSpec]'s business, and it is deliberately not on screen for Sebastian
 /// at all — see [Companion.brainsAreUserChosen].
 ///
@@ -42,18 +42,31 @@ enum Companion {
   /// is honest rather than empty: a 932 MB download is something you want to
   /// have started before you need it, and his detail screen says exactly that
   /// rather than implying a chat window exists.
-  marlowe;
+  marlowe,
+
+  /// The scribe. Listens to voice messages and writes them down.
+  ///
+  /// Not a brain on the shelf: he works with the OS's own recognizer where it
+  /// already knows the language, and with one speech model (see
+  /// `TranscriptModel`) when the reader wants every language. So
+  /// [usesBrains] is false and his screen is `BartlebyScreen`, not a shelf.
+  ///
+  /// Named for Melville's scrivener, the copyist who "would prefer not to".
+  /// What this one would prefer not to do is send anything anywhere.
+  bartleby;
 
   /// Persisted key. Never derived from [name] at the call site so a future
   /// rename is a one-line migration here instead of silent data loss.
   String get id => switch (this) {
         Companion.sebastian => 'sebastian',
         Companion.marlowe => 'marlowe',
+        Companion.bartleby => 'bartleby',
       };
 
   static Companion? parse(String? s) => switch (s) {
         'sebastian' => Companion.sebastian,
         'marlowe' => Companion.marlowe,
+        'bartleby' => Companion.bartleby,
         _ => null,
       };
 
@@ -63,6 +76,7 @@ enum Companion {
   String get displayName => switch (this) {
         Companion.sebastian => 'Sebastian',
         Companion.marlowe => 'Marlowe',
+        Companion.bartleby => 'Bartleby',
       };
 
   /// Whether the brain shelf is the user's to arrange.
@@ -73,10 +87,17 @@ enum Companion {
   /// named on screen. True for Marlowe, whose whole detail screen is the shelf.
   bool get brainsAreUserChosen => this == Companion.marlowe;
 
+  /// Whether this companion thinks with a brain from [BrainCatalog]. False for
+  /// Bartleby, whose one download is the speech model and is managed by
+  /// `VoiceTranscriber`, so brain shelves, brain banners and the brain
+  /// storage total all skip him.
+  bool get usesBrains => this != Companion.bartleby;
+
   /// One line under the name in Settings › Companions.
   String tagline(AppLocalizations l10n) => switch (this) {
         Companion.sebastian => l10n.companionSebastianTagline,
         Companion.marlowe => l10n.companionMarloweTagline,
+        Companion.bartleby => l10n.companionBartlebyTagline,
       };
 
   /// The longer pitch, shown on the detail screen and at the top of the
@@ -84,6 +105,7 @@ enum Companion {
   String blurb(AppLocalizations l10n) => switch (this) {
         Companion.sebastian => l10n.companionSebastianBlurb,
         Companion.marlowe => l10n.companionMarloweBlurb,
+        Companion.bartleby => l10n.companionBartlebyBlurb,
       };
 }
 

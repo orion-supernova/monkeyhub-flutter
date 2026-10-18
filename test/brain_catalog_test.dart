@@ -96,7 +96,12 @@ void main() {
       final ids = BrainCatalog.all.map((b) => b.id).toList();
       expect(ids.toSet().length, ids.length);
       for (final companion in Companion.values) {
-        expect(BrainCatalog.forCompanion(companion), isNotEmpty);
+        // Bartleby's one download is the speech model, not a brain.
+        expect(
+          BrainCatalog.forCompanion(companion),
+          companion.usesBrains ? isNotEmpty : isEmpty,
+          reason: companion.id,
+        );
       }
     });
 

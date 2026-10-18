@@ -48,7 +48,8 @@ import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
 import 'companions/companion_page.dart'
-    show CompanionStorageLine, companionStatusLine;
+    show CompanionStorageLine, bartlebyStatusListenable, companionStatusLine;
+import 'companions/bartleby_screen.dart';
 import 'companions/marlowe_screen.dart';
 import 'data_storage/data_storage_screen.dart';
 import 'companions/sebastian_screen.dart';
@@ -829,6 +830,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                   onTap: () => _open('sebastian', (_) => const SebastianScreen()),
                 )),
                 _IconLed(_CompanionRow(
+                  companion: Companion.bartleby,
+                  selected: _isOpen('bartleby'),
+                  onTap: () => _open('bartleby', (_) => const BartlebyScreen()),
+                )),
+                _IconLed(_CompanionRow(
                   companion: Companion.marlowe,
                   selected: _isOpen('marlowe'),
                   onTap: () => _open('marlowe', (_) => const MarloweScreen()),
@@ -1197,6 +1203,15 @@ class _SettingsScreenState extends State<SettingsScreen>
           kw: l10n.settingsSearchKwCompanions,
           enKw: en.settingsSearchKwCompanions,
           onOpen: () => _open('sebastian', (_) => const SebastianScreen())),
+      page('bartleby',
+          title: Companion.bartleby.displayName,
+          enTitle: Companion.bartleby.displayName,
+          section: companions,
+          icon: CupertinoIcons.person_fill,
+          tone: TileTone.purple,
+          kw: l10n.settingsSearchKwTranscripts,
+          enKw: en.settingsSearchKwTranscripts,
+          onOpen: () => _open('bartleby', (_) => const BartlebyScreen())),
       page('marlowe',
           title: Companion.marlowe.displayName,
           enTitle: Companion.marlowe.displayName,
@@ -1699,6 +1714,18 @@ class _CompanionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // Bartleby's line moves with his own download, not with BrainManager,
+    // which is what the hub listens to.
+    if (companion == Companion.bartleby) {
+      return ListenableBuilder(
+        listenable: bartlebyStatusListenable,
+        builder: (context, _) => _row(context, theme),
+      );
+    }
+    return _row(context, theme);
+  }
+
+  Widget _row(BuildContext context, AppTheme theme) {
     return _HubRow(
       icon: CupertinoIcons.person_fill,
       title: companion.displayName,
@@ -1713,7 +1740,11 @@ class _CompanionRow extends StatelessWidget {
           foreground: Colors.white,
           background: tileColor(
             theme,
-            companion == Companion.sebastian ? TileTone.indigo : TileTone.teal,
+            switch (companion) {
+              Companion.sebastian => TileTone.indigo,
+              Companion.marlowe => TileTone.teal,
+              Companion.bartleby => TileTone.purple,
+            },
           ),
         ),
       ),
