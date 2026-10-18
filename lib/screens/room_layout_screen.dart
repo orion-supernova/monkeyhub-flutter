@@ -8,9 +8,9 @@ import '../theme/theme_scope.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/settings_pickers.dart';
 
-/// How the chat list is laid out, how its filters are offered, and what an
-/// empty room's tile shows. The two visual choices are pictures — tiny phones
-/// drawn in the current theme — because a layout is judged by looking at it.
+/// How the chat list is laid out and how its filters are offered. Both
+/// choices are pictures — tiny phones drawn in the current theme — because a
+/// layout is judged by looking at it.
 class RoomLayoutScreen extends StatelessWidget {
   const RoomLayoutScreen({super.key});
 
@@ -23,7 +23,6 @@ class RoomLayoutScreen extends StatelessWidget {
         final store = SettingsStore.instance;
         final layout = store.roomLayout;
         final filter = store.filterStyle;
-        final monogram = store.roomMonogram;
         return SettingsPage(
           title: l10n.settingsHubChatList,
           children: [
@@ -84,31 +83,6 @@ class RoomLayoutScreen extends StatelessWidget {
                   ? l10n.chatListPageChipsSub
                   : l10n.chatListPageButtonSub,
             ),
-
-            GroupedSection(
-              header: l10n.chatListPageEmptyHeader,
-              footer: l10n.chatListPageEmptyFooter,
-              children: [
-                GroupedRow.choice(
-                  title: l10n.chatListPagePlain,
-                  subtitle: l10n.chatListPagePlainSub,
-                  selected: !monogram,
-                  onTap: () {
-                    pickFeedback();
-                    store.setRoomMonogram(false);
-                  },
-                ),
-                GroupedRow.choice(
-                  title: l10n.chatListPageInitial,
-                  subtitle: l10n.chatListPageInitialSub,
-                  selected: monogram,
-                  onTap: () {
-                    pickFeedback();
-                    store.setRoomMonogram(true);
-                  },
-                ),
-              ],
-            ),
           ],
         );
       },
@@ -157,24 +131,33 @@ class _CardsPreview extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: theme.ink.withValues(alpha: 0.10)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // The card's own shape: a face, then the name over the
+              // preview, as the real card draws a row on its own surface.
+              child: Row(
                 children: [
                   Container(
-                    width: 22,
-                    height: 4,
+                    width: 18,
+                    height: 18,
                     decoration: BoxDecoration(
-                      color: theme.accent.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(2),
+                      color: theme.avatarGradient(i * 4 + 1).first,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  FractionallySizedBox(
-                    widthFactor: 0.6,
-                    child: _line(theme, 0.35),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FractionallySizedBox(
+                          widthFactor: 0.55,
+                          child: _line(theme, 0.35),
+                        ),
+                        const SizedBox(height: 3),
+                        _line(theme, 0.10),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 3),
-                  _line(theme, 0.10),
                 ],
               ),
             ),

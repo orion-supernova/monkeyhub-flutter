@@ -30,7 +30,10 @@ class SettingsStore extends ChangeNotifier {
   static const _kThemeDark = 'mh.theme.dark';
   static const _kThemeOnboarded = 'mh.theme.onboarded';
   static const _kLayout = 'mh.roomLayout';
-  static const _kMonogram = 'mh.roomMonogram';
+  // Retired 2026-10-18 with the "big faded letter" option for empty grid
+  // tiles: the plain tile is the only behaviour now. Read once on load only
+  // to delete what an older build stored, so the key never lingers.
+  static const _kRetiredMonogram = 'mh.roomMonogram';
   static const _kVideoNoteAutoAdvance = 'mh.videoNoteAutoAdvance';
   static const _kNav = 'mh.nav';
   static const _kSection = 'mh.section';
@@ -94,7 +97,7 @@ class SettingsStore extends ChangeNotifier {
   @visibleForTesting
   static const keys = {
     _kTheme, _kThemeMode, _kThemeLight, _kThemeDark, _kThemeOnboarded,
-    _kLayout, _kMonogram, _kNav, _kSection, _kPushEnabled, _kGameReminders,
+    _kLayout, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd, _kTipsSeen,
@@ -113,10 +116,6 @@ class SettingsStore extends ChangeNotifier {
   String _darkThemeId = kDefaultDarkThemeId;
   bool _themeOnboarded = false;
   RoomLayout _roomLayout = RoomLayout.list;
-  // Off by default: the letter is a backdrop for a room with nothing to
-  // show, and whether it reads as texture or as clutter is a matter of
-  // taste rather than of layout.
-  bool _roomMonogram = false;
   // On by default: a run of round videos is a conversation, and having to
   // reopen each one is the friction this exists to remove.
   bool _videoNoteAutoAdvance = true;
@@ -232,7 +231,6 @@ class SettingsStore extends ChangeNotifier {
         darkId: _darkThemeId,
       );
   RoomLayout get roomLayout => _roomLayout;
-  bool get roomMonogram => _roomMonogram;
 
   /// Whether a focused video note, on ending, carries straight on into the
   /// next one in the chat. Toggled from the focus itself.
@@ -570,8 +568,12 @@ class SettingsStore extends ChangeNotifier {
       (l) => l.name == lay,
       orElse: () => RoomLayout.list,
     );
-    final mono = s[_kMonogram];
-    _roomMonogram = mono == 'true'; // default false
+    if (s.containsKey(_kRetiredMonogram)) {
+      // Best effort: a keychain that refuses now is asked again next launch.
+      unawaited(
+        _storage.delete(key: _kRetiredMonogram).catchError((Object _) {}),
+      );
+    }
     _videoNoteAutoAdvance = s[_kVideoNoteAutoAdvance] != 'false'; // default true
     final nav = s[_kNav];
     // First-launch default is pill; honor an explicit 'radial' selection.
@@ -769,13 +771,6 @@ class SettingsStore extends ChangeNotifier {
     _roomLayout = l;
     notifyListeners();
     await _storage.write(key: _kLayout, value: l.name);
-  }
-
-  Future<void> setRoomMonogram(bool on) async {
-    if (_roomMonogram == on) return;
-    _roomMonogram = on;
-    notifyListeners();
-    await _storage.write(key: _kMonogram, value: '$on');
   }
 
   Future<void> setVideoNoteAutoAdvance(bool on) async {

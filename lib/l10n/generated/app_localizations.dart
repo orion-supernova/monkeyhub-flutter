@@ -3117,6 +3117,18 @@ abstract class AppLocalizations {
   /// **'Camera off'**
   String get callScreenControlCamOff;
 
+  /// State line on a 1:1 video call, under the OTHER person's photo, while their camera is off and yours is on. Describes a state (their camera is currently off), not an action.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera off'**
+  String get callScreenPeerCameraOff;
+
+  /// State line on a video call, under the OTHER person's photo, while their phone has paused their camera (the app went to the background or the phone locked). Not something they chose; the picture comes back on its own. Describes a state, not an action.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera paused'**
+  String get callScreenPeerCameraPaused;
+
   /// Small label under the camera-switch (front/back) control button in the call screen's bottom control bar.
   ///
   /// In en, this message translates to:
@@ -4736,18 +4748,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'a room with nothing said yet stays bare'**
   String get roomLayoutScreenPlainCornerDescription;
-
-  /// Label for the option that fills a quiet grid tile's corner with the room's first letter (room layout screen).
-  ///
-  /// In en, this message translates to:
-  /// **'the room\'s initial'**
-  String get roomLayoutScreenMonogramLabel;
-
-  /// One-line description of the monogram option for quiet grid tiles.
-  ///
-  /// In en, this message translates to:
-  /// **'a big faded letter fills the empty corner'**
-  String get roomLayoutScreenMonogramDescription;
 
   /// Small all-caps badge shown on whichever layout/filter option card is currently selected
   ///
@@ -16849,42 +16849,6 @@ abstract class AppLocalizations {
   /// **'One button that opens the filters when you ask.'**
   String get chatListPageButtonSub;
 
-  /// Settings sub-page. Section header: how a room with no messages looks.
-  ///
-  /// In en, this message translates to:
-  /// **'Empty rooms'**
-  String get chatListPageEmptyHeader;
-
-  /// Settings sub-page. Empty-room option.
-  ///
-  /// In en, this message translates to:
-  /// **'Plain'**
-  String get chatListPagePlain;
-
-  /// Settings sub-page. Empty-room option description.
-  ///
-  /// In en, this message translates to:
-  /// **'A room with nothing said yet stays bare.'**
-  String get chatListPagePlainSub;
-
-  /// Settings sub-page. Empty-room option.
-  ///
-  /// In en, this message translates to:
-  /// **'Initial'**
-  String get chatListPageInitial;
-
-  /// Settings sub-page. Empty-room option description.
-  ///
-  /// In en, this message translates to:
-  /// **'A large faded letter fills the empty corner.'**
-  String get chatListPageInitialSub;
-
-  /// Settings sub-page. Footer under the empty-rooms choice.
-  ///
-  /// In en, this message translates to:
-  /// **'Applies to the grid layout.'**
-  String get chatListPageEmptyFooter;
-
   /// Settings sub-page. Footer on the chat style page.
   ///
   /// In en, this message translates to:
@@ -23359,10 +23323,10 @@ abstract class AppLocalizations {
   /// **'Hide transcript'**
   String get voiceTranscriptHide;
 
-  /// Shown under a voice message when the reader asked for a transcript on mobile data and the speech model is not downloaded yet. {size} is like '181 MB'.
+  /// Shown under a voice message on cellular before the speech model downloads. Bartleby is the companion (proper noun, never translated) who transcribes voice messages on the device. {size} is like '181 MB'.
   ///
   /// In en, this message translates to:
-  /// **'Transcripts are made on your phone. The speech model is a one-time {size} download.'**
+  /// **'Bartleby writes transcripts on your phone. He needs a one-time {size} download first.'**
   String voiceTranscriptCellularPrompt(String size);
 
   /// Link under the mobile-data prompt that starts the speech model download. {size} is like '181 MB'.
@@ -23371,10 +23335,10 @@ abstract class AppLocalizations {
   /// **'Download {size}'**
   String voiceTranscriptDownloadAction(String size);
 
-  /// Progress line under a voice message while the speech model downloads. {received} and {total} are like '42 MB' and '181 MB': megabytes of the model downloaded so far, of its full size.
+  /// Progress line under a voice message while Bartleby's speech model downloads. {received} and {total} are like '42 MB' and '181 MB': megabytes of the model downloaded so far, of its full size.
   ///
   /// In en, this message translates to:
-  /// **'Getting the speech model · {received} of {total}'**
+  /// **'Bartleby is getting ready · {received} of {total}'**
   String voiceTranscriptDownloading(String received, String total);
 
   /// Small note under the download progress: the model is downloaded once, then transcription works without internet.
@@ -23479,10 +23443,10 @@ abstract class AppLocalizations {
   /// **'Better transcripts'**
   String get voiceTranscriptUpgradeLink;
 
-  /// Offer shown after tapping 'Better transcripts'. MonkeyHub's own speech model picks the spoken language by itself (the built-in one has to guess it) and knows almost 100 languages. {size} is like '181 MB'.
+  /// Offer shown after tapping 'Better transcripts'. Bartleby (proper noun, never translated) is the companion who transcribes; with his speech model he picks the spoken language by itself (the built-in recognizer has to guess it) and knows almost 100 languages. {size} is like '181 MB'.
   ///
   /// In en, this message translates to:
-  /// **'Wrong language or words? MonkeyHub\'s speech model hears which language is spoken and knows almost 100 of them. One-time {size} download, then it works offline.'**
+  /// **'Wrong language or words? With a one-time {size} download, Bartleby hears which language is spoken and knows almost 100 of them. After that he works offline.'**
   String voiceTranscriptUpgradeOffer(String size);
 
   /// Link that closes the offer to download the better speech model.
@@ -23580,6 +23544,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Works offline once it\'s set up'**
   String get appOnlyTranscriptOffline;
+
+  /// Chat list: short label on the live-call chip for a voice call going on in this room right now. A green animated phone glyph sits before it and the call's running time after it, so 'ongoing' is already said; keep it as short as the language allows.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice call'**
+  String get liveCallChipVoice;
+
+  /// Chat list: short label on the live-call chip for a video call going on in this room right now. A green animated camera glyph sits before it and the call's running time after it, so 'ongoing' is already said; keep it as short as the language allows.
+  ///
+  /// In en, this message translates to:
+  /// **'Video call'**
+  String get liveCallChipVideo;
+
+  /// One line under Bartleby's name in Settings › Companions. Bartleby is the companion (a proper noun, never translated) who transcribes voice messages on the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Writes down voice messages'**
+  String get companionBartlebyTagline;
+
+  /// The pitch at the top of Bartleby's screen. Must stay true: transcription happens on the device and neither the audio nor the text is sent anywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Bartleby listens to voice messages and writes them down, right here on your phone. The audio and the words never leave it.'**
+  String get companionBartlebyBlurb;
+
+  /// Bartleby's personality line, in quotes, under his portrait. A playful nod to Melville's 'Bartleby, the Scrivener' and his famous 'I would prefer not to'; use the phrasing the well-known translation of that line uses in your language. Meaning: he keeps the voice message on the phone.
+  ///
+  /// In en, this message translates to:
+  /// **'“I would prefer not to send your voice anywhere.”'**
+  String get bartlebyQuote;
+
+  /// Bartleby's status in Settings › Companions once the speech model is downloaded: he can transcribe almost 100 languages.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for almost 100 languages'**
+  String get bartlebyStatusEveryLanguage;
+
+  /// Bartleby's status in Settings › Companions on Apple devices without the speech model: he only uses the speech recognition languages already built into the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in languages only'**
+  String get bartlebyStatusBuiltInOnly;
+
+  /// Section header on Bartleby's screen above the list of languages the device's own speech recognition already has.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages ready without a download'**
+  String get bartlebyBuiltInHeader;
+
+  /// Footer under that list while the speech model is NOT downloaded. 'The download below' is the speech model row further down the same screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Your device already has these for Siri and dictation, so Bartleby uses them first, with nothing to download. Other languages need the download below.'**
+  String get bartlebyBuiltInFooter;
+
+  /// Footer under the built-in language list once the speech model IS downloaded: the model is used for every voice message instead.
+  ///
+  /// In en, this message translates to:
+  /// **'The download below covers these too, so Bartleby uses it for every voice message.'**
+  String get bartlebyBuiltInFooterModel;
+
+  /// The only row of the built-in language list when the device has none of them.
+  ///
+  /// In en, this message translates to:
+  /// **'None on this device yet'**
+  String get bartlebyBuiltInNone;
+
+  /// Title of the speech model download row on Bartleby's screen. Same words, and same translation, as voiceTranscriptUpgradeLink, the link under a voice message transcript that offers this download.
+  ///
+  /// In en, this message translates to:
+  /// **'Better transcripts'**
+  String get bartlebyModelTitle;
+
+  /// Under the speech model row before it is downloaded: what it adds.
+  ///
+  /// In en, this message translates to:
+  /// **'Hears which language is spoken. Almost 100 languages, works offline'**
+  String get bartlebyModelDetail;
+
+  /// Under the speech model row once downloaded. {size} is like '181 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device · {size}'**
+  String bartlebyModelInstalled(String size);
+
+  /// Footer on Bartleby's screen: total disk space for the speech model plus the transcripts he has saved. {size} is like '181 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bartleby is using {size} on this device, saved transcripts included.'**
+  String bartlebyStorageUsed(String size);
+
+  /// Footer on Bartleby's screen when nothing of his is on disk.
+  ///
+  /// In en, this message translates to:
+  /// **'Bartleby is using no space on this device.'**
+  String get bartlebyStorageEmpty;
+
+  /// Title of the sheet asking before the speech model downloads over mobile data.
+  ///
+  /// In en, this message translates to:
+  /// **'Download on cellular?'**
+  String get bartlebyCellularTitle;
+
+  /// Body of that sheet. {size} is like '181 MB'.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a one-time {size} download. Wait for Wi-Fi if you\'d rather not use your data plan.'**
+  String bartlebyCellularBody(String size);
+
+  /// Added to the confirm sheet before deleting the speech model: transcripts already made are not deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcripts you already have are kept.'**
+  String get bartlebyRemoveKeepsTranscripts;
+
+  /// Comma-separated search keywords for Bartleby's settings page (voice message transcription). Not shown, only matched.
+  ///
+  /// In en, this message translates to:
+  /// **'transcript, voice message, speech, dictation, companion'**
+  String get settingsSearchKwTranscripts;
+
+  /// Button on a two-player board game: take back your last move (vs the bot it happens at once; vs a person it asks them first).
+  ///
+  /// In en, this message translates to:
+  /// **'Takeback'**
+  String get chatGameTakeback;
+
+  /// Card shown to a player: their opponent asks to take back the move they just made. Buttons Decline / Accept follow.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} asks to take back their last move'**
+  String chatGameTakebackFrom(String name);
+
+  /// Shown to the player who asked for a takeback while the opponent decides.
+  ///
+  /// In en, this message translates to:
+  /// **'Takeback requested'**
+  String get chatGameTakebackAsked;
+
+  /// Footnote under the game tools: how many takebacks the player may still use in this game.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No takebacks left} =1{1 takeback left} other{{count} takebacks left}}'**
+  String chatGameTakebacksLeft(int count);
+
+  /// Footnote on a game against the hard bot: takebacks are not allowed at this level.
+  ///
+  /// In en, this message translates to:
+  /// **'No takebacks against the hard bot'**
+  String get chatGameNoTakebacksHard;
+
+  /// Result line after the viewer resigned a game.
+  ///
+  /// In en, this message translates to:
+  /// **'You resigned'**
+  String get chatGameYouResigned;
+
+  /// Result line: both sides agreed to a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw agreed'**
+  String get chatGameDrawAgreed;
+
+  /// Toast: the bot declined the player's draw offer. {name} is the bot's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} wants to play on'**
+  String chatGameBotPlaysOn(String name);
+
+  /// Toast: a draw offer was just declined, so the player must make two more moves before offering again.
+  ///
+  /// In en, this message translates to:
+  /// **'You can offer a draw again after two more moves'**
+  String get chatGameDrawTooSoon;
+
+  /// Toast: the opponent already declined a takeback of this move, so it cannot be asked again.
+  ///
+  /// In en, this message translates to:
+  /// **'They already said no to taking back this move'**
+  String get chatGameTakebackTooSoon;
+
+  /// Header over the list of moves played so far, in the side panel of a board game.
+  ///
+  /// In en, this message translates to:
+  /// **'Moves'**
+  String get chatGameMoves;
+
+  /// Button while looking at an earlier position of a board game: jump back to the current position.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the current move'**
+  String get chatGameBackToGame;
+
+  /// Empty state of the move list before anyone has moved.
+  ///
+  /// In en, this message translates to:
+  /// **'No moves yet'**
+  String get chatGameNoMovesYet;
+
+  /// Small hint under the move list on desktop: the arrow keys step through earlier positions.
+  ///
+  /// In en, this message translates to:
+  /// **'Use ← and → to replay moves'**
+  String get chatGameKeysReplay;
+
+  /// Liar's Dice rule (guide step and caption by the bid picker): bidding on 1s needs only half the quantity (rounded up); moving off 1s needs double plus one.
+  ///
+  /// In en, this message translates to:
+  /// **'Bidding 1s takes half as many, rounded up. Leaving 1s takes double, plus one.'**
+  String get partyLdAcesRule;
+
+  /// Puzzle Race guide step: after the first player finishes, the others have 2 minutes left.
+  ///
+  /// In en, this message translates to:
+  /// **'Once someone finishes, everyone else has 2 minutes left.'**
+  String get partyRaceGrace;
+
+  /// Imposter: caption under the clue box: the clue may not be the secret word itself.
+  ///
+  /// In en, this message translates to:
+  /// **'Never the word itself'**
+  String get partyImposterClueRule;
+
+  /// Liar's Dice, desktop: keyboard hint under the bid picker. Arrows change the quantity, digits pick the face, Enter bids, L calls liar.
+  ///
+  /// In en, this message translates to:
+  /// **'↑ ↓ quantity · 1–6 face · Enter bid · L liar'**
+  String get partyLdKeys;
+
+  /// Imposter, desktop: keyboard hint under the vote list. Each row shows a number key; 0 skips.
+  ///
+  /// In en, this message translates to:
+  /// **'Press a row\'s number to vote · 0 to skip'**
+  String get partyImposterVoteKeys;
+
+  /// Footnote under a daily game's standings, shown when someone on the board used a hint (rows with a lightbulb icon). Explains that solves that used a hint are ranked below solves that did not, whatever the time.
+  ///
+  /// In en, this message translates to:
+  /// **'Solves that used a hint rank after solves without one'**
+  String get dailyStandingsHintedNote;
+
+  /// How-to-play step for Patches (replaces howToPatches3): drag corner to corner to make a patch; drag a placed patch's side or corner to reshape it; tap a patch to remove it.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag from corner to corner to cut a patch. Drag a patch\'s side or corner to reshape it. Tap a patch to lift it off.'**
+  String get howToPatchesControls;
 }
 
 class _AppLocalizationsDelegate

@@ -1759,6 +1759,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get callScreenControlCamOff => 'कैम ऑफ';
 
   @override
+  String get callScreenPeerCameraOff => 'कैमरा बंद है';
+
+  @override
+  String get callScreenPeerCameraPaused => 'कैमरा रुका हुआ है';
+
+  @override
   String get callScreenControlFlip => 'फ्लिप';
 
   @override
@@ -2694,13 +2700,6 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get roomLayoutScreenPlainCornerDescription =>
       'जिस रूम में कुछ कहा नहीं गया, वो सादा रहता है';
-
-  @override
-  String get roomLayoutScreenMonogramLabel => 'रूम का पहला अक्षर';
-
-  @override
-  String get roomLayoutScreenMonogramDescription =>
-      'एक बड़ा धुंधला अक्षर खाली कोने को भर देता है';
 
   @override
   String get roomLayoutScreenActiveBadge => 'चयनित';
@@ -10014,25 +10013,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatListPageButtonSub => 'एक बटन जो ज़रूरत पर फ़िल्टर खोलता है।';
 
   @override
-  String get chatListPageEmptyHeader => 'खाली रूम';
-
-  @override
-  String get chatListPagePlain => 'सादा';
-
-  @override
-  String get chatListPagePlainSub =>
-      'जिस रूम में अभी कुछ नहीं कहा गया, वह सादा रहता है।';
-
-  @override
-  String get chatListPageInitial => 'पहला अक्षर';
-
-  @override
-  String get chatListPageInitialSub => 'एक बड़ा हल्का अक्षर खाली कोना भरता है।';
-
-  @override
-  String get chatListPageEmptyFooter => 'ग्रिड लेआउट पर लागू होता है।';
-
-  @override
   String get chatStylePageFooter =>
       'बातचीत का हेडर और संदेश फ़ील्ड कैसे दिखते हैं।';
 
@@ -13984,7 +13964,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String voiceTranscriptCellularPrompt(String size) {
-    return 'ट्रांसक्रिप्ट आपके फ़ोन पर ही बनते हैं। स्पीच मॉडल एक बार का $size डाउनलोड है।';
+    return 'Bartleby आपके फ़ोन पर ही ट्रांसक्रिप्ट लिखता है। पहले उसे एक बार का $size डाउनलोड चाहिए।';
   }
 
   @override
@@ -13994,7 +13974,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String voiceTranscriptDownloading(String received, String total) {
-    return 'स्पीच मॉडल डाउनलोड हो रहा है · $total में से $received';
+    return 'Bartleby तैयार हो रहा है · $total में से $received';
   }
 
   @override
@@ -14057,7 +14037,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String voiceTranscriptUpgradeOffer(String size) {
-    return 'भाषा या शब्द गलत हैं? MonkeyHub का स्पीच मॉडल खुद पहचानता है कि कौन सी भाषा बोली गई और लगभग 100 भाषाएँ जानता है। एक बार का $size डाउनलोड, फिर ऑफ़लाइन चलता है।';
+    return 'भाषा या शब्द गलत हैं? एक बार के $size डाउनलोड के बाद Bartleby खुद पहचानता है कि कौन सी भाषा बोली गई और लगभग 100 भाषाएँ जानता है। उसके बाद ऑफ़लाइन चलता है।';
   }
 
   @override
@@ -14127,4 +14107,161 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get appOnlyTranscriptOffline => 'सेट होने के बाद ऑफ़लाइन चलता है';
+
+  @override
+  String get liveCallChipVoice => 'वॉइस कॉल';
+
+  @override
+  String get liveCallChipVideo => 'वीडियो कॉल';
+
+  @override
+  String get companionBartlebyTagline => 'वॉइस मैसेज को लिखकर देता है';
+
+  @override
+  String get companionBartlebyBlurb =>
+      'Bartleby वॉइस मैसेज सुनता है और उन्हें लिख देता है, यहीं आपके फ़ोन पर। न आवाज़ और न ही शब्द कभी आपके फ़ोन से बाहर जाते हैं।';
+
+  @override
+  String get bartlebyQuote => '“मैं आपकी आवाज़ कहीं न भेजना पसंद करूँगा।”';
+
+  @override
+  String get bartlebyStatusEveryLanguage => 'लगभग 100 भाषाओं के लिए तैयार';
+
+  @override
+  String get bartlebyStatusBuiltInOnly => 'केवल बिल्ट-इन भाषाएँ';
+
+  @override
+  String get bartlebyBuiltInHeader => 'बिना डाउनलोड के तैयार भाषाएँ';
+
+  @override
+  String get bartlebyBuiltInFooter =>
+      'आपके डिवाइस में Siri और डिक्टेशन के लिए ये भाषाएँ पहले से हैं, इसलिए Bartleby पहले इन्हीं का इस्तेमाल करता है, बिना कुछ डाउनलोड किए। बाकी भाषाओं के लिए नीचे वाला डाउनलोड चाहिए।';
+
+  @override
+  String get bartlebyBuiltInFooterModel =>
+      'नीचे वाला डाउनलोड इन भाषाओं को भी कवर करता है, इसलिए Bartleby हर वॉइस मैसेज के लिए उसी का इस्तेमाल करता है।';
+
+  @override
+  String get bartlebyBuiltInNone => 'इस डिवाइस पर अभी कोई नहीं';
+
+  @override
+  String get bartlebyModelTitle => 'बेहतर ट्रांसक्रिप्ट';
+
+  @override
+  String get bartlebyModelDetail =>
+      'खुद पहचानता है कि कौन सी भाषा बोली गई। लगभग 100 भाषाएँ, ऑफ़लाइन चलता है';
+
+  @override
+  String bartlebyModelInstalled(String size) {
+    return 'इस डिवाइस पर · $size';
+  }
+
+  @override
+  String bartlebyStorageUsed(String size) {
+    return 'Bartleby इस डिवाइस पर $size जगह ले रहा है, सहेजे गए ट्रांसक्रिप्ट समेत।';
+  }
+
+  @override
+  String get bartlebyStorageEmpty =>
+      'Bartleby इस डिवाइस पर कोई जगह नहीं ले रहा।';
+
+  @override
+  String get bartlebyCellularTitle => 'मोबाइल डेटा पर डाउनलोड करें?';
+
+  @override
+  String bartlebyCellularBody(String size) {
+    return 'यह एक बार का $size डाउनलोड है। अगर आप मोबाइल डेटा खर्च नहीं करना चाहते, तो Wi-Fi का इंतज़ार करें।';
+  }
+
+  @override
+  String get bartlebyRemoveKeepsTranscripts =>
+      'आपके पास पहले से मौजूद ट्रांसक्रिप्ट बने रहेंगे।';
+
+  @override
+  String get settingsSearchKwTranscripts =>
+      'ट्रांसक्रिप्ट, वॉइस मैसेज, आवाज़, डिक्टेशन';
+
+  @override
+  String get chatGameTakeback => 'चाल वापस';
+
+  @override
+  String chatGameTakebackFrom(String name) {
+    return '$name अपनी पिछली चाल वापस लेना चाहते हैं';
+  }
+
+  @override
+  String get chatGameTakebackAsked => 'चाल वापस लेने का अनुरोध भेजा गया';
+
+  @override
+  String chatGameTakebacksLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चाल वापसी बची हैं',
+      one: '$count चाल वापसी बची है',
+      zero: 'कोई चाल वापसी नहीं बची',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameNoTakebacksHard =>
+      'कठिन बॉट के ख़िलाफ़ चाल वापस नहीं ले सकते';
+
+  @override
+  String get chatGameYouResigned => 'आपने हार मान ली';
+
+  @override
+  String get chatGameDrawAgreed => 'ड्रॉ पर सहमति';
+
+  @override
+  String chatGameBotPlaysOn(String name) {
+    return '$name खेलना जारी रखना चाहता है';
+  }
+
+  @override
+  String get chatGameDrawTooSoon =>
+      'दो चालों के बाद फिर से ड्रॉ की पेशकश कर सकते हैं';
+
+  @override
+  String get chatGameTakebackTooSoon =>
+      'इस चाल को वापस लेने से पहले ही मना कर दिया गया';
+
+  @override
+  String get chatGameMoves => 'चालें';
+
+  @override
+  String get chatGameBackToGame => 'मौजूदा चाल पर लौटें';
+
+  @override
+  String get chatGameNoMovesYet => 'अभी कोई चाल नहीं';
+
+  @override
+  String get chatGameKeysReplay => 'चालें दोबारा देखने के लिए ← और → दबाएँ';
+
+  @override
+  String get partyLdAcesRule =>
+      '1 पर बोली के लिए आधे काफ़ी हैं, ऊपर की ओर गिनकर। 1 से हटने के लिए दोगुने और एक चाहिए।';
+
+  @override
+  String get partyRaceGrace =>
+      'किसी के ख़त्म करते ही बाकी सबके पास 2 मिनट बचते हैं।';
+
+  @override
+  String get partyImposterClueRule => 'शब्द ख़ुद कभी नहीं';
+
+  @override
+  String get partyLdKeys => '↑ ↓ संख्या · 1–6 नंबर · Enter बोली · L झूठ';
+
+  @override
+  String get partyImposterVoteKeys =>
+      'वोट के लिए पंक्ति का नंबर दबाओ · छोड़ने के लिए 0';
+
+  @override
+  String get dailyStandingsHintedNote =>
+      'संकेत लेकर किए गए हल, बिना संकेत वाले हलों के बाद गिने जाते हैं';
+
+  @override
+  String get howToPatchesControls =>
+      'पैच काटने के लिए एक कोने से दूसरे कोने तक खींचो। आकार बदलने के लिए पैच का किनारा या कोना खींचो। हटाने के लिए पैच पर टैप करो।';
 }

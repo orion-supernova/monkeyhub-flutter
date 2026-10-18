@@ -114,6 +114,14 @@ class LiveCallsStore extends ChangeNotifier {
     if (had) notifyListeners();
   }
 
+  /// Puts [calls] on the list without a backend, for previews and widget
+  /// tests. An empty list clears them.
+  @visibleForTesting
+  void debugShow(List<LiveRoomCall> calls) {
+    _group = {for (final c in calls) c.roomId: c};
+    notifyListeners();
+  }
+
   void _onGroup(String userId, List<Map<String, dynamic>> rows) {
     if (_user != userId) return;
     final next = <String, LiveRoomCall>{

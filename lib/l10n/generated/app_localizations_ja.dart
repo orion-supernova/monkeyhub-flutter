@@ -1685,6 +1685,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callScreenControlCamOff => 'カメラOFF';
 
   @override
+  String get callScreenPeerCameraOff => 'カメラオフ';
+
+  @override
+  String get callScreenPeerCameraPaused => 'カメラ一時停止中';
+
+  @override
   String get callScreenControlFlip => '切替';
 
   @override
@@ -2587,12 +2593,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomLayoutScreenPlainCornerDescription => 'まだ発言のないルームはそのまま';
-
-  @override
-  String get roomLayoutScreenMonogramLabel => 'ルームの頭文字';
-
-  @override
-  String get roomLayoutScreenMonogramDescription => '大きな薄い文字が空いた角を埋めます';
 
   @override
   String get roomLayoutScreenActiveBadge => '使用中';
@@ -9590,24 +9590,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatListPageButtonSub => '必要なときだけフィルタを開くボタン。';
 
   @override
-  String get chatListPageEmptyHeader => '空のルーム';
-
-  @override
-  String get chatListPagePlain => 'シンプル';
-
-  @override
-  String get chatListPagePlainSub => 'まだ会話のないルームは何も表示しません。';
-
-  @override
-  String get chatListPageInitial => '頭文字';
-
-  @override
-  String get chatListPageInitialSub => '大きく淡い文字が空いた角を埋めます。';
-
-  @override
-  String get chatListPageEmptyFooter => 'グリッドレイアウトに適用されます。';
-
-  @override
   String get chatStylePageFooter => '会話のヘッダーと入力欄の表示方法。';
 
   @override
@@ -13376,7 +13358,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String voiceTranscriptCellularPrompt(String size) {
-    return '文字起こしはこの端末上で行われます。音声モデルのダウンロードは初回のみ（$size）です。';
+    return 'Bartleby はこの端末上で文字起こしをします。最初に一度だけダウンロード（$size）が必要です。';
   }
 
   @override
@@ -13386,7 +13368,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String voiceTranscriptDownloading(String received, String total) {
-    return '音声モデルをダウンロード中 · $received / $total';
+    return 'Bartleby の準備中 · $received / $total';
   }
 
   @override
@@ -13448,7 +13430,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String voiceTranscriptUpgradeOffer(String size) {
-    return '言語や言葉が違いますか？MonkeyHubの音声モデルは話されている言語を自動で聞き分け、100近くの言語に対応しています。ダウンロードは初回のみ（$size）、その後はオフラインで使えます。';
+    return '言語や言葉が違いますか？一度ダウンロードするだけ（$size）で、Bartleby が話されている言語を自動で聞き分け、100近くの言語に対応します。その後はオフラインで使えます。';
   }
 
   @override
@@ -13515,4 +13497,149 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get appOnlyTranscriptOffline => '準備ができればオフラインで使えます';
+
+  @override
+  String get liveCallChipVoice => '音声通話';
+
+  @override
+  String get liveCallChipVideo => 'ビデオ通話';
+
+  @override
+  String get companionBartlebyTagline => 'ボイスメッセージを文字にします';
+
+  @override
+  String get companionBartlebyBlurb =>
+      'Bartleby はボイスメッセージを聞いて、文字にしてくれます。この端末の中だけで。音声も言葉も、端末の外に出ることはありません。';
+
+  @override
+  String get bartlebyQuote => '「あなたの声は、どこにも送らずにすめばありがたいのですが。」';
+
+  @override
+  String get bartlebyStatusEveryLanguage => '100近くの言語に対応済み';
+
+  @override
+  String get bartlebyStatusBuiltInOnly => '内蔵の言語のみ';
+
+  @override
+  String get bartlebyBuiltInHeader => 'ダウンロードなしで使える言語';
+
+  @override
+  String get bartlebyBuiltInFooter =>
+      'この端末には Siri と音声入力用にこれらの言語がすでに入っているので、Bartleby はまずこれを使います。ダウンロードは不要です。ほかの言語には下のダウンロードが必要です。';
+
+  @override
+  String get bartlebyBuiltInFooterModel =>
+      '下のダウンロードはこれらの言語にも対応しているので、Bartleby はすべてのボイスメッセージにそれを使います。';
+
+  @override
+  String get bartlebyBuiltInNone => 'この端末にはまだありません';
+
+  @override
+  String get bartlebyModelTitle => 'より正確な文字起こし';
+
+  @override
+  String get bartlebyModelDetail => '話されている言語を自動で聞き分けます。100近くの言語、オフラインで動作';
+
+  @override
+  String bartlebyModelInstalled(String size) {
+    return 'この端末に保存済み · $size';
+  }
+
+  @override
+  String bartlebyStorageUsed(String size) {
+    return 'Bartleby はこの端末で $size 使用しています（保存した文字起こしを含む）。';
+  }
+
+  @override
+  String get bartlebyStorageEmpty => 'Bartleby はこの端末の容量を使っていません。';
+
+  @override
+  String get bartlebyCellularTitle => 'モバイルデータ通信でダウンロードしますか？';
+
+  @override
+  String bartlebyCellularBody(String size) {
+    return '初回のみの $size のダウンロードです。データ通信量を使いたくない場合は Wi-Fi につながるまでお待ちください。';
+  }
+
+  @override
+  String get bartlebyRemoveKeepsTranscripts => '作成済みの文字起こしは残ります。';
+
+  @override
+  String get settingsSearchKwTranscripts => '文字起こし, ボイスメッセージ, 音声, 音声入力';
+
+  @override
+  String get chatGameTakeback => '待った';
+
+  @override
+  String chatGameTakebackFrom(String name) {
+    return '$nameさんが最後の一手の待ったを求めています';
+  }
+
+  @override
+  String get chatGameTakebackAsked => '待ったをお願いしました';
+
+  @override
+  String chatGameTakebacksLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '待ったはあと$count回',
+      zero: '待ったはもう使えません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameNoTakebacksHard => '強いボット相手に待ったはできません';
+
+  @override
+  String get chatGameYouResigned => '投了しました';
+
+  @override
+  String get chatGameDrawAgreed => '引き分けで合意しました';
+
+  @override
+  String chatGameBotPlaysOn(String name) {
+    return '$nameはまだ続けたいようです';
+  }
+
+  @override
+  String get chatGameDrawTooSoon => 'あと2手指すと、もう一度引き分けを提案できます';
+
+  @override
+  String get chatGameTakebackTooSoon => 'この手の待ったはすでに断られました';
+
+  @override
+  String get chatGameMoves => '手順';
+
+  @override
+  String get chatGameBackToGame => '現在の局面に戻る';
+
+  @override
+  String get chatGameNoMovesYet => 'まだ手はありません';
+
+  @override
+  String get chatGameKeysReplay => '← → キーで手順をさかのぼれます';
+
+  @override
+  String get partyLdAcesRule => '1を宣言するなら個数は半分でいい（切り上げ）。1から戻すなら2倍に1を足す。';
+
+  @override
+  String get partyRaceGrace => '誰かが解き終わったら、残りの人はあと2分。';
+
+  @override
+  String get partyImposterClueRule => 'お題そのものは言わない';
+
+  @override
+  String get partyLdKeys => '↑ ↓ 個数 · 1–6 目 · Enter 宣言 · L ダウト';
+
+  @override
+  String get partyImposterVoteKeys => '行の番号キーで投票 · 0でスキップ';
+
+  @override
+  String get dailyStandingsHintedNote => 'ヒントを使った解答は、ヒントなしの解答より下の順位になります';
+
+  @override
+  String get howToPatchesControls =>
+      '角から角へドラッグしてパッチを切り取ろう。パッチの辺や角をドラッグすると形を変えられるよ。パッチをタップすると外せるよ。';
 }

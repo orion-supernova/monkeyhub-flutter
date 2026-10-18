@@ -1743,6 +1743,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get callScreenControlCamOff => 'Kamerayı kapat';
 
   @override
+  String get callScreenPeerCameraOff => 'Kamera kapalı';
+
+  @override
+  String get callScreenPeerCameraPaused => 'Kamera duraklatıldı';
+
+  @override
   String get callScreenControlFlip => 'Çevir';
 
   @override
@@ -2673,13 +2679,6 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get roomLayoutScreenPlainCornerDescription =>
       'henüz konuşulmamış oda sade kalır';
-
-  @override
-  String get roomLayoutScreenMonogramLabel => 'odanın baş harfi';
-
-  @override
-  String get roomLayoutScreenMonogramDescription =>
-      'boş köşeyi büyük, soluk bir harf doldurur';
 
   @override
   String get roomLayoutScreenActiveBadge => 'AKTİF';
@@ -9965,25 +9964,6 @@ class AppLocalizationsTr extends AppLocalizations {
       'İstediğinde filtreleri açan tek bir düğme.';
 
   @override
-  String get chatListPageEmptyHeader => 'Boş odalar';
-
-  @override
-  String get chatListPagePlain => 'Sade';
-
-  @override
-  String get chatListPagePlainSub => 'Henüz konuşulmamış bir oda sade kalır.';
-
-  @override
-  String get chatListPageInitial => 'Baş harf';
-
-  @override
-  String get chatListPageInitialSub =>
-      'Büyük, soluk bir harf boş köşeyi doldurur.';
-
-  @override
-  String get chatListPageEmptyFooter => 'Izgara düzeninde geçerlidir.';
-
-  @override
   String get chatStylePageFooter =>
       'Sohbetin başlığı ve mesaj alanının nasıl çizildiği.';
 
@@ -13944,7 +13924,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String voiceTranscriptCellularPrompt(String size) {
-    return 'Metinler telefonunda oluşturulur. Konuşma modeli tek seferlik $size indirmedir.';
+    return 'Bartleby metinleri telefonunda yazar. Önce tek seferlik $size indirme gerekiyor.';
   }
 
   @override
@@ -13954,7 +13934,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String voiceTranscriptDownloading(String received, String total) {
-    return 'Konuşma modeli indiriliyor · $received / $total';
+    return 'Bartleby hazırlanıyor · $received / $total';
   }
 
   @override
@@ -14017,7 +13997,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String voiceTranscriptUpgradeOffer(String size) {
-    return 'Dil ya da kelimeler mi yanlış? MonkeyHub\'ın konuşma modeli hangi dilin konuşulduğunu kendisi anlar ve 100\'e yakın dil bilir. Tek seferlik $size indirme, sonrası internetsiz.';
+    return 'Dil ya da kelimeler mi yanlış? Tek seferlik $size indirmeyle Bartleby hangi dilin konuşulduğunu kendisi anlar ve 100\'e yakın dil bilir. Sonrasında internetsiz çalışır.';
   }
 
   @override
@@ -14088,4 +14068,157 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get appOnlyTranscriptOffline =>
       'Kurulduktan sonra internetsiz çalışır';
+
+  @override
+  String get liveCallChipVoice => 'Sesli arama';
+
+  @override
+  String get liveCallChipVideo => 'Görüntülü arama';
+
+  @override
+  String get companionBartlebyTagline => 'Sesli mesajları yazıya döker';
+
+  @override
+  String get companionBartlebyBlurb =>
+      'Bartleby sesli mesajları dinler ve yazıya döker, hem de burada, telefonunda. Ne ses ne de yazılanlar telefonundan çıkar.';
+
+  @override
+  String get bartlebyQuote =>
+      '“Sesini hiçbir yere göndermemeyi tercih ederim.”';
+
+  @override
+  String get bartlebyStatusEveryLanguage => '100\'e yakın dil için hazır';
+
+  @override
+  String get bartlebyStatusBuiltInOnly => 'Yalnızca yerleşik diller';
+
+  @override
+  String get bartlebyBuiltInHeader => 'İndirmeden hazır diller';
+
+  @override
+  String get bartlebyBuiltInFooter =>
+      'Cihazında Siri ve dikte için bunlar zaten var, bu yüzden Bartleby önce bunları kullanır; indirilecek bir şey yok. Diğer diller için aşağıdaki indirme gerekir.';
+
+  @override
+  String get bartlebyBuiltInFooterModel =>
+      'Aşağıdaki indirme bunları da kapsıyor, bu yüzden Bartleby her sesli mesajda onu kullanır.';
+
+  @override
+  String get bartlebyBuiltInNone => 'Bu cihazda henüz yok';
+
+  @override
+  String get bartlebyModelTitle => 'Daha iyi metinler';
+
+  @override
+  String get bartlebyModelDetail =>
+      'Hangi dilin konuşulduğunu kendisi anlar. 100\'e yakın dil, internetsiz çalışır';
+
+  @override
+  String bartlebyModelInstalled(String size) {
+    return 'Bu cihazda · $size';
+  }
+
+  @override
+  String bartlebyStorageUsed(String size) {
+    return 'Bartleby bu cihazda $size yer kaplıyor, kayıtlı metinler dahil.';
+  }
+
+  @override
+  String get bartlebyStorageEmpty => 'Bartleby bu cihazda hiç yer kaplamıyor.';
+
+  @override
+  String get bartlebyCellularTitle => 'Mobil veriyle indirilsin mi?';
+
+  @override
+  String bartlebyCellularBody(String size) {
+    return 'Bu, tek seferlik bir $size indirme. Mobil veri kotanı harcamak istemiyorsan Wi-Fi\'ı bekle.';
+  }
+
+  @override
+  String get bartlebyRemoveKeepsTranscripts => 'Mevcut metinlerin silinmez.';
+
+  @override
+  String get settingsSearchKwTranscripts =>
+      'metin, sesli mesaj, konuşma, dikte, yazıya dökme';
+
+  @override
+  String get chatGameTakeback => 'Geri al';
+
+  @override
+  String chatGameTakebackFrom(String name) {
+    return '$name son hamlesini geri almak istiyor';
+  }
+
+  @override
+  String get chatGameTakebackAsked => 'Geri alma isteği gönderildi';
+
+  @override
+  String chatGameTakebacksLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count geri alma hakkın kaldı',
+      zero: 'Geri alma hakkın kalmadı',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameNoTakebacksHard => 'Zor bota karşı geri alma yok';
+
+  @override
+  String get chatGameYouResigned => 'Pes ettin';
+
+  @override
+  String get chatGameDrawAgreed => 'Berabere kalındı';
+
+  @override
+  String chatGameBotPlaysOn(String name) {
+    return '$name oynamaya devam etmek istiyor';
+  }
+
+  @override
+  String get chatGameDrawTooSoon =>
+      'İki hamle sonra tekrar beraberlik teklif edebilirsin';
+
+  @override
+  String get chatGameTakebackTooSoon =>
+      'Bu hamleyi geri alma isteğin zaten reddedildi';
+
+  @override
+  String get chatGameMoves => 'Hamleler';
+
+  @override
+  String get chatGameBackToGame => 'Güncel hamleye dön';
+
+  @override
+  String get chatGameNoMovesYet => 'Henüz hamle yok';
+
+  @override
+  String get chatGameKeysReplay => 'Hamleleri ← ve → ile gez';
+
+  @override
+  String get partyLdAcesRule =>
+      '1\'lere geçmek için yarısı yeter, yukarı yuvarlanır. 1\'lerden çıkmak için iki katı artı bir gerekir.';
+
+  @override
+  String get partyRaceGrace => 'Biri bitirdiğinde diğerlerine 2 dakika kalır.';
+
+  @override
+  String get partyImposterClueRule => 'Kelimenin kendisi olmaz';
+
+  @override
+  String get partyLdKeys => '↑ ↓ adet · 1–6 yüz · Enter teklif · L yalancı';
+
+  @override
+  String get partyImposterVoteKeys =>
+      'Oy için satırın numarasına bas · Atlamak için 0';
+
+  @override
+  String get dailyStandingsHintedNote =>
+      'İpucu kullanılan çözümler, ipucusuz çözümlerin ardından sıralanır';
+
+  @override
+  String get howToPatchesControls =>
+      'Yama kesmek için köşeden köşeye sürükle. Yeniden şekillendirmek için yamanın kenarını ya da köşesini sürükle. Kaldırmak için yamaya dokun.';
 }

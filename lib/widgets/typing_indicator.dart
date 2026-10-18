@@ -308,9 +308,13 @@ class _TypingRowState extends State<TypingRow> {
 /// The compact one-line form used on room cards and grid tiles, where the
 /// typing row replaces the last-message preview.
 class TypingLine extends StatelessWidget {
-  const TypingLine({super.key, required this.typists});
+  const TypingLine({super.key, required this.typists, this.fontSize});
 
   final List<ChatUser> typists;
+
+  /// The preview line's size, so typing replaces it without the line
+  /// jumping; the theme's soft body size when null.
+  final double? fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -325,7 +329,10 @@ class TypingLine extends StatelessWidget {
             // Upright, in the accent — the Telegram treatment. A slant
             // asked of a face with no italic cut is a synthetic skew, which
             // in a serif or a display face reads as a rendering fault.
-            style: theme.bodySoft.copyWith(color: theme.accent),
+            style: theme.bodySoft.copyWith(
+              color: theme.accent,
+              fontSize: fontSize,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

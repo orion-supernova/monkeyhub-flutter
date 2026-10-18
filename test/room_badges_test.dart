@@ -6,18 +6,17 @@ import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
-import 'package:monkeyhub/widgets/pinned_badge.dart';
 import 'package:monkeyhub/widgets/room_card.dart';
 import 'package:monkeyhub/widgets/room_grid_tile.dart';
 import 'package:monkeyhub/widgets/visibility_badge.dart';
 
-/// What the pills on a room say, and where they say it.
+/// What a room's facts say on a card and a grid tile, and where.
 ///
-/// A grid tile has room for icons and nothing else, so the words move into a
-/// tap tooltip; a full-width card keeps them. The rules worth pinning down are
-/// the ones a later layout change would quietly break: a DM must never carry a
-/// "PRIVATE" pill, an icon-only pill must still answer when tapped, and that
-/// tap must not fall through and open the room.
+/// Neither carries pills any more: a tile shows the quiet glyphs a row has,
+/// a card spells the facts out in one meta line of words. The rules worth
+/// pinning down are the ones a later layout change would quietly break: a DM
+/// never says "private", and a glyph on a tile never swallows the tap that
+/// opens the room.
 void main() {
   final epoch = DateTime(2026, 8, 8, 12);
 
@@ -53,110 +52,40 @@ void main() {
   Future<AppLocalizations> en() =>
       AppLocalizations.delegate.load(const Locale('en'));
 
-  /// Taps [badge] and returns once the tooltip is up. Lets the tooltip's own
-  /// hide timer run out afterwards so no timer outlives the test.
-  Future<void> tapBadge(WidgetTester tester, Finder badge) async {
-    await tester.tap(badge, warnIfMissed: false);
-    await tester.pumpAndSettle();
-  }
-
-  Future<void> settleTooltip(WidgetTester tester) async {
-    await tester.pump(const Duration(seconds: 4));
-    await tester.pumpAndSettle();
-  }
-
   group('grid tile', () {
-    testWidgets('a DM carries no visibility pill', (tester) async {
-      await tester.pumpWidget(
-        host(
+    Widget tile(ChatRoom r, {VoidCallback? onTap}) => host(
           SizedBox(
             width: 180,
             height: 180,
-            child: RoomGridTile(
-              room: room(name: 'dm:u1:u2', isPrivate: true),
-              onTap: () {},
-            ),
+            child: RoomGridTile(room: r, onTap: onTap ?? () {}),
           ),
-        ),
-      );
-      expect(tester.takeException(), isNull);
-      expect(
-        find.byType(VisibilityBadge),
-        findsNothing,
-        reason: 'private is the only thing a one-to-one could be',
-      );
-    });
+        );
 
-    testWidgets('a group room shows pills without words', (tester) async {
-      final loc = await en();
+    testWidgets('carries no pills at all, only the quiet glyphs a row has',
+        (tester) async {
       await tester.pumpWidget(
-        host(
-          SizedBox(
-            width: 180,
-            height: 180,
-            child: RoomGridTile(
-              room: room(hasPassword: true, ttl: const Duration(minutes: 5)),
-              onTap: () {},
-            ),
-          ),
-        ),
+        tile(room(hasPassword: true, ttl: const Duration(minutes: 5))),
       );
       expect(tester.takeException(), isNull);
-
-      expect(find.byType(VisibilityBadge), findsOneWidget);
-      expect(find.byType(LockedBadge), findsOneWidget);
-      expect(find.byType(EphemeralBadge), findsOneWidget);
-      expect(find.text(loc.enterPublicRoomVisibilityPublicLabel), findsNothing);
-      expect(find.text(loc.roomCardLockedBadge), findsNothing);
+      expect(find.byType(RoomBadge), findsNothing);
+      expect(find.byIcon(CupertinoIcons.lock_fill), findsOneWidget);
     });
 
-    testWidgets('an icon-only pill explains itself on tap, and the tap does '
-        'not open the room', (tester) async {
+    testWidgets('a DM carries no visibility word', (tester) async {
       final loc = await en();
+      await tester.pumpWidget(tile(room(name: 'dm:u1:u2', isPrivate: true)));
+      expect(tester.takeException(), isNull);
+      expect(find.text(loc.enterPublicRoomVisibilityPrivateLabel), findsNothing);
+    });
+
+    testWidgets('a tap anywhere on the tile opens the room', (tester) async {
       var opened = false;
       await tester.pumpWidget(
-        host(
-          SizedBox(
-            width: 180,
-            height: 180,
-            child: RoomGridTile(
-              room: room(hasPassword: true),
-              onTap: () => opened = true,
-            ),
-          ),
-        ),
+        tile(room(hasPassword: true), onTap: () => opened = true),
       );
-
-      await tapBadge(tester, find.byType(LockedBadge));
-      expect(find.text(loc.roomBadgeLockedTooltip), findsOneWidget);
-      expect(opened, isFalse, reason: 'the pill consumed its own tap');
-      await settleTooltip(tester);
-    });
-
-    testWidgets('the hourglass keeps its timer in the tooltip', (tester) async {
-      final loc = await en();
-      await tester.pumpWidget(
-        host(
-          SizedBox(
-            width: 180,
-            height: 180,
-            child: RoomGridTile(
-              room: room(ttl: const Duration(minutes: 5)),
-              onTap: () {},
-            ),
-          ),
-        ),
-      );
-
-      await tapBadge(tester, find.byType(EphemeralBadge));
-      expect(
-        find.text(loc.roomBadgeEphemeralTooltip(
-          loc.enterPublicRoomEphemeralMinutesShort(5),
-        )),
-        findsOneWidget,
-        reason: 'an hourglass alone says "not forever", not when',
-      );
-      await settleTooltip(tester);
+      await tester.tap(find.byIcon(CupertinoIcons.lock_fill));
+      await tester.pumpAndSettle();
+      expect(opened, isTrue);
     });
   });
 
@@ -213,29 +142,41 @@ void main() {
   });
 
   group('row card', () {
-    testWidgets('keeps the words a grid tile has no room for', (tester) async {
+    testWidgets('spells the facts out in words, without pills', (tester) async {
       final loc = await en();
       await tester.pumpWidget(
         host(RoomCard(room: room(hasPassword: true), onTap: () {})),
       );
       expect(tester.takeException(), isNull);
-
-      expect(find.text(loc.enterPublicRoomVisibilityPublicLabel), findsOneWidget);
-      expect(find.text(loc.roomCardLockedBadge), findsOneWidget);
+      expect(find.byType(RoomBadge), findsNothing);
+      final meta = find.textContaining(loc.roomCardLockedBadge, findRichText: true);
+      expect(meta, findsOneWidget);
+      final text = tester.widget<RichText>(meta).text.toPlainText();
+      expect(text, contains(loc.enterPublicRoomVisibilityPublicLabel));
+      expect(text, contains(loc.roomCardMemberCount(4)));
     });
 
-    testWidgets('still explains on tap', (tester) async {
+    testWidgets('a secret room leads with how long messages last',
+        (tester) async {
       final loc = await en();
       await tester.pumpWidget(
-        host(RoomCard(room: room(), onTap: () {})),
+        host(RoomCard(
+          room: room(hasPassword: true, ttl: const Duration(hours: 24)),
+          onTap: () {},
+        )),
       );
-
-      await tapBadge(tester, find.byType(VisibilityBadge));
-      expect(find.text(loc.roomBadgePublicTooltip), findsOneWidget);
-      await settleTooltip(tester);
+      final eph = loc.enterPublicRoomEphemeralBadgeLabel(
+        loc.enterPublicRoomEphemeralHoursShort(24),
+      );
+      final text = tester
+          .widget<RichText>(find.textContaining(eph, findRichText: true))
+          .text
+          .toPlainText();
+      expect(text.indexOf(eph), lessThan(text.indexOf(loc.roomCardMemberCount(4))));
     });
 
-    testWidgets('a DM carries no visibility pill either', (tester) async {
+    testWidgets('a DM has no meta line', (tester) async {
+      final loc = await en();
       await tester.pumpWidget(
         host(
           RoomCard(
@@ -244,7 +185,11 @@ void main() {
           ),
         ),
       );
-      expect(find.byType(VisibilityBadge), findsNothing);
+      expect(
+        find.textContaining(loc.enterPublicRoomVisibilityPrivateLabel,
+            findRichText: true),
+        findsNothing,
+      );
     });
   });
 
@@ -253,12 +198,12 @@ void main() {
       await tester.pumpWidget(
         host(RoomCard(room: room(isPinned: true), onTap: () {})),
       );
-      expect(find.byType(PinnedBadge), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.pin_fill), findsOneWidget);
     });
 
     testWidgets('an unpinned room carries no pinned badge', (tester) async {
       await tester.pumpWidget(host(RoomCard(room: room(), onTap: () {})));
-      expect(find.byType(PinnedBadge), findsNothing);
+      expect(find.byIcon(CupertinoIcons.pin_fill), findsNothing);
     });
 
     testWidgets(
@@ -272,7 +217,7 @@ void main() {
             ),
           ),
         );
-        expect(find.byType(PinnedBadge), findsOneWidget);
+        expect(find.byIcon(CupertinoIcons.pin_fill), findsOneWidget);
       },
     );
 
@@ -288,7 +233,7 @@ void main() {
           RoomCard(room: room(name: 'dm:self:u1'), onTap: () {}),
         ),
       );
-      expect(find.byType(PinnedBadge), findsNothing);
+      expect(find.byIcon(CupertinoIcons.pin_fill), findsNothing);
     });
 
     testWidgets(

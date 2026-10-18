@@ -2,20 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
-import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/room_card.dart';
 import 'package:monkeyhub/widgets/room_grid_tile.dart';
-import 'package:monkeyhub/widgets/room_identity.dart';
 
 /// What a room card says when the room hasn't said anything yet.
 ///
 /// The box is a fixed size whether or not there's anything in it, so the rules
-/// here are about what fills it: the description nobody was showing, a stamp
-/// for how long it's been quiet, and a monogram for the rooms that have none
-/// of the above. And the card must not shrink — a card that collapses for
+/// here are about what fills it: the description nobody was showing, else a
+/// plain "quiet so far" (the optional big faded letter is retired). And the
+/// card must not shrink — a card that collapses for
 /// want of a preview is the one that looks broken next to a full one.
 void main() {
   final epoch = DateTime(2026, 8, 8, 12);
@@ -94,43 +92,12 @@ void main() {
 
   });
 
-  group('the monogram', () {
-    final store = SettingsStore.instance;
-    tearDown(() => store.setRoomMonogram(false));
-
-    testWidgets('stays off until asked for', (tester) async {
+  group('no monogram', () {
+    testWidgets('a quiet tile stays plain: the retired big letter never draws',
+        (tester) async {
       await tester.pumpWidget(host(tile(room())));
-      expect(find.byType(RoomMonogram), findsNothing);
-    });
-
-    testWidgets('fills a quiet tile once it is on', (tester) async {
-      await store.setRoomMonogram(true);
-      await tester.pumpWidget(host(tile(room())));
-      expect(find.byType(RoomMonogram), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(RoomMonogram),
-          matching: find.text('D'),
-        ),
-        findsOneWidget,
-        reason: 'the room initial',
-      );
-    });
-
-    testWidgets('keeps out of a tile that has something to say', (tester) async {
-      await store.setRoomMonogram(true);
-      await tester.pumpWidget(host(tile(room(lastMessage: 'ayşe: pushed the fix'))));
-      expect(
-        find.byType(RoomMonogram),
-        findsNothing,
-        reason: 'a letter behind a full tile is clutter, not a backdrop',
-      );
-    });
-
-    testWidgets('never lands on a row, which has no hole to fill', (tester) async {
-      await store.setRoomMonogram(true);
-      await tester.pumpWidget(host(RoomCard(room: room(), onTap: () {})));
-      expect(find.byType(RoomMonogram), findsNothing);
+      expect(tester.takeException(), isNull);
+      expect(find.text('D'), findsOneWidget, reason: 'only the avatar initial');
     });
   });
 
@@ -152,14 +119,10 @@ void main() {
       expect(bare, busy);
     });
 
-    testWidgets('a room nobody has spoken in says how long it has been there',
-        (tester) async {
+    testWidgets('a room nobody has spoken in says it is quiet', (tester) async {
       final loc = await en();
       await tester.pumpWidget(host(RoomCard(room: room(), onTap: () {})));
-      expect(
-        find.text(loc.roomCardStartedAgo(loc.roomCardTimeAgoDays(3))),
-        findsOneWidget,
-      );
+      expect(find.text(loc.roomGridTileEmptyLastMessage), findsOneWidget);
     });
   });
 }

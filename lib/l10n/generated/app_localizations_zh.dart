@@ -1659,6 +1659,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callScreenControlCamOff => '关镜头';
 
   @override
+  String get callScreenPeerCameraOff => '摄像头已关闭';
+
+  @override
+  String get callScreenPeerCameraPaused => '摄像头已暂停';
+
+  @override
   String get callScreenControlFlip => '翻转';
 
   @override
@@ -2549,12 +2555,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomLayoutScreenPlainCornerDescription => '还没人说话的房间保持简洁';
-
-  @override
-  String get roomLayoutScreenMonogramLabel => '房间首字母';
-
-  @override
-  String get roomLayoutScreenMonogramDescription => '一个巨大的淡色字母填满空角';
 
   @override
   String get roomLayoutScreenActiveBadge => '使用中';
@@ -9486,24 +9486,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatListPageButtonSub => '一个按钮，需要时再打开筛选。';
 
   @override
-  String get chatListPageEmptyHeader => '空房间';
-
-  @override
-  String get chatListPagePlain => '简洁';
-
-  @override
-  String get chatListPagePlainSub => '还没人说话的房间保持空白。';
-
-  @override
-  String get chatListPageInitial => '首字母';
-
-  @override
-  String get chatListPageInitialSub => '一个淡淡的大字母填满空白角落。';
-
-  @override
-  String get chatListPageEmptyFooter => '适用于网格布局。';
-
-  @override
   String get chatStylePageFooter => '会话标题栏和输入框的显示方式。';
 
   @override
@@ -13250,7 +13232,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String voiceTranscriptCellularPrompt(String size) {
-    return '转写在你的手机上完成。语音模型只需下载一次（$size）。';
+    return 'Bartleby 在你的手机上完成转写。他需要先下载一次（$size）。';
   }
 
   @override
@@ -13260,7 +13242,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String voiceTranscriptDownloading(String received, String total) {
-    return '正在下载语音模型 · $received / $total';
+    return 'Bartleby 正在准备 · $received / $total';
   }
 
   @override
@@ -13322,7 +13304,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String voiceTranscriptUpgradeOffer(String size) {
-    return '语言或文字不对？MonkeyHub 语音模型能自己听出说的是哪种语言，支持近 100 种语言。只需下载一次（$size），之后可离线使用。';
+    return '语言或文字不对？只需下载一次（$size），Bartleby 就能自己听出说的是哪种语言，支持近 100 种语言。之后可离线使用。';
   }
 
   @override
@@ -13389,4 +13371,149 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get appOnlyTranscriptOffline => '设置好后可离线使用';
+
+  @override
+  String get liveCallChipVoice => '语音通话';
+
+  @override
+  String get liveCallChipVideo => '视频通话';
+
+  @override
+  String get companionBartlebyTagline => '把语音消息写成文字';
+
+  @override
+  String get companionBartlebyBlurb =>
+      'Bartleby 会听语音消息并把它写成文字，就在你的手机上完成。音频和文字都不会离开你的手机。';
+
+  @override
+  String get bartlebyQuote => '“我宁愿不把你的声音发到任何地方。”';
+
+  @override
+  String get bartlebyStatusEveryLanguage => '已就绪，支持近 100 种语言';
+
+  @override
+  String get bartlebyStatusBuiltInOnly => '仅限内置语言';
+
+  @override
+  String get bartlebyBuiltInHeader => '无需下载即可使用的语言';
+
+  @override
+  String get bartlebyBuiltInFooter =>
+      '你的设备已为 Siri 和听写准备了这些语言，所以 Bartleby 会先用它们，无需下载。其他语言需要下方的下载。';
+
+  @override
+  String get bartlebyBuiltInFooterModel =>
+      '下方的下载也涵盖这些语言，所以 Bartleby 会用它处理每条语音消息。';
+
+  @override
+  String get bartlebyBuiltInNone => '此设备上暂无';
+
+  @override
+  String get bartlebyModelTitle => '更好的转写';
+
+  @override
+  String get bartlebyModelDetail => '能听出说的是哪种语言。支持近 100 种语言，可离线使用';
+
+  @override
+  String bartlebyModelInstalled(String size) {
+    return '在这台设备上 · $size';
+  }
+
+  @override
+  String bartlebyStorageUsed(String size) {
+    return 'Bartleby 在此设备上占用 $size，包括已保存的转写。';
+  }
+
+  @override
+  String get bartlebyStorageEmpty => 'Bartleby 未占用此设备的空间。';
+
+  @override
+  String get bartlebyCellularTitle => '使用蜂窝数据下载？';
+
+  @override
+  String bartlebyCellularBody(String size) {
+    return '这是一次性下载，大小为 $size。如果不想消耗流量，请等连上 Wi-Fi 再下载。';
+  }
+
+  @override
+  String get bartlebyRemoveKeepsTranscripts => '已有的转写会保留。';
+
+  @override
+  String get settingsSearchKwTranscripts => '转写, 语音消息, 语音, 听写';
+
+  @override
+  String get chatGameTakeback => '悔棋';
+
+  @override
+  String chatGameTakebackFrom(String name) {
+    return '$name 请求悔一步';
+  }
+
+  @override
+  String get chatGameTakebackAsked => '已请求悔棋';
+
+  @override
+  String chatGameTakebacksLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '还可悔棋 $count 次',
+      zero: '悔棋次数已用完',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameNoTakebacksHard => '对战困难机器人不能悔棋';
+
+  @override
+  String get chatGameYouResigned => '你认输了';
+
+  @override
+  String get chatGameDrawAgreed => '双方同意平局';
+
+  @override
+  String chatGameBotPlaysOn(String name) {
+    return '$name 想继续玩';
+  }
+
+  @override
+  String get chatGameDrawTooSoon => '再走两步后才能再次提和';
+
+  @override
+  String get chatGameTakebackTooSoon => '对方已拒绝这一步悔棋';
+
+  @override
+  String get chatGameMoves => '棋步';
+
+  @override
+  String get chatGameBackToGame => '回到当前';
+
+  @override
+  String get chatGameNoMovesYet => '还没有走棋';
+
+  @override
+  String get chatGameKeysReplay => '用 ← 和 → 回看每一步';
+
+  @override
+  String get partyLdAcesRule => '改叫 1 点只需一半个数，向上取整。从 1 点改回其他点数，需要两倍再加一。';
+
+  @override
+  String get partyRaceGrace => '有人完成后，其他人只剩 2 分钟。';
+
+  @override
+  String get partyImposterClueRule => '不能直接说出这个词';
+
+  @override
+  String get partyLdKeys => '↑ ↓ 个数 · 1–6 点数 · Enter 叫 · L 开';
+
+  @override
+  String get partyImposterVoteKeys => '按行号投票 · 按 0 跳过';
+
+  @override
+  String get dailyStandingsHintedNote => '使用过提示的解答排在未使用提示的解答之后';
+
+  @override
+  String get howToPatchesControls =>
+      '从一个角拖到对角，切出一块拼块。拖动拼块的边或角可以改变它的形状。点一下拼块就能拿掉。';
 }

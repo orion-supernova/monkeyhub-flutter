@@ -1798,6 +1798,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callScreenControlCamOff => 'Couper la caméra';
 
   @override
+  String get callScreenPeerCameraOff => 'Caméra désactivée';
+
+  @override
+  String get callScreenPeerCameraPaused => 'Caméra en pause';
+
+  @override
   String get callScreenControlFlip => 'Basculer';
 
   @override
@@ -2745,13 +2751,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get roomLayoutScreenPlainCornerDescription =>
       'un salon sans messages reste nu';
-
-  @override
-  String get roomLayoutScreenMonogramLabel => 'l\'initiale du salon';
-
-  @override
-  String get roomLayoutScreenMonogramDescription =>
-      'une grande lettre pâle remplit le coin';
 
   @override
   String get roomLayoutScreenActiveBadge => 'ACTIF';
@@ -10154,26 +10153,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un bouton qui ouvre les filtres quand tu veux.';
 
   @override
-  String get chatListPageEmptyHeader => 'Salons vides';
-
-  @override
-  String get chatListPagePlain => 'Sobre';
-
-  @override
-  String get chatListPagePlainSub => 'Un salon sans message reste dépouillé.';
-
-  @override
-  String get chatListPageInitial => 'Initiale';
-
-  @override
-  String get chatListPageInitialSub =>
-      'Une grande lettre estompée remplit le coin vide.';
-
-  @override
-  String get chatListPageEmptyFooter =>
-      'S\'applique à la disposition en grille.';
-
-  @override
   String get chatStylePageFooter =>
       'Comment l\'en-tête et le champ de message sont dessinés.';
 
@@ -14203,7 +14182,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String voiceTranscriptCellularPrompt(String size) {
-    return 'Les transcriptions sont faites sur ton téléphone. Le modèle vocal se télécharge une seule fois ($size).';
+    return 'Bartleby fait les transcriptions sur ton téléphone. Il lui faut d\'abord un téléchargement unique de $size.';
   }
 
   @override
@@ -14213,7 +14192,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String voiceTranscriptDownloading(String received, String total) {
-    return 'Téléchargement du modèle vocal · $received sur $total';
+    return 'Bartleby se prépare · $received sur $total';
   }
 
   @override
@@ -14279,7 +14258,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String voiceTranscriptUpgradeOffer(String size) {
-    return 'Mauvaise langue ou mauvais mots ? Le modèle vocal de MonkeyHub reconnaît la langue parlée et en connaît près de 100. Téléchargement unique de $size, puis il fonctionne hors ligne.';
+    return 'Mauvaise langue ou mauvais mots ? Avec un téléchargement unique de $size, Bartleby reconnaît la langue parlée et en connaît près de 100. Ensuite, il fonctionne hors ligne.';
   }
 
   @override
@@ -14353,4 +14332,163 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get appOnlyTranscriptOffline =>
       'Fonctionne hors ligne une fois installé';
+
+  @override
+  String get liveCallChipVoice => 'Appel vocal';
+
+  @override
+  String get liveCallChipVideo => 'Appel vidéo';
+
+  @override
+  String get companionBartlebyTagline => 'Met les messages vocaux par écrit';
+
+  @override
+  String get companionBartlebyBlurb =>
+      'Bartleby écoute les messages vocaux et les met par écrit, ici même, sur ton téléphone. Ni le son ni les mots n\'en sortent jamais.';
+
+  @override
+  String get bartlebyQuote =>
+      '« Je préférerais ne pas envoyer ta voix où que ce soit. »';
+
+  @override
+  String get bartlebyStatusEveryLanguage => 'Prêt pour près de 100 langues';
+
+  @override
+  String get bartlebyStatusBuiltInOnly => 'Langues intégrées uniquement';
+
+  @override
+  String get bartlebyBuiltInHeader => 'Langues prêtes sans téléchargement';
+
+  @override
+  String get bartlebyBuiltInFooter =>
+      'Ton appareil les a déjà pour Siri et la dictée, alors Bartleby les utilise en premier, sans rien télécharger. Les autres langues ont besoin du téléchargement ci-dessous.';
+
+  @override
+  String get bartlebyBuiltInFooterModel =>
+      'Le téléchargement ci-dessous couvre aussi celles-ci, alors Bartleby l\'utilise pour tous les messages vocaux.';
+
+  @override
+  String get bartlebyBuiltInNone => 'Aucune sur cet appareil pour l\'instant';
+
+  @override
+  String get bartlebyModelTitle => 'De meilleures transcriptions';
+
+  @override
+  String get bartlebyModelDetail =>
+      'Reconnaît la langue parlée. Près de 100 langues, fonctionne hors ligne';
+
+  @override
+  String bartlebyModelInstalled(String size) {
+    return 'Sur cet appareil · $size';
+  }
+
+  @override
+  String bartlebyStorageUsed(String size) {
+    return 'Bartleby occupe $size sur cet appareil, transcriptions enregistrées comprises.';
+  }
+
+  @override
+  String get bartlebyStorageEmpty =>
+      'Bartleby n\'occupe aucun espace sur cet appareil.';
+
+  @override
+  String get bartlebyCellularTitle => 'Télécharger en données mobiles ?';
+
+  @override
+  String bartlebyCellularBody(String size) {
+    return 'C\'est un téléchargement unique de $size. Attends le Wi-Fi si tu préfères ne pas utiliser ton forfait.';
+  }
+
+  @override
+  String get bartlebyRemoveKeepsTranscripts =>
+      'Les transcriptions que tu as déjà sont conservées.';
+
+  @override
+  String get settingsSearchKwTranscripts =>
+      'transcription, message vocal, parole, dictée';
+
+  @override
+  String get chatGameTakeback => 'Reprendre';
+
+  @override
+  String chatGameTakebackFrom(String name) {
+    return '$name demande à reprendre son dernier coup';
+  }
+
+  @override
+  String get chatGameTakebackAsked => 'Demande de reprise envoyée';
+
+  @override
+  String chatGameTakebacksLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Encore $count reprises',
+      one: 'Encore 1 reprise',
+      zero: 'Plus de reprise possible',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameNoTakebacksHard =>
+      'Pas de reprise contre le bot difficile';
+
+  @override
+  String get chatGameYouResigned => 'Tu as abandonné';
+
+  @override
+  String get chatGameDrawAgreed => 'Match nul accepté';
+
+  @override
+  String chatGameBotPlaysOn(String name) {
+    return '$name veut continuer';
+  }
+
+  @override
+  String get chatGameDrawTooSoon =>
+      'Tu pourras reproposer la nulle dans deux coups';
+
+  @override
+  String get chatGameTakebackTooSoon =>
+      'La reprise de ce coup a déjà été refusée';
+
+  @override
+  String get chatGameMoves => 'Coups';
+
+  @override
+  String get chatGameBackToGame => 'Revenir au coup actuel';
+
+  @override
+  String get chatGameNoMovesYet => 'Aucun coup pour l\'instant';
+
+  @override
+  String get chatGameKeysReplay => '← et → pour revoir les coups';
+
+  @override
+  String get partyLdAcesRule =>
+      'Pour passer aux 1, la moitié suffit, arrondie au-dessus. Pour quitter les 1, il faut le double plus un.';
+
+  @override
+  String get partyRaceGrace =>
+      'Dès que quelqu’un finit, les autres ont encore 2 minutes.';
+
+  @override
+  String get partyImposterClueRule => 'Jamais le mot lui-même';
+
+  @override
+  String get partyLdKeys =>
+      '↑ ↓ quantité · 1–6 face · Entrée enchérir · L menteur';
+
+  @override
+  String get partyImposterVoteKeys =>
+      'Appuie sur le numéro d’une ligne pour voter · 0 pour passer';
+
+  @override
+  String get dailyStandingsHintedNote =>
+      'Les grilles résolues avec un indice sont classées après celles sans indice';
+
+  @override
+  String get howToPatchesControls =>
+      'Glisse d’un coin à l’autre pour découper un patch. Fais glisser un côté ou un coin d’un patch pour changer sa forme. Touche un patch pour l’enlever.';
 }

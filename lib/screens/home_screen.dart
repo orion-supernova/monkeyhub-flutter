@@ -28,6 +28,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
+import '../theme/density.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
@@ -703,7 +704,21 @@ class _HomeScreenState extends State<HomeScreen>
                       // an already short viewport on every screen, and it reads
                       // as part of the list's own header, not as chrome. Only
                       // the header above stays pinned.
-                      if (chipsStyle) ...[
+                      // A pointer and a pane: every filter on screen at once,
+                      // as segmented groups, instead of a row to scroll.
+                      if (chipsStyle &&
+                          (Density.platformOffersCompact ||
+                              context.usesSplitShell)) ...[
+                        Padding(
+                          padding: _gutter,
+                          child: RoomFilterSegments(
+                            filter: filter,
+                            counts: counts,
+                            onChanged: _setFilter,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ] else if (chipsStyle) ...[
                         // Not wrapped in `_gutter` on purpose: it takes the full
                         // width and applies the margin as scroll padding.
                         RoomFilterBar(
@@ -1033,52 +1048,35 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     final layout = SettingsStore.instance.roomLayout;
 
     if (layout == RoomLayout.grid) {
-      // Medium/expanded windows get a third column; phones stay at two.
-      final cols = context.isCompact ? 2 : 3;
-      final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: cols,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.1,
-      );
-
-      // Flat while searching, same reasoning as the list layout below.
-      if (searching) {
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: gridDelegate,
-          itemCount: rooms.length,
-          itemBuilder: (context, i) => _gridTile(context, theme, rooms[i], i),
-        );
-      }
-
-      // ONE grid, pinned first — not two grids with a spacer between them.
-      //
-      // The two-grid version existed to put a visible seam between the groups,
-      // standing in for the "PINNED" heading that was removed. But every
-      // pinned tile already carries its own pin badge, which is what made the
-      // heading redundant in the first place — and it makes the seam redundant
-      // for exactly the same reason. What the seam actually produced was a
-      // grid that looked like it had a layout bug in it.
-      //
-      // Building it as one grid does not just remove the gap, it makes the gap
-      // unrepresentable: every row is separated by `mainAxisSpacing` because
-      // there is only one thing doing the separating. Tuning the spacer to
-      // "look equal" would have been a number to keep in sync with the
-      // delegate forever.
-      //
-      // The LIST layout below still has its deliberate doubled seam. Left
-      // alone on purpose: it is a different layout with a different rhythm
-      // (each card carries its own margin), and nobody asked for it to change.
-      final parts = partitionPinned(rooms);
-      final ordered = [...parts.pinned, ...parts.regular];
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: gridDelegate,
-        itemCount: ordered.length,
-        itemBuilder: (context, i) => _gridTile(context, theme, ordered[i], i),
+      // Columns from the width the list actually has, not the window's: the
+      // chat list is a ~360pt pane in the desktop shell, and three columns
+      // there were 100pt tiles. Height from the tile's content, not an
+      // aspect ratio — see [RoomGridMetrics.extent].
+      final m = RoomGridMetrics.of(Density.of(context));
+      final extent = RoomGridMetrics.extentFor(context);
+      // ONE grid, pinned first, flat while searching (same reasoning as the
+      // list below). Not two grids with a spacer: every pinned tile carries
+      // its own pin, and a seam in a grid reads as a layout bug.
+      final parts = searching ? null : partitionPinned(rooms);
+      final ordered =
+          parts == null ? rooms : [...parts.pinned, ...parts.regular];
+      return LayoutBuilder(
+        builder: (context, box) {
+          final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: m.columnsFor(box.maxWidth),
+            mainAxisSpacing: m.spacing,
+            crossAxisSpacing: m.spacing,
+            mainAxisExtent: extent,
+          );
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: gridDelegate,
+            itemCount: ordered.length,
+            itemBuilder: (context, i) =>
+                _gridTile(context, theme, ordered[i], i),
+          );
+        },
       );
     }
 
@@ -1248,7 +1246,9 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       // rows.
       key: ValueKey(room.id),
       tween: Tween(begin: 0, end: 1),
-      duration: theme.motionMed + Duration(milliseconds: index * 60),
+      // Staggered for what a screen shows; past that every row lands
+      // together, so a long list never takes seconds to settle.
+      duration: theme.motionMed + Duration(milliseconds: index.clamp(0, 9) * 45),
       curve: theme.motionEntrance,
       builder: (context, v, child) => Transform.translate(
         offset: Offset(0, (1 - v) * 16),
@@ -1333,7 +1333,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       // room; its avatar then reloads (and briefly shows the wrong face).
       key: ValueKey(room.id),
       tween: Tween(begin: 0, end: 1),
-      duration: theme.motionMed + Duration(milliseconds: index * 40),
+      duration: theme.motionMed + Duration(milliseconds: index.clamp(0, 9) * 40),
       curve: theme.motionEntrance,
       builder: (context, v, child) => Transform.translate(
         offset: Offset(0, (1 - v) * 12),

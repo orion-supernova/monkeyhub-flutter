@@ -1684,6 +1684,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callScreenControlCamOff => '카메라 끄기';
 
   @override
+  String get callScreenPeerCameraOff => '카메라 꺼짐';
+
+  @override
+  String get callScreenPeerCameraPaused => '카메라 일시 정지됨';
+
+  @override
   String get callScreenControlFlip => '전환';
 
   @override
@@ -2589,12 +2595,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomLayoutScreenPlainCornerDescription => '아직 아무 말도 없는 방은 그대로 둬요';
-
-  @override
-  String get roomLayoutScreenMonogramLabel => '방 이름 첫 글자';
-
-  @override
-  String get roomLayoutScreenMonogramDescription => '크고 옅은 글자가 빈 모서리를 채워요';
 
   @override
   String get roomLayoutScreenActiveBadge => '사용 중';
@@ -9614,24 +9614,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatListPageButtonSub => '필요할 때 필터를 여는 버튼 하나.';
 
   @override
-  String get chatListPageEmptyHeader => '빈 방';
-
-  @override
-  String get chatListPagePlain => '단순';
-
-  @override
-  String get chatListPagePlainSub => '아직 대화가 없는 방은 비워 둬요.';
-
-  @override
-  String get chatListPageInitial => '첫 글자';
-
-  @override
-  String get chatListPageInitialSub => '크고 흐린 글자가 빈 모서리를 채워요.';
-
-  @override
-  String get chatListPageEmptyFooter => '그리드 레이아웃에 적용돼요.';
-
-  @override
   String get chatStylePageFooter => '대화 헤더와 입력란이 그려지는 방식.';
 
   @override
@@ -13409,7 +13391,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String voiceTranscriptCellularPrompt(String size) {
-    return '텍스트 변환은 휴대폰에서 이루어집니다. 음성 모델은 한 번만 내려받으면 됩니다($size).';
+    return 'Bartleby는 휴대폰 안에서 텍스트로 옮깁니다. 먼저 한 번만 내려받으면 됩니다($size).';
   }
 
   @override
@@ -13419,7 +13401,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String voiceTranscriptDownloading(String received, String total) {
-    return '음성 모델 내려받는 중 · $received / $total';
+    return 'Bartleby 준비 중 · $received / $total';
   }
 
   @override
@@ -13481,7 +13463,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String voiceTranscriptUpgradeOffer(String size) {
-    return '언어나 단어가 틀렸나요? MonkeyHub 음성 모델은 어떤 언어인지 스스로 알아듣고 100개 가까운 언어를 지원합니다. 한 번만 내려받으면($size) 이후 오프라인으로 작동합니다.';
+    return '언어나 단어가 틀렸나요? 한 번만 내려받으면($size) Bartleby가 어떤 언어인지 스스로 알아듣고 100개 가까운 언어를 지원합니다. 그 후에는 오프라인으로 작동합니다.';
   }
 
   @override
@@ -13548,4 +13530,150 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get appOnlyTranscriptOffline => '설정을 마치면 오프라인으로 작동해요';
+
+  @override
+  String get liveCallChipVoice => '음성 통화';
+
+  @override
+  String get liveCallChipVideo => '영상 통화';
+
+  @override
+  String get companionBartlebyTagline => '음성 메시지를 글로 옮깁니다';
+
+  @override
+  String get companionBartlebyBlurb =>
+      'Bartleby는 음성 메시지를 듣고 글로 옮겨 줍니다. 바로 이 휴대폰 안에서요. 소리도, 글도 휴대폰 밖으로 나가지 않습니다.';
+
+  @override
+  String get bartlebyQuote => '“목소리를 어디에도 보내지 않는 편을 택하겠습니다.”';
+
+  @override
+  String get bartlebyStatusEveryLanguage => '100개 가까운 언어 준비됨';
+
+  @override
+  String get bartlebyStatusBuiltInOnly => '기본 제공 언어만';
+
+  @override
+  String get bartlebyBuiltInHeader => '내려받지 않아도 되는 언어';
+
+  @override
+  String get bartlebyBuiltInFooter =>
+      '이 기기에는 Siri와 받아쓰기용으로 이 언어들이 이미 있어서, Bartleby가 먼저 사용합니다. 내려받을 것은 없습니다. 다른 언어는 아래 항목을 내려받아야 합니다.';
+
+  @override
+  String get bartlebyBuiltInFooterModel =>
+      '아래에서 내려받은 항목이 이 언어들도 지원하므로, Bartleby는 모든 음성 메시지에 그것을 사용합니다.';
+
+  @override
+  String get bartlebyBuiltInNone => '아직 이 기기에 없음';
+
+  @override
+  String get bartlebyModelTitle => '더 정확한 텍스트';
+
+  @override
+  String get bartlebyModelDetail => '어떤 언어인지 스스로 알아듣습니다. 100개 가까운 언어, 오프라인 작동';
+
+  @override
+  String bartlebyModelInstalled(String size) {
+    return '이 기기에 저장됨 · $size';
+  }
+
+  @override
+  String bartlebyStorageUsed(String size) {
+    return 'Bartleby가 이 기기에서 $size를 사용 중입니다. 저장된 텍스트 포함.';
+  }
+
+  @override
+  String get bartlebyStorageEmpty => 'Bartleby가 이 기기에서 사용하는 공간은 없습니다.';
+
+  @override
+  String get bartlebyCellularTitle => '셀룰러 데이터로 내려받을까요?';
+
+  @override
+  String bartlebyCellularBody(String size) {
+    return '한 번만 내려받으면 되는 $size 파일입니다. 데이터 요금이 걱정된다면 Wi-Fi에 연결될 때까지 기다리세요.';
+  }
+
+  @override
+  String get bartlebyRemoveKeepsTranscripts => '이미 만든 텍스트는 유지됩니다.';
+
+  @override
+  String get settingsSearchKwTranscripts => '텍스트 변환, 음성 메시지, 음성, 받아쓰기';
+
+  @override
+  String get chatGameTakeback => '무르기';
+
+  @override
+  String chatGameTakebackFrom(String name) {
+    return '$name 님이 마지막 수를 무르자고 해요';
+  }
+
+  @override
+  String get chatGameTakebackAsked => '무르기를 요청했어요';
+
+  @override
+  String chatGameTakebacksLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '무르기 $count번 남음',
+      zero: '무르기를 다 썼어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameNoTakebacksHard => '어려움 봇과는 무르기를 할 수 없어요';
+
+  @override
+  String get chatGameYouResigned => '기권했어요';
+
+  @override
+  String get chatGameDrawAgreed => '무승부에 합의했어요';
+
+  @override
+  String chatGameBotPlaysOn(String name) {
+    return '$name은(는) 계속하고 싶어 해요';
+  }
+
+  @override
+  String get chatGameDrawTooSoon => '두 수 뒤에 다시 무승부를 제안할 수 있어요';
+
+  @override
+  String get chatGameTakebackTooSoon => '이 수의 무르기는 이미 거절됐어요';
+
+  @override
+  String get chatGameMoves => '수순';
+
+  @override
+  String get chatGameBackToGame => '현재 수로 돌아가기';
+
+  @override
+  String get chatGameNoMovesYet => '아직 둔 수가 없어요';
+
+  @override
+  String get chatGameKeysReplay => '← → 키로 수순을 돌려 보세요';
+
+  @override
+  String get partyLdAcesRule =>
+      '1에 걸 때는 절반이면 돼요(올림). 1에서 벗어날 때는 두 배에 하나를 더해야 해요.';
+
+  @override
+  String get partyRaceGrace => '누군가 끝내면 나머지는 2분이 남아요.';
+
+  @override
+  String get partyImposterClueRule => '단어 자체는 안 돼요';
+
+  @override
+  String get partyLdKeys => '↑ ↓ 개수 · 1–6 눈 · Enter 걸기 · L 거짓말';
+
+  @override
+  String get partyImposterVoteKeys => '줄 번호를 눌러 투표 · 0은 건너뛰기';
+
+  @override
+  String get dailyStandingsHintedNote => '힌트를 쓴 풀이는 힌트 없이 푼 풀이보다 뒤에 순위가 매겨져요';
+
+  @override
+  String get howToPatchesControls =>
+      '모서리에서 모서리로 드래그해서 패치를 잘라요. 패치의 변이나 모서리를 드래그하면 모양이 바뀌어요. 패치를 탭하면 떼어져요.';
 }

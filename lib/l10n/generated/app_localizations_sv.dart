@@ -1767,6 +1767,12 @@ class AppLocalizationsSv extends AppLocalizations {
   String get callScreenControlCamOff => 'Kamera av';
 
   @override
+  String get callScreenPeerCameraOff => 'Kameran är av';
+
+  @override
+  String get callScreenPeerCameraPaused => 'Kameran är pausad';
+
+  @override
   String get callScreenControlFlip => 'Byt';
 
   @override
@@ -2704,13 +2710,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get roomLayoutScreenPlainCornerDescription =>
       'ett rum utan meddelanden lämnas bart';
-
-  @override
-  String get roomLayoutScreenMonogramLabel => 'rummets initial';
-
-  @override
-  String get roomLayoutScreenMonogramDescription =>
-      'en stor blek bokstav fyller hörnet';
 
   @override
   String get roomLayoutScreenActiveBadge => 'AKTIV';
@@ -10039,26 +10038,6 @@ class AppLocalizationsSv extends AppLocalizations {
       'En knapp som öppnar filtren när du vill.';
 
   @override
-  String get chatListPageEmptyHeader => 'Tomma rum';
-
-  @override
-  String get chatListPagePlain => 'Enkel';
-
-  @override
-  String get chatListPagePlainSub =>
-      'Ett rum där inget sagts ännu förblir tomt.';
-
-  @override
-  String get chatListPageInitial => 'Initial';
-
-  @override
-  String get chatListPageInitialSub =>
-      'En stor blek bokstav fyller det tomma hörnet.';
-
-  @override
-  String get chatListPageEmptyFooter => 'Gäller rutnätslayouten.';
-
-  @override
   String get chatStylePageFooter =>
       'Hur konversationens rubrik och meddelandefält ritas.';
 
@@ -14038,7 +14017,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String voiceTranscriptCellularPrompt(String size) {
-    return 'Transkriptioner görs på din telefon. Talmodellen är en engångsnedladdning på $size.';
+    return 'Bartleby skriver transkriptioner på din telefon. Först behöver han en engångsnedladdning på $size.';
   }
 
   @override
@@ -14048,7 +14027,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String voiceTranscriptDownloading(String received, String total) {
-    return 'Hämtar talmodellen · $received av $total';
+    return 'Bartleby gör sig redo · $received av $total';
   }
 
   @override
@@ -14114,7 +14093,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String voiceTranscriptUpgradeOffer(String size) {
-    return 'Fel språk eller ord? MonkeyHubs talmodell hör själv vilket språk som talas och kan nästan 100 språk. Engångsnedladdning på $size, sedan fungerar den offline.';
+    return 'Fel språk eller ord? Med en engångsnedladdning på $size hör Bartleby själv vilket språk som talas och kan nästan 100 språk. Sedan fungerar han offline.';
   }
 
   @override
@@ -14186,4 +14165,160 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get appOnlyTranscriptOffline =>
       'Fungerar offline när den är installerad';
+
+  @override
+  String get liveCallChipVoice => 'Röstsamtal';
+
+  @override
+  String get liveCallChipVideo => 'Videosamtal';
+
+  @override
+  String get companionBartlebyTagline => 'Skriver ner röstmeddelanden';
+
+  @override
+  String get companionBartlebyBlurb =>
+      'Bartleby lyssnar på röstmeddelanden och skriver ner dem, här i din telefon. Varken ljudet eller orden lämnar den någonsin.';
+
+  @override
+  String get bartlebyQuote =>
+      '”Jag skulle föredra att inte skicka din röst någonstans.”';
+
+  @override
+  String get bartlebyStatusEveryLanguage => 'Redo för nästan 100 språk';
+
+  @override
+  String get bartlebyStatusBuiltInOnly => 'Bara inbyggda språk';
+
+  @override
+  String get bartlebyBuiltInHeader => 'Språk som fungerar utan nedladdning';
+
+  @override
+  String get bartlebyBuiltInFooter =>
+      'Din enhet har redan de här för Siri och diktering, så Bartleby använder dem först, utan att ladda ner något. Andra språk kräver nedladdningen nedan.';
+
+  @override
+  String get bartlebyBuiltInFooterModel =>
+      'Nedladdningen nedan täcker även de här, så Bartleby använder den för alla röstmeddelanden.';
+
+  @override
+  String get bartlebyBuiltInNone => 'Inga på den här enheten än';
+
+  @override
+  String get bartlebyModelTitle => 'Bättre transkriptioner';
+
+  @override
+  String get bartlebyModelDetail =>
+      'Hör vilket språk som talas. Nästan 100 språk, fungerar offline';
+
+  @override
+  String bartlebyModelInstalled(String size) {
+    return 'På den här enheten · $size';
+  }
+
+  @override
+  String bartlebyStorageUsed(String size) {
+    return 'Bartleby använder $size på den här enheten, sparade transkriptioner inräknade.';
+  }
+
+  @override
+  String get bartlebyStorageEmpty =>
+      'Bartleby använder inget utrymme på den här enheten.';
+
+  @override
+  String get bartlebyCellularTitle => 'Ladda ner via mobildata?';
+
+  @override
+  String bartlebyCellularBody(String size) {
+    return 'Det är en engångsnedladdning på $size. Vänta på wifi om du inte vill använda mobildata.';
+  }
+
+  @override
+  String get bartlebyRemoveKeepsTranscripts =>
+      'Transkriptioner du redan har sparas.';
+
+  @override
+  String get settingsSearchKwTranscripts =>
+      'transkription, röstmeddelande, tal, diktering';
+
+  @override
+  String get chatGameTakeback => 'Ångra drag';
+
+  @override
+  String chatGameTakebackFrom(String name) {
+    return '$name vill ångra sitt senaste drag';
+  }
+
+  @override
+  String get chatGameTakebackAsked => 'Begäran om att ångra skickad';
+
+  @override
+  String chatGameTakebacksLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ångringar kvar',
+      one: '1 ångring kvar',
+      zero: 'Inga ångringar kvar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatGameNoTakebacksHard => 'Inga ångringar mot den svåra boten';
+
+  @override
+  String get chatGameYouResigned => 'Du gav upp';
+
+  @override
+  String get chatGameDrawAgreed => 'Oavgjort efter överenskommelse';
+
+  @override
+  String chatGameBotPlaysOn(String name) {
+    return '$name vill spela vidare';
+  }
+
+  @override
+  String get chatGameDrawTooSoon => 'Du kan föreslå oavgjort igen om två drag';
+
+  @override
+  String get chatGameTakebackTooSoon =>
+      'Ångringen av det här draget har redan nekats';
+
+  @override
+  String get chatGameMoves => 'Drag';
+
+  @override
+  String get chatGameBackToGame => 'Tillbaka till nuvarande drag';
+
+  @override
+  String get chatGameNoMovesYet => 'Inga drag än';
+
+  @override
+  String get chatGameKeysReplay =>
+      'Använd ← och → för att bläddra bland dragen';
+
+  @override
+  String get partyLdAcesRule =>
+      'Att bjuda på ettor kräver hälften så många, avrundat uppåt. Att lämna ettor kräver dubbelt plus en.';
+
+  @override
+  String get partyRaceGrace => 'När någon blir klar har resten 2 minuter kvar.';
+
+  @override
+  String get partyImposterClueRule => 'Aldrig själva ordet';
+
+  @override
+  String get partyLdKeys => '↑ ↓ antal · 1–6 sida · Enter bjud · L lögn';
+
+  @override
+  String get partyImposterVoteKeys =>
+      'Tryck på en rads siffra för att rösta · 0 för att hoppa över';
+
+  @override
+  String get dailyStandingsHintedNote =>
+      'Lösningar med ledtråd rankas efter lösningar utan';
+
+  @override
+  String get howToPatchesControls =>
+      'Dra från hörn till hörn för att klippa ut en lapp. Dra i en lapps sida eller hörn för att ändra formen. Tryck på en lapp för att ta bort den.';
 }

@@ -1,22 +1,33 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+
 import '../backend/chat_api.dart';
+import '../keyboard/focusable_tap.dart' show HoverEffect;
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
-import '../keyboard/focusable_tap.dart';
 import '../theme/app_theme.dart';
+import '../theme/density.dart';
 import '../theme/theme_scope.dart';
-import 'ios_kit.dart' show quietFill;
-import 'count_badge.dart';
-import 'muted_badge.dart';
-import 'pinned_badge.dart';
-import 'remote_image.dart';
-import 'room_identity.dart';
-import 'typing_indicator.dart';
-import 'user_avatar.dart';
-import 'visibility_badge.dart';
+import 'chat_list_parts.dart';
+import 'chat_list_row.dart' show ChatRoomAvatar;
+import 'ios_kit.dart' show SpringPress, groupedMetaStyle;
+import 'live_call_row.dart';
+import 'visibility_badge.dart' show ephemeralShort;
 
+/// One conversation on its own card: a chat row with room to breathe, plus
+/// the one thing a row leaves out, the room's facts spelled out in words.
+///
+/// The row's layout and parts inside ([ChatListTitle], [ChatListPreview],
+/// [ChatListTrailing]): a face, the name and the time, two lines of what was
+/// said, the unread count in the one trailing slot. Under the preview, for a
+/// group, a quiet meta line: how many are inside, public or private, locked,
+/// how long messages last. Glyph and word, no pills.
+///
+/// What it replaced led with a wrapped row of outlined pills, put a 32pt face
+/// beside a display-size name, cut the preview to one line and ended on a
+/// member count and an "↗ Enter" footer: the facts shouted and the
+/// conversation, the thing a list is for, whispered.
 class RoomCard extends StatelessWidget {
   const RoomCard({
     super.key,
@@ -39,175 +50,186 @@ class RoomCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // No monogram on a row. Even a quiet one carries pills, a name, a stamp,
-    // a member count and an ENTER (or "messages disappear") in the corner the
-    // letter would want — there is no hole here to fill, only things to sit
-    // behind. The grid tile, which has real dead space, offers it instead.
-    // The margin sits outside the FocusableTap so the ring and the hover
-    // fill hug the card, not the gap under it.
+    final density = Density.of(context);
+    final decoration =
+        theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false);
+    final surface = decoration.color ?? theme.surface;
+    final title = chatListTitleOf(context, room, dmUser);
+    final radius =
+        decoration.borderRadius?.resolve(Directionality.of(context)).topLeft.x ??
+            theme.radiusLg;
+    final face = density.chatRowAvatar - 2;
+    final facts = _facts(context, theme);
+    // The margin sits outside the press so the ring and the hover fill hug
+    // the card, not the gap under it.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: FocusableTap(
+      padding: EdgeInsets.only(bottom: density.compact ? 8 : 10),
+      child: SpringPress(
         onTap: onTap,
-        radius: theme.radiusLg,
+        scale: 0.985,
+        haptic: false,
         hover: HoverEffect.tint,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
-            child: _body(context, theme),
+        hoverRadius: radius,
+        focusRadius: radius,
+        semanticLabel: title,
+        child: Container(
+          decoration: decoration,
+          padding: EdgeInsets.fromLTRB(
+            density.compact ? 12 : 14,
+            density.compact ? 10 : 13,
+            density.compact ? 12 : 14,
+            density.compact ? 10 : 13,
+          ),
+          child: RoomLiveCallBuilder(
+            roomId: room.id,
+            builder: (context, call) => Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LiveCallHalo(
+                  call: call,
+                  size: face,
+                  rim: surface,
+                  child: ChatRoomAvatar(
+                    room: room,
+                    dmUser: dmUser,
+                    api: api,
+                    size: face,
+                  ),
+                ),
+                SizedBox(width: density.chatRowGap - 2),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChatListTitle(
+                              room: room,
+                              title: title,
+                              fontSize: density.chatRowTitleSize,
+                              facts: false,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ChatListStamp(
+                            room: room,
+                            fontSize: density.chatRowStampSize - 1,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: density.chatRowLineGap),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: ChatListPreview(
+                              room: room,
+                              call: call,
+                              typists: typists,
+                              fontSize: density.chatRowPreviewSize,
+                              lineHeight: density.chatRowPreviewHeight,
+                              surface: surface,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: ChatListTrailing(room: room, call: call),
+                          ),
+                        ],
+                      ),
+                      if (facts.isNotEmpty) ...[
+                        SizedBox(height: density.compact ? 6 : 9),
+                        _MetaLine(facts: facts),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _body(BuildContext context, AppTheme theme) {
+  /// The room's facts, rarest and most consequential first, so a long
+  /// language ellipsizes the member count, never "messages disappear". None for a DM that is not secret: two people, private
+  /// by definition, and the face already says who.
+  List<_Fact> _facts(BuildContext context, AppTheme theme) {
     final l10n = AppLocalizations.of(context);
-    final subtitle = roomSubtitle(context, room);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // A full row has the width for words, so these keep
-                  // their labels; the tap tooltip is the long form. No
-                  // visibility pill on a DM — it could only ever say
-                  // "private".
-                  if (!room.isDm)
-                    VisibilityBadge(isPublic: room.isPublic, dense: true),
-                  if (room.isEphemeral && room.messageLifetime != null)
-                    EphemeralBadge(ttl: room.messageLifetime!, dense: true),
-                  if (room.hasPassword) const LockedBadge(dense: true),
-                  // Saved Messages carries the pill too. It used to be
-                  // suppressed there because the room was pinned by
-                  // construction and the badge said nothing; now that it can
-                  // be unpinned, the badge is the only thing that says which
-                  // way it currently sits.
-                  if (room.isPinned) const PinnedBadge(dense: true),
-                  // Last in the row, and the only pill here drawn in muted ink
-                  // rather than the accent — a row that has been told to stop
-                  // asking for attention should not gain a glowing chip for
-                  // saying so. See [MutedBadge].
-                  if (room.isMuted)
-                    MutedBadge(
-                      dense: true,
-                      silencesNotifications: room.notificationsMuted,
-                      silencesCounts: room.badgesMuted,
-                    ),
-                ],
-              ),
-            ),
-            // A room nobody has spoken in has no "last" anything, so the
-            // stamp answers the question you'd actually ask of it: how
-            // long has it been sitting here quiet.
-            Text(
-              room.lastMessageTime != null
-                  ? roomTimeAgo(context, room.lastMessageTime!)
-                  : l10n.roomCardStartedAgo(roomTimeAgo(context, room.createdAt)),
-              style: theme.monoTiny,
-            ),
-          ],
+    final ttl = room.messageLifetime;
+    return [
+      if (room.isEphemeral && ttl != null)
+        _Fact(
+          (s, c) => theme.hourglassIcon(size: s, color: c),
+          l10n.enterPublicRoomEphemeralBadgeLabel(ephemeralShort(l10n, ttl)),
         ),
-        const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (room.isSavedMessages) ...[
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: quietFill(theme), shape: BoxShape.circle),
-                child: Icon(CupertinoIcons.bookmark_fill, size: 16, color: theme.accent),
-              ),
-              const SizedBox(width: 10),
-            ] else if (dmUser != null) ...[
-              UserAvatar(user: dmUser!, size: 32, api: api),
-              const SizedBox(width: 10),
-            ] else if (room.avatarStorageId != null && api != null) ...[
-              ClipOval(
-                child: RemoteImage(
-                  storageId: room.avatarStorageId!,
-                  api: api!,
-                  width: 32,
-                  height: 32,
-                  borderRadius: BorderRadius.circular(16),
+      if (room.hasPassword)
+        _Fact(
+          (s, c) => Icon(CupertinoIcons.lock_fill, size: s, color: c),
+          l10n.roomCardLockedBadge,
+        ),
+      if (!room.isDm && !room.isSavedMessages)
+        _Fact(
+          (s, c) => Icon(CupertinoIcons.person_2_fill, size: s + 2, color: c),
+          l10n.roomCardMemberCount(room.memberCount),
+        ),
+      if (!room.isDm && !room.isSavedMessages)
+        _Fact(
+          (s, c) => theme.visibilityIcon(isPublic: room.isPublic, size: s),
+          room.isPublic
+              ? l10n.enterPublicRoomVisibilityPublicLabel
+              : l10n.enterPublicRoomVisibilityPrivateLabel,
+        ),
+    ];
+  }
+}
+
+class _Fact {
+  const _Fact(this.glyph, this.label);
+  final Widget Function(double size, Color color) glyph;
+  final String label;
+}
+
+/// The facts on one line: glyph and word pairs with air between them, and an
+/// ellipsis rather than a second line when a language runs long.
+class _MetaLine extends StatelessWidget {
+  const _MetaLine({required this.facts});
+  final List<_Fact> facts;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final style = groupedMetaStyle(theme).copyWith(
+      fontSize: Density.of(context).compact ? 12 : 13,
+      height: 1.2,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final g = (style.fontSize! * 0.85).roundToDouble();
+    return Text.rich(
+      TextSpan(
+        children: [
+          for (var i = 0; i < facts.length; i++) ...[
+            if (i > 0) const TextSpan(text: '   '),
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.only(end: 4),
+                child: IconTheme(
+                  data: IconThemeData(color: theme.inkMuted),
+                  child: facts[i].glyph(g, theme.inkMuted),
                 ),
               ),
-              const SizedBox(width: 10),
-            ],
-            Expanded(
-              child: Text(
-                room.isSavedMessages
-                    ? l10n.savedMessagesTitle
-                    : (dmUser?.displayName ?? room.name),
-                style: room.hasUnread
-                    ? theme.displaySmall.copyWith(fontWeight: FontWeight.w700)
-                    : theme.displaySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
             ),
-            // [visibleUnreadCount] and not [unreadCount]: a room muted down to
-            // its counts still HAS unread messages, it just isn't allowed to
-            // say so here. [hasUnread] above goes quiet by the same rule, so
-            // the dot and the bold name go with the pill rather than leaving a
-            // half-silenced row.
-            if (room.hasUnread || room.visibleUnreadCount > 0) ...[
-              const SizedBox(width: 8),
-              RoomUnreadBadge(
-                count: room.visibleUnreadCount,
-                unread: room.hasUnread,
-                mention: room.hasVisibleMention,
-                quiet: room.isMuted,
-              ),
-            ],
+            TextSpan(text: facts[i].label),
           ],
-        ),
-        const SizedBox(height: 8),
-        // Always a line here, even when there's nothing to preview: the
-        // slot used to vanish, and a card that shrinks for want of
-        // content is the one that looks broken next to a full one.
-        if (typists.isNotEmpty)
-          TypingLine(typists: typists)
-        else
-          Text(
-            subtitle.text,
-            style: subtitle.kind == RoomSubtitleKind.message
-                ? theme.bodySoft
-                : theme.bodySoft.copyWith(color: theme.inkMuted),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            // A DM always has exactly two people in it, so "2 inside" is
-            // noise — the friend's name and avatar already say who's here.
-            if (!room.isDm) Text(l10n.roomCardMemberCount(room.memberCount), style: theme.caption),
-            const Spacer(),
-            if (room.isEphemeral)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  theme.hourglassIcon(size: 12, color: theme.accent),
-                  const SizedBox(width: 6),
-                  Text(l10n.roomCardMessagesFadeLabel, style: theme.monoTiny.copyWith(color: theme.accent)),
-                ],
-              )
-            else
-              Text(l10n.roomCardEnterLabel, style: theme.monoTiny),
-          ],
-        ),
-      ],
+        ],
+      ),
+      style: style,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
