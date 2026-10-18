@@ -15,6 +15,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../chat_games/match_face.dart';
 import '../data/matches_store.dart';
@@ -379,9 +380,14 @@ class PartySeat {
     this.selected = false,
     this.timed = false,
     this.verbatim = false,
+    this.keyLabel,
   });
 
   final int seat;
+
+  /// The key that picks this seat on a keyboard ("1", "2", …), drawn as a
+  /// small keycap on the face's upper leading corner. Desktop only.
+  final String? keyLabel;
 
   /// [note] is the player's own words (an Imposter clue): shown as typed,
   /// not sentence-cased like the app's labels.
@@ -536,6 +542,12 @@ class _SeatToken extends StatelessWidget {
             ringed,
             if (seat.badge != null)
               PositionedDirectional(end: -4, bottom: -2, child: seat.badge!),
+            if (seat.keyLabel != null)
+              PositionedDirectional(
+                start: -4,
+                top: -4,
+                child: KeyCap(seat.keyLabel!),
+              ),
           ],
         ),
         const SizedBox(height: 5),
@@ -625,3 +637,102 @@ class PartyCaption extends StatelessWidget {
 /// [AppTheme]-aware ink for text drawn on [fill].
 Color inkOn(AppTheme theme, Color fill) =>
     fill.computeLuminance() > 0.45 ? const Color(0xFF1C1C1E) : Colors.white;
+
+/// A key's name on a small rounded cap: the keyboard hint beside something
+/// a key can pick.
+class KeyCap extends StatelessWidget {
+  const KeyCap(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: theme.ink.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        label,
+        style: groupedMetaStyle(theme).copyWith(
+          fontSize: 11,
+          height: 1.1,
+          fontWeight: FontWeight.w700,
+          color: theme.inkSoft,
+        ),
+      ),
+    );
+  }
+}
+
+/// A party table's middle on the desktop stage: the same panels as on a
+/// phone, in a column no wider than reads well, centred in the square the
+/// stage gives it, and scrolling only if a phase ever runs taller than it.
+class PartyStageBody extends StatelessWidget {
+  const PartyStageBody({
+    super.key,
+    required this.child,
+    this.maxWidth = 560,
+  });
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) => SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: box.maxHeight),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// The panel beside a party table on the desktop stage: a heading and its
+/// card, stacked, scrolling as one.
+class PartyStageSection extends StatelessWidget {
+  const PartyStageSection({super.key, required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+          child: Text(
+            sentenceCaseOf(context, title),
+            style: groupedMetaStyle(theme).copyWith(
+              color: theme.inkMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+}
+
+/// Whether [event] is a plain key press this table may take: a key down or
+/// repeat with no ⌘/Ctrl/Alt held (those chords belong to the app).
+bool plainKeyDown(KeyEvent event) {
+  if (event is KeyUpEvent) return false;
+  final k = HardwareKeyboard.instance;
+  return !(k.isMetaPressed || k.isControlPressed || k.isAltPressed);
+}

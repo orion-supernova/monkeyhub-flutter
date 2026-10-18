@@ -67,6 +67,7 @@ class _QueensScreenState extends State<QueensScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => [for (final m in _marks) m.index];
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -255,6 +256,7 @@ class _QueensScreenState extends State<QueensScreen>
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _undo.isEmpty ? null : _undoLast,
       title: l10n.gameQueensName,
       rule: l10n.gameQueensRule,
       hintBanner: HintBanner(

@@ -29,6 +29,12 @@ import 'game_scaffold.dart';
 /// nothing. A tap on a patch lifts it; a tap on a one-square clue is that
 /// patch.
 ///
+/// A patch already down is reshaped by grabbing it, the way LinkedIn's board
+/// works, rather than by lifting it and drawing it again: see [PatchGrip] for
+/// which part of a patch a press takes hold of. A reshape previews exactly
+/// like a fresh stroke; letting go of a legal one replaces the patch (one undo
+/// step), and letting go of an illegal one leaves the patch as it was.
+///
 /// No mistakes are counted, for the reason Flow and Zip count none: the board
 /// refuses an illegal patch as it is drawn, so there is no wrong state to
 /// settle on. A legal patch in the wrong place is not a slip the board can
@@ -70,6 +76,17 @@ class _PatchesScreenState extends State<PatchesScreen>
   int? _anchor;
   int? _reach;
 
+  /// The patch being reshaped, while a stroke that started on one is down.
+  PatchGrip? _grip;
+
+  /// Whether the finger has left the square it pressed: a reshape that never
+  /// moved is a tap.
+  bool _moved = false;
+
+  /// The pointer's cursor over the board: a resize arrow over a patch's edge
+  /// or corner, so a mouse shows what a press there would take hold of.
+  MouseCursor _cursor = MouseCursor.defer;
+
   int? _popClue;
 
   /// The hint on show, until the player's next move or a tap on its banner.
@@ -82,6 +99,7 @@ class _PatchesScreenState extends State<PatchesScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => patchesLabels(_board, _patches);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -129,7 +147,32 @@ class _PatchesScreenState extends State<PatchesScreen>
     final a = _anchor;
     final b = _reach;
     if (a == null || b == null) return null;
+    final grip = _grip;
+    if (grip != null) return grip.reshape(b, _board.size);
     return PatchRect.span(a, b, _board.size);
+  }
+
+  /// The grip a press on [cell] takes, or null where it starts a fresh
+  /// stroke: a bare square, or the inside of a patch.
+  PatchGrip? _gripAt(int cell) {
+    final n = _board.size;
+    for (var k = 0; k < _patches.length; k++) {
+      final p = _patches[k];
+      if (p == null || !p.contains(cell, n)) continue;
+      return PatchGrip.at(k, p, cell, n);
+    }
+    return null;
+  }
+
+  void _hover(Offset at, double side) {
+    final n = _board.size;
+    MouseCursor next = MouseCursor.defer;
+    if (n > 0 && _playable) {
+      final cell = GameGrid(side: side, n: n).hit(at);
+      final grip = cell == null ? null : _gripAt(cell);
+      if (grip != null) next = grip.cursor;
+    }
+    if (next != _cursor) setState(() => _cursor = next);
   }
 
   /// The clues whose patches [rect] would lift if it landed for [clue]: its
@@ -143,6 +186,8 @@ class _PatchesScreenState extends State<PatchesScreen>
     if (_spot != null) setState(() => _spot = null);
     _anchor = null;
     _reach = null;
+    _grip = null;
+    _moved = false;
   }
 
   void _dragTo(int cell) {
@@ -151,11 +196,13 @@ class _PatchesScreenState extends State<PatchesScreen>
       setState(() {
         _anchor = cell;
         _reach = cell;
+        _grip = _gripAt(cell);
       });
       HapticFeedback.selectionClick();
       return;
     }
     if (cell == _reach) return;
+    _moved = true;
     final before = _preview;
     setState(() => _reach = cell);
     // A tick per change of size, not per square crossed: dragging along an
@@ -166,11 +213,35 @@ class _PatchesScreenState extends State<PatchesScreen>
   void _dragEnd() {
     final anchor = _anchor;
     final rect = _preview;
+    final grip = _grip;
+    final moved = _moved;
     setState(() {
       _anchor = null;
       _reach = null;
+      _grip = null;
+      _moved = false;
     });
     if (anchor == null || rect == null || !_playable) return;
+    if (grip != null) {
+      // Pressed on a patch and let go without leaving the square: a tap,
+      // which lifts it, however much the thumb wobbled.
+      if (!moved) {
+        _tap(anchor);
+        return;
+      }
+      if (rect == grip.from) return;
+      final judged = patchJudge(_board, rect);
+      if (judged.trouble != null || judged.clue < 0) {
+        // Back to the shape it had. Nothing changed, so nothing to undo;
+        // the settle says the patch is still there.
+        setState(() => _popClue = grip.clue);
+        _pop.forward(from: 0);
+        HapticFeedback.lightImpact();
+        return;
+      }
+      _land(rect);
+      return;
+    }
     // The board claims a drag on its first pixel of movement, so a tap with
     // a little wobble in it arrives here as a one-square stroke. It is a tap,
     // and lifting a patch has to work however steady the thumb was.
@@ -331,8 +402,16 @@ class _PatchesScreenState extends State<PatchesScreen>
     final preview = _play.paused ? null : _preview;
     final judged = preview == null ? null : patchJudge(board, preview);
     final previewOk = judged != null && judged.trouble == null;
+    final grip = preview == null ? null : _grip;
+    final lifting = <int>{
+      if (preview != null && previewOk) ..._lifts(preview, judged.clue),
+      // The patch in hand fades under its new shape, legal or not: letting
+      // go of an illegal one brings it back.
+      ?grip?.clue,
+    };
 
     return GameScaffold(
+      onUndo: _undo.isEmpty ? null : _undoLast,
       controller: _play,
       viewerId: widget.userId,
       title: l10n.gamePatchesName,
@@ -344,31 +423,40 @@ class _PatchesScreenState extends State<PatchesScreen>
       board: HintSpotlight(
         hint: _play.paused || _play.finished ? null : _spot,
         n: board.size,
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_pop, _winSweep]),
-          builder: (context, _) => GameBoardSurface(
-            n: board.size,
-            onDragStart: _dragStart,
-            onDragTo: _dragTo,
-            onDragEnd: _dragEnd,
-            claimsDrag: _play.ready && !_play.finished && !_play.paused,
-            onTapCell: _tap,
-            painter: PatchesBoardPainter(
-              board: board,
-              theme: theme,
-              palette: GamePalette(theme),
-              // A fresh list per build: the patches are edited in place, and
-              // the painter decides whether to repaint by identity.
-              patches: _play.paused ? const [] : [..._patches],
-              preview: preview,
-              previewClue: judged?.clue ?? -1,
-              previewOk: previewOk,
-              lifting: preview != null && previewOk
-                  ? _lifts(preview, judged.clue)
-                  : const {},
-              popClue: _popClue,
-              pop: _pop.value,
-              win: _winSweep.value,
+        child: LayoutBuilder(
+          builder: (context, box) => MouseRegion(
+            cursor: _cursor,
+            onHover: (e) => _hover(e.localPosition, box.biggest.shortestSide),
+            onExit: (_) {
+              if (_cursor != MouseCursor.defer) {
+                setState(() => _cursor = MouseCursor.defer);
+              }
+            },
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_pop, _winSweep]),
+              builder: (context, _) => GameBoardSurface(
+                n: board.size,
+                onDragStart: _dragStart,
+                onDragTo: _dragTo,
+                onDragEnd: _dragEnd,
+                claimsDrag: _play.ready && !_play.finished && !_play.paused,
+                onTapCell: _tap,
+                painter: PatchesBoardPainter(
+                  board: board,
+                  theme: theme,
+                  palette: GamePalette(theme),
+                  // A fresh list per build: the patches are edited in place,
+                  // and the painter decides whether to repaint by identity.
+                  patches: _play.paused ? const [] : [..._patches],
+                  preview: preview,
+                  previewClue: judged?.clue ?? -1,
+                  previewOk: previewOk,
+                  lifting: lifting,
+                  popClue: _popClue,
+                  pop: _pop.value,
+                  win: _winSweep.value,
+                ),
+              ),
             ),
           ),
         ),
@@ -408,5 +496,81 @@ class _PatchesScreenState extends State<PatchesScreen>
           ? () => tellFriendsAboutGame(context, controller: _play)
           : null,
     );
+  }
+}
+
+/// What a press on a patch already down takes hold of, and the shape a drag
+/// from there gives it.
+///
+/// Read per axis, rows and columns separately, from the square pressed:
+///
+///  * on the patch's first or last row (column), that edge follows the
+///    finger and the opposite edge stays put;
+///  * a patch one square high (wide) has both edges there, so the finger
+///    pulls it out either way from that row (column);
+///  * strictly between the two edges, the axis is held: the patch keeps its
+///    rows (columns) whatever the finger does.
+///
+/// So a corner square moves the corner, the far corner pinned (LinkedIn's
+/// "drag the patch out from the other end"); a square along a side moves that
+/// side only; and the inside of a large patch, held on both axes, grips
+/// nothing: a press there starts a fresh stroke as it always did. Every grip
+/// is a whole square, so a finger never has to find a pixel-wide edge.
+class PatchGrip {
+  const PatchGrip._(this.clue, this.from, this.rowFixed, this.colFixed);
+
+  /// The grip a press on [cell] (inside [rect], [clue]'s patch) takes, or
+  /// null for the inside of the patch.
+  static PatchGrip? at(int clue, PatchRect rect, int cell, int n) {
+    final rowFixed = _fixed(cell ~/ n, rect.top, rect.bottom);
+    final colFixed = _fixed(cell % n, rect.left, rect.right);
+    if (rowFixed == null && colFixed == null) return null;
+    return PatchGrip._(clue, rect, rowFixed, colFixed);
+  }
+
+  /// The edge that stays put on an axis, or null when the axis is held.
+  static int? _fixed(int at, int lo, int hi) {
+    if (lo == hi) return lo;
+    if (at == lo) return hi;
+    if (at == hi) return lo;
+    return null;
+  }
+
+  final int clue;
+
+  /// The patch as it was when pressed.
+  final PatchRect from;
+
+  /// Per axis, the edge that stays put; null where the axis is held.
+  final int? rowFixed;
+  final int? colFixed;
+
+  /// The patch with the finger on [cell].
+  PatchRect reshape(int cell, int n) {
+    final r = cell ~/ n;
+    final c = cell % n;
+    final rf = rowFixed;
+    final cf = colFixed;
+    return PatchRect(
+      rf == null ? from.top : (r < rf ? r : rf),
+      cf == null ? from.left : (c < cf ? c : cf),
+      rf == null ? from.bottom : (r > rf ? r : rf),
+      cf == null ? from.right : (c > cf ? c : cf),
+    );
+  }
+
+  /// The resize arrow a mouse shows over this grip.
+  MouseCursor get cursor {
+    final rf = rowFixed;
+    final cf = colFixed;
+    if (rf == null) return SystemMouseCursors.resizeLeftRight;
+    if (cf == null) return SystemMouseCursors.resizeUpDown;
+    // A strip pulls out either way along its short side: no single diagonal.
+    if (from.rows == 1 || from.cols == 1) return SystemMouseCursors.move;
+    // The far corner is pinned; the arrow points along the diagonal to it.
+    final topLeftOrBottomRight = (rf == from.bottom) == (cf == from.right);
+    return topLeftOrBottomRight
+        ? SystemMouseCursors.resizeUpLeftDownRight
+        : SystemMouseCursors.resizeUpRightDownLeft;
   }
 }

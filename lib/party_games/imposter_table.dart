@@ -15,7 +15,9 @@ import '../chat_games/match_face.dart';
 import '../data/matches_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../games/game_canvas.dart' show digitOfKey;
 import '../models/chat_match.dart';
+import '../platform.dart' show isPhysicalKeyboardPlatform;
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../turn_games/board/seat_palette.dart';
@@ -58,12 +60,17 @@ class ImposterTable extends StatefulWidget {
     required this.controller,
     required this.viewerId,
     this.enabled = true,
+    this.stage = false,
   });
 
   final ChatMatch match;
   final MatchController controller;
   final String viewerId;
   final bool enabled;
+
+  /// The desktop stage's middle: the clues move to [ImposterStagePanel]
+  /// beside it, and the vote takes number keys.
+  final bool stage;
 
   @override
   State<ImposterTable> createState() => _ImposterTableState();
@@ -123,8 +130,48 @@ class _ImposterTableState extends State<ImposterTable> {
     if (ok && mounted) _text.clear();
   }
 
+  /// Desktop keys in the vote: the number on a face votes for it, 0 skips.
+  /// A focused text field never gets here: it keeps its own digits.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (!plainKeyDown(event)) return KeyEventResult.ignored;
+    final v = _view;
+    final m = widget.match;
+    final mySeat = m.seatOf(widget.viewerId);
+    if (v == null ||
+        v.phase != 'vote' ||
+        !widget.enabled ||
+        mySeat < 0 ||
+        m.status != MatchStatus.active) {
+      return KeyEventResult.ignored;
+    }
+    final digit = digitOfKey(event.logicalKey);
+    if (digit == null || event.logicalKey == LogicalKeyboardKey.backspace ||
+        event.logicalKey == LogicalKeyboardKey.delete) {
+      return KeyEventResult.ignored;
+    }
+    final mine = _pendingVote ?? _mine?.myVote;
+    if (digit == 0) {
+      if (mine != -1) _send('vote:skip');
+      return KeyEventResult.handled;
+    }
+    final targets = imposterVoteKeys(v.living, mySeat);
+    final target = targets[digit];
+    if (target != null && target != mine) _send('vote:$target');
+    return KeyEventResult.handled;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final table = _table(context);
+    if (!widget.stage) return table;
+    return Focus(
+      autofocus: isPhysicalKeyboardPlatform,
+      onKeyEvent: _onKey,
+      child: PartyStageBody(child: table),
+    );
+  }
+
+  Widget _table(BuildContext context) {
     final v = _view;
     if (v == null) return const SizedBox.shrink();
     _notePhase(v);
@@ -136,8 +183,10 @@ class _ImposterTableState extends State<ImposterTable> {
 
     if (v.phase == 'over') {
       children.add(_OverPanel(match: m, view: v, viewerId: me));
-      children.add(const SizedBox(height: 12));
-      children.add(_ClueList(match: m, view: v, viewerId: me, clock: widget.controller));
+      if (!widget.stage) {
+        children.add(const SizedBox(height: 12));
+        children.add(_ClueList(match: m, view: v, viewerId: me, clock: widget.controller));
+      }
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
     }
 
@@ -163,9 +212,13 @@ class _ImposterTableState extends State<ImposterTable> {
           children.add(_VoiceBar(match: m, viewerId: me));
           children.add(const SizedBox(height: 12));
         }
-        children.add(_ClueList(match: m, view: v, viewerId: me, clock: widget.controller));
+        if (!widget.stage) {
+          children.add(_ClueList(match: m, view: v, viewerId: me, clock: widget.controller));
+        } else if (!(m.isTurnOf(me) && v.turn == mySeat)) {
+          children.add(_ClueWait(match: m, view: v, viewerId: me, clock: widget.controller));
+        }
         if (m.isTurnOf(me) && v.turn == mySeat) {
-          children.add(const SizedBox(height: 12));
+          if (!widget.stage) children.add(const SizedBox(height: 12));
           children.add(v.voice
               ? _VoiceTurn(
                   busy: widget.controller.pendingAction != null,
@@ -186,6 +239,7 @@ class _ImposterTableState extends State<ImposterTable> {
           controller: widget.controller,
           myVote: _pendingVote ?? secret?.myVote,
           enabled: widget.enabled,
+          keys: widget.stage && isPhysicalKeyboardPlatform,
           onVote: (target) => _send(target < 0 ? 'vote:skip' : 'vote:$target'),
         ));
       case 'guess':
@@ -745,7 +799,12 @@ class _ClueEntry extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  sentenceCaseOf(context, error ?? l10n.chatGameImpClueHint),
+                  sentenceCaseOf(
+                    context,
+                    error ??
+                        '${l10n.chatGameImpClueHint} · '
+                            '${sentenceCaseOf(context, l10n.partyImposterClueRule)}',
+                  ),
                   style: groupedMetaStyle(theme).copyWith(
                     color: error != null ? theme.danger : theme.inkMuted,
                   ),
@@ -860,6 +919,7 @@ class _VotePanel extends StatelessWidget {
     required this.myVote,
     required this.enabled,
     required this.onVote,
+    this.keys = false,
   });
 
   final ChatMatch match;
@@ -870,6 +930,9 @@ class _VotePanel extends StatelessWidget {
   final bool enabled;
   final ValueChanged<int> onVote;
 
+  /// Desktop: a number on every face that can be voted for, and the hint.
+  final bool keys;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -879,6 +942,9 @@ class _VotePanel extends StatelessWidget {
     final living = view.living;
     final voted = living.where((i) => i < view.voted.length && view.voted[i]).length;
     final clues = {for (final c in view.clues) c.seat: c};
+    final keyOf = {
+      for (final e in imposterVoteKeys(living, mySeat).entries) e.value: e.key,
+    };
     String? clueOf(int seat) {
       final c = clues[seat];
       if (c == null || c.passed || c.text.isEmpty || view.voice) return null;
@@ -923,6 +989,9 @@ class _VotePanel extends StatelessWidget {
                           ? const _Tick()
                           : null,
                       dim: i == mySeat,
+                      keyLabel: keys && playing && keyOf[i] != null
+                          ? '${keyOf[i]}'
+                          : null,
                     ),
                 ],
               ),
@@ -947,6 +1016,10 @@ class _VotePanel extends StatelessWidget {
             tonal: true,
             onTap: enabled && myVote != -1 ? () => onVote(-1) : null,
           ),
+          if (keys) ...[
+            const SizedBox(height: 10),
+            PartyCaption(l10n.partyImposterVoteKeys),
+          ],
         ],
       ],
     );
@@ -1234,6 +1307,112 @@ class _OverPanel extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The number key for each seat that can be voted for, in the order the vote
+/// shows the faces (everyone still in), skipping the voter: `{1: seat, …}`.
+Map<int, int> imposterVoteKeys(List<int> living, int mySeat) {
+  final out = <int, int>{};
+  var k = 1;
+  for (final seat in living) {
+    if (seat == mySeat) continue;
+    if (k > 9) break;
+    out[k++] = seat;
+  }
+  return out;
+}
+
+/// On the desktop stage, while someone else gives their clue: who it is and
+/// their clock, large, since the clues themselves are in the panel beside.
+class _ClueWait extends StatelessWidget {
+  const _ClueWait({
+    required this.match,
+    required this.view,
+    required this.viewerId,
+    required this.clock,
+  });
+
+  final ChatMatch match;
+  final ImposterView view;
+  final String viewerId;
+  final MatchController clock;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final seat = view.turn;
+    if (seat == null || seat >= match.seats.length) return const SizedBox.shrink();
+    final s = match.seats[seat];
+    final palette = SeatPalette(theme, gameId: match.game);
+    return PartyPanel(
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
+      child: Column(
+        children: [
+          PhaseRing(
+            clock: clock,
+            deadline: view.deadline,
+            total: partyPhaseLength('imposter', 'clues'),
+            color: palette.fill(seat),
+            stroke: 3.5,
+            child: MatchFace(
+              roomId: match.roomId,
+              userId: s.userId,
+              name: s.name,
+              size: 72,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            sentenceCaseOf(
+              context,
+              l10n.chatGameTurnOf(seatName(l10n, match, seat, viewerId)),
+            ),
+            textAlign: TextAlign.center,
+            style: groupedTitleStyle(theme).copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          PhaseClockPill(clock: clock, deadline: view.deadline),
+        ],
+      ),
+    );
+  }
+}
+
+/// Beside the table on the desktop stage: every clue, in clue order, for the
+/// whole game. The vote and the reveal both read against it, so it stays.
+class ImposterStagePanel extends StatelessWidget {
+  const ImposterStagePanel({
+    super.key,
+    required this.match,
+    required this.controller,
+    required this.viewerId,
+  });
+
+  final ChatMatch match;
+  final MatchController controller;
+  final String viewerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final v = partyViewOf(match);
+    if (v is! ImposterView) return const SizedBox.shrink();
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        PartyStageSection(
+          title: l10n.chatGameImpCardClues(v.clues.length, v.order.length),
+          child: _ClueList(
+            match: match,
+            view: v,
+            viewerId: viewerId,
+            clock: controller,
+          ),
+        ),
+      ],
     );
   }
 }

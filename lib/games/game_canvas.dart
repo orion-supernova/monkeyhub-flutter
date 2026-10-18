@@ -17,9 +17,11 @@ library;
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/theme_scope.dart';
 
 /// Where the cells of an `n`×`n` board are, inside a square of [side].
 ///
@@ -100,6 +102,8 @@ class GameBoardSurface extends StatefulWidget {
     this.onDragEnd,
     this.claimsDrag = true,
     this.leadFraction = 0,
+    this.keyboardSelects = false,
+    this.onCellKey,
   });
 
   final CustomPainter painter;
@@ -139,6 +143,17 @@ class GameBoardSurface extends StatefulWidget {
   /// against the page in the first place.
   final bool claimsDrag;
 
+  /// A select-then-act board (Sudoku, Futoshiki): moving the keyboard cursor
+  /// selects the square under it, through [onTapCell], so the arrows do what
+  /// tapping around the grid does. Every other board moves only the cursor,
+  /// and Space or Enter is the tap.
+  final bool keyboardSelects;
+
+  /// A key the board itself does not use (arrows, Space, Enter, F), offered
+  /// with the cell under the keyboard cursor: a digit for Sudoku, X for
+  /// Nonogram. True when the game used it.
+  final bool Function(int cell, LogicalKeyboardKey key)? onCellKey;
+
   @override
   State<GameBoardSurface> createState() => _GameBoardSurfaceState();
 }
@@ -149,6 +164,88 @@ class _GameBoardSurfaceState extends State<GameBoardSurface> {
   /// skated over. Both null between gestures.
   Offset? _previous;
   int? _entered;
+
+  /// The keyboard's square, and whether it is on show. Hidden until a key
+  /// moves it and again the moment a pointer lands, so a mouse or a finger
+  /// never sees a ring it did not ask for.
+  int _cursor = 0;
+  bool _cursorShown = false;
+  final _focus = FocusNode(debugLabel: 'game board');
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final n = widget.n;
+    if (n == 0) return KeyEventResult.ignored;
+    final mods = HardwareKeyboard.instance;
+    // Chords belong to the app (⌘Z, ⌘W, ⌘K): never eaten here.
+    if (mods.isMetaPressed || mods.isControlPressed || mods.isAltPressed) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    final step = switch (key) {
+      LogicalKeyboardKey.arrowUp => -n,
+      LogicalKeyboardKey.arrowDown => n,
+      LogicalKeyboardKey.arrowLeft => -1,
+      LogicalKeyboardKey.arrowRight => 1,
+      _ => 0,
+    };
+    if (step != 0) {
+      final row = _cursor ~/ n;
+      final col = _cursor % n;
+      final next = switch (key) {
+        LogicalKeyboardKey.arrowUp => row > 0 ? _cursor + step : _cursor,
+        LogicalKeyboardKey.arrowDown => row < n - 1 ? _cursor + step : _cursor,
+        LogicalKeyboardKey.arrowLeft => col > 0 ? _cursor + step : _cursor,
+        _ => col < n - 1 ? _cursor + step : _cursor,
+      };
+      // The first press shows the cursor where it already is, rather than
+      // jumping it a square the player never saw it leave.
+      setState(() {
+        if (_cursorShown) _cursor = next;
+        _cursorShown = true;
+      });
+      if (widget.keyboardSelects) widget.onTapCell?.call(_cursor);
+      return KeyEventResult.handled;
+    }
+    if (!_cursorShown) {
+      setState(() => _cursorShown = true);
+      if (widget.keyboardSelects) widget.onTapCell?.call(_cursor);
+    }
+    if (widget.onCellKey?.call(_cursor, key) ?? false) {
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      if (widget.keyboardSelects || widget.onTapCell == null) {
+        return KeyEventResult.ignored;
+      }
+      widget.onTapCell!(_cursor);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyF && widget.onLongPressCell != null) {
+      widget.onLongPressCell!(_cursor);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _pointerDown(PointerDownEvent e, GameGrid grid) {
+    final cell = grid.hit(e.localPosition);
+    if (!_focus.hasFocus) _focus.requestFocus();
+    if (cell != null || _cursorShown) {
+      setState(() {
+        if (cell != null) _cursor = cell;
+        _cursorShown = false;
+      });
+    }
+  }
 
   void _startDrag(GameGrid grid, Offset at) {
     _previous = null;
@@ -221,18 +318,30 @@ class _GameBoardSurfaceState extends State<GameBoardSurface> {
           lead: side * widget.leadFraction,
         );
         final draggable = widget.onDragTo != null && widget.claimsDrag;
+        if (_cursor >= widget.n * widget.n) _cursor = 0;
 
-        return RawGestureDetector(
+        final surface = RawGestureDetector(
           behavior: HitTestBehavior.opaque,
           gestures: <Type, GestureRecognizerFactory>{
             if (widget.onTapCell != null)
               TapGestureRecognizer:
                   GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
                     () => TapGestureRecognizer(debugOwner: this),
-                    (recognizer) => recognizer.onTapUp = (details) {
-                      final cell = grid.hit(details.localPosition);
-                      if (cell != null) widget.onTapCell!(cell);
-                    },
+                    (recognizer) => recognizer
+                      ..onTapUp = (details) {
+                        final cell = grid.hit(details.localPosition);
+                        if (cell != null) widget.onTapCell!(cell);
+                      }
+                      // A right click is a mouse's long press: Minesweeper's
+                      // flag, where every desktop minesweeper has it.
+                      ..onSecondaryTapUp = widget.onLongPressCell == null
+                          ? null
+                          : (details) {
+                              final cell = grid.hit(details.localPosition);
+                              if (cell != null) {
+                                widget.onLongPressCell!(cell);
+                              }
+                            },
                   ),
             if (widget.onLongPressCell != null)
               LongPressGestureRecognizer:
@@ -270,11 +379,60 @@ class _GameBoardSurfaceState extends State<GameBoardSurface> {
                     },
                   ),
           },
-          child: CustomPaint(painter: widget.painter, size: Size.square(side)),
+          child: CustomPaint(
+            painter: widget.painter,
+            foregroundPainter: _cursorShown
+                ? _CursorPainter(
+                    grid: grid,
+                    cell: _cursor,
+                    color: ThemeScope.of(context).accent,
+                  )
+                : null,
+            size: Size.square(side),
+          ),
+        );
+        return Focus(
+          focusNode: _focus,
+          autofocus: true,
+          onKeyEvent: _onKey,
+          onFocusChange: (has) {
+            if (!has && _cursorShown) setState(() => _cursorShown = false);
+          },
+          child: Listener(
+            onPointerDown: (e) => _pointerDown(e, grid),
+            child: surface,
+          ),
         );
       },
     );
   }
+}
+
+/// The keyboard cursor: a ring inside the square, in the accent, drawn over
+/// whatever the board painted there.
+class _CursorPainter extends CustomPainter {
+  _CursorPainter({required this.grid, required this.cell, required this.color});
+
+  final GameGrid grid;
+  final int cell;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = grid.rect(cell).deflate(grid.cell * 0.06);
+    final w = (grid.cell * 0.07).clamp(2.0, 4.0);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(r.deflate(w / 2), Radius.circular(grid.cell * 0.16)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CursorPainter old) =>
+      old.cell != cell || old.color != color || old.grid.side != grid.side;
 }
 
 /// A pan that claims the gesture on the first pixel of movement.
@@ -712,4 +870,31 @@ void paintGlyph(
     canvas,
     center - Offset(painter.width / 2, painter.height / 2),
   );
+}
+
+/// The digit a key types, 0 to 9, top row or numpad; null for anything else.
+/// Backspace and Delete read as 0, the keypad's own eraser.
+int? digitOfKey(LogicalKeyboardKey key) {
+  if (key == LogicalKeyboardKey.backspace ||
+      key == LogicalKeyboardKey.delete) {
+    return 0;
+  }
+  const top = [
+    LogicalKeyboardKey.digit0, LogicalKeyboardKey.digit1,
+    LogicalKeyboardKey.digit2, LogicalKeyboardKey.digit3,
+    LogicalKeyboardKey.digit4, LogicalKeyboardKey.digit5,
+    LogicalKeyboardKey.digit6, LogicalKeyboardKey.digit7,
+    LogicalKeyboardKey.digit8, LogicalKeyboardKey.digit9,
+  ];
+  const pad = [
+    LogicalKeyboardKey.numpad0, LogicalKeyboardKey.numpad1,
+    LogicalKeyboardKey.numpad2, LogicalKeyboardKey.numpad3,
+    LogicalKeyboardKey.numpad4, LogicalKeyboardKey.numpad5,
+    LogicalKeyboardKey.numpad6, LogicalKeyboardKey.numpad7,
+    LogicalKeyboardKey.numpad8, LogicalKeyboardKey.numpad9,
+  ];
+  final i = top.indexOf(key);
+  if (i >= 0) return i;
+  final j = pad.indexOf(key);
+  return j >= 0 ? j : null;
 }

@@ -11,9 +11,12 @@ import '../data/matches_store.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../games/game_canvas.dart' show digitOfKey;
 import '../models/chat_match.dart';
+import '../platform.dart' show isPhysicalKeyboardPlatform;
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import '../turn_games/board/seat_palette.dart';
 import '../widgets/ios_kit.dart';
 import 'dice.dart';
 import 'party_kit.dart';
@@ -35,6 +38,7 @@ class LiarsDiceTable extends StatefulWidget {
     required this.controller,
     required this.viewerId,
     this.enabled = true,
+    this.stage = false,
   });
 
   final ChatMatch match;
@@ -43,6 +47,10 @@ class LiarsDiceTable extends StatefulWidget {
 
   /// False while the 3-2-1 runs.
   final bool enabled;
+
+  /// The desktop stage's middle: no faces along the top (they are in
+  /// [LiarsDiceStagePanel] beside it), the rest centred, and the keys live.
+  final bool stage;
 
   static const revealFor = Duration(seconds: 6);
 
@@ -138,6 +146,9 @@ class _LiarsDiceTableState extends State<LiarsDiceTable> {
     if (bid == null) {
       _qty = 1;
       _face = _mostCommon(dice);
+    } else if (bid.face == 1) {
+      _qty = bid.qty + 1;
+      _face = 1;
     } else if (bid.face < 6) {
       _qty = bid.qty;
       _face = bid.face + 1;
@@ -167,7 +178,8 @@ class _LiarsDiceTableState extends State<LiarsDiceTable> {
       // The face may no longer be a raise at this quantity: move it up to
       // the first one that is.
       if (bid != null && !bid.raisedBy(_qty, _face)) {
-        for (var f = 1; f <= 6; f++) {
+        // Plain faces first: the 1s are the expensive bid, never the default.
+        for (final f in const [2, 3, 4, 5, 6, 1]) {
           if (bid.raisedBy(_qty, f)) {
             _face = f;
             break;
@@ -177,8 +189,82 @@ class _LiarsDiceTableState extends State<LiarsDiceTable> {
     });
   }
 
+  /// Desktop keys on the viewer's turn: ↑ ↓ the quantity, ← → or 1–6 the
+  /// face (only ever to a face that raises), Enter bids, L calls.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (!plainKeyDown(event)) return KeyEventResult.ignored;
+    final m = widget.match;
+    final v = _view;
+    if (v == null || !widget.enabled) return KeyEventResult.ignored;
+    final mySeat = m.seatOf(widget.viewerId);
+    final myTurn = m.status == MatchStatus.active &&
+        !v.over &&
+        v.turn == mySeat &&
+        mySeat >= 0;
+    if (!myTurn || widget.controller.pendingAction != null) {
+      return KeyEventResult.ignored;
+    }
+    final bid = v.bid;
+    final key = event.logicalKey;
+    bool canFace(int f) => bid == null || bid.raisedBy(_qty, f);
+    void face(int f) {
+      if (f == _face || !canFace(f)) return;
+      HapticFeedback.selectionClick();
+      setState(() => _face = f);
+    }
+
+    if (key == LogicalKeyboardKey.arrowUp) {
+      if (_qty < v.totalDice) _setQty(_qty + 1, bid);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowDown) {
+      final min = bid == null ? 1 : bid.minRaiseQty;
+      if (_qty > min) _setQty(_qty - 1, bid);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight) {
+      final dir = key == LogicalKeyboardKey.arrowRight ? 1 : -1;
+      for (var f = _face + dir; f >= 1 && f <= 6; f += dir) {
+        if (canFace(f)) {
+          face(f);
+          break;
+        }
+      }
+      return KeyEventResult.handled;
+    }
+    final digit = digitOfKey(key);
+    if (digit != null && digit >= 1 && digit <= 6) {
+      face(digit);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      if (_qty <= v.totalDice && canFace(_face)) {
+        widget.controller.act('bid:$_qty:$_face');
+      }
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyL && bid != null) {
+      HapticFeedback.mediumImpact();
+      widget.controller.act('liar');
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final table = _table(context);
+    if (!widget.stage) return table;
+    return Focus(
+      autofocus: isPhysicalKeyboardPlatform,
+      onKeyEvent: _onKey,
+      child: PartyStageBody(child: table),
+    );
+  }
+
+  Widget _table(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final m = widget.match;
@@ -205,24 +291,10 @@ class _LiarsDiceTableState extends State<LiarsDiceTable> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        PartySeatStrip(
-          match: m,
-          viewerId: me,
-          clock: widget.controller,
-          deadline: active ? v.deadline : null,
-          total: partyPhaseLength('liarsdice', v.phase),
-          seats: [
-            for (var i = 0; i < m.seats.length; i++)
-              PartySeat(
-                seat: i,
-                badge: DiceCup(count: i < v.counts.length ? v.counts[i] : 0),
-                note: v.isOut(i) ? l10n.chatGameLdOut : null,
-                dim: v.isOut(i) || (i < v.left.length && v.left[i]),
-                timed: active && !v.over && v.turn == i,
-              ),
-          ],
-        ),
-        const SizedBox(height: 14),
+        if (!widget.stage) ...[
+          LiarsDiceSeats(match: m, view: v, viewerId: me, clock: widget.controller),
+          const SizedBox(height: 14),
+        ],
         AnimatedSize(
           duration: motion.d(theme.motionMed),
           curve: theme.motionCurve,
@@ -305,6 +377,10 @@ class _LiarsDiceTableState extends State<LiarsDiceTable> {
                     widget.controller.act('liar');
                   },
           ),
+          if (widget.stage && isPhysicalKeyboardPlatform) ...[
+            const SizedBox(height: 10),
+            PartyCaption(l10n.partyLdKeys),
+          ],
         ],
         if (v.over && !finalCall && v.dice != null) ...[
           const SizedBox(height: 12),
@@ -447,7 +523,7 @@ class _BidPicker extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final b = bid;
-    final minQty = b == null ? 1 : (b.face < 6 ? b.qty : b.qty + 1);
+    final minQty = b == null ? 1 : b.minRaiseQty;
     final legal = qty <= total && (b == null || b.raisedBy(qty, face));
     final can = enabled && !busy;
     final label = groupedMetaStyle(theme).copyWith(
@@ -506,6 +582,10 @@ class _BidPicker extends StatelessWidget {
                 ),
             ],
           ),
+          if (b != null && (b.face == 1 || face == 1)) ...[
+            const SizedBox(height: 10),
+            PartyCaption(l10n.partyLdAcesRule),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -826,6 +906,151 @@ class _FinalHands extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Everyone at the table as faces, each with a cup of the dice they still
+/// hold, the one to bid wearing the clock. Along the top on a phone, and at
+/// the top of [LiarsDiceStagePanel] on the desktop stage.
+class LiarsDiceSeats extends StatelessWidget {
+  const LiarsDiceSeats({
+    super.key,
+    required this.match,
+    required this.view,
+    required this.viewerId,
+    required this.clock,
+  });
+
+  final ChatMatch match;
+  final LiarsDiceView view;
+  final String viewerId;
+  final MatchController clock;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final m = match;
+    final v = view;
+    final active = m.status == MatchStatus.active;
+    return PartySeatStrip(
+      match: m,
+      viewerId: viewerId,
+      clock: clock,
+      deadline: active ? v.deadline : null,
+      total: partyPhaseLength('liarsdice', v.phase),
+      seats: [
+        for (var i = 0; i < m.seats.length; i++)
+          PartySeat(
+            seat: i,
+            badge: DiceCup(count: i < v.counts.length ? v.counts[i] : 0),
+            note: v.isOut(i) ? l10n.chatGameLdOut : null,
+            dim: v.isOut(i) || (i < v.left.length && v.left[i]),
+            timed: active && !v.over && v.turn == i,
+          ),
+      ],
+    );
+  }
+}
+
+/// Beside the dice on the desktop stage: the table, and this round's bids in
+/// the order they were made, newest at the top, so a raise can be read
+/// against the whole climb rather than only the last step.
+class LiarsDiceStagePanel extends StatelessWidget {
+  const LiarsDiceStagePanel({
+    super.key,
+    required this.match,
+    required this.controller,
+    required this.viewerId,
+  });
+
+  final ChatMatch match;
+  final MatchController controller;
+  final String viewerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final v = partyViewOf(match);
+    if (v is! LiarsDiceView) return const SizedBox.shrink();
+    final palette = SeatPalette(theme, gameId: match.game);
+    final bids = v.bids.reversed.toList();
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        PartyPanel(
+          padding: const EdgeInsets.fromLTRB(8, 16, 8, 14),
+          child: LiarsDiceSeats(
+            match: match,
+            view: v,
+            viewerId: viewerId,
+            clock: controller,
+          ),
+        ),
+        const SizedBox(height: 18),
+        PartyStageSection(
+          title: l10n.chatGameLdRoundDice(v.totalDice, v.round),
+          child: PartyPanel(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: bids.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: PartyCaption(l10n.chatGameLdNoBid),
+                  )
+                : Column(
+                    children: [
+                      for (var i = 0; i < bids.length; i++)
+                        Opacity(
+                          opacity: i == 0 ? 1 : 0.62,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: palette.fill(bids[i].seat),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    seatName(l10n, match, bids[i].seat, viewerId),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: groupedTitleStyle(theme).copyWith(
+                                      fontWeight: i == 0
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${bids[i].qty} ×',
+                                  style: groupedTitleStyle(theme).copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                DieFace(face: bids[i].face, size: 26),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
     );
   }
 }

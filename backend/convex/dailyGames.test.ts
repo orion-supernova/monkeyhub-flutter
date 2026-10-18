@@ -502,6 +502,49 @@ describe("ties share a place", () => {
     ]);
   });
 
+  test("standings: a hinted solve ranks after every unaided one", async () => {
+    const t = convexTest(schema);
+    const { viewer, others } = await friends(t, ["bea", "cal", "dan"]);
+    const now = Date.now();
+    const row = (
+      userId: any,
+      solved: boolean,
+      hintsUsed: number,
+      durationMs?: number,
+    ) => ({
+      userId,
+      dayKey: DAY,
+      game: "queens",
+      startedAt: now - 600_000,
+      solved,
+      gaveUp: !solved,
+      finishedAt: now,
+      hintsUsed,
+      mistakes: 0,
+      ...(durationMs === undefined ? {} : { durationMs }),
+    });
+    await t.run(async (ctx: any) => {
+      // Hinted through in 0:09: fastest, and still below both clean solves.
+      await ctx.db.insert("gameResults", row(others[0].userId, true, 6, 9_000));
+      await ctx.db.insert("gameResults", row(viewer.userId, true, 0, 120_000));
+      await ctx.db.insert("gameResults", row(others[1].userId, true, 0, 60_000));
+      // A surrender stays below every solve, hinted or not.
+      await ctx.db.insert("gameResults", row(others[2].userId, false, 2));
+    });
+    const out: any = await t.query(api.games.standings, {
+      sessionToken: viewer.token,
+      userId: viewer.userId,
+      dayKey: DAY,
+    } as any);
+    const places = out.boards.queens.map((r: any) => [r.name, r.place]);
+    expect(places).toEqual([
+      ["cal", 1],
+      ["", 2],
+      ["bea", 3],
+      ["dan", 4],
+    ]);
+  });
+
   test("puzzle: equal guess counts share a place", async () => {
     const t = convexTest(schema);
     const { viewer, others } = await friends(t, ["bea", "cal", "dan"]);

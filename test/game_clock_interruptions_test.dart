@@ -312,4 +312,34 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     play.dispose();
   });
+
+  testWidgets('going to the background saves the board once per trip, so a '
+      'kill from there loses nothing', (tester) async {
+    final (play, calls) = await started(tester);
+    final api = GamesStore.instance.api as FakeGamesApi;
+    var board = [1, 2, 3];
+    play.snapshot = () => board;
+
+    lifecycle(tester, AppLifecycleState.inactive);
+    expect(api.saves, isEmpty, reason: 'a glance saves nothing');
+    lifecycle(tester, AppLifecycleState.hidden);
+    lifecycle(tester, AppLifecycleState.paused);
+    expect(api.saves, hasLength(1));
+    expect(api.saves.single.progress, [1, 2, 3]);
+    expect(api.saves.single.elapsedMs, 30000);
+
+    lifecycle(tester, AppLifecycleState.hidden);
+    lifecycle(tester, AppLifecycleState.inactive);
+    lifecycle(tester, AppLifecycleState.resumed);
+    board = [4];
+    lifecycle(tester, AppLifecycleState.inactive);
+    lifecycle(tester, AppLifecycleState.hidden);
+    expect(api.saves, hasLength(2));
+    expect(api.saves.last.progress, [4]);
+
+    lifecycle(tester, AppLifecycleState.inactive);
+    lifecycle(tester, AppLifecycleState.resumed);
+    await tester.pump(GamePlayController.coverAfter);
+    end(play, calls);
+  });
 }

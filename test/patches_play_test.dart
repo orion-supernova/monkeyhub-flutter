@@ -201,13 +201,31 @@ void main() {
     final n = board().size;
     PatchRect? rival;
     int? rivalClue;
+    int? rivalFrom;
+    int? rivalTo;
     for (var a = 0; a < n * n && rival == null; a++) {
       for (var b = a; b < n * n && rival == null; b++) {
         final r = PatchRect.span(a, b, n);
         final judged = patchJudge(board(), r);
-        if (judged.trouble == null && judged.clue != 0 && r.overlaps(p0)) {
-          rival = r;
-          rivalClue = judged.clue;
+        // Started from a square p0 does not cover: a press on p0 itself
+        // would take hold of p0 and reshape it instead.
+        if (judged.trouble == null &&
+            judged.clue != 0 &&
+            r.overlaps(p0)) {
+          for (final (from, to) in [
+            (r.top * n + r.left, r.bottom * n + r.right),
+            (r.bottom * n + r.right, r.top * n + r.left),
+            (r.top * n + r.right, r.bottom * n + r.left),
+            (r.bottom * n + r.left, r.top * n + r.right),
+          ]) {
+            if (!p0.contains(from, n)) {
+              rival = r;
+              rivalClue = judged.clue;
+              rivalFrom = from;
+              rivalTo = to;
+              break;
+            }
+          }
         }
       }
     }
@@ -215,8 +233,8 @@ void main() {
 
     final s = surface(tester);
     s.onDragStart!();
-    s.onDragTo!(topLeft(rival!));
-    s.onDragTo!(bottomRight(rival));
+    s.onDragTo!(rivalFrom!);
+    s.onDragTo!(rivalTo!);
     await tester.pump(const Duration(milliseconds: 16));
     // Faded while the finger is still down: this is what letting go costs.
     expect(painter(tester).lifting, contains(0));

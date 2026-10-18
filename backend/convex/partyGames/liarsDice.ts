@@ -24,8 +24,8 @@ import {
  * ## Action tokens
  *
  *  * `bid:<quantity>:<face>`, face 1..6, quantity 1..(dice still in play).
- *    Strictly higher than the standing bid: a bigger quantity, or the same
- *    quantity on a higher face.
+ *    Strictly higher than the standing bid ([raises]: a bigger quantity, or
+ *    the same quantity on a higher face, with Perudo's conversion for 1s).
  *  * `liar`, only against a standing bid.
  *
  * ## The clock
@@ -104,9 +104,25 @@ export function countFace(dice: number[][], face: number): number {
   return n;
 }
 
-/** Whether [qty]×[face] is strictly higher than [last]. */
+/**
+ * Whether [qty]×[face] is strictly higher than [last], by Perudo's rule for
+ * aces. 1s are wild, so a bid ON 1s is roughly twice as hard to make as the
+ * same quantity of any other face, and the ladder prices it that way:
+ *
+ *  * plain face to plain face: more dice, or the same number on a higher face;
+ *  * onto 1s: at least half the quantity, rounded up (5×4 → 3×1);
+ *  * 1s to 1s: more of them;
+ *  * off 1s: at least double plus one (3×1 → 7×anything).
+ *
+ * Without the conversion a bid on 1s was simply the LOWEST face, so "4×1"
+ * outbid "3×6" while being far less likely, and nobody had a reason to bid
+ * 1s at all. Any opening bid stands, 1s included.
+ */
 export function raises(last: Bid | null, qty: number, face: number): boolean {
   if (!last) return true;
+  if (last.face === 1 && face === 1) return qty > last.qty;
+  if (face === 1) return qty >= Math.ceil(last.qty / 2);
+  if (last.face === 1) return qty >= last.qty * 2 + 1;
   return qty > last.qty || (qty === last.qty && face > last.face);
 }
 

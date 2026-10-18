@@ -82,6 +82,7 @@ HowToPlayGuide chatGuide(
       s(l10n.howToRace1, const RaceSameDemo()),
       s(l10n.howToRace2, const RaceProgressDemo()),
       s(l10n.howToRace3, const RaceFinishDemo()),
+      s(l10n.partyRaceGrace, const RaceProgressDemo()),
     ],
     _ => <HowToStep>[],
   };
@@ -101,7 +102,8 @@ HowToPlayGuide chatGuide(
     footnote: switch (game) {
       'checkers' => '${l10n.howToCheckersWin} $notRanked',
       'dots' => '${l10n.howToDotsWin} $notRanked',
-      'liarsdice' => '${l10n.howToLiarsClock} $notRanked',
+      'liarsdice' =>
+        '${l10n.partyLdAcesRule} ${l10n.howToLiarsClock} $notRanked',
       _ => notRanked,
     },
     steps: [

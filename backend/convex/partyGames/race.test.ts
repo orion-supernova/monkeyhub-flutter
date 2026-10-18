@@ -6,6 +6,7 @@ import * as tango from "../games/tango";
 import * as zip from "../games/zip";
 import {
   checkSolution,
+  FINISH_GRACE_MS,
   PROGRESS_EVERY_MS,
   PUZZLES,
   RACE_MS,
@@ -142,6 +143,22 @@ describe("the end", () => {
     s = rules.act(s, 2, `finish:${JSON.stringify(answer(s))}`, T0 + 1000);
     s = rules.onDeadline(s, T0 + RACE_MS);
     expect(rules.outcome(s)).toEqual({ winner: 2, reason: "time" });
+  });
+
+  test("the first finish leaves the rest a short grace, never a longer one", () => {
+    let s = race("sudoku", 3);
+    const sol = `finish:${JSON.stringify(answer(s))}`;
+    s = rules.act(s, 0, sol, T0 + 60_000);
+    expect(rules.deadline(s)).toBe(T0 + 60_000 + FINISH_GRACE_MS);
+    // A later finish does not move it again.
+    s = rules.act(s, 1, sol, T0 + 90_000);
+    expect(rules.deadline(s)).toBe(T0 + 60_000 + FINISH_GRACE_MS);
+    s = rules.onDeadline(s, T0 + 60_000 + FINISH_GRACE_MS);
+    expect(rules.outcome(s)).toEqual({ winner: 0, reason: "time" });
+    // A win with less than the grace left keeps the original clock.
+    let late = race("sudoku", 2);
+    late = rules.act(late, 1, sol, T0 + RACE_MS - 30_000);
+    expect(rules.deadline(late)).toBe(T0 + RACE_MS);
   });
 
   test("a leaver is out; the race ends when everyone still in has finished", () => {

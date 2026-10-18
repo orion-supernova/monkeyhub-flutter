@@ -33,7 +33,17 @@ class GameLayoutShell extends StatelessWidget {
     this.boardWidth = 440,
     this.sidebarWidth = 320,
     this.scrollLocked,
+    this.stage,
   });
+
+  /// The desktop shape: when set and the space this shell is given is wide
+  /// and tall enough ([GameStage.fits]), the page stops being a scrolling
+  /// column. The board takes every pixel of height the header leaves, the
+  /// [GameStage.panel] runs the full height beside it (players, clocks, move
+  /// list, tools: whatever the game puts there), and nothing scrolls but the
+  /// panel. Below that size, [header] / [board] / [sidebar] as before, so a
+  /// phone never sees the stage.
+  final GameStage? stage;
 
   final List<Widget> header;
   final List<Widget> board;
@@ -75,6 +85,19 @@ class GameLayoutShell extends StatelessWidget {
   }
 
   Widget _build(BuildContext context, ScrollPhysics? physics) {
+    final stage = this.stage;
+    if (stage == null) return _column(context, physics);
+    // Decided by the space this shell actually has, not by the window: in the
+    // split shell a game opens in the chat pane, which is narrower than the
+    // window it sits in.
+    return LayoutBuilder(
+      builder: (context, box) => stage.fits(box.biggest)
+          ? _Stage(header: header, stage: stage)
+          : _column(context, physics),
+    );
+  }
+
+  Widget _column(BuildContext context, ScrollPhysics? physics) {
     if (!context.isExpanded) {
       return AdaptivePageBody(
         child: ListView(
@@ -134,6 +157,124 @@ class GameLayoutShell extends StatelessWidget {
                   const SizedBox(width: 40),
                   SizedBox(width: sidebarWidth, child: sidebar),
                 ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// What a game screen hands [GameLayoutShell] for its wide shape: the board on
+/// its own, at its aspect ratio, and the panel that sits beside it.
+///
+/// Laid out the way desktop chess sites do it (lichess, not a phone stretched
+/// sideways): the board is as big as the window allows, height first, and the
+/// panel beside it carries the players at its top and bottom edges with the
+/// game's history between them, so nothing has to be measured to line up with
+/// the board.
+class GameStage {
+  const GameStage({
+    required this.board,
+    required this.panel,
+    this.aspectRatio = 1,
+    this.leading,
+    this.leadingWidth = 84,
+    this.panelWidth = 340,
+    this.maxBoard = 920,
+    this.minWidth = 860,
+    this.minHeight = 520,
+  });
+
+  /// The board alone: no plates, no tools. Sized by the stage.
+  final Widget board;
+
+  /// Width over height of [board].
+  final double aspectRatio;
+
+  /// Full height beside the board. It gets bounded constraints, so a
+  /// `Column` with an `Expanded` list in it works, and so does a
+  /// `SingleChildScrollView`.
+  final Widget panel;
+
+  /// An optional rail on the board's other side (a keypad).
+  final Widget? leading;
+  final double leadingWidth;
+  final double panelWidth;
+
+  /// The board's longest side never grows past this, however big the monitor.
+  final double maxBoard;
+
+  /// Below either, the shell keeps the phone column.
+  final double minWidth;
+  final double minHeight;
+
+  bool fits(Size space) =>
+      space.width >= minWidth && space.height >= minHeight;
+}
+
+class _Stage extends StatelessWidget {
+  const _Stage({required this.header, required this.stage});
+
+  final List<Widget> header;
+  final GameStage stage;
+
+  @override
+  Widget build(BuildContext context) {
+    final leading = stage.leading;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        8,
+        24,
+        16 + MediaQuery.paddingOf(context).bottom,
+      ),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: stage.maxBoard +
+                stage.panelWidth +
+                32 +
+                (leading == null ? 0 : stage.leadingWidth + 24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...header,
+              const SizedBox(height: 8),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (leading != null) ...[
+                      SizedBox(width: stage.leadingWidth, child: leading),
+                      const SizedBox(width: 24),
+                    ],
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: stage.aspectRatio >= 1
+                                ? stage.maxBoard
+                                : stage.maxBoard * stage.aspectRatio,
+                            maxHeight: stage.aspectRatio >= 1
+                                ? stage.maxBoard / stage.aspectRatio
+                                : stage.maxBoard,
+                          ),
+                          child: AspectRatio(
+                            aspectRatio: stage.aspectRatio,
+                            child: stage.board,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 32),
+                    SizedBox(width: stage.panelWidth, child: stage.panel),
+                  ],
+                ),
               ),
             ],
           ),

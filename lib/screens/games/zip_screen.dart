@@ -64,6 +64,7 @@ class _ZipScreenState extends State<ZipScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => List<int>.of(_path);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -193,6 +194,7 @@ class _ZipScreenState extends State<ZipScreen> with TickerProviderStateMixin {
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _path.isEmpty ? null : _undoLast,
       title: l10n.gameZipName,
       rule: l10n.gameZipRule,
       board: AnimatedBuilder(

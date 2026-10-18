@@ -88,6 +88,7 @@ class _StarBattleScreenState extends State<StarBattleScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => [for (final m in _marks) m.index];
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -279,6 +280,7 @@ class _StarBattleScreenState extends State<StarBattleScreen>
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _undo.isEmpty ? null : _undoLast,
       title: l10n.gameStarbattleName,
       rule: l10n.gameStarbattleRule,
       hintBanner: HintBanner(

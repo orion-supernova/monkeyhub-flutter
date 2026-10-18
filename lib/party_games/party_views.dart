@@ -86,9 +86,18 @@ class DiceBid {
   final bool auto;
 
   /// Whether [qty]×[face] is strictly higher than this bid. Mirrors `raises`
-  /// in liarsDice.ts: a bigger quantity, or the same quantity on a higher face.
-  bool raisedBy(int qty, int face) =>
-      qty > this.qty || (qty == this.qty && face > this.face);
+  /// in liarsDice.ts: a bigger quantity, or the same quantity on a higher
+  /// face, with Perudo's price for wild 1s: half (rounded up) to bid onto
+  /// them, more of them from 1s to 1s, double plus one to leave them.
+  bool raisedBy(int qty, int face) {
+    if (this.face == 1 && face == 1) return qty > this.qty;
+    if (face == 1) return qty >= (this.qty + 1) ~/ 2;
+    if (this.face == 1) return qty >= this.qty * 2 + 1;
+    return qty > this.qty || (qty == this.qty && face > this.face);
+  }
+
+  /// The fewest dice any raise of this bid can name, on any face.
+  int get minRaiseQty => face == 1 ? qty + 1 : (qty + 1) ~/ 2;
 
   static DiceBid? fromJson(Object? raw) {
     if (raw is! Map) return null;

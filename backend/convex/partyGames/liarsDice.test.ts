@@ -54,6 +54,35 @@ describe("setup", () => {
 });
 
 describe("bidding", () => {
+  test("1s convert the Perudo way: half onto them, double plus one off", () => {
+    const b = (qty: number, face: number) => ({ seat: 0, qty, face });
+    // Onto 1s: at least half, rounded up.
+    expect(raises(b(5, 4), 3, 1)).toBe(true);
+    expect(raises(b(5, 4), 2, 1)).toBe(false);
+    expect(raises(b(6, 6), 3, 1)).toBe(true);
+    expect(raises(b(6, 2), 2, 1)).toBe(false);
+    // 1s to 1s: strictly more.
+    expect(raises(b(3, 1), 4, 1)).toBe(true);
+    expect(raises(b(3, 1), 3, 1)).toBe(false);
+    // Off 1s: double plus one, on any face.
+    expect(raises(b(3, 1), 7, 2)).toBe(true);
+    expect(raises(b(3, 1), 6, 6)).toBe(false);
+    // A 1s bid is no longer the cheapest face at the same quantity.
+    expect(raises(b(3, 6), 4, 1)).toBe(true);
+    expect(raises(b(4, 6), 4, 1)).toBe(true);
+    expect(raises(b(9, 6), 4, 1)).toBe(false);
+    // Any opening, 1s included.
+    expect(raises(null, 2, 1)).toBe(true);
+
+    let s = rigged([[1, 2, 3, 4, 5], [6, 6, 6, 6, 6], [2, 2, 2, 2, 2]]);
+    s = rules.act(s, 0, "bid:6:5", T0);
+    expect(() => rules.act(s, 1, "bid:2:1", T0)).toThrow("ILLEGAL");
+    s = rules.act(s, 1, "bid:3:1", T0);
+    expect(() => rules.act(s, 2, "bid:6:6", T0)).toThrow("ILLEGAL");
+    s = rules.act(s, 2, "bid:7:2", T0);
+    expect(s.bids.at(-1)).toMatchObject({ seat: 2, qty: 7, face: 2 });
+  });
+
   test("a bid must be strictly higher", () => {
     expect(raises(null, 1, 1)).toBe(true);
     expect(raises({ seat: 0, qty: 3, face: 4 }, 4, 2)).toBe(true);

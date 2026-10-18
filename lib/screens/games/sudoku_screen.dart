@@ -64,6 +64,7 @@ class _SudokuScreenState extends State<SudokuScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => List<int>.of(_cells);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -174,6 +175,21 @@ class _SudokuScreenState extends State<SudokuScreen>
       board.givens[i] != sudokuEmpty ? board.givens[i] : _cells[i],
   ];
 
+  /// A key on the board: a digit types into the selected square, Backspace
+  /// clears it, N turns pencil marks on and off.
+  bool _key(int cell, LogicalKeyboardKey key) {
+    if (key == LogicalKeyboardKey.keyN) {
+      setState(() => _noting = !_noting);
+      return true;
+    }
+    final v = digitOfKey(key);
+    final board = GamesStore.instance.boards.sudoku;
+    if (v == null || v > board.size) return false;
+    if (_selected != cell) _select(cell);
+    _enter(v);
+    return true;
+  }
+
   void _undoLast() {
     if (_undo.isEmpty || _play.finished) return;
     final (index, value, marks) = _undo.removeLast();
@@ -260,6 +276,7 @@ class _SudokuScreenState extends State<SudokuScreen>
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _undo.isEmpty ? null : _undoLast,
       title: l10n.gameSudokuName,
       rule: l10n.gameSudokuRule,
       hintBanner: HintBanner(
@@ -273,6 +290,8 @@ class _SudokuScreenState extends State<SudokuScreen>
           animation: Listenable.merge([_pop, _winSweep]),
           builder: (context, _) => GameBoardSurface(
             onTapCell: _select,
+            keyboardSelects: true,
+            onCellKey: _key,
             n: board.size,
             painter: SudokuBoardPainter(
               board: board,

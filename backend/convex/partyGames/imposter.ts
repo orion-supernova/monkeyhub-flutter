@@ -51,7 +51,8 @@ import {
  *
  *  * `seen`: in `reveal`.
  *  * `clue:<text>`: in `clues`, on your turn; 1 to [MAX_CLUE] characters
- *    once trimmed, at most [MAX_CLUE_WORDS] words, no links. `done` (or an
+ *    once trimmed, at most [MAX_CLUE_WORDS] words, no links, and never the
+ *    word itself ([namesWord]). `done` (or an
  *    empty `clue:`) in voice mode.
  *  * `vote:<seat>` | `vote:skip`: in `vote`. A vote may be changed until the
  *    vote closes.
@@ -141,6 +142,27 @@ export function cleanClue(raw: string): string {
   if (text.split(" ").length > MAX_CLUE_WORDS) illegal("BAD_CLUE");
   if (URLISH.test(text)) illegal("BAD_CLUE");
   return text;
+}
+
+/**
+ * Whether [clue] says [word] outright, in any of its locales: the whole clue,
+ * or any run of its words, normalised like a guess ("Big ELEPHANT" names
+ * "elephant"; "elephants" does not, and neither does a word merely containing
+ * it). A crew member who types the word hands the imposter the game, so the
+ * server refuses it the way Spyfall's table would.
+ */
+export function namesWord(word: ImposterWord, clue: string): boolean {
+  const names = new Set(
+    Object.values(word.names).map(normalizeGuess).filter((n) => n.length > 0),
+  );
+  if (names.size === 0) return false;
+  const tokens = clue.split(" ").filter((t) => t.length > 0);
+  for (let i = 0; i < tokens.length; i++) {
+    for (let j = i + 1; j <= tokens.length; j++) {
+      if (names.has(normalizeGuess(tokens.slice(i, j).join(" ")))) return true;
+    }
+  }
+  return false;
 }
 
 // ── Flow ────────────────────────────────────────────────────────────────────
@@ -287,7 +309,9 @@ export const rules: PartyRules<ImposterState> = {
           return giveClue(s, "", false, now);
         }
         if (!action.startsWith("clue:")) illegal();
-        return giveClue(s, cleanClue(action.slice(5)), false, now);
+        const clue = cleanClue(action.slice(5));
+        if (namesWord(s.word, clue)) illegal("BAD_CLUE");
+        return giveClue(s, clue, false, now);
       }
       case "vote": {
         const m = /^vote:(skip|\d{1,2})$/.exec(action);

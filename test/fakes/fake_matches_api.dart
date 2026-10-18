@@ -11,6 +11,7 @@ class FakeMatchesApi implements MatchesApi {
   final Map<String, void Function(ChatMatch?)> _watchers = {};
   final Map<String, void Function(List<ChatMatch>)> _rooms = {};
   final Map<String, void Function(PartySecret?)> _secrets = {};
+  final Map<String, void Function(MatchHistory?)> _histories = {};
   String? failNextMove;
   String? failNextAct;
 
@@ -28,6 +29,12 @@ class FakeMatchesApi implements MatchesApi {
 
   bool watchingSecret(String matchId) => _secrets.containsKey(matchId);
 
+  /// Delivers a move list to the screen watching `matches:history`.
+  void pushHistory(String matchId, MatchHistory? h) =>
+      _histories[matchId]?.call(h);
+
+  bool watchingHistory(String matchId) => _histories.containsKey(matchId);
+
   void pushRoom(String roomId, List<ChatMatch> rows) =>
       _rooms[roomId]?.call(rows);
 
@@ -41,6 +48,18 @@ class FakeMatchesApi implements MatchesApi {
     _watchers[matchId] = onData;
     calls.add('watch');
     return () => _watchers.remove(matchId);
+  }
+
+  @override
+  Future<void Function()> watchHistory(
+    String userId,
+    String matchId,
+    void Function(MatchHistory?) onData, {
+    void Function(Object)? onError,
+  }) async {
+    _histories[matchId] = onData;
+    calls.add('watchHistory');
+    return () => _histories.remove(matchId);
   }
 
   @override
@@ -176,6 +195,15 @@ class FakeMatchesApi implements MatchesApi {
   @override
   Future<void> answerDraw(String userId, String matchId, bool accept) async =>
       calls.add('answerDraw:$accept');
+  @override
+  Future<void> requestTakeback(String userId, String matchId) async =>
+      calls.add('requestTakeback');
+  @override
+  Future<void> answerTakeback(
+    String userId,
+    String matchId,
+    bool accept,
+  ) async => calls.add('answerTakeback:$accept');
   @override
   Future<void> requestSeat(String userId, String matchId, int seat) async =>
       calls.add('requestSeat:$seat');

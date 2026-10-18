@@ -2913,6 +2913,18 @@ export default defineSchema({
     ),
     // A draw offered at `seq`, dead the moment another move lands.
     drawOffer: v.optional(v.object({ seat: v.number(), seq: v.number() })),
+    // The last draw offer that was declined: its seat may not offer again
+    // until two more moves have been played (`matches.offerDraw`).
+    drawDeclined: v.optional(v.object({ seat: v.number(), seq: v.number() })),
+    // A request to take back `seat`'s last move, standing at `seq` and dead
+    // the moment another move lands, like `drawOffer`.
+    takebackOffer: v.optional(v.object({ seat: v.number(), seq: v.number() })),
+    // The last takeback request that was declined: not asked again at `seq`.
+    takebackDeclined: v.optional(
+      v.object({ seat: v.number(), seq: v.number() }),
+    ),
+    // Takebacks granted per seat (index = seat), capped per game.
+    takebacks: v.optional(v.array(v.number())),
     // How it ended. `winner` is a seat; absent with `draw` true is a draw;
     // both absent on an abandoned game.
     winner: v.optional(v.number()),

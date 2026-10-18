@@ -5,6 +5,7 @@ import {
   CLUE_MS,
   GUESS_MS,
   guessMatches,
+  namesWord,
   normalizeGuess,
   PASSED,
   REVEAL_MS,
@@ -120,6 +121,24 @@ describe("the phases", () => {
     expect(s.phase).toBe("vote");
     expect(s.deadline).toBe(T0 + 7 + VOTE_MS);
     expect(rules.turnSeat(s)).toBeNull();
+  });
+
+  test("a clue never says the word itself, in any language", () => {
+    expect(namesWord(ELEPHANT, "elephant")).toBe(true);
+    expect(namesWord(ELEPHANT, "big ELEPHANT")).toBe(true);
+    expect(namesWord(ELEPHANT, "éléphant gris")).toBe(true);
+    expect(namesWord(ELEPHANT, "fil")).toBe(true);
+    expect(namesWord(ELEPHANT, "大象")).toBe(true);
+    // A longer word that merely contains it is a clue, not the word.
+    expect(namesWord(ELEPHANT, "elephants")).toBe(false);
+    expect(namesWord(ELEPHANT, "filter")).toBe(false);
+    expect(namesWord(ELEPHANT, "big ears")).toBe(false);
+
+    let s = rules.onDeadline(game(), T0 + REVEAL_MS);
+    expect(() => rules.act(s, 1, "clue:the elephant", T0)).toThrow("BAD_CLUE");
+    expect(rules.turnSeat(s)).toBe(1);
+    s = rules.act(s, 1, "clue:trunk", T0);
+    expect(s.clues).toEqual([{ seat: 1, text: "trunk" }]);
   });
 
   test("a clue is short, a word or a phrase, and never a link", () => {

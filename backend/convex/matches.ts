@@ -135,6 +135,10 @@ export const LOBBY_IDLE_MS = 90_000;
 export const WATCHERS_SHOWN = 12;
 /** How long a seat request stands before somebody else may ask instead. */
 export const SEAT_REQUEST_TTL_MS = 60_000;
+/** Takebacks the opponent may grant one seat in one game. */
+export const MAX_TAKEBACKS = 3;
+/** Moves that must land before a seat whose draw offer was declined offers again. */
+export const DRAW_REOFFER_AFTER = 2;
 /** Finished games the room's list carries, for their cards. */
 const FINISHED_IN_LIST = 30;
 
@@ -309,6 +313,11 @@ function view(match: any) {
     watchers: match.watchers ?? [],
     seatRequest: match.seatRequest,
     drawOffer: match.drawOffer,
+    // Two-seat turn games. See [requestTakeback] and [offerDraw].
+    drawDeclined: match.drawDeclined,
+    takebackOffer: match.takebackOffer,
+    takebackDeclined: match.takebackDeclined,
+    takebacks: match.takebacks ?? [],
     winner: match.winner,
     winners: match.winners,
     draw: match.draw === true,
@@ -1108,7 +1117,19 @@ export const offerDraw = mutation({
     const seat = seatOf(match, userId);
     if (seat < 0) throw new Error("NOT_SEATED");
     const offer = match.drawOffer;
-    if (offer && offer.seq === match.seq && offer.seat !== seat) {
+    const accepting = offer && offer.seq === match.seq && offer.seat !== seat;
+    // A declined offer is not repeated until the game has moved on: asking
+    // again at once, every move, is pestering, not an offer.
+    const declined = match.drawDeclined;
+    if (
+      !accepting &&
+      declined &&
+      declined.seat === seat &&
+      match.seq < declined.seq + DRAW_REOFFER_AFTER
+    ) {
+      throw new Error("TOO_SOON");
+    }
+    if (accepting) {
       await finishMatch(ctx, match, { draw: true, reason: "draw" });
       await announceEnd(ctx, await ctx.db.get(matchId), userId);
       return { drawn: true };
@@ -1137,12 +1158,181 @@ export const answerDraw = mutation({
     if (!offer || offer.seq !== match.seq) throw new Error("NO_OFFER");
     if (seat < 0 || offer.seat === seat) throw new Error("NOT_SEATED");
     if (!accept) {
-      await ctx.db.patch(matchId, { drawOffer: undefined });
+      await ctx.db.patch(matchId, {
+        drawOffer: undefined,
+        drawDeclined: { seat: offer.seat, seq: match.seq },
+      });
       return { drawn: false };
     }
     await finishMatch(ctx, match, { draw: true, reason: "draw" });
     await announceEnd(ctx, await ctx.db.get(matchId), userId);
     return { drawn: true };
+  },
+});
+
+// ── Takebacks ───────────────────────────────────────────────────────────────
+
+/** A row of `matchMoves` that undoes the effective move before it. */
+const TAKEBACK = "takeback";
+
+type LineMove = { seat: number; move: string; auto: boolean; row: any };
+
+/**
+ * The game's EFFECTIVE move line: every row in `seq` order, with each
+ * takeback row cancelling the move before it. Replaying it from the rules'
+ * opening reproduces `state` exactly: every game starts at
+ * `rules.initial(seats)` (`startMatch`, `setReady`, `startTurns`), and every
+ * change since is a row here (a player's move, an autoplayed one, a takeback).
+ */
+async function effectiveLine(ctx: any, matchId: any): Promise<LineMove[]> {
+  const rows = await ctx.db
+    .query("matchMoves")
+    .withIndex("by_match_seq", (q: any) => q.eq("matchId", matchId))
+    .collect();
+  const line: LineMove[] = [];
+  for (const row of rows) {
+    if (row.move === TAKEBACK) line.pop();
+    else line.push({ seat: row.seat, move: row.move, auto: row.auto === true, row });
+  }
+  return line;
+}
+
+/** A two-seat turn game, the only kind that has takebacks. */
+function takebackRulesFor(match: any) {
+  if (match.seats.length !== 2 || partyRulesFor(match.game)) {
+    throw new Error("NO_TAKEBACKS");
+  }
+  const rules = rulesFor(match.game);
+  if (!rules || match.state === undefined) throw new Error("UNKNOWN_GAME");
+  return rules;
+}
+
+/**
+ * Asks the opponent to let the caller take back their last move.
+ *
+ * Only the player who made the last effective move may ask, before anybody
+ * has moved since; one request at a time, bound to the current `seq` so the
+ * next move kills it. A declined request is not asked again at the same
+ * position (`TOO_SOON`), and each seat has [MAX_TAKEBACKS] granted per game
+ * (`NO_TAKEBACKS_LEFT`). The opponent decides: nothing is undone here.
+ */
+export const requestTakeback = mutation({
+  args: { matchId: v.id("matches"), userId: v.id("users") },
+  handler: async (ctx, { matchId, userId }) => {
+    const match = await loadMatch(ctx, matchId);
+    await assertMember(ctx, match.roomId, userId);
+    if (match.status !== "active") throw new Error("NOT_ACTIVE");
+    takebackRulesFor(match);
+    const seat = seatOf(match, userId);
+    if (seat < 0 || match.seats[seat].out) throw new Error("NOT_SEATED");
+    if ((match.takebacks?.[seat] ?? 0) >= MAX_TAKEBACKS) {
+      throw new Error("NO_TAKEBACKS_LEFT");
+    }
+    const standing = match.takebackOffer;
+    if (standing && standing.seq === match.seq) {
+      if (standing.seat === seat) return { asked: true };
+      throw new Error("REQUEST_PENDING");
+    }
+    const declined = match.takebackDeclined;
+    if (declined && declined.seat === seat && declined.seq === match.seq) {
+      throw new Error("TOO_SOON");
+    }
+    const last = await ctx.db
+      .query("matchMoves")
+      .withIndex("by_match_seq", (q: any) => q.eq("matchId", matchId))
+      .order("desc")
+      .first();
+    if (
+      !last ||
+      last.seq !== match.seq - 1 ||
+      last.move === TAKEBACK ||
+      last.auto === true ||
+      last.seat !== seat ||
+      last.userId !== userId
+    ) {
+      throw new Error("NOTHING_TO_TAKE_BACK");
+    }
+    await ctx.db.patch(matchId, { takebackOffer: { seat, seq: match.seq } });
+    if (match.mode === "async") {
+      await pushAbout(
+        ctx, matchId, match.seats[1 - seat].userId, userId, "takebackAsked",
+      );
+    }
+    return { asked: true };
+  },
+});
+
+/**
+ * The opponent answers a standing takeback request. Yes: the position goes
+ * back to before the requester's last move, recorded as a `takeback` row so
+ * `seq` keeps climbing (the move fence and `clientMoveId` resends both rely
+ * on it never going down). Turn by turn, the move's chat bubble goes too, the
+ * deadline restarts for the requester, and they are told it is their move.
+ */
+export const answerTakeback = mutation({
+  args: {
+    matchId: v.id("matches"),
+    userId: v.id("users"),
+    accept: v.boolean(),
+  },
+  handler: async (ctx, { matchId, userId, accept }) => {
+    const match = await loadMatch(ctx, matchId);
+    await assertMember(ctx, match.roomId, userId);
+    if (match.status !== "active") throw new Error("NOT_ACTIVE");
+    const rules = takebackRulesFor(match);
+    const seat = seatOf(match, userId);
+    const offer = match.takebackOffer;
+    if (!offer || offer.seq !== match.seq) throw new Error("NO_OFFER");
+    if (seat < 0 || offer.seat === seat) throw new Error("NOT_SEATED");
+    if (!accept) {
+      await ctx.db.patch(matchId, {
+        takebackOffer: undefined,
+        takebackDeclined: { seat: offer.seat, seq: match.seq },
+      });
+      return { takenBack: false };
+    }
+    const line = await effectiveLine(ctx, matchId);
+    const undone = line.pop();
+    if (!undone || undone.seat !== offer.seat || undone.auto) {
+      await ctx.db.patch(matchId, { takebackOffer: undefined });
+      throw new Error("NOTHING_TO_TAKE_BACK");
+    }
+    let state = rules.initial(match.seats.length);
+    for (const m of line) state = rules.apply(state, m.move);
+
+    const requester = match.seats[offer.seat];
+    await ctx.db.insert("matchMoves", {
+      matchId,
+      seq: match.seq,
+      seat: offer.seat,
+      userId: requester.userId,
+      move: TAKEBACK,
+      at: Date.now(),
+    });
+    const takebacks = match.seats.map(
+      (_: any, i: number) =>
+        (match.takebacks?.[i] ?? 0) + (i === offer.seat ? 1 : 0),
+    );
+    const after = await commitState(ctx, match, rules, state, match.seq + 1, {
+      lastMove: line.length > 0 ? line[line.length - 1].move : undefined,
+      takebacks,
+      takebackOffer: undefined,
+      takebackDeclined: undefined,
+    });
+    if (match.mode === "async") {
+      // The bubble showed a move that no longer exists.
+      const bubbleId = undone.row.messageId;
+      if (bubbleId) {
+        const bubble = await ctx.db.get(bubbleId);
+        if (bubble) await removeMessageAndFanout(ctx, bubble, bubbleId);
+        await ctx.db.patch(undone.row._id, { messageId: undefined });
+      }
+      await armAsyncTurn(ctx, matchId, after.seq);
+      await pushAbout(
+        ctx, matchId, requester.userId, userId, "takebackGiven",
+      );
+    }
+    return { takenBack: true, seq: after.seq };
   },
 });
 
@@ -1245,8 +1435,12 @@ export const answerSeatRequest = mutation({
       seats,
       seatRequest: undefined,
       ...(match.turnSeat === req.seat ? { turnUserId: req.userId } : {}),
-      // An offer was between the two people who were seated.
+      // An offer was between the two people who were seated, and so was a
+      // takeback request, or a refusal of either.
       drawOffer: undefined,
+      drawDeclined: undefined,
+      takebackOffer: undefined,
+      takebackDeclined: undefined,
     });
     await beatOnce(ctx, matchId, req.userId);
     return { swapped: true };
@@ -1317,6 +1511,7 @@ async function pause(ctx: any, match: any, seats: any[]) {
     pauseEpoch: epoch,
     deadlineAt: Date.now() + LIVE_GRACE_MS,
     drawOffer: undefined,
+    takebackOffer: undefined,
     // A party game's clock stops here (`partyNow`) until the resume.
     ...(partyRulesFor(match.game) ? { pausedAt: Date.now() } : {}),
   });
@@ -1678,6 +1873,42 @@ export const get = query({
       .first();
     if (!member) return null;
     return view(match);
+  },
+});
+
+/**
+ * A turn game's moves, for the board's move list: the effective line (a
+ * taken-back move is gone, with its takeback), in order, and the `seq` it
+ * stands at. Null for a non-member and for a party game, whose actions carry
+ * secrets (a ballot, a race's answer). Its own subscription, so only a screen
+ * showing a move list pays for it; `matchMoves` changes once per move.
+ */
+export const history = query({
+  identityArg: "viewerUserId" as const,
+  args: {
+    matchId: v.id("matches"),
+    viewerUserId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, { matchId, viewerUserId }) => {
+    const match = await ctx.db.get(matchId);
+    if (!match || !viewerUserId) return null;
+    if (partyRulesFor(match.game) || !rulesFor(match.game)) return null;
+    const member = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q: any) =>
+        q.eq("roomId", match.roomId).eq("userId", viewerUserId),
+      )
+      .first();
+    if (!member) return null;
+    const line = await effectiveLine(ctx, matchId);
+    return {
+      seq: match.seq,
+      moves: line.map((m) =>
+        m.auto
+          ? { seat: m.seat, move: m.move, auto: true }
+          : { seat: m.seat, move: m.move },
+      ),
+    };
   },
 });
 

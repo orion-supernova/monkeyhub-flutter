@@ -485,17 +485,26 @@ export const standings = query({
     // re-sorts tied names in its own locale.
     // -1 marks the surrender group: distinct from any solver's seconds, and
     // only ever compared within it because the sort puts solvers first.
+    //
+    // Three groups, not two: a solve that used a hint ranks below every
+    // unaided solve, however fast. Hints are free and unlimited, so without
+    // this the fastest way to the top of today's board was to ask for every
+    // square. The lightbulb on the row says which group a time is in.
     const shown = (r: any) => (r.solved ? shownSeconds(r.durationMs) : -1);
+    const group = (r: any) => (!r.solved ? 2 : (r.hintsUsed ?? 0) > 0 ? 1 : 0);
+    const placeKey = (r: any) => `${group(r)}:${shown(r)}`;
     for (const id of GAMES) {
       const rows = boards[id];
       rows.sort((a, b) => {
-        if (a.solved !== b.solved) return a.solved ? -1 : 1;
+        const ag = group(a);
+        const bg = group(b);
+        if (ag !== bg) return ag - bg;
         const at = shown(a);
         const bt = shown(b);
         if (at !== bt) return at - bt;
         return byNameThenId(a, b);
       });
-      const places = competitionPlaces(rows, shown);
+      const places = competitionPlaces(rows, placeKey);
       boards[id] = rows.map((r, i) => ({
         ...r,
         place: places[i],

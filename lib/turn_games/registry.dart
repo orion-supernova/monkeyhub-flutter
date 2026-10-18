@@ -90,6 +90,31 @@ class TurnGame<S, M> {
     return search.encodeMove(move);
   }
 
+  /// How the side to move in [state] stands, from its own seat, as the
+  /// [level]'s search sees it: above zero is ahead, below is behind, in the
+  /// evaluator's own units. The bot weighs a draw offer with it.
+  double scoreEncoded(String state, BotLevel level, Random random) {
+    final search = searchRules ?? rules;
+    final c = levels[level]!;
+    // The level's depth and budget, without its noise or blunders: those
+    // choose a worse MOVE on purpose, and the score that came with it would
+    // be the worse move's.
+    return searchBotMove(
+      rules: search,
+      evaluator: evaluator,
+      state: search.decode(state),
+      config: BotConfig<S, M>(
+        maxDepth: c.maxDepth,
+        budgetMs: c.budgetMs,
+        nodeCap: c.nodeCap,
+        evaluator: c.evaluator,
+        solveWhen: c.solveWhen,
+        solveBudgetMs: c.solveBudgetMs,
+      ),
+      random: random,
+    ).score;
+  }
+
   /// [botMove] with the search stats, for tests and tuning.
   BotSearchResult<M> botSearch(
     S state,

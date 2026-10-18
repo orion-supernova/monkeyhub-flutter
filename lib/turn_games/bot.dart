@@ -152,6 +152,43 @@ Future<String> pickBotMove({
   );
 }
 
+/// Whether the bot takes a draw offered in [state] by the player to move.
+///
+/// It takes one when it is not ahead: the position, searched at the bot's
+/// own level from the offering side, is level or better for that side. A
+/// bot that is winning plays on, and one that is losing is glad of it, which
+/// is what a person across the board would do. Off the UI isolate on native,
+/// like [pickBotMove].
+Future<bool> botAcceptsDraw({
+  required String gameId,
+  required String state,
+  required BotLevel level,
+  int? seed,
+}) async {
+  final s = seed ?? DateTime.now().microsecondsSinceEpoch;
+  bool run() {
+    final game = turnGameFor(gameId);
+    if (game == null) return false;
+    // Noise and blunders are off the root SCORE (they only change which move
+    // is picked), so this is the level's honest view of the position.
+    return game.scoreEncoded(state, level, Random(s)) >= 0;
+  }
+
+  if (kIsWeb) {
+    await Future<void>.delayed(Duration.zero);
+    return run();
+  }
+  return Isolate.run(run);
+}
+
+/// Takebacks the player gets per game against [level]: a learner's bot
+/// forgives, a hard one does not.
+int botTakebacks(BotLevel level) => switch (level) {
+  BotLevel.easy => 3,
+  BotLevel.medium => 1,
+  BotLevel.hard => 0,
+};
+
 /// [pickBotMove] without the isolate, for tests and for the isolate itself.
 /// Throws [ArgumentError] for an unknown game and [StateError] for a finished
 /// position.

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -47,6 +48,7 @@ class GameScaffold extends StatefulWidget {
     this.onShare,
     this.onTellFriends,
     this.hintBanner,
+    this.onUndo,
   });
 
   final GamePlayController controller;
@@ -80,6 +82,10 @@ class GameScaffold extends StatefulWidget {
   /// The current hint's one-line reason, under the board — a `HintBanner`.
   /// It opens and closes itself, so it is always passed, hint or not.
   final Widget? hintBanner;
+
+  /// The Undo tool's action, for ⌘Z / Ctrl+Z. Null when the board has no
+  /// undo or nothing to undo.
+  final VoidCallback? onUndo;
 
   @override
   State<GameScaffold> createState() => _GameScaffoldState();
@@ -146,6 +152,7 @@ class _GameScaffoldState extends State<GameScaffold> {
       :onShare,
       :onTellFriends,
       :hintBanner,
+      :onUndo,
     ) = widget;
 
     final target = challengeTargetFor(context, controller);
@@ -176,47 +183,60 @@ class _GameScaffoldState extends State<GameScaffold> {
       const SizedBox(height: 6),
     ];
 
-    final board_ = <Widget>[
-      AspectRatio(
-        aspectRatio: 1,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Rounded like the hub's tile of the same board, so opening a
-            // game reads as that card growing to fill the screen.
-            ClipRRect(
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              // Sees every touch before the board's own recognizers do, and
-              // never competes with them: the first touch starts the clock,
-              // and any finger down holds the page still until it lifts.
-              child: Listener(
-                onPointerDown: (e) {
-                  if (!controller.ready ||
-                      controller.finished ||
-                      controller.paused) {
-                    return;
-                  }
+    final boardCore = Stack(
+      fit: StackFit.expand,
+      children: [
+        // Rounded like the hub's tile of the same board, so opening a
+        // game reads as that card growing to fill the screen.
+        ClipRRect(
+          borderRadius: BorderRadius.circular(theme.radiusMd),
+          // Sees every touch before the board's own recognizers do, and
+          // never competes with them: the first touch starts the clock,
+          // and any finger down holds the page still until it lifts.
+          child: Listener(
+            onPointerDown: (e) {
+              if (!controller.ready ||
+                  controller.finished ||
+                  controller.paused) {
+                return;
+              }
+              controller.startClock();
+              _touch.down(e.pointer);
+            },
+            onPointerUp: (e) => _touch.up(e.pointer),
+            onPointerCancel: (e) => _touch.up(e.pointer),
+            // A key on the board is a touch too: the first one starts the
+            // clock, as a first tap would.
+            child: Focus(
+              canRequestFocus: false,
+              skipTraversal: true,
+              onKeyEvent: (node, event) {
+                if (event is! KeyUpEvent &&
+                    controller.ready &&
+                    !controller.finished &&
+                    !controller.paused) {
                   controller.startClock();
-                  _touch.down(e.pointer);
-                },
-                onPointerUp: (e) => _touch.up(e.pointer),
-                onPointerCancel: (e) => _touch.up(e.pointer),
-                child: board,
-              ),
+                }
+                return KeyEventResult.ignored;
+              },
+              child: board,
             ),
-            // Fades rather than popping, so pausing reads as the board
-            // being put away, not as a screen swap.
-            IgnorePointer(
-              ignoring: !controller.paused,
-              child: AnimatedOpacity(
-                opacity: controller.paused ? 1 : 0,
-                duration: MotionScope.of(context).d(theme.motionFast),
-                child: const _PauseCover(),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        // Fades rather than popping, so pausing reads as the board
+        // being put away, not as a screen swap.
+        IgnorePointer(
+          ignoring: !controller.paused,
+          child: AnimatedOpacity(
+            opacity: controller.paused ? 1 : 0,
+            duration: MotionScope.of(context).d(theme.motionFast),
+            child: const _PauseCover(),
+          ),
+        ),
+      ],
+    );
+
+    final notices = <Widget>[
       // A finished board waiting on the network. Not an error the player has
       // to act on — it resends by itself — but it must be said, or a board
       // that has gone inert with its clock stopped just looks frozen.
@@ -239,6 +259,9 @@ class _GameScaffoldState extends State<GameScaffold> {
         }),
       ],
       if (hintBanner != null && !controller.finished) hintBanner,
+    ];
+
+    final controls = <Widget>[
       const SizedBox(height: 16),
       // One row of equal tool buttons, the iOS bottom-toolbar shape; a board
       // with more tools than fit wraps onto a second row of the same width.
@@ -272,27 +295,72 @@ class _GameScaffoldState extends State<GameScaffold> {
       ],
     ];
 
+    final board_ = <Widget>[
+      AspectRatio(aspectRatio: 1, child: boardCore),
+      ...notices,
+      ...controls,
+    ];
+
+    final standings = GameStandingsList(
+      game: controller.game,
+      viewerId: viewerId,
+    );
+
+    final undo = onUndo;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          // `bottom: false`, with the inset moved onto the shell's own
-          // scroller — see [edgeToEdgeBottom].
-          SafeArea(
-            bottom: false,
-            child: GameLayoutShell(
-              header: header,
-              board: board_,
-              boardWidth: 480,
-              scrollLocked: _touch.locked,
-              sidebar: GameStandingsList(
-                game: controller.game,
-                viewerId: viewerId,
+      body: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        // ⌘Z / Ctrl+Z: the Undo tool, from the keyboard. Bubbles up from the
+        // focused board, so a text field elsewhere keeps its own undo.
+        onKeyEvent: (node, event) {
+          if (undo == null ||
+              event is KeyUpEvent ||
+              event.logicalKey != LogicalKeyboardKey.keyZ ||
+              controller.finished ||
+              controller.paused) {
+            return KeyEventResult.ignored;
+          }
+          final keys = HardwareKeyboard.instance;
+          final chord = defaultTargetPlatform == TargetPlatform.macOS
+              ? keys.isMetaPressed
+              : keys.isControlPressed;
+          if (!chord || keys.isShiftPressed) return KeyEventResult.ignored;
+          undo();
+          return KeyEventResult.handled;
+        },
+        child: Stack(
+          children: [
+            theme.backgroundLayer(context),
+            // `bottom: false`, with the inset moved onto the shell's own
+            // scroller — see [edgeToEdgeBottom].
+            SafeArea(
+              bottom: false,
+              child: GameLayoutShell(
+                header: header,
+                board: board_,
+                boardWidth: 480,
+                scrollLocked: _touch.locked,
+                sidebar: standings,
+                // Desktop and wide panes: the board as tall as the window
+                // allows, and everything else in one panel beside it.
+                stage: GameStage(
+                  board: boardCore,
+                  panel: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      ...notices,
+                      ...controls,
+                      if (!controller.finished) const SizedBox(height: 24),
+                      standings,
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -892,6 +960,16 @@ class GameStandingsList extends StatelessWidget {
             ),
           ),
         ),
+        // Says why a faster time can sit lower: the lightbulb rows are their
+        // own group, below every solve made without a hint.
+        if (rows.any((r) => r.row.solved && r.row.hintsUsed > 0))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(
+              sentenceCaseOf(context, l10n.dailyStandingsHintedNote),
+              style: groupedFooterStyle(theme),
+            ),
+          ),
       ],
     );
   }

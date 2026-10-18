@@ -36,8 +36,10 @@ import {
  *
  * ## The end
  *
- * When every player still in has finished, or [RACE_MS] after the start. Rank
- * 1 wins; a race nobody finished ends level (`draw`).
+ * When every player still in has finished, or [RACE_MS] after the start,
+ * whichever is first; the first finish also cuts the clock to at most
+ * [FINISH_GRACE_MS] for everyone else. Rank 1 wins; a race nobody finished
+ * ends level (`draw`).
  *
  * A pause stops the race clock: [shift] moves [startedAt] along with the
  * deadline, so the time a player is shown and the time they are ranked by
@@ -46,6 +48,12 @@ import {
 
 export const RACE_MS = 10 * 60 * 1000;
 export const PROGRESS_EVERY_MS = 2_000;
+/**
+ * Once somebody has won, how long the rest have left to finish for a place.
+ * Without it, one slow player held the whole table (winner included) on the
+ * results for up to the full [RACE_MS].
+ */
+export const FINISH_GRACE_MS = 2 * 60 * 1000;
 export const PUZZLES = ["queens", "tango", "sudoku", "zip"] as const;
 export type RaceKind = (typeof PUZZLES)[number];
 
@@ -181,6 +189,7 @@ export const rules: PartyRules<RaceState> = {
       const place = s.rank.filter((r) => r !== null).length + 1;
       return maybeEnd({
         ...s,
+        deadline: place === 1 ? Math.min(s.deadline, now + FINISH_GRACE_MS) : s.deadline,
         progress: s.progress.map((p, i) => (i === seat ? 100 : p)),
         rank: s.rank.map((r, i) => (i === seat ? place : r)),
         durationMs: s.durationMs.map((d, i) =>

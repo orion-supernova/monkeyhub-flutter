@@ -435,6 +435,9 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
   PartySecret? _secret;
   void Function()? _secretSub;
   bool _secretStarted = false;
+  List<String>? _history;
+  void Function()? _historySub;
+  bool _historyStarted = false;
   Duration _clockOffset = Duration.zero;
   int? _lastSeq;
   DateTime? _lastProgressAt;
@@ -442,6 +445,11 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The server's row, as last delivered.
   ChatMatch? get serverMatch => _match;
+
+  /// A turn game's moves that stand (taken-back ones gone), as wire tokens,
+  /// from `matches:history`. Null until it lands, for a party game, and for
+  /// a draft. Subscribed once the first row shows a turn game.
+  List<String>? get history => _history;
 
   /// What to draw: the server's row, or the optimistic position while a move
   /// of ours is in flight against it.
@@ -626,6 +634,10 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
           _secretStarted = true;
           unawaited(_watchSecret());
         }
+        if (!m.party && !_historyStarted) {
+          _historyStarted = true;
+          unawaited(_watchHistory());
+        }
         if (m.status.isOpen && m.mode == MatchMode.live) {
           _ensureBeating();
         } else {
@@ -710,6 +722,23 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
     // Ten minutes apart is a row that was queued, not a clock: ignore it.
     if (offset.abs() > const Duration(minutes: 10)) return;
     _clockOffset = offset;
+  }
+
+  Future<void> _watchHistory() async {
+    try {
+      final sub = await _api.watchHistory(userId, matchId, (h) {
+        if (_disposed) return;
+        _history = h == null ? null : [for (final m in h.moves) m.move];
+        notifyListeners();
+      }, onError: (e) => debugPrint('matches:history error: $e'));
+      if (_disposed) {
+        sub();
+        return;
+      }
+      _historySub = sub;
+    } catch (e) {
+      debugPrint('match history watch failed: $e');
+    }
   }
 
   Future<void> _watchSecret() async {
@@ -854,6 +883,7 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
     _stopBeating();
     _sub?.call();
     _secretSub?.call();
+    _historySub?.call();
     final m = _match;
     if (m != null && m.mode == MatchMode.live && m.status.isOpen) {
       unawaited(_api.away(userId, matchId).catchError((_) {}));

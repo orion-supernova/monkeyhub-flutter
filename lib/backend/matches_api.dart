@@ -104,6 +104,17 @@ class MatchesApi {
       _call('offerDraw', userId, matchId);
   Future<void> answerDraw(String userId, String matchId, bool accept) =>
       _call('answerDraw', userId, matchId, {'accept': accept});
+  /// Asks the opponent to let the caller take back their last move. Refused
+  /// with `NOTHING_TO_TAKE_BACK`, `NO_TAKEBACKS_LEFT` (three per seat per
+  /// game), `TOO_SOON` (declined at this position), `REQUEST_PENDING`, or
+  /// `NO_TAKEBACKS` (not a two-player turn game).
+  Future<void> requestTakeback(String userId, String matchId) =>
+      _call('requestTakeback', userId, matchId);
+
+  /// The opponent's answer to the standing takeback request (`NO_OFFER` once
+  /// a move has killed it).
+  Future<void> answerTakeback(String userId, String matchId, bool accept) =>
+      _call('answerTakeback', userId, matchId, {'accept': accept});
   Future<void> requestSeat(String userId, String matchId, int seat) =>
       _call('requestSeat', userId, matchId, {'seat': seat});
   Future<void> cancelSeatRequest(String userId, String matchId) =>
@@ -196,6 +207,21 @@ class MatchesApi {
     onError: onError,
   )).cancel;
 
+  /// A turn game's effective move line (taken-back moves gone), for a move
+  /// list. Null for a party game or a non-member. One subscription per open
+  /// move list; it refires once per move.
+  Future<void Function()> watchHistory(
+    String userId,
+    String matchId,
+    void Function(MatchHistory?) onData, {
+    void Function(Object)? onError,
+  }) async => (await _cv.subscribe(
+    'matches:history',
+    {'matchId': matchId, 'viewerUserId': userId},
+    onData: (raw) => onData(raw is Map ? MatchHistory.fromJson(raw) : null),
+    onError: onError,
+  )).cancel;
+
   Future<void Function()> watchRoom(
     String userId,
     String roomId,
@@ -253,6 +279,41 @@ class PartySecret {
   );
 }
 
+/// One move of a [MatchHistory].
+class HistoryMove {
+  const HistoryMove({required this.seat, required this.move, this.auto = false});
+
+  final int seat;
+
+  /// The rules' wire token (`e2e4`, `11x18x25`, `3`).
+  final String move;
+
+  /// Played by the server for a seat that had forfeited.
+  final bool auto;
+}
+
+/// What `matches:history` returns: the moves that stand, in order, and the
+/// `seq` the game was at when they were read.
+class MatchHistory {
+  const MatchHistory({required this.moves, required this.seq});
+
+  final List<HistoryMove> moves;
+  final int seq;
+
+  static MatchHistory fromJson(Map raw) => MatchHistory(
+    seq: (raw['seq'] as num?)?.toInt() ?? 0,
+    moves: [
+      for (final m in (raw['moves'] as List?) ?? const [])
+        if (m is Map)
+          HistoryMove(
+            seat: (m['seat'] as num?)?.toInt() ?? 0,
+            move: m['move']?.toString() ?? '',
+            auto: m['auto'] == true,
+          ),
+    ],
+  );
+}
+
 /// The bare server code out of a thrown Convex failure, or `UNKNOWN`.
 String matchErrorCode(Object e) {
   // Longest first where one code is a prefix of another's text.
@@ -278,6 +339,10 @@ String matchErrorCode(Object e) {
     'NOT_IN_LOBBY',
     'REQUEST_PENDING',
     'TOO_SOON',
+    'NO_TAKEBACKS_LEFT',
+    'NO_TAKEBACKS',
+    'NOTHING_TO_TAKE_BACK',
+    'NO_OFFER',
     'NO_MATCH',
     'NOT_A_MEMBER',
     'NOT_MEMBER',

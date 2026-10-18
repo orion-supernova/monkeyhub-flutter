@@ -121,7 +121,7 @@ HowToPlayGuide dailyGuide(AppLocalizations l10n, DailyGame? game) {
       steps: [
         s(l10n.howToPatches1, const PatchesRulesDemo()),
         s(l10n.howToPatches2, const PatchesShapeDemo()),
-        s(l10n.howToPatches3, const PatchesControlsDemo()),
+        s(l10n.howToPatchesControls, const PatchesControlsDemo()),
         s(l10n.howToPatches4, const PatchesTipDemo(), tip: true),
       ],
     ),

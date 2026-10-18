@@ -82,6 +82,7 @@ class _TangoScreenState extends State<TangoScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => List<int>.of(_cells);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -271,6 +272,7 @@ class _TangoScreenState extends State<TangoScreen>
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _undo.isEmpty ? null : _undoLast,
       title: l10n.gameTangoName,
       rule: l10n.gameTangoRule,
       hintBanner: HintBanner(

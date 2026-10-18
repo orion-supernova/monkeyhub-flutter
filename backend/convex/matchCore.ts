@@ -54,6 +54,7 @@ export async function finishMatch(
     turnUserId: undefined,
     deadlineAt: undefined,
     drawOffer: undefined,
+    takebackOffer: undefined,
     seatRequest: undefined,
   });
 }
@@ -183,6 +184,7 @@ export async function commitState(
       turnSeat,
       turnUserId: match.seats[turnSeat]?.userId,
       drawOffer: undefined,
+      takebackOffer: undefined,
     });
   }
   return await ctx.db.get(match._id);

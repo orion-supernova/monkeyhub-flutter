@@ -76,6 +76,7 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => _encode(_board, _pipes);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -385,6 +386,7 @@ class _FlowScreenState extends State<FlowScreen> with TickerProviderStateMixin {
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _undo.isEmpty ? null : _undoLast,
       title: l10n.gameFlowName,
       rule: l10n.gameFlowRule,
       hintBanner: HintBanner(

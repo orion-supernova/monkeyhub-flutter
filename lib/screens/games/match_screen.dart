@@ -9,7 +9,9 @@ import '../../games/how_to/chat_guides.dart';
 import '../../games/how_to/how_to_play.dart';
 import '../../backend/matches_api.dart';
 import '../../chat_games/match_copy.dart';
+import '../../chat_games/game_side_panel.dart';
 import '../../chat_games/match_face.dart';
+import '../../chat_games/move_history.dart';
 import '../../chat_games/move_notation.dart';
 import '../../chat_games/turn_panel.dart';
 import '../../chat_games/watcher_faces.dart';
@@ -18,6 +20,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
 import '../../models/chat_match.dart';
 import '../../party_games/party_table.dart';
+import '../../platform.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../turn_games/board/turn_board.dart';
@@ -251,7 +254,10 @@ class _MatchScreenState extends State<MatchScreen> {
 
   /// Runs one table action (join, ready, resign, …) with a busy guard and a
   /// toast for a refusal worth explaining.
-  Future<void> _act(Future<void> Function() call) async {
+  ///
+  /// [tooSoon] says what a `TOO_SOON` means for this action (a nudge, a draw
+  /// offered again too early, a takeback already turned down).
+  Future<void> _act(Future<void> Function() call, {String? tooSoon}) async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
@@ -264,7 +270,9 @@ class _MatchScreenState extends State<MatchScreen> {
         sentenceCaseOf(
           context,
           switch (code) {
-            'TOO_SOON' => l10n.chatGameNudged,
+            'TOO_SOON' => tooSoon ?? l10n.chatGameNudged,
+            'NO_TAKEBACKS_LEFT' => l10n.chatGameTakebacksLeft(0),
+            'REQUEST_PENDING' => l10n.chatGameTakebackAsked,
             'FULL' => l10n.chatGameErrGeneric,
             _ => l10n.chatGameErrGeneric,
           },
@@ -380,18 +388,12 @@ class _MatchScreenState extends State<MatchScreen> {
         viewerId: me,
         onHelp: m == null ? null : _openGuide,
         party: m?.party ?? false,
-        onResign: m != null && !_c.isDraft && m.isSeated(me) &&
+        // A turn game's resign and draw are tiles under the board (the
+        // flag is not something to hunt for in a menu); the menu is only a
+        // party game's way out.
+        onResign: m != null && m.party && !_c.isDraft && m.isSeated(me) &&
                 m.status.isOpen && m.status != MatchStatus.lobby
             ? _confirmResign
-            : null,
-        onOfferDraw: m != null &&
-                !_c.isDraft &&
-                !m.party &&
-                m.status == MatchStatus.active &&
-                m.seats.length == 2 &&
-                m.isSeated(me) &&
-                m.drawOfferSeat == null
-            ? () => _act(() => _api.offerDraw(me, _c.matchId))
             : null,
       ),
       const SizedBox(height: 10),
@@ -454,9 +456,13 @@ class _MatchScreenState extends State<MatchScreen> {
         const SizedBox(height: 24),
       ];
     } else {
+      final actions = _actions(m);
       body = [
         ..._play(m),
+        // A question to answer sits right under the board, above the
+        // viewer's own tiles.
         ..._requestCards(m),
+        if (actions != null) ...[const SizedBox(height: 14), actions],
         if (!m.status.isOpen) _Result(
           match: m,
           viewerId: me,
@@ -467,6 +473,25 @@ class _MatchScreenState extends State<MatchScreen> {
       ];
     }
 
+    final turnGame = m != null &&
+        !_c.gone &&
+        !m.party &&
+        m.status != MatchStatus.lobby &&
+        m.state != null;
+    final shell = GameLayoutShell(
+      header: header,
+      board: body,
+      boardWidth: 480,
+      sidebar: _Sidebar(match: m, viewerId: me),
+      stage: turnGame
+          ? _stage(m)
+          : m != null &&
+                !_c.gone &&
+                m.party &&
+                m.status != MatchStatus.lobby
+          ? _partyStage(m)
+          : null,
+    );
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -474,38 +499,203 @@ class _MatchScreenState extends State<MatchScreen> {
           theme.backgroundLayer(context),
           SafeArea(
             bottom: false,
-            child: GameLayoutShell(
-              header: header,
-              board: body,
-              boardWidth: 480,
-              sidebar: _Sidebar(match: m, viewerId: me),
-            ),
+            child: turnGame
+                ? TurnKeys(
+                    game: m.game,
+                    onStep: (by) => _view(stepPly(_viewPly, _lineLength, by)),
+                    onPlay: _keyPlay(m),
+                    onTakeback: _takebackAction(m),
+                    child: shell,
+                  )
+                : shell,
           ),
         ],
       ),
     );
   }
 
-  /// Plates, the board and its covers, and the turn tools.
-  List<Widget> _play(ChatMatch m) {
+  // ── Looking back through the game ─────────────────────────────────────────
+
+  /// The position on the board while looking back; null for the current one.
+  int? _viewPly;
+
+  /// The line as the server last sent it, replayed ([GameLine]); null until
+  /// the history arrives, or for a game this build cannot replay.
+  GameLine? _line;
+  String _lineKey = '';
+
+  int get _lineLength => _line?.length ?? 0;
+
+  /// The replayed line for [m], rebuilt only when the moves change.
+  GameLine? _lineFor(ChatMatch m) {
+    final moves = _c.history;
+    if (moves == null) return null;
+    final key = '${m.game}|${m.seats.length}|${moves.join(',')}';
+    if (key != _lineKey) {
+      _lineKey = key;
+      _line = GameLine.replay(
+        l10n: AppLocalizations.of(context),
+        game: m.game,
+        seats: m.seats.length,
+        moves: moves,
+      );
+      final v = _viewPly;
+      if (v != null && v >= _line!.length) _viewPly = null;
+    }
+    return _line;
+  }
+
+  void _view(int? ply) {
+    if (ply == _viewPly) return;
+    setState(() => _viewPly = ply);
+  }
+
+  /// A typed move, for the games that have one ([TurnKeys]): only on the
+  /// viewer's turn, only on the current position, and only a legal token,
+  /// through the same path a tap takes.
+  ValueChanged<String>? _keyPlay(ChatMatch m) {
+    final state = m.state;
+    if (state == null || !m.isTurnOf(widget.userId) || _viewPly != null) {
+      return null;
+    }
+    final rules = turnGameFor(m.game);
+    if (rules == null) return null;
+    final turns = m.mode == MatchMode.async && m.status == MatchStatus.active;
+    return (move) {
+      if (_c.sending || _countdown != null) return;
+      if (!rules.legalEncoded(state).contains(move)) return;
+      turns ? _stageMove(move) : _c.play(move);
+    };
+  }
+
+  // ── Takebacks, draws, resigning ───────────────────────────────────────────
+
+  /// Asking for a takeback, when the server would take the request: see
+  /// [ChatMatch.canAskTakeback].
+  VoidCallback? _takebackAction(ChatMatch m) {
+    final me = widget.userId;
+    if (_c.isDraft || !m.canAskTakeback(me) || _c.stagedMove != null) {
+      return null;
+    }
+    return () {
+      HapticFeedback.selectionClick();
+      _act(
+        () => _api.requestTakeback(me, m.id),
+        tooSoon: AppLocalizations.of(context).chatGameTakebackTooSoon,
+      );
+    };
+  }
+
+  VoidCallback? _drawAction(ChatMatch m) {
+    final me = widget.userId;
+    if (_c.isDraft || !m.canOfferDraw(me)) return null;
+    return () {
+      HapticFeedback.selectionClick();
+      _act(
+        () => _api.offerDraw(me, m.id),
+        tooSoon: AppLocalizations.of(context).chatGameDrawTooSoon,
+      );
+    };
+  }
+
+  /// The tiles under the board for a seated player in an open game.
+  Widget? _actions(ChatMatch m) {
+    final me = widget.userId;
+    if (_c.isDraft || !m.isSeated(me) || !m.status.isOpen) return null;
+    final two = m.seats.length == 2;
+    final mine = m.seatOf(me);
+    final left = m.takebacksLeft(mine);
+    return TurnActions(
+      showTakeback: two,
+      onTakeback: _takebackAction(m),
+      showDraw: two,
+      onDraw: _drawAction(m),
+      onResign: _confirmResign,
+      footnote: two && m.status == MatchStatus.active
+          ? AppLocalizations.of(context).chatGameTakebacksLeft(left)
+          : null,
+    );
+  }
+
+  /// The board and everything drawn over it: a pause, the 3-2-1, the way
+  /// back from an earlier position.
+  Widget _boardView(ChatMatch m) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final me = widget.userId;
     final mySeat = m.seatOf(me);
     final state = m.state;
-    final scores = seatScores(m.game, state);
-    // Two seats: the other player across the board, the viewer at the
-    // bottom (a spectator sees seat one on top). More: one row above.
-    final bottom = m.seats.length == 2 ? (mySeat >= 0 ? mySeat : 0) : -1;
-    final tops = [
-      for (var i = 0; i < m.seats.length; i++)
-        if (i != bottom) i,
-    ];
-    Widget plate(int seat) => _Plate(
+    final turns = m.mode == MatchMode.async &&
+        m.status == MatchStatus.active &&
+        mySeat >= 0;
+    final line = _lineFor(m);
+    final view = _viewPly;
+    final shown = view == null || line == null ? state : line.stateAt(view);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (shown != null)
+          TurnBoard(
+            gameId: m.game,
+            state: shown,
+            mySeat: mySeat >= 0 ? mySeat : null,
+            enabled: view == null &&
+                m.isTurnOf(me) &&
+                !_c.sending &&
+                _countdown == null,
+            onMove: turns ? _stageMove : _c.play,
+            lastMove: view == null || line == null
+                ? m.lastMove
+                : line.moveAt(view),
+            seatLabels: [
+              for (final s in m.seats)
+                s.name.isEmpty ? '?' : s.name.characters.first.toUpperCase(),
+            ],
+          ),
+        if (view != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 12,
+            child: Center(child: BackToGamePill(onTap: () => _view(null))),
+          ),
+        IgnorePointer(
+          ignoring: m.status != MatchStatus.paused,
+          child: AnimatedOpacity(
+            opacity: m.status == MatchStatus.paused ? 1 : 0,
+            duration: MotionScope.of(context).d(theme.motionFast),
+            child: m.status == MatchStatus.paused
+                ? _PauseCover(
+                    match: m,
+                    viewerId: me,
+                    onLeave: () => Navigator.of(context).maybePop(),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
+        if (_countdown != null)
+          _Countdown(value: _countdown!, label: l10n.chatGameGo),
+      ],
+    );
+  }
+
+  /// One seat's plate, with chess's captured pieces where there are any.
+  Widget _plateFor(ChatMatch m, int seat) {
+    final me = widget.userId;
+    final line = _line;
+    final view = _viewPly;
+    final shown = view == null || line == null ? m.state : line.stateAt(view);
+    final material = m.game == 'chess' && shown != null
+        ? ChessMaterial.of(shown)
+        : null;
+    return _Plate(
       match: m,
       seat: seat,
       viewerId: me,
-      score: scores?[seat],
+      score: seatScores(m.game, shown)?[seat],
+      trailing: material == null
+          ? null
+          : CapturedStrip(material: material, seat: seat),
       onTap: !m.isSeated(me) &&
               m.mode == MatchMode.live &&
               m.status.isOpen &&
@@ -513,8 +703,111 @@ class _MatchScreenState extends State<MatchScreen> {
           ? () => _askForSeat(m, seat)
           : null,
     );
-    // Turn by turn, seated: a move is staged on the board, then sent, and
-    // the panel under the board says where things stand.
+  }
+
+  /// The wide shape: the board as big as the window allows, and beside it the
+  /// players at the panel's top and bottom with the moves between them, then
+  /// whatever the viewer can do.
+  GameStage _stage(ChatMatch m) {
+    final me = widget.userId;
+    final mySeat = m.seatOf(me);
+    final bottom = m.seats.length == 2 ? (mySeat >= 0 ? mySeat : 0) : -1;
+    final tops = [
+      for (var i = 0; i < m.seats.length; i++)
+        if (i != bottom) i,
+    ];
+    final line = _lineFor(m);
+    final actions = _actions(m);
+    final panel = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final s in tops) ...[_plateFor(m, s), const SizedBox(height: 8)],
+        Expanded(
+          child: m.game == 'dots' || line == null
+              ? const SizedBox.shrink()
+              : MoveListCard(
+                  line: line,
+                  viewPly: _viewPly,
+                  onView: _view,
+                  keyboardHint: isPhysicalKeyboardPlatform,
+                ),
+        ),
+        if (bottom >= 0) ...[const SizedBox(height: 8), _plateFor(m, bottom)],
+        // Under the panel's own scroll, so a stack of request cards and a
+        // result never push the players off a short window.
+        Flexible(
+          flex: 0,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ..._turnPanel(m),
+                ..._requestCards(m),
+                if (actions != null) ...[const SizedBox(height: 14), actions],
+                if (!m.status.isOpen) _Result(
+                  match: m,
+                  viewerId: me,
+                  busy: _busy,
+                  onRematch: m.isSeated(me) ? () => _rematch(m) : null,
+                ),
+                const SizedBox(height: 12),
+                _Sidebar(match: m, viewerId: me),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+    return GameStage(
+      board: _boardView(m),
+      aspectRatio: TurnBoard.aspectRatioOf(m.game, m.state!),
+      panel: panel,
+    );
+  }
+
+  /// Plates, the board and its covers, and the turn tools.
+  List<Widget> _play(ChatMatch m) {
+    final me = widget.userId;
+    final mySeat = m.seatOf(me);
+    final state = m.state;
+    // Two seats: the other player across the board, the viewer at the
+    // bottom (a spectator sees seat one on top). More: one row above.
+    final bottom = m.seats.length == 2 ? (mySeat >= 0 ? mySeat : 0) : -1;
+    final tops = [
+      for (var i = 0; i < m.seats.length; i++)
+        if (i != bottom) i,
+    ];
+    return [
+      if (tops.length == 1)
+        _plateFor(m, tops.first)
+      else
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final s in tops)
+              SizedBox(width: 220, child: _plateFor(m, s)),
+          ],
+        ),
+      const SizedBox(height: 10),
+      AspectRatio(
+        aspectRatio:
+            state == null ? 1 : TurnBoard.aspectRatioOf(m.game, state),
+        child: _boardView(m),
+      ),
+      const SizedBox(height: 10),
+      if (bottom >= 0) _plateFor(m, bottom),
+      ..._turnPanel(m),
+    ];
+  }
+
+  /// Turn by turn, seated: a move is staged on the board, then sent, and the
+  /// panel says where things stand. Otherwise the time left, if any.
+  List<Widget> _turnPanel(ChatMatch m) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final me = widget.userId;
+    final mySeat = m.seatOf(me);
     final turns = m.mode == MatchMode.async &&
         m.status == MatchStatus.active &&
         mySeat >= 0;
@@ -529,61 +822,8 @@ class _MatchScreenState extends State<MatchScreen> {
     final timeLeft = m.mode == MatchMode.async && mySeat >= 0
         ? matchTimeLeft(l10n, m, now)
         : null;
-
-    return [
-      if (tops.length == 1)
-        plate(tops.first)
-      else
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final s in tops)
-              SizedBox(width: 220, child: plate(s)),
-          ],
-        ),
-      const SizedBox(height: 10),
-      AspectRatio(
-        aspectRatio:
-            state == null ? 1 : TurnBoard.aspectRatioOf(m.game, state),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (state != null)
-              TurnBoard(
-                gameId: m.game,
-                state: state,
-                mySeat: mySeat >= 0 ? mySeat : null,
-                enabled: m.isTurnOf(me) && !_c.sending && _countdown == null,
-                onMove: turns ? _stage : _c.play,
-                lastMove: m.lastMove,
-                seatLabels: [
-                  for (final s in m.seats)
-                    s.name.isEmpty ? '?' : s.name.characters.first.toUpperCase(),
-                ],
-              ),
-            IgnorePointer(
-              ignoring: m.status != MatchStatus.paused,
-              child: AnimatedOpacity(
-                opacity: m.status == MatchStatus.paused ? 1 : 0,
-                duration: MotionScope.of(context).d(theme.motionFast),
-                child: m.status == MatchStatus.paused
-                    ? _PauseCover(
-                        match: m,
-                        viewerId: me,
-                        onLeave: () => Navigator.of(context).maybePop(),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ),
-            if (_countdown != null)
-              _Countdown(value: _countdown!, label: l10n.chatGameGo),
-          ],
-        ),
-      ),
-      const SizedBox(height: 10),
-      if (bottom >= 0) plate(bottom),
-      if (turns) ...[
+    if (turns) {
+      return [
         const SizedBox(height: 14),
         TurnPanel(
           match: m,
@@ -606,19 +846,21 @@ class _MatchScreenState extends State<MatchScreen> {
                   _act(() => _api.nudge(me, m.id));
                 },
         ),
-      ] else if (timeLeft != null) ...[
-        const SizedBox(height: 8),
-        Text(
-          sentenceCaseOf(context, timeLeft),
-          textAlign: TextAlign.center,
-          style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
-        ),
-      ],
+      ];
+    }
+    if (timeLeft == null) return const [];
+    return [
+      const SizedBox(height: 8),
+      Text(
+        sentenceCaseOf(context, timeLeft),
+        textAlign: TextAlign.center,
+        style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
+      ),
     ];
   }
 
   /// A turn by turn move, put on the board but not sent.
-  void _stage(String move) {
+  void _stageMove(String move) {
     HapticFeedback.selectionClick();
     _c.stage(move);
   }
@@ -664,6 +906,78 @@ class _MatchScreenState extends State<MatchScreen> {
     if (!mounted) return;
     Navigator.of(context).maybePop();
     toast.show(sentLine);
+  }
+
+  /// A party game's wide shape: its table's own stage ([partyStageFor]),
+  /// under the same pause cover and 3-2-1, with the requests, the result and
+  /// the footnote under its panel.
+  GameStage _partyStage(ChatMatch m) {
+    final me = widget.userId;
+    final paused = m.status == MatchStatus.paused;
+    final s = partyStageFor(
+      match: m,
+      controller: _c,
+      viewerId: me,
+      enabled: _countdown == null && !paused,
+    );
+    return GameStage(
+      board: _covered(m, s.board),
+      aspectRatio: s.aspectRatio,
+      panel: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: s.panel),
+          Flexible(
+            flex: 0,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ..._requestCards(m),
+                  if (!m.status.isOpen) _Result(
+                    match: m,
+                    viewerId: me,
+                    busy: _busy,
+                    onRematch: m.isSeated(me) ? () => _rematch(m) : null,
+                  ),
+                  const SizedBox(height: 12),
+                  _Sidebar(match: m, viewerId: me),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// [child] under a live game's pause cover and 3-2-1.
+  Widget _covered(ChatMatch m, Widget child) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final paused = m.status == MatchStatus.paused;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        child,
+        IgnorePointer(
+          ignoring: !paused,
+          child: AnimatedOpacity(
+            opacity: paused ? 1 : 0,
+            duration: MotionScope.of(context).d(theme.motionFast),
+            child: paused
+                ? _PauseCover(
+                    match: m,
+                    viewerId: widget.userId,
+                    onLeave: () => Navigator.of(context).maybePop(),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
+        if (_countdown != null)
+          _Countdown(value: _countdown!, label: l10n.chatGameGo),
+      ],
+    );
   }
 
   /// A party game's table, under the same pause cover and 3-2-1 a turn
@@ -739,6 +1053,31 @@ class _MatchScreenState extends State<MatchScreen> {
         ));
       }
     }
+    if (m.takebackOfferedTo(me)) {
+      final from = m.seats[m.takebackOfferSeat!];
+      cards.add(_AskCard(
+        roomId: m.roomId,
+        userId: from.userId,
+        name: from.name,
+        text: l10n.chatGameTakebackFrom(from.name),
+        decline: l10n.chatGameDecline,
+        accept: l10n.chatGameAccept,
+        onDecline: () => _act(() => _api.answerTakeback(me, m.id, false)),
+        onAccept: () {
+          HapticFeedback.selectionClick();
+          _act(() => _api.answerTakeback(me, m.id, true));
+        },
+      ));
+    } else if (m.takebackAskedBy(me)) {
+      cards.add(Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Text(
+          sentenceCaseOf(context, l10n.chatGameTakebackAsked),
+          textAlign: TextAlign.center,
+          style: groupedMetaStyle(ThemeScope.of(context)),
+        ),
+      ));
+    }
     if (m.drawOfferedTo(me)) {
       final from = m.seats[m.drawOfferSeat!];
       cards.add(_AskCard(
@@ -802,7 +1141,6 @@ class _TopBar extends StatelessWidget {
     required this.viewerId,
     this.party = false,
     this.onResign,
-    this.onOfferDraw,
     this.onHelp,
   });
 
@@ -815,7 +1153,6 @@ class _TopBar extends StatelessWidget {
   /// A party game: the menu says "Leave game", not "Resign".
   final bool party;
   final VoidCallback? onResign;
-  final VoidCallback? onOfferDraw;
 
   @override
   Widget build(BuildContext context) {
@@ -840,7 +1177,7 @@ class _TopBar extends StatelessWidget {
     final wash = mine && seat != null
         ? SeatPalette(theme, gameId: m.game).wash(seat)
         : theme.ink.withValues(alpha: 0.07);
-    final hasMenu = onResign != null || onOfferDraw != null;
+    final hasMenu = onResign != null;
     return SizedBox(
       height: 44,
       child: Stack(
@@ -879,11 +1216,6 @@ class _TopBar extends StatelessWidget {
                     final choice = await showIosActionSheet<String>(
                       context,
                       actions: [
-                        if (onOfferDraw != null)
-                          IosSheetAction(
-                            label: sentenceCaseOf(context, l10n.chatGameOfferDraw),
-                            value: 'draw',
-                          ),
                         if (onResign != null)
                           IosSheetAction(
                             label: sentenceCaseOf(
@@ -896,7 +1228,6 @@ class _TopBar extends StatelessWidget {
                       ],
                       cancelLabel: sentenceCaseOf(context, l10n.chatGameCancel),
                     );
-                    if (choice == 'draw') onOfferDraw?.call();
                     if (choice == 'resign') onResign?.call();
                   },
                 ),
@@ -915,6 +1246,7 @@ class _Plate extends StatelessWidget {
     required this.seat,
     required this.viewerId,
     this.score,
+    this.trailing,
     this.onTap,
   });
 
@@ -922,6 +1254,9 @@ class _Plate extends StatelessWidget {
   final int seat;
   final String viewerId;
   final int? score;
+
+  /// Before the score: chess's captured pieces.
+  final Widget? trailing;
   final VoidCallback? onTap;
 
   @override
@@ -998,6 +1333,10 @@ class _Plate extends StatelessWidget {
               ],
             ),
           ),
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing!,
+          ],
           if (score != null)
             Text(
               '$score',

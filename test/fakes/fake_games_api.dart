@@ -67,7 +67,12 @@ class FakeGamesApi implements GamesApi {
     required List<int> progress,
     required int elapsedMs,
     int mistakes = 0,
-  }) async {}
+  }) async {
+    saves.add((progress: List<int>.of(progress), elapsedMs: elapsedMs));
+  }
+
+  /// Every autosave, in order.
+  final saves = <({List<int> progress, int elapsedMs})>[];
 
   @override
   Future<GameHint> hint({

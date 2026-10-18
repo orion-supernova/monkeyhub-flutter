@@ -95,6 +95,7 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => List<int>.of(_cells);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -258,6 +259,10 @@ class _MinesweeperScreenState extends State<MinesweeperScreen>
           ..noteMistake()
           ..addPenalty(kMinePenalty);
       }
+      // Saved at once, not on the way out: a board quit by killing the app
+      // never saves, and would reopen with the mine known and the penalty
+      // gone. One write per mine, which is rare by design.
+      _play.checkpoint(List<int>.of(_cells));
       _penalty.forward(from: 0);
       HapticFeedback.heavyImpact();
       return;

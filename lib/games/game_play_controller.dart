@@ -493,6 +493,17 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  /// The board as [checkpoint] wants it, read when the app goes to the
+  /// background. Set by the screen; null saves nothing there.
+  ///
+  /// The screen's own `dispose` is the usual save, and an app killed from the
+  /// background never runs it: everything since the board was opened was
+  /// lost, and so was anything the save carries that the player would rather
+  /// lose (a Minesweeper penalty, a counted mistake). Saving on the way into
+  /// the background closes both.
+  List<int> Function()? snapshot;
+  bool _savedOut = false;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // The clock follows the app, not just the screen: a stopwatch that kept
@@ -500,6 +511,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.resumed:
         _foreground = true;
+        _savedOut = false;
         _interruptionEnded();
       case AppLifecycleState.inactive:
         _foreground = false;
@@ -509,6 +521,12 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       case AppLifecycleState.detached:
         _foreground = false;
         _interrupted(coverNow: true);
+        // Once per trip out: `hidden` and `paused` arrive back to back.
+        final snap = snapshot;
+        if (!_savedOut && snap != null && _started) {
+          _savedOut = true;
+          checkpoint(snap());
+        }
     }
   }
 

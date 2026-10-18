@@ -94,6 +94,7 @@ class _NonogramScreenState extends State<NonogramScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => List<int>.of(_cells);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -206,6 +207,25 @@ class _NonogramScreenState extends State<NonogramScreen>
     _settle?.cancel();
     _settle = Timer(_settleAfter, _judge);
     _maybeFinish();
+  }
+
+  /// A key on the board: X crosses the square, Backspace clears it. Space
+  /// is the tap, and cycles like one.
+  bool _key(int cell, LogicalKeyboardKey key) {
+    final want = key == LogicalKeyboardKey.keyX
+        ? nonogramCrossed
+        : digitOfKey(key) == 0
+        ? nonogramUnknown
+        : null;
+    if (want == null || !_playable) return false;
+    if (_cells[cell] == want) return true;
+    if (!_pending.contains(cell)) _judge();
+    final stroke = <(int, int)>[];
+    _set(cell, want, stroke);
+    HapticFeedback.selectionClick();
+    _stroke = stroke;
+    _dragEnd();
+    return true;
   }
 
   void _tap(int index) {
@@ -349,6 +369,7 @@ class _NonogramScreenState extends State<NonogramScreen>
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _undo.isEmpty ? null : _undoLast,
       title: l10n.gameNonogramName,
       rule: l10n.gameNonogramRule,
       hintBanner: HintBanner(
@@ -365,6 +386,7 @@ class _NonogramScreenState extends State<NonogramScreen>
             n: board.size,
             leadFraction: lead,
             onTapCell: _tap,
+            onCellKey: _key,
             onDragStart: _dragStart,
             onDragTo: _dragTo,
             onDragEnd: _dragEnd,

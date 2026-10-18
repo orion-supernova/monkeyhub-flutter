@@ -160,6 +160,13 @@ class ChatMatch {
     this.seatRequest,
     this.drawOfferSeat,
     this.drawOfferSeq,
+    this.drawDeclinedSeat,
+    this.drawDeclinedSeq,
+    this.takebackOfferSeat,
+    this.takebackOfferSeq,
+    this.takebackDeclinedSeat,
+    this.takebackDeclinedSeq,
+    this.takebacks = const [],
     this.winner,
     this.winners,
     this.draw = false,
@@ -214,6 +221,23 @@ class ChatMatch {
   final int? drawOfferSeat;
   final int? drawOfferSeq;
 
+  /// The seat whose last draw offer was declined, and the [seq] it was
+  /// declined at: that seat may offer again from `seq + kDrawReofferAfter`.
+  final int? drawDeclinedSeat;
+  final int? drawDeclinedSeq;
+
+  /// A takeback request standing at [takebackOfferSeq]: [takebackOfferSeat]
+  /// asks to take back their last move, the other seat decides.
+  final int? takebackOfferSeat;
+  final int? takebackOfferSeq;
+
+  /// The last declined takeback request: not asked again at that [seq].
+  final int? takebackDeclinedSeat;
+  final int? takebackDeclinedSeq;
+
+  /// Takebacks granted per seat (index = seat). Empty from an older server.
+  final List<int> takebacks;
+
   /// The winning seat, when there is one.
   final int? winner;
 
@@ -265,6 +289,76 @@ class ChatMatch {
         seatOf(userId) != seat;
   }
 
+  /// Takebacks [seat] has had granted this game.
+  int takebacksUsed(int seat) =>
+      seat >= 0 && seat < takebacks.length ? takebacks[seat] : 0;
+
+  /// Takebacks [seat] may still ask for.
+  int takebacksLeft(int seat) =>
+      (kMaxTakebacks - takebacksUsed(seat)).clamp(0, kMaxTakebacks);
+
+  /// Two players at a turn game: the only kind with takebacks and draws.
+  bool get isDuel => !party && seats.length == 2;
+
+  /// A takeback request standing at the current position, from the other
+  /// player: [userId] is the one who decides.
+  bool takebackOfferedTo(String userId) {
+    final seat = takebackOfferSeat;
+    return seat != null &&
+        takebackOfferSeq == seq &&
+        status == MatchStatus.active &&
+        isDuel &&
+        isSeated(userId) &&
+        seatOf(userId) != seat;
+  }
+
+  /// The viewer's own request, still waiting for an answer.
+  bool takebackAskedBy(String userId) {
+    final seat = takebackOfferSeat;
+    return seat != null &&
+        takebackOfferSeq == seq &&
+        status == MatchStatus.active &&
+        seatOf(userId) == seat;
+  }
+
+  /// Whether [userId] may ask to take back their last move, as far as the
+  /// row can tell: an active duel, they are seated, they made [lastMove]
+  /// (the server also checks it was not an autoplayed or taken-back one),
+  /// none left standing or declined at this position, and some left.
+  ///
+  /// "They made the last move" is read off the turn: in every two-seat game
+  /// but Dots and Boxes the mover is no longer to move. A Dots and Boxes box
+  /// keeps the turn, so there the server is the only judge
+  /// (`NOTHING_TO_TAKE_BACK`).
+  bool canAskTakeback(String userId) {
+    final seat = seatOf(userId);
+    if (seat < 0 || !isDuel || status != MatchStatus.active) return false;
+    if (seq == 0 || lastMove == null) return false;
+    if (takebacksLeft(seat) <= 0) return false;
+    if (takebackOfferSeq == seq && takebackOfferSeat != null) return false;
+    if (takebackDeclinedSeat == seat && takebackDeclinedSeq == seq) {
+      return false;
+    }
+    return game == 'dots' || (turnSeat != null && turnSeat != seat);
+  }
+
+  /// Whether [userId] may offer a draw now: an active duel, seated, no offer
+  /// standing, and not within [kDrawReofferAfter] moves of their own
+  /// declined one. Answering the other side's standing offer is
+  /// [drawOfferedTo], not this.
+  bool canOfferDraw(String userId) {
+    final seat = seatOf(userId);
+    if (seat < 0 || !isDuel || status != MatchStatus.active) return false;
+    if (drawOfferSeat != null && drawOfferSeq == seq) return false;
+    final declined = drawDeclinedSeq;
+    if (drawDeclinedSeat == seat &&
+        declined != null &&
+        seq < declined + kDrawReofferAfter) {
+      return false;
+    }
+    return true;
+  }
+
   ChatMatch withOptimistic({
     required String state,
     required int seq,
@@ -292,6 +386,11 @@ class ChatMatch {
         watching: watching,
         watchers: watchers,
         seatRequest: seatRequest,
+        drawDeclinedSeat: drawDeclinedSeat,
+        drawDeclinedSeq: drawDeclinedSeq,
+        takebackDeclinedSeat: takebackDeclinedSeat,
+        takebackDeclinedSeq: takebackDeclinedSeq,
+        takebacks: takebacks,
         winner: winner,
         winners: winners,
         draw: draw,
@@ -312,6 +411,11 @@ class ChatMatch {
     if (id == null || id.isEmpty) return null;
     final req = j['seatRequest'];
     final offer = j['drawOffer'];
+    final drawNo = j['drawDeclined'];
+    final takeback = j['takebackOffer'];
+    final takebackNo = j['takebackDeclined'];
+    int? field(Object? m, String k) =>
+        m is Map ? (m[k] as num?)?.toInt() : null;
     return ChatMatch(
       id: id,
       roomId: j['roomId']?.toString() ?? '',
@@ -348,6 +452,16 @@ class ChatMatch {
           : null,
       drawOfferSeat: offer is Map ? (offer['seat'] as num?)?.toInt() : null,
       drawOfferSeq: offer is Map ? (offer['seq'] as num?)?.toInt() : null,
+      drawDeclinedSeat: field(drawNo, 'seat'),
+      drawDeclinedSeq: field(drawNo, 'seq'),
+      takebackOfferSeat: field(takeback, 'seat'),
+      takebackOfferSeq: field(takeback, 'seq'),
+      takebackDeclinedSeat: field(takebackNo, 'seat'),
+      takebackDeclinedSeq: field(takebackNo, 'seq'),
+      takebacks: [
+        for (final n in (j['takebacks'] as List?) ?? const [])
+          if (n is num) n.toInt(),
+      ],
       winner: (j['winner'] as num?)?.toInt(),
       winners: j['winners'] is List
           ? [
@@ -364,6 +478,14 @@ class ChatMatch {
     );
   }
 }
+
+/// Takebacks the opponent may grant one seat in one game
+/// (`matches.MAX_TAKEBACKS`).
+const kMaxTakebacks = 3;
+
+/// Moves that must land before a seat whose draw offer was declined may offer
+/// again (`matches.DRAW_REOFFER_AFTER`).
+const kDrawReofferAfter = 2;
 
 /// The games a room can start, in the order the start sheet offers them.
 ///

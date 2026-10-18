@@ -66,6 +66,7 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
   void initState() {
     super.initState();
     _play.addListener(_onPlay);
+    _play.snapshot = () => List<int>.of(_cells);
     GamesStore.instance.addListener(_onPlay);
     _boot();
   }
@@ -167,6 +168,21 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
     _maybeFinish();
   }
 
+  /// A key on the board: a digit types into the selected square, Backspace
+  /// clears it, N turns pencil marks on and off.
+  bool _key(int cell, LogicalKeyboardKey key) {
+    if (key == LogicalKeyboardKey.keyN) {
+      setState(() => _noting = !_noting);
+      return true;
+    }
+    final v = digitOfKey(key);
+    final board = GamesStore.instance.boards.futoshiki;
+    if (v == null || v > board.size) return false;
+    if (_selected != cell) _select(cell);
+    _enter(v);
+    return true;
+  }
+
   void _undoLast() {
     if (_undo.isEmpty || _play.finished) return;
     final (index, value, marks) = _undo.removeLast();
@@ -265,6 +281,7 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
     return GameScaffold(
       controller: _play,
       viewerId: widget.userId,
+      onUndo: _undo.isEmpty ? null : _undoLast,
       title: l10n.gameFutoshikiName,
       rule: l10n.gameFutoshikiRule,
       hintBanner: HintBanner(
@@ -278,6 +295,8 @@ class _FutoshikiScreenState extends State<FutoshikiScreen>
           animation: Listenable.merge([_pop, _winSweep]),
           builder: (context, _) => GameBoardSurface(
             onTapCell: _select,
+            keyboardSelects: true,
+            onCellKey: _key,
             n: board.size,
             painter: FutoshikiBoardPainter(
               board: board,

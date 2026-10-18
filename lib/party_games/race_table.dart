@@ -53,12 +53,17 @@ class RaceTable extends StatefulWidget {
     required this.controller,
     required this.viewerId,
     this.enabled = true,
+    this.stage = false,
   });
 
   final ChatMatch match;
   final MatchController controller;
   final String viewerId;
   final bool enabled;
+
+  /// The desktop stage's middle: the board as tall as the stage allows,
+  /// everyone's bars in [RaceStagePanel] beside it.
+  final bool stage;
 
   @override
   State<RaceTable> createState() => _RaceTableState();
@@ -240,8 +245,45 @@ class _RaceTableState extends State<RaceTable> with TickerProviderStateMixin {
     _report(b);
   }
 
+  /// A key the board did not use, with the cell under its cursor: Sudoku's
+  /// digits (Backspace clears). Arrows, Space and Enter are the board's own.
+  bool _cellKey(int cell, LogicalKeyboardKey key) {
+    final b = _board;
+    if (b is! _SudokuRace || !_playable) return false;
+    final digit = digitOfKey(key);
+    if (digit == null || digit > b.board.size) return false;
+    if (b.selected != cell) _tap(cell);
+    if (digit == 0) {
+      final v = b.cells[cell];
+      if (v != sudokuEmpty) _enter(v);
+    } else {
+      _enter(digit);
+    }
+    return true;
+  }
+
+  /// ⌘Z / Ctrl+Z undoes, as everywhere else on a desktop. It bubbles up
+  /// from the board, which leaves every chord alone.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final k = HardwareKeyboard.instance;
+    final chord = k.isMetaPressed || k.isControlPressed;
+    if (chord && !k.isShiftPressed && event.logicalKey == LogicalKeyboardKey.keyZ) {
+      _undo();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Focus(
+    canRequestFocus: false,
+    skipTraversal: true,
+    onKeyEvent: _onKey,
+    child: _table(context),
+  );
+
+  Widget _table(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final v = _view;
@@ -251,13 +293,17 @@ class _RaceTableState extends State<RaceTable> with TickerProviderStateMixin {
     final mySeat = _mySeat;
     final me = mySeat >= 0 && mySeat < v.players.length ? v.players[mySeat] : null;
     final done = me?.rank != null || _finishSent;
+    final stage = widget.stage;
     final children = <Widget>[
-      _RaceBars(match: m, view: v, viewerId: widget.viewerId),
-      const SizedBox(height: 12),
+      if (!stage) ...[
+        _RaceBars(match: m, view: v, viewerId: widget.viewerId),
+        const SizedBox(height: 12),
+      ],
     ];
     if (v.over) {
       children.add(_RaceResults(match: m, view: v, viewerId: widget.viewerId));
-      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+      final col = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+      return stage ? PartyStageBody(child: col) : col;
     }
     children.add(Row(
       children: [
@@ -272,7 +318,8 @@ class _RaceTableState extends State<RaceTable> with TickerProviderStateMixin {
     ));
     children.add(const SizedBox(height: 10));
     if (b != null) {
-      children.add(Stack(
+      final boardStack = Stack(
+        fit: stage ? StackFit.expand : StackFit.loose,
         children: [
           AnimatedBuilder(
             animation: Listenable.merge([_pop, _win, _pulse]),
@@ -288,6 +335,7 @@ class _RaceTableState extends State<RaceTable> with TickerProviderStateMixin {
                 if (b is _ZipRace) b.markStroke();
               },
               onDragTo: _dragTo,
+              onCellKey: _cellKey,
             ),
           ),
           if (done)
@@ -298,7 +346,16 @@ class _RaceTableState extends State<RaceTable> with TickerProviderStateMixin {
               ),
             ),
         ],
-      ));
+      );
+      // On the stage the board takes whatever height the title row and the
+      // tools leave; on a phone it is as wide as the column, as before.
+      children.add(stage
+          ? Expanded(
+              child: Center(
+                child: AspectRatio(aspectRatio: 1, child: boardStack),
+              ),
+            )
+          : boardStack);
       if (!done && mySeat >= 0) {
         children.add(const SizedBox(height: 12));
         if (b is _SudokuRace) {
@@ -741,6 +798,7 @@ sealed class _RaceBoard {
     required void Function(int) onTap,
     required VoidCallback onDragStart,
     required void Function(int) onDragTo,
+    bool Function(int cell, LogicalKeyboardKey key)? onCellKey,
   });
 }
 
@@ -830,6 +888,7 @@ class _QueensRace extends _RaceBoard {
     required void Function(int) onTap,
     required VoidCallback onDragStart,
     required void Function(int) onDragTo,
+    bool Function(int cell, LogicalKeyboardKey key)? onCellKey,
   }) {
     snapshot();
     return GameBoardSurface(
@@ -942,6 +1001,7 @@ class _TangoRace extends _RaceBoard {
     required void Function(int) onTap,
     required VoidCallback onDragStart,
     required void Function(int) onDragTo,
+    bool Function(int cell, LogicalKeyboardKey key)? onCellKey,
   }) {
     snapshot();
     return GameBoardSurface(
@@ -1066,11 +1126,14 @@ class _SudokuRace extends _RaceBoard {
     required void Function(int) onTap,
     required VoidCallback onDragStart,
     required void Function(int) onDragTo,
+    bool Function(int cell, LogicalKeyboardKey key)? onCellKey,
   }) {
     snapshot();
     return GameBoardSurface(
       n: n,
       onTapCell: live ? onTap : null,
+      keyboardSelects: true,
+      onCellKey: live ? onCellKey : null,
       painter: SudokuBoardPainter(
         board: board,
         theme: theme,
@@ -1157,6 +1220,7 @@ class _ZipRace extends _RaceBoard {
     required void Function(int) onTap,
     required VoidCallback onDragStart,
     required void Function(int) onDragTo,
+    bool Function(int cell, LogicalKeyboardKey key)? onCellKey,
   }) => GameBoardSurface(
     n: n,
     claimsDrag: live,
@@ -1176,4 +1240,37 @@ class _ZipRace extends _RaceBoard {
       headPulse: pulse,
     ),
   );
+}
+
+/// Beside the board on the desktop stage: everyone's bar, stacked, and the
+/// rule that decides how long the rest have once somebody wins.
+class RaceStagePanel extends StatelessWidget {
+  const RaceStagePanel({
+    super.key,
+    required this.match,
+    required this.viewerId,
+  });
+
+  final ChatMatch match;
+  final String viewerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final v = partyViewOf(match);
+    if (v is! RaceView) return const SizedBox.shrink();
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        PartyStageSection(
+          title: _kindName(l10n, v.kind),
+          child: _RaceBars(match: match, view: v, viewerId: viewerId),
+        ),
+        if (!v.over) ...[
+          const SizedBox(height: 12),
+          PartyCaption(l10n.partyRaceGrace),
+        ],
+      ],
+    );
+  }
 }

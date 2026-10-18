@@ -746,10 +746,17 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('ld_face_2')));
       await tester.pump();
       expect(find.text('Bid  3 × 5'), findsOneWidget);
-      // Nor can the quantity drop below the standing bid's.
+      // Fewer dice is a raise only on 1s, which take half (Perudo): the
+      // face moves to the one face that still raises.
       await tester.tap(find.byKey(const ValueKey('ld_qty_minus')));
       await tester.pump();
-      expect(find.text('Bid  3 × 5'), findsOneWidget);
+      expect(find.text('Bid  2 × 1'), findsOneWidget);
+      // And no lower than that.
+      await tester.tap(find.byKey(const ValueKey('ld_qty_minus')));
+      await tester.pump();
+      expect(find.text('Bid  2 × 1'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('ld_qty_plus')));
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('ld_face_6')));
       await tester.pump();
       await tester.ensureVisible(find.byKey(const ValueKey('ld_bid')));
