@@ -10,6 +10,28 @@ import 'package:monkeyhub/widgets/moment_comments_sheet.dart';
 
 import 'design_preview/preview_kit.dart';
 
+/// Records reactions instead of sending them.
+class _Feed extends FeedApi {
+  _Feed() : super(ConvexBackend.instance);
+  final reacted = <String>[];
+
+  @override
+  Future<void> reactToComment({
+    required String userId,
+    required String commentId,
+    required String emoji,
+  }) async =>
+      reacted.add('+$emoji');
+
+  @override
+  Future<void> unreactComment({
+    required String userId,
+    required String commentId,
+    required String emoji,
+  }) async =>
+      reacted.add('-$emoji');
+}
+
 /// A highlight's comment threads: up to three replies just show; a longer
 /// thread folds behind "View N replies".
 void main() {
@@ -118,5 +140,65 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     // Opened, every reply is on the way to "Hide replies".
     expect(rails(), [s, e, s, t, t, e, s, t, t, t, t, t, e]);
+  });
+
+  testWidgets('a chip tap opens who reacted, and yours is toggled there',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    MomentConversation.debugComments = [
+      MomentComment(
+        id: 'a',
+        userId: 'ua',
+        userName: 'Ada',
+        createdAt: now.subtract(const Duration(minutes: 5)),
+        isAuthor: false,
+        mine: false,
+        canDelete: false,
+        text: 'funny',
+        reactionCounts: const {'😂': 1},
+        myReactions: const {},
+        reactors: const [
+          MomentReactor(emoji: '😂', userId: 'ua', name: 'Ada'),
+        ],
+      ),
+    ];
+    addTearDown(() => MomentConversation.debugComments = null);
+    final feed = _Feed();
+    await tester.pumpWidget(previewApp(
+      ThemeController.byId('basic'),
+      Material(
+        type: MaterialType.transparency,
+        child: MomentConversation(
+          moment: moment,
+          api: ChatApi(ConvexBackend.instance),
+          feedApi: feed,
+          userId: 'me',
+        ),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 600));
+    // Frame by frame: the sheet's rise is a run of frames, not one jump.
+    Future<void> settle() async {
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 40));
+      }
+    }
+
+    await tester.tap(find.text('😂').first);
+    await settle();
+    expect(feed.reacted, isEmpty);
+    expect(find.text('Add yours'), findsOneWidget);
+
+    await tester.tap(find.text('Add yours'));
+    await settle();
+    expect(feed.reacted, ['+😂']);
+    // The sheet follows the comment: yours landed, so it now takes it back.
+    expect(find.text('Remove yours'), findsOneWidget);
+
+    await tester.tap(find.text('Remove yours'));
+    await settle();
+    expect(feed.reacted, ['+😂', '-😂']);
+    expect(find.text('Add yours'), findsOneWidget);
   });
 }

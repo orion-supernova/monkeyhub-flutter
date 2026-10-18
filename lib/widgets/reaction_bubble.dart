@@ -21,15 +21,7 @@ class ReactionRow extends StatefulWidget {
     this.onShowReactors,
     this.alignment = WrapAlignment.start,
     this.hanging = false,
-    this.tapShowsReactors = true,
   });
-
-  /// A tap opens [onShowReactors], the same sheet a long-press does, and the
-  /// sheet is where you add or take back your own. A chat chip says `😂 3`;
-  /// what you want from tapping it is who the three are, and a tap that
-  /// silently added a fourth was the most common accidental reaction.
-  /// False keeps the old tap-to-toggle (moment comments).
-  final bool tapShowsReactors;
 
   /// Drawn as badges hanging off the bubble above — see [HangingReactions].
   /// Each chip is opaque and wears a ring of the chat's own background, so
@@ -42,6 +34,11 @@ class ReactionRow extends StatefulWidget {
   final String currentUserId;
   final void Function(String emoji) onToggle;
 
+  /// The who-reacted sheet, which is where you add or take back your own.
+  /// A tap opens it as well as a long-press: a chip says `😂 3`, what you
+  /// want from tapping it is who the three are, and a tap that silently
+  /// added a fourth was the most common accidental reaction. Null falls back
+  /// to a tap toggling.
   final void Function(String emoji)? onShowReactors;
 
   final WrapAlignment alignment;
@@ -99,7 +96,7 @@ class _ReactionRowState extends State<ReactionRow> {
               onTap: () {
                 HapticFeedback.selectionClick();
                 final show = widget.onShowReactors;
-                if (widget.tapShowsReactors && show != null) {
+                if (show != null) {
                   show(entry.key);
                 } else {
                   widget.onToggle(entry.key);

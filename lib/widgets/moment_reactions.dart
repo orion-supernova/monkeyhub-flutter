@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +11,7 @@ import '../models/moment.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'filter_capsule.dart';
+import 'react_toggle.dart';
 import 'sheet_kit.dart';
 import 'user_avatar.dart';
 import 'desktop_scroll.dart';
@@ -243,16 +245,34 @@ Future<void> showMomentReactions(
   /// Opens someone's profile; the sheet closes first. Null leaves the rows
   /// inert (and the viewer's own row is always inert).
   void Function(ChatUser user)? onOpenProfile,
+
+  /// The reactors as they change while the sheet is open, in place of the
+  /// [reactors] snapshot. Needed with [onToggle], or yours would never land.
+  ValueListenable<List<MomentReactor>>? live,
+
+  /// Adds or takes back the viewer's own reaction with that emoji, for the
+  /// surfaces where a chip tap opens this sheet instead of toggling. Null
+  /// hides the control.
+  Future<void> Function(String emoji)? onToggle,
 }) {
   return showAdaptiveSheet<void>(
     context,
-    builder: (_) => _MomentReactionsSheet(
-      reactors: reactors,
-      api: api,
-      viewerId: viewerId,
-      initialEmoji: initialEmoji,
-      onOpenProfile: onOpenProfile,
-    ),
+    builder: (_) {
+      Widget sheet(List<MomentReactor> now) => _MomentReactionsSheet(
+            reactors: now,
+            api: api,
+            viewerId: viewerId,
+            initialEmoji: initialEmoji,
+            onOpenProfile: onOpenProfile,
+            onToggle: onToggle,
+          );
+      return live == null
+          ? sheet(reactors)
+          : ValueListenableBuilder<List<MomentReactor>>(
+              valueListenable: live,
+              builder: (_, now, _) => sheet(now),
+            );
+    },
   );
 }
 
@@ -263,6 +283,7 @@ class _MomentReactionsSheet extends StatefulWidget {
     required this.viewerId,
     required this.initialEmoji,
     required this.onOpenProfile,
+    required this.onToggle,
   });
 
   final List<MomentReactor> reactors;
@@ -270,6 +291,7 @@ class _MomentReactionsSheet extends StatefulWidget {
   final String viewerId;
   final String? initialEmoji;
   final void Function(ChatUser user)? onOpenProfile;
+  final Future<void> Function(String emoji)? onToggle;
 
   @override
   State<_MomentReactionsSheet> createState() => _MomentReactionsSheetState();
@@ -290,10 +312,15 @@ class _MomentReactionsSheetState extends State<_MomentReactionsSheet> {
     }
     final emojis = tally.keys.toList()
       ..sort((a, b) => tally[b]!.compareTo(tally[a]!));
-    final filter = _filter;
+    // The filter outlives its emoji only as the toggle's target: once the
+    // last one is taken back the list widens to ALL, and the toggle stays on
+    // it so the take-back can be undone in place.
+    final filter = tally.containsKey(_filter) ? _filter : null;
     final rows = filter == null
         ? all
         : [for (final g in all) if (g.emojis.contains(filter)) g];
+    final target = _filter ?? widget.initialEmoji;
+    final onToggle = widget.onToggle;
 
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.reactionDetailsSheetTitle),
@@ -368,6 +395,15 @@ class _MomentReactionsSheetState extends State<_MomentReactionsSheet> {
                 style: theme.bodySoft.copyWith(color: theme.inkMuted),
               ),
             ),
+          if (onToggle != null && target != null) ...[
+            const SizedBox(height: 12),
+            ReactToggle(
+              emoji: target,
+              mine: widget.reactors.any(
+                  (r) => r.emoji == target && r.userId == widget.viewerId),
+              onTap: () => onToggle(target),
+            ),
+          ],
         ],
       ),
     );

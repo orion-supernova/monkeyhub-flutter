@@ -188,7 +188,21 @@ class _MomentConversationState extends State<MomentConversation> {
   Subscription? _sub;
 
   /// Null until the first delivery: the spinner, not "no comments yet".
-  List<MomentComment>? _comments;
+  List<MomentComment>? _commentList;
+  List<MomentComment>? get _comments => _commentList;
+  set _comments(List<MomentComment>? v) {
+    _commentList = v;
+    // An open who-reacted sheet follows its comment, so yours lands there.
+    final live = _liveReactors;
+    if (live == null) return;
+    final c = _find(live.commentId);
+    if (c != null) live.reactors.value = c.reactors;
+  }
+
+  /// The comment whose who-reacted sheet is open, and its reactors as they
+  /// change.
+  ({String commentId, ValueNotifier<List<MomentReactor>> reactors})?
+      _liveReactors;
   final _pending = <_Pending>[];
   int _tmp = 0;
 
@@ -435,15 +449,25 @@ class _MomentConversationState extends State<MomentConversation> {
     await _toggle(now, pick.emoji);
   }
 
-  void _showReactors(MomentComment c, String emoji) {
-    showMomentReactions(
+  /// Tap or long-press a chip. The sheet is where yours is added or taken
+  /// back, since a chip tap no longer toggles.
+  Future<void> _showReactors(MomentComment c, String emoji) async {
+    final live = ValueNotifier(c.reactors);
+    _liveReactors = (commentId: c.id, reactors: live);
+    await showMomentReactions(
       context,
       reactors: c.reactors,
+      live: live,
       api: widget.api,
       viewerId: widget.userId,
       initialEmoji: emoji,
       onOpenProfile: widget.onOpenProfile,
+      onToggle: c.id.startsWith('tmp_')
+          ? null
+          : (e) => _toggle(_find(c.id) ?? c, e),
     );
+    if (identical(_liveReactors?.reactors, live)) _liveReactors = null;
+    live.dispose();
   }
 
   // ── the menu ─────────────────────────────────────────────────────────────
@@ -1313,7 +1337,6 @@ class _CommentRow extends StatelessWidget {
                   currentUserId: userId,
                   onToggle: onToggle,
                   onShowReactors: onShowReactors,
-                  tapShowsReactors: false,
                 ),
               if (!sending)
                 FocusableTap(

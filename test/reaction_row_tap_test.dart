@@ -6,9 +6,8 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/reaction_bubble.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// What this pins: in chat a chip tap opens who-reacted, the same as a
-/// long-press, and never adds a reaction behind your back. Moment comments
-/// opt out and keep tap-to-toggle.
+/// What this pins: a chip tap opens who-reacted, the same as a long-press,
+/// and never adds a reaction behind your back.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -42,20 +41,17 @@ void main() {
     expect(toggled, isEmpty);
   });
 
-  testWidgets('tapShowsReactors: false keeps tap-to-toggle', (tester) async {
-    final shown = <String>[];
+  testWidgets('with nowhere to show reactors, a tap still toggles',
+      (tester) async {
     final toggled = <String>[];
     await tester.pumpWidget(host(ReactionRow(
       reactions: reactions,
       currentUserId: 'me',
       onToggle: toggled.add,
-      onShowReactors: shown.add,
-      tapShowsReactors: false,
     )));
     await tester.tap(find.text('😂'));
     await tester.pumpAndSettle();
     expect(toggled, ['😂']);
-    expect(shown, isEmpty);
   });
 
   testWidgets('a count change rolls and hops without throwing',
