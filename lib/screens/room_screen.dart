@@ -6741,9 +6741,10 @@ class _RoomScreenState extends State<RoomScreen>
 
                 void onReactionTap(String e) => reactionTapOn(m, e);
 
+                // A tap and a long-press on a chip both land here; the chip
+                // plays the haptic that fits the gesture.
                 Future<void> reactionLongPressOn(
                     ChatMessage target, String e, {bool? album}) async {
-                  HapticFeedback.mediumImpact();
                   await showReactionDetailsSheet(
                     context,
                     repo: widget.repo,
@@ -6758,6 +6759,12 @@ class _RoomScreenState extends State<RoomScreen>
                     resolveUser: (id) => _members[id],
                     onOpenProfile: _openProfile,
                     album: album,
+                    // A tap no longer toggles, so the sheet is where your
+                    // own reaction is added or taken back.
+                    onToggle: caps.canReact
+                        ? (emoji) => _toggleReaction(target, emoji,
+                            album: album ?? false)
+                        : null,
                   );
                 }
 

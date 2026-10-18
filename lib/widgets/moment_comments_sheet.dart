@@ -1313,6 +1313,7 @@ class _CommentRow extends StatelessWidget {
                   currentUserId: userId,
                   onToggle: onToggle,
                   onShowReactors: onShowReactors,
+                  tapShowsReactors: false,
                 ),
               if (!sending)
                 FocusableTap(

@@ -753,6 +753,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, other{{count}명}}",
   "reactionDetailsSheetFilterAll": "전체",
   "reactionDetailsSheetYouBadge": "나",
+  "reactionDetailsSheetAddYours": "나도 추가",
+  "reactionDetailsSheetRemoveYours": "내 반응 취소",
   "roomLayoutScreenTitle": "채팅 목록.",
   "roomLayoutScreenSubtitle": "채팅방이 쌓이는 방식과 필터링 방법",
   "roomLayoutScreenLayoutSectionLabel": "레이아웃",

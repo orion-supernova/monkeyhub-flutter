@@ -763,6 +763,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, one{1 personne} other{{count} personnes}}",
   "reactionDetailsSheetFilterAll": "Tous",
   "reactionDetailsSheetYouBadge": "Toi",
+  "reactionDetailsSheetAddYours": "Ajouter le tien",
+  "reactionDetailsSheetRemoveYours": "Retirer le tien",
   "roomLayoutScreenTitle": "liste des discussions.",
   "roomLayoutScreenSubtitle": "comment tes salons s'organisent, et comment tu les filtres",
   "roomLayoutScreenLayoutSectionLabel": "DISPOSITION",

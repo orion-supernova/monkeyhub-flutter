@@ -2535,6 +2535,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => '自分';
 
   @override
+  String get reactionDetailsSheetAddYours => '自分も追加';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => '自分のを取り消す';
+
+  @override
   String get roomLayoutScreenTitle => 'チャット一覧。';
 
   @override

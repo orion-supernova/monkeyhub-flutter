@@ -78,6 +78,7 @@ void main() {
   Widget sheet({
     required List<MessageReaction> reactions,
     required String initialEmoji,
+    Future<void> Function(String emoji)? onToggle,
   }) =>
       ReactionDetailsSheet(
         repo: _FakeRepo(),
@@ -89,6 +90,7 @@ void main() {
         initialEmoji: initialEmoji,
         resolveUser: (id) => people[id],
         onOpenProfile: (_) {},
+        onToggle: onToggle,
       );
 
   testWidgets('a single-emoji message still shows the emoji', (tester) async {
@@ -199,5 +201,69 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the toggle adds the emoji you tapped, or takes yours back',
+      (tester) async {
+    // A chip tap opens this sheet instead of toggling, so the sheet has to
+    // be where yours is added and removed.
+    final toggled = <String>[];
+    Widget build(List<MessageReaction> reactions) => host(sheet(
+          reactions: reactions,
+          initialEmoji: '😂',
+          onToggle: (e) async => toggled.add(e),
+        ));
+
+    await tester.pumpWidget(build([reaction('ada', '😂', 0)]));
+    await tester.pumpAndSettle();
+    expect(find.text('Add yours'), findsOneWidget);
+    await tester.tap(find.text('Add yours'));
+    expect(toggled, ['😂']);
+
+    // Yours lands: the same control now takes it back, after the burst.
+    await tester.pumpWidget(
+        build([reaction('ada', '😂', 0), reaction('me', '😂', 1)]));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Remove yours'), findsOneWidget);
+    await tester.tap(find.text('Remove yours'));
+    expect(toggled, ['😂', '😂']);
+  });
+
+  testWidgets('the toggle follows the filter, and survives taking back the '
+      'last one', (tester) async {
+    final toggled = <String>[];
+    await tester.pumpWidget(host(sheet(
+      reactions: [reaction('ada', '😂', 0), reaction('me', '🔥', 1)],
+      initialEmoji: '😂',
+      onToggle: (e) async => toggled.add(e),
+    )));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('🔥').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Remove yours'), findsOneWidget);
+    await tester.tap(find.text('Remove yours'));
+    expect(toggled, ['🔥']);
+
+    // Nobody holds it any more: the list falls back to ALL, but the control
+    // stays on 🔥 so the take-back can be undone in place.
+    await tester.pumpWidget(host(sheet(
+      reactions: [reaction('ada', '😂', 0)],
+      initialEmoji: '😂',
+      onToggle: (e) async => toggled.add(e),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Add yours'), findsOneWidget);
+    expect(find.text('🔥'), findsOneWidget);
+  });
+
+  testWidgets('no right to react, no toggle', (tester) async {
+    await tester.pumpWidget(host(sheet(
+      reactions: [reaction('ada', '😂', 0)],
+      initialEmoji: '😂',
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Add yours'), findsNothing);
   });
 }

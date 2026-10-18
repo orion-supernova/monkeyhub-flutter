@@ -2500,6 +2500,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => '你';
 
   @override
+  String get reactionDetailsSheetAddYours => '我也加一个';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => '撤回我的';
+
+  @override
   String get roomLayoutScreenTitle => '聊天列表。';
 
   @override

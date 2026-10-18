@@ -753,6 +753,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, other{{count} 人}}",
   "reactionDetailsSheetFilterAll": "全部",
   "reactionDetailsSheetYouBadge": "你",
+  "reactionDetailsSheetAddYours": "我也加一个",
+  "reactionDetailsSheetRemoveYours": "撤回我的",
   "roomLayoutScreenTitle": "聊天列表。",
   "roomLayoutScreenSubtitle": "聊天室如何排列,以及你如何筛选它们",
   "roomLayoutScreenLayoutSectionLabel": "布局",

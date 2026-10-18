@@ -753,6 +753,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, one{{count} व्यक्ति} other{{count} लोग}}",
   "reactionDetailsSheetFilterAll": "सभी",
   "reactionDetailsSheetYouBadge": "तुम",
+  "reactionDetailsSheetAddYours": "अपना जोड़ो",
+  "reactionDetailsSheetRemoveYours": "अपना हटाओ",
   "roomLayoutScreenTitle": "चैट लिस्ट।",
   "roomLayoutScreenSubtitle": "चैट्स कैसे स्टैक होते हैं और तुम उन्हें कैसे फ़िल्टर करते हो",
   "roomLayoutScreenLayoutSectionLabel": "लेआउट",

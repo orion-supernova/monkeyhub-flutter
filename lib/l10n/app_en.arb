@@ -3040,6 +3040,14 @@
   "@reactionDetailsSheetYouBadge": {
     "description": "All-caps badge next to the current user's own name in the reaction-details sheet's list of reactors."
   },
+  "reactionDetailsSheetAddYours": "Add yours",
+  "@reactionDetailsSheetAddYours": {
+    "description": "Button under the list in the reaction-details sheet (opened by tapping a reaction chip) that adds the current user's own reaction with the emoji shown beside it. 'Yours' = your reaction."
+  },
+  "reactionDetailsSheetRemoveYours": "Remove yours",
+  "@reactionDetailsSheetRemoveYours": {
+    "description": "Same button once the current user has reacted with that emoji: takes their own reaction back. 'Yours' = your reaction."
+  },
   "roomLayoutScreenTitle": "chat list.",
   "@roomLayoutScreenTitle": {
     "description": "Room Layout settings screen — main heading (lowercase sentence-fragment display style)"

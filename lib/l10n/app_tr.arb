@@ -753,6 +753,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, other{{count} kişi}}",
   "reactionDetailsSheetFilterAll": "Tümü",
   "reactionDetailsSheetYouBadge": "Sen",
+  "reactionDetailsSheetAddYours": "Sen de ekle",
+  "reactionDetailsSheetRemoveYours": "Seninkini kaldır",
   "roomLayoutScreenTitle": "sohbet listesi.",
   "roomLayoutScreenSubtitle": "odalar nasıl sıralanır, filtreler nasıl çalışır",
   "roomLayoutScreenLayoutSectionLabel": "DÜZEN",

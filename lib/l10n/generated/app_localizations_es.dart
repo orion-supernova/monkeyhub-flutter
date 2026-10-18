@@ -2664,6 +2664,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => 'Tú';
 
   @override
+  String get reactionDetailsSheetAddYours => 'Añade el tuyo';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'Quita el tuyo';
+
+  @override
   String get roomLayoutScreenTitle => 'lista de chats.';
 
   @override

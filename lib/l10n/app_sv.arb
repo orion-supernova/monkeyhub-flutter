@@ -763,6 +763,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, one{1 person} other{{count} personer}}",
   "reactionDetailsSheetFilterAll": "Alla",
   "reactionDetailsSheetYouBadge": "Du",
+  "reactionDetailsSheetAddYours": "Lägg till din",
+  "reactionDetailsSheetRemoveYours": "Ta bort din",
   "roomLayoutScreenTitle": "chattlista.",
   "roomLayoutScreenSubtitle": "hur rum staplas, och hur du filtrerar dem",
   "roomLayoutScreenLayoutSectionLabel": "LAYOUT",

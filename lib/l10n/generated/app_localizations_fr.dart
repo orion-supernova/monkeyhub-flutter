@@ -2689,6 +2689,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => 'Toi';
 
   @override
+  String get reactionDetailsSheetAddYours => 'Ajouter le tien';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'Retirer le tien';
+
+  @override
   String get roomLayoutScreenTitle => 'liste des discussions.';
 
   @override

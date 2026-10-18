@@ -2667,6 +2667,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => 'Tu';
 
   @override
+  String get reactionDetailsSheetAddYours => 'Adicionar o teu';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'Remover o teu';
+
+  @override
   String get roomLayoutScreenTitle => 'lista de conversas.';
 
   @override
@@ -16909,6 +16915,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get reactionDetailsSheetYouBadge => 'Você';
+
+  @override
+  String get reactionDetailsSheetAddYours => 'Adicionar o seu';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'Remover o seu';
 
   @override
   String get roomLayoutScreenTitle => 'lista de conversas.';

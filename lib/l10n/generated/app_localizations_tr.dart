@@ -2618,6 +2618,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => 'Sen';
 
   @override
+  String get reactionDetailsSheetAddYours => 'Sen de ekle';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'Seninkini kaldır';
+
+  @override
   String get roomLayoutScreenTitle => 'sohbet listesi.';
 
   @override

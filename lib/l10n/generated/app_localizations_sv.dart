@@ -2649,6 +2649,12 @@ class AppLocalizationsSv extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => 'Du';
 
   @override
+  String get reactionDetailsSheetAddYours => 'Lägg till din';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'Ta bort din';
+
+  @override
   String get roomLayoutScreenTitle => 'chattlista.';
 
   @override

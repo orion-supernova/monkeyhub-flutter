@@ -2677,6 +2677,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => 'أنت';
 
   @override
+  String get reactionDetailsSheetAddYours => 'أضف تفاعلك';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'أزل تفاعلك';
+
+  @override
   String get roomLayoutScreenTitle => 'قائمة المحادثات.';
 
   @override

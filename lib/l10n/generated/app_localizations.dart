@@ -4635,6 +4635,18 @@ abstract class AppLocalizations {
   /// **'You'**
   String get reactionDetailsSheetYouBadge;
 
+  /// Button under the list in the reaction-details sheet (opened by tapping a reaction chip) that adds the current user's own reaction with the emoji shown beside it. 'Yours' = your reaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add yours'**
+  String get reactionDetailsSheetAddYours;
+
+  /// Same button once the current user has reacted with that emoji: takes their own reaction back. 'Yours' = your reaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove yours'**
+  String get reactionDetailsSheetRemoveYours;
+
   /// Room Layout settings screen — main heading (lowercase sentence-fragment display style)
   ///
   /// In en, this message translates to:

@@ -2536,6 +2536,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => '나';
 
   @override
+  String get reactionDetailsSheetAddYours => '나도 추가';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => '내 반응 취소';
+
+  @override
   String get roomLayoutScreenTitle => '채팅 목록.';
 
   @override

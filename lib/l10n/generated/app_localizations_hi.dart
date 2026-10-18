@@ -2639,6 +2639,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reactionDetailsSheetYouBadge => 'तुम';
 
   @override
+  String get reactionDetailsSheetAddYours => 'अपना जोड़ो';
+
+  @override
+  String get reactionDetailsSheetRemoveYours => 'अपना हटाओ';
+
+  @override
   String get roomLayoutScreenTitle => 'चैट लिस्ट।';
 
   @override

@@ -753,6 +753,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, zero{لا أحد} one{شخص واحد} two{شخصان} few{{count} أشخاص} many{{count} شخصًا} other{{count} شخص}}",
   "reactionDetailsSheetFilterAll": "الكل",
   "reactionDetailsSheetYouBadge": "أنت",
+  "reactionDetailsSheetAddYours": "أضف تفاعلك",
+  "reactionDetailsSheetRemoveYours": "أزل تفاعلك",
   "roomLayoutScreenTitle": "قائمة المحادثات.",
   "roomLayoutScreenSubtitle": "كيف تُرتَّب الغرف، وكيف تُصفّيها",
   "roomLayoutScreenLayoutSectionLabel": "التخطيط",

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -7,6 +9,8 @@ import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'odometer_number.dart';
+import 'spring_press.dart';
 
 class ReactionRow extends StatefulWidget {
   const ReactionRow({
@@ -17,7 +21,15 @@ class ReactionRow extends StatefulWidget {
     this.onShowReactors,
     this.alignment = WrapAlignment.start,
     this.hanging = false,
+    this.tapShowsReactors = true,
   });
+
+  /// A tap opens [onShowReactors], the same sheet a long-press does, and the
+  /// sheet is where you add or take back your own. A chat chip says `😂 3`;
+  /// what you want from tapping it is who the three are, and a tap that
+  /// silently added a fourth was the most common accidental reaction.
+  /// False keeps the old tap-to-toggle (moment comments).
+  final bool tapShowsReactors;
 
   /// Drawn as badges hanging off the bubble above — see [HangingReactions].
   /// Each chip is opaque and wears a ring of the chat's own background, so
@@ -86,11 +98,19 @@ class _ReactionRowState extends State<ReactionRow> {
               animate: !calm,
               onTap: () {
                 HapticFeedback.selectionClick();
-                widget.onToggle(entry.key);
+                final show = widget.onShowReactors;
+                if (widget.tapShowsReactors && show != null) {
+                  show(entry.key);
+                } else {
+                  widget.onToggle(entry.key);
+                }
               },
               onLongPress: widget.onShowReactors == null
                   ? null
-                  : () => widget.onShowReactors!(entry.key),
+                  : () {
+                      HapticFeedback.mediumImpact();
+                      widget.onShowReactors!(entry.key);
+                    },
               theme: theme,
               hanging: widget.hanging,
             ),
@@ -100,9 +120,10 @@ class _ReactionRowState extends State<ReactionRow> {
   }
 }
 
-/// One emoji's chip. Pops in on a spring when it is new, and gives a small
-/// bump whenever its count changes — the Telegram feel, where adding a
-/// reaction is something you watch land rather than a number that changes.
+/// One emoji's chip. Pops in on a spring when it is new; when its count
+/// changes the digits roll, and the emoji hops (someone joined) or squashes
+/// (someone left) — the Telegram feel, where a reaction is something you
+/// watch land rather than a number that changes.
 class _ReactionChip extends StatefulWidget {
   const _ReactionChip({
     super.key,
@@ -135,44 +156,71 @@ class _ReactionChip extends StatefulWidget {
 }
 
 class _ReactionChipState extends State<_ReactionChip>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
+    with TickerProviderStateMixin {
+  /// The whole chip's spring in when it is new.
+  late final AnimationController _pop = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 520),
     value: 1,
   );
 
-  /// True while the current run of [_ctrl] is a bump rather than a pop.
-  bool _bump = false;
+  /// The emoji's one-off reaction to a count change. Only the emoji moves:
+  /// the chip's box stays put, so neighbours in the wrap never jostle.
+  late final AnimationController _hop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 460),
+  );
+
+  /// Which way the last count change went: up hops, down squashes.
+  bool _up = true;
 
   @override
   void initState() {
     super.initState();
-    if (widget.popIn) _ctrl.forward(from: 0);
+    if (widget.popIn) _pop.forward(from: 0);
   }
 
   @override
   void didUpdateWidget(_ReactionChip old) {
     super.didUpdateWidget(old);
     if (widget.animate && old.count != widget.count) {
-      _bump = true;
-      _ctrl.forward(from: 0).whenComplete(() => _bump = false);
+      _up = widget.count > old.count;
+      _hop.forward(from: 0);
     }
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _pop.dispose();
+    _hop.dispose();
     super.dispose();
   }
 
-  double _scale(double t) {
-    if (_bump) {
-      // 1 → 1.18 → 1, front-loaded.
-      return 1 + 0.18 * (t < 0.3 ? t / 0.3 : (1 - t) / 0.7);
-    }
-    return Curves.elasticOut.transform(t).clamp(0.0, 1.3);
-  }
+  Widget _emoji(Widget child) => AnimatedBuilder(
+        animation: _hop,
+        child: child,
+        builder: (context, child) {
+          final t = _hop.value;
+          if (t == 0 || _hop.isCompleted) return child!;
+          // Up and back once, easing out of the push (the glyph kick).
+          final k = math.sin(math.pi * Curves.easeOut.transform(t));
+          // A hop leaves the ground with a little tilt and lands with a
+          // squash; a departure just sinks and flattens.
+          final land = t > 0.7 ? math.sin(math.pi * (t - 0.7) / 0.3) : 0.0;
+          return Transform.translate(
+            offset: Offset(0, _up ? -4 * k : 1.5 * k),
+            child: Transform.rotate(
+              angle: _up ? -0.22 * k : 0,
+              child: Transform.scale(
+                scaleX: _up ? 1 + 0.12 * land : 1 + 0.10 * k,
+                scaleY: _up ? 1 + 0.18 * k - 0.12 * land : 1 - 0.16 * k,
+                alignment: Alignment.bottomCenter,
+                child: child,
+              ),
+            ),
+          );
+        },
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +243,11 @@ class _ReactionChipState extends State<_ReactionChip>
           (instance) => instance.onLongPress = widget.onLongPress,
         ),
       },
-      child: Container(
+      child: AnimatedContainer(
+        // Yours flips fill as you add or take it back from the sheet, so the
+        // change is a crossfade the eye can follow back to the chip.
+        duration: widget.animate ? const Duration(milliseconds: 220) : Duration.zero,
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         // Yours is solid, in the colour of your own bubbles; everyone else's
         // is a soft wash with no outline.
@@ -237,10 +289,10 @@ class _ReactionChipState extends State<_ReactionChip>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(widget.emoji, style: const TextStyle(fontSize: 15)),
+            _emoji(Text(widget.emoji, style: const TextStyle(fontSize: 15))),
             const SizedBox(width: 4),
-            Text(
-              '${widget.count}',
+            OdometerNumber(
+              value: widget.count,
               style: theme.caption.copyWith(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -254,11 +306,16 @@ class _ReactionChipState extends State<_ReactionChip>
       ),
     );
     return AnimatedBuilder(
-      animation: _ctrl,
-      child: chip,
-      builder: (context, child) => _ctrl.isCompleted
+      animation: _pop,
+      // The shared press: a tap now opens a sheet, so the chip has to answer
+      // the finger like every other control that opens something.
+      child: SpringPress.passive(child: chip),
+      builder: (context, child) => _pop.isCompleted
           ? child!
-          : Transform.scale(scale: _scale(_ctrl.value), child: child),
+          : Transform.scale(
+              scale: Curves.elasticOut.transform(_pop.value).clamp(0.0, 1.3),
+              child: child,
+            ),
     );
   }
 }

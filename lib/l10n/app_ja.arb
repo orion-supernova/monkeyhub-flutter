@@ -753,6 +753,8 @@
   "reactionDetailsSheetPeopleCount": "{count, plural, other{{count}人}}",
   "reactionDetailsSheetFilterAll": "すべて",
   "reactionDetailsSheetYouBadge": "自分",
+  "reactionDetailsSheetAddYours": "自分も追加",
+  "reactionDetailsSheetRemoveYours": "自分のを取り消す",
   "roomLayoutScreenTitle": "チャット一覧。",
   "roomLayoutScreenSubtitle": "ルームの並び方と絞り込み方法",
   "roomLayoutScreenLayoutSectionLabel": "レイアウト",
