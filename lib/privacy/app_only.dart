@@ -23,11 +23,9 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../data/chat_repository.dart';
 import '../data/ui_selection_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
-import '../screens/data_storage/usage_widgets.dart' show roomTitle;
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../update/update_destination.dart' show kDownloadPageUrl;
@@ -256,19 +254,19 @@ class SecretRoomGate extends StatelessWidget {
   const SecretRoomGate({
     super.key,
     required this.room,
-    required this.repo,
     this.inShellPane = false,
   });
 
   final ChatRoom room;
-  final ChatRepository repo;
   final bool inShellPane;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    void back() => inShellPane
+    // The room header's own back: a × that closes the pane in the split
+    // shell, a chevron that pops on a phone.
+    final split = context.usesSplitShell;
+    void back() => split
         ? UiSelectionStore.instance.selectRoom(null)
         : Navigator.of(context).maybePop();
     return PopScope(
@@ -286,19 +284,9 @@ class SecretRoomGate extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                    child: Row(
-                      children: [
-                        GlassBackButton(onTap: back),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            roomTitle(l10n, repo, room),
-                            style: theme.bodyEmph.copyWith(color: theme.ink),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: GlassBackButton(closes: split, onTap: back),
                     ),
                   ),
                   Expanded(

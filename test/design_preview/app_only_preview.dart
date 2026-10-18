@@ -4,9 +4,6 @@
 //   flutter test test/design_preview/app_only_preview.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:monkeyhub/backend/chat_api.dart';
-import 'package:monkeyhub/backend/convex_client.dart';
-import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/privacy/app_only.dart';
@@ -15,10 +12,6 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 
 import 'preview_kit.dart';
-
-class _Api extends Fake implements ChatApi {}
-
-class _Cv extends Fake implements ConvexBackend {}
 
 class _Opener extends StatefulWidget {
   const _Opener(this.open);
@@ -80,7 +73,6 @@ void main() {
     });
 
     testWidgets('secret room gate, desktop $name', (tester) async {
-      final repo = ChatRepository(api: _Api(), cv: _Cv());
       final room = ChatRoom(
         id: 'r1',
         name: 'After hours',
@@ -92,7 +84,7 @@ void main() {
       );
       await snap(
         tester,
-        _layout(desktop, previewApp(theme, SecretRoomGate(room: room, repo: repo))),
+        _layout(desktop, previewApp(theme, SecretRoomGate(room: room))),
         'app_only_secret_room_$name.png',
         size: desktop,
         dpr: 2,

@@ -233,7 +233,7 @@ class RoomScreen extends StatelessWidget {
         final room = repo.roomById(roomId);
         if (room == null) return _roomPending(context, repo);
         if (room.isEphemeral) {
-          return SecretRoomGate(room: room, repo: repo, inShellPane: inShellPane);
+          return SecretRoomGate(room: room, inShellPane: inShellPane);
         }
         return view!;
       },
