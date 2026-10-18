@@ -14031,38 +14031,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Tryck för att visa';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'Kan fångas';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'Blockeras i våra appar';
-
-  @override
-  String get captureNoticeRoomTitle => 'Skärmdumpar blockeras inte här';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'Den här enheten kan inte stoppa skärmdumpar eller skärminspelningar, så allt i det här rummet kan fångas här. MonkeyHub-appen för iPhone, Android, Mac och Windows blockerar dem.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'Det här kan fångas här';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'Den här enheten kan inte blockera skärmdumpar, så det du öppnar här kan sparas. I MonkeyHub-appen för iPhone, Android, Mac eller Windows går det inte. Du får en enda visning, var du än öppnar den.';
-
-  @override
-  String get captureNoticeGetApp => 'Hämta appen';
-
-  @override
-  String get captureNoticeGotIt => 'Uppfattat';
-
-  @override
-  String get captureNoticeOpenAnyway => 'Öppna ändå';
-
-  @override
-  String get captureNoticeNotNow => 'Inte nu';
-
-  @override
   String get voiceTranscriptShow => 'Visa transkription';
 
   @override
@@ -14151,4 +14119,71 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'Inte nu';
+
+  @override
+  String get appOnlyGetApp => 'Hämta appen';
+
+  @override
+  String get appOnlyScanHint => 'Skanna med telefonen för att hämta appen';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'Skärmdumpar och skärminspelningar blockeras i appen';
+
+  @override
+  String get appOnlyViewOnceTitle => 'Öppnas i appen';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Din webbläsare kan inte blockera skärmdumpar, så visa en gång-meddelanden öppnas inte här. Öppna det i MonkeyHub på telefonen, eller på en Mac- eller Windows-dator.',
+      'other':
+          'Linux kan inte blockera skärmdumpar, så visa en gång-meddelanden öppnas inte här. Öppna det i MonkeyHub på telefonen, eller på en Mac- eller Windows-dator.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed =>
+      'Det förblir förseglat tills du öppnar det';
+
+  @override
+  String get appOnlySecretTitle => 'Hemliga rum öppnas i appen';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Din webbläsare kan inte blockera skärmdumpar, så hemliga rum förblir stängda här och inget i dem laddas. Öppna det här i MonkeyHub på telefonen, eller på en Mac- eller Windows-dator.',
+      'other':
+          'Linux kan inte blockera skärmdumpar, så hemliga rum förblir stängda här och inget i dem laddas. Öppna det här i MonkeyHub på telefonen, eller på en Mac- eller Windows-dator.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'Meddelandena här försvinner ändå när tiden går ut';
+
+  @override
+  String get appOnlySecretPreview => 'Öppna i appen för att läsa';
+
+  @override
+  String get appOnlyTranscriptTitle => 'Transkriptioner';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub gör om röstmeddelanden till text på din egen enhet, inte på en server. En webbläsare kan inte göra det, så transkriptioner finns i appen på telefonen eller datorn.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'Görs direkt på din enhet';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'Inget ljud skickas någonstans för att transkriberas';
+
+  @override
+  String get appOnlyTranscriptOffline =>
+      'Fungerar offline när den är installerad';
 }

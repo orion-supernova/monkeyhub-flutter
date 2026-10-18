@@ -13402,38 +13402,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => '스포일러. 탭해서 보기';
 
   @override
-  String get roomScreenCaptureOpenTitle => '캡처 가능';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => '앱에서는 차단';
-
-  @override
-  String get captureNoticeRoomTitle => '여기서는 스크린샷이 차단되지 않아요';
-
-  @override
-  String get captureNoticeRoomBody =>
-      '이 기기는 스크린샷과 화면 녹화를 막을 수 없어서, 이 방의 모든 내용이 여기서 캡처될 수 있어요. iPhone, Android, Mac, Windows용 MonkeyHub 앱에서는 차단돼요.';
-
-  @override
-  String get captureNoticeViewOnceTitle => '여기서는 캡처될 수 있어요';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      '이 기기는 스크린샷을 막을 수 없어서, 여기서 연 내용은 저장될 수 있어요. iPhone, Android, Mac, Windows용 MonkeyHub 앱에서는 저장할 수 없어요. 어디서 열든 한 번만 볼 수 있어요.';
-
-  @override
-  String get captureNoticeGetApp => '앱 받기';
-
-  @override
-  String get captureNoticeGotIt => '확인';
-
-  @override
-  String get captureNoticeOpenAnyway => '그래도 열기';
-
-  @override
-  String get captureNoticeNotNow => '나중에';
-
-  @override
   String get voiceTranscriptShow => '텍스트로 보기';
 
   @override
@@ -13518,4 +13486,66 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => '나중에';
+
+  @override
+  String get appOnlyGetApp => '앱 받기';
+
+  @override
+  String get appOnlyScanHint => '휴대폰으로 스캔해서 앱 받기';
+
+  @override
+  String get appOnlyBlockedInApp => '앱에서는 스크린샷과 화면 녹화가 차단돼요';
+
+  @override
+  String get appOnlyViewOnceTitle => '앱에서 열려요';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          '브라우저는 스크린샷을 막을 수 없어서 한 번 보기 메시지는 여기서 열리지 않아요. 휴대폰의 MonkeyHub나 Mac 또는 Windows 컴퓨터에서 열어 주세요.',
+      'other':
+          'Linux는 스크린샷을 막을 수 없어서 한 번 보기 메시지는 여기서 열리지 않아요. 휴대폰의 MonkeyHub나 Mac 또는 Windows 컴퓨터에서 열어 주세요.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => '열기 전까지 봉인된 채로 남아요';
+
+  @override
+  String get appOnlySecretTitle => '시크릿 방은 앱에서 열려요';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          '브라우저는 스크린샷을 막을 수 없어서 시크릿 방은 여기서 닫혀 있고, 안의 내용은 아무것도 불러오지 않아요. 휴대폰의 MonkeyHub나 Mac 또는 Windows 컴퓨터에서 열어 주세요.',
+      'other':
+          'Linux는 스크린샷을 막을 수 없어서 시크릿 방은 여기서 닫혀 있고, 안의 내용은 아무것도 불러오지 않아요. 휴대폰의 MonkeyHub나 Mac 또는 Windows 컴퓨터에서 열어 주세요.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers => '이 방의 메시지는 그래도 정해진 시간에 사라져요';
+
+  @override
+  String get appOnlySecretPreview => '앱에서 열어 읽기';
+
+  @override
+  String get appOnlyTranscriptTitle => '텍스트 변환';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub는 음성 메시지를 서버가 아닌 내 기기에서 텍스트로 바꿔요. 브라우저에서는 그럴 수 없어서, 텍스트 변환은 휴대폰이나 컴퓨터 앱에서 쓸 수 있어요.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => '내 기기에서 바로 만들어져요';
+
+  @override
+  String get appOnlyTranscriptNoUpload => '변환을 위해 음성을 어디에도 보내지 않아요';
+
+  @override
+  String get appOnlyTranscriptOffline => '설정을 마치면 오프라인으로 작동해요';
 }

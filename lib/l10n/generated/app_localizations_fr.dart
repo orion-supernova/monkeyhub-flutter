@@ -14196,38 +14196,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Spoiler. Touchez pour afficher';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'Capture possible';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'Bloquées dans nos applis';
-
-  @override
-  String get captureNoticeRoomTitle => 'Les captures ne sont pas bloquées ici';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'Cet appareil ne peut pas empêcher les captures ni les enregistrements d\'écran : tout ce qui se trouve dans ce salon peut être capturé ici. L\'appli MonkeyHub pour iPhone, Android, Mac et Windows les bloque.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'Ceci peut être capturé ici';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'Cet appareil ne peut pas bloquer les captures d\'écran : ce que vous ouvrez ici peut être enregistré. Dans l\'appli MonkeyHub pour iPhone, Android, Mac ou Windows, c\'est impossible. Vous n\'avez qu\'une seule vue, où que vous l\'ouvriez.';
-
-  @override
-  String get captureNoticeGetApp => 'Obtenir l\'appli';
-
-  @override
-  String get captureNoticeGotIt => 'Compris';
-
-  @override
-  String get captureNoticeOpenAnyway => 'Ouvrir quand même';
-
-  @override
-  String get captureNoticeNotNow => 'Pas maintenant';
-
-  @override
   String get voiceTranscriptShow => 'Afficher la transcription';
 
   @override
@@ -14316,4 +14284,73 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'Pas maintenant';
+
+  @override
+  String get appOnlyGetApp => 'Obtenir l\'appli';
+
+  @override
+  String get appOnlyScanHint =>
+      'Scanne avec ton téléphone pour obtenir l\'appli';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'Captures et enregistrements d\'écran sont bloqués dans l\'appli';
+
+  @override
+  String get appOnlyViewOnceTitle => 'S\'ouvre dans l\'appli';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Ton navigateur ne peut pas bloquer les captures d\'écran, donc les messages à vue unique ne s\'ouvrent pas ici. Ouvre-le dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.',
+      'other':
+          'Linux ne peut pas bloquer les captures d\'écran, donc les messages à vue unique ne s\'ouvrent pas ici. Ouvre-le dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed =>
+      'Il reste scellé jusqu\'à ce que tu l\'ouvres';
+
+  @override
+  String get appOnlySecretTitle =>
+      'Les salons secrets s\'ouvrent dans l\'appli';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Ton navigateur ne peut pas bloquer les captures d\'écran, donc les salons secrets restent fermés ici et rien ne s\'y charge. Ouvre celui-ci dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.',
+      'other':
+          'Linux ne peut pas bloquer les captures d\'écran, donc les salons secrets restent fermés ici et rien ne s\'y charge. Ouvre celui-ci dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'Les messages d\'ici disparaissent quand même à l\'heure prévue';
+
+  @override
+  String get appOnlySecretPreview => 'Ouvre l\'appli pour lire';
+
+  @override
+  String get appOnlyTranscriptTitle => 'Transcriptions';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub transforme les messages vocaux en texte sur ton propre appareil, pas sur un serveur. Un navigateur ne peut pas le faire, donc les transcriptions sont dans l\'appli sur ton téléphone ou ton ordinateur.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'Faites directement sur ton appareil';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'Aucun audio n\'est envoyé nulle part pour être transcrit';
+
+  @override
+  String get appOnlyTranscriptOffline =>
+      'Fonctionne hors ligne une fois installé';
 }

@@ -3740,7 +3740,11 @@
   "messageMenuAlbumAll": "All {count}",
   "@messageMenuAlbumAll": {
     "description": "Long-press menu switch on a photo stack: act on the whole stack. {count} is how many photos and videos it holds.",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "messageMenuAlbumOne": "This one",
   "@messageMenuAlbumOne": {
@@ -3749,7 +3753,11 @@
   "replyAlbumItems": "{count, plural, =1{1 item} other{{count} items}}",
   "@replyAlbumItems": {
     "description": "Label of a reply quote that points at a whole photo/video stack.",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "photoTrayDiscardSemanticLabel": "Discard these photos",
   "@photoTrayDiscardSemanticLabel": {
@@ -16749,46 +16757,6 @@
   "@mediaSpoilerRevealSemanticLabel": {
     "description": "Accessibility label on a photo or video in a chat that was sent as a spoiler and is still covered by dust. Activating it reveals the picture."
   },
-  "roomScreenCaptureOpenTitle": "Capture Possible",
-  "@roomScreenCaptureOpenTitle": {
-    "description": "Title of the ephemeral-room welcome card that replaces 'No Capture' on the web and Linux, where the app cannot block screenshots. Title Case like 'No Capture'. Short: it sits in a half-width card."
-  },
-  "roomScreenCaptureOpenSubtitle": "Blocked in Our Apps",
-  "@roomScreenCaptureOpenSubtitle": {
-    "description": "Subtitle of that card: the MonkeyHub apps (iPhone, Android, Mac, Windows) are where screenshots are blocked. Title Case like 'Screenshots Restricted'. Short."
-  },
-  "captureNoticeRoomTitle": "Screenshots aren't blocked here",
-  "@captureNoticeRoomTitle": {
-    "description": "Title of the alert shown once when an ephemeral (disappearing-messages) room is opened in the browser or on Linux, where the app cannot block screenshots."
-  },
-  "captureNoticeRoomBody": "This device can't stop screenshots or screen recordings, so anything in this room can be captured here. The MonkeyHub app for iPhone, Android, Mac and Windows blocks them.",
-  "@captureNoticeRoomBody": {
-    "description": "Body of that alert. Says honestly that this device can't block capture and points to the apps that can. Keep the platform names as product names."
-  },
-  "captureNoticeViewOnceTitle": "This can be captured here",
-  "@captureNoticeViewOnceTitle": {
-    "description": "Title of the alert shown before a view-once photo, voice or video note opens in the browser or on Linux, where it can be screenshotted."
-  },
-  "captureNoticeViewOnceBody": "This device can't block screenshots, so whatever you open here can be saved. In the MonkeyHub app for iPhone, Android, Mac or Windows it can't. You get one view wherever you open it.",
-  "@captureNoticeViewOnceBody": {
-    "description": "Body of that alert. The reader gets one view no matter where it is opened, so they can choose to open it in an app that blocks capture instead."
-  },
-  "captureNoticeGetApp": "Get the app",
-  "@captureNoticeGetApp": {
-    "description": "Button: opens the MonkeyHub download page."
-  },
-  "captureNoticeGotIt": "Got it",
-  "@captureNoticeGotIt": {
-    "description": "Button dismissing the ephemeral-room capture alert."
-  },
-  "captureNoticeOpenAnyway": "Open anyway",
-  "@captureNoticeOpenAnyway": {
-    "description": "Button: open the view-once message here despite the warning (spends the one view)."
-  },
-  "captureNoticeNotNow": "Not now",
-  "@captureNoticeNotNow": {
-    "description": "Button: don't open the view-once message now (the view is not spent)."
-  },
   "voiceTranscriptShow": "Show transcript",
   "@voiceTranscriptShow": {
     "description": "Accessibility label of the small button beside a voice message's waveform that opens its on-device transcript."
@@ -16922,5 +16890,75 @@
   "voiceTranscriptNotNow": "Not now",
   "@voiceTranscriptNotNow": {
     "description": "Link that closes the offer to download the better speech model."
+  },
+  "appOnlyGetApp": "Get the app",
+  "@appOnlyGetApp": {
+    "description": "Button on the 'opens in the app' sheet and page shown on the web and Linux, where the app cannot block screenshots. Opens the MonkeyHub download page."
+  },
+  "appOnlyScanHint": "Scan with your phone to get the app",
+  "@appOnlyScanHint": {
+    "description": "Caption under a QR code (desktop browser and Linux) that leads to the MonkeyHub download page."
+  },
+  "appOnlyBlockedInApp": "Screenshots and screen recordings are blocked in the app",
+  "@appOnlyBlockedInApp": {
+    "description": "Row on the 'opens in the app' sheet: the MonkeyHub apps block screenshots and screen recordings. A plain fact, sentence case."
+  },
+  "appOnlyViewOnceTitle": "Opens in the app",
+  "@appOnlyViewOnceTitle": {
+    "description": "Title of the sheet shown on the web and Linux when someone taps a view once photo, voice or video message. These platforms cannot block screenshots, so view once messages do not open there at all."
+  },
+  "appOnlyViewOnceBody": "{platform, select, web{Your browser can't block screenshots, so view once messages don't open here. Open it in MonkeyHub on your phone, or on a Mac or Windows computer.} other{Linux can't block screenshots, so view once messages don't open here. Open it in MonkeyHub on your phone, or on a Mac or Windows computer.}}",
+  "@appOnlyViewOnceBody": {
+    "description": "Body of that sheet. {platform} is 'web' (a browser) or 'linux'. Each branch is a full sentence pair: why it doesn't open here, then where it does. Keep Mac, Windows and MonkeyHub as product names.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "appOnlyViewOnceSealed": "It stays sealed until you open it",
+  "@appOnlyViewOnceSealed": {
+    "description": "Row on that sheet: opening is refused here, so the one look is not spent and the message stays sealed."
+  },
+  "appOnlySecretTitle": "Secret rooms open in the app",
+  "@appOnlySecretTitle": {
+    "description": "Headline of the page shown instead of a secret (disappearing-messages) room on the web and Linux, which cannot block screenshots, so these rooms do not open there."
+  },
+  "appOnlySecretBody": "{platform, select, web{Your browser can't block screenshots, so secret rooms stay closed here and nothing in them loads. Open this one in MonkeyHub on your phone, or on a Mac or Windows computer.} other{Linux can't block screenshots, so secret rooms stay closed here and nothing in them loads. Open this one in MonkeyHub on your phone, or on a Mac or Windows computer.}}",
+  "@appOnlySecretBody": {
+    "description": "Body of that page. {platform} is 'web' or 'linux'. Each branch is a full sentence pair. Keep Mac, Windows and MonkeyHub as product names.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "appOnlySecretTimers": "Messages here still disappear on their timer",
+  "@appOnlySecretTimers": {
+    "description": "Row on that page: an honest heads up that the room's messages keep their disappearing timers while unread."
+  },
+  "appOnlySecretPreview": "Open in the app to read",
+  "@appOnlySecretPreview": {
+    "description": "Chat list preview line for a secret room on the web and Linux, in place of the last message, which is not shown there."
+  },
+  "appOnlyTranscriptTitle": "Transcripts",
+  "@appOnlyTranscriptTitle": {
+    "description": "Title of the sheet shown in a browser when someone taps the transcript button on a voice message. Transcripts are made on the device and a browser cannot do that."
+  },
+  "appOnlyTranscriptBody": "MonkeyHub turns voice messages into text on your own device, not on a server. A browser can't do that, so transcripts are in the app on your phone or computer.",
+  "@appOnlyTranscriptBody": {
+    "description": "Body of that sheet: transcripts are made privately on the device, so they are in the phone and computer apps, not the browser."
+  },
+  "appOnlyTranscriptOnDevice": "Made right on your device",
+  "@appOnlyTranscriptOnDevice": {
+    "description": "Row on that sheet: transcripts are made on the user's own device."
+  },
+  "appOnlyTranscriptNoUpload": "No audio is sent anywhere to be transcribed",
+  "@appOnlyTranscriptNoUpload": {
+    "description": "Row on that sheet: no audio is uploaded anywhere for transcription."
+  },
+  "appOnlyTranscriptOffline": "Works offline once it's set up",
+  "@appOnlyTranscriptOffline": {
+    "description": "Row on that sheet: transcripts work offline once the speech model is set up."
   }
 }

@@ -13977,38 +13977,6 @@ class AppLocalizationsHi extends AppLocalizations {
       'स्पॉइलर। दिखाने के लिए टैप करें';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'कैप्चर संभव';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'हमारे ऐप्स में ब्लॉक';
-
-  @override
-  String get captureNoticeRoomTitle => 'यहाँ स्क्रीनशॉट ब्लॉक नहीं होते';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'यह डिवाइस स्क्रीनशॉट या स्क्रीन रिकॉर्डिंग नहीं रोक सकता, इसलिए इस रूम की कोई भी चीज़ यहाँ कैप्चर हो सकती है। iPhone, Android, Mac और Windows के लिए MonkeyHub ऐप इन्हें ब्लॉक करता है।';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'यह यहाँ कैप्चर हो सकता है';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'यह डिवाइस स्क्रीनशॉट ब्लॉक नहीं कर सकता, इसलिए आप यहाँ जो खोलेंगे वह सेव हो सकता है। iPhone, Android, Mac या Windows के लिए MonkeyHub ऐप में ऐसा नहीं हो सकता। आप इसे कहीं भी खोलें, देखने का मौका एक ही बार मिलेगा।';
-
-  @override
-  String get captureNoticeGetApp => 'ऐप पाएँ';
-
-  @override
-  String get captureNoticeGotIt => 'समझ गया';
-
-  @override
-  String get captureNoticeOpenAnyway => 'फिर भी खोलें';
-
-  @override
-  String get captureNoticeNotNow => 'अभी नहीं';
-
-  @override
   String get voiceTranscriptShow => 'ट्रांसक्रिप्ट दिखाएं';
 
   @override
@@ -14094,4 +14062,69 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'अभी नहीं';
+
+  @override
+  String get appOnlyGetApp => 'ऐप पाएँ';
+
+  @override
+  String get appOnlyScanHint => 'ऐप पाने के लिए अपने फ़ोन से स्कैन करें';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'ऐप में स्क्रीनशॉट और स्क्रीन रिकॉर्डिंग ब्लॉक रहते हैं';
+
+  @override
+  String get appOnlyViewOnceTitle => 'ऐप में खुलता है';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'आपका ब्राउज़र स्क्रीनशॉट नहीं रोक सकता, इसलिए एक बार देखें वाले मैसेज यहाँ नहीं खुलते। इसे अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।',
+      'other':
+          'Linux स्क्रीनशॉट नहीं रोक सकता, इसलिए एक बार देखें वाले मैसेज यहाँ नहीं खुलते। इसे अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => 'जब तक आप इसे नहीं खोलते, यह सील रहता है';
+
+  @override
+  String get appOnlySecretTitle => 'सीक्रेट रूम ऐप में खुलते हैं';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'आपका ब्राउज़र स्क्रीनशॉट नहीं रोक सकता, इसलिए सीक्रेट रूम यहाँ बंद रहते हैं और उनमें से कुछ भी लोड नहीं होता। इस रूम को अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।',
+      'other':
+          'Linux स्क्रीनशॉट नहीं रोक सकता, इसलिए सीक्रेट रूम यहाँ बंद रहते हैं और उनमें से कुछ भी लोड नहीं होता। इस रूम को अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'यहाँ के मैसेज फिर भी अपने समय पर गायब हो जाते हैं';
+
+  @override
+  String get appOnlySecretPreview => 'पढ़ने के लिए ऐप में खोलें';
+
+  @override
+  String get appOnlyTranscriptTitle => 'ट्रांसक्रिप्ट';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub वॉइस मैसेज को किसी सर्वर पर नहीं, आपके अपने डिवाइस पर टेक्स्ट में बदलता है। ब्राउज़र ऐसा नहीं कर सकता, इसलिए ट्रांसक्रिप्ट आपके फ़ोन या कंप्यूटर के ऐप में मिलते हैं।';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'सीधे आपके डिवाइस पर बनते हैं';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'ट्रांसक्रिप्ट के लिए कोई ऑडियो कहीं नहीं भेजा जाता';
+
+  @override
+  String get appOnlyTranscriptOffline => 'सेट होने के बाद ऑफ़लाइन चलता है';
 }

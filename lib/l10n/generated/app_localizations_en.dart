@@ -13997,38 +13997,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Tap to reveal';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'Capture Possible';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'Blocked in Our Apps';
-
-  @override
-  String get captureNoticeRoomTitle => 'Screenshots aren\'t blocked here';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'This device can\'t stop screenshots or screen recordings, so anything in this room can be captured here. The MonkeyHub app for iPhone, Android, Mac and Windows blocks them.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'This can be captured here';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'This device can\'t block screenshots, so whatever you open here can be saved. In the MonkeyHub app for iPhone, Android, Mac or Windows it can\'t. You get one view wherever you open it.';
-
-  @override
-  String get captureNoticeGetApp => 'Get the app';
-
-  @override
-  String get captureNoticeGotIt => 'Got it';
-
-  @override
-  String get captureNoticeOpenAnyway => 'Open anyway';
-
-  @override
-  String get captureNoticeNotNow => 'Not now';
-
-  @override
   String get voiceTranscriptShow => 'Show transcript';
 
   @override
@@ -14116,4 +14084,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'Not now';
+
+  @override
+  String get appOnlyGetApp => 'Get the app';
+
+  @override
+  String get appOnlyScanHint => 'Scan with your phone to get the app';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'Screenshots and screen recordings are blocked in the app';
+
+  @override
+  String get appOnlyViewOnceTitle => 'Opens in the app';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Your browser can\'t block screenshots, so view once messages don\'t open here. Open it in MonkeyHub on your phone, or on a Mac or Windows computer.',
+      'other':
+          'Linux can\'t block screenshots, so view once messages don\'t open here. Open it in MonkeyHub on your phone, or on a Mac or Windows computer.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => 'It stays sealed until you open it';
+
+  @override
+  String get appOnlySecretTitle => 'Secret rooms open in the app';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Your browser can\'t block screenshots, so secret rooms stay closed here and nothing in them loads. Open this one in MonkeyHub on your phone, or on a Mac or Windows computer.',
+      'other':
+          'Linux can\'t block screenshots, so secret rooms stay closed here and nothing in them loads. Open this one in MonkeyHub on your phone, or on a Mac or Windows computer.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'Messages here still disappear on their timer';
+
+  @override
+  String get appOnlySecretPreview => 'Open in the app to read';
+
+  @override
+  String get appOnlyTranscriptTitle => 'Transcripts';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub turns voice messages into text on your own device, not on a server. A browser can\'t do that, so transcripts are in the app on your phone or computer.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'Made right on your device';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'No audio is sent anywhere to be transcribed';
+
+  @override
+  String get appOnlyTranscriptOffline => 'Works offline once it\'s set up';
 }

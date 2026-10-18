@@ -14137,39 +14137,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Toque para revelar';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'Captura Possível';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'Bloqueadas nas Nossas Apps';
-
-  @override
-  String get captureNoticeRoomTitle =>
-      'As capturas de ecrã não são bloqueadas aqui';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'Este dispositivo não consegue impedir capturas nem gravações de ecrã, por isso tudo nesta sala pode ser capturado aqui. A app MonkeyHub para iPhone, Android, Mac e Windows bloqueia-as.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'Isto pode ser capturado aqui';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'Este dispositivo não consegue bloquear capturas de ecrã, por isso o que abrir aqui pode ser guardado. Na app MonkeyHub para iPhone, Android, Mac ou Windows, não pode. Só tem uma visualização, onde quer que a abra.';
-
-  @override
-  String get captureNoticeGetApp => 'Obter a app';
-
-  @override
-  String get captureNoticeGotIt => 'Entendido';
-
-  @override
-  String get captureNoticeOpenAnyway => 'Abrir mesmo assim';
-
-  @override
-  String get captureNoticeNotNow => 'Agora não';
-
-  @override
   String get voiceTranscriptShow => 'Mostrar transcrição';
 
   @override
@@ -14258,6 +14225,72 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'Agora não';
+
+  @override
+  String get appOnlyGetApp => 'Obter a app';
+
+  @override
+  String get appOnlyScanHint => 'Lê com o telemóvel para obter a app';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'Na app, as capturas e gravações de ecrã são bloqueadas';
+
+  @override
+  String get appOnlyViewOnceTitle => 'Abre na app';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'O teu navegador não consegue bloquear capturas de ecrã, por isso as mensagens de ver uma vez não abrem aqui. Abre-a no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.',
+      'other':
+          'O Linux não consegue bloquear capturas de ecrã, por isso as mensagens de ver uma vez não abrem aqui. Abre-a no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => 'Fica selada até a abrires';
+
+  @override
+  String get appOnlySecretTitle => 'As salas secretas abrem na app';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'O teu navegador não consegue bloquear capturas de ecrã, por isso as salas secretas ficam fechadas aqui e nada delas é carregado. Abre esta no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.',
+      'other':
+          'O Linux não consegue bloquear capturas de ecrã, por isso as salas secretas ficam fechadas aqui e nada delas é carregado. Abre esta no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'As mensagens daqui continuam a desaparecer no seu tempo';
+
+  @override
+  String get appOnlySecretPreview => 'Abre na app para ler';
+
+  @override
+  String get appOnlyTranscriptTitle => 'Transcrições';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'O MonkeyHub transforma mensagens de voz em texto no teu próprio dispositivo, não num servidor. Um navegador não consegue fazer isso, por isso as transcrições estão na app do teu telemóvel ou computador.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'Feitas no teu dispositivo';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'Nenhum áudio é enviado para ser transcrito';
+
+  @override
+  String get appOnlyTranscriptOffline =>
+      'Funciona offline depois de configurado';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -28375,39 +28408,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Toque para revelar';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'Captura Possível';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'Bloqueadas nos Nossos Apps';
-
-  @override
-  String get captureNoticeRoomTitle =>
-      'Capturas de tela não são bloqueadas aqui';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'Este dispositivo não consegue impedir capturas nem gravações de tela, então tudo nesta sala pode ser capturado aqui. O app MonkeyHub para iPhone, Android, Mac e Windows bloqueia isso.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'Isto pode ser capturado aqui';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'Este dispositivo não consegue bloquear capturas de tela, então o que você abrir aqui pode ser salvo. No app MonkeyHub para iPhone, Android, Mac ou Windows, não pode. Você tem uma só visualização, onde quer que abra.';
-
-  @override
-  String get captureNoticeGetApp => 'Baixar o app';
-
-  @override
-  String get captureNoticeGotIt => 'Entendi';
-
-  @override
-  String get captureNoticeOpenAnyway => 'Abrir mesmo assim';
-
-  @override
-  String get captureNoticeNotNow => 'Agora não';
-
-  @override
   String get voiceTranscriptShow => 'Mostrar transcrição';
 
   @override
@@ -28496,4 +28496,70 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get voiceTranscriptNotNow => 'Agora não';
+
+  @override
+  String get appOnlyGetApp => 'Baixar o app';
+
+  @override
+  String get appOnlyScanHint => 'Escaneie com o celular para baixar o app';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'No app, capturas e gravações de tela são bloqueadas';
+
+  @override
+  String get appOnlyViewOnceTitle => 'Abre no app';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Seu navegador não consegue bloquear capturas de tela, então mensagens de visualização única não abrem aqui. Abra no MonkeyHub do seu celular, ou em um computador Mac ou Windows.',
+      'other':
+          'O Linux não consegue bloquear capturas de tela, então mensagens de visualização única não abrem aqui. Abra no MonkeyHub do seu celular, ou em um computador Mac ou Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => 'Ela continua lacrada até você abrir';
+
+  @override
+  String get appOnlySecretTitle => 'Salas secretas abrem no app';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Seu navegador não consegue bloquear capturas de tela, então salas secretas ficam fechadas aqui e nada delas é carregado. Abra esta no MonkeyHub do seu celular, ou em um computador Mac ou Windows.',
+      'other':
+          'O Linux não consegue bloquear capturas de tela, então salas secretas ficam fechadas aqui e nada delas é carregado. Abra esta no MonkeyHub do seu celular, ou em um computador Mac ou Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'As mensagens daqui continuam sumindo no tempo delas';
+
+  @override
+  String get appOnlySecretPreview => 'Abra no app para ler';
+
+  @override
+  String get appOnlyTranscriptTitle => 'Transcrições';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'O MonkeyHub transforma mensagens de voz em texto no seu próprio aparelho, não em um servidor. Um navegador não consegue fazer isso, então as transcrições ficam no app do seu celular ou computador.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'Feitas direto no seu aparelho';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'Nenhum áudio é enviado para ser transcrito';
+
+  @override
+  String get appOnlyTranscriptOffline =>
+      'Funciona offline depois de configurado';
 }

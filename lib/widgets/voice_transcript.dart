@@ -46,12 +46,21 @@ import 'translation_slab.dart' show FrozenBubble;
 class TranscriptButton extends StatelessWidget {
   const TranscriptButton({
     super.key,
-    required this.handle,
+    required TranscriptHandle this.handle,
     required this.isMine,
     required this.onTap,
   });
 
-  final TranscriptHandle handle;
+  /// The same disc, at rest, where the platform cannot transcribe (the
+  /// browser). It stays because it is the app's to show off: [onTap] says
+  /// where transcripts live instead of hiding that they exist.
+  const TranscriptButton.appOnly({
+    super.key,
+    required this.isMine,
+    required this.onTap,
+  }) : handle = null;
+
+  final TranscriptHandle? handle;
   final bool isMine;
   final VoidCallback onTap;
 
@@ -62,6 +71,27 @@ class TranscriptButton extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final ink = isMine ? theme.accentInk : theme.ink;
+    final handle = this.handle;
+    if (handle == null) {
+      return SpringPress(
+        onTap: onTap,
+        scale: PressSpec.scaleSmall,
+        focusShape: FocusRingShape.circle,
+        focusRadius: size / 2 + 2,
+        semanticLabel: l10n.voiceTranscriptShow,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: _TranscriptDisc(
+            ink: ink,
+            fill: ink.withValues(alpha: 0.12),
+            open: false,
+            busy: false,
+            ring: null,
+            indeterminate: false,
+          ),
+        ),
+      );
+    }
     final frozen = FrozenBubble.of(context);
     return ListenableBuilder(
       listenable: frozen

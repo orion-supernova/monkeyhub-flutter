@@ -13937,38 +13937,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Göstermek için dokun';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'Yakalanabilir';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'Uygulamalarımızda Engelli';
-
-  @override
-  String get captureNoticeRoomTitle => 'Ekran görüntüleri burada engellenmiyor';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'Bu cihaz ekran görüntüsünü ve ekran kaydını engelleyemiyor, yani bu odadaki her şey burada kaydedilebilir. iPhone, Android, Mac ve Windows için MonkeyHub uygulaması bunları engeller.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'Bu burada kaydedilebilir';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'Bu cihaz ekran görüntüsünü engelleyemiyor, yani burada açtığın şey kaydedilebilir. iPhone, Android, Mac veya Windows için MonkeyHub uygulamasında kaydedilemez. Nerede açarsan aç, tek bir görüntüleme hakkın var.';
-
-  @override
-  String get captureNoticeGetApp => 'Uygulamayı indir';
-
-  @override
-  String get captureNoticeGotIt => 'Anladım';
-
-  @override
-  String get captureNoticeOpenAnyway => 'Yine de aç';
-
-  @override
-  String get captureNoticeNotNow => 'Şimdi değil';
-
-  @override
   String get voiceTranscriptShow => 'Metni göster';
 
   @override
@@ -14054,4 +14022,70 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'Şimdi değil';
+
+  @override
+  String get appOnlyGetApp => 'Uygulamayı indir';
+
+  @override
+  String get appOnlyScanHint => 'Uygulamayı indirmek için telefonunla tara';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'Uygulamada ekran görüntüsü ve ekran kaydı engellenir';
+
+  @override
+  String get appOnlyViewOnceTitle => 'Uygulamada açılır';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Tarayıcın ekran görüntüsünü engelleyemiyor, bu yüzden tek seferlik mesajlar burada açılmaz. Telefonundaki MonkeyHub\'da ya da bir Mac veya Windows bilgisayarda aç.',
+      'other':
+          'Linux ekran görüntüsünü engelleyemiyor, bu yüzden tek seferlik mesajlar burada açılmaz. Telefonundaki MonkeyHub\'da ya da bir Mac veya Windows bilgisayarda aç.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => 'Sen açana kadar mühürlü kalır';
+
+  @override
+  String get appOnlySecretTitle => 'Gizli odalar uygulamada açılır';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Tarayıcın ekran görüntüsünü engelleyemiyor, bu yüzden gizli odalar burada kapalı kalır ve içlerindeki hiçbir şey yüklenmez. Bu odayı telefonundaki MonkeyHub\'da ya da bir Mac veya Windows bilgisayarda aç.',
+      'other':
+          'Linux ekran görüntüsünü engelleyemiyor, bu yüzden gizli odalar burada kapalı kalır ve içlerindeki hiçbir şey yüklenmez. Bu odayı telefonundaki MonkeyHub\'da ya da bir Mac veya Windows bilgisayarda aç.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'Buradaki mesajlar yine de süreleri dolunca kaybolur';
+
+  @override
+  String get appOnlySecretPreview => 'Okumak için uygulamada aç';
+
+  @override
+  String get appOnlyTranscriptTitle => 'Sesli mesaj metinleri';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub sesli mesajları bir sunucuda değil, kendi cihazında metne çevirir. Tarayıcı bunu yapamaz, bu yüzden metinler telefonundaki ya da bilgisayarındaki uygulamada.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'Doğrudan cihazında oluşturulur';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'Metne çevirmek için hiçbir ses bir yere gönderilmez';
+
+  @override
+  String get appOnlyTranscriptOffline =>
+      'Kurulduktan sonra internetsiz çalışır';
 }

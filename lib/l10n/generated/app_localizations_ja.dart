@@ -13369,38 +13369,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => 'スポイラー。タップして表示';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'キャプチャ可能';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'アプリでは禁止';
-
-  @override
-  String get captureNoticeRoomTitle => 'ここではスクリーンショットを防げません';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'このデバイスではスクリーンショットや画面収録を防げないため、このルームの内容はここで保存できてしまいます。iPhone、Android、Mac、Windows版のMonkeyHubアプリなら防げます。';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'ここでは保存できてしまいます';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'このデバイスではスクリーンショットを防げないため、ここで開いた内容は保存できてしまいます。iPhone、Android、Mac、Windows版のMonkeyHubアプリなら保存できません。どこで開いても、見られるのは1回だけです。';
-
-  @override
-  String get captureNoticeGetApp => 'アプリを入手';
-
-  @override
-  String get captureNoticeGotIt => 'OK';
-
-  @override
-  String get captureNoticeOpenAnyway => 'このまま開く';
-
-  @override
-  String get captureNoticeNotNow => '今はしない';
-
-  @override
   String get voiceTranscriptShow => '文字起こしを表示';
 
   @override
@@ -13485,4 +13453,66 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => '今はしない';
+
+  @override
+  String get appOnlyGetApp => 'アプリを入手';
+
+  @override
+  String get appOnlyScanHint => 'スマートフォンでスキャンしてアプリを入手';
+
+  @override
+  String get appOnlyBlockedInApp => 'アプリではスクリーンショットと画面収録がブロックされます';
+
+  @override
+  String get appOnlyViewOnceTitle => 'アプリで開けます';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'ブラウザではスクリーンショットを防げないため、1回だけ表示のメッセージはここでは開けません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンで開いてください。',
+      'other':
+          'Linuxではスクリーンショットを防げないため、1回だけ表示のメッセージはここでは開けません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンで開いてください。',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => '開くまで封をしたまま残ります';
+
+  @override
+  String get appOnlySecretTitle => 'シークレットルームはアプリで開けます';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'ブラウザではスクリーンショットを防げないため、シークレットルームはここでは閉じたままで、中身は一切読み込まれません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンで開いてください。',
+      'other':
+          'Linuxではスクリーンショットを防げないため、シークレットルームはここでは閉じたままで、中身は一切読み込まれません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンで開いてください。',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers => 'ここのメッセージは時間が来ればそのまま消えます';
+
+  @override
+  String get appOnlySecretPreview => 'アプリで開いて読む';
+
+  @override
+  String get appOnlyTranscriptTitle => '文字起こし';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHubはボイスメッセージをサーバーではなく、あなたの端末上で文字にします。ブラウザではそれができないため、文字起こしはスマートフォンやパソコンのアプリで使えます。';
+
+  @override
+  String get appOnlyTranscriptOnDevice => '端末上で直接作成';
+
+  @override
+  String get appOnlyTranscriptNoUpload => '文字起こしのために音声がどこかへ送られることはありません';
+
+  @override
+  String get appOnlyTranscriptOffline => '準備ができればオフラインで使えます';
 }

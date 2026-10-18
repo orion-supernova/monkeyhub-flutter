@@ -21,7 +21,7 @@ import 'read_only_composer_footer.dart';
 import '../companions/companion.dart';
 import '../companions/sebastian.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../privacy/capture_notice.dart';
+import '../privacy/app_only.dart';
 import '../screens/profile_screen.dart';
 import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
@@ -1293,7 +1293,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
   /// can't be had, and hands the bytes to the bubble.
   Future<Uint8List?> _openViewOnce(ChatMessage m) async {
     final l10n = AppLocalizations.of(context);
-    if (!await CaptureNotice.confirmViewOnce(context)) return null;
+    if (!await AppOnly.confirmViewOnce(context)) return null;
     final res = await fetchViewOnce(
       repo: widget.repo,
       roomId: widget.roomId,

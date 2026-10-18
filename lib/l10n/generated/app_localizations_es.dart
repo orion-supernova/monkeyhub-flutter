@@ -14132,38 +14132,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => 'Spoiler. Toca para mostrar';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'Captura Posible';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'Bloqueadas en Nuestras Apps';
-
-  @override
-  String get captureNoticeRoomTitle => 'Aquí no se bloquean las capturas';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'Este dispositivo no puede impedir capturas ni grabaciones de pantalla, así que todo lo de esta sala se puede capturar aquí. La app de MonkeyHub para iPhone, Android, Mac y Windows las bloquea.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'Aquí se puede capturar';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'Este dispositivo no puede bloquear capturas, así que lo que abras aquí se puede guardar. En la app de MonkeyHub para iPhone, Android, Mac o Windows no se puede. Tienes una sola vista, la abras donde la abras.';
-
-  @override
-  String get captureNoticeGetApp => 'Descargar la app';
-
-  @override
-  String get captureNoticeGotIt => 'Entendido';
-
-  @override
-  String get captureNoticeOpenAnyway => 'Abrir igualmente';
-
-  @override
-  String get captureNoticeNotNow => 'Ahora no';
-
-  @override
   String get voiceTranscriptShow => 'Mostrar transcripción';
 
   @override
@@ -14252,4 +14220,70 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'Ahora no';
+
+  @override
+  String get appOnlyGetApp => 'Descargar la app';
+
+  @override
+  String get appOnlyScanHint => 'Escanea con tu teléfono para descargar la app';
+
+  @override
+  String get appOnlyBlockedInApp =>
+      'En la app se bloquean las capturas y grabaciones de pantalla';
+
+  @override
+  String get appOnlyViewOnceTitle => 'Se abre en la app';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Tu navegador no puede bloquear capturas de pantalla, así que los mensajes de vista única no se abren aquí. Ábrelo en MonkeyHub en tu teléfono, o en un ordenador Mac o Windows.',
+      'other':
+          'Linux no puede bloquear capturas de pantalla, así que los mensajes de vista única no se abren aquí. Ábrelo en MonkeyHub en tu teléfono, o en un ordenador Mac o Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => 'Sigue sellado hasta que lo abras';
+
+  @override
+  String get appOnlySecretTitle => 'Las salas secretas se abren en la app';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Tu navegador no puede bloquear capturas de pantalla, así que las salas secretas siguen cerradas aquí y no se carga nada de ellas. Abre esta en MonkeyHub en tu teléfono, o en un ordenador Mac o Windows.',
+      'other':
+          'Linux no puede bloquear capturas de pantalla, así que las salas secretas siguen cerradas aquí y no se carga nada de ellas. Abre esta en MonkeyHub en tu teléfono, o en un ordenador Mac o Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers =>
+      'Los mensajes de aquí siguen desapareciendo a su tiempo';
+
+  @override
+  String get appOnlySecretPreview => 'Ábrela en la app para leer';
+
+  @override
+  String get appOnlyTranscriptTitle => 'Transcripciones';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub convierte los mensajes de voz en texto en tu propio dispositivo, no en un servidor. Un navegador no puede hacerlo, así que las transcripciones están en la app de tu teléfono u ordenador.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'Se hacen en tu dispositivo';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'No se envía audio a ningún sitio para transcribirlo';
+
+  @override
+  String get appOnlyTranscriptOffline =>
+      'Funciona sin conexión una vez configurado';
 }

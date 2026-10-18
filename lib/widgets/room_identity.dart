@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/room_capabilities.dart';
+import '../privacy/app_only.dart';
 import '../theme/theme_scope.dart';
 
 /// What a room card can say about itself when the conversation hasn't started.
@@ -27,6 +28,14 @@ enum RoomSubtitleKind {
 typedef RoomSubtitle = ({String text, RoomSubtitleKind kind});
 
 RoomSubtitle roomSubtitle(BuildContext context, ChatRoom room) {
+  // A secret room does not open where capture can't be blocked, so its last
+  // message is not shown there either.
+  if (room.isEphemeral && AppOnly.gatesCapture) {
+    return (
+      text: AppLocalizations.of(context).appOnlySecretPreview,
+      kind: RoomSubtitleKind.empty,
+    );
+  }
   final last = room.lastMessage?.trim();
   if (last != null && last.isNotEmpty) {
     return (text: last, kind: RoomSubtitleKind.message);

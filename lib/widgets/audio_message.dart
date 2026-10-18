@@ -14,6 +14,7 @@ import '../media/audio_file_cache.dart';
 import '../media/file_url_cache.dart';
 import '../media/view_once_fetch.dart' show ViewOnceOpener;
 import '../media/view_once_media.dart';
+import '../privacy/app_only.dart';
 import '../privacy/capture_protection.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../screens/voice_recorder_screen.dart' show voiceNoteContentType;
@@ -342,8 +343,7 @@ class _AudioMessageState extends State<AudioMessage> {
     }
 
     final ready = _phase == _Phase.ready;
-    // Null where the platform cannot transcribe (web) — no button rather than
-    // one that can only fail. A map lookup otherwise.
+    // Null where the platform cannot transcribe (web). A map lookup otherwise.
     final transcript = VoiceTranscriber.instance.supported
         ? VoiceTranscriber.instance.handleFor(widget.storageId!)
         : null;
@@ -444,6 +444,14 @@ class _AudioMessageState extends State<AudioMessage> {
                     handle: transcript,
                     isMine: widget.isMine,
                     onTap: _toggleTranscript,
+                  ),
+                ] else ...[
+                  // The browser keeps the button: transcripts are made on the
+                  // device, and the tap says that is why they are in the app.
+                  const SizedBox(width: 2),
+                  TranscriptButton.appOnly(
+                    isMine: widget.isMine,
+                    onTap: () => AppOnly.explainTranscripts(context),
                   ),
                 ],
               ],

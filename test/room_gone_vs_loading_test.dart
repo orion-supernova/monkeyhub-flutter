@@ -13,6 +13,8 @@ import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/friend_request.dart';
+import 'package:monkeyhub/privacy/app_only.dart';
+import 'package:monkeyhub/privacy/capture_protection.dart';
 import 'package:monkeyhub/screens/room_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -284,6 +286,55 @@ void main() {
       expect(placeholder.pending, isTrue);
 
       await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    // The browser and Linux can't block a screenshot, so a secret room does
+    // not open there: the page says why, and the room is never mounted.
+    group('a secret room where capture cannot be blocked', () {
+      tearDown(() => CaptureProtection.debugPlatformProtectsOverride = null);
+
+      testWidgets('shows the gate and fetches none of its messages',
+          (tester) async {
+        CaptureProtection.debugPlatformProtectsOverride = false;
+        await tester.pumpWidget(host('r1'));
+        await tester.pump();
+        await deliverRooms(tester, [
+          {..._roomWire('r1'), 'type': 'secret'},
+        ]);
+
+        expect(find.byType(SecretRoomGate), findsOneWidget);
+        expect(find.text('Secret rooms open in the app'), findsOneWidget);
+        expect(cv.sinks.containsKey('messages:list'), isFalse,
+            reason: 'nothing from the room loads on this device');
+
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+
+      testWidgets('an ordinary room still opens there', (tester) async {
+        CaptureProtection.debugPlatformProtectsOverride = false;
+        await tester.pumpWidget(host('r1'));
+        await tester.pump();
+        await deliverRooms(tester, [_roomWire('r1')]);
+
+        expect(find.byType(SecretRoomGate), findsNothing);
+        expect(find.text('The Room'), findsAtLeastNWidgets(1));
+
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+
+      testWidgets('the apps open it as the room', (tester) async {
+        CaptureProtection.debugPlatformProtectsOverride = true;
+        await tester.pumpWidget(host('r1'));
+        await tester.pump();
+        await deliverRooms(tester, [
+          {..._roomWire('r1'), 'type': 'secret'},
+        ]);
+
+        expect(find.byType(SecretRoomGate), findsNothing);
+        expect(find.text('The Room'), findsAtLeastNWidgets(1));
+
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
     });
   });
 

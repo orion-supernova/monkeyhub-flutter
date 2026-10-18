@@ -23347,66 +23347,6 @@ abstract class AppLocalizations {
   /// **'Spoiler. Tap to reveal'**
   String get mediaSpoilerRevealSemanticLabel;
 
-  /// Title of the ephemeral-room welcome card that replaces 'No Capture' on the web and Linux, where the app cannot block screenshots. Title Case like 'No Capture'. Short: it sits in a half-width card.
-  ///
-  /// In en, this message translates to:
-  /// **'Capture Possible'**
-  String get roomScreenCaptureOpenTitle;
-
-  /// Subtitle of that card: the MonkeyHub apps (iPhone, Android, Mac, Windows) are where screenshots are blocked. Title Case like 'Screenshots Restricted'. Short.
-  ///
-  /// In en, this message translates to:
-  /// **'Blocked in Our Apps'**
-  String get roomScreenCaptureOpenSubtitle;
-
-  /// Title of the alert shown once when an ephemeral (disappearing-messages) room is opened in the browser or on Linux, where the app cannot block screenshots.
-  ///
-  /// In en, this message translates to:
-  /// **'Screenshots aren\'t blocked here'**
-  String get captureNoticeRoomTitle;
-
-  /// Body of that alert. Says honestly that this device can't block capture and points to the apps that can. Keep the platform names as product names.
-  ///
-  /// In en, this message translates to:
-  /// **'This device can\'t stop screenshots or screen recordings, so anything in this room can be captured here. The MonkeyHub app for iPhone, Android, Mac and Windows blocks them.'**
-  String get captureNoticeRoomBody;
-
-  /// Title of the alert shown before a view-once photo, voice or video note opens in the browser or on Linux, where it can be screenshotted.
-  ///
-  /// In en, this message translates to:
-  /// **'This can be captured here'**
-  String get captureNoticeViewOnceTitle;
-
-  /// Body of that alert. The reader gets one view no matter where it is opened, so they can choose to open it in an app that blocks capture instead.
-  ///
-  /// In en, this message translates to:
-  /// **'This device can\'t block screenshots, so whatever you open here can be saved. In the MonkeyHub app for iPhone, Android, Mac or Windows it can\'t. You get one view wherever you open it.'**
-  String get captureNoticeViewOnceBody;
-
-  /// Button: opens the MonkeyHub download page.
-  ///
-  /// In en, this message translates to:
-  /// **'Get the app'**
-  String get captureNoticeGetApp;
-
-  /// Button dismissing the ephemeral-room capture alert.
-  ///
-  /// In en, this message translates to:
-  /// **'Got it'**
-  String get captureNoticeGotIt;
-
-  /// Button: open the view-once message here despite the warning (spends the one view).
-  ///
-  /// In en, this message translates to:
-  /// **'Open anyway'**
-  String get captureNoticeOpenAnyway;
-
-  /// Button: don't open the view-once message now (the view is not spent).
-  ///
-  /// In en, this message translates to:
-  /// **'Not now'**
-  String get captureNoticeNotNow;
-
   /// Accessibility label of the small button beside a voice message's waveform that opens its on-device transcript.
   ///
   /// In en, this message translates to:
@@ -23550,6 +23490,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not now'**
   String get voiceTranscriptNotNow;
+
+  /// Button on the 'opens in the app' sheet and page shown on the web and Linux, where the app cannot block screenshots. Opens the MonkeyHub download page.
+  ///
+  /// In en, this message translates to:
+  /// **'Get the app'**
+  String get appOnlyGetApp;
+
+  /// Caption under a QR code (desktop browser and Linux) that leads to the MonkeyHub download page.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with your phone to get the app'**
+  String get appOnlyScanHint;
+
+  /// Row on the 'opens in the app' sheet: the MonkeyHub apps block screenshots and screen recordings. A plain fact, sentence case.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots and screen recordings are blocked in the app'**
+  String get appOnlyBlockedInApp;
+
+  /// Title of the sheet shown on the web and Linux when someone taps a view once photo, voice or video message. These platforms cannot block screenshots, so view once messages do not open there at all.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens in the app'**
+  String get appOnlyViewOnceTitle;
+
+  /// Body of that sheet. {platform} is 'web' (a browser) or 'linux'. Each branch is a full sentence pair: why it doesn't open here, then where it does. Keep Mac, Windows and MonkeyHub as product names.
+  ///
+  /// In en, this message translates to:
+  /// **'{platform, select, web{Your browser can\'t block screenshots, so view once messages don\'t open here. Open it in MonkeyHub on your phone, or on a Mac or Windows computer.} other{Linux can\'t block screenshots, so view once messages don\'t open here. Open it in MonkeyHub on your phone, or on a Mac or Windows computer.}}'**
+  String appOnlyViewOnceBody(String platform);
+
+  /// Row on that sheet: opening is refused here, so the one look is not spent and the message stays sealed.
+  ///
+  /// In en, this message translates to:
+  /// **'It stays sealed until you open it'**
+  String get appOnlyViewOnceSealed;
+
+  /// Headline of the page shown instead of a secret (disappearing-messages) room on the web and Linux, which cannot block screenshots, so these rooms do not open there.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret rooms open in the app'**
+  String get appOnlySecretTitle;
+
+  /// Body of that page. {platform} is 'web' or 'linux'. Each branch is a full sentence pair. Keep Mac, Windows and MonkeyHub as product names.
+  ///
+  /// In en, this message translates to:
+  /// **'{platform, select, web{Your browser can\'t block screenshots, so secret rooms stay closed here and nothing in them loads. Open this one in MonkeyHub on your phone, or on a Mac or Windows computer.} other{Linux can\'t block screenshots, so secret rooms stay closed here and nothing in them loads. Open this one in MonkeyHub on your phone, or on a Mac or Windows computer.}}'**
+  String appOnlySecretBody(String platform);
+
+  /// Row on that page: an honest heads up that the room's messages keep their disappearing timers while unread.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages here still disappear on their timer'**
+  String get appOnlySecretTimers;
+
+  /// Chat list preview line for a secret room on the web and Linux, in place of the last message, which is not shown there.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in the app to read'**
+  String get appOnlySecretPreview;
+
+  /// Title of the sheet shown in a browser when someone taps the transcript button on a voice message. Transcripts are made on the device and a browser cannot do that.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcripts'**
+  String get appOnlyTranscriptTitle;
+
+  /// Body of that sheet: transcripts are made privately on the device, so they are in the phone and computer apps, not the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub turns voice messages into text on your own device, not on a server. A browser can\'t do that, so transcripts are in the app on your phone or computer.'**
+  String get appOnlyTranscriptBody;
+
+  /// Row on that sheet: transcripts are made on the user's own device.
+  ///
+  /// In en, this message translates to:
+  /// **'Made right on your device'**
+  String get appOnlyTranscriptOnDevice;
+
+  /// Row on that sheet: no audio is uploaded anywhere for transcription.
+  ///
+  /// In en, this message translates to:
+  /// **'No audio is sent anywhere to be transcribed'**
+  String get appOnlyTranscriptNoUpload;
+
+  /// Row on that sheet: transcripts work offline once the speech model is set up.
+  ///
+  /// In en, this message translates to:
+  /// **'Works offline once it\'s set up'**
+  String get appOnlyTranscriptOffline;
 }
 
 class _AppLocalizationsDelegate

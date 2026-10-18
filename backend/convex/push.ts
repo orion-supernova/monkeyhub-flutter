@@ -87,7 +87,52 @@ export type AlertSpec = {
   threadId?: string;
   /** messageId/callId — replaces an already-displayed notification. */
   collapseId?: string;
+  /**
+   * The push belongs to a secret room. A browser cannot block a screenshot,
+   * so the app never opens a secret room there (lib/privacy/app_only.dart),
+   * and a web notification must not show what the room would not. Web gets
+   * [webSafeSpec]; the apps, which block capture, get the text as before.
+   */
+  secretRoom?: boolean;
 };
+
+/**
+ * What a web notification says in place of a secret room's message. The
+ * same words as the chat list's preview there (`appOnlySecretPreview` in the
+ * app's ARB files), in the device's own language.
+ */
+const SECRET_PREVIEW: Record<string, string> = {
+  en: "Open in the app to read",
+  tr: "Okumak için uygulamada aç",
+  es: "Ábrela en la app para leer",
+  fr: "Ouvre l'appli pour lire",
+  pt: "Abre na app para ler",
+  "pt-br": "Abra no app para ler",
+  sv: "Öppna i appen för att läsa",
+  ar: "افتح التطبيق للقراءة",
+  hi: "पढ़ने के लिए ऐप में खोलें",
+  ja: "アプリで開いて読む",
+  ko: "앱에서 열어 읽기",
+  zh: "在应用中打开阅读",
+};
+
+export function secretPreviewFor(tag: string | undefined): string {
+  const norm = (tag ?? "en").toLowerCase().replace("_", "-");
+  return SECRET_PREVIEW[norm] ?? SECRET_PREVIEW[norm.split("-")[0]] ?? SECRET_PREVIEW.en;
+}
+
+/**
+ * [spec] with every word of the room's content taken out: the body becomes
+ * [secretPreviewFor], and the `data` keys that carry the message (`content`,
+ * and `plain`, which would let a client seed a bubble from the push) are
+ * dropped. Who sent it, which room, and the routing keys stay, so the tap
+ * still lands on the room, where the app explains itself.
+ */
+export function webSafeSpec(spec: AlertSpec, locale: string | undefined): AlertSpec {
+  if (!spec.secretRoom) return spec;
+  const { content: _c, plain: _p, body: _b, ...data } = spec.data;
+  return { ...spec, body: secretPreviewFor(locale), data };
+}
 
 /**
  * How long the transport should keep trying, per kind.
@@ -297,6 +342,8 @@ type AlertTarget = {
   lastReadAt: number;
   /** Room mute, resolved at query time. False whenever there is no room. */
   mutesNotifications: boolean;
+  /** The room is a secret room — see `AlertSpec.secretRoom`. */
+  secretRoom: boolean;
 };
 
 /**
@@ -321,6 +368,12 @@ export const _loadAlertTargets = internalQuery({
   },
   handler: async (ctx, { userIds, roomId }): Promise<AlertTarget[]> => {
     const out: AlertTarget[] = [];
+    // One read for the whole batch. Decided here, at the choke point, rather
+    // than by each sender, so no push that names a room (a message, a
+    // reaction, a mention, anything added later) can forget it.
+    const secretRoom = roomId
+      ? (await ctx.db.get(roomId))?.type === "secret"
+      : false;
     for (const userId of userIds) {
       const rows = await ctx.db
         .query("userDevices")
@@ -373,7 +426,14 @@ export const _loadAlertTargets = internalQuery({
         // mute columns too, so the gate below costs no extra read.
         mutesNotifications = resolveMute(m, Date.now()).notifications;
       }
-      out.push({ userId, devices, badge: total, lastReadAt, mutesNotifications });
+      out.push({
+        userId,
+        devices,
+        badge: total,
+        lastReadAt,
+        mutesNotifications,
+        secretRoom,
+      });
     }
     return out;
   },
@@ -449,6 +509,7 @@ export const sendAlert = internalAction({
           badge: t.badge,
           threadId: a.roomId?.toString(),
           collapseId: a.collapseId,
+          ...(t.secretRoom ? { secretRoom: true } : {}),
         };
         // The delivery proof this recipient's phone posts back on arrival —
         // the second tick without the app having to be opened. Per recipient
@@ -642,7 +703,7 @@ async function alertToDevice(
         endpoint: d.web.endpoint,
         p256dh: d.web.p256dh,
         auth: d.web.auth,
-        payload: buildWebPushPayload(spec),
+        payload: buildWebPushPayload(webSafeSpec(spec, d.locale)),
         ttlSeconds: ttl,
         // Everything that reaches here is user-visible by definition, which
         // is also what `userVisibleOnly` obliges us to deliver promptly.

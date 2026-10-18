@@ -13243,38 +13243,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => '剧透。点按显示';
 
   @override
-  String get roomScreenCaptureOpenTitle => '可被截屏';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => '应用内已禁止';
-
-  @override
-  String get captureNoticeRoomTitle => '此处无法阻止截屏';
-
-  @override
-  String get captureNoticeRoomBody =>
-      '此设备无法阻止截屏或录屏，因此这个房间里的任何内容都可能在这里被截取。适用于 iPhone、Android、Mac 和 Windows 的 MonkeyHub 应用可以阻止。';
-
-  @override
-  String get captureNoticeViewOnceTitle => '在这里可能被截取';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      '此设备无法阻止截屏，因此你在这里打开的内容可能被保存。在适用于 iPhone、Android、Mac 或 Windows 的 MonkeyHub 应用中则无法保存。无论在哪里打开，你都只能查看一次。';
-
-  @override
-  String get captureNoticeGetApp => '获取应用';
-
-  @override
-  String get captureNoticeGotIt => '知道了';
-
-  @override
-  String get captureNoticeOpenAnyway => '仍然打开';
-
-  @override
-  String get captureNoticeNotNow => '暂不';
-
-  @override
   String get voiceTranscriptShow => '显示转写文字';
 
   @override
@@ -13359,4 +13327,66 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => '暂不';
+
+  @override
+  String get appOnlyGetApp => '获取应用';
+
+  @override
+  String get appOnlyScanHint => '用手机扫码获取应用';
+
+  @override
+  String get appOnlyBlockedInApp => '在应用中，截屏和录屏都会被阻止';
+
+  @override
+  String get appOnlyViewOnceTitle => '在应用中打开';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          '浏览器无法阻止截屏，所以阅后即焚消息不会在这里打开。请在手机上的 MonkeyHub 中打开，或在 Mac 或 Windows 电脑上打开。',
+      'other':
+          'Linux 无法阻止截屏，所以阅后即焚消息不会在这里打开。请在手机上的 MonkeyHub 中打开，或在 Mac 或 Windows 电脑上打开。',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => '在你打开之前，它会一直保持密封';
+
+  @override
+  String get appOnlySecretTitle => '秘密房间在应用中打开';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          '浏览器无法阻止截屏，所以秘密房间在这里保持关闭，里面的内容都不会加载。请在手机上的 MonkeyHub 中打开，或在 Mac 或 Windows 电脑上打开。',
+      'other':
+          'Linux 无法阻止截屏，所以秘密房间在这里保持关闭，里面的内容都不会加载。请在手机上的 MonkeyHub 中打开，或在 Mac 或 Windows 电脑上打开。',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers => '这里的消息仍会按时消失';
+
+  @override
+  String get appOnlySecretPreview => '在应用中打开阅读';
+
+  @override
+  String get appOnlyTranscriptTitle => '语音转文字';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'MonkeyHub 在你自己的设备上把语音消息转成文字，而不是在服务器上。浏览器做不到这一点，所以转写功能在手机或电脑上的应用里。';
+
+  @override
+  String get appOnlyTranscriptOnDevice => '直接在你的设备上完成';
+
+  @override
+  String get appOnlyTranscriptNoUpload => '转写时不会把任何音频发送出去';
+
+  @override
+  String get appOnlyTranscriptOffline => '设置好后可离线使用';
 }

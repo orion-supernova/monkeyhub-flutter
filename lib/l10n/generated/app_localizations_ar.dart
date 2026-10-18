@@ -14174,38 +14174,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mediaSpoilerRevealSemanticLabel => 'سبويلر. المس للإظهار';
 
   @override
-  String get roomScreenCaptureOpenTitle => 'الالتقاط ممكن';
-
-  @override
-  String get roomScreenCaptureOpenSubtitle => 'محظور في تطبيقاتنا';
-
-  @override
-  String get captureNoticeRoomTitle => 'لقطات الشاشة غير محظورة هنا';
-
-  @override
-  String get captureNoticeRoomBody =>
-      'لا يستطيع هذا الجهاز منع لقطات الشاشة أو تسجيلها، لذا يمكن التقاط أي شيء في هذه الغرفة هنا. تطبيق MonkeyHub على iPhone وAndroid وMac وWindows يمنعها.';
-
-  @override
-  String get captureNoticeViewOnceTitle => 'يمكن التقاط هذا هنا';
-
-  @override
-  String get captureNoticeViewOnceBody =>
-      'لا يستطيع هذا الجهاز منع لقطات الشاشة، لذا يمكن حفظ ما تفتحه هنا. أما في تطبيق MonkeyHub على iPhone أو Android أو Mac أو Windows فلا يمكن ذلك. لديك مشاهدة واحدة فقط أينما فتحته.';
-
-  @override
-  String get captureNoticeGetApp => 'احصل على التطبيق';
-
-  @override
-  String get captureNoticeGotIt => 'حسنًا';
-
-  @override
-  String get captureNoticeOpenAnyway => 'افتح على أي حال';
-
-  @override
-  String get captureNoticeNotNow => 'ليس الآن';
-
-  @override
   String get voiceTranscriptShow => 'عرض النص';
 
   @override
@@ -14291,4 +14259,67 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get voiceTranscriptNotNow => 'ليس الآن';
+
+  @override
+  String get appOnlyGetApp => 'احصل على التطبيق';
+
+  @override
+  String get appOnlyScanHint => 'امسح الرمز بهاتفك للحصول على التطبيق';
+
+  @override
+  String get appOnlyBlockedInApp => 'لقطات الشاشة وتسجيلها محظورة في التطبيق';
+
+  @override
+  String get appOnlyViewOnceTitle => 'تُفتح في التطبيق';
+
+  @override
+  String appOnlyViewOnceBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'لا يستطيع متصفحك منع لقطات الشاشة، لذا لا تُفتح رسائل المشاهدة الواحدة هنا. افتحها في MonkeyHub على هاتفك، أو على كمبيوتر Mac أو Windows.',
+      'other':
+          'لا يستطيع Linux منع لقطات الشاشة، لذا لا تُفتح رسائل المشاهدة الواحدة هنا. افتحها في MonkeyHub على هاتفك، أو على كمبيوتر Mac أو Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyViewOnceSealed => 'تبقى مختومة حتى تفتحها';
+
+  @override
+  String get appOnlySecretTitle => 'الغرف السرية تُفتح في التطبيق';
+
+  @override
+  String appOnlySecretBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'لا يستطيع متصفحك منع لقطات الشاشة، لذا تبقى الغرف السرية مغلقة هنا ولا يُحمَّل منها شيء. افتح هذه الغرفة في MonkeyHub على هاتفك، أو على كمبيوتر Mac أو Windows.',
+      'other':
+          'لا يستطيع Linux منع لقطات الشاشة، لذا تبقى الغرف السرية مغلقة هنا ولا يُحمَّل منها شيء. افتح هذه الغرفة في MonkeyHub على هاتفك، أو على كمبيوتر Mac أو Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlySecretTimers => 'الرسائل هنا تختفي في موعدها رغم ذلك';
+
+  @override
+  String get appOnlySecretPreview => 'افتح التطبيق للقراءة';
+
+  @override
+  String get appOnlyTranscriptTitle => 'النصوص';
+
+  @override
+  String get appOnlyTranscriptBody =>
+      'يحوّل MonkeyHub الرسائل الصوتية إلى نص على جهازك أنت، لا على خادم. لا يستطيع المتصفح فعل ذلك، لذا النصوص متاحة في التطبيق على هاتفك أو كمبيوترك.';
+
+  @override
+  String get appOnlyTranscriptOnDevice => 'تُنشأ على جهازك مباشرة';
+
+  @override
+  String get appOnlyTranscriptNoUpload =>
+      'لا يُرسل أي صوت إلى أي مكان لتحويله إلى نص';
+
+  @override
+  String get appOnlyTranscriptOffline => 'يعمل دون اتصال بعد إعداده';
 }

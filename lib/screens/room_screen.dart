@@ -59,7 +59,7 @@ import '../widgets/inline_photo_picker.dart';
 import '../media/photo_picking.dart';
 import '../media/view_once_fetch.dart';
 import '../media/view_once_media.dart';
-import '../privacy/capture_notice.dart';
+import '../privacy/app_only.dart';
 import '../privacy/capture_protection.dart';
 import '../services/live_location_permission.dart';
 import '../services/live_location_platform.dart';
@@ -193,7 +193,7 @@ void _roomBack(BuildContext context) {
   }
 }
 
-class RoomScreen extends StatefulWidget {
+class RoomScreen extends StatelessWidget {
   const RoomScreen({
     super.key,
     required this.roomId,
@@ -213,10 +213,100 @@ class RoomScreen extends StatefulWidget {
   final bool inShellPane;
 
   @override
-  State<RoomScreen> createState() => _RoomScreenState();
+  Widget build(BuildContext context) {
+    final view = _RoomView(
+      roomId: roomId,
+      repo: repo,
+      api: api,
+      inShellPane: inShellPane,
+    );
+    // Every app blocks capture, so a secret room is simply the room.
+    if (!AppOnly.gatesCapture) return view;
+    // The browser and Linux can't, so a secret room does not open there. The
+    // room is not mounted until its type is known: mounting it to find out
+    // would fetch the very messages this keeps off the device. `view` is the
+    // builder's child, so a repo notification rebuilds only this decision.
+    return ListenableBuilder(
+      listenable: repo,
+      child: view,
+      builder: (context, view) {
+        final room = repo.roomById(roomId);
+        if (room == null) return _roomPending(context, repo);
+        if (room.isEphemeral) {
+          return SecretRoomGate(room: room, repo: repo, inShellPane: inShellPane);
+        }
+        return view!;
+      },
+    );
+  }
 }
 
-class _RoomScreenState extends State<RoomScreen>
+/// A room that is not in the list: not arrived yet, or gone.
+Widget _roomPending(BuildContext context, ChatRepository repo) {
+  final theme = ThemeScope.of(context);
+  // Two different things used to come out of this branch as one sentence.
+  // A room that has been deleted is not in the list; neither is a room the
+  // list has not arrived for yet — and telling somebody their conversation
+  // is gone because their phone has not finished waking up is the worse of
+  // the two mistakes by a long way.
+  //
+  // The notification tap is where it showed. `_openRoomFromPush` waits for
+  // the session and the navigator and nothing else (see `app.dart`), and
+  // `_bootstrap` deliberately mounts the UI early "in <150ms from local
+  // cache" — so this screen is built, scans a `_rooms` that is still empty,
+  // and prints an epitaph for the conversation the reader just tapped a
+  // notification from. A list tap never showed it: you cannot tap a row
+  // that is not in the list.
+  //
+  // Gated on the STRONG flag, not `roomsLoaded`, and that is the whole
+  // point rather than caution. `roomsLoaded` is satisfied by the disk
+  // snapshot, and the sharpest case here — a group somebody added you to
+  // an hour ago, a first DM — is exactly a room that snapshot cannot
+  // contain. See [ChatRepository.hasLiveRoomList].
+  return Scaffold(
+    backgroundColor: theme.background,
+    body: PendingPlaceholder(
+      pending: !repo.hasLiveRoomList,
+      // The transcript's own silhouette, for the reason the empty-room
+      // branch further down gives: it says "your conversation is coming,
+      // and it will be about here" rather than "something is happening",
+      // and it occupies the space the answer will, so the screen settles
+      // once instead of jumping.
+      loading: (context) => const Padding(
+        padding: EdgeInsets.fromLTRB(16, 24, 16, 24),
+        child: SkeletonBubbles(),
+      ),
+      // Reached either because the server's list genuinely does not have
+      // this room, or because `PendingPlaceholder` gave up waiting — which
+      // is the offline case, and which it is right to end on rather than
+      // shimmer forever. See its own doc for that bargain.
+      empty: (context) => Center(
+        child: Text(
+          AppLocalizations.of(context).roomScreenRoomGone,
+          style: theme.bodySoft,
+        ),
+      ),
+    ),
+  );
+}
+
+class _RoomView extends StatefulWidget {
+  const _RoomView({
+    required this.roomId,
+    required this.repo,
+    required this.api,
+    required this.inShellPane,
+  });
+  final String roomId;
+  final ChatRepository repo;
+  final ChatApi api;
+  final bool inShellPane;
+
+  @override
+  State<_RoomView> createState() => _RoomScreenState();
+}
+
+class _RoomScreenState extends State<_RoomView>
     with TickerProviderStateMixin {
   late Timer _ticker;
 
@@ -769,13 +859,6 @@ class _RoomScreenState extends State<RoomScreen>
     // CaptureProtection defers its listener notification internally, so
     // calling this from initState / _onRepoChange / dispose is safe.
     CaptureProtection.instance.pushScope();
-    // Where the scope can't actually block anything, say so instead. After
-    // the frame: this runs from initState, too early for a dialog.
-    if (!CaptureProtection.platformProtects) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(CaptureNotice.warnRoomOnce(context, room.id));
-      });
-    }
   }
 
   /// Whether [m] must keep its own row — never folded into a chip.
@@ -4141,7 +4224,7 @@ class _RoomScreenState extends State<RoomScreen>
   Future<Uint8List?> _openViewOnce(ChatMessage m) async {
     final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
-    if (!await CaptureNotice.confirmViewOnce(context)) return null;
+    if (!await AppOnly.confirmViewOnce(context)) return null;
     final res = await fetchViewOnce(
       repo: widget.repo,
       roomId: widget.roomId,
@@ -5208,52 +5291,7 @@ class _RoomScreenState extends State<RoomScreen>
     // exactly its place and nothing above the two moves when they swap.
     _expressions.noteKeyboardInset(MediaQuery.viewInsetsOf(context).bottom);
     final room = _room ?? widget.repo.roomById(widget.roomId);
-    if (room == null) {
-      // Two different things used to come out of this branch as one sentence.
-      // A room that has been deleted is not in the list; neither is a room the
-      // list has not arrived for yet — and telling somebody their conversation
-      // is gone because their phone has not finished waking up is the worse of
-      // the two mistakes by a long way.
-      //
-      // The notification tap is where it showed. `_openRoomFromPush` waits for
-      // the session and the navigator and nothing else (see `app.dart`), and
-      // `_bootstrap` deliberately mounts the UI early "in <150ms from local
-      // cache" — so this screen is built, scans a `_rooms` that is still empty,
-      // and prints an epitaph for the conversation the reader just tapped a
-      // notification from. A list tap never showed it: you cannot tap a row
-      // that is not in the list.
-      //
-      // Gated on the STRONG flag, not `roomsLoaded`, and that is the whole
-      // point rather than caution. `roomsLoaded` is satisfied by the disk
-      // snapshot, and the sharpest case here — a group somebody added you to
-      // an hour ago, a first DM — is exactly a room that snapshot cannot
-      // contain. See [ChatRepository.hasLiveRoomList].
-      return Scaffold(
-        backgroundColor: theme.background,
-        body: PendingPlaceholder(
-          pending: !widget.repo.hasLiveRoomList,
-          // The transcript's own silhouette, for the reason the empty-room
-          // branch further down gives: it says "your conversation is coming,
-          // and it will be about here" rather than "something is happening",
-          // and it occupies the space the answer will, so the screen settles
-          // once instead of jumping.
-          loading: (context) => const Padding(
-            padding: EdgeInsets.fromLTRB(16, 24, 16, 24),
-            child: SkeletonBubbles(),
-          ),
-          // Reached either because the server's list genuinely does not have
-          // this room, or because `PendingPlaceholder` gave up waiting — which
-          // is the offline case, and which it is right to end on rather than
-          // shimmer forever. See its own doc for that bargain.
-          empty: (context) => Center(
-            child: Text(
-              AppLocalizations.of(context).roomScreenRoomGone,
-              style: theme.bodySoft,
-            ),
-          ),
-        ),
-      );
-    }
+    if (room == null) return _roomPending(context, widget.repo);
     // timelineFor, not messagesFor: after a jump into old history the
     // transcript renders a detached window of it until the reader scrolls
     // back down to the present. Everything else — threads, receipts, the
@@ -7967,19 +8005,14 @@ class _SecretSpaceWelcome extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          // Only where the platform can block capture; the
-                          // browser and Linux say plainly that it can't.
-                          child: CaptureProtection.platformProtects
-                              ? _PrivateFeatureCard(
-                                  icon: CupertinoIcons.hand_raised_fill,
-                                  title: AppLocalizations.of(context).roomScreenNoCaptureTitle,
-                                  subtitle: AppLocalizations.of(context).roomScreenNoCaptureSubtitle,
-                                )
-                              : _PrivateFeatureCard(
-                                  icon: CupertinoIcons.eye,
-                                  title: AppLocalizations.of(context).roomScreenCaptureOpenTitle,
-                                  subtitle: AppLocalizations.of(context).roomScreenCaptureOpenSubtitle,
-                                ),
+                          // True wherever this renders: a platform that can't
+                          // block capture never opens a secret room (see
+                          // SecretRoomGate).
+                          child: _PrivateFeatureCard(
+                            icon: CupertinoIcons.hand_raised_fill,
+                            title: AppLocalizations.of(context).roomScreenNoCaptureTitle,
+                            subtitle: AppLocalizations.of(context).roomScreenNoCaptureSubtitle,
+                          ),
                         ),
                       ],
                     ),
